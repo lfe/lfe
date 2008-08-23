@@ -1,0 +1,148 @@
+2008-06-18    <GameStudio@DOUGLAS>
+
+	* All files: Released LFE 0.2.1.
+
+2008-06-14    <GameStudio@DOUGLAS>
+
+	* lfe_comp.erl (c_primop): Added c_primop to make #c_primop{}.
+
+2008-06-10    <GameStudio@DOUGLAS>
+
+	* lfe_macro.erl (default1): Now use (?= pat exp) and (?= pat guard
+	exp) to match and export pattern variables in cond.
+	(lc_tq, bc_tq): Now use (?= pat exp) and (?= pat guard exp) to
+	test and export pattern variables in list/binary comprehensions.
+
+	* lfe_eval.erl (match): Binaries may also match bitstrings, they
+	refer to binaries and bitstrings.
+
+2008-06-07    <GameStudio@DOUGLAS>
+
+	* lfe_comp.erl (comp_func): Generalised, and now called by
+	comp_define.
+	(func_arity): Used to simplfy tests for arity.
+
+2008-05-22    <GameStudio@DOUGLAS>
+
+	* lfe_lib.erl (proc_forms): Return forms in order.
+
+2008-05-17    <GameStudio@DOUGLAS>
+
+	* lfe_comp.erl (collect_mdef): 
+	* lfe_lint.erl (check_mdef): Added general attributes.
+
+2008-05-13    <GameStudio@DOUGLAS>
+
+	* lfe_macro.erl (lc_tq): Added list comprehensions as macros.
+
+2008-05-10    <GameStudio@DOUGLAS>
+
+	* lfe_macro.erl (default1): Added (match Pat Exp) and (match Pat
+	Guard Exp) case to cond which succeeds if pattern matches *and*
+	makes pattern variables available in body. Trivial code. Bad
+	name??
+
+2008-05-04    <GameStudio@DOUGLAS>
+
+	* lfe_comp.erl (filenames): Output now goes default to current
+	directory, redirect with {outdir,Dir} option.
+
+2008-04-25    <GameStudio@DOUGLAS>
+
+	* All files: Released LFE 0.2.
+
+2008-04-20    <GameStudio@DOUGLAS>
+
+	* lfe_shell.erl (eval_internal): Added shell functions to compile
+	files and load modules.
+
+2008-04-14    <GameStudio@DOUGLAS>
+
+	* lfe_lint.erl (check_alias): Check aliases in lint but more
+	restrictive than is possible in compiler, and it generates an
+	error!
+
+	* lfe_comp.erl (comp_let): Fixed handling of guards in let.
+
+2008-04-13    <GameStudio@DOUGLAS>
+
+	* lfe_eval.erl (match): 
+	* lfe_lint.erl (check_pat): 
+	* lfe_comp.erl (comp_pat): Added aliases (= pat1 pat2). Known bug:
+	compiler bombs if it detects mismatch.
+
+2008-04-12    <GameStudio@DOUGLAS>
+
+	* <All files>: Added Copyright notice. Using simpplified BSD
+	copyright smae as FreeBSD.
+
+2008-04-09    <GameStudio@DOUGLAS>
+	
+	* lfe_macro.erl: 
+	* lfe_lib.erl: 
+	* lfe_lint.erl: 
+	* lfe_comp.erl: Added flet, with normal scoping of functions, and
+	renamed letrec to fletrec for consistency.
+
+2008-04-06    <GameStudio@DOUGLAS>
+
+	* lfe_shell.erl (slurp): Load a file into the shell making all
+	functions available to call.
+
+	* lfe_eval.erl (eval_letrec): Correct solution for letrec, bit
+	slow though as it must rebuild env for each call, but not too bad
+	reall.
+
+2008-04-01    <GameStudio@DOUGLAS>
+
+	* lfe_eval.erl (eval_letrec): Maybe have solution for letrec, uses
+	dynamic binding for recursive call within functions.
+	(eval_binary, match_binary): Added code for evaluating and
+	matching binaries. Taken from eval_bits.erl in standard
+	distribution.
+
+2008-03-29    <GameStudio@DOUGLAS>
+
+	* lfe_eval.erl (eval_try): Can now eval try. Needs to be cleaned
+	up a bit though.
+
+	* lfe_macro.erl (expand_forms): Added new two pass macro
+	processing with a macro pass and an expansion pass.
+
+	* lfe_comp.erl: 
+	  lfe_lint.erl: Use proc_forms for collecting, nested safe.
+
+	* lfe_lib.erl (proc_forms): Process (begin ...) nested forms.
+
+2008-03-25    <GameStudio@DOUGLAS>
+
+	* lfe_macro.erl (default1): Just does top-level expansion of a
+	default macro.
+	(expand_macro): Added for testing macros.
+
+2008-03-06    <GameStudio@DOUGLAS>
+
+	* lfe_eval.erl (eval_lambda, eval_match_lambda): 
+
+	Fixed bug in handling of funs, they were attuned only to evals
+	calls not to general usage. They now handle arguments correctly.
+
+	* lfe_macro.erl (expand_clause): Added macro expansion of patterns.
+
+	* lfe_comp.erl (pat_symb)
+	  lfe_lint.erl (pat_symb)
+	  lfe_eval.erl (match_symb): Added _ don't care variable to patterns.
+	  
+2008-03-05    <GameStudio@DOUGLAS>
+
+	* lfe_macro.erl (match): Uses match/3 from lfe_eval.
+
+	* lfe_eval.erl (match): Uses orddict for bindings.
+
+	* lfe_macro.erl (match): Fixed return type error for orddict:find.
+	(def_record): Use pre-defined test is_record/3 for is-REC macro.
+
+2008-03-02    <GameStudio@DOUGLAS>
+
+	* LFE 0.1.zip: First release of LFE.
+

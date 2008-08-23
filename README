@@ -1,0 +1,3 @@
+I have finally released LFE, Lisp Flavoured Erlang, which is a lisp
+syntax front-end to the Erlang compiler. Code produced with it is
+compatible with "normal" Erlang code.
