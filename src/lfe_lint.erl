@@ -116,11 +116,10 @@ collect_form(['define-module',Mod|Mdef], L, St) when is_atom(Mod) ->
 collect_form(_, L, #lint{module=[]}=St) ->
     %% Set module name so this only triggers once.
     {[],add_error(L, bad_module_def, St#lint{module='-no-module-'})};
-collect_form([define,[Func|As]|Body], L, St) when is_atom(Func) ->
-    {[{Func,[lambda,As|Body],L}],St};
-collect_form([define,Func,[lambda|_]=Lambda], L, St) when is_atom(Func) ->
+collect_form(['define-function',Func,[lambda|_]=Lambda], L, St)
+  when is_atom(Func) ->
     {[{Func,Lambda,L}],St};
-collect_form([define,Func,['match-lambda'|_]=Match], L, St)
+collect_form(['define-function',Func,['match-lambda'|_]=Match], L, St)
   when is_atom(Func) ->
     {[{Func,Match,L}],St};
 collect_form(_, L, St) ->
@@ -242,15 +241,15 @@ check_call(['match-lambda'|Match], Env, L, St) ->
     check_match_lambda(Match, Env, L, St);
 check_call(['let'|Let], Env, L, St) ->
     check_let(Let, Env, L, St);
-check_call(['flet'|Flet], Env, L, St) ->
-    check_flet(Flet, Env, L, St);
-check_call(['fletrec'|Fletrec], Env, L, St) ->
-    check_fletrec(Fletrec, Env, L, St);
-check_call(['let-syntax'|_], _, L, St) ->
+check_call(['let-function'|Flet], Env, L, St) ->
+    check_let_function(Flet, Env, L, St);
+check_call(['letrec-function'|Fletrec], Env, L, St) ->
+    check_letrec_function(Fletrec, Env, L, St);
+check_call(['let-macro'|_], _, L, St) ->
     %% This should never occur! Removed by macro expander.
-    bad_form_error(L, 'let-syntax', St);
+    bad_form_error(L, 'let-macro', St);
 %% Check the Core control special forms.
-check_call(['begin'|Body], Env, L, St) ->
+check_call(['progn'|Body], Env, L, St) ->
     check_body(Body, Env, L, St);
 check_call(['if',Test,True,False], Env, L, St) ->
     check_args([Test,True,False], Env, L, St);
@@ -370,41 +369,41 @@ check_let_vb([Pat,Val], Env, L, St0) ->
     check_pat(Pat, Env, L, St1);
 check_let_vb(_, _, L, St) -> {[],bad_form_error(L, 'let', St)}.
 
-%% check_flet(FletBody, Env, Line, State) -> {Env,State}.
-%%  Check a flet form (flet FuncBindings ... ). 
+%% check_let_function(FletBody, Env, Line, State) -> {Env,State}.
+%%  Check a let-function form (let-function FuncBindings ... ). 
 
-check_flet([Fbs0|Body], Env0, L, St0) ->
+check_let_function([Fbs0|Body], Env0, L, St0) ->
     %% Collect correct function definitions.
     Check = fun ([V,['lambda'|_]=Lambda], Fbs, St) when is_atom(V) ->
 		    {[{V,Lambda,L}|Fbs],St};
 		([V,['match-lambda'|_]=Match], Fbs, St) when is_atom(V) ->
 		    {[{V,Match,L}|Fbs],St};
-		(_, Fbs, St) -> {Fbs,bad_form_error(L, flet, St)}
+		(_, Fbs, St) -> {Fbs,bad_form_error(L, 'let-function', St)}
 	    end,
     {Fbs1,St1} = check_foldr(Check, flet, L, St0, [], Fbs0),
     {Fs,Fbs2,St2} = check_fbindings(Fbs1, St1),
     %% Now check function definitions.
     St3 = foldl(fun ({_,[lambda|Lambda],_}, St) ->
 			check_lambda(Lambda, Env0, L, St);
-		    ({_,['match-lambda'|Match],L}, St) ->
+		    ({_,['match-lambda'|Match],_}, St) ->
 			check_match_lambda(Match, Env0, L, St)
 		end, St2, Fbs2),
     %% Add to environment
     Env1 = foldl(fun ({F,A}, Env) -> add_fbinding(F, A, Env) end, Env0, Fs),
     check_body(Body, Env1, L, St3).
 
-%% check_fletrec(FletrecBody, Env, Line, State) -> {Env,State}.
-%%  Check a fletrec form (fletrec FuncBindings ... ). 
+%% check_letrec_function(FletrecBody, Env, Line, State) -> {Env,State}.
+%%  Check a letrec-function form (letrec-function FuncBindings ... ). 
 
-check_fletrec([Fbs0|Body], Env0, L, St0) ->
+check_letrec_function([Fbs0|Body], Env0, L, St0) ->
     %% Collect correct function definitions.
     Check = fun ([V,['lambda'|_]=Lambda], Fbs, St) when is_atom(V) ->
 		    {[{V,Lambda,L}|Fbs],St};
 		([V,['match-lambda'|_]=Match], Fbs, St) when is_atom(V) ->
 		    {[{V,Match,L}|Fbs],St};
-		(_, Fbs, St) -> {Fbs,bad_form_error(L, letrec, St)}
+		(_, Fbs, St) -> {Fbs,bad_form_error(L, 'letrec-function', St)}
 	    end,
-    {Fbs1,St1} = check_foldr(Check, letrec, L, St0, [], Fbs0),
+    {Fbs1,St1} = check_foldr(Check, fletrec, L, St0, [], Fbs0),
     {_,Env1,St2} = check_rec_bindings(Fbs1, Env0, St1),
     check_body(Body, Env1, L, St2).
 

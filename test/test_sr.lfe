@@ -13,10 +13,10 @@
 (define-syntax dodo
   (syntax-rules
     ([((a b c) ...) (t v) e ...]
-     [letrec ((-sune-
-	       (lambda (a ...)
-		 (if t v
-		     (begin e ... (-sune- c ...))))))
+     [fletrec ((-sune-
+		(lambda (a ...)
+		  (if t v
+		      (begin e ... (-sune- c ...))))))
        (-sune- b ...)])))
 
 (define-syntax aaa
@@ -35,9 +35,8 @@
 (define (b x)
   (bbb x y z))
 
-(define-syntax ccc
-  (syntax-rules
-    ([(tuple (a b) ...)] (cons (list a ...) (tuple b ...)))))
+(defsyntax ccc
+  ([(tuple (a b) ...)] (cons (list a ...) (tuple b ...))))  
 
 (define (c x)
   (ccc #((m m1) (n n1) (o o1)))
@@ -47,14 +46,14 @@
 ;;   (case r
 ;;     ((match-point x y) (list x y))))
 
-;; (define (e-1 m)
-;;   (dodo ((i 1 (+ 1 i))
-;; 	 (acc 1 (* acc i)))
-;; 	((> i m) acc)
-;; 	'(i)))
+(define (e-1 m)
+  (dodo ((i 1 (+ 1 i))
+	 (acc 1 (* acc i)))
+	((> i m) acc)
+	'(i)))
 
-;; (define (e-2 m)
-;;   (do ((l m (cdr l))
-;;        (acc 0 (+ acc 1)))
-;;       ((== l ()) acc)
-;;     (list l acc)))
+(define (e-2 m)
+  (do ((l m (cdr l))
+       (acc 0 (+ acc 1)))
+      ((== l ()) acc)
+    (list l acc)))

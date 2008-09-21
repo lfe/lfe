@@ -1,3 +1,24 @@
+2008-09-21    <GameStudio@DOUGLAS>
+
+	* lfe_io.erl: Modified to support new core forms and macros.
+
+	* lfe_shell.erl: Modified to support new core forms and macros.
+
+	* lfe_eval.erl: Modified to support new core forms and macros.
+
+	* lfe_comp.erl: Modified to support new core forms and macros.
+
+	* lfe_lib.erl: Modified to support new core forms and macros.
+
+	* lfe_lint.erl: Modified to support new core forms and macros.
+
+	* lfe_macro.erl: Modified to support new core forms and macros.
+
+2008-08-29    <GameStudio@DOUGLAS>
+
+	* lfe_eval.erl (match_symb): Disallow all multiple occurrences of
+	variables.
+
 2008-06-18    <GameStudio@DOUGLAS>
 
 	* All files: Released LFE 0.2.1.

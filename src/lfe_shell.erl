@@ -199,11 +199,10 @@ slurp([File], Eenv, Benv) ->
 collect_form(['define-module',Mod|Mdef], _, St0) when is_atom(Mod) ->
     St1 = collect_mdef(Mdef, St0),
     {[],St1#slurp{mod=Mod}};
-collect_form([define,[F|As]|Body], _, St) when is_atom(F) ->
-    {[{F,length(As),[lambda,As|Body]}],St};
-collect_form([define,F,[lambda,As|_]=Lambda], _, St) when is_atom(F) ->
+collect_form(['define-function',F,[lambda,As|_]=Lambda], _, St)
+  when is_atom(F) ->
     {[{F,length(As),Lambda}],St};
-collect_form([define,F,['match-lambda',[Pats|_]|_]=Match], _, St)
+collect_form(['define-function',F,['match-lambda',[Pats|_]|_]=Match], _, St)
   when is_atom(F) ->
     {[{F,length(Pats),Match}],St};
 collect_form(_, _, _) ->

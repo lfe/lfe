@@ -78,7 +78,7 @@ file(Name, Opts) ->
     end.
 
 %% filenames(File, Options, State) -> State.
-%%  The default output dir is the current direxctory unless an
+%%  The default output dir is the current directory unless an
 %%  explicit one has been given in the options.
 
 filenames(File, Opts, St0) ->
@@ -161,12 +161,9 @@ forms(Fs0, St0, Os) ->
 collect_form(['define-module',Mod|Mdef], _, St) ->
     %% Everything into State
     {[],collect_mdef(Mdef, St#comp{mod=Mod})};
-collect_form([define,[Name|Args]|Body], L, St) ->
-    %% Must be first to catch correctly! (define (a x y) (lambda( ) ...))
-    {[{Name,[lambda,Args|Body],L}],St};
-collect_form([define,Name,[lambda|_]=Lambda], L, St) ->
+collect_form(['define-function',Name,[lambda|_]=Lambda], L, St) ->
     {[{Name,Lambda,L}],St};
-collect_form([define,Name,['match-lambda'|_]=Match], L, St) ->
+collect_form(['define-function',Name,['match-lambda'|_]=Match], L, St) ->
     {[{Name,Match,L}],St}.
 
 %% collect_props(ModDef, State) -> State.
@@ -326,13 +323,13 @@ comp_call(['match-lambda'|Cls], Env, L, St) ->
     comp_match_lambda(Cls, Env, L, St);
 comp_call(['let',Vbs|Body], Env, L, St) ->
     comp_let(Vbs, Body, Env, L, St);
-comp_call([flet,Fbs|Body], Env, L, St) ->
-    comp_flet(Fbs, Body, Env, L, St);
-comp_call([fletrec,Fbs|Body], Env, L, St) ->
-    comp_fletrec(Fbs, Body, Env, L, St);
+comp_call(['let-function',Fbs|Body], Env, L, St) ->
+    comp_let_function(Fbs, Body, Env, L, St);
+comp_call(['letrec-function',Fbs|Body], Env, L, St) ->
+    comp_letrec_function(Fbs, Body, Env, L, St);
 %% (let-syntax ...) should never be seen here!
 %% Handle the Core control special forms.
-comp_call(['begin'|Body], Env, L, St) ->
+comp_call(['progn'|Body], Env, L, St) ->
     comp_body(Body, Env, L, St);
 comp_call(['if',Test,True], Env, L, St) ->
     comp_if(Test, True, [quote,false], Env, L, St);
@@ -476,12 +473,13 @@ comp_let(Vbs, B, Env, L, St0) ->
 	     St5}
     end.    
 
-%% comp_flet(FuncBindngs, Body, Env, Line, State) -> {#c_letrec{},State}.
+%% comp_let_function(FuncBindngs, Body, Env, Line, State) ->
+%%      {#c_letrec{},State}.
 %%  Compile an flet. This is complicated by the fact that Core only
 %%  has letrec so we have to some name munging of the functions to
 %%  avoid recursive definitions.
 
-comp_flet(Fbs0, B, Env0, L, St0) ->
+comp_let_function(Fbs0, B, Env0, L, St0) ->
     %% Munge names of functions. Don't use new_symb as we want to link
     %% new names to original.
     {Nfbs,St1} = mapfoldl(fun ([Old,Def], S0) ->
@@ -501,9 +499,10 @@ comp_flet(Fbs0, B, Env0, L, St0) ->
 	       defs=Cfs,
 	       body=Cb},St3}.
 
-%% comp_fletrec(FuncBindngs, Body, Env, Line, State) -> {#c_letrec{},State}.
+%% comp_letrec_function(FuncBindngs, Body, Env, Line, State) ->
+%%      {#c_letrec{},State}.
 
-comp_fletrec(Fbs, B, Env0, L, St0) ->
+comp_letrec_function(Fbs, B, Env0, L, St0) ->
     %% Add local functions Env.
     Env1 = foldl(fun ([Name,Def], E) ->
 			 add_fbinding(Name, func_arity(Def), Name, E)

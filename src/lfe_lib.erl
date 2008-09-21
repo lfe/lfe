@@ -206,11 +206,11 @@ is_core_form(binary) -> true;
 is_core_form(lambda) -> true;
 is_core_form('match-lambda') -> true;
 is_core_form('let') -> true;
-is_core_form(flet) -> true;
-is_core_form(fletrec) -> true;
-is_core_form('let-syntax') -> true;
+is_core_form('let-function') -> true;
+is_core_form('letrec-function') -> true;
+is_core_form('let-macro') -> true;
 %% Core control special forms.
-is_core_form('begin') -> true;
+is_core_form('progn') -> true;
 is_core_form('if') -> true;
 is_core_form('case') -> true;
 is_core_form('receive') -> true;
@@ -222,43 +222,43 @@ is_core_form(call) -> true;
 is_core_form(_) -> false.
 
 %% proc_forms(FormFun, Forms, State) -> {Forms,State}.
-%%  Process a (begin ... ) nested list of forms where top level list
+%%  Process a (progn ... ) nested list of forms where top level list
 %%  has elements {Form,LineNumber}. Return a flat list of results and
 %%  passes through State. All the elements are processed left to
 %%  right.
 
 proc_forms(Fun, Fs, St) -> proc_forms(Fun, Fs, [], St).
 
-proc_forms(Fun, [{['begin'|Bs],L}|Fs], Rs0, St0) ->
-    {Rs1,St1} = proc_forms_begin(Fun, Bs, L, Rs0, St0),
+proc_forms(Fun, [{['progn'|Bs],L}|Fs], Rs0, St0) ->
+    {Rs1,St1} = proc_forms_progn(Fun, Bs, L, Rs0, St0),
     proc_forms(Fun, Fs, Rs1, St1);
 proc_forms(Fun, [{F,L}|Fs], Rs, St0) ->
     {Frs,St1} = Fun(F, L, St0),
     proc_forms(Fun, Fs, reverse(Frs, Rs), St1);
 proc_forms(_, [], Rs, St) -> {reverse(Rs),St}.
 
-proc_forms_begin(Fun, [['begin'|Bbs]|Bs], L, Rs0, St0) ->
-    {Rs1,St1} = proc_forms_begin(Fun, Bbs, L, Rs0, St0),
-    proc_forms_begin(Fun, Bs, L, Rs1, St1);
-proc_forms_begin(Fun, [B|Bs], L, Rs, St0) ->
+proc_forms_progn(Fun, [['progn'|Bbs]|Bs], L, Rs0, St0) ->
+    {Rs1,St1} = proc_forms_progn(Fun, Bbs, L, Rs0, St0),
+    proc_forms_progn(Fun, Bs, L, Rs1, St1);
+proc_forms_progn(Fun, [B|Bs], L, Rs, St0) ->
     {Frs,St1} = Fun(B, L, St0),
-    proc_forms_begin(Fun, Bs, L, reverse(Frs, Rs), St1);
-proc_forms_begin(_, [], _, Rs, St) ->
+    proc_forms_progn(Fun, Bs, L, reverse(Frs, Rs), St1);
+proc_forms_progn(_, [], _, Rs, St) ->
     {Rs,St}.
 
-%% proc_forms(Fun, [{['begin'|Bs],L}|Fs], Rs, St) ->
-%%     proc_forms_begin(Fun, Bs, L, [], Fs, Rs, St);
+%% proc_forms(Fun, [{['progn'|Bs],L}|Fs], Rs, St) ->
+%%     proc_forms_progn(Fun, Bs, L, [], Fs, Rs, St);
 %% proc_forms(Fun, [{F,L}|Fs], Rs, St0) ->
 %%     {Frs,St1} = Fun(F, L, St0),
 %%     proc_forms(Fun, Fs, reverse(Frs, Rs), St1);
 %% proc_forms(_, [], Rs, St) -> {reverse(Rs),St}.
 
-%% proc_forms_begin(Fun, [['begin'|Bs1]|Bs], L, Bss, Fs, Rs, St) ->
-%%     proc_forms_begin(Fun, Bs1, L, [Bs|Bss], Fs, Rs, St);
-%% proc_forms_begin(Fun, [B|Bs], L, Bss, Fs, Rs, St0) ->
+%% proc_forms_progn(Fun, [['progn'|Bs1]|Bs], L, Bss, Fs, Rs, St) ->
+%%     proc_forms_progn(Fun, Bs1, L, [Bs|Bss], Fs, Rs, St);
+%% proc_forms_progn(Fun, [B|Bs], L, Bss, Fs, Rs, St0) ->
 %%     {Frs,St1} = Fun(B, L, St0),
-%%     proc_forms_begin(Fun, Bs, L, Bss, Fs, reverse(Frs, Rs), St1);
-%% proc_forms_begin(Fun, [], L, [Bs|Bss], Fs, Rs, St) ->
-%%     proc_forms_begin(Fun, Bs, L, Bss, Fs, Rs, St);
-%% proc_forms_begin(Fun, [], _, [], Fs, Rs, St) ->
+%%     proc_forms_progn(Fun, Bs, L, Bss, Fs, reverse(Frs, Rs), St1);
+%% proc_forms_progn(Fun, [], L, [Bs|Bss], Fs, Rs, St) ->
+%%     proc_forms_progn(Fun, Bs, L, Bss, Fs, Rs, St);
+%% proc_forms_progn(Fun, [], _, [], Fs, Rs, St) ->
 %%     proc_forms(Fun, Fs, Rs, St).

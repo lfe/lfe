@@ -34,22 +34,23 @@
 
 -export([expand_form/1,expand_form/2,expand_forms/1,expand_forms/2,
 	 macro_pass/2,expand_pass/2,
-	 default_exps/0,def_syntax/2,qq_expand/1]).
+	 default_exps/0,def_macro/2,qq_expand/1]).
 
--export([mbe_syntax_rules_proc/5,mbe_match_pat/3,
+-export([mbe_syntax_rules_proc/4,mbe_syntax_rules_proc/5,mbe_match_pat/3,
 	 mbe_get_bindings/3,mbe_expand_pattern/3]).
 
 -export([expand_macro/2,expand_macro_1/2]).
 
-%% -compile([export_all]).
+-compile([export_all]).
 
 -import(lfe_lib, [new_env/0,add_fbinding/4,is_fbound/3,mbinding/3,
 		  add_mbinding/3,is_mbound/2,mbinding/2,
-		 is_proper_list/1]).
+		  is_symb_list/1,is_proper_list/1]).
 
 -import(lists, [any/2,all/2,map/2,foldl/3,foldr/3,mapfoldl/3,
 		reverse/1,reverse/2,member/2]).
 -import(orddict, [find/2,store/3]).
+-import(ordsets, [add_element/2,is_element/2]).
 
 -define(Q(E), [quote,E]).			%We do a lot of quoting!
 
@@ -139,18 +140,18 @@ expand_pass(Fs0, Env0) ->
     {Fs1,Env1,_} = pass2(Fs0, Env0, #mac{}),
     {Fs1,Env1}.
 
-pass1([{['define-syntax'|Def]=F,L}|Fs0], Env0, St0) ->
-    case def_syntax(Def, Env0, St0) of
+pass1([{['define-macro'|Def]=F,L}|Fs0], Env0, St0) ->
+    case def_macro(Def, Env0, St0) of
 	{yes,Env1,St1} -> pass1(Fs0, Env1, St1);
 	no ->
 	    %% Ignore it and pass it on to generate error later.
 	    {Fs1,Env1,St1} = pass1(Fs0, Env0, St0),
 	    {[{F,L}|Fs1],Env1,St1}
     end;
-pass1([{['begin'|Bfs0],L}|Fs0], Env0, St0) ->
-    {Bfs1,Env1,St1} = pass1_begin(Bfs0, L, Env0, St0),
+pass1([{['progn'|Bfs0],L}|Fs0], Env0, St0) ->
+    {Bfs1,Env1,St1} = pass1_progn(Bfs0, L, Env0, St0),
     {Fs1,Env2,St2} = pass1(Fs0, Env1, St1),
-    {[{['begin'|Bfs1],L}|Fs1],Env2,St2};
+    {[{['progn'|Bfs1],L}|Fs1],Env2,St2};
 pass1([{F,L}|Fs0], Env0, St0) ->
     case expand_macro(F, Env0) of
 	{yes,Exp} -> pass1([{Exp,L}|Fs0], Env0, St0);
@@ -160,74 +161,58 @@ pass1([{F,L}|Fs0], Env0, St0) ->
     end;
 pass1([], Env, St) -> {[],Env,St}.
 
-pass1_begin([['define-syntax'|Def]=F|Fs0], L, Env0, St0) ->
-    case def_syntax(Def, Env0, St0) of
-	{yes,Env1,St1} -> pass1_begin(Fs0, L, Env1, St1);
+pass1_progn([['define-macro'|Def]=F|Fs0], L, Env0, St0) ->
+    case def_macro(Def, Env0, St0) of
+	{yes,Env1,St1} -> pass1_progn(Fs0, L, Env1, St1);
 	no ->
 	    %% Ignore it and pass it on to generate error later.
-	    {Fs1,Env1,St1} = pass1_begin(Fs0, L, Env0, St0),
+	    {Fs1,Env1,St1} = pass1_progn(Fs0, L, Env0, St0),
 	    {[F|Fs1],Env1,St1}
     end;
-pass1_begin([['begin'|Bfs0]|Fs0], L, Env0, St0) ->
-    {Bfs1,Env1,St1} = pass1_begin(Bfs0, L, Env0, St0),
-    {Fs1,Env2,St2} = pass1_begin(Fs0, L, Env1, St1),
-    {[['begin'|Bfs1]|Fs1],Env2,St2};
-pass1_begin([F|Fs0], L, Env0, St0) ->
+pass1_progn([['progn'|Bfs0]|Fs0], L, Env0, St0) ->
+    {Bfs1,Env1,St1} = pass1_progn(Bfs0, L, Env0, St0),
+    {Fs1,Env2,St2} = pass1_progn(Fs0, L, Env1, St1),
+    {[['progn'|Bfs1]|Fs1],Env2,St2};
+pass1_progn([F|Fs0], L, Env0, St0) ->
     case expand_macro(F, Env0) of
-	{yes,Exp} -> pass1_begin([Exp|Fs0], L, Env0, St0);
+	{yes,Exp} -> pass1_progn([Exp|Fs0], L, Env0, St0);
 	no -> 
-	    {Fs1,Env1,St1} = pass1_begin(Fs0, L, Env0, St0),
+	    {Fs1,Env1,St1} = pass1_progn(Fs0, L, Env0, St0),
 	    {[F|Fs1],Env1,St1}
     end;
-pass1_begin([], _, Env, St) -> {[],Env,St}.
+pass1_progn([], _, Env, St) -> {[],Env,St}.
 
-pass2([{['begin'|Bfs0],L}|Fs0], Env0, St0) ->
-    {Bfs1,Env1,St1} = pass2_begin(Bfs0, L, Env0, St0),
+pass2([{['progn'|Bfs0],L}|Fs0], Env0, St0) ->
+    {Bfs1,Env1,St1} = pass2_progn(Bfs0, L, Env0, St0),
     {Fs1,Env2,St2} = pass2(Fs0, Env1, St1),
-    {[{['begin'|Bfs1],L}|Fs1],Env2,St2};
+    {[{['progn'|Bfs1],L}|Fs1],Env2,St2};
 pass2([{F,L}|Fs0], Env0, St0) ->
     {Exp,St1} = expand(F, Env0, St0),
     {Fs1,Env1,St2} = pass2(Fs0, Env0, St1),
     {[{Exp,L}|Fs1],Env1,St2};
 pass2([], Env, St) -> {[],Env,St}.
 
-pass2_begin([['begin'|Bfs0]|Fs0], L, Env0, St0) ->
-    {Bfs1,Env1,St1} = pass2_begin(Bfs0, L, Env0, St0),
-    {Fs1,Env2,St2} = pass2_begin(Fs0, L, Env1, St1),
-    {[['begin'|Bfs1]|Fs1],Env2,St2};
-pass2_begin([F|Fs0], L, Env0, St0) ->
+pass2_progn([['progn'|Bfs0]|Fs0], L, Env0, St0) ->
+    {Bfs1,Env1,St1} = pass2_progn(Bfs0, L, Env0, St0),
+    {Fs1,Env2,St2} = pass2_progn(Fs0, L, Env1, St1),
+    {[['progn'|Bfs1]|Fs1],Env2,St2};
+pass2_progn([F|Fs0], L, Env0, St0) ->
     {Exp,St1} = expand(F, Env0, St0),
-    {Fs1,Env1,St2} = pass2_begin(Fs0, L, Env0, St1),
+    {Fs1,Env1,St2} = pass2_progn(Fs0, L, Env0, St1),
     {[Exp|Fs1],Env1,St2};
-pass2_begin([], _, Env, St) -> {[],Env,St}.
+pass2_progn([], _, Env, St) -> {[],Env,St}.
 
-def_syntax([Name,Def], Env) ->
-    def_syntax(Name, Def, Env, #mac{}).
+def_macro([Name,Def], Env) ->
+    def_macro(Name, Def, Env, #mac{}).
 
-def_syntax([Name,Def], Env, St) ->
-    def_syntax(Name, Def, Env, St).
+def_macro([Name,Def], Env, St) ->
+    def_macro(Name, Def, Env, St).
 
-def_syntax(Name, ['syntax-rules'|_]=Def, Env, St) ->
+def_macro(Name, ['lambda'|_]=Def, Env, St) ->
     {yes,add_mbinding(Name, Def, Env),St};
-%% Different versions here.
-%%     try
-%% 	{Macro,St1} = expand_syntax_rules(Name, Rules, St0),
-%% 	{yes,St#mac{defs=store(Name, {macro,Macro}, St#mac.defs)}}
-%% 	Defs = map(fun ([Pat,Exp]) -> {Pat,Exp} end, Rules),
-%% 	{yes,St#mac{defs=store(Name, {'syntax-rules',Defs}, St#mac.defs)}}
-%%     catch
-%% 	_ -> no
-%%     end;
-def_syntax(Name, [macro|_]=Def, Env, St) ->
-    %%{Ecls,Env1,St1} = expand_clauses(Cls, Env0, St0),
+def_macro(Name, ['match-lambda'|_]=Def, Env, St) ->
     {yes,add_mbinding(Name, Def, Env),St};
-%%     try
-%% 	{Ecls,St1} = expand_clauses(Cls, St0),
-%% 	{yes,St1#mac{defs=store(Name, {macro,Ecls}, St1#mac.defs)}}
-%%     catch
-%% 	_ -> no
-%%     end;
-def_syntax(_, _, _, _) -> no.
+def_macro(_, _, _, _) -> no.
 
 %% def_record([Name|Fields], Env, State) -> {Def,State}.
 %% def_record(Name, Fields, Env, State) -> {Def,State}.
@@ -244,16 +229,13 @@ def_record(Name, Fields, Env, St0) ->
     Test = list_to_atom(lists:concat(['is-', Name])),
     Match = list_to_atom(lists:concat(['match-', Name])),
     {Fdef,St1} = def_rec_fields(Fields, Name, 2, St0), %Name is element 1!
-    Def = ['begin',
-	   ['define-syntax',
-	    Make,['syntax-rules',
-		  [Fields,[tuple,[quote,Name]|Fields]]]],
-	   ['define-syntax',
-	    Test,['syntax-rules',
-		  [[rec],['is_record',rec,[quote,Name],length(Fields)+1]]]],
-	   ['define-syntax',
-	    Match,['syntax-rules',
-		  [Fields,[tuple,[quote,Name]|Fields]]]]
+    Def = ['progn',
+	   ['defsyntax',
+	    Make,[Fields,[tuple,[quote,Name]|Fields]]],
+	   ['defsyntax',
+	    Test,[[rec],['is_record',rec,[quote,Name],length(Fields)+1]]],
+	   ['defsyntax',
+	    Match,[Fields,[tuple,[quote,Name]|Fields]]]
 	   |
 	   Fdef],
     {Def,Env,St1}.
@@ -262,10 +244,8 @@ def_rec_fields([F|Fs], Name, N, St0) ->
     {Fds,St1} = def_rec_fields(Fs, Name, N+1, St0),
     Get = list_to_atom(lists:concat([Name,'-',F])),
     Set = list_to_atom(lists:concat(['set-',Name,'-',F])),
-    {[['define-syntax',
-       Get,['syntax-rules',[[rec],[element,N,rec]]]],
-      ['define-syntax',
-       Set,['syntax-rules',[[rec,new],[setelement,N,rec,new]]]]|
+    {[['defsyntax',Get,[[rec],[element,N,rec]]],
+      ['defsyntax',Set,[[rec,new],[setelement,N,rec,new]]]|
       Fds],
      St1};
 def_rec_fields([], _, _, St) -> {[],St}.
@@ -312,15 +292,15 @@ expand(['let',Vbs0|B0], Env, St0) ->
     {Vbs1,St1} = expand_clauses(Vbs0, Env, St0),
     {B1,St2} = expand_tail(B0, Env, St1),
     {['let',Vbs1|B1],St2};
-expand(['flet',Fbs|B], Env, St) ->
-    expand_flet(Fbs, B, Env, St);
-expand(['fletrec',Fbs|B], Env, St) ->
-    expand_fletrec(Fbs, B, Env, St);
-expand(['let-syntax',Mbs|B], Env, St) ->
-    expand_let_syntax(Mbs, B, Env, St);
-expand(['begin'|B0], Env, St0)->
+expand(['let-function',Fbs|B], Env, St) ->
+    expand_let_function(Fbs, B, Env, St);
+expand(['letrec-function',Fbs|B], Env, St) ->
+    expand_letrec_function(Fbs, B, Env, St);
+expand(['let-macro',Mbs|B], Env, St) ->
+    expand_let_macro(Mbs, B, Env, St);
+expand(['progn'|B0], Env, St0)->
     {B1,St1} = expand_tail(B0, Env, St0),
-    {['begin'|B1],St1};
+    {['progn'|B1],St1};
 expand(['if'|B0], Env, St0) ->
     {B1,St1} = expand_tail(B0, Env, St0),
     {['if'|B1],St1};
@@ -342,18 +322,15 @@ expand(['funcall'|As0], Env, St0) ->
 expand(['call'|As0], Env, St0) ->
     {As1,St1} = expand_tail(As0, Env, St0),
     {['call'|As1],St1};
-expand(['define',Head|B0], Env, St0) ->
+expand(['define-function',Head|B0], Env, St0) ->
     %% Needs to be handled specially to protect Head.
-    %% Covers both (define (a b c) ...) and (define a ...).
     {B1,St1} = expand_tail(B0, Env, St0),
-    {[define,Head|B1],St1};
+    {['define-function',Head|B1],St1};
 %% Now the case where we can have macros.
 expand([Fun|_]=Call, Env, St) when is_atom(Fun) ->
     case mbinding(Fun, Env) of
-	{yes,['syntax-rules'|Defs]} ->
-	    syntax_rules(Call, Defs, Env, St);	%Try to match expansion.
-	{yes,[macro|Body]} ->
-	    macro(Call, Body, Env, St);		%Try to match expansion.
+	{yes,Def} ->
+	    macro(Call, Def, Env, St);
 	no ->
 	    %% Not there then use defaults.
 	    case default1(Call, Env, St) of
@@ -423,22 +400,22 @@ expand_ml_clause([Ps0|B0], Env, St0) ->
     {[Ps1|B1],St2};
 expand_ml_clause(Other, Env, St) -> expand(Other, Env, St).
 
-%% expand_flet(FuncBindings, Body, Env, State) -> {Expansion,State}.
-%% expand_fletrec(FuncBindings, Body, Env, State) -> {Expansion,State}.
-%%  Expand a flet/fletrec. Here we are only interested in marking
-%%  functions as bound in the env and not what they are bound to, we
-%%  will not be calling them. We only want to shadow macros of the
-%%  same name.
+%% expand_let_function(FuncBindings, Body, Env, State) -> {Expansion,State}.
+%% expand_letrec_function(FuncBindings, Body, Env, State) -> {Expansion,State}.
+%%  Expand a let/letrec-function. Here we are only interested in
+%%  marking functions as bound in the env and not what they are bound
+%%  to, we will not be calling them. We only want to shadow macros of
+%%  the same name.
 
-expand_flet(Fbs0, B0, Env, St0) ->
-    {Fbs1,B1,St1} = do_expand_flet(Fbs0, B0, Env, St0),
-    {['flet',Fbs1|B1],St1}.
+expand_let_function(Fbs0, B0, Env, St0) ->
+    {Fbs1,B1,St1} = do_expand_let_function(Fbs0, B0, Env, St0),
+    {['let-function',Fbs1|B1],St1}.
 
-expand_fletrec(Fbs0, B0, Env, St0) ->
-    {Fbs1,B1,St1} = do_expand_flet(Fbs0, B0, Env, St0),
-    {['fletrec',Fbs1|B1],St1}.
+expand_letrec_function(Fbs0, B0, Env, St0) ->
+    {Fbs1,B1,St1} = do_expand_let_function(Fbs0, B0, Env, St0),
+    {['letrec-function',Fbs1|B1],St1}.
 
-do_expand_flet(Fbs0, B0, Env0, St0) ->
+do_expand_let_function(Fbs0, B0, Env0, St0) ->
     %% Only very limited syntax checking here (see above).
     Env1 = foldl(fun ([V,['lambda',Args|_]], Env) when is_atom(V) ->
 			 case is_proper_list(Args) of
@@ -456,20 +433,20 @@ do_expand_flet(Fbs0, B0, Env0, St0) ->
     {B1,St2} = expand_tail(B0, Env1, St1),
     {Fbs1,B1,St2}.
 
-%% expand_let_syntax(MacroBindings, Body, Env, State) -> {Expansion,State}.
+%% expand_let_macro(MacroBindings, Body, Env, State) -> {Expansion,State}.
 %%  Expand a let_syntax. We add the actual macro binding to the env as
 %%  we may need them while expanding the body.
 
-expand_let_syntax(Mbs, B0, Env0, St0) ->
-    %% Add the macro defs from expansion and return body in a begin.
-    Env1 = foldl(fun ([Name,['syntax-rules'|_]=Def], Env) when is_atom(Name) ->
+expand_let_macro(Mbs, B0, Env0, St0) ->
+    %% Add the macro defs from expansion and return body in a progn.
+    Env1 = foldl(fun ([Name,['lambda'|_]=Def], Env) when is_atom(Name) ->
 			 add_mbinding(Name, Def, Env);
-		     ([Name,['macro'|_]=Def], Env) when is_atom(Name) ->
+		     ([Name,['match-lambda'|_]=Def], Env) when is_atom(Name) ->
 			 add_mbinding(Name, Def, Env);
 		     (_, Env) -> Env		%Ignore mistakes
 		 end, Env0, Mbs),
     {B1,St1} = expand_tail(B0, Env1, St0),	%Expand the body
-    {['begin'|B1],St1}.
+    {['progn'|B1],St1}.
 
 expand_try(E0, B0, Env, St0) ->
     {E1,St1} = expand(E0, Env, St0),
@@ -486,85 +463,18 @@ expand_try(E0, B0, Env, St0) ->
 			   end, B0, Env, St1),
     {['try',E1|B1],St2}.
 
-%% syntax_rules(Call, Rules, Env, State) -> {Exp,State}.
-%% Expand if possible using patterns/expansions in Rules.
-%% We present 3 different ways of doing it, 2 using MBE which can
-%% almost handle ... ellipsis properly  and one naïve way which just
-%% does simple substitutions.
+%% macro(Call, Def, Env, State) -> {Exp,State}.
+%%  Evaluate the macro definition by applying it to the call args. The
+%%  definition is either a lambda or match-lambda, expand it an apply
+%%  it to argument list.
 
-syntax_rules([Name|As], Rules, Env, St) ->
-    %% Expand directly to resultant expression.
-    expand(mbe_syntax_rules_proc(Name, [], Rules, As), Env, St).
-
-%% syntax_rules([Name|_]=Call, Rules, Env, St0) ->
-%%     %% Expand to macro then call macro expander to handle.
-%%     {Macro,St1} = expand_syntax_rules(Name, Rules, St0),
-%%     macro(Call, Macro, Env, St1).
-
-%% syntax_rules([_|As]=Call, [{Pat,Exp}|Rules], Env, St) ->
-%%     %% io:fwrite("s-r: ~p\n" ,[{Call,{Pat,Exp}}]),
-%%     case match(Pat, As) of
-%% 	{yes,Bs} ->
-%% 	    expand(subst(Exp, Bs), Env, St);
-%% 	no -> syntax_rules(Call, Rules, Env, St)
-%%     end;
-%% syntax_rules([F|As], [], Env, St0) ->
-%%     {Eas,St1} = expand_tail(As, Env, St0),
-%%     {[F|Eas],St1}.
-
-%% expand_syntax_rules(Name, Rules, St) ->
-%%     %% Unlikely local variables!
-%%     Ssym = '|-syn-|',
-%%     Ksym = '|-kw-|',
-%%     %% No keywords, use quote in pattern instead.
-%%     Kw = [],					%Kw = hd(Rules),
-%%     Cls = Rules,				%Cls = tl(Rules),
-%%     {[[Ssym,mbe_syntax_rules_proc(Name, Kw, Cls, Ssym, Ksym)]],St}.    
-
-%% subst(Expr, Bindings) -> Expr.
-%% Substitute Bindings into Expr at all levels. N.B. this goes
-%% straight through quotes and everything.
-
-%% subst([E|Es], Bs) ->
-%%     [subst(E, Bs)|subst(Es, Bs)];
-%% subst(Tup, Bs) when is_tuple(Tup) ->
-%%     list_to_tuple(subst_list(tuple_to_list(Tup), Bs));
-%% subst(Symb, Bs) when is_atom(Symb) ->
-%%     case find(Symb, Bs) of
-%% 	{ok,Val} -> Val;
-%% 	error -> Symb
-%%     end;
-%% subst(Atomic, _) -> Atomic.
-
-%% subst_list(Es, Bs) ->
-%%     map(fun (E) -> subst(E, Bs) end, Es).
-
-%% match(Pattern, Data) -> {yes,Bindings} | no.
-%% Try to match Pattern against Data returning bindings. Bindings is
-%% an orddict.
-
-%% match(Pat, Dat) -> lfe_eval:match(Pat, Dat, lfe_lib:new_env()).
-
-%% macro(Call, Body, Env, State) -> {Exp,State}.
-%%  Evaluate the macro body by applying it to the call args. Use the
-%%  macro clauses as clauses to a case to handle that the arguments
-%%  are really ONE pattern to match against.
-
-macro([_|As], Cls, Env, St) ->
-    {C1,St1} = expand(['case',[quote,As]|Cls], Env, St),
-    Ev = lfe_eval:eval(C1, As),
-    expand(Ev, Env, St1).
-
-%%     io:fwrite("macro: ~p\n" ,[{Call,Cls,St}]),
-%%     %% {lfe_eval:eval(['case',[quote,As]|Cls], As), St}.
-%%     %% expand(lfe_eval:eval(['case',[quote,As]|Cls], As), St).
-%%     {C1,St1} = expand(['case',[quote,As]|Cls], Env, St),
-%%     io:fwrite("  1 => ~p\n", [{C1}]),
-%%     Ev = lfe_eval:eval(C1, As),
-%%     io:fwrite("  2 => ~p\n", [{Ev}]),
-%%     {Exp,St2} = expand(Ev, Env, St1),
-%%     io:fwrite("  3 => ~p\n", [{Exp,Env,St2}]),
-%%     {Exp,St2}.
+macro([_|As], Def0, Env, St0) ->
+    %% io:fwrite("macro: ~p\n", [Def0]),
+    {Def1,St1} = expand(Def0, Env, St0),
+    Call = ['funcall',Def1,[quote,As]],
+    %% io:fwrite("macro: ~p\n", [Call]),
+    Exp = lfe_eval:eval(Call),
+    expand(Exp, Env, St1).
 
 %% default1(Form, Env, State) -> {yes,Form,State} | no.
 %%  Handle the builtin default expansions but only at top-level.
@@ -585,24 +495,24 @@ default1(['?'], _, St) ->
 default1(['let*'|Lbody], _, St) ->
     case Lbody of
 	[[Vb|Vbs]|B] -> {yes,['let',[Vb],['let*',Vbs|B]], St};
-	[[]|B] -> {yes,['begin'|B], St};
+	[[]|B] -> {yes,['progn'|B], St};
 	[Vb|B] -> {yes,['let',Vb|B], St}	%Pass error to let for lint.
     end;
 default1(['flet*'|Lbody], _, St) ->
     case Lbody of
 	[[Vb|Vbs]|B] -> {yes,['flet',[Vb],['flet*',Vbs|B]], St};
-	[[]|B] -> {yes,['begin'|B], St};
+	[[]|B] -> {yes,['progn'|B], St};
 	[Vb|B] -> {yes,['flet',Vb|B], St}	%Pass error to flet for lint.
     end;
 default1(['cond'|Cbody], _, St) ->
     case Cbody of
-	[['else'|B]] -> {yes,['begin'|B], St};
+	[['else'|B]] -> {yes,['progn'|B], St};
 	[[['?=',P,E]|B]|Cond] ->
 	    {yes,['case',E,[P|B],['_',['cond'|Cond]]], St};
 	[[['?=',P,['when',_]=G,E]|B]|Cond] ->
 	    {yes,['case',E,[P,G|B],['_',['cond'|Cond]]], St};
 	[[Test|B]|Cond] ->
-	    {yes,['if',Test,['begin'|B],['cond'|Cond]], St};
+	    {yes,['if',Test,['progn'|B],['cond'|Cond]], St};
 	[] -> {yes,?Q(false),St}
     end;
 default1(['do'|Dbody], _, St0) ->
@@ -612,10 +522,10 @@ default1(['do'|Dbody], _, St0) ->
     {Vs,Is,Cs} = foldr(fun ([V,I,C], {Vs,Is,Cs}) -> {[V|Vs],[I|Is],[C|Cs]} end,
 		       {[],[],[]}, Pars),
     {Fun,St1} = new_fun_name("do", St0),
-    Exp = ['fletrec',
+    Exp = ['letrec-function',
 	   [[Fun,[lambda,Vs,
 		  ['if',Test,Ret,
-		   ['begin'] ++ B ++ [[Fun|Cs]]]]]],
+		   ['progn'] ++ B ++ [[Fun|Cs]]]]]],
 	   [Fun|Is]],
     {yes,Exp,St1};
 default1([lc|Lbody], _, St0) ->
@@ -623,9 +533,9 @@ default1([lc|Lbody], _, St0) ->
     [Qs|E] = Lbody,
     {Exp,St1} = lc_te(E, Qs, St0),
     {yes,Exp,St1};
-default1([bc|Lbody], _, St0) ->
+default1([bc|Bbody], _, St0) ->
     %% (bc (qual ...) e ...)
-    [Qs|E] = Lbody,
+    [Qs|E] = Bbody,
     {Exp,St1} = bc_te(E, Qs, St0),
     {yes,Exp,St1};
 default1(['andalso'|Abody], _, St) ->
@@ -651,16 +561,112 @@ default1(['fun',M,F,Ar], _, St0)
   when is_atom(M), is_atom(F), is_integer(Ar), Ar >= 0 ->
     {Vs,St1} = new_symbs(Ar, St0),
     {yes,['lambda',Vs,['call',?Q(M),?Q(F)|Vs]],St1};
-default1(['define-record'|Def], Env0, St0) ->
+default1(['defrecord'|Def], Env0, St0) ->
     {Rec,_,St1} = def_record(Def, Env0, St0),
     {yes,Rec,St1};
 default1(['include-file'|Ibody], _, St) ->
     %% This is a VERY simple include file macro!
     [F] = Ibody,
     Fs = lfe_io:read_file(F),
-    {yes,['begin'|Fs],St};
+    {yes,['progn'|Fs],St};
+%% Compatibility macros for the older Scheme like syntax.
+default1(['begin'|Body], _, St) ->
+    {yes,['progn'|Body],St};
+default1(['define',Head|Body], _, St) ->
+    case is_symb_list(Head) of
+	true ->
+	    {yes,['define-function',hd(Head),[lambda,tl(Head)|Body]],St};
+	false ->
+	    %% Let next step catch errors here.
+	    {yes,['define-function',Head|Body],St}
+    end;
+default1(['define-record'|Def], _, St) ->
+    {yes,[defrecord|Def],St};
+default1(['define-syntax',Name,Def], _, St) ->
+    %% N.B. New macro definition is function of 1 argument, whole
+    %% argument list of macro call.
+    Mdef = expand_syntax(Name, Def),
+    {yes,['define-macro'|Mdef],St};
+default1(['let-syntax',Defs|Body], _, St) ->
+    Mdefs = map(fun ([Name,Def]) -> expand_syntax(Name, Def) end, Defs),
+    {yes,['let-macro',Mdefs|Body],St};
+%% Common Lisp inspired macros.
+default1([defmodule|Mod], _, St) ->
+    {yes,['define-module'|Mod],St};
+default1([defun,Name|Def], _, St) ->
+    %% Educated guess whether traditional (defun name (a1 a2 ...) ...)
+    %% or matching (defun name (patlist1 ...) (patlist2 ...))
+    Fdef = expand_defun(Name, Def),
+    {yes,['define-function'|Fdef],St};
+default1([defmacro,Name|Def], _, St) ->
+    %% Educated guess whether traditional (defmacro name (a1 a2 ...) ...)
+    %% or matching (defmacro name (patlist1 ...) (patlist2 ...))
+    Mdef = expand_defmacro(Name, Def),
+    {yes,['define-macro'|Mdef],St};
+default1([defsyntax,Name|Rules], _, St) ->
+    %% Expand into call function which expands macro an invocation
+    %% time, this saves much space and costs us nothing.
+    {yes,['define-macro'|expand_rules(Name, Rules)],St};
+default1([flet,Defs|Body], _, St) ->
+    Fdefs = map(fun ([Name|Def]) -> expand_defun(Name, Def) end, Defs),
+    {yes,['let-function',Fdefs|Body], St};
+default1([fletrec,Defs|Body], _, St) ->
+    Fdefs = map(fun ([Name|Def]) -> expand_defun(Name, Def) end, Defs),
+    {yes,['letrec-function',Fdefs|Body], St};
+default1([macrolet,Defs|Body], _, St) ->
+    Mdefs = map(fun ([Name|Def]) -> expand_defmacro(Name, Def) end, Defs),
+    {yes,['let-macro',Mdefs|Body],St};
+default1([syntaxlet,Defs|Body], _, St) ->
+    Mdefs = map(fun ([Name|Rules]) -> expand_rules(Name, Rules) end, Defs),
+    {yes,['let-macro',Mdefs|Body],St};
 %% This was not a call to a predefined macro.
 default1(_, _, _) -> no.
+
+%% expand_defun(Name, Def) -> Lambda | Match-Lambda.
+%% Educated guess whether traditional (defun name (a1 a2 ...) ...)
+%% or matching (defun name (patlist1 ...) (patlist2 ...))
+
+expand_defun(Name, [Args|Rest]) ->
+    case is_symb_list(Args) of
+	true -> [Name,[lambda,Args|Rest]];
+	false -> [Name,['match-lambda',Args|Rest]]
+    end.
+
+%% expand_defmacro(Name, Def) -> Lambda | MatchLambda.
+%%  Educated guess whether traditional (defmacro name (a1 a2 ...) ...)
+%%  or matching (defmacro name (patlist1 ...) (patlist2 ...))
+%%  N.B. New macro definition is function of 1 argument, whole
+%%  argument list of macro call.
+
+expand_defmacro(Name, [Args|Rest]) ->
+    case is_symb_list(Args) of
+	true -> [Name,['match-lambda',[[Args]|Rest]]];
+	false ->
+	    Mcls = map(fun ([Head|Body]) -> [[Head]|Body] end, [Args|Rest]),
+	    [Name,['match-lambda'|Mcls]]
+    end.
+
+%% expand_syntax(Name, Def) -> Lambda | MatchLambda.
+%%  N.B. New macro definition is function of 1 argument, whole
+%%  argument list of macro call.
+
+expand_syntax(Name, Def) ->
+    case Def of
+	[macro|Cls] ->
+	    Mcls = map(fun ([Pat|Body]) -> [[Pat]|Body] end, Cls),
+	    [Name,['match-lambda'|Mcls]];
+	['syntax-rules'|Rules] ->
+	    expand_rules(Name, Rules)
+    end.
+
+%% expand_rules(Name, Rules) -> Lambda.
+%%  Expand into call function which expands macro an invocation time,
+%%  this saves much space and costs us nothing.
+
+expand_rules(Name, Rules) ->
+    [Name,[lambda,[args],
+	   [':',lfe_macro,mbe_syntax_rules_proc,
+	    [quote,Name],[],[quote,Rules],args]]].
 
 new_symb(St) ->
     C = St#mac.vc,
@@ -755,7 +761,6 @@ qq_cons(L, [list|R]) -> [list,L|R];
 qq_cons(L, []) -> [list,L];
 qq_cons(L, R) -> [cons,L,R].
 
-
 %% Macro by Example
 %% Proper syntax-rules which can handle ... ellipsis by Dorai Sitaram.
 %%
@@ -777,12 +782,6 @@ is_mbe_symbol(S) ->
 %% Tests if ellipsis pattern, (p ... . rest)
 is_mbe_ellipsis(?mbe_ellipsis(_, _)) -> true;
 is_mbe_ellipsis(_) -> false.
-
-%% mbe_match_pat(Pat, E, K) ->
-%%     io:fwrite("mmp: ~p\n", [{Pat,E,K}]),
-%%     Res = mbe_match_pat_1(Pat, E, K),
-%%     io:fwrite("  => ~p\n", [Res]),
-%%     Res.
 
 mbe_match_pat([quote,P], E, _) -> P =:= E;
 mbe_match_pat([tuple|Ps], [tuple|Es], K) ->	%Match tuple constructor
@@ -815,12 +814,6 @@ mbe_match_pat(Pat, E, K) ->
 	false -> Pat =:= E
     end.
 
-%% mbe_get_ellipsis_nestings(Pat, K) ->
-%%     io:fwrite("mgen: ~p\n", [{Pat,K}]),
-%%     Res = m_g_e_n(Pat, K),
-%%     io:fwrite("   => ~p\n", [Res]),
-%%     Res.
-
 mbe_get_ellipsis_nestings(Pat, K) ->
     m_g_e_n(Pat, K).
 
@@ -840,12 +833,6 @@ m_g_e_n(Pat, K) ->
 	false -> []
     end.
 
-%% mbe_ellipsis_sub_envs(Nestings, R) ->
-%%     io:fwrite("mese:  ~p\n", [{Nestings,R}]),
-%%     Res = mbe_ellipsis_sub_envs_1(Nestings, R),
-%%     io:fwrite("mese=> ~p\n", [Res]),
-%%     Res.
-
 mbe_ellipsis_sub_envs(Nestings, R) ->
     ormap(fun (C) ->
 		  case mbe_intersect(Nestings, ?car(C)) of
@@ -859,15 +846,8 @@ ormap(F, [H|T]) ->
 	false -> ormap(F, T);
 	V -> V
     end;
-ormap(_, []) -> [].
+ormap(_, []) -> false.
     
-
-%% mbe_intersect(V, Y) ->
-%%     io:fwrite("mi: ~p\n", [{V,Y}]),
-%%     Res = mbe_intersect_1(V, Y),
-%%     io:fwrite("  => ~p\n", [Res]),
-%%     Res.
-
 mbe_intersect(V, Y) ->
     case is_mbe_symbol(V) orelse is_mbe_symbol(Y) of
 	true -> V =:= Y;
@@ -878,12 +858,6 @@ mbe_intersect(V, Y) ->
     end.
 
 %% mbe_get_bindings(Pattern, Expression, Keywords) -> Bindings.
-
-%% mbe_get_bindings(Pat, E, K) ->
-%%     io:fwrite("mgb:  ~p\n", [{Pat,E,K}]),
-%%     Res = mbe_get_bindings_1(Pat, E, K),
-%%     io:fwrite("mgb=> ~p\n", [Res]),
-%%     Res.
 
 mbe_get_bindings([quote,_], _, _) -> [];
 mbe_get_bindings([tuple|Ps], [tuple|Es], K) ->	%Tuple constructor
@@ -907,12 +881,6 @@ mbe_get_bindings(Pat, E, K) ->
     end.
 
 %% mbe_expand_pattern(Pattern, Bindings, Keywords) -> Form.
-
-%% mbe_expand_pattern(Pat, R, K) ->
-%%     io:fwrite("mep:  ~p\n", [{Pat,R,K}]),
-%%     Res = mbe_expand_pattern_1(Pat, R, K),
-%%     io:fwrite("mep=> ~p\n", [Res]),
-%%     Res.
 
 mbe_expand_pattern([quote,P], R, K) ->
     [quote,mbe_expand_pattern(P, R, K)];
@@ -949,12 +917,6 @@ assoc(_, []) -> [].
 %%  Generate the sexpr to evaluate in a macro from Name and
 %%  Rules. When the sexpr is applied to arguments (in Argsym) and
 %%  evaluated then expansion is returned.
-
-%% mbe_syntax_rules_proc(Name, Ks0, Cls, Argsym, Ksym) ->
-%%     io:fwrite("msrp: ~p\n", [{Name,Ks0,Cls,Argsym,Ksym}]),
-%%     Res = mbe_syntax_rules_proc_1(Name, Ks0, Cls, Argsym, Ksym),
-%%     io:fwrite("   => ~p\n", [Res]),
-%%     Res.
 
 %% Return sexpr to evaluate.
 mbe_syntax_rules_proc(Name, Ks0, Cls, Argsym, Ksym) ->
@@ -995,14 +957,14 @@ mbe_syntax_rules_proc(Name, Ks0, Cls, Args) ->
 
 %% lc_te(Es, Qs, St) -> lc_tq(Es, Qs, [], St).
 lc_te(Es, Qs, St) ->
-    c_tq(fun (L, S) -> {[cons,['begin'|Es],L],S} end, Qs, [], St).
+    c_tq(fun (L, S) -> {[cons,['progn'|Es],L],S} end, Qs, [], St).
 
 %%bc_te(Es, Qs, St) -> bc_tq(Es, Qs, <<>>, St).
 bc_te(Es, Qs, St) ->
     c_tq(fun (L, S) ->
 		 case reverse(Es) of
 		     [R] -> {[binary,R,[L,bitstring]],S};
-		     [R|Rs] -> {['begin'|reverse(Rs)] ++
+		     [R|Rs] -> {['progn'|reverse(Rs)] ++
 				[[binary,R,[L,bitstring]]],S};
 		     [] -> {L,S}
 		 end
@@ -1063,13 +1025,10 @@ expand_macro_1([Name|Args]=Call, Env) when is_atom(Name) ->
 	true -> no;				%Don't expand core forms
 	false ->
 	    case mbinding(Name, Env) of		%User macro bindings
-		{yes,['syntax-rules'|Rules]} ->
-		    {yes,mbe_syntax_rules_proc(Name, [], Rules, Args)};
-		{yes,[macro|Cls]} ->
-		    %% We have to expand and evaluate the macro.
-		    {Exp,_} = expand(['case',[quote,Args]|Cls], Env, #mac{}),
-		    Ev = lfe_eval:eval(Exp, Env),
-		    {yes,Ev};
+		{yes,Def0} ->
+		    {Def1,_} = expand(Def0, Env, #mac{}),
+		    Exp = lfe_eval:eval(['funcall',Def1,[quote,Args]]),
+		    {yes,Exp};
 		no ->
 		    %% Default macro bindings
 		    case default1(Call, Env, #mac{}) of

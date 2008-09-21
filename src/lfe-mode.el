@@ -97,24 +97,23 @@
 (defconst lfe-font-lock-keywords-1
   (eval-when-compile
     (list
-     ;; Declarations.  Hannes Haug <hannes.haug@student.uni-tuebingen.de> says
-     ;; this works for SOS, STklos, SCOOPS, Meroon and Tiny CLOS.
-     (list (concat "(\\(define\\*?\\("
-		   ;; Function names.
-		   "\\(\\|-public\\|-method\\|-generic\\(-procedure\\)?\\)\\|"
-		   ;; Macro names, as variable names.  A bit dubious, this.
-		   "\\(-syntax\\|-macro\\)\\|"
-		   ;; Class names.
-		   "-class"
-                   ;; Guile modules.
-                   "\\|-module"
+     (list (concat "(\\(def\\("
+		   ;; Base forms and old model names.
+		   "\\(ine\\(-module\\|-function\\|-macro\\|"
+		   "-syntax\\|-record\\)?\\)\\|"
+		   ;; New model function names
+		   "\\(un\\|macro\\|syntax\\)\\|"
+		   ;; New model other names
+		   "\\(module\\)\\|"
+		   "\\(record\\)"
 		   "\\)\\)\\>"
 		   ;; Any whitespace and declared object.
 		   "[ \t]*(?"
 		   "\\(\\sw+\\)?")
 	   '(1 font-lock-keyword-face)
-	   '(6 (cond ((match-beginning 3) font-lock-function-name-face)
-		     ((match-beginning 5) font-lock-variable-name-face)
+	   '(8 (cond ((match-beginning 3) font-lock-function-name-face)
+		     ((match-beginning 5) font-lock-function-name-face)
+		     ((match-beginning 6) font-lock-variable-name-face)
 		     (t font-lock-type-face))
 	       nil t))
      ))
@@ -129,13 +128,16 @@
       (cons
        (concat
 	"(" (regexp-opt
-	     '("after" "begin" "call" "case" "catch"
-	       "if" "lambda" "let" "letrec" "match-lambda"
-	       "receive" "try" "when"
-	       ;; "for-each" "map" "syntax"
-	       "andalso" "cond" "do" "fun" "let*" "macro"
-	       "orelse" "syntax-rules"
-	       ":" "?") t)
+	     '(;; Core forms.
+	       "after" "call" "case" "catch"
+	       "if" "lambda" "let" "let-function" "letrec-function"
+	       "let-macro" "match-lambda"
+	       "receive" "try" "when" "progn"
+	       ;; Default macros
+	       "andalso" "cond" "do" "fun" "let*" "flet*" "macro"
+	       "orelse" "syntax-rules" "lc" "bc" "flet" "fletrec"
+	       "macrolet" "syntaxlet" "begin"
+	       ":" "?" "++") t)
 	"\\>") 1)
       )))
   "Gaudy expressions to highlight in LFE modes.")
@@ -192,7 +194,7 @@
 
 (put ': 'lfe-indent-function 2)
 (put 'after 'lfe-indent-function 0)
-(put 'begin 'lfe-indent-function 0)
+(put 'progn 'lfe-indent-function 0)
 (put 'call 'lfe-indent-function 2)
 (put 'case 'lfe-indent-function 1)
 (put 'catch 'lfe-indent-function 0)
@@ -206,13 +208,19 @@
 (put 'flet 'lfe-indent-function 1)
 (put 'flet* 'lfe-indent-function 1)
 (put 'fletrec 'lfe-indent-function 1)
+(put 'macrolet 'lfe-indent-function 1)
+(put 'syntaxlet 'lfe-indent-function 1)
+(put 'let-function 'lfe-indent-function 1)
+(put 'letrec-function 'lfe-indent-function 1)
+(put 'let-macro 'lfe-indent-function 1)
 (put 'let-syntax 'lfe-indent-function 1)
-(put 'macro 'lfe-indent-function 0)
 (put 'match-lambda 'lfe-indent-function 0)
 (put 'receive 'lfe-indent-function 0)
-(put 'syntax-rules 'lfe-indent-function 0)
 (put 'try 'lfe-indent-function 0)
 (put 'when 'lfe-indent-function 0)
+(put 'begin 'lfe-indent-function 0)
+(put 'macro 'lfe-indent-function 0)
+(put 'syntax-rules 'lfe-indent-function 0)
 
 ;; Autoloading - no need yet as this it.
 

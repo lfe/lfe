@@ -28,13 +28,16 @@ Supported Core forms
 (let ((pat [(when e)] e)
       ...)
   ... )
-(flet ((name lambda|match-lambda)	- Only define local functions
-       ... )
+(let-function ((name lambda|match-lambda)	- Only define local functions
+	       ... )
   ... )
-(fletrec ((name lambda|match-lambda)	- Only define local functions
-	  ... )
+(letrec-function ((name lambda|match-lambda)	- Only define local functions
+		  ... )
   ... )
-(begin ... )
+(let-macro ((name lambda-match-lambda)		- Only define local macros
+	    ...)
+  ...)
+(progn ... )
 (if test true-expr [false-expr])
 (case e
   (pat [(when e)] ...)
@@ -56,6 +59,11 @@ Supported Core forms
   [(after ... )])
 (call mod func arg ... )		- Call to Mod:Func(Arg, ... )
 
+(define-function name lambda|match-lambda)
+(define-macro name lambda|match-lambda)
+	Define functions/macros at top-level.
+
+
 Supported macro forms
 ---------------------
 
@@ -73,6 +81,58 @@ Supported macro forms
 (lc (qual ...) ...)			- [ expr || qual ... ]
 (bc (qual ...) ...)			- << expr || qual ... >>
 
+Common Lisp inspired macros
+---------------------------
+
+(defun name (arg ...) ...)
+(defun name
+  ((argpat ...) ...)
+  ...)
+	Define a toplevel function, this will expand to lambda or
+	match-lambda depending on structure.
+(defmacro name (arg ...) ...)
+(defmacro name
+  ((argpat ...) ...)
+  ...)
+	Define a top-level macro, this will expand to lambda or
+	match-lambda depending on structure.
+(defsyntax name
+  (pat exp)
+  ...)
+	Define a top-level macro using Scheme inspired syntax-rules
+	format.
+(flet ((name (arg ...) ...)
+       ...)
+  ...)
+(fletrec ((name (arg ...) ...)
+	  ...)
+  ...)
+	Define local functions, this will expand to lambda or
+	match-lambda depending on structure as with defun.
+(macrolet ((name (arg ...) ...)
+	   ...)
+  ...)
+(syntaxlet ((name (pat exp) ...)
+	    ...)
+  ...)
+	Define local macros in macro or syntax-rule format.
+(defmodule name ...)
+(defrecord name ...)
+
+Older Scheme inspired macros
+----------------------------
+
+(define (name arg ...) ...)
+(define name lambda|match-lambda)
+(define-syntax name
+  (syntax-rules (pat exp) ...) | (macro (pat body) ...))
+(let-syntax ((name ...)
+	     ...)
+  ...)
+(begin ...)
+(define-module name ...)
+(define-record name ...)
+
 Patterns
 --------
 
@@ -88,7 +148,7 @@ error			-> 'error
 Repeated variables are *NOT* supported in patterns, there is no
 automatic comparison of values. It must explicitly be done in a
 guard. In this version there is no checking of this and if multiple
-variables occurr then it is undefined which vlaue "wins" and is bound
+variables occurr then it is undefined which value "wins" and is bound
 to the variable.
 
 _ as the "don't care" variable is supported. This means that the
@@ -109,13 +169,13 @@ Bindings and Scoping
 LFE is a Lisp-2 and has separate namespaces for variables and
 functions/macros. Both variables and functions/macros are lexically
 scoped. Variables are bound by lambda, match-lambda and let, functions
-are bound by top-level define, flet and fletrec, macros are bound by
-top-level define-syntax and by let-syntax.
+are bound by top-level defun, flet and fletrec, macros are bound by
+top-level defmacro/defsyntax and by macrolet/syntaxlet.
 
 When searching for function both name and arity are used, a macro is
 considered to have any arity and will match all functions with that
 name. While this is not consistent with either Scheme (or CL) it is
-simple, usuually easy to understand and fits Erlang quite well. It
+simple, usually easy to understand and fits Erlang quite well. It
 does, however, require using (funcall func arg ... ) like CL to call
 lambdas/match-lambdas (funs) bound to variables.
 
@@ -137,20 +197,20 @@ within a module:
 
 This means that it is perfectly legal to shadow BIFs by imports,
 BIFs/imports by top-level functions and BIFs/imports/top-level by
-letrecs. In this respect there is nothing special about BIfs, they
+fletrecs. In this respect there is nothing special about BIfs, they
 just behave as prefined imported functions, a whopping big (import
 (from erlang ...)). EXCEPT that we know about guard BIFs and
 expression BIFs. If you want a private version of spawn then define
 it, there will be no warnings.
 
-*CAVEAT* This does not hold for the supported Core forms. These can be
- shadowed by imports or redefined but the compiler will *always* use
- the Core meaning and never an alternative. Silently!
+*CAVEAT* This does not hold for the supported core forms. These can be
+shadowed by imports or redefined but the compiler will *always* use
+the core meaning and never an alternative. Silently!
 
 Module definition
 -----------------
 
-(define-module name
+(defmodule name
   (export (f 2) (g 1) ... )
   (import (from mod (f1 2) (f2 1) ... )
 	  (rename mod ((f1 2) sune) ((f2 1) kurt) ... ))
@@ -169,46 +229,45 @@ Macros
 Macro calls are expanded in both body and patterns. This can be very
 useful to have both make and match macros, but be careful with names.
 
-Can define simple expansions like in Scheme, but expansions are
-definitely NOT hygenic. Doubt if they ever really can be. Can define
-macros for all Core forms but they will never be used.
+A macro is function of one argument which is a called with a list of
+the arguments to the macro call. It can be either a lambda or a
+match-lambda. The basic forms for defining macros are:
 
-(define-syntax name
-  (syntax-rules
-    (((pat ... ) expansion)
-     ((pat ... ) expansion))))
+(define-macro name lambda | match-lambda)
+(let-macro ((name lambda|match-lambda)
+  ...)
 
-The patterns are only the arguments not the macro name. E.g.
+Macros are definitely NOT hygienic in any form.
 
-(define-syntax andalso
-  (syntax-rules
-    (() 'true)
-    ((e) e)
-    ((e . es)
-     (case e
-	('true (andalso . es))
-	('false 'false)))))
+To simplify writing macros there are a number of predefined macros:
 
-Also have macros where the bodies are evaluated as in "normal" macros.
+(defmacro name (arg ...) ...)
+(defmacro name ((argpat ...) body) ...)
 
-(define-syntax name
-  (macro
-    (pat [guard] ... )
-    (pat  ... )))
+Defmacro can be used for defining simple macros or sequences of
+matches depending on whether the arguments are a simple list of
+symbols or can be interpreted as a list of pattern/body pairs. For
+example:
 
-The pattern is matched against the arguments of the macro call and a
-clause is chosen. Its body is evaluated and the expression returned is
-inserted into the code. Like a normal lisp macro except we use pattern
-macthing to select clause. E.g.
+(defmacro double (a) (+ a a))
+(defmacro andalso
+  (() `true)
+  ((e) `,e)
+  ((e . es) `(case ,e ('true (andalso . ,es)) ('false 'false))))
 
-(define-syntax andalso
-  (macro
-    ((e) e)
-    ((e . es)
-      `(case ,e
-         ('true (andalso . ,es))
-	 ('false 'false)))
-    (() `'true)))
+The macro definitions in a macrolet obey the same rules as defmacro.
+
+Scheme's syntax rules are an easy way to define macros where the body
+is just a simple expansion. These are supported with defsyntax and
+syntaxlet. Note that the patterns are only the arguments to the macro
+call and do not contain the macro name. So using them we would get:
+
+(defsyntax andalso
+  (() 'true)
+  ((e) e)
+  ((e . es) (case e ('true (andalso . es)) ('false 'false))))
+
+N.B. These are definitely NOT hygienic.
 
 Yes we have backquote.
 
@@ -218,12 +277,12 @@ Yes we have backquote.
 Extended cond
 -------------
 
-Cond has been extended with the extra test (=? pat expr) which tests
+Cond has been extended with the extra test (?= pat expr) which tests
 if the result of expr matches pat. If so it binds the variables in pat
 which can be used in the cond. An example:
 
 (cond ((foo x) ...)
-      ((=? (x . xs) (bar y)) (fubar xs (baz x)))
+      ((?= (x . xs) (bar y)) (fubar xs (baz x)))
       ... )
 
 Records (So Far)
@@ -232,14 +291,14 @@ Records (So Far)
 Records are tuples with the record name as first element and the rest
 of the fields in order exactly like "normal" Erlang records.
 
-(define-record name
+(defrecord name
   field1
   filed2
   ... )
 
 Will create macros for creation, matching and field access.
 
-(define-record person
+(defrecord person
   name
   age)
 
@@ -257,7 +316,7 @@ accessible. Not really that useable as it stands.
 Records (NYI)
 -------
 
-(define-record name
+(defrecord name
   field
   (field default-val)
   ... )
@@ -266,7 +325,7 @@ Will create access functions/macros for creation and accessing
 fields. The make form takes optional argument pairs field-name value
 to get non-default values. E.g. for
 
-(define-record person
+(defrecord person
   (name "")
   age)
 
@@ -302,7 +361,7 @@ The supported qualifiers, in both list/binary comprehensions are:
 
 (<- pat list-expr)	 - Extract elements from a list expression
 (<= bin-pat binary-expr) - Extract elements from a binary/bits expression
-(=? pat [guard] expr)	 - Match test and bind variables in pat
+(?= pat [guard] expr)	 - Match test and bind variables in pat
 expr			 - Normal boolean test
 
 Some examples:
@@ -330,7 +389,7 @@ lfe_comp:file(file-name[, Options])
 
 	Compiles file file-name.lfe to BEAM file file-name.beam. Must
 	be loaded explicitly in shell. Option 'binary' returns beam
-	module as binary. Linenumbers in errors and warnings is the
+	module as binary. Line numbers in errors and warnings is the
 	line of the beginning of the form in which the error occurs.
 
 lfe_comp:forms(Forms[, Options])
@@ -346,7 +405,7 @@ There is now a simple LFE shell in which you can enter sexprs which
 are evaluated and the value printed. There are no user shell variables
 (scoping and lack of setq)
 
-Builtin shell functions:
+Built-in shell functions:
 
 (c File [Options])
 	Compile and load an LFE file. Assumes default extension .lfe.
@@ -382,7 +441,8 @@ calling:
 
 A modified user_drv.erl from the standard Erlang distribution has been
 provided which allows to start a specific local shell, not just the
-default Erlang shell. If this version of user_drv.beam is placed in the standard load path then giving the user switch commands:
+default Erlang shell. If this version of user_drv.beam is placed in
+the standard load path then giving the user switch commands:
 
 --> s lfe_shell
 --> c
@@ -394,3 +454,4 @@ Notes
 -----
 
 NYI - Not Yet Implemented
+N.B. - Nota bene (note well)

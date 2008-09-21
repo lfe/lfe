@@ -310,11 +310,20 @@ blanks(N, Tail) -> string:chars($\s, N, Tail).
 %%  sexprs in list which are indented *after* Form while all following
 %%  that end up at indent+2.
 
+%% Old style functions.
 indent_type('define') -> 1;
 indent_type('define-module') -> 1;
 indent_type('define-syntax') -> 1;
 indent_type('define-record') -> 1;
 indent_type('begin') -> 0;
+%% New style functions.
+indent_type('define-function') -> 1;
+indent_type('define-macro') -> 1;
+indent_type('defun') -> 1;
+indent_type('defmacro') -> 1;
+indent_type('defsyntax') -> 1;
+indent_type('defrecord') -> 1;
+indent_type('progn') -> 0;
 indent_type('lambda') -> 1;
 indent_type('match-lambda') -> 0;
 indent_type('let') -> 1;

@@ -81,12 +81,12 @@ eval_expr(['match-lambda'|Cls], Env) ->
     eval_match_lambda(Cls, Env);
 eval_expr(['let'|Body], Env) ->
     eval_let(Body, Env);
-eval_expr(['flet'|Body], Env) ->
-    eval_flet(Body, Env);
-eval_expr([fletrec|Body], Env) ->
-    eval_fletrec(Body, Env);
+eval_expr(['let-function'|Body], Env) ->
+    eval_let_function(Body, Env);
+eval_expr(['letrec-function'|Body], Env) ->
+    eval_letrec_function(Body, Env);
 %% Handle the control special forms.
-eval_expr(['begin'|Body], Env) ->
+eval_expr(['progn'|Body], Env) ->
     eval_body(Body, Env);
 eval_expr(['if'|Body], Env) ->
     eval_if(Body, Env);
@@ -332,23 +332,23 @@ eval_let([Vbs|Body], Env0) ->
 		 end, Env0, Vbs),
     eval_body(Body, Env1).
 
-%% eval_flet([FuncBindings|Body], Env) -> Value.
+%% eval_let_function([FuncBindings|Body], Env) -> Value.
 
-eval_flet([Fbs|Body], Env0) ->
+eval_let_function([Fbs|Body], Env0) ->
     Env1 = foldl(fun ([V,[lambda,Args|_]=Lambda], E) when is_atom(V) ->
 			 add_fbinding(V, length(Args), {expr,Lambda,Env0}, E);
 		     ([V,['match-lambda',[Pats|_]|_]=Match], E)
 		     when is_atom(V) ->
 			 add_fbinding(V, length(Pats), {expr,Match,Env0}, E)
 		   end, Env0, Fbs),
-    %% io:fwrite("ef: ~p\n", [{Body,Env1}]),
+    %% io:fwrite("elf: ~p\n", [{Body,Env1}]),
     eval_body(Body, Env1).
 
-%% eval_fletrec([FuncBindings|Body], Env) -> Value.
+%% eval_letrec_function([FuncBindings|Body], Env) -> Value.
 %%  This is a tricky one. But we dynamically update the environment
 %%  each time we are called.
 
-eval_fletrec([Fbs0|Body], Env0) ->
+eval_letrec_function([Fbs0|Body], Env0) ->
     %% Check and abstract out function bindings.
     Fbs1 = map(fun ([V,[lambda,Args|_]=Lambda]) when is_atom(V) ->
 		       {V,length(Args),Lambda};
@@ -356,14 +356,14 @@ eval_fletrec([Fbs0|Body], Env0) ->
 		       {V,length(Pats),Match}
 	       end, Fbs0),
     Env1 = fletrec_env(Fbs1, Env0),
-    %% io:fwrite("fletrec: ~p\n", [{Env0,Env1}]),
+    %% io:fwrite("elrf: ~p\n", [{Env0,Env1}]),
     eval_body(Body, Env1).
 
 %% fletrec_env(Fbs, Env) -> Env.
 %%  Create local function bindings for a set of mutally recursive
 %%  functions, for example from a module or a fletrec. This is very
 %%  similar to "Metacircular Semantics for Common Lisp Special Forms"
-%%  by Heny Baker, except he uses macros whereas we directly fiddle
+%%  by Henry Baker, except he uses macros whereas we directly fiddle
 %%  with the environment and he keeps functions in a vector where we
 %%  just push them into the environment. His version compiles much
 %%  better (which we don't need) but is basically the same
@@ -550,7 +550,7 @@ eval_call([M0,F0|As0], Env) ->
 
 %% match_when(Pattern, Value, Body, Env) -> {yes,RestBody,Bindings} | no.
 %%  Try to match pattern and evaluate guard.
-
+	    
 match_when(Pat, V, B0, Env) ->
     case match(Pat, V, Env) of
 	{yes,Vbs} ->
@@ -656,6 +656,7 @@ match([quote,P], Val, _, Bs) ->
        true -> no
     end;
 match([tuple|Ps], Val, Env, Bs) ->
+    %% io:fwrite("~p ~p\n", [Ps,Val]),
     case is_tuple(Val) of
 	true -> match(Ps, tuple_to_list(Val), Env, Bs);
 	false -> no
@@ -683,10 +684,9 @@ match(_, _, _, _) -> no.
     
 match_symb('_', _, _, Bs) -> {yes,Bs};		%Don't care variable.
 match_symb(Symb, Val, _, Bs) ->
-    %% Check if Symb already bound, and then if to same value.
+    %% Check if Symb already bound.
     case find(Symb, Bs) of
-	{ok,Val} -> {yes,Bs};			%Bound to same value
-	{ok,_} -> no;				%Bound to different value
+	{ok,_} -> no;				%Already bound, multiple var
 	error -> {yes,store(Symb, Val, Bs)}	%Not yet bound
     end.
 
