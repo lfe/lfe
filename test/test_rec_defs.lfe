@@ -1,3 +1,3 @@
-(define-record point x y)
+(defrecord point x y)
 
-(define-record circle center radius)
+(defrecord circle center radius)

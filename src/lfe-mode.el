@@ -136,7 +136,7 @@
 	       ;; Default macros
 	       "andalso" "cond" "do" "fun" "let*" "flet*" "macro"
 	       "orelse" "syntax-rules" "lc" "bc" "flet" "fletrec"
-	       "macrolet" "syntaxlet" "begin"
+	       "macrolet" "syntaxlet" "begin" "let-syntax"
 	       ":" "?" "++") t)
 	"\\>") 1)
       )))

@@ -1,11 +1,11 @@
-(define-module test_guard
+(defmodule test_guard
   (export (b 1) (c 2) (e 2)))
 
-(define (b x) x)
+(defun b (x) x)
 
-(define (b) '"a string")
+(define (b) '"a string")		;Old style
 
-(define (c x y)
+(defun c (x y)
   (case (b x)
     ((tuple 'ok z) (when (> z 5)) (d '|(> z 5)| z))
     ((tuple 'ok z) (when z) (d 'z z))
@@ -19,9 +19,9 @@
     ((tuple 'ok z) (d 'nul z))
     (#(1 2) (d '|#(1 2)| 'z))))
 
-(define (d x y) (list (b) x y))
+(defun d (x y) (list (b) x y))
 
-(define (e x y)
+(defun e (x y)
   (case (b x)
     (#(ok z) (d '|#(ok z)| 'z))
     ((tuple 'ok z) (when (andalso (> (+ z 1) 5)

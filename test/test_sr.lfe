@@ -1,58 +1,58 @@
-(define-module test_sr
+;;; File    : test_sr.lfe
+;;; Author  : Robert Virding
+;;; Purpose : Test syntax rules.
+
+(defmodule test_sr
   (export (a 1) (b 1) (c 1)))
 
-(define-record point x y)
+(defrecord point x y)
 
-(define-syntax allan
-  (syntax-rules
-    (() '(0))
-    ((a) '(1 a))
-    ((a b) '(2 a b))
-    ((((a b) ...) e ...) '(2 (lambda (a ...) e ...) (b ...)))))
+(defsyntax allan
+  (() '(0))
+  ((a) '(1 a))
+  ((a b) '(2 a b))
+  ((((a b) ...) e ...) '(2 (lambda (a ...) e ...) (b ...))))
 
-(define-syntax dodo
-  (syntax-rules
-    ([((a b c) ...) (t v) e ...]
-     [fletrec ((-sune-
-		(lambda (a ...)
-		  (if t v
-		      (begin e ... (-sune- c ...))))))
-       (-sune- b ...)])))
+(defsyntax dodo
+  ([((a b c) ...) (t v) e ...]
+   [fletrec ((-sune- (a ...)
+		     (if t v
+			 (begin e ... (-sune- c ...)))))
+     (-sune- b ...)]))
 
-(define-syntax aaa
-  (macro
-   (() '(0))
-   ((a) '(1 a))
-   ((a b) '(2 a b))))
+(defmacro aaa
+  (() '(0))
+  ((a) '(1 a))
+  ((a b) '(2 a b)))
 
-(define (a x)
+(defun a (x)
   (aaa x))
 
-(define-syntax bbb
-  (syntax-rules
-    ([a b ...] '(a b ...))))
+(defsyntax bbb
+  ([a b ...] '(a b ...)))
 
-(define (b x)
+(defun b (x)
   (bbb x y z))
 
 (defsyntax ccc
   ([(tuple (a b) ...)] (cons (list a ...) (tuple b ...))))  
 
-(define (c x)
-  (ccc #((m m1) (n n1) (o o1)))
+;; This will not compile, but we are interested in expansion.
+(defun c (x)
+  (ccc #((m m1) (n n1) (o o1)))		;Should we take tuple literals?
   (ccc (tuple (m m1) (n n1) (o o1))))
 
-;; (define (d r)
+;; (defun d (r)
 ;;   (case r
 ;;     ((match-point x y) (list x y))))
 
-(define (e-1 m)
+(defun e-1 (m)
   (dodo ((i 1 (+ 1 i))
 	 (acc 1 (* acc i)))
 	((> i m) acc)
 	'(i)))
 
-(define (e-2 m)
+(defun e-2 (m)
   (do ((l m (cdr l))
        (acc 0 (+ acc 1)))
       ((== l ()) acc)
