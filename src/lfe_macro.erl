@@ -974,7 +974,7 @@ c_tq(Exp, [['<-',P,G]|Qs], L, St0) ->		%List generator
     {H,St1} = new_fun_name("lc", St0),		%Function name
     {Us,St2} = new_symb(St1),			%Tail variable
     {Rest,St3} = c_tq(Exp, Qs, [H,Us], St2),	%Do rest of qualifiers
-    {['fletrec',
+    {['letrec-function',
       [[H,['match-lambda',
 	   [[[P|Us]],Rest],			%Matches pattern
 	   [[['_'|Us]],[H,Us]],			%No match
@@ -985,7 +985,7 @@ c_tq(Exp, [['<=',P,G]|Qs], L, St0) ->		%Bits generator
     {B,St2} = new_symb(St1),			%Bin variable
     {Rest,St3} = c_tq(Exp, Qs, [H,B], St2),	%Do rest of qualifiers
     Brest = [B,bitstring,'big-endian',unsigned,[unit,1]], %,[size,all]
-    {['fletrec',
+    {['letrec-function',
       [[H,['match-lambda',
 	   [[[binary,P,Brest]],Rest],		%Matches pattern
 %%	   [[[binary,Brest]],[H,B]]]]],		%No match
