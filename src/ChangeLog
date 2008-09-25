@@ -1,3 +1,10 @@
+2008-09-25    <rv@DOUGLAS>
+
+	* lfe_io.erl (indent_type): Cleaning up indent forms.
+
+	* lfe_lint.erl (check_match_lambda): Better checking of match-lambdas-
+	(check_let/rec_function): Cleaning up let/letrec code.
+
 2008-09-24    <rv@DOUGLAS>
 
 	* lfe_codegen.erl: Contains code generation part of compiler.

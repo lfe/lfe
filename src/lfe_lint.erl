@@ -192,7 +192,7 @@ check_module(Fbs, St0) ->
     Env1 = foldl(fun ({F,A}, E) -> add_fbinding(F, A, E) end, Env0, Predefs),
     St1 = St0#lint{exps=union(St0#lint.exps, Predefs)},
     %% Now check definitions.
-    {Fs,Env2,St2} = check_rec_bindings(Fbs, Env1, St1),
+    {Fs,Env2,St2} = check_letrec_bindings(Fbs, Env1, St1),
     %% Save functions and environment and test exports.
     St3 = St2#lint{funcs=Fs,env=Env2},
     case subtract(St3#lint.exps, union(Predefs, Fs)) of
@@ -328,18 +328,41 @@ check_lambda([Args|Body], Env, L, St0) ->
 check_lambda(_, _, L, St) -> bad_form_error(L, lambda, St).
 
 check_lambda_args(Args, L, St) ->
+    %% Check for multiple variables
+    Check = fun (A, {As,S}) ->
+		    case is_element(A, As) of
+			true -> {As,multi_var_error(L, A, S)};
+			false -> {add_element(A, As),S}
+		    end
+	    end,
     case is_symb_list(Args) of
-	true -> {from_list(Args),St};
+	true -> foldl(Check, {[],St}, Args);
 	false -> {[],bad_form_error(L, lambda, St)}
     end.
 
 %% check_match_lambda(MatchBody, Env, Line, State) -> State.
 %% Check form (match-lambda Clause ...), must be at least one clause.
+%% First check arities then each clause, don't assume anything.
 
-check_match_lambda([_|_]=Cls, Env, L, St0) ->
-    check_case_clauses(Cls, Env, L, St0);
-check_match_lambda(_, _, L, St) ->
+check_match_lambda([[Pat|_]|_]=Cls, Env, L, St0) ->
+    St1 = case is_proper_list(Pat) of
+	      true -> check_ml_arity(tl(Cls), length(Pat), L, St0);
+	      false -> St0
+	  end,
+    check_ml_clauses(Cls, Env, L, St1);
+check_match_lambda(_, _, L, St) ->		%Totally wrong
     bad_form_error(L, 'match-lambda', St).
+
+check_ml_arity([[Pat|_]|Cls], Ar, L, St) ->
+    case is_proper_list(Pat) andalso length(Pat) == Ar of
+	true -> check_ml_arity(Cls, Ar, L, St);
+	false -> add_error(L, match_lambda_arity, St)
+    end;
+check_ml_arity([], _, _, St) -> St.
+
+check_ml_clauses(Cls, Env, L, St) ->
+    check_foreach(fun (Cl, S) -> check_clause(Cl, Env, L, S) end,
+		  'match-lambda', L, St, Cls).
 
 %% check_let(LetBody, Env, Line, State) -> {Env,State}.
 %%  Check let variable bindings and then body. Must be careful to use
@@ -350,7 +373,7 @@ check_let([Vbs|Body], Env, L, St0) ->
 		    {Pv,Stb} = check_let_vb(Vb, Env, L, Sta),
 		    Stc = case intersection(Pv, Pvs) of
 			      [] -> Stb;
-			      Ivs -> add_error(L, {multi_var,Ivs}, Stb)
+			      Ivs -> multi_var_error(L, Ivs, Stb)
 			  end,
 		    {union(Pv, Pvs), Stc}
 	    end,
@@ -374,20 +397,14 @@ check_let_vb(_, _, L, St) -> {[],bad_form_error(L, 'let', St)}.
 
 check_let_function([Fbs0|Body], Env0, L, St0) ->
     %% Collect correct function definitions.
-    Check = fun ([V,['lambda'|_]=Lambda], Fbs, St) when is_atom(V) ->
-		    {[{V,Lambda,L}|Fbs],St};
-		([V,['match-lambda'|_]=Match], Fbs, St) when is_atom(V) ->
-		    {[{V,Match,L}|Fbs],St};
-		(_, Fbs, St) -> {Fbs,bad_form_error(L, 'let-function', St)}
-	    end,
-    {Fbs1,St1} = check_foldr(Check, flet, L, St0, [], Fbs0),
-    {Fs,Fbs2,St2} = check_fbindings(Fbs1, St1),
+    {Fbs1,St1} = collect_let_funcs(Fbs0, 'let-function', L, St0),
+    {Fs,St2} = check_fbindings(Fbs1, St1),
     %% Now check function definitions.
     St3 = foldl(fun ({_,[lambda|Lambda],_}, St) ->
 			check_lambda(Lambda, Env0, L, St);
 		    ({_,['match-lambda'|Match],_}, St) ->
 			check_match_lambda(Match, Env0, L, St)
-		end, St2, Fbs2),
+		end, St2, Fbs1),
     %% Add to environment
     Env1 = foldl(fun ({F,A}, Env) -> add_fbinding(F, A, Env) end, Env0, Fs),
     check_body(Body, Env1, L, St3).
@@ -397,48 +414,54 @@ check_let_function([Fbs0|Body], Env0, L, St0) ->
 
 check_letrec_function([Fbs0|Body], Env0, L, St0) ->
     %% Collect correct function definitions.
+    {Fbs1,St1} = collect_let_funcs(Fbs0, 'letrec-function', L, St0),
+    {_,Env1,St2} = check_letrec_bindings(Fbs1, Env0, St1),
+    check_body(Body, Env1, L, St2).
+
+%% collect_let_funcs(FuncDefs, Type, Line, State) -> {Funcbindings,State}.
+%%  Collect the function definitions for a let/letrec-function
+%%  checking right types. Returns same format as top-level collect.
+
+collect_let_funcs(Fbs0, Type, L, St0) ->
     Check = fun ([V,['lambda'|_]=Lambda], Fbs, St) when is_atom(V) ->
 		    {[{V,Lambda,L}|Fbs],St};
 		([V,['match-lambda'|_]=Match], Fbs, St) when is_atom(V) ->
 		    {[{V,Match,L}|Fbs],St};
-		(_, Fbs, St) -> {Fbs,bad_form_error(L, 'letrec-function', St)}
+		(_, Fbs, St) -> {Fbs,bad_form_error(L, Type, St)}
 	    end,
-    {Fbs1,St1} = check_foldr(Check, fletrec, L, St0, [], Fbs0),
-    {_,Env1,St2} = check_rec_bindings(Fbs1, Env0, St1),
-    check_body(Body, Env1, L, St2).
+    check_foldr(Check, Type, L, St0, [], Fbs0).	%Preserve order
 
-%% check_fbindings(FuncBindings, State) -> {Funcs,Funcbindings,State}.
-%%  Check function bindings.
+%% check_fbindings(FuncBindings, State) -> {Funcs,State}.
+%%  Check function bindings for format and for multiple fucntion
+%%  definitions.
 
 check_fbindings(Fbs0, St0) ->
-    AddFb = fun(F, B, Fs, Fbs, L, St) ->
+    AddFb = fun(F, Fs, L, St) ->
 		    case member(F, Fs) of
-			true -> {Fs,Fbs,add_error(L, {redef_fun,F}, St)};
-			false -> {add_element(F, Fs),[{F,B,L}|Fbs],St}
+			true -> {Fs,add_error(L, {redef_fun,F}, St)};
+			false -> {add_element(F, Fs),St}
 		    end
 	    end,
-    Check = fun ({V,[lambda,Args|_]=B,L}, {Fs,Fbs,St}) ->
+    Check = fun ({V,[lambda,Args|_],L}, {Fs,St}) ->
 		    case is_symb_list(Args) of
-			true -> AddFb({V,length(Args)}, B, Fs, Fbs, L, St);
-			false -> {Fs,Fbs,bad_form_error(L, lambda, St)}
+			true -> AddFb({V,length(Args)}, Fs, L, St);
+			false -> {Fs,bad_form_error(L, lambda, St)}
 		    end;
-		({V,['match-lambda',[Pats|_]|_]=B,L}, {Fs,Fbs,St}) ->
+		({V,['match-lambda',[Pats|_]|_],L}, {Fs,St}) ->
 		    case is_proper_list(Pats) of
-			true -> AddFb({V,length(Pats)}, B, Fs, Fbs, L, St);
-			false -> {Fs,Fbs,bad_form_error(L, 'match-lambda', St)}
+			true -> AddFb({V,length(Pats)}, Fs, L, St);
+			false -> {Fs,bad_form_error(L, 'match-lambda', St)}
 		    end
 	    end,
-    foldl(Check, {[],[],St0}, Fbs0).
+    foldl(Check, {[],St0}, Fbs0).
 
-%% check_rec_bindings(FuncBindings, Env, State) -> {Funcs,Env,State}.
+%% check_letrec_bindings(FuncBindings, Env, State) -> {Funcs,Env,State}.
 %%  Check the function bindings and return new environment. We only
 %%  have to worry about checking for the valid forms as the rest will
 %%  already be reported. Use explicit line number in element.
 
-check_rec_bindings(Fbs0, Env0, St0) ->
-    %% First check that format is correct and for multiple fucntion
-    %% definitions.
-    {Fs,Fbs1,St1} = check_fbindings(Fbs0, St0),
+check_letrec_bindings(Fbs, Env0, St0) ->
+    {Fs,St1} = check_fbindings(Fbs, St0),
     %% Add to environment
     Env1 = foldl(fun ({F,A}, Env) -> add_fbinding(F, A, Env) end, Env0, Fs),
     %% Now check function definitions.
@@ -446,7 +469,7 @@ check_rec_bindings(Fbs0, Env0, St0) ->
 			check_lambda(Lambda, Env1, L, St);
 		    ({_,['match-lambda'|Match],L}, St) ->
 			check_match_lambda(Match, Env1, L, St)
-		end, St1, Fbs1),
+		end, St1, Fbs),
     {Fs,Env1,St2}.
 
 %% check_case(CaseBody, Env, Line, State) -> State.
@@ -473,14 +496,8 @@ check_rec_clauses([Cl|Cls], Env, L, St) ->
 check_rec_clauses([], _, _, St) -> St;
 check_rec_clauses(_, _, L, St) -> bad_form_error(L, 'receive', St).
 
-check_clause([Pat,['when',G]|B], Env0, L, St0) ->
-    {Pvs,St1} = check_pat(Pat, Env0, L, St0),
-    Env1 = add_vbindings(Pvs, Env0),		%Now in environment
-    St2 = check_gexpr(G, Env1, L, St1),
-    check_body(B, Env1, L, St2);
-check_clause([Pat|B], Env0, L, St0) ->
-    {Pvs,St1} = check_pat(Pat, Env0, L, St0),
-    Env1 = add_vbindings(Pvs, Env0),		%Now in environment
+check_clause([_|_]=Cl, Env0, L, St0) ->
+    {B,_,Env1,St1} = check_pat_guard(Cl, Env0, L, St0),
     check_body(B, Env1, L, St1);
 check_clause(_, _, L, St) -> bad_form_error(L, clause, St).
 
@@ -506,6 +523,20 @@ check_try_catch([['catch'|Cls],['after'|B]], Env, L, St0) ->
 check_try_catch([['after'|B]], Env, L, St) ->
     check_body(B, Env, L, St);
 check_try_catch(C, _, L, St) -> bad_form_error(L, {'try',C}, St).
+
+%% check_pat_guard([Pat{,Guard}|Body, Env, L, State) ->
+%%      {Body,PatVars,Env,State}.
+%%  Check pattern and guard in a clause. We know there is at least pattern!
+
+check_pat_guard([Pat,['when',G]|Body], Env0, L, St0) ->
+    {Pvs,St1} = check_pat(Pat, Env0, L, St0),
+    Env1 = add_vbindings(Pvs, Env0),
+    St2 = check_gexpr(G, Env1, L, St1),
+    {Body,Pvs,Env1,St2};
+check_pat_guard([Pat|Body], Env0, L, St0) ->
+    {Pvs,St1} = check_pat(Pat, Env0, L, St0),
+    Env1 = add_vbindings(Pvs, Env0),
+    {Body,Pvs,Env1,St1}.
 
 %% check_gexpr(Call, Env, Line, State) -> State.
 %% Check a guard expression. This is a restricted body expression.
@@ -577,14 +608,8 @@ check_gclauses(Cls, Env, L, St) ->
     check_foreach(fun (Cl, S) -> check_gclause(Cl, Env, L, S) end,
 		  'case', L, St, Cls).
 
-check_gclause([Pat,['when',G]|B], Env0, L, St0) ->
-    {Pvs,St1} = check_pat(Pat, Env0, L, St0),
-    Env1 = add_vbindings(Pvs, Env0),		%Now in environment
-    St2 = check_gexpr(G, Env1, L, St1),
-    check_gbody(B, Env1, L, St2);
-check_gclause([Pat|B], Env0, L, St0) ->
-    {Pvs,St1} = check_pat(Pat, Env0, L, St0),
-    Env1 = add_vbindings(Pvs, Env0),		%Now in environment
+check_gclause([_|_]=Cl, Env0, L, St0) ->	%Check basic clause length
+    {B,_,Env1,St1} = check_pat_guard(Cl, Env0, L, St0),
     check_gbody(B, Env1, L, St1);
 check_gclause(_, _, L, St) -> bad_form_error(L, clause, St).
 
@@ -659,7 +684,7 @@ check_pat(_, Vs, _, _, St) -> {Vs,St}.		%Atomic
 pat_symb('_', Vs, _, St) -> {Vs,St};		%Don't care variable
 pat_symb(Symb, Vs, L, St) ->
     case is_element(Symb, Vs) of
-	true -> {Vs,add_error(L, {multi_var,Symb}, St)};
+	true -> {Vs,multi_var_error(L, Symb, St)};
 	false -> {add_element(Symb, Vs),St}
     end.    
 
@@ -839,6 +864,9 @@ add_error(L, E, St) ->
 
 bad_form_error(L, F, St) ->
     add_error(L, {bad_form,F}, St).
+
+multi_var_error(L, V, St) ->
+    add_error(L, {multi_var,V}, St).
 
 %% Interface to the binding functions in lfe_lib.
 %% These just add arity as a dummy values as we are not interested in

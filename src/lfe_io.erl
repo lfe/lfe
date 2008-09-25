@@ -37,7 +37,7 @@
 
 -import(lists, [flatten/1,reverse/1,reverse/2,map/2,mapfoldl/3]).
 
-%% parse_file(FileName) -> [{Sexpr,Line}].
+%% parse_file(FileName) -> {ok,[{Sexpr,Line}]} | {error,Error}.
 %% Parse a file returning the raw sexprs (as it should be) and line
 %% numbers of start of each sexpr.
 
@@ -45,14 +45,14 @@ parse_file(Name) ->
     %% io:format("~p\n", [Name]),
     {ok,F} = file:open(Name, [read]),
     {ok,Ts,_} = io:request(F, {get_until,'',lfe_scan,tokens,[1]}),
-    parse_file1(Ts).
+    parse_file1(Ts, []).
 
-parse_file1(Ts0) when Ts0 /= [] ->
+parse_file1(Ts0, Ss) when Ts0 /= [] ->
     case lfe_parse:parse(Ts0) of
-	{ok,L,S,Ts1} -> [{S,L}|parse_file1(Ts1)];
-	{error,E,_} -> exit({error,E})
+	{ok,L,S,Ts1} -> parse_file1(Ts1, [{S,L}|Ss]);
+	{error,E,_} -> {error,E}
     end;
-parse_file1([]) -> [].
+parse_file1([], Ss) -> {ok,reverse(Ss)}.
 
 %% read_file(FileName) -> [Sexpr].
 %% Read a file returning the raw sexprs (as it should be).
@@ -316,6 +316,9 @@ indent_type('define-module') -> 1;
 indent_type('define-syntax') -> 1;
 indent_type('define-record') -> 1;
 indent_type('begin') -> 0;
+indent_type('let-syntax') -> 1;
+indent_type('syntax-rules') -> 0;
+indent_type('macro') -> 0;
 %% New style functions.
 indent_type('define-function') -> 1;
 indent_type('define-macro') -> 1;
@@ -323,25 +326,26 @@ indent_type('defun') -> 1;
 indent_type('defmacro') -> 1;
 indent_type('defsyntax') -> 1;
 indent_type('defrecord') -> 1;
+%% Core forms.
 indent_type('progn') -> 0;
 indent_type('lambda') -> 1;
 indent_type('match-lambda') -> 0;
 indent_type('let') -> 1;
-indent_type('let*') -> 1;
-indent_type('flet') -> 1;
-indent_type('flet*') -> 1;
-indent_type('fletrec') -> 1;
-indent_type('let-syntax') -> 1;
+indent_type('let-function') -> 1;
+indent_type('letrec-function') -> 1;
 indent_type('if') -> 1;
 indent_type('case') -> 1;
 indent_type('receive') -> 0;
 indent_type('cond') -> 999;			%All following forms
 indent_type('catch') -> 0;
 indent_type('try') -> 1;
+indent_type('call') -> 2;
+%% Core macros.
+indent_type('let*') -> 1;
+indent_type('flet') -> 1;
+indent_type('flet*') -> 1;
+indent_type('fletrec') -> 1;
 indent_type('lc') -> 1;				%List comprehensions
 indent_type('bc') -> 1;				%Binary comprehensions
 indent_type(':') -> 2;
-indent_type('call') -> 2;
-indent_type('syntax-rules') -> 0;
-indent_type('macro') -> 0;
 indent_type(_) -> none.
