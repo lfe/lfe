@@ -62,7 +62,7 @@ server(_) ->
 server_loop(Env0, BaseEnv) ->
     Env = try
 	      %% Read the form
-	      lfe_io:print('>'),
+	      io:put_chars("> "),
 	      Form = lfe_io:read(),
 	      Env1 = update_vbinding('-', Form, Env0),
 	      %% Macro expand and evaluate it.
@@ -112,11 +112,31 @@ update_shell_vars(Form, Value, Env) ->
 	   {'**',fetch_vbinding('*', Env)},
 	   {'*',Value}]).    
 
-add_shell_macros(Env) ->
-    foldl(fun ({Symb,Macro}, E) -> add_mbinding(Symb, Macro, E) end,
-	  Env,
-	  [{ec,['syntax-rules',[as,[call,[quote,c],[quote,c]|as]]]},
-	   {m,['syntax-rules',[fs,[call,[quote,c],[quote,m]|fs]]]}]).
+add_shell_macros(Env0) ->
+    %% We write macros in LFE and expand them with macro package.
+    Ms = [{[defmacro,ec,			%Erlang compile
+	    [as,[quasiquote,[':',c,c|[unquote,as]]]]],1},
+	  {[defmacro,m,				%Module info
+	    [[],[quasiquote,[':',c,m]]],
+	    [ms,[quasiquote,[':',lists,map,['fun',c,m,1],
+			     [list|[unquote,ms]]]]]],2},
+	  {[defmacro,l,				%Load a module
+	    [ms,[quasiquote,[':',lists,map,['fun',c,l,1],
+			     [list|[unquote,ms]]]]]],3},
+	  {[defmacro,c,
+	    [[f|os],
+	     [quasiquote,
+	      ['case',[':',lfe_comp,file,[unquote,f]|[unquote,os]],
+	       [[tuple,[quote,ok],mod,'_'],
+		['let',[[base,
+			 [':',filename,basename,[unquote,f],[quote,".lfe"]]]],
+		 [':',code,purge,mod],
+		 [':',code,load_abs,base]]],
+	       [other,other]]]]],4}
+	 ],
+    {_,Env1} = lfe_macro:macro_pass(Ms, Env0),
+    %% io:fwrite("asm: ~p\n", [Env1]),
+    Env1.
 
 %% eval_form(Form, EvalEnv, BaseEnv) -> {Value,Env}.
 
@@ -131,7 +151,6 @@ eval_form(Form, Env0, Benv) ->
 	    {lfe_eval:eval(Eform, Env0),Env0}
     end.
 
-
 %% eval_internal(Form, EvalEnv, BaseEnv) -> {yes,Value,Env} | no.
 %%  Check for and evaluate internal functions. These all evaluate
 %%  their arguments.
@@ -142,21 +161,9 @@ eval_internal([unslurp|_], _, Benv) ->		%Forget everything
     {yes,ok,Benv};
 eval_internal([c|Args], Eenv, Benv) ->		%Compile a file
     c(Args, Eenv, Benv);
-eval_internal([l|Files], Eenv, _) ->		%Load modules
-    Rs = map(fun (E) ->
-		     Mod = lfe_eval:eval(E, Eenv),
-		     code:purge(Mod),
-		     code:load_file(Mod)
-	     end, Files),
-    {yes,Rs,Eenv};
-eval_internal([m|Mods], Eenv, _) ->
-    case Mods of
-	[M] -> c:m(lfe_eval:eval(M, Eenv));
-	[] -> c:m()
-    end;
 eval_internal(_, _, _) -> no.			%Not an internal function.
 
-%% c(Args, EvalEnv, BaseEnv) -> {yes,
+%% c(Args, EvalEnv, BaseEnv) -> {yes,Res,Env}.
 %%  Compile and load file.
 
 c([F], Eenv, Benv) ->
@@ -182,7 +189,7 @@ c([F,Os], Eenv, _) ->
     
 slurp([File], Eenv, Benv) ->
     Name = lfe_eval:eval(File, Eenv),		%Get file name
-    Fs0 = lfe_io:parse_file(Name),
+    {ok,Fs0} = lfe_io:parse_file(Name),
     St0 = #slurp{mod='-no-mod-',imps=[]},
     {Fs1,Fenv0} = lfe_macro:expand_forms(Fs0, new_env()),
     {Fbs,St1} = lfe_lib:proc_forms(fun collect_form/3, Fs1, St0),
@@ -240,10 +247,9 @@ safe_fetch(Key, D, Def) ->
 	{ok,Val} -> Val;
 	error -> Def
     end.
-
-%% (define-syntax safe_fetch
-%%   (syntax-rules
-%%     ((key d def)
-%%      (case (find key d)
-%%        ((tuple 'ok val) val)
-%%        ('error def))))))
+ 
+%% (defsyntax safe_fetch
+%%   ((key d def)
+%%    (case (find key d)
+%%      ((tuple 'ok val) val)
+%%      ('error def))))

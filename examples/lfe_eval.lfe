@@ -37,9 +37,12 @@
 	  (from lists (reverse 1) (map 2) (foldl 3))
 	  (from orddict (find 2) (store 3))))
 
-(defun apply (f args) (lfe-apply f args (new_env)))
+(defun apply (f args)
+  (let ((env (new_env)))
+    (lfe-apply (tuple 'expr f env) args env)))
 
-(defun apply (f args env) (lfe-apply f args env))
+(defun apply (f args env)
+  (lfe-apply (tuple 'expr f env) args env))
 
 (defun eval (e) (eval e (new_env)))
 

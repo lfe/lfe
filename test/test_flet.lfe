@@ -3,7 +3,7 @@
 ;; Purpose : Test cases for flet, flet* and fletrec.
 
 (defmodule test_flet
-  (export (a 2) (b-1 1) (b-2 1) (c 1) (d 1) (e 1) (f 1) (f 2) (g 2))
+  (export (a 2) (b-1 1) (b-2 1) (c 1) (d 1) (e 1) (f 1) (f 2) (g 2) (h 1))
   ;; (export (t2 2))
   (import (from lists (reverse 1) (reverse 2))
 	  (from ordsets (is_element 2))
@@ -83,3 +83,8 @@
   ((x y) (when (> x y)) 'bigger))
 
 (defun b () '"a string")
+
+;; Find the right f?
+(defun h (l)
+  (flet ((f (e) (if (is_number e) (+ e 5) (tuple e 5))))
+    (: lists map (fun f 1) l)))

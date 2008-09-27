@@ -5,6 +5,3 @@ code. An LFE evaluator and shell is also included.
 This is the first version with the modified internal core forms and
 macro intefaces for the new CL inspired style and the older Scheme
 inspired style.
-
-N.B. I am still testing this github release of LFE and it should not
-be considered ready to download yet.

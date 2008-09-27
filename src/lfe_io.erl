@@ -43,9 +43,12 @@
 
 parse_file(Name) ->
     %% io:format("~p\n", [Name]),
-    {ok,F} = file:open(Name, [read]),
-    {ok,Ts,_} = io:request(F, {get_until,'',lfe_scan,tokens,[1]}),
-    parse_file1(Ts, []).
+    case file:open(Name, [read]) of
+	{ok,F} ->
+	    {ok,Ts,_} = io:request(F, {get_until,'',lfe_scan,tokens,[1]}),
+	    parse_file1(Ts, []);
+	Error -> Error
+    end.
 
 parse_file1(Ts0, Ss) when Ts0 /= [] ->
     case lfe_parse:parse(Ts0) of

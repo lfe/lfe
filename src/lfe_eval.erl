@@ -46,11 +46,14 @@
 %% apply(Function, Args, Env) -> Expr.
 %%  This is applying interpreted Erlang functions, for applying funs
 %%  use normal apply. Name scoping stops us from using apply/s
-%%  internally.
+%%  internally. Args should already be evaluated.
 
-apply(F, Args) -> lfe_apply(F, Args, new_env()).
+apply(F, Args) ->
+    Env = new_env(),
+    lfe_apply({expr,F,Env}, Args, Env).
 
-apply(F, Args, Env) -> lfe_apply(F, Args, Env).
+apply(F, Args, Env) ->
+    lfe_apply({expr,F,Env}, Args, Env).		%Env at function def
 
 %% eval(Sexpr) -> Value.
 %% eval(Sexpr, Env) -> Value.

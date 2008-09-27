@@ -54,45 +54,10 @@
 
 -define(Q(E), [quote,E]).			%We do a lot of quoting!
 
--record(mac, {vc=0}).				%Variable counter
+-record(mac, {vc=0,				%Variable counter
+	      fc=0}).				%Function counter
 
 default_exps() -> new_env().
-
-%% [{'++',{'syntax-rules',
-%% 	[{[],[]},
-%% 	 {[e],e},
-%% 	 {[e|es],
-%% 	  [call,[quote,erlang],[quite,'++'],e,['++'|es]]}]}},
-%%  {':',{'syntax-rules',
-%%        [{[m,f|as],[call,[quote,m],[quote,f]|as]}]}},
-%%  {'?',{'syntax-rules',
-%%        [{[],['receive',[omega,omega]]}]}},
-%%  {'andalso',{'syntax-rules',
-%% 	     [{[e],e},
-%% 	      {[e|es],
-%% 	       ['case',e,
-%% 		[[quote,true],['andalso'|es]],
-%% 		[[quote,false],[quote,false]]]},
-%% 	      {[],'true'}]}},
-%%  {'cond',{'syntax-rules',
-%% 	 [{[[[quote,'else']|b]],['begin'|b]},
-%% 	  {[[[[quote,match],p,e]|b]|c],['case',e,[p|b],['_',['cond'|c]]]},
-%% 	  {[[[[quote,match],p,g,e]|b]|c],['case',e,[p,g|b],['_',['cond'|c]]]},
-%% 	  {[[t|b]|c],['if',t,['begin'|b],['cond'|c]]},
-%% 	  {[],[quote,false]}]}},
-%%  {'flet*',{'syntax-rules',
-%% 	  [{[[fb|fbs]|b],['flet',[fb],['flet*',fbs|b]]},
-%% 	   {[[]|b],['begin'|b]}]}},
-%%  {'let*',{'syntax-rules',
-%% 	  [{[[vb|vbs]|b],['let',[vb],['let*',vbs|b]]},
-%% 	   {[[]|b],['begin'|b]}]}},
-%%  {'orelse',{'syntax-rules',
-%% 	    [{[e],e},
-%% 	     {[e|es],['case',e,
-%% 		      [[quote,true],[quote,true]],
-%% 		      [[quote,false],['orelse'|es]]]},
-%% 	     {[],'false'}]}}
-%% ].    
 
 %% expand_form(Form) -> Form.
 %% expand_form(Form, Defs) -> Form.
@@ -471,9 +436,7 @@ expand_try(E0, B0, Env, St0) ->
 macro([_|As], Def0, Env, St0) ->
     %% io:fwrite("macro: ~p\n", [Def0]),
     {Def1,St1} = expand(Def0, Env, St0),
-    Call = ['funcall',Def1,[quote,As]],
-    %% io:fwrite("macro: ~p\n", [Call]),
-    Exp = lfe_eval:eval(Call),
+    Exp = lfe_eval:apply(Def1, [As]),		%Env?
     expand(Exp, Env, St1).
 
 %% default1(Form, Env, State) -> {yes,Form,State} | no.
@@ -680,8 +643,8 @@ new_symbs(N, St0, Vs) when N > 0 ->
 new_symbs(0, St, Vs) -> {Vs,St}.    
 
 new_fun_name(Pre, St) ->
-    C = St#mac.vc,
-    {list_to_atom(Pre ++ "$^" ++ integer_to_list(C)),St#mac{vc=C+1}}.
+    C = St#mac.fc,
+    {list_to_atom(Pre ++ "$^" ++ integer_to_list(C)),St#mac{fc=C+1}}.
 
 %%  By André van Tonder
 %%  Unoptimized.  See Dybvig source for optimized version.
