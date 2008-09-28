@@ -1,3 +1,12 @@
+2008-09-28    <rv@DOUGLAS>
+
+	* lfe_gen.erl: Support for dynamic code generation.
+
+	* lfe_boot.erl: Start Erlang with the LFE shell running.
+
+	* lfe_io.erl (print1_bits): Allow printing of some of the bytes in
+	a bitstring.
+
 2008-09-27    <rv@DOUGLAS>
 
 	* lfe_macro.erl (macro): Apply function of course.

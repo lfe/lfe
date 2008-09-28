@@ -125,10 +125,10 @@ do_return(Core, Warns, St) ->
 forms(Forms) -> forms(Forms, []).		%Default options.
 forms(Forms, Opts) ->
     case forms(Forms, #comp{}, Opts) of
-	{ok,Core,_,St} ->
-	    {ok,Bin} = compile:forms(Core,
-				     [from_core,return_errors|St#comp.opts]),
-	    {ok,St#comp.mod,Bin};
+	{ok,Core,Ws,St} ->
+	    {ok,_,Bin} =
+		compile:forms(Core, [from_core,return_errors|St#comp.opts]),
+	    {ok,St#comp.mod,Bin,Ws};
 	{error,Es,Ws,_} -> {error,Es,Ws}
     end.
 

@@ -146,11 +146,14 @@ print1_symb(Symb) ->
 %% Print the bytes in a bitstring. Print bytes except for last which
 %% we print as bitstring segement if not 8 bits big.
 
-print1_bits(<<B:8>>) -> integer_to_list(B);	%Catch last binary byte
-print1_bits(<<B:8,Bits/bitstring>>) ->
-    [integer_to_list(B),$\s|print1_bits(Bits)];
-print1_bits(<<>>) -> [];
-print1_bits(Bits) ->				%0 < Size < 8
+print1_bits(Bits) -> print1_bits(Bits, -1).	%Print them all
+
+print1_bits(_, 0) -> "...";
+print1_bits(<<B:8>>, _) -> integer_to_list(B);	%Catch last binary byte
+print1_bits(<<B:8,Bits/bitstring>>, N) ->
+    [integer_to_list(B),$\s|print1_bits(Bits, N-1)];
+print1_bits(<<>>, _) -> [];
+print1_bits(Bits, _) ->				%0 < Size < 8
     N = bit_size(Bits),
     <<B:N>> = Bits,
     io_lib:format("(~w bitstring (size ~w))", [B,N]).
@@ -288,7 +291,7 @@ prettyprint1(Tup, I) when is_tuple(Tup) ->
 	    ["#(",prettyprint1(hd(List), I+2),pp_tail(tl(List), I+2),")"]
     end;
 prettyprint1(Bit, _) when is_bitstring(Bit) ->
-    ["#B(",print1_bits(Bit),$)].
+    ["#B(",print1_bits(Bit, 30),$)].		%First 30 bytes
 
 %% split(N, List) -> {List1,List2}.
 %%  Split a list into two lists, the first containing the first N
@@ -323,8 +326,7 @@ indent_type('let-syntax') -> 1;
 indent_type('syntax-rules') -> 0;
 indent_type('macro') -> 0;
 %% New style functions.
-indent_type('define-function') -> 1;
-indent_type('define-macro') -> 1;
+indent_type('defmodule') -> 1;
 indent_type('defun') -> 1;
 indent_type('defmacro') -> 1;
 indent_type('defsyntax') -> 1;
@@ -343,6 +345,8 @@ indent_type('cond') -> 999;			%All following forms
 indent_type('catch') -> 0;
 indent_type('try') -> 1;
 indent_type('call') -> 2;
+indent_type('define-function') -> 1;
+indent_type('define-macro') -> 1;
 %% Core macros.
 indent_type('let*') -> 1;
 indent_type('flet') -> 1;

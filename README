@@ -5,3 +5,18 @@ code. An LFE evaluator and shell is also included.
 This is the first version with the modified internal core forms and
 macro intefaces for the new CL inspired style and the older Scheme
 inspired style.
+
+Two new modules have been added:
+
+lfe_boot allows you start Erlang with the LFE shell running and still
+have ^G enabled and user_drv running. Use it as follows:
+
+erl -noshell -noinput -s lfe_boot start
+
+NOTE order of commands important, must be -noshell -noinput! Add -pa
+to find modules if necessary.
+
+lfe_gen is a trial interface for using LFE for dynamic code
+generation. LFE is much easier to generate as an Erkang list than
+Erlang forms. This module helps defining and compiling a module. Note,
+that while it works, this module is very experimental and may change.
