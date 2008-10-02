@@ -57,7 +57,7 @@
 %% file(Name, Options) ->
 %%      {ok,Mod,Warns} | {ok,Mod,Binary,Ws} | {error,Errors,Warns}.
 
-file(Name) -> file(Name, []).			%Default options
+file(Name) -> file(Name, [report]).		%Default options
 
 file(Name, Opts) ->
     St0 = #comp{},
@@ -67,10 +67,10 @@ file(Name, Opts) ->
 	    %% Do the actual compilation work.
 	    case forms(Fs, St1, Opts) of
 		{ok,Core,Ws,St2} ->
-		    do_return(Core, Ws, St2);		%Handle do return.
-		{error,Es,Ws,_} -> {error,Es,Ws}
+		    erl_comp(Core, Ws, Opts, St2);
+		{error,Es,Ws,_} -> do_error_return(Es, Ws, Opts)
 	    end;
-	{error,Error} -> {error,[Error],[]}
+	{error,Error} -> do_error_return([Error], [], Opts)
     end.
 
 %% filenames(File, Options, State) -> State.
@@ -94,42 +94,79 @@ filenames(File, Opts, St0) ->
 	    St1#comp{bfile=Bfile,cfile=Cfile}
     end.
 
-do_return(Core, Warns, St) ->
+%% erl_comp(Core, Warnings, Options, State) ->
+%%      {ok,Mod[,Binary][,Warnings]}.
+%%  Run the erlang compiler on the forms. Assume no errors here.
+
+erl_comp(Core, Warns, Opts, St) ->
     %% Search for selected options.
-    Dcore = member(dcore, St#comp.opts),
-    Tcore = member(to_core, St#comp.opts),
-    Binary = member(binary, St#comp.opts),
+    Dcore = member(dcore, Opts),
+    Tcore = member(to_core, Opts),
+    Binary = member(binary, Opts),
     %% Fix returns accordingly.
     if Dcore ->					%Save raw core code
 	    ok = file:write_file(St#comp.cfile, [core_pp:format(Core),$\n]),
-	    {ok,St#comp.mod};
+	    do_ok_return([], Warns, Opts, St);
        Tcore ->					%Save optimised core code
-	    {ok,_,Copt} =
-		compile:forms(Core, [from_core,return_errors|St#comp.opts]),
+	    {ok,_,Copt,Ws} =
+		compile:forms(Core, [from_core,return|Opts]),
 	    ok = file:write_file(St#comp.cfile, [core_pp:format(Copt),$\n]),
-	    {ok,St#comp.mod};
+	    do_ok_return([], Warns ++ Ws, Opts, St);
        true ->					%Make BEAM code
-	    {ok,_,Bin} =
-		compile:forms(Core, [from_core,return_errors|St#comp.opts]),
-	    if Binary ->			%Return as binary
-		    {ok,St#comp.mod,Bin,Warns};
-	       true ->				%Save BEAM file
-		    ok = file:write_file(St#comp.bfile, Bin),
-		    {ok,St#comp.mod,Warns}
-	    end
+	    {ok,_,Bin,Ws} =
+		compile:forms(Core, [from_core,return|Opts]),
+	    Ret = if Binary -> [Bin];		%Return as binary
+		     true ->			%Save BEAM file
+			  ok = file:write_file(St#comp.bfile, Bin),
+			  []
+		  end,
+	    do_ok_return(Ret, Warns ++ Ws, Opts, St)
     end.
+
+do_ok_return(Ret0, Warns, Opts, St) ->
+    unless_opt(fun () -> list_warnings(Warns) end, return, Opts),
+    Ret1 = case member(return, Opts) of
+	       true -> Ret0 ++ [Warns];
+	       false -> Ret0
+	   end,
+    list_to_tuple([ok,St#comp.mod|Ret1]).
+
+do_error_return(Es, Ws, Opts) ->
+    unless_opt(fun () -> list_errors(Es) end, return, Opts),
+    unless_opt(fun () -> list_warnings(Ws) end, return, Opts),
+    %% Fix right return.
+    case member(return, Opts) of
+	true -> {error,Es,Ws};
+	false -> error
+    end.
+
+list_warnings([{Line,Mod,Warn}|Ws]) ->
+    io:fwrite("~w: Warning: ~s\n", [Line,Mod:format_error(Warn)]),
+    list_warnings(Ws);
+list_warnings([{Mod,Warn}|Ws]) ->
+    io:fwrite("Warning: ~s\n", [Mod:format_error(Warn)]),
+    list_warnings(Ws);
+list_warnings([]) -> [].
+
+list_errors([{Line,Mod,Error}|Ws]) ->
+    io:fwrite("~w: ~s\n", [Line,Mod:format_error(Error)]),
+    list_errors(Ws);
+list_errors([{Mod,Error}|Ws]) ->
+    io:fwrite("~s\n", [Mod:format_error(Error)]),
+    list_errors(Ws);
+list_errors([]) -> [].
 
 %% forms(Forms) -> {ok,Bin,Warnings} | {error,Errors,Warnings}.
 %% forms(Forms, Options) -> {ok,Bin,Warnings} | {error,Errors,Warnings}.
 
-forms(Forms) -> forms(Forms, []).		%Default options.
+forms(Forms) -> forms(Forms, [report]).		%Default options.
 forms(Forms, Opts) ->
     case forms(Forms, #comp{}, Opts) of
 	{ok,Core,Ws,St} ->
 	    {ok,_,Bin} =
 		compile:forms(Core, [from_core,return_errors|St#comp.opts]),
 	    {ok,St#comp.mod,Bin,Ws};
-	{error,Es,Ws,_} -> {error,Es,Ws}
+	{error,Es,Ws,_} -> do_error_return(Es, Ws, Opts)
     end.
 
 %% forms(Forms, State, Options) ->
@@ -151,10 +188,23 @@ forms(Fs0, St0, Os) ->
     end.
 
 debug_print(Format, Args, St) ->
-    when_opt(fun () -> io:fwrite(Format, Args) end, debug_print, St).
+    when_opt(fun () -> io:fwrite(Format, Args) end, debug_print, St#comp.opts).
 
-when_opt(Fun, Opt, St) ->
-    case member(Opt, St#comp.opts) of
+%% when_opt(Fun, Option, Options) -> ok.
+%% unless_opt(Fun, Option, Options) -> ok.
+%%  Vall Fun when Option is/is not a member of Options.
+
+when_opt(Fun, Opt, Opts) ->
+    case member(Opt, Opts) of
 	true -> Fun();
 	false -> ok
     end.
+
+unless_opt(Fun, Opt, Opts) ->
+    case member(Opt, Opts) of
+	true -> ok;
+	false ->  Fun()
+    end.
+
+%% (defmacro unless-opt (fun o os)
+%%   `(if (member o os) 'ok (funcall fun)))

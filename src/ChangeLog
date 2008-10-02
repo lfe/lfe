@@ -1,3 +1,22 @@
+2008-10-02    <rv@DOUGLAS>
+
+	* lfe_comp.erl: Fix handling of return values.
+
+	* lfe_io.erl (read_file, parse_file): Both return errors more
+	consistently now.
+
+2008-09-30    <rv@DOUGLAS>
+
+	* lfe_macro.erl (macro): Moved expanding expansion to caller, more
+	logical.
+
+	* lfe_io.erl (prettyprint1, print1): Added default case which just
+	prints the vanilla Erlang way.
+
+2008-09-28    <rv@DOUGLAS>
+
+	* All files: Released LFE 0.3 to Git.
+
 2008-09-28    <rv@DOUGLAS>
 
 	* lfe_gen.erl: Support for dynamic code generation.

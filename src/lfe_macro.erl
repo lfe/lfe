@@ -36,12 +36,12 @@
 	 macro_pass/2,expand_pass/2,
 	 default_exps/0,def_macro/2,qq_expand/1]).
 
--export([mbe_syntax_rules_proc/4,mbe_syntax_rules_proc/5,mbe_match_pat/3,
-	 mbe_get_bindings/3,mbe_expand_pattern/3]).
+-export([mbe_syntax_rules_proc/4,mbe_syntax_rules_proc/5,
+	 mbe_match_pat/3,mbe_get_bindings/3,mbe_expand_pattern/3]).
 
 -export([expand_macro/2,expand_macro_1/2]).
 
--compile([export_all]).
+%% -compile([export_all]).
 
 -import(lfe_lib, [new_env/0,add_fbinding/4,is_fbound/3,mbinding/3,
 		  add_mbinding/3,is_mbound/2,mbinding/2,
@@ -292,15 +292,16 @@ expand(['define-function',Head|B0], Env, St0) ->
     {B1,St1} = expand_tail(B0, Env, St0),
     {['define-function',Head|B1],St1};
 %% Now the case where we can have macros.
-expand([Fun|_]=Call, Env, St) when is_atom(Fun) ->
+expand([Fun|_]=Call, Env, St0) when is_atom(Fun) ->
     case mbinding(Fun, Env) of
 	{yes,Def} ->
-	    macro(Call, Def, Env, St);
+	    {Exp,St1} = call_macro(Call, Def, Env, St0),
+	    expand(Exp, Env, St1);		%Expand macro expansion again
 	no ->
 	    %% Not there then use defaults.
-	    case default1(Call, Env, St) of
+	    case default1(Call, Env, St0) of
 		{yes,Exp,St1} -> expand(Exp, Env, St1);
-		no -> expand_tail(Call, Env, St)
+		no -> expand_tail(Call, Env, St0)
 	    end
     end;
 expand([_|_]=Call, Env, St) -> expand_tail(Call, Env, St);
@@ -311,14 +312,14 @@ expand(Tup, _, St) when is_tuple(Tup) ->
 expand(F, _, St) -> {F,St}.			%Atomic
 
 %% expand_list(Exprs, Env, State) -> {Exps,State}.
-%% Expand a proper list of exprs.
+%%  Expand a proper list of exprs.
 
 expand_list(Es, Env, St) ->
     mapfoldl(fun (E, S) -> expand(E, Env, S) end, St, Es).
 
 %% expand_tail(Tail, Env, State) -> {Etail,State}.
 %% expand_tail(ExpFun, Tail, Env, State) -> {Etail,State}.
-%% Expand the tail of a list, need not be a proper list.
+%%  Expand the tail of a list, need not be a proper list.
 
 expand_tail(Tail, Env, St) ->
     expand_tail(fun expand/3, Tail, Env, St).
@@ -428,16 +429,16 @@ expand_try(E0, B0, Env, St0) ->
 			   end, B0, Env, St1),
     {['try',E1|B1],St2}.
 
-%% macro(Call, Def, Env, State) -> {Exp,State}.
+%% call_macro(Call, Def, Env, State) -> {Exp,State}.
 %%  Evaluate the macro definition by applying it to the call args. The
-%%  definition is either a lambda or match-lambda, expand it an apply
+%%  definition is either a lambda or match-lambda, expand it and apply
 %%  it to argument list.
 
-macro([_|As], Def0, Env, St0) ->
+call_macro([_|As], Def0, Env, St0) ->
     %% io:fwrite("macro: ~p\n", [Def0]),
-    {Def1,St1} = expand(Def0, Env, St0),
-    Exp = lfe_eval:apply(Def1, [As]),		%Env?
-    expand(Exp, Env, St1).
+    {Def1,St1} = expand(Def0, Env, St0),	%Expand definition
+    Exp = lfe_eval:apply(Def1, [As]),		%Use Env?
+    {Exp,St1}.
 
 %% default1(Form, Env, State) -> {yes,Form,State} | no.
 %%  Handle the builtin default expansions but only at top-level.
@@ -530,7 +531,7 @@ default1(['defrecord'|Def], Env0, St0) ->
 default1(['include-file'|Ibody], _, St) ->
     %% This is a VERY simple include file macro!
     [F] = Ibody,
-    Fs = lfe_io:read_file(F),
+    {ok,Fs} = lfe_io:read_file(F),		%No real error handling
     {yes,['progn'|Fs],St};
 %% Compatibility macros for the older Scheme like syntax.
 default1(['begin'|Body], _, St) ->
@@ -743,8 +744,8 @@ is_mbe_symbol(S) ->
     is_atom(S) andalso (S /= true) andalso (S /= false).
 
 %% Tests if ellipsis pattern, (p ... . rest)
-is_mbe_ellipsis(?mbe_ellipsis(_, _)) -> true;
-is_mbe_ellipsis(_) -> false.
+%% is_mbe_ellipsis(?mbe_ellipsis(_, _)) -> true;
+%% is_mbe_ellipsis(_) -> false.
 
 mbe_match_pat([quote,P], E, _) -> P =:= E;
 mbe_match_pat([tuple|Ps], [tuple|Es], K) ->	%Match tuple constructor

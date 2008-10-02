@@ -39,16 +39,10 @@
 
 %% parse_file(FileName) -> {ok,[{Sexpr,Line}]} | {error,Error}.
 %% Parse a file returning the raw sexprs (as it should be) and line
-%% numbers of start of each sexpr.
+%% numbers of start of each sexpr. Handle errors consistently.
 
 parse_file(Name) ->
-    %% io:format("~p\n", [Name]),
-    case file:open(Name, [read]) of
-	{ok,F} ->
-	    {ok,Ts,_} = io:request(F, {get_until,'',lfe_scan,tokens,[1]}),
-	    parse_file1(Ts, []);
-	Error -> Error
-    end.
+    with_token_file(fun (Ts) -> parse_file1(Ts, []) end, Name).
 
 parse_file1(Ts0, Ss) when Ts0 /= [] ->
     case lfe_parse:parse(Ts0) of
@@ -57,21 +51,28 @@ parse_file1(Ts0, Ss) when Ts0 /= [] ->
     end;
 parse_file1([], Ss) -> {ok,reverse(Ss)}.
 
-%% read_file(FileName) -> [Sexpr].
+%% read_file(FileName) -> {ok,[Sexpr]} | {error,Error}.
 %% Read a file returning the raw sexprs (as it should be).
 
 read_file(Name) ->
-    %% io:format("~p\n", [Name]),
-    {ok,F} = file:open(Name, [read]),
-    {ok,Ts,_} = io:request(F, {get_until,'',lfe_scan,tokens,[1]}),
-    read_file1(Ts).
+    with_token_file(fun (Ts) -> read_file1(Ts, []) end, Name).
 
-read_file1(Ts0) when Ts0 /= [] ->
+read_file1(Ts0, Ss) when Ts0 /= [] ->
     case lfe_parse:parse(Ts0) of
-	{ok,_,S,Ts1} -> [S|read_file1(Ts1)];
-	{error,E,_} -> exit({error,E})
+	{ok,_,S,Ts1} -> read_file1(Ts1, [S|Ss]);
+	{error,E,_} -> {error,E}
     end;
-read_file1([]) -> [].
+read_file1([], Ss) -> {ok,reverse(Ss)}.
+
+with_token_file(Do, Name) ->
+    case file:open(Name, [read]) of
+	{ok,F} ->
+	    case io:request(F, {get_until,'',lfe_scan,tokens,[1]}) of
+		{ok,Ts,_} -> Do(Ts);
+		{error,Error,_} -> {error,Error}
+	    end;
+	{error,Error} -> {error,{none,file,Error}}
+    end.
 
 %% read([IoDevice]) -> Sexpr.
 %%  A very simple read function. Line oriented but can handle multiple
@@ -131,7 +132,9 @@ print1(Vec) when is_tuple(Vec) ->
 	[] -> "#()"
     end;
 print1(Bit) when is_bitstring(Bit) ->
-    ["#B(",print1_bits(Bit),$)].
+    ["#B(",print1_bits(Bit),$)];
+print1(Other) ->				%Use standard Erlang for rest
+    io_lib:write(Other).
 
 %% print1_symb(Symbol) -> [char()].
 
@@ -291,7 +294,9 @@ prettyprint1(Tup, I) when is_tuple(Tup) ->
 	    ["#(",prettyprint1(hd(List), I+2),pp_tail(tl(List), I+2),")"]
     end;
 prettyprint1(Bit, _) when is_bitstring(Bit) ->
-    ["#B(",print1_bits(Bit, 30),$)].		%First 30 bytes
+    ["#B(",print1_bits(Bit, 30),$)];		%First 30 bytes
+prettyprint1(Other, _) ->			%Use standard Erlang for rest
+    io_lib:write(Other).
 
 %% split(N, List) -> {List1,List2}.
 %%  Split a list into two lists, the first containing the first N
