@@ -200,7 +200,7 @@ slurp([File], Eenv, Benv) ->
 				end, Env, Is)
 		  end, Fenv0, St1#slurp.imps),
     %% Get a new environment with all functions defined.
-    Fenv2 = lfe_eval:fletrec_env(Fbs, Fenv1),
+    Fenv2 = lfe_eval:make_letrec_env(Fbs, Fenv1),
     {yes,{ok,St1#slurp.mod},add_env(Fenv2, Benv)}.
 
 collect_form(['define-module',Mod|Mdef], _, St0) when is_atom(Mod) ->

@@ -31,7 +31,7 @@
 
 -module(lfe_eval).
 
--export([eval/1,eval/2,eval_list/2,apply/2,apply/3,fletrec_env/2,match/3]).
+-export([eval/1,eval/2,eval_list/2,apply/2,apply/3,make_letrec_env/2,match/3]).
 
 -import(lfe_lib, [new_env/0,add_vbinding/3,add_vbindings/2,vbinding/2,
 		  add_fbinding/4,add_fbindings/2,fbinding/3,
@@ -358,22 +358,22 @@ eval_letrec_function([Fbs0|Body], Env0) ->
 		   ([V,['match-lambda',[Pats|_]|_]=Match]) when is_atom(V) ->
 		       {V,length(Pats),Match}
 	       end, Fbs0),
-    Env1 = fletrec_env(Fbs1, Env0),
+    Env1 = make_letrec_env(Fbs1, Env0),
     %% io:fwrite("elrf: ~p\n", [{Env0,Env1}]),
     eval_body(Body, Env1).
 
-%% fletrec_env(Fbs, Env) -> Env.
+%% make_letrec_env(Fbs, Env) -> Env.
 %%  Create local function bindings for a set of mutally recursive
-%%  functions, for example from a module or a fletrec. This is very
-%%  similar to "Metacircular Semantics for Common Lisp Special Forms"
-%%  by Henry Baker, except he uses macros whereas we directly fiddle
-%%  with the environment and he keeps functions in a vector where we
-%%  just push them into the environment. His version compiles much
-%%  better (which we don't need) but is basically the same
+%%  functions, for example from a module or a letrec-function. This is
+%%  very similar to "Metacircular Semantics for Common Lisp Special
+%%  Forms" by Henry Baker, except he uses macros whereas we directly
+%%  fiddle with the environment and he keeps functions in a vector
+%%  where we just push them into the environment. His version compiles
+%%  much better (which we don't need) but is basically the same
 %%  interpreted.
 
-fletrec_env(Fbs0, Env) ->
-    Fbs1 = map(fun ({V,Ar,Body}) -> {V,Ar,{fletrec,Body,Fbs0,Env}} end, Fbs0),
+make_letrec_env(Fbs0, Env) ->
+    Fbs1 = map(fun ({V,Ar,Body}) -> {V,Ar,{letrec,Body,Fbs0,Env}} end, Fbs0),
     add_fbindings(Fbs1, Env).
 
 %% lfe_apply(Function, Vals, Env) -> Value.
@@ -383,10 +383,10 @@ lfe_apply({expr,[lambda,Args|Body],Env}, Es, _) ->
     eval_lambda(Es, Args, Body, Env);
 lfe_apply({expr,['match-lambda'|Cls],Env}, Es, _) ->
     eval_match_clauses(Es, Cls, Env);
-lfe_apply({fletrec,Body,Fbs,Env}, Es, Ee) ->
-    %% A function created by/for fletrec.
+lfe_apply({letrec,Body,Fbs,Env}, Es, Ee) ->
+    %% A function created by/for letrec-function.
     NewEnv = foldl(fun ({V,Ar,Lambda}, E) ->
-			   add_fbinding(V, Ar, {fletrec,Lambda,Fbs,Env}, E)
+			   add_fbinding(V, Ar, {letrec,Lambda,Fbs,Env}, E)
 		   end, Env, Fbs),
     %% io:fwrite("la: ~p\n", [{Body,NewEnv}]),
     lfe_apply({expr,Body,NewEnv}, Es, Ee).
@@ -401,7 +401,8 @@ eval_if([Test,True,False], Env) ->
 eval_if(Test, True, False, Env) ->
     case eval_expr(Test, Env) of
 	true -> eval_expr(True, Env);
-	false -> eval_expr(False, Env)
+	false -> eval_expr(False, Env);
+	_ -> erlang:error(if_clause)		%Explicit error here
     end.
 
 eval_case([E|Cls], Env) ->

@@ -1,3 +1,9 @@
+2008-10-03    <rv@DOUGLAS>
+
+	* lfe_eval.erl (eval_if): Better error reporting.
+
+	* lfe_comp.erl: Handling errors and warnings better now.
+
 2008-10-02    <rv@DOUGLAS>
 
 	* lfe_comp.erl: Fix handling of return values.

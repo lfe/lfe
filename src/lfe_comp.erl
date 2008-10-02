@@ -49,9 +49,9 @@
 	       lfile="",			%Lisp file
 	       bfile="",			%Beam file
 	       cfile="",			%Core file
-	       opts=[],				%Options
+	       opts=[],				%User options
 	       mod=[]				%Module name
-}).
+	      }).
 
 %% file(Name) -> {ok,Mod,Warns} | {ok,Mod,Binary,Ws} | {error,Errors,Warns}.
 %% file(Name, Options) ->
@@ -60,17 +60,16 @@
 file(Name) -> file(Name, [report]).		%Default options
 
 file(Name, Opts) ->
-    St0 = #comp{},
+    St0 = #comp{opts=Opts},
     St1 = filenames(Name, Opts, St0),
     case lfe_io:parse_file(St1#comp.lfile) of
 	{ok,Fs} ->
 	    %% Do the actual compilation work.
 	    case forms(Fs, St1, Opts) of
-		{ok,Core,Ws,St2} ->
-		    erl_comp(Core, Ws, Opts, St2);
-		{error,Es,Ws,_} -> do_error_return(Es, Ws, Opts)
+		{ok,Core,Ws,St2} -> erl_comp(Core, Ws, Opts, St2);
+		{error,Es,Ws,St2} -> do_error_return(Es, Ws, Opts, St2)
 	    end;
-	{error,Error} -> do_error_return([Error], [], Opts)
+	{error,Error} -> do_error_return([Error], [], Opts, St1)
     end.
 
 %% filenames(File, Options, State) -> State.
@@ -94,11 +93,42 @@ filenames(File, Opts, St0) ->
 	    St1#comp{bfile=Bfile,cfile=Cfile}
     end.
 
+%% forms(Forms) -> {ok,Bin,Warnings} | {error,Errors,Warnings}.
+%% forms(Forms, Options) -> {ok,Bin,Warnings} | {error,Errors,Warnings}.
+
+forms(Forms) -> forms(Forms, [report]).		%Default options.
+forms(Forms, Opts) ->
+    %% Do the actual compilation work.
+    case forms(Forms, #comp{lfile="no-file"}, Opts) of
+	{ok,Core,Ws,St} -> erl_comp(Core, Ws, Opts, St);
+	{error,Es,Ws,St} -> do_error_return(Es, Ws, Opts, St)
+    end.
+
+%% forms(Forms, State, Options) ->
+%%      {ok,Mod,Core,Warnings,State} | {error,Errors,Warnings,State}.
+%%  Run the actual LFE compiler passes.
+
+forms(Fs0, St0, Opts) ->
+    St1 = St0#comp{opts=Opts},
+    %% First macro expand forms.
+    {Fs1,Env} = lfe_macro:expand_forms(Fs0, new_env()),
+    debug_print("mac: ~p\n", [{Fs1,Env}], St1),
+    %% Lint and then compile if ok.
+    case lfe_lint:module(Fs1, Opts) of
+	{ok,Ws} ->
+	    {Mod,Core1} = lfe_codegen:forms(Fs1, Opts),
+	    {ok,Core1,Ws,St1#comp{mod=Mod}};
+	{error,Es,Ws} ->
+	    {error,Es,Ws,St1}
+    end.
+
 %% erl_comp(Core, Warnings, Options, State) ->
 %%      {ok,Mod[,Binary][,Warnings]}.
 %%  Run the erlang compiler on the forms. Assume no errors here.
 
 erl_comp(Core, Warns, Opts, St) ->
+    %% Strip out options we don't want to send to erlang compiler.
+    Eopts = strip_options(Opts),
     %% Search for selected options.
     Dcore = member(dcore, Opts),
     Tcore = member(to_core, Opts),
@@ -108,84 +138,75 @@ erl_comp(Core, Warns, Opts, St) ->
 	    ok = file:write_file(St#comp.cfile, [core_pp:format(Core),$\n]),
 	    do_ok_return([], Warns, Opts, St);
        Tcore ->					%Save optimised core code
-	    {ok,_,Copt,Ws} =
-		compile:forms(Core, [from_core,return|Opts]),
+	    {ok,_,Copt,Ews} =
+		compile:forms(Core, [from_core,return|Eopts]),
 	    ok = file:write_file(St#comp.cfile, [core_pp:format(Copt),$\n]),
-	    do_ok_return([], Warns ++ Ws, Opts, St);
+	    do_ok_return([], Warns ++ fix_erl_errors(Ews), Opts, St);
        true ->					%Make BEAM code
-	    {ok,_,Bin,Ws} =
-		compile:forms(Core, [from_core,return|Opts]),
+	    {ok,_,Bin,Ews} =
+		compile:forms(Core, [from_core,return|Eopts]),
 	    Ret = if Binary -> [Bin];		%Return as binary
 		     true ->			%Save BEAM file
 			  ok = file:write_file(St#comp.bfile, Bin),
 			  []
 		  end,
-	    do_ok_return(Ret, Warns ++ Ws, Opts, St)
+	    do_ok_return(Ret, Warns ++ fix_erl_errors(Ews), Opts, St)
     end.
 
+%% fix_erl_errors([{File,Errors}]) -> Errors.
+
+fix_erl_errors([{_,Es}|Fes]) -> Es ++ fix_erl_errors(Fes);
+fix_erl_errors([]) -> [].
+
+%% strip_options(Options) -> Options.
+%%  Strip out options to make sure erlang compiler returns everything.
+
+strip_options([report|Os]) -> strip_options(Os);
+strip_options([report_warnings|Os]) -> strip_options(Os);
+strip_options([report_errors|Os]) -> strip_options(Os);
+strip_options([O|Os]) -> [O|strip_options(Os)];
+strip_options([]) -> [].
+
+%% do_ok_return(Ret, Warnings, Options, State) -> {ok,Mod,...}.
+%% do_error_return(Errors, Warnings, Options, State) -> {error,...} | error.
+
 do_ok_return(Ret0, Warns, Opts, St) ->
-    unless_opt(fun () -> list_warnings(Warns) end, return, Opts),
+    Lfile = St#comp.lfile,
+    unless_opt(fun () -> list_warnings(Lfile, Warns) end, return, Opts),
     Ret1 = case member(return, Opts) of
-	       true -> Ret0 ++ [Warns];
+	       true -> Ret0 ++ [return_errors(Lfile, Warns)];
 	       false -> Ret0
 	   end,
     list_to_tuple([ok,St#comp.mod|Ret1]).
 
-do_error_return(Es, Ws, Opts) ->
-    unless_opt(fun () -> list_errors(Es) end, return, Opts),
-    unless_opt(fun () -> list_warnings(Ws) end, return, Opts),
+do_error_return(Es, Ws, Opts, St) ->
+    Lfile = St#comp.lfile,
+    unless_opt(fun () -> list_errors(Lfile, Es) end, return, Opts),
+    unless_opt(fun () -> list_warnings(Lfile, Ws) end, return, Opts),
     %% Fix right return.
     case member(return, Opts) of
-	true -> {error,Es,Ws};
+	true -> {error,return_errors(Lfile, Es),return_errors(Lfile, Ws)};
 	false -> error
     end.
 
-list_warnings([{Line,Mod,Warn}|Ws]) ->
+return_errors(_, []) -> [];
+return_errors(Lfile, Es) -> [{Lfile,Es}].
+
+list_warnings(F, [{Line,Mod,Warn}|Ws]) ->
     io:fwrite("~w: Warning: ~s\n", [Line,Mod:format_error(Warn)]),
-    list_warnings(Ws);
-list_warnings([{Mod,Warn}|Ws]) ->
+    list_warnings(F, Ws);
+list_warnings(F, [{Mod,Warn}|Ws]) ->
     io:fwrite("Warning: ~s\n", [Mod:format_error(Warn)]),
-    list_warnings(Ws);
-list_warnings([]) -> [].
+    list_warnings(F, Ws);
+list_warnings(_, []) -> [].
 
-list_errors([{Line,Mod,Error}|Ws]) ->
+list_errors(F, [{Line,Mod,Error}|Ws]) ->
     io:fwrite("~w: ~s\n", [Line,Mod:format_error(Error)]),
-    list_errors(Ws);
-list_errors([{Mod,Error}|Ws]) ->
+    list_errors(F, Ws);
+list_errors(F, [{Mod,Error}|Ws]) ->
     io:fwrite("~s\n", [Mod:format_error(Error)]),
-    list_errors(Ws);
-list_errors([]) -> [].
-
-%% forms(Forms) -> {ok,Bin,Warnings} | {error,Errors,Warnings}.
-%% forms(Forms, Options) -> {ok,Bin,Warnings} | {error,Errors,Warnings}.
-
-forms(Forms) -> forms(Forms, [report]).		%Default options.
-forms(Forms, Opts) ->
-    case forms(Forms, #comp{}, Opts) of
-	{ok,Core,Ws,St} ->
-	    {ok,_,Bin} =
-		compile:forms(Core, [from_core,return_errors|St#comp.opts]),
-	    {ok,St#comp.mod,Bin,Ws};
-	{error,Es,Ws,_} -> do_error_return(Es, Ws, Opts)
-    end.
-
-%% forms(Forms, State, Options) ->
-%%      {ok,Mod,Core,Warnings,State} | {error,Errors,Warnings,State}.
-%%  Run the actual compiler passes.
-
-forms(Fs0, St0, Os) ->
-    St1 = St0#comp{opts=Os},
-    %% First macro expand forms.
-    {Fs1,Env} = lfe_macro:expand_forms(Fs0, new_env()),
-    debug_print("mac: ~p\n", [{Fs1,Env}], St1),
-    %% Lint and then compile if ok.
-    case lfe_lint:module(Fs1, St1#comp.opts) of
-	{ok,Ws} ->
-	    {Mod,Core1} = lfe_codegen:forms(Fs1, Os),
-	    {ok,Core1,Ws,St1#comp{mod=Mod}};
-	{error,Es,Ws} ->
-	    {error,Es,Ws,St1}
-    end.
+    list_errors(F, Ws);
+list_errors(_, []) -> [].
 
 debug_print(Format, Args, St) ->
     when_opt(fun () -> io:fwrite(Format, Args) end, debug_print, St#comp.opts).

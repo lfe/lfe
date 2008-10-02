@@ -30,7 +30,7 @@
 ;;; We cannot use macros here as macros need the evaluator!
 
 (defmodule lfe_eval
-  (export (eval 1) (eval 2) (apply 2) (apply 3) (fletrec_env 2) (match 3))
+  (export (eval 1) (eval 2) (apply 2) (apply 3) (make_letrec_env 2) (match 3))
   (import (from lfe_lib (new_env 0) (add_vbinding 3) (add_vbindings 2)
 		(vbinding 2) (add_fbinding 4) (add_fbindings 2) (fbinding 3)
 		(add_ibinding 5) (gbinding 3))
@@ -355,13 +355,13 @@
 		       (when (is_atom v))
 		       (tuple v (length pats) f)))
 		    fbs))
-	 (env (fletrec_env fbs1 env0)))
+	 (env (make_letrec_env fbs1 env0)))
     (eval-body body env)))
 
-(defun fletrec_env (fbs0 env)
+(defun make_letrec_env (fbs0 env)
   (let ((fbs (map (lambda (fb)
 		    (let (((tuple v ar body) fb))
-		      (tuple v ar (tuple 'fletrec body fbs0 env))))
+		      (tuple v ar (tuple 'letrec body fbs0 env))))
 		  fbs0)))
     (add_fbindings fbs env)))
 
@@ -374,11 +374,11 @@
      (eval-lambda es args body env))
     ((tuple 'expr ('match-lambda . cls) env)
      (eval-match-clauses es cls env))
-    ((tuple 'fletrec body fbs env)
+    ((tuple 'letrec body fbs env)
      (let ((newenv (foldl (match-lambda
 			    (((tuple v ar lambda) e)
 			     (add_fbinding v ar
-					   (tuple 'fletrec lambda fbs env) e)))
+					   (tuple 'letrec lambda fbs env) e)))
 			  env fbs)))
        (lfe-apply (tuple 'expr body newenv) es env0)))))
 
@@ -386,9 +386,11 @@
 
 (defun eval-if (body env)
   (flet ((eval-if (test true false)
-		  (if (eval-expr test env)
-		    (eval-expr true env)
-		    (eval-expr false env))))
+		  ;; Use explicit case to catch errors.
+		  (case (eval-expr test env)
+		    ('true (eval-expr true env))
+		    ('false (eval-expr false env))
+		    (_ (: erlang error 'if_clause)))))
     (case body
       ((test true) (eval-if test true 'false))
       ((test true false) (eval-if test true false)))))
@@ -746,7 +748,7 @@
      (let (((binary (val float native-endian (size sz)) (rest binary (unit 1)))
 	    bin))
        (tuple val rest)))
-    ('native-endian
-     (let (((binary (val float native-endian (size sz)) (rest binary (unit 1)))
+    ('big-endian
+     (let (((binary (val float big-endian (size sz)) (rest binary (unit 1)))
 	    bin))
        (tuple val rest)))))
