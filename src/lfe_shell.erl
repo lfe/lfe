@@ -123,16 +123,18 @@ add_shell_macros(Env0) ->
 	  {[defmacro,l,				%Load a module
 	    [ms,[quasiquote,[':',lists,map,['fun',c,l,1],
 			     [list|[unquote,ms]]]]]],3},
-	  {[defmacro,c,
+	  {[defmacro,c,				%This subsumes fnction below
 	    [[f|os],
 	     [quasiquote,
-	      ['case',[':',lfe_comp,file,[unquote,f]|[unquote,os]],
-	       [[tuple,[quote,ok],mod,'_'],
-		['let',[[base,
-			 [':',filename,basename,[unquote,f],[quote,".lfe"]]]],
-		 [':',code,purge,mod],
-		 [':',code,load_abs,base]]],
-	       [other,other]]]]],4}
+	      ['flet',[[lm,[m],
+			['let',[[base,[':',filename,basename,
+				       [unquote,f],[quote,".lfe"]]]],
+			 [':',code,purge,m],
+			 [':',code,load_abs,base]]]],
+	       ['case',[':',lfe_comp,file,[unquote,f]|[unquote,os]],
+		[[tuple,[quote,ok],mod,'_'],[lm,mod]],
+		[[tuple,[quote,ok],mod],[lm,mod]],
+		[other,other]]]]]],4}
 	 ],
     {_,Env1} = lfe_macro:macro_pass(Ms, Env0),
     %% io:fwrite("asm: ~p\n", [Env1]),
@@ -171,12 +173,15 @@ c([F], Eenv, Benv) ->
 c([F,Os], Eenv, _) ->
     Name = lfe_eval:eval(F, Eenv),		%Evaluate arguments
     Opts = lfe_eval:eval(Os, Eenv),
+    Loadm = fun (Mod) ->
+		    Base = filename:basename(Name, ".lfe"),
+		    code:purge(Mod),
+		    R = code:load_abs(Base),
+		    {yes,R,Eenv}
+	    end,
     case lfe_comp:file(Name, Opts) of
-	{ok,Mod,_} ->
-	    Base = filename:basename(Name, ".lfe"),
-	    code:purge(Mod),
-	    R = code:load_abs(Base),
-	    {yes,R,Eenv};
+	{ok,Mod,_} -> Loadm(Mod);
+	{ok,Mod} -> Loadm(Mod);
 	Other -> {yes,Other,Eenv}
     end.
 

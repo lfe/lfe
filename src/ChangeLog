@@ -1,5 +1,8 @@
 2008-10-03    <rv@DOUGLAS>
 
+	* lfe_shell.erl (add_shell_macros): Fixed c macro so it reload
+	code.
+
 	* lfe_eval.erl (eval_if): Better error reporting.
 
 	* lfe_comp.erl: Handling errors and warnings better now.
