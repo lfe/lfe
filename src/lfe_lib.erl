@@ -32,7 +32,8 @@
 -export([new_env/0,add_env/2,
 	 add_vbinding/3,add_vbindings/2,is_vbound/2,vbinding/2,
 	 fetch_vbinding/2,update_vbinding/3,
-	 add_fbinding/4,add_fbindings/2,is_fbound/3,fbinding/3,add_ibinding/5,
+	 add_fbinding/4,add_fbindings/2,update_fbinding/4,
+	 is_fbound/3,fbinding/3,add_ibinding/5,
 	 add_mbinding/3,is_mbound/2,mbinding/2,
 	 is_gbound/3,gbinding/3]).
 
@@ -56,6 +57,8 @@
 %% vbinding(Name, Env) -> {yes,Val} | no.
 %% fetch_vbinding(Name, Env) -> Val.
 %% add_fbinding(Name, Arity, Val, Env) -> Env.
+%% add_fbindings([{Name,Arity,Val}], Env) -> Env.
+%% update_fbinding(Name, Arity, Val, Env) -> Env.
 %% add_ibinding(Mod, Name, Arity, LocalName, Env) -> Env.
 %% is_fbound(Symb, Arity, Env) -> bool().
 %% is_gbound(Symb, Arity, Env) -> bool().
@@ -108,6 +111,11 @@ add_fbinding(N, A, V, Env) -> [{function,N,A,V}|Env].
 
 add_fbindings(Fbs, Env) ->
     foldl(fun ({N,Ar,V}, E) -> add_fbinding(N, Ar, V, E) end, Env, Fbs).
+
+update_fbinding(N, A, V, [{function,N,A,_}|Env]) ->
+    [{function,N,A,V}|Env];
+update_fbinding(N, A, V, [Fb|Env]) ->
+    [Fb|update_fbinding(N, A, V, Env)].
 
 add_ibinding(M, R, A, L, Env) -> [{function,L,A,M,R}|Env].
 

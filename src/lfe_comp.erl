@@ -193,18 +193,18 @@ return_errors(_, []) -> [];
 return_errors(Lfile, Es) -> [{Lfile,Es}].
 
 list_warnings(F, [{Line,Mod,Warn}|Ws]) ->
-    io:fwrite("~w: Warning: ~s\n", [Line,Mod:format_error(Warn)]),
+    io:fwrite("~s:~w: Warning: ~s\n", [F,Line,Mod:format_error(Warn)]),
     list_warnings(F, Ws);
 list_warnings(F, [{Mod,Warn}|Ws]) ->
-    io:fwrite("Warning: ~s\n", [Mod:format_error(Warn)]),
+    io:fwrite("~s: Warning: ~s\n", [F,Mod:format_error(Warn)]),
     list_warnings(F, Ws);
 list_warnings(_, []) -> [].
 
 list_errors(F, [{Line,Mod,Error}|Ws]) ->
-    io:fwrite("~w: ~s\n", [Line,Mod:format_error(Error)]),
+    io:fwrite("~s:~w: ~s\n", [F,Line,Mod:format_error(Error)]),
     list_errors(F, Ws);
 list_errors(F, [{Mod,Error}|Ws]) ->
-    io:fwrite("~s\n", [Mod:format_error(Error)]),
+    io:fwrite("~s: ~s\n", [F,Mod:format_error(Error)]),
     list_errors(F, Ws);
 list_errors(_, []) -> [].
 
@@ -227,5 +227,7 @@ unless_opt(Fun, Opt, Opts) ->
 	false ->  Fun()
     end.
 
+%% (defmacro when-opt (fun o os)
+%%   `(if (member o os) '(funcall fun) ok))
 %% (defmacro unless-opt (fun o os)
 %%   `(if (member o os) 'ok (funcall fun)))

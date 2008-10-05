@@ -31,7 +31,8 @@
 
 -module(lfe_eval).
 
--export([eval/1,eval/2,eval_list/2,apply/2,apply/3,make_letrec_env/2,match/3]).
+-export([eval/1,eval/2,eval_list/2,apply/2,apply/3,
+	 make_letrec_env/2,add_expr_func/4,match/3]).
 
 -import(lfe_lib, [new_env/0,add_vbinding/3,add_vbindings/2,vbinding/2,
 		  add_fbinding/4,add_fbindings/2,fbinding/3,
@@ -105,12 +106,18 @@ eval_expr([funcall,F|As], Env) ->
     erlang:apply(eval_expr(F, Env), eval_list(As, Env));
 eval_expr([call|Body], Env) ->
     eval_call(Body, Env);
-eval_expr([Fun|Es], Env) when is_atom(Fun) ->
-    Ar = length(Es),				%Arity
-    case fbinding(Fun, Ar, Env) of
-	{yes,M,F} -> erlang:apply(M, F, eval_list(Es, Env));
-	{yes,F} -> lfe_apply(F, eval_list(Es, Env), Env);
-	no -> erlang:error({unbound_func,{Fun,Ar}})
+eval_expr([Fun|Es]=Call, Env) when is_atom(Fun) ->
+    %% If macro then expand and try again, else try to find function.
+    %% We only expand the top level here.
+    case lfe_macro:expand_macro(Call, Env) of
+	{yes,Exp} -> eval_expr(Exp, Env);	%This was macro, try again
+	no ->
+	    Ar = length(Es),			%Arity
+	    case fbinding(Fun, Ar, Env) of
+		{yes,M,F} -> erlang:apply(M, F, eval_list(Es, Env));
+		{yes,F} -> lfe_apply(F, eval_list(Es, Env), Env);
+		no -> erlang:error({unbound_func,{Fun,Ar}})
+	    end
     end;
 eval_expr([_|_], _) ->
     erlang:error({bad_form,application});
@@ -376,6 +383,13 @@ make_letrec_env(Fbs0, Env) ->
     Fbs1 = map(fun ({V,Ar,Body}) -> {V,Ar,{letrec,Body,Fbs0,Env}} end, Fbs0),
     add_fbindings(Fbs1, Env).
 
+%% add_expr_func(Name, Arity, Def, Env) -> Env.
+%%  Add a function definition in the correct format to the
+%%  environment.
+
+add_expr_func(Name, Ar, Def, Env) ->
+    add_fbinding(Name, Ar, {expr,Def,Env}, Env).
+
 %% lfe_apply(Function, Vals, Env) -> Value.
 %%  This is used to evaluate interpreted functions.
 
@@ -550,7 +564,10 @@ eval_call([M0,F0|As0], Env) ->
     F1 = eval_expr(F0, Env),
     As1 = eval_list(As0, Env),
     %% io:fwrite("call: ~p\n    =>~p\n", [{call,M0,F0,As0},{M1,F1,As1}]),
-    erlang:apply(M1, F1, As1).
+    if is_atom(M1), is_atom(F1) ->
+	    erlang:apply(M1, F1, As1);
+       true -> erlang:error(badarg)
+    end.
 
 %% match_when(Pattern, Value, Body, Env) -> {yes,RestBody,Bindings} | no.
 %%  Try to match pattern and evaluate guard.

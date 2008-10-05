@@ -30,7 +30,8 @@
 ;;; We cannot use macros here as macros need the evaluator!
 
 (defmodule lfe_eval
-  (export (eval 1) (eval 2) (apply 2) (apply 3) (make_letrec_env 2) (match 3))
+  (export (eval 1) (eval 2) (apply 2) (apply 3) (make_letrec_env 2)
+	  (add_expr_func 4) (match 3))
   (import (from lfe_lib (new_env 0) (add_vbinding 3) (add_vbindings 2)
 		(vbinding 2) (add_fbinding 4) (add_fbindings 2) (fbinding 3)
 		(add_ibinding 5) (gbinding 3))
@@ -358,12 +359,29 @@
 	 (env (make_letrec_env fbs1 env0)))
     (eval-body body env)))
 
+;; make_letrec_env(fbs env) -> env.
+;;  Create local function bindings for a set of mutally recursive
+;;  functions, for example from a module or a letrec-function. This is
+;;  very similar to "Metacircular Semantics for Common Lisp Special
+;;  Forms" by Henry Baker, except he uses macros whereas we directly
+;;  fiddle with the environment and he keeps functions in a vector
+;;  where we just push them into the environment. His version compiles
+;;  much better (which we don't need) but is basically the same
+;;  interpreted.
+
 (defun make_letrec_env (fbs0 env)
   (let ((fbs (map (lambda (fb)
 		    (let (((tuple v ar body) fb))
 		      (tuple v ar (tuple 'letrec body fbs0 env))))
 		  fbs0)))
     (add_fbindings fbs env)))
+
+;; add_expr_func(name arity def env) -> env.
+;;  Add a function definition in the correct format to the
+;;  environment.
+
+(defun add_expr_func (name ar def env)
+  (add_fbinding name ar (tuple 'expr def env) env))
 
 ;; (lfe-apply function args env) -> value
 ;;  This is used to evaluate interpreted functions.

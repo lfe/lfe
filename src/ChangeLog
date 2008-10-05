@@ -1,3 +1,22 @@
+2008-10-06    <rv@DOUGLAS>
+
+	* lfe_macro.erl (pass_ewc): First version of eval-when-compile.
+	(exp_macro): Macro expander now gets environment for ewc
+	functions.
+
+2008-10-05    <rv@DOUGLAS>
+
+	* lfe_shell.erl (slurp): Don't expand macros at slurp time, push
+	until evaluation.
+
+	* lfe_eval.erl (eval_expr): Expand macros when called, don't
+	assume everything already expanded.
+
+2008-10-04    <rv@DOUGLAS>
+
+	* lfe_macro.erl (pass, pass_progn): Macro collection and expansion
+	now done in one pass.
+
 2008-10-03    <rv@DOUGLAS>
 
 	* lfe_shell.erl (add_shell_macros): Fixed c macro so it reload

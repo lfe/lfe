@@ -321,7 +321,7 @@ blanks(N, Tail) -> string:chars($\s, N, Tail).
 %%  sexprs in list which are indented *after* Form while all following
 %%  that end up at indent+2.
 
-%% Old style functions.
+%% Old style forms.
 indent_type('define') -> 1;
 indent_type('define-module') -> 1;
 indent_type('define-syntax') -> 1;
@@ -330,7 +330,7 @@ indent_type('begin') -> 0;
 indent_type('let-syntax') -> 1;
 indent_type('syntax-rules') -> 0;
 indent_type('macro') -> 0;
-%% New style functions.
+%% New style forms.
 indent_type('defmodule') -> 1;
 indent_type('defun') -> 1;
 indent_type('defmacro') -> 1;
@@ -343,21 +343,26 @@ indent_type('match-lambda') -> 0;
 indent_type('let') -> 1;
 indent_type('let-function') -> 1;
 indent_type('letrec-function') -> 1;
+indent_type('let-macro') -> 1;
 indent_type('if') -> 1;
 indent_type('case') -> 1;
 indent_type('receive') -> 0;
-indent_type('cond') -> 999;			%All following forms
 indent_type('catch') -> 0;
 indent_type('try') -> 1;
 indent_type('call') -> 2;
 indent_type('define-function') -> 1;
 indent_type('define-macro') -> 1;
+indent_type('eval-when-compile') -> 0;
 %% Core macros.
+indent_type(':') -> 2;
+indent_type('cond') -> 999;			%All following forms
 indent_type('let*') -> 1;
 indent_type('flet') -> 1;
 indent_type('flet*') -> 1;
 indent_type('fletrec') -> 1;
+indent_type(macrolet) -> 1;
+indent_type(syntaxlet) -> 1;
+indent_type('do') -> 2;
 indent_type('lc') -> 1;				%List comprehensions
 indent_type('bc') -> 1;				%Binary comprehensions
-indent_type(':') -> 2;
 indent_type(_) -> none.

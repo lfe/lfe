@@ -123,7 +123,7 @@ add_shell_macros(Env0) ->
 	  {[defmacro,l,				%Load a module
 	    [ms,[quasiquote,[':',lists,map,['fun',c,l,1],
 			     [list|[unquote,ms]]]]]],3},
-	  {[defmacro,c,				%This subsumes fnction below
+	  {[defmacro,c,				%This subsumes function below
 	    [[f|os],
 	     [quasiquote,
 	      ['flet',[[lm,[m],
@@ -136,7 +136,7 @@ add_shell_macros(Env0) ->
 		[[tuple,[quote,ok],mod],[lm,mod]],
 		[other,other]]]]]],4}
 	 ],
-    {_,Env1} = lfe_macro:macro_pass(Ms, Env0),
+    {_,Env1} = lfe_macro:macro_forms(Ms, Env0),
     %% io:fwrite("asm: ~p\n", [Env1]),
     Env1.
 
@@ -196,7 +196,7 @@ slurp([File], Eenv, Benv) ->
     Name = lfe_eval:eval(File, Eenv),		%Get file name
     {ok,Fs0} = lfe_io:parse_file(Name),
     St0 = #slurp{mod='-no-mod-',imps=[]},
-    {Fs1,Fenv0} = lfe_macro:expand_forms(Fs0, new_env()),
+    {Fs1,Fenv0} = lfe_macro:macro_forms(Fs0, new_env()),
     {Fbs,St1} = lfe_lib:proc_forms(fun collect_form/3, Fs1, St0),
     %% Add imports to environment.
     Fenv1 = foldl(fun ({M,Is}, Env) ->
