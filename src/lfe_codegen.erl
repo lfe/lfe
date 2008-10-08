@@ -62,7 +62,7 @@ forms(Forms, Opts) ->
     St0 = #cg{opts=Opts},
     Core0 = #c_module{defs=[],exports=[],attrs=[]},
     {Core1,St1} = forms(Forms, St0, Core0),
-    {St1#cg.mod,Core1}.    
+    {St1#cg.mod,Core1}.
 
 %% forms(Forms, State, CoreModule) -> {CoreModule,State}.
 %% Compile the forms from the file as stored in the state record.
@@ -90,9 +90,9 @@ forms(Forms, St0, Core0) ->
     Env1 = foldl(fun ({Name,Def,_}, E) ->
 			 add_fbinding(Name, func_arity(Def), Name, E)
 		 end, Env0, Fbs1),
-    St2 = St1#cg{exps=union(St1#cg.exps, Predefs),
-		   defs=Fbs1,env=Env1},
-    Exps = map(fun ({F,A}) -> c_fname(F, A, 1) end, St2#cg.exps),
+    St2 = St1#cg{exps=add_exports(St1#cg.exps, Predefs),
+		 defs=Fbs1,env=Env1},
+    Exps = make_exports(St2#cg.exps, Fbs1),
     Atts = map(fun ({N,V}) ->
 		       {core_lib:make_literal(N),core_lib:make_literal(V)}
 	       end, St2#cg.atts),
@@ -125,6 +125,15 @@ when_opt(Fun, Opt, St) ->
 	false -> ok
     end.
 
+add_exports(all, _) -> all;
+add_exports(_, all) -> all;
+add_exports(Old, More) -> union(Old, More).
+
+make_exports(all, Fbs) ->
+    map(fun ({F,Def,_}) -> c_fname(F, func_arity(Def), 1) end, Fbs);
+make_exports(Exps, _) ->
+    map(fun ({F,A}) -> c_fname(F, A, 1) end, Exps).
+
 %% collect_form(Form, Line, State} -> {[Ret],State}.
 %%  Collect valid forms and module data. Returns forms and put module
 %%  data into state.
@@ -140,11 +149,17 @@ collect_form(['define-function',Name,['match-lambda'|_]=Match], L, St) ->
 %% collect_props(ModDef, State) -> State.
 %% Collect module definition and fill in the #cg state record.
 
+collect_mdef([[export,all]|Mdef], St) ->
+    collect_mdef(Mdef, St#cg{exps=all});
 collect_mdef([[export|Es]|Mdef], St) ->
-    %% Add exports to export set.
-    Exps = foldl(fun ([F,A], E) -> add_element({F,A}, E) end,
-		 St#cg.exps, Es),
-    collect_mdef(Mdef, St#cg{exps=Exps});
+    case St#cg.exps of
+	all -> collect_mdef(Mdef, St);		%Propagate all.
+	Exps0 ->
+	    %% Add exports to export set.
+	    Exps1 = foldl(fun ([F,A], E) -> add_element({F,A}, E) end,
+			  Exps0, Es),
+	    collect_mdef(Mdef, St#cg{exps=Exps1})
+    end;
 collect_mdef([[import|Is]|Mdef], St) ->
     collect_mdef(Mdef, collect_imps(Is, St));
 collect_mdef([[N,V]|Mdef], St) ->
@@ -281,6 +296,9 @@ comp_call([Fun|As], Env, L, St0) when is_atom(Fun) ->
 	    {#c_apply{anno=[L],op=c_fname(Name, Ar, L),args=Cas},St1}
     end.
 
+comp_args(As, Env, L, St) ->
+    mapfoldl(fun (A, Sta) -> comp_expr(A, Env, L, Sta) end, St, As).
+
 %% comp_lambda(Args, Body, Env, Line, State) -> {#c_fun{},State}.
 %% Compile a (lambda (...) ...).
 
@@ -289,9 +307,6 @@ comp_lambda(Args, Body, Env, L, St0) ->
     Cvs = map(fun (A) -> c_var(A, L) end, Args),
     {Cb,St1} = comp_body(Body, add_vbindings(Pvs, Env), L, St0),
     {c_fun(Cvs, Cb, L),St1}.
-
-comp_args(As, Env, L, St) ->
-    mapfoldl(fun (A, Sta) -> comp_expr(A, Env, L, Sta) end, St, As).
 
 lambda_arity([Args|_]) -> length(Args).
 

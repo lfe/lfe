@@ -125,11 +125,13 @@ collect_form(['define-function',Func,['match-lambda'|_]=Match], L, St)
 collect_form(_, L, St) ->
     {[],add_error(L, unknown_form, St)}.
     
+check_mdef([[export,all]|Mdef], L, St) ->	%Pass 'all' along
+    check_mdef(Mdef, L, St#lint{exps=all});
 check_mdef([[export|Es]|Mdef], L, St) ->
     case is_flist(Es) of
 	{yes,Fs} ->
-	    Mes = union(St#lint.exps, Fs),
-	    check_mdef(Mdef, L, St#lint{exps=Mes});
+	    Exps = add_exports(St#lint.exps, Fs),
+	    check_mdef(Mdef, L, St#lint{exps=Exps});
 	no ->
 	    check_mdef(Mdef, L, bad_form_error(L, export, St))
     end;
@@ -190,15 +192,27 @@ check_module(Fbs, St0) ->
 		 end, new_env(), St0#lint.imps),
     Predefs = [{module_info,0},{module_info,1}], %Predefined functions
     Env1 = foldl(fun ({F,A}, E) -> add_fbinding(F, A, E) end, Env0, Predefs),
-    St1 = St0#lint{exps=union(St0#lint.exps, Predefs)},
+    St1 = St0#lint{exps=add_exports(St0#lint.exps, Predefs)},
     %% Now check definitions.
     {Fs,Env2,St2} = check_letrec_bindings(Fbs, Env1, St1),
     %% Save functions and environment and test exports.
     St3 = St2#lint{funcs=Fs,env=Env2},
-    case subtract(St3#lint.exps, union(Predefs, Fs)) of
-	[] -> St3;
-	Us -> add_error(0, {unbound_func,Us}, St3)
-    end.
+    check_exports(St3#lint.exps, union(Predefs, Fs), St3).
+
+check_exports(all, _, St) -> St;		%All is all
+check_exports(Exps, Fs, St) ->
+    foldl(fun (E, S) ->
+		  case is_element(E, Fs) of
+		      true -> S;
+		      false -> add_error(9999, {unbound_func,E}, S)
+		  end
+	  end, St, Exps).
+
+%% add_exports(Old, More) -> New.
+
+add_exports(all, _) -> all;
+add_exports(_, all) -> all;
+add_exports(Old, More) -> union(Old, More).
 
 %% check_expr(Expr, Env, Line, State) -> State.
 %% Check an expression.

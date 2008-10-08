@@ -169,36 +169,54 @@ pass_progn([], _, Env, St) -> {[],Env,St}.
 %% pass_ewc(Forms, Line, Env, State) -> {Forms,Env,State}.
 %%  Pass over a list of forms collecting and removing all function
 %%  defintions. All forms must be expanded at top-level to check
-%%  form. Nesting of forms by progn is preserved.
+%%  form. Nesting of forms by progn is preserved. All functions are
+%%  put into one letrec structure in environment so they are mutally
+%%  recursive. They can call functions in previously defined
+%%  eval-when-compile's.
 
-pass_ewc([['progn'|Pfs0]|Fs0], L, Env0, St0) ->
-    {Pfs1,Env1,St1} = pass_ewc(Pfs0, L, Env0, St0),
-    {Fs1,Env2,St2} = pass_ewc(Fs0, L, Env1, St1),
-    {[['progn'|Pfs1]|Fs1],Env2,St2};
-pass_ewc([['eval-when-compile'|Ewcs0]|Fs0], L, Env0, St0) ->
-    {Ecws1,Env1,St1} = pass_ewc(Ewcs0, L, Env0, St0),
-    {Fs1,Env2,St2} = pass_ewc(Fs0, L, Env1, St1),
-    {[['progn'|Ecws1]|Fs1],Env2,St2};
-pass_ewc([['define-function',Name,Def]=F|Fs0], L, Env0, St0) ->
+pass_ewc(Fs0, L, Env0, St0) ->
+    {Fs1,Fbs,Env1,St1} = pass_ewc(Fs0, L, [], Env0, St0),
+    Env2 = lfe_eval:make_letrec_env(Fbs, Env1),
+    {Fs1,Env2,St1}.
+
+pass_ewc([['progn'|Pfs0]|Fs0], L, Fbs0, Env0, St0) ->
+    {Pfs1,Fbs1,Env1,St1} = pass_ewc(Pfs0, L, Fbs0, Env0, St0),
+    {Fs1,Fbs2,Env2,St2} = pass_ewc(Fs0, L, Fbs1, Env1, St1),
+    {[['progn'|Pfs1]|Fs1],Fbs2,Env2,St2};
+pass_ewc([['eval-when-compile'|Ewcs0]|Fs0], L, Fbs0, Env0, St0) ->
+    {Ecws1,Fbs1,Env1,St1} = pass_ewc(Ewcs0, L, Fbs0, Env0, St0),
+    {Fs1,Fbs2,Env2,St2} = pass_ewc(Fs0, L, Fbs1, Env1, St1),
+    {[['progn'|Ecws1]|Fs1],Fbs2,Env2,St2};
+%% Do we want macros here???
+%% pass_ewc([['define-macro'|Def]=F|Fs0], L, Fbs0, Env0, St0) ->
+%%     case def_macro(Def, Env0, St0) of
+%% 	{yes,Env1,St1} -> pass_ewc(Fs0, L, Fbs0, Env1, St1);
+%% 	no ->
+%% 	    %% Ignore it and pass it on to generate error later.
+%% 	    {Fs1,Fbs1,Env1,St1} = pass_ewc(Fs0, L, Fbs0, Env0, St0),
+%% 	    {[F|Fs1],Fbs1,Env1,St1}
+%%     end;
+pass_ewc([['define-function',Name,Def]=F|Fs0], L, Fbs0, Env0, St0) ->
     case func_arity(Def) of
 	{yes,Ar} ->				%Definition not too bad
-	    Env1 = lfe_eval:add_expr_func(Name, Ar, Def, Env0),
-	    pass_ewc(Fs0, L, Env1, St0);
+	    Fb = {Name,Ar,Def},
+	    %% Env1 = lfe_eval:add_expr_func(Name, Ar, Def, Env0),
+	    pass_ewc(Fs0, L, [Fb|Fbs0], Env0, St0);
 	no ->					%Definition really bad
 	    %% Ignore it and pass it on to generate error later.
-	    {Fs1,Env1,St1} = pass_ewc(Fs0, L, Env0, St0),
-	    {[F|Fs1],Env1,St1}
+	    {Fs1,Fbs1,Env1,St1} = pass_ewc(Fs0, L, Fbs0, Env0, St0),
+	    {[F|Fs1],Fbs1,Env1,St1}
     end;
-pass_ewc([F|Fs0], L, Env0, St0) ->
+pass_ewc([F|Fs0], L, Fbs0, Env0, St0) ->
     %% First expand enough to test top form, if so process again.
     case expand_macro(F, Env0) of
-	{yes,Exp} -> pass_ewc([Exp|Fs0], L, Env0, St0);
+	{yes,Exp} -> pass_ewc([Exp|Fs0], L, Fbs0, Env0, St0);
 	no -> 
 	    %% Ignore it and pass it on to generate error later.
-	    {Fs1,Env1,St1} = pass_ewc(Fs0, L, Env0, St0),
-	    {[F|Fs1],Env1,St1}
+	    {Fs1,Fbs1,Env1,St1} = pass_ewc(Fs0, L, Fbs0, Env0, St0),
+	    {[F|Fs1],Fbs1,Env1,St1}
     end;
-pass_ewc([], _, Env, St) -> {[],Env,St}.
+pass_ewc([], _, Fbs, Env, St) -> {[],Fbs,Env,St}.
 
 func_arity([lambda,Args|_]) ->
     case is_symb_list(Args) of
@@ -224,41 +242,78 @@ def_macro(Name, ['match-lambda'|_]=Def, Env, St) ->
     {yes,add_mbinding(Name, Def, Env),St};
 def_macro(_, _, _, _) -> no.
 
-%% def_record([Name|Fields], Env, State) -> {Def,State}.
-%% def_record(Name, Fields, Env, State) -> {Def,State}.
+%% def_record([Name|FieldDefs], Env, State) -> {Funs,Macs,Env,State}.
+%% def_record(Name, FieldDefs, Env, State) -> {Funs,Macs,Env,State}.
 %%  Define a VERY simple record by generating macros for all accesses.
 %%  (define-record point x y)
 %%    => make-point, is-point, match-point,
 %%       point-x, set-point-x, point-y, set-point-y.
 
-def_record([Name|Fields], Env, St) -> def_record(Name, Fields, Env, St).
+def_record([Name|Fdefs], Env, St) -> def_record(Name, Fdefs, Env, St).
 
-def_record(Name, Fields, Env, St0) ->
+def_record(Name, Fdefs, Env, St0) ->
+    %% Get field names, default values and indices.
+    Fields = map(fun ([F,_])when is_atom(F) -> F;
+		     (F) when is_atom(F) -> F
+		 end, Fdefs),
+    Defs = map(fun ([F,D])when is_atom(F) -> ?Q(D);
+		   (F) when is_atom(F) -> ?Q(?Q(default))
+	       end, Fdefs),
+    Findex = def_rec_fields(Fields),
+    %% Make names for helper functions.
+    Mkd = list_to_atom(lists:concat([Name,'-','make','-',default])),
+    Mtd = list_to_atom(lists:concat([Name,'-','match','-',default])),
+    Fi = list_to_atom(lists:concat([Name,'-',field,'-',index])),
+    Fu = list_to_atom(lists:concat([Name,'-',field,'-',update])),
+    %% Build helper functions.
+    Funs = [[defun,Fi|
+	     map(fun ({F,I}) -> [[?Q(F),'_'],I] end, Findex) ++
+	     [[[f,r],[':',erlang,error,[tuple,?Q(undefined_field),r,f]]]]],
+	    [defun,Mkd,[],[list|Defs]],
+	    [defun,Mtd,[],[list|lists:duplicate(length(Fields), ?Q('_'))]],
+	    [defun,Fu,[is,r,def],
+	     [fletrec,[[l,
+			[[[f,v|is],i],[l,is,[setelement,['-',[Fi,f,r],1],i,v]]],
+			[[[],i],i]]],
+	      ['let',[[i,[l,is,[list_to_tuple,def]]]],
+	       [tuple_to_list,i]]]]
+	   ],
     %% Make names for record creator/tester/match.
-    Make = list_to_atom(lists:concat(['make-', Name])),
-    Test = list_to_atom(lists:concat(['is-', Name])),
-    Match = list_to_atom(lists:concat(['match-', Name])),
-    {Fdef,St1} = def_rec_fields(Fields, Name, 2, St0), %Name is element 1!
-    Def = ['progn',
-	   ['defsyntax',
-	    Make,[Fields,[tuple,[quote,Name]|Fields]]],
-	   ['defsyntax',
-	    Test,[[rec],['is_record',rec,[quote,Name],length(Fields)+1]]],
-	   ['defsyntax',
-	    Match,[Fields,[tuple,[quote,Name]|Fields]]]
-	   |
-	   Fdef],
-    {Def,Env,St1}.
+    Make = list_to_atom(lists:concat(['make','-',Name])),
+    Test = list_to_atom(lists:concat(['is','-',Name])),
+    Match = list_to_atom(lists:concat(['match','-',Name])),
+    %% Make access macros.
+    {Fdef,St1} = def_rec_fields(Fields, Name, St0), %Name is element 1!
+    Macs = [['defmacro',Make,
+	     [fds,
+	      [quasiquote,
+	       [tuple,?Q(Name)|[unquote,[Fu,fds,?Q(Name),[Mkd]]]]]]],
+	    ['defsyntax',Test,
+	     [[rec],['is_record',rec,[quote,Name],length(Fields)+1]]],
+	    ['defmacro',Match,
+	     [fds,
+	      [quasiquote,
+	       [tuple,?Q(Name)|[unquote,[Fu,fds,?Q(Name),[Mtd]]]]]]]
+	    |
+	    Fdef],
+    %% io:fwrite("~s\n", [lfe_io:prettyprint1({Funs,Macs}, 0)]),
+    {Funs,Macs,Env,St1}.
 
-def_rec_fields([F|Fs], Name, N, St0) ->
-    {Fds,St1} = def_rec_fields(Fs, Name, N+1, St0),
-    Get = list_to_atom(lists:concat([Name,'-',F])),
-    Set = list_to_atom(lists:concat(['set-',Name,'-',F])),
-    {[['defsyntax',Get,[[rec],[element,N,rec]]],
-      ['defsyntax',Set,[[rec,new],[setelement,N,rec,new]]]|
-      Fds],
-     St1};
-def_rec_fields([], _, _, St) -> {[],St}.
+def_rec_fields([F|Fs]) -> def_rec_fields([F|Fs], 2).
+
+def_rec_fields([F|Fs], N) ->
+    [{F,N}|def_rec_fields(Fs, N+1)];
+def_rec_fields([], _) -> [].
+
+def_rec_fields(Fs, Name, St) ->
+    Fis = def_rec_fields(Fs),			%Calculate indexes
+    {foldr(fun ({F,N}, Fas) ->
+		   Get = list_to_atom(lists:concat([Name,'-',F])),
+		   Set = list_to_atom(lists:concat(['set-',Name,'-',F])),
+		   [['defsyntax',Get,[[rec],[element,N,rec]]],
+		    ['defsyntax',Set,[[rec,new],[setelement,N,rec,new]]]|
+		    Fas]
+	   end, [], Fis), St}.
 
 %% expand(Form, Env, State) -> {Form,State}.
 %% Expand a form using expansions in Env and defaults. N.B. builtin
@@ -571,8 +626,8 @@ default1(['fun',M,F,Ar], _, St0)
     {Vs,St1} = new_symbs(Ar, St0),
     {yes,['lambda',Vs,['call',?Q(M),?Q(F)|Vs]],St1};
 default1(['defrecord'|Def], Env0, St0) ->
-    {Rec,_,St1} = def_record(Def, Env0, St0),
-    {yes,Rec,St1};
+    {Funs,Macs,_,St1} = def_record(Def, Env0, St0),
+    {yes,[progn,['eval-when-compile'|Funs]|Macs],St1};
 default1(['include-file'|Ibody], _, St) ->
     %% This is a VERY simple include file macro!
     [F] = Ibody,

@@ -217,6 +217,9 @@ is_core_form('let') -> true;
 is_core_form('let-function') -> true;
 is_core_form('letrec-function') -> true;
 is_core_form('let-macro') -> true;
+is_core_form('eval-when-compile') -> true;
+is_core_form('define-function') -> true;
+is_core_form('define-macro') -> true;
 %% Core control special forms.
 is_core_form('progn') -> true;
 is_core_form('if') -> true;

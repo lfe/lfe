@@ -369,7 +369,10 @@ eval_letrec_function([Fbs0|Body], Env0) ->
     %% io:fwrite("elrf: ~p\n", [{Env0,Env1}]),
     eval_body(Body, Env1).
 
+%% init_letrec_env(Env) -> {Lete,Env}.
 %% make_letrec_env(Fbs, Env) -> Env.
+%% make_letrec_env(Lete, Fbs, Env) -> {Lete,Env}.
+%% extend_letrec_env(Lete, Fbs, Env) -> {Lete,Env}.
 %%  Create local function bindings for a set of mutally recursive
 %%  functions, for example from a module or a letrec-function. This is
 %%  very similar to "Metacircular Semantics for Common Lisp Special
@@ -379,9 +382,14 @@ eval_letrec_function([Fbs0|Body], Env0) ->
 %%  much better (which we don't need) but is basically the same
 %%  interpreted.
 
+init_letrec_env(Env) -> {[],Env}.
+
 make_letrec_env(Fbs0, Env) ->
     Fbs1 = map(fun ({V,Ar,Body}) -> {V,Ar,{letrec,Body,Fbs0,Env}} end, Fbs0),
     add_fbindings(Fbs1, Env).
+
+extend_letrec_env(Lete0, Fbs0, Env0) ->
+    {Lete0,Env0}.
 
 %% add_expr_func(Name, Arity, Def, Env) -> Env.
 %%  Add a function definition in the correct format to the

@@ -133,6 +133,7 @@
 	       "if" "lambda" "let" "let-function" "letrec-function"
 	       "let-macro" "match-lambda"
 	       "receive" "try" "when" "progn"
+	       "eval-when-compile"
 	       ;; Default macros
 	       "andalso" "cond" "do" "fun" "let*" "flet*" "macro"
 	       "orelse" "syntax-rules" "lc" "bc" "flet" "fletrec"
@@ -192,35 +193,40 @@
 ;; like defun if the first form is placed on the next line, otherwise
 ;; it is indented like any other form (i.e. forms line up under first).
 
-(put ': 'lfe-indent-function 2)
-(put 'after 'lfe-indent-function 0)
+;; Old style forms.
+(put 'begin 'lfe-indent-function 0)
+(put 'let-syntax 'lfe-indent-function 1)
+(put 'syntax-rules 'lfe-indent-function 0)
+(put 'macro 'lfe-indent-function 0)
+;; New style forms.
+;; Core forms.
 (put 'progn 'lfe-indent-function 0)
-(put 'call 'lfe-indent-function 2)
-(put 'case 'lfe-indent-function 1)
-(put 'catch 'lfe-indent-function 0)
-(put 'do 'lfe-indent-function 2)
-(put 'if 'lfe-indent-function 1)
-(put 'lc 'lfe-indent-function 1)
-(put 'bc 'lfe-indent-function 1)
 (put 'lambda 'lfe-indent-function 1)
+(put 'match-lambda 'lfe-indent-function 0)
 (put 'let 'lfe-indent-function 1)
+(put 'let-function 'lfe-indent-function 1)
+(put 'letrec-function 'lfe-indent-function 1)
+(put 'let-macro 'lfe-indent-function 1)
+(put 'if 'lfe-indent-function 1)
+(put 'case 'lfe-indent-function 1)
+(put 'receive 'lfe-indent-function 0)
+(put 'catch 'lfe-indent-function 0)
+(put 'try 'lfe-indent-function 0)
+(put 'after 'lfe-indent-function 0)
+(put 'call 'lfe-indent-function 2)
+(put 'when 'lfe-indent-function 0)
+(put 'eval-when-compile 'lfe-indent-function 0)
+;; Core macros.
+(put ': 'lfe-indent-function 2)
 (put 'let* 'lfe-indent-function 1)
 (put 'flet 'lfe-indent-function 1)
 (put 'flet* 'lfe-indent-function 1)
 (put 'fletrec 'lfe-indent-function 1)
 (put 'macrolet 'lfe-indent-function 1)
 (put 'syntaxlet 'lfe-indent-function 1)
-(put 'let-function 'lfe-indent-function 1)
-(put 'letrec-function 'lfe-indent-function 1)
-(put 'let-macro 'lfe-indent-function 1)
-(put 'let-syntax 'lfe-indent-function 1)
-(put 'match-lambda 'lfe-indent-function 0)
-(put 'receive 'lfe-indent-function 0)
-(put 'try 'lfe-indent-function 0)
-(put 'when 'lfe-indent-function 0)
-(put 'begin 'lfe-indent-function 0)
-(put 'macro 'lfe-indent-function 0)
-(put 'syntax-rules 'lfe-indent-function 0)
+(put 'do 'lfe-indent-function 2)
+(put 'lc 'lfe-indent-function 1)
+(put 'bc 'lfe-indent-function 1)
 
 ;; Autoloading - no need yet as this it.
 
