@@ -2,6 +2,25 @@ LFE, Lisp Flavoured Erlang, is a lisp syntax front-end to the Erlang
 compiler. Code produced with it is compatible with "normal" Erlang
 code. An LFE evaluator and shell is also included.
 
+v0.4
+----
+
+Added (export all) attribute to module definition.
+
+New records which allow giving default values as in vanilla
+Erlang. Records are still compatible with vanilla Erlang but now more
+pratical to use. NOTE this change is not backwards compatible as
+syntax for (make- ...) and (match- ...) have changed.
+
+(eval-when-compile ...) added as a top-level form which allows
+functions to be defined when compiling the forms. These are useful for
+more complex macros.
+
+Better and more documention. The documentation is still normal text
+files as Edoc and I are not in agreement on how things should work.
+
+v0.3
+----
 This is the first version with the modified internal core forms and
 macro intefaces for the new CL inspired style and the older Scheme
 inspired style.

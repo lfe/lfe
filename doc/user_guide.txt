@@ -1,6 +1,8 @@
 	Lisp Flavoured Erlang
 	=====================
 
+Note {{ ... }} is use to denote optional syntax.
+
 Special syntactic rules
 -----------------------
 
@@ -22,10 +24,10 @@ Supported Core forms
 		     big-endian|little-endian|native-endian
 		     signed|unsigned)
 (lambda (arg ...) ...)
-(match-lambda				- Matches clauses
-  ((arg ... ) [(when e)] ...)
+(match-lambda					- Matches clauses
+  ((arg ... ) {{(when e)}} ...)
   ... )
-(let ((pat [(when e)] e)
+(let ((pat {{(when e)}} e)
       ...)
   ... )
 (let-function ((name lambda|match-lambda)	- Only define local functions
@@ -38,25 +40,25 @@ Supported Core forms
 	    ...)
   ...)
 (progn ... )
-(if test true-expr [false-expr])
+(if test true-expr {{false-expr}})
 (case e
-  (pat [(when e)] ...)
+  (pat {{(when e)}} ...)
    ... ))
 (receive
-  (pat [(when e)] ... )
+  (pat {{(when e)}} ... )
   ...
   (after timeout ... ))
 (catch ... )
 (try
   e
-  [(case ((pat [(when e)] ... )
-	  ... ))]
-  [(catch
-     (((tuple type value ignore) [(when e)]
+  {{(case ((pat {{(when e)}} ... )
+	  ... ))}}
+  {{(catch
+     (((tuple type value ignore) {{(when e)}}
 				 	- Must be tuple of length 3 here!
       ... )
-     ... )]
-  [(after ... )])
+     ... )}}
+  {{(after ... )}})
 (call mod func arg ... )		- Call to Mod:Func(Arg, ... )
 
 (define-function name lambda|match-lambda)
@@ -72,7 +74,15 @@ Supported macro forms
 (?)					- Receive next message
 (++ ... )
 (let* (...) ... )			- Sequential let's
+(flet ((name (arg ...) ...)
+       ...)
+  ...)
 (flet* (...) ... )			- Sequential flet's
+(fletrec ((name (arg ...) ...)
+	  ...)
+  ...)
+	Define local functions, this will expand to lambda or
+	match-lambda depending on structure as with defun.
 (cond ... )				- The normal cond, with (=? pat expr)
 (andalso ... )
 (orelse ... )
@@ -101,14 +111,6 @@ Common Lisp inspired macros
   ...)
 	Define a top-level macro using Scheme inspired syntax-rules
 	format.
-(flet ((name (arg ...) ...)
-       ...)
-  ...)
-(fletrec ((name (arg ...) ...)
-	  ...)
-  ...)
-	Define local functions, this will expand to lambda or
-	match-lambda depending on structure as with defun.
 (macrolet ((name (arg ...) ...)
 	   ...)
   ...)
@@ -212,6 +214,7 @@ Module definition
 
 (defmodule name
   (export (f 2) (g 1) ... )
+  (export all)					;Export all functions
   (import (from mod (f1 2) (f2 1) ... )
 	  (rename mod ((f1 2) sune) ((f2 1) kurt) ... ))
   (import (prefix mod mod-prefix))	- NYI
@@ -219,9 +222,10 @@ Module definition
   ... )
 
 Can have multiple export and import declarations within module
-declaration. Other attributes which are not recognised by the compiler
-are allowed and are simply passed on to the module and can be accessed
-through module_info/0-1.
+declaration. The (export all) declaration is allowed together with
+other export declarations and overrides them. Other attributes which
+are not recognised by the compiler are allowed and are simply passed
+on to the module and can be accessed through module_info/0-1.
 
 Macros
 ------
@@ -285,60 +289,46 @@ which can be used in the cond. An example:
       ((?= (x . xs) (bar y)) (fubar xs (baz x)))
       ... )
 
-Records (So Far)
-----------------
+Records
+-------
 
 Records are tuples with the record name as first element and the rest
-of the fields in order exactly like "normal" Erlang records.
-
-(defrecord name
-  field1
-  filed2
-  ... )
-
-Will create macros for creation, matching and field access.
-
-(defrecord person
-  name
-  age)
-
-=> (make-person name age)
-   (is-person rec)
-   (match-person name age)	- Used in patterns to test and extract
-   (person-name rec)
-   (set-person-name rec name)
-   (person-age rec)
-   (set-person-age rec age)
-
-This is basically what R6RS provides although they have an extra layer
-accessible. Not really that useable as it stands.
-
-Records (NYI)
--------
+of the fields in order exactly like "normal" Erlang records. As with
+Erlang records the default default value is 'default'.
 
 (defrecord name
   field
-  (field default-val)
+  (field default-value)
   ... )
 
 Will create access functions/macros for creation and accessing
-fields. The make form takes optional argument pairs field-name value
-to get non-default values. E.g. for
+fields. The make and match forms takes optional argument pairs
+field-name value to get non-default values. E.g. for
 
 (defrecord person
-  (name "")
+  (name '"")
+  (address '"")
   age)
 
-=> (make-person ... )
+=> (make-person {{field value}} ... )
    (match-person ... )
    (person-name r)
    (set-person-name r name)
    (person-age r)
    (set-person-age r age)
+   (person-address r)
+   (set-person-address r address)
 
 (make-person name "Robert" age 54)
 
-How to access them in patterns?
+	Will create a new person record with the name field set to
+	"Robert", the age field set to 54 and the address field set to
+	the default "".
+
+(match-person name name age 55)
+
+	Will match a person with age 55 and bind the variable name to
+	the name field of the record. Can use any variable name here
 
 List/binary comprehensions
 --------------------------
@@ -361,7 +351,7 @@ The supported qualifiers, in both list/binary comprehensions are:
 
 (<- pat list-expr)	 - Extract elements from a list expression
 (<= bin-pat binary-expr) - Extract elements from a binary/bits expression
-(?= pat [guard] expr)	 - Match test and bind variables in pat
+(?= pat {{guard}} expr)	 - Match test and bind variables in pat
 expr			 - Normal boolean test
 
 Some examples:
@@ -380,75 +370,6 @@ returns a list of all the positive elements of the list l1.
 returns a binary of floats of size 64 of floats which are larger than
 10.0 from the binary b1 and of size 32. The returned numbers are first
 printed.
-
-Compiling a file
-----------------
-
-lfe_comp:file(file-name[, Options])
-	-> {ok,Mod,Warnings} | {error,Errors,Warnings}
-
-	Compiles file file-name.lfe to BEAM file file-name.beam. Must
-	be loaded explicitly in shell. Option 'binary' returns beam
-	module as binary. Line numbers in errors and warnings is the
-	line of the beginning of the form in which the error occurs.
-
-lfe_comp:forms(Forms[, Options])
-	-> {ok,ModName,Binary} | {error,Errors,Warnings}
-
-	Compiles list of forms into BEAM binary. Each "form" is
-	{Form,LineNumber}. Linenumber only used for error messages.
-
-The LFE Shell
--------------
-
-There is now a simple LFE shell in which you can enter sexprs which
-are evaluated and the value printed. There are no user shell variables
-(scoping and lack of setq)
-
-Built-in shell functions:
-
-(c File [Options])
-	Compile and load an LFE file. Assumes default extension .lfe.
-
-(l Module ...)
-	Load modules.
-
-(slurp File)
-	Slurp in a source LFE file and makes all functions and macros
-	defined in the file available in the shell. Only one file can
-	be slurped at a time and slurping a new file removes all data
-	about the previous one.
-
-(: c Command Arg ...)
-	All the commands in the standard Erlang shell can be reached
-	in this way.
-
-Builtin shell variables:
-
-+/++/+++
-	The three previous expressions input.
-*/**/***
-	The values of the previous 3 expressions.
--
-	The current expression input.
-
-Starting the LFE shell:
-
-From a normal Erlang shell the best way to start the shell is by
-calling:
-
-17> lfe_shell:server().
-
-A modified user_drv.erl from the standard Erlang distribution has been
-provided which allows to start a specific local shell, not just the
-default Erlang shell. If this version of user_drv.beam is placed in
-the standard load path then giving the user switch commands:
-
---> s lfe_shell
---> c
-
-will create a job running the LFE shell and connect to it. This also
-works when starting a remote shell.
 
 Notes
 -----
