@@ -95,13 +95,19 @@
     (('call . body)
      (eval-call body env))
     ((f . es) (when (is_atom f))
-     (let ((ar (length es)))		;Arity
-       (case (fbinding f ar env)
-	 ((tuple 'yes m f) (: erlang apply m f (eval-list es env)))
-	 ((tuple 'yes f) (lfe-apply f (eval-list es env) env))
-	 ('no (: erlang error (tuple 'unbound_func (tuple f ar)))))))
+     ;; If macro then expand and try again, else try to find function.
+     ;; We only expand the top level here.
+     (case (: lfe_macro expand_macro e env)
+       ((tuple 'yes exp)
+	(eval-expr exp env)) ;This was macro, try again
+       ('no
+	(let ((ar (length es)))		;Arity
+	  (case (fbinding f ar env)
+	    ((tuple 'yes m f) (: erlang apply m f (eval-list es env)))
+	    ((tuple 'yes f) (lfe-apply f (eval-list es env) env))
+	    ('no (: erlang error (tuple 'unbound_func (tuple f ar)))))))))
     ((f . es)
-     (: erlang error #(bad_form application)))
+     (: erlang error (tuple 'bad_form 'application f es)))
     (e (if (is_atom e)
 	 (case (vbinding e env)
 	   ((tuple 'yes val) val)
@@ -131,20 +137,19 @@
 		    (binary (acc binary (unit 1)) (bin binary (unit 1))))))
     (() acc)))
 
-(defrecord spec type size unit sign endian)
-
-(defun def-spec ()			;Make a default spec
-  (make-spec 'integer 'default 'default 'default 'default))
+(defrecord spec
+  (type 'integer) (size 'default) (unit 'default)
+  (sign 'default) (endian 'default))
 
 (defun eval-field (field env)
   (case field
     ((val . specs)
      (let* ((v (eval-expr val env))
-	    ((tuple ty sz un si en) (eval-bitspecs specs (def-spec) env)))
+	    ((tuple ty sz un si en) (eval-bitspecs specs (make-spec) env)))
        (eval-exp-field v ty sz un si en)))
     (val
      (let* ((v (eval-expr val env))
-	    ((tuple ty sz un si en) (eval-bitspecs () (def-spec) env)))
+	    ((tuple ty sz un si en) (eval-bitspecs () (make-spec) env)))
        (eval-exp-field v ty sz un si en)))))
     
 ;; (eval-bitspecs specs spec env) -> (tuple type size unit sign end).
@@ -175,26 +180,26 @@
     (('native-endian . ss)
      (eval-bitspecs ss (set-spec-endian spec 'native) env))
     (()
-     (let (((match-spec type size unit sign end) spec))
+     (let (((match-spec type ty size sz unit un sign si endian en) spec))
        ;; Adjust values depending on type and given value.
        (flet ((val-or-def (v def) (if (=:= v 'default) def v)))
-	 (case type
+	 (case ty
 	   ('integer
 	    (tuple 'integer
-		   (val-or-def size 8) (val-or-def unit 1)
-		   (val-or-def sign 'unsigned) (val-or-def end 'big)))
+		   (val-or-def sz 8) (val-or-def un 1)
+		   (val-or-def si 'unsigned) (val-or-def en 'big)))
 	   ('float
 	    (tuple 'float
-		   (val-or-def size 64) (val-or-def unit 1)
-		   (val-or-def sign 'unsigned) (val-or-def end 'big)))
+		   (val-or-def sz 64) (val-or-def un 1)
+		   (val-or-def si 'unsigned) (val-or-def en 'big)))
 	   ('binary
 	    (tuple 'integer
-		   (val-or-def size 'all) (val-or-def unit 8)
-		   (val-or-def sign 'unsigned) (val-or-def end 'big)))
+		   (val-or-def sz 'all) (val-or-def un 8)
+		   (val-or-def si 'unsigned) (val-or-def en 'big)))
 	   ('bitstring
 	    (tuple 'binary
-		   (val-or-def size 'all) (val-or-def unit 1)
-		   (val-or-def sign 'unsigned) (val-or-def end 'big)))))))))
+		   (val-or-def sz 'all) (val-or-def un 1)
+		   (val-or-def si 'unsigned) (val-or-def en 'big)))))))))
 
 ;; (eval-exp-field value type size unit sign endian) -> binary().
 
@@ -331,33 +336,33 @@
 
 ;; (eval-let-function (FuncBindings . Body) Env) -> Value.
 
-(defun eval-let-function (body env0)
-  (let* (((fbs . b) body)
+(defun eval-let-function (form env0)
+  (let* (((fbs . body) form)
 	 (env (foldl (match-lambda
-		       ([(v (= ('lambda as . b) f)) e]
+		       ([(v (= ('lambda as . _) f)) e]
 			(when (is_atom v))
 			(add_fbinding v (length as) (tuple 'expr f env0) e))
-		       ([(v (= ('lambda as . b) f)) e]
+		       ([(v (= ('match-lambda (pats . _) . _) f)) e]
 			(when (is_atom v))
-			(add_fbinding v (length as) (tuple 'expr f env0) e)))
+			(add_fbinding v (length pats) (tuple 'expr f env0) e)))
 		     env0 fbs)))
-    (eval-body b env)))
+    (eval-body body env)))
 			
 ;; (eval-letrec-function (FuncBindings . Body) Env) -> Value.
 ;;  This is a tricky one. But we dynamically update the environment
 ;;  each time we are called.
 
-(defun eval-letrec-function (body env0)
-  (let* (((fbs . b) body)
+(defun eval-letrec-function (form env0)
+  (let* (((fbs0 . body) form)
 	 (fbs1 (map (match-lambda
 		      ([(v (= ('lambda args . body) f))] (when (is_atom v))
-			(tuple v (length args) f))
+		       (tuple v (length args) f))
 		      ([(v (= ('match-lambda (pats . _) . _) f))]
 		       (when (is_atom v))
 		       (tuple v (length pats) f)))
-		    fbs))
-	 (env (make_letrec_env fbs1 env0)))
-    (eval-body body env)))
+		    fbs0))
+	 (env1 (make_letrec_env fbs1 env0)))
+    (eval-body body env1)))
 
 ;; make_letrec_env(fbs env) -> env.
 ;;  Create local function bindings for a set of mutally recursive
@@ -704,14 +709,14 @@
 (defun match-field (f bin env bs)
   (case f
     ((pat . specs)
-     (let ((spec-t (eval-bitspecs specs (def-spec) env)))
+     (let ((spec-t (eval-bitspecs specs (make-spec) env)))
        (match-field pat spec-t bin env bs)))
     (pat
-     (let ((spec-t (eval-bitspecs '() (def-spec) env)))
+     (let ((spec-t (eval-bitspecs '() (make-spec) env)))
        (match-field pat spec-t bin env bs)))))
 
 (defun match-field (pat spec bin env bs)
-  (let* (((match-spec ty sz un si en) spec) ;Pull spec apart
+  (let* (((match-spec type ty size sz unit un sign si endian en) spec)
 	 ((tuple val bin) (get-value bin ty sz un si en)))
     (case (match pat val env bs)
       ((tuple 'yes bs1) (tuple 'yes bs bin))

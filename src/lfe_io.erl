@@ -45,7 +45,7 @@ parse_file(Name) ->
     with_token_file(fun (Ts) -> parse_file1(Ts, []) end, Name).
 
 parse_file1(Ts0, Ss) when Ts0 /= [] ->
-    case lfe_parse:parse(Ts0) of
+    case lfe_parse:sexpr(Ts0) of
 	{ok,L,S,Ts1} -> parse_file1(Ts1, [{S,L}|Ss]);
 	{error,E,_} -> {error,E}
     end;
@@ -58,7 +58,7 @@ read_file(Name) ->
     with_token_file(fun (Ts) -> read_file1(Ts, []) end, Name).
 
 read_file1(Ts0, Ss) when Ts0 /= [] ->
-    case lfe_parse:parse(Ts0) of
+    case lfe_parse:sexpr(Ts0) of
 	{ok,_,S,Ts1} -> read_file1(Ts1, [S|Ss]);
 	{error,E,_} -> {error,E}
     end;
@@ -87,7 +87,7 @@ scan_and_parse(Io, Ts0) ->
     case io:get_line(Io, '') of
 	eof ->
 	    %% No more so must take what we have.
-	    case lfe_parse:parse(Ts0) of
+	    case lfe_parse:sexpr(Ts0) of
 		{ok,_,S,_} -> S;
 		{error,E,_} -> exit({error,E})
 	    end;
@@ -98,7 +98,7 @@ scan_and_parse(Io, Ts0) ->
 		    scan_and_parse(Io, Ts0);
 		{ok,More,_} ->
 		    Ts1 = Ts0 ++ More,
-		    case lfe_parse:parse(Ts1) of
+		    case lfe_parse:sexpr(Ts1) of
 			{ok,_,S,_} -> S;
 			{error,{_,_,{missing,_}},_} ->
 			    scan_and_parse(Io, Ts1);
@@ -108,7 +108,8 @@ scan_and_parse(Io, Ts0) ->
 	    end
     end.
     
-%% print([IoDevice], Sexpr) -> [char()].
+%% print([IoDevice], Sexpr) -> ok.
+%% print1(Sexpr) -> [char()].
 %% A very simple print function. Does not pretty-print.
 
 print(S) -> print(standard_io, S).
@@ -239,7 +240,8 @@ string_char(C, _, Tail) ->			%Other control characters.
 hex(C) when C >= 0, C < 10 -> C + $0;
 hex(C) when C >= 10, C < 16 -> C + $a.
 
-%% prettyprint([IoDevice], Sexpr) -> [char()].
+%% prettyprint([IoDevice], Sexpr) -> ok.
+%% prettyprint1(Sexpr, Indentation) -> [char()].
 %%  An extremely simple pretty print function, but with some
 %%  customisation.
 
@@ -256,7 +258,7 @@ prettyprint1([quasiquote,E], I) ->
 prettyprint1([unquote,E], I) ->
     [",",prettyprint1(E, I+1)];
 prettyprint1(['unquote-splicing',E], I) ->
-    [",@",prettyprint1(E, I+1)];
+    [",@",prettyprint1(E, I+2)];
 prettyprint1([Car|Cdr]=List, I) ->
     %% Customise printing lists.
     case indent_type(Car) of

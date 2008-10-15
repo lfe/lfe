@@ -33,7 +33,7 @@
 
 %% -compile(export_all).
 
--import(lists, [member/2,keysearch/3,
+-import(lists, [member/2,keysearch/3,reverse/1,
 		all/2,map/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3,
 		concat/1]).
 -import(ordsets, [add_element/2,is_element/2,from_list/1,union/2]).
@@ -238,7 +238,11 @@ comp_call([list|Es], Env, L, St) ->
 	  end, {c_nil(L),St}, Es);
 comp_call([tuple|As], Env, L, St0) ->
     {Cas,St1} = comp_args(As, Env, L, St0),
-    {c_tuple(Cas, L),St1};
+    sequentialise_args(Cas, fun (Args, _, L, St) ->
+				    {c_tuple(Args, L),St}
+			    end, [], Env, L, St1);
+%%     {Cas,St1} = comp_args(As, Env, L, St0),
+%%     {c_tuple(Cas, L),St1};
 comp_call([binary|Segs], Env, L, St) ->
     comp_binary(Segs, Env, L, St);		%And bitstring as well
 %% Handle the Core closure special forms.
@@ -286,15 +290,50 @@ comp_call([call,M,N|As], Env, L, St0) ->
 comp_call([Fun|As], Env, L, St0) when is_atom(Fun) ->
     %% Fun is a symbol which is either a known BIF or function.
     {Cas,St1} = comp_args(As, Env, L, St0),
-    Ar = length(As),
-    case fbinding(Fun, Ar, Env) of
-	{yes,M,F} ->				%Import
-	    {#c_call{anno=[L],module=c_lit(M, L),name=c_lit(F, L),args=Cas},
-	     St1};
-	{yes,Name} ->
-	    %% Might have been renamed, use real function name.
-	    {#c_apply{anno=[L],op=c_fname(Name, Ar, L),args=Cas},St1}
-    end.
+    Call = fun (Args, Env, L, St) ->
+		   Ar = length(Args),
+		   case fbinding(Fun, Ar, Env) of
+		       {yes,M,F} ->				%Import
+			   {#c_call{anno=[L],module=c_lit(M, L),
+				    name=c_lit(F, L),args=Args},
+			    St};
+		       {yes,Name} ->
+			   %% Might have been renamed, use real function name.
+			   {#c_apply{anno=[L],op=c_fname(Name, Ar, L),
+				     args=Args},St}
+		   end
+	   end,
+    sequentialise_args(Cas, Call, [], Env, L, St1).
+    
+%%     Ar = length(As),
+%%     case fbinding(Fun, Ar, Env) of
+%% 	{yes,M,F} ->				%Import
+%% 	    {#c_call{anno=[L],module=c_lit(M, L),name=c_lit(F, L),args=Cas},
+%% 	     St1};
+%% 	{yes,Name} ->
+%% 	    %% Might have been renamed, use real function name.
+%% 	    {#c_apply{anno=[L],op=c_fname(Name, Ar, L),args=Cas},St1}
+%%     end.
+
+%% sequentialise_args(CompiledArgs, Call, Env, Line, State) ->
+%%      {CoreCall,State}.
+
+sequentialise_args([Ca|Cas], Call, Sas, Env, L, St0) ->
+    %% Use erlang core compiler lib which does what we want.
+    case core_lib:is_simple(Ca) of
+	true -> sequentialise_args(Cas, Call, [Ca|Sas], Env, L, St0);
+	false ->
+	    {Var,St1} = new_c_var(L, St0),
+	    {Rest,St2} = sequentialise_args(Cas, Call, [Var|Sas], Env, L, St1),
+	    {#c_let{anno=[L],
+		    vars=[Var],
+		    arg=Ca,
+		    body=Rest},St2}
+    end;
+sequentialise_args([], Call, Sas, Env, L, St) ->
+    Call(reverse(Sas), Env, L, St).
+
+%% comp_args(Args, Env, Line, State) -> {ArgList,State}.
 
 comp_args(As, Env, L, St) ->
     mapfoldl(fun (A, Sta) -> comp_expr(A, Env, L, Sta) end, St, As).

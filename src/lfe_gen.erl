@@ -42,10 +42,8 @@
 %% compile_forms(Forms) -> {ok,Name,Bin,Warns} | {error,Errors,Warns}.
 %%  Compile all LFE module forms in one go.
 
-compile_forms(Fs0) ->
-    %% Tag forms with a "line number", just use their index.
-    {Fs1,_} = mapfoldl(fun (F, N) -> {{F,N},N+1} end, 1, Fs0),
-    case lfe_comp:forms(Fs1, []) of
+compile_forms(Fs) ->
+    case lfe_comp:forms(Fs, []) of
 	{ok,Mod,Bin,Ws} -> {ok,Mod,Bin,Ws};
 	{error,Es,Ws} -> {error,Es,Ws}
     end.

@@ -97,11 +97,15 @@ filenames(File, Opts, St0) ->
 %% forms(Forms, Options) -> {ok,Bin,Warnings} | {error,Errors,Warnings}.
 
 forms(Forms) -> forms(Forms, [report]).		%Default options.
-forms(Forms, Opts) ->
+forms(Fs0, Opts) ->
     %% Do the actual compilation work.
-    case forms(Forms, #comp{lfile="no-file"}, Opts) of
-	{ok,Core,Ws,St} -> erl_comp(Core, Ws, Opts, St);
-	{error,Es,Ws,St} -> do_error_return(Es, Ws, Opts, St)
+    St0 = #comp{opts=Opts},
+    St1 = filenames("-no-file", Opts, St0),	%Just in case
+    %% Tag forms with a "line number", just use their index.
+    {Fs1,_} = mapfoldl(fun (F, N) -> {{F,N},N+1} end, 1, Fs0),
+    case forms(Fs1, St1, Opts) of
+	{ok,Core,Ws,St2} -> erl_comp(Core, Ws, Opts, St2);
+	{error,Es,Ws,St2} -> do_error_return(Es, Ws, Opts, St2)
     end.
 
 %% forms(Forms, State, Options) ->
@@ -134,23 +138,55 @@ erl_comp(Core, Warns, Opts, St) ->
     Tcore = member(to_core, Opts),
     Binary = member(binary, Opts),
     %% Fix returns accordingly.
-    if Dcore ->					%Save raw core code
+    if Dcore ->
+	    %% Save raw core code without processing.
 	    ok = file:write_file(St#comp.cfile, [core_pp:format(Core),$\n]),
 	    do_ok_return([], Warns, Opts, St);
-       Tcore ->					%Save optimised core code
-	    {ok,_,Copt,Ews} =
-		compile:forms(Core, [from_core,return|Eopts]),
-	    ok = file:write_file(St#comp.cfile, [core_pp:format(Copt),$\n]),
-	    do_ok_return([], Warns ++ fix_erl_errors(Ews), Opts, St);
        true ->					%Make BEAM code
-	    {ok,_,Bin,Ews} =
-		compile:forms(Core, [from_core,return|Eopts]),
-	    Ret = if Binary -> [Bin];		%Return as binary
-		     true ->			%Save BEAM file
-			  ok = file:write_file(St#comp.bfile, Bin),
-			  []
-		  end,
-	    do_ok_return(Ret, Warns ++ fix_erl_errors(Ews), Opts, St)
+	    %% Process file with erlang compiler, options steer this.
+	    case compile:forms(Core, [from_core,return|Eopts]) of
+		{ok,_,Cfr,Ews} ->		%compile:form return
+		    %% How do we save it?
+		    Ret = if Binary -> [Cfr];	%Return as binary
+			     Tcore ->		%Save optimised core code
+				  Cpp = [core_pp:format(Cfr),$\n],
+				  ok = file:write_file(St#comp.cfile, Cpp),
+				  [];
+			     true ->		%Save BEAM file
+				  ok = file:write_file(St#comp.bfile, Cfr),
+				  []
+			  end,
+		    do_ok_return(Ret, Warns ++ fix_erl_errors(Ews), Opts, St);
+		{error,Ees,Ews} ->
+		    do_error_return(fix_erl_errors(Ees),
+				    Warns ++ fix_erl_errors(Ews), Opts, St)
+	    end
+%%        Tcore ->					%Save optimised core code
+%% 	    {ok,_,Copt,Ews} =
+%% 		compile:forms(Core, [from_core,return|Eopts]),
+%% 	    ok = file:write_file(St#comp.cfile, [core_pp:format(Copt),$\n]),
+%% 	    do_ok_return([], Warns ++ fix_erl_errors(Ews), Opts, St);
+%%        true ->					%Make BEAM code
+%% 	    case compile:forms(Core, [from_core,return|Eopts]) of
+%% 		{ok,_,Bin,Ews} ->
+%% 		    Ret = if Binary -> [Bin];	%Return as binary
+%% 			     true ->		%Save BEAM file
+%% 				  ok = file:write_file(St#comp.bfile, Bin),
+%% 				  []
+%% 			  end,
+%% 		    do_ok_return(Ret, Warns ++ fix_erl_errors(Ews), Opts, St);
+%% 		{error,Ees,Ews} ->
+%% 		    do_error_return(fix_erl_errors(Ees),
+%% 				    Warns ++ fix_erl_errors(Ews), Opts, St)
+%% 	    end
+%% 	    {ok,_,Bin,Ews} =
+%% 		compile:forms(Core, [from_core,return|Eopts]),
+%% 	    Ret = if Binary -> [Bin];		%Return as binary
+%% 		     true ->			%Save BEAM file
+%% 			  ok = file:write_file(St#comp.bfile, Bin),
+%% 			  []
+%% 		  end,
+%% 	    do_ok_return(Ret, Warns ++ fix_erl_errors(Ews), Opts, St)
     end.
 
 %% fix_erl_errors([{File,Errors}]) -> Errors.
@@ -165,7 +201,7 @@ strip_options([report|Os]) -> strip_options(Os);
 strip_options([report_warnings|Os]) -> strip_options(Os);
 strip_options([report_errors|Os]) -> strip_options(Os);
 strip_options([O|Os]) -> [O|strip_options(Os)];
-strip_options([]) -> [].
+strip_options([]) -> [return].			%Ensure return!
 
 %% do_ok_return(Ret, Warnings, Options, State) -> {ok,Mod,...}.
 %% do_error_return(Errors, Warnings, Options, State) -> {error,...} | error.

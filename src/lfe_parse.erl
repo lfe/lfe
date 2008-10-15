@@ -30,16 +30,24 @@
 
 -module(lfe_parse).
 
--export([parse/1]).
+-export([sexpr/1,format_error/1]).
 
 -import(lists, [reverse/1,reverse/2]).
 
-%% parse(Tokens) -> {ok,Line,Sexpr,RestTokens}.
+%% format_error(Error) -> String.
+%%  Format errors to printable string.
 
-parse([T|_]=Ts) ->
+format_error({missing,Tok}) ->
+    io_lib:fwrite("missing ~p", [Tok]);
+format_error({illegal,What}) ->
+    io_lib:fwrite("illegal ~p", [What]).
+
+%% sexpr(Tokens) -> {ok,Line,Sexpr,RestTokens} | {error,Error,RestTokens}.
+
+sexpr([T|_]=Ts) ->
     L = line(T),
     try
-	{Sexpr,R} = sexpr(Ts),
+	{Sexpr,R} = sexpr1(Ts),
 	{ok,L,Sexpr,R}
     catch
 	throw: {error,E,Rest} ->
@@ -47,32 +55,32 @@ parse([T|_]=Ts) ->
     end.
 
 %% Atoms.
-sexpr([{symbol,_,S}|Ts]) -> {S,Ts};
-sexpr([{number,_,N}|Ts]) -> {N,Ts};
-sexpr([{string,_,S}|Ts]) -> {S,Ts};
+sexpr1([{symbol,_,S}|Ts]) -> {S,Ts};
+sexpr1([{number,_,N}|Ts]) -> {N,Ts};
+sexpr1([{string,_,S}|Ts]) -> {S,Ts};
 %% Lists.
-sexpr([{'(',_},{')',_}|Ts]) -> {[],Ts};
-sexpr([{'(',_}|Ts0]) ->
-    {S,Ts1} = sexpr(Ts0),
+sexpr1([{'(',_},{')',_}|Ts]) -> {[],Ts};
+sexpr1([{'(',_}|Ts0]) ->
+    {S,Ts1} = sexpr1(Ts0),
     case list_tail(Ts1, ')', []) of
 	{Tail,[{')',_}|Ts2]} -> {[S|Tail],Ts2};
 	{_,Ts2} -> throw({error,{missing,')'},Ts2})
     end;
-sexpr([{'[',_},{']',_}|Ts]) -> {[],Ts};
-sexpr([{'[',_}|Ts0]) ->
-    {S,Ts1} = sexpr(Ts0),
+sexpr1([{'[',_},{']',_}|Ts]) -> {[],Ts};
+sexpr1([{'[',_}|Ts0]) ->
+    {S,Ts1} = sexpr1(Ts0),
     case list_tail(Ts1, ']', []) of
 	{Tail,[{']',_}|Ts2]} -> {[S|Tail],Ts2};
 	{_,Ts2} -> throw({error,{missing,']'},Ts2})
     end;
 %% Tuple constants (using vector constant syntax).
-sexpr([{'#(',_}|Ts0]) ->
+sexpr1([{'#(',_}|Ts0]) ->
     case proper_list(Ts0) of
 	{List,[{')',_}|Ts1]} -> {list_to_tuple(List),Ts1};
 	{_,Ts1} -> throw({error,{missing,')'},Ts1})
     end;
 %% Binaries and bitstrings constants (our own special syntax).
-sexpr([{'#B(',_}|Ts0]) ->
+sexpr1([{'#B(',_}|Ts0]) ->
     case proper_list(Ts0) of
 	{List,[{')',_}|Ts1]} ->
 	    %% {[binary|List],Ts1};
@@ -83,37 +91,37 @@ sexpr([{'#B(',_}|Ts0]) ->
 	{_,Ts1} -> throw({error,{missing,')'},Ts1})
     end;
 %% Quotes.
-sexpr([{'\'',_}|Ts0]) ->			%Quote
-    {S,Ts1} = sexpr(Ts0),
+sexpr1([{'\'',_}|Ts0]) ->			%Quote
+    {S,Ts1} = sexpr1(Ts0),
     {[quote,S],Ts1};
-sexpr([{'`',_}|Ts0]) ->				%Backquote
-    {S,Ts1} = sexpr(Ts0),
+sexpr1([{'`',_}|Ts0]) ->			%Backquote
+    {S,Ts1} = sexpr1(Ts0),
     {[quasiquote,S],Ts1};
-sexpr([{',',_}|Ts0]) ->				%Unquote
-    {S,Ts1} = sexpr(Ts0),
+sexpr1([{',',_}|Ts0]) ->			%Unquote
+    {S,Ts1} = sexpr1(Ts0),
     {[unquote,S],Ts1};
-sexpr([{',@',_}|Ts0]) ->			%Unquote splicing
-    {S,Ts1} = sexpr(Ts0),
+sexpr1([{',@',_}|Ts0]) ->			%Unquote splicing
+    {S,Ts1} = sexpr1(Ts0),
     {['unquote-splicing',S],Ts1};
 %% Error cases.
-sexpr([T|_]) ->
+sexpr1([T|_]) ->
     throw({error,{illegal,op(T)},[]});
-sexpr([]) ->
+sexpr1([]) ->
     throw({error,{missing,token},[]}).
 
 list_tail([{End,_}|_]=Ts, End, Es) -> {reverse(Es),Ts};
 list_tail([{'.',_}|Ts0], _, Es) ->
-    {T,Ts1} = sexpr(Ts0),
+    {T,Ts1} = sexpr1(Ts0),
     {reverse(Es, T),Ts1};
 list_tail(Ts0, End, Es) ->
-    {E,Ts1} = sexpr(Ts0),
+    {E,Ts1} = sexpr1(Ts0),
     list_tail(Ts1, End, [E|Es]).
 
 proper_list(Ts) -> proper_list(Ts, []).
 
 proper_list([{')',_}|_]=Ts, Es) -> {reverse(Es),Ts};
 proper_list(Ts0, Es) ->
-    {E,Ts1} = sexpr(Ts0),
+    {E,Ts1} = sexpr1(Ts0),
     proper_list(Ts1, [E|Es]).
 
 %% Utilities.

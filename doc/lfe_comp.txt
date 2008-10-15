@@ -90,7 +90,7 @@ Error Information
 	structure which is returned from all IO modules. It has the
 	following format:
 
-	{ErrorLine, Module, ErrorDescriptor}
+	{ErrorLine,Module,ErrorDescriptor}
     
 	A string describing the error is obtained with the following call:
 

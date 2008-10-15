@@ -35,9 +35,25 @@ DESCRIPTION
 		slurping a new file removes all data about the
 		previous one.
 
+	(unslurp)
+		Remove all function and macro definitions except the
+		default ones.
+
 	(: c Command Arg ...)
 		All the commands in the standard Erlang shell can be
 		reached in this way.
+
+	(macroexpand-1 Expr)
+		If Expr is a macro call, does one round of expansion,
+		otherwise returns Expr.
+
+	(macroexpand Expr)
+		Returns the expansion returned by calling
+		macroexpand-1 repeatedly, starting with Expr, ntil the
+		result is no longer a macro call.
+
+	NOTE that macroexpand-1 and macroexpand are shell commands and
+	can only be called directly from the shell.
 
 	Builtin shell variables:
 

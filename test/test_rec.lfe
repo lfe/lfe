@@ -6,7 +6,9 @@
 (defrecord point (x 0) (y (element 3 (now))))
 
 (defun a (x y r)
-  (setelement 2 (now) 42))
+  (list
+   (make-point x (now))
+   (make-point x (binary 34 (x float) ((+ y 3) float)))))
 
 ;;  (let ((n (now)))
 ;;    (element 2 n)))

@@ -163,7 +163,11 @@ eval_internal([unslurp|_], _, Benv) ->		%Forget everything
     {yes,ok,Benv};
 eval_internal([c|Args], Eenv, Benv) ->		%Compile a file
     c(Args, Eenv, Benv);
-eval_internal(_, _, _) -> no.			%Not an internal function.
+eval_internal([macroexpand,S], Eenv, Benv) ->	%Macroexpand top of form
+    macroexpand(S, Eenv, Benv);
+eval_internal(['macroexpand-1',S], Eenv, Benv) ->
+    macroexpand_1(S, Eenv, Benv);
+eval_internal(_, _, _) -> no.			%Not an internal function
 
 %% c(Args, EvalEnv, BaseEnv) -> {yes,Res,Env}.
 %%  Compile and load file.
@@ -183,6 +187,22 @@ c([F,Os], Eenv, _) ->
 	{ok,Mod,_} -> Loadm(Mod);
 	{ok,Mod} -> Loadm(Mod);
 	Other -> {yes,Other,Eenv}
+    end;
+c(_, _, _) -> no.				%Unknown function,
+
+%% macroexpand(Sexpr, EvalEnv, BaseEnv) -> {yes,Res,Env}.
+%% macroexpand_1(Sexpr, EvalEnv, BaseEnv) -> {yes,Res,Env}.
+
+macroexpand(S, Eenv, _) ->
+    case lfe_macro:expand_macro(lfe_eval:eval(S, Eenv), Eenv) of
+	{yes,Exp} -> {yes,Exp,Eenv};
+	no -> {yes,S,Eenv}
+    end.
+
+macroexpand_1(S, Eenv, _) ->
+    case lfe_macro:expand_macro_1(lfe_eval:eval(S, Eenv), Eenv) of
+	{yes,Exp} -> {yes,Exp,Eenv};
+	no -> {yes,S,Eenv}
     end.
 
 %% slurp(File, EvalEnv, BaseEnv) -> {yes,{mod,Mod},Env}.

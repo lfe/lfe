@@ -1,3 +1,36 @@
+2008-10-14    <rv@DOUGLAS>
+
+	* lfe_eval.lfe: Update record spec to new record syntax.
+	(eval-expr): Expand macros when called, don't assume everything
+	already expanded.
+	(eval-let-function eval-letrec-function): Fix handling of
+	match-lambda, none before.
+
+2008-10-13    <rv@DOUGLAS>
+
+	* lfe_shell.erl (macroexpand, macroexpand_1): Added these as shell
+	commands to expand macros.
+
+	* lfe_io.erl (read_file1, scan_and_parse, parse_file1): Now call
+	lfe_parse:sexpr.
+
+	* lfe_parse.erl (sexpr): Name change of function.
+
+2008-10-11    <rv@DOUGLAS>
+
+	* lfe_gen.erl (compile_forms): Now does not tag forms before
+	calling compiler.
+
+	* lfe_comp.erl (forms): Forms/1/2 now take list of raw forms as
+	input, add index as "linenumber".
+
+2008-10-10    <rv@DOUGLAS>
+
+	* lfe_codegen.erl (sequentialise_args): First attempt at
+	sequentialising code to enforce left-to-right evaluation. Also
+	avoids bugs in erlang compiler. Not good enough yet. But got arond
+	bug with element/2 inerlang compiler.
+
 2008-10-09    <rv@DOUGLAS>
 
 	* lfe_codegen.erl (forms, collect_mdef): Added (export all).

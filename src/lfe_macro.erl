@@ -287,13 +287,13 @@ def_record(Name, Fdefs, Env, St0) ->
     Macs = [['defmacro',Make,
 	     [fds,
 	      [quasiquote,
-	       [tuple,?Q(Name)|[unquote,[Fu,fds,?Q(Name),[Mkd]]]]]]],
+	       [tuple,?Q(Name),['unquote-splicing',[Fu,fds,?Q(Name),[Mkd]]]]]]],
 	    ['defsyntax',Test,
 	     [[rec],['is_record',rec,[quote,Name],length(Fields)+1]]],
 	    ['defmacro',Match,
 	     [fds,
 	      [quasiquote,
-	       [tuple,?Q(Name)|[unquote,[Fu,fds,?Q(Name),[Mtd]]]]]]]
+	       [tuple,?Q(Name),['unquote-splicing',[Fu,fds,?Q(Name),[Mtd]]]]]]]
 	    |
 	    Fdef],
     %% io:fwrite("~s\n", [lfe_io:prettyprint1({Funs,Macs}, 0)]),
@@ -534,11 +534,19 @@ expand_try(E0, B0, Env, St0) ->
 %%  definition is either a lambda or match-lambda, expand it and apply
 %%  it to argument list.
 
-exp_macro([_|Args], Def0, Env, St0) ->
+exp_macro([Mac|Args], Def0, Env, St0) ->
     %% io:fwrite("macro: ~p\n", [Def0]),
     {Def1,St1} = expand(Def0, Env, St0),	%Expand definition
-    Exp = lfe_eval:apply(Def1, [Args], Env),
-    {Exp,St1}.
+    try 
+	Exp = lfe_eval:apply(Def1, [Args], Env),
+	{Exp,St1}
+    catch
+	error:Error ->
+	    erlang:error({expand_macro,Mac,Error})
+    end.
+
+%%     Exp = lfe_eval:apply(Def1, [Args], Env),
+%%     {Exp,St1}.
 
 %% default1(Form, Env, State) -> {yes,Form,State} | no.
 %%  Handle the builtin default expansions but only at top-level.
