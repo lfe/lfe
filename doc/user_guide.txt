@@ -257,9 +257,29 @@ example:
 (defmacro andalso
   (() `true)
   ((e) `,e)
-  ((e . es) `(case ,e ('true (andalso . ,es)) ('false 'false))))
+  ((e . es) `(case ,e ('true (andalso ,@es)) ('false 'false))))
 
 The macro definitions in a macrolet obey the same rules as defmacro.
+
+Local functions that are only available at compile time and can be
+called by macros are defined by:
+
+(eval-when-compile
+  (defune foo-helper (a b)
+    ...)
+
+  )
+
+(defmacro foo (x)
+  ...
+  (foo-helper m n)
+  ...)
+
+Functions defined in an eval-when-compile are mutually recursive and
+can call functions/macros defined earlier in the file. Macros can use
+functions defined in earlier eval-when-compile's and other macros
+defined earlier in the file. There can be many eval-when-compile
+forms.
 
 Scheme's syntax rules are an easy way to define macros where the body
 is just a simple expansion. These are supported with defsyntax and
