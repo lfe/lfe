@@ -4,7 +4,7 @@ MODULE
 
 MODULE SUMMARY
 
-	Lisp Flavoured Erlang (LFE) io functions.
+	Lisp Flavoured Erlang (LFE) io functions
 
 DESCRIPTION
 
@@ -23,6 +23,10 @@ DESCRIPTION
 DATA TYPES
 
 	chars() = [char() | chars()]
+	filesexpr() = {Sexpr,Line}
+		This is the format returned by lfe_io:parse_file/1 and
+		is used by the compiler to give better error
+		information.
 
 EXPORTS
 
@@ -54,7 +58,10 @@ read_file(FileName) -> {ok,[Sexpr]} | {error,ErrorInfo}
 	Read the file Filename returning a list of s-exprs (as it
 	should be).
 
-parse_file(FileName) -> {ok,[{Sexpr,Line}]} | {error,ErrorInfo}
+parse_file(FileName) -> {ok,[FileSexpr]} | {error,ErrorInfo}
+
+	where
+	  FileSexpr = filesexpr()
 
 	Read the file Filename returning a list of pairs containing
 	s-expr and line number of the start of the s-expr.

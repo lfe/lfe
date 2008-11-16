@@ -4,7 +4,7 @@ MODULE
 
 MODULE SUMMARY
 
-	Lisp Flavoured Erlang (LFE) shell.
+	Lisp Flavoured Erlang (LFE) shell
 
 DESCRIPTION
 
