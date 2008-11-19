@@ -9,7 +9,8 @@ Added (export all) attribute to module definition.
 New records which allow giving default values as in vanilla
 Erlang. Records are still compatible with vanilla Erlang but now more
 pratical to use. NOTE this change is not backwards compatible as
-syntax for (make- ...) and (match- ...) have changed.
+syntax for (make- ...) and (match- ...) have changed. Also added
+general multiple (set- ...) macro.
 
 (eval-when-compile ...) added as a top-level form which allows
 functions to be defined when compiling the forms. These are useful for

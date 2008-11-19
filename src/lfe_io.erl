@@ -42,7 +42,7 @@
 %% numbers of start of each sexpr. Handle errors consistently.
 
 parse_file(Name) ->
-    with_token_file(fun (Ts) -> parse_file1(Ts, []) end, Name).
+    with_token_file(Name, fun (Ts) -> parse_file1(Ts, []) end).
 
 parse_file1(Ts0, Ss) when Ts0 /= [] ->
     case lfe_parse:sexpr(Ts0) of
@@ -55,7 +55,7 @@ parse_file1([], Ss) -> {ok,reverse(Ss)}.
 %% Read a file returning the raw sexprs (as it should be).
 
 read_file(Name) ->
-    with_token_file(fun (Ts) -> read_file1(Ts, []) end, Name).
+    with_token_file(Name, fun (Ts) -> read_file1(Ts, []) end).
 
 read_file1(Ts0, Ss) when Ts0 /= [] ->
     case lfe_parse:sexpr(Ts0) of
@@ -64,7 +64,7 @@ read_file1(Ts0, Ss) when Ts0 /= [] ->
     end;
 read_file1([], Ss) -> {ok,reverse(Ss)}.
 
-with_token_file(Do, Name) ->
+with_token_file(Name, Do) ->
     case file:open(Name, [read]) of
 	{ok,F} ->
 	    case io:request(F, {get_until,'',lfe_scan,tokens,[1]}) of

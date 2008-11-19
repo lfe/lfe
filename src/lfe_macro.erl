@@ -48,7 +48,7 @@
 		  is_symb_list/1,is_proper_list/1]).
 
 -import(lists, [any/2,all/2,map/2,foldl/3,foldr/3,mapfoldl/3,
-		reverse/1,reverse/2,member/2]).
+		reverse/1,reverse/2,member/2,concat/1]).
 -import(orddict, [find/2,store/3]).
 -import(ordsets, [add_element/2,is_element/2]).
 
@@ -61,7 +61,7 @@
 default_exps() -> new_env().
 
 %% expand_form(Form) -> Form.
-%% expand_form(Form, Defs) -> Form.
+%% expand_form(Form, Env) -> Form.
 %%  The first one is for users who do not expect themselves to handle
 %%  macros.
 
@@ -261,45 +261,56 @@ def_record(Name, Fdefs, Env, St0) ->
 	       end, Fdefs),
     Findex = def_rec_fields(Fields),
     %% Make names for helper functions.
-    Mkd = list_to_atom(lists:concat([Name,'-','make','-',default])),
-    Mtd = list_to_atom(lists:concat([Name,'-','match','-',default])),
-    Fi = list_to_atom(lists:concat([Name,'-',field,'-',index])),
-    Fu = list_to_atom(lists:concat([Name,'-',field,'-',update])),
+    Mkd = list_to_atom(concat([Name,'-','make','-',default])),
+    Mtd = list_to_atom(concat([Name,'-','match','-',default])),
+    Fi = list_to_atom(concat([Name,'-',field,'-',index])),
+    Fu = list_to_atom(concat([Name,'-',field,'-',update])),
     %% Build helper functions.
     Funs = [[defun,Fi|
-	     map(fun ({F,I}) -> [[?Q(F),'_'],I] end, Findex) ++
-	     [[[f,r],[':',erlang,error,[tuple,?Q(undefined_field),r,f]]]]],
+	     map(fun ({F,I}) -> [[?Q(F)],I] end, Findex) ++
+	     [[[f],[':',erlang,error,[tuple,?Q(undefined_field),?Q(Name),f]]]]],
 	    [defun,Mkd,[],[list|Defs]],
 	    [defun,Mtd,[],[list|lists:duplicate(length(Fields), ?Q('_'))]],
-	    [defun,Fu,[is,r,def],
+	    [defun,Fu,[is,def],
+	     %% Convert default list to tuple to make setting easier.
 	     [fletrec,[[l,
-			[[[f,v|is],i],[l,is,[setelement,['-',[Fi,f,r],1],i,v]]],
+			[[[f,v|is],i],[l,is,[setelement,['-',[Fi,f],1],i,v]]],
 			[[[],i],i]]],
 	      ['let',[[i,[l,is,[list_to_tuple,def]]]],
 	       [tuple_to_list,i]]]]
 	   ],
     %% Make names for record creator/tester/match.
-    Make = list_to_atom(lists:concat(['make','-',Name])),
-    Test = list_to_atom(lists:concat(['is','-',Name])),
-    Match = list_to_atom(lists:concat(['match','-',Name])),
+    Make = list_to_atom(concat(['make','-',Name])),
+    Test = list_to_atom(concat(['is','-',Name])),
+    Match = list_to_atom(concat(['match','-',Name])),
+    Set = list_to_atom(concat(['set','-',Name])),
     %% Make access macros.
     {Fdef,St1} = def_rec_fields(Fields, Name, St0), %Name is element 1!
     Macs = [['defmacro',Make,
 	     [fds,
 	      [quasiquote,
-	       [tuple,?Q(Name),['unquote-splicing',[Fu,fds,?Q(Name),[Mkd]]]]]]],
+	       [tuple,?Q(Name),['unquote-splicing',[Fu,fds,[Mkd]]]]]]],
 	    ['defsyntax',Test,
 	     [[rec],['is_record',rec,[quote,Name],length(Fields)+1]]],
 	    ['defmacro',Match,
 	     [fds,
 	      [quasiquote,
-	       [tuple,?Q(Name),['unquote-splicing',[Fu,fds,?Q(Name),[Mtd]]]]]]]
+	       [tuple,?Q(Name),['unquote-splicing',[Fu,fds,[Mtd]]]]]]],
+	    ['defmacro',Set,
+	     [[rec|fds],
+	      [fletrec,[[l,
+			 [[[f,v|is],r],
+			  %% Force evaluation left-to-right.
+			  [l,is,[list,[quote,setelement],[Fi,f],r,v]]],
+			 [[[],i],i]]],
+		[l,fds,rec]]]]
 	    |
 	    Fdef],
     %% io:fwrite("~s\n", [lfe_io:prettyprint1({Funs,Macs}, 0)]),
     {Funs,Macs,Env,St1}.
 
-def_rec_fields([F|Fs]) -> def_rec_fields([F|Fs], 2).
+def_rec_fields([F|Fs]) ->
+    def_rec_fields([F|Fs], 2).			%First element is record name
 
 def_rec_fields([F|Fs], N) ->
     [{F,N}|def_rec_fields(Fs, N+1)];
@@ -308,8 +319,8 @@ def_rec_fields([], _) -> [].
 def_rec_fields(Fs, Name, St) ->
     Fis = def_rec_fields(Fs),			%Calculate indexes
     {foldr(fun ({F,N}, Fas) ->
-		   Get = list_to_atom(lists:concat([Name,'-',F])),
-		   Set = list_to_atom(lists:concat(['set-',Name,'-',F])),
+		   Get = list_to_atom(concat([Name,'-',F])),
+		   Set = list_to_atom(concat(['set-',Name,'-',F])),
 		   [['defsyntax',Get,[[rec],[element,N,rec]]],
 		    ['defsyntax',Set,[[rec,new],[setelement,N,rec,new]]]|
 		    Fas]
@@ -972,17 +983,13 @@ mbe_expand_pattern(Pat, R, K) ->
 	    case member(Pat, K) of
 		true -> Pat;
 		false ->
-		    case assoc(Pat, R) of
+		    case lfe_lib:assoc(Pat, R) of
 			[_|Cdr] -> Cdr;
 			[] -> Pat
 		    end
 	    end;
 	false -> Pat
     end.
-
-assoc(P, [[P|_]=Pair|_]) -> Pair;
-assoc(P, [_|L]) -> assoc(P, L);
-assoc(_, []) -> [].
 
 %% mbe_syntax_rules_proc(Name, Keywords, Rules, Argsym, Keywordsym) ->
 %%      Sexpr.
@@ -1097,10 +1104,13 @@ expand_macro_1([Name|Args]=Call, Env) when is_atom(Name) ->
 	true -> no;				%Don't expand core forms
 	false ->
 	    case mbinding(Name, Env) of		%User macro bindings
-		{yes,Def0} ->
-		    {Def1,_} = expand(Def0, Env, #mac{}),
-		    Exp = lfe_eval:apply(Def1, [Args], Env),
+		{yes,Def} ->
+		    {Exp,_} = exp_macro(Call, Def, Env, #mac{}),
 		    {yes,Exp};
+%% 		{yes,Def0} ->
+%% 		    {Def1,_} = expand(Def0, Env, #mac{}),
+%% 		    Exp = lfe_eval:apply(Def1, [Args], Env),
+%% 		    {yes,Exp};
 		no ->
 		    %% Default macro bindings
 		    case default1(Call, Env, #mac{}) of

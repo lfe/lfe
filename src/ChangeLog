@@ -1,3 +1,15 @@
+2008-11-19    <rv@DOUGLAS>
+
+	* lfe_macro.erl (def_record): Added general set-<name> macro.
+
+2008-10-25    <rv@DOUGLAS>
+
+	* lfe_lib.erl: Started adding standard lisp library functions.
+
+2008-10-18    <rv@DOUGLAS>
+
+	* lfe_lint.erl (check_alias): Binaries can never be aliased.
+
 2008-10-14    <rv@DOUGLAS>
 
 	* lfe_eval.lfe: Update record spec to new record syntax.

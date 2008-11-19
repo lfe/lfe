@@ -39,9 +39,7 @@
 -import(ordsets, [add_element/2,is_element/2,from_list/1,union/2]).
 -import(orddict, [store/3,find/2]).
 
--import(lfe_lib, [new_env/0,add_env/2,
-		  add_vbinding/3,vbinding/2,fbinding/3,add_fbinding/4,
-		  add_ibinding/5,gbinding/3]).
+-import(lfe_lib, [new_env/0]).
 
 -include_lib("compiler/src/core_parse.hrl").
 
@@ -128,16 +126,15 @@ forms(Fs0, St0, Opts) ->
 
 %% erl_comp(Core, Warnings, Options, State) ->
 %%      {ok,Mod[,Binary][,Warnings]}.
-%%  Run the erlang compiler on the forms. Assume no errors here.
+%%  Run the erlang compiler on the forms.
 
 erl_comp(Core, Warns, Opts, St) ->
-    %% Strip out options we don't want to send to erlang compiler.
-    Eopts = strip_options(Opts),
+    Eopts = strip_options(Opts),       %Strip unwanted options
     %% Search for selected options.
     Dcore = member(dcore, Opts),
     Tcore = member(to_core, Opts),
     Binary = member(binary, Opts),
-    %% Fix returns accordingly.
+    %% Do work and fix returns accordingly.
     if Dcore ->
 	    %% Save raw core code without processing.
 	    ok = file:write_file(St#comp.cfile, [core_pp:format(Core),$\n]),
@@ -263,7 +260,16 @@ unless_opt(Fun, Opt, Opts) ->
 	false ->  Fun()
     end.
 
+%% Direct translations.
 %% (defmacro when-opt (fun o os)
-%%   `(if (member o os) '(funcall fun) ok))
+%%   `(if (member ,o ,os) (funcall ,fun) 'ok))
 %% (defmacro unless-opt (fun o os)
-%%   `(if (member o os) 'ok (funcall fun)))
+%%   `(if (member ,o ,os) 'ok (funcall ,fun)))
+
+%% Lispier versions.
+%% (defmacro when-opt
+%%   ((o os . body)
+%%    `(if (member ,o ,os) (progn ,@body) 'ok)))
+%% (defmacro unless-opt
+%%   ((o os . body)
+%%    `(if (member ,o ,os) 'ok (progn ,@body))))

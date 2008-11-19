@@ -702,6 +702,10 @@ pat_symb(Symb, Vs, L, St) ->
 	false -> {add_element(Symb, Vs),St}
     end.    
 
+%% check_alias(Pattern, Pattern) -> true | false.
+%%  Check if two aliases are compatible. Note that binaries can never
+%%  be aliased, this is from erlang.
+
 check_alias([quote,P1], [quote,P2]) -> P1 =:= P2;
 check_alias([tuple|Ps1], [tuple|Ps2]) ->
     check_alias_list(Ps1, Ps2);
@@ -709,27 +713,17 @@ check_alias([tuple|Ps1], [tuple|Ps2]) ->
 %%     check_alias_list(Ps1, tuple_to_list(P2));
 %% check_alias(P1, [tuple|Ps2]) when is_tuple(P1) ->
 %%     check_alias_list(tuple_to_list(P1), Ps2);
-check_alias([binary|Ss1], [binary|Ss2]) ->
-    check_alias_segs(Ss1, Ss2);
+check_alias([binary|_], [binary|_]) -> false;
 check_alias([P1|Ps1], [P2|Ps2]) ->
     check_alias(P1, P2) andalso check_alias(Ps1, Ps2);
-check_alias(P1, _) when is_atom(P1) -> true;
+check_alias(P1, _) when is_atom(P1) -> true;	%Variable
 check_alias(_, P2) when is_atom(P2) -> true;
-check_alias(P1, P2) -> P1 =:= P2.
+check_alias(P1, P2) -> P1 =:= P2.		%Atomic
 
 check_alias_list([P1|Ps1], [P2|Ps2]) ->
     check_alias(P1, P2) andalso check_alias_list(Ps1, Ps2);
 check_alias_list([], []) -> true;
 check_alias_list(_, _) -> false.
-
-check_alias_segs([[P1|Sp1]|Ss1], [[P2|Sp2]|Ss2]) ->
-    check_alias(P1, P2)
-	andalso	sort(Sp1) =:= sort(Sp2)		%Exactly same specs
-	andalso check_alias_segs(Ss1, Ss2);
-check_alias_segs([P1|Ss1], [P2|Ss2]) ->
-    check_alias(P1, P2) andalso check_alias_segs(Ss1, Ss2);
-check_alias_segs([], []) -> true;
-check_alias_segs(_, _) -> false.
 
 %% pat_bitsegs(BitSegs, PatVars, Env, Line, State) -> {PatVars,State}.
 %% pat_bitseg(BitSeg, PatVars, Env, Line, State) -> {PatVars,State}.

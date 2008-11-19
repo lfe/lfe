@@ -29,6 +29,7 @@
 
 -module(lfe_lib).
 
+%% Environment functions.
 -export([new_env/0,add_env/2,
 	 add_vbinding/3,add_vbindings/2,is_vbound/2,vbinding/2,
 	 fetch_vbinding/2,update_vbinding/3,
@@ -37,17 +38,22 @@
 	 add_mbinding/3,is_mbound/2,mbinding/2,
 	 is_gbound/3,gbinding/3]).
 
+%% General library functions.
 -export([is_bif/2,is_guard_bif/2]).
 
 -export([is_symb/1,is_symb_list/1,is_proper_list/1,is_core_form/1]).
 
 -export([proc_forms/3]).
 
+%% Standard lisp library.
+-export([acons/3,assoc/2,rassoc/2]).
+
 -import(lists, [reverse/1,reverse/2,map/2,foldl/3]).
 -import(orddict, [find/2,store/3]).
 
 %% -compile([export_all]).
 
+%% Environment functions.
 %% new_env() -> Env.
 %% add_env(Env1, Env2) -> Env.
 %% add_vbinding(Name, Val, Env) -> Env.
@@ -273,3 +279,18 @@ proc_forms_progn(_, [], _, Rs, St) ->
 %%     proc_forms_progn(Fun, Bs, L, Bss, Fs, Rs, St);
 %% proc_forms_progn(Fun, [], _, [], Fs, Rs, St) ->
 %%     proc_forms(Fun, Fs, Rs, St).
+
+%% Standard lisp library functions.
+%% acons(Key, Value, Alist) -> Alist.
+%% assoc(Key, Alist) -> [Key|Value] | [].
+%% rassoc(Value, Alist) -> [Key|Value] | [].
+
+acons(K, V, Alist) -> [[K|V]|Alist].
+
+assoc(K, [[K|_]=Pair|_]) -> Pair;
+assoc(K, [_|L]) -> assoc(K, L);
+assoc(_, []) -> [].
+
+rassoc(V, [[_|V]=Pair|_]) -> Pair;
+rassoc(V, [_|L]) -> rassoc(V, L);
+rassoc(_, []) -> [].
