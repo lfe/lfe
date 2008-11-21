@@ -78,27 +78,27 @@
 
 (defun school-ops ()
   (list
-    (make-op 'drive-son-to-school
-	     '(son-at-home car-works)
-	     '(son-at-school)
-	     '(son-at-home))
-    (make-op 'shop-installs-battery
-	     '(car-needs-battery shop-knows-problem shop-has-money)
-	     '(car-works)
-	     ())
-    (make-op 'tell-shop-problem
-	     '(in-communication-with-shop)
-	     '(shop-knows-problem)
-	     ())
-    (make-op 'telephone-shop
-	     '(know-phone-number)
-	     '(in-communication-with-shop)
-	     ())
-    (make-op 'look-up-number
-	     '(have-phone-book)
-	     '(know-phone-number)
-	     ())
-    (make-op 'give-shop-money
-	     '(have-money)
-	     '(shop-has-money)
-	     '(have-money))))
+    (make-op action 'drive-son-to-school
+	     preconds '(son-at-home car-works)
+	     add-list '(son-at-school)
+	     del-list '(son-at-home))
+    (make-op action 'shop-installs-battery
+	     preconds '(car-needs-battery shop-knows-problem shop-has-money)
+	     add-list '(car-works)
+	     del-list ())
+    (make-op action 'tell-shop-problem
+	     preconds '(in-communication-with-shop)
+	     add-list '(shop-knows-problem)
+	     del-list ())
+    (make-op action 'telephone-shop
+	     preconds '(know-phone-number)
+	     add-list '(in-communication-with-shop)
+	     del-list ())
+    (make-op action 'look-up-number
+	     preconds '(have-phone-book)
+	     add-list '(know-phone-number)
+	     del-list ())
+    (make-op action 'give-shop-money
+	     preconds '(have-money)
+	     add-list '(shop-has-money)
+	     del-list '(have-money))))
