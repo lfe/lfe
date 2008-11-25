@@ -61,6 +61,51 @@ compile_mod(Mod) -> CompRet
 	M2 = lfe_gen:add_form([defun,a,[],[quote,yes]], M2),
 	lfe_gen:compile_mod(M2)
 
+Example
+
+	In this example we build a module of parameters where each
+	parameter has a number of features which each have a value. We
+	will create one function for each parameter and the feature is
+	the functions argument. The value for each feature is
+	returned.
+
+	We are creating the equivalent code to
+
+	-module(Name).
+	-export([<param1>/1,...]).
+
+	<param1>(Feature) ->
+	    case Feature of
+		<feature1> -> <value1>;
+		...
+		_ -> erlang:error({unknown_feature,<param1>,Feature)
+	    end.
+	...
+
+	but generating it and compiling it in memory without
+	generating a text file. The following code builds and compiles
+	a module from the parameter data:
+
+	make_module(Name, Params) ->
+	    Mod0 = lfe_gen:new_module(Name),
+	    Exps = map(fun ({F,_}) -> {F,1} end, Params),
+	    Mod1 = lfe_gen:add_exports(Exps, Mod0),
+	    Mod2 = make_funcs(Params, Mod1),
+	    lfe_gen:compile_mod(Mod2).
+
+	make_funcs([{Param,Fs}|Ps], Mod) ->
+	    %% Define catch-all which returns more explicit exit value.
+	    CatchAll = [f,[':',erlang,error,
+			   [tuple,unknown_feature,[quote,Param],f]]],
+	    %% Build case clauses
+	    Cls = map(fun ({Feat,Value}) -> [Feat,[quote,Value]] end,
+		      [CatchAll]),
+	    %% Build function.
+	    Func = [defun,Param,[f],['case',f,Cls]],
+	    make_funcs(Ps, lfe_gen:add_form(Func, Mod));
+	make_funcs([], Mod) -> Mod.			%All done
+
+
 Error Information
 
 	The ErrorInfo mentioned above is the standard ErrorInfo
