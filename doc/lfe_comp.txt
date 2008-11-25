@@ -54,27 +54,28 @@ file(FileName, Options) -> CompRet
 		have been optimised by the Erlang compiler. Mainly
 		useful for debugging and interest.
 
-	Both WarningList and ErrorList have the following format:
+	Both Warnings and Errors have the following format:
 
-	[ErrorInfo]
+	[{FileName,[ErrorInfo]}]
 
-	ErrorInfo is described below. The file name has been included
-	here as the compiler uses the Erlang pre-processor epp, which
-	allows the code to be included in other files. For this
-	reason, it is important to know to which file an error or
-	warning line number refers.
+	ErrorInfo is described below. When generating Errors and
+	Warnings the line number is the line of the start of the form
+	in which the error occurred. The file name has been included
+	here to be compatible with the Erlang compiler. As yet there
+	is no extra information about included files.
 
 forms(Forms) -> CompRet
 forms(Forms, Options) -> CompRet
 
 	where
+	  Forms = [sexpr()]
 	  CompRet = BinRet | ErrRet
 	  BinRet = {ok,ModuleName,Binary} | {ok,ModuleName,Binary,Warnings}
 	  ErrRet = error | {error,Errors,Warnings}
 
 	Compile the forms as an LFE module returning a binary. This
 	function takes the same options as lfe_comp:file/1/2. When
-	generating errors and warnings the "linenumber" is the index
+	generating Errors and Warnings the "line number" is the index
 	of the form in which the error occured.
 
 format_error(Error) -> Chars

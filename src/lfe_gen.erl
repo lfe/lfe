@@ -40,10 +40,10 @@
 -record(gen, {name,exps=[],imps=[],atts=[],forms=[]}).
 
 %% compile_forms(Forms) -> {ok,Name,Bin,Warns} | {error,Errors,Warns}.
-%%  Compile all LFE module forms in one go.
+%%  Compile all LFE module forms in one go. Always return binary and errors.
 
 compile_forms(Fs) ->
-    case lfe_comp:forms(Fs, []) of
+    case lfe_comp:forms(Fs, [return]) of
 	{ok,Mod,Bin,Ws} -> {ok,Mod,Bin,Ws};
 	{error,Es,Ws} -> {error,Es,Ws}
     end.

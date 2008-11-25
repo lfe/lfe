@@ -1,0 +1,74 @@
+MODULE
+
+	lfe_gen
+
+MODULE SUMMARY
+
+	Lisp Flavoured Erlang (LFE) dynamic code generator
+
+DESCRIPTION
+
+	This module provides an experimental interface for dynamically
+	generating modules.
+
+DATA TYPES
+
+	sexpr()
+		An LFE s-expression, a list structure.
+
+EXPORTS
+
+compile_forms(Forms) -> CompRet
+
+	where
+	  Forms = [sexpr()]
+	  CompRet = BinRet | ErrRet
+	  BinRet = {ok,ModuleName,Binary,Warnings}
+	  ErrRet = {error,Errors,Warnings}
+
+	Compile a list of LFE forms which comprise an LFE module. For
+	example:
+
+	lfe_gen:compile_forms([[defmodule,foo,[export,[a,0]]],
+			       [defun,a,[],[quote,yes]]])
+
+	Both WarningList and ErrorList have the following format:
+
+	[{FileName,[ErrorInfo]}]
+
+	ErrorInfo is described below. When generating Errors and
+	Warnings the "line number" is the index of the form in which
+	the error occured.
+
+new_module(Name) -> ModDef.
+add_exports([{Name,Arity}], ModDef) -> ModDef.
+add_imports({from,Module,[{Name,Arity}]}, ModDef) -> ModDef.
+add_form(Form, ModDef) -> ModDef.
+print_mod(ModDef) -> iolist().
+compile_mod(Mod) -> CompRet
+
+	where
+	  CompRet = BinRet | ErrRet
+	  BinRet = {ok,ModuleName,Binary,Warnings}
+	  ErrRet = {error,Errors,Warnings}
+
+	These functions are used to incrementally create a module
+	which can at the end be compiled by compile_mod/1. The same
+	example as above could be written:
+
+	M0 = lfe_gen:new_module(foo),
+	M1 = lfe_gen:add_exports([{a,0}], M0),
+	M2 = lfe_gen:add_form([defun,a,[],[quote,yes]], M2),
+	lfe_gen:compile_mod(M2)
+
+Error Information
+
+	The ErrorInfo mentioned above is the standard ErrorInfo
+	structure which is returned from all IO modules. It has the
+	following format:
+
+	{ErrorLine,Module,ErrorDescriptor}
+    
+	A string describing the error is obtained with the following call:
+
+	apply(Module, format_error, ErrorDescriptor)

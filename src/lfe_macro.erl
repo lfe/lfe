@@ -261,25 +261,24 @@ def_record(Name, Fdefs, Env, St0) ->
 	       end, Fdefs),
     Findex = def_rec_fields(Fields),
     %% Make names for helper functions.
-    Mkd = list_to_atom(concat([Name,'-','make','-',default])),
-    Mtd = list_to_atom(concat([Name,'-','match','-',default])),
     Fi = list_to_atom(concat([Name,'-',field,'-',index])),
     Fu = list_to_atom(concat([Name,'-',field,'-',update])),
     %% Build helper functions.
-    Funs = [[defun,Fi|
+    Funs = [[defun,Fi|				%Get index of field
 	     map(fun ({F,I}) -> [[?Q(F)],I] end, Findex) ++
 	     [[[f],[':',erlang,error,[tuple,?Q(undefined_field),?Q(Name),f]]]]],
-	    [defun,Mkd,[],[list|Defs]],
-	    [defun,Mtd,[],[list|lists:duplicate(length(Fields), ?Q('_'))]],
-	    [defun,Fu,[is,def],
+	    [defun,Fu,[is,def],			%Update field list
 	     %% Convert default list to tuple to make setting easier.
 	     [fletrec,[[l,
 			[[[f,v|is],i],[l,is,[setelement,['-',[Fi,f],1],i,v]]],
+			[[[f],'_'],
+			 [':',erlang,error,
+			  [tuple,?Q(missing_value),?Q(Name),f]]],
 			[[[],i],i]]],
 	      ['let',[[i,[l,is,[list_to_tuple,def]]]],
 	       [tuple_to_list,i]]]]
 	   ],
-    %% Make names for record creator/tester/match.
+    %% Make names for record creator/tester/matcher/setter.
     Make = list_to_atom(concat(['make','-',Name])),
     Test = list_to_atom(concat(['is','-',Name])),
     Match = list_to_atom(concat(['match','-',Name])),
@@ -288,22 +287,27 @@ def_record(Name, Fdefs, Env, St0) ->
     {Fdef,St1} = def_rec_fields(Fields, Name, St0), %Name is element 1!
     Macs = [['defmacro',Make,
 	     [fds,
-	      [quasiquote,
-	       [tuple,?Q(Name),['unquote-splicing',[Fu,fds,[Mkd]]]]]]],
+	      ['let',[[def,[list|Defs]]],
+	       [quasiquote,
+		[tuple,?Q(Name),['unquote-splicing',[Fu,fds,def]]]]]]],
 	    ['defsyntax',Test,
 	     [[rec],['is_record',rec,[quote,Name],length(Fields)+1]]],
 	    ['defmacro',Match,
 	     [fds,
-	      [quasiquote,
-	       [tuple,?Q(Name),['unquote-splicing',[Fu,fds,[Mtd]]]]]]],
+	      ['let',[[def,[list|lists:duplicate(length(Fields), ?Q('_'))]]],
+	       [quasiquote,
+		[tuple,?Q(Name),['unquote-splicing',[Fu,fds,def]]]]]]],
 	    ['defmacro',Set,
 	     [[rec|fds],
 	      [fletrec,[[l,
 			 [[[f,v|is],r],
 			  %% Force evaluation left-to-right.
 			  [l,is,[list,[quote,setelement],[Fi,f],r,v]]],
+			 [[[f],'_'],
+			  [':',erlang,error,
+			   [tuple,?Q(missing_value),?Q(Name),f]]],
 			 [[[],i],i]]],
-		[l,fds,rec]]]]
+	       [l,fds,rec]]]]
 	    |
 	    Fdef],
     %% io:fwrite("~s\n", [lfe_io:prettyprint1({Funs,Macs}, 0)]),

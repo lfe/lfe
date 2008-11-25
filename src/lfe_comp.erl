@@ -51,9 +51,11 @@
 	       mod=[]				%Module name
 	      }).
 
-%% file(Name) -> {ok,Mod,Warns} | {ok,Mod,Binary,Ws} | {error,Errors,Warns}.
+%% file(Name) ->
+%%      {ok,Mod,Warns} | {ok,Mod,Binary,Ws} | {error,Errors,Warns} | error.
 %% file(Name, Options) ->
-%%      {ok,Mod,Warns} | {ok,Mod,Binary,Ws} | {error,Errors,Warns}.
+%%      {ok,Mod,Warns} | {ok,Mod,Binary,Ws} | {error,Errors,Warns} | error.
+%%  Compile the LFE file Name.
 
 file(Name) -> file(Name, [report]).		%Default options
 
@@ -91,19 +93,20 @@ filenames(File, Opts, St0) ->
 	    St1#comp{bfile=Bfile,cfile=Cfile}
     end.
 
-%% forms(Forms) -> {ok,Bin,Warnings} | {error,Errors,Warnings}.
-%% forms(Forms, Options) -> {ok,Bin,Warnings} | {error,Errors,Warnings}.
+%% forms(Forms) -> {ok,Mod,Bin,Warnings} | {error,Errors,Warnings}.
+%% forms(Forms, Options) -> {ok,Mod,Bin,Warnings} | {error,Errors,Warnings}.
+%%  Compile the LFE forms Forms, always return a binary.
 
-forms(Forms) -> forms(Forms, [report]).		%Default options.
-forms(Fs0, Opts) ->
-    %% Do the actual compilation work.
-    St0 = #comp{opts=Opts},
-    St1 = filenames("-no-file", Opts, St0),	%Just in case
+forms(Forms) -> forms(Forms, [report]).		%Default options
+forms(Fs0, Opts0) ->
+    Opts1 = [binary|Opts0],			%Force binary!
+    St0 = #comp{opts=Opts1},
+    St1 = filenames("-no-file", Opts1, St0),	%Just in case
     %% Tag forms with a "line number", just use their index.
     {Fs1,_} = mapfoldl(fun (F, N) -> {{F,N},N+1} end, 1, Fs0),
-    case forms(Fs1, St1, Opts) of
-	{ok,Core,Ws,St2} -> erl_comp(Core, Ws, Opts, St2);
-	{error,Es,Ws,St2} -> do_error_return(Es, Ws, Opts, St2)
+    case forms(Fs1, St1, Opts1) of
+	{ok,Core,Ws,St2} -> erl_comp(Core, Ws, Opts1, St2);
+	{error,Es,Ws,St2} -> do_error_return(Es, Ws, Opts1, St2)
     end.
 
 %% forms(Forms, State, Options) ->
@@ -158,32 +161,6 @@ erl_comp(Core, Warns, Opts, St) ->
 		    do_error_return(fix_erl_errors(Ees),
 				    Warns ++ fix_erl_errors(Ews), Opts, St)
 	    end
-%%        Tcore ->					%Save optimised core code
-%% 	    {ok,_,Copt,Ews} =
-%% 		compile:forms(Core, [from_core,return|Eopts]),
-%% 	    ok = file:write_file(St#comp.cfile, [core_pp:format(Copt),$\n]),
-%% 	    do_ok_return([], Warns ++ fix_erl_errors(Ews), Opts, St);
-%%        true ->					%Make BEAM code
-%% 	    case compile:forms(Core, [from_core,return|Eopts]) of
-%% 		{ok,_,Bin,Ews} ->
-%% 		    Ret = if Binary -> [Bin];	%Return as binary
-%% 			     true ->		%Save BEAM file
-%% 				  ok = file:write_file(St#comp.bfile, Bin),
-%% 				  []
-%% 			  end,
-%% 		    do_ok_return(Ret, Warns ++ fix_erl_errors(Ews), Opts, St);
-%% 		{error,Ees,Ews} ->
-%% 		    do_error_return(fix_erl_errors(Ees),
-%% 				    Warns ++ fix_erl_errors(Ews), Opts, St)
-%% 	    end
-%% 	    {ok,_,Bin,Ews} =
-%% 		compile:forms(Core, [from_core,return|Eopts]),
-%% 	    Ret = if Binary -> [Bin];		%Return as binary
-%% 		     true ->			%Save BEAM file
-%% 			  ok = file:write_file(St#comp.bfile, Bin),
-%% 			  []
-%% 		  end,
-%% 	    do_ok_return(Ret, Warns ++ fix_erl_errors(Ews), Opts, St)
     end.
 
 %% fix_erl_errors([{File,Errors}]) -> Errors.
@@ -273,3 +250,5 @@ unless_opt(Fun, Opt, Opts) ->
 %% (defmacro unless-opt
 %%   ((o os . body)
 %%    `(if (member ,o ,os) 'ok (progn ,@body))))
+%% (defmacro debug-print (f as st)
+%%   (when-opt 'debug_print (comp-opts st) (: io fwrite f as)))
