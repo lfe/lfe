@@ -69,7 +69,7 @@ Example
 	the functions argument. The value for each feature is
 	returned.
 
-	We are creating the equivalent code to
+	We are creating code equivalent to:
 
 	-module(Name).
 	-export([<param1>/1,...]).
@@ -82,9 +82,14 @@ Example
 	    end.
 	...
 
-	but generating it and compiling it in memory without
-	generating a text file. The following code builds and compiles
-	a module from the parameter data:
+	but generating it and compiling it directly in memory without
+	generating a text file. We assume that we have collected the
+	data and have it in the form:
+
+	Params = [{Parameter,[{Field,Value}]}]
+
+	The following code builds and compiles a module from the
+	parameter data:
 
 	make_module(Name, Params) ->
 	    Mod0 = lfe_gen:new_module(Name),
@@ -94,12 +99,13 @@ Example
 	    lfe_gen:compile_mod(Mod2).
 
 	make_funcs([{Param,Fs}|Ps], Mod) ->
-	    %% Define catch-all which returns more explicit exit value.
+	    %% Define catch-all which generates more explicit exit value.
 	    CatchAll = [f,[':',erlang,error,
 			   [tuple,unknown_feature,[quote,Param],f]]],
 	    %% Build case clauses
-	    Cls = map(fun ({Feat,Value}) -> [Feat,[quote,Value]] end,
-		      [CatchAll]),
+	    Cls = foldr(fun ({Feat,Value}, Cls) ->
+				[[Feat,[quote,Value]]|Cls]
+			end, [CatchAll], Params),
 	    %% Build function.
 	    Func = [defun,Param,[f],['case',f,Cls]],
 	    make_funcs(Ps, lfe_gen:add_form(Func, Mod));

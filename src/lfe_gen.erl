@@ -93,6 +93,8 @@ collect_imp(Fun, Mod, Imps, Is) ->
     Mimps1 = foldl(Fun, Mimps0, Is),
     store(Mod, Mimps1, Imps).
 
+%% build_def(ModDef) -> form().
+
 build_def(Mod) ->
     Exps = map(fun ({N,I}) -> [N,I] end, Mod#gen.exps),
     Imps = map(fun ({M,Is}) ->
