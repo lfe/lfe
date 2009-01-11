@@ -17,8 +17,8 @@
 ;;  (let (((match-point y yy x xx)(make-point x x)))
 ;;    (list xx yy (make-point y r))))
 
-;; (defrecord circle (center (make-point)) (radius 0))
+(defrecord circle (center (make-point)) (radius 0))
 
-;; (defun a (x y r)
-;;   (let ((c (make-point x 42)))
-;;     (make-circle center c x 5)))
+(defun b (x y r)
+  (let ((c (make-point x 42)))
+    (make-circle center c radius r)))

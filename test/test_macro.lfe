@@ -73,8 +73,10 @@
 (defrecord person name age)
 
 (defun a (age)
-  (let ((p (make-person '"Sune" 100)))
-    (set-person-age p age)))
+  (let ((p (make-person name '"Sune" age 100)))
+    (list p
+	  (set-person-age p age)
+	  (set-person p name '"Kurt" age 53))))
 
 (defun b (x y)
   (e x)

@@ -5,8 +5,6 @@
 (defmodule test_sr
   (export (a 1) (b 1) (c 1)))
 
-(defrecord point x y)
-
 (defsyntax allan
   (() '(0))
   ((a) '(1 a))
@@ -41,10 +39,6 @@
 (defun c (x)
   (ccc #((m m1) (n n1) (o o1)))		;Should we take tuple literals?
   (ccc (tuple (m m1) (n n1) (o o1))))
-
-;; (defun d (r)
-;;   (case r
-;;     ((match-point x y) (list x y))))
 
 (defun e-1 (m)
   (dodo ((i 1 (+ 1 i))
