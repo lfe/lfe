@@ -1,3 +1,11 @@
+2009-01-12  Robert Virding  <rv@arthur>
+
+	* lfe_comp.erl (erl_comp, lfe_comp_opts, erl_comp_opts): Fixed
+	handling of what to return, dcore, to_core, binary and
+	file (default) now mutally exclusive.
+	(do_ok_return, do_error_return): return and report now not
+	exclusive and you can have both.
+
 2008-11-19    <rv@DOUGLAS>
 
 	* lfe_macro.erl (def_record): Added general set-<name> macro.
