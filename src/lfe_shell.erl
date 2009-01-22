@@ -32,10 +32,10 @@
 -export([start/0,start/1,server/0,server/1]).
 
 -import(lfe_lib, [new_env/0,add_env/2,
-		  add_vbinding/3,add_vbindings/2,vbinding/2,
+		  add_vbinding/3,add_vbindings/2,get_vbinding/2,
 		  fetch_vbinding/2,update_vbinding/3,
-		  add_fbinding/4,add_fbindings/3,fbinding/3,add_ibinding/5,
-		  gbinding/3,add_mbinding/3]).
+		  add_fbinding/4,add_fbindings/3,get_fbinding/3,add_ibinding/5,
+		  get_gbinding/3,add_mbinding/3]).
 
 -import(orddict, [store/3,find/2]).
 -import(ordsets, [add_element/2]).
@@ -192,15 +192,16 @@ c(_, _, _) -> no.				%Unknown function,
 
 %% macroexpand(Sexpr, EvalEnv, BaseEnv) -> {yes,Res,Env}.
 %% macroexpand_1(Sexpr, EvalEnv, BaseEnv) -> {yes,Res,Env}.
+%%  We special case these at shell level so as to get shell environment.
 
 macroexpand(S, Eenv, _) ->
-    case lfe_macro:expand_macro(lfe_eval:eval(S, Eenv), Eenv) of
+    case lfe_macro:macroexpand(lfe_eval:eval(S, Eenv), Eenv) of
 	{yes,Exp} -> {yes,Exp,Eenv};
 	no -> {yes,S,Eenv}
     end.
 
 macroexpand_1(S, Eenv, _) ->
-    case lfe_macro:expand_macro_1(lfe_eval:eval(S, Eenv), Eenv) of
+    case lfe_macro:macroexpand_1(lfe_eval:eval(S, Eenv), Eenv) of
 	{yes,Exp} -> {yes,Exp,Eenv};
 	no -> {yes,S,Eenv}
     end.

@@ -34,9 +34,9 @@
 -export([eval/1,eval/2,eval_list/2,apply/2,apply/3,
 	 make_letrec_env/2,add_expr_func/4,match/3]).
 
--import(lfe_lib, [new_env/0,add_vbinding/3,add_vbindings/2,vbinding/2,
-		  add_fbinding/4,add_fbindings/2,fbinding/3,
-		  add_ibinding/5,gbinding/3]).
+-import(lfe_lib, [new_env/0,add_vbinding/3,add_vbindings/2,get_vbinding/2,
+		  add_fbinding/4,add_fbindings/2,get_fbinding/3,
+		  add_ibinding/5,get_gbinding/3]).
 
 -import(lists, [reverse/1,map/2,foldl/3]).
 -import(orddict, [find/2,store/3]).
@@ -109,11 +109,11 @@ eval_expr([call|Body], Env) ->
 eval_expr([Fun|Es]=Call, Env) when is_atom(Fun) ->
     %% If macro then expand and try again, else try to find function.
     %% We only expand the top level here.
-    case lfe_macro:expand_macro(Call, Env) of
+    case lfe_macro:macroexpand(Call, Env) of
 	{yes,Exp} -> eval_expr(Exp, Env);	%This was macro, try again
 	no ->
 	    Ar = length(Es),			%Arity
-	    case fbinding(Fun, Ar, Env) of
+	    case get_fbinding(Fun, Ar, Env) of
 		{yes,M,F} -> erlang:apply(M, F, eval_list(Es, Env));
 		{yes,F} -> lfe_apply(F, eval_list(Es, Env), Env);
 		no -> erlang:error({unbound_func,{Fun,Ar}})
@@ -122,7 +122,7 @@ eval_expr([Fun|Es]=Call, Env) when is_atom(Fun) ->
 eval_expr([_|_], _) ->
     erlang:error({bad_form,application});
 eval_expr(E, Env) when is_atom(E) ->
-    case vbinding(E, Env) of
+    case get_vbinding(E, Env) of
 	{yes,Val} -> Val;
 	no -> erlang:error({unbound_symb,E})
     end;
@@ -625,20 +625,20 @@ eval_gexpr(['case',E|Cls], Env) ->
 eval_gexpr([call,[quote,erlang],F0|As], Env) ->
     Ar = length(As),
     F1 = eval_gexpr(F0, Env),
-    case gbinding(F1, Ar, Env) of
+    case get_gbinding(F1, Ar, Env) of
 	{yes,M,F} -> erlang:apply(M, F, eval_glist(As, Env));
 	_ -> erlang:error({unbound_func,{F1,Ar}})
     end;
 eval_gexpr([Fun|Es], Env) when is_atom(Fun) ->
     Ar = length(Es),
-    case gbinding(Fun, Ar, Env) of
+    case get_gbinding(Fun, Ar, Env) of
 	{yes,M,F} -> erlang:apply(M, F, eval_glist(Es, Env));
 	_ -> erlang:error({unbound_func,Fun})
     end;
 eval_gexpr([_|_], _) ->
     erlang:error(illegal_guard);
 eval_gexpr(Symb, Env) when is_atom(Symb) ->
-    case vbinding(Symb, Env) of
+    case get_vbinding(Symb, Env) of
 	{yes,Val} -> Val;
 	no -> erlang:error({unbound_symb,Symb})
     end;

@@ -40,8 +40,8 @@
 -import(orddict, [store/3,find/2]).
 
 -import(lfe_lib, [new_env/0,add_env/2,
-		  add_vbinding/3,vbinding/2,fbinding/3,add_fbinding/4,
-		  add_ibinding/5,gbinding/3]).
+		  add_vbinding/3,get_vbinding/2,add_fbinding/4,get_fbinding/3,
+		  add_ibinding/5,get_gbinding/3]).
 
 -include_lib("compiler/src/core_parse.hrl").
 
@@ -292,7 +292,7 @@ comp_call([Fun|As], Env, L, St0) when is_atom(Fun) ->
     {Cas,St1} = comp_args(As, Env, L, St0),
     Call = fun (Args, Env, L, St) ->
 		   Ar = length(Args),
-		   case fbinding(Fun, Ar, Env) of
+		   case get_fbinding(Fun, Ar, Env) of
 		       {yes,M,F} ->				%Import
 			   {#c_call{anno=[L],module=c_lit(M, L),
 				    name=c_lit(F, L),args=Args},
@@ -306,7 +306,7 @@ comp_call([Fun|As], Env, L, St0) when is_atom(Fun) ->
     sequentialise_args(Cas, Call, [], Env, L, St1).
     
 %%     Ar = length(As),
-%%     case fbinding(Fun, Ar, Env) of
+%%     case get_fbinding(Fun, Ar, Env) of
 %% 	{yes,M,F} ->				%Import
 %% 	    {#c_call{anno=[L],module=c_lit(M, L),name=c_lit(F, L),args=Cas},
 %% 	     St1};

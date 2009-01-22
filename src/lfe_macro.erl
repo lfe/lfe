@@ -34,17 +34,17 @@
 
 -export([expand_form/1,expand_form/2,expand_forms/1,expand_forms/2,
 	 macro_forms/2,
-	 default_exps/0,def_macro/2,qq_expand/1]).
+	 default_exps/0,qq_expand/1]).
 
 -export([mbe_syntax_rules_proc/4,mbe_syntax_rules_proc/5,
 	 mbe_match_pat/3,mbe_get_bindings/3,mbe_expand_pattern/3]).
 
--export([expand_macro/2,expand_macro_1/2]).
+-export([macroexpand/2,macroexpand_1/2]).
 
 %% -compile([export_all]).
 
--import(lfe_lib, [new_env/0,add_fbinding/4,is_fbound/3,mbinding/3,
-		  add_mbinding/3,is_mbound/2,mbinding/2,
+-import(lfe_lib, [new_env/0,add_fbinding/4,is_fbound/3,
+		  add_mbinding/3,is_mbound/2,get_mbinding/2,
 		  is_symb_list/1,is_proper_list/1]).
 
 -import(lists, [any/2,all/2,map/2,foldl/3,foldr/3,mapfoldl/3,
@@ -118,7 +118,7 @@ pass([{['define-macro'|Def]=F,L}|Fs0], Env0, St0) ->
     end;
 pass([{F,L}|Fs0], Env0, St0) ->
     %% First expand enough to test top form, if so process again.
-    case expand_macro(F, Env0) of
+    case macroexpand(F, Env0) of
 	{yes,Exp} -> pass([{Exp,L}|Fs0], Env0, St0);
 	no -> 
 	    %% Expand all if flag set.
@@ -154,7 +154,7 @@ pass_progn([['define-macro'|Def]=F|Fs0], L, Env0, St0) ->
     end;
 pass_progn([F|Fs0], L, Env0, St0) ->
     %% First expand enough to test top form, if so process again.
-    case expand_macro(F, Env0) of
+    case macroexpand(F, Env0) of
 	{yes,Exp} -> pass_progn([Exp|Fs0], L, Env0, St0);
 	no -> 
 	    %% Expand all if flag set.
@@ -209,7 +209,7 @@ pass_ewc([['define-function',Name,Def]=F|Fs0], L, Fbs0, Env0, St0) ->
     end;
 pass_ewc([F|Fs0], L, Fbs0, Env0, St0) ->
     %% First expand enough to test top form, if so process again.
-    case expand_macro(F, Env0) of
+    case macroexpand(F, Env0) of
 	{yes,Exp} -> pass_ewc([Exp|Fs0], L, Fbs0, Env0, St0);
 	no -> 
 	    %% Ignore it and pass it on to generate error later.
@@ -230,8 +230,7 @@ func_arity(['match-lambda',[Pat|_]|_]) ->
     end;
 func_arity(_) -> no.
 
-def_macro([Name,Def], Env) ->
-    def_macro(Name, Def, Env, #mac{}).
+%% def_macro([Name,Def], Env, State) -> {yes,Env,State} | no.
 
 def_macro([Name,Def], Env, St) ->
     def_macro(Name, Def, Env, St).
@@ -246,7 +245,7 @@ def_macro(_, _, _, _) -> no.
 %% def_record(Name, FieldDefs, Env, State) -> {Funs,Macs,Env,State}.
 %%  Define a VERY simple record by generating macros for all accesses.
 %%  (define-record point x y)
-%%    => make-point, is-point, match-point,
+%%    => make-point, is-point, match-point, set-point,
 %%       point-x, set-point-x, point-y, set-point-y.
 
 def_record([Name|Fdefs], Env, St) -> def_record(Name, Fdefs, Env, St).
@@ -331,15 +330,12 @@ def_rec_fields(Fs, Name, St) ->
 	   end, [], Fis), St}.
 
 %% expand(Form, Env, State) -> {Form,State}.
-%% Expand a form using expansions in Env and defaults. N.B. builtin
-%% core forms cannot be overidden and are handled here first. The core
-%% forms also are particular about how their bodies are to be
-%% expanded.
+%%  Completely expand a form using expansions in Env and pre-defined
+%%  macros.  N.B. builtin core forms cannot be overidden and are
+%%  handled here first. The core forms also are particular about how
+%%  their bodies are to be expanded.
 
 %% Known Core forms which cannot be overidden.
-expand([quasiquote,Qq], Env, St) ->
-    %% This is actually correct!
-    expand(qq_expand(Qq), Env, St);
 expand([quote,_]=Q, _, St) -> {Q,St};
 expand([cons,H0,T0], Env, St0) ->
     {H1,St1} = expand(H0, Env, St0),
@@ -408,13 +404,13 @@ expand(['define-function',Head|B0], Env, St0) ->
     {['define-function',Head|B1],St1};
 %% Now the case where we can have macros.
 expand([Fun|_]=Call, Env, St0) when is_atom(Fun) ->
-    case mbinding(Fun, Env) of
+    case get_mbinding(Fun, Env) of
 	{yes,Def} ->
  	    {Exp,St1} = exp_macro(Call, Def, Env, St0),
 	    expand(Exp, Env, St1);		%Expand macro expansion again
 	no ->
 	    %% Not there then use defaults.
-	    case default1(Call, Env, St0) of
+	    case exp_predef(Call, Env, St0) of
 		{yes,Exp,St1} -> expand(Exp, Env, St1);
 		no -> expand_tail(Call, Env, St0)
 	    end
@@ -563,35 +559,38 @@ exp_macro([Mac|Args], Def0, Env, St0) ->
 %%     Exp = lfe_eval:apply(Def1, [Args], Env),
 %%     {Exp,St1}.
 
-%% default1(Form, Env, State) -> {yes,Form,State} | no.
-%%  Handle the builtin default expansions but only at top-level.
-%%  Expand must be called on result to fully expand macro. This is
-%%  basically doing exactly the same as if they were user defined.
+%% exp_predef(Form, Env, State) -> {yes,Form,State} | no.
+%%  Handle the builtin predefined macros but only one at top-level and
+%%  only once.  Expand must be called on result to fully expand
+%%  macro. This is basically doing exactly the same as if they were
+%%  user defined.
 
 %% Builtin default macro expansions.
-default1(['++'|Abody], _, St) ->
+exp_predef([quasiquote,Qq], _, St) ->
+    {yes,qq_expand(Qq),St};
+exp_predef(['++'|Abody], _, St) ->
     case Abody of
 	[E] -> {yes,E,St};
 	[E|Es] -> {yes,[call,?Q(erlang),?Q('++'),E,['++'|Es]],St};
 	[] -> {yes,[],St}
     end;
-default1([':',M,F|As], _, St) ->
+exp_predef([':',M,F|As], _, St) ->
     {yes,['call',?Q(M),?Q(F)|As], St};
-default1(['?'], _, St) ->
+exp_predef(['?'], _, St) ->
     {yes,['receive',['omega','omega']], St};
-default1(['let*'|Lbody], _, St) ->
+exp_predef(['let*'|Lbody], _, St) ->
     case Lbody of
 	[[Vb|Vbs]|B] -> {yes,['let',[Vb],['let*',Vbs|B]], St};
 	[[]|B] -> {yes,['progn'|B], St};
 	[Vb|B] -> {yes,['let',Vb|B], St}	%Pass error to let for lint.
     end;
-default1(['flet*'|Lbody], _, St) ->
+exp_predef(['flet*'|Lbody], _, St) ->
     case Lbody of
 	[[Vb|Vbs]|B] -> {yes,['flet',[Vb],['flet*',Vbs|B]], St};
 	[[]|B] -> {yes,['progn'|B], St};
 	[Vb|B] -> {yes,['flet',Vb|B], St}	%Pass error to flet for lint.
     end;
-default1(['cond'|Cbody], _, St) ->
+exp_predef(['cond'|Cbody], _, St) ->
     case Cbody of
 	[['else'|B]] -> {yes,['progn'|B], St};
 	[[['?=',P,E]|B]|Cond] ->
@@ -602,7 +601,7 @@ default1(['cond'|Cbody], _, St) ->
 	    {yes,['if',Test,['progn'|B],['cond'|Cond]], St};
 	[] -> {yes,?Q(false),St}
     end;
-default1(['do'|Dbody], _, St0) ->
+exp_predef(['do'|Dbody], _, St0) ->
     %% (do ((v i c) ...) (test val) . body) but of limited use as it
     %% stands as we have to everything in new values.
     [Pars,[Test,Ret]|B] = Dbody,		%Check syntax
@@ -615,17 +614,17 @@ default1(['do'|Dbody], _, St0) ->
 		   ['progn'] ++ B ++ [[Fun|Cs]]]]]],
 	   [Fun|Is]],
     {yes,Exp,St1};
-default1([lc|Lbody], _, St0) ->
+exp_predef([lc|Lbody], _, St0) ->
     %% (lc (qual ...) e ...)
     [Qs|E] = Lbody,
     {Exp,St1} = lc_te(E, Qs, St0),
     {yes,Exp,St1};
-default1([bc|Bbody], _, St0) ->
+exp_predef([bc|Bbody], _, St0) ->
     %% (bc (qual ...) e ...)
     [Qs|E] = Bbody,
     {Exp,St1} = bc_te(E, Qs, St0),
     {yes,Exp,St1};
-default1(['andalso'|Abody], _, St) ->
+exp_predef(['andalso'|Abody], _, St) ->
     case Abody of
 	[E] -> {yes,E,St};
 	[E|Es] ->
@@ -633,7 +632,7 @@ default1(['andalso'|Abody], _, St) ->
 	    {yes,Exp,St};
 	[] -> {yes,?Q(true),St}
     end;
-default1(['orelse'|Obody], _, St) ->
+exp_predef(['orelse'|Obody], _, St) ->
     case Obody of
 	[E] -> {yes,E,St};			%Let user check last call
 	[E|Es] ->
@@ -641,25 +640,25 @@ default1(['orelse'|Obody], _, St) ->
 	    {yes,Exp,St};
 	[] -> {yes,?Q(false),St}
     end;
-default1(['fun',F,Ar], _, St0) when is_atom(F), is_integer(Ar), Ar >= 0 ->
+exp_predef(['fun',F,Ar], _, St0) when is_atom(F), is_integer(Ar), Ar >= 0 ->
     {Vs,St1} = new_symbs(Ar, St0),
     {yes,['lambda',Vs,[F|Vs]],St1};
-default1(['fun',M,F,Ar], _, St0)
+exp_predef(['fun',M,F,Ar], _, St0)
   when is_atom(M), is_atom(F), is_integer(Ar), Ar >= 0 ->
     {Vs,St1} = new_symbs(Ar, St0),
     {yes,['lambda',Vs,['call',?Q(M),?Q(F)|Vs]],St1};
-default1(['defrecord'|Def], Env0, St0) ->
+exp_predef(['defrecord'|Def], Env0, St0) ->
     {Funs,Macs,_,St1} = def_record(Def, Env0, St0),
     {yes,[progn,['eval-when-compile'|Funs]|Macs],St1};
-default1(['include-file'|Ibody], _, St) ->
+exp_predef(['include-file'|Ibody], _, St) ->
     %% This is a VERY simple include file macro!
     [F] = Ibody,
     {ok,Fs} = lfe_io:read_file(F),		%No real error handling
     {yes,['progn'|Fs],St};
 %% Compatibility macros for the older Scheme like syntax.
-default1(['begin'|Body], _, St) ->
+exp_predef(['begin'|Body], _, St) ->
     {yes,['progn'|Body],St};
-default1(['define',Head|Body], _, St) ->
+exp_predef(['define',Head|Body], _, St) ->
     case is_symb_list(Head) of
 	true ->
 	    {yes,['define-function',hd(Head),[lambda,tl(Head)|Body]],St};
@@ -667,47 +666,47 @@ default1(['define',Head|Body], _, St) ->
 	    %% Let next step catch errors here.
 	    {yes,['define-function',Head|Body],St}
     end;
-default1(['define-record'|Def], _, St) ->
+exp_predef(['define-record'|Def], _, St) ->
     {yes,[defrecord|Def],St};
-default1(['define-syntax',Name,Def], _, St) ->
+exp_predef(['define-syntax',Name,Def], _, St) ->
     %% N.B. New macro definition is function of 1 argument, whole
     %% argument list of macro call.
     Mdef = expand_syntax(Name, Def),
     {yes,['define-macro'|Mdef],St};
-default1(['let-syntax',Defs|Body], _, St) ->
+exp_predef(['let-syntax',Defs|Body], _, St) ->
     Mdefs = map(fun ([Name,Def]) -> expand_syntax(Name, Def) end, Defs),
     {yes,['let-macro',Mdefs|Body],St};
 %% Common Lisp inspired macros.
-default1([defmodule|Mod], _, St) ->
+exp_predef([defmodule|Mod], _, St) ->
     {yes,['define-module'|Mod],St};
-default1([defun,Name|Def], _, St) ->
+exp_predef([defun,Name|Def], _, St) ->
     %% Educated guess whether traditional (defun name (a1 a2 ...) ...)
     %% or matching (defun name (patlist1 ...) (patlist2 ...))
     Fdef = expand_defun(Name, Def),
     {yes,['define-function'|Fdef],St};
-default1([defmacro,Name|Def], _, St) ->
+exp_predef([defmacro,Name|Def], _, St) ->
     %% Educated guess whether traditional (defmacro name (a1 a2 ...) ...)
     %% or matching (defmacro name (patlist1 ...) (patlist2 ...))
     Mdef = expand_defmacro(Name, Def),
     {yes,['define-macro'|Mdef],St};
-default1([defsyntax,Name|Rules], _, St) ->
+exp_predef([defsyntax,Name|Rules], _, St) ->
     %% Expand into call function which expands macro an invocation
     %% time, this saves much space and costs us nothing.
     {yes,['define-macro'|expand_rules(Name, Rules)],St};
-default1([flet,Defs|Body], _, St) ->
+exp_predef([flet,Defs|Body], _, St) ->
     Fdefs = map(fun ([Name|Def]) -> expand_defun(Name, Def) end, Defs),
     {yes,['let-function',Fdefs|Body], St};
-default1([fletrec,Defs|Body], _, St) ->
+exp_predef([fletrec,Defs|Body], _, St) ->
     Fdefs = map(fun ([Name|Def]) -> expand_defun(Name, Def) end, Defs),
     {yes,['letrec-function',Fdefs|Body], St};
-default1([macrolet,Defs|Body], _, St) ->
+exp_predef([macrolet,Defs|Body], _, St) ->
     Mdefs = map(fun ([Name|Def]) -> expand_defmacro(Name, Def) end, Defs),
     {yes,['let-macro',Mdefs|Body],St};
-default1([syntaxlet,Defs|Body], _, St) ->
+exp_predef([syntaxlet,Defs|Body], _, St) ->
     Mdefs = map(fun ([Name|Rules]) -> expand_rules(Name, Rules) end, Defs),
     {yes,['let-macro',Mdefs|Body],St};
 %% This was not a call to a predefined macro.
-default1(_, _, _) -> no.
+exp_predef(_, _, _) -> no.
 
 %% expand_defun(Name, Def) -> Lambda | Match-Lambda.
 %% Educated guess whether traditional (defun name (a1 a2 ...) ...)
@@ -1086,41 +1085,38 @@ c_tq(Exp, [T|Qs], L, St0) ->
 c_tq(Exp, [], L, St) ->
     Exp(L, St).
 
-%% expand_macro_1(Form, Env) -> {yes,Exp} | no.
-%% expand_macro(Form, Env) -> {yes,Exp} | no.
+%% macroexpand(Form, Env) -> {yes,Exp} | no.
+%% macroexpand_1(Form, Env) -> {yes,Exp} | no.
 %%  User functions for testing macro expansions, either one expansion
 %%  or as far as it can go.
 
-expand_macro(Form, Env) ->
-    case expand_macro_1(Form, Env) of
-	{yes,Exp} -> {yes,expand_macro_loop(Exp, Env)};
+macroexpand(Form, Env) ->
+    case macroexpand_1(Form, Env) of
+	{yes,Exp} -> {yes,macroexpand_loop(Exp, Env)};
 	no -> no
     end.
 
-expand_macro_loop(Form, Env) ->
-    case expand_macro_1(Form, Env) of
-	{yes,Exp} -> expand_macro_loop(Exp, Env);
+macroexpand_loop(Form, Env) ->
+    case macroexpand_1(Form, Env) of
+	{yes,Exp} -> macroexpand_loop(Exp, Env);
 	no -> Form
     end.
 
-expand_macro_1([Name|Args]=Call, Env) when is_atom(Name) ->
+macroexpand_1([Name|_]=Call, Env) when is_atom(Name) ->
     case lfe_lib:is_core_form(Name) of
 	true -> no;				%Don't expand core forms
 	false ->
-	    case mbinding(Name, Env) of		%User macro bindings
+	    case get_mbinding(Name, Env) of
 		{yes,Def} ->
-		    {Exp,_} = exp_macro(Call, Def, Env, #mac{}),
+		    %% User macro bindings.
+		    {Exp,_} = exp_macro(Call, Def, Env, #mac{expand=false}),
 		    {yes,Exp};
-%% 		{yes,Def0} ->
-%% 		    {Def1,_} = expand(Def0, Env, #mac{}),
-%% 		    Exp = lfe_eval:apply(Def1, [Args], Env),
-%% 		    {yes,Exp};
 		no ->
-		    %% Default macro bindings
-		    case default1(Call, Env, #mac{}) of
+		    %% Default macro bindings.
+		    case exp_predef(Call, Env, #mac{}) of
 			{yes,Exp,_} -> {yes,Exp};
 			no -> no
 		    end
 	    end
 	end;
-expand_macro_1(_, _) -> no.
+macroexpand_1(_, _) -> no.

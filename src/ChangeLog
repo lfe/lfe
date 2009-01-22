@@ -1,3 +1,10 @@
+2009-01-23  Robert Virding  <rv@arthur>
+
+	* lfe_macro.erl: New convention, expand??? functions do deep
+	expansion, exp??? do not.
+	(expand, exp_predef): Moved backquote expansion to pre-defined
+	default macros.
+
 2009-01-12  Robert Virding  <rv@arthur>
 
 	* lfe_comp.erl (erl_comp, lfe_comp_opts, erl_comp_opts): Fixed
