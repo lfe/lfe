@@ -31,22 +31,25 @@
 
 %% Environment functions.
 -export([new_env/0,add_env/2,
-	 add_vbinding/3,add_vbindings/2,is_vbound/2,vbinding/2,
+	 add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
 	 fetch_vbinding/2,update_vbinding/3,
 	 add_fbinding/4,add_fbindings/2,update_fbinding/4,
-	 is_fbound/3,fbinding/3,add_ibinding/5,
-	 add_mbinding/3,is_mbound/2,mbinding/2,
-	 is_gbound/3,gbinding/3]).
+	 is_fbound/3,get_fbinding/3,add_ibinding/5,
+	 is_gbound/3,get_gbinding/3,
+	 add_mbinding/3,is_mbound/2,get_mbinding/2]).
 
 %% General library functions.
--export([is_bif/2,is_guard_bif/2]).
+-export([is_bif/2,is_erl_bif/2,is_guard_bif/2]).
 
 -export([is_symb/1,is_symb_list/1,is_proper_list/1,is_core_form/1]).
 
 -export([proc_forms/3]).
 
 %% Standard lisp library.
--export([acons/3,assoc/2,rassoc/2]).
+-export([is_lfe_bif/2,acons/3,assoc/2,rassoc/2,
+	 subst/3,'subst-if'/3,'subst-if-not'/3,
+	 eval/1,
+	 macroexpand/1,'macroexpand-1'/1]).
 
 -import(lists, [reverse/1,reverse/2,map/2,foldl/3]).
 -import(orddict, [find/2,store/3]).
@@ -60,7 +63,7 @@
 %% add_vbindings([{Name,Val}], Env) -> Env.
 %% update_vbinding(Name, Val, Env) -> Env.
 %% is_vbound(Symb, Env) -> bool().
-%% vbinding(Name, Env) -> {yes,Val} | no.
+%% get_vbinding(Name, Env) -> {yes,Val} | no.
 %% fetch_vbinding(Name, Env) -> Val.
 %% add_fbinding(Name, Arity, Val, Env) -> Env.
 %% add_fbindings([{Name,Arity,Val}], Env) -> Env.
@@ -68,10 +71,10 @@
 %% add_ibinding(Mod, Name, Arity, LocalName, Env) -> Env.
 %% is_fbound(Symb, Arity, Env) -> bool().
 %% is_gbound(Symb, Arity, Env) -> bool().
-%% fbinding(Name, Arity, Env) -> {yes,Val} | {yes,Mod,Name} | no.
+%% get_fbinding(Name, Arity, Env) -> {yes,Val} | {yes,Mod,Name} | no.
 %% add_mbinding(Name, Macro, Env) -> Env.
 %% is_mbound(Symb, Env) -> bool().
-%% mbinding(Name, Env) -> {yes,Macro} | no.
+%% get_mbinding(Name, Env) -> {yes,Macro} | no.
 %%
 %%  Unfortunately the searching property means we can not use a simple
 %%  dictionary but need an ordered sequence.
@@ -106,9 +109,9 @@ is_vbound(N, [{N,_}|_]) -> true;
 is_vbound(N, [_|Env]) -> is_vbound(N, Env);
 is_vbound(_, []) -> false.
 
-vbinding(N, [{N,V}|_]) -> {yes,V};
-vbinding(N, [_|Env]) -> vbinding(N, Env);
-vbinding(_, []) -> no.
+get_vbinding(N, [{N,V}|_]) -> {yes,V};
+get_vbinding(N, [_|Env]) -> get_vbinding(N, Env);
+get_vbinding(_, []) -> no.
 
 fetch_vbinding(N, [{N,V}|_]) -> V;
 fetch_vbinding(N, [_|Env]) -> fetch_vbinding(N, Env).
@@ -129,15 +132,36 @@ is_fbound(N, A, [{function,N,A,_}|_]) -> true;
 is_fbound(N, A, [{function,N,A,_,_}|_]) -> true;
 is_fbound(N, _, [{macro,N,_}|_]) -> false;	%Macros shadow
 is_fbound(N, A, [_|Env]) -> is_fbound(N, A, Env);
-is_fbound(N, A, []) -> is_bif(N, A).    	%Known BIF
+is_fbound(N, A, []) -> is_bif(N, A).    	%Known BIF, LFE or erlang
     
-fbinding(N, A, [{function,N,A,V}|_]) -> {yes,V};
-fbinding(N, A, [{function,N,A,M,F}|_]) -> {yes,M,F}; %Import
-fbinding(N, _, [{macro,N,_}|_]) -> no;		%Macros shadow
-fbinding(N, A, [_|Env]) -> fbinding(N, A, Env);
-fbinding(N, A, []) ->
-    %% Now check if it is a known BIF.
-    case is_bif(N, A) of
+get_fbinding(N, A, [{function,N,A,V}|_]) -> {yes,V};
+get_fbinding(N, A, [{function,N,A,M,F}|_]) -> {yes,M,F};	%Import
+get_fbinding(N, _, [{macro,N,_}|_]) -> no;			%Macros shadow
+get_fbinding(N, A, [_|Env]) -> get_fbinding(N, A, Env);
+get_fbinding(N, A, []) ->
+    %% First check if is an LFE BIF.
+    case is_lfe_bif(N, A) of
+	true -> {yes,lfe_lib,N};
+	false ->
+	    %% Now check if it is a known BIF.
+	    case is_erl_bif(N, A) of
+		true -> {yes,erlang,N};
+		false -> no
+	    end
+    end.
+
+is_gbound(N, A, [{function,N,A,_}|_]) -> false;
+is_gbound(N, A, [{function,N,A,_,_}|_]) -> false;
+is_gbound(N, _, [{macro,N,_}|_]) -> false;	%Macros shadow
+is_gbound(N, A, [_|Env]) -> is_gbound(N, A, Env);
+is_gbound(N, A, []) -> is_guard_bif(N, A).    	%Known guard BIF
+
+get_gbinding(N, A, [{function,N,A,_}|_]) -> no;
+get_gbinding(N, A, [{function,N,A,_,_}|_]) -> no;	%Import
+get_gbinding(N, _, [{macro,N,_}|_]) -> no;		%Macros shadow
+get_gbinding(N, A, [_|Env]) -> get_gbinding(N, A, Env);
+get_gbinding(N, A, _) ->
+    case is_guard_bif(N, A) of
 	true -> {yes,erlang,N};
 	false -> no
     end.
@@ -150,33 +174,21 @@ is_mbound(N, [{macro,N,_}|_]) -> true;
 is_mbound(N, [_|Env]) -> is_mbound(N, Env);
 is_mbound(_, []) -> false.
     
-mbinding(N, [{function,N,_,_}|_]) -> no;	%Functions shadow
-mbinding(N, [{function,N,_,_,_}|_]) -> no;	%Functions shadow
-mbinding(N, [{macro,N,V}|_]) -> {yes,V};
-mbinding(N, [_|Env]) -> mbinding(N, Env);
-mbinding(_, []) -> no.
+get_mbinding(N, [{function,N,_,_}|_]) -> no;	%Functions shadow
+get_mbinding(N, [{function,N,_,_,_}|_]) -> no;	%Functions shadow
+get_mbinding(N, [{macro,N,V}|_]) -> {yes,V};
+get_mbinding(N, [_|Env]) -> get_mbinding(N, Env);
+get_mbinding(_, []) -> no.
 
-is_gbound(N, A, [{function,N,A,_}|_]) -> false;
-is_gbound(N, A, [{function,N,A,_,_}|_]) -> false;
-is_gbound(N, _, [{macro,N,_}|_]) -> false;	%Macros shadow
-is_gbound(N, A, [_|Env]) -> is_gbound(N, A, Env);
-is_gbound(N, A, []) -> is_guard_bif(N, A).    	%Known guard BIF
-
-gbinding(N, A, [{function,N,A,_}|_]) -> no;
-gbinding(N, A, [{function,N,A,_,_}|_]) -> no;	%Import
-gbinding(N, _, [{macro,N,_}|_]) -> no;		%Macros shadow
-gbinding(N, A, [_|Env]) -> gbinding(N, A, Env);
-gbinding(N, A, _) ->
-    case is_guard_bif(N, A) of
-	true -> {yes,erlang,N};
-	false -> no
-    end.
-
-%% is_bif(Op, Arity) -> bool().
-%% is_guard_bif(Op, Arity) -> bool().
+%% is_bif(Name, Arity) -> bool().
+%% is_erl_bif(Name, Arity) -> bool().
+%% is_guard_bif(Name, Arity) -> bool().
 %% Collected tests for valid BIFs in guards and expressions.
 
-is_bif(Op, Ar) ->
+is_bif(Name, Ar) ->
+    is_lfe_bif(Name, Ar) orelse is_erl_bif(Name, Ar).
+
+is_erl_bif(Op, Ar) ->
     erl_internal:bif(Op, Ar)
 	orelse erl_internal:arith_op(Op, Ar)
 	orelse erl_internal:bool_op(Op, Ar)
@@ -281,9 +293,27 @@ proc_forms_progn(_, [], _, Rs, St) ->
 %%     proc_forms(Fun, Fs, Rs, St).
 
 %% Standard lisp library functions.
+%% is_lfe_bif(Name, Arity) -> bool().
 %% acons(Key, Value, Alist) -> Alist.
 %% assoc(Key, Alist) -> [Key|Value] | [].
 %% rassoc(Value, Alist) -> [Key|Value] | [].
+%% subst(New, Old, Tree) -> Tree.
+%% subst-if(New, Test, Tree) -> Tree.
+%% subst-if-not(New, Test, Tree) -> Tree.
+%% eval(Sexpr) -> Value.
+%% macroexpand(Sexpr) -> Sepxr.
+%% macroexpand-1(Sexpr) -> Sepxr.
+
+is_lfe_bif(acons, 3) -> true;
+is_lfe_bif(assoc, 2) -> true;
+is_lfe_bif(rassoc, 2) -> true;
+is_lfe_bif(subst, 3) -> true;
+is_lfe_bif('subst-if', 3) -> true;
+is_lfe_bif('subst-if-not', 3) -> true;
+is_lfe_bif(eval, 1) -> true;
+is_lfe_bif(macroexpand, 1) -> true;
+is_lfe_bif('macroexpand-1', 1) -> true;
+is_lfe_bif(_, _) -> false.
 
 acons(K, V, Alist) -> [[K|V]|Alist].
 
@@ -294,3 +324,46 @@ assoc(_, []) -> [].
 rassoc(V, [[_|V]=Pair|_]) -> Pair;
 rassoc(V, [_|L]) -> rassoc(V, L);
 rassoc(_, []) -> [].
+
+%% subst(New, Old, Tree) -> Tree.
+
+subst(New, Old, Old) -> New;
+subst(New, Old, [H|T]) ->
+    [subst(New, Old,H)|subst(New, Old, T)];
+subst(_, _, Tree) -> Tree.
+
+%% subst-if(New, Test, Tree) -> Tree.
+
+'subst-if'(New, Test, Tree) ->
+    case Test(Tree) of
+	true -> New;
+	false ->
+	    case Tree of
+		[H|T] ->
+		    ['subst-if'(New, Test, H)|'subst-if'(New, Test, T)];
+		_ -> Tree
+	    end
+    end.
+
+%% subst-if-not(New, Test, Tree) -> Tree.
+
+'subst-if-not'(New, Test, Tree) ->
+    case Test(Tree) of
+	false -> New;
+	true ->
+	    case Tree of
+		[H|T] ->
+		    ['subst-if-not'(New, Test, H)|'subst-if-not'(New, Test, T)];
+		_ -> Tree
+	    end
+    end.
+    
+eval(Sexpr) -> lfe_eval:eval(Sexpr, new_env()).	%Empty environment.
+
+%% macroexpand(Sexpr) -> {yes,Exp} | no.
+%% macroexpand-1(Sexpr) -> {yes,Exp} | no.
+%%  At runtime these only have an empty environment.
+
+macroexpand(Sexpr) -> lfe_macro:macroexpand(Sexpr, new_env()).
+
+'macroexpand-1'(Sexpr) -> lfe_macro:macroexpand_1(Sexpr, new_env()).

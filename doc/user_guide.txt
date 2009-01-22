@@ -193,6 +193,7 @@ Unqualified functions shadow as stated above in the following order
 within a module:
 
 	Predefined BIFs (same as in vanilla Erlang)
+	Predefined LFE BIFs
 	Imports
 	Top-level defines
 	Flet/fletrec
@@ -265,7 +266,7 @@ Local functions that are only available at compile time and can be
 called by macros are defined by:
 
 (eval-when-compile
-  (defune foo-helper (a b)
+  (defun foo-helper (a b)
     ...)
 
   )
@@ -322,7 +323,7 @@ Erlang records the default default value is 'default'.
   ... )
 
 Will create access functions/macros for creation and accessing
-fields. The make and match forms takes optional argument pairs
+fields. The make, match and set forms takes optional argument pairs
 field-name value to get non-default values. E.g. for
 
 (defrecord person
@@ -331,7 +332,8 @@ field-name value to get non-default values. E.g. for
   age)
 
 => (make-person {{field value}} ... )
-   (match-person ... )
+   (match-person {{field value}} ... )
+   (set-person r {{field value}} ... )
    (person-name r)
    (set-person-name r name)
    (person-age r)
@@ -349,6 +351,11 @@ field-name value to get non-default values. E.g. for
 
 	Will match a person with age 55 and bind the variable name to
 	the name field of the record. Can use any variable name here
+
+(set-person john age 35 address "front street")
+
+	In the person record john set the age field to 35 and the
+	address field to "front street".
 
 List/binary comprehensions
 --------------------------
@@ -390,6 +397,21 @@ returns a list of all the positive elements of the list l1.
 returns a binary of floats of size 64 of floats which are larger than
 10.0 from the binary b1 and of size 32. The returned numbers are first
 printed.
+
+Predefined LFE functions
+------------------------
+
+The following more or less standard lisp functions are pre-defined:
+
+(acons key value list)
+(assoc key list)
+(rassoc value list)
+(subst new old tree)
+(subst-if new test tree)
+(subst-if-not new test tree)
+(eval expr)
+(macroexpand expr)
+(macroexpand-1 expr)
 
 Notes
 -----
