@@ -120,7 +120,7 @@ print1(Numb) when is_integer(Numb) -> integer_to_list(Numb);
 print1(Numb) when is_float(Numb) -> float_to_list(Numb);
 %% Handle some default special cases.
 print1([quote,E]) -> [$'|print1(E)];
-print1([quasiquote,E]) -> [$`|print1(E)];
+print1([backquote,E]) -> [$`|print1(E)];
 print1([unquote,E]) -> [$,|print1(E)];
 print1(['unquote-splicing',E]) -> [",@"|print1(E)];
 %%print1([binary|Es]) -> ["#B"|print1(Es)];
@@ -253,7 +253,7 @@ prettyprint1(Numb, _) when is_integer(Numb) -> integer_to_list(Numb);
 prettyprint1(Numb, _) when is_float(Numb) -> float_to_list(Numb);
 prettyprint1([quote,E], I) ->
     ["'",prettyprint1(E, I+1)];
-prettyprint1([quasiquote,E], I) ->
+prettyprint1([backquote,E], I) ->
     ["`",prettyprint1(E, I+1)];
 prettyprint1([unquote,E], I) ->
     [",",prettyprint1(E, I+1)];

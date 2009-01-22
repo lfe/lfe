@@ -96,7 +96,7 @@ sexpr1([{'\'',_}|Ts0]) ->			%Quote
     {[quote,S],Ts1};
 sexpr1([{'`',_}|Ts0]) ->			%Backquote
     {S,Ts1} = sexpr1(Ts0),
-    {[quasiquote,S],Ts1};
+    {[backquote,S],Ts1};
 sexpr1([{',',_}|Ts0]) ->			%Unquote
     {S,Ts1} = sexpr1(Ts0),
     {[unquote,S],Ts1};

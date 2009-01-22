@@ -34,7 +34,7 @@
 
 -export([expand_form/1,expand_form/2,expand_forms/1,expand_forms/2,
 	 macro_forms/2,
-	 default_exps/0,qq_expand/1]).
+	 default_exps/0,bq_expand/1]).
 
 -export([mbe_syntax_rules_proc/4,mbe_syntax_rules_proc/5,
 	 mbe_match_pat/3,mbe_get_bindings/3,mbe_expand_pattern/3]).
@@ -287,14 +287,14 @@ def_record(Name, Fdefs, Env, St0) ->
     Macs = [['defmacro',Make,
 	     [fds,
 	      ['let',[[def,[list|Defs]]],
-	       [quasiquote,
+	       [backquote,
 		[tuple,?Q(Name),['unquote-splicing',[Fu,fds,def]]]]]]],
 	    ['defsyntax',Test,
 	     [[rec],['is_record',rec,[quote,Name],length(Fields)+1]]],
 	    ['defmacro',Match,
 	     [fds,
 	      ['let',[[def,[list|lists:duplicate(length(Fields), ?Q('_'))]]],
-	       [quasiquote,
+	       [backquote,
 		[tuple,?Q(Name),['unquote-splicing',[Fu,fds,def]]]]]]],
 	    ['defmacro',Set,
 	     [[rec|fds],
@@ -566,8 +566,8 @@ exp_macro([Mac|Args], Def0, Env, St0) ->
 %%  user defined.
 
 %% Builtin default macro expansions.
-exp_predef([quasiquote,Qq], _, St) ->
-    {yes,qq_expand(Qq),St};
+exp_predef([backquote,Bq], _, St) ->
+    {yes,bq_expand(Bq),St};
 exp_predef(['++'|Abody], _, St) ->
     case Abody of
 	[E] -> {yes,E,St};
@@ -804,48 +804,48 @@ new_fun_name(Pre, St) ->
 %%       (syntax-case s ()
 %%         ((_ x) (qq-expand (syntax x) 0)))))
 
-%% qq_expand(Exp) -> Exp.
+%% bq_expand(Exp) -> Exp.
 %%  Not very efficient quasiquote expander, but very compact code.  Is
 %%  R6RS compliant and can handle unquote and unquote-splicing with
 %%  more than one argument properly.  Actually with simple cons/append
 %%  optimisers code now quite good.
 
-qq_expand(Exp) -> qq_expand(Exp, 0).
+bq_expand(Exp) -> bq_expand(Exp, 0).
 
-qq_expand([quasiquote,X], N) ->
-    [list,[quote,quasiquote],qq_expand(X, N+1)];
-qq_expand([unquote|X], N) when N > 0 ->
-    qq_cons([quote,unquote], qq_expand(X, N-1));
-qq_expand([unquote,X], 0) -> X;
-qq_expand(['unquote-splicing'|X], N) when N > 0 ->
-    qq_cons([quote,'unquote-splicing'], qq_expand(X, N-1));
+bq_expand([backquote,X], N) ->
+    [list,[quote,backquote],bq_expand(X, N+1)];
+bq_expand([unquote|X], N) when N > 0 ->
+    bq_cons([quote,unquote], bq_expand(X, N-1));
+bq_expand([unquote,X], 0) -> X;
+bq_expand(['unquote-splicing'|X], N) when N > 0 ->
+    bq_cons([quote,'unquote-splicing'], bq_expand(X, N-1));
 %% Next 2 handle case of splicing into a list.
-qq_expand([[unquote|X]|Y], 0) ->
-    qq_append([list|X], qq_expand(Y, 0));
-qq_expand([['unquote-splicing'|X]|Y], 0) ->
-    qq_append(['++'|X], qq_expand(Y, 0));
-qq_expand([X|Y], N) ->
-    qq_cons(qq_expand(X, N), qq_expand(Y, N));
-qq_expand(X, N) when is_tuple(X) ->
-%%     [list_to_tuple,qq_expand(tuple_to_list(X), N)];
-    [tuple|tl(qq_expand(tuple_to_list(X), N))];
-qq_expand(X, _) when is_atom(X) -> [quote,X];
-qq_expand(X, _) -> X.
+bq_expand([[unquote|X]|Y], 0) ->
+    bq_append([list|X], bq_expand(Y, 0));
+bq_expand([['unquote-splicing'|X]|Y], 0) ->
+    bq_append(['++'|X], bq_expand(Y, 0));
+bq_expand([X|Y], N) ->
+    bq_cons(bq_expand(X, N), bq_expand(Y, N));
+bq_expand(X, N) when is_tuple(X) ->
+%%     [list_to_tuple,bq_expand(tuple_to_list(X), N)];
+    [tuple|tl(bq_expand(tuple_to_list(X), N))];
+bq_expand(X, _) when is_atom(X) -> [quote,X];
+bq_expand(X, _) -> X.
 
-qq_append(['++',L], R) -> qq_append(L, R);	%Catch single unquote-splice
-qq_append([], R) -> R;
-qq_append(L, []) -> L;
+bq_append(['++',L], R) -> bq_append(L, R);	%Catch single unquote-splice
+bq_append([], R) -> R;
+bq_append(L, []) -> L;
 %% Will these 2 cases move code errors illegally?
-qq_append([list,L], [list|R]) -> [list,L|R];
-qq_append([list,L], R) -> [cons,L,R];
-%%qq_append(['++'|L], R) -> ['++'|L ++ [R]];
-%%qq_append(L, ['++'|R]) -> ['++',L|R];
-qq_append(L, R) -> ['++',L,R].
+bq_append([list,L], [list|R]) -> [list,L|R];
+bq_append([list,L], R) -> [cons,L,R];
+%%bq_append(['++'|L], R) -> ['++'|L ++ [R]];
+%%bq_append(L, ['++'|R]) -> ['++',L|R];
+bq_append(L, R) -> ['++',L,R].
 
-qq_cons([quote,L], [quote,R]) -> [quote,[L|R]];
-qq_cons(L, [list|R]) -> [list,L|R];
-qq_cons(L, []) -> [list,L];
-qq_cons(L, R) -> [cons,L,R].
+bq_cons([quote,L], [quote,R]) -> [quote,[L|R]];
+bq_cons(L, [list|R]) -> [list,L|R];
+bq_cons(L, []) -> [list,L];
+bq_cons(L, R) -> [cons,L,R].
 
 %% Macro by Example
 %% Proper syntax-rules which can handle ... ellipsis by Dorai Sitaram.

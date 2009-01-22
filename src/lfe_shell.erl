@@ -115,17 +115,17 @@ update_shell_vars(Form, Value, Env) ->
 add_shell_macros(Env0) ->
     %% We write macros in LFE and expand them with macro package.
     Ms = [{[defmacro,ec,			%Erlang compile
-	    [as,[quasiquote,[':',c,c|[unquote,as]]]]],1},
+	    [as,[backquote,[':',c,c|[unquote,as]]]]],1},
 	  {[defmacro,m,				%Module info
-	    [[],[quasiquote,[':',c,m]]],
-	    [ms,[quasiquote,[':',lists,map,['fun',c,m,1],
+	    [[],[backquote,[':',c,m]]],
+	    [ms,[backquote,[':',lists,map,['fun',c,m,1],
 			     [list|[unquote,ms]]]]]],2},
 	  {[defmacro,l,				%Load a module
-	    [ms,[quasiquote,[':',lists,map,['fun',c,l,1],
+	    [ms,[backquote,[':',lists,map,['fun',c,l,1],
 			     [list|[unquote,ms]]]]]],3},
 	  {[defmacro,c,				%This subsumes function below
 	    [[f|os],
-	     [quasiquote,
+	     [backquote,
 	      ['flet',[[lm,[m],
 			['let',[[base,[':',filename,basename,
 				       [unquote,f],[quote,".lfe"]]]],
