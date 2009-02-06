@@ -406,12 +406,38 @@ The following more or less standard lisp functions are pre-defined:
 (acons key value list)
 (assoc key list)
 (rassoc value list)
+	The standard association list functions.
+
 (subst new old tree)
 (subst-if new test tree)
 (subst-if-not new test tree)
+	The standard substituition functions.
+
 (eval expr)
-(macroexpand expr)
-(macroexpand-1 expr)
+
+	Evaluate the expression expr. Note that only the pre-defined
+	lisp functions, erlang BIFs and exported functions can be
+	called. Also no local variables can be accessed. To access
+	local variables the expr to be evaluated can be wrapped in a
+	letdefining these.
+
+	For example the data we wish to evaluate is in the variable
+	expr and it assumes there is a local variable "foo" we could
+	evaluate it by calling:
+
+	(eval `(let ((foo ,foo)) ,expr))
+
+(macroexpand-1 Expr)
+	If Expr is a macro call, does one round of expansion,
+	otherwise returns Expr.
+
+(macroexpand Expr)
+	Returns the expansion returned by calling macroexpand-1
+	repeatedly, starting with Expr, ntil the result is no longer a
+	macro call.
+
+NOTE that when macroexpand-1 and macroexpand are called from compiled
+code they will only expand the pre-defined macros.
 
 Notes
 -----

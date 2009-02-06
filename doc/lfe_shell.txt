@@ -49,11 +49,12 @@ DESCRIPTION
 
 	(macroexpand Expr)
 		Returns the expansion returned by calling
-		macroexpand-1 repeatedly, starting with Expr, ntil the
-		result is no longer a macro call.
+		macroexpand-1 repeatedly, starting with Expr, until
+		the result is no longer a macro call.
 
-	NOTE that macroexpand-1 and macroexpand are shell commands and
-	can only be called directly from the shell.
+	NOTE that when macroexpand-1 and macroexpand are called in
+	expressions entered in the shell then they will also expand
+	macros visible in the shell, e.g. from slurped filed.
 
 	Builtin shell variables:
 

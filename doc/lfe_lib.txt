@@ -21,7 +21,7 @@ add_env(Env1, Env2) -> Env.
 
 	Add environment Env1 to Env2 such that Env1 shadows Env2.
 
-is_bif(Name, Arity) -> bool().
+is_erl_bif(Name, Arity) -> bool().
 is_guard_bif(Name, Arity) -> bool().
 
 	Test whether a Name/Arity is a BIF or guard BIF. This works
