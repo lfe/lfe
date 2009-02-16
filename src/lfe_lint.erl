@@ -728,7 +728,8 @@ check_alias_list(_, _) -> false.
 %% pat_bitsegs(BitSegs, PatVars, Env, Line, State) -> {PatVars,State}.
 %% pat_bitseg(BitSeg, PatVars, Env, Line, State) -> {PatVars,State}.
 %% pat_bitel(BitElement, PatVars, Env, Line, State) -> {PatVars,State}.
-%% pat_bitspec(BitSpec, Env, Line, State) -> {PatVars,State}.
+%% pat_bitspecs(BitSpecs, Env, Line, State) -> State.
+%% pat_bitspec(BitSpec, Env, Line, State) -> State.
 %% Functions for checking bitsegments.
 
 pat_bitsegs(Segs, Vs0, Env, L, St0) ->

@@ -571,11 +571,8 @@ eval_call([M0,F0|As0], Env) ->
     M1 = eval_expr(M0, Env),
     F1 = eval_expr(F0, Env),
     As1 = eval_list(As0, Env),
-    %% io:fwrite("call: ~p\n    =>~p\n", [{call,M0,F0,As0},{M1,F1,As1}]),
-    if is_atom(M1), is_atom(F1) ->
-	    erlang:apply(M1, F1, As1);
-       true -> erlang:error(badarg)
-    end.
+    %% io:fwrite("call: ~p\n    =>~p\n", [[call,M0,F0,As0],{M1,F1,As1}]),
+    erlang:apply(M1, F1, As1).
 
 %% match_when(Pattern, Value, Body, Env) -> {yes,RestBody,Bindings} | no.
 %%  Try to match pattern and evaluate guard.
