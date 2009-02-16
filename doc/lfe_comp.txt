@@ -15,6 +15,9 @@ DESCRIPTION
 EXPORTS
 
 file(FileName) -> CompRet
+
+	Is the same as file(FileName, [report]).
+
 file(FileName, Options) -> CompRet
 
 	where
@@ -65,6 +68,9 @@ file(FileName, Options) -> CompRet
 	is no extra information about included files.
 
 forms(Forms) -> CompRet
+
+	Is the same as forms(Forms, [report]).
+
 forms(Forms, Options) -> CompRet
 
 	where
