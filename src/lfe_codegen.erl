@@ -703,11 +703,7 @@ c_bitseg(Val, Sz, Un, Ty, Si, En, L) ->
     #c_bitstr{anno=[L],val=Val,size=Sz,unit=Un,type=Ty,
 		      flags=c_cons(Si, c_cons(En, c_nil(L), L), L)}.
 
-comp_bitspecs([[size,N]|Ss], Sp, Env, L, St0) ->
-    {Csz,St1} = comp_expr(N, Env, L, St0),
-    comp_bitspecs(Ss, Sp#spec{size=Csz}, Env, L, St1);
-comp_bitspecs([[unit,N]|Ss], Sp, Env, L, St) ->
-    comp_bitspecs(Ss, Sp#spec{unit=c_lit(N, L)}, Env, L, St);
+%% Types.
 comp_bitspecs([integer|Ss], Sp, Env, L, St) ->
     comp_bitspecs(Ss, Sp#spec{type=integer}, Env, L, St);
 comp_bitspecs([float|Ss], Sp, Env, L, St) ->
@@ -716,16 +712,28 @@ comp_bitspecs([binary|Ss], Sp, Env, L, St) ->
     comp_bitspecs(Ss, Sp#spec{type=binary}, Env, L, St);
 comp_bitspecs([bitstring|Ss], Sp, Env, L, St) ->
     comp_bitspecs(Ss, Sp#spec{type=bitstring}, Env, L, St);
-comp_bitspecs([signed|Ss], Sp, Env, L, St) ->
-    comp_bitspecs(Ss, Sp#spec{sign=c_lit(signed, L)}, Env, L, St);
-comp_bitspecs([unsigned|Ss], Sp, Env, L, St) ->
-    comp_bitspecs(Ss, Sp#spec{sign=c_lit(unsigned, L)}, Env, L, St);
+comp_bitspecs([bytes|Ss], Sp, Env, L, St) ->
+    comp_bitspecs([binary|Ss], Sp, Env, L, St);
+comp_bitspecs([bits|Ss], Sp, Env, L, St) ->
+    comp_bitspecs([bitstring|Ss], Sp, Env, L, St);
+%% Endianness.
 comp_bitspecs(['big-endian'|Ss], Sp, Env, L, St) ->
     comp_bitspecs(Ss, Sp#spec{endian=c_lit(big, L)}, Env, L, St);
 comp_bitspecs(['little-endian'|Ss], Sp, Env, L, St) ->
     comp_bitspecs(Ss, Sp#spec{endian=c_lit(little, L)}, Env, L, St);
 comp_bitspecs(['native-endian'|Ss], Sp, Env, L, St) ->
     comp_bitspecs(Ss, Sp#spec{endian=c_lit(native, L)}, Env, L, St);
+%% Sign.
+comp_bitspecs([signed|Ss], Sp, Env, L, St) ->
+    comp_bitspecs(Ss, Sp#spec{sign=c_lit(signed, L)}, Env, L, St);
+comp_bitspecs([unsigned|Ss], Sp, Env, L, St) ->
+    comp_bitspecs(Ss, Sp#spec{sign=c_lit(unsigned, L)}, Env, L, St);
+comp_bitspecs([[unit,N]|Ss], Sp, Env, L, St) ->
+    comp_bitspecs(Ss, Sp#spec{unit=c_lit(N, L)}, Env, L, St);
+%% Size.
+comp_bitspecs([[size,N]|Ss], Sp, Env, L, St0) ->
+    {Csz,St1} = comp_expr(N, Env, L, St0),
+    comp_bitspecs(Ss, Sp#spec{size=Csz}, Env, L, St1);
 comp_bitspecs([],
 	      #spec{type=Type,size=Csize,unit=Cunit,sign=Csign,endian=Cend},
 	      _, L, St) ->

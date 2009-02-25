@@ -247,7 +247,7 @@ check_call([list|As], Env, L, St) ->
 check_call([tuple|As], Env, L, St) ->
     check_args(As, Env, L, St);
 check_call([binary|Segs], Env, L, St) ->
-    check_bitsegs(Segs, Env, L, St);
+    expr_bitsegs(Segs, Env, L, St);
 %% Check the Core closure special forms.
 check_call(['lambda'|Lambda], Env, L, St) ->
     check_lambda(Lambda, Env, L, St);
@@ -321,17 +321,28 @@ check_args(Args, Env, L, St) ->
 check_exprs(Es, Env, L, St) ->
     foldl(fun (E, S) -> check_expr(E, Env, L, S) end, St, Es).
 
-%% check_bitsegs(BitSegs, Env, Line, State) -> State.
-%% check_bitseg(BitSeg, Env, Line, State) -> State.
+%% expr_bitsegs(BitSegs, Env, Line, State) -> State.
+%% expr_bitseg(BitSeg, Env, Line, State) -> State.
+%% expr_bitspecs(BitSpecs, Env, Line, State) -> State.
+%% expr_bitspec(BitSpec, Env, Line, State) -> State.
+%% Functions for checking expression bitsegments.
 
-check_bitsegs(Segs, Env, L, St0) ->
-    foldl(fun (S, St) -> check_bitseg(S, Env, L, St) end, St0, Segs).
+expr_bitsegs(Segs, Env, L, St0) ->
+    foldl(fun (S, St) -> expr_bitseg(S, Env, L, St) end, St0, Segs).
 
-check_bitseg([N|Specs], Env, L, St0) ->
+expr_bitseg([N|Specs], Env, L, St0) ->
     St1 = check_expr(N, Env, L, St0),		%Be lazy here
-    pat_bitspecs(Specs, Env, L, St1);
-check_bitseg(N, Env, L, St) ->
+    expr_bitspecs(Specs, Env, L, St1);
+expr_bitseg(N, Env, L, St) ->
     check_expr(N, Env, L, St).
+ 
+expr_bitspecs(Specs, Env, L, St0) ->
+    foldl(fun (S, St) -> expr_bitspec(S, Env, L, St) end, St0, Specs).    
+
+expr_bitspec([size,N], Env, L, St) ->		%Shadow for (size expr)
+    check_expr(N, Env, L, St);
+expr_bitspec(S, Env, L, St) ->
+    pat_bitspec(S, Env, L, St).
 
 %% check_lambda(LambdaBody, Env, Line, State) -> State.
 %% Check form (lambda Args ...).
@@ -580,7 +591,7 @@ check_gcall([list|As], Env, L, St) ->
 check_gcall([tuple|As], Env, L, St) ->
     check_gargs(As, Env, L, St);
 check_gcall([binary|Segs], Env, L, St) ->
-    check_gbitsegs(Segs, Env, L, St);
+    gexpr_bitsegs(Segs, Env, L, St);
 check_gcall(['case',E|Cls], Env, L, St0) ->
     St1 = check_gexpr(E, Env, L, St0),
     check_gclauses(Cls, Env, L, St1);
@@ -649,17 +660,28 @@ check_gtry_catch([['after'|B]], Env, L, St) ->
     check_gbody(B, Env, L, St);
 check_gtry_catch(_, _, L, St) -> bad_form_error(L, 'try', St).
 
-%% check_gbitsegs(BitSegs, Env, Line, State) -> State.
-%% check_gbitseg(BitSeg, Env, Line, State) -> State.
+%% gexpr_bitsegs(BitSegs, Env, Line, State) -> State.
+%% gexpr_bitseg(BitSeg, Env, Line, State) -> State.
+%% gexpr_bitspecs(BitSpecs, Env, Line, State) -> State.
+%% gexpr_bitspec(BitSpec, Env, Line, State) -> State.
+%% Functions for checking guard expression bitsegments.
 
-check_gbitsegs(Segs, Env, L, St0) ->
-    foldl(fun (S, St) -> check_gbitseg(S, Env, L, St) end, St0, Segs).
+gexpr_bitsegs(Segs, Env, L, St0) ->
+    foldl(fun (S, St) -> gexpr_bitseg(S, Env, L, St) end, St0, Segs).
 
-check_gbitseg([N|Specs], Env, L, St0) ->
+gexpr_bitseg([N|Specs], Env, L, St0) ->
     St1 = check_gexpr(N, Env, L, St0),		%Be lazy here
-    pat_bitspecs(Specs, Env, L, St1);
-check_gbitseg(N, Env, L, St) ->
+    gexpr_bitspecs(Specs, Env, L, St1);
+gexpr_bitseg(N, Env, L, St) ->
     check_gexpr(N, Env, L, St).
+ 
+gexpr_bitspecs(Specs, Env, L, St0) ->
+    foldl(fun (S, St) -> gexpr_bitspec(S, Env, L, St) end, St0, Specs).    
+
+gexpr_bitspec([size,N], Env, L, St) ->		%Shadow for (size expr)
+    check_gexpr(N, Env, L, St);
+gexpr_bitspec(S, Env, L, St) ->
+    pat_bitspec(S, Env, L, St).
 
 %% check_pat(Pattern, Env, L, State) -> {PatVars,State}.
 %% Return the *set* of Variables in Pattern.
@@ -730,7 +752,7 @@ check_alias_list(_, _) -> false.
 %% pat_bitel(BitElement, PatVars, Env, Line, State) -> {PatVars,State}.
 %% pat_bitspecs(BitSpecs, Env, Line, State) -> State.
 %% pat_bitspec(BitSpec, Env, Line, State) -> State.
-%% Functions for checking bitsegments.
+%% Functions for checking pattern bitsegments.
 
 pat_bitsegs(Segs, Vs0, Env, L, St0) ->
     try
@@ -759,6 +781,8 @@ pat_bitspec(integer, _, _, St) -> St;
 pat_bitspec(float, _, _, St) -> St;
 pat_bitspec(binary, _, _, St) -> St;
 pat_bitspec(bitstring, _, _, St) -> St;
+pat_bitspec(bytes, _, _, St) -> St;
+pat_bitspec(bits, _, _, St) -> St;
 %% Endianness
 pat_bitspec('big-endian', _, _, St) -> St;
 pat_bitspec('little-endian', _, _, St) -> St;
@@ -767,6 +791,7 @@ pat_bitspec('native-endian', _, _, St) -> St;
 pat_bitspec(signed, _, _, St) -> St;
 pat_bitspec(unsigned, _, _, St) -> St;
 pat_bitspec([unit,N], _, _, St) when is_integer(N), N >= 1, N =< 256 -> St;
+%% Size.
 pat_bitspec([size,N], _, _, St) when is_integer(N), N > 0 -> St;
 pat_bitspec([size,Symb], Env, L, St) when is_atom(Symb) ->
     %% Size must be bound here.
@@ -774,8 +799,6 @@ pat_bitspec([size,Symb], Env, L, St) when is_atom(Symb) ->
 	true -> St;
 	false -> add_error(L, {unbound_symb,Symb}, St)
     end;
-pat_bitspec([size,N], Env, L, St) ->
-    check_expr(N, Env, L, St);
 pat_bitspec(_, _, L, St) ->
     add_error(L, illegal_bitseg, St).
 
