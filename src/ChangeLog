@@ -1,3 +1,8 @@
+2009-02-26  Robert Virding  <rv@arthur>
+
+	* lfe_lint.erl (pat_bitspec, expr_bitspec, gexpr_bitspec): Fixed
+	checking of bitsegs in patterns and exprs.
+
 2009-01-23  Robert Virding  <rv@arthur>
 
 	* lfe_macro.erl: New convention, expand??? functions do deep
