@@ -57,6 +57,10 @@ file(FileName, Options) -> CompRet
 		have been optimised by the Erlang compiler. Mainly
 		useful for debugging and interest.
 
+	debug_print
+		Causes the compiler to print a lot of debug
+		information.
+
 	Both Warnings and Errors have the following format:
 
 	[{FileName,[ErrorInfo]}]

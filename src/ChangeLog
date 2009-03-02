@@ -1,3 +1,8 @@
+2009-03-02  Robert Virding  <rv@arthur>
+
+	* lfe_macro.erl (expand_rules): Raise handling of keywords in
+	syntax rules.
+
 2009-02-26  Robert Virding  <rv@arthur>
 
 	* lfe_lint.erl (pat_bitspec, expr_bitspec, gexpr_bitspec): Fixed

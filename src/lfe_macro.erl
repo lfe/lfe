@@ -692,7 +692,7 @@ exp_predef([defmacro,Name|Def], _, St) ->
 exp_predef([defsyntax,Name|Rules], _, St) ->
     %% Expand into call function which expands macro an invocation
     %% time, this saves much space and costs us nothing.
-    {yes,['define-macro'|expand_rules(Name, Rules)],St};
+    {yes,['define-macro'|expand_rules(Name, [], Rules)],St};
 exp_predef([flet,Defs|Body], _, St) ->
     Fdefs = map(fun ([Name|Def]) -> expand_defun(Name, Def) end, Defs),
     {yes,['let-function',Fdefs|Body], St};
@@ -703,7 +703,7 @@ exp_predef([macrolet,Defs|Body], _, St) ->
     Mdefs = map(fun ([Name|Def]) -> expand_defmacro(Name, Def) end, Defs),
     {yes,['let-macro',Mdefs|Body],St};
 exp_predef([syntaxlet,Defs|Body], _, St) ->
-    Mdefs = map(fun ([Name|Rules]) -> expand_rules(Name, Rules) end, Defs),
+    Mdefs = map(fun ([Name|Rules]) -> expand_rules(Name, [], Rules) end, Defs),
     {yes,['let-macro',Mdefs|Body],St};
 %% This was not a call to a predefined macro.
 exp_predef(_, _, _) -> no.
@@ -742,17 +742,17 @@ expand_syntax(Name, Def) ->
 	    Mcls = map(fun ([Pat|Body]) -> [[Pat]|Body] end, Cls),
 	    [Name,['match-lambda'|Mcls]];
 	['syntax-rules'|Rules] ->
-	    expand_rules(Name, Rules)
+	    expand_rules(Name, [], Rules)
     end.
 
-%% expand_rules(Name, Rules) -> Lambda.
+%% expand_rules(Name, Keywords, Rules) -> Lambda.
 %%  Expand into call function which expands macro an invocation time,
 %%  this saves much space and costs us nothing.
 
-expand_rules(Name, Rules) ->
+expand_rules(Name, Keywords, Rules) ->
     [Name,[lambda,[args],
 	   [':',lfe_macro,mbe_syntax_rules_proc,
-	    [quote,Name],[],[quote,Rules],args]]].
+	    [quote,Name],[quote,Keywords],[quote,Rules],args]]].
 
 new_symb(St) ->
     C = St#mac.vc,
