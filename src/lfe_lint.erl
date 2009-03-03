@@ -110,12 +110,22 @@ return_status(St) ->
 %%  Collect valid forms and module data. Returns forms and put module
 %%  data into state. Flag unknown forms and define-module not first.
 
-collect_form(['define-module',Mod|Mdef], L, St) when is_atom(Mod) ->
-    %% Everything into State.
-    {[],check_mdef(Mdef, L, St#lint{module=Mod})};
+collect_form(['define-module',Mod|Mdef], L, St0) ->
+    %% Check normal module or parameterised module.
+    case is_symb_list(Mod) of			%Parameterised module
+	true ->
+	    {Vs,St1} = check_lambda_args(tl(Mod), L, St0),
+	    %% Everything into State.
+	    {[],check_mdef(Mdef, L, St1#lint{module=[hd(Mod)|Vs]})};
+	false when is_atom(Mod) ->		%Normal module
+	    %% Everything into State.
+	    {[],check_mdef(Mdef, L, St0#lint{module=Mod})};
+	false ->				%Bad module name
+	    {[],add_error(L, unknown_form, St0)}
+    end;
 collect_form(_, L, #lint{module=[]}=St) ->
     %% Set module name so this only triggers once.
-    {[],add_error(L, bad_module_def, St#lint{module='-no-module-'})};
+    {[],add_error(L, bad_mod_def, St#lint{module='-no-module-'})};
 collect_form(['define-function',Func,[lambda|_]=Lambda], L, St)
   when is_atom(Func) ->
     {[{Func,Lambda,L}],St};
@@ -183,22 +193,46 @@ is_flist(_, _) -> no.
 %%  Do all the actual work checking a module.
 
 check_module([], St) -> add_error(0, missing_module, St);
-check_module(Fbs, St0) ->
+check_module(Fbs0, St0) ->
     %% Make an initial environment and set up state.
+    {Predefs,Env0,St1} = init_state(St0),
+    Fbs1 = Predefs ++ Fbs0,
+    %% Now check definitions.
+    {Fs,Env1,St2} = check_letrec_bindings(Fbs1, Env0, St1),
+    %% Save functions and environment and test exports.
+    St3 = St2#lint{funcs=Fs,env=Env1},
+    check_exports(St3#lint.exps, Fs, St3).
+
+%% init_state(State) -> {Predefs,Env,State}.
+%%  Setup the initial predefines and state. Build dummies for
+%%  predefined module_info and parameteried module functions, which
+%%  makes it easier to later check redefines.
+
+init_state(St) ->
+    %% Add the imports.
     Env0 = foldl(fun ({M,Fs}, Env) ->
 			 foldl(fun ({{F,A},R}, E) ->
 				       add_ibinding(M, F, A, R, E)
 			       end, Env, Fs)
-		 end, new_env(), St0#lint.imps),
-    Predefs = [{module_info,0},{module_info,1}], %Predefined functions
-    Env1 = foldl(fun ({F,A}, E) -> add_fbinding(F, A, E) end, Env0, Predefs),
-    St1 = St0#lint{exps=add_exports(St0#lint.exps, Predefs)},
-    %% Now check definitions.
-    {Fs,Env2,St2} = check_letrec_bindings(Fbs, Env1, St1),
-    %% Save functions and environment and test exports.
-    St3 = St2#lint{funcs=Fs,env=Env2},
-    check_exports(St3#lint.exps, union(Predefs, Fs), St3).
-
+		 end, new_env(), St#lint.imps),
+    %% Basic predefines
+    Predefs0 = [{module_info,[lambda,[],[quote,dummy]],1},
+		{module_info,[lambda,[x],[quote,dummy]],1}],
+    Exps0 = [{module_info,0},{module_info,1}],
+    %% Now handle parameterised module.
+    case St#lint.module of
+	[_|As] ->				%Parameterised module
+	    Predefs1 = [{new,[lambda,As,[quote,dummy]],1},
+			{instance,[lambda,As,[quote,dummy]],1}|Predefs0],
+	    Ar = length(As),
+	    Exps1 = [{new,Ar},{instance,Ar}|Exps0],
+	    {Predefs1,
+	     add_vbindings(As, Env0),
+	     St#lint{exps=add_exports(St#lint.exps, Exps1)}};
+	_ -> {Predefs0,Env0,			%Normal module
+	      St#lint{exps=add_exports(St#lint.exps, Exps0)}}
+    end.
+	    
 check_exports(all, _, St) -> St;		%All is all
 check_exports(Exps, Fs, St) ->
     foldl(fun (E, S) ->
@@ -217,8 +251,67 @@ add_exports(Old, More) -> union(Old, More).
 %% check_expr(Expr, Env, Line, State) -> State.
 %% Check an expression.
 
-check_expr([_|_]=Call, Env, L, St) ->		%Function call
-    check_call(Call, Env, L, St);
+%% Check the Core data special forms.
+check_expr([quote,_], _, _, St) -> St;
+check_expr([cons|[_,_]=As], Env, L, St) ->
+    check_args(As, Env, L, St);
+check_expr([car,E], Env, L, St) ->
+    check_expr(E, Env, L, St);
+check_expr([cdr,E], Env, L, St) ->
+    check_expr(E, Env, L, St);
+check_expr([list|As], Env, L, St) ->
+    check_args(As, Env, L, St);
+check_expr([tuple|As], Env, L, St) ->
+    check_args(As, Env, L, St);
+check_expr([binary|Segs], Env, L, St) ->
+    expr_bitsegs(Segs, Env, L, St);
+%% Check the Core closure special forms.
+check_expr(['lambda'|Lambda], Env, L, St) ->
+    check_lambda(Lambda, Env, L, St);
+check_expr(['match-lambda'|Match], Env, L, St) ->
+    check_match_lambda(Match, Env, L, St);
+check_expr(['let'|Let], Env, L, St) ->
+    check_let(Let, Env, L, St);
+check_expr(['let-function'|Flet], Env, L, St) ->
+    check_let_function(Flet, Env, L, St);
+check_expr(['letrec-function'|Fletrec], Env, L, St) ->
+    check_letrec_function(Fletrec, Env, L, St);
+check_expr(['let-macro'|_], _, L, St) ->
+    %% This should never occur! Removed by macro expander.
+    bad_form_error(L, 'let-macro', St);
+%% Check the Core control special forms.
+check_expr(['progn'|Body], Env, L, St) ->
+    check_body(Body, Env, L, St);
+check_expr(['if',Test,True,False], Env, L, St) ->
+    check_args([Test,True,False], Env, L, St);
+check_expr(['if',Test,True], Env, L, St) ->
+    check_args([Test,True], Env, L, St);
+check_expr(['case'|B], Env, L, St) ->
+    check_case(B, Env, L, St);
+check_expr(['receive'|Cls], Env, L, St) ->
+    check_rec_clauses(Cls, Env, L, St);
+check_expr(['catch'|B], Env, L, St) ->
+    check_body(B, Env, L, St);
+check_expr(['try'|B], Env, L, St) ->
+    check_try(B, Env, L, St);
+check_expr(['funcall'|As], Env, L, St) ->
+    check_args(As, Env, L, St);
+check_expr(['call'|As], Env, L, St) ->
+    check_args(As, Env, L, St);
+%% Finally the general cases.
+check_expr([Symb|As], Env, L, St0) when is_atom(Symb) ->
+    St1 = check_args(As, Env, L, St0),	%Check arguments first
+    %% Here we are not interested in HOW symb is associated to a
+    %% function, just that it is.
+    %% io:fwrite("fb: ~w ~p   ~p\n", [Symb,As,Env]),
+    case is_fbound(Symb, safe_length(As), Env) of
+	true -> St1;
+	false -> add_error(L, {unbound_func,{Symb,safe_length(As)}}, St1)
+    end;
+check_expr([_|As], Env, L, St0) ->
+    %% Function here is an expression, report error and check args.
+    St1 = bad_form_error(L, application, St0),
+    check_args(As, Env, L, St1);
 check_expr([], _, _, St) -> St;			%Self evaluating []
 check_expr(Symb, Env, L, St) when is_atom(Symb) ->
     %% Predefined functions exist only when called.
@@ -230,71 +323,6 @@ check_expr(Tup, _, _, St) when is_tuple(Tup) ->
     %% This just builds a tuple constant.
     St;
 check_expr(_, _, _, St) -> St.		%Everything else is atomic
-
-%% check_call(Call, Env, Line, State) -> State.
-%% Check a function call.
-
-%% Check the Core data special forms.
-check_call([quote,_], _, _, St) -> St;
-check_call([cons|[_,_]=As], Env, L, St) ->
-    check_args(As, Env, L, St);
-check_call([car,E], Env, L, St) ->
-    check_expr(E, Env, L, St);
-check_call([cdr,E], Env, L, St) ->
-    check_expr(E, Env, L, St);
-check_call([list|As], Env, L, St) ->
-    check_args(As, Env, L, St);
-check_call([tuple|As], Env, L, St) ->
-    check_args(As, Env, L, St);
-check_call([binary|Segs], Env, L, St) ->
-    expr_bitsegs(Segs, Env, L, St);
-%% Check the Core closure special forms.
-check_call(['lambda'|Lambda], Env, L, St) ->
-    check_lambda(Lambda, Env, L, St);
-check_call(['match-lambda'|Match], Env, L, St) ->
-    check_match_lambda(Match, Env, L, St);
-check_call(['let'|Let], Env, L, St) ->
-    check_let(Let, Env, L, St);
-check_call(['let-function'|Flet], Env, L, St) ->
-    check_let_function(Flet, Env, L, St);
-check_call(['letrec-function'|Fletrec], Env, L, St) ->
-    check_letrec_function(Fletrec, Env, L, St);
-check_call(['let-macro'|_], _, L, St) ->
-    %% This should never occur! Removed by macro expander.
-    bad_form_error(L, 'let-macro', St);
-%% Check the Core control special forms.
-check_call(['progn'|Body], Env, L, St) ->
-    check_body(Body, Env, L, St);
-check_call(['if',Test,True,False], Env, L, St) ->
-    check_args([Test,True,False], Env, L, St);
-check_call(['if',Test,True], Env, L, St) ->
-    check_args([Test,True], Env, L, St);
-check_call(['case'|B], Env, L, St) ->
-    check_case(B, Env, L, St);
-check_call(['receive'|Cls], Env, L, St) ->
-    check_rec_clauses(Cls, Env, L, St);
-check_call(['catch'|B], Env, L, St) ->
-    check_body(B, Env, L, St);
-check_call(['try'|B], Env, L, St) ->
-    check_try(B, Env, L, St);
-check_call(['funcall'|As], Env, L, St) ->
-    check_args(As, Env, L, St);
-check_call(['call'|As], Env, L, St) ->
-    check_args(As, Env, L, St);
-%% Finally the general cases.
-check_call([Symb|As], Env, L, St0) when is_atom(Symb) ->
-    St1 = check_args(As, Env, L, St0),	%Check arguments first
-    %% Here we are not interested in HOW symb is associated to a
-    %% function, just that it is.
-    %% io:fwrite("fb: ~w ~p   ~p\n", [Symb,As,Env]),
-    case is_fbound(Symb, safe_length(As), Env) of
-	true -> St1;
-	false -> add_error(L, {unbound_func,{Symb,safe_length(As)}}, St1)
-    end;
-check_call([_|As], Env, L, St0) ->
-    %% Function here is an expression, report error and check args.
-    St1 = bad_form_error(L, application, St0),
-    check_args(As, Env, L, St1).
 
 %% check_body(Body, Env, Line, State) -> State.
 %% Check the calls in a body. A body is a proper list of calls. Env is
@@ -423,16 +451,8 @@ check_let_vb(_, _, L, St) -> {[],bad_form_error(L, 'let', St)}.
 check_let_function([Fbs0|Body], Env0, L, St0) ->
     %% Collect correct function definitions.
     {Fbs1,St1} = collect_let_funcs(Fbs0, 'let-function', L, St0),
-    {Fs,St2} = check_fbindings(Fbs1, St1),
-    %% Now check function definitions.
-    St3 = foldl(fun ({_,[lambda|Lambda],_}, St) ->
-			check_lambda(Lambda, Env0, L, St);
-		    ({_,['match-lambda'|Match],_}, St) ->
-			check_match_lambda(Match, Env0, L, St)
-		end, St2, Fbs1),
-    %% Add to environment
-    Env1 = foldl(fun ({F,A}, Env) -> add_fbinding(F, A, Env) end, Env0, Fs),
-    check_body(Body, Env1, L, St3).
+    {_,Env1,St2} = check_let_bindings(Fbs1, Env0, St1),
+    check_body(Body, Env1, L, St2).
 
 %% check_letrec_function(FletrecBody, Env, Line, State) -> {Env,State}.
 %%  Check a letrec-function form (letrec-function FuncBindings ... ). 
@@ -479,6 +499,23 @@ check_fbindings(Fbs0, St0) ->
 		    end
 	    end,
     foldl(Check, {[],St0}, Fbs0).
+
+%% check_let_bindings(FuncBindings, Env, State) -> {Funcs,Env,State}.
+%%  Check the function bindings and return new environment. We only
+%%  have to worry about checking for the valid forms as the rest will
+%%  already be reported. Use explicit line number in element.
+
+check_let_bindings(Fbs, Env0, St0) ->
+    {Fs,St1} = check_fbindings(Fbs, St0),
+    %% Now check function definitions.
+    St2 = foldl(fun ({_,[lambda|Lambda],L}, St) ->
+			check_lambda(Lambda, Env0, L, St);
+		    ({_,['match-lambda'|Match],L}, St) ->
+			check_match_lambda(Match, Env0, L, St)
+		end, St1, Fbs),
+    %% Add to environment
+    Env1 = foldl(fun ({F,A}, Env) -> add_fbinding(F, A, Env) end, Env0, Fs),
+    {Fs,Env1,St2}.
 
 %% check_letrec_bindings(FuncBindings, Env, State) -> {Funcs,Env,State}.
 %%  Check the function bindings and return new environment. We only

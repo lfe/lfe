@@ -4,6 +4,8 @@ code. An LFE evaluator and shell is also included.
 
 v0.4
 ----
+Parameterized modules.
+
 Added (export all) attribute to module definition.
 
 New records which allow giving default values as in vanilla

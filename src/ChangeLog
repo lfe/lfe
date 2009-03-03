@@ -1,3 +1,10 @@
+2009-03-03  Robert Virding  <rv@arthur>
+
+	* lfe_lint.erl: Restructured to improve and handle parameterized
+	modules.
+
+	* lfe_comp.erl (do_forms): Added call lfe_pmod:module.
+
 2009-03-02  Robert Virding  <rv@arthur>
 
 	* lfe_macro.erl (expand_rules): Raise handling of keywords in
