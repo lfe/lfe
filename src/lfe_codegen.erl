@@ -113,7 +113,7 @@ forms(Forms, St0, Core0) ->
 		     Pp = (catch io:put_chars([core_pp:format(Core1),$\n])),
 		     io:fwrite("core_pp: ~p\n", [Pp])
 	     end, debug_print, St3),
-    debug_print("#core: ~p\n", [Core1], St3),
+    %% debug_print("#core: ~p\n", [Core1], St3),
     {Core1,St3}.
 
 debug_print(Format, Args, St) ->

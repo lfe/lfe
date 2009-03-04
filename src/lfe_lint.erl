@@ -44,7 +44,9 @@
 		  union/1,union/2,intersection/2,subtract/2]).
 -import(orddict, [store/3,find/2]).
 
--record(lint, {module=[],
+-record(lint, {module=[],			%Module name
+	       pars=none,			%Module parameters
+	       extd=[],				%Extends
 	       exps=[],				%Exports
 	       imps=[],				%Imports
 	       pref=[],				%Prefixes
@@ -61,6 +63,7 @@ form(F) ->
 
 %% Errors.
 format_error(bad_mod_def) -> "bad module definition";
+format_error(bad_extends) -> "bad extends";
 format_error(missing_module) -> "missing module";
 format_error(bad_funcs) -> "bad function list";
 format_error(bad_body) -> "bad body";
@@ -116,12 +119,12 @@ collect_form(['define-module',Mod|Mdef], L, St0) ->
 	true ->
 	    {Vs,St1} = check_lambda_args(tl(Mod), L, St0),
 	    %% Everything into State.
-	    {[],check_mdef(Mdef, L, St1#lint{module=[hd(Mod)|Vs]})};
+	    {[],check_mdef(Mdef, L, St1#lint{module=hd(Mod),pars=Vs})};
 	false when is_atom(Mod) ->		%Normal module
 	    %% Everything into State.
-	    {[],check_mdef(Mdef, L, St0#lint{module=Mod})};
+	    {[],check_mdef(Mdef, L, St0#lint{module=Mod,pars=none})};
 	false ->				%Bad module name
-	    {[],add_error(L, unknown_form, St0)}
+	    {[],add_error(L, bad_mod_def, St0)}
     end;
 collect_form(_, L, #lint{module=[]}=St) ->
     %% Set module name so this only triggers once.
@@ -148,6 +151,12 @@ check_mdef([[export|Es]|Mdef], L, St) ->
 check_mdef([[import|Is]|Mdef], L, St0) ->
     St1 = check_imports(Is, L, St0),
     check_mdef(Mdef, L, St1);
+check_mdef([[extends,M]|Mdef], L, St) ->
+    if is_atom(M) -> 
+	    check_mdef(Mdef, L, St#lint{extd=M});
+       true ->
+	    check_mdef(Mdef, L, add_error(L, bad_extends, St))
+    end;
 check_mdef([[Name,_]|Mdef], L, St) when is_atom(Name) ->
     %% Other attributes.
     check_mdef(Mdef, L, St);
@@ -220,18 +229,29 @@ init_state(St) ->
 		{module_info,[lambda,[x],[quote,dummy]],1}],
     Exps0 = [{module_info,0},{module_info,1}],
     %% Now handle parameterised module.
-    case St#lint.module of
-	[_|As] ->				%Parameterised module
-	    Predefs1 = [{new,[lambda,As,[quote,dummy]],1},
-			{instance,[lambda,As,[quote,dummy]],1}|Predefs0],
-	    Ar = length(As),
-	    Exps1 = [{new,Ar},{instance,Ar}|Exps0],
+    case St#lint.pars of
+	none ->					%Normal module
+	    {Predefs0,Env0,
+	     St#lint{exps=add_exports(St#lint.exps, Exps0)}};
+	Ps0 ->					%Parameterised module
+	    {Ps1,Predefs1,Exps1} = para_defs(Ps0, Predefs0, Exps0, St),
 	    {Predefs1,
-	     add_vbindings(As, Env0),
-	     St#lint{exps=add_exports(St#lint.exps, Exps1)}};
-	_ -> {Predefs0,Env0,			%Normal module
-	      St#lint{exps=add_exports(St#lint.exps, Exps0)}}
+	     add_vbindings([this|Ps1], Env0),
+	     St#lint{exps=union(St#lint.exps, Exps1)}}
     end.
+
+para_defs(Ps, Predefs0, Exps0, St) ->
+    Ar = length(Ps),
+    Predefs1 = [{new,[lambda,Ps,[quote,dummy]],1}|Predefs0],
+    Exps1 = add_element({new,Ar}, Exps0),
+    case St#lint.extd of
+	[] ->
+	    {Ps,[{instance,[lambda,Ps,[quote,dummy]],1}|Predefs1],
+	     add_element({instance,Ar},Exps1)};
+	_ ->
+	    {[base|Ps],[{instance,[lambda,[base|Ps],[quote,dummy]],1}|Predefs1],
+	     add_element({instance,Ar+1},Exps1)}
+    end.	    
 	    
 check_exports(all, _, St) -> St;		%All is all
 check_exports(Exps, Fs, St) ->

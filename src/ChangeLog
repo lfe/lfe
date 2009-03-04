@@ -1,3 +1,11 @@
+2009-03-04  Robert Virding  <rv@arthur>
+
+	* lfe_pmod.erl (exp_mdef, collect_imps): Restructured to use folds.
+	(exp_form, exp_mdef): Handle extends in parameterised modules.
+
+	* lfe_lint.erl (para_defs): Fix instance function depending on
+	whether parameterized module extends.
+
 2009-03-03  Robert Virding  <rv@arthur>
 
 	* lfe_lint.erl: Restructured to improve and handle parameterized

@@ -25,7 +25,7 @@
 
 %%% File    : lfe_pmod.erl
 %%% Author  : Robert Virding
-%%% Purpose : Lisp Flavoured Erlang paramterised module transformer.
+%%% Purpose : Lisp Flavoured Erlang parameterised module transformer.
 
 -module(lfe_pmod).
 
@@ -43,8 +43,12 @@
 		  add_fbinding/4,add_fbindings/2,get_fbinding/3,
 		  add_ibinding/5,get_gbinding/3]).
 
+-define(Q(E), [quote,E]).			%For quoting
+
 -record(param, {mod=[],				%Module name
 		pars=[],			%Module parameters
+		extd=[],			%Extends
+		this=[],			%This match pattern
 		env=[]}).			%Environment
 
 %% module(Forms, Options) -> Forms.
@@ -65,11 +69,24 @@ expand_module(Fs0, Opts) ->
 exp_form(['define-module',[Mod|Ps]|Mdef0], L, St0) ->
     %% Save the good bits and define new/N and instance/N.
     St1 = St0#param{mod=Mod,pars=Ps},
-    New = ['define-function',new,[lambda,Ps,[instance|Ps]]],
-    Inst = ['define-function',instance,[lambda,Ps,[tuple,[quote,Mod]|Ps]]],
     {Mdef1,St2} = exp_mdef(Mdef0, St1),
+    {Nl,Il} = case St2#param.extd of
+		  [] ->
+		      {[lambda,Ps,[instance|Ps]],
+		       [lambda,Ps,[tuple,?Q(Mod)|Ps]]};
+		  Ex ->
+		      {[lambda,Ps,[instance,[call,?Q(Ex),?Q(new)|Ps]|Ps]],
+		       [lambda,[base|Ps],[tuple,?Q(Mod),base|Ps]]}
+	      end,
+    New = ['define-function',new,Nl],
+    Inst = ['define-function',instance,Il],
+    %% Fix this match pattern depending on extends.
+    St3 = case St2#param.extd of
+	      [] -> St2#param{this=['=',this,[tuple,'_'|Ps]]};
+	      _ -> St2#param{this=['=',this,[tuple,'_',base|Ps]]}
+	  end,
     {[{['define-module',Mod|Mdef1],L},
-      {New,L},{Inst,L}],St2};
+      {New,L},{Inst,L}],St3};
 exp_form(['define-function',F,Def0], L, St) ->
     Def1 = exp_function(Def0, St),
     {[{['define-function',F,Def1],L}],St};
@@ -82,44 +99,54 @@ debug_print(Format, Args, Opts) ->
 	false -> ok
     end.
 
-exp_mdef([[export,all]|Mdef0], St0) ->		%Leave unchanged
-    {Mdef1,St1} = exp_mdef(Mdef0, St0),
-    {[[export,all]|Mdef1],St1};
-exp_mdef([[export|Es0]|Mdef0], St0) ->
-    Ar = length(St0#param.pars),
-    Es1 = map(fun ([F,A]) -> [F,A+1] end, Es0),
-    {Mdef1,St1} = exp_mdef(Mdef0, St0),
-    {[[export,[new,Ar],[instance,Ar]|Es1]|Mdef1],St1};
-exp_mdef([[import|Is]|Mdef0], St0) ->
-    St1 = collect_imps(Is, St0),
-    {Mdef1,St2} = exp_mdef(Mdef0, St1),
-    {[[import|Is]|Mdef1],St2};
-exp_mdef([Md|Mdef0], St0) ->
-    {Mdef1,St1} = exp_mdef(Mdef0, St0),
-    {[Md|Mdef1],St1};
-exp_mdef([], St) -> {[[abstract,true]],St}.
+exp_mdef(Mdef0, St0) ->
+    %% Pre-scan to pick up 'extends'.
+    St1 = foldl(fun ([extends,M], S) -> S#param{extd=M};
+		    (_, S) -> S
+		end, St0, Mdef0),
+    %% Now do "real" processing.
+    {Mdef1,St2} = mapfoldl(fun ([export,all], S) -> {[export,all],S};
+			       ([export|Es0], S) ->
+				   %% Add 1 for this to each export.
+				   Es1 = map(fun ([F,A]) -> [F,A+1] end, Es0),
+				   {[export|Es1],S};
+			       ([import|Is], S0) ->
+				   S1 = collect_imps(Is, S0),
+				   {[import|Is],S1};
+			       (Md, S) -> {Md,S}
+			   end, St1, Mdef0 ++ [[abstract,true]]),
+    %% Add export for new/N and instance/N.
+    Ar = length(St2#param.pars),
+    Iar = case St2#param.extd of
+	      [] -> Ar;
+	      _ -> Ar+1
+	  end,
+    {[[export,[new,Ar],[instance,Iar]]|Mdef1],St2}.
 
-collect_imps([['from',M|Fs]|Is], St) ->
-    Env = foldl(fun ([F,Ar], E) -> add_ibinding(M, F, Ar, F, E) end,
-		St#param.env, Fs),
-    collect_imps(Is, St#param{env=Env});
-collect_imps([['rename',M|Fs]|Is], St) ->
-    Env = foldl(fun ([[F,Ar],R], E) -> add_ibinding(M, F, Ar, R, E) end,
-		St#param.env, Fs),
-    collect_imps(Is, St#param{env=Env});
-collect_imps([], St) -> St.
+collect_imps(Is, St) ->
+    foldl(fun (['from',M|Fs], S) ->
+		  Env = foldl(fun ([F,Ar], E) ->
+				      add_ibinding(M, F, Ar, F, E) end,
+			      S#param.env, Fs),
+		  S#param{env=Env};
+	      (['rename',M|Fs], S) ->
+		  Env = foldl(fun ([[F,Ar],R], E) ->
+				      add_ibinding(M, F, Ar, R, E) end,
+			      S#param.env, Fs),
+		  S#param{env=Env}
+	  end, St, Is).
     
-exp_function(['match-lambda'|Cls0], #param{pars=Ps,env=Env}) ->
+exp_function(['match-lambda'|Cls0], #param{this=Th,env=Env}) ->
     Cls1 = map(fun ([As|Body]) ->
-		       exp_clause([lambda_args(As, Ps)|Body], Env)
+		       exp_clause([As ++ [Th]|Body], Env)
 	       end, Cls0),
     ['match-lambda'|Cls1];
-exp_function([lambda,As|Body0], #param{pars=Ps,env=Env}) ->
+exp_function([lambda,As|Body0], #param{this=Th,env=Env}) ->
     Body1 = exp_list(Body0, Env),
-    ['match-lambda',[lambda_args(As, Ps)|Body1]].
+    ['match-lambda',[As ++ [Th]|Body1]].
 
-lambda_args(As, Pars) ->
-    As ++ [['=',this,[tuple,'_'|Pars]]].
+lambda_args(As, This) ->
+    As ++ [This].
 
 %% exp_expr(Sexpr, Environment) -> Expr.
 %%  Expand Sexpr.
