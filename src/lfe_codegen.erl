@@ -35,7 +35,7 @@
 
 -import(lists, [member/2,keysearch/3,reverse/1,
 		all/2,map/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3,
-		concat/1]).
+		concat/1,zipwith/3]).
 -import(ordsets, [add_element/2,is_element/2,from_list/1,union/2]).
 -import(orddict, [store/3,find/2]).
 
@@ -274,10 +274,8 @@ comp_call(['catch'|Body], Env, L, St0) ->
     {#c_catch{anno=[L],body=Cb},St1};
 comp_call(['try'|B], Env, L, St) ->
     comp_try(B, Env, L, St);
-comp_call(['funcall',F|As], Env, L, St0) ->
-    {Cf,St1} = comp_expr(F, Env, L, St0),
-    {Cas,St2} = comp_args(As, Env, L, St1),
-    {#c_apply{anno=[L],op=Cf,args=Cas},St2};
+comp_call(['funcall',F|As], Env, L, St) ->
+    comp_funcall(F, As, Env, L, St);
 %%comp_call([call,[quote,erlang],[quote,primop]|As], Env, L, St) ->
 %% An interesting thought to open up system.
 comp_call([call,M,N|As], Env, L, St0) ->
@@ -353,9 +351,10 @@ lambda_arity([Args|_]) -> length(Args).
 %% (match-lambda (Pat ...) ...).
 
 comp_match_lambda(Cls, Env, L, St0) ->
-    {Cvs,St1} = new_c_vars(match_lambda_arity(Cls), L, St0),
+    Ar = match_lambda_arity(Cls),
+    {Cvs,St1} = new_c_vars(Ar, L, St0),
     {Ccs,St2} = comp_match_clauses(Cls, Env, L, St1),
-    {Fvs,St3} = new_c_vars(length(hd(hd(Cls))), L, St2),
+    {Fvs,St3} = new_c_vars(Ar, L, St2),
     Cf = fail_clause(Fvs,c_tuple([c_lit(function_clause, L)|Fvs],L), L, St3),
     Cb = #c_case{anno=[L],
 		 arg=c_values(Cvs, L),
@@ -385,7 +384,7 @@ comp_match_clause([Pats|Body], Env0, L, St0) ->
     {Cg,Cb,St2} = comp_clause_body(Body, Env1, L, St1),
     {#c_clause{anno=[L],pats=Cps,guard=Cg,body=Cb},St2}.
 
-%% comp_let(VarBindings, Bory, Env, L, State) -> {#c_let{}|#c_case{},State}.
+%% comp_let(VarBindings, Body, Env, L, State) -> {#c_let{}|#c_case{},State}.
 %% Compile a let expr. We are a little cunning in that we specialise
 %% the the case where all the patterns are variables and there a re no
 %% guards, the simple case.
@@ -664,7 +663,7 @@ try_after(B, Env, L, St0) ->
     After = #c_seq{anno=[L],
 		   arg=Cb,
 		   body=raise_primop([Info,Val], L, St2)},
-    {Cvs,After,St2}.    
+    {Cvs,After,St2}.
 
 raise_primop(Args, L, _) ->
     c_primop(c_lit(raise, L), Args, L).
@@ -672,6 +671,42 @@ raise_primop(Args, L, _) ->
 tag_tail([[Tag|Tail]|_], Tag) -> Tail;
 tag_tail([_|Try], Tag) -> tag_tail(Try, Tag);
 tag_tail([], _) -> [].
+
+%% comp_funcall(Call, Args, Env, Line, State) -> {Core,State}.
+%%  Special case Call is directly lambda or match-lambda, might be
+%%  useful in macros.
+
+comp_funcall([lambda,Las|Body]=F, As, Env, L, St) ->
+    %% Convert into a let.
+    if length(Las) == length(As) ->		%Check right number of args
+	    %% Convert into a let. Would like to sequentialise eval of
+	    %% args here but leave that to let.
+	    Vbs = zipwith(fun (V, E) -> [V,E] end, Las, As),
+	    comp_let(Vbs, Body, Env, L, St);
+       true ->					%Catch arg mismatch at runtime
+	    comp_funcall_1(F, As, Env, L, St)
+    end;
+comp_funcall(['match-lambda'|Cls]=F, As, Env, L, St0) ->
+    case match_lambda_arity(Cls) == length(As) of
+	true ->
+	    %% Expand comp_let as we need to special case body.
+	    {#c_fun{vars=Cvs,body=Cb},St1} = comp_match_lambda(Cls, Env, L, St0),
+	    {Ces,St2} = mapfoldl(fun (E, St) -> comp_expr(E, Env, L, St) end,
+				 St1, As),
+	    {#c_let{anno=[L],
+		    vars=Cvs,
+		    arg=c_values(Ces, L),
+		    body=Cb},St2};
+	false ->				%Catch arg mismatch at runtime
+	    comp_funcall_1(F, As, Env, L, St0)
+    end;
+comp_funcall(F, As, Env, L, St0) ->
+    comp_funcall_1(F, As, Env, L, St0).		%Naively just do it.
+
+comp_funcall_1(F, As, Env, L, St0) ->
+    {Cf,St1} = comp_expr(F, Env, L, St0),
+    {Cas,St2} = comp_args(As, Env, L, St1),
+    {#c_apply{anno=[L],op=Cf,args=Cas},St2}.
 
 %% comp_binary(Segs, Env, Line, State) -> {#c_binary{},State}.
 

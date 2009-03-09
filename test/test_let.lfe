@@ -1,18 +1,24 @@
 ;; File    : test_let.el
 ;; Author  : Robert Virding
-;; Purpose : Test cases for let and let*.
+;; Purpose : Test cases for let, let* and funcall.
 
 (defmodule test_let
-  (export (a 2) (b 2) (c 2) (d 2) (e 1) (f 1) (f 2))
+  (export (a 1) (b 2) (c 2) (d 2) (e 2) (f 2) (g 2))
   (import (from lists (reverse 1) (reverse 2))
 	  (from ordsets (is_element 2))
 	  (rename ordsets ((is_element 2) in))))
 
-(defun a (x y)
-  (lambda (a) (+ (* a x) y)))
+(defun a (x)
+  (let* ((a (list x))
+	 (a (cons x a))
+	 (a (cons x a)))
+    a))
 
 (defun b (x y)
-  (funcall x y 1))
+  (let ((m (+ x y))
+	(n (xxx))
+	(o (yyy x y)))
+    (list m n o)))
 
 ;; Test multiply defined variables.
 ;; (define (t1 x y)
@@ -22,23 +28,31 @@
 ;;     (list m n o)))
 
 (defun c (x y)
-  (let ((o (lambda (y) (list y y))))
-    (list o (funcall o x))))
+  (funcall x y 1))
 
 (defun d (x y)
-  (funcall (lambda (a) (+ a a)) x))
+  (list
+   (let ((o (lambda (a b) (list a b))))
+     (funcall o (* x y) (+ x y)))
+   (list x y)))
 
-(defun e (x)
-  (let* ((a (list x))
-	 (a (cons x a))
-	 (a (cons x a)))
-    a))
+;; Test funcalling lambdas and match-lambdas directly.
+(defun e (x y)
+  (list
+   (funcall (lambda (a b) (list a b)) (* x y) (+ x y))
+   (list x y)))
 
-(defun f (x) 'boom)
+(defun f (x y)				;Arg mismatch, push error to runtime
+  (funcall (lambda (a b) (list a b)) (* x y)))
 
-(defun f
-  (('a 1) (tuple 'a 1))
-  (('b 2) (tuple 'b 2))
-  ((x y) (when (> x y)) 'bigger))
+(defun g (x y)
+  (funcall (match-lambda
+	     (('a n) (tuple 'a n))
+	     (('b n) (tuple 'b n))
+	     ((m n) (when (> m n)) 'bigger))
+	   x (* y 2)))
 
-(defun b () '"a string")
+(defun xxx () '"a string")
+
+(defun yyy (x y)
+  (lambda (a) (+ (* a x) y)))
