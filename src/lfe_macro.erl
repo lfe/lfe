@@ -256,7 +256,7 @@ def_record(Name, Fdefs, Env, St0) ->
 		     (F) when is_atom(F) -> F
 		 end, Fdefs),
     Defs = map(fun ([F,D])when is_atom(F) -> ?Q(D);
-		   (F) when is_atom(F) -> ?Q(?Q(default))
+		   (F) when is_atom(F) -> ?Q(?Q(undefined))
 	       end, Fdefs),
     Findex = def_rec_fields(Fields),
     %% Make names for helper functions.

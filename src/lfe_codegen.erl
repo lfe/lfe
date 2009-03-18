@@ -191,7 +191,7 @@ collect_imp(Fun, Mod, St, Fs) ->
 
 comp_define({Name,Def,L}, Env, St) ->
     Cf = c_fname(Name, func_arity(Def), L),	%Could be useful
-    comp_func(Name, Def, Env, L, St#cg{func=Cf}).
+    comp_func(Name, Def, Env, L, St#cg{func=Cf,vc=0}).
 
 %% comp_body(BodyList, Env, Line, State) -> {CoreBody,State}.
 %% Compile a body list of expressions.
