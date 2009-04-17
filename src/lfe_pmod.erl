@@ -136,17 +136,21 @@ collect_imps(Is, St) ->
 		  S#param{env=Env}
 	  end, St, Is).
     
-exp_function(['match-lambda'|Cls0], #param{this=Th,env=Env}) ->
-    Cls1 = map(fun ([As|Body]) ->
-		       exp_clause([As ++ [Th]|Body], Env)
-	       end, Cls0),
-    ['match-lambda'|Cls1];
-exp_function([lambda,As|Body0], #param{this=Th,env=Env}) ->
-    Body1 = exp_list(Body0, Env),
-    ['match-lambda',[As ++ [Th]|Body1]].
+exp_function(Lambda, #param{this=Th,env=Env}) ->
+    As = new_args(lambda_arity(Lambda)),
+    ['match-lambda',[As ++ [Th],[funcall,exp_expr(Lambda, Env)|As]]].
+%% exp_function(['match-lambda'|Cls0], #param{this=Th,env=Env}) ->
+%%     Cls1 = map(fun ([As|Body]) ->
+%% 		       exp_clause([As ++ [Th]|Body], Env)
+%% 	       end, Cls0),
+%%     ['match-lambda'|Cls1];
+%% exp_function([lambda,As|Body0], #param{this=Th,env=Env}) ->
+%%     Body1 = exp_list(Body0, Env),
+%%     ['match-lambda',[As ++ [Th]|Body1]].
 
-lambda_args(As, This) ->
-    As ++ [This].
+new_args(N) when N > 0 ->
+    [list_to_atom("{{-" ++ [$a+N-1] ++ "-}}")|new_args(N-1)];
+new_args(0) -> [].
 
 %% exp_expr(Sexpr, Environment) -> Expr.
 %%  Expand Sexpr.
@@ -271,7 +275,7 @@ exp_try([E|Body], Env) ->
     [exp_expr(E, Env)|
      map(fun (['case'|Cls]) -> ['case'|exp_clauses(Cls, Env)];
 	     (['catch'|Cls]) -> ['catch'|exp_clauses(Cls, Env)];
-	     (['after'|Body]) -> ['after'|exp_body(Body, Env)]
+	     (['after'|B]) -> ['after'|exp_body(B, Env)]
 	 end, Body)].
 
 exp_call([M,F|As], Env) ->

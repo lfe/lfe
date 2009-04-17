@@ -58,9 +58,7 @@
 	     (b3 bitstring))
      (list b1 b2 b3))))
 
-;; (defun c (x y)
-;;   (binary (x (size y)) (y (size (+ y 1)))))
-
 (defun c (x y)
-  (let ((y1 (+ y 1)))
-    (binary (x (size y)) (y (size y1)))))
+  (tuple (let ((y1 (+ y 1)))
+	   (binary (x (size y)) (y (size y1))))
+	 (binary (x (size y)) (y (size (+ y 1))))))

@@ -47,6 +47,7 @@
 
 -record(cg, {opts=[],				%Options
 	     vc=0,				%Variable counter
+	     fc=0,				%Function counter
 	     mod=[],				%Module name
 	     exps=[],				%Exports (ordsets)
 	     imps=[],				%Imports (orddict)
@@ -191,7 +192,7 @@ collect_imp(Fun, Mod, St, Fs) ->
 
 comp_define({Name,Def,L}, Env, St) ->
     Cf = c_fname(Name, func_arity(Def), L),	%Could be useful
-    comp_func(Name, Def, Env, L, St#cg{func=Cf,vc=0}).
+    comp_func(Name, Def, Env, L, St#cg{func=Cf,vc=0,fc=0}).
 
 %% comp_body(BodyList, Env, Line, State) -> {CoreBody,State}.
 %% Compile a body list of expressions.
@@ -541,7 +542,7 @@ case_clauses(Cls, Env, L, St) ->
 
 case_fail(L, St) ->
     Cv = c_var(omega, L),
-    fail_clause([Cv], c_tuple([c_lit(case_clause, L),Cv],L), L, St).
+    fail_clause([Cv], c_tuple([c_lit(case_clause, L),Cv], L), L, St).
 
 %% rec_clauses(RecClauses, Env, Line, State) -> {Clause,Timeout,After,State}.
 
@@ -633,9 +634,12 @@ try_case([], _, L, St0) ->			%No case, just return value
 try_case(Cls, Env, L, St0) ->
     {Cv,St1} = new_c_var(L, St0),
     {Ccs,St2} = case_clauses(Cls, Env, L, St1),
-    {Fv,St3} = new_c_var(L, St2),
-    Cf = fail_clause([Fv], c_tuple([c_lit(try_clause, L),Fv], L), L, St3),
-    {Cv,#c_case{anno=[L],arg=Cv,clauses=Ccs ++ [Cf]},St3}.
+    Cf = try_case_fail(L, St2),
+    {Cv,#c_case{anno=[L],arg=Cv,clauses=Ccs ++ [Cf]},St2}.
+
+try_case_fail(L, St) ->
+    Cv = c_var(omega, L),
+    fail_clause([Cv], c_tuple([c_lit(try_clause, L),Cv], L), L, St).
 
 %% try_exception(CatchClauses, Env, L, State) -> {Vars,#c_case{},State}.
 
@@ -673,11 +677,10 @@ tag_tail([_|Try], Tag) -> tag_tail(Try, Tag);
 tag_tail([], _) -> [].
 
 %% comp_funcall(Call, Args, Env, Line, State) -> {Core,State}.
-%%  Special case Call is directly lambda or match-lambda, might be
-%%  useful in macros.
+%%  Special case if Call is directly lambda or match-lambda, convert
+%%  to a let. Might be useful in macros.
 
 comp_funcall([lambda,Las|Body]=F, As, Env, L, St) ->
-    %% Convert into a let.
     if length(Las) == length(As) ->		%Check right number of args
 	    %% Convert into a let. Would like to sequentialise eval of
 	    %% args here but leave that to let.
@@ -943,8 +946,8 @@ c_primop(N, As, L) ->
 %%     {list_to_atom("|=" ++ integer_to_list(C) ++ "=|"),St#cg{vc=C+1}}.
 
 new_fun_name(Pre, St) ->
-    C = St#cg.vc,
-    {list_to_atom("'" ++ Pre ++ "~" ++ integer_to_list(C)),St#cg{vc=C+1}}.
+    C = St#cg.fc,
+    {list_to_atom("'" ++ Pre ++ "~" ++ integer_to_list(C)),St#cg{fc=C+1}}.
 
 %% new_c_var(Line, State) -> {#c_var{},State}.
 %% Create a hopefully new core variable.
