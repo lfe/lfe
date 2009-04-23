@@ -95,7 +95,7 @@ forms(Forms, St0, Core0) ->
 		 defs=Fbs1,env=Env1},
     Exps = make_exports(St2#cg.exps, Fbs1),
     Atts = map(fun ({N,V}) ->
-		       {core_lib:make_literal(N),core_lib:make_literal(V)}
+		       {make_literal(N),make_literal(V)}
 	       end, St2#cg.atts),
     %% Compile the functions.
     {Cdefs,St3} = mapfoldl(fun (D, St) -> comp_define(D, Env1, St) end,
@@ -212,18 +212,18 @@ comp_expr([_|_]=Call, Env, L, St) ->
 comp_expr([], _, L, St) -> {c_nil(L),St};	%Self evaluating
 comp_expr(Tup, _, _, St) when is_tuple(Tup) ->
     %% This just builds a tuple constant.
-    {core_lib:make_literal(Tup),St};
+    {make_literal(Tup),St};
 comp_expr(Symb, _, L, St) when is_atom(Symb) ->
     {c_var(Symb, L),St};
 comp_expr(Numb, _, _, St) when is_number(Numb) ->
-    {core_lib:make_literal(Numb),St};
+    {make_literal(Numb),St};
 comp_expr(Bin, _, _, St) when is_binary(Bin) ->
-    {core_lib:make_literal(Bin),St}.
+    {make_literal(Bin),St}.
 
 %% comp_call(Call, Env, Line, State) -> {CoreCall,State}.
 %% Handle the Core data special forms.
 
-comp_call([quote,E], _, _, St) -> {core_lib:make_literal(E),St};
+comp_call([quote,E], _, _, St) -> {make_literal(E),St};
 comp_call([cons,H,T], Env, L, St0) ->
     {Ch,St1} = comp_expr(H, Env, L, St0),
     {Ct,St2} = comp_expr(T, Env, L, St1),
@@ -811,7 +811,7 @@ comp_guard(G, Env, L, St) ->
 
 comp_pat(Pat, L, St) -> comp_pat(Pat, L, [], St).
 
-comp_pat([quote,E], _, Vs, St) -> {core_lib:make_literal(E),Vs,St};
+comp_pat([quote,E], _, Vs, St) -> {make_literal(E),Vs,St};
 comp_pat([binary|Segs], L, Vs, St) ->
     pat_binary(Segs, L, Vs, St);
 comp_pat([tuple|Ps], L, Vs0, St0) ->
@@ -832,7 +832,7 @@ comp_pat([H|T], L, Vs0, St0) ->
     {c_cons(Ch, Ct, L),Vs2,St2};
 comp_pat([], L, Vs, St) -> {c_nil(L),Vs,St};
 comp_pat(Tup, _, Vs, St) when is_tuple(Tup) ->
-    {core_lib:make_literal(Tup),Vs,St};
+    {make_literal(Tup),Vs,St};
 comp_pat(Symb, L, Vs, St) when is_atom(Symb) ->
     pat_symb(Symb, L, Vs, St);			%Variable
 comp_pat(Numb, L, Vs, St) when is_number(Numb) -> {c_lit(Numb, L),Vs,St}.
@@ -927,7 +927,9 @@ pat_bitseg(Pat, L, Vs0, St0) ->
 %% c_primop(Name, Args, Line) -> #c_primop{}.
 
 c_fun(Vs, B, L) -> #c_fun{anno=[L],vars=Vs,body=B}.
-c_fname(N, A, L) -> #c_fname{anno=[L],id=N,arity=A}.
+%% R12B/R13B fix, choose one of following depending on version.
+%%c_fname(N, A, _) -> #c_fname{anno=[],id=N,arity=A}.	%R12B
+c_fname(N, A, _) -> #c_var{anno=[],name={N,A}}.		%R13B
 c_values([V], _) -> V;				%An optimisation
 c_values(Vs, L) -> #c_values{anno=[L],es=Vs}.
 c_cons(Hd, Tl, L) -> #c_cons{anno=[L],hd=Hd,tl=Tl}.
@@ -937,6 +939,39 @@ c_lit(Val, _) -> #c_literal{anno=[],val=Val}.	%Enough with line numbers
 c_var(N, _) -> #c_var{anno=[],name=N}.
 c_primop(N, As, L) ->
     #c_primop{anno=[L],name=N,args=As}.
+
+%% make_literal(Value) -> LitExpr.
+%%  Make a literal expression from an Erlang value. This function
+%%  will fail if the value is not expressable as a literal
+%%  (for instance, a pid).
+
+make_literal([]) -> #c_literal{val=[]};
+make_literal([H0|T0]) ->
+    case {make_literal(H0),make_literal(T0)} of
+	{#c_literal{val=H},#c_literal{val=T}} ->
+	    #c_literal{val=[H|T]};
+	{H,T} ->
+	    #c_cons{hd=H,tl=T}
+    end;
+make_literal(I) when is_integer(I) -> #c_literal{val=I};
+make_literal(F) when is_float(F) -> #c_literal{val=F};
+make_literal(A) when is_atom(A) -> #c_literal{val=A};
+make_literal(T0) when is_tuple(T0) ->
+    T = make_literal_list(tuple_to_list(T0)),
+    case core_lib:is_literal_list(T) of
+	false -> #c_tuple{es=T};
+	true -> #c_literal{val=list_to_tuple(concrete_list(T))}
+    end;
+make_literal(Bs) when is_binary(Bs) ->
+    case bit_size(Bs) of
+	Bitsize when Bitsize rem 8 =:= 0 ->
+	    #c_literal{val=Bs}
+    end.
+
+make_literal_list(Vals) -> [make_literal(V) || V <- Vals]. 
+
+concrete_list([#c_literal{val=V}|T]) -> [V|concrete_list(T)];
+concrete_list([]) -> [].
 
 %% new_symb(State) -> {Symbol,State}.
 %% Create a hopefully new unused symbol.

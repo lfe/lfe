@@ -1,3 +1,10 @@
+2009-04-24  Robert Virding  <rv@rv-laptop>
+
+	* lfe_codegen.erl (c_fname): Have two versions for both R12B and
+	R13B.
+	(make_literal, make_literal_list, concrete_list): Copied these
+	from old R12B core_lib.erl as they have disappeared in R13B.
+
 2009-03-04  Robert Virding  <rv@arthur>
 
 	* lfe_pmod.erl (exp_mdef, collect_imps): Restructured to use folds.
