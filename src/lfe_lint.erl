@@ -237,7 +237,7 @@ init_state(St) ->
 	    {Ps1,Predefs1,Exps1} = para_defs(Ps0, Predefs0, Exps0, St),
 	    {Predefs1,
 	     add_vbindings([this|Ps1], Env0),
-	     St#lint{exps=union(St#lint.exps, Exps1)}}
+	     St#lint{exps=add_exports(St#lint.exps, Exps1)}}
     end.
 
 para_defs(Ps, Predefs0, Exps0, St) ->

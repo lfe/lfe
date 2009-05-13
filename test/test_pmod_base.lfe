@@ -1,5 +1,6 @@
 (defmodule (test_pmod_base x y)
   (export (m1 2) (m2 1) (m3 1) (m4 1))
+  (export all)
   (import (from lists (reverse 1))))
 
 (defun m1

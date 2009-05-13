@@ -1,3 +1,8 @@
+2009-05-13  Robert Virding  <rv@arthur>
+
+	* lfe_lint.erl (init_state): Use add_exports for parameterised
+	modules.
+
 2009-04-24  Robert Virding  <rv@rv-laptop>
 
 	* lfe_codegen.erl (c_fname): Have two versions for both R12B and
