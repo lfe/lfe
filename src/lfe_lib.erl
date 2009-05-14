@@ -48,8 +48,7 @@
 %% Standard lisp library.
 -export([is_lfe_bif/2,acons/3,assoc/2,rassoc/2,
 	 subst/3,'subst-if'/3,'subst-if-not'/3,
-	 eval/1,
-	 macroexpand/1,'macroexpand-1'/1]).
+	 eval/1]).
 
 -import(lists, [reverse/1,reverse/2,map/2,foldl/3]).
 -import(orddict, [find/2,store/3]).
@@ -301,8 +300,6 @@ proc_forms_progn(_, [], _, Rs, St) ->
 %% subst-if(New, Test, Tree) -> Tree.
 %% subst-if-not(New, Test, Tree) -> Tree.
 %% eval(Sexpr) -> Value.
-%% macroexpand(Sexpr) -> Sepxr.
-%% macroexpand-1(Sexpr) -> Sepxr.
 
 is_lfe_bif(acons, 3) -> true;
 is_lfe_bif(assoc, 2) -> true;
@@ -311,8 +308,6 @@ is_lfe_bif(subst, 3) -> true;
 is_lfe_bif('subst-if', 3) -> true;
 is_lfe_bif('subst-if-not', 3) -> true;
 is_lfe_bif(eval, 1) -> true;
-is_lfe_bif(macroexpand, 1) -> true;
-is_lfe_bif('macroexpand-1', 1) -> true;
 is_lfe_bif(_, _) -> false.
 
 acons(K, V, Alist) -> [[K|V]|Alist].
@@ -359,11 +354,3 @@ subst(_, _, Tree) -> Tree.
     end.
     
 eval(Sexpr) -> lfe_eval:eval(Sexpr, new_env()).	%Empty environment.
-
-%% macroexpand(Sexpr) -> {yes,Exp} | no.
-%% macroexpand-1(Sexpr) -> {yes,Exp} | no.
-%%  At runtime these only have an empty environment.
-
-macroexpand(Sexpr) -> lfe_macro:macroexpand(Sexpr, new_env()).
-
-'macroexpand-1'(Sexpr) -> lfe_macro:macroexpand_1(Sexpr, new_env()).
