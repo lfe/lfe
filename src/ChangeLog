@@ -1,5 +1,7 @@
 2009-05-14  Robert Virding  <rv@arthur>
 
+	* lfe_shell.erl (eval_internal): Added macroexpand-all.
+
 	* lfe_shell.erl (macroexpand): Now call lfe_macro:expand_macro.
 
 	* lfe_macro.erl: Renamed macroexpand and macroexpand_1 back to

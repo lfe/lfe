@@ -167,6 +167,8 @@ eval_internal([macroexpand,S], Eenv, Benv) ->	%Macroexpand top of form
     macroexpand(S, Eenv, Benv);
 eval_internal(['macroexpand-1',S], Eenv, Benv) ->
     macroexpand_1(S, Eenv, Benv);
+eval_internal(['macroexpand-all',S], Eenv, Benv) ->
+    macroexpand_all(S, Eenv, Benv);
 eval_internal(_, _, _) -> no.			%Not an internal function
 
 %% c(Args, EvalEnv, BaseEnv) -> {yes,Res,Env}.
@@ -192,6 +194,7 @@ c(_, _, _) -> no.				%Unknown function,
 
 %% macroexpand(Sexpr, EvalEnv, BaseEnv) -> {yes,Res,Env}.
 %% macroexpand_1(Sexpr, EvalEnv, BaseEnv) -> {yes,Res,Env}.
+%% macroexpand_all(Sexpr, EvalEnv, BaseEnv) -> {yes,Res,Env}.
 %%  We special case these at shell level so as to get shell environment.
 
 macroexpand(S, Eenv, _) ->
@@ -205,6 +208,10 @@ macroexpand_1(S, Eenv, _) ->
 	{yes,Exp} -> {yes,Exp,Eenv};
 	no -> {yes,S,Eenv}
     end.
+
+macroexpand_all(S, Eenv, _) ->
+    Exp = lfe_macro:expand_form(lfe_eval:eval(S, Eenv), Eenv),
+    {yes,Exp,Eenv}.
 
 %% slurp(File, EvalEnv, BaseEnv) -> {yes,{mod,Mod},Env}.
 %%  Load in a file making all functions available. The module is
