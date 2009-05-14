@@ -195,13 +195,13 @@ c(_, _, _) -> no.				%Unknown function,
 %%  We special case these at shell level so as to get shell environment.
 
 macroexpand(S, Eenv, _) ->
-    case lfe_macro:macroexpand(lfe_eval:eval(S, Eenv), Eenv) of
+    case lfe_macro:expand_macro(lfe_eval:eval(S, Eenv), Eenv) of
 	{yes,Exp} -> {yes,Exp,Eenv};
 	no -> {yes,S,Eenv}
     end.
 
 macroexpand_1(S, Eenv, _) ->
-    case lfe_macro:macroexpand_1(lfe_eval:eval(S, Eenv), Eenv) of
+    case lfe_macro:expand_macro_1(lfe_eval:eval(S, Eenv), Eenv) of
 	{yes,Exp} -> {yes,Exp,Eenv};
 	no -> {yes,S,Eenv}
     end.

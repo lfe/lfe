@@ -39,7 +39,7 @@
 -export([mbe_syntax_rules_proc/4,mbe_syntax_rules_proc/5,
 	 mbe_match_pat/3,mbe_get_bindings/3,mbe_expand_pattern/3]).
 
--export([macroexpand/2,macroexpand_1/2]).
+-export([expand_macro/2,expand_macro_1/2]).
 
 %% -compile([export_all]).
 
@@ -118,7 +118,7 @@ pass([{['define-macro'|Def]=F,L}|Fs0], Env0, St0) ->
     end;
 pass([{F,L}|Fs0], Env0, St0) ->
     %% First expand enough to test top form, if so process again.
-    case macroexpand(F, Env0) of
+    case expand_macro(F, Env0) of
 	{yes,Exp} -> pass([{Exp,L}|Fs0], Env0, St0);
 	no -> 
 	    %% Expand all if flag set.
@@ -154,7 +154,7 @@ pass_progn([['define-macro'|Def]=F|Fs0], L, Env0, St0) ->
     end;
 pass_progn([F|Fs0], L, Env0, St0) ->
     %% First expand enough to test top form, if so process again.
-    case macroexpand(F, Env0) of
+    case expand_macro(F, Env0) of
 	{yes,Exp} -> pass_progn([Exp|Fs0], L, Env0, St0);
 	no -> 
 	    %% Expand all if flag set.
@@ -209,7 +209,7 @@ pass_ewc([['define-function',Name,Def]=F|Fs0], L, Fbs0, Env0, St0) ->
     end;
 pass_ewc([F|Fs0], L, Fbs0, Env0, St0) ->
     %% First expand enough to test top form, if so process again.
-    case macroexpand(F, Env0) of
+    case expand_macro(F, Env0) of
 	{yes,Exp} -> pass_ewc([Exp|Fs0], L, Fbs0, Env0, St0);
 	no -> 
 	    %% Ignore it and pass it on to generate error later.
@@ -1085,24 +1085,24 @@ c_tq(Exp, [T|Qs], L, St0) ->
 c_tq(Exp, [], L, St) ->
     Exp(L, St).
 
-%% macroexpand(Form, Env) -> {yes,Exp} | no.
-%% macroexpand_1(Form, Env) -> {yes,Exp} | no.
+%% expand_macro(Form, Env) -> {yes,Exp} | no.
+%% expand_macro_1(Form, Env) -> {yes,Exp} | no.
 %%  User functions for testing macro expansions, either one expansion
 %%  or as far as it can go.
 
-macroexpand(Form, Env) ->
-    case macroexpand_1(Form, Env) of
-	{yes,Exp} -> {yes,macroexpand_loop(Exp, Env)};
+expand_macro(Form, Env) ->
+    case expand_macro_1(Form, Env) of
+	{yes,Exp} -> {yes,expand_macro_loop(Exp, Env)};
 	no -> no
     end.
 
-macroexpand_loop(Form, Env) ->
-    case macroexpand_1(Form, Env) of
-	{yes,Exp} -> macroexpand_loop(Exp, Env);
+expand_macro_loop(Form, Env) ->
+    case expand_macro_1(Form, Env) of
+	{yes,Exp} -> expand_macro_loop(Exp, Env);
 	no -> Form
     end.
 
-macroexpand_1([Name|_]=Call, Env) when is_atom(Name) ->
+expand_macro_1([Name|_]=Call, Env) when is_atom(Name) ->
     case lfe_lib:is_core_form(Name) of
 	true -> no;				%Don't expand core forms
 	false ->
@@ -1119,4 +1119,4 @@ macroexpand_1([Name|_]=Call, Env) when is_atom(Name) ->
 		    end
 	    end
 	end;
-macroexpand_1(_, _) -> no.
+expand_macro_1(_, _) -> no.

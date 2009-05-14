@@ -109,7 +109,7 @@ eval_expr([call|Body], Env) ->
 eval_expr([Fun|Es]=Call, Env) when is_atom(Fun) ->
     %% If macro then expand and try again, else try to find function.
     %% We only expand the top level here.
-    case lfe_macro:macroexpand(Call, Env) of
+    case lfe_macro:expand_macro(Call, Env) of
 	{yes,Exp} -> eval_expr(Exp, Env);	%This was macro, try again
 	no ->
 	    Ar = length(Es),			%Arity
