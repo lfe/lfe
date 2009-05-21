@@ -1,5 +1,9 @@
 2009-05-21  Robert Virding  <rv@arthur>
 
+	* lfe_codegen.erl (c_fname): Changed to R13B version.
+
+2009-05-21  Robert Virding  <rv@arthur>
+
 	* All files: Released LFE 0.4 to Git.
 
 2009-05-21  Robert Virding  <rv@arthur>
