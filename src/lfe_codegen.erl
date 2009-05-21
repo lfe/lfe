@@ -928,8 +928,8 @@ pat_bitseg(Pat, L, Vs0, St0) ->
 
 c_fun(Vs, B, L) -> #c_fun{anno=[L],vars=Vs,body=B}.
 %% R12B/R13B fix, choose one of following depending on version.
-%%c_fname(N, A, _) -> #c_fname{anno=[],id=N,arity=A}.	%R12B
-c_fname(N, A, _) -> #c_var{anno=[],name={N,A}}.		%R13B
+c_fname(N, A, _) -> #c_fname{anno=[],id=N,arity=A}.	%R12B
+%%c_fname(N, A, _) -> #c_var{anno=[],name={N,A}}.		%R13B
 c_values([V], _) -> V;				%An optimisation
 c_values(Vs, L) -> #c_values{anno=[L],es=Vs}.
 c_cons(Hd, Tl, L) -> #c_cons{anno=[L],hd=Hd,tl=Tl}.

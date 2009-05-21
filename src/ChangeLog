@@ -1,3 +1,11 @@
+2009-05-21  Robert Virding  <rv@arthur>
+
+	* All files: Released LFE 0.4 to Git.
+
+2009-05-21  Robert Virding  <rv@arthur>
+
+	* lfe_codegen.erl (c_fname): Changed to R12B version.
+
 2009-05-14  Robert Virding  <rv@arthur>
 
 	* lfe_shell.erl (eval_internal): Added macroexpand-all.

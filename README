@@ -16,6 +16,10 @@ I will try to make a better fix soon. Sorry about that.
 
 v0.4
 ----
+This will be the last development version for Erlang R12B-5 and older,
+all future development will for R13B. If there is enough interest I
+may start a separate branch for R12B.
+
 Parameterized modules.
 
 Added (export all) attribute to module definition.
