@@ -228,12 +228,7 @@
 (put 'lc 'lfe-indent-function 1)
 (put 'bc 'lfe-indent-function 1)
 
-;; Autoloading - no need yet as this it.
-
-;; Associate file extension ".lfe" with LFE mode.
-
-(let ((a '("\\.lfe\\'" . lfe-mode)))
-  (or (assoc (car a) auto-mode-alist)
-      (setq auto-mode-alist (cons a auto-mode-alist))))
-
+;; The end.
 (provide 'lfe-mode)
+
+(run-hooks 'lfe-load-hook)
