@@ -338,7 +338,8 @@ eval_let([Vbs|Body], Env0) ->
 		     ([Pat,G,E], Env) ->
 			 Val = eval_expr(E, Env0),
 			 {yes,[],Bs} = match_when(Pat, Val, [G], Env0),
-			 add_vbindings(Bs, Env)
+			 add_vbindings(Bs, Env);
+		     (_, _) -> erlang:error({bad_form,'let'})
 		 end, Env0, Vbs),
     eval_body(Body, Env1).
 
@@ -349,7 +350,8 @@ eval_let_function([Fbs|Body], Env0) ->
 			 add_fbinding(V, length(Args), {expr,Lambda,Env0}, E);
 		     ([V,['match-lambda',[Pats|_]|_]=Match], E)
 		     when is_atom(V) ->
-			 add_fbinding(V, length(Pats), {expr,Match,Env0}, E)
+			 add_fbinding(V, length(Pats), {expr,Match,Env0}, E);
+		     (_, _) -> erlang:error({bad_form,'let-function'})
 		   end, Env0, Fbs),
     %% io:fwrite("elf: ~p\n", [{Body,Env1}]),
     eval_body(Body, Env1).
@@ -363,7 +365,8 @@ eval_letrec_function([Fbs0|Body], Env0) ->
     Fbs1 = map(fun ([V,[lambda,Args|_]=Lambda]) when is_atom(V) ->
 		       {V,length(Args),Lambda};
 		   ([V,['match-lambda',[Pats|_]|_]=Match]) when is_atom(V) ->
-		       {V,length(Pats),Match}
+		       {V,length(Pats),Match};
+		   (_) -> erlang:error({bad_form,'letrec-function'})
 	       end, Fbs0),
     Env1 = make_letrec_env(Fbs1, Env0),
     %% io:fwrite("elrf: ~p\n", [{Env0,Env1}]),

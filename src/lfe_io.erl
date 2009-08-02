@@ -145,7 +145,7 @@ print1([E|Es], D) ->
 print1([], _) -> "()";
 print1({}, _) -> "#()";
 print1(Vec, D) when is_tuple(Vec) ->
-    if D =:= 1 -> "{...}";			%This looks much better
+    if D =:= 1 -> "#(...)";			%This looks much better
        true ->
 	    [E|Es] = tuple_to_list(Vec),
 	    ["#(",print1(E, D-1),print1_tail(Es, D-1),")"]

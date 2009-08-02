@@ -88,7 +88,7 @@ print1([Car|Cdr]=List, D, I, L) ->
 print1([], _, _, _) -> "()";
 print1({}, _, _, _) -> "#()";
 print1(Tup, D, I, L) when is_tuple(Tup) ->
-    Flat = flatten(lfe_io:print1(Tup)),
+    Flat = flatten(lfe_io:print1(Tup, D)),
     if length(Flat) + I < L -> Flat;
        true ->
 	    [E|Es] = tuple_to_list(Tup),

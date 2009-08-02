@@ -1,5 +1,8 @@
 2009-08-03  Robert Virding  <rv@stanislaw.local>
 
+	* lfe_eval.erl (eval_let, eval_let_function)
+	(eval_letrec_function): Added explicit bad form error.
+
 	* lfe_io_pretty.erl (print1): Added max depth and line length to
 	pretty print sexpr.
 

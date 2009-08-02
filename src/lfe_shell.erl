@@ -90,12 +90,36 @@ server_loop(Env0, BaseEnv) ->
 		  %% syntax!
 		  %% Ff = fun (T, I) -> lfe_io:prettyprint1(T, I) end,
 		  Ff = fun (T, I) -> io_lib:fwrite("~.*p", [I,T]) end,
-		  Cs = lib:format_exception(1, Class, Error, St, Sf, Ff),
+		  %% Cs = lib:format_exception(1, Class, Error, St, Sf, Ff),
+		  Cs = format_exception(Class, Error, St, Sf, Ff, 1),
 		  io:put_chars(Cs),
 		  io:nl(),
 		  Env0
 	  end,
     server_loop(Env, BaseEnv).
+
+%% format_exception(Class, Error, Stacktrace, SkipFun, FormatFun, Indentation)
+
+format_exception(throw, Error, St, Sf, Ff, I) ->
+    P = "exception throw: ",
+    [P,lfe_io:prettyprint1(Error, 10, length(P)),"\n",
+     format_stacktrace(St, Sf)];
+format_exception(exit, Error, St, Sf, Ff, I) ->
+    P = "exception exit: ",
+    [P,lfe_io:prettyprint1(Error, 10, length(P)),"\n",
+     format_stacktrace(St, Sf)];
+format_exception(error, Error, St, Sf, Ff, I) ->
+    P = "exception error: ",
+    [P,lfe_io:prettyprint1(Error, 10, length(P)),"\n",
+     format_stacktrace(St, Sf)].
+
+%% format_stacktrace(Stacktrace, SkipFun)
+
+format_stacktrace(St, Sf) ->
+    map(fun ({M,F,A}) when is_integer(A) ->
+		io_lib:fwrite("  in ~w:~w/~w\n", [M,F,A]);
+	    ({M,F,A}) -> ["  in ",lfe_io:prettyprint1([':',M,F|A], 15, 5),"\n"]
+	end, St).
 
 add_shell_vars(Env) ->
     %% Add default shell expression variables.
