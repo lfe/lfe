@@ -26,16 +26,22 @@
 %% File    : lfe_io.erl
 %% Purpose : Some basic i/o functions for Lisp Flavoured Erlang.
 %%
-%% Very primitive versions.
+%% The io functions have been split into the following modules:
+%% lfe_io        - basic read and write functions
+%% lfe_io_pretty - sexpr prettyprinter
 
 -module(lfe_io).
 
--export([parse_file/1,read_file/1,read/0,read/1,print/1,print/2,print1/1,
-	prettyprint/1,prettyprint/2,prettyprint1/2]).
+-export([parse_file/1,read_file/1,read/0,read/1,
+	 print/1,print/2,print1/1,print1/2,
+	 prettyprint/1,prettyprint/2,
+	 prettyprint1/1,prettyprint1/2,prettyprint1/3,prettyprint1/4]).
+
+-export([print1_symb/1,print1_string/2,print1_bits/2]).
 
 %% -compile(export_all).
 
--import(lists, [flatten/1,reverse/1,reverse/2,map/2,mapfoldl/3]).
+-import(lists, [flatten/1,reverse/1,reverse/2,map/2,mapfoldl/3,all/2]).
 
 %% parse_file(FileName) -> {ok,[{Sexpr,Line}]} | {error,Error}.
 %% Parse a file returning the raw sexprs (as it should be) and line
@@ -110,39 +116,51 @@ scan_and_parse(Io, Ts0) ->
     
 %% print([IoDevice], Sexpr) -> ok.
 %% print1(Sexpr) -> [char()].
-%% A very simple print function. Does not pretty-print.
+%% print1(Sexpr, Depth) -> [char()].
+%%  A simple print function. Does not pretty-print. N.B. We know about
+%%  the standard character macros and use them instead of their
+%%  expanded forms.
 
 print(S) -> print(standard_io, S).
 print(Io, S) -> io:put_chars(Io, print1(S)).
 
-print1(Symb) when is_atom(Symb) -> print1_symb(Symb);
-print1(Numb) when is_integer(Numb) -> integer_to_list(Numb);
-print1(Numb) when is_float(Numb) -> float_to_list(Numb);
-%% Handle some default special cases.
-print1([quote,E]) -> [$'|print1(E)];
-print1([backquote,E]) -> [$`|print1(E)];
-print1([unquote,E]) -> [$,|print1(E)];
-print1(['unquote-splicing',E]) -> [",@"|print1(E)];
+print1(S) -> print1(S, -1).			%All the way
+
+print1(_, 0) -> "...";
+print1(Symb, _) when is_atom(Symb) -> print1_symb(Symb);
+print1(Numb,_ ) when is_integer(Numb) -> integer_to_list(Numb);
+print1(Numb, _) when is_float(Numb) -> float_to_list(Numb);
+%% Handle some default special cases, standard character macros. These
+%% don't increase depth as they really should.
+print1([quote,E], D) -> [$'|print1(E, D)];	%$'
+print1([backquote,E], D) -> [$`|print1(E, D)];
+print1([unquote,E], D) -> [$,|print1(E, D)];
+print1(['unquote-splicing',E], D) -> [",@"|print1(E, D)];
 %%print1([binary|Es]) -> ["#B"|print1(Es)];
-print1([E|Es]) ->
-    [$(,print1(E),print1_tail(Es),$)];
-print1([]) -> "()";
-print1(Vec) when is_tuple(Vec) ->
-    case tuple_to_list(Vec) of
-	[E|Es] -> ["#(",print1(E),print1_tail(Es),$)];
-	[] -> "#()"
+print1([E|Es], D) ->
+    if D =:= 1 -> "(...)";			%This looks much better
+       true ->
+	    [$(,print1(E, D-1),print1_tail(Es, D-1),$)]
     end;
-print1(Bit) when is_bitstring(Bit) ->
+print1([], _) -> "()";
+print1({}, _) -> "#()";
+print1(Vec, D) when is_tuple(Vec) ->
+    if D =:= 1 -> "{...}";			%This looks much better
+       true ->
+	    [E|Es] = tuple_to_list(Vec),
+	    ["#(",print1(E, D-1),print1_tail(Es, D-1),")"]
+    end;
+print1(Bit, _) when is_bitstring(Bit) ->
     ["#B(",print1_bits(Bit),$)];
-print1(Other) ->				%Use standard Erlang for rest
-    io_lib:write(Other).
+print1(Other, D) ->				%Use standard Erlang for rest
+    io_lib:write(Other, D).
 
 %% print1_symb(Symbol) -> [char()].
 
 print1_symb(Symb) ->
     Cs = atom_to_list(Symb),
     case quote_symbol(Symb, Cs) of
-	true -> print_string(Cs , $|);
+	true -> print1_string(Cs , $|);
 	false -> Cs
     end.
 
@@ -162,13 +180,14 @@ print1_bits(Bits, _) ->				%0 < Size < 8
     <<B:N>> = Bits,
     io_lib:format("(~w bitstring (size ~w))", [B,N]).
 
-%% print1_tail(Tail)
+%% print1_tail(Tail, Depth)
 %% Print the tail of a list. We know about dotted pairs.
 
-print1_tail([S|Ss]) ->
-    [$\s,print1(S)|print1_tail(Ss)];
-print1_tail([]) -> [];
-print1_tail(S) -> [" . "|print1(S)].
+print1_tail([], _) -> "";
+print1_tail(_, 1) -> " ...";    
+print1_tail([S|Ss], D) ->
+    [$\s,print1(S, D-1)|print1_tail(Ss, D-1)];
+print1_tail(S, D) -> [" . "|print1(S, D-1)].
 
 %% quote_symbol(Symbol, SymbChars) -> bool().
 %% Check if symbol needs to be quoted when printed. If it can read as
@@ -184,16 +203,11 @@ quote_symbol(_, [C|Cs]=Cs0) ->
     end;
 quote_symbol(_, []) -> true.
 
-symb_chars([C|Cs]) ->
-    case symb_char(C) of
-	true -> symb_chars(Cs);
-	false -> false
-    end;
-symb_chars([]) -> true.
+symb_chars(Cs) -> all(fun symb_char/1, Cs).
 
 start_symb_char($#) -> false;
 start_symb_char($`) -> false;
-start_symb_char($') -> false;
+start_symb_char($') -> false;			%'
 start_symb_char($,) -> false;
 start_symb_char($|) -> false;			%Symbol quote character
 start_symb_char(C) -> symb_char(C).
@@ -204,19 +218,19 @@ symb_char($[) -> false;
 symb_char($]) -> false;
 symb_char(${) -> false;
 symb_char($}) -> false;
-symb_char($") -> false;
+symb_char($") -> false;				%"
 symb_char($;) -> false;
 symb_char(C) -> ((C > $\s) and (C =< $~)) orelse (C > $\240).
 
-%% print_string([Char], QuoteChar) -> [Char]
+%% print1_string([Char], QuoteChar) -> [Char]
 %%  Generate the list of characters needed to print a string.
 
-print_string(S, Q) ->
-    [Q|print_string1(S, Q)].
+print1_string(S, Q) ->
+    [Q|print1_string1(S, Q)].
 
-print_string1([], Q) ->    [Q];
-print_string1([C|Cs], Q) ->
-    string_char(C, Q, print_string1(Cs, Q)).
+print1_string1([], Q) ->    [Q];
+print1_string1([C|Cs], Q) ->
+    string_char(C, Q, print1_string1(Cs, Q)).
 
 string_char(Q, Q, Tail) -> [$\\,Q|Tail];	%Must check these first!
 string_char($\\, _, Tail) -> [$\\,$\\|Tail];
@@ -242,129 +256,12 @@ hex(C) when C >= 10, C < 16 -> C + $a.
 
 %% prettyprint([IoDevice], Sexpr) -> ok.
 %% prettyprint1(Sexpr, Indentation) -> [char()].
-%%  An extremely simple pretty print function, but with some
-%%  customisation.
+%%  External interface to the prettyprint functions.
 
 prettyprint(S) -> prettyprint(standard_io, S).
-prettyprint(Io, S) -> io:put_chars(Io, prettyprint1(S, 0)).
+prettyprint(Io, S) -> io:put_chars(Io, prettyprint1(S, -1)).
 
-prettyprint1(Symb, _) when is_atom(Symb) -> print1_symb(Symb);
-prettyprint1(Numb, _) when is_integer(Numb) -> integer_to_list(Numb);
-prettyprint1(Numb, _) when is_float(Numb) -> float_to_list(Numb);
-prettyprint1([quote,E], I) ->
-    ["'",prettyprint1(E, I+1)];
-prettyprint1([backquote,E], I) ->
-    ["`",prettyprint1(E, I+1)];
-prettyprint1([unquote,E], I) ->
-    [",",prettyprint1(E, I+1)];
-prettyprint1(['unquote-splicing',E], I) ->
-    [",@",prettyprint1(E, I+2)];
-prettyprint1([Car|Cdr]=List, I) ->
-    %% Customise printing lists.
-    case indent_type(Car) of
-	none ->
-	    %% Handle printable lists specially.
-	    case io_lib:printable_list(List) of
-		true -> print_string(List, 34);	%"
-		false ->
-		    %% Raw printing.
-		    Flat = flatten(print1(List)),
-		    if length(Flat) + I < 80 -> Flat;
-		       true ->
-			    ["(",prettyprint1(Car, I+1),pp_tail(Cdr, I+1),")"]
-		    end
-	    end;
-	N when is_integer(N) ->
-	    %% Handle special lists.
-	    Cs = atom_to_list(Car),		%WE KNOW Car in an atom.
-	    NewI = I + length(Cs) + 2,
-	    Tcs = case split(N, Cdr) of
-		      {[S|Ss],Rest} ->
-			  [prettyprint1(S, NewI),pp_tail(Ss, NewI),
-			   pp_tail(Rest, I+2)];
-		      {[],Rest} -> [pp_tail(Rest, I+2)]
-		  end,
-	    ["(" ++ Cs," ",Tcs,")"]
-    end;
-prettyprint1([], _) -> "()";
-prettyprint1({}, _) -> "#()";
-prettyprint1(Tup, I) when is_tuple(Tup) ->
-    Flat = flatten(print1(Tup)),
-    if length(Flat) + I < 80 -> Flat;
-       true ->
-	    List = tuple_to_list(Tup),
-	    ["#(",prettyprint1(hd(List), I+2),pp_tail(tl(List), I+2),")"]
-    end;
-prettyprint1(Bit, _) when is_bitstring(Bit) ->
-    ["#B(",print1_bits(Bit, 30),$)];		%First 30 bytes
-prettyprint1(Other, _) ->			%Use standard Erlang for rest
-    io_lib:write(Other).
-
-%% split(N, List) -> {List1,List2}.
-%%  Split a list into two lists, the first containing the first N
-%%  elements and the second the rest. Be tolerant of too few elements.
-
-split(0, L) -> {[],L};
-split(_, []) -> {[],[]};
-split(N, [H|T]) ->
-    {H1,T1} = split(N-1, T),
-    {[H|H1],T1}.
-
-pp_tail([Car|Cdr], I) ->
-    ["\n",blanks(I, []),prettyprint1(Car, I),pp_tail(Cdr, I)];
-pp_tail([], _) -> [];
-pp_tail(S, I) ->
-    [" .\n",blanks(I, prettyprint1(S, I))].
-
-blanks(N, Tail) -> string:chars($\s, N, Tail).
-
-%% indent_type(Form) -> N | none.
-%%  Defines special indentation. None means default, N is number of
-%%  sexprs in list which are indented *after* Form while all following
-%%  that end up at indent+2.
-
-%% Old style forms.
-indent_type('define') -> 1;
-indent_type('define-module') -> 1;
-indent_type('define-syntax') -> 1;
-indent_type('define-record') -> 1;
-indent_type('begin') -> 0;
-indent_type('let-syntax') -> 1;
-indent_type('syntax-rules') -> 0;
-indent_type('macro') -> 0;
-%% New style forms.
-indent_type('defmodule') -> 1;
-indent_type('defun') -> 1;
-indent_type('defmacro') -> 1;
-indent_type('defsyntax') -> 1;
-indent_type('defrecord') -> 1;
-%% Core forms.
-indent_type('progn') -> 0;
-indent_type('lambda') -> 1;
-indent_type('match-lambda') -> 0;
-indent_type('let') -> 1;
-indent_type('let-function') -> 1;
-indent_type('letrec-function') -> 1;
-indent_type('let-macro') -> 1;
-indent_type('if') -> 1;
-indent_type('case') -> 1;
-indent_type('receive') -> 0;
-indent_type('catch') -> 0;
-indent_type('try') -> 1;
-indent_type('call') -> 2;
-indent_type('define-function') -> 1;
-indent_type('define-macro') -> 1;
-indent_type('eval-when-compile') -> 0;
-%% Core macros.
-indent_type(':') -> 2;
-indent_type('cond') -> 999;			%All following forms
-indent_type('let*') -> 1;
-indent_type('flet') -> 1;
-indent_type('flet*') -> 1;
-indent_type('fletrec') -> 1;
-indent_type(macrolet) -> 1;
-indent_type(syntaxlet) -> 1;
-indent_type('do') -> 2;
-indent_type('lc') -> 1;				%List comprehensions
-indent_type('bc') -> 1;				%Binary comprehensions
-indent_type(_) -> none.
+prettyprint1(S) -> lfe_io_pretty:print1(S).
+prettyprint1(S, D) -> lfe_io_pretty:print1(S, D, 0, 80).
+prettyprint1(S, D, I) -> lfe_io_pretty:print1(S, D, I, 80).
+prettyprint1(S, D, I, L) -> lfe_io_pretty:print1(S, D, I, L).

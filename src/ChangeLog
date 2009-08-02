@@ -1,3 +1,15 @@
+2009-08-03  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_io_pretty.erl (print1): Added max depth and line length to
+	pretty print sexpr.
+
+2009-08-02  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_io.erl (print1): Added max depth to print sexpr.
+
+	* lfe_io_pretty.erl: Moved prettyprinting to separate file,
+	externl calls still through lfe_io.
+
 2009-05-21  Robert Virding  <rv@arthur>
 
 	* lfe_codegen.erl (c_fname): Changed to R13B version.
