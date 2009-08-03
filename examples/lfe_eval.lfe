@@ -30,11 +30,12 @@
 ;;; We cannot use macros here as macros need the evaluator!
 
 (defmodule lfe_eval
-  (export (eval 1) (eval 2) (apply 2) (apply 3) (make_letrec_env 2)
-	  (add_expr_func 4) (match 3))
-  (import (from lfe_lib (new_env 0) (add_vbinding 3) (add_vbindings 2)
-		(vbinding 2) (add_fbinding 4) (add_fbindings 2) (fbinding 3)
-		(add_ibinding 5) (gbinding 3))
+  (export (eval 1) (eval 2) (eval_list 2) (apply 2) (apply 3)
+	  (make_letrec_env 2) (add_expr_func 4) (match 3))
+  (import (from lfe_lib (new_env 0)
+		(add_vbinding 3) (add_vbindings 2) (get_vbinding 2)
+		(add_fbinding 4) (add_fbindings 2) (get_fbinding 3)
+		(add_ibinding 5) (get_gbinding 3))
 	  (from lists (reverse 1) (map 2) (foldl 3))
 	  (from orddict (find 2) (store 3))))
 
@@ -48,6 +49,8 @@
 (defun eval (e) (eval e (new_env)))
 
 (defun eval (e env) (eval-expr e env))
+
+(defun eval_list (es env) (eval-list es env))
 
 ;; (eval-expr Sexpr Environment) -> Value.
 ;;  Evaluate a sexpr in the current environment. Try to catch core
@@ -102,14 +105,14 @@
 	(eval-expr exp env)) ;This was macro, try again
        ('no
 	(let ((ar (length es)))		;Arity
-	  (case (fbinding f ar env)
+	  (case (get_fbinding f ar env)
 	    ((tuple 'yes m f) (: erlang apply m f (eval-list es env)))
 	    ((tuple 'yes f) (lfe-apply f (eval-list es env) env))
 	    ('no (: erlang error (tuple 'unbound_func (tuple f ar)))))))))
     ((f . es)
-     (: erlang error (tuple 'bad_form 'application f es)))
+     (: erlang error (tuple 'bad_form 'application)))
     (e (if (is_atom e)
-	 (case (vbinding e env)
+	 (case (get_vbinding e env)
 	   ((tuple 'yes val) val)
 	   (no (: erlang error (tuple 'unbound_symb e))))
 	 e))))				;Atoms evaluate to themselves
@@ -330,7 +333,8 @@
 			(let* ((val (eval-expr e env0))
 			       ((tuple 'yes '() bs)
 				(match-when pat val (list g) env0)))
-			  (add_vbindings bs env))))
+			  (add_vbindings bs env)))
+		       ((_ _) (: erlang error (tuple 'bad_form 'let))))
 		     env0 vbs)))
     (eval-body b env)))
 
@@ -344,7 +348,8 @@
 			(add_fbinding v (length as) (tuple 'expr f env0) e))
 		       ([(v (= ('match-lambda (pats . _) . _) f)) e]
 			(when (is_atom v))
-			(add_fbinding v (length pats) (tuple 'expr f env0) e)))
+			(add_fbinding v (length pats) (tuple 'expr f env0) e))
+		       ((_ _) (: erlang error (tuple 'bad_form 'let-function))))
 		     env0 fbs)))
     (eval-body body env)))
 			
@@ -359,12 +364,13 @@
 		       (tuple v (length args) f))
 		      ([(v (= ('match-lambda (pats . _) . _) f))]
 		       (when (is_atom v))
-		       (tuple v (length pats) f)))
+		       (tuple v (length pats) f))
+		      ((_) (: erlang error (tuple 'bad_form 'letrec-function))))
 		    fbs0))
 	 (env1 (make_letrec_env fbs1 env0)))
     (eval-body body env1)))
 
-;; make_letrec_env(fbs env) -> env.
+;; (make_letrec_env fbs env) -> env.
 ;;  Create local function bindings for a set of mutally recursive
 ;;  functions, for example from a module or a letrec-function. This is
 ;;  very similar to "Metacircular Semantics for Common Lisp Special
@@ -381,7 +387,7 @@
 		  fbs0)))
     (add_fbindings fbs env)))
 
-;; add_expr_func(name arity def env) -> env.
+;; (add_expr_func name arity def env) -> env.
 ;;  Add a function definition in the correct format to the
 ;;  environment.
 
@@ -576,6 +582,9 @@
        (_ (tuple 'yes body vbs))))
     ('no 'no)))
 
+;; (eval-gexpr sexpr environment) -> value.
+;;  Evaluate a guard sexpr in the current environment.
+
 (defun eval-gexpr (e env)
   (case e
     ;; Handle the Core data special forms.
@@ -602,18 +611,18 @@
     (('call 'erlang f . as)
      (let ((f (eval-gexpr f env))
 	   (ar (length as)))
-       (case (gbinding f ar env)
+       (case (get_gbinding f ar env)
 	 ((tuple 'yes m f) (: erlang apply m f (eval-glist as env)))
 	 (_ (: erlang error (tuple 'unbound_func (tuple f (length as))))))))
     ((f . as) (when (is_atom f))
      (let ((ar (length as)))
-       (case (gbinding f ar env)
+       (case (get_gbinding f ar env)
 	 ((tuple 'yes m f) (: erlang apply m f (eval-glist as env)))
 	 ('no (: erlang error (tuple 'unbound_func (tuple f ar)))))))
     ((f . es)				;Everything else not allowed
      (: erlang error 'illegal_guard))
     (e (if (is_atom e)
-	 (case (vbinding e env)
+	 (case (get_vbinding e env)
 	   ((tuple 'yes val) val)
 	   (no (: erlang error (tuple 'unbound_symb e))))
 	 e))))				;Atoms evaluate to themselves
