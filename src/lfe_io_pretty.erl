@@ -32,7 +32,7 @@
 
 %% -compile(export_all).
 
--import(lists, [flatten/1]).
+-import(lists, [flatlength/1]).
 
 %% print1(Sexpr) -> [char()].
 %% print1(Sexpr, Depth) -> [char()].
@@ -57,47 +57,44 @@ print1([backquote,E], D, I, L) -> ["`",print1(E, D, I+1, L)];
 print1([unquote,E], D, I, L) -> [",",print1(E, D, I+1, L)];
 print1(['unquote-splicing',E], D, I, L) -> [",@",print1(E, D, I+2, L)];
 print1([Car|Cdr]=List, D, I, L) ->
-    %% Customise printing lists.
-    case indent_type(Car) of
-	none ->
-	    %% Handle printable lists specially.
-	    case io_lib:printable_list(List) of
-		true -> lfe_io:print1_string(List, 34);	%"
-		false ->
-		    %% Raw printing.
-		    Flat = flatten(lfe_io:print1(List, D)),
-		    if length(Flat) + I < L -> Flat;
-		       true ->
-			    ["(",print1(Car, D-1, I+1, L),
-			     print1_tail(Cdr, D-1, I+1, L),")"]
+    %% Handle printable lists specially.
+    case io_lib:printable_list(List) of
+	true -> lfe_io:print1_string(List, 34);	%"
+	false ->
+	    Print = lfe_io:print1(List, D),	%Raw printing
+	    case flatlength(Print) of
+		Len when Len + I < L -> Print;
+		_ ->
+		    %% Customise printing of lists.
+		    case indent_type(Car) of
+			none ->
+			    %% Normal lists.
+			    ["(",print1_list(List, D-1, I+1, L),")"];
+			N when is_integer(N) ->
+			    %% Handle special lists, we KNOW Car is an atom.
+			    Cs = atom_to_list(Car),
+			    NewI = I + length(Cs) + 2,
+			    {Spec,Rest} = split(N, Cdr),
+			    Tcs = [print1_list(Spec, D-1, NewI, L),
+				   print1_tail(Rest, D-1, I+2, L)],
+			    ["(" ++ Cs," ",Tcs,")"]
 		    end
-	    end;
-	N when is_integer(N) ->
-	    %% Handle special lists.
-	    Cs = atom_to_list(Car),		%We KNOW Car in an atom.
-	    NewI = I + length(Cs) + 2,
-	    Tcs = case split(N, Cdr) of
-		      {[S|Ss],Rest} ->
-			  [print1(S, D-1, NewI, L),
-			   print1_tail(Ss, D-1, NewI, L),
-			   print1_tail(Rest, D-1, I+2, L)];
-		      {[],Rest} -> [print1_tail(Rest, D-1, I+2, L)]
-		  end,
-	    ["(" ++ Cs," ",Tcs,")"]
+	    end
     end;
 print1([], _, _, _) -> "()";
 print1({}, _, _, _) -> "#()";
 print1(Tup, D, I, L) when is_tuple(Tup) ->
-    Flat = flatten(lfe_io:print1(Tup, D)),
-    if length(Flat) + I < L -> Flat;
-       true ->
-	    [E|Es] = tuple_to_list(Tup),
-	    ["#(",print1(E, D-1, I+2, L),print1_tail(Es, D-1, I+2, L),")"]
+    Print = lfe_io:print1(Tup, D),
+    case flatlength(Print) of
+	Len when Len + I < L -> Print;
+	_ ->
+	    Es = tuple_to_list(Tup),
+	    ["#(",print1_list(Es, D-1, I+2, L),")"]
     end;
 print1(Bit, _, _, _) when is_bitstring(Bit) ->
     ["#B(",lfe_io:print1_bits(Bit, 30),$)];	%First 30 bytes
-print1(Other, _, _, _) ->			%Use standard Erlang for rest
-    io_lib:write(Other).
+print1(Other, _, _, _) ->
+    lfe_io:print1(Other).			%Use standard LFE for rest
 
 %% split(N, List) -> {List1,List2}.
 %%  Split a list into two lists, the first containing the first N
@@ -108,6 +105,13 @@ split(_, []) -> {[],[]};
 split(N, [H|T]) ->
     {H1,T1} = split(N-1, T),
     {[H|H1],T1}.
+
+%% print1_list(List, Depth, Indentation, LineLength)
+%%  Print a list, one element per line. No leading/trailing ().
+
+print1_list([Car|Cdr], D, I, L) ->
+    [print1(Car, D, I, L),print1_tail(Cdr, D, I, L)];
+print1_list([], _, _, _) -> [].
 
 %% print1_tail(Tail, Depth, Indentation, LineLength)
 %% Print the tail of a list. We know about dotted pairs.

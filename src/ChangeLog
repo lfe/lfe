@@ -1,3 +1,7 @@
+2009-08-04  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_io_pretty.erl (print1): Improve printing of lists.
+
 2009-08-03  Robert Virding  <rv@stanislaw.local>
 
 	* lfe_eval.erl (eval_let, eval_let_function)
