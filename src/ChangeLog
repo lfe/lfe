@@ -1,5 +1,8 @@
 2009-08-04  Robert Virding  <rv@stanislaw.local>
 
+	* lfe_shell.erl, lfe_lib.erl (format_exception)
+	(format_stacktrace): Moved to lfe_lib.erl.
+
 	* lfe_io_pretty.erl (print1): Improve printing of lists.
 
 2009-08-03  Robert Virding  <rv@stanislaw.local>

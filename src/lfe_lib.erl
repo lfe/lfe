@@ -50,7 +50,10 @@
 	 subst/3,'subst-if'/3,'subst-if-not'/3,
 	 eval/1]).
 
--import(lists, [reverse/1,reverse/2,map/2,foldl/3]).
+%% Miscellaneous useful LFE functions.
+-export([format_exception/6,format_stacktrace/3]).
+
+-import(lists, [reverse/1,reverse/2,map/2,foldl/3,dropwhile/2]).
 -import(orddict, [find/2,store/3]).
 
 %% -compile([export_all]).
@@ -354,3 +357,36 @@ subst(_, _, Tree) -> Tree.
     end.
     
 eval(Sexpr) -> lfe_eval:eval(Sexpr, new_env()).	%Empty environment.
+
+%% Miscellaneous useful LFE functions.
+
+%% format_exception(Class, Error, Stacktrace, SkipFun, FormatFun, Indentation)
+%%      -> DeepCharList.
+%%  Format an exception. Class, Error and Stacktrace describe the
+%%  exception; SkipFun is used to trim the end of stack; FormatFun is
+%%  used to format terms; and Indentation is the current column.
+
+format_exception(throw, Error, St, Sf, Ff, I) ->
+    P = "exception throw: ",
+    [P,lfe_io:prettyprint1(Error, 10, length(P)+I),"\n",
+     format_stacktrace(St, Sf, Ff)];
+format_exception(exit, Error, St, Sf, Ff, I) ->
+    P = "exception exit: ",
+    [P,lfe_io:prettyprint1(Error, 10, length(P)+I),"\n",
+     format_stacktrace(St, Sf, Ff)];
+format_exception(error, Error, St, Sf, Ff, I) ->
+    P = "exception error: ",
+    [P,lfe_io:prettyprint1(Error, 10, length(P)+I),"\n",
+     format_stacktrace(St, Sf, Ff)].
+
+%% format_stacktrace(Stacktrace, SkipFun, FormatFun) -> DeepCharList.
+%%  Format a stacktrace. SkipFun is used to trim the end of stack;
+%%  FormatFun is used to format terms; and Indentation is the current
+%%  column.
+
+format_stacktrace(St0, Sf, Ff) ->
+    St1 = reverse(dropwhile(fun ({M,F,A}) -> Sf(M, F, A) end, reverse(St0))),
+    map(fun ({M,F,A}) when is_integer(A) ->
+		io_lib:fwrite("  in ~w:~w/~w\n", [M,F,A]);
+	    ({M,F,A}) -> ["  in ",Ff([':',M,F|A], 5),"\n"]
+	end, St1).
