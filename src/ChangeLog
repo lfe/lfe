@@ -1,3 +1,10 @@
+2009-08-07  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_parse.erl (sexpr1): Binary constants can now have any type
+	of bit segments.
+
+	* lfe_io.erl (print1_bits): Fix printing of last non 8 bits.
+
 2009-08-04  Robert Virding  <rv@stanislaw.local>
 
 	* lfe_shell.erl, lfe_lib.erl (format_exception)

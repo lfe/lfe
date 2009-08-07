@@ -164,9 +164,10 @@ print1_symb(Symb) ->
 	false -> Cs
     end.
 
-%% print1_bits(Bitstring)
-%% Print the bytes in a bitstring. Print bytes except for last which
-%% we print as bitstring segement if not 8 bits big.
+%% print1_bits(Bitstring) -> [char()]
+%% print1_bits(Bitstring, Depth) -> [char()]
+%%  Print the bytes in a bitstring. Print bytes except for last which
+%%  we add size field if not 8 bits big.
 
 print1_bits(Bits) -> print1_bits(Bits, -1).	%Print them all
 
@@ -178,7 +179,7 @@ print1_bits(<<>>, _) -> [];
 print1_bits(Bits, _) ->				%0 < Size < 8
     N = bit_size(Bits),
     <<B:N>> = Bits,
-    io_lib:format("(~w bitstring (size ~w))", [B,N]).
+    io_lib:format("(~w (size ~w))", [B,N]).
 
 %% print1_tail(Tail, Depth)
 %% Print the tail of a list. We know about dotted pairs.
