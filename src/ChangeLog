@@ -1,3 +1,8 @@
+2009-08-10  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_shell.erl (add_shell_macros, eval_internal): Moved shell
+	commands from macros to functions. Avoid weird results.
+
 2009-08-07  Robert Virding  <rv@stanislaw.local>
 
 	* lfe_parse.erl (sexpr1): Binary constants can now have any type

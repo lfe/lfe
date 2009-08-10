@@ -77,10 +77,9 @@ server_loop(Env0, BaseEnv) ->
 	      %% Very naive error handling, just catch, report and
 	      %% ignore whole caboodle.
 	      Class:Error ->
-		  %% Use the erlang shell's error reporting, but LFE
-		  %% prettyprint data.
+		  %% Use LFE's simplified version of erlang shell's error
+		  %% reporting but which LFE prettyprints data.
 		  St = erlang:get_stacktrace(),
-		  %% lfe_io:print({'EXIT',Class,Error,St}), io:nl(),
 		  Sf = fun (M, _F, _A) ->
 			       (M == lfe_eval) or (M == lfe_shell)
 		       end,
@@ -88,6 +87,7 @@ server_loop(Env0, BaseEnv) ->
 		  Cs = lfe_lib:format_exception(Class, Error, St, Sf, Ff, 1),
 		  io:put_chars(Cs),
 		  io:nl(),
+		  %% lfe_io:prettyprint({'EXIT',Class,Error,St}), io:nl(),
 		  Env0
 	  end,
     server_loop(Env, BaseEnv).
@@ -109,27 +109,7 @@ update_shell_vars(Form, Value, Env) ->
 
 add_shell_macros(Env0) ->
     %% We write macros in LFE and expand them with macro package.
-    Ms = [{[defmacro,ec,			%Erlang compile
-	    [as,[backquote,[':',c,c|[unquote,as]]]]],1},
-	  {[defmacro,m,				%Module info
-	    [[],[backquote,[':',c,m]]],
-	    [ms,[backquote,[':',lists,map,['fun',c,m,1],
-			     [list|[unquote,ms]]]]]],2},
-	  {[defmacro,l,				%Load a module
-	    [ms,[backquote,[':',lists,map,['fun',c,l,1],
-			     [list|[unquote,ms]]]]]],3},
-	  {[defmacro,c,				%This subsumes function below
-	    [[f|os],
-	     [backquote,
-	      ['flet',[[lm,[m],
-			['let',[[base,[':',filename,basename,
-				       [unquote,f],[quote,".lfe"]]]],
-			 [':',code,purge,m],
-			 [':',code,load_abs,base]]]],
-	       ['case',[':',lfe_comp,file,[unquote,f]|[unquote,os]],
-		[[tuple,[quote,ok],mod,'_'],[lm,mod]],
-		[[tuple,[quote,ok],mod],[lm,mod]],
-		[other,other]]]]]],4}
+    Ms = [
 	 ],
     {_,Env1} = lfe_macro:macro_forms(Ms, Env0),
     %% io:fwrite("asm: ~p\n", [Env1]),
@@ -156,8 +136,14 @@ eval_internal([slurp|Args], Eenv, Benv) ->	%Slurp in a file
     slurp(Args, Eenv, Benv);
 eval_internal([unslurp|_], _, Benv) ->		%Forget everything
     {yes,ok,Benv};
-eval_internal([c|Args], Eenv, Benv) ->		%Compile a file
+eval_internal([c|Args], Eenv, Benv) ->		%Compile an LFE file
     c(Args, Eenv, Benv);
+eval_internal([ec|Args], Eenv, Benv) ->		%Compile an Erlang file
+    ec(Args, Eenv, Benv);
+eval_internal([l|Args], Eenv, Benv) ->		%Load modules
+    l(Args, Eenv, Benv);
+eval_internal([m|Args], Eenv, Benv) ->		%Module info
+    m(Args, Eenv, Benv);
 eval_internal([macroexpand,S], Eenv, Benv) ->	%Macroexpand top of form
     macroexpand(S, Eenv, Benv);
 eval_internal(['macroexpand-1',S], Eenv, Benv) ->
@@ -167,10 +153,9 @@ eval_internal(['macroexpand-all',S], Eenv, Benv) ->
 eval_internal(_, _, _) -> no.			%Not an internal function
 
 %% c(Args, EvalEnv, BaseEnv) -> {yes,Res,Env}.
-%%  Compile and load file.
+%%  Compile and load an LFE file.
 
-c([F], Eenv, Benv) ->
-    c([F,[]], Eenv, Benv);
+c([F], Eenv, Benv) -> c([F,[]], Eenv, Benv);
 c([F,Os], Eenv, _) ->
     Name = lfe_eval:eval(F, Eenv),		%Evaluate arguments
     Opts = lfe_eval:eval(Os, Eenv),
@@ -186,6 +171,29 @@ c([F,Os], Eenv, _) ->
 	Other -> {yes,Other,Eenv}
     end;
 c(_, _, _) -> no.				%Unknown function,
+
+%% ec(Args, EvalEnv, BaseEnv) -> {yes,Res,Env}.
+%%  Compile and load an Erlang file.
+
+ec([F], Eenv, Benv) -> ec([F,[]], Eenv, Benv);
+ec([F,Os], Eenv, _) ->
+    Name = lfe_eval:eval(F, Eenv),		%Evaluate arguments
+    Opts = lfe_eval:eval(Os, Eenv),
+    {yes,c:c(Name, Opts),Eenv};
+ec(_, _, _) -> no.				%Unknown function
+
+%% l(Args, EvalEnv, BaseEnv) -> {yes,Res,Env}.
+%%  Load the modules in Args.
+
+l(Args, Eenv, _) ->
+    {yes,map(fun (M) -> c:l(lfe_eval:eval(M, Eenv)) end, Args), Eenv}.
+
+%% m(Args, EvalEnv, BaseEnv) -> {yes,Res,Env}.
+%%  Module info.
+
+m([], Eenv, _) -> {yes,c:m(),Eenv};
+m(Args, Eenv, _) ->
+    {yes,map(fun (M) -> c:m(lfe_eval:eval(M, Eenv)) end, Args), Eenv}.
 
 %% macroexpand(Sexpr, EvalEnv, BaseEnv) -> {yes,Res,Env}.
 %% macroexpand_1(Sexpr, EvalEnv, BaseEnv) -> {yes,Res,Env}.
