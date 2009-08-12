@@ -24,6 +24,7 @@
 %% POSSIBILITY OF SUCH DAMAGE.
 
 %% File    : lfe_io_pretty.erl
+%% Author  : Robert Virding
 %% Purpose : Pretty printer for Lisp Flavoured Erlang.
 
 -module(lfe_io_pretty).
@@ -49,7 +50,7 @@ print1(S, D, I) -> print1(S, D, I, 80).
 print1(_, 0, _, _) -> "...";
 print1(Symb, _, _, _) when is_atom(Symb) -> lfe_io:print1_symb(Symb);
 print1(Numb, _, _, _) when is_integer(Numb) -> integer_to_list(Numb);
-print1(Numb, _, _, _) when is_float(Numb) -> float_to_list(Numb);
+print1(Numb, _, _, _) when is_float(Numb) -> io_lib_format:fwrite_g(Numb);
 %% Handle some default special cases, standard character macros. These
 %% don't increase depth as they really should.
 print1([quote,E], D, I, L) -> ["'",print1(E, D, I+1, L)];

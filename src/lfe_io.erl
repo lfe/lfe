@@ -24,6 +24,7 @@
 %% POSSIBILITY OF SUCH DAMAGE.
 
 %% File    : lfe_io.erl
+%% Author  : Robert Virding
 %% Purpose : Some basic i/o functions for Lisp Flavoured Erlang.
 %%
 %% The io functions have been split into the following modules:
@@ -33,9 +34,11 @@
 -module(lfe_io).
 
 -export([parse_file/1,read_file/1,read/0,read/1,
-	 print/1,print/2,print1/1,print1/2,
-	 prettyprint/1,prettyprint/2,
+	 print/1,print/2,print1/1,print1/2]).
+-export([prettyprint/1,prettyprint/2,
 	 prettyprint1/1,prettyprint1/2,prettyprint1/3,prettyprint1/4]).
+-export([format/2,format/3,fwrite/2,fwrite/3,
+	 format1/2,fwrite1/2]).
 
 -export([print1_symb/1,print1_string/2,print1_bits/2]).
 
@@ -129,7 +132,7 @@ print1(S) -> print1(S, -1).			%All the way
 print1(_, 0) -> "...";
 print1(Symb, _) when is_atom(Symb) -> print1_symb(Symb);
 print1(Numb,_ ) when is_integer(Numb) -> integer_to_list(Numb);
-print1(Numb, _) when is_float(Numb) -> float_to_list(Numb);
+print1(Numb, _) when is_float(Numb) -> io_lib_format:fwrite_g(Numb);
 %% Handle some default special cases, standard character macros. These
 %% don't increase depth as they really should.
 print1([quote,E], D) -> [$'|print1(E, D)];	%$'
@@ -266,3 +269,19 @@ prettyprint1(S) -> lfe_io_pretty:print1(S).
 prettyprint1(S, D) -> lfe_io_pretty:print1(S, D, 0, 80).
 prettyprint1(S, D, I) -> lfe_io_pretty:print1(S, D, I, 80).
 prettyprint1(S, D, I, L) -> lfe_io_pretty:print1(S, D, I, L).
+
+%% format([IoDevice,] Format, Data) -> ok.
+%% fwrite([IoDevice,] Format, Data) -> ok.
+%% format1(Format, Data) -> [char()].
+%% fwrite1(Format, Data) -> [char()].
+%%  External interface to the formated output functions.
+
+format(F, D) -> format(standard_io, F, D).
+format(Io, F, D) -> io:put_chars(Io, format1(F, D)).
+
+format1(F, D) -> lfe_io_format:format1(F, D).
+
+fwrite(F, D) -> fwrite(standard_io, F, D).
+fwrite(Io, F, D) -> io:put_chars(Io, fwrite1(F, D)).
+
+fwrite1(F, D) -> lfe_io_format:fwrite1(F, D).
