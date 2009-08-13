@@ -223,23 +223,24 @@ return_errors(_, []) -> [];
 return_errors(Lfile, Es) -> [{Lfile,Es}].
 
 list_warnings(F, [{Line,Mod,Warn}|Ws]) ->
-    io:fwrite("~s:~w: Warning: ~s\n", [F,Line,Mod:format_error(Warn)]),
+    lfe_io:format("~s:~w: Warning: ~s\n", [F,Line,Mod:format_error(Warn)]),
     list_warnings(F, Ws);
 list_warnings(F, [{Mod,Warn}|Ws]) ->
-    io:fwrite("~s: Warning: ~s\n", [F,Mod:format_error(Warn)]),
+    lfe_io:format("~s: Warning: ~s\n", [F,Mod:format_error(Warn)]),
     list_warnings(F, Ws);
 list_warnings(_, []) -> [].
 
 list_errors(F, [{Line,Mod,Error}|Ws]) ->
-    io:fwrite("~s:~w: ~s\n", [F,Line,Mod:format_error(Error)]),
+    lfe_io:format("~s:~w: ~s\n", [F,Line,Mod:format_error(Error)]),
     list_errors(F, Ws);
 list_errors(F, [{Mod,Error}|Ws]) ->
-    io:fwrite("~s: ~s\n", [F,Mod:format_error(Error)]),
+    lfe_io:format("~s: ~s\n", [F,Mod:format_error(Error)]),
     list_errors(F, Ws);
 list_errors(_, []) -> [].
 
 debug_print(Format, Args, St) ->
-    when_opt(fun () -> io:fwrite(Format, Args) end, debug_print, St#comp.opts).
+    when_opt(fun () -> lfe_io:format(Format, Args) end,
+	     debug_print, St#comp.opts).
 
 %% when_opt(Fun, Option, Options) -> ok.
 %% unless_opt(Fun, Option, Options) -> ok.
@@ -271,4 +272,4 @@ when_opt(Fun, Opt, Opts) ->
 %%   ((o os . body)
 %%    `(if (member ,o ,os) 'ok (progn ,@body))))
 %% (defmacro debug-print (f as st)
-%%   (when-opt 'debug_print (comp-opts st) (: io fwrite f as)))
+%%   (when-opt 'debug_print (comp-opts st) (: lfe_io format f as)))

@@ -387,6 +387,6 @@ format_exception(error, Error, St, Sf, Ff, I) ->
 format_stacktrace(St0, Sf, Ff) ->
     St1 = reverse(dropwhile(fun ({M,F,A}) -> Sf(M, F, A) end, reverse(St0))),
     map(fun ({M,F,A}) when is_integer(A) ->
-		io_lib:fwrite("  in ~w:~w/~w\n", [M,F,A]);
+		lfe_io:format1("  in (~w ~w ~w)\n", [M,F,A]);
 	    ({M,F,A}) -> ["  in ",Ff([':',M,F|A], 5),"\n"]
 	end, St1).

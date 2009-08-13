@@ -309,7 +309,7 @@ def_record(Name, Fdefs, Env, St0) ->
 	       [l,fds,rec]]]]
 	    |
 	    Fdef],
-    %% io:fwrite("~s\n", [lfe_io:prettyprint1({Funs,Macs}, 0)]),
+    %% lfe_io:format("~p\n", [{Funs,Macs}]),
     {Funs,Macs,Env,St1}.
 
 def_rec_fields([F|Fs]) ->
@@ -546,7 +546,7 @@ expand_try(E0, B0, Env, St0) ->
 %%  it to argument list.
 
 exp_macro([Mac|Args], Def0, Env, St0) ->
-    %% io:fwrite("macro: ~p\n", [Def0]),
+    %% lfe_io:format("macro: ~p\n", [Def0]),
     {Def1,St1} = expand(Def0, Env, St0),	%Expand definition
     try 
 	Exp = lfe_eval:apply(Def1, [Args], Env),
