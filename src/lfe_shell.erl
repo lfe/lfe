@@ -165,7 +165,7 @@ c([F,Os], Eenv, _) ->
 		    R = code:load_abs(Base),
 		    {yes,R,Eenv}
 	    end,
-    case lfe_comp:file(Name, Opts) of
+    case lfe_comp:file(Name, [report,verbose|Opts]) of
 	{ok,Mod,_} -> Loadm(Mod);
 	{ok,Mod} -> Loadm(Mod);
 	Other -> {yes,Other,Eenv}

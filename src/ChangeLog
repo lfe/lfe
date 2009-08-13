@@ -1,3 +1,18 @@
+2009-08-13  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_comp.erl (list_warnings, list_errors): Use lfe_io format.
+
+2009-08-12  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_eval.erl (eval_bitspec, eval_exp_field, get_value): Added
+	unicode types.
+
+	* lfe_codegen.erl (comp_bitspec, comp_bitspecs): Added unicode
+	types.
+
+	* lfe_lint.erl (pat_bitsegs): No need for try.
+	(pat_bitspec): Added unicode types.
+
 2009-08-10  Robert Virding  <rv@stanislaw.local>
 
 	* lfe_shell.erl (add_shell_macros, eval_internal): Moved shell
