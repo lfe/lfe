@@ -1,0 +1,89 @@
+%%% File    : test_bin.erl
+%%% Author  : Robert Virding
+%%% Purpose : Test binaries.
+
+-module(test_bin).
+
+-export([a/0,a/1,af/2,afp/2,a/3]).		%Constructors
+-export([p1/1,p2/1,p2p/1,p3/1]).		%Patterns
+-export([b/1,b/2,bb1/2,bb2/2]).			%Binaries/bitstrings
+-export([u/1,u/2]).				%Unicode types
+-export([s/2]).					%Size expressions
+-export([d1/0,d2/0,d3/0]).			%Binary constants
+
+%% Binary constructors.
+
+a() -> <<1,2,3>>.
+
+a(X) -> <<X:24>>.
+
+af(X, Y) -> <<X:32/float,Y:64/float>>.
+
+afp(X, Y) -> <<X:32/float,Y:40/float>>.		%This will cause an error!
+
+a(X, Y, Z) -> <<X/unsigned,Y:16/big,Z:3/little>>.
+
+%% Patterns.
+
+p1(B) ->
+    case B of
+	<<X:24,ZZ/binary>> -> [X,ZZ]
+    end.
+
+p2(B) ->
+    case B of
+	<<X:32/float,Y:64/float,ZZ/bitstring>> -> [X,Y,ZZ]
+    end.
+
+p2p(B) ->
+    case B of					%This will cause an error!
+	<<X:32/float,Y:40/float,ZZ/bitstring>> -> [X,Y,ZZ]
+    end.
+
+p3(B) ->
+    case B of
+	<<X/unsigned,Y:16/big,Z:3/little,ZZ/bitstring>> ->
+	    [X,Y,Z,ZZ]
+    end.
+
+%% Binaries/bitstrings.
+
+b(Bin) ->
+    <<Bin/binary,Bin:16/bitstring,Bin/binary>>.
+
+b(B1, B2) ->
+    <<B1/bitstring,B2:3/bitstring-signed,B2/bitstring>>.
+
+bb1(B, N) ->
+    case B of
+	<<B1:N/binary,B2:16/bitstring,B3/binary>> ->
+	    [B1,B2,B3]
+    end.
+
+bb2(B, N) ->
+    case B of
+	<<B1:N/bitstring,B2:3/bitstring-signed,B3/bitstring>> ->
+	    [B1,B2,B3]
+    end.
+
+%% Unicode types.
+
+u(X) ->
+    <<X/utf8,X/utf16,X/utf32>>.
+
+u(X, Y) ->
+    <<X/utf8-big,Y/utf32-little,X/utf16-little-signed>>.
+
+%% Size expressions
+
+s(X, Y) ->
+    Y1 = Y+1,
+    {<<X:Y,Y:Y1>>,<<X:Y,Y:(Y+1)>>}.
+
+%% Binary constants
+
+d1() -> <<1,2,3>>.
+
+d2() -> <<1.5/float,2.0:32/float,3.0/float-little>>.
+
+d3() -> <<1,2,3>>.

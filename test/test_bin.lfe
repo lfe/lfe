@@ -3,43 +3,51 @@
 ;;; Purpose : Test binaries.
 
 (defmodule test_bin
-  (export (a 0) (a 1) (a 2) (ap 2) (a 3) (aa1 1) (aa2 1) (aa2p 1) (aa3 1))
-  (export (b 1) (b 2) (bb1 2) (bb2 2))
-  (export (c 2)))
+  (export (a 0) (a 1) (af 2) (afp 2) (a 3) ;Constructors
+	  (p1 1) (p2 1) (p2p 1) (p3 1))	   ;Patterns
+  (export (b 1) (b 2) (bb1 2) (bb2 2))	   ;Binaries/bitstrings
+  (export (u 1) (u 2))			   ;Unicode types
+  (export (s 2))			;Size expressions
+  (export (d1 0) (d2 0) (d3 0)))	;Binary constants
 
-(defun a ()
-  (binary 1 2 3))
+;; Binary constructors.
+
+(defun a () (binary 1 2 3))
 
 (defun a (x) (binary (x (size 24))))
 
-(defun a (x y)
+(defun af (x y)
   (binary (x float (size 32)) (y float (size 64))))
 
-(defun ap (x y)				;This will cause an error!
+(defun afp (x y)				;This will cause an error!
   (binary (x float (size 32)) (y float (size 40))))
 
 (defun a (x y z)
   (binary (x unsigned) (y (size 16) big-endian) (z (size 3) little-endian)))
 
-(defun aa1 (b)
+;; Patterns.
+
+(defun p1 (b)
   (case b
     ((binary (x (size 24)) (zz binary)) (list x zz))))
 
-(define (aa2 b)				;Old style
+(define (p2 b)				;Old style
   (case b
     ((binary (x float (size 32)) (y float (size 64)) (zz bitstring))
      (list x y zz))))
 
-(defun aa2p (b)				;This will cause an error!
+(defun p2p (b)				;This will cause an error!
   (case b
     ((binary (x float (size 32)) (y float (size 40)) (zz bitstring))
      (list x y zz))))
 
-(defun aa3 (b)
+(defun p3 (b)
   (case b
     ((binary (x unsigned) (y (size 16) big-endian) (z (size 3) little-endian)
 	     (zz bitstring))
      (list x y z zz))))
+
+;; Binaries/bitstrings.
 
 (defun b (bin)
   (binary (bin binary) (bin (size 16) bitstring) (bin binary)))
@@ -58,7 +66,29 @@
 	     (b3 bitstring))
      (list b1 b2 b3))))
 
-(defun c (x y)
+;; Unicode types.
+
+(defun u (x)
+  (binary (x utf-8) (x utf-16) (x utf-32)))
+
+(defun u (x y)
+  (binary (x utf-8 big-endian) (y utf-32 little-endian)
+	  (x utf-16 signed little-endian)))
+
+;; Size expressions
+
+(defun s (x y)
   (tuple (let ((y1 (+ y 1)))
 	   (binary (x (size y)) (y (size y1))))
 	 (binary (x (size y)) (y (size (+ y 1))))))
+
+;; Binary constants
+
+(defun d1 ()
+  #b(1 2 3))
+
+(defun d2 ()
+  #b((1.5 float) (2.0 float (size 32)) (3.0 float little-endian)))
+
+(defun d3 ()
+  #b(1 2 3))

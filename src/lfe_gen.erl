@@ -85,7 +85,7 @@ compile_mod(Mod) ->
     compile_forms(Fs).
 
 print_mod(Mod) ->				%Needs fixing
-    map(fun (F) -> [lfe_io:prettyprint1(F, 0),io_lib:nl()] end,
+    map(fun (F) -> [lfe_io:prettyprint1(F),io_lib:nl()] end,
 	[build_def(Mod)|Mod#gen.forms]).
 
 collect_imp(Fun, Mod, Imps, Is) ->

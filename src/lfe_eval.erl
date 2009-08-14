@@ -51,10 +51,10 @@
 
 apply(F, Args) ->
     Env = new_env(),
-    lfe_apply({expr,F,Env}, Args, Env).
+    eval_apply({expr,F,Env}, Args, Env).
 
 apply(F, Args, Env) ->
-    lfe_apply({expr,F,Env}, Args, Env).		%Env at function def
+    eval_apply({expr,F,Env}, Args, Env).		%Env at function def
 
 %% eval(Sexpr) -> Value.
 %% eval(Sexpr, Env) -> Value.
@@ -115,7 +115,7 @@ eval_expr([Fun|Es]=Call, Env) when is_atom(Fun) ->
 	    Ar = length(Es),			%Arity
 	    case get_fbinding(Fun, Ar, Env) of
 		{yes,M,F} -> erlang:apply(M, F, eval_list(Es, Env));
-		{yes,F} -> lfe_apply(F, eval_list(Es, Env), Env);
+		{yes,F} -> eval_apply(F, eval_list(Es, Env), Env);
 		no -> erlang:error({unbound_func,{Fun,Ar}})
 	    end
     end;
@@ -161,38 +161,21 @@ eval_field(Val, Env) ->
 
 %% eval_bitspecs(Specs, Spec, Env) -> {Type,Size,Unit,Sign,End}.
 
-eval_bitspecs([[size,N]|Ss], Sp, Env) ->
-    Size = eval_expr(N, Env),
-    eval_bitspecs(Ss, Sp#spec{size=Size}, Env);
-eval_bitspecs([[unit,N]|Ss], Sp, Env) when is_integer(N) ->
-    eval_bitspecs(Ss, Sp#spec{unit=N}, Env);
-eval_bitspecs([integer|Ss], Sp, Env) ->
-    eval_bitspecs(Ss, Sp#spec{type=integer}, Env);
-eval_bitspecs([float|Ss], Sp, Env) ->
-    eval_bitspecs(Ss, Sp#spec{type=float}, Env);
-eval_bitspecs([binary|Ss], Sp, Env) ->
-    eval_bitspecs(Ss, Sp#spec{type=binary}, Env);
-eval_bitspecs([bitstring|Ss], Sp, Env) ->
-    eval_bitspecs(Ss, Sp#spec{type=bitstring}, Env);
-eval_bitspecs([signed|Ss], Sp, Env) ->
-    eval_bitspecs(Ss, Sp#spec{sign=signed}, Env);
-eval_bitspecs([unsigned|Ss], Sp, Env) ->
-    eval_bitspecs(Ss, Sp#spec{sign=unsigned}, Env);
-eval_bitspecs(['big-endian'|Ss], Sp, Env) ->
-    eval_bitspecs(Ss, Sp#spec{endian=big}, Env);
-eval_bitspecs(['little-endian'|Ss], Sp, Env) ->
-    eval_bitspecs(Ss, Sp#spec{endian=little}, Env);
-eval_bitspecs(['native-endian'|Ss], Sp, Env) ->
-    eval_bitspecs(Ss, Sp#spec{endian=native}, Env);
-eval_bitspecs([],
-	      #spec{type=Type,size=Csize,unit=Cunit,sign=Csign,endian=Cend},
-	      _) ->
+eval_bitspecs(Ss, Sp0, Env) ->
+    Sp1 = foldl(fun (S, Sp) -> eval_bitspec(S, Sp, Env) end, Sp0, Ss),
     %% Adjust the values depending on type and given value.
+    #spec{type=Type,size=Csize,unit=Cunit,sign=Csign,endian=Cend} = Sp1,
     case Type of
 	integer ->
 	    {integer,
 	     val_or_def(Csize, 8),val_or_def(Cunit, 1),
 	     val_or_def(Csign, unsigned),val_or_def(Cend, big)};
+	utf8 ->					%Ignore unused fields!
+	    {utf8,undefined,undefined,undefined,undefined};
+	utf16 ->				%Ignore unused fields!
+	    {utf16,undefined,undefined,undefined,val_or_def(Cend, big)};
+	utf32 ->				%Ignore unused fields!
+	    {utf32,undefined,undefined,undefined,val_or_def(Cend, big)};
 	float ->
 	    {float,
 	     val_or_def(Csize, 64),val_or_def(Cunit, 1),
@@ -207,10 +190,46 @@ eval_bitspecs([],
 	     val_or_def(Csign, unsigned),val_or_def(Cend, big)}
     end.
 
+%% Types.
+eval_bitspec(integer, Sp, _) -> Sp#spec{type=integer};
+eval_bitspec(float, Sp, _) -> Sp#spec{type=float};
+eval_bitspec(binary, Sp, _) -> Sp#spec{type=binary};
+eval_bitspec(bytes, Sp, _) -> Sp#spec{type=binary};
+eval_bitspec(bitstring, Sp, _) -> Sp#spec{type=bitstring};
+eval_bitspec(bits, Sp, _) -> Sp#spec{type=bitstring};
+%% Unicode types.
+eval_bitspec('utf-8', Sp, _) -> Sp#spec{type=utf8};
+eval_bitspec('utf-16', Sp, _) -> Sp#spec{type=utf16};
+eval_bitspec('utf-32', Sp, _) -> Sp#spec{type=utf32};
+%% Endianness.
+eval_bitspec('big-endian', Sp, _) -> Sp#spec{endian=big};
+eval_bitspec('little-endian', Sp, _) -> Sp#spec{endian=little};
+eval_bitspec('native-endian', Sp, _) -> Sp#spec{endian=native};
+%% Sign.
+eval_bitspec(signed, Sp, _) -> Sp#spec{sign=signed};
+eval_bitspec(unsigned, Sp, _) -> Sp#spec{sign=unsigned};
+%% Size.
+eval_bitspec([size,N], Sp, Env) ->
+    Size = eval_expr(N, Env),
+    Sp#spec{size=Size};
+eval_bitspec([unit,N], Sp, _) when is_integer(N), N > 0 -> Sp#spec{unit=N};
+eval_bitspec(Spec, _, _) -> erlang:error({illegal_bitspec,Spec}).
+
 val_or_def(default, Def) -> Def;
 val_or_def(V, _) -> V.
 
 %% eval_exp_field(Value, Type, Size, Unit, Sign, Endian) -> Binary.
+
+%% eval_exp_field(Val, #spec{type=integer,size=Sz,unit=Un,sign=Si,endien=En}) ->
+%%     case {Si,En} of
+%% 	{signed,little} -> <<Val:(Sz*Un)/little-signed>>;
+%% 	{unsigned,little} -> <<Val:(Sz*Un)/little>>;
+%% 	{signed,native} -> <<Val:(Sz*Un)/native-signed>>;
+%% 	{unsigned,native} -> <<Val:(Sz*Un)/native>>;
+%% 	{signed,big} -> <<Val:(Sz*Un)/signed>>;
+%% 	{unsigned,big} -> <<Val:(Sz*Un)>>
+%%     end;
+%% eval_exp_field(Val, #spec{type=integer,size=Sz,unit=Un,sign=Si,endien=En}) ->
 
 %% Integer types.
 eval_exp_field(Val, integer, Size, Unit, signed, little) ->
@@ -225,6 +244,14 @@ eval_exp_field(Val, integer, Size, Unit, signed, big) ->
     <<Val:(Size*Unit)/signed>>;
 eval_exp_field(Val, integer, Size, Unit, unsigned, big) ->
     <<Val:(Size*Unit)>>;
+%% Unicode types, ignore unused fields.
+eval_exp_field(Val, utf8, _, _, _, _) -> <<Val/utf8>>;
+eval_exp_field(Val, utf16, _, _, _, little) -> <<Val/utf16-little>>;
+eval_exp_field(Val, utf16, _, _, _, native) -> <<Val/utf16-native>>;
+eval_exp_field(Val, utf16, _, _, _, big) -> <<Val/utf16-big>>;
+eval_exp_field(Val, utf32, _, _, _, little) -> <<Val/utf32-little>>;
+eval_exp_field(Val, utf32, _, _, _, native) -> <<Val/utf32-native>>;
+eval_exp_field(Val, utf32, _, _, _, big) -> <<Val/utf32-big>>;
 %% Float types.
 eval_exp_field(Val, float, Size, Unit, _, little) ->
     <<Val:(Size*Unit)/float-little>>;
@@ -338,7 +365,8 @@ eval_let([Vbs|Body], Env0) ->
 		     ([Pat,G,E], Env) ->
 			 Val = eval_expr(E, Env0),
 			 {yes,[],Bs} = match_when(Pat, Val, [G], Env0),
-			 add_vbindings(Bs, Env)
+			 add_vbindings(Bs, Env);
+		     (_, _) -> erlang:error({bad_form,'let'})
 		 end, Env0, Vbs),
     eval_body(Body, Env1).
 
@@ -349,7 +377,8 @@ eval_let_function([Fbs|Body], Env0) ->
 			 add_fbinding(V, length(Args), {expr,Lambda,Env0}, E);
 		     ([V,['match-lambda',[Pats|_]|_]=Match], E)
 		     when is_atom(V) ->
-			 add_fbinding(V, length(Pats), {expr,Match,Env0}, E)
+			 add_fbinding(V, length(Pats), {expr,Match,Env0}, E);
+		     (_, _) -> erlang:error({bad_form,'let-function'})
 		   end, Env0, Fbs),
     %% io:fwrite("elf: ~p\n", [{Body,Env1}]),
     eval_body(Body, Env1).
@@ -363,7 +392,8 @@ eval_letrec_function([Fbs0|Body], Env0) ->
     Fbs1 = map(fun ([V,[lambda,Args|_]=Lambda]) when is_atom(V) ->
 		       {V,length(Args),Lambda};
 		   ([V,['match-lambda',[Pats|_]|_]=Match]) when is_atom(V) ->
-		       {V,length(Pats),Match}
+		       {V,length(Pats),Match};
+		   (_) -> erlang:error({bad_form,'letrec-function'})
 	       end, Fbs0),
     Env1 = make_letrec_env(Fbs1, Env0),
     %% io:fwrite("elrf: ~p\n", [{Env0,Env1}]),
@@ -398,20 +428,20 @@ extend_letrec_env(Lete0, Fbs0, Env0) ->
 add_expr_func(Name, Ar, Def, Env) ->
     add_fbinding(Name, Ar, {expr,Def,Env}, Env).
 
-%% lfe_apply(Function, Vals, Env) -> Value.
+%% eval_apply(Function, Vals, Env) -> Value.
 %%  This is used to evaluate interpreted functions.
 
-lfe_apply({expr,[lambda,Args|Body],Env}, Es, _) ->
+eval_apply({expr,[lambda,Args|Body],Env}, Es, _) ->
     eval_lambda(Es, Args, Body, Env);
-lfe_apply({expr,['match-lambda'|Cls],Env}, Es, _) ->
+eval_apply({expr,['match-lambda'|Cls],Env}, Es, _) ->
     eval_match_clauses(Es, Cls, Env);
-lfe_apply({letrec,Body,Fbs,Env}, Es, Ee) ->
+eval_apply({letrec,Body,Fbs,Env}, Es, Ee) ->
     %% A function created by/for letrec-function.
     NewEnv = foldl(fun ({V,Ar,Lambda}, E) ->
 			   add_fbinding(V, Ar, {letrec,Lambda,Fbs,Env}, E)
 		   end, Env, Fbs),
     %% io:fwrite("la: ~p\n", [{Body,NewEnv}]),
-    lfe_apply({expr,Body,NewEnv}, Es, Ee).
+    eval_apply({expr,Body,NewEnv}, Es, Ee).
 
 %% eval_if(IfBody, Env) -> Value.
 
@@ -746,6 +776,14 @@ match_field(Pat, {Ty,Sz,Un,Si,En}, Bin0, Env, Bs0) ->
 
 get_value(Bin, integer, Sz, Un, Si, En) ->
     get_integer(Bin, Sz*Un, Si, En);
+%% Unicode types, ignore unused fields.
+get_value(Bin, utf8, _, _, _, _) ->
+    <<Val/utf8,Rest/bitstring>> = Bin,
+    {Val,Rest};
+get_value(Bin, utf16, _, _, _, En) ->
+    get_utf16(Bin, En);
+get_value(Bin, utf32, _, _, _, En) ->
+    get_utf32(Bin, En);
 get_value(Bin, float, Sz, Un, _, En) ->
     get_float(Bin, Sz*Un, En);
 get_value(Bin, binary, all, Un, _, _) ->
@@ -773,6 +811,26 @@ get_integer(Bin, Sz, signed, big) ->
     {Val,Rest};
 get_integer(Bin, Sz, unsigned, big) ->
     <<Val:Sz/big-unsigned,Rest/binary-unit:1>> = Bin,
+    {Val,Rest}.
+
+get_utf16(Bin, little) ->
+    <<Val/utf16-little,Rest/bitstring>> = Bin,
+    {Val,Rest};
+get_utf16(Bin, native) ->
+    <<Val/utf16-native,Rest/bitstring>> = Bin,
+    {Val,Rest};
+get_utf16(Bin, big) ->
+    <<Val/utf16-big,Rest/bitstring>> = Bin,
+    {Val,Rest}.
+
+get_utf32(Bin, little) ->
+    <<Val/utf32-little,Rest/bitstring>> = Bin,
+    {Val,Rest};
+get_utf32(Bin, native) ->
+    <<Val/utf32-native,Rest/bitstring>> = Bin,
+    {Val,Rest};
+get_utf32(Bin, big) ->
+    <<Val/utf32-big,Rest/bitstring>> = Bin,
     {Val,Rest}.
 
 get_float(Bin, Sz, little) -> 

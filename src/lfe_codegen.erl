@@ -741,59 +741,68 @@ c_bitseg(Val, Sz, Un, Ty, Si, En, L) ->
     #c_bitstr{anno=[L],val=Val,size=Sz,unit=Un,type=Ty,
 		      flags=c_cons(Si, c_cons(En, c_nil(L), L), L)}.
 
-%% Types.
-comp_bitspecs([integer|Ss], Sp, Env, L, St) ->
-    comp_bitspecs(Ss, Sp#spec{type=integer}, Env, L, St);
-comp_bitspecs([float|Ss], Sp, Env, L, St) ->
-    comp_bitspecs(Ss, Sp#spec{type=float}, Env, L, St);
-comp_bitspecs([binary|Ss], Sp, Env, L, St) ->
-    comp_bitspecs(Ss, Sp#spec{type=binary}, Env, L, St);
-comp_bitspecs([bitstring|Ss], Sp, Env, L, St) ->
-    comp_bitspecs(Ss, Sp#spec{type=bitstring}, Env, L, St);
-comp_bitspecs([bytes|Ss], Sp, Env, L, St) ->
-    comp_bitspecs([binary|Ss], Sp, Env, L, St);
-comp_bitspecs([bits|Ss], Sp, Env, L, St) ->
-    comp_bitspecs([bitstring|Ss], Sp, Env, L, St);
-%% Endianness.
-comp_bitspecs(['big-endian'|Ss], Sp, Env, L, St) ->
-    comp_bitspecs(Ss, Sp#spec{endian=c_lit(big, L)}, Env, L, St);
-comp_bitspecs(['little-endian'|Ss], Sp, Env, L, St) ->
-    comp_bitspecs(Ss, Sp#spec{endian=c_lit(little, L)}, Env, L, St);
-comp_bitspecs(['native-endian'|Ss], Sp, Env, L, St) ->
-    comp_bitspecs(Ss, Sp#spec{endian=c_lit(native, L)}, Env, L, St);
-%% Sign.
-comp_bitspecs([signed|Ss], Sp, Env, L, St) ->
-    comp_bitspecs(Ss, Sp#spec{sign=c_lit(signed, L)}, Env, L, St);
-comp_bitspecs([unsigned|Ss], Sp, Env, L, St) ->
-    comp_bitspecs(Ss, Sp#spec{sign=c_lit(unsigned, L)}, Env, L, St);
-comp_bitspecs([[unit,N]|Ss], Sp, Env, L, St) ->
-    comp_bitspecs(Ss, Sp#spec{unit=c_lit(N, L)}, Env, L, St);
-%% Size.
-comp_bitspecs([[size,N]|Ss], Sp, Env, L, St0) ->
-    {Csz,St1} = comp_expr(N, Env, L, St0),
-    comp_bitspecs(Ss, Sp#spec{size=Csz}, Env, L, St1);
-comp_bitspecs([],
-	      #spec{type=Type,size=Csize,unit=Cunit,sign=Csign,endian=Cend},
-	      _, L, St) ->
+%% comp_bitspecs(Specs, Spec, Env, Line, State) ->
+%%      {{Type,Size,Unit,Sign,End},State}.
+
+comp_bitspecs(Ss, Sp0, Env, L, St0) ->
+    {Sp1,St1} = foldl(fun (S, {Sp,St}) -> comp_bitspec(S, Sp, Env, L, St) end,
+		      {Sp0,St0}, Ss),
     %% Adjust the values depending on type and given value.
+    #spec{type=Type,size=Csize,unit=Cunit,sign=Csign,endian=Cend} = Sp1,
     case Type of
 	integer ->
 	    {{c_lit(integer, L),
 	      val_or_def(Csize, 8, L),val_or_def(Cunit, 1, L),
-	      val_or_def(Csign, unsigned, L),val_or_def(Cend, big, L)},St};
+	      val_or_def(Csign, unsigned, L),val_or_def(Cend, big, L)},St1};
 	float ->
 	    {{c_lit(float, L),
 	      val_or_def(Csize, 64, L),val_or_def(Cunit, 1, L),
-	      val_or_def(Csign, unsigned, L),val_or_def(Cend, big, L)},St};
+	      val_or_def(Csign, unsigned, L),val_or_def(Cend, big, L)},St1};
+	utf8 ->					%Ignore unused fields!
+	    {{c_lit(utf8, L),c_lit(undefined, L),c_lit(undefined, L),
+	      val_or_def(Csign, unsigned, L),val_or_def(Cend, big, L)},St1};
+	utf16 ->				%Ignore unused fields!
+	    {{c_lit(utf16, L),c_lit(undefined, L),c_lit(undefined, L),
+	      val_or_def(Csign, unsigned, L),val_or_def(Cend, big, L)},St1};
+	utf32 ->				%Ignore unused fields!
+	    {{c_lit(utf32, L),c_lit(undefined, L),c_lit(undefined, L),
+	      val_or_def(Csign, unsigned, L),val_or_def(Cend, big, L)},St1};
 	binary ->
 	    {{c_lit(binary, L),
 	      val_or_def(Csize, all, L),val_or_def(Cunit, 8, L),
-	      val_or_def(Csign, unsigned, L),val_or_def(Cend, big, L)},St};
+	      val_or_def(Csign, unsigned, L),val_or_def(Cend, big, L)},St1};
 	bitstring ->
 	    {{c_lit(binary, L),
 	      val_or_def(Csize, all, L),val_or_def(Cunit, 1, L),
-	      val_or_def(Csign, unsigned, L),val_or_def(Cend, big, L)},St}
+	      val_or_def(Csign, unsigned, L),val_or_def(Cend, big, L)},St1}
     end.
+
+%% Types.
+comp_bitspec(integer, Sp, _, _, St) -> {Sp#spec{type=integer},St};
+comp_bitspec(float, Sp, _, _, St) -> {Sp#spec{type=float},St};
+comp_bitspec(binary, Sp, _, _, St) -> {Sp#spec{type=binary},St};
+comp_bitspec(bytes, Sp, _, _, St) -> {Sp#spec{type=binary},St};
+comp_bitspec(bitstring, Sp, _, _, St) -> {Sp#spec{type=bitstring},St};
+comp_bitspec(bits, Sp, _, _, St) -> {Sp#spec{type=bitstring},St};
+%% Unicode types.
+comp_bitspec('utf-8', Sp, _, _, St) -> {Sp#spec{type=utf8},St};
+comp_bitspec('utf-16', Sp, _, _, St) -> {Sp#spec{type=utf16},St};
+comp_bitspec('utf-32', Sp, _, _, St) -> {Sp#spec{type=utf32},St};
+%% Endianness.
+comp_bitspec('big-endian', Sp, _, L, St) ->
+    {Sp#spec{endian=c_lit(big, L)},St};
+comp_bitspec('little-endian', Sp, _, L, St) ->
+    {Sp#spec{endian=c_lit(little, L)},St};
+comp_bitspec('native-endian', Sp, _, L, St) ->
+    {Sp#spec{endian=c_lit(native, L)},St};
+%% Sign.
+comp_bitspec(signed, Sp, _, L, St) -> {Sp#spec{sign=c_lit(signed, L)},St};
+comp_bitspec(unsigned, Sp, _, L, St) -> {Sp#spec{sign=c_lit(unsigned, L)},St};
+%% Size.
+comp_bitspec([unit,N], Sp, _, L, St) -> {Sp#spec{unit=c_lit(N, L)},St};
+comp_bitspec([size,N], Sp, Env, L, St0) ->
+    {Csz,St1} = comp_expr(N, Env, L, St0),
+    {Sp#spec{size=Csz},St1}.
 
 val_or_def(default, Def, L) -> c_lit(Def, L);
 val_or_def(V, _, _) -> V.
@@ -895,11 +904,11 @@ pat_binary(Segs, L, Vs0, St0) ->
 %% pat_bitsegs(Segs, Line, PatVars, State) -> {CBitsegs,PatVars,State}.
 
 pat_bitsegs(Segs, L, Vs0, St0) ->
-    {Csegs,{Vs1,St1}} = mapfoldl(fun (S, {Vsa,Sta}) ->
-					 {Cs,Vsb,Stb} =
-					     pat_bitseg(S, L, Vsa, Sta),
-					 {Cs,{Vsb,Stb}}
-				 end, {Vs0,St0}, Segs),
+    {Csegs,{Vs1,St1}} =
+	mapfoldl(fun (S, {Vsa,Sta}) ->
+			 {Cs,Vsb,Stb} = pat_bitseg(S, L, Vsa, Sta),
+			 {Cs,{Vsb,Stb}}
+		 end, {Vs0,St0}, Segs),
     {Csegs,Vs1,St1}.
 
 %% pat_bitseg(Seg, Line, PatVars, State) -> {#c_bitstr{},PatVars,State}.

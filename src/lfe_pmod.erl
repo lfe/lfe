@@ -95,7 +95,7 @@ exp_form(F, L, St) ->
 
 debug_print(Format, Args, Opts) ->
     case member(debug_print, Opts) of
-	true -> io:fwrite(Format, Args);
+	true -> lfe_io:format(Format, Args);
 	false -> ok
     end.
 

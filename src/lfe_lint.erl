@@ -70,18 +70,20 @@ format_error(bad_body) -> "bad body";
 format_error(bad_clause) -> "bad clause";
 format_error(bad_args) -> "bad arguments";
 format_error({bad_form,Type}) ->
-   io_lib:fwrite("bad form: ~w", [Type]);
+    lfe_io:format1("bad form: ~w", [Type]);
 format_error({unbound_symb,S}) ->
-    io_lib:fwrite("unbound symbol: ~w", [S]);
+    lfe_io:format1("unbound symbol: ~w", [S]);
 format_error({unbound_func,F}) ->
-    io_lib:fwrite("unbound function: ~w", [F]);
+    lfe_io:format1("unbound function: ~w", [F]);
 format_error({multi_var,S}) ->
-    io_lib:fwrite("multiple variable: ~w", [S]);
+    lfe_io:format1("multiple variable: ~w", [S]);
 format_error({redef_fun,F}) ->
-    io_lib:fwrite("redefining function: ~w", [F]);
+    lfe_io:format1("redefining function: ~w", [F]);
 format_error(illegal_pat) -> "illegal pattern";
 format_error(illegal_guard) -> "illegal guard";
-format_error(illegal_bitseg) -> "illegal bitsegment";
+format_error(illegal_bitseg) -> "illegal bit segment";
+format_error({illegal_bitspec,S}) ->
+    lfe_io:format1("illegal bit specification: ~w", [S]);
 format_error(unknown_form) -> "unknown form".
 
 %% module(Forms) -> {ok,[Warning]} | {error,[Error],[Warning]}.
@@ -812,12 +814,8 @@ check_alias_list(_, _) -> false.
 %% Functions for checking pattern bitsegments.
 
 pat_bitsegs(Segs, Vs0, Env, L, St0) ->
-    try
-	foldl(fun (S, {Vs, St}) -> pat_bitseg(S, Vs, Env, L, St) end,
-	      {Vs0,St0}, Segs)
-    catch
-	_:_ -> add_error(L, illegal_bitseg, St0)
-    end.
+    foldl(fun (S, {Vs,St}) -> pat_bitseg(S, Vs, Env, L, St) end,
+	  {Vs0,St0}, Segs).
 
 pat_bitseg([N|Specs], Vs0, Env, L, St0) ->
     {Vs1,St1} = pat_bitel(N, Vs0, Env, L, St0),
@@ -837,9 +835,13 @@ pat_bitspecs(Specs, Env, L, St0) ->
 pat_bitspec(integer, _, _, St) -> St;
 pat_bitspec(float, _, _, St) -> St;
 pat_bitspec(binary, _, _, St) -> St;
-pat_bitspec(bitstring, _, _, St) -> St;
 pat_bitspec(bytes, _, _, St) -> St;
+pat_bitspec(bitstring, _, _, St) -> St;
 pat_bitspec(bits, _, _, St) -> St;
+%% Unicode types.
+pat_bitspec('utf-8', _, _, St) -> St;
+pat_bitspec('utf-16', _, _, St) -> St;
+pat_bitspec('utf-32', _, _, St) -> St;
 %% Endianness
 pat_bitspec('big-endian', _, _, St) -> St;
 pat_bitspec('little-endian', _, _, St) -> St;
@@ -847,8 +849,8 @@ pat_bitspec('native-endian', _, _, St) -> St;
 %% Sign.
 pat_bitspec(signed, _, _, St) -> St;
 pat_bitspec(unsigned, _, _, St) -> St;
-pat_bitspec([unit,N], _, _, St) when is_integer(N), N >= 1, N =< 256 -> St;
 %% Size.
+pat_bitspec([unit,N], _, _, St) when is_integer(N), N >= 1, N =< 256 -> St;
 pat_bitspec([size,N], _, _, St) when is_integer(N), N > 0 -> St;
 pat_bitspec([size,Symb], Env, L, St) when is_atom(Symb) ->
     %% Size must be bound here.
@@ -856,8 +858,8 @@ pat_bitspec([size,Symb], Env, L, St) when is_atom(Symb) ->
 	true -> St;
 	false -> add_error(L, {unbound_symb,Symb}, St)
     end;
-pat_bitspec(_, _, L, St) ->
-    add_error(L, illegal_bitseg, St).
+pat_bitspec(Spec, _, L, St) ->
+    add_error(L, {illegal_bitspec,Spec}, St).
 
 %% check_foreach(Function, Type, Line, State, Forms) -> State.
 %% check_map(Function, Type, Line, State, Forms) -> {Results,State}.
