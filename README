@@ -14,6 +14,24 @@ of the function. The .beam file in ebin is for R13B.
 
 I will try to make a better fix soon. Sorry about that.
 
+v0.5
+----
+
+Added unicode types to binaries: utf-8, utf-16 and utf-32.
+
+Shell and compiler now print error data in LFE instead of vanilla.
+Shell error reporting still pretty basic, not as "beautiful" as
+vanilla.
+
+Cleaned up i/o functions and added formated output function. Still use
+vanilla command characters.
+
+All i/o goes through then module lfe_io. The functions which return
+the corresponding printable string end in 1. So lfe_io:format prints
+formatted output while lfe_io:format1 returns the string.
+
+Improved pretty-printing.
+
 v0.4
 ----
 This will be the last development version for Erlang R12B-5 and older,
