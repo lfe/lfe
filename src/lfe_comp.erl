@@ -33,7 +33,7 @@
 
 %% -compile(export_all).
 
--import(lists, [member/2,keysearch/3,
+-import(lists, [member/2,keysearch/3,filter/2,
 		all/2,map/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3,
 		concat/1]).
 -import(ordsets, [add_element/2,is_element/2,from_list/1,union/2]).
@@ -44,12 +44,15 @@
 -include_lib("compiler/src/core_parse.hrl").
 
 -record(comp, {base="",				%Base name
+	       odir=".",			%Output directory
 	       lfile="",			%Lisp file
 	       bfile="",			%Beam file
 	       cfile="",			%Core file
 	       opts=[],				%User options
 	       mod=[],				%Module name
-	       ret=file				%Return file|dcore|tcore|bin
+	       target=beam,			%Target beam|to_core0|to_core
+	       ret=file,			%Do we return value|file
+	       code=none
 	      }).
 
 %% file(Name) ->
@@ -93,33 +96,40 @@ forms(Fs0, Opts0) ->
 %%  The default output dir is the current directory unless an
 %%  explicit one has been given in the options.
 
-filenames(File, St0) ->
+filenames(File, St) ->
+    %% Test for explicit outdir.
+    Odir = case keysearch(outdir, 1, St#comp.opts) of
+	       {value,{outdir,D}} -> D;
+	       false -> "."
+	   end,
     Dir = filename:dirname(File),
     Base = filename:basename(File, ".lfe"),
     Lfile = filename:join(Dir, Base ++ ".lfe"),
     Bfile = Base ++ ".beam",
     Cfile = Base ++ ".core",
-    St1 = St0#comp{lfile=Lfile},
-    %% Test for explicit out dir.
-    case keysearch(outdir, 1, St1#comp.opts) of
-	{value,{outdir,D}} ->
-	    St1#comp{bfile=filename:join(D, Bfile),
-		     cfile=filename:join(D, Cfile)};
-	_ ->
-	    St1#comp{bfile=Bfile,cfile=Cfile}
-    end.
+    St#comp{base=Base,
+	    lfile=Lfile,
+	    odir=Odir,
+	    bfile=filename:join(Odir, Bfile),
+	    cfile=filename:join(Odir, Cfile)}.
 
 %% lfe_comp_opts(Opts, State) -> {Opts,State}.
-%%  Check options for return type (dcore/tcore/binary), trim options
-%%  and set options in state.
+%%  Check options for target and return type
+%%  (to_core0/to_core/binary), trim options and set options in state.
 
 lfe_comp_opts(Opts, St) ->
-    foldr(fun(dcore, {Os,S}) -> {Os,S#comp{ret=dcore}};
-	     (to_core, {Os,S}) -> {Os,S#comp{ret=to_core}};
-	     (binary, {Os,S}) -> {Os,S#comp{ret=binary}};
+    foldr(fun(to_core0, {Os,S}) -> {Os,S#comp{target=to_core0}};
+	     (to_core, {Os,S}) -> {Os,S#comp{target=to_core}};
+	     (binary, {Os,S}) -> {Os,S#comp{ret=value}};
+	     (value, {Os,S}) -> {Os,S#comp{ret=value}};
 	     (file, {Os,S}) -> {Os,S#comp{ret=file}};
+	     (beam, {Os,S}) -> {Os,S#comp{target=beam}};
+	     %% Some options we don't want here.
+	     ('P', Acc) -> Acc;
+	     ('E', Acc) -> Acc;
+	     %% These we pass through.
 	     (Opt, {Os,S}) -> {[Opt|Os],S}
-	  end, {[],St#comp{ret=file}}, Opts).
+	  end, {[],St#comp{target=beam,ret=file}}, Opts).
 
 %% do_forms(Forms, State) ->
 %%      {ok,Core,Warnings,State} | {error,Errors,Warnings,State}.
@@ -146,28 +156,25 @@ do_forms(Fs0, St) ->
 erl_comp(Core, Warns, St) ->
     Eopts = erl_comp_opts(St#comp.opts),	%Fix options for compiler
     %% Do work and fix returns accordingly.
-    Ret = case St#comp.ret of
-	      dcore ->
-		  ok = file:write_file(St#comp.cfile, [core_pp:format(Core),$\n]),
-		  {ok,[],[]};
+    Ret = case St#comp.target of
+	      to_core0 ->
+		  R = do_save_ret(Core, St#comp.cfile,
+				  fun (C) -> [core_pp:format(C),$\n] end, St),
+		  {ok,R,[]};
 	      to_core ->
 		  case compile:forms(Core, [from_core,to_core|Eopts]) of
 		      {ok,_,Cfr,Ews} ->
-			  Cpp = [core_pp:format(Cfr),$\n],
-			  ok = file:write_file(St#comp.cfile, Cpp),
-			  {ok,[],Ews};
+			  R = do_save_ret(Cfr, St#comp.cfile,
+					  fun (C) -> [core_pp:format(C),$\n] end, St),
+			  {ok,R,Ews};
 		      Error -> Error
 		  end;
-	      binary ->
-		  case compile:forms(Core, [from_core,binary|Eopts]) of
-		      {ok,_,Bin,Ews} -> {ok,[Bin],Ews};
-		      Error -> Error
-		  end;
-	      file ->
+	      beam ->
 		  case compile:forms(Core, [from_core,binary|Eopts]) of
 		      {ok,_,Bin,Ews} ->
-			  ok = file:write_file(St#comp.bfile, Bin),
-			  {ok,[],Ews};
+			  R = do_save_ret(Bin, St#comp.bfile,
+					  fun (Val) -> Val end, St),
+			  {ok,R,Ews};
 		      Error -> Error
 		  end
 	  end,
@@ -179,6 +186,14 @@ erl_comp(Core, Warns, St) ->
 			    Warns ++ fix_erl_errors(Ews1), St)
     end.
 
+do_save_ret(Val, File, Format, St) ->
+    case St#comp.ret of
+	file ->
+	    ok = file:write_file(File, Format(Val)),
+	    [];					%No return here
+	value -> [Val]				%Return value
+    end.
+
 %% fix_erl_errors([{File,Errors}]) -> Errors.
 
 fix_erl_errors([{_,Es}|Fes]) -> Es ++ fix_erl_errors(Fes);
@@ -186,13 +201,17 @@ fix_erl_errors([]) -> [].
 
 %% erl_comp_opts(Options) -> Options.
 %%  Strip out report options and make sure erlang compiler returns
-%%  errors and warnings.
+%%  errors and warnings. Also remove other options which might cause
+%%  strange behaviour.
 
-erl_comp_opts([report|Os]) -> erl_comp_opts(Os);
-erl_comp_opts([report_warnings|Os]) -> erl_comp_opts(Os);
-erl_comp_opts([report_errors|Os]) -> erl_comp_opts(Os);
-erl_comp_opts([O|Os]) -> [O|erl_comp_opts(Os)];
-erl_comp_opts([]) -> [return].			%Ensure return!
+erl_comp_opts(Os) ->
+    filter(fun (report) -> false;
+	       (report_warnings) -> false;
+	       (report_errors) -> false;
+	       ('S') -> false;
+	       ('E') -> false;
+	       (_) -> true			%Everything else
+	   end, [return|Os]).			%Ensure return!
 
 %% do_ok_return(Ret, Warnings, State) -> {ok,Mod,...}.
 %% do_error_return(Errors, Warnings, State) -> {error,...} | error.
