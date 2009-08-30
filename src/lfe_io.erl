@@ -30,6 +30,7 @@
 %% The io functions have been split into the following modules:
 %% lfe_io        - basic read and write functions
 %% lfe_io_pretty - sexpr prettyprinter
+%% lfe_io_format - formatted output
 
 -module(lfe_io).
 

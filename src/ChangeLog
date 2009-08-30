@@ -1,3 +1,8 @@
+2009-08-30  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_io_pretty.erl (print1_list_max, print1_tail_max): Bit more
+	efficient pretty printing on the rest of the line.
+
 2009-08-13  Robert Virding  <rv@stanislaw.local>
 
 	* lfe_comp.erl (list_warnings, list_errors): Use lfe_io format.
