@@ -50,9 +50,10 @@
 	       cfile="",			%Core file
 	       opts=[],				%User options
 	       mod=[],				%Module name
-	       target=beam,			%Target beam|to_core0|to_core
-	       ret=file,			%Do we return value|file
-	       code=none
+	       ret=file,			%What is returned [Val] | []
+	       code=none,			%Code after last pass.
+	       errors=[],
+	       warnings=[]
 	      }).
 
 %% file(Name) ->
@@ -64,16 +65,14 @@
 file(Name) -> file(Name, [verbose,report]).	%Default options
 
 file(Name, Opts0) ->
-    {Opts1,St0} = lfe_comp_opts(Opts0, #comp{}),
-    St1 = filenames(Name, St0#comp{opts=Opts1}),
+    Opts1 = lfe_comp_opts(Opts0),
+    St0 = #comp{opts=Opts1},
+    St1 = filenames(Name, St0),
     case lfe_io:parse_file(St1#comp.lfile) of
 	{ok,Fs} ->
 	    %% Do the actual compilation work.
-	    case do_forms(Fs, St1) of
-		{ok,Core,Ws,St2} -> erl_comp(Core, Ws, St2);
-		{error,Es,Ws,St2} -> do_error_return(Es, Ws, St2)
-	    end;
-	{error,Error} -> do_error_return([Error], [], St1)
+	    do_forms(St1#comp{code=Fs});
+	{error,Error} -> do_error_return(St1#comp{errors=[Error]})
     end.
 
 %% forms(Forms) -> {ok,Mod,Bin,Warnings} | {error,Errors,Warnings}.
@@ -83,14 +82,12 @@ file(Name, Opts0) ->
 forms(Forms) -> forms(Forms, [verbose,report]).	%Default options
 
 forms(Fs0, Opts0) ->
-    {Opts1,St0} = lfe_comp_opts(Opts0, #comp{}),
+    Opts1 = lfe_comp_opts(Opts0),
+    St0 = #comp{opts=[binary|Opts1]},		%Implicit binary option
     St1 = filenames("-no-file-", St0#comp{opts=Opts1}),
     %% Tag forms with a "line number", just use their index.
     {Fs1,_} = mapfoldl(fun (F, N) -> {{F,N},N+1} end, 1, Fs0),
-    case do_forms(Fs1, St1) of
-	{ok,Core,Ws,St2} -> erl_comp(Core, Ws, St2);
-	{error,Es,Ws,St2} -> do_error_return(Es, Ws, St2)
-    end.
+    do_forms(St1#comp{code=Fs1}).
 
 %% filenames(File, State) -> State.
 %%  The default output dir is the current directory unless an
@@ -113,86 +110,139 @@ filenames(File, St) ->
 	    bfile=filename:join(Odir, Bfile),
 	    cfile=filename:join(Odir, Cfile)}.
 
-%% lfe_comp_opts(Opts, State) -> {Opts,State}.
-%%  Check options for target and return type
-%%  (to_core0/to_core/binary), trim options and set options in state.
+%% lfe_comp_opts(Opts) -> Opts.
+%%  Check options for lfe compiler.
 
-lfe_comp_opts(Opts, St) ->
-    foldr(fun(to_core0, {Os,S}) -> {Os,S#comp{target=to_core0}};
-	     (to_core, {Os,S}) -> {Os,S#comp{target=to_core}};
-	     (binary, {Os,S}) -> {Os,S#comp{ret=value}};
-	     (value, {Os,S}) -> {Os,S#comp{ret=value}};
-	     (file, {Os,S}) -> {Os,S#comp{ret=file}};
-	     (beam, {Os,S}) -> {Os,S#comp{target=beam}};
-	     %% Some options we don't want here.
-	     ('P', Acc) -> Acc;
-	     ('E', Acc) -> Acc;
-	     %% These we pass through.
-	     (Opt, {Os,S}) -> {[Opt|Os],S}
-	  end, {[],St#comp{target=beam,ret=file}}, Opts).
+lfe_comp_opts(Opts) ->
+    filter(fun (_) -> true end, Opts).
 
-%% do_forms(Forms, State) ->
-%%      {ok,Core,Warnings,State} | {error,Errors,Warnings,State}.
+%% do_forms(State) ->
+%%      {ok,Mod,[Core],[Warnings]} | {error,Errors,Warnings} | error.
 %%  Run the actual LFE compiler passes.
 
-do_forms(Fs0, St) ->
-    %% First macro expand forms.
-    {Fs1,Env} = lfe_macro:expand_forms(Fs0, new_env()),
-    debug_print("mac: ~p\n", [{Fs1,Env}], St),
-    %% Lint and then compile if ok.
-    case lfe_lint:module(Fs1, St#comp.opts) of
+do_forms(St0) ->
+    Ps = passes(),
+    case do_passes(Ps, St0) of
+	{ok,St1} -> do_ok_return(St1);
+	{error,St1} -> do_error_return(St1)
+    end.
+
+%% do_macro_expand(State) -> {ok,State} | {error,State}.
+%% do_lint(State) -> {ok,State} | {error,State}.
+%% do_lfe_codegen(State) -> {ok,State} | {error,State}.
+%% do_erl_comp(State) -> {ok,State} | {error,State}.
+%%  The actual compiler passes.
+
+do_macro_expand(St) ->
+    {Fs,Env} = lfe_macro:expand_forms(St#comp.code, new_env()),
+    debug_print("mac: ~p\n", [{Fs,Env}], St),
+    {ok,St#comp{code=Fs}}.
+
+do_lint(St) ->
+    case lfe_lint:module(St#comp.code, St#comp.opts) of
 	{ok,Ws} ->
-	    Fs2 = lfe_pmod:module(Fs1, St#comp.opts),
-	    {Mod,Core1} = lfe_codegen:forms(Fs2, St#comp.opts),
-	    {ok,Core1,Ws,St#comp{mod=Mod}};
+	    {ok,St#comp{warnings=Ws}};
 	{error,Es,Ws} ->
-	    {error,Es,Ws,St}
+	    {error,St#comp{errors=Es,warnings=Ws}}
     end.
 
-%% erl_comp(Core, Warnings, State) ->
-%%      {ok,Mod[,Binary][,Warnings]}.
-%%  Run the erlang compiler on the core module.
+do_lfe_codegen(#comp{code=Fs0}=St) ->
+    Opts = lfe_comp_opts(St#comp.opts),
+    Fs1 = lfe_pmod:module(Fs0, Opts),
+    {Mod,Core} = lfe_codegen:forms(Fs1, Opts),
+    {ok,St#comp{code=Core,mod=Mod}}.
 
-erl_comp(Core, Warns, St) ->
-    Eopts = erl_comp_opts(St#comp.opts),	%Fix options for compiler
-    %% Do work and fix returns accordingly.
-    Ret = case St#comp.target of
-	      to_core0 ->
-		  R = do_save_ret(Core, St#comp.cfile,
-				  fun (C) -> [core_pp:format(C),$\n] end, St),
-		  {ok,R,[]};
-	      to_core ->
-		  case compile:forms(Core, [from_core,to_core|Eopts]) of
-		      {ok,_,Cfr,Ews} ->
-			  R = do_save_ret(Cfr, St#comp.cfile,
-					  fun (C) -> [core_pp:format(C),$\n] end, St),
-			  {ok,R,Ews};
-		      Error -> Error
-		  end;
-	      beam ->
-		  case compile:forms(Core, [from_core,binary|Eopts]) of
-		      {ok,_,Bin,Ews} ->
-			  R = do_save_ret(Bin, St#comp.bfile,
-					  fun (Val) -> Val end, St),
-			  {ok,R,Ews};
-		      Error -> Error
-		  end
-	  end,
-    case Ret of
-	{ok,Stuff,Ews1} ->
-	    do_ok_return(Stuff, Warns ++ fix_erl_errors(Ews1), St);
-	{error,Ees,Ews1} ->
-	    do_error_return(fix_erl_errors(Ees),
-			    Warns ++ fix_erl_errors(Ews1), St)
+do_erl_comp(St) ->
+    Opts = erl_comp_opts(St#comp.opts),
+    Es = St#comp.errors,
+    Ws = St#comp.warnings,
+    case compile:forms(St#comp.code, [from_core,binary|Opts]) of
+	{ok,_,Result,Ews} ->
+	    {ok,St#comp{code=Result,warnings=Ws ++ fix_erl_errors(Ews)}};
+	{error,Ees,Ews} ->
+	    {error,St#comp{warnings=Es ++ fix_erl_errors(Ees),
+			   errors=Ws ++ fix_erl_errors(Ews)}}
     end.
 
-do_save_ret(Val, File, Format, St) ->
-    case St#comp.ret of
-	file ->
-	    ok = file:write_file(File, Format(Val)),
-	    [];					%No return here
-	value -> [Val]				%Return value
+%% passes() -> [Pass].
+%% do_passes(Passes, State) -> {ok,State} | {error,State}.
+%%  {when_flag,Flag,Cmd}
+%%  {unless_flag,Flag,Cmd}
+%%  {do,Fun}
+%%  {pass,Fun}
+%%  {done,PrintFun,Ext}
+
+passes() ->
+    [{do,fun do_macro_expand/1},
+     {when_flag,to_exp,{done,fun sexpr_pp/2,"expand"}},
+     {do,fun do_lint/1},
+     {do,fun do_lfe_codegen/1},
+     {when_flag,to_core0,{done,fun core_pp/2,"core"}},
+     {do,fun do_erl_comp/1},
+     %% to_core will make erl compiler return core erlang.
+     {when_flag,to_core,{done,fun core_pp/2,"core"}},
+     {when_flag,to_kernel,{done,fun kernel_pp/2,"kernel"}},
+     {when_flag,to_asm,{done,fun asm_pp/2,"S"}},
+     {done,fun beam_write/2,"beam"}].		%Should be last
+
+do_passes([{do,Fun}|Ps], St0) ->
+    case Fun(St0) of
+	{ok,St1} -> do_passes(Ps, St1);
+	{error,St1} -> {error,St1}
+    end;
+do_passes([{when_flag,Flag,Cmd}|Ps], St) ->
+    case member(Flag, St#comp.opts) of
+	true -> do_passes([Cmd|Ps], St);
+	false -> do_passes(Ps, St)
+    end;
+do_passes([{unless_flag,Flag,Cmd}|Ps], St) ->
+    case member(Flag, St#comp.opts) of
+	true -> do_passes(Ps, St);
+	false -> do_passes([Cmd|Ps], St)
+    end;
+do_passes([{when_test,Test,Cmd}|Ps], St) ->
+    case Test(St) of
+	true -> do_passes([Cmd|Ps], St);
+	false -> do_passes(Ps, St)
+    end;
+do_passes([{unless_test,Test,Cmd}|Ps], St) ->
+    case Test(St) of
+	true -> do_passes(Ps, St);
+	false -> do_passes([Cmd|Ps], St)
+    end;
+do_passes([{done,Fun,Ext}|_], St) ->
+    %% Either return code as value or print out file.
+    case member(binary, St#comp.opts) of
+	true -> {ok,St#comp{ret=[St#comp.code]}};
+	false -> do_save_file(Fun, Ext, St#comp{ret=[]})
+    end;
+do_passes([], St) -> {ok,St}.			%Got to the end, everything ok!
+
+do_save_file(Fun, Ext, St) ->
+    Name = filename:join(St#comp.odir, St#comp.base ++ ["."|Ext]),
+    case file:open(Name, [write,delayed_write]) of
+	{ok,File} ->
+	    Fun(File, St#comp.code),
+	    ok = file:close(File),
+	    {ok,St};
+	{error,E} -> {error,St#comp{errors=[{file,E}]}}
     end.
+
+%% sexpr_pp(File, Sexprs) -> ok.
+%% core_pp(File, Sexprs) -> ok.
+%% kernel_pp(File, Sexprs) -> ok.
+%% asm_pp(File, Sexprs) -> ok.
+%% beam_write(File, Beamcode) -> ok.
+
+sexpr_pp(File, Code) -> lfe_io:prettyprint(File, Code),io:nl(File).
+
+core_pp(File, Core) -> io:put_chars(File, [core_pp:format(Core),$\n]).
+
+kernel_pp(File, Kern) -> io:put_chars(File, [v3_kernel_pp:format(Kern),$\n]).
+
+asm_pp(File, Asm) -> beam_listing:module(File, Asm).
+
+beam_write(File, Beam) -> file:write(File, Beam).
 
 %% fix_erl_errors([{File,Errors}]) -> Errors.
 
@@ -210,26 +260,24 @@ erl_comp_opts(Os) ->
 	       (report_errors) -> false;
 	       ('S') -> false;
 	       ('E') -> false;
+	       (dcore) -> false;
+	       (to_core0) -> false;
 	       (_) -> true			%Everything else
 	   end, [return|Os]).			%Ensure return!
 
-%% do_ok_return(Ret, Warnings, State) -> {ok,Mod,...}.
-%% do_error_return(Errors, Warnings, State) -> {error,...} | error.
+%% do_ok_return(State) -> {ok,Mod,...}.
+%% do_error_return(State) -> {error,...} | error.
 
-do_ok_return(Ret0, Warns, St) ->
-    Lfile = St#comp.lfile,
-    Opts = St#comp.opts,
-    when_opt(fun () -> list_warnings(Lfile, Warns) end, report, Opts),
+do_ok_return(#comp{lfile=Lfile,opts=Opts,ret=Ret0,warnings=Ws}=St) ->
+    when_opt(fun () -> list_warnings(Lfile, Ws) end, report, Opts),
     %% Fix right return.
     Ret1 = case member(return, Opts) of
-	       true -> Ret0 ++ [return_errors(Lfile, Warns)];
+	       true -> Ret0 ++ [return_errors(Lfile, Ws)];
 	       false -> Ret0
 	   end,
     list_to_tuple([ok,St#comp.mod|Ret1]).
 
-do_error_return(Es, Ws, St) ->
-    Lfile = St#comp.lfile,
-    Opts = St#comp.opts,
+do_error_return(#comp{lfile=Lfile,opts=Opts,errors=Es,warnings=Ws}) ->
     when_opt(fun () -> list_errors(Lfile, Es) end, report, Opts),
     when_opt(fun () -> list_warnings(Lfile, Ws) end, report, Opts),
     %% Fix right return.
