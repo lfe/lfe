@@ -1,5 +1,8 @@
 2009-08-31  Robert Virding  <rv@stanislaw.local>
 
+	* lfe_io_pretty.erl (print1_list_max, print1_tail_max): Get it
+	right when depth = 0.
+
 	* lfe_comp.erl (passes, do_passes): Add an explicit pass driven
 	style to compiler.
 

@@ -67,8 +67,9 @@ server_loop(Env0, BaseEnv) ->
 	      Env1 = update_vbinding('-', Form, Env0),
 	      %% Macro expand and evaluate it.
 	      {Value,Env2} = eval_form(Form, Env1, BaseEnv),
-	      %% Print the result.
-	      lfe_io:prettyprint(Value), io:nl(),
+	      %% Print the result, but only to depth 30.
+	      VS = lfe_io:prettyprint1(Value, 30),
+	      io:requests([{put_chars,VS},nl]),
 	      %% Update bindings.
 	      Env3 = update_shell_vars(Form, Value, Env2),
 	      %% lfe_io:prettyprint({Env1,Env2}), io:nl(),

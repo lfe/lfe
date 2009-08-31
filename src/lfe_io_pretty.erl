@@ -33,7 +33,7 @@
 
 -compile(export_all).
 
--import(lists, [reverse/1,flatlength/1]).
+-import(lists, [reverse/1,reverse/2,flatlength/1]).
 
 %% print1(Sexpr) -> [char()].
 %% print1(Sexpr, Depth) -> [char()].
@@ -85,7 +85,7 @@ print1([], _, _, _) -> "()";
 print1({}, _, _, _) -> "#()";
 print1(Tup, D, I, L) when is_tuple(Tup) ->
     Es = tuple_to_list(Tup),
-    case print1_list_max(Es, D, I+3, L) of
+    case print1_list_max(Es, D-1, I+3, L) of
 	{yes,Print}  -> ["#(",Print,")"];
 	no -> ["#(",print1_list(Es, D-1, I+2, L),")"]
     end;
@@ -108,6 +108,7 @@ split(N, [H|T]) ->
 %%  Maybe print a list on one line, but abort if it goes past
 %%  LineLength.
 
+print1_list_max(_, 0, _, _) -> {yes,"..."};
 print1_list_max([Car|Cdr], D, I, L) ->
     Cs = print1(Car, D, 0, 99999),		%Never break the line
     print1_tail_max(Cdr, D, I + flatlength(Cs), L, [Cs]);
@@ -119,16 +120,18 @@ print1_list_max([], _, _, _) -> {yes,[]}.
 
 print1_tail_max(_, _, I, L, _) when I >= L -> no;	%No more room
 print1_tail_max([], _, _, _, Acc) -> {yes,reverse(Acc)};
+print1_tail_max(_, 0, _, _, Acc) -> {yes,reverse(Acc)};
 print1_tail_max([Car|Cdr], D, I, L, Acc) ->
-    Cs = print1(Car, D, 0, 99999),		%Never break the line
-    print1_tail_max(Cdr, D, I + flatlength(Cs) + 1, L, [Cs," "|Acc]);
+    Cs = print1(Car, D-1, 0, 99999),		%Never break the line
+    print1_tail_max(Cdr, D-1, I + flatlength(Cs) + 1, L, [Cs," "|Acc]);
 print1_tail_max(S, D, I, L, Acc) ->
-    Cs = print1(S, D, 0, 99999),		%Never break the line
+    Cs = print1(S, D-1, 0, 99999),		%Never break the line
     print1_tail_max([], D, I + flatlength(Cs) + 3, L, [Cs," . "|Acc]).
 
 %% print1_list(List, Depth, Indentation, LineLength)
 %%  Print a list, one element per line. No leading/trailing ().
 
+print1_list(_, 0, _, _) -> "...";
 print1_list([Car|Cdr], D, I, L) ->
     [print1(Car, D, I, L),print1_tail(Cdr, D, I, L)];
 print1_list([], _, _, _) -> [].
@@ -137,7 +140,7 @@ print1_list([], _, _, _) -> [].
 %%  Print the tail of a list. We know about dotted pairs.
 
 print1_tail([], _, _, _) -> "";
-print1_tail(_, 1, _, _) -> " ...";
+print1_tail(_, 0, _, _) -> "";
 print1_tail([Car|Cdr], D, I, L) ->
     ["\n",blanks(I, []),print1(Car, D-1, I, L),print1_tail(Cdr, D-1, I, L)];
 print1_tail(S, D, I, L) ->

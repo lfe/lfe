@@ -33,8 +33,8 @@
 
 %% -compile(export_all).
 
--import(lists, [member/2,keysearch/3,filter/2,
-		all/2,map/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3,
+-import(lists, [member/2,keysearch/3,filter/2,foreach/2,
+		all/2,map/2,flatmap/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3,
 		concat/1]).
 -import(ordsets, [add_element/2,is_element/2,from_list/1,union/2]).
 -import(orddict, [store/3,find/2]).
@@ -179,7 +179,8 @@ passes() ->
      {do,fun do_lfe_codegen/1},
      {when_flag,to_core0,{done,fun core_pp/2,"core"}},
      {do,fun do_erl_comp/1},
-     %% to_core will make erl compiler return core erlang.
+     %% These options will have made erl compiler return internal form
+     %% after pass.
      {when_flag,to_core,{done,fun core_pp/2,"core"}},
      {when_flag,to_kernel,{done,fun kernel_pp/2,"kernel"}},
      {when_flag,to_asm,{done,fun asm_pp/2,"S"}},
@@ -246,8 +247,7 @@ beam_write(File, Beam) -> file:write(File, Beam).
 
 %% fix_erl_errors([{File,Errors}]) -> Errors.
 
-fix_erl_errors([{_,Es}|Fes]) -> Es ++ fix_erl_errors(Fes);
-fix_erl_errors([]) -> [].
+fix_erl_errors(Fes) -> flatmap(fun ({_,Es}) -> Es end, Fes).
 
 %% erl_comp_opts(Options) -> Options.
 %%  Strip out report options and make sure erlang compiler returns
@@ -255,7 +255,7 @@ fix_erl_errors([]) -> [].
 %%  strange behaviour.
 
 erl_comp_opts(Os) ->
-    filter(fun (report) -> false;
+    filter(fun (report) -> false;		%No reporting!
 	       (report_warnings) -> false;
 	       (report_errors) -> false;
 	       ('S') -> false;
@@ -289,21 +289,23 @@ do_error_return(#comp{lfile=Lfile,opts=Opts,errors=Es,warnings=Ws}) ->
 return_errors(_, []) -> [];
 return_errors(Lfile, Es) -> [{Lfile,Es}].
 
-list_warnings(F, [{Line,Mod,Warn}|Ws]) ->
-    lfe_io:format("~s:~w: Warning: ~s\n", [F,Line,Mod:format_error(Warn)]),
-    list_warnings(F, Ws);
-list_warnings(F, [{Mod,Warn}|Ws]) ->
-    lfe_io:format("~s: Warning: ~s\n", [F,Mod:format_error(Warn)]),
-    list_warnings(F, Ws);
-list_warnings(_, []) -> [].
+list_warnings(F, Ws) ->
+    foreach(fun ({Line,Mod,Warn}) ->
+		    Cs = Mod:format_error(Warn),
+		    lfe_io:format("~s:~w: Warning: ~s\n", [F,Line,Cs]);
+		({Mod,Warn}) ->
+		    Cs = Mod:format_error(Warn),
+		    lfe_io:format("~s: Warning: ~s\n", [F,Cs])
+	    end, Ws).
 
-list_errors(F, [{Line,Mod,Error}|Ws]) ->
-    lfe_io:format("~s:~w: ~s\n", [F,Line,Mod:format_error(Error)]),
-    list_errors(F, Ws);
-list_errors(F, [{Mod,Error}|Ws]) ->
-    lfe_io:format("~s: ~s\n", [F,Mod:format_error(Error)]),
-    list_errors(F, Ws);
-list_errors(_, []) -> [].
+list_errors(F, Es) ->
+    foreach(fun ({Line,Mod,Error}) ->
+		    Cs = Mod:format_error(Error),
+		    lfe_io:format("~s:~w: ~s\n", [F,Line,Cs]);
+		({Mod,Error}) ->
+		    Cs = Mod:format_error(Error),
+		    lfe_io:format("~s: ~s\n", [F,Cs])
+	    end, Es).
 
 debug_print(Format, Args, St) ->
     when_opt(fun () -> lfe_io:format(Format, Args) end,
