@@ -403,13 +403,9 @@ check_lambda([Args|Body], Env, L, St0) ->
 check_lambda(_, _, L, St) -> bad_form_error(L, lambda, St).
 
 check_lambda_args(Args, L, St) ->
-    %% Check for multiple variables
-    Check = fun (A, {As,S}) ->
-		    case is_element(A, As) of
-			true -> {As,multi_var_error(L, A, S)};
-			false -> {add_element(A, As),S}
-		    end
-	    end,
+    %% Check for multiple variables but allow don't care variables,
+    %% same rules as for pattern symbols.
+    Check = fun (A, {As,S}) -> pat_symb(A, As, L, S) end,
     case is_symb_list(Args) of
 	true -> foldl(Check, {[],St}, Args);
 	false -> {[],bad_form_error(L, lambda, St)}

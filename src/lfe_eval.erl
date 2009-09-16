@@ -308,6 +308,8 @@ eval_lambda(Vals, Args, Body, Env0) ->
     Env1 = bind_args(Args, Vals, Env0),
     eval_body(Body, Env1).
 
+bind_args(['_'|As], [_|Es], Env) ->		%Ignore don't care variables
+    bind_args(As, Es, Env);
 bind_args([A|As], [E|Es], Env) when is_atom(A) ->
     bind_args(As, Es, add_vbinding(A, E, Env));
 bind_args([], [], Env) -> Env.
@@ -354,8 +356,9 @@ eval_match_clauses(Vals, [[Pats|B0]|Cls], Env) ->
 		{yes,B1,Vbs} -> eval_body(B1, add_vbindings(Vbs, Env));
 		no -> eval_match_clauses(Vals, Cls, Env)
 	    end;
-       true -> eval_match_clauses(Vals, Cls, Env)
-    end.
+       true -> erlang:error(badarity)
+    end;
+eval_match_clauses(_, _, _) -> erlang:error(function_clause).
 
 eval_let([Vbs|Body], Env0) ->
     Env1 = foldl(fun ([Pat,E], Env) ->

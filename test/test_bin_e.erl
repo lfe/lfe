@@ -1,8 +1,8 @@
-%%% File    : test_bin.erl
+%%% File    : test_bin_e.erl
 %%% Author  : Robert Virding
 %%% Purpose : Test binaries.
 
--module(test_bin).
+-module(test_bin_e).
 
 -export([a/0,a/1,af/2,afp/2,a/3]).		%Constructors
 -export([p1/1,p2/1,p2p/1,p3/1]).		%Patterns

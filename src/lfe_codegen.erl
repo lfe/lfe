@@ -341,10 +341,15 @@ comp_args(As, Env, L, St) ->
 %% Compile a (lambda (...) ...).
 
 comp_lambda(Args, Body, Env, L, St0) ->
-    Pvs = foldl(fun (A, Pvs) -> add_element(A, Pvs) end, [], Args),
-    Cvs = map(fun (A) -> c_var(A, L) end, Args),
-    {Cb,St1} = comp_body(Body, add_vbindings(Pvs, Env), L, St0),
-    {c_fun(Cvs, Cb, L),St1}.
+    {Cvs,Pvs,St1} = comp_lambda_args(Args, L, St0),
+    {Cb,St2} = comp_body(Body, add_vbindings(Pvs, Env), L, St1),
+    {c_fun(Cvs, Cb, L),St2}.
+
+comp_lambda_args(Args, L, St) ->
+    foldr(fun (A, {Cvs,Pvs0,St0}) ->
+		  {Cv,Pvs1,St1} = pat_symb(A, L, Pvs0, St0),
+		  {[Cv|Cvs],Pvs1,St1}
+	  end, {[],[],St}, Args).
 
 lambda_arity([Args|_]) -> length(Args).
 
@@ -398,15 +403,14 @@ comp_let(Vbs, B, Env, L, St0) ->
     case Simple of
 	true ->
 	    %% This is not really necessary, but fun.
-	    Pvs = foldl(fun ([V|_], Pvs) -> add_element(V, Pvs) end, [], Vbs),
-	    Cvs = map(fun ([V|_]) -> c_var(V, L) end, Vbs),
-	    {Ces,St1} = mapfoldl(fun ([_,E], St) -> comp_expr(E, Env, L, St) end,
-				 St0, Vbs),
-	    {Cb,St2} = comp_body(B, add_vbindings(Pvs, Env), L, St1),
+	    {Cvs,Pvs,St1} = comp_lambda_args([ V || [V|_] <- Vbs ], L, St0),
+	    {Ces,St2} = mapfoldl(fun ([_,E], St) -> comp_expr(E, Env, L, St) end,
+				 St1, Vbs),
+	    {Cb,St3} = comp_body(B, add_vbindings(Pvs, Env), L, St2),
 	    {#c_let{anno=[L],
 		    vars=Cvs,
 		    arg=c_values(Ces, L),
-		    body=Cb},St2};
+		    body=Cb},St3};
 	false ->
 	    %% This would be much easier to do by building a clause
 	    %% and compiling it directly. but then we would have to

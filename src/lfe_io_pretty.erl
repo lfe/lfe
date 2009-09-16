@@ -116,11 +116,13 @@ print1_list_max([], _, _, _) -> {yes,[]}.
 
 %% print1_tail_max(Tail, Depth, Indentation, LineLength) -> {yes,Chars} | no.
 %%  Maybe print the tail of a list on one line, but abort if it goes
-%%  past LineLength. We know about dotted pairs.
+%%  past LineLength. We know about dotted pairs. When we reach depth 0
+%%  we just quit as we know necessary "..." will have come from an
+%%  earlier print1 at same depth.
 
 print1_tail_max(_, _, I, L, _) when I >= L -> no;	%No more room
-print1_tail_max([], _, _, _, Acc) -> {yes,reverse(Acc)};
 print1_tail_max(_, 0, _, _, Acc) -> {yes,reverse(Acc)};
+print1_tail_max([], _, _, _, Acc) -> {yes,reverse(Acc)};
 print1_tail_max([Car|Cdr], D, I, L, Acc) ->
     Cs = print1(Car, D-1, 0, 99999),		%Never break the line
     print1_tail_max(Cdr, D-1, I + flatlength(Cs) + 1, L, [Cs," "|Acc]);
@@ -137,10 +139,12 @@ print1_list([Car|Cdr], D, I, L) ->
 print1_list([], _, _, _) -> [].
 
 %% print1_tail(Tail, Depth, Indentation, LineLength)
-%%  Print the tail of a list. We know about dotted pairs.
+%%  Print the tail of a list. We know about dotted pairs. When we
+%%  reach depth 0 we just quit as we know necessary "..." will have
+%%  come from an earlier print1 at same depth.
 
-print1_tail([], _, _, _) -> "";
 print1_tail(_, 0, _, _) -> "";
+print1_tail([], _, _, _) -> "";
 print1_tail([Car|Cdr], D, I, L) ->
     ["\n",blanks(I, []),print1(Car, D-1, I, L),print1_tail(Cdr, D-1, I, L)];
 print1_tail(S, D, I, L) ->

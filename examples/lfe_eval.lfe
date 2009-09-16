@@ -269,13 +269,13 @@
      )))
 
 (defun eval-lambda (vals args body env)
-  (let ((env (bind-args args vals env)))
-    (eval-body body env)))
-
-(defun bind-args
-  (((a . as) (e . es) env) (when (is_atom a))
-   (bind-args as es (add_vbinding a e env)))
-  ((() () env) env))
+  (fletrec ((bind-args
+	     ([('_ . as) (_ . es) env]	;Ignore don't care variables
+	      (bind-args as es env))
+	     ([(a . as) (e . es) env] (when (is_atom a))
+	      (bind-args as es (add_vbinding a e env)))
+	     ([() () env] env)))
+    (eval-body body (bind-args args vals env))))
 
 (defun eval-match-lambda (cls env)
   ;; This is a really ugly hack!
@@ -313,12 +313,13 @@
 
 (defun eval-match-clauses (as cls env)
   (case cls
-    (((pats . body) . cls)
+    ([(pats . body) . cls]
      (if (== (length as) (length pats))
        (case (match-when pats as body env)
 	 ((tuple 'yes body1 vbs) (eval-body body1 (add_vbindings vbs env)))
 	 ('no (eval-match-clauses as cls env)))
-       (eval-match-clauses as cls env)))))
+       (: erlang error 'badarity)))
+    ([_ _] (: erlang error 'function_clause))))
 
 ;; (eval-let (PatBindings . Body) Env) -> Value.
 

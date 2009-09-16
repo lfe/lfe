@@ -1,3 +1,16 @@
+2009-09-16  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_eval.erl (eval-lambda): Lambda args can now hold don't care
+	variable.
+
+	* lfe_lint.erl (check_lambda_args): Lambda args can now hold don't
+	care variable.
+
+	* lfe_codegen.erl (comp_lambda): Lambda args can now hold don't
+	care variable.
+	(comp_let): Simple lets without matching can now hold don't care
+	variables.
+
 2009-08-31  Robert Virding  <rv@stanislaw.local>
 
 	* lfe_io_pretty.erl (print1_list_max, print1_tail_max): Get it
