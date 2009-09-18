@@ -159,8 +159,8 @@ check_mdef([[extends,M]|Mdef], L, St) ->
        true ->
 	    check_mdef(Mdef, L, add_error(L, bad_extends, St))
     end;
-check_mdef([[Name,_]|Mdef], L, St) when is_atom(Name) ->
-    %% Other attributes.
+check_mdef([[Name,_|_]|Mdef], L, St) when is_atom(Name) ->
+    %% Other attributes, must have at least one parameter.
     check_mdef(Mdef, L, St);
 check_mdef([], _, St) -> St;
 check_mdef(_, L, St) -> add_error(L, bad_mod_def, St).

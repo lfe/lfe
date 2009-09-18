@@ -1,3 +1,9 @@
+2009-09-18  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_lint.erl (check_mdef): Fixed handling of attributes.
+
+	* lfe_codegen.erl (collect_mdef): Fixed handling of attributes.
+
 2009-09-16  Robert Virding  <rv@stanislaw.local>
 
 	* lfe_eval.erl (eval-lambda): Lambda args can now hold don't care

@@ -163,8 +163,8 @@ collect_mdef([[export|Es]|Mdef], St) ->
     end;
 collect_mdef([[import|Is]|Mdef], St) ->
     collect_mdef(Mdef, collect_imps(Is, St));
-collect_mdef([[N,V]|Mdef], St) ->
-    As = St#cg.atts ++ [{N,V}],		%Probably not many
+collect_mdef([[N|Vs]|Mdef], St) ->
+    As = St#cg.atts ++ [{N,Vs}],		%Probably not many
     collect_mdef(Mdef, St#cg{atts=As});
 collect_mdef([], St) -> St.
 
