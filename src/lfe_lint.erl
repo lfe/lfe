@@ -69,6 +69,8 @@ format_error(bad_funcs) -> "bad function list";
 format_error(bad_body) -> "bad body";
 format_error(bad_clause) -> "bad clause";
 format_error(bad_args) -> "bad arguments";
+format_error({bad_attribute,A}) ->
+    lfe_io:format1("bad attribute: ~w", [A]);
 format_error({bad_form,Type}) ->
     lfe_io:format1("bad form: ~w", [Type]);
 format_error({unbound_symb,S}) ->
@@ -159,9 +161,12 @@ check_mdef([[extends,M]|Mdef], L, St) ->
        true ->
 	    check_mdef(Mdef, L, add_error(L, bad_extends, St))
     end;
-check_mdef([[Name,_|_]|Mdef], L, St) when is_atom(Name) ->
-    %% Other attributes, must have at least one parameter.
-    check_mdef(Mdef, L, St);
+check_mdef([[Name|Vals]|Mdef], L, St) ->
+    %% Other attributes, must be list and have symbol name.
+    case is_atom(Name) and is_proper_list(Vals) of
+	true -> check_mdef(Mdef, L, St);
+	false -> check_mdef(Mdef, L, add_error(L, {bad_attribute,Name}, St))
+    end;
 check_mdef([], _, St) -> St;
 check_mdef(_, L, St) -> add_error(L, bad_mod_def, St).
 

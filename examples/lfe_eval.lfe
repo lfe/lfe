@@ -30,14 +30,30 @@
 ;;; We cannot use macros here as macros need the evaluator!
 
 (defmodule lfe_eval
-  (export (eval 1) (eval 2) (eval_list 2) (apply 2) (apply 3)
-	  (make_letrec_env 2) (add_expr_func 4) (match 3))
+  (export (expr 1) (expr 2) (gexpr 1) (gexpr 2) (apply 2) (apply 3)
+	  (make_letrec_env 2) (add_expr_func 4) (match 3)
+	  (eval 1) (eval 2) (eval_list 2))
   (import (from lfe_lib (new_env 0)
 		(add_vbinding 3) (add_vbindings 2) (get_vbinding 2)
 		(add_fbinding 4) (add_fbindings 2) (get_fbinding 3)
 		(add_ibinding 5) (get_gbinding 3))
 	  (from lists (reverse 1) (map 2) (foldl 3))
-	  (from orddict (find 2) (store 3))))
+	  (from orddict (find 2) (store 3)))
+  (deprecated #(eval 1) #(eval 2)))
+
+(defun eval (e) (eval e (new_env)))
+
+(defun eval (e env) (eval-expr e env))
+
+(defun eval_list (es env) (eval-list es env))
+
+(defun expr (e) (expr e (new_env)))
+
+(defun expr (e env) (eval-expr e env))
+
+(defun gexpr (e) (gexpr e (new_env)))
+
+(defun gexpr (e env) (eval-gexpr e env))
 
 (defun apply (f args)
   (let ((env (new_env)))
@@ -45,12 +61,6 @@
 
 (defun apply (f args env)
   (lfe-apply (tuple 'expr f env) args env))
-
-(defun eval (e) (eval e (new_env)))
-
-(defun eval (e env) (eval-expr e env))
-
-(defun eval_list (es env) (eval-list es env))
 
 ;; (eval-expr Sexpr Environment) -> Value.
 ;;  Evaluate a sexpr in the current environment. Try to catch core
@@ -157,52 +167,63 @@
     
 ;; (eval-bitspecs specs spec env) -> (tuple type size unit sign end).
 
-(defun eval-bitspecs (specs spec env)
-  (case specs
-    ((('size n) . ss)
+(defun eval-bitspecs (ss spec0 env)
+  (let* ((spec1 (foldl (lambda (s spec) (eval-bitspec s spec env)) spec0 ss))
+	 ((match-spec type ty size sz unit un sign si endian en) spec1))
+    ;; Adjust values depending on type and given value.
+    (flet ((val-or-def (v def) (if (=:= v 'default) def v)))
+      (case ty
+	('integer
+	 (tuple 'integer
+		(val-or-def sz 8) (val-or-def un 1)
+		(val-or-def si 'unsigned) (val-or-def en 'big)))
+	;; Ignore unused fields in utf types!
+	('utf8 (tuple 'utf8 'undefined 'undefined 'undefined 'undefined))
+	('utf16
+	 (tuple 'utf16 'undefined 'undefined 'undefined (val-or-def en 'big)))
+	('utf32
+	 (tuple 'utf32 'undefined 'undefined 'undefined (val-or-def en 'big)))
+	('float
+	 (tuple 'float
+		(val-or-def sz 64) (val-or-def un 1)
+		(val-or-def si 'unsigned) (val-or-def en 'big)))
+	('binary
+	 (tuple 'integer
+		(val-or-def sz 'all) (val-or-def un 8)
+		(val-or-def si 'unsigned) (val-or-def en 'big)))
+	('bitstring
+	 (tuple 'binary
+		(val-or-def sz 'all) (val-or-def un 1)
+		(val-or-def si 'unsigned) (val-or-def en 'big)))))))
+
+(defun eval-bitspec (sp spec env)
+  (case sp
+    ;; Types.
+    ('integer (set-spec-type spec 'integer))
+    ('float (set-spec-type spec 'float))
+    ('binary (set-spec-type spec 'binary))
+    ('bytes (set-spec-type spec 'binary))
+    ('bitstring (set-spec-type spec 'bitstring))
+    ('bits (set-spec-type spec 'bitstring))
+    ;; Unicode types.
+    ('utf-8 (set-spec-type spec 'utf8))
+    ('utf-16 (set-spec-type spec 'utf16))
+    ('utf-32 (set-spec-type spec 'utf32))
+    ;; Endianess.
+    ('big-endian (set-spec-type spec 'big))
+    ('little-endian (set-spec-type spec 'little))
+    ('big-native (set-spec-type spec 'native))
+    ;; Sign.
+    ('signed (set-spec-sign spec 'signed))
+    ('unsigned (set-spec-sign spec 'unsigned))
+    ;; Size
+    (('size n)
      (let ((size (eval-expr n env)))
-       (eval-bitspecs ss (set-spec-size spec size) env)))
-    ((('unit n) . ss) (when (is_integer n))
-     (eval-bitspecs ss (set-spec-unit spec n) env))
-    (('integer . ss)
-     (eval-bitspecs ss (set-spec-type spec 'integer) env))
-    (('float . ss)
-     (eval-bitspecs ss (set-spec-type spec 'float) env))
-    (('binary . ss)
-     (eval-bitspecs ss (set-spec-type spec 'binary) env))
-    (('bitstring . ss)
-     (eval-bitspecs ss (set-spec-type spec 'bitstring) env))
-    (('signed . ss)
-     (eval-bitspecs ss (set-spec-sign spec 'signed) env))
-    (('unsigned . ss)
-     (eval-bitspecs ss (set-spec-sign spec 'unsigned) env))
-    (('big-endian . ss)
-     (eval-bitspecs ss (set-spec-endian spec 'big) env))
-    (('little-endian . ss)
-     (eval-bitspecs ss (set-spec-endian spec 'little) env))
-    (('native-endian . ss)
-     (eval-bitspecs ss (set-spec-endian spec 'native) env))
-    (()
-     (let (((match-spec type ty size sz unit un sign si endian en) spec))
-       ;; Adjust values depending on type and given value.
-       (flet ((val-or-def (v def) (if (=:= v 'default) def v)))
-	 (case ty
-	   ('integer
-	    (tuple 'integer
-		   (val-or-def sz 8) (val-or-def un 1)
-		   (val-or-def si 'unsigned) (val-or-def en 'big)))
-	   ('float
-	    (tuple 'float
-		   (val-or-def sz 64) (val-or-def un 1)
-		   (val-or-def si 'unsigned) (val-or-def en 'big)))
-	   ('binary
-	    (tuple 'integer
-		   (val-or-def sz 'all) (val-or-def un 8)
-		   (val-or-def si 'unsigned) (val-or-def en 'big)))
-	   ('bitstring
-	    (tuple 'binary
-		   (val-or-def sz 'all) (val-or-def un 1)
-		   (val-or-def si 'unsigned) (val-or-def en 'big)))))))))
+       (set-spec-size spec size)))
+    (('unit n) (when (is_integer n))
+     (set-spec-unit spec n))
+    ;; Illegal spec.
+    (sp (: erlang error (tuple 'illegal_bitspec sp)))))
 
 ;; (eval-exp-field value type size unit sign endian) -> binary().
 
@@ -220,6 +241,14 @@
    (binary (val (size (* sz un)) signed big-endian)))
   ([val 'integer sz un 'unsigned 'big]
    (binary (val (size (* sz un)) unsigned big-endian)))
+  ;; Unicode types, ignore unused fields.
+  ([val 'utf8 _ _ _ _] (binary (val utf-8)))
+  ([val 'utf16 _ _ _ 'little] (binary (val utf-16 little-endian)))
+  ([val 'utf16 _ _ _ 'native] (binary (val utf-16 native-endian)))
+  ([val 'utf16 _ _ _ 'big] (binary (val utf-16 big-endian)))
+  ([val 'utf32 _ _ _ 'little] (binary (val utf-32 little-endian)))
+  ([val 'utf32 _ _ _ 'native] (binary (val utf-32 native-endian)))
+  ([val 'utf32 _ _ _ 'big] (binary (val utf-32 big-endian)))
   ;; Float types.
   ([val 'float sz un _ 'little]
    (binary (val float (size (* sz un)) little-endian)))
@@ -235,6 +264,8 @@
      (_ (: erlang error 'bad_arg))))
   ([val 'binary sz un _ _]
    (binary (val binary (size (* sz un)) (unit 1)))))
+
+;; (eval-lambda (lambda-body env)) -> val
 
 (defun eval-lambda
   (((args . body) env)
@@ -710,6 +741,7 @@
      (case (catch (match-field f bin env bs))
        ((tuple 'yes bs bin) (match-binary fs bin env bs))
        ('no 'no)
+       ;;(E (exit E))
        (_ 'no)))			;Catch errors
     (()
      (if (=:= bin #b())
@@ -726,15 +758,19 @@
        (match-field pat spec-t bin env bs)))))
 
 (defun match-field (pat spec bin env bs)
-  (let* (((match-spec type ty size sz unit un sign si endian en) spec)
+  (let* (((tuple ty sz un si en) spec)
 	 ((tuple val bin) (get-value bin ty sz un si en)))
     (case (match pat val env bs)
-      ((tuple 'yes bs1) (tuple 'yes bs bin))
+      ((tuple 'yes bs) (tuple 'yes bs bin))
       ('no 'no))))
 
 (defun get-value (bin ty sz un si en)
   (case ty
     ('integer (get-integer bin (* sz un) si en))
+    ('utf8 (let (((binary (val utf-8) (rest bitstring)) bin))
+	     (tuple val rest)))
+    ('utf16 (get-utf-16 bin en))
+    ('utf32 (get-utf-32 bin en))
     ('float (get-float bin (* sz un) en))
     ('binary
      (if (=:= sz 'all)
@@ -744,32 +780,49 @@
 	      ((binary (val bitstring (size tot-size)) (rest bitstring)) bin))
 	 (tuple val rest))))))
 
-(defun get-integer (bin sz si en)
-  (case (tuple si en)
-    ((tuple 'signed 'little-endian)
-     (let (((binary (val signed little-endian (size sz))
-		    (rest binary (unit 1))) bin))
-       (tuple val rest)))
-    ((tuple 'unsigned 'little-endian)
-     (let (((binary (val unsigned little-endian (size sz))
-		    (rest binary (unit 1))) bin))
-       (tuple val rest)))
-    ((tuple 'signed 'native-endian)
-     (let (((binary (val signed native-endian (size sz))
-		    (rest binary (unit 1))) bin))
-       (tuple val rest)))
-    ((tuple 'unsigned 'native-endian)
-     (let (((binary (val unsigned native-endian (size sz))
-		    (rest binary (unit 1))) bin))
-       (tuple val rest)))
-    ((tuple 'signed 'bin-endian)
-     (let (((binary (val signed big-endian (size sz))
-		    (rest binary (unit 1))) bin))
-       (tuple val rest)))
-    ((tuple 'unsigned 'big-endian)
-     (let (((binary (val unsigned big-endian (size sz))
-		    (rest binary (unit 1))) bin))
-       (tuple val rest)))))
+(defun get-integer
+  ([bin sz 'signed 'little-endian]
+   (let (((binary (val signed little-endian (size sz))
+		  (rest binary (unit 1))) bin))
+     (tuple val rest)))
+  ([bin sz 'unsigned 'little-endian]
+   (let (((binary (val unsigned little-endian (size sz))
+		  (rest binary (unit 1))) bin))
+     (tuple val rest)))
+  ([bin sz 'signed 'native-endian]
+   (let (((binary (val signed native-endian (size sz))
+		  (rest binary (unit 1))) bin))
+     (tuple val rest)))
+  ([bin sz 'unsigned 'native-endian]
+   (let (((binary (val unsigned native-endian (size sz))
+		  (rest binary (unit 1))) bin))
+     (tuple val rest)))
+  ([bin sz 'signed 'big-endian]
+   (let (((binary (val signed big-endian (size sz))
+		  (rest binary (unit 1))) bin))
+     (tuple val rest)))
+  ([bin sz 'unsigned 'big-endian]
+   (let (((binary (val unsigned big-endian (size sz))
+		  (rest binary (unit 1))) bin))
+     (tuple val rest))))
+
+(defun get-utf-16 (bin en)
+  (case en
+    ('little (let (((binary (val utf-16 little-endian) (rest bitstring)) bin))
+	       (tuple val rest)))
+    ('native (let (((binary (val utf-16 native-endian) (rest bitstring)) bin))
+	       (tuple val rest)))
+    ('big (let (((binary (val utf-16 big-endian) (rest bitstring)) bin))
+	    (tuple val rest)))))
+
+(defun get-utf-32 (bin en)
+  (case en
+    ('little (let (((binary (val utf-32 little-endian) (rest bitstring)) bin))
+	       (tuple val rest)))
+    ('native (let (((binary (val utf-32 native-endian) (rest bitstring)) bin))
+	       (tuple val rest)))
+    ('big (let (((binary (val utf-32 big-endian) (rest bitstring)) bin))
+	    (tuple val rest)))))
 
 (defun get-float (bin sz en)
   (case en
