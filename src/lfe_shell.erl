@@ -32,7 +32,7 @@
 -export([start/0,start/1,server/0,server/1]).
 
 -import(lfe_lib, [new_env/0,add_env/2,
-		  add_vbinding/3,add_vbindings/2,get_vbinding/2,
+		  add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
 		  fetch_vbinding/2,update_vbinding/3,
 		  add_fbinding/4,add_fbindings/3,get_fbinding/3,add_ibinding/5,
 		  get_gbinding/3,add_mbinding/3]).
@@ -126,7 +126,7 @@ eval_form(Form, Env0, Benv) ->
 	{yes,Value,Env1} -> {Value,Env1};
 	no ->
 	    %% Normal evaluation of form.
-	    {lfe_eval:eval(Eform, Env0),Env0}
+	    {lfe_eval:expr(Eform, Env0),Env0}
     end.
 
 %% eval_internal(Form, EvalEnv, BaseEnv) -> {yes,Value,Env} | no.
@@ -151,6 +151,8 @@ eval_internal(['macroexpand-1',S], Eenv, Benv) ->
     macroexpand_1(S, Eenv, Benv);
 eval_internal(['macroexpand-all',S], Eenv, Benv) ->
     macroexpand_all(S, Eenv, Benv);
+eval_internal([set|Args], Eenv, Benv) ->	%Set variables in shell
+    set(Args, Eenv, Benv);
 eval_internal(_, _, _) -> no.			%Not an internal function
 
 %% c(Args, EvalEnv, BaseEnv) -> {yes,Res,Env}.
@@ -158,8 +160,8 @@ eval_internal(_, _, _) -> no.			%Not an internal function
 
 c([F], Eenv, Benv) -> c([F,[]], Eenv, Benv);
 c([F,Os], Eenv, _) ->
-    Name = lfe_eval:eval(F, Eenv),		%Evaluate arguments
-    Opts = lfe_eval:eval(Os, Eenv),
+    Name = lfe_eval:expr(F, Eenv),		%Evaluate arguments
+    Opts = lfe_eval:expr(Os, Eenv),
     Loadm = fun (Mod) ->
 		    Base = filename:basename(Name, ".lfe"),
 		    code:purge(Mod),
@@ -178,8 +180,8 @@ c(_, _, _) -> no.				%Unknown function,
 
 ec([F], Eenv, Benv) -> ec([F,[]], Eenv, Benv);
 ec([F,Os], Eenv, _) ->
-    Name = lfe_eval:eval(F, Eenv),		%Evaluate arguments
-    Opts = lfe_eval:eval(Os, Eenv),
+    Name = lfe_eval:expr(F, Eenv),		%Evaluate arguments
+    Opts = lfe_eval:expr(Os, Eenv),
     {yes,c:c(Name, Opts),Eenv};
 ec(_, _, _) -> no.				%Unknown function
 
@@ -187,14 +189,14 @@ ec(_, _, _) -> no.				%Unknown function
 %%  Load the modules in Args.
 
 l(Args, Eenv, _) ->
-    {yes,map(fun (M) -> c:l(lfe_eval:eval(M, Eenv)) end, Args), Eenv}.
+    {yes,map(fun (M) -> c:l(lfe_eval:expr(M, Eenv)) end, Args), Eenv}.
 
 %% m(Args, EvalEnv, BaseEnv) -> {yes,Res,Env}.
 %%  Module info.
 
 m([], Eenv, _) -> {yes,c:m(),Eenv};
 m(Args, Eenv, _) ->
-    {yes,map(fun (M) -> c:m(lfe_eval:eval(M, Eenv)) end, Args), Eenv}.
+    {yes,map(fun (M) -> c:m(lfe_eval:expr(M, Eenv)) end, Args), Eenv}.
 
 %% macroexpand(Sexpr, EvalEnv, BaseEnv) -> {yes,Res,Env}.
 %% macroexpand_1(Sexpr, EvalEnv, BaseEnv) -> {yes,Res,Env}.
@@ -202,22 +204,36 @@ m(Args, Eenv, _) ->
 %%  We special case these at shell level so as to get shell environment.
 
 macroexpand(S, Eenv, _) ->
-    case lfe_macro:expand_macro(lfe_eval:eval(S, Eenv), Eenv) of
+    case lfe_macro:expand_macro(lfe_eval:expr(S, Eenv), Eenv) of
 	{yes,Exp} -> {yes,Exp,Eenv};
 	no -> {yes,S,Eenv}
     end.
 
 macroexpand_1(S, Eenv, _) ->
-    case lfe_macro:expand_macro_1(lfe_eval:eval(S, Eenv), Eenv) of
+    case lfe_macro:expand_macro_1(lfe_eval:expr(S, Eenv), Eenv) of
 	{yes,Exp} -> {yes,Exp,Eenv};
 	no -> {yes,S,Eenv}
     end.
 
 macroexpand_all(S, Eenv, _) ->
-    Exp = lfe_macro:expand_form(lfe_eval:eval(S, Eenv), Eenv),
+    Exp = lfe_macro:expand_form(lfe_eval:expr(S, Eenv), Eenv),
     {yes,Exp,Eenv}.
 
-%% slurp(File, EvalEnv, BaseEnv) -> {yes,{mod,Mod},Env}.
+%% set(Args, EvalEnv, BaseEnv) -> {yes,Result,Env} | no.
+
+set([Pat,Exp], Eenv, _) ->
+    Val = lfe_eval:expr(Exp, Eenv),		%Evaluate expression
+    case lfe_eval:match(Pat, Val, Eenv) of
+	{yes,Bs} ->
+	    Env1 = foldl(fun ({N,V}, E) -> add_upd_vbinding(N, V, E) end,
+			 Eenv, Bs),
+	    {yes,Val,Env1};
+	no -> erlang:error({badmatch,Val})
+    end;
+%% set([Pat,['when',G],Exp], Eenv, _) ->
+set(_, _, _) -> no.
+
+%% slurp(File, EvalEnv, BaseEnv) -> {yes,{mod,Mod},Env} | no.
 %%  Load in a file making all functions available. The module is
 %%  loaded in an empty environment and that environment is finally
 %%  added to the standard base environment.
@@ -225,7 +241,7 @@ macroexpand_all(S, Eenv, _) ->
 -record(slurp, {mod,imps=[]}).			%For slurping
     
 slurp([File], Eenv, Benv) ->
-    Name = lfe_eval:eval(File, Eenv),		%Get file name
+    Name = lfe_eval:expr(File, Eenv),		%Get file name
     {ok,Fs0} = lfe_io:parse_file(Name),
     St0 = #slurp{mod='-no-mod-',imps=[]},
     {Fs1,Fenv0} = lfe_macro:macro_forms(Fs0, new_env()),
@@ -238,7 +254,8 @@ slurp([File], Eenv, Benv) ->
 		  end, Fenv0, St1#slurp.imps),
     %% Get a new environment with all functions defined.
     Fenv2 = lfe_eval:make_letrec_env(Fbs, Fenv1),
-    {yes,{ok,St1#slurp.mod},add_env(Fenv2, Benv)}.
+    {yes,{ok,St1#slurp.mod},add_env(Fenv2, Benv)};
+slurp(_, _, _) -> no.
 
 collect_form(['define-module',Mod|Mdef], _, St0) when is_atom(Mod) ->
     St1 = collect_mdef(Mdef, St0),
@@ -276,6 +293,14 @@ collect_imp(Fun, Mod, St, Fs) ->
     Imps0 = safe_fetch(Mod, St#slurp.imps, []),
     Imps1 = foldl(Fun, Imps0, Fs),
     St#slurp{imps=store(Mod, Imps1, St#slurp.imps)}.
+
+%% add_upd_vbinding(Name, Val, Env) -> Env.
+
+add_upd_vbinding(N, V, Env) ->
+    case is_vbound(N, Env) of
+	true -> update_vbinding(N, V, Env);
+	false -> add_vbinding(N, V, Env)
+    end.
 
 %% safe_fetch(Key, Dict, Default) -> Value.
 
