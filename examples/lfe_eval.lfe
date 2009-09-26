@@ -741,7 +741,7 @@
      (case (catch (match-field f bin env bs))
        ((tuple 'yes bs bin) (match-binary fs bin env bs))
        ('no 'no)
-       ;;(E (exit E))
+       (E (exit E))
        (_ 'no)))			;Catch errors
     (()
      (if (=:= bin #b())
@@ -781,27 +781,27 @@
 	 (tuple val rest))))))
 
 (defun get-integer
-  ([bin sz 'signed 'little-endian]
+  ([bin sz 'signed 'little]
    (let (((binary (val signed little-endian (size sz))
 		  (rest binary (unit 1))) bin))
      (tuple val rest)))
-  ([bin sz 'unsigned 'little-endian]
+  ([bin sz 'unsigned 'little]
    (let (((binary (val unsigned little-endian (size sz))
 		  (rest binary (unit 1))) bin))
      (tuple val rest)))
-  ([bin sz 'signed 'native-endian]
+  ([bin sz 'signed 'native]
    (let (((binary (val signed native-endian (size sz))
 		  (rest binary (unit 1))) bin))
      (tuple val rest)))
-  ([bin sz 'unsigned 'native-endian]
+  ([bin sz 'unsigned 'native]
    (let (((binary (val unsigned native-endian (size sz))
 		  (rest binary (unit 1))) bin))
      (tuple val rest)))
-  ([bin sz 'signed 'big-endian]
+  ([bin sz 'signed 'big]
    (let (((binary (val signed big-endian (size sz))
 		  (rest binary (unit 1))) bin))
      (tuple val rest)))
-  ([bin sz 'unsigned 'big-endian]
+  ([bin sz 'unsigned 'big]
    (let (((binary (val unsigned big-endian (size sz))
 		  (rest binary (unit 1))) bin))
      (tuple val rest))))
@@ -826,15 +826,15 @@
 
 (defun get-float (bin sz en)
   (case en
-    ('little-endian
+    ('little
      (let (((binary (val float little-endian (size sz)) (rest binary (unit 1)))
 	    bin))
        (tuple val rest)))
-    ('native-endian
+    ('native
      (let (((binary (val float native-endian (size sz)) (rest binary (unit 1)))
 	    bin))
        (tuple val rest)))
-    ('big-endian
+    ('big
      (let (((binary (val float big-endian (size sz)) (rest binary (unit 1)))
 	    bin))
        (tuple val rest)))))

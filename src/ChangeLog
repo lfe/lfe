@@ -1,3 +1,16 @@
+2009-09-26  Robert Virding  <rv@stanislaw.local>
+
+	* lfe-eval.lfe (get-integer, get-float): Got endian names right
+	internally.
+
+	* lfe_shell.erl (set): New shell command to set variables in
+	shell.
+
+2009-09-25  Robert Virding  <rv@stanislaw.local>
+
+	* lfe-eval.lfe (eval-bitspec, eval-exp-field, get-value): Added
+	unicode types.
+
 2009-09-18  Robert Virding  <rv@stanislaw.local>
 
 	* lfe_lint.erl (check_mdef): Fixed handling of attributes.
