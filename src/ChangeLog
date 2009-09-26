@@ -1,5 +1,11 @@
 2009-09-26  Robert Virding  <rv@stanislaw.local>
 
+	* lfe-eval.erl (eval-binary, match-binary): Cleaned up handling of
+	binaries.
+
+	* lfe_eval.erl (eval_binary, match_binary): Cleaned up handling of
+	binaries.
+
 	* lfe-eval.lfe (get-integer, get-float): Got endian names right
 	internally.
 

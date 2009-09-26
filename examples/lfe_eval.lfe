@@ -158,17 +158,17 @@
   (case field
     ((val . specs)
      (let* ((v (eval-expr val env))
-	    ((tuple ty sz un si en) (eval-bitspecs specs (make-spec) env)))
+	    ((tuple ty sz un si en) (parse-bitspecs specs (make-spec) env)))
        (eval-exp-field v ty sz un si en)))
     (val
      (let* ((v (eval-expr val env))
-	    ((tuple ty sz un si en) (eval-bitspecs () (make-spec) env)))
+	    ((tuple ty sz un si en) (parse-bitspecs () (make-spec) env)))
        (eval-exp-field v ty sz un si en)))))
-    
-;; (eval-bitspecs specs spec env) -> (tuple type size unit sign end).
 
-(defun eval-bitspecs (ss spec0 env)
-  (let* ((spec1 (foldl (lambda (s spec) (eval-bitspec s spec env)) spec0 ss))
+;; (parse-bitspecs specs spec env) -> (tuple type size unit sign end).
+
+(defun parse-bitspecs (ss spec0 env)
+  (let* ((spec1 (foldl (lambda (s spec) (parse-bitspec s spec env)) spec0 ss))
 	 ((match-spec type ty size sz unit un sign si endian en) spec1))
     ;; Adjust values depending on type and given value.
     (flet ((val-or-def (v def) (if (=:= v 'default) def v)))
@@ -196,7 +196,7 @@
 		(val-or-def sz 'all) (val-or-def un 1)
 		(val-or-def si 'unsigned) (val-or-def en 'big)))))))
 
-(defun eval-bitspec (sp spec env)
+(defun parse-bitspec (sp spec env)
   (case sp
     ;; Types.
     ('integer (set-spec-type spec 'integer))
@@ -229,33 +229,13 @@
 
 (defun eval-exp-field
   ;; Integer types.
-  ([val 'integer sz un 'signed 'little]
-   (binary (val (size (* sz un)) signed little-endian)))
-  ([val 'integer sz un 'unsigned 'little]
-   (binary (val (size (* sz un)) unsigned little-endian)))
-  ([val 'integer sz un 'signed 'native]
-   (binary (val (size (* sz un)) signed native-endian)))
-  ([val 'integer sz un 'unsigned 'native]
-   (binary (val (size (* sz un)) unsigned native-endian)))
-  ([val 'integer sz un 'signed 'big]
-   (binary (val (size (* sz un)) signed big-endian)))
-  ([val 'integer sz un 'unsigned 'big]
-   (binary (val (size (* sz un)) unsigned big-endian)))
+  ([val 'integer sz un si en] (eval-int-field val (* sz un) si en))
   ;; Unicode types, ignore unused fields.
   ([val 'utf8 _ _ _ _] (binary (val utf-8)))
-  ([val 'utf16 _ _ _ 'little] (binary (val utf-16 little-endian)))
-  ([val 'utf16 _ _ _ 'native] (binary (val utf-16 native-endian)))
-  ([val 'utf16 _ _ _ 'big] (binary (val utf-16 big-endian)))
-  ([val 'utf32 _ _ _ 'little] (binary (val utf-32 little-endian)))
-  ([val 'utf32 _ _ _ 'native] (binary (val utf-32 native-endian)))
-  ([val 'utf32 _ _ _ 'big] (binary (val utf-32 big-endian)))
+  ([val 'utf16 _ _ _ en] (eval-utf-16-field val en))
+  ([val 'utf32 _ _ _ en] (eval-utf-32-field val en))
   ;; Float types.
-  ([val 'float sz un _ 'little]
-   (binary (val float (size (* sz un)) little-endian)))
-  ([val 'float sz un _ 'native]
-   (binary (val float (size (* sz un)) native-endian)))
-  ([val 'float sz un _ 'big]
-   (binary (val float (size (* sz un)) big-endian)))
+  ([val 'float sz un _ en] (eval-float-field val (* sz un) en))
   ;; Binary types.
   ([val 'binary 'all un _ _]
    (case (: erlang bit_size val)
@@ -264,6 +244,32 @@
      (_ (: erlang error 'bad_arg))))
   ([val 'binary sz un _ _]
    (binary (val binary (size (* sz un)) (unit 1)))))
+
+(defun eval-int-field
+  ([val sz 'signed 'little] (binary (val (size sz) signed little-endian)))
+  ([val sz 'unsigned 'little] (binary (val (size sz) unsigned little-endian)))
+  ([val sz 'signed 'native] (binary (val (size sz) signed native-endian)))
+  ([val sz 'unsigned 'native] (binary (val (size sz) unsigned native-endian)))
+  ([val sz 'signed 'big] (binary (val (size sz) signed big-endian)))
+  ([val sz 'unsigned 'big] (binary (val (size sz) unsigned big-endian))))
+
+(defun eval-utf-16-field (val en)
+  (case en
+    ('little (binary (val utf-16 little-endian)))
+    ('native (binary (val utf-16 native-endian)))
+    ('big (binary (val utf-16 big-endian)))))
+
+(defun eval-utf-32-field (val en)
+  (case en
+    ('little (binary (val utf-32 little-endian)))
+    ('native (binary (val utf-32 native-endian)))
+    ('big (binary (val utf-32 big-endian)))))
+
+(defun eval-float-field (val sz en)
+  (case en
+    ('little (binary (val float (size sz) little-endian)))
+    ('native (binary (val float (size sz) native-endian)))
+    ('big (binary (val float (size sz) big-endian)))))
 
 ;; (eval-lambda (lambda-body env)) -> val
 
@@ -384,7 +390,7 @@
 		       ((_ _) (: erlang error (tuple 'bad_form 'let-function))))
 		     env0 fbs)))
     (eval-body body env)))
-			
+
 ;; (eval-letrec-function (FuncBindings . Body) Env) -> Value.
 ;;  This is a tricky one. But we dynamically update the environment
 ;;  each time we are called.
@@ -522,7 +528,7 @@
 		      (merge-queue ms)
 		      (eval-body tb env)))))
     (statistics 'runtime)
-    (rec_clauses t [])))		   
+    (rec_clauses t [])))
 
 ;; Merge the already received messages back into the process message
 ;; queue in the right order. Do this by first receiving the rest of
@@ -731,47 +737,46 @@
 	('error (tuple 'yes (store symb val bs))))))
 
 ;; (match-binary fields binary env bindings) -> (tuple 'yes bindings) | 'no.
-;;  Match Fields against Binary. This code is taken from eval_bits.erl.
-;;  Use catch to trap bad matches when getting value, errors become
-;;  no match.
+;;  Match Fields against Binary. This code is taken from
+;;  eval_bits.erl.  Use catch to trap bad matches when getting value,
+;;  errors become no match. Split into two passes so as to throw error
+;;  on bitspec error and return no on all no matches.
 
 (defun match-binary (fs bin env bs)
-  (case fs
-    ((f . fs)
-     (case (catch (match-field f bin env bs))
-       ((tuple 'yes bs bin) (match-binary fs bin env bs))
-       ('no 'no)
-       (E (exit E))
-       (_ 'no)))			;Catch errors
-    (()
-     (if (=:= bin #b())
-       (tuple 'yes bs)
-       'no))))
+  (let ((psps (map (lambda (f) (parse-field f env)) fs)))
+    (case (catch (match-fields psps bin env bs))
+      ((tuple 'yes #b() bs) (tuple 'yes bs))
+      ((tuple 'yes _ _) 'no)
+      ('no 'no))))
 
-(defun match-field (f bin env bs)
+(defun parse-field (f env)
   (case f
-    ((pat . specs)
-     (let ((spec-t (eval-bitspecs specs (make-spec) env)))
-       (match-field pat spec-t bin env bs)))
-    (pat
-     (let ((spec-t (eval-bitspecs '() (make-spec) env)))
-       (match-field pat spec-t bin env bs)))))
+    ((pat . specs) (tuple pat (parse-bitspecs specs (make-spec) env)))
+    (pat (tuple pat (parse-bitspecs () (make-spec) env)))))
+
+(defun match-fields (psps bin env bs)
+  (case psps
+    (((tuple pat specs) . psps)
+     (case (match-field pat specs bin env bs)
+       ((tuple 'yes bin bs) (match-fields psps bin env bs))
+       ('no 'no)))
+    (() (tuple 'yes bin bs))))
 
 (defun match-field (pat spec bin env bs)
   (let* (((tuple ty sz un si en) spec)
-	 ((tuple val bin) (get-value bin ty sz un si en)))
+	 ((tuple val bin) (get-pat-field bin ty sz un si en)))
     (case (match pat val env bs)
-      ((tuple 'yes bs) (tuple 'yes bs bin))
+      ((tuple 'yes bs) (tuple 'yes bin bs))
       ('no 'no))))
 
-(defun get-value (bin ty sz un si en)
+(defun get-pat-field (bin ty sz un si en)
   (case ty
-    ('integer (get-integer bin (* sz un) si en))
+    ('integer (get-int-field bin (* sz un) si en))
     ('utf8 (let (((binary (val utf-8) (rest bitstring)) bin))
 	     (tuple val rest)))
-    ('utf16 (get-utf-16 bin en))
-    ('utf32 (get-utf-32 bin en))
-    ('float (get-float bin (* sz un) en))
+    ('utf16 (get-utf-16-field bin en))
+    ('utf32 (get-utf-32-field bin en))
+    ('float (get-float-field bin (* sz un) en))
     ('binary
      (if (=:= sz 'all)
        (let ((0 (rem (: erlang bit_size bin) un)))
@@ -780,7 +785,7 @@
 	      ((binary (val bitstring (size tot-size)) (rest bitstring)) bin))
 	 (tuple val rest))))))
 
-(defun get-integer
+(defun get-int-field
   ([bin sz 'signed 'little]
    (let (((binary (val signed little-endian (size sz))
 		  (rest binary (unit 1))) bin))
@@ -806,7 +811,7 @@
 		  (rest binary (unit 1))) bin))
      (tuple val rest))))
 
-(defun get-utf-16 (bin en)
+(defun get-utf-16-field (bin en)
   (case en
     ('little (let (((binary (val utf-16 little-endian) (rest bitstring)) bin))
 	       (tuple val rest)))
@@ -815,7 +820,7 @@
     ('big (let (((binary (val utf-16 big-endian) (rest bitstring)) bin))
 	    (tuple val rest)))))
 
-(defun get-utf-32 (bin en)
+(defun get-utf-32-field (bin en)
   (case en
     ('little (let (((binary (val utf-32 little-endian) (rest bitstring)) bin))
 	       (tuple val rest)))
@@ -824,7 +829,7 @@
     ('big (let (((binary (val utf-32 big-endian) (rest bitstring)) bin))
 	    (tuple val rest)))))
 
-(defun get-float (bin sz en)
+(defun get-float-field (bin sz en)
   (case en
     ('little
      (let (((binary (val float little-endian (size sz)) (rest binary (unit 1)))
