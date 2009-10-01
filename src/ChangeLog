@@ -1,3 +1,7 @@
+2009-10-02  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_codegen.erl: Cleaned up handling of literals.
+
 2009-09-26  Robert Virding  <rv@stanislaw.local>
 
 	* lfe-eval.erl (eval-binary, match-binary): Cleaned up handling of

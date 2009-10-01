@@ -76,11 +76,11 @@ forms(Forms, St0, Core0) ->
     Fbs1 = [{module_info,
 	     [lambda,[],
 	      [call,[quote,erlang],[quote,get_module_info],
-	       [quote,St1#cg.mod]]],0},
+	       [quote,St1#cg.mod]]],1},
 	    {module_info,
 	     [lambda,[x],
 	      [call,[quote,erlang],[quote,get_module_info],
-	       [quote,St1#cg.mod],x]],0}|
+	       [quote,St1#cg.mod],x]],1}|
 	    Fbs0],
     %% Make initial environment and set state
     Env0 = foldl(fun ({M,Fs}, Env) ->
@@ -95,19 +95,19 @@ forms(Forms, St0, Core0) ->
 		 defs=Fbs1,env=Env1},
     Exps = make_exports(St2#cg.exps, Fbs1),
     Atts = map(fun ({N,V}) ->
-		       {make_literal(N),make_literal(V)}
+		       {comp_lit(N),comp_lit(V)}
 	       end, St2#cg.atts),
     %% Compile the functions.
     {Cdefs,St3} = mapfoldl(fun (D, St) -> comp_define(D, Env1, St) end,
 			  St2, St2#cg.defs),
     %% Build the final core module structure.
-    Core1 = Core0#c_module{name=c_lit(St3#cg.mod, 1),
+    Core1 = Core0#c_module{name=c_atom(St3#cg.mod),
 			   exports=Exps,
 			   attrs=Atts,
 			   defs=Cdefs},
     %% Maybe print lots of debug info.
     debug_print("#cg: ~p\n", [St3], St3),
-    when_opt(fun () -> io:fwrite("core_lint: ~p\n", 
+    when_opt(fun () -> io:fwrite("core_lint: ~p\n",
 				 [(catch core_lint:module(Core1))])
 	     end, debug_print, St3),
     when_opt(fun () ->
@@ -131,9 +131,9 @@ add_exports(_, all) -> all;
 add_exports(Old, More) -> union(Old, More).
 
 make_exports(all, Fbs) ->
-    map(fun ({F,Def,_}) -> c_fname(F, func_arity(Def), 1) end, Fbs);
+    map(fun ({F,Def,_}) -> c_fname(F, func_arity(Def)) end, Fbs);
 make_exports(Exps, _) ->
-    map(fun ({F,A}) -> c_fname(F, A, 1) end, Exps).
+    map(fun ({F,A}) -> c_fname(F, A) end, Exps).
 
 %% collect_form(Form, Line, State} -> {[Ret],State}.
 %%  Collect valid forms and module data. Returns forms and put module
@@ -191,7 +191,7 @@ collect_imp(Fun, Mod, St, Fs) ->
 %%  Compile a top-level define. Sets current function name.
 
 comp_define({Name,Def,L}, Env, St) ->
-    Cf = c_fname(Name, func_arity(Def), L),	%Could be useful
+    Cf = c_fname(Name, func_arity(Def)),	%Could be useful
     comp_func(Name, Def, Env, L, St#cg{func=Cf,vc=0,fc=0}).
 
 %% comp_body(BodyList, Env, Line, State) -> {CoreBody,State}.
@@ -202,32 +202,32 @@ comp_body([E|Es], Env, L, St0) ->
     {Ce,St1} = comp_expr(E, Env, L, St0),
     {Ces,St2} = comp_body(Es, Env, L, St1),
     {#c_seq{anno=[L],arg=Ce,body=Ces},St2};
-comp_body([], _, L, St) -> {c_nil(L),St}.	%Empty body
-    
+comp_body([], _, _, St) -> {c_nil(),St}.	%Empty body
+
 %% comp_expr(Expr, Env, Line, State) -> {CoreExpr,State}.
 %% Compile an expression.
 
 comp_expr([_|_]=Call, Env, L, St) ->
     comp_call(Call, Env, L, St);
-comp_expr([], _, L, St) -> {c_nil(L),St};	%Self evaluating
+comp_expr([], _, _, St) -> {c_nil(),St};	%Self evaluating
 comp_expr(Tup, _, _, St) when is_tuple(Tup) ->
     %% This just builds a tuple constant.
-    {make_literal(Tup),St};
-comp_expr(Symb, _, L, St) when is_atom(Symb) ->
-    {c_var(Symb, L),St};
+    {comp_lit(Tup),St};
+comp_expr(Symb, _, _, St) when is_atom(Symb) ->
+    {c_var(Symb),St};
 comp_expr(Numb, _, _, St) when is_number(Numb) ->
-    {make_literal(Numb),St};
+    {comp_lit(Numb),St};
 comp_expr(Bin, _, _, St) when is_binary(Bin) ->
-    {make_literal(Bin),St}.
+    {comp_lit(Bin),St}.
 
 %% comp_call(Call, Env, Line, State) -> {CoreCall,State}.
 %% Handle the Core data special forms.
 
-comp_call([quote,E], _, _, St) -> {make_literal(E),St};
+comp_call([quote,E], _, _, St) -> {comp_lit(E),St};
 comp_call([cons,H,T], Env, L, St0) ->
     {Ch,St1} = comp_expr(H, Env, L, St0),
     {Ct,St2} = comp_expr(T, Env, L, St1),
-    {c_cons(Ch, Ct, L),St2};
+    {c_cons(Ch, Ct),St2};
 comp_call([car,E], Env, L, St) ->		%Provide lisp names
     comp_call([hd,E], Env, L, St);
 comp_call([cdr,E], Env, L, St) ->
@@ -235,15 +235,15 @@ comp_call([cdr,E], Env, L, St) ->
 comp_call([list|Es], Env, L, St) ->
     foldr(fun (E, {T,St0}) ->
 		  {Ce,St1} = comp_expr(E, Env, L, St0),
-		  {c_cons(Ce, T, L),St1}
-	  end, {c_nil(L),St}, Es);
+		  {c_cons(Ce, T),St1}
+	  end, {c_nil(),St}, Es);
 comp_call([tuple|As], Env, L, St0) ->
     {Cas,St1} = comp_args(As, Env, L, St0),
-    sequentialise_args(Cas, fun (Args, _, L, St) ->
-				    {c_tuple(Args, L),St}
-			    end, [], Env, L, St1);
+    sequentialise_args(Cas, fun (Args, _, _, St) ->
+				    {c_tuple(Args),St}
+			    end, Env, L, St1);
 %%     {Cas,St1} = comp_args(As, Env, L, St0),
-%%     {c_tuple(Cas, L),St1};
+%%     {c_tuple(Cas),St1};
 comp_call([binary|Segs], Env, L, St) ->
     comp_binary(Segs, Env, L, St);		%And bitstring as well
 %% Handle the Core closure special forms.
@@ -293,29 +293,32 @@ comp_call([Fun|As], Env, L, St0) when is_atom(Fun) ->
 		   Ar = length(Args),
 		   case get_fbinding(Fun, Ar, Env) of
 		       {yes,M,F} ->				%Import
-			   {#c_call{anno=[L],module=c_lit(M, L),
-				    name=c_lit(F, L),args=Args},
+			   {#c_call{anno=[L],module=c_atom(M),
+				    name=c_atom(F),args=Args},
 			    St};
 		       {yes,Name} ->
 			   %% Might have been renamed, use real function name.
-			   {#c_apply{anno=[L],op=c_fname(Name, Ar, L),
+			   {#c_apply{anno=[L],op=c_fname(Name, Ar),
 				     args=Args},St}
 		   end
 	   end,
-    sequentialise_args(Cas, Call, [], Env, L, St1).
-    
+    sequentialise_args(Cas, Call, Env, L, St1).
+
 %%     Ar = length(As),
 %%     case get_fbinding(Fun, Ar, Env) of
 %% 	{yes,M,F} ->				%Import
-%% 	    {#c_call{anno=[L],module=c_lit(M, L),name=c_lit(F, L),args=Cas},
+%% 	    {#c_call{anno=[L],module=c_atom(M),name=c_atom(F),args=Cas},
 %% 	     St1};
 %% 	{yes,Name} ->
 %% 	    %% Might have been renamed, use real function name.
-%% 	    {#c_apply{anno=[L],op=c_fname(Name, Ar, L),args=Cas},St1}
+%% 	    {#c_apply{anno=[L],op=c_fname(Name, Ar),args=Cas},St1}
 %%     end.
 
-%% sequentialise_args(CompiledArgs, Call, Env, Line, State) ->
+%% sequentialise_args(CompiledArgs, UseCall, Env, Line, State) ->
 %%      {CoreCall,State}.
+
+sequentialise_args(Cas, Call, Env, L, St) ->
+    sequentialise_args(Cas, Call, [], Env, L, St).
 
 sequentialise_args([Ca|Cas], Call, Sas, Env, L, St0) ->
     %% Use erlang core compiler lib which does what we want.
@@ -361,9 +364,9 @@ comp_match_lambda(Cls, Env, L, St0) ->
     {Cvs,St1} = new_c_vars(Ar, L, St0),
     {Ccs,St2} = comp_match_clauses(Cls, Env, L, St1),
     {Fvs,St3} = new_c_vars(Ar, L, St2),
-    Cf = fail_clause(Fvs,c_tuple([c_lit(function_clause, L)|Fvs],L), L, St3),
+    Cf = fail_clause(Fvs,c_tuple([c_atom(function_clause)|Fvs]), L, St3),
     Cb = #c_case{anno=[L],
-		 arg=c_values(Cvs, L),
+		 arg=c_values(Cvs),
 		 clauses=Ccs ++ [Cf]},
     {c_fun(Cvs, Cb, L),St3}.
 
@@ -409,7 +412,7 @@ comp_let(Vbs, B, Env, L, St0) ->
 	    {Cb,St3} = comp_body(B, add_vbindings(Pvs, Env), L, St2),
 	    {#c_let{anno=[L],
 		    vars=Cvs,
-		    arg=c_values(Ces, L),
+		    arg=c_values(Ces),
 		    body=Cb},St3};
 	false ->
 	    %% This would be much easier to do by building a clause
@@ -433,13 +436,13 @@ comp_let(Vbs, B, Env, L, St0) ->
 	    {Cb,St4} = comp_body(B, Env1, L, St3),
 	    {Cvs,St5} = new_c_vars(length(Ces), L, St4),
 	    Cf = fail_clause(Cvs,
-			     c_tuple([c_lit(badmatch, L),c_tuple(Cvs, L)],L),
+			     c_tuple([c_atom(badmatch),c_tuple(Cvs)]),
 			     L, St5),
 	    {#c_case{anno=[L],
-		     arg=c_values(Ces, L),
+		     arg=c_values(Ces),
 		     clauses=[#c_clause{anno=[L],pats=Cps,guard=Cg,body=Cb},Cf]},
 	     St5}
-    end.    
+    end.
 
 %% comp_let_function(FuncBindngs, Body, Env, Line, State) ->
 %%      {#c_letrec{},State}.
@@ -494,11 +497,11 @@ func_arity(['match-lambda'|Cls]) ->
 %% comp_func(FuncName, FuncDef, Env, L, State) -> {{Fname,Cfun},State}.
 
 comp_func(Name, [lambda,Args|Body], Env, L, St0) ->
-    Cf = c_fname(Name, length(Args), L),
+    Cf = c_fname(Name, length(Args)),
     {Cfun,St1} = comp_lambda(Args, Body, Env, L, St0),
     {{Cf,Cfun},St1};
 comp_func(Name, ['match-lambda'|Cls], Env, L, St0) ->
-    Cf = c_fname(Name, match_lambda_arity(Cls), L),
+    Cf = c_fname(Name, match_lambda_arity(Cls)),
     {Cfun,St1} = comp_match_lambda(Cls, Env, L, St0),
     {{Cf,Cfun},St1}.
 
@@ -509,8 +512,8 @@ comp_if(Te, Tr, Fa, Env, L, St0) ->
     {Cte,St1} = comp_expr(Te, Env, L, St0),	%Test expression
     {Ctr,St2} = comp_expr(Tr, Env, L, St1),	%True expression
     {Cfa,St3} = comp_expr(Fa, Env, L, St2),	%False expression
-    True = c_lit(true, L),
-    False = c_lit(false, L),
+    True = c_atom(true),
+    False = c_atom(false),
     Cf = if_fail(L, St3),
     {#c_case{anno=[L],
 	     arg=Cte,
@@ -519,8 +522,8 @@ comp_if(Te, Tr, Fa, Env, L, St0) ->
 		      Cf]},St3}.
 
 if_fail(L, St) ->
-    Cv = c_var(omega, L),
-    fail_clause([Cv], c_lit(if_clause, L), L, St).
+    Cv = c_var(omega),
+    fail_clause([Cv], c_atom(if_clause), L, St).
 
 %% fail_clause(Pats, Arg, L, State) -> Clause.
 %% Build a general failure clause.
@@ -528,8 +531,8 @@ if_fail(L, St) ->
 fail_clause(Pats, Arg, L, _) ->
     #c_clause{anno=[L,compiler_generated],	%It is compiler generated!
 	      pats=Pats,
-	      guard=c_lit(true, L),
-	      body=c_primop(c_lit(match_fail, L), [Arg], L)}.
+	      guard=c_atom(true),
+	      body=c_primop(c_atom(match_fail), [Arg], L)}.
 
 %% comp_case(Expr, Clauses, Env, Line, State) -> {#c_case{},State}.
 %% Compile a case.
@@ -545,8 +548,8 @@ case_clauses(Cls, Env, L, St) ->
 	     St, Cls).
 
 case_fail(L, St) ->
-    Cv = c_var(omega, L),
-    fail_clause([Cv], c_tuple([c_lit(case_clause, L),Cv], L), L, St).
+    Cv = c_var(omega),
+    fail_clause([Cv], c_tuple([c_atom(case_clause),Cv]), L, St).
 
 %% rec_clauses(RecClauses, Env, Line, State) -> {Clause,Timeout,After,State}.
 
@@ -558,8 +561,8 @@ rec_clauses([Cl|Cls], Env, L, St0) ->
     {Cc,St1} = comp_clause(Cl, Env, L, St0),
     {Ccs,Ct,Ca,St2} = rec_clauses(Cls, Env, L, St1),
     {[Cc|Ccs],Ct,Ca,St2};
-rec_clauses([], _, L, St) ->
-    {[],c_lit(infinity, L),c_lit(true, L),St}.
+rec_clauses([], _, _, St) ->
+    {[],c_atom(infinity),c_atom(true),St}.
 
 %% comp_clause(Clause, Env, Line, State) -> {#c_clause{},State}.
 %%  This is a case/receive clause where the is only one pattern.
@@ -576,7 +579,7 @@ comp_clause_body([['when',Guard]|Body], Env, L, St0) ->
     {Cg,Cb,St2};
 comp_clause_body(Body, Env, L, St0) ->
     {Cb,St1} = comp_body(Body, Env, L, St0),
-    {c_lit(true, L),Cb,St1}.
+    {c_atom(true),Cb,St1}.
 
 %% comp_try(Body, Env, Line, State) -> {#c_try{},State}.
 %% Compile a try. We know that case is optional but must have at least
@@ -642,8 +645,8 @@ try_case(Cls, Env, L, St0) ->
     {Cv,#c_case{anno=[L],arg=Cv,clauses=Ccs ++ [Cf]},St2}.
 
 try_case_fail(L, St) ->
-    Cv = c_var(omega, L),
-    fail_clause([Cv], c_tuple([c_lit(try_clause, L),Cv], L), L, St).
+    Cv = c_var(omega),
+    fail_clause([Cv], c_tuple([c_atom(try_clause),Cv]), L, St).
 
 %% try_exception(CatchClauses, Env, L, State) -> {Vars,#c_case{},State}.
 
@@ -652,15 +655,15 @@ try_exception(Cls, Env, L, St0) ->
     {Cvs,St1} = new_c_vars(3, L, St0),		%Tag, Value, Info
     {Ccs,St2} = case_clauses(Cls, Env, L, St1),
     [_,Val,Info] = Cvs,
-    Arg = c_tuple(Cvs, L),
+    Arg = c_tuple(Cvs),
     Fc = #c_clause{anno=[L,compiler_generated],
 		   pats=[Arg],
-		   guard=c_lit(true, L),
+		   guard=c_atom(true),
 		   body=raise_primop([Info,Val], L, St2)},
     Excp = #c_case{anno=[L],
 		   arg=Arg,
 		   clauses=Ccs ++ [Fc]},
-    {Cvs,Excp,St2}.    
+    {Cvs,Excp,St2}.
 
 %% try_after(AfterBody, Env, L, State) -> {Vars,After,State}.
 
@@ -674,7 +677,7 @@ try_after(B, Env, L, St0) ->
     {Cvs,After,St2}.
 
 raise_primop(Args, L, _) ->
-    c_primop(c_lit(raise, L), Args, L).
+    c_primop(c_atom(raise), Args, L).
 
 tag_tail([[Tag|Tail]|_], Tag) -> Tail;
 tag_tail([_|Try], Tag) -> tag_tail(Try, Tag);
@@ -702,7 +705,7 @@ comp_funcall(['match-lambda'|Cls]=F, As, Env, L, St0) ->
 				 St1, As),
 	    {#c_let{anno=[L],
 		    vars=Cvs,
-		    arg=c_values(Ces, L),
+		    arg=c_values(Ces),
 		    body=Cb},St2};
 	false ->				%Catch arg mismatch at runtime
 	    comp_funcall_1(F, As, Env, L, St0)
@@ -734,19 +737,16 @@ comp_bitsegs(Segs, Env, L, St0) ->
 comp_bitseg([Val|Specs], Env, L, St0) ->
     {Cv,St1} = comp_expr(Val, Env, L, St0),
     {{Ty,Sz,Un,Si,En},St2} = comp_bitspecs(Specs, #spec{}, Env, L, St1),
-    {c_bitseg(Cv, Sz, Un, Ty, Si, En, L),St2};
+    {c_bitseg(Cv, Sz, c_int(Un), c_atom(Ty), c_lit([Si,En])),St2};
 comp_bitseg(Val, Env, L, St0) ->
     {Cv,St1} = comp_expr(Val, Env, L, St0),
     %% Create default segment.
     {{Ty,Sz,Un,Si,En},St2} = comp_bitspecs([], #spec{}, Env, L, St1),
-    {c_bitseg(Cv, Sz, Un, Ty, Si, En, L),St2}.
-
-c_bitseg(Val, Sz, Un, Ty, Si, En, L) ->
-    #c_bitstr{anno=[L],val=Val,size=Sz,unit=Un,type=Ty,
-		      flags=c_cons(Si, c_cons(En, c_nil(L), L), L)}.
+    {c_bitseg(Cv, Sz, c_int(Un), c_atom(Ty), c_lit([Si,En])),St2}.
 
 %% comp_bitspecs(Specs, Spec, Env, Line, State) ->
 %%      {{Type,Size,Unit,Sign,End},State}.
+%%  Only Size is already in Core form as it can be an expression.
 
 comp_bitspecs(Ss, Sp0, Env, L, St0) ->
     {Sp1,St1} = foldl(fun (S, {Sp,St}) -> comp_bitspec(S, Sp, Env, L, St) end,
@@ -755,30 +755,26 @@ comp_bitspecs(Ss, Sp0, Env, L, St0) ->
     #spec{type=Type,size=Csize,unit=Cunit,sign=Csign,endian=Cend} = Sp1,
     case Type of
 	integer ->
-	    {{c_lit(integer, L),
-	      val_or_def(Csize, 8, L),val_or_def(Cunit, 1, L),
-	      val_or_def(Csign, unsigned, L),val_or_def(Cend, big, L)},St1};
+	    {{integer,val_or_def(Csize, c_int(8)),val_or_def(Cunit, 1),
+	      val_or_def(Csign, unsigned),val_or_def(Cend, big)},St1};
 	float ->
-	    {{c_lit(float, L),
-	      val_or_def(Csize, 64, L),val_or_def(Cunit, 1, L),
-	      val_or_def(Csign, unsigned, L),val_or_def(Cend, big, L)},St1};
+	    {{float,val_or_def(Csize, c_int(64)),val_or_def(Cunit, 1),
+	      val_or_def(Csign, unsigned),val_or_def(Cend, big)},St1};
 	utf8 ->					%Ignore unused fields!
-	    {{c_lit(utf8, L),c_lit(undefined, L),c_lit(undefined, L),
-	      val_or_def(Csign, unsigned, L),val_or_def(Cend, big, L)},St1};
+	    {{utf8,c_lit(undefined),undefined,
+	      val_or_def(Csign, unsigned),val_or_def(Cend, big)},St1};
 	utf16 ->				%Ignore unused fields!
-	    {{c_lit(utf16, L),c_lit(undefined, L),c_lit(undefined, L),
-	      val_or_def(Csign, unsigned, L),val_or_def(Cend, big, L)},St1};
+	    {{utf16,c_lit(undefined),undefined,
+	      val_or_def(Csign, unsigned),val_or_def(Cend, big)},St1};
 	utf32 ->				%Ignore unused fields!
-	    {{c_lit(utf32, L),c_lit(undefined, L),c_lit(undefined, L),
-	      val_or_def(Csign, unsigned, L),val_or_def(Cend, big, L)},St1};
+	    {{utf32,c_lit(undefined),undefined,
+	      val_or_def(Csign, unsigned),val_or_def(Cend, big)},St1};
 	binary ->
-	    {{c_lit(binary, L),
-	      val_or_def(Csize, all, L),val_or_def(Cunit, 8, L),
-	      val_or_def(Csign, unsigned, L),val_or_def(Cend, big, L)},St1};
+	    {{binary,val_or_def(Csize, c_atom(all)),val_or_def(Cunit, 8),
+	      val_or_def(Csign, unsigned),val_or_def(Cend, big)},St1};
 	bitstring ->
-	    {{c_lit(binary, L),
-	      val_or_def(Csize, all, L),val_or_def(Cunit, 1, L),
-	      val_or_def(Csign, unsigned, L),val_or_def(Cend, big, L)},St1}
+	    {{binary,val_or_def(Csize, c_atom(all)),val_or_def(Cunit, 1),
+	      val_or_def(Csign, unsigned),val_or_def(Cend, big)},St1}
     end.
 
 %% Types.
@@ -793,23 +789,23 @@ comp_bitspec('utf-8', Sp, _, _, St) -> {Sp#spec{type=utf8},St};
 comp_bitspec('utf-16', Sp, _, _, St) -> {Sp#spec{type=utf16},St};
 comp_bitspec('utf-32', Sp, _, _, St) -> {Sp#spec{type=utf32},St};
 %% Endianness.
-comp_bitspec('big-endian', Sp, _, L, St) ->
-    {Sp#spec{endian=c_lit(big, L)},St};
-comp_bitspec('little-endian', Sp, _, L, St) ->
-    {Sp#spec{endian=c_lit(little, L)},St};
-comp_bitspec('native-endian', Sp, _, L, St) ->
-    {Sp#spec{endian=c_lit(native, L)},St};
+comp_bitspec('big-endian', Sp, _, _, St) ->
+    {Sp#spec{endian=big},St};
+comp_bitspec('little-endian', Sp, _, _, St) ->
+    {Sp#spec{endian=little},St};
+comp_bitspec('native-endian', Sp, _, _, St) ->
+    {Sp#spec{endian=native},St};
 %% Sign.
-comp_bitspec(signed, Sp, _, L, St) -> {Sp#spec{sign=c_lit(signed, L)},St};
-comp_bitspec(unsigned, Sp, _, L, St) -> {Sp#spec{sign=c_lit(unsigned, L)},St};
+comp_bitspec(signed, Sp, _, _, St) -> {Sp#spec{sign=signed},St};
+comp_bitspec(unsigned, Sp, _, _, St) -> {Sp#spec{sign=unsigned},St};
 %% Size.
-comp_bitspec([unit,N], Sp, _, L, St) -> {Sp#spec{unit=c_lit(N, L)},St};
+comp_bitspec([unit,N], Sp, _, _, St) -> {Sp#spec{unit=N},St};
 comp_bitspec([size,N], Sp, Env, L, St0) ->
     {Csz,St1} = comp_expr(N, Env, L, St0),
     {Sp#spec{size=Csz},St1}.
 
-val_or_def(default, Def, L) -> c_lit(Def, L);
-val_or_def(V, _, _) -> V.
+val_or_def(default, Def) -> Def;
+val_or_def(V, _) -> V.
 
 %% comp_guard(Guard, Env, Line, State) -> {Guard,State}.
 %% Should really do some special handling here.
@@ -824,7 +820,7 @@ comp_guard(G, Env, L, St) ->
 
 comp_pat(Pat, L, St) -> comp_pat(Pat, L, [], St).
 
-comp_pat([quote,E], _, Vs, St) -> {make_literal(E),Vs,St};
+comp_pat([quote,E], _, Vs, St) -> {comp_lit(E),Vs,St};
 comp_pat([binary|Segs], L, Vs, St) ->
     pat_binary(Segs, L, Vs, St);
 comp_pat([tuple|Ps], L, Vs0, St0) ->
@@ -832,7 +828,7 @@ comp_pat([tuple|Ps], L, Vs0, St0) ->
 				       {Cp,Vsb,Stb} = comp_pat(P, L, Vsa, Sta),
 				       {Cp,{Vsb,Stb}}
 			       end, {Vs0,St0}, Ps),
-    {c_tuple(Cps, L),Vs1,St1};
+    {c_tuple(Cps),Vs1,St1};
 comp_pat(['=',P1,P2], L, Vs0, St0) ->
     %% Core can only alias against a variable so there is wotk to do!
     {Cp1,Vs1,St1} = comp_pat(P1, L, Vs0, St0),
@@ -842,19 +838,22 @@ comp_pat(['=',P1,P2], L, Vs0, St0) ->
 comp_pat([H|T], L, Vs0, St0) ->
     {Ch,Vs1,St1} = comp_pat(H, L, Vs0, St0),
     {Ct,Vs2,St2} = comp_pat(T, L, Vs1, St1),
-    {c_cons(Ch, Ct, L),Vs2,St2};
-comp_pat([], L, Vs, St) -> {c_nil(L),Vs,St};
+    {c_cons(Ch, Ct),Vs2,St2};
+comp_pat([], _, Vs, St) -> {c_nil(),Vs,St};
+%% Literals.
+comp_pat(Bin, _, Vs, St) when is_bitstring(Bin) ->
+    {comp_lit(Bin),Vs,St};
 comp_pat(Tup, _, Vs, St) when is_tuple(Tup) ->
-    {make_literal(Tup),Vs,St};
+    {comp_lit(Tup),Vs,St};
 comp_pat(Symb, L, Vs, St) when is_atom(Symb) ->
     pat_symb(Symb, L, Vs, St);			%Variable
-comp_pat(Numb, L, Vs, St) when is_number(Numb) -> {c_lit(Numb, L),Vs,St}.
+comp_pat(Numb, _, Vs, St) when is_number(Numb) -> {c_lit(Numb),Vs,St}.
 
 pat_symb('_', L, Vs, St0) ->			%Don't care variable.
     {Cv,St1} = new_c_var(L, St0),
     {Cv,Vs,St1};				%Not added to variables
-pat_symb(Symb, L, Vs, St) ->
-    {c_var(Symb, L),add_element(Symb, Vs),St}.
+pat_symb(Symb, _, Vs, St) ->
+    {c_var(Symb),add_element(Symb, Vs),St}.
 
 %% pat_alias(CorePat, CorePat) -> AliasPat.
 
@@ -920,71 +919,91 @@ pat_bitsegs(Segs, L, Vs0, St0) ->
 %%  ??? We know its correct so why worry? ???
 
 pat_bitseg([Pat|Specs], L, Vs0, St0) ->
-    {Cv,Vs1,St1} = comp_pat(Pat, L, Vs0, St0),
+    {Cp,Vs1,St1} = comp_pat(Pat, L, Vs0, St0),
     {{Ty,Sz,Un,Si,En},St2} = comp_bitspecs(Specs, #spec{}, noenv, L, St1),
-    {c_bitseg(Cv, Sz, Un, Ty, Si, En, L),Vs1,St2};
+    {c_bitseg(Cp, Sz, c_int(Un), c_atom(Ty), c_lit([Si,En])),Vs1,St2};
 pat_bitseg(Pat, L, Vs0, St0) ->
-    {Cv,Vs1,St1} = comp_pat(Pat, L, Vs0, St0),
+    {Cp,Vs1,St1} = comp_pat(Pat, L, Vs0, St0),
     %% Create default segment.
     {{Ty,Sz,Un,Si,En},St2} = comp_bitspecs([], #spec{}, noenv, L, St1),
-    {c_bitseg(Cv, Sz, Un, Ty, Si, En, L),Vs1,St2}.
+    {c_bitseg(Cp, Sz, c_int(Un), c_atom(Ty), c_lit([Si,En])),Vs1,St2}.
 
 %% c_fun(Vars, Body, Line) -> #c_fun{}.
-%% c_fname(Name, Arity, Line) -> #c_fname{}.
-%% c_values(Values, Line) -> #c_values{}.
-%% c_cons(Head, Tail, Line) -> #c_cons{}.
-%% c_nil(Line) -> #c_literal{}.
-%% c_tuple(Elements, Line) -> #c_tuple{}.
-%% c_lit(Value, Line) -> #c_literal{}.
-%% c_var(Name, Line) -> #c_var{}.
 %% c_primop(Name, Args, Line) -> #c_primop{}.
+%% c_fname(Name, Arity) -> #c_fname{}.
+%% c_values(Values) -> #c_values{}.
+%% c_cons(Head, Tail) -> #c_cons{}.
+%% c_tuple(Elements) -> #c_tuple{}.
+%% c_atom(Value) -> #c_literal{}.
+%% c_int(Value) -> #c_literal{}.
+%% c_float(Value) -> #c_literal{}.
+%% c_nil() -> #c_literal{}.
+%% c_lit(Value) -> #c_literal{}.
+%% c_var(Name) -> #c_var{}.
+%% c_bitseg(Value, Size, Unit, Type, Sign, Endian) -> #c_bitseg{}.
 
 c_fun(Vs, B, L) -> #c_fun{anno=[L],vars=Vs,body=B}.
-%% R12B/R13B fix, choose one of following depending on version.
-%%c_fname(N, A, _) -> #c_fname{anno=[],id=N,arity=A}.	%R12B
-c_fname(N, A, _) -> #c_var{anno=[],name={N,A}}.		%R13B
-c_values([V], _) -> V;				%An optimisation
-c_values(Vs, L) -> #c_values{anno=[L],es=Vs}.
-c_cons(Hd, Tl, L) -> #c_cons{anno=[L],hd=Hd,tl=Tl}.
-c_nil(_) -> #c_literal{anno=[],val=[]}.
-c_tuple(Es, L) -> #c_tuple{anno=[L],es=Es}.
-c_lit(Val, _) -> #c_literal{anno=[],val=Val}.	%Enough with line numbers
-c_var(N, _) -> #c_var{anno=[],name=N}.
 c_primop(N, As, L) ->
     #c_primop{anno=[L],name=N,args=As}.
+%% R12B/R13B fix, choose one of following depending on version.
+%%c_fname(N, A) -> #c_fname{anno=[],id=N,arity=A}.	%R12B
+c_fname(N, A) -> #c_var{anno=[],name={N,A}}.		%R13B
+c_values([V]) -> V;				%An optimisation
+c_values(Vs) -> #c_values{anno=[],es=Vs}.
+c_atom(A) -> #c_literal{anno=[],val=A}.
+c_int(I) -> #c_literal{anno=[],val=I}.
+c_float(F) -> #c_literal{anno=[],val=F}.
+c_nil() -> #c_literal{anno=[],val=[]}.
+c_lit(Val) -> #c_literal{anno=[],val=Val}.	%Generic literal
+c_cons(Hd, Tl) -> #c_cons{anno=[],hd=Hd,tl=Tl}.
+c_tuple(Es) -> #c_tuple{anno=[],es=Es}.
+c_var(N) -> #c_var{anno=[],name=N}.
+c_bitseg(Val, Sz, Un, Ty, Fs) ->
+    #c_bitstr{anno=[],val=Val,size=Sz,unit=Un,type=Ty,flags=Fs}.
 
-%% make_literal(Value) -> LitExpr.
-%%  Make a literal expression from an Erlang value. This function
-%%  will fail if the value is not expressable as a literal
-%%  (for instance, a pid).
+%% comp_lit(Value) -> LitExpr.
+%%  Make a literal expression from an Erlang value. Try to make it as
+%%  literal as possible. This function will fail if the value is not
+%%  expressable as a literal (for instance, a pid).
 
-make_literal([]) -> #c_literal{val=[]};
-make_literal([H0|T0]) ->
-    case {make_literal(H0),make_literal(T0)} of
+comp_lit([H0|T0]) ->
+    case {comp_lit(H0),comp_lit(T0)} of
 	{#c_literal{val=H},#c_literal{val=T}} ->
-	    #c_literal{val=[H|T]};
-	{H,T} ->
-	    #c_cons{hd=H,tl=T}
+	    c_lit([H|T]);
+	{H,T} -> c_cons(H, T)
     end;
-make_literal(I) when is_integer(I) -> #c_literal{val=I};
-make_literal(F) when is_float(F) -> #c_literal{val=F};
-make_literal(A) when is_atom(A) -> #c_literal{val=A};
-make_literal(T0) when is_tuple(T0) ->
-    T = make_literal_list(tuple_to_list(T0)),
-    case core_lib:is_literal_list(T) of
-	false -> #c_tuple{es=T};
-	true -> #c_literal{val=list_to_tuple(concrete_list(T))}
+comp_lit([]) -> c_nil();
+comp_lit(T) when is_tuple(T) ->
+    Es = comp_lit_list(tuple_to_list(T)),
+    case is_lit_list(Es) of
+	true -> c_lit(list_to_tuple(concrete_list(Es)));
+	false -> c_tuple(Es)
     end;
-make_literal(Bs) when is_binary(Bs) ->
-    case bit_size(Bs) of
-	Bitsize when Bitsize rem 8 =:= 0 ->
-	    #c_literal{val=Bs}
-    end.
+comp_lit(A) when is_atom(A) -> c_atom(A);
+comp_lit(I) when is_integer(I) -> c_int(I);
+comp_lit(F) when is_float(F) -> c_float(F);
+comp_lit(Bin) when is_bitstring(Bin) ->
+    Bits = comp_lit_bitsegs(Bin),
+    #c_binary{anno=[],segments=Bits}.
 
-make_literal_list(Vals) -> [make_literal(V) || V <- Vals]. 
+comp_lit_list(Vals) -> [ comp_lit(V) || V <- Vals ].
+
+is_lit_list(Es) -> all(fun (E) -> is_record(E, c_literal) end, Es).
 
 concrete_list([#c_literal{val=V}|T]) -> [V|concrete_list(T)];
 concrete_list([]) -> [].
+
+comp_lit_bitsegs(<<B:8,Bits/bitstring>>) ->	%Next byte
+    [c_byte_bitseg(B, 8)|comp_lit_bitsegs(Bits)];
+comp_lit_bitsegs(<<>>) -> [];			%Even bytes
+comp_lit_bitsegs(Bits) ->			%Size < 8
+    N = bit_size(Bits),
+    <<B:N>> = Bits,
+    [c_byte_bitseg(B, N)].
+
+c_byte_bitseg(B, Sz) ->
+    c_bitseg(c_lit(B), c_int(Sz), c_int(1), c_atom(integer),
+	     c_lit([unsigned,big])).
 
 %% new_symb(State) -> {Symbol,State}.
 %% Create a hopefully new unused symbol.
@@ -1000,10 +1019,10 @@ new_fun_name(Pre, St) ->
 %% new_c_var(Line, State) -> {#c_var{},State}.
 %% Create a hopefully new core variable.
 
-new_c_var(L, St) ->
+new_c_var(_, St) ->
     C = St#cg.vc,
     Name = list_to_atom(integer_to_list(C)),
-    {c_var(Name, L),St#cg{vc=C+1}}.
+    {c_var(Name),St#cg{vc=C+1}}.
 
 new_c_vars(N, L, St) -> new_c_vars(N, L, St, []).
 
