@@ -129,17 +129,18 @@
        (concat
 	"(" (regexp-opt
 	     '(;; Core forms.
+	       "cons" "car" "cdr" "list" "tuple" "binary"
 	       "after" "call" "case" "catch"
 	       "if" "lambda" "let" "let-function" "letrec-function"
 	       "let-macro" "match-lambda"
 	       "receive" "try" "when" "progn"
 	       "eval-when-compile"
 	       ;; Default macros
-	       "andalso" "cond" "do" "fun" "let*" "flet*" "macro"
+	       "andalso" "cond" "do" "fun" "list*" "let*" "flet*" "macro"
 	       "orelse" "syntax-rules" "lc" "bc" "flet" "fletrec"
 	       "macrolet" "syntaxlet" "begin" "let-syntax"
 	       ":" "?" "++") t)
-	"\\>") 1)
+	"\\>") '(1 font-lock-keyword-face))
       )))
   "Gaudy expressions to highlight in LFE modes.")
 
