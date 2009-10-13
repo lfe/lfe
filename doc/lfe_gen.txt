@@ -103,8 +103,8 @@ Example
 	    CatchAll = [f,[':',erlang,error,
 			   [tuple,unknown_feature,[quote,Param],f]]],
 	    %% Build case clauses
-	    Cls = foldr(fun ({Feat,Value}, Cls) ->
-				[[Feat,[quote,Value]]|Cls]
+	    Cls = foldr(fun ({Field,Value}, Cls) ->
+				[[[quote,Field],[quote,Value]]|Cls]
 			end, [CatchAll], Params),
 	    %% Build function.
 	    Func = [defun,Param,[f],['case',f,Cls]],

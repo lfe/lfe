@@ -39,6 +39,11 @@ DESCRIPTION
 		Remove all function and macro definitions except the
 		default ones.
 
+	(set Pattern Expr)
+		Evaluate Expr ad match the result with Pattern binding
+		variables in it. These variables can then be used in
+		the shell and also rebound in another set.
+
 	(: c Command Arg ...)
 		All the commands in the standard Erlang shell can be
 		reached in this way.
@@ -71,16 +76,19 @@ DESCRIPTION
 
 Starting the LFE shell
 
+	The best way is probably to start Erlang directly running the
+	LFE shell with:
+
+	erl -noshell -noinput -s lfe_boot start
+
+	This can easily be put in a shell script.
+
 	From a normal Erlang shell the best way to start the shell is
 	by calling:
 
 	17> lfe_shell:server().
 
-	A modified user_drv.erl from the standard Erlang distribution
-	has been provided which allows to start a specific local
-	shell, not just the default Erlang shell. If this version of
-	user_drv.beam is placed in the standard load path then giving
-	the user switch commands:
+	Giving the user switch commands:
 
 	--> s lfe_shell
 	--> c

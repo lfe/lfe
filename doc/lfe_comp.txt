@@ -63,12 +63,12 @@ file(FileName, Options) -> CompRet
 		the current directory.
 
 	report
-		Do not return the errors and warnings but print them
-		out insted. This is the default.
+		Print the errors and warnings as they occur.
 
 	return
-		Return the errors and warnings instead of printing
-		them.
+		Return an extra return field containing Warnings on
+		success or the errors and warnings in
+		{error,Errors,Warnings} when there are errors.
 
 	debug_print
 		Causes the compiler to print a lot of debug
