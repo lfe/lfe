@@ -106,7 +106,7 @@ update_shell_vars(Form, Value, Env) ->
 	   {'+',Form},
 	   {'***',fetch_vbinding('**', Env)},
 	   {'**',fetch_vbinding('*', Env)},
-	   {'*',Value}]).    
+	   {'*',Value}]).
 
 add_shell_macros(Env0) ->
     %% We write macros in LFE and expand them with macro package.
@@ -239,7 +239,7 @@ set(_, _, _) -> no.
 %%  added to the standard base environment.
 
 -record(slurp, {mod,imps=[]}).			%For slurping
-    
+
 slurp([File], Eenv, Benv) ->
     Name = lfe_eval:expr(File, Eenv),		%Get file name
     {ok,Fs0} = lfe_io:parse_file(Name),
@@ -309,7 +309,7 @@ safe_fetch(Key, D, Def) ->
 	{ok,Val} -> Val;
 	error -> Def
     end.
- 
+
 %% (defsyntax safe_fetch
 %%   ((key d def)
 %%    (case (find key d)

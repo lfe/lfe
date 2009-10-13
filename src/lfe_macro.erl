@@ -293,7 +293,7 @@ def_record(Name, Fdefs, Env, St0) ->
 	     [[rec],['is_record',rec,[quote,Name],length(Fields)+1]]],
 	    ['defmacro',Match,
 	     [fds,
-	      ['let',[[def,[list|lists:duplicate(length(Fields), ?Q('_'))]]],
+	      ['let',[[def,[list|lists:duplicate(length(Fields),?Q('_'))]]],
 	       [backquote,
 		[tuple,?Q(Name),['unquote-splicing',[Fu,fds,def]]]]]]],
 	    ['defmacro',Set,
@@ -569,38 +569,49 @@ exp_macro([Mac|Args], Def0, Env, St0) ->
 exp_predef([backquote,Bq], _, St) ->
     {yes,bq_expand(Bq),St};
 exp_predef(['++'|Abody], _, St) ->
-    case Abody of
-	[E] -> {yes,E,St};
-	[E|Es] -> {yes,[call,?Q(erlang),?Q('++'),E,['++'|Es]],St};
-	[] -> {yes,[],St}
-    end;
+    Exp = case Abody of
+	      [E] -> E;
+	      [E|Es] -> [call,?Q(erlang),?Q('++'),E,['++'|Es]];
+	      [] -> []
+	  end,
+    {yes,Exp,St};
 exp_predef([':',M,F|As], _, St) ->
     {yes,['call',?Q(M),?Q(F)|As], St};
 exp_predef(['?'], _, St) ->
     {yes,['receive',['omega','omega']], St};
+exp_predef(['list*'|As], _, St) ->
+    Exp = case As of
+	      [E] -> E;
+	      [E|Es] -> [cons,E,['list*'|Es]];
+	      [] -> []
+	  end,
+    {yes,Exp,St};
 exp_predef(['let*'|Lbody], _, St) ->
-    case Lbody of
-	[[Vb|Vbs]|B] -> {yes,['let',[Vb],['let*',Vbs|B]], St};
-	[[]|B] -> {yes,['progn'|B], St};
-	[Vb|B] -> {yes,['let',Vb|B], St}	%Pass error to let for lint.
-    end;
+    Exp = case Lbody of
+	      [[Vb|Vbs]|B] -> ['let',[Vb],['let*',Vbs|B]];
+	      [[]|B] -> ['progn'|B];
+	      [Vb|B] -> ['let',Vb|B]		%Pass error to let for lint.
+	  end,
+    {yes,Exp,St};
 exp_predef(['flet*'|Lbody], _, St) ->
-    case Lbody of
-	[[Vb|Vbs]|B] -> {yes,['flet',[Vb],['flet*',Vbs|B]], St};
-	[[]|B] -> {yes,['progn'|B], St};
-	[Vb|B] -> {yes,['flet',Vb|B], St}	%Pass error to flet for lint.
-    end;
+    Exp = case Lbody of
+	      [[Vb|Vbs]|B] -> ['flet',[Vb],['flet*',Vbs|B]];
+	      [[]|B] -> ['progn'|B];
+	      [Vb|B] -> ['flet',Vb|B]		%Pass error to flet for lint.
+	  end,
+    {yes,Exp,St};
 exp_predef(['cond'|Cbody], _, St) ->
-    case Cbody of
-	[['else'|B]] -> {yes,['progn'|B], St};
-	[[['?=',P,E]|B]|Cond] ->
-	    {yes,['case',E,[P|B],['_',['cond'|Cond]]], St};
-	[[['?=',P,['when',_]=G,E]|B]|Cond] ->
-	    {yes,['case',E,[P,G|B],['_',['cond'|Cond]]], St};
-	[[Test|B]|Cond] ->
-	    {yes,['if',Test,['progn'|B],['cond'|Cond]], St};
-	[] -> {yes,?Q(false),St}
-    end;
+    Exp = case Cbody of
+	      [['else'|B]] -> ['progn'|B];
+	      [[['?=',P,E]|B]|Cond] ->
+		  ['case',E,[P|B],['_',['cond'|Cond]]];
+	      [[['?=',P,['when',_]=G,E]|B]|Cond] ->
+		  ['case',E,[P,G|B],['_',['cond'|Cond]]];
+	      [[Test|B]|Cond] ->
+		  ['if',Test,['progn'|B],['cond'|Cond]];
+	      [] -> ?Q(false)
+	  end,
+    {yes,Exp,St};
 exp_predef(['do'|Dbody], _, St0) ->
     %% (do ((v i c) ...) (test val) . body) but of limited use as it
     %% stands as we have to everything in new values.
@@ -625,21 +636,21 @@ exp_predef([bc|Bbody], _, St0) ->
     {Exp,St1} = bc_te(E, Qs, St0),
     {yes,Exp,St1};
 exp_predef(['andalso'|Abody], _, St) ->
-    case Abody of
-	[E] -> {yes,E,St};
-	[E|Es] ->
-	    Exp = ['case',E,[?Q(true),['andalso'|Es]],[?Q(false),?Q(false)]],
-	    {yes,Exp,St};
-	[] -> {yes,?Q(true),St}
-    end;
+    Exp = case Abody of
+	      [E] -> E;				%Let user check last call
+	      [E|Es] ->
+		  ['case',E,[?Q(true),['andalso'|Es]],[?Q(false),?Q(false)]];
+	      [] -> ?Q(true)
+	  end,
+    {yes,Exp,St};
 exp_predef(['orelse'|Obody], _, St) ->
-    case Obody of
-	[E] -> {yes,E,St};			%Let user check last call
-	[E|Es] ->
-	    Exp = ['case',E,[?Q(true),?Q(true)],[?Q(false),['orelse'|Es]]],
-	    {yes,Exp,St};
-	[] -> {yes,?Q(false),St}
-    end;
+    Exp = case Obody of
+	      [E] -> E;				%Let user check last call
+	      [E|Es] ->
+		  ['case',E,[?Q(true),?Q(true)],[?Q(false),['orelse'|Es]]];
+	      [] -> ?Q(false)
+	  end,
+    {yes,Exp,St};
 exp_predef(['fun',F,Ar], _, St0) when is_atom(F), is_integer(Ar), Ar >= 0 ->
     {Vs,St1} = new_symbs(Ar, St0),
     {yes,['lambda',Vs,[F|Vs]],St1};
@@ -659,13 +670,14 @@ exp_predef(['include-file'|Ibody], _, St) ->
 exp_predef(['begin'|Body], _, St) ->
     {yes,['progn'|Body],St};
 exp_predef(['define',Head|Body], _, St) ->
-    case is_symb_list(Head) of
-	true ->
-	    {yes,['define-function',hd(Head),[lambda,tl(Head)|Body]],St};
-	false ->
-	    %% Let next step catch errors here.
-	    {yes,['define-function',Head|Body],St}
-    end;
+    Exp = case is_symb_list(Head) of
+	      true ->
+		  ['define-function',hd(Head),[lambda,tl(Head)|Body]];
+	      false ->
+		  %% Let next step catch errors here.
+		  ['define-function',Head|Body]
+	  end,
+    {yes,Exp,St};
 exp_predef(['define-record'|Def], _, St) ->
     {yes,[defrecord|Def],St};
 exp_predef(['define-syntax',Name,Def], _, St) ->
@@ -724,11 +736,11 @@ expand_defun(Name, [Args|Rest]) ->
 %%  N.B. New macro definition is function of 1 argument, whole
 %%  argument list of macro call.
 
-expand_defmacro(Name, [Args|Rest]) ->
+expand_defmacro(Name, [Args|Rest]=Cls) ->
     case is_symb_list(Args) of
 	true -> [Name,['match-lambda',[[Args]|Rest]]];
 	false ->
-	    Mcls = map(fun ([Head|Body]) -> [[Head]|Body] end, [Args|Rest]),
+	    Mcls = map(fun ([Head|Body]) -> [[Head]|Body] end, Cls),
 	    [Name,['match-lambda'|Mcls]]
     end.
 

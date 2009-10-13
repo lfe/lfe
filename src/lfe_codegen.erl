@@ -224,24 +224,27 @@ comp_expr(Bin, _, _, St) when is_binary(Bin) ->
 %% Handle the Core data special forms.
 
 comp_call([quote,E], _, _, St) -> {comp_lit(E),St};
-comp_call([cons,H,T], Env, L, St0) ->
-    {Ch,St1} = comp_expr(H, Env, L, St0),
-    {Ct,St2} = comp_expr(T, Env, L, St1),
-    {c_cons(Ch, Ct),St2};
+comp_call([cons,H,T], Env, L, St) ->
+    Call = fun ([Ch,Ct], _, _, St) -> {c_cons(Ch, Ct),St} end,
+    comp_args([H,T], Call, Env, L, St);
+%%     {Ch,St1} = comp_expr(H, Env, L, St0),
+%%     {Ct,St2} = comp_expr(T, Env, L, St1),
+%%     {c_cons(Ch, Ct),St2};
 comp_call([car,E], Env, L, St) ->		%Provide lisp names
     comp_call([hd,E], Env, L, St);
 comp_call([cdr,E], Env, L, St) ->
     comp_call([tl,E], Env, L, St);
 comp_call([list|Es], Env, L, St) ->
-    foldr(fun (E, {T,St0}) ->
-		  {Ce,St1} = comp_expr(E, Env, L, St0),
-		  {c_cons(Ce, T),St1}
-	  end, {c_nil(),St}, Es);
-comp_call([tuple|As], Env, L, St0) ->
-    {Cas,St1} = comp_args(As, Env, L, St0),
-    sequentialise_args(Cas, fun (Args, _, _, St) ->
-				    {c_tuple(Args),St}
-			    end, Env, L, St1);
+    Call = fun (Ces, _, _, St) ->
+		   {foldr(fun (E, T) -> c_cons(E, T) end, c_nil(), Ces),St}
+	   end,
+    comp_args(Es, Call, Env, L, St);
+%%     foldr(fun (E, {T,St0}) ->
+%% 		  {Ce,St1} = comp_expr(E, Env, L, St0),
+%% 		  {c_cons(Ce, T),St1}
+%% 	  end, {c_nil(),St}, Es);
+comp_call([tuple|As], Env, L, St) ->
+    comp_args(As, fun (Args, _, _, St) -> {c_tuple(Args),St} end, Env, L, St);
 %%     {Cas,St1} = comp_args(As, Env, L, St0),
 %%     {c_tuple(Cas),St1};
 comp_call([binary|Segs], Env, L, St) ->
@@ -279,31 +282,32 @@ comp_call(['funcall',F|As], Env, L, St) ->
     comp_funcall(F, As, Env, L, St);
 %%comp_call([call,[quote,erlang],[quote,primop]|As], Env, L, St) ->
 %% An interesting thought to open up system.
-comp_call([call,M,N|As], Env, L, St0) ->
+comp_call([call,M,N|As], Env, L, St) ->
     %% Call a function in another module.
-    {Cm,St1} = comp_expr(M, Env, L, St0),
-    {Cn,St2} = comp_expr(N, Env, L, St1),
-    {Cas,St3} = comp_args(As, Env, L, St2),
-    {#c_call{anno=[L],module=Cm,name=Cn,args=Cas},St3};
+    Call = fun ([Cm,Cn|Cas], _, L, St) ->
+		   {#c_call{anno=[L],module=Cm,name=Cn,args=Cas},St}
+	   end,
+    comp_args([M,N|As], Call, Env, L, St);
+%%     {[Cm,Cn|Cas],St1} = comp_args([M,N|As], Env, L, St0),
+%%     {#c_call{anno=[L],module=Cm,name=Cn,args=Cas},St1};
 %% General function calls.
-comp_call([Fun|As], Env, L, St0) when is_atom(Fun) ->
+comp_call([Fun|As], Env, L, St) when is_atom(Fun) ->
     %% Fun is a symbol which is either a known BIF or function.
-    {Cas,St1} = comp_args(As, Env, L, St0),
-    Call = fun (Args, Env, L, St) ->
-		   Ar = length(Args),
+    Call = fun (Cas, Env, L, St) ->
+		   Ar = length(Cas),
 		   case get_fbinding(Fun, Ar, Env) of
 		       {yes,M,F} ->				%Import
 			   {#c_call{anno=[L],module=c_atom(M),
-				    name=c_atom(F),args=Args},
-			    St};
+				    name=c_atom(F),args=Cas},St};
 		       {yes,Name} ->
 			   %% Might have been renamed, use real function name.
 			   {#c_apply{anno=[L],op=c_fname(Name, Ar),
-				     args=Args},St}
+				     args=Cas},St}
 		   end
 	   end,
-    sequentialise_args(Cas, Call, Env, L, St1).
+    comp_args(As, Call, Env, L, St).
 
+%%     {Cas,St1} = comp_args(As, Env, L, St),
 %%     Ar = length(As),
 %%     case get_fbinding(Fun, Ar, Env) of
 %% 	{yes,M,F} ->				%Import
@@ -314,31 +318,35 @@ comp_call([Fun|As], Env, L, St0) when is_atom(Fun) ->
 %% 	    {#c_apply{anno=[L],op=c_fname(Name, Ar),args=Cas},St1}
 %%     end.
 
-%% sequentialise_args(CompiledArgs, UseCall, Env, Line, State) ->
-%%      {CoreCall,State}.
-
-sequentialise_args(Cas, Call, Env, L, St) ->
-    sequentialise_args(Cas, Call, [], Env, L, St).
-
-sequentialise_args([Ca|Cas], Call, Sas, Env, L, St0) ->
-    %% Use erlang core compiler lib which does what we want.
-    case core_lib:is_simple(Ca) of
-	true -> sequentialise_args(Cas, Call, [Ca|Sas], Env, L, St0);
-	false ->
-	    {Var,St1} = new_c_var(L, St0),
-	    {Rest,St2} = sequentialise_args(Cas, Call, [Var|Sas], Env, L, St1),
-	    {#c_let{anno=[L],
-		    vars=[Var],
-		    arg=Ca,
-		    body=Rest},St2}
-    end;
-sequentialise_args([], Call, Sas, Env, L, St) ->
-    Call(reverse(Sas), Env, L, St).
-
 %% comp_args(Args, Env, Line, State) -> {ArgList,State}.
 
 comp_args(As, Env, L, St) ->
     mapfoldl(fun (A, Sta) -> comp_expr(A, Env, L, Sta) end, St, As).
+
+%% comp_args(Args, CallFun, Env, Line, State) -> {Call,State}.
+%%  Sequentialise the evaluation of Args building the Call at the
+%%  bottom. For non-simple arguments use let to break the arg
+%%  evaluation out from the main call. Cannot use foldr as we pass
+%%  data both in an out.
+
+comp_args(As, Call, Env, L, St) ->
+    comp_args(As, Call, [], Env, L, St).
+
+comp_args([A|As], Call, Cas, Env, L, St0) ->
+    {Ca,St1} = comp_expr(A, Env, L, St0),
+    %% Use erlang core compiler lib which does what we want.
+    case core_lib:is_simple(Ca) of
+	true -> comp_args(As, Call, [Ca|Cas], Env, L, St1);
+	false ->
+	    {Cv,St2} = new_c_var(L, St1),
+	    {Rest,St3} = comp_args(As, Call, [Cv|Cas], Env, L, St2),
+	    {#c_let{anno=[L],
+		    vars=[Cv],
+		    arg=Ca,
+		    body=Rest},St3}
+    end;
+comp_args([], Call, Cas, Env, L, St) ->
+    Call(reverse(Cas), Env, L, St).
 
 %% comp_lambda(Args, Body, Env, Line, State) -> {#c_fun{},State}.
 %% Compile a (lambda (...) ...).
@@ -395,7 +403,7 @@ comp_match_clause([Pats|Body], Env0, L, St0) ->
 
 %% comp_let(VarBindings, Body, Env, L, State) -> {#c_let{}|#c_case{},State}.
 %% Compile a let expr. We are a little cunning in that we specialise
-%% the the case where all the patterns are variables and there a re no
+%% the the case where all the patterns are variables and there are no
 %% guards, the simple case.
 
 comp_let(Vbs, B, Env, L, St0) ->
@@ -714,9 +722,8 @@ comp_funcall(F, As, Env, L, St0) ->
     comp_funcall_1(F, As, Env, L, St0).		%Naively just do it.
 
 comp_funcall_1(F, As, Env, L, St0) ->
-    {Cf,St1} = comp_expr(F, Env, L, St0),
-    {Cas,St2} = comp_args(As, Env, L, St1),
-    {#c_apply{anno=[L],op=Cf,args=Cas},St2}.
+    {[Cf|Cas],St1} = comp_args([F|As], Env, L, St0),
+    {#c_apply{anno=[L],op=Cf,args=Cas},St1}.
 
 %% comp_binary(Segs, Env, Line, State) -> {#c_binary{},State}.
 

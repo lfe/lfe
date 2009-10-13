@@ -1,10 +1,26 @@
+2009-10-14  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_macro.erl (exp_predef): Added macro list* and restructured
+	code a little.
+
+2009-10-13  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_eval.lfe (eval-binary, match-binary): Restructured code.
+
+	* lfe_eval.erl (eval_binary, match_binary): Restructured code.
+
+2009-10-06  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_codegen.erl (comp_args, comp_call): Sequentialised
+	evaluation of arguments enforcing left-to-right semantics.
+
 2009-10-02  Robert Virding  <rv@stanislaw.local>
 
 	* lfe_codegen.erl: Cleaned up handling of literals.
 
 2009-09-26  Robert Virding  <rv@stanislaw.local>
 
-	* lfe-eval.erl (eval-binary, match-binary): Cleaned up handling of
+	* lfe_eval.lfe (eval-binary, match-binary): Cleaned up handling of
 	binaries.
 
 	* lfe_eval.erl (eval_binary, match_binary): Cleaned up handling of

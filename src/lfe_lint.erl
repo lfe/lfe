@@ -607,7 +607,7 @@ check_try_catch([['catch'|Cls],['after'|B]], Env, L, St0) ->
     check_body(B, Env, L, St1);
 check_try_catch([['after'|B]], Env, L, St) ->
     check_body(B, Env, L, St);
-check_try_catch(C, _, L, St) -> bad_form_error(L, {'try',C}, St).
+check_try_catch(_, _, L, St) -> bad_form_error(L, 'try', St).
 
 %% check_pat_guard([Pat{,Guard}|Body, Env, L, State) ->
 %%      {Body,PatVars,Env,State}.

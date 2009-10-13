@@ -117,7 +117,7 @@ scan_and_parse(Io, Ts0) ->
 		E -> exit(E)
 	    end
     end.
-    
+
 %% print([IoDevice], Sexpr) -> ok.
 %% print1(Sexpr) -> [char()].
 %% print1(Sexpr, Depth) -> [char()].
@@ -189,7 +189,7 @@ print1_bits(Bits, _) ->				%0 < Size < 8
 %% Print the tail of a list. We know about dotted pairs.
 
 print1_tail([], _) -> "";
-print1_tail(_, 1) -> " ...";    
+print1_tail(_, 1) -> " ...";
 print1_tail([S|Ss], D) ->
     [$\s,print1(S, D-1)|print1_tail(Ss, D-1)];
 print1_tail(S, D) -> [" . "|print1(S, D-1)].
