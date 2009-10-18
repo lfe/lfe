@@ -86,7 +86,20 @@ Example
 	generating a text file. We assume that we have collected the
 	data and have it in the form:
 
-	Params = [{Parameter,[{Field,Value}]}]
+	Params = [{Parameter,[{Feature,Value}]}]
+
+	The equivalent LFE code which we will be generating is:
+
+	(defmodule Name
+	  (export (<param1> 1) (<param2> 1) ... ))
+
+	(defun <param1> (f)
+	  (case f
+	    ('<feature1> '<value1>)
+	    ...
+	    (f (: erlang error (tuple 'unknown_feature '<param1> f)))))
+
+	...
 
 	The following code builds and compiles a module from the
 	parameter data:
@@ -103,8 +116,8 @@ Example
 	    CatchAll = [f,[':',erlang,error,
 			   [tuple,unknown_feature,[quote,Param],f]]],
 	    %% Build case clauses
-	    Cls = foldr(fun ({Field,Value}, Cls) ->
-				[[[quote,Field],[quote,Value]]|Cls]
+	    Cls = foldr(fun ({Feature,Value}, Cls) ->
+				[[[quote,Feature],[quote,Value]]|Cls]
 			end, [CatchAll], Params),
 	    %% Build function.
 	    Func = [defun,Param,[f],['case',f,Cls]],
