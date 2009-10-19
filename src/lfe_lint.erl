@@ -69,6 +69,8 @@ format_error(bad_funcs) -> "bad function list";
 format_error(bad_body) -> "bad body";
 format_error(bad_clause) -> "bad clause";
 format_error(bad_args) -> "bad arguments";
+format_error({bad_attribute,A}) ->
+    lfe_io:format1("bad attribute: ~w", [A]);
 format_error({bad_form,Type}) ->
     lfe_io:format1("bad form: ~w", [Type]);
 format_error({unbound_symb,S}) ->
@@ -159,9 +161,12 @@ check_mdef([[extends,M]|Mdef], L, St) ->
        true ->
 	    check_mdef(Mdef, L, add_error(L, bad_extends, St))
     end;
-check_mdef([[Name,_]|Mdef], L, St) when is_atom(Name) ->
-    %% Other attributes.
-    check_mdef(Mdef, L, St);
+check_mdef([[Name|Vals]|Mdef], L, St) ->
+    %% Other attributes, must be list and have symbol name.
+    case is_atom(Name) and is_proper_list(Vals) of
+	true -> check_mdef(Mdef, L, St);
+	false -> check_mdef(Mdef, L, add_error(L, {bad_attribute,Name}, St))
+    end;
 check_mdef([], _, St) -> St;
 check_mdef(_, L, St) -> add_error(L, bad_mod_def, St).
 
@@ -403,13 +408,9 @@ check_lambda([Args|Body], Env, L, St0) ->
 check_lambda(_, _, L, St) -> bad_form_error(L, lambda, St).
 
 check_lambda_args(Args, L, St) ->
-    %% Check for multiple variables
-    Check = fun (A, {As,S}) ->
-		    case is_element(A, As) of
-			true -> {As,multi_var_error(L, A, S)};
-			false -> {add_element(A, As),S}
-		    end
-	    end,
+    %% Check for multiple variables but allow don't care variables,
+    %% same rules as for pattern symbols.
+    Check = fun (A, {As,S}) -> pat_symb(A, As, L, S) end,
     case is_symb_list(Args) of
 	true -> foldl(Check, {[],St}, Args);
 	false -> {[],bad_form_error(L, lambda, St)}
@@ -606,7 +607,7 @@ check_try_catch([['catch'|Cls],['after'|B]], Env, L, St0) ->
     check_body(B, Env, L, St1);
 check_try_catch([['after'|B]], Env, L, St) ->
     check_body(B, Env, L, St);
-check_try_catch(C, _, L, St) -> bad_form_error(L, {'try',C}, St).
+check_try_catch(_, _, L, St) -> bad_form_error(L, 'try', St).
 
 %% check_pat_guard([Pat{,Guard}|Body, Env, L, State) ->
 %%      {Body,PatVars,Env,State}.

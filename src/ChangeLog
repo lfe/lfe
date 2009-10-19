@@ -1,3 +1,74 @@
+2009-10-14  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_macro.erl (exp_predef): Added macro list* and restructured
+	code a little.
+
+2009-10-13  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_eval.lfe (eval-binary, match-binary): Restructured code.
+
+	* lfe_eval.erl (eval_binary, match_binary): Restructured code.
+
+2009-10-06  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_codegen.erl (comp_args, comp_call): Sequentialised
+	evaluation of arguments enforcing left-to-right semantics.
+
+2009-10-02  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_codegen.erl: Cleaned up handling of literals.
+
+2009-09-26  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_eval.lfe (eval-binary, match-binary): Cleaned up handling of
+	binaries.
+
+	* lfe_eval.erl (eval_binary, match_binary): Cleaned up handling of
+	binaries.
+
+	* lfe-eval.lfe (get-integer, get-float): Got endian names right
+	internally.
+
+	* lfe_shell.erl (set): New shell command to set variables in
+	shell.
+
+2009-09-25  Robert Virding  <rv@stanislaw.local>
+
+	* lfe-eval.lfe (eval-bitspec, eval-exp-field, get-value): Added
+	unicode types.
+
+2009-09-18  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_lint.erl (check_mdef): Fixed handling of attributes.
+
+	* lfe_codegen.erl (collect_mdef): Fixed handling of attributes.
+
+2009-09-16  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_eval.erl (eval-lambda): Lambda args can now hold don't care
+	variable.
+
+	* lfe_lint.erl (check_lambda_args): Lambda args can now hold don't
+	care variable.
+
+	* lfe_codegen.erl (comp_lambda): Lambda args can now hold don't
+	care variable.
+	(comp_let): Simple lets without matching can now hold don't care
+	variables.
+
+2009-08-31  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_io_pretty.erl (print1_list_max, print1_tail_max): Get it
+	right when depth = 0.
+
+	* lfe_comp.erl (passes, do_passes): Add an explicit pass driven
+	style to compiler.
+
+2009-08-30  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_io_pretty.erl (print1_list_max, print1_tail_max): Bit more
+	efficient pretty printing on the rest of the line.
+
 2009-08-13  Robert Virding  <rv@stanislaw.local>
 
 	* lfe_comp.erl (list_warnings, list_errors): Use lfe_io format.

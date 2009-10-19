@@ -136,9 +136,17 @@ collect_imps(Is, St) ->
 		  S#param{env=Env}
 	  end, St, Is).
     
+%% exp_function(Lambda, State) -> Lambda.
+%%  The resultant code matches the arguments in two steps: first the
+%%  THIS arguemnt is matched and then the expanded function body
+%%  ((match-)lambda) is funcalled. We KNOW that funcall of a
+%%  (match-)lambda is inline expanded into a let or case so this is
+%%  efficient.
+
 exp_function(Lambda, #param{this=Th,env=Env}) ->
     As = new_args(lambda_arity(Lambda)),
     ['match-lambda',[As ++ [Th],[funcall,exp_expr(Lambda, Env)|As]]].
+
 %% exp_function(['match-lambda'|Cls0], #param{this=Th,env=Env}) ->
 %%     Cls1 = map(fun ([As|Body]) ->
 %% 		       exp_clause([As ++ [Th]|Body], Env)

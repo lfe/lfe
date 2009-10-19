@@ -84,7 +84,7 @@ sexpr1([{'#B(',_}|Ts0]) ->
     case proper_list(Ts0) of
 	{List,[{')',_}|Ts1]} ->
 	    %% Build and eval a binary sexpr.
-	    case catch lfe_eval:eval([binary|List]) of
+	    case catch lfe_eval:expr([binary|List]) of
 		Bin when is_bitstring(Bin) -> {Bin,Ts1};
 		_ -> throw({error,{illegal,binary},Ts1})
 	    end;

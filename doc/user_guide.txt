@@ -19,9 +19,9 @@ Supported Core forms
 (tuple e ... )
 (binary seg ... ) where seg is
 		byte or
-		(val integer|float|binary|bitstring
+		(val integer|float|binary|bitstring|bytes|bits
 		     (size n) (unit n)
-		     big-endian|little-endian|native-endian
+		     big-endian|little-endian|native-endian|little|native|big
 		     signed|unsigned)
 (lambda (arg ...) ...)
 (match-lambda					- Matches clauses
@@ -73,6 +73,7 @@ Supported macro forms
 	(call 'mod 'func arg ... )
 (?)					- Receive next message
 (++ ... )
+(list* ...)
 (let* (...) ... )			- Sequential let's
 (flet ((name (arg ...) ...)
        ...)
@@ -219,7 +220,7 @@ Module definition
   (import (from mod (f1 2) (f2 1) ... )
 	  (rename mod ((f1 2) sune) ((f2 1) kurt) ... ))
   (import (prefix mod mod-prefix))	- NYI
-  (attr-1 value-1)
+  (attr-1 value-1 value-2)
   ... )
 
 Can have multiple export and import declarations within module
@@ -342,6 +343,7 @@ field-name value to get non-default values. E.g. for
 
 => (make-person {{field value}} ... )
    (match-person {{field value}} ... )
+   (is-person r)
    (set-person r {{field value}} ... )
    (person-name r)
    (set-person-name r name)
@@ -359,7 +361,7 @@ field-name value to get non-default values. E.g. for
 (match-person name name age 55)
 
 	Will match a person with age 55 and bind the variable name to
-	the name field of the record. Can use any variable name here
+	the name field of the record. Can use any variable name here.
 
 (set-person john age 35 address "front street")
 

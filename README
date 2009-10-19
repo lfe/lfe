@@ -17,6 +17,13 @@ I will try to make a better fix soon. Sorry about that.
 v0.5
 ----
 
+Added macro list*.
+
+Added a new shell command to set variables in the shell.
+
+Cleaned up compiler options and made them more like the vanilla
+compiler.
+
 Added unicode types to binaries: utf-8, utf-16 and utf-32.
 
 Shell and compiler now print error data in LFE instead of vanilla.
@@ -31,6 +38,8 @@ the corresponding printable string end in 1. So lfe_io:format prints
 formatted output while lfe_io:format1 returns the string.
 
 Improved pretty-printing.
+
+Many internal improvements.
 
 v0.4
 ----

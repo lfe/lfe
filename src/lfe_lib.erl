@@ -135,7 +135,7 @@ is_fbound(N, A, [{function,N,A,_,_}|_]) -> true;
 is_fbound(N, _, [{macro,N,_}|_]) -> false;	%Macros shadow
 is_fbound(N, A, [_|Env]) -> is_fbound(N, A, Env);
 is_fbound(N, A, []) -> is_bif(N, A).    	%Known BIF, LFE or erlang
-    
+
 get_fbinding(N, A, [{function,N,A,V}|_]) -> {yes,V};
 get_fbinding(N, A, [{function,N,A,M,F}|_]) -> {yes,M,F};	%Import
 get_fbinding(N, _, [{macro,N,_}|_]) -> no;			%Macros shadow
@@ -175,7 +175,7 @@ is_mbound(N, [{function,N,_,_,_}|_]) -> false;	%Functions shadow
 is_mbound(N, [{macro,N,_}|_]) -> true;
 is_mbound(N, [_|Env]) -> is_mbound(N, Env);
 is_mbound(_, []) -> false.
-    
+
 get_mbinding(N, [{function,N,_,_}|_]) -> no;	%Functions shadow
 get_mbinding(N, [{function,N,_,_,_}|_]) -> no;	%Functions shadow
 get_mbinding(N, [{macro,N,V}|_]) -> {yes,V};
@@ -355,8 +355,8 @@ subst(_, _, Tree) -> Tree.
 		_ -> Tree
 	    end
     end.
-    
-eval(Sexpr) -> lfe_eval:eval(Sexpr, new_env()).	%Empty environment.
+
+eval(Sexpr) -> lfe_eval:expr(Sexpr, new_env()).	%Empty environment.
 
 %% Miscellaneous useful LFE functions.
 

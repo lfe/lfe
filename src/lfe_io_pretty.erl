@@ -31,14 +31,14 @@
 
 -export([print1/1,print1/2,print1/3,print1/4]).
 
-%% -compile(export_all).
+-compile(export_all).
 
--import(lists, [flatlength/1]).
+-import(lists, [reverse/1,reverse/2,flatlength/1]).
 
 %% print1(Sexpr) -> [char()].
 %% print1(Sexpr, Depth) -> [char()].
 %% print1(Sexpr, Depth, Indentation, LineLength) -> [char()].
-%%  An relatively simple pretty print function, but with some
+%%  A relatively simple pretty print function, but with some
 %%  customisation.
 
 print1(S) -> print1(S, -1, 0, 80).
@@ -60,12 +60,11 @@ print1(['unquote-splicing',E], D, I, L) -> [",@",print1(E, D, I+2, L)];
 print1([Car|Cdr]=List, D, I, L) ->
     %% Handle printable lists specially.
     case io_lib:printable_list(List) of
-	true -> lfe_io:print1_string(List, 34);	%"
+	true -> lfe_io:print1_string(List, $");	%"
 	false ->
-	    Print = lfe_io:print1(List, D),	%Raw printing
-	    case flatlength(Print) of
-		Len when Len + I < L -> Print;
-		_ ->
+	    case print1_list_max(List, D, I+2, L) of
+		{yes,Print} -> ["(",Print,")"];
+		no ->
 		    %% Customise printing of lists.
 		    case indent_type(Car) of
 			none ->
@@ -85,12 +84,10 @@ print1([Car|Cdr]=List, D, I, L) ->
 print1([], _, _, _) -> "()";
 print1({}, _, _, _) -> "#()";
 print1(Tup, D, I, L) when is_tuple(Tup) ->
-    Print = lfe_io:print1(Tup, D),
-    case flatlength(Print) of
-	Len when Len + I < L -> Print;
-	_ ->
-	    Es = tuple_to_list(Tup),
-	    ["#(",print1_list(Es, D-1, I+2, L),")"]
+    Es = tuple_to_list(Tup),
+    case print1_list_max(Es, D-1, I+3, L) of
+	{yes,Print}  -> ["#(",Print,")"];
+	no -> ["#(",print1_list(Es, D-1, I+2, L),")"]
     end;
 print1(Bit, _, _, _) when is_bitstring(Bit) ->
     ["#B(",lfe_io:print1_bits(Bit, 30),$)];	%First 30 bytes
@@ -107,18 +104,47 @@ split(N, [H|T]) ->
     {H1,T1} = split(N-1, T),
     {[H|H1],T1}.
 
+%% print1_list_max(List, Depth, Indentation, LineLength) -> {yes,Chars} | no.
+%%  Maybe print a list on one line, but abort if it goes past
+%%  LineLength.
+
+print1_list_max(_, 0, _, _) -> {yes,"..."};
+print1_list_max([Car|Cdr], D, I, L) ->
+    Cs = print1(Car, D, 0, 99999),		%Never break the line
+    print1_tail_max(Cdr, D, I + flatlength(Cs), L, [Cs]);
+print1_list_max([], _, _, _) -> {yes,[]}.
+
+%% print1_tail_max(Tail, Depth, Indentation, LineLength) -> {yes,Chars} | no.
+%%  Maybe print the tail of a list on one line, but abort if it goes
+%%  past LineLength. We know about dotted pairs. When we reach depth 0
+%%  we just quit as we know necessary "..." will have come from an
+%%  earlier print1 at same depth.
+
+print1_tail_max(_, _, I, L, _) when I >= L -> no;	%No more room
+print1_tail_max(_, 0, _, _, Acc) -> {yes,reverse(Acc)};
+print1_tail_max([], _, _, _, Acc) -> {yes,reverse(Acc)};
+print1_tail_max([Car|Cdr], D, I, L, Acc) ->
+    Cs = print1(Car, D-1, 0, 99999),		%Never break the line
+    print1_tail_max(Cdr, D-1, I + flatlength(Cs) + 1, L, [Cs," "|Acc]);
+print1_tail_max(S, D, I, L, Acc) ->
+    Cs = print1(S, D-1, 0, 99999),		%Never break the line
+    print1_tail_max([], D, I + flatlength(Cs) + 3, L, [Cs," . "|Acc]).
+
 %% print1_list(List, Depth, Indentation, LineLength)
 %%  Print a list, one element per line. No leading/trailing ().
 
+print1_list(_, 0, _, _) -> "...";
 print1_list([Car|Cdr], D, I, L) ->
     [print1(Car, D, I, L),print1_tail(Cdr, D, I, L)];
 print1_list([], _, _, _) -> [].
 
 %% print1_tail(Tail, Depth, Indentation, LineLength)
-%% Print the tail of a list. We know about dotted pairs.
+%%  Print the tail of a list. We know about dotted pairs. When we
+%%  reach depth 0 we just quit as we know necessary "..." will have
+%%  come from an earlier print1 at same depth.
 
+print1_tail(_, 0, _, _) -> "";
 print1_tail([], _, _, _) -> "";
-print1_tail(_, 1, _, _) -> " ...";
 print1_tail([Car|Cdr], D, I, L) ->
     ["\n",blanks(I, []),print1(Car, D-1, I, L),print1_tail(Cdr, D-1, I, L)];
 print1_tail(S, D, I, L) ->
