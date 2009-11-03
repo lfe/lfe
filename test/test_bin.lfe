@@ -7,8 +7,8 @@
 	  (p1 1) (p2 1) (p2p 1) (p3 1))	   ;Patterns
   (export (b 1) (b 2) (bb1 2) (bb2 2))	   ;Binaries/bitstrings
   (export (u 1) (u 2))			   ;Unicode types
-  (export (s 2))			;Size expressions
-  (export (d1 0) (d2 0) (d3 0)))	;Binary constants
+  (export (vs1 2) (vs2 2) (vs3 2))	   ;Value and size expressions
+  (export (d1 0) (d2 0) (d3 0)))	   ;Binary constants
 
 ;; Binary constructors.
 
@@ -75,12 +75,22 @@
   (binary (x utf-8 big-endian) (y utf-32 little-endian)
 	  (x utf-16 signed little-endian)))
 
-;; Size expressions
+;; Value and size expressions
 
-(defun s (x y)
+(defun vs1 (x y)
   (tuple (let ((y1 (+ y 1)))
 	   (binary (x (size y)) (y (size y1))))
 	 (binary (x (size y)) (y (size (+ y 1))))))
+
+(defun vs2 (x y)
+  (tuple (binary ((* 2 x) (size y)))	;Just value expr
+	 (binary (x (size (+ y 8))))	;Just size expr
+	 (binary ((* 2 x) (size (+ y 8)))))) ;Both value and size expr
+
+(defun vs3 (x y)
+  (binary ((* 2 x) (size y))		;Just value expr
+	  (x (size (+ y 8)))		;Just size expr
+	  ((* 2 x) (size (+ y 8)))))	;Both value and size expr
 
 ;; Binary constants
 
