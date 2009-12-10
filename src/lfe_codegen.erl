@@ -326,7 +326,7 @@ make_seq(Ces, Then, Env, L, St) -> make_seq(Ces, Then, [], Env, L, St).
 
 make_seq([Ce|Ces], Then, Ses, Env, L, St0) ->
     %% Use erlang core compiler lib which does what we want.
-    case core_lib:is_simple(Ce) of
+    case is_simple(Ce) of
 	true -> make_seq(Ces, Then, [Ce|Ses], Env, L, St0);
 	false ->
 	    {Cv,St1} = new_c_var(L, St0),
@@ -1054,3 +1054,23 @@ safe_fetch(Key, D, Def) ->
 	{ok,Val} -> Val;
 	error -> Def
     end.
+
+
+is_simple(#c_var{}) -> true;
+is_simple(#c_literal{}) -> true;
+is_simple(#c_cons{hd=H,tl=T}) ->
+    case is_simple(H) of
+        true -> is_simple(T);
+        false -> false
+    end;
+is_simple(#c_tuple{es=Es}) -> is_simple_list(Es);
+is_simple(#c_binary{segments=Es}) -> is_simp_bin(Es);
+is_simple(_) -> false.
+
+is_simple_list(Es) -> lists:all(fun is_simple/1, Es).
+
+is_simp_bin(Es) ->
+    lists:all(fun (#c_bitstr{val=E,size=S}) ->
+                      is_simple(E) and is_simple(S)
+              end, Es).
+
