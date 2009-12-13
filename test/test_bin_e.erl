@@ -8,7 +8,7 @@
 -export([p1/1,p2/1,p2p/1,p3/1]).		%Patterns
 -export([b/1,b/2,bb1/2,bb2/2]).			%Binaries/bitstrings
 -export([u/1,u/2]).				%Unicode types
--export([s/2]).					%Size expressions
+-export([vs1/2,vs2/2,vs3/2]).			%Value and size expressions
 -export([d1/0,d2/0,d3/0]).			%Binary constants
 
 %% Binary constructors.
@@ -74,11 +74,22 @@ u(X) ->
 u(X, Y) ->
     <<X/utf8-big,Y/utf32-little,X/utf16-little-signed>>.
 
-%% Size expressions
+%% Value and size expressions
 
-s(X, Y) ->
+vs1(X, Y) ->
     Y1 = Y+1,
     {<<X:Y,Y:Y1>>,<<X:Y,Y:(Y+1)>>}.
+
+vs2(X, Y) ->
+    {<<(2*X):Y>>,				%Just value expr
+     <<X:(Y+8)>>,				%Just size expr
+     <<(2*X):(Y+8)>>				%Both value and size expr
+    }.
+
+vs3(X, Y) ->
+    <<(2*X):Y,					%Just value expr
+     X:(Y+8),					%Just size expr
+     (2*X):(Y+8)>>.				%Both value and size expr
 
 %% Binary constants
 

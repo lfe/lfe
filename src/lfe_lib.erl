@@ -97,25 +97,24 @@ new_env() -> [].
 
 add_env(E1, E2) -> E1 ++ E2.
 
-add_vbinding(N, V, Env) -> [{N,V}|Env].
+add_vbinding(N, V, Env) -> [{variable,N,V}|Env].
 
 add_vbindings(Vbs, Env) ->
-    %% Vbs ++ Env because we KNOW.
     foldl(fun ({N,V}, E) -> add_vbinding(N, V, E) end, Env, Vbs).
 
-update_vbinding(N, V, [{N,_}|Env]) -> [{N,V}|Env];
+update_vbinding(N, V, [{variable,N,_}|Env]) -> [{variable,N,V}|Env];
 update_vbinding(N, V, [Vb|Env]) ->
     [Vb|update_vbinding(N, V, Env)].
 
-is_vbound(N, [{N,_}|_]) -> true;
+is_vbound(N, [{variable,N,_}|_]) -> true;
 is_vbound(N, [_|Env]) -> is_vbound(N, Env);
 is_vbound(_, []) -> false.
 
-get_vbinding(N, [{N,V}|_]) -> {yes,V};
+get_vbinding(N, [{variable,N,V}|_]) -> {yes,V};
 get_vbinding(N, [_|Env]) -> get_vbinding(N, Env);
 get_vbinding(_, []) -> no.
 
-fetch_vbinding(N, [{N,V}|_]) -> V;
+fetch_vbinding(N, [{variable,N,V}|_]) -> V;
 fetch_vbinding(N, [_|Env]) -> fetch_vbinding(N, Env).
 
 add_fbinding(N, A, V, Env) -> [{function,N,A,V}|Env].
@@ -366,23 +365,19 @@ eval(Sexpr) -> lfe_eval:expr(Sexpr, new_env()).	%Empty environment.
 %%  exception; SkipFun is used to trim the end of stack; FormatFun is
 %%  used to format terms; and Indentation is the current column.
 
-format_exception(throw, Error, St, Sf, Ff, I) ->
-    P = "exception throw: ",
-    [P,lfe_io:prettyprint1(Error, 10, length(P)+I),"\n",
-     format_stacktrace(St, Sf, Ff)];
-format_exception(exit, Error, St, Sf, Ff, I) ->
-    P = "exception exit: ",
-    [P,lfe_io:prettyprint1(Error, 10, length(P)+I),"\n",
-     format_stacktrace(St, Sf, Ff)];
-format_exception(error, Error, St, Sf, Ff, I) ->
-    P = "exception error: ",
-    [P,lfe_io:prettyprint1(Error, 10, length(P)+I),"\n",
+format_exception(Cl, Error, St, Sf, Ff, I) ->
+    Cs = case Cl of				%Class type as string
+	     throw -> "throw";
+	     exit -> "exit";
+	     error -> "error"
+	 end,
+    P = "exception " ++ Cs ++ ": ",		%Class description string
+    [P,lfe_io:prettyprint1(Error, 10, length(P)+I-1),"\n",
      format_stacktrace(St, Sf, Ff)].
 
 %% format_stacktrace(Stacktrace, SkipFun, FormatFun) -> DeepCharList.
 %%  Format a stacktrace. SkipFun is used to trim the end of stack;
-%%  FormatFun is used to format terms; and Indentation is the current
-%%  column.
+%%  FormatFun is used to format terms.
 
 format_stacktrace(St0, Sf, Ff) ->
     St1 = reverse(dropwhile(fun ({M,F,A}) -> Sf(M, F, A) end, reverse(St0))),

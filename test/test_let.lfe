@@ -21,7 +21,7 @@
     (list m n o)))
 
 ;; Test multiply defined variables.
-;; (define (t1 x y)
+;; (defun (t1 x y)
 ;;   (let ((m (list x y))
 ;; 	(n (cons x z))
 ;; 	((n o) (list x y)))
@@ -43,7 +43,7 @@
    (list x y)))
 
 (defun f (x y)				;Arg mismatch, push error to runtime
-  (funcall (lambda (a b) (list a b)) (* x y)))
+  (funcall (lambda (a b c) (list a b)) (* x y)))
 
 (defun g (x y)
   (funcall (match-lambda

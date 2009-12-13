@@ -418,12 +418,17 @@
 ;;  much better (which we don't need) but is basically the same
 ;;  interpreted.
 
+(defun init_letrec_env (env) (tuple () env))
+
 (defun make_letrec_env (fbs0 env)
   (let ((fbs (map (lambda (fb)
 		    (let (((tuple v ar body) fb))
 		      (tuple v ar (tuple 'letrec body fbs0 env))))
 		  fbs0)))
     (add_fbindings fbs env)))
+
+(defun extend_letrec_env (lete0 fbs0 env0)
+  (tuple lete0 env0))
 
 ;; (add_expr_func name arity def env) -> env.
 ;;  Add a function definition in the correct format to the
@@ -637,7 +642,7 @@
     (('tuple . xs) (list_to_tuple (eval-glist xs env)))
     ;; Handle the Core closure special forms.
     (('let . body)
-     (eval-let body env))
+     (eval-glet body env))
     ;; Handle the Core control special forms.
     (('progn . b) (eval-gbody b env))
     (('if test t f)
@@ -674,12 +679,13 @@
    (eval-gexpr e env) (eval-gbody es env))
   ((() env) ()))
 
-(defun eval-glet (vbs body env0)
-  (let ((env (foldl (match-lambda
-		      (((v e) env) (when (is_atom v))
-		       (add_vbinding v (eval-gexpr e env0) env)))
-		    env0 vbs)))
-    (eval-gbody body env)))
+(defun eval-glet (body env0)
+  (let* (((vbs . b) body)		;Must match this
+	 (env (foldl (match-lambda
+		       (((v e) env) (when (is_atom v))
+			(add_vbinding v (eval-gexpr e env0) env)))
+		     env0 vbs)))
+    (eval-gbody b env)))
 
 (defun eval-gif (test t f env)
   (if (eval-gexpr test env)

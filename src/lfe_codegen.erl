@@ -168,19 +168,18 @@ collect_mdef([[N|Vs]|Mdef], St) ->
     collect_mdef(Mdef, St#cg{atts=As});
 collect_mdef([], St) -> St.
 
-collect_imps([['from',Mod|Fs]|Is], St0) ->
-    St1 = collect_imp(fun ([F,A], Imps) -> store({F,A}, F, Imps) end,
-		      Mod, St0, Fs),
-    collect_imps(Is, St1);
-collect_imps([['rename',Mod|Rs]|Is], St0) ->
-    St1 = collect_imp(fun ([[F,A],R], Imps) -> store({F,A}, R, Imps) end,
-		      Mod, St0, Rs),
-    collect_imps(Is, St1);
-collect_imps([['prefix',Mod,Pre]|Is], St) ->
-    Pstr = atom_to_list(Pre),
-    Pref = store(Pstr, Mod, St#cg.pref),
-    collect_imps(Is, St#cg{pref=Pref});
-collect_imps([], St) -> St.
+collect_imps(Is, St) ->
+    foldl(fun (I, S) -> collect_imp(I, S) end, St, Is).
+
+collect_imp(['from',Mod|Fs], St) ->
+    collect_imp(fun ([F,A], Imps) -> store({F,A}, F, Imps) end,
+		Mod, St, Fs);
+collect_imp(['rename',Mod|Rs], St) ->
+    collect_imp(fun ([[F,A],R], Imps) -> store({F,A}, R, Imps) end,
+		Mod, St, Rs);
+collect_imp(['prefix',Mod,Pre], St) ->
+    Pstr = atom_to_list(Pre),			%Store prefix as string
+    St#cg{pref=store(Pstr, Mod, St#cg.pref)}.
 
 collect_imp(Fun, Mod, St, Fs) ->
     Imps0 = safe_fetch(Mod, St#cg.imps, []),
@@ -225,8 +224,8 @@ comp_expr(Bin, _, _, St) when is_binary(Bin) ->
 
 comp_call([quote,E], _, _, St) -> {comp_lit(E),St};
 comp_call([cons,H,T], Env, L, St) ->
-    Call = fun ([Ch,Ct], _, _, St) -> {c_cons(Ch, Ct),St} end,
-    comp_args([H,T], Call, Env, L, St);
+    Cons = fun ([Ch,Ct], _, _, St) -> {c_cons(Ch, Ct),St} end,
+    comp_args([H,T], Cons, Env, L, St);
 %%     {Ch,St1} = comp_expr(H, Env, L, St0),
 %%     {Ct,St2} = comp_expr(T, Env, L, St1),
 %%     {c_cons(Ch, Ct),St2};
@@ -235,10 +234,10 @@ comp_call([car,E], Env, L, St) ->		%Provide lisp names
 comp_call([cdr,E], Env, L, St) ->
     comp_call([tl,E], Env, L, St);
 comp_call([list|Es], Env, L, St) ->
-    Call = fun (Ces, _, _, St) ->
+    List = fun (Ces, _, _, St) ->
 		   {foldr(fun (E, T) -> c_cons(E, T) end, c_nil(), Ces),St}
 	   end,
-    comp_args(Es, Call, Env, L, St);
+    comp_args(Es, List, Env, L, St);
 %%     foldr(fun (E, {T,St0}) ->
 %% 		  {Ce,St1} = comp_expr(E, Env, L, St0),
 %% 		  {c_cons(Ce, T),St1}
@@ -307,46 +306,38 @@ comp_call([Fun|As], Env, L, St) when is_atom(Fun) ->
 	   end,
     comp_args(As, Call, Env, L, St).
 
-%%     {Cas,St1} = comp_args(As, Env, L, St),
-%%     Ar = length(As),
-%%     case get_fbinding(Fun, Ar, Env) of
-%% 	{yes,M,F} ->				%Import
-%% 	    {#c_call{anno=[L],module=c_atom(M),name=c_atom(F),args=Cas},
-%% 	     St1};
-%% 	{yes,Name} ->
-%% 	    %% Might have been renamed, use real function name.
-%% 	    {#c_apply{anno=[L],op=c_fname(Name, Ar),args=Cas},St1}
-%%     end.
-
-%% comp_args(Args, Env, Line, State) -> {ArgList,State}.
-
-comp_args(As, Env, L, St) ->
-    mapfoldl(fun (A, Sta) -> comp_expr(A, Env, L, Sta) end, St, As).
-
 %% comp_args(Args, CallFun, Env, Line, State) -> {Call,State}.
 %%  Sequentialise the evaluation of Args building the Call at the
 %%  bottom. For non-simple arguments use let to break the arg
 %%  evaluation out from the main call. Cannot use foldr as we pass
-%%  data both in an out.
+%%  data both in and out.
 
-comp_args(As, Call, Env, L, St) ->
-    comp_args(As, Call, [], Env, L, St).
+comp_args(As, Call, Env, L, St0) ->
+    {Cas,St1} = mapfoldl(fun (A, St) -> comp_expr(A, Env, L, St) end, St0, As),
+    make_seq(Cas, Call, Env, L, St1).
 
-comp_args([A|As], Call, Cas, Env, L, St0) ->
-    {Ca,St1} = comp_expr(A, Env, L, St0),
+%% make_seq(CoreExps, Then, Env, Line, State) -> {Cepxr,State}.
+%%  Sequentialise the evaluation of a sequence of core expressions
+%%  using let's for non-simple exprs, and call Then with the simple
+%%  core sequence. Cannot use a simple foldr as we pass data both in
+%%  and out.
+
+make_seq(Ces, Then, Env, L, St) -> make_seq(Ces, Then, [], Env, L, St).
+
+make_seq([Ce|Ces], Then, Ses, Env, L, St0) ->
     %% Use erlang core compiler lib which does what we want.
-    case core_lib:is_simple(Ca) of
-	true -> comp_args(As, Call, [Ca|Cas], Env, L, St1);
+    case is_simple(Ce) of
+	true -> make_seq(Ces, Then, [Ce|Ses], Env, L, St0);
 	false ->
-	    {Cv,St2} = new_c_var(L, St1),
-	    {Rest,St3} = comp_args(As, Call, [Cv|Cas], Env, L, St2),
+	    {Cv,St1} = new_c_var(L, St0),
+	    {Rest,St2} = make_seq(Ces, Then, [Cv|Ses], Env, L, St1),
 	    {#c_let{anno=[L],
 		    vars=[Cv],
-		    arg=Ca,
-		    body=Rest},St3}
+		    arg=Ce,
+		    body=Rest},St2}
     end;
-comp_args([], Call, Cas, Env, L, St) ->
-    Call(reverse(Cas), Env, L, St).
+make_seq([], Then, Ses, Env, L, St) ->
+    Then(reverse(Ses), Env, L, St).
 
 %% comp_lambda(Args, Body, Env, Line, State) -> {#c_fun{},State}.
 %% Compile a (lambda (...) ...).
@@ -722,19 +713,34 @@ comp_funcall(F, As, Env, L, St0) ->
     comp_funcall_1(F, As, Env, L, St0).		%Naively just do it.
 
 comp_funcall_1(F, As, Env, L, St0) ->
-    {[Cf|Cas],St1} = comp_args([F|As], Env, L, St0),
-    {#c_apply{anno=[L],op=Cf,args=Cas},St1}.
+    App = fun ([Cf|Cas], _, L, St) ->
+		  {#c_apply{anno=[L],op=Cf,args=Cas},St}
+	  end,
+    comp_args([F|As], App, Env, L, St0).
+
+%%     {[Cf|Cas],St1} = comp_args([F|As], Env, L, St0),
+%%     {#c_apply{anno=[L],op=Cf,args=Cas},St1}.
 
 %% comp_binary(Segs, Env, Line, State) -> {#c_binary{},State}.
 
-comp_binary(Segs, Env, L, St0) ->
-    {Csegs,St1} = comp_bitsegs(Segs, Env, L, St0),
-    {#c_binary{anno=[L],segments=Csegs},St1}.
+comp_binary(Segs, Env, L, St) ->
+    comp_bitsegs(Segs, Env, L, St).
 
 %% comp_bitsegs(BitSegs, Env, Line, State) -> {CBitsegs,State}.
 
-comp_bitsegs(Segs, Env, L, St0) ->
-    mapfoldl(fun (S, St) -> comp_bitseg(S, Env, L, St) end, St0, Segs).
+comp_bitsegs(Segs, Env, L, St) ->
+    comp_bitsegs(Segs, [], Env, L, St).
+
+comp_bitsegs([Seg|Segs], Csegs, Env, L, St0) ->
+    {Val,Sz,Un,Ty,Fs,St1} = comp_bitseg(Seg, Env, L, St0),
+    %% Sequentialise Val and Size if necessary, then do rest
+    Next = fun ([Cv,Csz], Env, L, St) ->
+		   Cs = c_bitseg(Cv, Csz, Un, Ty, Fs),
+		   comp_bitsegs(Segs, [Cs|Csegs], Env, L, St)
+	   end,
+    make_seq([Val,Sz], Next, Env, L, St1);
+comp_bitsegs([], Csegs, _, L, St) ->
+    {#c_binary{anno=[L],segments=reverse(Csegs)},St}.
 
 %% comp_bitseg(Bitseg, Env, Line, State) -> {#c_bitstr{},State}.
 
@@ -744,12 +750,12 @@ comp_bitsegs(Segs, Env, L, St0) ->
 comp_bitseg([Val|Specs], Env, L, St0) ->
     {Cv,St1} = comp_expr(Val, Env, L, St0),
     {{Ty,Sz,Un,Si,En},St2} = comp_bitspecs(Specs, #spec{}, Env, L, St1),
-    {c_bitseg(Cv, Sz, c_int(Un), c_atom(Ty), c_lit([Si,En])),St2};
+    {Cv,Sz,c_int(Un),c_atom(Ty),c_lit([Si,En]),St2};
 comp_bitseg(Val, Env, L, St0) ->
     {Cv,St1} = comp_expr(Val, Env, L, St0),
     %% Create default segment.
     {{Ty,Sz,Un,Si,En},St2} = comp_bitspecs([], #spec{}, Env, L, St1),
-    {c_bitseg(Cv, Sz, c_int(Un), c_atom(Ty), c_lit([Si,En])),St2}.
+    {Cv,Sz,c_int(Un),c_atom(Ty),c_lit([Si,En]),St2}.
 
 %% comp_bitspecs(Specs, Spec, Env, Line, State) ->
 %%      {{Type,Size,Unit,Sign,End},State}.
@@ -1048,3 +1054,24 @@ safe_fetch(Key, D, Def) ->
 	{ok,Val} -> Val;
 	error -> Def
     end.
+
+%% is_simple(CoreExp) -> bool().
+%%  Test if CoreExp is simple, i.e. just constructs terms.
+
+is_simple(#c_var{}) -> true;
+is_simple(#c_literal{}) -> true;
+is_simple(#c_cons{hd=H,tl=T}) ->
+    case is_simple(H) of
+        true -> is_simple(T);
+        false -> false
+    end;
+is_simple(#c_tuple{es=Es}) -> is_simple_list(Es);
+is_simple(#c_binary{segments=Es}) -> is_simp_bin(Es);
+is_simple(_) -> false.
+
+is_simple_list(Es) -> lists:all(fun is_simple/1, Es).
+
+is_simp_bin(Es) ->
+    lists:all(fun (#c_bitstr{val=E,size=S}) ->
+                      is_simple(E) and is_simple(S)
+              end, Es).

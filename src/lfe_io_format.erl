@@ -340,7 +340,7 @@ float_f(_Fl, {Ds,E}, P) ->
 float_data(Fl) -> float_data(float_to_list(Fl), []).
 
 float_data([$e|E], Ds) ->
-    {lists:reverse(Ds),list_to_integer(E)+1};
+    {reverse(Ds),list_to_integer(E)+1};
 float_data([D|Cs], Ds) when D >= $0, D =< $9 ->
     float_data(Cs, [D|Ds]);
 float_data([_|Cs], Ds) ->
