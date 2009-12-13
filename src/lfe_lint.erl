@@ -62,7 +62,8 @@ form(F) ->
 	    {F,2}]).
 
 %% Errors.
-format_error(bad_mod_def) -> "bad module definition";
+format_error({bad_mod_def,D}) ->
+    lfe_io:format1("bad module definition: ~w", [D]);
 format_error(bad_extends) -> "bad extends";
 format_error(missing_module) -> "missing module";
 format_error(bad_funcs) -> "bad function list";
@@ -128,11 +129,11 @@ collect_form(['define-module',Mod|Mdef], L, St0) ->
 	    %% Everything into State.
 	    {[],check_mdef(Mdef, L, St0#lint{module=Mod,pars=none})};
 	false ->				%Bad module name
-	    {[],add_error(L, bad_mod_def, St0)}
+	    {[],bad_mod_def_error(L, name, St0)}
     end;
 collect_form(_, L, #lint{module=[]}=St) ->
     %% Set module name so this only triggers once.
-    {[],add_error(L, bad_mod_def, St#lint{module='-no-module-'})};
+    {[],bad_mod_def_error(L, name, St#lint{module='-no-module-'})};
 collect_form(['define-function',Func,[lambda|_]=Lambda], L, St)
   when is_atom(Func) ->
     {[{Func,Lambda,L}],St};
@@ -150,7 +151,7 @@ check_mdef([[export|Es]|Mdef], L, St) ->
 	    Exps = add_exports(St#lint.exps, Fs),
 	    check_mdef(Mdef, L, St#lint{exps=Exps});
 	no ->
-	    check_mdef(Mdef, L, bad_form_error(L, export, St))
+	    check_mdef(Mdef, L, bad_mod_def_error(L, export, St))
     end;
 check_mdef([[import|Is]|Mdef], L, St0) ->
     St1 = check_imports(Is, L, St0),
@@ -168,7 +169,7 @@ check_mdef([[Name|Vals]|Mdef], L, St) ->
 	false -> check_mdef(Mdef, L, add_error(L, {bad_attribute,Name}, St))
     end;
 check_mdef([], _, St) -> St;
-check_mdef(_, L, St) -> add_error(L, bad_mod_def, St).
+check_mdef(_, L, St) -> bad_mod_def_error(L, form, St).
 
 check_imports(Is, L, St0) ->
     check_foreach(fun (I, St) -> check_import(I, L, St) end,
@@ -186,12 +187,12 @@ check_import([rename,Mod|Rs], L, St) when is_atom(Mod) ->
 check_import([prefix,Mod,Pre], L, St) when is_atom(Mod), is_atom(Pre) ->
     Pstr = atom_to_list(Pre),
     case find(Pstr, St#lint.pref) of
-	{ok,_} -> bad_form_error(L, prefix, St);
+	{ok,_} -> bad_mod_def_error(L, prefix, St);
 	error ->
 	    Pref = store(Pstr, Mod, St#lint.pref),
 	    St#lint{pref=Pref}
     end;
-check_import(_, L, St) -> bad_form_error(L, import, St).
+check_import(_, L, St) -> bad_mod_def_error(L, import, St).
 
 check_import(Fun, Mod, L, St0, Fs) ->
     Imps0 = safe_fetch(Mod, St0#lint.imps, []),
@@ -956,6 +957,9 @@ add_error(L, E, St) ->
 
 bad_form_error(L, F, St) ->
     add_error(L, {bad_form,F}, St).
+
+bad_mod_def_error(L, D, St) ->
+    add_error(L, {bad_mod_def,D}, St).
 
 multi_var_error(L, V, St) ->
     add_error(L, {multi_var,V}, St).

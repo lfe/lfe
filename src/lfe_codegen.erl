@@ -1055,6 +1055,8 @@ safe_fetch(Key, D, Def) ->
 	error -> Def
     end.
 
+%% is_simple(CoreExp) -> bool().
+%%  Test if CoreExp is simple, i.e. just constructs terms.
 
 is_simple(#c_var{}) -> true;
 is_simple(#c_literal{}) -> true;
@@ -1073,4 +1075,3 @@ is_simp_bin(Es) ->
     lists:all(fun (#c_bitstr{val=E,size=S}) ->
                       is_simple(E) and is_simple(S)
               end, Es).
-
