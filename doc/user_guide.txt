@@ -352,7 +352,7 @@ field-name value to get non-default values. E.g. for
    (person-address r)
    (set-person-address r address)
 
-(make-person name "Robert" age 54)
+(make-person name '"Robert" age 54)
 
 	Will create a new person record with the name field set to
 	"Robert", the age field set to 54 and the address field set to
