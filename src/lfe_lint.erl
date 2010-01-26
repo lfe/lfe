@@ -1,4 +1,4 @@
-%% Copyright (c) 2008 Robert Virding. All rights reserved.
+%% Copyright (c) 2008-2010 Robert Virding. All rights reserved.
 %%
 %% Redistribution and use in source and binary forms, with or without
 %% modification, are permitted provided that the following conditions
@@ -281,18 +281,12 @@ add_exports(Old, More) -> union(Old, More).
 
 %% Check the Core data special forms.
 check_expr([quote,_], _, _, St) -> St;
-check_expr([cons|[_,_]=As], Env, L, St) ->
-    check_args(As, Env, L, St);
-check_expr([car,E], Env, L, St) ->
-    check_expr(E, Env, L, St);
-check_expr([cdr,E], Env, L, St) ->
-    check_expr(E, Env, L, St);
-check_expr([list|As], Env, L, St) ->
-    check_args(As, Env, L, St);
-check_expr([tuple|As], Env, L, St) ->
-    check_args(As, Env, L, St);
-check_expr([binary|Segs], Env, L, St) ->
-    expr_bitsegs(Segs, Env, L, St);
+check_expr([cons|[_,_]=As], Env, L, St) -> check_args(As, Env, L, St);
+check_expr([car,E], Env, L, St) -> check_expr(E, Env, L, St);
+check_expr([cdr,E], Env, L, St) -> check_expr(E, Env, L, St);
+check_expr([list|As], Env, L, St) -> check_args(As, Env, L, St);
+check_expr([tuple|As], Env, L, St) -> check_args(As, Env, L, St);
+check_expr([binary|Segs], Env, L, St) -> expr_bitsegs(Segs, Env, L, St);
 %% Check the Core closure special forms.
 check_expr(['lambda'|Lambda], Env, L, St) ->
     check_lambda(Lambda, Env, L, St);
@@ -342,23 +336,35 @@ check_expr([_|As], Env, L, St0) ->
     check_args(As, Env, L, St1);
 check_expr([], _, _, St) -> St;			%Self evaluating []
 check_expr(Symb, Env, L, St) when is_atom(Symb) ->
-    %% Predefined functions exist only when called.
-    case is_vbound(Symb, Env) of
-	true -> St;
-	false -> add_error(L, {unbound_symb,Symb}, St)
-    end;
+    check_symb(Symb, Env, L, St);
 check_expr(Tup, _, _, St) when is_tuple(Tup) ->
     %% This just builds a tuple constant.
     St;
 check_expr(_, _, _, St) -> St.		%Everything else is atomic
+
+%% check_symb(Symbol, Env, Line, State) -> State.
+%%  Check if Symbol is bound.
+
+check_symb(Symb, Env, L, St) ->
+    case is_vbound(Symb, Env) of
+	true -> St;
+	false -> add_error(L, {unbound_symb,Symb}, St)
+    end.
 
 %% check_body(Body, Env, Line, State) -> State.
 %% Check the calls in a body. A body is a proper list of calls. Env is
 %% the set of known bound variables.
 
 check_body(Body, Env, L, St) ->
+    %% check_body(fun check_exprs/4, Env, L, St, Body).
     case is_proper_list(Body) of
 	true -> check_exprs(Body, Env, L, St);
+	false -> add_error(L, bad_body, St)
+    end.
+
+check_body(Check, Env, L, St, Body) ->
+    case is_proper_list(Body) of
+	true -> Check(Body, Env, L, St);
 	false -> add_error(L, bad_body, St)
     end.
 
@@ -627,39 +633,29 @@ check_pat_guard([Pat|Body], Env0, L, St0) ->
 %% check_gexpr(Call, Env, Line, State) -> State.
 %% Check a guard expression. This is a restricted body expression.
 
-check_gexpr([_|_]=Call, Env, L, St) ->
-    check_gcall(Call, Env, L, St);
-check_gexpr([], _, _, St) -> St;
-check_gexpr(Symb, Env, L, St) when is_atom(Symb) ->
-    case is_vbound(Symb, Env) of
-	true -> St;
-	false -> add_error(L, {unbound_symb,Symb}, St)
-    end;
-check_gexpr(Tup, _, _, St) when is_tuple(Tup) ->
-    %% This just builds a tuple constant.
-    St;
-check_gexpr(_, _, _, St) -> St.			%Everything else is atomic
-
-%% check_gcall(Gcall, Env, Line, State) -> State.
-%% Check a function gcall.
-
-%% Check the known special cases.
-check_gcall([quote,_], _, _, St) -> St;
-check_gcall([cons|[_,_]=As], Env, L, St) ->
-    check_gargs(As, Env, L, St);
-check_gcall([list|As], Env, L, St) ->
-    check_gargs(As, Env, L, St);
-check_gcall([tuple|As], Env, L, St) ->
-    check_gargs(As, Env, L, St);
-check_gcall([binary|Segs], Env, L, St) ->
-    gexpr_bitsegs(Segs, Env, L, St);
-check_gcall(['case',E|Cls], Env, L, St0) ->
+%% Check the Core data special cases.
+check_gexpr([quote,_], _, _, St) -> St;
+check_gexpr([cons|[_,_]=As], Env, L, St) -> check_gargs(As, Env, L, St);
+check_gexpr([car,E], Env, L, St) -> check_gexpr(E, Env, L, St);
+check_gexpr([cdr,E], Env, L, St) -> check_gexpr(E, Env, L, St);
+check_gexpr([list|As], Env, L, St) -> check_gargs(As, Env, L, St);
+check_gexpr([tuple|As], Env, L, St) -> check_gargs(As, Env, L, St);
+check_gexpr([binary|Segs], Env, L, St) -> gexpr_bitsegs(Segs, Env, L, St);
+%% Check the Core closure special forms.
+%% Check the Core control special forms.
+check_gexpr(['progn'|Body], Env, L, St) ->
+    check_gbody(Body, Env, L, St);
+check_gexpr(['if',Test,True,False], Env, L, St) ->
+    check_gargs([Test,True,False], Env, L, St);
+check_gexpr(['if',Test,True], Env, L, St) ->
+    check_gargs([Test,True], Env, L, St);
+check_gexpr(['case',E|Cls], Env, L, St0) ->	%What do we need case for?
     St1 = check_gexpr(E, Env, L, St0),
     check_gclauses(Cls, Env, L, St1);
-check_gcall(['try'|B], Env, L, St) ->
+check_gexpr(['try'|B], Env, L, St) ->
     check_gtry(B, Env, L, St);
 %% Finally the general case.
-check_gcall([Symb|As], Env, L, St0) when is_atom(Symb) ->
+check_gexpr([Symb|As], Env, L, St0) when is_atom(Symb) ->
     St1 = check_gargs(As, Env, L, St0),
     %% Here we are not interested in HOW symb is associated to a
     %% function, just that it is.
@@ -667,8 +663,15 @@ check_gcall([Symb|As], Env, L, St0) when is_atom(Symb) ->
 	true -> St1;
 	false -> add_error(L, {unbound_func,{Symb,safe_length(As)}}, St1)
     end;
-check_gcall(_, _, L, St) ->
-    add_error(L, illegal_guard, St).
+check_gexpr([_|_], _, L, St) ->
+    add_error(L, illegal_guard, St);
+check_gexpr([], _, _, St) -> St;
+check_gexpr(Symb, Env, L, St) when is_atom(Symb) ->
+    check_symb(Symb, Env, L, St);
+check_gexpr(Tup, _, _, St) when is_tuple(Tup) ->
+    %% This just builds a tuple constant.
+    St;
+check_gexpr(_, _, _, St) -> St.			%Everything else is atomic
 
 %% check_gbody(Body, Env, Line, State) -> State.
 %% check_gargs(Args, Env, Line, State) -> State.

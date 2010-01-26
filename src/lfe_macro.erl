@@ -1,4 +1,4 @@
-%% Copyright (c) 2008 Robert Virding. All rights reserved.
+%% Copyright (c) 2008-2010 Robert Virding. All rights reserved.
 %%
 %% Redistribution and use in source and binary forms, with or without
 %% modification, are permitted provided that the following conditions
@@ -639,6 +639,7 @@ exp_predef(['andalso'|Abody], _, St) ->
     Exp = case Abody of
 	      [E] -> E;				%Let user check last call
 	      [E|Es] ->
+%% 		  ['if',E,['andalso'|Es],?Q(false)];
 		  ['case',E,[?Q(true),['andalso'|Es]],[?Q(false),?Q(false)]];
 	      [] -> ?Q(true)
 	  end,
@@ -647,6 +648,7 @@ exp_predef(['orelse'|Obody], _, St) ->
     Exp = case Obody of
 	      [E] -> E;				%Let user check last call
 	      [E|Es] ->
+%% 		  ['if',E,?Q(true),['orelse'|Es]];
 		  ['case',E,[?Q(true),?Q(true)],[?Q(false),['orelse'|Es]]];
 	      [] -> ?Q(false)
 	  end,
@@ -839,10 +841,14 @@ bq_expand([['unquote-splicing'|X]|Y], 0) ->
 bq_expand([X|Y], N) ->
     bq_cons(bq_expand(X, N), bq_expand(Y, N));
 bq_expand(X, N) when is_tuple(X) ->
-%%     [list_to_tuple,bq_expand(tuple_to_list(X), N)];
-    [tuple|tl(bq_expand(tuple_to_list(X), N))];
+    %% Straight [list_to_tuple,bq_expand(tuple_to_list(X), N)] inefficient
+    %% and [tuple|tl(bq_expand(tuple_to_list(X), N))] can't handle splicing!
+    case bq_expand(tuple_to_list(X), N) of
+	[list|Es] -> [tuple|Es];		%No splicing
+	[cons|_]=E -> [list_to_tuple,E]		%Have splicing
+    end;
 bq_expand(X, _) when is_atom(X) -> [quote,X];
-bq_expand(X, _) -> X.
+bq_expand(X, _) -> X.				%Self quoting
 
 bq_append(['++',L], R) -> bq_append(L, R);	%Catch single unquote-splice
 bq_append([], R) -> R;

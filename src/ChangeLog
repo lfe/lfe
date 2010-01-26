@@ -1,3 +1,26 @@
+2010-01-26  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_eval.lfe: Changed (binary (unit 1)) to (bitstring)
+	everywhere.
+
+	* lfe_eval.erl: Changed /binary-unit:1 to /bitstring everywhere.
+
+	* lfe_lint.erl (check_gexpr): Restructured function.
+
+	* lfe_macro.erl (bq_expand): Fixed handling of tuples to be
+	efficient or handle splicing.
+
+2010-01-25  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_io.erl (print1): Don't special case standard character
+	macros in normal print, leave for prettyprint.
+
+2010-01-20  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_eval.lfe (eval-let): Better error reporting.
+
+	* lfe_eval.erl (eval_let): Better error reporting.
+
 2009-12-14  Robert Virding  <rv@stanislaw.local>
 
 	* lfe_lint.erl (bad_mod_def_error): Broke this out and added what

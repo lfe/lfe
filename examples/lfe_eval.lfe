@@ -1,4 +1,4 @@
-;; Copyright (c) 2008 Robert Virding. All rights reserved.
+;; Copyright (c) 2008-2010 Robert Virding. All rights reserved.
 ;;
 ;; Redistribution and use in source and binary forms, with or without
 ;; modification, are permitted provided that the following conditions
@@ -157,7 +157,7 @@
   (foldl (lambda (psp acc)
 	    (let* (((tuple val spec) psp)
 		   (bin (eval-field val spec env)))
-	      (binary (acc binary (unit 1)) (bin binary (unit 1)))))
+	      (binary (acc bitstring) (bin bitstring))))
 	 #b() psps))
 
 (defun eval-field (val spec env)
@@ -187,7 +187,7 @@
 		(val-or-def sz 64) (val-or-def un 1)
 		(val-or-def si 'unsigned) (val-or-def en 'big)))
 	('binary
-	 (tuple 'integer
+	 (tuple 'binary
 		(val-or-def sz 'all) (val-or-def un 8)
 		(val-or-def si 'unsigned) (val-or-def en 'big)))
 	('bitstring
@@ -195,34 +195,34 @@
 		(val-or-def sz 'all) (val-or-def un 1)
 		(val-or-def si 'unsigned) (val-or-def en 'big)))))))
 
-(defun parse-bitspec (sp spec env)
-  (case sp
+(defun parse-bitspec (spec sp env)
+  (case spec
     ;; Types.
-    ('integer (set-spec-type spec 'integer))
-    ('float (set-spec-type spec 'float))
-    ('binary (set-spec-type spec 'binary))
-    ('bytes (set-spec-type spec 'binary))
-    ('bitstring (set-spec-type spec 'bitstring))
-    ('bits (set-spec-type spec 'bitstring))
+    ('integer (set-spec-type sp 'integer))
+    ('float (set-spec-type sp 'float))
+    ('binary (set-spec-type sp 'binary))
+    ('bytes (set-spec-type sp 'binary))
+    ('bitstring (set-spec-type sp 'bitstring))
+    ('bits (set-spec-type sp 'bitstring))
     ;; Unicode types.
-    ('utf-8 (set-spec-type spec 'utf8))
-    ('utf-16 (set-spec-type spec 'utf16))
-    ('utf-32 (set-spec-type spec 'utf32))
+    ('utf-8 (set-spec-type sp 'utf8))
+    ('utf-16 (set-spec-type sp 'utf16))
+    ('utf-32 (set-spec-type sp 'utf32))
     ;; Endianess.
-    ('big-endian (set-spec-type spec 'big))
-    ('little-endian (set-spec-type spec 'little))
-    ('big-native (set-spec-type spec 'native))
+    ('big-endian (set-spec-type sp 'big))
+    ('little-endian (set-spec-type sp 'little))
+    ('big-native (set-spec-type sp 'native))
     ;; Sign.
-    ('signed (set-spec-sign spec 'signed))
-    ('unsigned (set-spec-sign spec 'unsigned))
+    ('signed (set-spec-sign sp 'signed))
+    ('unsigned (set-spec-sign sp 'unsigned))
     ;; Size
     (('size n)
      (let ((size (eval-expr n env)))
-       (set-spec-size spec size)))
+       (set-spec-size sp size)))
     (('unit n) (when (and (is_integer n) (> n 0)))
-     (set-spec-unit spec n))
+     (set-spec-unit sp n))
     ;; Illegal spec.
-    (sp (: erlang error (tuple 'illegal_bitspec sp)))))
+    (_ (: erlang error (tuple 'illegal_bitspec spec)))))
 
 ;; (eval-exp-field value type size unit sign endian) -> binary().
 
@@ -240,10 +240,10 @@
     ((tuple 'binary 'all un _ _)
      (case (: erlang bit_size val)
        (size (when (=:= (rem size un) 0))
-	     (binary (val binary (size size) (unit 1))))
+	     (binary (val bitstring (size size))))
        (_ (: erlang error 'bad_arg))))
     ((tuple 'binary sz un _ _)
-     (binary (val binary (size (* sz un)) (unit 1))))))
+     (binary (val bitstring (size (* sz un)))))))
 
 (defun eval-int-field
   ([val sz 'signed 'little] (binary (val (size sz) signed little-endian)))
@@ -274,7 +274,7 @@
 ;; (eval-lambda (lambda-body env)) -> val
 
 (defun eval-lambda
-  (((args . body) env)
+  ([(args . body) env]
    ;; This is a really ugly hack!
    (case (length args)
      (0 (lambda () (eval-lambda () () body env)))
@@ -362,17 +362,19 @@
 
 (defun eval-let (body env0)
   (let* (((vbs . b) body)		;Must match this
+	 ;; Make sure we use the right environment.
 	 (env (foldl (match-lambda
-		       (((pat e) env)
-			(let* ((val (eval-expr e env0))
-			       ((tuple 'yes bs) (match pat val env0)))
-			  (add_vbindings bs env)))
-		       (((pat g e) env)
-			(let* ((val (eval-expr e env0))
-			       ((tuple 'yes '() bs)
-				(match-when pat val (list g) env0)))
-			  (add_vbindings bs env)))
-		       ((_ _) (: erlang error (tuple 'bad_form 'let))))
+		       ([(pat e) env]
+			(let ((val (eval-expr e env0)))
+			  (case (match pat val env0)
+			    ((tuple 'yes bs) (add_vbindings bs env))
+			    ('no (: erlang error (tuple 'badmatch val))))))
+		       ([(pat (= ('when _) g) e) env]
+			(let ((val (eval-expr e env0)))
+			  (case (match-when pat val (list g) env0)
+			    ((tuple 'yes '() bs) (add_vbindings bs env))
+			    ('no (: erlang error (tuple 'badmatch val))))))
+		       ([_ _] (: erlang error (tuple 'bad_form 'let))))
 		     env0 vbs)))
     (eval-body b env)))
 
@@ -448,7 +450,7 @@
      (eval-match-clauses es cls env))
     ((tuple 'letrec body fbs env)
      (let ((newenv (foldl (match-lambda
-			    (((tuple v ar lambda) e)
+			    ([(tuple v ar lambda) e]
 			     (add_fbinding v ar
 					   (tuple 'letrec lambda fbs env) e)))
 			  env fbs)))
@@ -682,7 +684,7 @@
 (defun eval-glet (body env0)
   (let* (((vbs . b) body)		;Must match this
 	 (env (foldl (match-lambda
-		       (((v e) env) (when (is_atom v))
+		       ([(v e) env] (when (is_atom v))
 			(add_vbinding v (eval-gexpr e env0) env)))
 		     env0 vbs)))
     (eval-gbody b env)))
@@ -709,28 +711,28 @@
 (defun match (pat val env) (match pat val env ()))
 
 (defun match
-  ((('quote p) val env bs)
+  ([('quote p) val env bs]
    (if (=:= p val) (tuple 'yes bs) 'no))
-  ((('tuple . ps) val env bs)
+  ([('tuple . ps) val env bs]
    (if (is_tuple val)
      (match ps (tuple_to_list val) env bs)
      'no))
-  ((('binary . fs) val env bs)
-   (if (is_binary val)
+  ([('binary . fs) val env bs]
+   (if (is_bitstring val)
      (match-binary fs val env bs)
      'no))
-  ((('= p1 p2) val env bs)		;Aliases
+  ([('= p1 p2) val env bs]		;Aliases
    (case (match p1 val env bs)
      ((tuple 'yes bs) (match p2 val env bs))
      ('no 'no)))
-  (((p . ps) (v . vs) env bs)
+  ([(p . ps) (v . vs) env bs]
    (case (match p v env bs)
      ((tuple 'yes bs) (match ps vs env bs))
      ('no 'no)))
-  ((() () env bs) (tuple 'yes bs))
-  ((symb val env bs) (when (is_atom symb))
+  ([() () env bs] (tuple 'yes bs))
+  ([symb val env bs] (when (is_atom symb))
    (match-symb symb val env bs))
-  ((pat val env bs)
+  ([pat val env bs]
    (if (=:= pat val)
      (tuple 'yes bs)
      'no)))
@@ -791,27 +793,27 @@
 (defun get-int-field
   ([bin sz 'signed 'little]
    (let (((binary (val signed little-endian (size sz))
-		  (rest binary (unit 1))) bin))
+		  (rest bitstring)) bin))
      (tuple val rest)))
   ([bin sz 'unsigned 'little]
    (let (((binary (val unsigned little-endian (size sz))
-		  (rest binary (unit 1))) bin))
+		  (rest bitstring)) bin))
      (tuple val rest)))
   ([bin sz 'signed 'native]
    (let (((binary (val signed native-endian (size sz))
-		  (rest binary (unit 1))) bin))
+		  (rest bitstring)) bin))
      (tuple val rest)))
   ([bin sz 'unsigned 'native]
    (let (((binary (val unsigned native-endian (size sz))
-		  (rest binary (unit 1))) bin))
+		  (rest bitstring)) bin))
      (tuple val rest)))
   ([bin sz 'signed 'big]
    (let (((binary (val signed big-endian (size sz))
-		  (rest binary (unit 1))) bin))
+		  (rest bitstring)) bin))
      (tuple val rest)))
   ([bin sz 'unsigned 'big]
    (let (((binary (val unsigned big-endian (size sz))
-		  (rest binary (unit 1))) bin))
+		  (rest bitstring)) bin))
      (tuple val rest))))
 
 (defun get-utf-8-field (bin)
@@ -839,14 +841,11 @@
 (defun get-float-field (bin sz en)
   (case en
     ('little
-     (let (((binary (val float little-endian (size sz)) (rest binary (unit 1)))
-	    bin))
+     (let (((binary (val float little-endian (size sz)) (rest bitstring)) bin))
        (tuple val rest)))
     ('native
-     (let (((binary (val float native-endian (size sz)) (rest binary (unit 1)))
-	    bin))
+     (let (((binary (val float native-endian (size sz)) (rest bitstring)) bin))
        (tuple val rest)))
     ('big
-     (let (((binary (val float big-endian (size sz)) (rest binary (unit 1)))
-	    bin))
+     (let (((binary (val float big-endian (size sz)) (rest bitstring)) bin))
        (tuple val rest)))))

@@ -173,7 +173,7 @@ parse_field(Val, Env) ->
 eval_fields(Vsps, Env) ->
     foldl(fun ({Val,Spec}, Acc) ->
 		  Bin = eval_field(Val, Spec, Env),
-		  <<Acc/binary-unit:1,Bin/binary-unit:1>>
+		  <<Acc/bitstring,Bin/bitstring>>
 	  end, <<>>, Vsps).
 
 eval_field(Val, Spec, Env) ->
@@ -256,11 +256,11 @@ eval_exp_field(Val, Spec) ->
 	{binary,all,Unit,_,_} ->
 	    case erlang:bit_size(Val) of
 		Size when Size rem Unit =:= 0 ->
-		    <<Val:Size/binary-unit:1>>;
+		    <<Val:Size/bitstring>>;
 		_ -> erlang:error(badarg)
 	    end;
 	{binary,Size,Unit,_,_} ->
-	    <<Val:(Size*Unit)/binary-unit:1>>
+	    <<Val:(Size*Unit)/bitstring>>
     end.
 
 eval_int_field(Val, Sz, signed, little) -> <<Val:Sz/little-signed>>;
@@ -372,15 +372,22 @@ eval_match_clauses(Vals, [[Pats|B0]|Cls], Env) ->
     end;
 eval_match_clauses(_, _, _) -> erlang:error(function_clause).
 
+%% eval_let([PatBindings|Body], Env) -> Value.
+
 eval_let([Vbs|Body], Env0) ->
+    %% Make sure we use the right environment.
     Env1 = foldl(fun ([Pat,E], Env) ->
 			 Val = eval_expr(E, Env0),
-			 {yes,Bs} = match(Pat, Val, Env0),
-			 add_vbindings(Bs, Env);
-		     ([Pat,G,E], Env) ->
+			 case match(Pat, Val, Env0) of
+			     {yes,Bs} -> add_vbindings(Bs, Env);
+			     no -> erlang:error({badmatch,Val})
+			 end;
+		     ([Pat,['when',_]=G,E], Env) ->
 			 Val = eval_expr(E, Env0),
-			 {yes,[],Bs} = match_when(Pat, Val, [G], Env0),
-			 add_vbindings(Bs, Env);
+			 case match_when(Pat, Val, [G], Env0) of
+			     {yes,[],Bs} -> add_vbindings(Bs, Env);
+			     no -> erlang:error({badmatch,Val})
+			 end;
 		     (_, _) -> erlang:error({bad_form,'let'})
 		 end, Env0, Vbs),
     eval_body(Body, Env1).
@@ -391,7 +398,7 @@ eval_let_function([Fbs|Body], Env0) ->
     Env1 = foldl(fun ([V,[lambda,Args|_]=Lambda], E) when is_atom(V) ->
 			 add_fbinding(V, length(Args), {expr,Lambda,Env0}, E);
 		     ([V,['match-lambda',[Pats|_]|_]=Match], E)
-		     when is_atom(V) ->
+		       when is_atom(V) ->
 			 add_fbinding(V, length(Pats), {expr,Match,Env0}, E);
 		     (_, _) -> erlang:error({bad_form,'let-function'})
 		 end, Env0, Fbs),
@@ -580,7 +587,7 @@ eval_try_catch([['after'|B]], E, Case, Env) ->
 eval_try(E, Case, Catch, After, Env) ->
     try
 	eval_expr(E, Env)
-	of
+    of
 	Ret ->
 	    case Case of
 		{yes,Cls} -> eval_case_clauses(Ret, Cls, Env);
@@ -630,7 +637,7 @@ match_when(Pat, V, B0, Env) ->
 		    %% Guards are fault safe.
 		    try
 			eval_gexpr(G, add_vbindings(Vbs, Env))
-			of
+		    of
 			true -> {yes,B1,Vbs};
 			_Other -> no			%Fail guard
 		    catch
@@ -814,22 +821,22 @@ get_pat_field(Bin, Spec) ->
     end.
 
 get_int_field(Bin, Sz, signed, little) ->
-    <<Val:Sz/little-signed,Rest/binary-unit:1>> = Bin,
+    <<Val:Sz/little-signed,Rest/bitstring>> = Bin,
     {Val,Rest};
 get_int_field(Bin, Sz, unsigned, little) ->
-    <<Val:Sz/little-unsigned,Rest/binary-unit:1>> = Bin,
+    <<Val:Sz/little-unsigned,Rest/bitstring>> = Bin,
     {Val,Rest};
 get_int_field(Bin, Sz, signed, native) ->
-    <<Val:Sz/native-signed,Rest/binary-unit:1>> = Bin,
+    <<Val:Sz/native-signed,Rest/bitstring>> = Bin,
     {Val,Rest};
 get_int_field(Bin, Sz, unsigned, native) ->
-    <<Val:Sz/native-unsigned,Rest/binary-unit:1>> = Bin,
+    <<Val:Sz/native-unsigned,Rest/bitstring>> = Bin,
     {Val,Rest};
 get_int_field(Bin, Sz, signed, big) ->
-    <<Val:Sz/big-signed,Rest/binary-unit:1>> = Bin,
+    <<Val:Sz/big-signed,Rest/bitstring>> = Bin,
     {Val,Rest};
 get_int_field(Bin, Sz, unsigned, big) ->
-    <<Val:Sz/big-unsigned,Rest/binary-unit:1>> = Bin,
+    <<Val:Sz/big-unsigned,Rest/bitstring>> = Bin,
     {Val,Rest}.
 
 get_utf8_field(Bin) ->
@@ -857,11 +864,11 @@ get_utf32_field(Bin, big) ->
     {Val,Rest}.
 
 get_float_field(Bin, Sz, little) ->
-    <<Val:Sz/float-little,Rest/binary-unit:1>> = Bin,
+    <<Val:Sz/float-little,Rest/bitstring>> = Bin,
     {Val,Rest};
 get_float_field(Bin, Sz, native) ->
-    <<Val:Sz/float-native,Rest/binary-unit:1>> = Bin,
+    <<Val:Sz/float-native,Rest/bitstring>> = Bin,
     {Val,Rest};
 get_float_field(Bin, Sz, big) ->
-    <<Val:Sz/float,Rest/binary-unit:1>> = Bin,
+    <<Val:Sz/float,Rest/bitstring>> = Bin,
     {Val,Rest}.
