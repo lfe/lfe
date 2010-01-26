@@ -119,11 +119,17 @@
      ))
   "Subdued expressions to highlight in LFE modes.")
 
+(eval-and-compile
+  (defconst lfe-type-tests
+    '("is_atom" "is_binary" "is_bitstring" "is_boolean" "is_float"
+      "is_function" "is_integer" "is_list" "is_number" "is_pid"
+      "is_port" "is_record" "is_reference" "is_tuple")
+    "LFE type tests"))
+
 (defconst lfe-font-lock-keywords-2
   (append lfe-font-lock-keywords-1
    (eval-when-compile
      (list
-      ;;
       ;; Control structures.
       (cons
        (concat
@@ -141,6 +147,11 @@
 	       "macrolet" "syntaxlet" "begin" "let-syntax"
 	       ":" "?" "++") t)
 	"\\>") '(1 font-lock-keyword-face))
+      ;; Type tests.
+      (cons
+       (concat
+	"(" (regexp-opt lfe-type-tests t) "\\>")
+       '(1 font-lock-builtin-face))
       )))
   "Gaudy expressions to highlight in LFE modes.")
 
