@@ -39,7 +39,8 @@
 %% print1(Sexpr, Depth) -> [char()].
 %% print1(Sexpr, Depth, Indentation, LineLength) -> [char()].
 %%  A relatively simple pretty print function, but with some
-%%  customisation.
+%%  customisation. N.B. We know about the standard character macros
+%%  and use them instead of their expanded forms.
 
 print1(S) -> print1(S, -1, 0, 80).
 
@@ -57,6 +58,8 @@ print1([quote,E], D, I, L) -> ["'",print1(E, D, I+1, L)];
 print1([backquote,E], D, I, L) -> ["`",print1(E, D, I+1, L)];
 print1([unquote,E], D, I, L) -> [",",print1(E, D, I+1, L)];
 print1(['unquote-splicing',E], D, I, L) -> [",@",print1(E, D, I+2, L)];
+print1([_]=List, D, I, L) ->
+    ["(",print1_list(List, D-1, I+1, L),")"];
 print1([Car|Cdr]=List, D, I, L) ->
     %% Handle printable lists specially.
     case io_lib:printable_list(List) of
@@ -67,9 +70,10 @@ print1([Car|Cdr]=List, D, I, L) ->
 		no ->
 		    %% Customise printing of lists.
 		    case indent_type(Car) of
-			none ->
-			    %% Normal lists.
+			none ->			%Normal lists.
 			    ["(",print1_list(List, D-1, I+1, L),")"];
+			defun ->		%Special case for defuns
+			    print1_defun(List, D, I, L);
 			N when is_integer(N) ->
 			    %% Handle special lists, we KNOW Car is an atom.
 			    Cs = atom_to_list(Car),
@@ -93,6 +97,25 @@ print1(Bit, _, _, _) when is_bitstring(Bit) ->
     ["#B(",lfe_io:print1_bits(Bit, 30),$)];	%First 30 bytes
 print1(Other, _, _, _) ->
     lfe_io:print1(Other).			%Use standard LFE for rest
+
+%% print1_defun(List, Depth, Indentation, LineLength) -> [char()].
+%% Print a defun depending on whether it is traditional or matching.
+
+print1_defun([Def,Name,Args|Rest], D, I, L) when is_atom(Name) ->
+    Dcs = atom_to_list(Def),			%Might not actually be defun
+    Ncs = atom_to_list(Name),
+    case lfe_lib:is_symb_list(Args) of
+	true ->					%Traditional
+	    Acs = print1(Args, D-1, I + length(Dcs) + length(Ncs) + 3, L),
+	    Tcs = print1_tail(Rest, D-1, I+2, L),
+	    ["(",Dcs," ",Ncs," ",Acs,Tcs,")"];
+	false ->				%Matching
+	    Tcs = print1_tail([Args|Rest], D-1, I+2, L),
+	    ["(",Dcs," ",Ncs,Tcs,")"]
+    end;
+print1_defun(List, D, I, L) ->
+    %% Too short to get worked up about, or not a "proper" defun.
+    ["(",print1_list(List, D-1, I+1, L),")"].
 
 %% split(N, List) -> {List1,List2}.
 %%  Split a list into two lists, the first containing the first N
@@ -168,8 +191,8 @@ indent_type('syntax-rules') -> 0;
 indent_type('macro') -> 0;
 %% New style forms.
 indent_type('defmodule') -> 1;
-indent_type('defun') -> 1;
-indent_type('defmacro') -> 1;
+indent_type('defun') -> defun;
+indent_type('defmacro') -> defun;
 indent_type('defsyntax') -> 1;
 indent_type('defrecord') -> 1;
 %% Core forms.

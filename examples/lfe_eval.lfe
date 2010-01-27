@@ -501,24 +501,31 @@
 	      (tuple (reverse rcls) 'infinity ()))))
     (let (((tuple cls te tb) (split_rec body [])))
       (case (eval-expr te env)
-	('infinity (receive-clauses cls env ()))
+	('infinity (receive-clauses cls env))
 	(t (receive-clauses t tb cls env))))))
 
-(defun receive-clauses (cls env ms)
-  (receive
-    (msg (case (match-clause msg cls env)
-	   ((tuple 'yes b vbs)
-	    (merge-queue ms)
-	    (eval-body b (add_vbindings vbs env)))
-	   ('no (receive-clauses cls env (cons msg ms)))))))
+;; (receive-clauses Clauses Env) -> Value.
+;;  Recurse down message queue. We are only called with timeout value
+;;  of 'infinity'. Always pass over all messages in queue.
 
-;; (receive-clauses Timeout TimeoutBody Clauses) -> Value.
+(defun receive-clauses (cls env)
+  (fletrec ((rec-clauses
+	     (ms)
+	     (receive
+	      (msg (case (match-clause msg cls env)
+		     ((tuple 'yes b vbs)
+		      (merge-queue ms)
+		      (eval-body b (add_vbindings vbs env)))
+		     ('no (rec-clauses (cons msg ms))))))))
+    (rec-clauses ())))
+
+;; (receive-clauses Timeout TimeoutBody Clauses Env) -> Value.
 ;;  Recurse down message queue until timeout. We are never called with
 ;;  timeout value of 'infinity'. Always pass over all messages in
 ;;  queue.
 
 (defun receive-clauses (t tb cls env)
-  (fletrec ((rec_clauses
+  (fletrec ((rec-clauses
 	     (t ms)
 	     (receive
 	       (msg
@@ -529,24 +536,24 @@
 		  ('no
 		   (let (((tuple _ t1) (statistics 'runtime)))
 		     (if (< t t1)
-		       (rec_clauses 0 (cons msg ms))
-		       (rec_clauses (- t t1) (cons msg ms)))))))
+		       (rec-clauses 0 (cons msg ms))
+		       (rec-clauses (- t t1) (cons msg ms)))))))
 	       (after t
-		      (merge-queue ms)
-		      (eval-body tb env)))))
+		 (merge-queue ms)
+		 (eval-body tb env)))))
     (statistics 'runtime)
-    (rec_clauses t [])))
+    (rec-clauses t [])))
 
 ;; Merge the already received messages back into the process message
 ;; queue in the right order. Do this by first receiving the rest of
-;; the messages in the queue then sending them all bakc to ourselves.
+;; the messages in the queue then sending them all back to ourselves.
 
 (defun merge-queue (ms)
   (fletrec ((recv-all (ms)		;Receive all remaining messages
 		      (receive
 			(msg (recv-all (cons msg ms)))
 			(after 0
-			       (reverse ms))))
+			  (reverse ms))))
 	    (send-all (ms self)		;Send them all back to ourselves
 		      (case ms
 			((m . ms)

@@ -1,13 +1,21 @@
+2010-01-27  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_io_pretty.erl (print1_defun): Improved printing of defuns.
+
+	* lfe_lint.erl (check_gif, check_if): Better error reporting.
+
+	* lfe_eval.erl (eval_catch_clauses): Fix right recursion.
+
 2010-01-26  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_eval.lfe: Changed (binary (unit 1)) to (bitstring)
+	* lfe_eval.lfe: Change (binary (unit 1)) to (bitstring)
 	everywhere.
 
-	* lfe_eval.erl: Changed /binary-unit:1 to /bitstring everywhere.
+	* lfe_eval.erl: Change /binary-unit:1 to /bitstring everywhere.
 
-	* lfe_lint.erl (check_gexpr): Restructured function.
+	* lfe_lint.erl (check_gexpr): Restructure function.
 
-	* lfe_macro.erl (bq_expand): Fixed handling of tuples to be
+	* lfe_macro.erl (bq_expand): Fix handling of tuples to be
 	efficient or handle splicing.
 
 2010-01-25  Robert Virding  <rv@stanislaw.local>

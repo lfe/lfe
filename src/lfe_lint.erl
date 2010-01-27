@@ -302,12 +302,10 @@ check_expr(['let-macro'|_], _, L, St) ->
     %% This should never occur! Removed by macro expander.
     bad_form_error(L, 'let-macro', St);
 %% Check the Core control special forms.
-check_expr(['progn'|Body], Env, L, St) ->
-    check_body(Body, Env, L, St);
-check_expr(['if',Test,True,False], Env, L, St) ->
-    check_args([Test,True,False], Env, L, St);
-check_expr(['if',Test,True], Env, L, St) ->
-    check_args([Test,True], Env, L, St);
+check_expr(['progn'|B], Env, L, St) ->
+    check_body(B, Env, L, St);
+check_expr(['if'|B], Env, L, St) ->
+    check_if(B, Env, L, St);
 check_expr(['case'|B], Env, L, St) ->
     check_case(B, Env, L, St);
 check_expr(['receive'|Cls], Env, L, St) ->
@@ -465,15 +463,16 @@ check_let([Vbs|Body], Env, L, St0) ->
 check_let(_, _, L, St) ->
     bad_form_error(L, 'let', St).
 
-check_let_vb([Pat,['when',G],Val], Env, L, St0) ->
-    St1 = check_expr(Val, Env, L, St0),
-    {Pvs,St2} = check_pat(Pat, Env, L, St1),
-    St3 = check_gexpr(G, add_vbindings(Pvs, Env), L, St2), %The guard
-    {Pvs,St3};
-check_let_vb([Pat,Val], Env, L, St0) ->
-    St1 = check_expr(Val, Env, L, St0),
-    check_pat(Pat, Env, L, St1);
-check_let_vb(_, _, L, St) -> {[],bad_form_error(L, 'let', St)}.
+%% check_let_vb(VarBind, Env, Line, State) -> {Env,State}.
+%% Check a variable binding of form [Pat,[when,Guard],Val] or [Pat,Val].
+
+check_let_vb(Vb, Env, L, St0) ->
+    %% Get the environments right here!
+    case check_pat_guard(Vb, Env, L, St0) of
+	{[Val],Pvs,_,St1} ->			%One value expression only
+	    {Pvs,check_expr(Val, Env, L, St1)};
+	{_,_,_,St1} -> {[],bad_form_error(L, 'let', St1)}
+    end.
 
 %% check_let_function(FletBody, Env, Line, State) -> {Env,State}.
 %%  Check a let-function form (let-function FuncBindings ... ). 
@@ -564,6 +563,16 @@ check_letrec_bindings(Fbs, Env0, St0) ->
 		end, St1, Fbs),
     {Fs,Env1,St2}.
 
+%% check_if(IfBody, Env, Line, State) -> State.
+%% Check form (if Test True [False]).
+
+check_if([Test,True,False], Env, L, St) ->
+    check_exprs([Test,True,False], Env, L, St);
+check_if([Test,True], Env, L, St) ->
+    check_exprs([Test,True], Env, L, St);
+check_if(_, _, L, St) ->
+    bad_form_error(L, 'if', St).
+
 %% check_case(CaseBody, Env, Line, State) -> State.
 %% Check form (case Expr Clause ...), must be at least one clause.
 
@@ -616,7 +625,7 @@ check_try_catch([['after'|B]], Env, L, St) ->
     check_body(B, Env, L, St);
 check_try_catch(_, _, L, St) -> bad_form_error(L, 'try', St).
 
-%% check_pat_guard([Pat{,Guard}|Body, Env, L, State) ->
+%% check_pat_guard([Pat{,Guard}|Body], Env, L, State) ->
 %%      {Body,PatVars,Env,State}.
 %%  Check pattern and guard in a clause. We know there is at least pattern!
 
@@ -643,12 +652,10 @@ check_gexpr([tuple|As], Env, L, St) -> check_gargs(As, Env, L, St);
 check_gexpr([binary|Segs], Env, L, St) -> gexpr_bitsegs(Segs, Env, L, St);
 %% Check the Core closure special forms.
 %% Check the Core control special forms.
-check_gexpr(['progn'|Body], Env, L, St) ->
-    check_gbody(Body, Env, L, St);
-check_gexpr(['if',Test,True,False], Env, L, St) ->
-    check_gargs([Test,True,False], Env, L, St);
-check_gexpr(['if',Test,True], Env, L, St) ->
-    check_gargs([Test,True], Env, L, St);
+check_gexpr(['progn'|B], Env, L, St) ->
+    check_gbody(B, Env, L, St);
+check_gexpr(['if'|B], Env, L, St) ->
+    check_gif(B, Env, L, St);
 check_gexpr(['case',E|Cls], Env, L, St0) ->	%What do we need case for?
     St1 = check_gexpr(E, Env, L, St0),
     check_gclauses(Cls, Env, L, St1);
@@ -692,6 +699,16 @@ check_gargs(Args, Env, L, St) ->
 
 check_gexprs(Es, Env, L, St) ->
     foldl(fun (E, S) -> check_gexpr(E, Env, L, S) end, St, Es).
+
+%% check_gif(IfBody, Env, Line, State) -> State.
+%% Check guard form (if Test True [False]).
+
+check_gif([Test,True,False], Env, L, St) ->
+    check_gexprs([Test,True,False], Env, L, St);
+check_gif([Test,True], Env, L, St) ->
+    check_gexprs([Test,True], Env, L, St);
+check_gif(_, _, L, St) ->
+    add_error(L, illegal_guard, St).		%Signal as guard error.
 
 check_gclauses(Cls, Env, L, St) ->
     check_foreach(fun (Cl, S) -> check_gclause(Cl, Env, L, S) end,

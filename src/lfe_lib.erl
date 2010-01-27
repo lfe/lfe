@@ -161,7 +161,7 @@ get_gbinding(N, A, [{function,N,A,_}|_]) -> no;
 get_gbinding(N, A, [{function,N,A,_,_}|_]) -> no;	%Import
 get_gbinding(N, _, [{macro,N,_}|_]) -> no;		%Macros shadow
 get_gbinding(N, A, [_|Env]) -> get_gbinding(N, A, Env);
-get_gbinding(N, A, _) ->
+get_gbinding(N, A, []) ->
     case is_guard_bif(N, A) of
 	true -> {yes,erlang,N};
 	false -> no

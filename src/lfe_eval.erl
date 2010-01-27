@@ -479,6 +479,8 @@ eval_if(Test, True, False, Env) ->
 	_ -> erlang:error(if_clause)		%Explicit error here
     end.
 
+%% eval_case(CaseBody, Env) -> Value.
+
 eval_case([E|Cls], Env) ->
     eval_case_clauses(eval_expr(E, Env), Cls, Env).
 
@@ -495,13 +497,13 @@ match_clause(V, [[Pat|B0]|Cls], Env) ->
     end;
 match_clause(_, [], _) -> no.
 
-%% eval_recieve(Body, Env) -> Value
+%% eval_receive(Body, Env) -> Value
 %%  (receive (pat . body) ... [(after timeout . body)])
 
 eval_receive(Body, Env) ->
     {Cls,Te,Tb} = split_receive(Body, []),
     case eval_expr(Te, Env) of			%Check timeout
-	infinity -> receive_clauses(Cls, Env, []);
+	infinity -> receive_clauses(Cls, Env);
 	T -> receive_clauses(T, Tb, Cls, Env)
     end.
 
@@ -511,6 +513,12 @@ split_receive([Cl|Cls], Rcls) ->
     split_receive(Cls, [Cl|Rcls]);
 split_receive([], Rcls) ->
     {reverse(Rcls),[quote,infinity],[]}.	%No timeout, return 'infinity.
+
+%% receive_clauses(Clauses, Env) -> Value.
+%%  Recurse down message queue. We are only called with timeout value
+%%  of 'infinity'. Always pass over all messages in queue.
+
+receive_clauses(Cls, Env) -> receive_clauses(Cls, Env, []).
 
 receive_clauses(Cls, Env, Ms) ->
     receive
@@ -523,7 +531,7 @@ receive_clauses(Cls, Env, Ms) ->
 	    end
     end.
 
-%% receive_clauses(Timeout, TimeoutBody, Clauses) -> Value.
+%% receive_clauses(Timeout, TimeoutBody, Clauses, Env) -> Value.
 %%  Recurse down message queue until timeout. We are never called with
 %%  timeout value of 'infinity'. Always pass over all messages in
 %%  queue.
@@ -614,7 +622,7 @@ eval_try(E, Case, Catch, After, Env) ->
 eval_catch_clauses(V, [[Pat|B0]|Cls], Env) ->
     case match_when(Pat, V, B0, Env) of
 	{yes,B1,Vbs} -> eval_body(B1, add_vbindings(Vbs, Env));
-	no -> eval_case_clauses(V, Cls, Env)
+	no -> eval_catch_clauses(V, Cls, Env)
     end;
 eval_catch_clauses({Class,Error,Stack}, [], _) ->
     erlang:raise(Class, Error, Stack).
