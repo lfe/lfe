@@ -1,4 +1,4 @@
-%% Copyright (c) 2008 Robert Virding. All rights reserved.
+%% Copyright (c) 2008-2010 Robert Virding. All rights reserved.
 %%
 %% Redistribution and use in source and binary forms, with or without
 %% modification, are permitted provided that the following conditions
@@ -778,32 +778,25 @@ match_symb(Symb, Val, _, Bs) ->
 
 %% match_binary(Fields, Binary, Env, Bindings) -> {yes,Bindings} | no.
 %%  Match Fields against Binary. This code is taken from
-%%  eval_bits.erl.  Use catch to trap bad matches when getting value,
-%%  errors become no match. Split into two passes so as to throw error
-%%  on bitspec error and return no on all no matches.
+%%  eval_bits.erl. All bitspec errors and bad matches result in an
+%%  error, we use catch to trap it.
 
 match_binary(Fs, Bin, Env, Bs0) ->
     Psps = map(fun (F) -> parse_field(F, Env) end, Fs),
-    %% io:format("~p\n", [Psps]),
     case catch match_fields(Psps, Bin, Env, Bs0) of
-	{yes,<<>>,Bs1} -> {yes,Bs1};		%Matched whole binary
-	{yes,_,_} -> no;			%Matched part of binary
-	no -> no
+	{yes,Bs1} -> {yes,Bs1};			%Matched whole binary
+	{'EXIT',_} -> no			%Error is no match
     end.
 
 match_fields([{Pat,Specs}|Psps], Bin0, Env, Bs0) ->
-    case match_field(Pat, Specs, Bin0, Env, Bs0) of
-	{yes,Bin1,Bs1} -> match_fields(Psps, Bin1, Env, Bs1);
-	no -> no
-    end;
-match_fields([], Bin, _, Bs) -> {yes,Bin,Bs}.
+    {yes,Bin1,Bs1} = match_field(Pat, Specs, Bin0, Env, Bs0),
+    match_fields(Psps, Bin1, Env, Bs1);
+match_fields([], <<>>, _, Bs) -> {yes,Bs}.	%Reached the end of both
 
 match_field(Pat, Spec, Bin0, Env, Bs0) ->
     {Val,Bin1} = get_pat_field(Bin0, Spec),
-    case match(Pat, Val, Env, Bs0) of
-	{yes,Bs1} -> {yes,Bin1,Bs1};
-	no -> no
-    end.
+    {yes,Bs1} = match(Pat, Val, Env, Bs0),
+    {yes,Bin1,Bs1}.
 
 %% get_pat_field(Binary, {Type,Size,Unit,Sign,Endian}) -> {Value,RestBinary}.
 

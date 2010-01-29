@@ -1,3 +1,11 @@
+2010-01-29  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_eval.lfe (match-binary): Rewrite to only use error to signal
+	no match.
+
+	* lfe_eval.erl (match_binary): Rewrite to only use error to signal
+	no match.
+
 2010-01-27  Robert Virding  <rv@stanislaw.local>
 
 	* lfe_io_pretty.erl (print1_defun): Improved printing of defuns.

@@ -55,6 +55,12 @@
 
 (defun gexpr (e env) (eval-gexpr e env))
 
+;; (apply function args) -> expr.
+;; (apply function args env) -> Expr.
+;;  This is applying interpreted Erlang functions, for applying funs
+;;  use normal apply. Name scoping stops us from using apply/s
+;;  internally. Args should already be evaluated.
+
 (defun apply (f args)
   (let ((env (new_env)))
     (lfe-apply (tuple 'expr f env) args env)))
@@ -583,22 +589,22 @@
 
 (defun eval-try (e case catch after env)
   (try
-    (eval-expr e env)
+      (eval-expr e env)
     (case
 	(r (case case
 	     ((cls) (eval-case-clauses r cls env))
 	     (() r))))
     (catch
-      ((tuple class val _)
+      ((tuple class error _)
        ;; Get stack trace explicitly.
        (let ((stk (: erlang get_stacktrace)))
 	 (case catch
-	   ((cls) (eval-catch-clauses (tuple class val stk) cls env))
-	   (() (: erlang raise class val stk))))))
+	   ((cls) (eval-catch-clauses (tuple class error stk) cls env))
+	   (() (: erlang raise class error stk))))))
     (after
-      (case after
-	((b) (eval-body b env))
-	(() ())))))
+	(case after
+	  ((b) (eval-body b env))
+	  (() ())))))
 
 (defun eval-catch-clauses
   ([v ((pat . b) . cls) env]
@@ -619,19 +625,19 @@
 ;; (match-when pattern value body env) -> #('yes restbody bindings) | 'no.
 ;;  Try to match pattern and evaluate guard.
 
-(defun match-when (pat val body env)
+(defun match-when (pat val b0 env)
   (case (match pat val env)
     ((tuple 'yes vbs)
-     (case body
-       ((('when g) . body)
+     (case b0
+       ((('when g) . b1)
 	;; Guards are fault safe.
 	(try
-	  (eval-gexpr g (add_vbindings vbs env))
-	  (case ('true (tuple 'yes body vbs))
+	    (eval-gexpr g (add_vbindings vbs env))
+	  (case ('true (tuple 'yes b1 vbs))
 	    (_ 'no))
 	  (catch
 	    ((tuple t v i) 'no))))
-       (_ (tuple 'yes body vbs))))
+       (b1 (tuple 'yes b1 vbs))))
     ('no 'no)))
 
 ;; (eval-gexpr sexpr environment) -> value.
@@ -740,9 +746,7 @@
   ([symb val env bs] (when (is_atom symb))
    (match-symb symb val env bs))
   ([pat val env bs]
-   (if (=:= pat val)
-     (tuple 'yes bs)
-     'no)))
+   (if (=:= pat val) (tuple 'yes bs) 'no)))
 
 (defun match-symb (symb val env bs)
   (if (== symb '_) (tuple 'yes bs)	;Don't care variable
@@ -753,30 +757,27 @@
 
 ;; (match-binary fields binary env bindings) -> (tuple 'yes bindings) | 'no.
 ;;  Match Fields against Binary. This code is taken from
-;;  eval_bits.erl.  Use catch to trap bad matches when getting value,
-;;  errors become no match. Split into two passes so as to throw error
-;;  on bitspec error and return no on all no matches.
+;;  eval_bits.erl. All bitspec errors and bad matches result in an
+;;  error, we use catch to trap it.
 
 (defun match-binary (fs bin env bs)
   (let ((psps (map (lambda (f) (parse-field f env)) fs)))
     (case (catch (match-fields psps bin env bs))
-      ((tuple 'yes #b() bs) (tuple 'yes bs))
-      ((tuple 'yes _ _) 'no)
-      ('no 'no))))
+      ((tuple 'yes bs) (tuple 'yes bs))	;Matched whole binary
+      ((tuple 'EXIT _) 'no))))		;Error is no match
 
-(defun match-fields (psps bin env bs)
-  (case psps
-    (((tuple pat specs) . psps)
-     (case (match-field pat specs bin env bs)
-       ((tuple 'yes bin bs) (match-fields psps bin env bs))
-       ('no 'no)))
-    (() (tuple 'yes bin bs))))
+(defun match-fields
+  ([((tuple pat specs) . psps) bin0 env bs0]
+   (let (((tuple 'yes bin1 bs1) (match-field pat specs bin0 env bs0)))
+     (match-fields psps bin1 env bs1)))
+  ([() #b() _ bs] (tuple 'yes bs)))	;Reached the end of both
 
 (defun match-field (pat spec bin0 env bs0)
-  (let (((tuple val bin1) (get-pat-field bin0 spec)))
-    (case (match pat val env bs0)
-      ((tuple 'yes bs1) (tuple 'yes bin1 bs1))
-      ('no 'no))))
+  (let* (((tuple val bin1) (get-pat-field bin0 spec))
+	 ((tuple 'yes bs1) (match pat val env bs0)))
+    (tuple 'yes bin1 bs1)))
+
+;; (get-pat-field binary #(type size unit sign endian)) -> #(value restbinary)
 
 (defun get-pat-field (bin spec)
   (case spec
