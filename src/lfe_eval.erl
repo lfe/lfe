@@ -40,7 +40,7 @@
 		  add_fbinding/4,add_fbindings/2,get_fbinding/3,
 		  add_ibinding/5,get_gbinding/3]).
 
--import(lists, [reverse/1,map/2,foldl/3]).
+-import(lists, [reverse/1,all/2,map/2,foldl/3]).
 -import(orddict, [find/2,store/3]).
 
 -deprecated([eval/1,eval/2]).
@@ -107,7 +107,7 @@ eval_expr(['let-function'|Body], Env) ->
     eval_let_function(Body, Env);
 eval_expr(['letrec-function'|Body], Env) ->
     eval_letrec_function(Body, Env);
-%% Handle the control special forms.
+%% Handle the Core control special forms.
 eval_expr(['progn'|Body], Env) ->
     eval_body(Body, Env);
 eval_expr(['if'|Body], Env) ->
@@ -124,6 +124,7 @@ eval_expr([funcall,F|As], Env) ->
     erlang:apply(eval_expr(F, Env), eval_list(As, Env));
 eval_expr([call|Body], Env) ->
     eval_call(Body, Env);
+%% General functions calls.
 eval_expr([Fun|Es]=Call, Env) when is_atom(Fun) ->
     %% If macro then expand and try again, else try to find function.
     %% We only expand the top level here.
@@ -263,24 +264,24 @@ eval_exp_field(Val, Spec) ->
 	    <<Val:(Size*Unit)/bitstring>>
     end.
 
+eval_int_field(Val, Sz, signed, big) -> <<Val:Sz/signed>>;
+eval_int_field(Val, Sz, unsigned, big) -> <<Val:Sz>>;
 eval_int_field(Val, Sz, signed, little) -> <<Val:Sz/little-signed>>;
 eval_int_field(Val, Sz, unsigned, little) -> <<Val:Sz/little>>;
 eval_int_field(Val, Sz, signed, native) -> <<Val:Sz/native-signed>>;
-eval_int_field(Val, Sz, unsigned, native) -> <<Val:Sz/native>>;
-eval_int_field(Val, Sz, signed, big) -> <<Val:Sz/signed>>;
-eval_int_field(Val, Sz, unsigned, big) -> <<Val:Sz>>.
+eval_int_field(Val, Sz, unsigned, native) -> <<Val:Sz/native>>.
 
+eval_utf16_field(Val, big) -> <<Val/utf16-big>>;
 eval_utf16_field(Val, little) -> <<Val/utf16-little>>;
-eval_utf16_field(Val, native) -> <<Val/utf16-native>>;
-eval_utf16_field(Val, big) -> <<Val/utf16-big>>.
+eval_utf16_field(Val, native) -> <<Val/utf16-native>>.
 
+eval_utf32_field(Val, big) -> <<Val/utf32-big>>;
 eval_utf32_field(Val, little) -> <<Val/utf32-little>>;
-eval_utf32_field(Val, native) -> <<Val/utf32-native>>;
-eval_utf32_field(Val, big) -> <<Val/utf32-big>>.
+eval_utf32_field(Val, native) -> <<Val/utf32-native>>.
 
+eval_float_field(Val, Sz, big) -> <<Val:Sz/float>>;
 eval_float_field(Val, Sz, little) -> <<Val:Sz/float-little>>;
-eval_float_field(Val, Sz, native) -> <<Val:Sz/float-native>>;
-eval_float_field(Val, Sz, big) -> <<Val:Sz/float>>.
+eval_float_field(Val, Sz, native) -> <<Val:Sz/float-native>>.
 
 %% eval_lambda(LambdaBody, Env) -> Val.
 %%  Evaluate (lambda args ...).
@@ -642,18 +643,26 @@ match_when(Pat, V, B0, Env) ->
 	{yes,Vbs} ->
 	    case B0 of
 		[['when',G]|B1] ->
-		    %% Guards are fault safe.
-		    try
-			eval_gexpr(G, add_vbindings(Vbs, Env))
-		    of
+		    case eval_guard(G, add_vbindings(Vbs, Env)) of
 			true -> {yes,B1,Vbs};
-			_Other -> no			%Fail guard
-		    catch
-			_:_ -> no
+			false -> no
 		    end;
 		B1 -> {yes,B1,Vbs}
 	    end;
 	no -> no
+    end.
+
+%% eval_guard(GuardExpr, Env) -> true | false.
+%% Guards are fault safe, catch all errors in guards here and fail guard.
+
+eval_guard(G, Env) ->
+    try
+	eval_gexpr(G, Env)
+    of
+	true -> true;
+	_Other -> false				%Fail guard
+    catch
+	_:_ -> false				%Fail guard
     end.
 
 %% eval_gexpr(Sexpr, Environment) -> Value.
@@ -668,17 +677,9 @@ eval_gexpr([cdr,E], Env) -> tl(eval_gexpr(E, Env));
 eval_gexpr([list|Es], Env) -> eval_glist(Es, Env);
 eval_gexpr([tuple|Es], Env) -> list_to_tuple(eval_glist(Es, Env));
 %% Handle the Core closure special forms.
-eval_gexpr(['let',Vbs|Body], Env) ->
-    eval_glet(Vbs, Body, Env);
 %% Handle the control special forms.
-eval_gexpr(['progn'|Body], Env) ->
-    eval_gbody(Body, Env);
-eval_gexpr(['if',Test,True], Env) ->
-    eval_gif(Test, True, [quote,false], Env);
-eval_gexpr(['if',Test,True,False], Env) ->
-    eval_gif(Test, True, False, Env);
-eval_gexpr(['case',E|Cls], Env) ->
-    eval_gcase(E, Cls, Env);
+eval_gexpr(['progn'|Body], Env) -> eval_gbody(Body, Env);
+eval_gexpr(['if'|Body], Env) -> eval_gif(Body, Env);
 eval_gexpr([call,[quote,erlang],F0|As], Env) ->
     Ar = length(As),
     F1 = eval_gexpr(F0, Env),
@@ -704,31 +705,23 @@ eval_gexpr(E, _) -> E.				%Atoms evaluate to themselves.
 eval_glist(Es, Env) ->
     map(fun (E) -> eval_gexpr(E, Env) end, Es).
 
-eval_gbody([E], Env) -> eval_gexpr(E, Env);
-eval_gbody([E|Es], Env) ->
-    eval_gexpr(E, Env),
-    eval_gbody(Es, Env);
-eval_gbody([], _) -> [].
+%% eval_gbody(Body, Env) -> true | false.
+%% A body is a sequence of tests which must all succeed.
 
-eval_glet(Vbs, Body, Env0) ->
-    Env1 = foldl(fun ([V,E], Env) when is_atom(V) ->
-			 add_vbinding(V, eval_gexpr(E, Env0), Env)
-		 end, Env0, Vbs),
-    eval_gbody(Body, Env1).
+eval_gbody(Es, Env) ->
+    all(fun (E) -> eval_gexpr(E, Env) end, Es).
+
+%% eval_gif(IfBody, Env) -> Val.
+
+eval_gif([Test,True], Env) ->
+    eval_gif(Test, True, [quote,false], Env);
+eval_gif([Test,True,False], Env) ->
+    eval_gif(Test, True, False, Env).
 
 eval_gif(Test, True, False, Env) ->
     case eval_gexpr(Test, Env) of
 	true -> eval_gexpr(True, Env);
 	false -> eval_gexpr(False, Env)
-    end.
-
-eval_gcase(E, Cls, Env) ->
-    eval_gcase_clauses(eval_gexpr(E, Env), Cls, Env).
-
-eval_gcase_clauses(V, [[Pat|B0]|Cls], Env) ->
-    case match_when(Pat, V, B0, Env) of
-	{yes,B1,Vbs} -> eval_gbody(B1, add_vbindings(Vbs, Env));
-	no -> eval_gcase_clauses(V, Cls, Env)
     end.
 
 %% match(Pattern, Value, Env) -> {yes,Bindings} | no.
@@ -821,6 +814,12 @@ get_pat_field(Bin, Spec) ->
 	    {Val,Rest}
     end.
 
+get_int_field(Bin, Sz, signed, big) ->
+    <<Val:Sz/big-signed,Rest/bitstring>> = Bin,
+    {Val,Rest};
+get_int_field(Bin, Sz, unsigned, big) ->
+    <<Val:Sz/big-unsigned,Rest/bitstring>> = Bin,
+    {Val,Rest};
 get_int_field(Bin, Sz, signed, little) ->
     <<Val:Sz/little-signed,Rest/bitstring>> = Bin,
     {Val,Rest};
@@ -832,44 +831,38 @@ get_int_field(Bin, Sz, signed, native) ->
     {Val,Rest};
 get_int_field(Bin, Sz, unsigned, native) ->
     <<Val:Sz/native-unsigned,Rest/bitstring>> = Bin,
-    {Val,Rest};
-get_int_field(Bin, Sz, signed, big) ->
-    <<Val:Sz/big-signed,Rest/bitstring>> = Bin,
-    {Val,Rest};
-get_int_field(Bin, Sz, unsigned, big) ->
-    <<Val:Sz/big-unsigned,Rest/bitstring>> = Bin,
     {Val,Rest}.
 
 get_utf8_field(Bin) ->
     <<Val/utf8,Rest/bitstring>> = Bin,
     {Val,Rest}.
 
+get_utf16_field(Bin, big) ->
+    <<Val/utf16-big,Rest/bitstring>> = Bin,
+    {Val,Rest};
 get_utf16_field(Bin, little) ->
     <<Val/utf16-little,Rest/bitstring>> = Bin,
     {Val,Rest};
 get_utf16_field(Bin, native) ->
     <<Val/utf16-native,Rest/bitstring>> = Bin,
-    {Val,Rest};
-get_utf16_field(Bin, big) ->
-    <<Val/utf16-big,Rest/bitstring>> = Bin,
     {Val,Rest}.
 
+get_utf32_field(Bin, big) ->
+    <<Val/utf32-big,Rest/bitstring>> = Bin,
+    {Val,Rest};
 get_utf32_field(Bin, little) ->
     <<Val/utf32-little,Rest/bitstring>> = Bin,
     {Val,Rest};
 get_utf32_field(Bin, native) ->
     <<Val/utf32-native,Rest/bitstring>> = Bin,
-    {Val,Rest};
-get_utf32_field(Bin, big) ->
-    <<Val/utf32-big,Rest/bitstring>> = Bin,
     {Val,Rest}.
 
+get_float_field(Bin, Sz, big) ->
+    <<Val:Sz/float,Rest/bitstring>> = Bin,
+    {Val,Rest};
 get_float_field(Bin, Sz, little) ->
     <<Val:Sz/float-little,Rest/bitstring>> = Bin,
     {Val,Rest};
 get_float_field(Bin, Sz, native) ->
     <<Val:Sz/float-native,Rest/bitstring>> = Bin,
-    {Val,Rest};
-get_float_field(Bin, Sz, big) ->
-    <<Val:Sz/float,Rest/bitstring>> = Bin,
     {Val,Rest}.

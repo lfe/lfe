@@ -632,12 +632,17 @@ check_try_catch(_, _, L, St) -> bad_form_error(L, 'try', St).
 check_pat_guard([Pat,['when',G]|Body], Env0, L, St0) ->
     {Pvs,St1} = check_pat(Pat, Env0, L, St0),
     Env1 = add_vbindings(Pvs, Env0),
-    St2 = check_gexpr(G, Env1, L, St1),
+    St2 = check_guard(G, Env1, L, St1),
     {Body,Pvs,Env1,St2};
 check_pat_guard([Pat|Body], Env0, L, St0) ->
     {Pvs,St1} = check_pat(Pat, Env0, L, St0),
     Env1 = add_vbindings(Pvs, Env0),
     {Body,Pvs,Env1,St1}.
+
+%% check_guard(Guard, Env, Line, State) -> State.
+%% Check a guard.
+
+check_guard(G, Env, L, St) -> check_gexpr(G, Env, L, St).
 
 %% check_gexpr(Call, Env, Line, State) -> State.
 %% Check a guard expression. This is a restricted body expression.
@@ -656,11 +661,6 @@ check_gexpr(['progn'|B], Env, L, St) ->
     check_gbody(B, Env, L, St);
 check_gexpr(['if'|B], Env, L, St) ->
     check_gif(B, Env, L, St);
-check_gexpr(['case',E|Cls], Env, L, St0) ->	%What do we need case for?
-    St1 = check_gexpr(E, Env, L, St0),
-    check_gclauses(Cls, Env, L, St1);
-check_gexpr(['try'|B], Env, L, St) ->
-    check_gtry(B, Env, L, St);
 %% Finally the general case.
 check_gexpr([Symb|As], Env, L, St0) when is_atom(Symb) ->
     St1 = check_gargs(As, Env, L, St0),
@@ -709,37 +709,6 @@ check_gif([Test,True], Env, L, St) ->
     check_gexprs([Test,True], Env, L, St);
 check_gif(_, _, L, St) ->
     add_error(L, illegal_guard, St).		%Signal as guard error.
-
-check_gclauses(Cls, Env, L, St) ->
-    check_foreach(fun (Cl, S) -> check_gclause(Cl, Env, L, S) end,
-		  'case', L, St, Cls).
-
-check_gclause([_|_]=Cl, Env0, L, St0) ->	%Check basic clause length
-    {B,_,Env1,St1} = check_pat_guard(Cl, Env0, L, St0),
-    check_gbody(B, Env1, L, St1);
-check_gclause(_, _, L, St) -> bad_form_error(L, clause, St).
-
-%% check_gtry(GtryBody, Env, Line, State) -> State.
-%% Check a (try ...) form making sure that the right combination of
-%% options are present.
-
-check_gtry([E,['case'|Cls]|Catch], Env, L, St0) ->
-    St1 = check_gexpr(E, Env, L, St0),
-    St2 = check_case_clauses(Cls, Env, L, St1),
-    check_gtry_catch(Catch, Env, L, St2);
-check_gtry([E|Catch], Env, L, St0) ->
-    St1 = check_gexpr(E, Env, L, St0),
-    check_gtry_catch(Catch, Env, L, St1);
-check_gtry(_, _, L, St) -> bad_form_error(L, 'try', St).
-
-check_gtry_catch([['catch'|Cls]], Env, L, St) ->
-    check_gclauses(Cls, Env, L, St);
-check_gtry_catch([['catch'|Cls],['after'|B]], Env, L, St0) ->
-    St1 = check_gclauses(Cls, Env, L, St0),
-    check_gbody(B, Env, L, St1);
-check_gtry_catch([['after'|B]], Env, L, St) ->
-    check_gbody(B, Env, L, St);
-check_gtry_catch(_, _, L, St) -> bad_form_error(L, 'try', St).
 
 %% gexpr_bitsegs(BitSegs, Env, Line, State) -> State.
 %% gexpr_bitseg(BitSeg, Env, Line, State) -> State.
@@ -917,18 +886,7 @@ check_foldr(Fun, T, L, St0, Acc0, [F|Fs]) ->
 check_foldr(_, _, _, St, Acc, []) -> {Acc,St};
 check_foldr(_, T, L, St, Acc, _) -> {Acc,bad_form_error(L, T, St)}.
 
-%% Non-catching versions for checking the code.
-%% check_foreach(Fun, T, L, St, Fs) -> foldl(Fun, St, Fs).
-	      
-%% check_map(Fun, T, L, St, Fs) -> mapfoldl(Fun, St, Fs).
-
-%% check_foldl(Fun, T, L, St, Acc, Fs) ->
-%%     foldl(fun (F, {A,S}) -> Fun(F, A, S) end, {Acc,St}, Fs).
-
-%% check_foldr(Fun, T, L, St, Acc, Fs) ->
-%%     foldr(fun (F, {A,S}) -> Fun(F, A, S) end, {Acc,St}, Fs).
-
-%% Versions which completely wrap with a try.
+%% Versions which completely wrap with a try. These catch too much!
 %% check_foreach(Fun, T, L, St, Fs) ->
 %%     try
 %% 	foldl(Fun, St, Fs)
