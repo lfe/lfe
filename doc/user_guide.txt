@@ -6,6 +6,7 @@ Note {{ ... }} is use to denote optional syntax.
 Special syntactic rules
 -----------------------
 
+#b #o #d #x #23r	- Based integers
 #(e e ... )		- Tuple constants
 #b(e e ... )		- Binary constant, e ... are bytes
 [ ... ]			- Allowed as alternative to ( ... )
@@ -165,6 +166,28 @@ Erlang patterns they can be used anywhere in a pattern.
 are possible to match. If not an error is flagged. This is not the
 best way. Instead there should be a warning and the offending clause
 removed, but later passes of the compiler can't handle this yet.
+
+Guards
+------
+
+Wherever a pattern can occur (let, case, receive, etc.) it can be
+followed by an optional guard which has the form (when guard-test).
+Guard tests are the same as in vanilla Erlang and cn contain the
+following guard expressions:
+
+(quote e)
+(cons gexpr gexpr)
+(car gexpr)
+(cdr gexpr)
+(list gexpr ...)
+(tuple gexpr ...)
+(binary ...)
+(progn gtest ...)		- Sequence of guard tests
+(if gexpr gexpr gexpr)
+(type-test e)
+(gbif ...)			- Guard BIFs
+				  arithmetic, boolean and comparison operators
+(cond ...)			- Without the pattern matching case
 
 Bindings and Scoping
 --------------------

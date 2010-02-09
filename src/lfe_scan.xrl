@@ -32,6 +32,7 @@ B	= [01]
 O	= [0-7]
 D	= [0-9]
 H	= [0-9a-fA-F]
+B36	= [0-9a-zA-Z]
 U	= [A-Z]
 L	= [a-z]
 A	= ({U}|{L})
@@ -67,6 +68,15 @@ Rules.
 			%% Strip quotes.
 			S = string:substr(TokenChars, 2, TokenLen - 2),
 			{token,{symbol,TokenLine,list_to_atom(chars(S))}}.
+%% Based numbers
+#[bB]{B}+	:	base(string:substr(TokenChars, 3), 2, TokenLine).
+#[oO]{O}+	:	base(string:substr(TokenChars, 3), 8, TokenLine).
+#[dD]{D}+	:	base(string:substr(TokenChars, 3), 10, TokenLine).
+#[xX]{H}+	:	base(string:substr(TokenChars, 3), 16, TokenLine).
+#{D}+[rR]{B36}+ :
+	%% Have to scan all possible digit chars and fail if wrong.
+	{Base,[_|Ds]} = base1(string:substr(TokenChars, 2), 10, 0),
+	base(Ds, Base, TokenLine).
 %% Atoms
 {SSYM}{SYM}*	:
 	case catch {ok,list_to_float(TokenChars)} of

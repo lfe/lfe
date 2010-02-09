@@ -14,6 +14,15 @@ of the function. The .beam file in ebin is for R13B.
 
 I will try to make a better fix soon. Sorry about that.
 
+<will be v0.6>
+--------------
+
+Read and output based integers.
+
+Improved prettyprinting of defuns.
+
+Many internal improvements.
+
 v0.5
 ----
 
