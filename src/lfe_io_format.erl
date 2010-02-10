@@ -213,11 +213,11 @@ control($X, [A,Prefix], F, Adj, P, Pad, _) when is_integer(A) ->
     prefixed_integer(A, F, Adj, base(P), Pad, Prefix, false);
 control($+, [A], F, Adj, P, Pad, _) when is_integer(A) ->
     Base = base(P),
-    Prefix = [integer_to_list(Base), $#],
+    Prefix = base_prefix(Base, true),
     prefixed_integer(A, F, Adj, Base, Pad, Prefix, true);
 control($#, [A], F, Adj, P, Pad, _) when is_integer(A) ->
     Base = base(P),
-    Prefix = [integer_to_list(Base), $#],
+    Prefix = base_prefix(Base, false),
     prefixed_integer(A, F, Adj, Base, Pad, Prefix, false);
 control($c, [A], F, Adj, P, Pad, _) when is_integer(A) ->
     char(A, F, Adj, P, Pad);
@@ -415,6 +415,20 @@ prefixed_integer(Int, F, Adj, Base, Pad, Prefix, Lowercase)
 	    S = cond_lowercase(erlang:integer_to_list(Int, Base), Lowercase),
 	    term([Prefix|S], F, Adj, none, Pad)
     end.
+
+%% base_prefix(Base, Lowercase) -> [Char].
+%% Special case prefixes for bases.
+
+base_prefix(2, true) -> "#b";
+base_prefix(2, false) -> "#B";
+base_prefix(8, true) -> "#o";
+base_prefix(8, false) -> "#O";
+base_prefix(10, true) -> "#d";
+base_prefix(10, false) -> "#D";
+base_prefix(16, true) -> "#x";
+base_prefix(16, false) -> "#X";
+base_prefix(Base, true) -> [$#,integer_to_list(Base),$r];
+base_prefix(Base, false) -> [$#,integer_to_list(Base),$R].
 
 %% char(Char, Field, Adjust, Precision, PadChar) -> [Char].
 
