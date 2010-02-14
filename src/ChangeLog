@@ -1,3 +1,44 @@
+2010-02-14  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_codegen.erl (comp_guard, comp_gtest, comp_gexpr)
+	(comp_gargs, comp_gif): Rewrite to get correct improved
+	guards. Not done yet.
+
+	* lfe_comp.erl (do_erl_comp): Added no_bopt to turn off boolean
+	optimisations in guards.
+
+2010-02-09  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_io_format.erl (control, base_prefix): Output LFE based
+	integers.
+
+2010-02-05  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_macro.erl (exp_predef): Add caar, cadr, cdar and cddr.
+
+	* lfe_codegen.erl (c_try, c_call): Add to simplify code when
+	building.
+
+	* lfe_eval.lfe (eval-guard): Move guard handling into separate
+	function.
+
+	* lfe_eval.erl (eval_guard): Move guard handling into separate
+	function.
+
+	* lfe_eval.lfe (eval-gexpr): Evaluate new guards.
+
+	* lfe_eval.erl (eval_gexpr): Evaluate new guards.
+
+	* lfe_lint.erl (check_gexpr): Now recognise new guards.
+
+2010-02-04  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_macro.erl (exp_predef): orelse and andalso now expand to if.
+
+2010-02-03  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_codegen.erl (comp_expr): Fold comp_call into comp_expr.
+
 2010-01-29  Robert Virding  <rv@stanislaw.local>
 
 	* lfe_eval.lfe (match-binary): Rewrite to only use error to signal

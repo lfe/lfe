@@ -566,7 +566,11 @@ exp_macro([Mac|Args], Def0, Env, St0) ->
 %%  user defined.
 
 %% Builtin default macro expansions.
-exp_predef([backquote,Bq], _, St) ->
+exp_predef([caar,E], _, St) -> {yes,[car,[car,E]],St};
+exp_predef([cadr,E], _, St) -> {yes,[car,[cdr,E]],St};
+exp_predef([cdar,E], _, St) -> {yes,[cdr,[car,E]],St};
+exp_predef([cddr,E], _, St) -> {yes,[cdr,[cdr,E]],St};
+exp_predef([backquote,Bq], _, St) ->		%We do this here.
     {yes,bq_expand(Bq),St};
 exp_predef(['++'|Abody], _, St) ->
     Exp = case Abody of
@@ -638,18 +642,14 @@ exp_predef([bc|Bbody], _, St0) ->
 exp_predef(['andalso'|Abody], _, St) ->
     Exp = case Abody of
 	      [E] -> E;				%Let user check last call
-	      [E|Es] ->
-%% 		  ['if',E,['andalso'|Es],?Q(false)];
-		  ['case',E,[?Q(true),['andalso'|Es]],[?Q(false),?Q(false)]];
+	      [E|Es] -> ['if',E,['andalso'|Es],?Q(false)];
 	      [] -> ?Q(true)
 	  end,
     {yes,Exp,St};
 exp_predef(['orelse'|Obody], _, St) ->
     Exp = case Obody of
 	      [E] -> E;				%Let user check last call
-	      [E|Es] ->
-%% 		  ['if',E,?Q(true),['orelse'|Es]];
-		  ['case',E,[?Q(true),?Q(true)],[?Q(false),['orelse'|Es]]];
+	      [E|Es] -> ['if',E,?Q(true),['orelse'|Es]];
 	      [] -> ?Q(false)
 	  end,
     {yes,Exp,St};

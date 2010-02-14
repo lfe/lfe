@@ -216,9 +216,9 @@
     ('utf-16 (set-spec-type sp 'utf16))
     ('utf-32 (set-spec-type sp 'utf32))
     ;; Endianess.
-    ('big-endian (set-spec-type sp 'big))
-    ('little-endian (set-spec-type sp 'little))
-    ('native-endian (set-spec-type sp 'native))
+    ('big-endian (set-spec-endian sp 'big))
+    ('little-endian (set-spec-endian sp 'little))
+    ('native-endian (set-spec-endian sp 'native))
     ;; Sign.
     ('signed (set-spec-sign sp 'signed))
     ('unsigned (set-spec-sign sp 'unsigned))

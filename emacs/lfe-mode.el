@@ -7,15 +7,6 @@
 
 (require 'lisp-mode)
 
-(defvar lfe-mode-map ()
-  "*Keymap used in Lisp Flavoured Erlang mode.")
-
-(unless lfe-mode-map
-  (setq lfe-mode-map (copy-keymap lisp-mode-map)))
-
-(defvar lfe-mode-abbrev-table ()
-  "Abbrev table used in Lisp Flavoured Erlang mode.")
-
 (defvar lfe-mode-syntax-table
   (let ((table (copy-syntax-table lisp-mode-syntax-table)))
     ;; Like scheme we allow [ ... ] as alternate parentheses.
@@ -27,6 +18,25 @@
 ;; (setq lfe-mode-syntax-table ())
 ;; (unless lfe-mode-syntax-table
 ;;   (setq lfe-mode-syntax-table (copy-syntax-table lisp-mode-syntax-table)))
+
+(defvar lfe-mode-map
+  (let ((map (copy-keymap lisp-mode-map)))
+    (define-key map "\e[" 'lfe-insert-brackets)
+    map)
+  "*Keymap used in Lisp Flavoured Erlang mode.")
+
+;; (unless lfe-mode-map
+;;   (setq lfe-mode-map (copy-keymap lisp-mode-map))
+;;   (define-key lfe-mode-map "\e[" 'lfe-insert-brackets))
+
+(defun lfe-insert-brackets (&optional arg)
+  "Enclose following ARG sexps in brackets.
+Leave point after open-bracket."
+  (interactive "P")
+  (insert-pair arg ?\[ ?\]))
+
+(defvar lfe-mode-abbrev-table ()
+  "Abbrev table used in Lisp Flavoured Erlang mode.")
 
 (define-derived-mode lfe-mode nil "LFE"
   "Major mode for editing Lisp Flavoured Erlang. It's just like lisp mode."
@@ -139,7 +149,7 @@
 	       "after" "call" "case" "catch"
 	       "if" "lambda" "let" "let-function" "letrec-function"
 	       "let-macro" "match-lambda"
-	       "receive" "try" "when" "progn"
+	       "receive" "try" "funcall" "when" "progn"
 	       "eval-when-compile"
 	       ;; Default macros
 	       "andalso" "cond" "do" "fun" "list*" "let*" "flet*" "macro"

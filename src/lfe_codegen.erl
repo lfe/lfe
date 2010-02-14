@@ -45,6 +45,8 @@
 
 -include_lib("compiler/src/core_parse.hrl").
 
+-define(Q(E), [quote,E]).			%We do a lot of quoting!
+
 -record(cg, {opts=[],				%Options
 	     vc=0,				%Variable counter
 	     fc=0,				%Function counter
@@ -75,12 +77,10 @@ forms(Forms, St0, Core0) ->
     Predefs = [{module_info,0},{module_info,1}],
     Fbs1 = [{module_info,
 	     [lambda,[],
-	      [call,[quote,erlang],[quote,get_module_info],
-	       [quote,St1#cg.mod]]],1},
+	      [call,?Q(erlang),?Q(get_module_info),?Q(St1#cg.mod)]],1},
 	    {module_info,
 	     [lambda,[x],
-	      [call,[quote,erlang],[quote,get_module_info],
-	       [quote,St1#cg.mod],x]],1}|
+	      [call,?Q(erlang),?Q(get_module_info),?Q(St1#cg.mod),x]],1}|
 	    Fbs0],
     %% Make initial environment and set state
     Env0 = foldl(fun ({M,Fs}, Env) ->
@@ -206,137 +206,114 @@ comp_body([], _, _, St) -> {c_nil(),St}.	%Empty body
 %% comp_expr(Expr, Env, Line, State) -> {CoreExpr,State}.
 %% Compile an expression.
 
-comp_expr([_|_]=Call, Env, L, St) ->
-    comp_call(Call, Env, L, St);
-comp_expr([], _, _, St) -> {c_nil(),St};	%Self evaluating
-comp_expr(Tup, _, _, St) when is_tuple(Tup) ->
-    %% This just builds a tuple constant.
-    {comp_lit(Tup),St};
-comp_expr(Symb, _, _, St) when is_atom(Symb) ->
-    {c_var(Symb),St};
-comp_expr(Numb, _, _, St) when is_number(Numb) ->
-    {comp_lit(Numb),St};
-comp_expr(Bin, _, _, St) when is_binary(Bin) ->
-    {comp_lit(Bin),St}.
-
-%% comp_call(Call, Env, Line, State) -> {CoreCall,State}.
 %% Handle the Core data special forms.
-
-comp_call([quote,E], _, _, St) -> {comp_lit(E),St};
-comp_call([cons,H,T], Env, L, St) ->
+comp_expr([quote,E], _, _, St) -> {comp_lit(E),St};
+comp_expr([cons,H,T], Env, L, St) ->
     Cons = fun ([Ch,Ct], _, _, St) -> {c_cons(Ch, Ct),St} end,
     comp_args([H,T], Cons, Env, L, St);
-%%     {Ch,St1} = comp_expr(H, Env, L, St0),
-%%     {Ct,St2} = comp_expr(T, Env, L, St1),
-%%     {c_cons(Ch, Ct),St2};
-comp_call([car,E], Env, L, St) ->		%Provide lisp names
-    comp_call([hd,E], Env, L, St);
-comp_call([cdr,E], Env, L, St) ->
-    comp_call([tl,E], Env, L, St);
-comp_call([list|Es], Env, L, St) ->
+comp_expr([car,E], Env, L, St) ->		%Provide lisp names
+    comp_expr([hd,E], Env, L, St);
+comp_expr([cdr,E], Env, L, St) ->
+    comp_expr([tl,E], Env, L, St);
+comp_expr([list|Es], Env, L, St) ->
     List = fun (Ces, _, _, St) ->
 		   {foldr(fun (E, T) -> c_cons(E, T) end, c_nil(), Ces),St}
 	   end,
     comp_args(Es, List, Env, L, St);
-%%     foldr(fun (E, {T,St0}) ->
-%% 		  {Ce,St1} = comp_expr(E, Env, L, St0),
-%% 		  {c_cons(Ce, T),St1}
-%% 	  end, {c_nil(),St}, Es);
-comp_call([tuple|As], Env, L, St) ->
+comp_expr([tuple|As], Env, L, St) ->
     comp_args(As, fun (Args, _, _, St) -> {c_tuple(Args),St} end, Env, L, St);
 %%     {Cas,St1} = comp_args(As, Env, L, St0),
 %%     {c_tuple(Cas),St1};
-comp_call([binary|Segs], Env, L, St) ->
+comp_expr([binary|Segs], Env, L, St) ->
     comp_binary(Segs, Env, L, St);		%And bitstring as well
 %% Handle the Core closure special forms.
-comp_call([lambda,Args|Body], Env, L, St) ->
+comp_expr([lambda,Args|Body], Env, L, St) ->
     comp_lambda(Args, Body, Env, L, St);
-comp_call(['match-lambda'|Cls], Env, L, St) ->
+comp_expr(['match-lambda'|Cls], Env, L, St) ->
     comp_match_lambda(Cls, Env, L, St);
-comp_call(['let',Vbs|Body], Env, L, St) ->
+comp_expr(['let',Vbs|Body], Env, L, St) ->
     comp_let(Vbs, Body, Env, L, St);
-comp_call(['let-function',Fbs|Body], Env, L, St) ->
+comp_expr(['let-function',Fbs|Body], Env, L, St) ->
     comp_let_function(Fbs, Body, Env, L, St);
-comp_call(['letrec-function',Fbs|Body], Env, L, St) ->
+comp_expr(['letrec-function',Fbs|Body], Env, L, St) ->
     comp_letrec_function(Fbs, Body, Env, L, St);
 %% (let-syntax ...) should never be seen here!
 %% Handle the Core control special forms.
-comp_call(['progn'|Body], Env, L, St) ->
+comp_expr(['progn'|Body], Env, L, St) ->
     comp_body(Body, Env, L, St);
-comp_call(['if',Test,True], Env, L, St) ->
-    comp_if(Test, True, [quote,false], Env, L, St);
-comp_call(['if',Test,True,False], Env, L, St) ->
-    comp_if(Test, True, False, Env, L, St);
-comp_call(['case',Expr|Cls], Env, L, St) ->
+comp_expr(['if'|Body], Env, L, St) ->
+    comp_if(Body, Env, L, St);
+comp_expr(['case',Expr|Cls], Env, L, St) ->
     comp_case(Expr, Cls, Env, L, St);
-comp_call(['receive'|Cls], Env, L, St0) ->
+comp_expr(['receive'|Cls], Env, L, St0) ->
     {Ccs,Ct,Ca,St1} = rec_clauses(Cls, Env, L, St0),
     {#c_receive{anno=[L],clauses=Ccs,timeout=Ct,action=Ca},St1};
-comp_call(['catch'|Body], Env, L, St0) ->
+comp_expr(['catch'|Body], Env, L, St0) ->
     {Cb,St1} = comp_body(Body, Env, L, St0),
     {#c_catch{anno=[L],body=Cb},St1};
-comp_call(['try'|B], Env, L, St) ->
+comp_expr(['try'|B], Env, L, St) ->
     comp_try(B, Env, L, St);
-comp_call(['funcall',F|As], Env, L, St) ->
+comp_expr(['funcall',F|As], Env, L, St) ->
     comp_funcall(F, As, Env, L, St);
-%%comp_call([call,[quote,erlang],[quote,primop]|As], Env, L, St) ->
+%%comp_expr([call,[quote,erlang],[quote,primop]|As], Env, L, St) ->
 %% An interesting thought to open up system.
-comp_call([call,M,N|As], Env, L, St) ->
+comp_expr([call,M,N|As], Env, L, St) ->
     %% Call a function in another module.
-    Call = fun ([Cm,Cn|Cas], _, L, St) ->
-		   {#c_call{anno=[L],module=Cm,name=Cn,args=Cas},St}
-	   end,
+    Call = fun ([Cm,Cn|Cas], _, L, St) -> {c_call(Cm, Cn, Cas, L),St} end,
     comp_args([M,N|As], Call, Env, L, St);
 %%     {[Cm,Cn|Cas],St1} = comp_args([M,N|As], Env, L, St0),
 %%     {#c_call{anno=[L],module=Cm,name=Cn,args=Cas},St1};
 %% General function calls.
-comp_call([Fun|As], Env, L, St) when is_atom(Fun) ->
+comp_expr([Fun|As], Env, L, St) when is_atom(Fun) ->
     %% Fun is a symbol which is either a known BIF or function.
     Call = fun (Cas, Env, L, St) ->
 		   Ar = length(Cas),
 		   case get_fbinding(Fun, Ar, Env) of
 		       {yes,M,F} ->				%Import
-			   {#c_call{anno=[L],module=c_atom(M),
-				    name=c_atom(F),args=Cas},St};
+			   {c_call(c_atom(M), c_atom(F), Cas, L),St};
 		       {yes,Name} ->
 			   %% Might have been renamed, use real function name.
 			   {#c_apply{anno=[L],op=c_fname(Name, Ar),
 				     args=Cas},St}
 		   end
 	   end,
-    comp_args(As, Call, Env, L, St).
+    comp_args(As, Call, Env, L, St);
+comp_expr(Symb, _, _, St) when is_atom(Symb) ->
+    {c_var(Symb),St};
+%% Everything is a literal constant (nil, tuples, numbers, binaries).
+comp_expr(Const, _, _, St) ->
+    {comp_lit(Const),St}.
 
 %% comp_args(Args, CallFun, Env, Line, State) -> {Call,State}.
 %%  Sequentialise the evaluation of Args building the Call at the
 %%  bottom. For non-simple arguments use let to break the arg
-%%  evaluation out from the main call. Cannot use foldr as we pass
-%%  data both in and out.
+%%  evaluation out from the main call.
 
 comp_args(As, Call, Env, L, St0) ->
     {Cas,St1} = mapfoldl(fun (A, St) -> comp_expr(A, Env, L, St) end, St0, As),
-    make_seq(Cas, Call, Env, L, St1).
+    simple_seq(Cas, Call, Env, L, St1).
 
-%% make_seq(CoreExps, Then, Env, Line, State) -> {Cepxr,State}.
+%% simple_seq(CoreExps, Then, Env, Line, State) -> {Cepxr,State}.
 %%  Sequentialise the evaluation of a sequence of core expressions
 %%  using let's for non-simple exprs, and call Then with the simple
 %%  core sequence. Cannot use a simple foldr as we pass data both in
 %%  and out.
 
-make_seq(Ces, Then, Env, L, St) -> make_seq(Ces, Then, [], Env, L, St).
+simple_seq(Ces, Then, Env, L, St) -> simple_seq(Ces, Then, [], Env, L, St).
 
-make_seq([Ce|Ces], Then, Ses, Env, L, St0) ->
+simple_seq([Ce|Ces], Then, Ses, Env, L, St0) ->
     %% Use erlang core compiler lib which does what we want.
     case is_simple(Ce) of
-	true -> make_seq(Ces, Then, [Ce|Ses], Env, L, St0);
+	true -> simple_seq(Ces, Then, [Ce|Ses], Env, L, St0);
 	false ->
 	    {Cv,St1} = new_c_var(L, St0),
-	    {Rest,St2} = make_seq(Ces, Then, [Cv|Ses], Env, L, St1),
+	    {Rest,St2} = simple_seq(Ces, Then, [Cv|Ses], Env, L, St1),
 	    {#c_let{anno=[L],
 		    vars=[Cv],
 		    arg=Ce,
 		    body=Rest},St2}
     end;
-make_seq([], Then, Ses, Env, L, St) ->
+simple_seq([], Then, Ses, Env, L, St) ->
     Then(reverse(Ses), Env, L, St).
 
 %% comp_lambda(Args, Body, Env, Line, State) -> {#c_fun{},State}.
@@ -426,7 +403,7 @@ comp_let(Vbs, B, Env, L, St0) ->
 			       %% doesn't exist here
 			       ['and',G,Cgs];
 			    (_, Cgs) -> Cgs end,
-		       [quote,true], Vbs),
+		       ?Q(true), Vbs),
 	    {Ces,St2} = mapfoldl(fun ([_,_,E], St) -> comp_expr(E, Env, L, St);
 				     ([_,E], St) -> comp_expr(E, Env, L, St)
 				 end, St1, Vbs),
@@ -504,8 +481,13 @@ comp_func(Name, ['match-lambda'|Cls], Env, L, St0) ->
     {Cfun,St1} = comp_match_lambda(Cls, Env, L, St0),
     {{Cf,Cfun},St1}.
 
-%% comp_if(Test, True, False, Env, Line, State) -> {#c_case{},State}.
+%% comp_if(IfBody, Env, Line, State) -> {#c_case{},State}.
 %%  Compile in if form to a case testing the Test expression.
+
+comp_if([Test,True], Env, L, St) ->
+    comp_if(Test, True, ?Q(false), Env, L, St);
+comp_if([Test,True,False], Env, L, St) ->
+    comp_if(Test, True, False, Env, L, St).
 
 comp_if(Te, Tr, Fa, Env, L, St0) ->
     {Cte,St1} = comp_expr(Te, Env, L, St0),	%Test expression
@@ -601,19 +583,13 @@ comp_try(E, Case, [], [], Env, L, St0) ->
     {Cv,Cc,St2} = try_case(Case, Env, L, St1),
     {[_,Val,Info]=Evs,St3} = new_c_vars(3, L, St2), %Tag, Value, Info
     After = raise_primop([Info,Val], L, St2),
-    {#c_try{anno=[L],arg=Ce,vars=[Cv],
-	    body=Cc,
-	    evars=Evs,
-	    handler=After},St3};
+    {c_try(Ce, [Cv], Cc, Evs, After, L),St3};
 comp_try(E, Case, Catch, [], Env, L, St0) ->
     %% No after - (try E [(case ...)] (catch ...))
     {Ce,St1} = comp_expr(E, Env, L, St0),
     {Cv,Cc,St2} = try_case(Case, Env, L, St1),
     {Evs,Ecs,St3} = try_exception(Catch, Env, L, St2),
-    {#c_try{anno=[L],arg=Ce,vars=[Cv],
-	    body=Cc,
-	    evars=Evs,
-	    handler=Ecs},St3};
+    {c_try(Ce, [Cv], Cc, Evs, Ecs, L),St3};
 comp_try(E, [], [], After, Env, L, St0) ->
     %% Just after - (try E (after ...))
     {Ce,St1} = comp_expr(E, Env, L, St0),
@@ -621,10 +597,7 @@ comp_try(E, [], [], After, Env, L, St0) ->
     {Ca,St3} = comp_body(After, Env, L, St2),
     Cb = #c_seq{anno=[L],arg=Ca,body=Cv},
     {Evs,Ecs,St4} = try_after(After, Env, L, St3),
-    {#c_try{anno=[L],arg=Ce,vars=[Cv],
-	    body=Cb,
-	    evars=Evs,
-	    handler=Ecs},St4};
+    {c_try(Ce, [Cv], Cb, Evs, Ecs, L),St4};
 comp_try(E, Case, Catch, After, Env, L, St) ->
     %% Both catch and after - (try E [(case ...)] (catch ...) (after ...))
     %% The case where all options are given.
@@ -727,6 +700,7 @@ comp_binary(Segs, Env, L, St) ->
     comp_bitsegs(Segs, Env, L, St).
 
 %% comp_bitsegs(BitSegs, Env, Line, State) -> {CBitsegs,State}.
+%% Compile the bitsegements sequentialising them with simple_seq.
 
 comp_bitsegs(Segs, Env, L, St) ->
     comp_bitsegs(Segs, [], Env, L, St).
@@ -738,7 +712,7 @@ comp_bitsegs([Seg|Segs], Csegs, Env, L, St0) ->
 		   Cs = c_bitseg(Cv, Csz, Un, Ty, Fs),
 		   comp_bitsegs(Segs, [Cs|Csegs], Env, L, St)
 	   end,
-    make_seq([Val,Sz], Next, Env, L, St1);
+    simple_seq([Val,Sz], Next, Env, L, St1);
 comp_bitsegs([], Csegs, _, L, St) ->
     {#c_binary{anno=[L],segments=reverse(Csegs)},St}.
 
@@ -820,11 +794,143 @@ comp_bitspec([size,N], Sp, Env, L, St0) ->
 val_or_def(default, Def) -> Def;
 val_or_def(V, _) -> V.
 
-%% comp_guard(Guard, Env, Line, State) -> {Guard,State}.
-%% Should really do some special handling here.
+%% comp_guard(Guard, Env, Line, State) -> {CoreGuard,State}.
+%% Can compile much of the guard as an expression but must wrap it all
+%% in a try, which we do here. This try has a very rigid structure.
 
-comp_guard(G, Env, L, St) ->
-    comp_expr(G, Env, L, St).
+comp_guard(G, Env, L, St0) ->
+    {Ce,St1} = comp_gtest(G, Env, L, St0),	%Guard expression
+    %% Can hard code the rest!
+    Cv = c_var('Try'),
+    Evs = [c_var('T'),c_var('R')],		%Why only two?
+    False = c_atom(false),			%Exception returns false
+    {c_try(Ce, [Cv], Cv, Evs, False, L),St1}.
+
+%% comp_gtest(Test, Env, Line, State) -> {CoreTest,State}.
+%% Compile a guard test, making sure it returns a boolean value.
+
+comp_gtest([quote,Bool], _, _, St) when is_boolean(Bool) ->
+    {c_atom(Bool),St};
+%% comp_gtest(['progn'|Body], Env, L, St) ->
+%%     comp_gbody(Body, Env, L, St);
+%% comp_gtest(['if'|Body], Env, L, St) ->
+%%     comp_gif(Body, Env, L, St);
+comp_gtest([Op|As]=Test, Env, L, St0) ->
+    Ar = length(As),
+    case erl_internal:bool_op(Op, Ar) orelse
+	erl_internal:comp_op(Op, Ar) orelse
+	erl_internal:type_test(Op, Ar) of
+	true -> comp_gexpr(Test, Env, L, St0);
+	false ->
+	    Call = fun (Cas, _, L, St) ->
+			   {c_call(c_atom(erlang), c_atom('=:='), Cas, L),St}
+		   end,
+	    comp_gargs([Test,?Q(true)], Call, Env, L, St0)
+    end;
+comp_gtest(E, Env, L, St0) ->			%Not a bool test or boolean
+    Call = fun (Cas, _, L, St) ->
+		   {c_call(c_atom(erlang), c_atom('=:='), Cas, L),St}
+	   end,
+    comp_gargs([E,?Q(true)], Call, Env, L, St0).
+
+%% comp_gexpr(Expr, Env, Line, State) -> {CoreExpr,State}.
+
+%% Handle the Core data special forms.
+comp_gexpr([quote,E], _, _, St) -> {comp_lit(E),St};
+comp_gexpr([cons,H,T], Env, L, St) ->
+    Cons = fun ([Ch,Ct], _, _, St) -> {c_cons(Ch, Ct),St} end,
+    comp_gargs([H,T], Cons, Env, L, St);
+comp_gexpr([car,E], Env, L, St) ->		%Provide lisp names
+    comp_gexpr([hd,E], Env, L, St);
+comp_gexpr([cdr,E], Env, L, St) ->
+    comp_gexpr([tl,E], Env, L, St);
+comp_gexpr([list|Es], Env, L, St) ->
+    List = fun (Ces, _, _, St) ->
+		   {foldr(fun (E, T) -> c_cons(E, T) end, c_nil(), Ces),St}
+	   end,
+    comp_args(Es, List, Env, L, St);
+comp_gexpr([tuple|As], Env, L, St) ->
+    comp_gargs(As, fun (Args, _, _, St) -> {c_tuple(Args),St} end, Env, L, St);
+comp_gexpr([binary|Segs], Env, L, St) ->
+    comp_binary(Segs, Env, L, St);		%And bitstring as well
+%% Handle the Core closure special forms.
+%% (let-syntax ...) should never be seen here!
+%% Handle the Core control special forms.
+comp_gexpr(['progn'|Body], Env, L, St) ->
+    comp_gbody(Body, Env, L, St);
+comp_gexpr(['if'|Body], Env, L, St) ->
+    comp_gif(Body, Env, L, St);
+comp_gexpr([call,[quote,erlang],[quote,Fun]|As], Env, L, St) ->
+    comp_gexpr([Fun|As], Env, L, St);		%Pass the buck
+%% Finally the general case.
+comp_gexpr([Fun|As], Env, L, St) ->
+    Call = fun (Cas, Env, L, St) ->
+		   Ar = length(Cas),
+		   {yes,M,F} = get_gbinding(Fun, Ar, Env),
+		   {c_call(c_atom(M), c_atom(F), Cas, L),St}
+	   end,
+    comp_gargs(As, Call, Env, L, St);
+comp_gexpr(Symb, _, _, St) when is_atom(Symb) ->
+    {c_var(Symb),St};
+%% Everything is a literal constant (nil, tuples, numbers, binaries).
+comp_gexpr(Const, _, _, St) ->
+    {comp_lit(Const),St}.
+
+%% comp_gbody(Body, Env, Line, State) -> {CoreBody,State}.
+%% Compile a guard body into a sequence of logical and tests.
+
+comp_gbody([], _, _, St) -> {c_atom(true),St};
+comp_gbody([T], Env, L, St) -> comp_gexpr(T, Env, L, St);
+comp_gbody([T|Ts], Env, L, St) ->
+    comp_gif(T, [progn|Ts], ?Q(false), Env, L, St).
+
+%% comp_gargs(Args, CallFun, Env, Line, State) -> {Call,State}.
+
+comp_gargs(As, Call, Env, L, St0) ->
+    {Cas,St1} = mapfoldl(fun (A, St) -> comp_gexpr(A, Env, L, St) end, St0, As),
+    simple_seq(Cas, Call, Env, L, St1).
+
+%% comp_gif(IfBody, Env, Line, State) -> {#c_case{},State}.
+%%  Compile in if form to a case testing the Test expression.
+
+comp_gif([Test,True], Env, L, St) ->
+    comp_gif(Test, True, ?Q(false), Env, L, St);
+comp_gif([Test,True,False], Env, L, St) ->
+    comp_gif(Test, True, False, Env, L, St).
+
+comp_gif(Te, Tr, Fa, Env, L, St0) ->
+    {Cte,St1} = comp_gexpr(Te, Env, L, St0),	%Test expression
+    {Ctr,St2} = comp_gexpr(Tr, Env, L, St1),	%True test
+    {Cfa,St3} = comp_gexpr(Fa, Env, L, St2),	%False test
+    True = c_atom(true),
+    False = c_atom(false),
+    Omega = c_var(omega),
+    Ctrue = #c_clause{anno=[L],pats=[True],guard=True,body=Ctr},
+    Cfalse = #c_clause{anno=[L],pats=[False],guard=True,body=Cfa},
+    Cfail = #c_clause{anno=[L,compiler_generated],
+		      pats=[Omega],guard=True,body=Omega},
+    {#c_case{anno=[L],
+	     arg=Cte,
+	     clauses=[Ctrue,Cfalse,Cfail]},St3}.
+
+%% This produces code which is harder to optimise, strangely enough.
+%% comp_gif(Te, Tr, Fa, Env, L, St0) ->
+%%     {Cte,St1} = comp_gexpr(Te, Env, L, St0),	%Test expression
+%%     {Ctr,St2} = comp_gexpr(Tr, Env, L, St1),	%True expression
+%%     {Cfa,St3} = comp_gexpr(Fa, Env, L, St2),	%False expression
+%%     If = fun ([Ctest], _, _, St) ->
+%% 		 True = c_atom(true),
+%% 		 False = c_atom(false),
+%% 		 Omega = c_var(omega),
+%% 		 Ctrue = #c_clause{anno=[L],pats=[True],guard=True,body=Ctr},
+%% 		 Cfalse = #c_clause{anno=[L],pats=[False],guard=True,body=Cfa},
+%% 		 Cfail = #c_clause{anno=[L,compiler_generated],
+%% 				   pats=[Omega],guard=True,body=Omega},
+%% 		 {#c_case{anno=[L],
+%% 			  arg=Ctest,
+%% 			  clauses=[Ctrue,Cfalse,Cfail]},St}
+%% 	 end,
+%%     simple_seq([Cte], If, Env, L, St3).
 
 %% comp_pat(Pattern, Line, Status) -> {CorePat,PatVars,State}.
 %% Compile a pattern into a Core term. Handle quoted sexprs here
@@ -941,6 +1047,8 @@ pat_bitseg(Pat, L, Vs0, St0) ->
     {{Ty,Sz,Un,Si,En},St2} = comp_bitspecs([], #spec{}, noenv, L, St1),
     {c_bitseg(Cp, Sz, c_int(Un), c_atom(Ty), c_lit([Si,En])),Vs1,St2}.
 
+%% c_call(Module, Name, Args, Line) -> #c_call{}.
+%% c_try(Arg, Vars, Body, Evars, Handler, Line) -> #c_try{}.
 %% c_fun(Vars, Body, Line) -> #c_fun{}.
 %% c_primop(Name, Args, Line) -> #c_primop{}.
 %% c_fname(Name, Arity) -> #c_fname{}.
@@ -955,6 +1063,10 @@ pat_bitseg(Pat, L, Vs0, St0) ->
 %% c_var(Name) -> #c_var{}.
 %% c_bitseg(Value, Size, Unit, Type, Sign, Endian) -> #c_bitseg{}.
 
+c_call(M, F, As, L) ->
+    #c_call{anno=[L],module=M,name=F,args=As}.
+c_try(A, Vs, B, Evs, H, L) ->
+    #c_try{anno=[L],arg=A,vars=Vs,body=B,evars=Evs,handler=H}.
 c_fun(Vs, B, L) -> #c_fun{anno=[L],vars=Vs,body=B}.
 c_primop(N, As, L) ->
     #c_primop{anno=[L],name=N,args=As}.
@@ -1061,17 +1173,14 @@ safe_fetch(Key, D, Def) ->
 is_simple(#c_var{}) -> true;
 is_simple(#c_literal{}) -> true;
 is_simple(#c_cons{hd=H,tl=T}) ->
-    case is_simple(H) of
-        true -> is_simple(T);
-        false -> false
-    end;
+    is_simple(H) andalso is_simple(T);
 is_simple(#c_tuple{es=Es}) -> is_simple_list(Es);
 is_simple(#c_binary{segments=Es}) -> is_simp_bin(Es);
 is_simple(_) -> false.
 
-is_simple_list(Es) -> lists:all(fun is_simple/1, Es).
+is_simple_list(Es) -> all(fun is_simple/1, Es).
 
 is_simp_bin(Es) ->
-    lists:all(fun (#c_bitstr{val=E,size=S}) ->
-                      is_simple(E) and is_simple(S)
-              end, Es).
+    all(fun (#c_bitstr{val=E,size=S}) ->
+		is_simple(E) andalso is_simple(S)
+	end, Es).

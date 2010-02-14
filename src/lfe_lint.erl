@@ -319,14 +319,14 @@ check_expr(['funcall'|As], Env, L, St) ->
 check_expr(['call'|As], Env, L, St) ->
     check_args(As, Env, L, St);
 %% Finally the general cases.
-check_expr([Symb|As], Env, L, St0) when is_atom(Symb) ->
+check_expr([Fun|As], Env, L, St0) when is_atom(Fun) ->
     St1 = check_args(As, Env, L, St0),	%Check arguments first
-    %% Here we are not interested in HOW symb is associated to a
+    %% Here we are not interested in HOW fun is associated to a
     %% function, just that it is.
-    %% io:fwrite("fb: ~w ~p   ~p\n", [Symb,As,Env]),
-    case is_fbound(Symb, safe_length(As), Env) of
+    %% io:fwrite("fb: ~w ~p   ~p\n", [Fun,As,Env]),
+    case is_fbound(Fun, safe_length(As), Env) of
 	true -> St1;
-	false -> add_error(L, {unbound_func,{Symb,safe_length(As)}}, St1)
+	false -> add_error(L, {unbound_func,{Fun,safe_length(As)}}, St1)
     end;
 check_expr([_|As], Env, L, St0) ->
     %% Function here is an expression, report error and check args.
@@ -657,21 +657,22 @@ check_gexpr([tuple|As], Env, L, St) -> check_gargs(As, Env, L, St);
 check_gexpr([binary|Segs], Env, L, St) -> gexpr_bitsegs(Segs, Env, L, St);
 %% Check the Core closure special forms.
 %% Check the Core control special forms.
-check_gexpr(['progn'|B], Env, L, St) ->
-    check_gbody(B, Env, L, St);
-check_gexpr(['if'|B], Env, L, St) ->
-    check_gif(B, Env, L, St);
-%% Finally the general case.
-check_gexpr([Symb|As], Env, L, St0) when is_atom(Symb) ->
-    St1 = check_gargs(As, Env, L, St0),
-    %% Here we are not interested in HOW symb is associated to a
-    %% function, just that it is.
-    case is_gbound(Symb, safe_length(As), Env) of
-	true -> St1;
-	false -> add_error(L, {unbound_func,{Symb,safe_length(As)}}, St1)
-    end;
-check_gexpr([_|_], _, L, St) ->
+check_gexpr(['progn'|B], Env, L, St) -> check_gbody(B, Env, L, St);
+check_gexpr(['if'|B], Env, L, St) -> check_gif(B, Env, L, St);
+check_gexpr([call,[quote,erlang],[quote,Fun]|As], Env, L, St) ->
+    check_gexpr([Fun|As], Env, L, St);		%Pass the buck
+check_gexpr([call|_], _, L, St) ->		%Other calls not allowed
     add_error(L, illegal_guard, St);
+%% Finally the general case.
+check_gexpr([Fun|As], Env, L, St0) when is_atom(Fun) ->
+    St1 = check_gargs(As, Env, L, St0),
+    %% Here we are not interested in HOW fun is associated to a
+    %% function, just that it is.
+    case is_gbound(Fun, safe_length(As), Env) of
+	true -> St1;
+	false -> add_error(L, illegal_guard, St1)
+    end;
+check_gexpr([_|_], _, L, St) -> add_error(L, illegal_guard, St);
 check_gexpr([], _, _, St) -> St;
 check_gexpr(Symb, Env, L, St) when is_atom(Symb) ->
     check_symb(Symb, Env, L, St);
@@ -688,13 +689,13 @@ check_gexpr(_, _, _, St) -> St.			%Everything else is atomic
 check_gbody(Body, Env, L, St) ->
     case is_proper_list(Body) of
 	true -> check_gexprs(Body, Env, L, St);
-	false -> add_error(L, bad_body, St)
+	false -> add_error(L, illegal_guard, St)
     end.
 
 check_gargs(Args, Env, L, St) ->
     case is_proper_list(Args) of
 	true -> check_gexprs(Args, Env, L, St);
-	false -> add_error(L, bad_args, St)
+	false -> add_error(L, illegal_guard, St)
     end.
 
 check_gexprs(Es, Env, L, St) ->

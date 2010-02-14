@@ -156,7 +156,7 @@ do_erl_comp(St) ->
     Opts = erl_comp_opts(St#comp.opts),
     Es = St#comp.errors,
     Ws = St#comp.warnings,
-    case compile:forms(St#comp.code, [from_core,binary|Opts]) of
+    case compile:forms(St#comp.code, [from_core,binary,no_bopt|Opts]) of
 	{ok,_,Result,Ews} ->
 	    {ok,St#comp{code=Result,warnings=Ws ++ fix_erl_errors(Ews)}};
 	{error,Ees,Ews} ->
