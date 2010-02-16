@@ -199,9 +199,20 @@ comp_define({Name,Def,L}, Env, St) ->
 comp_body([E], Env, L, St) -> comp_expr(E, Env, L, St);
 comp_body([E|Es], Env, L, St0) ->
     {Ce,St1} = comp_expr(E, Env, L, St0),
-    {Ces,St2} = comp_body(Es, Env, L, St1),
-    {#c_seq{anno=[L],arg=Ce,body=Ces},St2};
-comp_body([], _, _, St) -> {c_nil(),St}.	%Empty body
+    {Cb,St2} = comp_body(Es, Env, L, St1),
+    {append_c_seq(Ce, Cb, L),St2};		%Flatten nested sequences
+comp_body([], _, _, St) -> {c_nil(),St}.	%Empty body returns []
+
+append_c_seq(#c_seq{body=B}=Cseq, Ce, L) ->
+    Cseq#c_seq{body=append_c_seq(B, Ce, L)};
+append_c_seq(H, Ce, L) -> #c_seq{anno=[L],arg=H,body=Ce}.
+
+%% comp_body([E], Env, L, St) -> comp_expr(E, Env, L, St);
+%% comp_body([E|Es], Env, L, St0) ->
+%%     {Ce,St1} = comp_expr(E, Env, L, St0),
+%%     {Ces,St2} = comp_body(Es, Env, L, St1),
+%%     {#c_seq{anno=[L],arg=Ce,body=Ces},St2};
+%% comp_body([], _, _, St) -> {c_nil(),St}.	%Empty body
 
 %% comp_expr(Expr, Env, Line, State) -> {CoreExpr,State}.
 %% Compile an expression.
@@ -398,12 +409,10 @@ comp_let(Vbs, B, Env, L, St0) ->
 					       {Cp,Pvs,Stb} = comp_pat(P, L, Sta),
 					       {Cp,{union(Pvs, Psvs),Stb}}
 				       end, {[],St0}, Vbs),
-	    Gs = foldr(fun ([_,['when',G]|_], Cgs) ->
-			       %% andalso would be more efficient, but
-			       %% doesn't exist here
-			       ['and',G,Cgs];
+	    %% Build a sequence of guard tests.
+	    Gs = foldr(fun ([_,['when'|G]|_], Cgs) -> G ++ Cgs;
 			    (_, Cgs) -> Cgs end,
-		       ?Q(true), Vbs),
+		       [], Vbs),
 	    {Ces,St2} = mapfoldl(fun ([_,_,E], St) -> comp_expr(E, Env, L, St);
 				     ([_,E], St) -> comp_expr(E, Env, L, St)
 				 end, St1, Vbs),
@@ -495,12 +504,28 @@ comp_if(Te, Tr, Fa, Env, L, St0) ->
     {Cfa,St3} = comp_expr(Fa, Env, L, St2),	%False expression
     True = c_atom(true),
     False = c_atom(false),
-    Cf = if_fail(L, St3),
+    Ctrue = #c_clause{anno=[L],pats=[True],guard=True,body=Ctr},
+    Cfalse = #c_clause{anno=[L],pats=[False],guard=True,body=Cfa},
+    Cfail = if_fail(L, St3),
     {#c_case{anno=[L],
 	     arg=Cte,
-	     clauses=[#c_clause{anno=[L],pats=[True],guard=True,body=Ctr},
-		      #c_clause{anno=[L],pats=[False],guard=True,body=Cfa},
-		      Cf]},St3}.
+	     clauses=[Ctrue,Cfalse,Cfail]},St3}.
+
+%% comp_if(Te, Tr, Fa, Env, L, St0) ->
+%%     {Cte,St1} = comp_expr(Te, Env, L, St0),	%Test expression
+%%     {Ctr,St2} = comp_expr(Tr, Env, L, St1),	%True expression
+%%     {Cfa,St3} = comp_expr(Fa, Env, L, St2),	%False expression
+%%     If = fun ([Ctest], _, _, St) ->
+%% 		 True = c_atom(true),
+%% 		 False = c_atom(false),
+%% 		 Ctrue = #c_clause{anno=[L],pats=[True],guard=True,body=Ctr},
+%% 		 Cfalse = #c_clause{anno=[L],pats=[False],guard=True,body=Cfa},
+%% 		 Cfail = if_fail(L, St),
+%% 		 {#c_case{anno=[L],
+%% 			  arg=Ctest,
+%% 			  clauses=[Ctrue,Cfalse,Cfail]},St}
+%% 	 end,
+%%     simple_seq([Cte], If, Env, L, St3).
 
 if_fail(L, St) ->
     Cv = c_var(omega),
@@ -554,7 +579,7 @@ comp_clause([Pat|Body], Env0, L, St0) ->
     {Cg,Cb,St2} = comp_clause_body(Body, Env1, L, St1),
     {#c_clause{anno=[L],pats=[Cp],guard=Cg,body=Cb},St2}.
 
-comp_clause_body([['when',Guard]|Body], Env, L, St0) ->
+comp_clause_body([['when'|Guard]|Body], Env, L, St0) ->
     {Cg,St1} = comp_guard(Guard, Env, L, St0),
     {Cb,St2} = comp_body(Body, Env, L, St1),
     {Cg,Cb,St2};
@@ -794,28 +819,25 @@ comp_bitspec([size,N], Sp, Env, L, St0) ->
 val_or_def(default, Def) -> Def;
 val_or_def(V, _) -> V.
 
-%% comp_guard(Guard, Env, Line, State) -> {CoreGuard,State}.
+%% comp_guard(GuardTests, Env, Line, State) -> {CoreGuard,State}.
 %% Can compile much of the guard as an expression but must wrap it all
 %% in a try, which we do here. This try has a very rigid structure.
 
-comp_guard(G, Env, L, St0) ->
-    {Ce,St1} = comp_gtest(G, Env, L, St0),	%Guard expression
+comp_guard([], _, _, St) -> {c_atom(true),St};	%The empty guard
+comp_guard(Gts, Env, L, St0) ->
+    {Ce,St1} = comp_gtest(Gts, Env, L, St0),	%Guard expression
     %% Can hard code the rest!
     Cv = c_var('Try'),
     Evs = [c_var('T'),c_var('R')],		%Why only two?
     False = c_atom(false),			%Exception returns false
     {c_try(Ce, [Cv], Cv, Evs, False, L),St1}.
 
-%% comp_gtest(Test, Env, Line, State) -> {CoreTest,State}.
+%% comp_gtest(GuardTests, Env, Line, State) -> {CoreTest,State}.
 %% Compile a guard test, making sure it returns a boolean value.
 
-comp_gtest([quote,Bool], _, _, St) when is_boolean(Bool) ->
+comp_gtest([[quote,Bool]], _, _, St) when is_boolean(Bool) ->
     {c_atom(Bool),St};
-%% comp_gtest(['progn'|Body], Env, L, St) ->
-%%     comp_gbody(Body, Env, L, St);
-%% comp_gtest(['if'|Body], Env, L, St) ->
-%%     comp_gif(Body, Env, L, St);
-comp_gtest([Op|As]=Test, Env, L, St0) ->
+comp_gtest([[Op|As]=Test], Env, L, St0) ->
     Ar = length(As),
     case erl_internal:bool_op(Op, Ar) orelse
 	erl_internal:comp_op(Op, Ar) orelse
@@ -827,11 +849,21 @@ comp_gtest([Op|As]=Test, Env, L, St0) ->
 		   end,
 	    comp_gargs([Test,?Q(true)], Call, Env, L, St0)
     end;
-comp_gtest(E, Env, L, St0) ->			%Not a bool test or boolean
+comp_gtest(Ts, Env, L, St0) ->			%Not a bool test or boolean
+    {Cg,St1} = comp_gbody(Ts, Env, L, St0),
+    True = comp_lit(true),
     Call = fun (Cas, _, L, St) ->
 		   {c_call(c_atom(erlang), c_atom('=:='), Cas, L),St}
 	   end,
-    comp_gargs([E,?Q(true)], Call, Env, L, St0).
+    simple_seq([Cg,True], Call, Env, L, St1).
+
+%% comp_gbody(Body, Env, Line, State) -> {CoreBody,State}.
+%% Compile a guard body into a sequence of logical and tests.
+
+comp_gbody([], _, _, St) -> {c_atom(true),St};
+comp_gbody([T], Env, L, St) -> comp_gexpr(T, Env, L, St);
+comp_gbody([T|Ts], Env, L, St) ->
+    comp_gif(T, [progn|Ts], ?Q(false), Env, L, St).
 
 %% comp_gexpr(Expr, Env, Line, State) -> {CoreExpr,State}.
 
@@ -876,14 +908,6 @@ comp_gexpr(Symb, _, _, St) when is_atom(Symb) ->
 comp_gexpr(Const, _, _, St) ->
     {comp_lit(Const),St}.
 
-%% comp_gbody(Body, Env, Line, State) -> {CoreBody,State}.
-%% Compile a guard body into a sequence of logical and tests.
-
-comp_gbody([], _, _, St) -> {c_atom(true),St};
-comp_gbody([T], Env, L, St) -> comp_gexpr(T, Env, L, St);
-comp_gbody([T|Ts], Env, L, St) ->
-    comp_gif(T, [progn|Ts], ?Q(false), Env, L, St).
-
 %% comp_gargs(Args, CallFun, Env, Line, State) -> {Call,State}.
 
 comp_gargs(As, Call, Env, L, St0) ->
@@ -909,9 +933,7 @@ comp_gif(Te, Tr, Fa, Env, L, St0) ->
     Cfalse = #c_clause{anno=[L],pats=[False],guard=True,body=Cfa},
     Cfail = #c_clause{anno=[L,compiler_generated],
 		      pats=[Omega],guard=True,body=Omega},
-    {#c_case{anno=[L],
-	     arg=Cte,
-	     clauses=[Ctrue,Cfalse,Cfail]},St3}.
+    {#c_case{anno=[L],arg=Cte,clauses=[Ctrue,Cfalse,Cfail]},St3}.
 
 %% This produces code which is harder to optimise, strangely enough.
 %% comp_gif(Te, Tr, Fa, Env, L, St0) ->

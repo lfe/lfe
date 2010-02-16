@@ -17,6 +17,8 @@ I will try to make a better fix soon. Sorry about that.
 <will be v0.6>
 --------------
 
+Guards are now a sequence of tests, (when test test ...).
+
 Added temporary fix to ensure that guards are compiled correctly. It
 is less efficient but should be correct. It will be removed when no
 longer necessary.

@@ -26,9 +26,9 @@ Supported Core forms
 		     signed|unsigned)
 (lambda (arg ...) ...)
 (match-lambda					- Matches clauses
-  ((arg ... ) {{(when e)}} ...)
+  ((arg ... ) {{(when e ...)}} ...)
   ... )
-(let ((pat {{(when e)}} e)
+(let ((pat {{(when e ...)}} e)
       ...)
   ... )
 (let-function ((name lambda|match-lambda)	- Only define local functions
@@ -43,19 +43,19 @@ Supported Core forms
 (progn ... )
 (if test true-expr {{false-expr}})
 (case e
-  (pat {{(when e)}} ...)
+  (pat {{(when e ...)}} ...)
    ... ))
 (receive
-  (pat {{(when e)}} ... )
+  (pat {{(when e ...)}} ... )
   ...
   (after timeout ... ))
 (catch ... )
 (try
   e
-  {{(case ((pat {{(when e)}} ... )
+  {{(case ((pat {{(when e ...)}} ... )
 	  ... ))}}
   {{(catch
-     (((tuple type value ignore) {{(when e)}}
+     (((tuple type value ignore) {{(when e ...)}}
 				 	- Must be tuple of length 3 here!
       ... )
      ... )}}
@@ -170,9 +170,9 @@ removed, but later passes of the compiler can't handle this yet.
 Guards
 ------
 
-Wherever a pattern can occur (let, case, receive, etc.) it can be
-followed by an optional guard which has the form (when guard-test).
-Guard tests are the same as in vanilla Erlang and cn contain the
+Wherever a pattern occurs (let, case, receive, etc.) it can be
+followed by an optional guard which has the form (when test ...).
+Guard tests are the same as in vanilla Erlang and can contain the
 following guard expressions:
 
 (quote e)
@@ -185,7 +185,7 @@ following guard expressions:
 (progn gtest ...)		- Sequence of guard tests
 (if gexpr gexpr gexpr)
 (type-test e)
-(gbif ...)			- Guard BIFs
+(guard-bif ...)			- Guard BIFs
 				  arithmetic, boolean and comparison operators
 (cond ...)			- Without the pattern matching case
 

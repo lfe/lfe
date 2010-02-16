@@ -1,3 +1,22 @@
+2010-02-16  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_eval.lfe (eval-guard, match-when, eval-let): Guards are now
+	a sequence of tests (when t ...).
+
+	* lfe_eval.erl (eval_guard, match_when, eval_let): Guards are now
+	a sequence of tests (when t ...).
+
+	* lfe_codegen.erl (comp_guard, comp_gtest, comp_clause_body)
+	(comp_let): Guards are now a sequence of tests (when t ...).
+
+	* lfe_lint.erl (check_guard, check_pat_guard): Guards are now a
+	sequence of tests (when t ...).
+
+2010-02-15  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_codegen.erl (comp_body, append_c_seq): Try to flatten nested
+	sequences. The rest of the compiler likes this.
+
 2010-02-14  Robert Virding  <rv@stanislaw.local>
 
 	* lfe_codegen.erl (comp_guard, comp_gtest, comp_gexpr)

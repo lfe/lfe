@@ -383,7 +383,7 @@ eval_let([Vbs|Body], Env0) ->
 			     {yes,Bs} -> add_vbindings(Bs, Env);
 			     no -> erlang:error({badmatch,Val})
 			 end;
-		     ([Pat,['when',_]=G,E], Env) ->
+		     ([Pat,['when'|_]=G,E], Env) ->
 			 Val = eval_expr(E, Env0),
 			 case match_when(Pat, Val, [G], Env0) of
 			     {yes,[],Bs} -> add_vbindings(Bs, Env);
@@ -642,7 +642,7 @@ match_when(Pat, V, B0, Env) ->
     case match(Pat, V, Env) of
 	{yes,Vbs} ->
 	    case B0 of
-		[['when',G]|B1] ->
+		[['when'|G]|B1] ->
 		    case eval_guard(G, add_vbindings(Vbs, Env)) of
 			true -> {yes,B1,Vbs};
 			false -> no
@@ -652,18 +652,24 @@ match_when(Pat, V, B0, Env) ->
 	no -> no
     end.
 
-%% eval_guard(GuardExpr, Env) -> true | false.
+%% eval_guard(GuardTests, Env) -> true | false.
 %% Guards are fault safe, catch all errors in guards here and fail guard.
 
-eval_guard(G, Env) ->
+eval_guard(Gts, Env) ->
     try
-	eval_gexpr(G, Env)
+	eval_gbody(Gts, Env)
     of
 	true -> true;
 	_Other -> false				%Fail guard
     catch
 	_:_ -> false				%Fail guard
     end.
+
+%% eval_gbody(GuardTests, Env) -> true | false.
+%% A body is a sequence of tests which must all succeed.
+
+eval_gbody(Gts, Env) ->
+    all(fun (Gt) -> eval_gexpr(Gt, Env) end, Gts).
 
 %% eval_gexpr(Sexpr, Environment) -> Value.
 %%  Evaluate a guard sexpr in the current environment.
@@ -704,12 +710,6 @@ eval_gexpr(E, _) -> E.				%Atoms evaluate to themselves.
 
 eval_glist(Es, Env) ->
     map(fun (E) -> eval_gexpr(E, Env) end, Es).
-
-%% eval_gbody(Body, Env) -> true | false.
-%% A body is a sequence of tests which must all succeed.
-
-eval_gbody(Es, Env) ->
-    all(fun (E) -> eval_gexpr(E, Env) end, Es).
 
 %% eval_gif(IfBody, Env) -> Val.
 

@@ -629,7 +629,7 @@ check_try_catch(_, _, L, St) -> bad_form_error(L, 'try', St).
 %%      {Body,PatVars,Env,State}.
 %%  Check pattern and guard in a clause. We know there is at least pattern!
 
-check_pat_guard([Pat,['when',G]|Body], Env0, L, St0) ->
+check_pat_guard([Pat,['when'|G]|Body], Env0, L, St0) ->
     {Pvs,St1} = check_pat(Pat, Env0, L, St0),
     Env1 = add_vbindings(Pvs, Env0),
     St2 = check_guard(G, Env1, L, St1),
@@ -639,10 +639,19 @@ check_pat_guard([Pat|Body], Env0, L, St0) ->
     Env1 = add_vbindings(Pvs, Env0),
     {Body,Pvs,Env1,St1}.
 
-%% check_guard(Guard, Env, Line, State) -> State.
+%% check_guard(GuardTests, Env, Line, State) -> State.
 %% Check a guard.
 
-check_guard(G, Env, L, St) -> check_gexpr(G, Env, L, St).
+check_guard(G, Env, L, St) -> check_gbody(G, Env, L, St).
+
+%% check_gbody(Body, Env, Line, State) -> State.
+%% Check guard expressions in a body
+
+check_gbody([E|Es], Env, L, St0) ->
+    St1 = check_gexpr(E, Env, L, St0),
+    check_gbody(Es, Env, L, St1);
+check_gbody([], _, _, St) -> St;
+check_gbody(_, _, L, St) -> add_error(L, illegal_guard, St).
 
 %% check_gexpr(Call, Env, Line, State) -> State.
 %% Check a guard expression. This is a restricted body expression.
@@ -681,16 +690,9 @@ check_gexpr(Tup, _, _, St) when is_tuple(Tup) ->
     St;
 check_gexpr(_, _, _, St) -> St.			%Everything else is atomic
 
-%% check_gbody(Body, Env, Line, State) -> State.
 %% check_gargs(Args, Env, Line, State) -> State.
 %% check_gexprs(Exprs, Env, Line, State) -> State.
 %% The guard counter parts. Check_gexprs assumes a proper list.
-
-check_gbody(Body, Env, L, St) ->
-    case is_proper_list(Body) of
-	true -> check_gexprs(Body, Env, L, St);
-	false -> add_error(L, illegal_guard, St)
-    end.
 
 check_gargs(Args, Env, L, St) ->
     case is_proper_list(Args) of

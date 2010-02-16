@@ -376,7 +376,7 @@
 			  (case (match pat val env0)
 			    ((tuple 'yes bs) (add_vbindings bs env))
 			    ('no (: erlang error (tuple 'badmatch val))))))
-		       ([(pat (= ('when _) g) e) env]
+		       ([(pat (= ('when . _) g) e) env]
 			(let ((val (eval-expr e env0)))
 			  (case (match-when pat val (list g) env0)
 			    ((tuple 'yes '() bs) (add_vbindings bs env))
@@ -630,23 +630,29 @@
   (case (match pat val env)
     ((tuple 'yes vbs)
      (case b0
-       ((('when g) . b1)
+       ((('when . g) . b1)
 	(if (eval-guard g (add_vbindings vbs env))
 	  (tuple 'yes b1 vbs)
 	  'no))
        (b1 (tuple 'yes b1 vbs))))
     ('no 'no)))
 
-;; (eval-guard guardexpr env) -> true | false.
+;; (eval-guard guardtests env) -> true | false.
 ;; Guards are fault safe, catch all errors in guards here and fail guard.
 
-(defun eval-guard (g env)
+(defun eval-guard (gts env)
   (try
-      (eval-gexpr g env)
+      (eval-gbody gts env)
     (case ('true 'true)
       (_ 'false))			;Fail guard
     (catch
       ((tuple t v i) 'false))))		;Fail guard
+
+;; (eval-gbody body env) -> true | false.
+;; A body is a sequence of tests which must all succeed.
+
+(defun eval-gbody (es env)
+  (all (lambda (e) (eval-gexpr e env)) es))
 
 ;; (eval-gexpr sexpr environment) -> value.
 ;;  Evaluate a guard sexpr in the current environment.
@@ -688,12 +694,6 @@
 
 (defun eval-glist (es env)
   (map (lambda (e) (eval-gexpr e env)) es))
-
-;; (eval-gbody body env) -> true | false.
-;; A body is a sequence of tests which must all succeed.
-
-(defun eval-gbody (es env)
-  (all (lambda (e) (eval-gexpr e env)) es))
 
 ;; (eval-gif ifbody env) -> val
 
