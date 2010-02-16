@@ -151,9 +151,7 @@ error			-> 'error
 
 Repeated variables are *NOT* supported in patterns, there is no
 automatic comparison of values. It must explicitly be done in a
-guard. In this version there is no checking of this and if multiple
-variables occurr then it is undefined which value "wins" and is bound
-to the variable.
+guard.
 
 _ as the "don't care" variable is supported. This means that the
 symbol _, which is a perfectly valid symbol, can never be bound

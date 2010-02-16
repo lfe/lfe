@@ -17,15 +17,17 @@ I will try to make a better fix soon. Sorry about that.
 <will be v0.6>
 --------------
 
-Guards are now a sequence of tests, (when test test ...).
+Guards are now a sequence of tests, (when test test ...). The
+structure of guard tests has been fixed and is now more logical as
+tests. For example (if ...) is now allowed.
 
-Added temporary fix to ensure that guards are compiled correctly. It
+Add temporary fix to ensure that guards are compiled correctly. It
 is less efficient but should be correct. It will be removed when no
 longer necessary.
 
 Read and output based integers.
 
-Improved prettyprinting of defuns.
+Improve prettyprinting of defuns.
 
 Many internal improvements.
 
