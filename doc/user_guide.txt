@@ -6,6 +6,7 @@ Note {{ ... }} is use to denote optional syntax.
 Special syntactic rules
 -----------------------
 
+#b #o #d #x #23r	- Based integers
 #(e e ... )		- Tuple constants
 #b(e e ... )		- Binary constant, e ... are bytes
 [ ... ]			- Allowed as alternative to ( ... )
@@ -25,9 +26,9 @@ Supported Core forms
 		     signed|unsigned)
 (lambda (arg ...) ...)
 (match-lambda					- Matches clauses
-  ((arg ... ) {{(when e)}} ...)
+  ((arg ... ) {{(when e ...)}} ...)
   ... )
-(let ((pat {{(when e)}} e)
+(let ((pat {{(when e ...)}} e)
       ...)
   ... )
 (let-function ((name lambda|match-lambda)	- Only define local functions
@@ -42,19 +43,19 @@ Supported Core forms
 (progn ... )
 (if test true-expr {{false-expr}})
 (case e
-  (pat {{(when e)}} ...)
+  (pat {{(when e ...)}} ...)
    ... ))
 (receive
-  (pat {{(when e)}} ... )
+  (pat {{(when e ...)}} ... )
   ...
   (after timeout ... ))
 (catch ... )
 (try
   e
-  {{(case ((pat {{(when e)}} ... )
+  {{(case ((pat {{(when e ...)}} ... )
 	  ... ))}}
   {{(catch
-     (((tuple type value ignore) {{(when e)}}
+     (((tuple type value ignore) {{(when e ...)}}
 				 	- Must be tuple of length 3 here!
       ... )
      ... )}}
@@ -150,9 +151,7 @@ error			-> 'error
 
 Repeated variables are *NOT* supported in patterns, there is no
 automatic comparison of values. It must explicitly be done in a
-guard. In this version there is no checking of this and if multiple
-variables occurr then it is undefined which value "wins" and is bound
-to the variable.
+guard.
 
 _ as the "don't care" variable is supported. This means that the
 symbol _, which is a perfectly valid symbol, can never be bound
@@ -165,6 +164,28 @@ Erlang patterns they can be used anywhere in a pattern.
 are possible to match. If not an error is flagged. This is not the
 best way. Instead there should be a warning and the offending clause
 removed, but later passes of the compiler can't handle this yet.
+
+Guards
+------
+
+Wherever a pattern occurs (let, case, receive, etc.) it can be
+followed by an optional guard which has the form (when test ...).
+Guard tests are the same as in vanilla Erlang and can contain the
+following guard expressions:
+
+(quote e)
+(cons gexpr gexpr)
+(car gexpr)
+(cdr gexpr)
+(list gexpr ...)
+(tuple gexpr ...)
+(binary ...)
+(progn gtest ...)		- Sequence of guard tests
+(if gexpr gexpr gexpr)
+(type-test e)
+(guard-bif ...)			- Guard BIFs
+				  arithmetic, boolean and comparison operators
+(cond ...)			- Without the pattern matching case
 
 Bindings and Scoping
 --------------------
@@ -352,7 +373,7 @@ field-name value to get non-default values. E.g. for
    (person-address r)
    (set-person-address r address)
 
-(make-person name "Robert" age 54)
+(make-person name '"Robert" age 54)
 
 	Will create a new person record with the name field set to
 	"Robert", the age field set to 54 and the address field set to

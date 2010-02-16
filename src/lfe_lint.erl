@@ -1,4 +1,4 @@
-%% Copyright (c) 2008 Robert Virding. All rights reserved.
+%% Copyright (c) 2008-2010 Robert Virding. All rights reserved.
 %%
 %% Redistribution and use in source and binary forms, with or without
 %% modification, are permitted provided that the following conditions
@@ -281,18 +281,12 @@ add_exports(Old, More) -> union(Old, More).
 
 %% Check the Core data special forms.
 check_expr([quote,_], _, _, St) -> St;
-check_expr([cons|[_,_]=As], Env, L, St) ->
-    check_args(As, Env, L, St);
-check_expr([car,E], Env, L, St) ->
-    check_expr(E, Env, L, St);
-check_expr([cdr,E], Env, L, St) ->
-    check_expr(E, Env, L, St);
-check_expr([list|As], Env, L, St) ->
-    check_args(As, Env, L, St);
-check_expr([tuple|As], Env, L, St) ->
-    check_args(As, Env, L, St);
-check_expr([binary|Segs], Env, L, St) ->
-    expr_bitsegs(Segs, Env, L, St);
+check_expr([cons|[_,_]=As], Env, L, St) -> check_args(As, Env, L, St);
+check_expr([car,E], Env, L, St) -> check_expr(E, Env, L, St);
+check_expr([cdr,E], Env, L, St) -> check_expr(E, Env, L, St);
+check_expr([list|As], Env, L, St) -> check_args(As, Env, L, St);
+check_expr([tuple|As], Env, L, St) -> check_args(As, Env, L, St);
+check_expr([binary|Segs], Env, L, St) -> expr_bitsegs(Segs, Env, L, St);
 %% Check the Core closure special forms.
 check_expr(['lambda'|Lambda], Env, L, St) ->
     check_lambda(Lambda, Env, L, St);
@@ -308,12 +302,10 @@ check_expr(['let-macro'|_], _, L, St) ->
     %% This should never occur! Removed by macro expander.
     bad_form_error(L, 'let-macro', St);
 %% Check the Core control special forms.
-check_expr(['progn'|Body], Env, L, St) ->
-    check_body(Body, Env, L, St);
-check_expr(['if',Test,True,False], Env, L, St) ->
-    check_args([Test,True,False], Env, L, St);
-check_expr(['if',Test,True], Env, L, St) ->
-    check_args([Test,True], Env, L, St);
+check_expr(['progn'|B], Env, L, St) ->
+    check_body(B, Env, L, St);
+check_expr(['if'|B], Env, L, St) ->
+    check_if(B, Env, L, St);
 check_expr(['case'|B], Env, L, St) ->
     check_case(B, Env, L, St);
 check_expr(['receive'|Cls], Env, L, St) ->
@@ -327,14 +319,14 @@ check_expr(['funcall'|As], Env, L, St) ->
 check_expr(['call'|As], Env, L, St) ->
     check_args(As, Env, L, St);
 %% Finally the general cases.
-check_expr([Symb|As], Env, L, St0) when is_atom(Symb) ->
+check_expr([Fun|As], Env, L, St0) when is_atom(Fun) ->
     St1 = check_args(As, Env, L, St0),	%Check arguments first
-    %% Here we are not interested in HOW symb is associated to a
+    %% Here we are not interested in HOW fun is associated to a
     %% function, just that it is.
-    %% io:fwrite("fb: ~w ~p   ~p\n", [Symb,As,Env]),
-    case is_fbound(Symb, safe_length(As), Env) of
+    %% io:fwrite("fb: ~w ~p   ~p\n", [Fun,As,Env]),
+    case is_fbound(Fun, safe_length(As), Env) of
 	true -> St1;
-	false -> add_error(L, {unbound_func,{Symb,safe_length(As)}}, St1)
+	false -> add_error(L, {unbound_func,{Fun,safe_length(As)}}, St1)
     end;
 check_expr([_|As], Env, L, St0) ->
     %% Function here is an expression, report error and check args.
@@ -342,23 +334,35 @@ check_expr([_|As], Env, L, St0) ->
     check_args(As, Env, L, St1);
 check_expr([], _, _, St) -> St;			%Self evaluating []
 check_expr(Symb, Env, L, St) when is_atom(Symb) ->
-    %% Predefined functions exist only when called.
-    case is_vbound(Symb, Env) of
-	true -> St;
-	false -> add_error(L, {unbound_symb,Symb}, St)
-    end;
+    check_symb(Symb, Env, L, St);
 check_expr(Tup, _, _, St) when is_tuple(Tup) ->
     %% This just builds a tuple constant.
     St;
 check_expr(_, _, _, St) -> St.		%Everything else is atomic
+
+%% check_symb(Symbol, Env, Line, State) -> State.
+%%  Check if Symbol is bound.
+
+check_symb(Symb, Env, L, St) ->
+    case is_vbound(Symb, Env) of
+	true -> St;
+	false -> add_error(L, {unbound_symb,Symb}, St)
+    end.
 
 %% check_body(Body, Env, Line, State) -> State.
 %% Check the calls in a body. A body is a proper list of calls. Env is
 %% the set of known bound variables.
 
 check_body(Body, Env, L, St) ->
+    %% check_body(fun check_exprs/4, Env, L, St, Body).
     case is_proper_list(Body) of
 	true -> check_exprs(Body, Env, L, St);
+	false -> add_error(L, bad_body, St)
+    end.
+
+check_body(Check, Env, L, St, Body) ->
+    case is_proper_list(Body) of
+	true -> Check(Body, Env, L, St);
 	false -> add_error(L, bad_body, St)
     end.
 
@@ -459,15 +463,16 @@ check_let([Vbs|Body], Env, L, St0) ->
 check_let(_, _, L, St) ->
     bad_form_error(L, 'let', St).
 
-check_let_vb([Pat,['when',G],Val], Env, L, St0) ->
-    St1 = check_expr(Val, Env, L, St0),
-    {Pvs,St2} = check_pat(Pat, Env, L, St1),
-    St3 = check_gexpr(G, add_vbindings(Pvs, Env), L, St2), %The guard
-    {Pvs,St3};
-check_let_vb([Pat,Val], Env, L, St0) ->
-    St1 = check_expr(Val, Env, L, St0),
-    check_pat(Pat, Env, L, St1);
-check_let_vb(_, _, L, St) -> {[],bad_form_error(L, 'let', St)}.
+%% check_let_vb(VarBind, Env, Line, State) -> {Env,State}.
+%% Check a variable binding of form [Pat,[when,Guard],Val] or [Pat,Val].
+
+check_let_vb(Vb, Env, L, St0) ->
+    %% Get the environments right here!
+    case check_pat_guard(Vb, Env, L, St0) of
+	{[Val],Pvs,_,St1} ->			%One value expression only
+	    {Pvs,check_expr(Val, Env, L, St1)};
+	{_,_,_,St1} -> {[],bad_form_error(L, 'let', St1)}
+    end.
 
 %% check_let_function(FletBody, Env, Line, State) -> {Env,State}.
 %%  Check a let-function form (let-function FuncBindings ... ). 
@@ -558,6 +563,16 @@ check_letrec_bindings(Fbs, Env0, St0) ->
 		end, St1, Fbs),
     {Fs,Env1,St2}.
 
+%% check_if(IfBody, Env, Line, State) -> State.
+%% Check form (if Test True [False]).
+
+check_if([Test,True,False], Env, L, St) ->
+    check_exprs([Test,True,False], Env, L, St);
+check_if([Test,True], Env, L, St) ->
+    check_exprs([Test,True], Env, L, St);
+check_if(_, _, L, St) ->
+    bad_form_error(L, 'if', St).
+
 %% check_case(CaseBody, Env, Line, State) -> State.
 %% Check form (case Expr Clause ...), must be at least one clause.
 
@@ -610,116 +625,93 @@ check_try_catch([['after'|B]], Env, L, St) ->
     check_body(B, Env, L, St);
 check_try_catch(_, _, L, St) -> bad_form_error(L, 'try', St).
 
-%% check_pat_guard([Pat{,Guard}|Body, Env, L, State) ->
+%% check_pat_guard([Pat{,Guard}|Body], Env, L, State) ->
 %%      {Body,PatVars,Env,State}.
 %%  Check pattern and guard in a clause. We know there is at least pattern!
 
-check_pat_guard([Pat,['when',G]|Body], Env0, L, St0) ->
+check_pat_guard([Pat,['when'|G]|Body], Env0, L, St0) ->
     {Pvs,St1} = check_pat(Pat, Env0, L, St0),
     Env1 = add_vbindings(Pvs, Env0),
-    St2 = check_gexpr(G, Env1, L, St1),
+    St2 = check_guard(G, Env1, L, St1),
     {Body,Pvs,Env1,St2};
 check_pat_guard([Pat|Body], Env0, L, St0) ->
     {Pvs,St1} = check_pat(Pat, Env0, L, St0),
     Env1 = add_vbindings(Pvs, Env0),
     {Body,Pvs,Env1,St1}.
 
+%% check_guard(GuardTests, Env, Line, State) -> State.
+%% Check a guard.
+
+check_guard(G, Env, L, St) -> check_gbody(G, Env, L, St).
+
+%% check_gbody(Body, Env, Line, State) -> State.
+%% Check guard expressions in a body
+
+check_gbody([E|Es], Env, L, St0) ->
+    St1 = check_gexpr(E, Env, L, St0),
+    check_gbody(Es, Env, L, St1);
+check_gbody([], _, _, St) -> St;
+check_gbody(_, _, L, St) -> add_error(L, illegal_guard, St).
+
 %% check_gexpr(Call, Env, Line, State) -> State.
 %% Check a guard expression. This is a restricted body expression.
 
-check_gexpr([_|_]=Call, Env, L, St) ->
-    check_gcall(Call, Env, L, St);
+%% Check the Core data special cases.
+check_gexpr([quote,_], _, _, St) -> St;
+check_gexpr([cons|[_,_]=As], Env, L, St) -> check_gargs(As, Env, L, St);
+check_gexpr([car,E], Env, L, St) -> check_gexpr(E, Env, L, St);
+check_gexpr([cdr,E], Env, L, St) -> check_gexpr(E, Env, L, St);
+check_gexpr([list|As], Env, L, St) -> check_gargs(As, Env, L, St);
+check_gexpr([tuple|As], Env, L, St) -> check_gargs(As, Env, L, St);
+check_gexpr([binary|Segs], Env, L, St) -> gexpr_bitsegs(Segs, Env, L, St);
+%% Check the Core closure special forms.
+%% Check the Core control special forms.
+check_gexpr(['progn'|B], Env, L, St) -> check_gbody(B, Env, L, St);
+check_gexpr(['if'|B], Env, L, St) -> check_gif(B, Env, L, St);
+check_gexpr([call,[quote,erlang],[quote,Fun]|As], Env, L, St) ->
+    check_gexpr([Fun|As], Env, L, St);		%Pass the buck
+check_gexpr([call|_], _, L, St) ->		%Other calls not allowed
+    add_error(L, illegal_guard, St);
+%% Finally the general case.
+check_gexpr([Fun|As], Env, L, St0) when is_atom(Fun) ->
+    St1 = check_gargs(As, Env, L, St0),
+    %% Here we are not interested in HOW fun is associated to a
+    %% function, just that it is.
+    case is_gbound(Fun, safe_length(As), Env) of
+	true -> St1;
+	false -> add_error(L, illegal_guard, St1)
+    end;
+check_gexpr([_|_], _, L, St) -> add_error(L, illegal_guard, St);
 check_gexpr([], _, _, St) -> St;
 check_gexpr(Symb, Env, L, St) when is_atom(Symb) ->
-    case is_vbound(Symb, Env) of
-	true -> St;
-	false -> add_error(L, {unbound_symb,Symb}, St)
-    end;
+    check_symb(Symb, Env, L, St);
 check_gexpr(Tup, _, _, St) when is_tuple(Tup) ->
     %% This just builds a tuple constant.
     St;
 check_gexpr(_, _, _, St) -> St.			%Everything else is atomic
 
-%% check_gcall(Gcall, Env, Line, State) -> State.
-%% Check a function gcall.
-
-%% Check the known special cases.
-check_gcall([quote,_], _, _, St) -> St;
-check_gcall([cons|[_,_]=As], Env, L, St) ->
-    check_gargs(As, Env, L, St);
-check_gcall([list|As], Env, L, St) ->
-    check_gargs(As, Env, L, St);
-check_gcall([tuple|As], Env, L, St) ->
-    check_gargs(As, Env, L, St);
-check_gcall([binary|Segs], Env, L, St) ->
-    gexpr_bitsegs(Segs, Env, L, St);
-check_gcall(['case',E|Cls], Env, L, St0) ->
-    St1 = check_gexpr(E, Env, L, St0),
-    check_gclauses(Cls, Env, L, St1);
-check_gcall(['try'|B], Env, L, St) ->
-    check_gtry(B, Env, L, St);
-%% Finally the general case.
-check_gcall([Symb|As], Env, L, St0) when is_atom(Symb) ->
-    St1 = check_gargs(As, Env, L, St0),
-    %% Here we are not interested in HOW symb is associated to a
-    %% function, just that it is.
-    case is_gbound(Symb, safe_length(As), Env) of
-	true -> St1;
-	false -> add_error(L, {unbound_func,{Symb,safe_length(As)}}, St1)
-    end;
-check_gcall(_, _, L, St) ->
-    add_error(L, illegal_guard, St).
-
-%% check_gbody(Body, Env, Line, State) -> State.
 %% check_gargs(Args, Env, Line, State) -> State.
 %% check_gexprs(Exprs, Env, Line, State) -> State.
 %% The guard counter parts. Check_gexprs assumes a proper list.
 
-check_gbody(Body, Env, L, St) ->
-    case is_proper_list(Body) of
-	true -> check_gexprs(Body, Env, L, St);
-	false -> add_error(L, bad_body, St)
-    end.
-
 check_gargs(Args, Env, L, St) ->
     case is_proper_list(Args) of
 	true -> check_gexprs(Args, Env, L, St);
-	false -> add_error(L, bad_args, St)
+	false -> add_error(L, illegal_guard, St)
     end.
 
 check_gexprs(Es, Env, L, St) ->
     foldl(fun (E, S) -> check_gexpr(E, Env, L, S) end, St, Es).
 
-check_gclauses(Cls, Env, L, St) ->
-    check_foreach(fun (Cl, S) -> check_gclause(Cl, Env, L, S) end,
-		  'case', L, St, Cls).
+%% check_gif(IfBody, Env, Line, State) -> State.
+%% Check guard form (if Test True [False]).
 
-check_gclause([_|_]=Cl, Env0, L, St0) ->	%Check basic clause length
-    {B,_,Env1,St1} = check_pat_guard(Cl, Env0, L, St0),
-    check_gbody(B, Env1, L, St1);
-check_gclause(_, _, L, St) -> bad_form_error(L, clause, St).
-
-%% check_gtry(GtryBody, Env, Line, State) -> State.
-%% Check a (try ...) form making sure that the right combination of
-%% options are present.
-
-check_gtry([E,['case'|Cls]|Catch], Env, L, St0) ->
-    St1 = check_gexpr(E, Env, L, St0),
-    St2 = check_case_clauses(Cls, Env, L, St1),
-    check_gtry_catch(Catch, Env, L, St2);
-check_gtry([E|Catch], Env, L, St0) ->
-    St1 = check_gexpr(E, Env, L, St0),
-    check_gtry_catch(Catch, Env, L, St1);
-check_gtry(_, _, L, St) -> bad_form_error(L, 'try', St).
-
-check_gtry_catch([['catch'|Cls]], Env, L, St) ->
-    check_gclauses(Cls, Env, L, St);
-check_gtry_catch([['catch'|Cls],['after'|B]], Env, L, St0) ->
-    St1 = check_gclauses(Cls, Env, L, St0),
-    check_gbody(B, Env, L, St1);
-check_gtry_catch([['after'|B]], Env, L, St) ->
-    check_gbody(B, Env, L, St);
-check_gtry_catch(_, _, L, St) -> bad_form_error(L, 'try', St).
+check_gif([Test,True,False], Env, L, St) ->
+    check_gexprs([Test,True,False], Env, L, St);
+check_gif([Test,True], Env, L, St) ->
+    check_gexprs([Test,True], Env, L, St);
+check_gif(_, _, L, St) ->
+    add_error(L, illegal_guard, St).		%Signal as guard error.
 
 %% gexpr_bitsegs(BitSegs, Env, Line, State) -> State.
 %% gexpr_bitseg(BitSeg, Env, Line, State) -> State.
@@ -897,18 +889,7 @@ check_foldr(Fun, T, L, St0, Acc0, [F|Fs]) ->
 check_foldr(_, _, _, St, Acc, []) -> {Acc,St};
 check_foldr(_, T, L, St, Acc, _) -> {Acc,bad_form_error(L, T, St)}.
 
-%% Non-catching versions for checking the code.
-%% check_foreach(Fun, T, L, St, Fs) -> foldl(Fun, St, Fs).
-	      
-%% check_map(Fun, T, L, St, Fs) -> mapfoldl(Fun, St, Fs).
-
-%% check_foldl(Fun, T, L, St, Acc, Fs) ->
-%%     foldl(fun (F, {A,S}) -> Fun(F, A, S) end, {Acc,St}, Fs).
-
-%% check_foldr(Fun, T, L, St, Acc, Fs) ->
-%%     foldr(fun (F, {A,S}) -> Fun(F, A, S) end, {Acc,St}, Fs).
-
-%% Versions which completely wrap with a try.
+%% Versions which completely wrap with a try. These catch too much!
 %% check_foreach(Fun, T, L, St, Fs) ->
 %%     try
 %% 	foldl(Fun, St, Fs)

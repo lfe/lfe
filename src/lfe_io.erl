@@ -85,9 +85,9 @@ with_token_file(Name, Do) ->
     end.
 
 %% read([IoDevice]) -> Sexpr.
-%%  A very simple read function. Line oriented but can handle multiple
-%%  lines. Anything remaining on last line after a sexpr is lost.
-%%  Signal errors.
+%%  A very simple read function. Line oriented and cannot handle
+%%  tokens over line-breks but can handle multiple lines. Anything
+%%  remaining on last line after a sexpr is lost.  Signal errors.
 
 read() -> read(standard_io).
 read(Io) ->
@@ -134,13 +134,6 @@ print1(_, 0) -> "...";
 print1(Symb, _) when is_atom(Symb) -> print1_symb(Symb);
 print1(Numb,_ ) when is_integer(Numb) -> integer_to_list(Numb);
 print1(Numb, _) when is_float(Numb) -> io_lib_format:fwrite_g(Numb);
-%% Handle some default special cases, standard character macros. These
-%% don't increase depth as they really should.
-print1([quote,E], D) -> [$'|print1(E, D)];	%$'
-print1([backquote,E], D) -> [$`|print1(E, D)];
-print1([unquote,E], D) -> [$,|print1(E, D)];
-print1(['unquote-splicing',E], D) -> [",@"|print1(E, D)];
-%%print1([binary|Es]) -> ["#B"|print1(Es)];
 print1([E|Es], D) ->
     if D =:= 1 -> "(...)";			%This looks much better
        true ->

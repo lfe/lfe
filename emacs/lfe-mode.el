@@ -7,15 +7,6 @@
 
 (require 'lisp-mode)
 
-(defvar lfe-mode-map ()
-  "*Keymap used in Lisp Flavoured Erlang mode.")
-
-(unless lfe-mode-map
-  (setq lfe-mode-map (copy-keymap lisp-mode-map)))
-
-(defvar lfe-mode-abbrev-table ()
-  "Abbrev table used in Lisp Flavoured Erlang mode.")
-
 (defvar lfe-mode-syntax-table
   (let ((table (copy-syntax-table lisp-mode-syntax-table)))
     ;; Like scheme we allow [ ... ] as alternate parentheses.
@@ -27,6 +18,25 @@
 ;; (setq lfe-mode-syntax-table ())
 ;; (unless lfe-mode-syntax-table
 ;;   (setq lfe-mode-syntax-table (copy-syntax-table lisp-mode-syntax-table)))
+
+(defvar lfe-mode-map
+  (let ((map (copy-keymap lisp-mode-map)))
+    (define-key map "\e[" 'lfe-insert-brackets)
+    map)
+  "*Keymap used in Lisp Flavoured Erlang mode.")
+
+;; (unless lfe-mode-map
+;;   (setq lfe-mode-map (copy-keymap lisp-mode-map))
+;;   (define-key lfe-mode-map "\e[" 'lfe-insert-brackets))
+
+(defun lfe-insert-brackets (&optional arg)
+  "Enclose following ARG sexps in brackets.
+Leave point after open-bracket."
+  (interactive "P")
+  (insert-pair arg ?\[ ?\]))
+
+(defvar lfe-mode-abbrev-table ()
+  "Abbrev table used in Lisp Flavoured Erlang mode.")
 
 (define-derived-mode lfe-mode nil "LFE"
   "Major mode for editing Lisp Flavoured Erlang. It's just like lisp mode."
@@ -119,11 +129,17 @@
      ))
   "Subdued expressions to highlight in LFE modes.")
 
+(eval-and-compile
+  (defconst lfe-type-tests
+    '("is_atom" "is_binary" "is_bitstring" "is_boolean" "is_float"
+      "is_function" "is_integer" "is_list" "is_number" "is_pid"
+      "is_port" "is_record" "is_reference" "is_tuple")
+    "LFE type tests"))
+
 (defconst lfe-font-lock-keywords-2
   (append lfe-font-lock-keywords-1
    (eval-when-compile
      (list
-      ;;
       ;; Control structures.
       (cons
        (concat
@@ -133,7 +149,7 @@
 	       "after" "call" "case" "catch"
 	       "if" "lambda" "let" "let-function" "letrec-function"
 	       "let-macro" "match-lambda"
-	       "receive" "try" "when" "progn"
+	       "receive" "try" "funcall" "when" "progn"
 	       "eval-when-compile"
 	       ;; Default macros
 	       "andalso" "cond" "do" "fun" "list*" "let*" "flet*" "macro"
@@ -141,6 +157,11 @@
 	       "macrolet" "syntaxlet" "begin" "let-syntax"
 	       ":" "?" "++") t)
 	"\\>") '(1 font-lock-keyword-face))
+      ;; Type tests.
+      (cons
+       (concat
+	"(" (regexp-opt lfe-type-tests t) "\\>")
+       '(1 font-lock-builtin-face))
       )))
   "Gaudy expressions to highlight in LFE modes.")
 
@@ -212,8 +233,8 @@
 (put 'case 'lfe-indent-function 1)
 (put 'receive 'lfe-indent-function 0)
 (put 'catch 'lfe-indent-function 0)
-(put 'try 'lfe-indent-function 0)
-(put 'after 'lfe-indent-function 0)
+(put 'try 'lfe-indent-function 1)
+(put 'after 'lfe-indent-function 1)
 (put 'call 'lfe-indent-function 2)
 (put 'when 'lfe-indent-function 0)
 (put 'eval-when-compile 'lfe-indent-function 0)

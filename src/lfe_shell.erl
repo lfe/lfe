@@ -162,7 +162,8 @@ c([F], Eenv, Benv) -> c([F,[]], Eenv, Benv);
 c([F,Os], Eenv, _) ->
     Name = lfe_eval:expr(F, Eenv),		%Evaluate arguments
     Opts = lfe_eval:expr(Os, Eenv),
-    Loadm = fun (Mod) ->
+    Loadm = fun ([]) -> {yes,{module,[]},Eenv};
+		(Mod) ->
 		    Base = filename:basename(Name, ".lfe"),
 		    code:purge(Mod),
 		    R = code:load_abs(Base),

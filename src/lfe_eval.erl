@@ -1,4 +1,4 @@
-%% Copyright (c) 2008 Robert Virding. All rights reserved.
+%% Copyright (c) 2008-2010 Robert Virding. All rights reserved.
 %%
 %% Redistribution and use in source and binary forms, with or without
 %% modification, are permitted provided that the following conditions
@@ -40,7 +40,7 @@
 		  add_fbinding/4,add_fbindings/2,get_fbinding/3,
 		  add_ibinding/5,get_gbinding/3]).
 
--import(lists, [reverse/1,map/2,foldl/3]).
+-import(lists, [reverse/1,all/2,map/2,foldl/3]).
 -import(orddict, [find/2,store/3]).
 
 -deprecated([eval/1,eval/2]).
@@ -107,7 +107,7 @@ eval_expr(['let-function'|Body], Env) ->
     eval_let_function(Body, Env);
 eval_expr(['letrec-function'|Body], Env) ->
     eval_letrec_function(Body, Env);
-%% Handle the control special forms.
+%% Handle the Core control special forms.
 eval_expr(['progn'|Body], Env) ->
     eval_body(Body, Env);
 eval_expr(['if'|Body], Env) ->
@@ -124,6 +124,7 @@ eval_expr([funcall,F|As], Env) ->
     erlang:apply(eval_expr(F, Env), eval_list(As, Env));
 eval_expr([call|Body], Env) ->
     eval_call(Body, Env);
+%% General functions calls.
 eval_expr([Fun|Es]=Call, Env) when is_atom(Fun) ->
     %% If macro then expand and try again, else try to find function.
     %% We only expand the top level here.
@@ -173,7 +174,7 @@ parse_field(Val, Env) ->
 eval_fields(Vsps, Env) ->
     foldl(fun ({Val,Spec}, Acc) ->
 		  Bin = eval_field(Val, Spec, Env),
-		  <<Acc/binary-unit:1,Bin/binary-unit:1>>
+		  <<Acc/bitstring,Bin/bitstring>>
 	  end, <<>>, Vsps).
 
 eval_field(Val, Spec, Env) ->
@@ -256,31 +257,31 @@ eval_exp_field(Val, Spec) ->
 	{binary,all,Unit,_,_} ->
 	    case erlang:bit_size(Val) of
 		Size when Size rem Unit =:= 0 ->
-		    <<Val:Size/binary-unit:1>>;
+		    <<Val:Size/bitstring>>;
 		_ -> erlang:error(badarg)
 	    end;
 	{binary,Size,Unit,_,_} ->
-	    <<Val:(Size*Unit)/binary-unit:1>>
+	    <<Val:(Size*Unit)/bitstring>>
     end.
 
+eval_int_field(Val, Sz, signed, big) -> <<Val:Sz/signed>>;
+eval_int_field(Val, Sz, unsigned, big) -> <<Val:Sz>>;
 eval_int_field(Val, Sz, signed, little) -> <<Val:Sz/little-signed>>;
 eval_int_field(Val, Sz, unsigned, little) -> <<Val:Sz/little>>;
 eval_int_field(Val, Sz, signed, native) -> <<Val:Sz/native-signed>>;
-eval_int_field(Val, Sz, unsigned, native) -> <<Val:Sz/native>>;
-eval_int_field(Val, Sz, signed, big) -> <<Val:Sz/signed>>;
-eval_int_field(Val, Sz, unsigned, big) -> <<Val:Sz>>.
+eval_int_field(Val, Sz, unsigned, native) -> <<Val:Sz/native>>.
 
+eval_utf16_field(Val, big) -> <<Val/utf16-big>>;
 eval_utf16_field(Val, little) -> <<Val/utf16-little>>;
-eval_utf16_field(Val, native) -> <<Val/utf16-native>>;
-eval_utf16_field(Val, big) -> <<Val/utf16-big>>.
+eval_utf16_field(Val, native) -> <<Val/utf16-native>>.
 
+eval_utf32_field(Val, big) -> <<Val/utf32-big>>;
 eval_utf32_field(Val, little) -> <<Val/utf32-little>>;
-eval_utf32_field(Val, native) -> <<Val/utf32-native>>;
-eval_utf32_field(Val, big) -> <<Val/utf32-big>>.
+eval_utf32_field(Val, native) -> <<Val/utf32-native>>.
 
+eval_float_field(Val, Sz, big) -> <<Val:Sz/float>>;
 eval_float_field(Val, Sz, little) -> <<Val:Sz/float-little>>;
-eval_float_field(Val, Sz, native) -> <<Val:Sz/float-native>>;
-eval_float_field(Val, Sz, big) -> <<Val:Sz/float>>.
+eval_float_field(Val, Sz, native) -> <<Val:Sz/float-native>>.
 
 %% eval_lambda(LambdaBody, Env) -> Val.
 %%  Evaluate (lambda args ...).
@@ -372,15 +373,22 @@ eval_match_clauses(Vals, [[Pats|B0]|Cls], Env) ->
     end;
 eval_match_clauses(_, _, _) -> erlang:error(function_clause).
 
+%% eval_let([PatBindings|Body], Env) -> Value.
+
 eval_let([Vbs|Body], Env0) ->
+    %% Make sure we use the right environment.
     Env1 = foldl(fun ([Pat,E], Env) ->
 			 Val = eval_expr(E, Env0),
-			 {yes,Bs} = match(Pat, Val, Env0),
-			 add_vbindings(Bs, Env);
-		     ([Pat,G,E], Env) ->
+			 case match(Pat, Val, Env0) of
+			     {yes,Bs} -> add_vbindings(Bs, Env);
+			     no -> erlang:error({badmatch,Val})
+			 end;
+		     ([Pat,['when'|_]=G,E], Env) ->
 			 Val = eval_expr(E, Env0),
-			 {yes,[],Bs} = match_when(Pat, Val, [G], Env0),
-			 add_vbindings(Bs, Env);
+			 case match_when(Pat, Val, [G], Env0) of
+			     {yes,[],Bs} -> add_vbindings(Bs, Env);
+			     no -> erlang:error({badmatch,Val})
+			 end;
 		     (_, _) -> erlang:error({bad_form,'let'})
 		 end, Env0, Vbs),
     eval_body(Body, Env1).
@@ -391,7 +399,7 @@ eval_let_function([Fbs|Body], Env0) ->
     Env1 = foldl(fun ([V,[lambda,Args|_]=Lambda], E) when is_atom(V) ->
 			 add_fbinding(V, length(Args), {expr,Lambda,Env0}, E);
 		     ([V,['match-lambda',[Pats|_]|_]=Match], E)
-		     when is_atom(V) ->
+		       when is_atom(V) ->
 			 add_fbinding(V, length(Pats), {expr,Match,Env0}, E);
 		     (_, _) -> erlang:error({bad_form,'let-function'})
 		 end, Env0, Fbs),
@@ -472,6 +480,8 @@ eval_if(Test, True, False, Env) ->
 	_ -> erlang:error(if_clause)		%Explicit error here
     end.
 
+%% eval_case(CaseBody, Env) -> Value.
+
 eval_case([E|Cls], Env) ->
     eval_case_clauses(eval_expr(E, Env), Cls, Env).
 
@@ -488,13 +498,13 @@ match_clause(V, [[Pat|B0]|Cls], Env) ->
     end;
 match_clause(_, [], _) -> no.
 
-%% eval_recieve(Body, Env) -> Value
+%% eval_receive(Body, Env) -> Value
 %%  (receive (pat . body) ... [(after timeout . body)])
 
 eval_receive(Body, Env) ->
     {Cls,Te,Tb} = split_receive(Body, []),
     case eval_expr(Te, Env) of			%Check timeout
-	infinity -> receive_clauses(Cls, Env, []);
+	infinity -> receive_clauses(Cls, Env);
 	T -> receive_clauses(T, Tb, Cls, Env)
     end.
 
@@ -504,6 +514,12 @@ split_receive([Cl|Cls], Rcls) ->
     split_receive(Cls, [Cl|Rcls]);
 split_receive([], Rcls) ->
     {reverse(Rcls),[quote,infinity],[]}.	%No timeout, return 'infinity.
+
+%% receive_clauses(Clauses, Env) -> Value.
+%%  Recurse down message queue. We are only called with timeout value
+%%  of 'infinity'. Always pass over all messages in queue.
+
+receive_clauses(Cls, Env) -> receive_clauses(Cls, Env, []).
 
 receive_clauses(Cls, Env, Ms) ->
     receive
@@ -516,7 +532,7 @@ receive_clauses(Cls, Env, Ms) ->
 	    end
     end.
 
-%% receive_clauses(Timeout, TimeoutBody, Clauses) -> Value.
+%% receive_clauses(Timeout, TimeoutBody, Clauses, Env) -> Value.
 %%  Recurse down message queue until timeout. We are never called with
 %%  timeout value of 'infinity'. Always pass over all messages in
 %%  queue.
@@ -580,7 +596,7 @@ eval_try_catch([['after'|B]], E, Case, Env) ->
 eval_try(E, Case, Catch, After, Env) ->
     try
 	eval_expr(E, Env)
-	of
+    of
 	Ret ->
 	    case Case of
 		{yes,Cls} -> eval_case_clauses(Ret, Cls, Env);
@@ -607,7 +623,7 @@ eval_try(E, Case, Catch, After, Env) ->
 eval_catch_clauses(V, [[Pat|B0]|Cls], Env) ->
     case match_when(Pat, V, B0, Env) of
 	{yes,B1,Vbs} -> eval_body(B1, add_vbindings(Vbs, Env));
-	no -> eval_case_clauses(V, Cls, Env)
+	no -> eval_catch_clauses(V, Cls, Env)
     end;
 eval_catch_clauses({Class,Error,Stack}, [], _) ->
     erlang:raise(Class, Error, Stack).
@@ -626,20 +642,34 @@ match_when(Pat, V, B0, Env) ->
     case match(Pat, V, Env) of
 	{yes,Vbs} ->
 	    case B0 of
-		[['when',G]|B1] ->
-		    %% Guards are fault safe.
-		    try
-			eval_gexpr(G, add_vbindings(Vbs, Env))
-			of
+		[['when'|G]|B1] ->
+		    case eval_guard(G, add_vbindings(Vbs, Env)) of
 			true -> {yes,B1,Vbs};
-			_Other -> no			%Fail guard
-		    catch
-			_:_ -> no
+			false -> no
 		    end;
 		B1 -> {yes,B1,Vbs}
 	    end;
 	no -> no
     end.
+
+%% eval_guard(GuardTests, Env) -> true | false.
+%% Guards are fault safe, catch all errors in guards here and fail guard.
+
+eval_guard(Gts, Env) ->
+    try
+	eval_gbody(Gts, Env)
+    of
+	true -> true;
+	_Other -> false				%Fail guard
+    catch
+	_:_ -> false				%Fail guard
+    end.
+
+%% eval_gbody(GuardTests, Env) -> true | false.
+%% A body is a sequence of tests which must all succeed.
+
+eval_gbody(Gts, Env) ->
+    all(fun (Gt) -> eval_gexpr(Gt, Env) end, Gts).
 
 %% eval_gexpr(Sexpr, Environment) -> Value.
 %%  Evaluate a guard sexpr in the current environment.
@@ -653,17 +683,9 @@ eval_gexpr([cdr,E], Env) -> tl(eval_gexpr(E, Env));
 eval_gexpr([list|Es], Env) -> eval_glist(Es, Env);
 eval_gexpr([tuple|Es], Env) -> list_to_tuple(eval_glist(Es, Env));
 %% Handle the Core closure special forms.
-eval_gexpr(['let',Vbs|Body], Env) ->
-    eval_glet(Vbs, Body, Env);
 %% Handle the control special forms.
-eval_gexpr(['progn'|Body], Env) ->
-    eval_gbody(Body, Env);
-eval_gexpr(['if',Test,True], Env) ->
-    eval_gif(Test, True, [quote,false], Env);
-eval_gexpr(['if',Test,True,False], Env) ->
-    eval_gif(Test, True, False, Env);
-eval_gexpr(['case',E|Cls], Env) ->
-    eval_gcase(E, Cls, Env);
+eval_gexpr(['progn'|Body], Env) -> eval_gbody(Body, Env);
+eval_gexpr(['if'|Body], Env) -> eval_gif(Body, Env);
 eval_gexpr([call,[quote,erlang],F0|As], Env) ->
     Ar = length(As),
     F1 = eval_gexpr(F0, Env),
@@ -689,31 +711,17 @@ eval_gexpr(E, _) -> E.				%Atoms evaluate to themselves.
 eval_glist(Es, Env) ->
     map(fun (E) -> eval_gexpr(E, Env) end, Es).
 
-eval_gbody([E], Env) -> eval_gexpr(E, Env);
-eval_gbody([E|Es], Env) ->
-    eval_gexpr(E, Env),
-    eval_gbody(Es, Env);
-eval_gbody([], _) -> [].
+%% eval_gif(IfBody, Env) -> Val.
 
-eval_glet(Vbs, Body, Env0) ->
-    Env1 = foldl(fun ([V,E], Env) when is_atom(V) ->
-			 add_vbinding(V, eval_gexpr(E, Env0), Env)
-		 end, Env0, Vbs),
-    eval_gbody(Body, Env1).
+eval_gif([Test,True], Env) ->
+    eval_gif(Test, True, [quote,false], Env);
+eval_gif([Test,True,False], Env) ->
+    eval_gif(Test, True, False, Env).
 
 eval_gif(Test, True, False, Env) ->
     case eval_gexpr(Test, Env) of
 	true -> eval_gexpr(True, Env);
 	false -> eval_gexpr(False, Env)
-    end.
-
-eval_gcase(E, Cls, Env) ->
-    eval_gcase_clauses(eval_gexpr(E, Env), Cls, Env).
-
-eval_gcase_clauses(V, [[Pat|B0]|Cls], Env) ->
-    case match_when(Pat, V, B0, Env) of
-	{yes,B1,Vbs} -> eval_gbody(B1, add_vbindings(Vbs, Env));
-	no -> eval_gcase_clauses(V, Cls, Env)
     end.
 
 %% match(Pattern, Value, Env) -> {yes,Bindings} | no.
@@ -763,32 +771,25 @@ match_symb(Symb, Val, _, Bs) ->
 
 %% match_binary(Fields, Binary, Env, Bindings) -> {yes,Bindings} | no.
 %%  Match Fields against Binary. This code is taken from
-%%  eval_bits.erl.  Use catch to trap bad matches when getting value,
-%%  errors become no match. Split into two passes so as to throw error
-%%  on bitspec error and return no on all no matches.
+%%  eval_bits.erl. All bitspec errors and bad matches result in an
+%%  error, we use catch to trap it.
 
 match_binary(Fs, Bin, Env, Bs0) ->
     Psps = map(fun (F) -> parse_field(F, Env) end, Fs),
-    %% io:format("~p\n", [Psps]),
     case catch match_fields(Psps, Bin, Env, Bs0) of
-	{yes,<<>>,Bs1} -> {yes,Bs1};		%Matched whole binary
-	{yes,_,_} -> no;			%Matched part of binary
-	no -> no
+	{yes,Bs1} -> {yes,Bs1};			%Matched whole binary
+	{'EXIT',_} -> no			%Error is no match
     end.
 
 match_fields([{Pat,Specs}|Psps], Bin0, Env, Bs0) ->
-    case match_field(Pat, Specs, Bin0, Env, Bs0) of
-	{yes,Bin1,Bs1} -> match_fields(Psps, Bin1, Env, Bs1);
-	no -> no
-    end;
-match_fields([], Bin, _, Bs) -> {yes,Bin,Bs}.
+    {yes,Bin1,Bs1} = match_field(Pat, Specs, Bin0, Env, Bs0),
+    match_fields(Psps, Bin1, Env, Bs1);
+match_fields([], <<>>, _, Bs) -> {yes,Bs}.	%Reached the end of both
 
 match_field(Pat, Spec, Bin0, Env, Bs0) ->
     {Val,Bin1} = get_pat_field(Bin0, Spec),
-    case match(Pat, Val, Env, Bs0) of
-	{yes,Bs1} -> {yes,Bin1,Bs1};
-	no -> no
-    end.
+    {yes,Bs1} = match(Pat, Val, Env, Bs0),
+    {yes,Bin1,Bs1}.
 
 %% get_pat_field(Binary, {Type,Size,Unit,Sign,Endian}) -> {Value,RestBinary}.
 
@@ -813,55 +814,55 @@ get_pat_field(Bin, Spec) ->
 	    {Val,Rest}
     end.
 
-get_int_field(Bin, Sz, signed, little) ->
-    <<Val:Sz/little-signed,Rest/binary-unit:1>> = Bin,
-    {Val,Rest};
-get_int_field(Bin, Sz, unsigned, little) ->
-    <<Val:Sz/little-unsigned,Rest/binary-unit:1>> = Bin,
-    {Val,Rest};
-get_int_field(Bin, Sz, signed, native) ->
-    <<Val:Sz/native-signed,Rest/binary-unit:1>> = Bin,
-    {Val,Rest};
-get_int_field(Bin, Sz, unsigned, native) ->
-    <<Val:Sz/native-unsigned,Rest/binary-unit:1>> = Bin,
-    {Val,Rest};
 get_int_field(Bin, Sz, signed, big) ->
-    <<Val:Sz/big-signed,Rest/binary-unit:1>> = Bin,
+    <<Val:Sz/big-signed,Rest/bitstring>> = Bin,
     {Val,Rest};
 get_int_field(Bin, Sz, unsigned, big) ->
-    <<Val:Sz/big-unsigned,Rest/binary-unit:1>> = Bin,
+    <<Val:Sz/big-unsigned,Rest/bitstring>> = Bin,
+    {Val,Rest};
+get_int_field(Bin, Sz, signed, little) ->
+    <<Val:Sz/little-signed,Rest/bitstring>> = Bin,
+    {Val,Rest};
+get_int_field(Bin, Sz, unsigned, little) ->
+    <<Val:Sz/little-unsigned,Rest/bitstring>> = Bin,
+    {Val,Rest};
+get_int_field(Bin, Sz, signed, native) ->
+    <<Val:Sz/native-signed,Rest/bitstring>> = Bin,
+    {Val,Rest};
+get_int_field(Bin, Sz, unsigned, native) ->
+    <<Val:Sz/native-unsigned,Rest/bitstring>> = Bin,
     {Val,Rest}.
 
 get_utf8_field(Bin) ->
     <<Val/utf8,Rest/bitstring>> = Bin,
     {Val,Rest}.
 
+get_utf16_field(Bin, big) ->
+    <<Val/utf16-big,Rest/bitstring>> = Bin,
+    {Val,Rest};
 get_utf16_field(Bin, little) ->
     <<Val/utf16-little,Rest/bitstring>> = Bin,
     {Val,Rest};
 get_utf16_field(Bin, native) ->
     <<Val/utf16-native,Rest/bitstring>> = Bin,
-    {Val,Rest};
-get_utf16_field(Bin, big) ->
-    <<Val/utf16-big,Rest/bitstring>> = Bin,
     {Val,Rest}.
 
+get_utf32_field(Bin, big) ->
+    <<Val/utf32-big,Rest/bitstring>> = Bin,
+    {Val,Rest};
 get_utf32_field(Bin, little) ->
     <<Val/utf32-little,Rest/bitstring>> = Bin,
     {Val,Rest};
 get_utf32_field(Bin, native) ->
     <<Val/utf32-native,Rest/bitstring>> = Bin,
-    {Val,Rest};
-get_utf32_field(Bin, big) ->
-    <<Val/utf32-big,Rest/bitstring>> = Bin,
     {Val,Rest}.
 
+get_float_field(Bin, Sz, big) ->
+    <<Val:Sz/float,Rest/bitstring>> = Bin,
+    {Val,Rest};
 get_float_field(Bin, Sz, little) ->
-    <<Val:Sz/float-little,Rest/binary-unit:1>> = Bin,
+    <<Val:Sz/float-little,Rest/bitstring>> = Bin,
     {Val,Rest};
 get_float_field(Bin, Sz, native) ->
-    <<Val:Sz/float-native,Rest/binary-unit:1>> = Bin,
-    {Val,Rest};
-get_float_field(Bin, Sz, big) ->
-    <<Val:Sz/float,Rest/binary-unit:1>> = Bin,
+    <<Val:Sz/float-native,Rest/bitstring>> = Bin,
     {Val,Rest}.

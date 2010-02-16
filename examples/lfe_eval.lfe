@@ -1,4 +1,4 @@
-;; Copyright (c) 2008 Robert Virding. All rights reserved.
+;; Copyright (c) 2008-2010 Robert Virding. All rights reserved.
 ;;
 ;; Redistribution and use in source and binary forms, with or without
 ;; modification, are permitted provided that the following conditions
@@ -37,7 +37,7 @@
 		(add_vbinding 3) (add_vbindings 2) (get_vbinding 2)
 		(add_fbinding 4) (add_fbindings 2) (get_fbinding 3)
 		(add_ibinding 5) (get_gbinding 3))
-	  (from lists (reverse 1) (map 2) (foldl 3))
+	  (from lists (reverse 1) (all 2) (map 2) (foldl 3))
 	  (from orddict (find 2) (store 3)))
   (deprecated #(eval 1) #(eval 2)))
 
@@ -54,6 +54,12 @@
 (defun gexpr (e) (gexpr e (new_env)))
 
 (defun gexpr (e env) (eval-gexpr e env))
+
+;; (apply function args) -> expr.
+;; (apply function args env) -> Expr.
+;;  This is applying interpreted Erlang functions, for applying funs
+;;  use normal apply. Name scoping stops us from using apply/s
+;;  internally. Args should already be evaluated.
 
 (defun apply (f args)
   (let ((env (new_env)))
@@ -80,7 +86,7 @@
     (('list . xs) (eval-list xs env))
     (('tuple . xs) (list_to_tuple (eval-list xs env)))
     (('binary . bs) (eval-binary bs env))
-    ;; Handle the closure special forms.
+    ;; Handle the Core closure special forms.
     (('lambda . body)
      (eval-lambda body env))
     (('match-lambda . cls)
@@ -91,7 +97,7 @@
      (eval-let-function body env))
     (('letrec-function . body)
      (eval-letrec-function body env))
-    ;; Handle the control special forms.
+    ;; Handle the Core control special forms.
     (('progn . body) (eval-body body env))
     (('if . body)
      (eval-if body env))
@@ -107,6 +113,7 @@
      (: erlang apply (eval-expr f env) (eval-list as env)))
     (('call . body)
      (eval-call body env))
+    ;; General function call.
     ((f . es) (when (is_atom f))
      ;; If macro then expand and try again, else try to find function.
      ;; We only expand the top level here.
@@ -157,7 +164,7 @@
   (foldl (lambda (psp acc)
 	    (let* (((tuple val spec) psp)
 		   (bin (eval-field val spec env)))
-	      (binary (acc binary (unit 1)) (bin binary (unit 1)))))
+	      (binary (acc bitstring) (bin bitstring))))
 	 #b() psps))
 
 (defun eval-field (val spec env)
@@ -187,7 +194,7 @@
 		(val-or-def sz 64) (val-or-def un 1)
 		(val-or-def si 'unsigned) (val-or-def en 'big)))
 	('binary
-	 (tuple 'integer
+	 (tuple 'binary
 		(val-or-def sz 'all) (val-or-def un 8)
 		(val-or-def si 'unsigned) (val-or-def en 'big)))
 	('bitstring
@@ -195,34 +202,34 @@
 		(val-or-def sz 'all) (val-or-def un 1)
 		(val-or-def si 'unsigned) (val-or-def en 'big)))))))
 
-(defun parse-bitspec (sp spec env)
-  (case sp
+(defun parse-bitspec (spec sp env)
+  (case spec
     ;; Types.
-    ('integer (set-spec-type spec 'integer))
-    ('float (set-spec-type spec 'float))
-    ('binary (set-spec-type spec 'binary))
-    ('bytes (set-spec-type spec 'binary))
-    ('bitstring (set-spec-type spec 'bitstring))
-    ('bits (set-spec-type spec 'bitstring))
+    ('integer (set-spec-type sp 'integer))
+    ('float (set-spec-type sp 'float))
+    ('binary (set-spec-type sp 'binary))
+    ('bytes (set-spec-type sp 'binary))
+    ('bitstring (set-spec-type sp 'bitstring))
+    ('bits (set-spec-type sp 'bitstring))
     ;; Unicode types.
-    ('utf-8 (set-spec-type spec 'utf8))
-    ('utf-16 (set-spec-type spec 'utf16))
-    ('utf-32 (set-spec-type spec 'utf32))
+    ('utf-8 (set-spec-type sp 'utf8))
+    ('utf-16 (set-spec-type sp 'utf16))
+    ('utf-32 (set-spec-type sp 'utf32))
     ;; Endianess.
-    ('big-endian (set-spec-type spec 'big))
-    ('little-endian (set-spec-type spec 'little))
-    ('big-native (set-spec-type spec 'native))
+    ('big-endian (set-spec-endian sp 'big))
+    ('little-endian (set-spec-endian sp 'little))
+    ('native-endian (set-spec-endian sp 'native))
     ;; Sign.
-    ('signed (set-spec-sign spec 'signed))
-    ('unsigned (set-spec-sign spec 'unsigned))
+    ('signed (set-spec-sign sp 'signed))
+    ('unsigned (set-spec-sign sp 'unsigned))
     ;; Size
     (('size n)
      (let ((size (eval-expr n env)))
-       (set-spec-size spec size)))
+       (set-spec-size sp size)))
     (('unit n) (when (and (is_integer n) (> n 0)))
-     (set-spec-unit spec n))
+     (set-spec-unit sp n))
     ;; Illegal spec.
-    (sp (: erlang error (tuple 'illegal_bitspec sp)))))
+    (_ (: erlang error (tuple 'illegal_bitspec spec)))))
 
 ;; (eval-exp-field value type size unit sign endian) -> binary().
 
@@ -240,41 +247,41 @@
     ((tuple 'binary 'all un _ _)
      (case (: erlang bit_size val)
        (size (when (=:= (rem size un) 0))
-	     (binary (val binary (size size) (unit 1))))
+	     (binary (val bitstring (size size))))
        (_ (: erlang error 'bad_arg))))
     ((tuple 'binary sz un _ _)
-     (binary (val binary (size (* sz un)) (unit 1))))))
+     (binary (val bitstring (size (* sz un)))))))
 
 (defun eval-int-field
+  ([val sz 'signed 'big] (binary (val (size sz) signed big-endian)))
+  ([val sz 'unsigned 'big] (binary (val (size sz) unsigned big-endian)))
   ([val sz 'signed 'little] (binary (val (size sz) signed little-endian)))
   ([val sz 'unsigned 'little] (binary (val (size sz) unsigned little-endian)))
   ([val sz 'signed 'native] (binary (val (size sz) signed native-endian)))
-  ([val sz 'unsigned 'native] (binary (val (size sz) unsigned native-endian)))
-  ([val sz 'signed 'big] (binary (val (size sz) signed big-endian)))
-  ([val sz 'unsigned 'big] (binary (val (size sz) unsigned big-endian))))
+  ([val sz 'unsigned 'native] (binary (val (size sz) unsigned native-endian))))
 
 (defun eval-utf-16-field (val en)
   (case en
+    ('big (binary (val utf-16 big-endian)))
     ('little (binary (val utf-16 little-endian)))
-    ('native (binary (val utf-16 native-endian)))
-    ('big (binary (val utf-16 big-endian)))))
+    ('native (binary (val utf-16 native-endian)))))
 
 (defun eval-utf-32-field (val en)
   (case en
+    ('big (binary (val utf-32 big-endian)))
     ('little (binary (val utf-32 little-endian)))
-    ('native (binary (val utf-32 native-endian)))
-    ('big (binary (val utf-32 big-endian)))))
+    ('native (binary (val utf-32 native-endian)))))
 
 (defun eval-float-field (val sz en)
   (case en
+    ('big (binary (val float (size sz) big-endian)))
     ('little (binary (val float (size sz) little-endian)))
-    ('native (binary (val float (size sz) native-endian)))
-    ('big (binary (val float (size sz) big-endian)))))
+    ('native (binary (val float (size sz) native-endian)))))
 
 ;; (eval-lambda (lambda-body env)) -> val
 
 (defun eval-lambda
-  (((args . body) env)
+  ([(args . body) env]
    ;; This is a really ugly hack!
    (case (length args)
      (0 (lambda () (eval-lambda () () body env)))
@@ -362,17 +369,19 @@
 
 (defun eval-let (body env0)
   (let* (((vbs . b) body)		;Must match this
+	 ;; Make sure we use the right environment.
 	 (env (foldl (match-lambda
-		       (((pat e) env)
-			(let* ((val (eval-expr e env0))
-			       ((tuple 'yes bs) (match pat val env0)))
-			  (add_vbindings bs env)))
-		       (((pat g e) env)
-			(let* ((val (eval-expr e env0))
-			       ((tuple 'yes '() bs)
-				(match-when pat val (list g) env0)))
-			  (add_vbindings bs env)))
-		       ((_ _) (: erlang error (tuple 'bad_form 'let))))
+		       ([(pat e) env]
+			(let ((val (eval-expr e env0)))
+			  (case (match pat val env0)
+			    ((tuple 'yes bs) (add_vbindings bs env))
+			    ('no (: erlang error (tuple 'badmatch val))))))
+		       ([(pat (= ('when . _) g) e) env]
+			(let ((val (eval-expr e env0)))
+			  (case (match-when pat val (list g) env0)
+			    ((tuple 'yes '() bs) (add_vbindings bs env))
+			    ('no (: erlang error (tuple 'badmatch val))))))
+		       ([_ _] (: erlang error (tuple 'bad_form 'let))))
 		     env0 vbs)))
     (eval-body b env)))
 
@@ -448,7 +457,7 @@
      (eval-match-clauses es cls env))
     ((tuple 'letrec body fbs env)
      (let ((newenv (foldl (match-lambda
-			    (((tuple v ar lambda) e)
+			    ([(tuple v ar lambda) e]
 			     (add_fbinding v ar
 					   (tuple 'letrec lambda fbs env) e)))
 			  env fbs)))
@@ -499,24 +508,31 @@
 	      (tuple (reverse rcls) 'infinity ()))))
     (let (((tuple cls te tb) (split_rec body [])))
       (case (eval-expr te env)
-	('infinity (receive-clauses cls env ()))
+	('infinity (receive-clauses cls env))
 	(t (receive-clauses t tb cls env))))))
 
-(defun receive-clauses (cls env ms)
-  (receive
-    (msg (case (match-clause msg cls env)
-	   ((tuple 'yes b vbs)
-	    (merge-queue ms)
-	    (eval-body b (add_vbindings vbs env)))
-	   ('no (receive-clauses cls env (cons msg ms)))))))
+;; (receive-clauses Clauses Env) -> Value.
+;;  Recurse down message queue. We are only called with timeout value
+;;  of 'infinity'. Always pass over all messages in queue.
 
-;; (receive-clauses Timeout TimeoutBody Clauses) -> Value.
+(defun receive-clauses (cls env)
+  (fletrec ((rec-clauses
+	     (ms)
+	     (receive
+	      (msg (case (match-clause msg cls env)
+		     ((tuple 'yes b vbs)
+		      (merge-queue ms)
+		      (eval-body b (add_vbindings vbs env)))
+		     ('no (rec-clauses (cons msg ms))))))))
+    (rec-clauses ())))
+
+;; (receive-clauses Timeout TimeoutBody Clauses Env) -> Value.
 ;;  Recurse down message queue until timeout. We are never called with
 ;;  timeout value of 'infinity'. Always pass over all messages in
 ;;  queue.
 
 (defun receive-clauses (t tb cls env)
-  (fletrec ((rec_clauses
+  (fletrec ((rec-clauses
 	     (t ms)
 	     (receive
 	       (msg
@@ -527,24 +543,24 @@
 		  ('no
 		   (let (((tuple _ t1) (statistics 'runtime)))
 		     (if (< t t1)
-		       (rec_clauses 0 (cons msg ms))
-		       (rec_clauses (- t t1) (cons msg ms)))))))
+		       (rec-clauses 0 (cons msg ms))
+		       (rec-clauses (- t t1) (cons msg ms)))))))
 	       (after t
-		      (merge-queue ms)
-		      (eval-body tb env)))))
+		 (merge-queue ms)
+		 (eval-body tb env)))))
     (statistics 'runtime)
-    (rec_clauses t [])))
+    (rec-clauses t [])))
 
 ;; Merge the already received messages back into the process message
 ;; queue in the right order. Do this by first receiving the rest of
-;; the messages in the queue then sending them all bakc to ourselves.
+;; the messages in the queue then sending them all back to ourselves.
 
 (defun merge-queue (ms)
   (fletrec ((recv-all (ms)		;Receive all remaining messages
 		      (receive
 			(msg (recv-all (cons msg ms)))
 			(after 0
-			       (reverse ms))))
+			  (reverse ms))))
 	    (send-all (ms self)		;Send them all back to ourselves
 		      (case ms
 			((m . ms)
@@ -574,22 +590,22 @@
 
 (defun eval-try (e case catch after env)
   (try
-    (eval-expr e env)
+      (eval-expr e env)
     (case
 	(r (case case
 	     ((cls) (eval-case-clauses r cls env))
 	     (() r))))
     (catch
-      ((tuple class val _)
+      ((tuple class error _)
        ;; Get stack trace explicitly.
        (let ((stk (: erlang get_stacktrace)))
 	 (case catch
-	   ((cls) (eval-catch-clauses (tuple class val stk) cls env))
-	   (() (: erlang raise class val stk))))))
+	   ((cls) (eval-catch-clauses (tuple class error stk) cls env))
+	   (() (: erlang raise class error stk))))))
     (after
-      (case after
-	((b) (eval-body b env))
-	(() ())))))
+	(case after
+	  ((b) (eval-body b env))
+	  (() ())))))
 
 (defun eval-catch-clauses
   ([v ((pat . b) . cls) env]
@@ -610,20 +626,33 @@
 ;; (match-when pattern value body env) -> #('yes restbody bindings) | 'no.
 ;;  Try to match pattern and evaluate guard.
 
-(defun match-when (pat val body env)
+(defun match-when (pat val b0 env)
   (case (match pat val env)
     ((tuple 'yes vbs)
-     (case body
-       ((('when g) . body)
-	;; Guards are fault safe.
-	(try
-	  (eval-gexpr g (add_vbindings vbs env))
-	  (case ('true (tuple 'yes body vbs))
-	    (_ 'no))
-	  (catch
-	    ((tuple t v i) 'no))))
-       (_ (tuple 'yes body vbs))))
+     (case b0
+       ((('when . g) . b1)
+	(if (eval-guard g (add_vbindings vbs env))
+	  (tuple 'yes b1 vbs)
+	  'no))
+       (b1 (tuple 'yes b1 vbs))))
     ('no 'no)))
+
+;; (eval-guard guardtests env) -> true | false.
+;; Guards are fault safe, catch all errors in guards here and fail guard.
+
+(defun eval-guard (gts env)
+  (try
+      (eval-gbody gts env)
+    (case ('true 'true)
+      (_ 'false))			;Fail guard
+    (catch
+      ((tuple t v i) 'false))))		;Fail guard
+
+;; (eval-gbody body env) -> true | false.
+;; A body is a sequence of tests which must all succeed.
+
+(defun eval-gbody (es env)
+  (all (lambda (e) (eval-gexpr e env)) es))
 
 ;; (eval-gexpr sexpr environment) -> value.
 ;;  Evaluate a guard sexpr in the current environment.
@@ -641,16 +670,9 @@
     (('list . xs) (eval-glist xs env))
     (('tuple . xs) (list_to_tuple (eval-glist xs env)))
     ;; Handle the Core closure special forms.
-    (('let . body)
-     (eval-glet body env))
     ;; Handle the Core control special forms.
     (('progn . b) (eval-gbody b env))
-    (('if test t f)
-     (eval-gif test t f env))
-    (('if test t)
-     (eval-gif test t 'false env))
-    (('case e . cls)
-     (eval-gcase e cls env))
+    (('if . b) (eval-gif b env))
     (('call 'erlang f . as)
      (let ((f (eval-gexpr f env))
 	   (ar (length as)))
@@ -673,34 +695,16 @@
 (defun eval-glist (es env)
   (map (lambda (e) (eval-gexpr e env)) es))
 
-(defun eval-gbody
-  (((e) env) (eval-gexpr e env))
-  (((e . es) env)
-   (eval-gexpr e env) (eval-gbody es env))
-  ((() env) ()))
+;; (eval-gif ifbody env) -> val
 
-(defun eval-glet (body env0)
-  (let* (((vbs . b) body)		;Must match this
-	 (env (foldl (match-lambda
-		       (((v e) env) (when (is_atom v))
-			(add_vbinding v (eval-gexpr e env0) env)))
-		     env0 vbs)))
-    (eval-gbody b env)))
-
-(defun eval-gif (test t f env)
-  (if (eval-gexpr test env)
-    (eval-gexpr t env)
-    (eval-gexpr f env)))
-
-(defun eval-gcase (e cls env)
-  (eval-gcase-clauses (eval-gexpr e env) cls env))
-
-(defun eval-gcase-clauses (v cls env)
-  (case cls
-    (((pat . body) . cls)
-     (case (match-when pat v body env)
-       ((tuple 'yes body vbs) (eval-gbody body (add_vbindings vbs env)))
-       ('no (eval-gcase-clauses v cls env))))))
+(defun eval-gif (body env)
+  (flet ((eval-gif (test true false)
+		   (if (eval-gexpr test env)
+		     (eval-gexpr true env)
+		     (eval-gexpr false env))))
+    (case body
+      ((test true) (eval-gif test true 'false))
+      ((test true false) (eval-gif test true false)))))
 
 ;; (match pattern value env) -> (tuple 'yes bs) | 'no
 ;;  Try to match Pattern against Value within the current environment
@@ -709,31 +713,29 @@
 (defun match (pat val env) (match pat val env ()))
 
 (defun match
-  ((('quote p) val env bs)
+  ([('quote p) val env bs]
    (if (=:= p val) (tuple 'yes bs) 'no))
-  ((('tuple . ps) val env bs)
+  ([('tuple . ps) val env bs]
    (if (is_tuple val)
      (match ps (tuple_to_list val) env bs)
      'no))
-  ((('binary . fs) val env bs)
-   (if (is_binary val)
+  ([('binary . fs) val env bs]
+   (if (is_bitstring val)
      (match-binary fs val env bs)
      'no))
-  ((('= p1 p2) val env bs)		;Aliases
+  ([('= p1 p2) val env bs]		;Aliases
    (case (match p1 val env bs)
      ((tuple 'yes bs) (match p2 val env bs))
      ('no 'no)))
-  (((p . ps) (v . vs) env bs)
+  ([(p . ps) (v . vs) env bs]
    (case (match p v env bs)
      ((tuple 'yes bs) (match ps vs env bs))
      ('no 'no)))
-  ((() () env bs) (tuple 'yes bs))
-  ((symb val env bs) (when (is_atom symb))
+  ([() () env bs] (tuple 'yes bs))
+  ([symb val env bs] (when (is_atom symb))
    (match-symb symb val env bs))
-  ((pat val env bs)
-   (if (=:= pat val)
-     (tuple 'yes bs)
-     'no)))
+  ([pat val env bs]
+   (if (=:= pat val) (tuple 'yes bs) 'no)))
 
 (defun match-symb (symb val env bs)
   (if (== symb '_) (tuple 'yes bs)	;Don't care variable
@@ -744,30 +746,27 @@
 
 ;; (match-binary fields binary env bindings) -> (tuple 'yes bindings) | 'no.
 ;;  Match Fields against Binary. This code is taken from
-;;  eval_bits.erl.  Use catch to trap bad matches when getting value,
-;;  errors become no match. Split into two passes so as to throw error
-;;  on bitspec error and return no on all no matches.
+;;  eval_bits.erl. All bitspec errors and bad matches result in an
+;;  error, we use catch to trap it.
 
 (defun match-binary (fs bin env bs)
   (let ((psps (map (lambda (f) (parse-field f env)) fs)))
     (case (catch (match-fields psps bin env bs))
-      ((tuple 'yes #b() bs) (tuple 'yes bs))
-      ((tuple 'yes _ _) 'no)
-      ('no 'no))))
+      ((tuple 'yes bs) (tuple 'yes bs))	;Matched whole binary
+      ((tuple 'EXIT _) 'no))))		;Error is no match
 
-(defun match-fields (psps bin env bs)
-  (case psps
-    (((tuple pat specs) . psps)
-     (case (match-field pat specs bin env bs)
-       ((tuple 'yes bin bs) (match-fields psps bin env bs))
-       ('no 'no)))
-    (() (tuple 'yes bin bs))))
+(defun match-fields
+  ([((tuple pat specs) . psps) bin0 env bs0]
+   (let (((tuple 'yes bin1 bs1) (match-field pat specs bin0 env bs0)))
+     (match-fields psps bin1 env bs1)))
+  ([() #b() _ bs] (tuple 'yes bs)))	;Reached the end of both
 
 (defun match-field (pat spec bin0 env bs0)
-  (let (((tuple val bin1) (get-pat-field bin0 spec)))
-    (case (match pat val env bs0)
-      ((tuple 'yes bs1) (tuple 'yes bin1 bs1))
-      ('no 'no))))
+  (let* (((tuple val bin1) (get-pat-field bin0 spec))
+	 ((tuple 'yes bs1) (match pat val env bs0)))
+    (tuple 'yes bin1 bs1)))
+
+;; (get-pat-field binary #(type size unit sign endian)) -> #(value restbinary)
 
 (defun get-pat-field (bin spec)
   (case spec
@@ -789,29 +788,29 @@
        (tuple val rest)))))
 
 (defun get-int-field
-  ([bin sz 'signed 'little]
-   (let (((binary (val signed little-endian (size sz))
-		  (rest binary (unit 1))) bin))
-     (tuple val rest)))
-  ([bin sz 'unsigned 'little]
-   (let (((binary (val unsigned little-endian (size sz))
-		  (rest binary (unit 1))) bin))
-     (tuple val rest)))
-  ([bin sz 'signed 'native]
-   (let (((binary (val signed native-endian (size sz))
-		  (rest binary (unit 1))) bin))
-     (tuple val rest)))
-  ([bin sz 'unsigned 'native]
-   (let (((binary (val unsigned native-endian (size sz))
-		  (rest binary (unit 1))) bin))
-     (tuple val rest)))
   ([bin sz 'signed 'big]
    (let (((binary (val signed big-endian (size sz))
-		  (rest binary (unit 1))) bin))
+		  (rest bitstring)) bin))
      (tuple val rest)))
   ([bin sz 'unsigned 'big]
    (let (((binary (val unsigned big-endian (size sz))
-		  (rest binary (unit 1))) bin))
+		  (rest bitstring)) bin))
+     (tuple val rest)))
+  ([bin sz 'signed 'little]
+   (let (((binary (val signed little-endian (size sz))
+		  (rest bitstring)) bin))
+     (tuple val rest)))
+  ([bin sz 'unsigned 'little]
+   (let (((binary (val unsigned little-endian (size sz))
+		  (rest bitstring)) bin))
+     (tuple val rest)))
+  ([bin sz 'signed 'native]
+   (let (((binary (val signed native-endian (size sz))
+		  (rest bitstring)) bin))
+     (tuple val rest)))
+  ([bin sz 'unsigned 'native]
+   (let (((binary (val unsigned native-endian (size sz))
+		  (rest bitstring)) bin))
      (tuple val rest))))
 
 (defun get-utf-8-field (bin)
@@ -820,33 +819,30 @@
 
 (defun get-utf-16-field (bin en)
   (case en
+    ('big (let (((binary (val utf-16 big-endian) (rest bitstring)) bin))
+	    (tuple val rest)))
     ('little (let (((binary (val utf-16 little-endian) (rest bitstring)) bin))
 	       (tuple val rest)))
     ('native (let (((binary (val utf-16 native-endian) (rest bitstring)) bin))
-	       (tuple val rest)))
-    ('big (let (((binary (val utf-16 big-endian) (rest bitstring)) bin))
-	    (tuple val rest)))))
+	       (tuple val rest)))))
 
 (defun get-utf-32-field (bin en)
   (case en
+    ('big (let (((binary (val utf-32 big-endian) (rest bitstring)) bin))
+	    (tuple val rest)))
     ('little (let (((binary (val utf-32 little-endian) (rest bitstring)) bin))
 	       (tuple val rest)))
     ('native (let (((binary (val utf-32 native-endian) (rest bitstring)) bin))
-	       (tuple val rest)))
-    ('big (let (((binary (val utf-32 big-endian) (rest bitstring)) bin))
-	    (tuple val rest)))))
+	       (tuple val rest)))))
 
 (defun get-float-field (bin sz en)
   (case en
+    ('big
+     (let (((binary (val float big-endian (size sz)) (rest bitstring)) bin))
+       (tuple val rest)))
     ('little
-     (let (((binary (val float little-endian (size sz)) (rest binary (unit 1)))
-	    bin))
+     (let (((binary (val float little-endian (size sz)) (rest bitstring)) bin))
        (tuple val rest)))
     ('native
-     (let (((binary (val float native-endian (size sz)) (rest binary (unit 1)))
-	    bin))
-       (tuple val rest)))
-    ('big
-     (let (((binary (val float big-endian (size sz)) (rest binary (unit 1)))
-	    bin))
+     (let (((binary (val float native-endian (size sz)) (rest bitstring)) bin))
        (tuple val rest)))))
