@@ -1,3 +1,9 @@
+2010-02-20  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_io.erl (scan_and_parse): Use new re-entrant parser.
+
+	* lfe_parse.erl: Write to become re-entrant using LL(1) grammar.
+
 2010-02-16  Robert Virding  <rv@stanislaw.local>
 
 	* lfe_eval.lfe (eval-guard, match-when, eval-let): Guards are now
