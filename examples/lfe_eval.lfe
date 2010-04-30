@@ -31,8 +31,9 @@
 
 (defmodule lfe_eval
   (export (expr 1) (expr 2) (gexpr 1) (gexpr 2) (apply 2) (apply 3)
-	  (make_letrec_env 2) (add_expr_func 4) (match 3)
-	  (eval 1) (eval 2) (eval_list 2))
+	  (make_letrec_env 2) (add_expr_func 4) (match 3))
+  ;; Deprecated exports.
+  (export (eval 1) (eval 2) (eval_list 2))
   (import (from lfe_lib (new_env 0)
 		(add_vbinding 3) (add_vbindings 2) (get_vbinding 2)
 		(add_fbinding 4) (add_fbindings 2) (get_fbinding 3)
@@ -47,9 +48,18 @@
 
 (defun eval_list (es env) (eval-list es env))
 
+;; expr(Sexpr) -> Value
+;; expr(Sexpr, Env) -> Value
+;; Evaluate the sexpr, first expanding all macros.
+
 (defun expr (e) (expr e (new_env)))
 
-(defun expr (e env) (eval-expr e env))
+(defun expr (e env)
+  (let ((exp (: lfe_macro expand_form e env)))
+    (eval-expr exp env)))
+
+;; gexpr(Sexpr) -> Value
+;; gexpr(Sexpr, Env) -> Value
 
 (defun gexpr (e) (gexpr e (new_env)))
 
@@ -113,19 +123,14 @@
      (: erlang apply (eval-expr f env) (eval-list as env)))
     (('call . body)
      (eval-call body env))
-    ;; General function call.
-    ((f . es) (when (is_atom f))
-     ;; If macro then expand and try again, else try to find function.
-     ;; We only expand the top level here.
-     (case (: lfe_macro expand_macro e env)
-       ((tuple 'yes exp)
-	(eval-expr exp env)) ;This was macro, try again
-       ('no
-	(let ((ar (length es)))		;Arity
-	  (case (get_fbinding f ar env)
-	    ((tuple 'yes m f) (: erlang apply m f (eval-list es env)))
-	    ((tuple 'yes f) (lfe-apply f (eval-list es env) env))
-	    ('no (: erlang error (tuple 'unbound_func (tuple f ar)))))))))
+    ;; General function calls.
+    ((fun . es) (when (is_atom fun))
+     ;; Note that macros have already been expanded here.
+     (let ((ar (length es)))		;Arity
+       (case (get_fbinding fun ar env)
+	 ((tuple 'yes m f) (: erlang apply m f (eval-list es env)))
+	 ((tuple 'yes f) (lfe-apply f (eval-list es env) env))
+	 ('no (: erlang error (tuple 'unbound_func (tuple fun ar)))))))
     ((f . es)
      (: erlang error (tuple 'bad_form 'application)))
     (e (if (is_atom e)
@@ -226,7 +231,7 @@
     (('size n)
      (let ((size (eval-expr n env)))
        (set-spec-size sp size)))
-    (('unit n) (when (and (is_integer n) (> n 0)))
+    (('unit n) (when (is_integer n) (> n 0))
      (set-spec-unit sp n))
     ;; Illegal spec.
     (_ (: erlang error (tuple 'illegal_bitspec spec)))))
@@ -245,7 +250,7 @@
     ((tuple 'float sz un _ en) (eval-float-field val (* sz un) en))
     ;; Binary types.
     ((tuple 'binary 'all un _ _)
-     (case (: erlang bit_size val)
+     (case (bit_size val)
        (size (when (=:= (rem size un) 0))
 	     (binary (val bitstring (size size))))
        (_ (: erlang error 'bad_arg))))
@@ -284,35 +289,35 @@
   ([(args . body) env]
    ;; This is a really ugly hack!
    (case (length args)
-     (0 (lambda () (eval-lambda () () body env)))
-     (1 (lambda (a) (eval-lambda (list a) args body env)))
-     (2 (lambda (a b) (eval-lambda (list a b) args body env)))
-     (3 (lambda (a b c) (eval-lambda (list a b c) args body env)))
-     (4 (lambda (a b c d) (eval-lambda (list a b c d) args body env)))
-     (5 (lambda (a b c d e) (eval-lambda (list a b c d e) args body env)))
+     (0 (lambda () (apply-lambda () body () env)))
+     (1 (lambda (a) (apply-lambda args body (list a) env)))
+     (2 (lambda (a b) (apply-lambda args body (list a b) env)))
+     (3 (lambda (a b c) (apply-lambda args body (list a b c) env)))
+     (4 (lambda (a b c d) (apply-lambda args body (list a b c d) env)))
+     (5 (lambda (a b c d e) (apply-lambda args body (list a b c d e) env)))
      (6 (lambda (a b c d e f)
-	  (eval-lambda (list a b c d e f) args body env)))
+	  (apply-lambda args body (list a b c d e f) env)))
      (7 (lambda (a b c d e f g)
-	  (eval-lambda (list a b c d e f g) args body env)))
+	  (apply-lambda args body (list a b c d e f g) env)))
      (8 (lambda (a b c d e f g h)
-	  (eval-lambda (list a b c d e f g h) args body env)))
+	  (apply-lambda args body (list a b c d e f g h) env)))
      (9 (lambda (a b c d e f g h i)
-	  (eval-lambda (list a b c d e f g h i) args body env)))
+	  (apply-lambda args body (list a b c d e f g h i) env)))
      (10 (lambda (a b c d e f g h i j)
-	   (eval-lambda (list a b c d e f g h i j) args body env)))
+	   (apply-lambda args body (list a b c d e f g h i j) env)))
      (11 (lambda (a b c d e f g h i j k)
-	   (eval-lambda (list a b c d e f g h i j k) args body env)))
+	   (apply-lambda args body (list a b c d e f g h i j k) env)))
      (12 (lambda (a b c d e f g h i j k l)
-	   (eval-lambda (list a b c d e f g h i j k l) args body env)))
+	   (apply-lambda args body (list a b c d e f g h i j k l) env)))
      (13 (lambda (a b c d e f g h i j k l m)
-	   (eval-lambda (list a b c d e f g h i j k l m) args body env)))
+	   (apply-lambda args body (list a b c d e f g h i j k l m) env)))
      (14 (lambda (a b c d e f g h i j k l m n)
-	   (eval-lambda (list a b c d e f g h i j k l m n) args body env)))
+	   (apply-lambda args body (list a b c d e f g h i j k l m n) env)))
      (15 (lambda (a b c d e f g h i j k l m n o)
-	   (eval-lambda (list a b c d e f g h i j k l m n o) args body env)))
+	   (apply-lambda args body (list a b c d e f g h i j k l m n o) env)))
      )))
 
-(defun eval-lambda (vals args body env)
+(defun apply-lambda (args body vals env)
   (fletrec ((bind-args
 	     ([('_ . as) (_ . es) env]	;Ignore don't care variables
 	      (bind-args as es env))
@@ -321,47 +326,49 @@
 	     ([() () env] env)))
     (eval-body body (bind-args args vals env))))
 
+;; eval-match-lambda (MatchClauses Env) -> Value
+;; Evaluate (match-lambda cls ...).
+
 (defun eval-match-lambda (cls env)
   ;; This is a really ugly hack!
   (case (match-lambda-arity cls)
-    (0 (lambda () (eval-match-clauses () cls env)))
-    (1 (lambda (a) (eval-match-clauses (list a) cls env)))
-    (2 (lambda (a b) (eval-match-clauses (list a b) cls env)))
-    (3 (lambda (a b c) (eval-match-clauses (list a b c) cls env)))
-    (4 (lambda (a b c d) (eval-match-clauses (list a b c d) cls env)))
-    (5 (lambda (a b c d e) (eval-match-clauses (list a b c d e) cls env)))
+    (0 (lambda () (apply-match-clauses cls () env)))
+    (1 (lambda (a) (apply-match-clauses cls (list a) env)))
+    (2 (lambda (a b) (apply-match-clauses cls (list a b) env)))
+    (3 (lambda (a b c) (apply-match-clauses cls (list a b c) env)))
+    (4 (lambda (a b c d) (apply-match-clauses cls (list a b c d) env)))
+    (5 (lambda (a b c d e) (apply-match-clauses cls (list a b c d e) env)))
     (6 (lambda (a b c d e f)
-	  (eval-match-clauses (list a b c d e f) cls env)))
+	  (apply-match-clauses cls (list a b c d e f) env)))
     (7 (lambda (a b c d e f g)
-	  (eval-match-clauses (list a b c d e f g) cls env)))
+	  (apply-match-clauses cls (list a b c d e f g) env)))
     (8 (lambda (a b c d e f g h)
-	  (eval-match-clauses (list a b c d e f g h) cls env)))
+	  (apply-match-clauses cls (list a b c d e f g h) env)))
     (9 (lambda (a b c d e f g h i)
-	  (eval-match-clauses (list a b c d e f g h i) cls env)))
+	  (apply-match-clauses cls (list a b c d e f g h i) env)))
     (10 (lambda (a b c d e f g h i j)
-	  (eval-match-clauses (list a b c d e f g h i j) cls env)))
+	  (apply-match-clauses cls (list a b c d e f g h i j) env)))
     (11 (lambda (a b c d e f g h i j k)
-	  (eval-match-clauses (list a b c d e f g h i j k) cls env)))
+	  (apply-match-clauses cls (list a b c d e f g h i j k) env)))
     (12 (lambda (a b c d e f g h i j k l)
-	  (eval-match-clauses (list a b c d e f g h i j k l) cls env)))
+	  (apply-match-clauses cls (list a b c d e f g h i j k l) env)))
     (13 (lambda (a b c d e f g h i j k l m)
-	  (eval-match-clauses (list a b c d e f g h i j k l m) cls env)))
+	  (apply-match-clauses cls (list a b c d e f g h i j k l m) env)))
     (14 (lambda (a b c d e f g h i j k l m n)
-	  (eval-match-clauses (list a b c d e f g h i j k l m n) cls env)))
+	  (apply-match-clauses cls (list a b c d e f g h i j k l m n) env)))
     (15 (lambda (a b c d e f g h i j k l m n o)
-	  (eval-match-clauses (list a b c d e f g h i j k l m n o) cls env)))
+	  (apply-match-clauses cls (list a b c d e f g h i j k l m n o) env)))
     ))
 
-(defun match-lambda-arity (cls)
-  (length (car (car cls))))
+(defun match-lambda-arity (cls) (length (caar cls)))
 
-(defun eval-match-clauses (as cls env)
+(defun apply-match-clauses (cls as env)
   (case cls
     ([(pats . body) . cls]
      (if (== (length as) (length pats))
        (case (match-when pats as body env)
 	 ((tuple 'yes body1 vbs) (eval-body body1 (add_vbindings vbs env)))
-	 ('no (eval-match-clauses as cls env)))
+	 ('no (apply-match-clauses cls as env)))
        (: erlang error 'badarity)))
     ([_ _] (: erlang error 'function_clause))))
 
@@ -447,15 +454,18 @@
   (add_fbinding name ar (tuple 'expr def env) env))
 
 ;; (lfe-apply function args env) -> value
-;;  This is used to evaluate interpreted functions.
+;;  This is used to evaluate interpreted functions. Macros are
+;;  expanded completely in the function definition before it is
+;;  applied.
 
 (defun lfe-apply (f es env0)
   (case f
-    ((tuple 'expr ('lambda args . body) env)
-     (eval-lambda es args body env))
-    ((tuple 'expr ('match-lambda . cls) env)
-     (eval-match-clauses es cls env))
+    ((tuple 'expr func env)
+     (case (: lfe_macro expand_form func env)
+       (('lambda args . body) (apply-lambda args body es env))
+       (('match-lambda . cls) (apply-match-clauses cls es env))))
     ((tuple 'letrec body fbs env)
+     ;; A function created by/for letrec-function.
      (let ((newenv (foldl (match-lambda
 			    ([(tuple v ar lambda) e]
 			     (add_fbinding v ar
@@ -499,14 +509,14 @@
 ;; (eval-receive body env) -> value
 
 (defun eval-receive (body env)
-  (fletrec ((split_rec
+  (fletrec ((split-rec
 	     ([(('after t . b)) rcls]
 	      (tuple (reverse rcls) t b))
 	     ([(cl . b) rcls]
-	      (split_rec b (cons cl rcls)))
-	     ([() rcls]
+	      (split-rec b (cons cl rcls)))
+	     ([() rcls]			;No timeout, return 'infinity
 	      (tuple (reverse rcls) 'infinity ()))))
-    (let (((tuple cls te tb) (split_rec body [])))
+    (let (((tuple cls te tb) (split-rec body [])))
       (case (eval-expr te env)
 	('infinity (receive-clauses cls env))
 	(t (receive-clauses t tb cls env))))))
@@ -780,7 +790,7 @@
     ((tuple 'float sz un _ en) (get-float-field bin (* sz un) en))
     ;; Binary types.
     ((tuple 'binary 'all un _ _)
-     (let ((0 (rem (: erlang bit_size bin) un)))
+     (let ((0 (rem (bit_size bin) un)))
        (tuple bin #b())))
     ((tuple 'binary sz un _ _)
      (let* ((tot-size (* sz un))

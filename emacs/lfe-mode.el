@@ -134,7 +134,12 @@ Leave point after open-bracket."
     '("is_atom" "is_binary" "is_bitstring" "is_boolean" "is_float"
       "is_function" "is_integer" "is_list" "is_number" "is_pid"
       "is_port" "is_record" "is_reference" "is_tuple")
-    "LFE type tests"))
+    "LFE type tests")
+  (defconst lfe-type-bifs
+    '("abs" "bit_size" "byte_size" "element" "float"
+      "hd" "iolist_size" "length" "make_ref" "setelement" ;"size"
+      "round" "tl" "trunc" "tuple_size")
+    "LFE builtin functions (BIFs)"))
 
 (defconst lfe-font-lock-keywords-2
   (append lfe-font-lock-keywords-1
@@ -152,6 +157,7 @@ Leave point after open-bracket."
 	       "receive" "try" "funcall" "when" "progn"
 	       "eval-when-compile"
 	       ;; Default macros
+	       "caar" "cadr" "cdar" "cddr"
 	       "andalso" "cond" "do" "fun" "list*" "let*" "flet*" "macro"
 	       "orelse" "syntax-rules" "lc" "bc" "flet" "fletrec"
 	       "macrolet" "syntaxlet" "begin" "let-syntax"
@@ -160,7 +166,7 @@ Leave point after open-bracket."
       ;; Type tests.
       (cons
        (concat
-	"(" (regexp-opt lfe-type-tests t) "\\>")
+	"(" (regexp-opt (append lfe-type-tests lfe-type-bifs) t) "\\>")
        '(1 font-lock-builtin-face))
       )))
   "Gaudy expressions to highlight in LFE modes.")

@@ -1,3 +1,20 @@
+2010-04-30  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_eval.lfe (apply-lambda): New name and more logical argument
+	order for eval-lambda/4.
+	(apply-match-clauses): New name and more logical argument
+	order for eval-match-clauses/3.
+
+2010-02-24  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_eval.erl (apply_lambda): New name and more logical argument
+	order for eval_lambda/4.
+	(apply_match_clauses): New name and more logical argument
+	order for eval_match_clauses/3.
+
+	* lfe_macro.erl (expand_clause, expand_ml_clause, exp_predef)
+	(c_tq): Guards are now a sequence of tests (when t ...).
+
 2010-02-20  Robert Virding  <rv@stanislaw.local>
 
 	* lfe_io.erl (scan_and_parse): Use new re-entrant parser.

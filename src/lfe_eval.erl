@@ -34,6 +34,7 @@
 -export([expr/1,expr/2,gexpr/1,gexpr/2,apply/2,apply/3,
 	 make_letrec_env/2,add_expr_func/4,match/3]).
 
+%% Deprecated exports.
 -export([eval/1,eval/2,eval_list/2]).
 
 -import(lfe_lib, [new_env/0,add_vbinding/3,add_vbindings/2,get_vbinding/2,
@@ -50,19 +51,23 @@
 %% eval(Sexpr) -> Value.
 %% eval(Sexpr, Env) -> Value.
 
-eval(E) -> eval(E, new_env()).
+eval(E) -> expr(E).
 
-eval(E, Env) -> eval_expr(E, Env).
+eval(E, Env) -> expr(E, Env).
 
 %% expr(Sexpr) -> Value.
 %% expr(Sexpr, Env) -> Value.
+%% Evaluate the sexpr, first expanding all macros.
 
 expr(E) -> expr(E, new_env()).
 
-expr(E, Env) -> eval_expr(E, Env).
+expr(E, Env) ->
+    Exp = lfe_macro:expand_form(E, Env),
+    %% lfe_io:fwrite("e: ~p\n", [{E,Exp,Env}]),
+    eval_expr(Exp, Env).
 
-%% expr(Sexpr) -> Value.
-%% expr(Sexpr, Env) -> Value.
+%% gexpr(Sexpr) -> Value.
+%% gexpr(Sexpr, Env) -> Value.
 
 gexpr(E) -> gexpr(E, new_env()).
 
@@ -125,18 +130,13 @@ eval_expr([funcall,F|As], Env) ->
 eval_expr([call|Body], Env) ->
     eval_call(Body, Env);
 %% General functions calls.
-eval_expr([Fun|Es]=Call, Env) when is_atom(Fun) ->
-    %% If macro then expand and try again, else try to find function.
-    %% We only expand the top level here.
-    case lfe_macro:expand_macro(Call, Env) of
-	{yes,Exp} -> eval_expr(Exp, Env);	%This was macro, try again
-	no ->
-	    Ar = length(Es),			%Arity
-	    case get_fbinding(Fun, Ar, Env) of
-		{yes,M,F} -> erlang:apply(M, F, eval_list(Es, Env));
-		{yes,F} -> eval_apply(F, eval_list(Es, Env), Env);
-		no -> erlang:error({unbound_func,{Fun,Ar}})
-	    end
+eval_expr([Fun|Es], Env) when is_atom(Fun) ->
+    %% Note that macros have already been expanded here.
+    Ar = length(Es),				%Arity
+    case get_fbinding(Fun, Ar, Env) of
+	{yes,M,F} -> erlang:apply(M, F, eval_list(Es, Env));
+	{yes,F} -> eval_apply(F, eval_list(Es, Env), Env);
+	no -> erlang:error({unbound_func,{Fun,Ar}})
     end;
 eval_expr([_|_], _) ->
     erlang:error({bad_form,application});
@@ -255,7 +255,7 @@ eval_exp_field(Val, Spec) ->
 	{float,Sz,Un,_,En} -> eval_float_field(Val, Sz*Un, En);
 	%% Binary types.
 	{binary,all,Unit,_,_} ->
-	    case erlang:bit_size(Val) of
+	    case bit_size(Val) of
 		Size when Size rem Unit =:= 0 ->
 		    <<Val:Size/bitstring>>;
 		_ -> erlang:error(badarg)
@@ -289,35 +289,35 @@ eval_float_field(Val, Sz, native) -> <<Val:Sz/float-native>>.
 eval_lambda([Args|Body], Env) ->
     %% This is a really ugly hack!
     case length(Args) of
-	0 -> fun () -> eval_lambda([], [], Body, Env) end;
-	1 -> fun (A) -> eval_lambda([A], Args, Body, Env) end;
-	2 -> fun (A,B) -> eval_lambda([A,B], Args, Body, Env) end;
-	3 -> fun (A,B,C) -> eval_lambda([A,B,C], Args, Body, Env) end;
-	4 -> fun (A,B,C,D) -> eval_lambda([A,B,C,D], Args, Body, Env) end;
-	5 -> fun (A,B,C,D,E) -> eval_lambda([A,B,C,D,E], Args, Body, Env) end;
+	0 -> fun () -> apply_lambda([], Body, [], Env) end;
+	1 -> fun (A) -> apply_lambda(Args, Body, [A], Env) end;
+	2 -> fun (A,B) -> apply_lambda(Args, Body, [A,B], Env) end;
+	3 -> fun (A,B,C) -> apply_lambda(Args, Body, [A,B,C], Env) end;
+	4 -> fun (A,B,C,D) -> apply_lambda(Args, Body, [A,B,C,D], Env) end;
+	5 -> fun (A,B,C,D,E) -> apply_lambda(Args, Body, [A,B,C,D,E], Env) end;
 	6 -> fun (A,B,C,D,E,F) ->
-	    eval_lambda([A,B,C,D,E,F], Args, Body, Env) end;
+	    apply_lambda(Args, Body, [A,B,C,D,E,F], Env) end;
 	7 -> fun (A,B,C,D,E,F,G) ->
-	    eval_lambda([A,B,C,D,E,F,G], Args, Body, Env) end;
+	    apply_lambda(Args, Body, [A,B,C,D,E,F,G], Env) end;
 	8 -> fun (A,B,C,D,E,F,G,H) ->
-	    eval_lambda([A,B,C,D,E,F,G,H], Args, Body, Env) end;
+	    apply_lambda(Args, Body, [A,B,C,D,E,F,G,H], Env) end;
 	9 -> fun (A,B,C,D,E,F,G,H,I) ->
-	    eval_lambda([A,B,C,D,E,F,G,H,I], Args, Body, Env) end;
+	    apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I], Env) end;
 	10 -> fun (A,B,C,D,E,F,G,H,I,J) ->
-	    eval_lambda([A,B,C,D,E,F,G,H,I,J], Args, Body, Env) end;
+	    apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I,J], Env) end;
 	11 -> fun (A,B,C,D,E,F,G,H,I,J,K) ->
-	    eval_lambda([A,B,C,D,E,F,G,H,I,J,K], Args, Body, Env) end;
+	    apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I,J,K], Env) end;
 	12 -> fun (A,B,C,D,E,F,G,H,I,J,K,L) ->
-	    eval_lambda([A,B,C,D,E,F,G,H,I,J,K,L], Args, Body, Env) end;
+	    apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I,J,K,L], Env) end;
 	13 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M) ->
-	    eval_lambda([A,B,C,D,E,F,G,H,I,J,K,L,M], Args, Body, Env) end;
+	    apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I,J,K,L,M], Env) end;
 	14 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N) ->
-	    eval_lambda([A,B,C,D,E,F,G,H,I,J,K,L,M,N], Args, Body, Env) end;
+	    apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I,J,K,L,M,N], Env) end;
 	15 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O) ->
-	    eval_lambda([A,B,C,D,E,F,G,H,I,J,K,L,M,N,O], Args, Body, Env) end
+	    apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I,J,K,L,M,N,O], Env) end
     end.
 
-eval_lambda(Vals, Args, Body, Env0) ->
+apply_lambda(Args, Body, Vals, Env0) ->
     Env1 = bind_args(Args, Vals, Env0),
     eval_body(Body, Env1).
 
@@ -333,45 +333,45 @@ bind_args([], [], Env) -> Env.
 eval_match_lambda(Cls, Env) ->
     %% This is a really ugly hack!
     case match_lambda_arity(Cls) of
-	0 -> fun () -> eval_match_clauses([], Cls, Env) end;
-	1 -> fun (A) -> eval_match_clauses([A], Cls, Env) end;
-	2 -> fun (A,B) -> eval_match_clauses([A,B], Cls, Env) end;
-	3 -> fun (A,B,C) -> eval_match_clauses([A,B,C], Cls, Env) end;
-	4 -> fun (A,B,C,D) -> eval_match_clauses([A,B,C,D], Cls, Env) end;
-	5 -> fun (A,B,C,D,E) -> eval_match_clauses([A,B,C,D,E], Cls, Env) end;
+	0 -> fun () -> apply_match_clauses(Cls, [], Env) end;
+	1 -> fun (A) -> apply_match_clauses(Cls, [A], Env) end;
+	2 -> fun (A,B) -> apply_match_clauses(Cls, [A,B], Env) end;
+	3 -> fun (A,B,C) -> apply_match_clauses(Cls, [A,B,C], Env) end;
+	4 -> fun (A,B,C,D) -> apply_match_clauses(Cls, [A,B,C,D], Env) end;
+	5 -> fun (A,B,C,D,E) -> apply_match_clauses(Cls, [A,B,C,D,E], Env) end;
 	6 -> fun (A,B,C,D,E,F) ->
-	    eval_match_clauses([A,B,C,D,E,F], Cls, Env) end;
+	    apply_match_clauses(Cls, [A,B,C,D,E,F], Env) end;
 	7 -> fun (A,B,C,D,E,F,G) ->
-	    eval_match_clauses([A,B,C,D,E,F,G], Cls, Env) end;
+	    apply_match_clauses(Cls, [A,B,C,D,E,F,G], Env) end;
 	8 -> fun (A,B,C,D,E,F,G,H) ->
-	    eval_match_clauses([A,B,C,D,E,F,G,H], Cls, Env) end;
+	    apply_match_clauses(Cls, [A,B,C,D,E,F,G,H], Env) end;
 	9 -> fun (A,B,C,D,E,F,G,H,I) ->
-	    eval_match_clauses([A,B,C,D,E,F,G,H,I], Cls, Env) end;
+	    apply_match_clauses(Cls, [A,B,C,D,E,F,G,H,I], Env) end;
 	10 -> fun (A,B,C,D,E,F,G,H,I,J) ->
-	    eval_match_clauses([A,B,C,D,E,F,G,H,I,J], Cls, Env) end;
+	    apply_match_clauses(Cls, [A,B,C,D,E,F,G,H,I,J], Env) end;
 	11 -> fun (A,B,C,D,E,F,G,H,I,J,K) ->
-	    eval_match_clauses([A,B,C,D,E,F,G,H,I,J,K], Cls, Env) end;
+	    apply_match_clauses(Cls, [A,B,C,D,E,F,G,H,I,J,K], Env) end;
 	12 -> fun (A,B,C,D,E,F,G,H,I,J,K,L) ->
-	    eval_match_clauses([A,B,C,D,E,F,G,H,I,J,K,L], Cls, Env) end;
+	    apply_match_clauses(Cls, [A,B,C,D,E,F,G,H,I,J,K,L], Env) end;
 	13 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M) ->
-	    eval_match_clauses([A,B,C,D,E,F,G,H,I,J,K,L,M], Cls, Env) end;
+	    apply_match_clauses(Cls, [A,B,C,D,E,F,G,H,I,J,K,L,M], Env) end;
 	14 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N) ->
-	    eval_match_clauses([A,B,C,D,E,F,G,H,I,J,K,L,M,N], Cls, Env) end;
+	    apply_match_clauses(Cls, [A,B,C,D,E,F,G,H,I,J,K,L,M,N], Env) end;
 	15 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O) ->
-	    eval_match_clauses([A,B,C,D,E,F,G,H,I,J,K,L,M,N,O], Cls, Env) end
+	    apply_match_clauses(Cls, [A,B,C,D,E,F,G,H,I,J,K,L,M,N,O], Env) end
     end.
 
 match_lambda_arity([[Pats|_]|_]) -> length(Pats).
 
-eval_match_clauses(Vals, [[Pats|B0]|Cls], Env) ->
+apply_match_clauses([[Pats|B0]|Cls], Vals, Env) ->
     if length(Vals) == length(Pats) ->
 	    case match_when(Pats, Vals, B0, Env) of
 		{yes,B1,Vbs} -> eval_body(B1, add_vbindings(Vbs, Env));
-		no -> eval_match_clauses(Vals, Cls, Env)
+		no -> apply_match_clauses(Cls, Vals, Env)
 	    end;
        true -> erlang:error(badarity)
     end;
-eval_match_clauses(_, _, _) -> erlang:error(function_clause).
+apply_match_clauses(_, _, _) -> erlang:error(function_clause).
 
 %% eval_let([PatBindings|Body], Env) -> Value.
 
@@ -451,13 +451,16 @@ extend_letrec_env(Lete0, Fbs0, Env0) ->
 add_expr_func(Name, Ar, Def, Env) ->
     add_fbinding(Name, Ar, {expr,Def,Env}, Env).
 
-%% eval_apply(Function, Vals, Env) -> Value.
-%%  This is used to evaluate interpreted functions.
+%% eval_apply(Function, Args, Env) -> Value.
+%%  This is used to evaluate interpreted functions. Macros are
+%%  expanded completely in the function definition before it is
+%%  applied.
 
-eval_apply({expr,[lambda,Args|Body],Env}, Es, _) ->
-    eval_lambda(Es, Args, Body, Env);
-eval_apply({expr,['match-lambda'|Cls],Env}, Es, _) ->
-    eval_match_clauses(Es, Cls, Env);
+eval_apply({expr,Func,Env}, Es, _) ->
+    case lfe_macro:expand_form(Func, Env) of
+	[lambda,Args|Body] -> apply_lambda(Args, Body, Es, Env);
+	['match-lambda'|Cls] -> apply_match_clauses(Cls, Es, Env)
+    end;
 eval_apply({letrec,Body,Fbs,Env}, Es, Ee) ->
     %% A function created by/for letrec-function.
     NewEnv = foldl(fun ({V,Ar,Lambda}, E) ->
@@ -806,7 +809,7 @@ get_pat_field(Bin, Spec) ->
 	{float,Sz,Un,_,En} -> get_float_field(Bin, Sz*Un, En);
 	%% Binary types.
 	{binary,all,Un,_,_} ->
-	    0 = (erlang:bit_size(Bin) rem Un),
+	    0 = (bit_size(Bin) rem Un),
 	    {Bin,<<>>};
 	{binary,Sz,Un,_,_} ->
 	    TotSize = Sz * Un,
