@@ -38,7 +38,7 @@
 		(add_vbinding 3) (add_vbindings 2) (get_vbinding 2)
 		(add_fbinding 4) (add_fbindings 2) (get_fbinding 3)
 		(add_ibinding 5) (get_gbinding 3))
-	  (from lists (reverse 1) (all 2) (map 2) (foldl 3))
+	  (from lists (reverse 1) (all 2) (map 2) (foldl 3) (foldr 3))
 	  (from orddict (find 2) (store 3)))
   (deprecated #(eval 1) #(eval 2)))
 
@@ -149,32 +149,53 @@
      (eval-expr e env) (eval-body es env))
     (() ())))
 
-;; (eval-binary fields env) -> binary.
-;;   Construct a binary from fields. This code is taken from eval_bits.erl.
+;; (eval-binary bitsegs env) -> binary.
+;;   Construct a binary from bitsegs. This code is taken from eval_bits.erl.
 
 (defun eval-binary (fs env)
-  (let ((psps (map (lambda (f) (parse-field f env)) fs)))
-    (eval-fields psps env)))
+  (let ((vsps (parse-bitsegs fs env)))
+    (eval-bitsegs vsps env)))
 
 (defrecord spec
   (type 'integer) (size 'default) (unit 'default)
   (sign 'default) (endian 'default))
 
-(defun parse-field (f env)
-  (case f
-    ((pat . specs) (tuple pat (parse-bitspecs specs (make-spec) env)))
-    (pat (tuple pat (parse-bitspecs () (make-spec) env)))))
+(defun parse-bitsegs (fs env)
+;;  (map (lambda (f) (parse-bitseg f env)) fs))
+  (foldr (lambda (f vs) (parse-bitseg f vs env)) () fs))
 
-(defun eval-fields (psps env)
+(defun parse-bitseg (f vsps env)
+  (fletrec ((is-integer-list
+	     ([(i . is)] (when (is_integer i)) (is-integer-list is))
+	     ([()] 'true)
+	     ([_] 'false)))
+    ;; Test what structure the bitseg has.
+    (cond ((is-integer-list f)		;A string
+	   (let ((sp (parse-bitspecs () (make-spec) env)))
+	     (foldr (lambda (v vs) (cons (tuple v sp) vs)) vsps f)))
+	  ((?= (val . specs) f)		;A value and spec
+	   (let ((sp (parse-bitspecs specs (make-spec) env)))
+	     (if (is-integer-list val)
+	       (foldr (lambda (v vs) (cons (tuple v sp) vs)) vsps val)
+	       (cons (tuple val sp) vsps))))
+	  (else				;A simple value
+	   (cons (tuple f (parse-bitspecs () (make-spec) env)) vsps)))))
+
+;; (defun parse-bitseg (f env)
+;;   (case f
+;;     ((pat . specs) (tuple pat (parse-bitspecs specs (make-spec) env)))
+;;     (pat (tuple pat (parse-bitspecs () (make-spec) env)))))
+
+(defun eval-bitsegs (psps env)
   (foldl (lambda (psp acc)
 	    (let* (((tuple val spec) psp)
-		   (bin (eval-field val spec env)))
+		   (bin (eval-bitseg val spec env)))
 	      (binary (acc bitstring) (bin bitstring))))
 	 #b() psps))
 
-(defun eval-field (val spec env)
+(defun eval-bitseg (val spec env)
   (let ((v (eval-expr val env)))
-    (eval-exp-field v spec)))
+    (eval-exp-bitseg v spec)))
 
 ;; (parse-bitspecs specs spec env) -> (tuple type size unit sign end).
 
@@ -222,8 +243,11 @@
     ('utf-32 (set-spec-type sp 'utf32))
     ;; Endianess.
     ('big-endian (set-spec-endian sp 'big))
+    ('big (set-spec-endian sp 'big))
     ('little-endian (set-spec-endian sp 'little))
+    ('little (set-spec-endian sp 'little))
     ('native-endian (set-spec-endian sp 'native))
+    ('native (set-spec-endian sp 'native))
     ;; Sign.
     ('signed (set-spec-sign sp 'signed))
     ('unsigned (set-spec-sign sp 'unsigned))
@@ -236,18 +260,18 @@
     ;; Illegal spec.
     (_ (: erlang error (tuple 'illegal_bitspec spec)))))
 
-;; (eval-exp-field value type size unit sign endian) -> binary().
+;; (eval-exp-bitseg value type size unit sign endian) -> binary().
 
-(defun eval-exp-field (val spec)
+(defun eval-exp-bitseg (val spec)
   (case spec
     ;; Integer types.
-    ((tuple 'integer sz un si en) (eval-int-field val (* sz un) si en))
-    ;; Unicode types, ignore unused fields.
+    ((tuple 'integer sz un si en) (eval-int-bitseg val (* sz un) si en))
+    ;; Unicode types, ignore unused specs.
     ((tuple 'utf8 _ _ _ _) (binary (val utf-8)))
-    ((tuple 'utf16 _ _ _ en) (eval-utf-16-field val en))
-    ((tuple 'utf32 _ _ _ en) (eval-utf-32-field val en))
+    ((tuple 'utf16 _ _ _ en) (eval-utf-16-bitseg val en))
+    ((tuple 'utf32 _ _ _ en) (eval-utf-32-bitseg val en))
     ;; Float types.
-    ((tuple 'float sz un _ en) (eval-float-field val (* sz un) en))
+    ((tuple 'float sz un _ en) (eval-float-bitseg val (* sz un) en))
     ;; Binary types.
     ((tuple 'binary 'all un _ _)
      (case (bit_size val)
@@ -257,7 +281,7 @@
     ((tuple 'binary sz un _ _)
      (binary (val bitstring (size (* sz un)))))))
 
-(defun eval-int-field
+(defun eval-int-bitseg
   ([val sz 'signed 'big] (binary (val (size sz) signed big-endian)))
   ([val sz 'unsigned 'big] (binary (val (size sz) unsigned big-endian)))
   ([val sz 'signed 'little] (binary (val (size sz) signed little-endian)))
@@ -265,19 +289,19 @@
   ([val sz 'signed 'native] (binary (val (size sz) signed native-endian)))
   ([val sz 'unsigned 'native] (binary (val (size sz) unsigned native-endian))))
 
-(defun eval-utf-16-field (val en)
+(defun eval-utf-16-bitseg (val en)
   (case en
     ('big (binary (val utf-16 big-endian)))
     ('little (binary (val utf-16 little-endian)))
     ('native (binary (val utf-16 native-endian)))))
 
-(defun eval-utf-32-field (val en)
+(defun eval-utf-32-bitseg (val en)
   (case en
     ('big (binary (val utf-32 big-endian)))
     ('little (binary (val utf-32 little-endian)))
     ('native (binary (val utf-32 native-endian)))))
 
-(defun eval-float-field (val sz en)
+(defun eval-float-bitseg (val sz en)
   (case en
     ('big (binary (val float (size sz) big-endian)))
     ('little (binary (val float (size sz) little-endian)))
@@ -679,6 +703,7 @@
      (cdr (eval-gexpr x env)))
     (('list . xs) (eval-glist xs env))
     (('tuple . xs) (list_to_tuple (eval-glist xs env)))
+    (('binary . bs) (eval-gbinary bs env))
     ;; Handle the Core closure special forms.
     ;; Handle the Core control special forms.
     (('progn . b) (eval-gbody b env))
@@ -704,6 +729,24 @@
 
 (defun eval-glist (es env)
   (map (lambda (e) (eval-gexpr e env)) es))
+
+;; (eval-gbinary bitsegs env) -> binary.
+;;   Construct a binary from bitsegs. This code is taken from eval_bits.erl.
+
+(defun eval-gbinary (fs env)
+  (let ((vsps (parse-bitsegs fs env)))
+    (eval-gbitsegs vsps env)))
+
+(defun eval-gbitsegs (psps env)
+  (foldl (lambda (psp acc)
+	    (let* (((tuple val spec) psp)
+		   (bin (eval-gbitseg val spec env)))
+	      (binary (acc bitstring) (bin bitstring))))
+	 #b() psps))
+
+(defun eval-gbitseg (val spec env)
+  (let ((v (eval-gexpr val env)))
+    (eval-exp-bitseg v spec)))
 
 ;; (eval-gif ifbody env) -> val
 
@@ -754,40 +797,40 @@
 	((tuple 'ok _) 'no)		;Already bound, multiple variable
 	('error (tuple 'yes (store symb val bs))))))
 
-;; (match-binary fields binary env bindings) -> (tuple 'yes bindings) | 'no.
-;;  Match Fields against Binary. This code is taken from
+;; (match-binary bitsegs binary env bindings) -> (tuple 'yes bindings) | 'no.
+;;  Match Bitsegs against Binary. This code is taken from
 ;;  eval_bits.erl. All bitspec errors and bad matches result in an
 ;;  error, we use catch to trap it.
 
 (defun match-binary (fs bin env bs)
-  (let ((psps (map (lambda (f) (parse-field f env)) fs)))
-    (case (catch (match-fields psps bin env bs))
+  (let ((psps (parse-bitsegs fs env)))
+    (case (catch (match-bitsegs psps bin env bs))
       ((tuple 'yes bs) (tuple 'yes bs))	;Matched whole binary
       ((tuple 'EXIT _) 'no))))		;Error is no match
 
-(defun match-fields
+(defun match-bitsegs
   ([((tuple pat specs) . psps) bin0 env bs0]
-   (let (((tuple 'yes bin1 bs1) (match-field pat specs bin0 env bs0)))
-     (match-fields psps bin1 env bs1)))
+   (let (((tuple 'yes bin1 bs1) (match-bitseg pat specs bin0 env bs0)))
+     (match-bitsegs psps bin1 env bs1)))
   ([() #b() _ bs] (tuple 'yes bs)))	;Reached the end of both
 
-(defun match-field (pat spec bin0 env bs0)
-  (let* (((tuple val bin1) (get-pat-field bin0 spec))
+(defun match-bitseg (pat spec bin0 env bs0)
+  (let* (((tuple val bin1) (get-pat-bitseg bin0 spec))
 	 ((tuple 'yes bs1) (match pat val env bs0)))
     (tuple 'yes bin1 bs1)))
 
-;; (get-pat-field binary #(type size unit sign endian)) -> #(value restbinary)
+;; (get-pat-bitseg binary #(type size unit sign endian)) -> #(value restbinary)
 
-(defun get-pat-field (bin spec)
+(defun get-pat-bitseg (bin spec)
   (case spec
     ;; Integer types.
-    ((tuple 'integer sz un si en) (get-int-field bin (* sz un) si en))
-    ;; Unicode types, ignore unused fields.
-    ((tuple 'utf8 _ _ _ _) (get-utf-8-field bin))
-    ((tuple 'utf16 _ _ _ en) (get-utf-16-field bin en))
-    ((tuple 'utf32 _ _ _ en) (get-utf-32-field bin en))
+    ((tuple 'integer sz un si en) (get-int-bitseg bin (* sz un) si en))
+    ;; Unicode types, ignore unused specs.
+    ((tuple 'utf8 _ _ _ _) (get-utf-8-bitseg bin))
+    ((tuple 'utf16 _ _ _ en) (get-utf-16-bitseg bin en))
+    ((tuple 'utf32 _ _ _ en) (get-utf-32-bitseg bin en))
     ;; Float types.
-    ((tuple 'float sz un _ en) (get-float-field bin (* sz un) en))
+    ((tuple 'float sz un _ en) (get-float-bitseg bin (* sz un) en))
     ;; Binary types.
     ((tuple 'binary 'all un _ _)
      (let ((0 (rem (bit_size bin) un)))
@@ -797,7 +840,7 @@
 	    ((binary (val bitstring (size tot-size)) (rest bitstring)) bin))
        (tuple val rest)))))
 
-(defun get-int-field
+(defun get-int-bitseg
   ([bin sz 'signed 'big]
    (let (((binary (val signed big-endian (size sz))
 		  (rest bitstring)) bin))
@@ -823,11 +866,11 @@
 		  (rest bitstring)) bin))
      (tuple val rest))))
 
-(defun get-utf-8-field (bin)
+(defun get-utf-8-bitseg (bin)
   (let (((binary (val utf-8) (rest bitstring)) bin))
     (tuple val rest)))
 
-(defun get-utf-16-field (bin en)
+(defun get-utf-16-bitseg (bin en)
   (case en
     ('big (let (((binary (val utf-16 big-endian) (rest bitstring)) bin))
 	    (tuple val rest)))
@@ -836,7 +879,7 @@
     ('native (let (((binary (val utf-16 native-endian) (rest bitstring)) bin))
 	       (tuple val rest)))))
 
-(defun get-utf-32-field (bin en)
+(defun get-utf-32-bitseg (bin en)
   (case en
     ('big (let (((binary (val utf-32 big-endian) (rest bitstring)) bin))
 	    (tuple val rest)))
@@ -845,7 +888,7 @@
     ('native (let (((binary (val utf-32 native-endian) (rest bitstring)) bin))
 	       (tuple val rest)))))
 
-(defun get-float-field (bin sz en)
+(defun get-float-bitseg (bin sz en)
   (case en
     ('big
      (let (((binary (val float big-endian (size sz)) (rest bitstring)) bin))

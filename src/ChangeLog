@@ -1,3 +1,19 @@
+2010-06-07  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_lint.erl (pat_bitsegs): Allow strings (integer lists).
+
+	* lfe_codegen.erl (parse_bitsegs): Allow strings (integer lists).
+
+	* lfe_eval.erl (parse_bitsegs): Allow strings (integer lists).
+
+	* lfe_eval.lfe (eval-gbinary): Evaluate binaries in guards.
+
+	* lfe_eval.erl (eval_gbinary): Evaluate binaries in guards.
+
+2010-06-03  Robert Virding  <rv@stanislaw.local>
+
+	* All files: Update copyright to 2010.
+
 2010-04-30  Robert Virding  <rv@stanislaw.local>
 
 	* lfe_eval.lfe (apply-lambda): New name and more logical argument

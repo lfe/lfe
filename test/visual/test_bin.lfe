@@ -8,7 +8,9 @@
   (export (b 1) (b 2) (bb1 2) (bb2 2))	   ;Binaries/bitstrings
   (export (u 1) (u 2))			   ;Unicode types
   (export (vs1 2) (vs2 2) (vs3 2))	   ;Value and size expressions
-  (export (d1 0) (d2 0) (d3 0)))	   ;Binary constants
+  (export (d1 0) (d2 0) (d3 0))		   ;Binary constants
+  (export (sl1 0) (sl1 1) (sl2 0) (sl2 1)) ;String literals
+  )
 
 ;; Binary constructors.
 
@@ -102,3 +104,19 @@
 
 (defun d3 ()
   #b(1 2 3))
+
+;; String literals
+
+(defun sl1 ()
+  (binary "abc" "едц"))
+
+(defun sl1 (bin)
+  (let (((binary "abc" (rest binary)) bin))
+    rest))
+
+(defun sl2 ()
+  (binary "abc" ("едц" utf-8)))
+
+(defun sl2 (bin)
+  (let (((binary "abc" ("едц" utf-8) (rest binary)) bin))
+    rest))

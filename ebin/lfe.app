@@ -1,7 +1,7 @@
 %% -*- erlang -*-
 
 {application, lfe,
- [{description, "Lisp Flavored Erlang"},
+ [{description, "Lisp Flavored Erlang (LFE)"},
   {vsn, "0.6"},
   {modules, [lfe_boot,
              lfe_codegen,
@@ -17,4 +17,7 @@
              lfe_parse,
              lfe_pmod,
              lfe_scan,
-             lfe_shell]}]}.
+             lfe_shell]},
+  {registered, []},
+  {applications, [kernel,stdlib]}
+ ]}.

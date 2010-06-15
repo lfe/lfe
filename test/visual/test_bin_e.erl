@@ -10,6 +10,7 @@
 -export([u/1,u/2]).				%Unicode types
 -export([vs1/2,vs2/2,vs3/2]).			%Value and size expressions
 -export([d1/0,d2/0,d3/0]).			%Binary constants
+-export([sl1/0,sl1/1]).				%String literals
 
 %% Binary constructors.
 
@@ -98,3 +99,12 @@ d1() -> <<1,2,3>>.
 d2() -> <<1.5/float,2.0:32/float,3.0/float-little>>.
 
 d3() -> <<1,2,3>>.
+
+%% String literals.
+
+sl1() ->
+    <<"abc","едц">>.
+
+sl1(Bin) ->
+    <<"abc",Rest/binary>> = Bin,
+    Rest.
