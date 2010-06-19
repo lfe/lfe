@@ -1,4 +1,4 @@
-%% Copyright (c) 2008 Robert Virding. All rights reserved.
+%% Copyright (c) 2008-2010 Robert Virding. All rights reserved.
 %%
 %% Redistribution and use in source and binary forms, with or without
 %% modification, are permitted provided that the following conditions
@@ -202,6 +202,7 @@ print1_tail(S, D) -> [" . "|print1(S, D-1)].
 %% Check if symbol needs to be quoted when printed. If it can read as
 %% a number then it must be quoted.
 
+quote_symbol('.', _) -> true;			%Needs quoting
 quote_symbol(_, [C|Cs]=Cs0) ->
     case catch {ok,list_to_float(Cs0)} of
 	{ok,_} -> true;

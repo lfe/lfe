@@ -344,7 +344,7 @@ Records
 
 Records are tuples with the record name as first element and the rest
 of the fields in order exactly like "normal" Erlang records. As with
-Erlang records the default default value is 'default'.
+Erlang records the default default value is 'undefined'.
 
 (defrecord name
   field
@@ -382,7 +382,7 @@ field-name value to get non-default values. E.g. for
 	Will match a person with age 55 and bind the variable name to
 	the name field of the record. Can use any variable name here.
 
-(set-person john age 35 address "front street")
+(set-person john age 35 address '"front street")
 
 	In the person record john set the age field to 35 and the
 	address field to "front street".

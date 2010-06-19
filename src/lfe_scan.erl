@@ -12,8 +12,8 @@
 -export([format_error/1]).
 
 %% User code. This is placed here to allow extra attributes.
--file("src/lfe_scan.xrl", 91).
-%% Copyright (c) 2008 Robert Virding. All rights reserved.
+-file("src/lfe_scan.xrl", 92).
+%% Copyright (c) 2008-2010 Robert Virding. All rights reserved.
 %%
 %% Redistribution and use in source and binary forms, with or without
 %% modification, are permitted provided that the following conditions
@@ -1039,13 +1039,13 @@ yyaction_19(TokenChars, TokenLine) ->
      base (string : substr (TokenChars, 3), 16, TokenLine) .
 
 -compile({inline,yyaction_20/2}).
--file("src/lfe_scan.xrl", 75).
+-file("src/lfe_scan.xrl", 76).
 yyaction_20(TokenChars, TokenLine) ->
      { Base, [_ | Ds ] } = base1 (string : substr (TokenChars, 2), 10, 0),
      base (Ds, Base, TokenLine) .
 
 -compile({inline,yyaction_21/2}).
--file("src/lfe_scan.xrl", 79).
+-file("src/lfe_scan.xrl", 80).
 yyaction_21(TokenChars, TokenLine) ->
      case catch { ok, list_to_float (TokenChars) } of
      { ok, F } -> { token, { number, TokenLine, F } } ;
@@ -1057,7 +1057,7 @@ yyaction_21(TokenChars, TokenLine) ->
      end .
 
 -compile({inline,yyaction_22/0}).
--file("src/lfe_scan.xrl", 87).
+-file("src/lfe_scan.xrl", 88).
 yyaction_22() ->
      skip_token .
 
