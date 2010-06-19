@@ -17,6 +17,14 @@ I will try to make a better fix soon. Sorry about that.
 <will be v0.6>
 --------------
 
+Allow literal strings in binaries, both as plain values and as values
+with specs, so (binary "abc" ("едц" utf-8)) is valid. In the second
+case the spec is applied to each character. Works with lists as
+well. Add big, little and native as synonyms to big-endian,
+little-endian and native-endian.
+
+Now have working Makefile, Emakefile and .app file.
+
 Guards are now a sequence of tests, (when test test ...). The
 structure of guard tests has been fixed and is now more logical as
 tests. For example (if ...) is now allowed.

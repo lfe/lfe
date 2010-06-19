@@ -390,19 +390,37 @@ check_exprs(Es, Env, L, St) ->
 expr_bitsegs(Segs, Env, L, St0) ->
     foldl(fun (S, St) -> expr_bitseg(S, Env, L, St) end, St0, Segs).
 
-expr_bitseg([N|Specs], Env, L, St0) ->
-    St1 = check_expr(N, Env, L, St0),		%Be lazy here
-    expr_bitspecs(Specs, Env, L, St1);
-expr_bitseg(N, Env, L, St) ->
-    check_expr(N, Env, L, St).
- 
+%% expr_bitseg([N|Specs], Env, L, St0) ->
+%%     St1 = check_expr(N, Env, L, St0),		%Be lazy here
+%%     expr_bitspecs(Specs, Env, L, St1);
+%% expr_bitseg(N, Env, L, St) ->
+%%     check_expr(N, Env, L, St).
+
+expr_bitseg([Val|Specs]=Seg, Env, L, St0) ->
+    case is_integer_list(Seg) of
+	true -> St0;				%This is good
+	false ->
+	    St1 = expr_bitspecs(Specs, Env, L, St0),
+	    case is_integer_list(Val) of
+		true -> St1;			%This is good
+		false -> check_expr(Val, Env, L, St1)
+	    end
+    end;
+expr_bitseg(Val, Env, L, St) ->
+    check_expr(Val, Env, L, St).
+
+is_integer_list([I|Is]) when is_integer(I) ->
+    is_integer_list(Is);
+is_integer_list([]) -> true;
+is_integer_list(_) -> false.
+
 expr_bitspecs(Specs, Env, L, St0) ->
     foldl(fun (S, St) -> expr_bitspec(S, Env, L, St) end, St0, Specs).    
 
 expr_bitspec([size,N], Env, L, St) ->		%Shadow for (size expr)
     check_expr(N, Env, L, St);
-expr_bitspec(S, Env, L, St) ->
-    pat_bitspec(S, Env, L, St).
+expr_bitspec(S, _, L, St) ->
+    check_bitspec(S, L, St).
 
 %% check_lambda(LambdaBody, Env, Line, State) -> State.
 %% Check form (lambda Args ...).
@@ -722,19 +740,32 @@ check_gif(_, _, L, St) ->
 gexpr_bitsegs(Segs, Env, L, St0) ->
     foldl(fun (S, St) -> gexpr_bitseg(S, Env, L, St) end, St0, Segs).
 
-gexpr_bitseg([N|Specs], Env, L, St0) ->
-    St1 = check_gexpr(N, Env, L, St0),		%Be lazy here
-    gexpr_bitspecs(Specs, Env, L, St1);
-gexpr_bitseg(N, Env, L, St) ->
-    check_gexpr(N, Env, L, St).
+%% gexpr_bitseg([N|Specs], Env, L, St0) ->
+%%     St1 = check_gexpr(N, Env, L, St0),		%Be lazy here
+%%     gexpr_bitspecs(Specs, Env, L, St1);
+%% gexpr_bitseg(N, Env, L, St) ->
+%%     check_gexpr(N, Env, L, St).
+
+gexpr_bitseg([Val|Specs]=Seg, Env, L, St0) ->
+    case is_integer_list(Seg) of
+	true -> St0;				%This is good
+	false ->
+	    St1 = gexpr_bitspecs(Specs, Env, L, St0),
+	    case is_integer_list(Val) of
+		true -> St1;			%This is good
+		false -> check_gexpr(Val, Env, L, St1)
+	    end
+    end;
+gexpr_bitseg(Val, Env, L, St) ->
+    check_gexpr(Val, Env, L, St).
  
 gexpr_bitspecs(Specs, Env, L, St0) ->
     foldl(fun (S, St) -> gexpr_bitspec(S, Env, L, St) end, St0, Specs).    
 
 gexpr_bitspec([size,N], Env, L, St) ->		%Shadow for (size expr)
     check_gexpr(N, Env, L, St);
-gexpr_bitspec(S, Env, L, St) ->
-    pat_bitspec(S, Env, L, St).
+gexpr_bitspec(S, _, L, St) ->
+    check_bitspec(S, L, St).
 
 %% check_pat(Pattern, Env, L, State) -> {PatVars,State}.
 %% Return the *set* of Variables in Pattern.
@@ -811,11 +842,24 @@ pat_bitsegs(Segs, Vs0, Env, L, St0) ->
     foldl(fun (S, {Vs,St}) -> pat_bitseg(S, Vs, Env, L, St) end,
 	  {Vs0,St0}, Segs).
 
-pat_bitseg([N|Specs], Vs0, Env, L, St0) ->
-    {Vs1,St1} = pat_bitel(N, Vs0, Env, L, St0),
-    {Vs1,pat_bitspecs(Specs, Env, L, St1)};
-pat_bitseg(N, Vs, Env, L, St) ->
-    pat_bitel(N, Vs, Env, L, St).
+%% pat_bitseg([N|Specs], Vs0, Env, L, St0) ->
+%%     {Vs1,St1} = pat_bitel(N, Vs0, Env, L, St0),
+%%     {Vs1,pat_bitspecs(Specs, Env, L, St1)};
+%% pat_bitseg(N, Vs, Env, L, St) ->
+%%     pat_bitel(N, Vs, Env, L, St).
+
+pat_bitseg([Pat|Specs]=Seg, Vs, Env, L, St0) ->
+    case is_integer_list(Seg) of
+	true -> {Vs,St0};			%This is good
+	false ->
+	    St1 = pat_bitspecs(Specs, Env, L, St0),
+	    case is_integer_list(Pat) of
+		true -> {Vs,St1};		%This is good
+		false -> pat_bitel(Pat, Vs, Env, L, St1)
+	    end
+    end;
+pat_bitseg(Pat, Vs, Env, L, St) ->
+    pat_bitel(Pat, Vs, Env, L, St).
 
 pat_bitel(N, Vs, _, _, St) when is_number(N) -> {Vs,St};
 pat_bitel(Symb, Vs, _, L, St) when is_atom(Symb) ->
@@ -825,26 +869,6 @@ pat_bitel(_, Vs, _, L, St) -> {Vs,add_error(L, illegal_bitseg, St)}.
 pat_bitspecs(Specs, Env, L, St0) ->
     foldl(fun (S, St) -> pat_bitspec(S, Env, L, St) end, St0, Specs).    
 
-%% Types.
-pat_bitspec(integer, _, _, St) -> St;
-pat_bitspec(float, _, _, St) -> St;
-pat_bitspec(binary, _, _, St) -> St;
-pat_bitspec(bytes, _, _, St) -> St;
-pat_bitspec(bitstring, _, _, St) -> St;
-pat_bitspec(bits, _, _, St) -> St;
-%% Unicode types.
-pat_bitspec('utf-8', _, _, St) -> St;
-pat_bitspec('utf-16', _, _, St) -> St;
-pat_bitspec('utf-32', _, _, St) -> St;
-%% Endianness
-pat_bitspec('big-endian', _, _, St) -> St;
-pat_bitspec('little-endian', _, _, St) -> St;
-pat_bitspec('native-endian', _, _, St) -> St;
-%% Sign.
-pat_bitspec(signed, _, _, St) -> St;
-pat_bitspec(unsigned, _, _, St) -> St;
-%% Size.
-pat_bitspec([unit,N], _, _, St) when is_integer(N), N >= 1, N =< 256 -> St;
 pat_bitspec([size,N], _, _, St) when is_integer(N), N > 0 -> St;
 pat_bitspec([size,Symb], Env, L, St) when is_atom(Symb) ->
     %% Size must be bound here.
@@ -852,7 +876,34 @@ pat_bitspec([size,Symb], Env, L, St) when is_atom(Symb) ->
 	true -> St;
 	false -> add_error(L, {unbound_symb,Symb}, St)
     end;
-pat_bitspec(Spec, _, L, St) ->
+pat_bitspec(S, _, L, St) ->
+    check_bitspec(S, L, St).
+
+%% Types.
+check_bitspec(integer, _, St) -> St;
+check_bitspec(float, _, St) -> St;
+check_bitspec(binary, _, St) -> St;
+check_bitspec(bytes, _, St) -> St;
+check_bitspec(bitstring, _, St) -> St;
+check_bitspec(bits, _, St) -> St;
+%% Unicode types.
+check_bitspec('utf-8', _, St) -> St;
+check_bitspec('utf-16', _, St) -> St;
+check_bitspec('utf-32', _, St) -> St;
+%% Endianness
+check_bitspec('big-endian', _, St) -> St;
+check_bitspec('big', _, St) -> St;
+check_bitspec('little-endian', _, St) -> St;
+check_bitspec('little', _, St) -> St;
+check_bitspec('native-endian', _, St) -> St;
+check_bitspec('native', _, St) -> St;
+%% Sign.
+check_bitspec(signed, _, St) -> St;
+check_bitspec(unsigned, _, St) -> St;
+%% Size.
+check_bitspec([unit,N], _, St) when is_integer(N), N >= 1, N =< 256 -> St;
+check_bitspec([size,N], _, St) when is_integer(N), N > 0 -> St;
+check_bitspec(Spec, L, St) ->
     add_error(L, {illegal_bitspec,Spec}, St).
 
 %% check_foreach(Function, Type, Line, State, Forms) -> State.

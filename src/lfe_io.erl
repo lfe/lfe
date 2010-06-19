@@ -1,4 +1,4 @@
-%% Copyright (c) 2008 Robert Virding. All rights reserved.
+%% Copyright (c) 2008-2010 Robert Virding. All rights reserved.
 %%
 %% Redistribution and use in source and binary forms, with or without
 %% modification, are permitted provided that the following conditions
@@ -52,14 +52,19 @@
 %% numbers of start of each sexpr. Handle errors consistently.
 
 parse_file(Name) ->
-    with_token_file(Name, fun (Ts) -> parse_file1(Ts, []) end).
+    with_token_file(Name, fun (Ts) -> parse_file1(Ts, [], []) end).
 
-parse_file1(Ts0, Ss) when Ts0 /= [] ->
-    case lfe_parse:sexpr(Ts0) of
-	{ok,L,S,Ts1} -> parse_file1(Ts1, [{S,L}|Ss]);
+parse_file1([_|_]=Ts0, Pc0, Ss) ->
+    case lfe_parse:sexpr(Pc0, Ts0) of
+	{ok,L,S,Ts1} -> parse_file1(Ts1, [], [{S,L}|Ss]);
+	{more,Pc1} ->
+	    %% Need more tokens but there are none, so call again to
+	    %% generate an error message.
+	    {error,E,_} = lfe_parse:sexpr(Pc1, {eof,99999}),
+	    {error,E};
 	{error,E,_} -> {error,E}
     end;
-parse_file1([], Ss) -> {ok,reverse(Ss)}.
+parse_file1([], _, Ss) -> {ok,reverse(Ss)}.
 
 %% read_file(FileName) -> {ok,[Sexpr]} | {error,Error}.
 %% Read a file returning the raw sexprs (as it should be).
@@ -67,51 +72,59 @@ parse_file1([], Ss) -> {ok,reverse(Ss)}.
 read_file(Name) ->
     with_token_file(Name, fun (Ts) -> read_file1(Ts, []) end).
 
-read_file1(Ts0, Ss) when Ts0 /= [] ->
+read_file1([_|_]=Ts0, Ss) ->
     case lfe_parse:sexpr(Ts0) of
 	{ok,_,S,Ts1} -> read_file1(Ts1, [S|Ss]);
+	{more,Pc1} ->
+	    %% Need more tokens but there are none, so call again to
+	    %% generate an error message.
+	    {error,E,_} = lfe_parse:sexpr(Pc1, {eof,99999}),
+	    {error,E};
 	{error,E,_} -> {error,E}
     end;
 read_file1([], Ss) -> {ok,reverse(Ss)}.
 
+%% with_token_file(FileName, DoFunc)
+%% Open the file, scan all LFE tokens and apply DoFunc on them.
+
 with_token_file(Name, Do) ->
     case file:open(Name, [read]) of
 	{ok,F} ->
-	    case io:request(F, {get_until,'',lfe_scan,tokens,[1]}) of
-		{ok,Ts,_} -> Do(Ts);
-		{error,Error,_} -> {error,Error}
-	    end;
+	    Ret = case io:request(F, {get_until,'',lfe_scan,tokens,[1]}) of
+		      {ok,Ts,_} -> Do(Ts);
+		      {error,Error,_} -> {error,Error}
+		  end,
+	    file:close(F),			%Close the file
+	    Ret;				% and return value
 	{error,Error} -> {error,{none,file,Error}}
     end.
 
 %% read([IoDevice]) -> Sexpr.
 %%  A very simple read function. Line oriented and cannot handle
-%%  tokens over line-breks but can handle multiple lines. Anything
-%%  remaining on last line after a sexpr is lost.  Signal errors.
+%%  tokens over line-breaks but can handle multiple lines. Anything
+%%  remaining on last line after a sexpr is lost. Signal errors.
 
 read() -> read(standard_io).
 read(Io) ->
-    scan_and_parse(Io, []).
+    scan_and_parse(Io, [], 1).
 
-scan_and_parse(Io, Ts0) ->
+scan_and_parse(Io, Pc0, L) ->
     case io:get_line(Io, '') of
 	eof ->
 	    %% No more so must take what we have.
-	    case lfe_parse:sexpr(Ts0) of
+	    case lfe_parse:sexpr(Pc0, {eof,L}) of
 		{ok,_,S,_} -> S;
 		{error,E,_} -> exit({error,E})
 	    end;
 	Cs ->
-	    case lfe_scan:string(Cs) of
+	    case lfe_scan:string(Cs, L) of
 		{ok,[],_} ->
 		    %% Empty line (token free) just go on.
-		    scan_and_parse(Io, Ts0);
-		{ok,More,_} ->
-		    Ts1 = Ts0 ++ More,
-		    case lfe_parse:sexpr(Ts1) of
+		    scan_and_parse(Io, Pc0, L+1);
+		{ok,Ts,_} ->
+		    case lfe_parse:sexpr(Pc0, Ts) of
 			{ok,_,S,_} -> S;
-			{error,{_,_,{missing,_}},_} ->
-			    scan_and_parse(Io, Ts1);
+			{more,Pc1} -> scan_and_parse(Io, Pc1, L+1);
 			{error,E,_} -> exit({error,E})
 		    end;
 		E -> exit(E)
@@ -121,9 +134,7 @@ scan_and_parse(Io, Ts0) ->
 %% print([IoDevice], Sexpr) -> ok.
 %% print1(Sexpr) -> [char()].
 %% print1(Sexpr, Depth) -> [char()].
-%%  A simple print function. Does not pretty-print. N.B. We know about
-%%  the standard character macros and use them instead of their
-%%  expanded forms.
+%%  A simple print function. Does not pretty-print but stops at Depth.
 
 print(S) -> print(standard_io, S).
 print(Io, S) -> io:put_chars(Io, print1(S)).
@@ -191,6 +202,7 @@ print1_tail(S, D) -> [" . "|print1(S, D-1)].
 %% Check if symbol needs to be quoted when printed. If it can read as
 %% a number then it must be quoted.
 
+quote_symbol('.', _) -> true;			%Needs quoting
 quote_symbol(_, [C|Cs]=Cs0) ->
     case catch {ok,list_to_float(Cs0)} of
 	{ok,_} -> true;
@@ -253,7 +265,7 @@ hex(C) when C >= 0, C < 10 -> C + $0;
 hex(C) when C >= 10, C < 16 -> C + $a.
 
 %% prettyprint([IoDevice], Sexpr) -> ok.
-%% prettyprint1(Sexpr, Indentation) -> [char()].
+%% prettyprint1(Sexpr, Depth, Indentation, LineLength) -> [char()].
 %%  External interface to the prettyprint functions.
 
 prettyprint(S) -> prettyprint(standard_io, S).

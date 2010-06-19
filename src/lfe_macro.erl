@@ -452,11 +452,11 @@ expand_tail(Fun, E, Env, St) -> Fun(E, Env, St). %Same on improper tail.
 expand_clauses(Cls, Env, St) ->
     expand_tail(fun expand_clause/3, Cls, Env, St).
 
-expand_clause([P0,['when',G0]|B0], Env, St0) ->
+expand_clause([P0,['when'|G0]|B0], Env, St0) ->
     {P1,St1} = expand(P0, Env, St0),
-    {G1,St2} = expand(G0, Env, St1),
+    {G1,St2} = expand_tail(G0, Env, St1),
     {B1,St3} = expand_tail(B0, Env, St2),
-    {[P1,['when',G1]|B1],St3};
+    {[P1,['when'|G1]|B1],St3};
 expand_clause([P0|B0], Env, St0) ->
     {P1,St1} = expand(P0, Env, St0),
     {B1,St2} = expand_tail(B0, Env, St1),
@@ -466,11 +466,11 @@ expand_clause(Other, Env, St) -> expand(Other, Env, St).
 expand_ml_clauses(Cls, Env, St) ->
     expand_tail(fun expand_ml_clause/3, Cls, Env, St).
 
-expand_ml_clause([Ps0,['when',G0]|B0], Env, St0) ->
+expand_ml_clause([Ps0,['when'|G0]|B0], Env, St0) ->
     {Ps1,St1} = expand_tail(Ps0, Env, St0),
-    {G1,St2} = expand(G0, Env, St1),
+    {G1,St2} = expand_tail(G0, Env, St1),
     {B1,St3} = expand_tail(B0, Env, St2),
-    {[Ps1,['when',G1]|B1],St3};
+    {[Ps1,['when'|G1]|B1],St3};
 expand_ml_clause([Ps0|B0], Env, St0) ->
     {Ps1,St1} = expand_tail(Ps0, Env, St0),
     {B1,St2} = expand_tail(B0, Env, St1),
@@ -609,7 +609,7 @@ exp_predef(['cond'|Cbody], _, St) ->
 	      [['else'|B]] -> ['progn'|B];
 	      [[['?=',P,E]|B]|Cond] ->
 		  ['case',E,[P|B],['_',['cond'|Cond]]];
-	      [[['?=',P,['when',_]=G,E]|B]|Cond] ->
+	      [[['?=',P,['when'|_]=G,E]|B]|Cond] ->
 		  ['case',E,[P,G|B],['_',['cond'|Cond]]];
 	      [[Test|B]|Cond] ->
 		  ['if',Test,['progn'|B],['cond'|Cond]];
@@ -1091,13 +1091,13 @@ c_tq(Exp, [['<=',P,G]|Qs], L, St0) ->		%Bits generator
 %%	   [[[binary,Brest]],[H,B]]]]],		%No match
 	   [[[binary,Brest]],L]]]],		%No match
       [H,G]],St3};
-c_tq(Exp, [['?=',P,E]|Qs], L, St0) ->
+c_tq(Exp, [['?=',P,E]|Qs], L, St0) ->		%Test match
     {Rest,St1} = c_tq(Exp, Qs, L, St0),
     {['case',E,[P,Rest],['_',L]],St1};
-c_tq(Exp, [['?=',P,['when',_]=G,E]|Qs], L, St0) ->
+c_tq(Exp, [['?=',P,['when'|_]=G,E]|Qs], L, St0) ->
     {Rest,St1} = c_tq(Exp, Qs, L, St0),
     {['case',E,[P,G,Rest],['_',L]],St1};
-c_tq(Exp, [T|Qs], L, St0) ->
+c_tq(Exp, [T|Qs], L, St0) ->			%Test
     {Rest,St1} = c_tq(Exp, Qs, L, St0),
     {['if',T,Rest,L],St1};
 c_tq(Exp, [], L, St) ->

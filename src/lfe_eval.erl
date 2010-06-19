@@ -34,13 +34,14 @@
 -export([expr/1,expr/2,gexpr/1,gexpr/2,apply/2,apply/3,
 	 make_letrec_env/2,add_expr_func/4,match/3]).
 
+%% Deprecated exports.
 -export([eval/1,eval/2,eval_list/2]).
 
 -import(lfe_lib, [new_env/0,add_vbinding/3,add_vbindings/2,get_vbinding/2,
 		  add_fbinding/4,add_fbindings/2,get_fbinding/3,
 		  add_ibinding/5,get_gbinding/3]).
 
--import(lists, [reverse/1,all/2,map/2,foldl/3]).
+-import(lists, [reverse/1,all/2,map/2,foldl/3,foldr/3]).
 -import(orddict, [find/2,store/3]).
 
 -deprecated([eval/1,eval/2]).
@@ -50,19 +51,23 @@
 %% eval(Sexpr) -> Value.
 %% eval(Sexpr, Env) -> Value.
 
-eval(E) -> eval(E, new_env()).
+eval(E) -> expr(E).
 
-eval(E, Env) -> eval_expr(E, Env).
+eval(E, Env) -> expr(E, Env).
 
 %% expr(Sexpr) -> Value.
 %% expr(Sexpr, Env) -> Value.
+%% Evaluate the sexpr, first expanding all macros.
 
 expr(E) -> expr(E, new_env()).
 
-expr(E, Env) -> eval_expr(E, Env).
+expr(E, Env) ->
+    Exp = lfe_macro:expand_form(E, Env),
+    %% lfe_io:fwrite("e: ~p\n", [{E,Exp,Env}]),
+    eval_expr(Exp, Env).
 
-%% expr(Sexpr) -> Value.
-%% expr(Sexpr, Env) -> Value.
+%% gexpr(Sexpr) -> Value.
+%% gexpr(Sexpr, Env) -> Value.
 
 gexpr(E) -> gexpr(E, new_env()).
 
@@ -94,8 +99,7 @@ eval_expr([car,E], Env) -> hd(eval_expr(E, Env)); %Provide lisp names
 eval_expr([cdr,E], Env) -> tl(eval_expr(E, Env));
 eval_expr([list|Es], Env) -> eval_list(Es, Env);
 eval_expr([tuple|Es], Env) -> list_to_tuple(eval_list(Es, Env));
-eval_expr([binary|Bs], Env) ->
-    eval_binary(Bs, Env);
+eval_expr([binary|Bs], Env) -> eval_binary(Bs, Env);
 %% Handle the Core closure special forms.
 eval_expr([lambda|Body], Env) ->
     eval_lambda(Body, Env);
@@ -125,18 +129,13 @@ eval_expr([funcall,F|As], Env) ->
 eval_expr([call|Body], Env) ->
     eval_call(Body, Env);
 %% General functions calls.
-eval_expr([Fun|Es]=Call, Env) when is_atom(Fun) ->
-    %% If macro then expand and try again, else try to find function.
-    %% We only expand the top level here.
-    case lfe_macro:expand_macro(Call, Env) of
-	{yes,Exp} -> eval_expr(Exp, Env);	%This was macro, try again
-	no ->
-	    Ar = length(Es),			%Arity
-	    case get_fbinding(Fun, Ar, Env) of
-		{yes,M,F} -> erlang:apply(M, F, eval_list(Es, Env));
-		{yes,F} -> eval_apply(F, eval_list(Es, Env), Env);
-		no -> erlang:error({unbound_func,{Fun,Ar}})
-	    end
+eval_expr([Fun|Es], Env) when is_atom(Fun) ->
+    %% Note that macros have already been expanded here.
+    Ar = length(Es),				%Arity
+    case get_fbinding(Fun, Ar, Env) of
+	{yes,M,F} -> erlang:apply(M, F, eval_list(Es, Env));
+	{yes,F} -> eval_apply(F, eval_list(Es, Env), Env);
+	no -> erlang:error({unbound_func,{Fun,Ar}})
     end;
 eval_expr([_|_], _) ->
     erlang:error({bad_form,application});
@@ -156,60 +155,87 @@ eval_body([E|Es], Env) ->
     eval_body(Es, Env);
 eval_body([], _) -> [].				%Empty body
 
-%% eval_binary(Fields, Env) -> Binary.
-%%  Construct a binary from Fields. This code is taken from eval_bits.erl.
+%% eval_binary(Bitsegs, Env) -> Binary.
+%%  Construct a binary from Bitsegs. This code is taken from eval_bits.erl.
 
-eval_binary(Fs, Env) ->
-    Vsps = map(fun (F) -> parse_field(F, Env) end, Fs),
-    eval_fields(Vsps, Env).
+eval_binary(Segs, Env) ->
+    Vsps = parse_bitsegs(Segs, Env),
+    eval_bitsegs(Vsps, Env).
 
 -record(spec, {type=integer,size=default,unit=default,
 	       sign=default,endian=default}).
 
-parse_field([Val|Specs], Env) ->
-    {Val,parse_bitspecs(Specs, #spec{}, Env)};
-parse_field(Val, Env) ->
-    {Val,parse_bitspecs([], #spec{}, Env)}.
+parse_bitsegs(Segs, Env) ->
+%%    map(fun (S) -> parse_bitseg(S, Env) end, Segs),
+    foldr(fun (S, Vs) -> parse_bitseg(S, Vs, Env) end, [], Segs).
 
-eval_fields(Vsps, Env) ->
+%% parse_bitseg(Bitseg, ValSpecs, Env) -> ValSpecs.
+%% A bitseg is either an atomic value, a list of value and specs, or a string.
+
+parse_bitseg([Val|Specs]=F, Vsps, Env) ->
+    case is_integer_list(F) of			%Is bitseg a string?
+	true ->					%A string
+	    Sp = parse_bitspecs([], #spec{}, Env),
+	    foldr(fun (V, Vs) -> [{V,Sp}|Vs] end, Vsps, F);
+	false ->				%A value and spec
+	    Sp = parse_bitspecs(Specs, #spec{}, Env),
+	    case is_integer_list(Val) of	%Is val a string?
+		true -> foldr(fun (V, Vs) -> [{V,Sp}|Vs] end, Vsps, Val);
+		false -> [{Val,Sp}|Vsps]	%The default
+	    end
+    end;
+parse_bitseg(Val, Vsps, Env) ->
+    [{Val,parse_bitspecs([], #spec{}, Env)}|Vsps].
+
+is_integer_list([I|Is]) when is_integer(I) ->
+    is_integer_list(Is);
+is_integer_list([]) -> true;
+is_integer_list(_) -> false.
+
+%% parse_bitseg([Val|Specs], Env) ->
+%%     {Val,parse_bitspecs(Specs, #spec{}, Env)};
+%% parse_bitseg(Val, Env) ->
+%%     {Val,parse_bitspecs([], #spec{}, Env)}.
+
+eval_bitsegs(Vsps, Env) ->
     foldl(fun ({Val,Spec}, Acc) ->
-		  Bin = eval_field(Val, Spec, Env),
+		  Bin = eval_bitseg(Val, Spec, Env),
 		  <<Acc/bitstring,Bin/bitstring>>
 	  end, <<>>, Vsps).
 
-eval_field(Val, Spec, Env) ->
+eval_bitseg(Val, Spec, Env) ->
     V = eval_expr(Val, Env),
-    eval_exp_field(V, Spec).
+    eval_exp_bitseg(V, Spec).
 
 %% parse_bitspecs(Specs, Spec, Env) -> {Type,Size,Unit,Sign,End}.
 
 parse_bitspecs(Ss, Sp0, Env) ->
     Sp1 = foldl(fun (S, Sp) -> parse_bitspec(S, Sp, Env) end, Sp0, Ss),
     %% Adjust the values depending on type and given value.
-    #spec{type=Type,size=Csize,unit=Cunit,sign=Csign,endian=Cend} = Sp1,
+    #spec{type=Type,size=Size,unit=Unit,sign=Sign,endian=End} = Sp1,
     case Type of
 	integer ->
 	    {integer,
-	     val_or_def(Csize, 8),val_or_def(Cunit, 1),
-	     val_or_def(Csign, unsigned),val_or_def(Cend, big)};
-	utf8 ->					%Ignore unused fields!
+	     val_or_def(Size, 8),val_or_def(Unit, 1),
+	     val_or_def(Sign, unsigned),val_or_def(End, big)};
+	utf8 ->					%Ignore unused specs!
 	    {utf8,undefined,undefined,undefined,undefined};
-	utf16 ->				%Ignore unused fields!
-	    {utf16,undefined,undefined,undefined,val_or_def(Cend, big)};
-	utf32 ->				%Ignore unused fields!
-	    {utf32,undefined,undefined,undefined,val_or_def(Cend, big)};
+	utf16 ->				%Ignore unused specs!
+	    {utf16,undefined,undefined,undefined,val_or_def(End, big)};
+	utf32 ->				%Ignore unused specs!
+	    {utf32,undefined,undefined,undefined,val_or_def(End, big)};
 	float ->
 	    {float,
-	     val_or_def(Csize, 64),val_or_def(Cunit, 1),
-	     val_or_def(Csign, unsigned),val_or_def(Cend, big)};
+	     val_or_def(Size, 64),val_or_def(Unit, 1),
+	     val_or_def(Sign, unsigned),val_or_def(End, big)};
 	binary ->
 	    {binary,
-	     val_or_def(Csize, all),val_or_def(Cunit, 8),
-	     val_or_def(Csign, unsigned),val_or_def(Cend, big)};
+	     val_or_def(Size, all),val_or_def(Unit, 8),
+	     val_or_def(Sign, unsigned),val_or_def(End, big)};
 	bitstring ->
 	    {binary,
-	     val_or_def(Csize, all),val_or_def(Cunit, 1),
-	     val_or_def(Csign, unsigned),val_or_def(Cend, big)}
+	     val_or_def(Size, all),val_or_def(Unit, 1),
+	     val_or_def(Sign, unsigned),val_or_def(End, big)}
     end.
 
 %% Types.
@@ -225,8 +251,11 @@ parse_bitspec('utf-16', Sp, _) -> Sp#spec{type=utf16};
 parse_bitspec('utf-32', Sp, _) -> Sp#spec{type=utf32};
 %% Endianness.
 parse_bitspec('big-endian', Sp, _) -> Sp#spec{endian=big};
+parse_bitspec('big', Sp, _) -> Sp#spec{endian=big};
 parse_bitspec('little-endian', Sp, _) -> Sp#spec{endian=little};
+parse_bitspec('little', Sp, _) -> Sp#spec{endian=little};
 parse_bitspec('native-endian', Sp, _) -> Sp#spec{endian=native};
+parse_bitspec('native', Sp, _) -> Sp#spec{endian=native};
 %% Sign.
 parse_bitspec(signed, Sp, _) -> Sp#spec{sign=signed};
 parse_bitspec(unsigned, Sp, _) -> Sp#spec{sign=unsigned};
@@ -241,21 +270,21 @@ parse_bitspec(Spec, _, _) -> erlang:error({illegal_bitspec,Spec}).
 val_or_def(default, Def) -> Def;
 val_or_def(V, _) -> V.
 
-%% eval_exp_field(Value, {Type,Size,Unit,Sign,Endian}) -> Binary.
+%% eval_exp_bitseg(Value, {Type,Size,Unit,Sign,Endian}) -> Binary.
 
-eval_exp_field(Val, Spec) ->
+eval_exp_bitseg(Val, Spec) ->
     case Spec of
 	%% Integer types.
-	{integer,Sz,Un,Si,En} -> eval_int_field(Val, Sz*Un, Si, En);
+	{integer,Sz,Un,Si,En} -> eval_int_bitseg(Val, Sz*Un, Si, En);
 	%% Unicode types, ignore unused fields.
 	{utf8,_,_,_,_} -> <<Val/utf8>>;
-	{utf16,_,_,_,En} -> eval_utf16_field(Val, En);
-	{utf32,_,_,_,En} -> eval_utf32_field(Val, En);
+	{utf16,_,_,_,En} -> eval_utf16_bitseg(Val, En);
+	{utf32,_,_,_,En} -> eval_utf32_bitseg(Val, En);
 	%% Float types.
-	{float,Sz,Un,_,En} -> eval_float_field(Val, Sz*Un, En);
+	{float,Sz,Un,_,En} -> eval_float_bitseg(Val, Sz*Un, En);
 	%% Binary types.
 	{binary,all,Unit,_,_} ->
-	    case erlang:bit_size(Val) of
+	    case bit_size(Val) of
 		Size when Size rem Unit =:= 0 ->
 		    <<Val:Size/bitstring>>;
 		_ -> erlang:error(badarg)
@@ -264,24 +293,24 @@ eval_exp_field(Val, Spec) ->
 	    <<Val:(Size*Unit)/bitstring>>
     end.
 
-eval_int_field(Val, Sz, signed, big) -> <<Val:Sz/signed>>;
-eval_int_field(Val, Sz, unsigned, big) -> <<Val:Sz>>;
-eval_int_field(Val, Sz, signed, little) -> <<Val:Sz/little-signed>>;
-eval_int_field(Val, Sz, unsigned, little) -> <<Val:Sz/little>>;
-eval_int_field(Val, Sz, signed, native) -> <<Val:Sz/native-signed>>;
-eval_int_field(Val, Sz, unsigned, native) -> <<Val:Sz/native>>.
+eval_int_bitseg(Val, Sz, signed, big) -> <<Val:Sz/signed>>;
+eval_int_bitseg(Val, Sz, unsigned, big) -> <<Val:Sz>>;
+eval_int_bitseg(Val, Sz, signed, little) -> <<Val:Sz/little-signed>>;
+eval_int_bitseg(Val, Sz, unsigned, little) -> <<Val:Sz/little>>;
+eval_int_bitseg(Val, Sz, signed, native) -> <<Val:Sz/native-signed>>;
+eval_int_bitseg(Val, Sz, unsigned, native) -> <<Val:Sz/native>>.
 
-eval_utf16_field(Val, big) -> <<Val/utf16-big>>;
-eval_utf16_field(Val, little) -> <<Val/utf16-little>>;
-eval_utf16_field(Val, native) -> <<Val/utf16-native>>.
+eval_utf16_bitseg(Val, big) -> <<Val/utf16-big>>;
+eval_utf16_bitseg(Val, little) -> <<Val/utf16-little>>;
+eval_utf16_bitseg(Val, native) -> <<Val/utf16-native>>.
 
-eval_utf32_field(Val, big) -> <<Val/utf32-big>>;
-eval_utf32_field(Val, little) -> <<Val/utf32-little>>;
-eval_utf32_field(Val, native) -> <<Val/utf32-native>>.
+eval_utf32_bitseg(Val, big) -> <<Val/utf32-big>>;
+eval_utf32_bitseg(Val, little) -> <<Val/utf32-little>>;
+eval_utf32_bitseg(Val, native) -> <<Val/utf32-native>>.
 
-eval_float_field(Val, Sz, big) -> <<Val:Sz/float>>;
-eval_float_field(Val, Sz, little) -> <<Val:Sz/float-little>>;
-eval_float_field(Val, Sz, native) -> <<Val:Sz/float-native>>.
+eval_float_bitseg(Val, Sz, big) -> <<Val:Sz/float>>;
+eval_float_bitseg(Val, Sz, little) -> <<Val:Sz/float-little>>;
+eval_float_bitseg(Val, Sz, native) -> <<Val:Sz/float-native>>.
 
 %% eval_lambda(LambdaBody, Env) -> Val.
 %%  Evaluate (lambda args ...).
@@ -289,35 +318,35 @@ eval_float_field(Val, Sz, native) -> <<Val:Sz/float-native>>.
 eval_lambda([Args|Body], Env) ->
     %% This is a really ugly hack!
     case length(Args) of
-	0 -> fun () -> eval_lambda([], [], Body, Env) end;
-	1 -> fun (A) -> eval_lambda([A], Args, Body, Env) end;
-	2 -> fun (A,B) -> eval_lambda([A,B], Args, Body, Env) end;
-	3 -> fun (A,B,C) -> eval_lambda([A,B,C], Args, Body, Env) end;
-	4 -> fun (A,B,C,D) -> eval_lambda([A,B,C,D], Args, Body, Env) end;
-	5 -> fun (A,B,C,D,E) -> eval_lambda([A,B,C,D,E], Args, Body, Env) end;
+	0 -> fun () -> apply_lambda([], Body, [], Env) end;
+	1 -> fun (A) -> apply_lambda(Args, Body, [A], Env) end;
+	2 -> fun (A,B) -> apply_lambda(Args, Body, [A,B], Env) end;
+	3 -> fun (A,B,C) -> apply_lambda(Args, Body, [A,B,C], Env) end;
+	4 -> fun (A,B,C,D) -> apply_lambda(Args, Body, [A,B,C,D], Env) end;
+	5 -> fun (A,B,C,D,E) -> apply_lambda(Args, Body, [A,B,C,D,E], Env) end;
 	6 -> fun (A,B,C,D,E,F) ->
-	    eval_lambda([A,B,C,D,E,F], Args, Body, Env) end;
+	    apply_lambda(Args, Body, [A,B,C,D,E,F], Env) end;
 	7 -> fun (A,B,C,D,E,F,G) ->
-	    eval_lambda([A,B,C,D,E,F,G], Args, Body, Env) end;
+	    apply_lambda(Args, Body, [A,B,C,D,E,F,G], Env) end;
 	8 -> fun (A,B,C,D,E,F,G,H) ->
-	    eval_lambda([A,B,C,D,E,F,G,H], Args, Body, Env) end;
+	    apply_lambda(Args, Body, [A,B,C,D,E,F,G,H], Env) end;
 	9 -> fun (A,B,C,D,E,F,G,H,I) ->
-	    eval_lambda([A,B,C,D,E,F,G,H,I], Args, Body, Env) end;
+	    apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I], Env) end;
 	10 -> fun (A,B,C,D,E,F,G,H,I,J) ->
-	    eval_lambda([A,B,C,D,E,F,G,H,I,J], Args, Body, Env) end;
+	    apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I,J], Env) end;
 	11 -> fun (A,B,C,D,E,F,G,H,I,J,K) ->
-	    eval_lambda([A,B,C,D,E,F,G,H,I,J,K], Args, Body, Env) end;
+	    apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I,J,K], Env) end;
 	12 -> fun (A,B,C,D,E,F,G,H,I,J,K,L) ->
-	    eval_lambda([A,B,C,D,E,F,G,H,I,J,K,L], Args, Body, Env) end;
+	    apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I,J,K,L], Env) end;
 	13 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M) ->
-	    eval_lambda([A,B,C,D,E,F,G,H,I,J,K,L,M], Args, Body, Env) end;
+	    apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I,J,K,L,M], Env) end;
 	14 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N) ->
-	    eval_lambda([A,B,C,D,E,F,G,H,I,J,K,L,M,N], Args, Body, Env) end;
+	    apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I,J,K,L,M,N], Env) end;
 	15 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O) ->
-	    eval_lambda([A,B,C,D,E,F,G,H,I,J,K,L,M,N,O], Args, Body, Env) end
+	    apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I,J,K,L,M,N,O], Env) end
     end.
 
-eval_lambda(Vals, Args, Body, Env0) ->
+apply_lambda(Args, Body, Vals, Env0) ->
     Env1 = bind_args(Args, Vals, Env0),
     eval_body(Body, Env1).
 
@@ -333,45 +362,45 @@ bind_args([], [], Env) -> Env.
 eval_match_lambda(Cls, Env) ->
     %% This is a really ugly hack!
     case match_lambda_arity(Cls) of
-	0 -> fun () -> eval_match_clauses([], Cls, Env) end;
-	1 -> fun (A) -> eval_match_clauses([A], Cls, Env) end;
-	2 -> fun (A,B) -> eval_match_clauses([A,B], Cls, Env) end;
-	3 -> fun (A,B,C) -> eval_match_clauses([A,B,C], Cls, Env) end;
-	4 -> fun (A,B,C,D) -> eval_match_clauses([A,B,C,D], Cls, Env) end;
-	5 -> fun (A,B,C,D,E) -> eval_match_clauses([A,B,C,D,E], Cls, Env) end;
+	0 -> fun () -> apply_match_clauses(Cls, [], Env) end;
+	1 -> fun (A) -> apply_match_clauses(Cls, [A], Env) end;
+	2 -> fun (A,B) -> apply_match_clauses(Cls, [A,B], Env) end;
+	3 -> fun (A,B,C) -> apply_match_clauses(Cls, [A,B,C], Env) end;
+	4 -> fun (A,B,C,D) -> apply_match_clauses(Cls, [A,B,C,D], Env) end;
+	5 -> fun (A,B,C,D,E) -> apply_match_clauses(Cls, [A,B,C,D,E], Env) end;
 	6 -> fun (A,B,C,D,E,F) ->
-	    eval_match_clauses([A,B,C,D,E,F], Cls, Env) end;
+	    apply_match_clauses(Cls, [A,B,C,D,E,F], Env) end;
 	7 -> fun (A,B,C,D,E,F,G) ->
-	    eval_match_clauses([A,B,C,D,E,F,G], Cls, Env) end;
+	    apply_match_clauses(Cls, [A,B,C,D,E,F,G], Env) end;
 	8 -> fun (A,B,C,D,E,F,G,H) ->
-	    eval_match_clauses([A,B,C,D,E,F,G,H], Cls, Env) end;
+	    apply_match_clauses(Cls, [A,B,C,D,E,F,G,H], Env) end;
 	9 -> fun (A,B,C,D,E,F,G,H,I) ->
-	    eval_match_clauses([A,B,C,D,E,F,G,H,I], Cls, Env) end;
+	    apply_match_clauses(Cls, [A,B,C,D,E,F,G,H,I], Env) end;
 	10 -> fun (A,B,C,D,E,F,G,H,I,J) ->
-	    eval_match_clauses([A,B,C,D,E,F,G,H,I,J], Cls, Env) end;
+	    apply_match_clauses(Cls, [A,B,C,D,E,F,G,H,I,J], Env) end;
 	11 -> fun (A,B,C,D,E,F,G,H,I,J,K) ->
-	    eval_match_clauses([A,B,C,D,E,F,G,H,I,J,K], Cls, Env) end;
+	    apply_match_clauses(Cls, [A,B,C,D,E,F,G,H,I,J,K], Env) end;
 	12 -> fun (A,B,C,D,E,F,G,H,I,J,K,L) ->
-	    eval_match_clauses([A,B,C,D,E,F,G,H,I,J,K,L], Cls, Env) end;
+	    apply_match_clauses(Cls, [A,B,C,D,E,F,G,H,I,J,K,L], Env) end;
 	13 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M) ->
-	    eval_match_clauses([A,B,C,D,E,F,G,H,I,J,K,L,M], Cls, Env) end;
+	    apply_match_clauses(Cls, [A,B,C,D,E,F,G,H,I,J,K,L,M], Env) end;
 	14 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N) ->
-	    eval_match_clauses([A,B,C,D,E,F,G,H,I,J,K,L,M,N], Cls, Env) end;
+	    apply_match_clauses(Cls, [A,B,C,D,E,F,G,H,I,J,K,L,M,N], Env) end;
 	15 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O) ->
-	    eval_match_clauses([A,B,C,D,E,F,G,H,I,J,K,L,M,N,O], Cls, Env) end
+	    apply_match_clauses(Cls, [A,B,C,D,E,F,G,H,I,J,K,L,M,N,O], Env) end
     end.
 
 match_lambda_arity([[Pats|_]|_]) -> length(Pats).
 
-eval_match_clauses(Vals, [[Pats|B0]|Cls], Env) ->
+apply_match_clauses([[Pats|B0]|Cls], Vals, Env) ->
     if length(Vals) == length(Pats) ->
 	    case match_when(Pats, Vals, B0, Env) of
 		{yes,B1,Vbs} -> eval_body(B1, add_vbindings(Vbs, Env));
-		no -> eval_match_clauses(Vals, Cls, Env)
+		no -> apply_match_clauses(Cls, Vals, Env)
 	    end;
        true -> erlang:error(badarity)
     end;
-eval_match_clauses(_, _, _) -> erlang:error(function_clause).
+apply_match_clauses(_, _, _) -> erlang:error(function_clause).
 
 %% eval_let([PatBindings|Body], Env) -> Value.
 
@@ -451,13 +480,16 @@ extend_letrec_env(Lete0, Fbs0, Env0) ->
 add_expr_func(Name, Ar, Def, Env) ->
     add_fbinding(Name, Ar, {expr,Def,Env}, Env).
 
-%% eval_apply(Function, Vals, Env) -> Value.
-%%  This is used to evaluate interpreted functions.
+%% eval_apply(Function, Args, Env) -> Value.
+%%  This is used to evaluate interpreted functions. Macros are
+%%  expanded completely in the function definition before it is
+%%  applied.
 
-eval_apply({expr,[lambda,Args|Body],Env}, Es, _) ->
-    eval_lambda(Es, Args, Body, Env);
-eval_apply({expr,['match-lambda'|Cls],Env}, Es, _) ->
-    eval_match_clauses(Es, Cls, Env);
+eval_apply({expr,Func,Env}, Es, _) ->
+    case lfe_macro:expand_form(Func, Env) of
+	[lambda,Args|Body] -> apply_lambda(Args, Body, Es, Env);
+	['match-lambda'|Cls] -> apply_match_clauses(Cls, Es, Env)
+    end;
 eval_apply({letrec,Body,Fbs,Env}, Es, Ee) ->
     %% A function created by/for letrec-function.
     NewEnv = foldl(fun ({V,Ar,Lambda}, E) ->
@@ -682,6 +714,7 @@ eval_gexpr([car,E], Env) -> hd(eval_gexpr(E, Env));	%Provide lisp names
 eval_gexpr([cdr,E], Env) -> tl(eval_gexpr(E, Env));
 eval_gexpr([list|Es], Env) -> eval_glist(Es, Env);
 eval_gexpr([tuple|Es], Env) -> list_to_tuple(eval_glist(Es, Env));
+eval_gexpr([binary|Bs], Env) -> eval_gbinary(Bs, Env);
 %% Handle the Core closure special forms.
 %% Handle the control special forms.
 eval_gexpr(['progn'|Body], Env) -> eval_gbody(Body, Env);
@@ -710,6 +743,23 @@ eval_gexpr(E, _) -> E.				%Atoms evaluate to themselves.
 
 eval_glist(Es, Env) ->
     map(fun (E) -> eval_gexpr(E, Env) end, Es).
+
+%% eval_gbinary(Bitsegs, Env) -> Binary.
+%%  Construct a binary from Bitsegs. This code is taken from eval_bits.erl.
+
+eval_gbinary(Segs, Env) ->
+    Vsps = parse_bitsegs(Segs, Env),
+    eval_gbitsegs(Vsps, Env).
+
+eval_gbitsegs(Vsps, Env) ->
+    foldl(fun ({Val,Spec}, Acc) ->
+		  Bin = eval_gbitseg(Val, Spec, Env),
+		  <<Acc/bitstring,Bin/bitstring>>
+	  end, <<>>, Vsps).
+
+eval_gbitseg(Val, Spec, Env) ->
+    V = eval_gexpr(Val, Env),
+    eval_exp_bitseg(V, Spec).
 
 %% eval_gif(IfBody, Env) -> Val.
 
@@ -769,44 +819,44 @@ match_symb(Symb, Val, _, Bs) ->
 	error -> {yes,store(Symb, Val, Bs)}	%Not yet bound
     end.
 
-%% match_binary(Fields, Binary, Env, Bindings) -> {yes,Bindings} | no.
-%%  Match Fields against Binary. This code is taken from
+%% match_binary(Bitsegs, Binary, Env, Bindings) -> {yes,Bindings} | no.
+%%  Match Bitsegs against Binary. This code is taken from
 %%  eval_bits.erl. All bitspec errors and bad matches result in an
 %%  error, we use catch to trap it.
 
-match_binary(Fs, Bin, Env, Bs0) ->
-    Psps = map(fun (F) -> parse_field(F, Env) end, Fs),
-    case catch match_fields(Psps, Bin, Env, Bs0) of
+match_binary(Segs, Bin, Env, Bs0) ->
+    Psps = parse_bitsegs(Segs, Env),
+    case catch match_bitsegs(Psps, Bin, Env, Bs0) of
 	{yes,Bs1} -> {yes,Bs1};			%Matched whole binary
 	{'EXIT',_} -> no			%Error is no match
     end.
 
-match_fields([{Pat,Specs}|Psps], Bin0, Env, Bs0) ->
-    {yes,Bin1,Bs1} = match_field(Pat, Specs, Bin0, Env, Bs0),
-    match_fields(Psps, Bin1, Env, Bs1);
-match_fields([], <<>>, _, Bs) -> {yes,Bs}.	%Reached the end of both
+match_bitsegs([{Pat,Specs}|Psps], Bin0, Env, Bs0) ->
+    {yes,Bin1,Bs1} = match_bitseg(Pat, Specs, Bin0, Env, Bs0),
+    match_bitsegs(Psps, Bin1, Env, Bs1);
+match_bitsegs([], <<>>, _, Bs) -> {yes,Bs}.	%Reached the end of both
 
-match_field(Pat, Spec, Bin0, Env, Bs0) ->
-    {Val,Bin1} = get_pat_field(Bin0, Spec),
+match_bitseg(Pat, Spec, Bin0, Env, Bs0) ->
+    {Val,Bin1} = get_pat_bitseg(Bin0, Spec),
     {yes,Bs1} = match(Pat, Val, Env, Bs0),
     {yes,Bin1,Bs1}.
 
-%% get_pat_field(Binary, {Type,Size,Unit,Sign,Endian}) -> {Value,RestBinary}.
+%% get_pat_bitseg(Binary, {Type,Size,Unit,Sign,Endian}) -> {Value,RestBinary}.
 
-get_pat_field(Bin, Spec) ->
+get_pat_bitseg(Bin, Spec) ->
     case Spec of
 	%% Integer types.
 	{integer,Sz,Un,Si,En} ->
-	    get_int_field(Bin, Sz*Un, Si, En);
-	%% Unicode types, ignore unused fields.
-	{utf8,_,_,_,_} -> get_utf8_field(Bin);
-	{utf16,_,_,_,En} -> get_utf16_field(Bin, En);
-	{utf32,_,_,_,En} -> get_utf32_field(Bin, En);
+	    get_int_bitseg(Bin, Sz*Un, Si, En);
+	%% Unicode types, ignore unused bitsegs.
+	{utf8,_,_,_,_} -> get_utf8_bitseg(Bin);
+	{utf16,_,_,_,En} -> get_utf16_bitseg(Bin, En);
+	{utf32,_,_,_,En} -> get_utf32_bitseg(Bin, En);
 	%% Float types.
-	{float,Sz,Un,_,En} -> get_float_field(Bin, Sz*Un, En);
+	{float,Sz,Un,_,En} -> get_float_bitseg(Bin, Sz*Un, En);
 	%% Binary types.
 	{binary,all,Un,_,_} ->
-	    0 = (erlang:bit_size(Bin) rem Un),
+	    0 = (bit_size(Bin) rem Un),
 	    {Bin,<<>>};
 	{binary,Sz,Un,_,_} ->
 	    TotSize = Sz * Un,
@@ -814,55 +864,55 @@ get_pat_field(Bin, Spec) ->
 	    {Val,Rest}
     end.
 
-get_int_field(Bin, Sz, signed, big) ->
+get_int_bitseg(Bin, Sz, signed, big) ->
     <<Val:Sz/big-signed,Rest/bitstring>> = Bin,
     {Val,Rest};
-get_int_field(Bin, Sz, unsigned, big) ->
+get_int_bitseg(Bin, Sz, unsigned, big) ->
     <<Val:Sz/big-unsigned,Rest/bitstring>> = Bin,
     {Val,Rest};
-get_int_field(Bin, Sz, signed, little) ->
+get_int_bitseg(Bin, Sz, signed, little) ->
     <<Val:Sz/little-signed,Rest/bitstring>> = Bin,
     {Val,Rest};
-get_int_field(Bin, Sz, unsigned, little) ->
+get_int_bitseg(Bin, Sz, unsigned, little) ->
     <<Val:Sz/little-unsigned,Rest/bitstring>> = Bin,
     {Val,Rest};
-get_int_field(Bin, Sz, signed, native) ->
+get_int_bitseg(Bin, Sz, signed, native) ->
     <<Val:Sz/native-signed,Rest/bitstring>> = Bin,
     {Val,Rest};
-get_int_field(Bin, Sz, unsigned, native) ->
+get_int_bitseg(Bin, Sz, unsigned, native) ->
     <<Val:Sz/native-unsigned,Rest/bitstring>> = Bin,
     {Val,Rest}.
 
-get_utf8_field(Bin) ->
+get_utf8_bitseg(Bin) ->
     <<Val/utf8,Rest/bitstring>> = Bin,
     {Val,Rest}.
 
-get_utf16_field(Bin, big) ->
+get_utf16_bitseg(Bin, big) ->
     <<Val/utf16-big,Rest/bitstring>> = Bin,
     {Val,Rest};
-get_utf16_field(Bin, little) ->
+get_utf16_bitseg(Bin, little) ->
     <<Val/utf16-little,Rest/bitstring>> = Bin,
     {Val,Rest};
-get_utf16_field(Bin, native) ->
+get_utf16_bitseg(Bin, native) ->
     <<Val/utf16-native,Rest/bitstring>> = Bin,
     {Val,Rest}.
 
-get_utf32_field(Bin, big) ->
+get_utf32_bitseg(Bin, big) ->
     <<Val/utf32-big,Rest/bitstring>> = Bin,
     {Val,Rest};
-get_utf32_field(Bin, little) ->
+get_utf32_bitseg(Bin, little) ->
     <<Val/utf32-little,Rest/bitstring>> = Bin,
     {Val,Rest};
-get_utf32_field(Bin, native) ->
+get_utf32_bitseg(Bin, native) ->
     <<Val/utf32-native,Rest/bitstring>> = Bin,
     {Val,Rest}.
 
-get_float_field(Bin, Sz, big) ->
+get_float_bitseg(Bin, Sz, big) ->
     <<Val:Sz/float,Rest/bitstring>> = Bin,
     {Val,Rest};
-get_float_field(Bin, Sz, little) ->
+get_float_bitseg(Bin, Sz, little) ->
     <<Val:Sz/float-little,Rest/bitstring>> = Bin,
     {Val,Rest};
-get_float_field(Bin, Sz, native) ->
+get_float_bitseg(Bin, Sz, native) ->
     <<Val:Sz/float-native,Rest/bitstring>> = Bin,
     {Val,Rest}.

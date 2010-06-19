@@ -1,24 +1,48 @@
-EBIN_DIR=ebin
-SOURCE_DIR=src
-INCLUDE_DIR=include
-DOC_DIR=doc
+# Makefile for LFE
+# This simple Makefile uses rebar to compile/install/clean if it
+# exists, else does it explicitly.
 
-ERLC_FLAGS=-W0 -Ddebug +debug_info
-ERLC=erlc -I $(INCLUDE_DIR) -o $(EBIN_DIR) $(ERLC_FLAGS) $(SOURCE_DIR)
-ERL=erl -I -pa ebin -noshell -eval
+EBINDIR = ebin
+SRCDIR = src
+INCDIR = include
+DOCDIR = doc
+EMACSDIR = emacs
+
+VPATH = $(SRCDIR)
+
+ERLCFLAGS = -W0 +debug_info
+ERLC = erlc -I $(INCDIR) -o $(EBINDIR) $(ERLCFLAGS)
+
+## The .erl and .beam files
+SRCS = $(notdir $(wildcard $(SRCDIR)/*.erl))
+EBINS = $(SRCS:.erl=.beam)
+
+## Where we install LFE, in the ERL_LIBS directory.
+INSTALLDIR = "$$ERL_LIBS"/lfe
 
 all: compile docs
 
 compile:
-	mkdir -p $(EBIN_DIR)
-	$(ERLC)/*.erl
+	if which -s rebar; \
+	then rebar compile; \
+	else echo $(ERLC) $(addprefix $(SRCDIR)/, $(SRCS)); \
+	fi
+
+install:
+	if which -s rebar; \
+	then rebar install; \
+	elif [ "$$ERL_LIBS" != "" ]; \
+	then mkdir -p $(INSTALLDIR)/$(EBINDIR) ; \
+	     cp -a $(EBINDIR) $(INSTALLDIR); \
+	     cp -a $(EMACSDIR) $(INSTALLDIR); \
+	else exit 1; \
+	fi
 
 docs:
-	#$(ERL) -noshell -run edoc file $(SOURCE_DIR)/leex.erl -run init stop
-	#$(ERL) -noshell -run edoc_run application "'Leex'" '"."' '[no_packages]'
-	#mv $(SOURCE_DIR)/*.html $(DOC_DIR)/
 
 clean:
+	if which -s rebar; \
+	then rebar clean; \
+	else rm -rf $(EBINDIR)/*.beam; \
+	fi
 	rm -rf erl_crash.dump 
-	rm -rf $(EBIN_DIR)/*.beam
-	rm -rf $(DOC_DIR)/*.html

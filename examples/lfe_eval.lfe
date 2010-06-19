@@ -31,13 +31,14 @@
 
 (defmodule lfe_eval
   (export (expr 1) (expr 2) (gexpr 1) (gexpr 2) (apply 2) (apply 3)
-	  (make_letrec_env 2) (add_expr_func 4) (match 3)
-	  (eval 1) (eval 2) (eval_list 2))
+	  (make_letrec_env 2) (add_expr_func 4) (match 3))
+  ;; Deprecated exports.
+  (export (eval 1) (eval 2) (eval_list 2))
   (import (from lfe_lib (new_env 0)
 		(add_vbinding 3) (add_vbindings 2) (get_vbinding 2)
 		(add_fbinding 4) (add_fbindings 2) (get_fbinding 3)
 		(add_ibinding 5) (get_gbinding 3))
-	  (from lists (reverse 1) (all 2) (map 2) (foldl 3))
+	  (from lists (reverse 1) (all 2) (map 2) (foldl 3) (foldr 3))
 	  (from orddict (find 2) (store 3)))
   (deprecated #(eval 1) #(eval 2)))
 
@@ -47,9 +48,18 @@
 
 (defun eval_list (es env) (eval-list es env))
 
+;; expr(Sexpr) -> Value
+;; expr(Sexpr, Env) -> Value
+;; Evaluate the sexpr, first expanding all macros.
+
 (defun expr (e) (expr e (new_env)))
 
-(defun expr (e env) (eval-expr e env))
+(defun expr (e env)
+  (let ((exp (: lfe_macro expand_form e env)))
+    (eval-expr exp env)))
+
+;; gexpr(Sexpr) -> Value
+;; gexpr(Sexpr, Env) -> Value
 
 (defun gexpr (e) (gexpr e (new_env)))
 
@@ -113,19 +123,14 @@
      (: erlang apply (eval-expr f env) (eval-list as env)))
     (('call . body)
      (eval-call body env))
-    ;; General function call.
-    ((f . es) (when (is_atom f))
-     ;; If macro then expand and try again, else try to find function.
-     ;; We only expand the top level here.
-     (case (: lfe_macro expand_macro e env)
-       ((tuple 'yes exp)
-	(eval-expr exp env)) ;This was macro, try again
-       ('no
-	(let ((ar (length es)))		;Arity
-	  (case (get_fbinding f ar env)
-	    ((tuple 'yes m f) (: erlang apply m f (eval-list es env)))
-	    ((tuple 'yes f) (lfe-apply f (eval-list es env) env))
-	    ('no (: erlang error (tuple 'unbound_func (tuple f ar)))))))))
+    ;; General function calls.
+    ((fun . es) (when (is_atom fun))
+     ;; Note that macros have already been expanded here.
+     (let ((ar (length es)))		;Arity
+       (case (get_fbinding fun ar env)
+	 ((tuple 'yes m f) (: erlang apply m f (eval-list es env)))
+	 ((tuple 'yes f) (lfe-apply f (eval-list es env) env))
+	 ('no (: erlang error (tuple 'unbound_func (tuple fun ar)))))))
     ((f . es)
      (: erlang error (tuple 'bad_form 'application)))
     (e (if (is_atom e)
@@ -144,32 +149,53 @@
      (eval-expr e env) (eval-body es env))
     (() ())))
 
-;; (eval-binary fields env) -> binary.
-;;   Construct a binary from fields. This code is taken from eval_bits.erl.
+;; (eval-binary bitsegs env) -> binary.
+;;   Construct a binary from bitsegs. This code is taken from eval_bits.erl.
 
 (defun eval-binary (fs env)
-  (let ((psps (map (lambda (f) (parse-field f env)) fs)))
-    (eval-fields psps env)))
+  (let ((vsps (parse-bitsegs fs env)))
+    (eval-bitsegs vsps env)))
 
 (defrecord spec
   (type 'integer) (size 'default) (unit 'default)
   (sign 'default) (endian 'default))
 
-(defun parse-field (f env)
-  (case f
-    ((pat . specs) (tuple pat (parse-bitspecs specs (make-spec) env)))
-    (pat (tuple pat (parse-bitspecs () (make-spec) env)))))
+(defun parse-bitsegs (fs env)
+;;  (map (lambda (f) (parse-bitseg f env)) fs))
+  (foldr (lambda (f vs) (parse-bitseg f vs env)) () fs))
 
-(defun eval-fields (psps env)
+(defun parse-bitseg (f vsps env)
+  (fletrec ((is-integer-list
+	     ([(i . is)] (when (is_integer i)) (is-integer-list is))
+	     ([()] 'true)
+	     ([_] 'false)))
+    ;; Test what structure the bitseg has.
+    (cond ((is-integer-list f)		;A string
+	   (let ((sp (parse-bitspecs () (make-spec) env)))
+	     (foldr (lambda (v vs) (cons (tuple v sp) vs)) vsps f)))
+	  ((?= (val . specs) f)		;A value and spec
+	   (let ((sp (parse-bitspecs specs (make-spec) env)))
+	     (if (is-integer-list val)
+	       (foldr (lambda (v vs) (cons (tuple v sp) vs)) vsps val)
+	       (cons (tuple val sp) vsps))))
+	  (else				;A simple value
+	   (cons (tuple f (parse-bitspecs () (make-spec) env)) vsps)))))
+
+;; (defun parse-bitseg (f env)
+;;   (case f
+;;     ((pat . specs) (tuple pat (parse-bitspecs specs (make-spec) env)))
+;;     (pat (tuple pat (parse-bitspecs () (make-spec) env)))))
+
+(defun eval-bitsegs (psps env)
   (foldl (lambda (psp acc)
 	    (let* (((tuple val spec) psp)
-		   (bin (eval-field val spec env)))
+		   (bin (eval-bitseg val spec env)))
 	      (binary (acc bitstring) (bin bitstring))))
 	 #b() psps))
 
-(defun eval-field (val spec env)
+(defun eval-bitseg (val spec env)
   (let ((v (eval-expr val env)))
-    (eval-exp-field v spec)))
+    (eval-exp-bitseg v spec)))
 
 ;; (parse-bitspecs specs spec env) -> (tuple type size unit sign end).
 
@@ -217,8 +243,11 @@
     ('utf-32 (set-spec-type sp 'utf32))
     ;; Endianess.
     ('big-endian (set-spec-endian sp 'big))
+    ('big (set-spec-endian sp 'big))
     ('little-endian (set-spec-endian sp 'little))
+    ('little (set-spec-endian sp 'little))
     ('native-endian (set-spec-endian sp 'native))
+    ('native (set-spec-endian sp 'native))
     ;; Sign.
     ('signed (set-spec-sign sp 'signed))
     ('unsigned (set-spec-sign sp 'unsigned))
@@ -226,33 +255,33 @@
     (('size n)
      (let ((size (eval-expr n env)))
        (set-spec-size sp size)))
-    (('unit n) (when (and (is_integer n) (> n 0)))
+    (('unit n) (when (is_integer n) (> n 0))
      (set-spec-unit sp n))
     ;; Illegal spec.
     (_ (: erlang error (tuple 'illegal_bitspec spec)))))
 
-;; (eval-exp-field value type size unit sign endian) -> binary().
+;; (eval-exp-bitseg value type size unit sign endian) -> binary().
 
-(defun eval-exp-field (val spec)
+(defun eval-exp-bitseg (val spec)
   (case spec
     ;; Integer types.
-    ((tuple 'integer sz un si en) (eval-int-field val (* sz un) si en))
-    ;; Unicode types, ignore unused fields.
+    ((tuple 'integer sz un si en) (eval-int-bitseg val (* sz un) si en))
+    ;; Unicode types, ignore unused specs.
     ((tuple 'utf8 _ _ _ _) (binary (val utf-8)))
-    ((tuple 'utf16 _ _ _ en) (eval-utf-16-field val en))
-    ((tuple 'utf32 _ _ _ en) (eval-utf-32-field val en))
+    ((tuple 'utf16 _ _ _ en) (eval-utf-16-bitseg val en))
+    ((tuple 'utf32 _ _ _ en) (eval-utf-32-bitseg val en))
     ;; Float types.
-    ((tuple 'float sz un _ en) (eval-float-field val (* sz un) en))
+    ((tuple 'float sz un _ en) (eval-float-bitseg val (* sz un) en))
     ;; Binary types.
     ((tuple 'binary 'all un _ _)
-     (case (: erlang bit_size val)
+     (case (bit_size val)
        (size (when (=:= (rem size un) 0))
 	     (binary (val bitstring (size size))))
        (_ (: erlang error 'bad_arg))))
     ((tuple 'binary sz un _ _)
      (binary (val bitstring (size (* sz un)))))))
 
-(defun eval-int-field
+(defun eval-int-bitseg
   ([val sz 'signed 'big] (binary (val (size sz) signed big-endian)))
   ([val sz 'unsigned 'big] (binary (val (size sz) unsigned big-endian)))
   ([val sz 'signed 'little] (binary (val (size sz) signed little-endian)))
@@ -260,19 +289,19 @@
   ([val sz 'signed 'native] (binary (val (size sz) signed native-endian)))
   ([val sz 'unsigned 'native] (binary (val (size sz) unsigned native-endian))))
 
-(defun eval-utf-16-field (val en)
+(defun eval-utf-16-bitseg (val en)
   (case en
     ('big (binary (val utf-16 big-endian)))
     ('little (binary (val utf-16 little-endian)))
     ('native (binary (val utf-16 native-endian)))))
 
-(defun eval-utf-32-field (val en)
+(defun eval-utf-32-bitseg (val en)
   (case en
     ('big (binary (val utf-32 big-endian)))
     ('little (binary (val utf-32 little-endian)))
     ('native (binary (val utf-32 native-endian)))))
 
-(defun eval-float-field (val sz en)
+(defun eval-float-bitseg (val sz en)
   (case en
     ('big (binary (val float (size sz) big-endian)))
     ('little (binary (val float (size sz) little-endian)))
@@ -284,35 +313,35 @@
   ([(args . body) env]
    ;; This is a really ugly hack!
    (case (length args)
-     (0 (lambda () (eval-lambda () () body env)))
-     (1 (lambda (a) (eval-lambda (list a) args body env)))
-     (2 (lambda (a b) (eval-lambda (list a b) args body env)))
-     (3 (lambda (a b c) (eval-lambda (list a b c) args body env)))
-     (4 (lambda (a b c d) (eval-lambda (list a b c d) args body env)))
-     (5 (lambda (a b c d e) (eval-lambda (list a b c d e) args body env)))
+     (0 (lambda () (apply-lambda () body () env)))
+     (1 (lambda (a) (apply-lambda args body (list a) env)))
+     (2 (lambda (a b) (apply-lambda args body (list a b) env)))
+     (3 (lambda (a b c) (apply-lambda args body (list a b c) env)))
+     (4 (lambda (a b c d) (apply-lambda args body (list a b c d) env)))
+     (5 (lambda (a b c d e) (apply-lambda args body (list a b c d e) env)))
      (6 (lambda (a b c d e f)
-	  (eval-lambda (list a b c d e f) args body env)))
+	  (apply-lambda args body (list a b c d e f) env)))
      (7 (lambda (a b c d e f g)
-	  (eval-lambda (list a b c d e f g) args body env)))
+	  (apply-lambda args body (list a b c d e f g) env)))
      (8 (lambda (a b c d e f g h)
-	  (eval-lambda (list a b c d e f g h) args body env)))
+	  (apply-lambda args body (list a b c d e f g h) env)))
      (9 (lambda (a b c d e f g h i)
-	  (eval-lambda (list a b c d e f g h i) args body env)))
+	  (apply-lambda args body (list a b c d e f g h i) env)))
      (10 (lambda (a b c d e f g h i j)
-	   (eval-lambda (list a b c d e f g h i j) args body env)))
+	   (apply-lambda args body (list a b c d e f g h i j) env)))
      (11 (lambda (a b c d e f g h i j k)
-	   (eval-lambda (list a b c d e f g h i j k) args body env)))
+	   (apply-lambda args body (list a b c d e f g h i j k) env)))
      (12 (lambda (a b c d e f g h i j k l)
-	   (eval-lambda (list a b c d e f g h i j k l) args body env)))
+	   (apply-lambda args body (list a b c d e f g h i j k l) env)))
      (13 (lambda (a b c d e f g h i j k l m)
-	   (eval-lambda (list a b c d e f g h i j k l m) args body env)))
+	   (apply-lambda args body (list a b c d e f g h i j k l m) env)))
      (14 (lambda (a b c d e f g h i j k l m n)
-	   (eval-lambda (list a b c d e f g h i j k l m n) args body env)))
+	   (apply-lambda args body (list a b c d e f g h i j k l m n) env)))
      (15 (lambda (a b c d e f g h i j k l m n o)
-	   (eval-lambda (list a b c d e f g h i j k l m n o) args body env)))
+	   (apply-lambda args body (list a b c d e f g h i j k l m n o) env)))
      )))
 
-(defun eval-lambda (vals args body env)
+(defun apply-lambda (args body vals env)
   (fletrec ((bind-args
 	     ([('_ . as) (_ . es) env]	;Ignore don't care variables
 	      (bind-args as es env))
@@ -321,47 +350,49 @@
 	     ([() () env] env)))
     (eval-body body (bind-args args vals env))))
 
+;; eval-match-lambda (MatchClauses Env) -> Value
+;; Evaluate (match-lambda cls ...).
+
 (defun eval-match-lambda (cls env)
   ;; This is a really ugly hack!
   (case (match-lambda-arity cls)
-    (0 (lambda () (eval-match-clauses () cls env)))
-    (1 (lambda (a) (eval-match-clauses (list a) cls env)))
-    (2 (lambda (a b) (eval-match-clauses (list a b) cls env)))
-    (3 (lambda (a b c) (eval-match-clauses (list a b c) cls env)))
-    (4 (lambda (a b c d) (eval-match-clauses (list a b c d) cls env)))
-    (5 (lambda (a b c d e) (eval-match-clauses (list a b c d e) cls env)))
+    (0 (lambda () (apply-match-clauses cls () env)))
+    (1 (lambda (a) (apply-match-clauses cls (list a) env)))
+    (2 (lambda (a b) (apply-match-clauses cls (list a b) env)))
+    (3 (lambda (a b c) (apply-match-clauses cls (list a b c) env)))
+    (4 (lambda (a b c d) (apply-match-clauses cls (list a b c d) env)))
+    (5 (lambda (a b c d e) (apply-match-clauses cls (list a b c d e) env)))
     (6 (lambda (a b c d e f)
-	  (eval-match-clauses (list a b c d e f) cls env)))
+	  (apply-match-clauses cls (list a b c d e f) env)))
     (7 (lambda (a b c d e f g)
-	  (eval-match-clauses (list a b c d e f g) cls env)))
+	  (apply-match-clauses cls (list a b c d e f g) env)))
     (8 (lambda (a b c d e f g h)
-	  (eval-match-clauses (list a b c d e f g h) cls env)))
+	  (apply-match-clauses cls (list a b c d e f g h) env)))
     (9 (lambda (a b c d e f g h i)
-	  (eval-match-clauses (list a b c d e f g h i) cls env)))
+	  (apply-match-clauses cls (list a b c d e f g h i) env)))
     (10 (lambda (a b c d e f g h i j)
-	  (eval-match-clauses (list a b c d e f g h i j) cls env)))
+	  (apply-match-clauses cls (list a b c d e f g h i j) env)))
     (11 (lambda (a b c d e f g h i j k)
-	  (eval-match-clauses (list a b c d e f g h i j k) cls env)))
+	  (apply-match-clauses cls (list a b c d e f g h i j k) env)))
     (12 (lambda (a b c d e f g h i j k l)
-	  (eval-match-clauses (list a b c d e f g h i j k l) cls env)))
+	  (apply-match-clauses cls (list a b c d e f g h i j k l) env)))
     (13 (lambda (a b c d e f g h i j k l m)
-	  (eval-match-clauses (list a b c d e f g h i j k l m) cls env)))
+	  (apply-match-clauses cls (list a b c d e f g h i j k l m) env)))
     (14 (lambda (a b c d e f g h i j k l m n)
-	  (eval-match-clauses (list a b c d e f g h i j k l m n) cls env)))
+	  (apply-match-clauses cls (list a b c d e f g h i j k l m n) env)))
     (15 (lambda (a b c d e f g h i j k l m n o)
-	  (eval-match-clauses (list a b c d e f g h i j k l m n o) cls env)))
+	  (apply-match-clauses cls (list a b c d e f g h i j k l m n o) env)))
     ))
 
-(defun match-lambda-arity (cls)
-  (length (car (car cls))))
+(defun match-lambda-arity (cls) (length (caar cls)))
 
-(defun eval-match-clauses (as cls env)
+(defun apply-match-clauses (cls as env)
   (case cls
     ([(pats . body) . cls]
      (if (== (length as) (length pats))
        (case (match-when pats as body env)
 	 ((tuple 'yes body1 vbs) (eval-body body1 (add_vbindings vbs env)))
-	 ('no (eval-match-clauses as cls env)))
+	 ('no (apply-match-clauses cls as env)))
        (: erlang error 'badarity)))
     ([_ _] (: erlang error 'function_clause))))
 
@@ -447,15 +478,18 @@
   (add_fbinding name ar (tuple 'expr def env) env))
 
 ;; (lfe-apply function args env) -> value
-;;  This is used to evaluate interpreted functions.
+;;  This is used to evaluate interpreted functions. Macros are
+;;  expanded completely in the function definition before it is
+;;  applied.
 
 (defun lfe-apply (f es env0)
   (case f
-    ((tuple 'expr ('lambda args . body) env)
-     (eval-lambda es args body env))
-    ((tuple 'expr ('match-lambda . cls) env)
-     (eval-match-clauses es cls env))
+    ((tuple 'expr func env)
+     (case (: lfe_macro expand_form func env)
+       (('lambda args . body) (apply-lambda args body es env))
+       (('match-lambda . cls) (apply-match-clauses cls es env))))
     ((tuple 'letrec body fbs env)
+     ;; A function created by/for letrec-function.
      (let ((newenv (foldl (match-lambda
 			    ([(tuple v ar lambda) e]
 			     (add_fbinding v ar
@@ -499,14 +533,14 @@
 ;; (eval-receive body env) -> value
 
 (defun eval-receive (body env)
-  (fletrec ((split_rec
+  (fletrec ((split-rec
 	     ([(('after t . b)) rcls]
 	      (tuple (reverse rcls) t b))
 	     ([(cl . b) rcls]
-	      (split_rec b (cons cl rcls)))
-	     ([() rcls]
+	      (split-rec b (cons cl rcls)))
+	     ([() rcls]			;No timeout, return 'infinity
 	      (tuple (reverse rcls) 'infinity ()))))
-    (let (((tuple cls te tb) (split_rec body [])))
+    (let (((tuple cls te tb) (split-rec body [])))
       (case (eval-expr te env)
 	('infinity (receive-clauses cls env))
 	(t (receive-clauses t tb cls env))))))
@@ -669,6 +703,7 @@
      (cdr (eval-gexpr x env)))
     (('list . xs) (eval-glist xs env))
     (('tuple . xs) (list_to_tuple (eval-glist xs env)))
+    (('binary . bs) (eval-gbinary bs env))
     ;; Handle the Core closure special forms.
     ;; Handle the Core control special forms.
     (('progn . b) (eval-gbody b env))
@@ -694,6 +729,24 @@
 
 (defun eval-glist (es env)
   (map (lambda (e) (eval-gexpr e env)) es))
+
+;; (eval-gbinary bitsegs env) -> binary.
+;;   Construct a binary from bitsegs. This code is taken from eval_bits.erl.
+
+(defun eval-gbinary (fs env)
+  (let ((vsps (parse-bitsegs fs env)))
+    (eval-gbitsegs vsps env)))
+
+(defun eval-gbitsegs (psps env)
+  (foldl (lambda (psp acc)
+	    (let* (((tuple val spec) psp)
+		   (bin (eval-gbitseg val spec env)))
+	      (binary (acc bitstring) (bin bitstring))))
+	 #b() psps))
+
+(defun eval-gbitseg (val spec env)
+  (let ((v (eval-gexpr val env)))
+    (eval-exp-bitseg v spec)))
 
 ;; (eval-gif ifbody env) -> val
 
@@ -744,50 +797,50 @@
 	((tuple 'ok _) 'no)		;Already bound, multiple variable
 	('error (tuple 'yes (store symb val bs))))))
 
-;; (match-binary fields binary env bindings) -> (tuple 'yes bindings) | 'no.
-;;  Match Fields against Binary. This code is taken from
+;; (match-binary bitsegs binary env bindings) -> (tuple 'yes bindings) | 'no.
+;;  Match Bitsegs against Binary. This code is taken from
 ;;  eval_bits.erl. All bitspec errors and bad matches result in an
 ;;  error, we use catch to trap it.
 
 (defun match-binary (fs bin env bs)
-  (let ((psps (map (lambda (f) (parse-field f env)) fs)))
-    (case (catch (match-fields psps bin env bs))
+  (let ((psps (parse-bitsegs fs env)))
+    (case (catch (match-bitsegs psps bin env bs))
       ((tuple 'yes bs) (tuple 'yes bs))	;Matched whole binary
       ((tuple 'EXIT _) 'no))))		;Error is no match
 
-(defun match-fields
+(defun match-bitsegs
   ([((tuple pat specs) . psps) bin0 env bs0]
-   (let (((tuple 'yes bin1 bs1) (match-field pat specs bin0 env bs0)))
-     (match-fields psps bin1 env bs1)))
+   (let (((tuple 'yes bin1 bs1) (match-bitseg pat specs bin0 env bs0)))
+     (match-bitsegs psps bin1 env bs1)))
   ([() #b() _ bs] (tuple 'yes bs)))	;Reached the end of both
 
-(defun match-field (pat spec bin0 env bs0)
-  (let* (((tuple val bin1) (get-pat-field bin0 spec))
+(defun match-bitseg (pat spec bin0 env bs0)
+  (let* (((tuple val bin1) (get-pat-bitseg bin0 spec))
 	 ((tuple 'yes bs1) (match pat val env bs0)))
     (tuple 'yes bin1 bs1)))
 
-;; (get-pat-field binary #(type size unit sign endian)) -> #(value restbinary)
+;; (get-pat-bitseg binary #(type size unit sign endian)) -> #(value restbinary)
 
-(defun get-pat-field (bin spec)
+(defun get-pat-bitseg (bin spec)
   (case spec
     ;; Integer types.
-    ((tuple 'integer sz un si en) (get-int-field bin (* sz un) si en))
-    ;; Unicode types, ignore unused fields.
-    ((tuple 'utf8 _ _ _ _) (get-utf-8-field bin))
-    ((tuple 'utf16 _ _ _ en) (get-utf-16-field bin en))
-    ((tuple 'utf32 _ _ _ en) (get-utf-32-field bin en))
+    ((tuple 'integer sz un si en) (get-int-bitseg bin (* sz un) si en))
+    ;; Unicode types, ignore unused specs.
+    ((tuple 'utf8 _ _ _ _) (get-utf-8-bitseg bin))
+    ((tuple 'utf16 _ _ _ en) (get-utf-16-bitseg bin en))
+    ((tuple 'utf32 _ _ _ en) (get-utf-32-bitseg bin en))
     ;; Float types.
-    ((tuple 'float sz un _ en) (get-float-field bin (* sz un) en))
+    ((tuple 'float sz un _ en) (get-float-bitseg bin (* sz un) en))
     ;; Binary types.
     ((tuple 'binary 'all un _ _)
-     (let ((0 (rem (: erlang bit_size bin) un)))
+     (let ((0 (rem (bit_size bin) un)))
        (tuple bin #b())))
     ((tuple 'binary sz un _ _)
      (let* ((tot-size (* sz un))
 	    ((binary (val bitstring (size tot-size)) (rest bitstring)) bin))
        (tuple val rest)))))
 
-(defun get-int-field
+(defun get-int-bitseg
   ([bin sz 'signed 'big]
    (let (((binary (val signed big-endian (size sz))
 		  (rest bitstring)) bin))
@@ -813,11 +866,11 @@
 		  (rest bitstring)) bin))
      (tuple val rest))))
 
-(defun get-utf-8-field (bin)
+(defun get-utf-8-bitseg (bin)
   (let (((binary (val utf-8) (rest bitstring)) bin))
     (tuple val rest)))
 
-(defun get-utf-16-field (bin en)
+(defun get-utf-16-bitseg (bin en)
   (case en
     ('big (let (((binary (val utf-16 big-endian) (rest bitstring)) bin))
 	    (tuple val rest)))
@@ -826,7 +879,7 @@
     ('native (let (((binary (val utf-16 native-endian) (rest bitstring)) bin))
 	       (tuple val rest)))))
 
-(defun get-utf-32-field (bin en)
+(defun get-utf-32-bitseg (bin en)
   (case en
     ('big (let (((binary (val utf-32 big-endian) (rest bitstring)) bin))
 	    (tuple val rest)))
@@ -835,7 +888,7 @@
     ('native (let (((binary (val utf-32 native-endian) (rest bitstring)) bin))
 	       (tuple val rest)))))
 
-(defun get-float-field (bin sz en)
+(defun get-float-bitseg (bin sz en)
   (case en
     ('big
      (let (((binary (val float big-endian (size sz)) (rest bitstring)) bin))
