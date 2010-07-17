@@ -78,14 +78,20 @@ Rules.
 	{Base,[_|Ds]} = base1(string:substr(TokenChars, 2), 10, 0),
 	base(Ds, Base, TokenLine).
 %% Atoms
-{SSYM}{SYM}*	:
+[+-]?{D}+		:
+	case catch {ok,list_to_integer(TokenChars)} of
+	    {ok,I} -> {token,{number,TokenLine,I}};
+	    _ -> {error,"illegal integer"}
+	end.
+[+-]?{D}+\.{D}+([eE][+-]?{D}+)? :
 	case catch {ok,list_to_float(TokenChars)} of
 	    {ok,F} -> {token,{number,TokenLine,F}};
-	    _ ->
-		case catch {ok,list_to_integer(TokenChars)} of
-		    {ok,I} -> {token,{number,TokenLine,I}};
-		    _ -> {token,{symbol,TokenLine,list_to_atom(TokenChars)}}
-		end
+	    _ -> {error,"illegal float"}
+	end.
+{SSYM}{SYM}*	:
+	case catch {ok,list_to_atom(TokenChars)} of
+	    {ok,S} -> {token,{symbol,TokenLine,S}};
+	    _ -> {error,"illegal symbol"}
 	end.
 {WS}+		:	skip_token.
 
