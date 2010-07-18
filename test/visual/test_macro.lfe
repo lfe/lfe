@@ -28,7 +28,7 @@
     ([(('?= p g e) . b) . c] (case e (p g . b) (_ (c-ond . c))))
     ([(t . b) . c] (if t (begin . b) (c-ond . c)))
     ([] 'false))
-  
+
   (defun aa (x y)
     (let& ((o (e x))
 	   (p (e-1 y)))
