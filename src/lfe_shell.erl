@@ -205,15 +205,17 @@ m(Args, Eenv, _) ->
 %%  We special case these at shell level so as to get shell environment.
 
 macroexpand(S, Eenv, _) ->
-    case lfe_macro:expand_macro(lfe_eval:expr(S, Eenv), Eenv) of
+    Arg = lfe_eval:expr(S, Eenv),
+    case lfe_macro:expand_macro(Arg, Eenv) of
 	{yes,Exp} -> {yes,Exp,Eenv};
-	no -> {yes,S,Eenv}
+	no -> {yes,Arg,Eenv}
     end.
 
 macroexpand_1(S, Eenv, _) ->
-    case lfe_macro:expand_macro_1(lfe_eval:expr(S, Eenv), Eenv) of
+    Arg = lfe_eval:expr(S, Eenv),
+    case lfe_macro:expand_macro_1(Arg, Eenv) of
 	{yes,Exp} -> {yes,Exp,Eenv};
-	no -> {yes,S,Eenv}
+	no -> {yes,Arg,Eenv}
     end.
 
 macroexpand_all(S, Eenv, _) ->

@@ -556,9 +556,6 @@ exp_macro([Mac|Args], Def0, Env, St0) ->
 	    erlang:error({expand_macro,Mac,Error})
     end.
 
-%%     Exp = lfe_eval:apply(Def1, [Args], Env),
-%%     {Exp,St1}.
-
 %% exp_predef(Form, Env, State) -> {yes,Form,State} | no.
 %%  Handle the builtin predefined macros but only one at top-level and
 %%  only once.  Expand must be called on result to fully expand
@@ -599,9 +596,9 @@ exp_predef(['let*'|Lbody], _, St) ->
     {yes,Exp,St};
 exp_predef(['flet*'|Lbody], _, St) ->
     Exp = case Lbody of
-	      [[Vb|Vbs]|B] -> ['flet',[Vb],['flet*',Vbs|B]];
+	      [[Fb|Fbs]|B] -> ['flet',[Fb],['flet*',Fbs|B]];
 	      [[]|B] -> ['progn'|B];
-	      [Vb|B] -> ['flet',Vb|B]		%Pass error to flet for lint.
+	      [Fb|B] -> ['flet',Fb|B]		%Pass error to flet for lint.
 	  end,
     {yes,Exp,St};
 exp_predef(['cond'|Cbody], _, St) ->
@@ -838,7 +835,7 @@ bq_expand([[unquote|X]|Y], 0) ->
     bq_append([list|X], bq_expand(Y, 0));
 bq_expand([['unquote-splicing'|X]|Y], 0) ->
     bq_append(['++'|X], bq_expand(Y, 0));
-bq_expand([X|Y], N) ->
+bq_expand([X|Y], N) ->				%The general list case
     bq_cons(bq_expand(X, N), bq_expand(Y, N));
 bq_expand(X, N) when is_tuple(X) ->
     %% Straight [list_to_tuple,bq_expand(tuple_to_list(X), N)] inefficient

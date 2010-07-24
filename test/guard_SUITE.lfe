@@ -67,15 +67,15 @@
 	  ))
 
 (defun all
-  (['suite] 
+  (['suite]
    ;; test_lib:recompile(?MODULE),
-   (list 'misc 'const_cond 'basic_not 'complex_not 'nested_nots 
+   (list 'misc 'const_cond 'basic_not 'complex_not 'nested_nots
 	 'comma 'or_guard 'more_or_guards 'complex_or_guards
-	 'and_guard 
-	 'xor_guard 'more_xor_guards 
-	 'build_in_guard	'gbif 
+	 'and_guard
+	 'xor_guard 'more_xor_guards
+	 'build_in_guard 'gbif
 	 't_is_boolean 'is_function_2 'tricky 'rel_ops
-	 ;; 'literal_type_tests 
+	 ;; 'literal_type_tests
 	 'basic_andalso_orelse 'traverse_dcd 'check_qlc_hrl
 	 'andalso_semi 'tup_size)))
 
@@ -101,7 +101,7 @@
    (line (test-pat (tuple 'ok 'buf #b()) (get_data #(o false 0) 0 'buf)))
    (line (test-pat 'error (get_data #(o false 0) 42 'buf)))
    'ok))
-    
+
 (defun misc_1
   ([((tuple w) (tuple x) (tuple y) (tuple z))]
    (eif (andalso (> x y) (=:= (abs z) 2)) (id w)
@@ -188,7 +188,7 @@
 				      #(a false)) 'ok 'true 'error)) 'ok))
      (line (check (lambda () (eif (== (tuple 'a (not (element 1 atuple)))
 				      #(a false)) 'ok 'true 'error)) 'error))
-				  
+
      (line (check (lambda () (eif (not (or (element 1 atuple)
 					   (element 3 atuple)))
 				  'ok 'true 'error)) 'error))
@@ -235,7 +235,7 @@
 					      (not (is_atom z)))))))
    'true)
   ([_ _ _ _] 'false))
-    
+
 ;; Use (progn ...) as equivalent of comma, this is reasonable.
 (defun comma
   ([config] (when (is_list config))
@@ -426,7 +426,7 @@
    (line (test-pat 'ok (complex_or_2 #(true #(a b c)))))
 
    (line (test-pat 'error (complex_or_2 #(blurf #(a b c)))))
-    
+
    (line (test-pat 'error (complex_or_2 #(true))))
    (line (test-pat 'error (complex_or_2 #(true no_tuple))))
    (line (test-pat 'error (complex_or_2 #(true ()))))
@@ -440,7 +440,7 @@
    (line (test-pat 'ok (complex_or_3 #(true) #b(1 2 3 4))))
 
    (line (test-pat 'error (complex_or_3 'blurf #(a b c))))
-    
+
    (line (test-pat 'error (complex_or_3 #(false) #b(1 2 3 4))))
    (line (test-pat 'error (complex_or_3 () #b(1 2))))
    (line (test-pat 'error (complex_or_3 #(true) 45)))
@@ -584,7 +584,6 @@
 		  'exit))
 
      (line (test-pat 'ok (relprod #(Set a b) #(Set a b)))))
-    
    'ok))
 
 (defun relprod
@@ -876,7 +875,7 @@
 ;; literal_type_tests_1(Config) ->
 ;;     %% Generate an Erlang module with all different type of type tests.
 ;;     ?line Tests = make_test([{T,L} || T <- type_tests(), L <- literals()] ++
-;; 			    [{is_function,L1,L2} || 
+;; 			    [{is_function,L1,L2} ||
 ;; 				L1 <- literals(), L2 <- literals()]),
 ;;     ?line Mod = literal_test,
 ;;     ?line Func = {function, 0, test, 0, [{clause,0,[],[],Tests}]},
@@ -894,7 +893,7 @@
 ;;     ?line Mod:test(),
 ;;     ?line true = code:delete(Mod),
 ;;     ?line code:purge(Mod),
-			       
+
 ;;     %% Test compile:form/2.  Turn off all optimizations.
 ;;     ?line {ok,Mod,Code2} = compile:forms(Form, [binary,report,time,
 ;; 						no_copt,no_postopt]),
@@ -986,7 +985,7 @@
 					  (=:= (: erlang element 1 r2) 'Set))
 				 'ok))))
        (line (test-pat 'ok (funcall rel-prod-body #(Set a b) #(Set a b)))))
-     
+
      ;; 'andalso'/'orelse' with calls known to fail already at compile time.
      ;; Used to crash the code generator.
 
@@ -1030,7 +1029,7 @@
 		      (=:= (element 1 t) 'klurf)))
    (* 3 (id (element 2 t))))
   ([_] 'error))
-   
+
 (defun traverse_dcd
   ([config] (when (is_list config))
    (let* ((l0 '(#(log_header dcd_log "1.0" a b c)
@@ -1125,7 +1124,7 @@
 
    (line (test-pat 'error (ludicrous_tuple_size #(a b c))))
    (line (test-pat 'error (ludicrous_tuple_size '(a b c))))
-   
+
    ;; Compile case not relevant for LFE.
    'ok))
 

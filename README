@@ -14,14 +14,16 @@ of the function. The .beam file in ebin is for R13B.
 
 I will try to make a better fix soon. Sorry about that.
 
-<will be v0.6>
---------------
+v0.6
+----
+
+Added new example file with core macros implemented in LFE.
 
 Allow literal strings in binaries, both as plain values and as values
 with specs, so (binary "abc" ("едц" utf-8)) is valid. In the second
-case the spec is applied to each character. Works with lists as
-well. Add big, little and native as synonyms to big-endian,
-little-endian and native-endian.
+case the spec is applied to each character. Works with lists as well.
+Add big, little and native as synonyms to big-endian, little-endian
+and native-endian.
 
 Now have working Makefile, Emakefile and .app file.
 
@@ -76,11 +78,11 @@ Parameterized modules.
 
 Added (export all) attribute to module definition.
 
-New records which allow giving default values as in vanilla
-Erlang. Records are still compatible with vanilla Erlang but now more
-pratical to use. NOTE this change is not backwards compatible as
-syntax for (make- ...) and (match- ...) have changed. Also added
-general multiple (set- ...) macro.
+New records which allow giving default values as in vanilla Erlang.
+Records are still compatible with vanilla Erlang but now more pratical
+to use. NOTE this change is not backwards compatible as syntax for
+(make- ...) and (match- ...) have changed. Also added general multiple
+(set- ...) macro.
 
 (eval-when-compile ...) added as a top-level form which allows
 functions to be defined when compiling the forms. These are useful for
