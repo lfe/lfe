@@ -31,6 +31,10 @@
 ;; been implemented in LFE. They are implemented in lfe_macro.erl
 ;; today as there is yet no way to compile macros, and to ensure that
 ;; they are always available. These are shown mostly without comments.
+;;
+;; For some macros we give two versions, an all-in-one version and a
+;; recursive more syntax pattern based expansion. This to show
+;; different styles of doing the same thing.
 
 (defmacro caar (x) `(car (car ,x)))
 (defmacro cadr (x) `(car (cdr ,x)))
@@ -52,15 +56,20 @@
   ((e . es) `(cons ,e (list* . ,es)))
   (() ()))
 
+;; (defmacro let*
+;;   ((vbs . b)
+;;    (: lists foldr
+;;      (lambda (vb rest) `(let (,vb) ,rest)) `(progn . ,b) vbs)))
+
 (defmacro let*
   (((vb . vbs) . b) `(let (,vb) (let* ,vbs . ,b)))
   ((() . b) `(progn . ,b))
   ((vb . b) `(let ,vb . b)))		;Pass error to let
 
 (defmacro flet*
-  (((vb . vbs) . b) `(flet (,vb) (flet* ,vbs . ,b)))
+  (((fb . fbs) . b) `(flet (,fb) (flet* ,fbs . ,b)))
   ((() . b) `(progn . ,b))
-  ((vb . b) `(flet ,vb . b)))		;Pass error to flet
+  ((fb . b) `(flet ,fb . b)))		;Pass error to flet
 
 (defmacro cond
   ((('else . b)) `(progn . ,b))

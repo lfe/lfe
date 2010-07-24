@@ -127,7 +127,7 @@ Older Scheme inspired macros
 (define (name arg ...) ...)
 (define name lambda|match-lambda)
 (define-syntax name
-  (syntax-rules (pat exp) ...) | (macro (pat body) ...))
+  (syntax-rules (pat exp) ...)|(macro (pat body) ...))
 (let-syntax ((name ...)
 	     ...)
   ...)
@@ -267,7 +267,7 @@ A macro is function of one argument which is a called with a list of
 the arguments to the macro call. It can be either a lambda or a
 match-lambda. The basic forms for defining macros are:
 
-(define-macro name lambda | match-lambda)
+(define-macro name lambda|match-lambda)
 (let-macro ((name lambda|match-lambda)
   ...)
 
@@ -290,6 +290,9 @@ example:
   ((e . es) `(case ,e ('true (andalso ,@es)) ('false 'false))))
 
 The macro definitions in a macrolet obey the same rules as defmacro.
+
+Yes, we have the backquote. It is implemented as a macro so it is
+expanded at macro expansion time.
 
 Local functions that are only available at compile time and can be
 called by macros are defined by:
@@ -322,8 +325,6 @@ call and do not contain the macro name. So using them we would get:
   ((e . es) (case e ('true (andalso . es)) ('false 'false))))
 
 N.B. These are definitely NOT hygienic.
-
-Yes we have backquote.
 
 *CAVEAT* While it is perfectly legal to define a Core form as a macro
  these will silently be ignored by the compiler.

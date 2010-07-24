@@ -1,3 +1,13 @@
+2010-07-24  Robert Virding  <rv@host-90-237-128-188.mobileonline.telia.com>
+
+	* lfe_shell.erl (macroexpand, macroexpand_1): Return evaluated
+	argument if no expansion.
+
+2010-07-12  Robert Virding  <rv@host-90-233-145-108.mobileonline.telia.com>
+
+	* lfe_scan.xrl: Have separate cases for integer, float and symbol
+	atoms, catch errors better.
+
 2010-06-07  Robert Virding  <rv@stanislaw.local>
 
 	* lfe_lint.erl (pat_bitsegs): Allow strings (integer lists).

@@ -221,7 +221,8 @@ do_passes([], St) -> {ok,St}.			%Got to the end, everything ok!
 
 do_save_file(Fun, Ext, St) ->
     Name = filename:join(St#comp.odir, St#comp.base ++ ["."|Ext]),
-    case file:open(Name, [write,delayed_write]) of
+    %% delayed_write useful here but plays havoc with erjang.
+    case file:open(Name, [write]) of
 	{ok,File} ->
 	    Fun(File, St#comp.code),
 	    ok = file:close(File),
