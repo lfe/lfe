@@ -18,14 +18,14 @@ SRCS = $(notdir $(wildcard $(SRCDIR)/*.erl))
 EBINS = $(SRCS:.erl=.beam)
 
 ## Where we install LFE, in the ERL_LIBS directory.
-INSTALLDIR = "$$ERL_LIBS"/lfe
+INSTALLDIR = $(ERL_LIBS)/lfe
 
 all: compile docs
 
 compile:
 	if which -s rebar; \
 	then rebar compile; \
-	else echo $(ERLC) $(addprefix $(SRCDIR)/, $(SRCS)); \
+	else $(ERLC) $(addprefix $(SRCDIR)/, $(SRCS)); \
 	fi
 
 install:
@@ -33,8 +33,8 @@ install:
 	then rebar install; \
 	elif [ "$$ERL_LIBS" != "" ]; \
 	then mkdir -p $(INSTALLDIR)/$(EBINDIR) ; \
-	     cp -a $(EBINDIR) $(INSTALLDIR); \
-	     cp -a $(EMACSDIR) $(INSTALLDIR); \
+	     cp -pPR $(EBINDIR) $(INSTALLDIR); \
+	     cp -pPR $(EMACSDIR) $(INSTALLDIR); \
 	else exit 1; \
 	fi
 

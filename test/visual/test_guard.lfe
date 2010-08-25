@@ -1,5 +1,5 @@
 (defmodule test_guard
-  (export (b 1) (c 2) (e 2)))
+  (export (b 1) (c 2) (e 2) (f 2)))
 
 (defun b (x) x)
 
@@ -28,3 +28,8 @@
 				  (orelse x (> (+ z 1) 3))
 				  (/= z 7)))
      (d 'andalso z))))
+
+(defun f (x y)
+  (case x
+    ((tuple 'ok b) (when (=:= b (binary 1 2 3))) 'yes)
+    (_ 'no)))
