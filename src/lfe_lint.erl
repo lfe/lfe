@@ -70,10 +70,13 @@ format_error(bad_funcs) -> "bad function list";
 format_error(bad_body) -> "bad body";
 format_error(bad_clause) -> "bad clause";
 format_error(bad_args) -> "bad arguments";
+format_error(bad_gargs) -> "bad guard arguments";
 format_error({bad_attribute,A}) ->
     lfe_io:format1("bad attribute: ~w", [A]);
 format_error({bad_form,Type}) ->
     lfe_io:format1("bad form: ~w", [Type]);
+format_error({bad_gform,Type}) ->
+    lfe_io:format1("bad guard form: ~w", [Type]);
 format_error({unbound_symb,S}) ->
     lfe_io:format1("unbound symbol: ~w", [S]);
 format_error({unbound_func,F}) ->
@@ -388,7 +391,8 @@ check_exprs(Es, Env, L, St) ->
 %% Functions for checking expression bitsegments.
 
 expr_bitsegs(Segs, Env, L, St0) ->
-    foldl(fun (S, St) -> expr_bitseg(S, Env, L, St) end, St0, Segs).
+    check_foreach(fun (S, St) -> expr_bitseg(S, Env, L, St) end,
+		  binary, L, St0, Segs).
 
 %% expr_bitseg([N|Specs], Env, L, St0) ->
 %%     St1 = check_expr(N, Env, L, St0),		%Be lazy here
@@ -669,7 +673,7 @@ check_gbody([E|Es], Env, L, St0) ->
     St1 = check_gexpr(E, Env, L, St0),
     check_gbody(Es, Env, L, St1);
 check_gbody([], _, _, St) -> St;
-check_gbody(_, _, L, St) -> add_error(L, illegal_guard, St).
+check_gbody(_, _, L, St) -> illegal_guard_error(L, St).
 
 %% check_gexpr(Call, Env, Line, State) -> State.
 %% Check a guard expression. This is a restricted body expression.
@@ -689,7 +693,7 @@ check_gexpr(['if'|B], Env, L, St) -> check_gif(B, Env, L, St);
 check_gexpr([call,[quote,erlang],[quote,Fun]|As], Env, L, St) ->
     check_gexpr([Fun|As], Env, L, St);		%Pass the buck
 check_gexpr([call|_], _, L, St) ->		%Other calls not allowed
-    add_error(L, illegal_guard, St);
+    illegal_guard_error(L, St);
 %% Finally the general case.
 check_gexpr([Fun|As], Env, L, St0) when is_atom(Fun) ->
     St1 = check_gargs(As, Env, L, St0),
@@ -697,9 +701,12 @@ check_gexpr([Fun|As], Env, L, St0) when is_atom(Fun) ->
     %% function, just that it is.
     case is_gbound(Fun, safe_length(As), Env) of
 	true -> St1;
-	false -> add_error(L, illegal_guard, St1)
+	false -> illegal_guard_error(L, St1)
     end;
-check_gexpr([_|_], _, L, St) -> add_error(L, illegal_guard, St);
+check_gexpr([_|As], Env, L, St0) ->
+    %% Function here is an expression, report error and check args.
+    St1 = bad_gform_error(L, application, St0),
+    check_gargs(As, Env, L, St1);
 check_gexpr([], _, _, St) -> St;
 check_gexpr(Symb, Env, L, St) when is_atom(Symb) ->
     check_symb(Symb, Env, L, St);
@@ -715,7 +722,7 @@ check_gexpr(_, _, _, St) -> St.			%Everything else is atomic
 check_gargs(Args, Env, L, St) ->
     case is_proper_list(Args) of
 	true -> check_gexprs(Args, Env, L, St);
-	false -> add_error(L, illegal_guard, St)
+	false -> add_error(L, bad_gargs, St)
     end.
 
 check_gexprs(Es, Env, L, St) ->
@@ -729,7 +736,7 @@ check_gif([Test,True,False], Env, L, St) ->
 check_gif([Test,True], Env, L, St) ->
     check_gexprs([Test,True], Env, L, St);
 check_gif(_, _, L, St) ->
-    add_error(L, illegal_guard, St).		%Signal as guard error.
+    bad_gform_error(L, 'if', St).		%Signal as guard error.
 
 %% gexpr_bitsegs(BitSegs, Env, Line, State) -> State.
 %% gexpr_bitseg(BitSeg, Env, Line, State) -> State.
@@ -737,8 +744,11 @@ check_gif(_, _, L, St) ->
 %% gexpr_bitspec(BitSpec, Env, Line, State) -> State.
 %% Functions for checking guard expression bitsegments.
 
-gexpr_bitsegs(Segs, Env, L, St0) ->
-    foldl(fun (S, St) -> gexpr_bitseg(S, Env, L, St) end, St0, Segs).
+gexpr_bitsegs([S|Ss], Env, L, St0) ->
+    St1 = gexpr_bitseg(S, Env, L, St0),
+    gexpr_bitsegs(Ss, Env, L, St1);
+gexpr_bitsegs([], _, _, St) -> St;
+gexpr_bitsegs(_, _, L, St) -> bad_gform_error(L, binary, St).
 
 %% gexpr_bitseg([N|Specs], Env, L, St0) ->
 %%     St1 = check_gexpr(N, Env, L, St0),		%Be lazy here
@@ -990,11 +1000,17 @@ add_error(L, E, St) ->
 bad_form_error(L, F, St) ->
     add_error(L, {bad_form,F}, St).
 
+bad_gform_error(L, F, St) ->
+    add_error(L, {bad_gform,F}, St).
+
 bad_mod_def_error(L, D, St) ->
     add_error(L, {bad_mod_def,D}, St).
 
 multi_var_error(L, V, St) ->
     add_error(L, {multi_var,V}, St).
+
+illegal_guard_error(L, St) ->
+    add_error(L, illegal_guard, St).
 
 %% Interface to the binding functions in lfe_lib.
 %% These just add arity as a dummy values as we are not interested in
