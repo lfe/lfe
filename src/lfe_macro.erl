@@ -1053,52 +1053,88 @@ mbe_syntax_rules_proc(Name, Ks0, Cls, Args) ->
 %%  Simon PJs book.
 
 %% lc_te(Es, Qs, St) -> lc_tq(Es, Qs, [], St).
-lc_te(Es, Qs, St) ->
-    c_tq(fun (L, S) -> {[cons,['progn'|Es],L],S} end, Qs, [], St).
+lc_te(Es, Qs, St) -> lc_te(Es, Qs, [], St).
+
+lc_te(Es, Qs, End, St) ->
+    c_tq(fun (E, S) -> {[cons,['progn'|Es],E],S} end, Qs, End, St).
 
 %%bc_te(Es, Qs, St) -> bc_tq(Es, Qs, <<>>, St).
 bc_te(Es, Qs, St) ->
-    c_tq(fun (L, S) ->
+    c_tq(fun (E, S) ->
+		 %% Separate last form to be binary segment.
 		 case reverse(Es) of
-		     [R] -> {[binary,R,[L,bitstring]],S};
+		     [R] -> {[binary,R,[E,bitstring]],S};
 		     [R|Rs] -> {['progn'|reverse(Rs)] ++
-				[[binary,R,[L,bitstring]]],S};
-		     [] -> {L,S}
+				[[binary,R,[E,bitstring]]],S};
+		     [] -> {E,S}
 		 end
 	 end, Qs, <<>>, St).
-    
-c_tq(Exp, [['<-',P,G]|Qs], L, St0) ->		%List generator
+
+%% c_tq(BuildExp, Qualifiers, End, State) -> {Exp,State}.
+
+c_tq(Exp, [['<-',P,Gen]|Qs], End, St) ->	%List generator
+    c_l_tq(Exp, P, [], Gen, Qs, End, St);
+c_tq(Exp, [['<-',P,['when'|G],Gen]|Qs], End, St) -> %List generator
+    c_l_tq(Exp, P, G, Gen, Qs, End, St);
+c_tq(Exp, [['<=',P,Gen]|Qs], End, St) ->	%Bits generator
+    c_b_tq(Exp, P, [], Gen, Qs, End, St);
+c_tq(Exp, [['<=',P,['when'|G],Gen]|Qs], End, St) ->	%Bits generator
+    c_b_tq(Exp, P, G, Gen, Qs, End, St);
+c_tq(Exp, [['?=',P,E]|Qs], End, St0) ->		%Test match
+    {Rest,St1} = c_tq(Exp, Qs, End, St0),
+    {['case',E,[P,Rest],['_',End]],St1};
+c_tq(Exp, [['?=',P,['when'|_]=G,E]|Qs], End, St0) ->
+    {Rest,St1} = c_tq(Exp, Qs, End, St0),
+    {['case',E,[P,G,Rest],['_',End]],St1};
+c_tq(Exp, [T|Qs], End, St0) ->			%Test
+    {Rest,St1} = c_tq(Exp, Qs, End, St0),
+    {['if',T,Rest,End],St1};
+c_tq(Exp, [], End, St) ->			%End of qualifiers
+    Exp(End, St).
+
+c_l_tq(Exp, P, G, Gen, Qs, End, St0) ->
     {H,St1} = new_fun_name("lc", St0),		%Function name
     {Us,St2} = new_symb(St1),			%Tail variable
     {Rest,St3} = c_tq(Exp, Qs, [H,Us], St2),	%Do rest of qualifiers
     {['letrec-function',
       [[H,['match-lambda',
-	   [[[P|Us]],Rest],			%Matches pattern
+	   [[[P|Us]],['when'|G],Rest],		%Matches pattern and guard
 	   [[['_'|Us]],[H,Us]],			%No match
-	   [[[]],L]]]],				%End of list
-      [H,G]],St3};
-c_tq(Exp, [['<=',P,G]|Qs], L, St0) ->		%Bits generator
+	   [[[]],End]]]],			%End of list
+      [H,Gen]],St3}.
+
+c_b_tq(Exp, P, G, Gen, Qs, End, St0) ->
     {H,St1} = new_fun_name("bc", St0),		%Function name
     {B,St2} = new_symb(St1),			%Bin variable
     {Rest,St3} = c_tq(Exp, Qs, [H,B], St2),	%Do rest of qualifiers
     Brest = [B,bitstring,'big-endian',unsigned,[unit,1]], %,[size,all]
     {['letrec-function',
       [[H,['match-lambda',
-	   [[[binary,P,Brest]],Rest],		%Matches pattern
-%%	   [[[binary,Brest]],[H,B]]]]],		%No match
-	   [[[binary,Brest]],L]]]],		%No match
-      [H,G]],St3};
-c_tq(Exp, [['?=',P,E]|Qs], L, St0) ->		%Test match
-    {Rest,St1} = c_tq(Exp, Qs, L, St0),
-    {['case',E,[P,Rest],['_',L]],St1};
-c_tq(Exp, [['?=',P,['when'|_]=G,E]|Qs], L, St0) ->
-    {Rest,St1} = c_tq(Exp, Qs, L, St0),
-    {['case',E,[P,G,Rest],['_',L]],St1};
-c_tq(Exp, [T|Qs], L, St0) ->			%Test
-    {Rest,St1} = c_tq(Exp, Qs, L, St0),
-    {['if',T,Rest,L],St1};
-c_tq(Exp, [], L, St) ->
-    Exp(L, St).
+	   [[[binary,P,Brest]],['when'|G],Rest], %Matches pattern and guard
+	   [[[binary,Brest]],End]]]],		%No match
+      [H,Gen]],St3}.
+
+%% c_tq(Exp, [['<-',P,Gen]|Qs], End, St0) ->	%List generator
+%%     {H,St1} = new_fun_name("lc", St0),		%Function name
+%%     {Us,St2} = new_symb(St1),			%Tail variable
+%%     {Rest,St3} = c_tq(Exp, Qs, [H,Us], St2),	%Do rest of qualifiers
+%%     {['letrec-function',
+%%       [[H,['match-lambda',
+%% 	   [[[P|Us]],Rest],			%Matches pattern
+%% 	   [[['_'|Us]],[H,Us]],			%No match
+%% 	   [[[]],End]]]],			%End of list
+%%       [H,Gen]],St3};
+
+%% c_tq(Exp, [['<=',P,Gen]|Qs], End, St0) ->	%Bits generator
+%%     {H,St1} = new_fun_name("bc", St0),		%Function name
+%%     {B,St2} = new_symb(St1),			%Bin variable
+%%     {Rest,St3} = c_tq(Exp, Qs, [H,B], St2),	%Do rest of qualifiers
+%%     Brest = [B,bitstring,'big-endian',unsigned,[unit,1]], %,[size,all]
+%%     {['letrec-function',
+%%       [[H,['match-lambda',
+%% 	   [[[binary,P,Brest]],Rest],		%Matches pattern
+%% 	   [[[binary,Brest]],End]]]],		%No match
+%%       [H,Gen]],St3};
 
 %% expand_macro(Form, Env) -> {yes,Exp} | no.
 %% expand_macro_1(Form, Env) -> {yes,Exp} | no.
