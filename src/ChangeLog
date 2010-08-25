@@ -1,3 +1,11 @@
+2010-08-25  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_macro.erl (c_tq, c_l_tq, c_b_tq): Add guards to generators
+	in comprehensions.
+
+	* lfe_lint.erl (format_error, check_gbody, check_gexpr)
+	(gexpr_bitsegs): Better error checking in guards.
+
 2010-07-24  Robert Virding  <rv@host-90-237-128-188.mobileonline.telia.com>
 
 	* lfe_shell.erl (macroexpand, macroexpand_1): Return evaluated

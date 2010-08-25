@@ -2,7 +2,7 @@
 
 {application, lfe,
  [{description, "Lisp Flavored Erlang (LFE)"},
-  {vsn, "0.6"},
+  {vsn, "0.6.1"},
   {modules, [lfe_boot,
              lfe_codegen,
              lfe_comp,

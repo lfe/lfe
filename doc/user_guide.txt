@@ -166,7 +166,7 @@ removed, but later passes of the compiler can't handle this yet.
 Guards
 ------
 
-Wherever a pattern occurs (let, case, receive, etc.) it can be
+Wherever a pattern occurs (let, case, receive, lc, etc.) it can be
 followed by an optional guard which has the form (when test ...).
 Guard tests are the same as in vanilla Erlang and can contain the
 following guard expressions:
@@ -183,7 +183,9 @@ following guard expressions:
 (type-test e)
 (guard-bif ...)			- Guard BIFs
 				  arithmetic, boolean and comparison operators
-(cond ...)			- Without the pattern matching case
+
+An empty guard, (when), always succeeds as there is no test which
+fails. This simplifies writing macros which handle guards.
 
 Bindings and Scoping
 --------------------
@@ -238,7 +240,7 @@ Module definition
   (export all)					;Export all functions
   (import (from mod (f1 2) (f2 1) ... )
 	  (rename mod ((f1 2) sune) ((f2 1) kurt) ... ))
-  (import (prefix mod mod-prefix))	- NYI
+  (import (prefix mod mod-prefix))		- NYI
   (attr-1 value-1 value-2)
   ... )
 
@@ -295,7 +297,12 @@ Yes, we have the backquote. It is implemented as a macro so it is
 expanded at macro expansion time.
 
 Local functions that are only available at compile time and can be
-called by macros are defined by:
+called by macros are defined using eval-when-compile:
+
+(defmacro foo (x)
+  ...
+  (foo-helper m n)
+  ...)
 
 (eval-when-compile
   (defun foo-helper (a b)
@@ -303,16 +310,12 @@ called by macros are defined by:
 
   )
 
-(defmacro foo (x)
-  ...
-  (foo-helper m n)
-  ...)
-
-Functions defined in an eval-when-compile are mutually recursive and
-can call functions/macros defined earlier in the file. Macros can use
-functions defined in earlier eval-when-compile's and other macros
-defined earlier in the file. There can be many eval-when-compile
-forms.
+There can be many eval-when-compile forms. Functions defined within an
+eval-when-compile are mutually recursive but they can only call other
+local functions defined in an earlier eval-when-compile and macros
+defined earlier in the file. Functions defined in eval-when-compile
+which are called by macros can defined after the macro but must be
+defined before the macro is used.
 
 Scheme's syntax rules are an easy way to define macros where the body
 is just a simple expansion. These are supported with defsyntax and
@@ -334,10 +337,14 @@ Extended cond
 
 Cond has been extended with the extra test (?= pat expr) which tests
 if the result of expr matches pat. If so it binds the variables in pat
-which can be used in the cond. An example:
+which can be used in the cond. A optional guard is allowed here. An
+example:
 
 (cond ((foo x) ...)
-      ((?= (x . xs) (bar y)) (fubar xs (baz x)))
+      ((?= (x . xs) (when (is_atom x)) (bar y))
+       (fubar xs (baz x)))
+      ((?= (tuple 'ok x) (baz y))
+       (zipit x))
       ... )
 
 Records
@@ -383,6 +390,15 @@ field-name value to get non-default values. E.g. for
 	Will match a person with age 55 and bind the variable name to
 	the name field of the record. Can use any variable name here.
 
+(person-address john)
+
+	Return the address field of the person record john.
+
+(set-person-address john '"back street")
+
+	Sets the address field of the person record john to
+	"back street".
+
 (set-person john age 35 address '"front street")
 
 	In the person record john set the age field to 35 and the
@@ -427,18 +443,20 @@ elements of the binary.
 
 The supported qualifiers, in both list/binary comprehensions are:
 
-(<- pat list-expr)	 - Extract elements from a list expression
-(<= bin-pat binary-expr) - Extract elements from a binary/bits expression
+(<- pat {{guard}} list-expr)	    - Extract elements from a list expression
+(<= bin-pat {{guard}} binary-expr)  - Extract elements from a binary/bits
+				      expression
 (?= pat {{guard}} expr)	 - Match test and bind variables in pat
 expr			 - Normal boolean test
 
 Some examples:
 
-(lc ((<- v l1)
+(lc ((<- v l1) (when (> v 5))
      (== (rem v 2) 0))
   v)
 
-returns a list of all the positive elements of the list l1.
+returns a list of all the even elements of the list l1 which greater
+than 5.
 
 (bc ((<= (f float (size 32)) b1)	;No wrapping, only bitseg needed
      (> f 10.0))
@@ -448,6 +466,16 @@ returns a list of all the positive elements of the list l1.
 returns a binary of floats of size 64 of floats which are larger than
 10.0 from the binary b1 and of size 32. The returned numbers are first
 printed.
+
+N.B. A word of warning when using guards when extracting elements from
+a binary.  When a match/guard fails for a binary no more attempts will
+be made to extract data from the binary. This means that even if a
+value could be extracted from the binary if the guard fails this value
+will be lost and extraction will cease. This is *NOT* the same as
+having following boolean test which may remove an element but will not
+stop extraction. Using a guard is probably not what you want!
+
+Normal vanilla Erlang does the same thing but does not allow guards.
 
 Predefined LFE functions
 ------------------------
@@ -470,7 +498,7 @@ The following more or less standard lisp functions are pre-defined:
 	lisp functions, erlang BIFs and exported functions can be
 	called. Also no local variables can be accessed. To access
 	local variables the expr to be evaluated can be wrapped in a
-	letdefining these.
+	let defining these.
 
 	For example the data we wish to evaluate is in the variable
 	expr and it assumes there is a local variable "foo" we could
