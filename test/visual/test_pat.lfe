@@ -16,23 +16,23 @@
 ;; Testing aliases (that match)
 (defun a (x y)
   (case (list x y)
-    (('a 4) (tuple 1 'a 4))
-    ((= ('a _) (p1 . ps)) (tuple 2 'a p1 ps))
+    ((list 'a 4) (tuple 1.5 'a 4))
+    ((= (list 'a _) (cons p1 ps)) (tuple 2 'a p1 ps))
     ((= (tuple 'a _) (tuple p1 p2)) (tuple 2 'a p1 p2))
-    ((_ _) (tuple 3 'anything))))
+    ((list _ _) (tuple 3 'anything))))
 
 ;; Testing aliases (that don't match)
 ;; (define (a-1 x y)
 ;;   (case (list x y)
-;;     (('a 4) (tuple 1 'a 4))
-;;     ((= ('a _) (tuple p1 ps)) (tuple 2 'a p1 ps))
+;;     ((list 'a 4) (tuple 1 'a 4))
+;;     ((= (list 'a _) (tuple p1 ps)) (tuple 2 'a p1 ps))
 ;;     ((= #(a _) (tuple p1 p2)) (tuple 2 'a p1 p2))
 ;;     ((= #(a _) (tuple p1 p2 p3)) (tuple 2 'a p1 p2 p3))
-;;     ((_ _) (tuple 3 'anything))))
+;;     ((list _ _) (tuple 3 'anything))))
 
 (defun b
   (('a 4) (tuple 1 'a 4))
-  (('a _) (tuple 2 'a 'anything))
+  (('a _ . _) (tuple 2 'a 'anything))
   ((_ _) (tuple 3 'anything)))
 
 ;; Macro expansion in patterns.
@@ -46,6 +46,6 @@
 
 ;; Testing patterns and guards in let.
 (defun e (x y)
-  (let (((p . ps) (when (is_number p)) (b x y))
+  (let (((cons p ps) (when (is_number p)) (b x y))
 	(q (when (is_atom q)) (c x y)))
     (d p q)))

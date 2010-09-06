@@ -71,6 +71,8 @@ format_error(bad_body) -> "bad body";
 format_error(bad_clause) -> "bad clause";
 format_error(bad_args) -> "bad arguments";
 format_error(bad_gargs) -> "bad guard arguments";
+format_error(bad_alias) -> "bad alias";
+format_error(bad_arity) -> "head arity mismatch";
 format_error({bad_attribute,A}) ->
     lfe_io:format1("bad attribute: ~w", [A]);
 format_error({bad_form,Type}) ->
@@ -459,13 +461,20 @@ check_match_lambda(_, _, L, St) ->		%Totally wrong
 check_ml_arity([[Pat|_]|Cls], Ar, L, St) ->
     case is_proper_list(Pat) andalso length(Pat) == Ar of
 	true -> check_ml_arity(Cls, Ar, L, St);
-	false -> add_error(L, match_lambda_arity, St)
+	false -> add_error(L, bad_arity, St)
     end;
 check_ml_arity([], _, _, St) -> St.
 
 check_ml_clauses(Cls, Env, L, St) ->
-    check_foreach(fun (Cl, S) -> check_clause(Cl, Env, L, S) end,
+    %% Sneaky! m-l args a list of patterns so wrap with list and pass
+    %% in as one pattern. Have already checked a proper list.
+    check_foreach(fun ([As|B], S) -> check_clause([[list|As]|B], Env, L, S) end,
 		  'match-lambda', L, St, Cls).
+
+%% check_ml_clauses(Cls, Env, L, St) ->
+%%     %% Sneaky! m-l args list of patterns so just pass in as one pattern.
+%%     check_foreach(fun (Cl, S) -> check_clause(Cl, Env, L, S) end,
+%% 		  'match-lambda', L, St, Cls).
 
 %% check_let(LetBody, Env, Line, State) -> {Env,State}.
 %%  Check let variable bindings and then body. Must be careful to use
@@ -790,7 +799,7 @@ check_pat(Pat, Env, L, St) ->
 
 check_pat([quote,_], Vs, _, _, St) -> {Vs,St};	%Go no deeper with quote
 check_pat([tuple|Ps], Vs, Env, L, St) ->	%Tuple elements
-    check_pat(Ps, Vs, Env, L, St);
+    pat_list(Ps, Vs, Env, L, St);
 check_pat([binary|Segs], Vs, Env, L, St) ->
     pat_bitsegs(Segs, Vs, Env, L, St);
 check_pat(['=',P1,P2], Vs0, Env, L, St0) ->
@@ -803,13 +812,26 @@ check_pat(['=',P1,P2], Vs0, Env, L, St0) ->
 	      false -> add_error(L, bad_alias, St2)
 	  end,
     {union(Vs1, Vs2),St3};
-check_pat([H|T], Vs0, Env, L, St0) ->
+check_pat([cons,H,T], Vs0, Env, L, St0) ->	%Explicit cons constructor
     {Vs1,St1} = check_pat(H, Vs0, Env, L, St0),
     check_pat(T, Vs1, Env, L, St1);
+check_pat([list|Ps], Vs, Env, L, St) ->		%Explicit list constructor
+    pat_list(Ps, Vs, Env, L, St);
+check_pat([_|_], Vs, _, L, St) ->		%No constructor
+    {Vs,add_error(L, illegal_pat, St)};
+%% check_pat([H|T], Vs0, Env, L, St0) ->
+%%     {Vs1,St1} = check_pat(H, Vs0, Env, L, St0),
+%%     check_pat(T, Vs1, Env, L, St1);
 check_pat([], Vs, _, _, St) -> {Vs,St};
 check_pat(Symb, Vs, _, L, St) when is_atom(Symb) ->
     pat_symb(Symb, Vs, L, St);
 check_pat(_, Vs, _, _, St) -> {Vs,St}.		%Atomic
+
+pat_list([P|Ps], Vs0, Env, L, St0) ->
+    {Vs1,St1} = check_pat(P, Vs0, Env, L, St0),
+    pat_list(Ps, Vs1, Env, L, St1);
+pat_list([], Vs, _, _, St) -> {Vs,St};
+pat_list(_, Vs, _, L, St) -> {Vs,add_error(L, illegal_pat, St)}.
 
 pat_symb('_', Vs, _, St) -> {Vs,St};		%Don't care variable
 pat_symb(Symb, Vs, L, St) ->
@@ -830,8 +852,16 @@ check_alias([tuple|Ps1], [tuple|Ps2]) ->
 %% check_alias(P1, [tuple|Ps2]) when is_tuple(P1) ->
 %%     check_alias_list(tuple_to_list(P1), Ps2);
 check_alias([binary|_], [binary|_]) -> false;
-check_alias([P1|Ps1], [P2|Ps2]) ->
-    check_alias(P1, P2) andalso check_alias(Ps1, Ps2);
+check_alias([cons,H1,T1], [cons,H2,T2]) ->
+    check_alias(H1, H2) andalso check_alias(T1, T2);
+check_alias([cons,H1,T1], [list,H2|T2]) ->
+    check_alias(H1, H2) andalso check_alias(T1, [list|T2]);
+check_alias([list|Ps1], [list|Ps2]) ->
+    check_alias_list(Ps1, Ps2);
+check_alias([list,H1|T1], [cons,H2,T2]) ->
+    check_alias(H1, H2) andalso check_alias([list|T1], T2);
+%% check_alias([P1|Ps1], [P2|Ps2]) ->
+%%     check_alias(P1, P2) andalso check_alias(Ps1, Ps2);
 check_alias(P1, _) when is_atom(P1) -> true;	%Variable
 check_alias(_, P2) when is_atom(P2) -> true;
 check_alias(P1, P2) -> P1 =:= P2.		%Atomic

@@ -1,6 +1,6 @@
 -module(test_pat_e).
 
--export([a/2]).
+-export([a/2,b/2]).
 
 a(1,_) ->
     F = fun ([1,_]) -> 1;
@@ -13,3 +13,7 @@ a(X, Y) ->
 	[a,_]=[P1|Ps] -> {2,a,P1,Ps};
 	[_,_] -> {3,anything}
     end.
+
+b(a, 4) -> {1,a,4};
+b(a, _) -> {2,a,anything};
+b(_, _) -> {3,anything}.

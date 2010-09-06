@@ -42,52 +42,52 @@
 (defmacro cddr (x) `(cdr (cdr ,x)))
 
 (defmacro ++
-  ((e) e)
-  ((e . es) `(call 'erlang '++ ,e (++ . ,es)))
+  ((list e) e)
+  ((cons e es) `(call 'erlang '++ ,e (++ . ,es)))
   (() ()))
 
 (defmacro :
-  ((m f . as) `(call ',m ',f . ,as)))
+  ((list* m f as) `(call ',m ',f . ,as)))
 
 (defmacro ? () `(receive (omega omega)))
 
 (defmacro list*
-  ((e) e)
-  ((e . es) `(cons ,e (list* . ,es)))
+  ((list e) e)
+  ((cons e es) `(cons ,e (list* . ,es)))
   (() ()))
 
 ;; (defmacro let*
-;;   ((vbs . b)
+;;   ((cons vbs b)
 ;;    (: lists foldr
 ;;      (lambda (vb rest) `(let (,vb) ,rest)) `(progn . ,b) vbs)))
 
 (defmacro let*
-  (((vb . vbs) . b) `(let (,vb) (let* ,vbs . ,b)))
-  ((() . b) `(progn . ,b))
-  ((vb . b) `(let ,vb . b)))		;Pass error to let
+  ((cons (cons vb vbs) b) `(let (,vb) (let* ,vbs . ,b)))
+  ((cons () b) `(progn . ,b))
+  ((cons vb b) `(let ,vb . b)))		;Pass error to let
 
 (defmacro flet*
-  (((fb . fbs) . b) `(flet (,fb) (flet* ,fbs . ,b)))
-  ((() . b) `(progn . ,b))
-  ((fb . b) `(flet ,fb . b)))		;Pass error to flet
+  ((cons (cons fb fbs) b) `(flet (,fb) (flet* ,fbs . ,b)))
+  ((cons () b) `(progn . ,b))
+  ((cons fb b) `(flet ,fb . b)))		;Pass error to flet
 
 (defmacro cond
-  ((('else . b)) `(progn . ,b))
-  (((('?= p e) . b) . cond)
+  ((list (cons 'else b)) `(progn . ,b))
+  ((cons (cons (list '?= p e) b) cond)
    `(case ,e (,p . ,b) (_ (cond . ,cond))))
-  (((('?= p (= ('when . _) g) e) . b) . cond)
+  ((cons (cons (list '?= p (= (cons 'when _) g) e) b) cond)
    `(case ,e (,p ,g . ,b) (_ (cond . ,cond))))
-  (((test . b) . cond) `(if ,test (progn . ,b) (cond . ,cond)))
+  ((cons (cons test b) cond) `(if ,test (progn . ,b) (cond . ,cond)))
   (() `'false))
 
 (defmacro andalso
-  ((e) e)
-  ((e . es) `(if ,e (andalso . ,es) 'false))
+  ((list e) e)
+  ((cons e es) `(if ,e (andalso . ,es) 'false))
   (() `'true))
 
 (defmacro orelse
-  ((e) e)
-  ((e . es) `(if ,e 'true (orelse . ,es)))
+  ((list e) e)
+  ((cons e es) `(if ,e 'true (orelse . ,es)))
   (() `'false))
 
 ;; This version of backquote is almost an exact copy of a quasiquote
@@ -102,31 +102,31 @@
     ;; Note that we cannot *use* backquote or any macros using
     ;; backquote in here! It will cause us to loop.
     (fletrec ((bq-app			;Optimise append
-	       ([('++ l) r] (bq-app l r)) ;Catch single unquote-splice
+	       ([(list '++ l) r] (bq-app l r)) ;Catch single unquote-splice
 	       ([() r] r)
 	       ([l ()] l)
-	       ([('list l) ('list . r)] (cons 'list (cons l r)))
-	       ([('list l) r] (list 'cons l r))
+	       ([(list 'list l) (cons 'list r)] (cons 'list (cons l r)))
+	       ([(list 'list l) r] (list 'cons l r))
 	       ([l r] (list '++ l r)))
 	      (bq-cons			;Optimise cons
-	       ([('quote l) ('quote r)] (list 'quote (cons l r)))
-	       ([l ('list . r)] (cons 'list (cons l r)))
+	       ([(list 'quote l) (list 'quote r)] (list 'quote (cons l r)))
+	       ([l (cons 'list r)] (cons 'list (cons l r)))
 	       ([l ()] (list 'list l))
 	       ([l r] (list 'cons l r))))
       (case exp
-	(('backquote x)		;`(list 'backquote ,(bq-expand x (+ n 1)))
+	((list 'backquote x)	;`(list 'backquote ,(bq-expand x (+ n 1)))
 	 (list 'list (list 'quote 'backquote) (bq-expand x (+ n 1))))
-	(('unquote x) (when (> n 0))
+	((list 'unquote x) (when (> n 0))
 	 (bq-cons 'unquote (bq-expand x (- n 1))))
-	(('unquote x) (when (=:= n 0)) x)
-	(('unquote-splicing . x) (when (> n 0))
+	((list 'unquote x) (when (=:= n 0)) x)
+	((list 'unquote-splicing . x) (when (> n 0))
 	 (bq-cons (list 'quote 'unquote-splicing) (bq-expand x (- n 1))))
 	;; The next two cases handle splicing into a list.
-	((('unquote . x) . y) (when (=:= n 0))
+	(((list 'unquote . x) . y) (when (=:= n 0))
 	 (bq-app (cons 'list x) (bq-expand y 0)))
-	((('unquote-splicing . x) . y) (when (=:= n 0))
+	(((list 'unquote-splicing . x) . y) (when (=:= n 0))
 	 (bq-app (cons '++ x) (bq-expand y 0)))
-	((x . y)			;The general list case
+	((cons x y)			;The general list case
 	 (bq-cons (bq-expand x n) (bq-expand y n)))
 	(_ (when (is_tuple exp))
 	   ;; Tuples need some smartness for efficient code to handle
