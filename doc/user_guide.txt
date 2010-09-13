@@ -143,9 +143,9 @@ quote to match explicit values. Binaries and tuples have special syntax.
 
 {ok,X}			-> (tuple 'ok x)
 error			-> 'error
-{yes,[X|Xs]}		-> (tuple 'yes (x . xs))
+{yes,[X|Xs]}		-> (tuple 'yes (cons x xs))
 <<34,F/float>>		-> (binary 34 (f float))
-[P|Ps]=All		-> (= (p . ps) all)
+[P|Ps]=All		-> (= (cons p ps) all)
 
 Repeated variables are *NOT* supported in patterns, there is no
 automatic comparison of values. It must explicitly be done in a
@@ -288,8 +288,8 @@ example:
 (defmacro double (a) (+ a a))
 (defmacro andalso
   (() `true)
-  ((e) `,e)
-  ((e . es) `(case ,e ('true (andalso ,@es)) ('false 'false))))
+  ((list e) `,e)
+  ((cons e es) `(case ,e ('true (andalso ,@es)) ('false 'false))))
 
 The macro definitions in a macrolet obey the same rules as defmacro.
 
@@ -341,7 +341,7 @@ which can be used in the cond. A optional guard is allowed here. An
 example:
 
 (cond ((foo x) ...)
-      ((?= (x . xs) (when (is_atom x)) (bar y))
+      ((?= (cons x xs) (when (is_atom x)) (bar y))
        (fubar xs (baz x)))
       ((?= (tuple 'ok x) (baz y))
        (zipit x))

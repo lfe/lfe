@@ -790,7 +790,7 @@ match([quote,P], Val, _, Bs) ->
 match([tuple|Ps], Val, Env, Bs) ->
     %% io:fwrite("~p ~p\n", [Ps,Val]),
     case is_tuple(Val) of
-	true -> match(Ps, tuple_to_list(Val), Env, Bs);
+	true -> match_list(Ps, tuple_to_list(Val), Env, Bs);
 	false -> no
     end;
 match([binary|Fs], Val, Env, Bs) ->

@@ -774,7 +774,7 @@
    (if (=:= p val) (tuple 'yes bs) 'no))
   ([(cons 'tuple ps) val env bs]
    (if (is_tuple val)
-     (match ps (tuple_to_list val) env bs)
+     (match-list ps (tuple_to_list val) env bs)
      'no))
   ([(cons 'binary fs) val env bs]
    (if (is_bitstring val)
