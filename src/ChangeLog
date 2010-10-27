@@ -1,3 +1,7 @@
+2010-10-27  Robert Virding  <rv@renat.local>
+
+	* lfe_shell.erl (prompt): Prompt adds node name when alive.
+
 2010-08-25  Robert Virding  <rv@stanislaw.local>
 
 	* lfe_macro.erl (c_tq, c_l_tq, c_b_tq): Add guards to generators

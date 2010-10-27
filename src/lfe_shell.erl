@@ -62,7 +62,8 @@ server(_) ->
 server_loop(Env0, BaseEnv) ->
     Env = try
 	      %% Read the form
-	      io:put_chars("> "),
+	      Prompt = prompt(),
+	      io:put_chars(Prompt),
 	      Form = lfe_io:read(),
 	      Env1 = update_vbinding('-', Form, Env0),
 	      %% Macro expand and evaluate it.
@@ -115,6 +116,15 @@ add_shell_macros(Env0) ->
     {_,Env1} = lfe_macro:macro_forms(Ms, Env0),
     %% io:fwrite("asm: ~p\n", [Env1]),
     Env1.
+
+%% prompt() -> Prompt.
+
+prompt() ->
+    %% Don't bother flattening the list, no need.
+    case is_alive() of
+	true -> io_lib:format("(~s)> ", [node()]);
+	false -> "> "
+    end.
 
 %% eval_form(Form, EvalEnv, BaseEnv) -> {Value,Env}.
 
