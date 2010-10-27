@@ -515,6 +515,7 @@ comp_if(Te, Tr, Fa, Env, L, St0) ->
 	     arg=Cte,
 	     clauses=[Ctrue,Cfalse,Cfail]},St3}.
 
+%% This produces code which is harder to optimise, strangely enough.
 %% comp_if(Te, Tr, Fa, Env, L, St0) ->
 %%     {Cte,St1} = comp_expr(Te, Env, L, St0),	%Test expression
 %%     {Ctr,St2} = comp_expr(Tr, Env, L, St1),	%True expression
