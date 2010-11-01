@@ -1,4 +1,4 @@
--file("/usr/local/lib/erlang/lib/parsetools-2.0.3/include/leexinc.hrl", 0).
+-file("/usr/local/lib/erlang/lib/parsetools-2.0.4/include/leexinc.hrl", 0).
 %% The source of this file is part of leex distribution, as such it
 %% has the same Copyright as the other files in the leex
 %% distribution. The Copyright is defined in the accompanying file
@@ -12,7 +12,7 @@
 -export([format_error/1]).
 
 %% User code. This is placed here to allow extra attributes.
--file("src/lfe_scan.xrl", 98).
+-file("src/lfe_scan.xrl", 95).
 %% Copyright (c) 2008-2010 Robert Virding. All rights reserved.
 %%
 %% Redistribution and use in source and binary forms, with or without
@@ -44,11 +44,20 @@
 
 -import(string, [substr/2,substr/3]).
 
-%% base(Chars, Base, Line) -> Integer.
+%% symbol_token(Chars, Line) -> {token,{symbol,Line,Symbol}} | {error,E}.
+%% Build a symbol from list of legal characters, else error.
+
+symbol_token(Cs, L) ->
+    case catch {ok,list_to_atom(Cs)} of
+	{ok,S} -> {token,{symbol,L,S}};
+	_ -> {error,"illegal symbol"}
+    end.
+
+%% base_token(Chars, Base, Line) -> Integer.
 %% Convert a string of Base characters into a number. We know that
 %% the strings only contain the correct character.
 
-base(Cs, B, L) ->
+base_token(Cs, B, L) ->
     case base1(Cs, B, 0) of
 	{N,[]} -> {token,{number,L,N}};
 	{_,_} -> {error,"illegal based number"}
@@ -66,16 +75,16 @@ base1([C|Cs], Base, SoFar) when C >= $A, C =< $F, C < Base + $A - 10 ->
 base1([C|Cs], _Base, SoFar) -> {SoFar,[C|Cs]};
 base1([], _Base, N) -> {N,[]}.
 
-%% char(InputChars, Line) -> Char.
+%% char_token(InputChars, Line) -> {token,{number,L,N}} | {error,E}.
 %% Convert an input string into the corresponding character. We know
 %% that the input string is correct.
 
-char([$x,C|Cs], L) ->
+char_token([$x,C|Cs], L) ->
     case base1([C|Cs], 16, 0) of
 	{N,[]} -> {token,{number,L,N}};
 	_ -> {error,"illegal character"}
     end;
-char([C], L) -> {token,{number,L,C}}.
+char_token([C], L) -> {token,{number,L,C}}.
 
 %% chars(InputChars) -> Chars.
 %% Convert an input string into the corresponding string
@@ -110,7 +119,7 @@ escape_char($s) -> $\s;				%\s = SPC
 escape_char($d) -> $\d;				%\d = DEL
 escape_char(C) -> C.
 
--file("/usr/local/lib/erlang/lib/parsetools-2.0.3/include/leexinc.hrl", 14).
+-file("/usr/local/lib/erlang/lib/parsetools-2.0.4/include/leexinc.hrl", 14).
 
 format_error({illegal,S}) -> ["illegal characters ",io_lib:write_string(S)];
 format_error({user,S}) -> S.
@@ -370,7 +379,7 @@ yysuf(List, N) -> lists:nthtail(N, List).
 %% return signal either an unrecognised character or end of current
 %% input.
 
--file("src/lfe_scan.erl", 372).
+-file("src/lfe_scan.erl", 381).
 yystate() -> 47.
 
 yystate(50, Ics, Line, Tlen, _, _) ->
@@ -1190,7 +1199,7 @@ yyaction_12(TokenChars, TokenLine) ->
 -compile({inline,yyaction_13/2}).
 -file("src/lfe_scan.xrl", 58).
 yyaction_13(TokenChars, TokenLine) ->
-     char (string : substr (TokenChars, 3), TokenLine) .
+     char_token (string : substr (TokenChars, 3), TokenLine) .
 
 -compile({inline,yyaction_14/3}).
 -file("src/lfe_scan.xrl", 62).
@@ -1202,33 +1211,33 @@ yyaction_14(TokenChars, TokenLen, TokenLine) ->
 -file("src/lfe_scan.xrl", 67).
 yyaction_15(TokenChars, TokenLen, TokenLine) ->
      S = string : substr (TokenChars, 2, TokenLen - 2),
-     { token, { symbol, TokenLine, list_to_atom (chars (S)) } } .
+     symbol_token (chars (S), TokenLine) .
 
 -compile({inline,yyaction_16/2}).
 -file("src/lfe_scan.xrl", 70).
 yyaction_16(TokenChars, TokenLine) ->
-     base (string : substr (TokenChars, 3), 2, TokenLine) .
+     base_token (string : substr (TokenChars, 3), 2, TokenLine) .
 
 -compile({inline,yyaction_17/2}).
 -file("src/lfe_scan.xrl", 71).
 yyaction_17(TokenChars, TokenLine) ->
-     base (string : substr (TokenChars, 3), 8, TokenLine) .
+     base_token (string : substr (TokenChars, 3), 8, TokenLine) .
 
 -compile({inline,yyaction_18/2}).
 -file("src/lfe_scan.xrl", 72).
 yyaction_18(TokenChars, TokenLine) ->
-     base (string : substr (TokenChars, 3), 10, TokenLine) .
+     base_token (string : substr (TokenChars, 3), 10, TokenLine) .
 
 -compile({inline,yyaction_19/2}).
 -file("src/lfe_scan.xrl", 73).
 yyaction_19(TokenChars, TokenLine) ->
-     base (string : substr (TokenChars, 3), 16, TokenLine) .
+     base_token (string : substr (TokenChars, 3), 16, TokenLine) .
 
 -compile({inline,yyaction_20/2}).
 -file("src/lfe_scan.xrl", 76).
 yyaction_20(TokenChars, TokenLine) ->
      { Base, [_ | Ds ] } = base1 (string : substr (TokenChars, 2), 10, 0),
-     base (Ds, Base, TokenLine) .
+     base_token (Ds, Base, TokenLine) .
 
 -compile({inline,yyaction_21/2}).
 -file("src/lfe_scan.xrl", 80).
@@ -1249,14 +1258,11 @@ yyaction_22(TokenChars, TokenLine) ->
 -compile({inline,yyaction_23/2}).
 -file("src/lfe_scan.xrl", 90).
 yyaction_23(TokenChars, TokenLine) ->
-     case catch { ok, list_to_atom (TokenChars) } of
-     { ok, S } -> { token, { symbol, TokenLine, S } } ;
-     _ -> { error, "illegal symbol" }
-     end .
+     symbol_token (TokenChars, TokenLine) .
 
 -compile({inline,yyaction_24/0}).
--file("src/lfe_scan.xrl", 94).
+-file("src/lfe_scan.xrl", 91).
 yyaction_24() ->
      skip_token .
 
--file("/usr/local/lib/erlang/lib/parsetools-2.0.3/include/leexinc.hrl", 282).
+-file("/usr/local/lib/erlang/lib/parsetools-2.0.4/include/leexinc.hrl", 282).

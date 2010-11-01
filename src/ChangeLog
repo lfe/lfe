@@ -1,3 +1,7 @@
+2010-11-01  Robert Virding  <rv@renat>
+
+	* lfe_scan.xrl: Check creating atoms/symbols and code cleanup.
+
 2010-09-06  Robert Virding  <rv@stanislaw.local>
 
 	* lfe_macro.erl (def_record, def_rec_fields): Record macros follow
