@@ -1,3 +1,8 @@
+2010-11-04  Robert Virding  <rv@renat.local>
+
+	* lfe_macro.erl (exp_predef): Extend ? macro to handle optional
+	timeout and default value.
+
 2010-11-01  Robert Virding  <rv@renat>
 
 	* lfe_scan.xrl: Check creating atoms/symbols and code cleanup.

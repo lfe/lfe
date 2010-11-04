@@ -586,8 +586,13 @@ exp_predef(['++'|Abody], _, St) ->
     {yes,Exp,St};
 exp_predef([':',M,F|As], _, St) ->
     {yes,['call',?Q(M),?Q(F)|As], St};
-exp_predef(['?'], _, St) ->
-    {yes,['receive',['omega','omega']], St};
+exp_predef(['?'|As], _, St) ->
+    Exp = case As of
+	      [To,Def] -> ['receive',['omega','omega'],['after',To,Def]];
+	      [To] -> ['?',To,[exit,?Q(timeout)]];
+	      [] -> ['receive',['omega','omega']]
+	  end,
+    {yes,Exp, St};
 exp_predef(['list*'|As], _, St) ->
     Exp = case As of
 	      [E] -> E;

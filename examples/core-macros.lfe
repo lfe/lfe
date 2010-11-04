@@ -49,7 +49,11 @@
 (defmacro :
   ((list* m f as) `(call ',m ',f . ,as)))
 
-(defmacro ? () `(receive (omega omega)))
+(defmacro ?
+  ((list to default)
+   `(receive (omega omega) (after ,to ,default)))
+  ((list to) `(? ,to (exit 'timeout)))
+  (() `(receive (omega omega))))
 
 (defmacro list*
   ((list e) e)

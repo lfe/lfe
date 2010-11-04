@@ -70,7 +70,8 @@ Supported macro forms
 
 (: mod func arg ... ) =>
 	(call 'mod 'func arg ... )
-(?)					- Receive next message
+(? {{timeout {{default}} }})		- Receive next message,
+					  optional timeout and default value
 (++ ... )
 (list* ...)
 (let* (...) ... )			- Sequential let's
@@ -83,7 +84,7 @@ Supported macro forms
   ...)
 	Define local functions, this will expand to lambda or
 	match-lambda depending on structure as with defun.
-(cond ... )				- The normal cond, with (=? pat expr)
+(cond ... )				- The normal cond, with (?= pat expr)
 (andalso ... )
 (orelse ... )
 (fun func arity)			- fun func/arity
@@ -181,8 +182,8 @@ following guard expressions:
 (progn gtest ...)		- Sequence of guard tests
 (if gexpr gexpr gexpr)
 (type-test e)
-(guard-bif ...)			- Guard BIFs
-				  arithmetic, boolean and comparison operators
+(guard-bif ...)			- Guard BIFs, arithmetic,
+				  boolean and comparison operators
 
 An empty guard, (when), always succeeds as there is no test which
 fails. This simplifies writing macros which handle guards.
