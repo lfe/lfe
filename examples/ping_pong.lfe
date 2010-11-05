@@ -19,23 +19,23 @@
 ;; THE SOFTWARE.
 
 (defmodule ping_pong
-  (export (ping 0))
-  (export (start_link 0) (init 1) (handle_call 3) (handle_cast 2)
+  (export (start_link 0) (ping 0))
+  (export (init 1) (handle_call 3) (handle_cast 2)
           (handle_info 2) (terminate 2) (code_change 3))
   (behaviour gen_server))		;Just indicates intent
-
-;; client
-
-(defun ping ()
-  (: gen_server call 'ping_pong 'ping))
-
-;; callbacks
-
-(defrecord state (pings 0))
 
 (defun start_link ()
   (: gen_server start_link
     (tuple 'local 'ping_pong) 'ping_pong (list) (list)))
+
+;; Client API
+
+(defun ping ()
+  (: gen_server call 'ping_pong 'ping))
+
+;; Gen_server callbacks
+
+(defrecord state (pings 0))
 
 (defun init (args)
   (tuple 'ok (make-state pings 0)))
