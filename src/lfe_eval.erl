@@ -394,7 +394,10 @@ match_lambda_arity([[Pats|_]|_]) -> length(Pats).
 
 apply_match_clauses([[Pats|B0]|Cls], Vals, Env) ->
     if length(Vals) == length(Pats) ->
-	    case match_when(Pats, Vals, B0, Env) of
+	    %% Sneaky! m-l args a list of patterns so wrap with list
+	    %% and pass in as one pattern. Have already checked a
+	    %% proper list.
+	    case match_when([list|Pats], Vals, B0, Env) of
 		{yes,B1,Vbs} -> eval_body(B1, add_vbindings(Vbs, Env));
 		no -> apply_match_clauses(Cls, Vals, Env)
 	    end;
@@ -787,7 +790,7 @@ match([quote,P], Val, _, Bs) ->
 match([tuple|Ps], Val, Env, Bs) ->
     %% io:fwrite("~p ~p\n", [Ps,Val]),
     case is_tuple(Val) of
-	true -> match(Ps, tuple_to_list(Val), Env, Bs);
+	true -> match_list(Ps, tuple_to_list(Val), Env, Bs);
 	false -> no
     end;
 match([binary|Fs], Val, Env, Bs) ->
@@ -800,16 +803,34 @@ match(['=',P1,P2], Val, Env, Bs0) ->		%Aliases
 	{yes,Bs1} -> match(P2, Val, Env, Bs1);
 	no -> no
     end;
-match([P|Ps], [V|Vs], Env, Bs0) ->
-    case match(P, V, Env, Bs0) of
-	{yes,Bs1} -> match(Ps, Vs, Env, Bs1);
+match([cons,H,T], [V|Vs], Env, Bs0) ->		%Explicit cons constructor
+    case match(H, V, Env, Bs0) of
+	{yes,Bs1} -> match(T, Vs, Env, Bs1);
 	no -> no
     end;
+match([list|Ps], Val, Env, Bs) ->		%Explicit list constructor
+    match_list(Ps, Val, Env, Bs);
+match([_|_], _, _, _) -> no;			%No constructor
+
+%% match([P|Ps], [V|Vs], Env, Bs0) ->
+%%     case match(P, V, Env, Bs0) of
+%% 	{yes,Bs1} -> match(Ps, Vs, Env, Bs1);
+%% 	no -> no
+%%     end;
+
 match([], [], _, Bs) -> {yes,Bs};
 match(Symb, Val, Env, Bs) when is_atom(Symb) ->
     match_symb(Symb, Val, Env, Bs);
 match(Val, Val, _, Bs) -> {yes,Bs};
 match(_, _, _, _) -> no.
+
+match_list([P|Ps], [V|Vs], Env, Bs0) ->
+    case match(P, V, Env, Bs0) of
+	{yes,Bs1} -> match_list(Ps, Vs, Env, Bs1);
+	no -> no
+    end;
+match_list([], [], _, Bs) -> {yes,Bs};
+match_list(_, _, _, _) -> no.
 
 match_symb('_', _, _, Bs) -> {yes,Bs};		%Don't care variable.
 match_symb(Symb, Val, _, Bs) ->

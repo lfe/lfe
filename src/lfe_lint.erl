@@ -71,6 +71,8 @@ format_error(bad_body) -> "bad body";
 format_error(bad_clause) -> "bad clause";
 format_error(bad_args) -> "bad arguments";
 format_error(bad_gargs) -> "bad guard arguments";
+format_error(bad_alias) -> "bad alias";
+format_error(bad_arity) -> "head arity mismatch";
 format_error({bad_attribute,A}) ->
     lfe_io:format1("bad attribute: ~w", [A]);
 format_error({bad_form,Type}) ->
@@ -174,18 +176,20 @@ check_mdef([[Name|Vals]|Mdef], L, St) ->
 check_mdef([], _, St) -> St;
 check_mdef(_, L, St) -> bad_mod_def_error(L, form, St).
 
-check_imports(Is, L, St0) ->
-    check_foreach(fun (I, St) -> check_import(I, L, St) end,
-		  import, L, St0, Is).
+check_imports(Is, L, St) ->
+    check_foreach(fun (I, S) -> check_import(I, L, S) end,
+		  fun (S) -> import_error(L, S) end, St, Is).
 
 check_import([from,Mod|Fs], L, St) when is_atom(Mod) ->
     check_import(fun ([F,A], Imps, S) when is_atom(F), is_integer(A) ->
-			 {store({F,A}, F, Imps),S}
+			 {store({F,A}, F, Imps),S};
+		     (_, Imps, S) -> {Imps,bad_mod_def_error(L, from, S)}
 		 end, Mod, L, St, Fs);
 check_import([rename,Mod|Rs], L, St) when is_atom(Mod) ->
     check_import(fun ([[F,A],R], Imps, S)
 		     when is_atom(F), is_integer(A), is_atom(R) ->
-			 {store({F,A}, R, Imps),S}
+			 {store({F,A}, R, Imps),S};
+		     (_, Imps, S) -> {Imps,bad_mod_def_error(L, rename, S)}
 		 end, Mod, L, St, Rs);
 check_import([prefix,Mod,Pre], L, St) when is_atom(Mod), is_atom(Pre) ->
     Pstr = atom_to_list(Pre),
@@ -195,12 +199,14 @@ check_import([prefix,Mod,Pre], L, St) when is_atom(Mod), is_atom(Pre) ->
 	    Pref = store(Pstr, Mod, St#lint.pref),
 	    St#lint{pref=Pref}
     end;
-check_import(_, L, St) -> bad_mod_def_error(L, import, St).
+check_import(_, L, St) -> import_error(L, St).
 
 check_import(Fun, Mod, L, St0, Fs) ->
     Imps0 = safe_fetch(Mod, St0#lint.imps, []),
-    {Imps1,St1} = check_foldl(Fun, import, L, St0, Imps0, Fs),
+    {Imps1,St1} = foldl_form(Fun, import, L, St0, Imps0, Fs),
     St1#lint{imps=store(Mod, Imps1, St1#lint.imps)}.
+
+import_error(L, St) -> bad_mod_def_error(L, import, St).
 
 is_flist(Fs) -> is_flist(Fs, []).
 
@@ -357,26 +363,30 @@ check_symb(Symb, Env, L, St) ->
 %% the set of known bound variables.
 
 check_body(Body, Env, L, St) ->
-    %% check_body(fun check_exprs/4, Env, L, St, Body).
-    case is_proper_list(Body) of
-	true -> check_exprs(Body, Env, L, St);
-	false -> add_error(L, bad_body, St)
-    end.
+    check_foreach(fun (E, S) -> check_expr(E, Env, L, S) end,
+		  fun (S) -> add_error(L, bad_body, S) end,
+		  St, Body).
 
-check_body(Check, Env, L, St, Body) ->
-    case is_proper_list(Body) of
-	true -> Check(Body, Env, L, St);
-	false -> add_error(L, bad_body, St)
-    end.
+%% check_body(Body, Env, L, St) ->
+%%     %% check_body(fun check_exprs/4, Env, L, St, Body).
+%%     case is_proper_list(Body) of
+%% 	true -> check_exprs(Body, Env, L, St);
+%% 	false -> add_error(L, bad_body, St)
+%%     end.
 
 %% check_args(Args, Env, Line, State) -> State.
 %% Check the expressions in an argument list.
 
 check_args(Args, Env, L, St) ->
-    case is_proper_list(Args) of
-	true -> check_exprs(Args, Env, L, St);
-	false -> add_error(L, bad_args, St)
-    end.
+    check_foreach(fun (A, S) -> check_expr(A, Env, L, S) end,
+		  fun (S) -> add_error(L, bad_args, S) end,
+		  St, Args).
+
+%% check_args(Args, Env, L, St) ->
+%%     case is_proper_list(Args) of
+%% 	true -> check_exprs(Args, Env, L, St);
+%% 	false -> add_error(L, bad_args, St)
+%%     end.
 
 %% check_exprs(Exprs, Env, Line, State) -> State.
 %% Check a list of expressions. We know it's a proper list.
@@ -391,8 +401,8 @@ check_exprs(Es, Env, L, St) ->
 %% Functions for checking expression bitsegments.
 
 expr_bitsegs(Segs, Env, L, St0) ->
-    check_foreach(fun (S, St) -> expr_bitseg(S, Env, L, St) end,
-		  binary, L, St0, Segs).
+    foreach_form(fun (S, St) -> expr_bitseg(S, Env, L, St) end,
+		 binary, L, St0, Segs).
 
 %% expr_bitseg([N|Specs], Env, L, St0) ->
 %%     St1 = check_expr(N, Env, L, St0),		%Be lazy here
@@ -459,13 +469,20 @@ check_match_lambda(_, _, L, St) ->		%Totally wrong
 check_ml_arity([[Pat|_]|Cls], Ar, L, St) ->
     case is_proper_list(Pat) andalso length(Pat) == Ar of
 	true -> check_ml_arity(Cls, Ar, L, St);
-	false -> add_error(L, match_lambda_arity, St)
+	false -> add_error(L, bad_arity, St)
     end;
 check_ml_arity([], _, _, St) -> St.
 
 check_ml_clauses(Cls, Env, L, St) ->
-    check_foreach(fun (Cl, S) -> check_clause(Cl, Env, L, S) end,
-		  'match-lambda', L, St, Cls).
+    %% Sneaky! m-l args a list of patterns so wrap with list and pass
+    %% in as one pattern. Have already checked a proper list.
+    foreach_form(fun ([As|B], S) -> check_clause([[list|As]|B], Env, L, S) end,
+		 'match-lambda', L, St, Cls).
+
+%% check_ml_clauses(Cls, Env, L, St) ->
+%%     %% Sneaky! m-l args list of patterns so just pass in as one pattern.
+%%     foreach_form(fun (Cl, S) -> check_clause(Cl, Env, L, S) end,
+%% 		  'match-lambda', L, St, Cls).
 
 %% check_let(LetBody, Env, Line, State) -> {Env,State}.
 %%  Check let variable bindings and then body. Must be careful to use
@@ -480,7 +497,7 @@ check_let([Vbs|Body], Env, L, St0) ->
 			  end,
 		    {union(Pv, Pvs), Stc}
 	    end,
-    {Pvs,St1} = check_foldl(Check, 'let', L, St0, [], Vbs),
+    {Pvs,St1} = foldl_form(Check, 'let', L, St0, [], Vbs),
     check_body(Body, add_vbindings(Pvs, Env), L, St1);
 check_let(_, _, L, St) ->
     bad_form_error(L, 'let', St).
@@ -525,31 +542,7 @@ collect_let_funcs(Fbs0, Type, L, St0) ->
 		    {[{V,Match,L}|Fbs],St};
 		(_, Fbs, St) -> {Fbs,bad_form_error(L, Type, St)}
 	    end,
-    check_foldr(Check, Type, L, St0, [], Fbs0).	%Preserve order
-
-%% check_fbindings(FuncBindings, State) -> {Funcs,State}.
-%%  Check function bindings for format and for multiple fucntion
-%%  definitions.
-
-check_fbindings(Fbs0, St0) ->
-    AddFb = fun(F, Fs, L, St) ->
-		    case member(F, Fs) of
-			true -> {Fs,add_error(L, {redef_fun,F}, St)};
-			false -> {add_element(F, Fs),St}
-		    end
-	    end,
-    Check = fun ({V,[lambda,Args|_],L}, {Fs,St}) ->
-		    case is_symb_list(Args) of
-			true -> AddFb({V,length(Args)}, Fs, L, St);
-			false -> {Fs,bad_form_error(L, lambda, St)}
-		    end;
-		({V,['match-lambda',[Pats|_]|_],L}, {Fs,St}) ->
-		    case is_proper_list(Pats) of
-			true -> AddFb({V,length(Pats)}, Fs, L, St);
-			false -> {Fs,bad_form_error(L, 'match-lambda', St)}
-		    end
-	    end,
-    foldl(Check, {[],St0}, Fbs0).
+    foldr_form(Check, Type, L, St0, [], Fbs0).	%Preserve order
 
 %% check_let_bindings(FuncBindings, Env, State) -> {Funcs,Env,State}.
 %%  Check the function bindings and return new environment. We only
@@ -585,6 +578,31 @@ check_letrec_bindings(Fbs, Env0, St0) ->
 		end, St1, Fbs),
     {Fs,Env1,St2}.
 
+%% check_fbindings(FuncBindings, State) -> {Funcs,State}.
+%%  Check function bindings for format and for multiple fucntion
+%%  definitions.
+
+check_fbindings(Fbs0, St0) ->
+    AddFb = fun(F, Fs, L, St) ->
+		    case member(F, Fs) of
+			true -> {Fs,add_error(L, {redef_fun,F}, St)};
+			false -> {add_element(F, Fs),St}
+		    end
+	    end,
+    Check = fun ({V,[lambda,Args|_],L}, {Fs,St}) ->
+		    case is_symb_list(Args) of
+			true -> AddFb({V,length(Args)}, Fs, L, St);
+			false -> {Fs,bad_form_error(L, lambda, St)}
+		    end;
+		({V,['match-lambda',[Pats|_]|_],L}, {Fs,St}) ->
+		    case is_proper_list(Pats) of
+			true -> AddFb({V,length(Pats)}, Fs, L, St);
+			false -> {Fs,bad_form_error(L, 'match-lambda', St)}
+		    end;
+		(_, Acc) -> Acc			%Error here flagged later
+	    end,
+    foldl(Check, {[],St0}, Fbs0).
+
 %% check_if(IfBody, Env, Line, State) -> State.
 %% Check form (if Test True [False]).
 
@@ -605,8 +623,8 @@ check_case(_, _, L, St) ->
     bad_form_error(L, 'case', St).
 
 check_case_clauses(Cls, Env, L, St) ->
-    check_foreach(fun (Cl, S) -> check_clause(Cl, Env, L, S) end,
-		  'case', L, St, Cls).
+    foreach_form(fun (Cl, S) -> check_clause(Cl, Env, L, S) end,
+		 'case', L, St, Cls).
 	    
 check_rec_clauses([['after',T|B]], Env, L, St0) ->
     St1 = check_expr(T, Env, L, St0),
@@ -790,7 +808,7 @@ check_pat(Pat, Env, L, St) ->
 
 check_pat([quote,_], Vs, _, _, St) -> {Vs,St};	%Go no deeper with quote
 check_pat([tuple|Ps], Vs, Env, L, St) ->	%Tuple elements
-    check_pat(Ps, Vs, Env, L, St);
+    pat_list(Ps, Vs, Env, L, St);
 check_pat([binary|Segs], Vs, Env, L, St) ->
     pat_bitsegs(Segs, Vs, Env, L, St);
 check_pat(['=',P1,P2], Vs0, Env, L, St0) ->
@@ -803,13 +821,26 @@ check_pat(['=',P1,P2], Vs0, Env, L, St0) ->
 	      false -> add_error(L, bad_alias, St2)
 	  end,
     {union(Vs1, Vs2),St3};
-check_pat([H|T], Vs0, Env, L, St0) ->
+check_pat([cons,H,T], Vs0, Env, L, St0) ->	%Explicit cons constructor
     {Vs1,St1} = check_pat(H, Vs0, Env, L, St0),
     check_pat(T, Vs1, Env, L, St1);
+check_pat([list|Ps], Vs, Env, L, St) ->		%Explicit list constructor
+    pat_list(Ps, Vs, Env, L, St);
+check_pat([_|_], Vs, _, L, St) ->		%No constructor
+    {Vs,add_error(L, illegal_pat, St)};
+%% check_pat([H|T], Vs0, Env, L, St0) ->
+%%     {Vs1,St1} = check_pat(H, Vs0, Env, L, St0),
+%%     check_pat(T, Vs1, Env, L, St1);
 check_pat([], Vs, _, _, St) -> {Vs,St};
 check_pat(Symb, Vs, _, L, St) when is_atom(Symb) ->
     pat_symb(Symb, Vs, L, St);
 check_pat(_, Vs, _, _, St) -> {Vs,St}.		%Atomic
+
+pat_list([P|Ps], Vs0, Env, L, St0) ->
+    {Vs1,St1} = check_pat(P, Vs0, Env, L, St0),
+    pat_list(Ps, Vs1, Env, L, St1);
+pat_list([], Vs, _, _, St) -> {Vs,St};
+pat_list(_, Vs, _, L, St) -> {Vs,add_error(L, illegal_pat, St)}.
 
 pat_symb('_', Vs, _, St) -> {Vs,St};		%Don't care variable
 pat_symb(Symb, Vs, L, St) ->
@@ -830,8 +861,16 @@ check_alias([tuple|Ps1], [tuple|Ps2]) ->
 %% check_alias(P1, [tuple|Ps2]) when is_tuple(P1) ->
 %%     check_alias_list(tuple_to_list(P1), Ps2);
 check_alias([binary|_], [binary|_]) -> false;
-check_alias([P1|Ps1], [P2|Ps2]) ->
-    check_alias(P1, P2) andalso check_alias(Ps1, Ps2);
+check_alias([cons,H1,T1], [cons,H2,T2]) ->
+    check_alias(H1, H2) andalso check_alias(T1, T2);
+check_alias([cons,H1,T1], [list,H2|T2]) ->
+    check_alias(H1, H2) andalso check_alias(T1, [list|T2]);
+check_alias([list|Ps1], [list|Ps2]) ->
+    check_alias_list(Ps1, Ps2);
+check_alias([list,H1|T1], [cons,H2,T2]) ->
+    check_alias(H1, H2) andalso check_alias([list|T1], T2);
+%% check_alias([P1|Ps1], [P2|Ps2]) ->
+%%     check_alias(P1, P2) andalso check_alias(Ps1, Ps2);
 check_alias(P1, _) when is_atom(P1) -> true;	%Variable
 check_alias(_, P2) when is_atom(P2) -> true;
 check_alias(P1, P2) -> P1 =:= P2.		%Atomic
@@ -916,67 +955,82 @@ check_bitspec([size,N], _, St) when is_integer(N), N > 0 -> St;
 check_bitspec(Spec, L, St) ->
     add_error(L, {illegal_bitspec,Spec}, St).
 
-%% check_foreach(Function, Type, Line, State, Forms) -> State.
-%% check_map(Function, Type, Line, State, Forms) -> {Results,State}.
-%% check_foldl(Function, Type, Line, State, Acc, Forms) -> {Acc,State}.
-%% check_foldr(Function, Type, Line, State, Acc, Forms) -> {Acc,State}.
+%% Functions for checking lists of forms, generate bad_form error if
+%% not proper list.
+
+foreach_form(Check, T, L, St, Fs) ->
+    check_foreach(Check, fun (S) -> bad_form_error(L, T, S) end, St, Fs).
+
+%% map_form(Check, T, L, St, Fs) ->
+%%     check_map(Check, fun (S) -> bad_form_error(L, T, S) end, St, Fs).
+
+foldl_form(Fun, T, L, St, Acc, Fs) ->
+    check_foldl(Fun, fun (S) -> bad_form_error(L, T, S) end, St, Acc, Fs).
+
+foldr_form(Fun, T, L, St, Acc, Fs) ->
+    check_foldr(Fun, fun (S) -> bad_form_error(L, T, S) end, St, Acc, Fs).
+
+%% check_foreach(Check, Err, State, Forms) -> State.
+%% check_map(Check, Err, State, Forms) -> {Results,State}.
+%% check_foldl(Check, Err, State, Acc, Forms) -> {Acc,State}.
+%% check_foldr(Check, Err, State, Acc, Forms) -> {Acc,State}.
 %%  These functions automatically manage a state variable and check for
 %%  proper top list. Could easily and clearly be done with a Lisp
 %%  macro.
 
 %% Versions which only check for proper top list.
-check_foreach(Fun, T, L, St0, [F|Fs]) ->
-    St1 = Fun(F, St0),
-    check_foreach(Fun, T, L, St1, Fs);
-check_foreach(_, _, _, St, []) -> St;
-check_foreach(_, T, L, St, _) -> bad_form_error(L, T, St).
+check_foreach(Check, Err, St0, [F|Fs]) ->
+    St1 = Check(F, St0),
+    check_foreach(Check, Err, St1, Fs);
+check_foreach(_, _, St, []) -> St;
+check_foreach(_, Err, St, _) -> Err(St).
 
-check_map(Fun, T, L, St0, [F|Fs]) ->
-    {R,St1} = Fun(F, St0),
-    {Rs,St2} = check_map(Fun, T, L, St1, Fs),
-    {[R|Rs],St2};
-check_map(_, _, _, St, []) -> {[],St};
-check_map(_, T, L, St, _) -> {[],bad_form_error(L, T, St)}.
+%% check_map(Check, Err, St0, [F|Fs]) ->
+%%     {R,St1} = Check(F, St0),
+%%     {Rs,St2} = check_map(Check, Err, St1, Fs),
+%%     {[R|Rs],St2};
+%% check_map(_, _, St, []) -> {[],St};
+%% check_map(_, Err, St, _) -> {[],Err(St)}.
 
-check_foldl(Fun, T, L, St0, Acc0, [F|Fs]) ->
-    {Acc1,St1} = Fun(F, Acc0, St0),
-    check_foldl(Fun, T, L, St1, Acc1, Fs);
-check_foldl(_, _, _, St, Acc, []) -> {Acc,St};
-check_foldl(_, T, L, St, Acc, _) -> {Acc,bad_form_error(L, T, St)}.
+check_foldl(Check, Err, St0, Acc0, [F|Fs]) ->
+    {Acc1,St1} = Check(F, Acc0, St0),
+    check_foldl(Check, Err, St1, Acc1, Fs);
+check_foldl(_, _, St, Acc, []) -> {Acc,St};
+check_foldl(_, Err, St, Acc, _) -> {Acc,Err(St)}.
 
-check_foldr(Fun, T, L, St0, Acc0, [F|Fs]) ->
-    {Acc1,St1} = check_foldr(Fun, T, L, St0, Acc0, Fs),
-    Fun(F, Acc1, St1);
-check_foldr(_, _, _, St, Acc, []) -> {Acc,St};
-check_foldr(_, T, L, St, Acc, _) -> {Acc,bad_form_error(L, T, St)}.
+check_foldr(Check, Err, St0, Acc0, [F|Fs]) ->
+    {Acc1,St1} = check_foldr(Check, Err, St0, Acc0, Fs),
+    Check(F, Acc1, St1);
+check_foldr(_, _, St, Acc, []) -> {Acc,St};
+check_foldr(_, Err, St, Acc, _) -> {Acc,Err(St)}.
 
-%% Versions which completely wrap with a try. These catch too much!
-%% check_foreach(Fun, T, L, St, Fs) ->
+%% Versions which completely wrap with a try. These may catch too much!
+%% check_foreach(Fun, Err, St, Fs) ->
 %%     try
 %% 	foldl(Fun, St, Fs)
 %%     catch
-%% 	_:_ -> bad_form_error(L, T, St)
+%% 	_:_ -> Err(St)
 %%     end.
 	      
-%% check_map(Fun, T, L, St, Fs) ->
+%% check_map(Fun, Err, St, Fs) ->
 %%     try
 %% 	mapfoldl(Fun, St, Fs)
 %%     catch
-%% 	_:_ -> {[],bad_form_error(L, T, St)}
+%% 	_:_ -> {[],Err(St)}
 %%     end.
 
-%% check_foldl(Fun, T, L, St, Acc, Fs) ->
+%% check_foldl(Fun, Err, St, Acc, Fs) ->
 %%     try
 %% 	foldl(fun (F, {A,S}) -> Fun(F, A, S) end, {Acc,St}, Fs)
 %%     catch
-%% 	_:_ -> {{Acc,St},bad_form_error(L, T, St)}
+%% 	_:_ -> {Acc,Err(St)}
 %%     end.
 
-%% check_foldr(Fun, T, L, St, Acc, Fs) ->
+%% check_foldr(Fun, Err, St, Acc, Fs) ->
 %%     try
 %% 	foldr(fun (F, {A,S}) -> Fun(F, A, S) end, {Acc,St}, Fs)
 %%     catch
-%% 	_:_ -> {{Acc,St},bad_form_error(L, T, St)}
+%% 	_:_ -> {Acc,Err(St)}
 %%     end.
 
 %% safe_length(List) -> Length.

@@ -63,14 +63,14 @@
 
 ;; Define the set functions to work on list, a listsets module really.
 (defun set-difference
-  ([(e . es) s2]
+  ([(cons e es) s2]
    (if (member e s2)
      (set-difference es s2)
      (cons e (set-difference es s2))))
   ([() s2] ()))
 
 (defun union
-  ([(e . es) s2]
+  ([(cons e es) s2]
    (if (member e s2) (union es s2) (cons e (union es s2))))
   ([() s2] ()))
 

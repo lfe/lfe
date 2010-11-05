@@ -57,7 +57,7 @@ Rules.
 \.		:	{token,{'.',TokenLine}}.
 [][()}{]	:	{token,{list_to_atom(TokenChars),TokenLine}}.
 %% Characters
-#\\(x{H}+|.)	:	char(string:substr(TokenChars, 3), TokenLine).
+#\\(x{H}+|.)	:	char_token(string:substr(TokenChars, 3), TokenLine).
 %% String
 "(\\x{H}+;|\\.|[^"])*" :
 			%% Strip quotes.
@@ -67,16 +67,16 @@ Rules.
 \|(\\x{H}+;|\\.|[^|])*\| :
 			%% Strip quotes.
 			S = string:substr(TokenChars, 2, TokenLen - 2),
-			{token,{symbol,TokenLine,list_to_atom(chars(S))}}.
+			symbol_token(chars(S), TokenLine).
 %% Based numbers
-#[bB]{B}+	:	base(string:substr(TokenChars, 3), 2, TokenLine).
-#[oO]{O}+	:	base(string:substr(TokenChars, 3), 8, TokenLine).
-#[dD]{D}+	:	base(string:substr(TokenChars, 3), 10, TokenLine).
-#[xX]{H}+	:	base(string:substr(TokenChars, 3), 16, TokenLine).
+#[bB]{B}+	:	base_token(string:substr(TokenChars, 3), 2, TokenLine).
+#[oO]{O}+	:	base_token(string:substr(TokenChars, 3), 8, TokenLine).
+#[dD]{D}+	:	base_token(string:substr(TokenChars, 3), 10, TokenLine).
+#[xX]{H}+	:	base_token(string:substr(TokenChars, 3), 16, TokenLine).
 #{D}+[rR]{B36}+ :
 	%% Have to scan all possible digit chars and fail if wrong.
 	{Base,[_|Ds]} = base1(string:substr(TokenChars, 2), 10, 0),
-	base(Ds, Base, TokenLine).
+	base_token(Ds, Base, TokenLine).
 %% Atoms
 [+-]?{D}+		:
 	case catch {ok,list_to_integer(TokenChars)} of
@@ -89,10 +89,7 @@ Rules.
 	    _ -> {error,"illegal float"}
 	end.
 {SSYM}{SYM}*	:
-	case catch {ok,list_to_atom(TokenChars)} of
-	    {ok,S} -> {token,{symbol,TokenLine,S}};
-	    _ -> {error,"illegal symbol"}
-	end.
+	symbol_token(TokenChars, TokenLine).
 {WS}+		:	skip_token.
 
 Erlang code.
@@ -127,11 +124,20 @@ Erlang code.
 
 -import(string, [substr/2,substr/3]).
 
-%% base(Chars, Base, Line) -> Integer.
+%% symbol_token(Chars, Line) -> {token,{symbol,Line,Symbol}} | {error,E}.
+%% Build a symbol from list of legal characters, else error.
+
+symbol_token(Cs, L) ->
+    case catch {ok,list_to_atom(Cs)} of
+	{ok,S} -> {token,{symbol,L,S}};
+	_ -> {error,"illegal symbol"}
+    end.
+
+%% base_token(Chars, Base, Line) -> Integer.
 %% Convert a string of Base characters into a number. We know that
 %% the strings only contain the correct character.
 
-base(Cs, B, L) ->
+base_token(Cs, B, L) ->
     case base1(Cs, B, 0) of
 	{N,[]} -> {token,{number,L,N}};
 	{_,_} -> {error,"illegal based number"}
@@ -149,16 +155,16 @@ base1([C|Cs], Base, SoFar) when C >= $A, C =< $F, C < Base + $A - 10 ->
 base1([C|Cs], _Base, SoFar) -> {SoFar,[C|Cs]};
 base1([], _Base, N) -> {N,[]}.
 
-%% char(InputChars, Line) -> Char.
+%% char_token(InputChars, Line) -> {token,{number,L,N}} | {error,E}.
 %% Convert an input string into the corresponding character. We know
 %% that the input string is correct.
 
-char([$x,C|Cs], L) ->
+char_token([$x,C|Cs], L) ->
     case base1([C|Cs], 16, 0) of
 	{N,[]} -> {token,{number,L,N}};
 	_ -> {error,"illegal character"}
     end;
-char([C], L) -> {token,{number,L,C}}.
+char_token([C], L) -> {token,{number,L,C}}.
 
 %% chars(InputChars) -> Chars.
 %% Convert an input string into the corresponding string
