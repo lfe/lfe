@@ -314,7 +314,7 @@ def_record(Name, Fdefs, Env, St0) ->
 	       [l,fds,rec]]]]
 	    |
 	    Fdef],
-    lfe_io:format("~p\n", [{Funs,Macs}]),
+    %% lfe_io:format("~p\n", [{Funs,Macs}]),
     {Funs,Macs,Env,St1}.
 
 def_rec_fields([F|Fs]) ->

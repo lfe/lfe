@@ -79,6 +79,8 @@ format_error({bad_form,Type}) ->
     lfe_io:format1("bad form: ~w", [Type]);
 format_error({bad_gform,Type}) ->
     lfe_io:format1("bad guard form: ~w", [Type]);
+format_error({bad_pat,Type}) ->
+    lfe_io:format1("bad pattern: ~w", [Type]);
 format_error({unbound_symb,S}) ->
     lfe_io:format1("unbound symbol: ~w", [S]);
 format_error({unbound_func,F}) ->
@@ -403,12 +405,6 @@ check_exprs(Es, Env, L, St) ->
 expr_bitsegs(Segs, Env, L, St0) ->
     foreach_form(fun (S, St) -> expr_bitseg(S, Env, L, St) end,
 		 binary, L, St0, Segs).
-
-%% expr_bitseg([N|Specs], Env, L, St0) ->
-%%     St1 = check_expr(N, Env, L, St0),		%Be lazy here
-%%     expr_bitspecs(Specs, Env, L, St1);
-%% expr_bitseg(N, Env, L, St) ->
-%%     check_expr(N, Env, L, St).
 
 expr_bitseg([Val|Specs]=Seg, Env, L, St0) ->
     case is_integer_list(Seg) of
@@ -762,17 +758,9 @@ check_gif(_, _, L, St) ->
 %% gexpr_bitspec(BitSpec, Env, Line, State) -> State.
 %% Functions for checking guard expression bitsegments.
 
-gexpr_bitsegs([S|Ss], Env, L, St0) ->
-    St1 = gexpr_bitseg(S, Env, L, St0),
-    gexpr_bitsegs(Ss, Env, L, St1);
-gexpr_bitsegs([], _, _, St) -> St;
-gexpr_bitsegs(_, _, L, St) -> bad_gform_error(L, binary, St).
-
-%% gexpr_bitseg([N|Specs], Env, L, St0) ->
-%%     St1 = check_gexpr(N, Env, L, St0),		%Be lazy here
-%%     gexpr_bitspecs(Specs, Env, L, St1);
-%% gexpr_bitseg(N, Env, L, St) ->
-%%     check_gexpr(N, Env, L, St).
+gexpr_bitsegs(Segs, Env, L, St0) ->
+    check_foreach(fun (S, St) -> gexpr_bitseg(S, Env, L, St) end,
+		  fun (St) -> bad_gform_error(L, binary, St) end, St0, Segs).
 
 gexpr_bitseg([Val|Specs]=Seg, Env, L, St0) ->
     case is_integer_list(Seg) of
@@ -812,25 +800,26 @@ check_pat([tuple|Ps], Vs, Env, L, St) ->	%Tuple elements
 check_pat([binary|Segs], Vs, Env, L, St) ->
     pat_bitsegs(Segs, Vs, Env, L, St);
 check_pat(['=',P1,P2], Vs0, Env, L, St0) ->
-    %% Must check each pattern separately as same variable can occur
+    %% Must check patterns together as same variable can occur
     %% in both branches.
     {Vs1,St1} = check_pat(P1, Vs0, Env, L, St0),
-    {Vs2,St2} = check_pat(P2, Vs0, Env, L, St1),
+    {Vs2,St2} = check_pat(P2, Vs1, Env, L, St1),
     St3 = case check_alias(P1, P2) of
 	      true -> St2;		%Union of variables now visible
 	      false -> add_error(L, bad_alias, St2)
 	  end,
-    {union(Vs1, Vs2),St3};
+    {Vs2,St3};
 check_pat([cons,H,T], Vs0, Env, L, St0) ->	%Explicit cons constructor
     {Vs1,St1} = check_pat(H, Vs0, Env, L, St0),
     check_pat(T, Vs1, Env, L, St1);
 check_pat([list|Ps], Vs, Env, L, St) ->		%Explicit list constructor
     pat_list(Ps, Vs, Env, L, St);
-check_pat([_|_], Vs, _, L, St) ->		%No constructor
-    {Vs,add_error(L, illegal_pat, St)};
-%% check_pat([H|T], Vs0, Env, L, St0) ->
-%%     {Vs1,St1} = check_pat(H, Vs0, Env, L, St0),
-%%     check_pat(T, Vs1, Env, L, St1);
+%% Check old no contructor list forms.
+check_pat([H|T], Vs0, Env, L, St0) ->
+    {Vs1,St1} = check_pat(H, Vs0, Env, L, St0),
+    check_pat(T, Vs1, Env, L, St1);
+%% check_pat([_|_], Vs, _, L, St) ->
+%%     {Vs,add_error(L, illegal_pat, St)};
 check_pat([], Vs, _, _, St) -> {Vs,St};
 check_pat(Symb, Vs, _, L, St) when is_atom(Symb) ->
     pat_symb(Symb, Vs, L, St);
@@ -869,8 +858,18 @@ check_alias([list|Ps1], [list|Ps2]) ->
     check_alias_list(Ps1, Ps2);
 check_alias([list,H1|T1], [cons,H2,T2]) ->
     check_alias(H1, H2) andalso check_alias([list|T1], T2);
-%% check_alias([P1|Ps1], [P2|Ps2]) ->
-%%     check_alias(P1, P2) andalso check_alias(Ps1, Ps2);
+%% Check against old no contructor list forms.
+check_alias([list|_]=P1, P2) when is_list(P2) ->
+    check_alias(P1, [list|P2]);
+check_alias([cons,_,_]=P1, [H2|T2]) ->
+    check_alias(P1, [cons,H2,T2]);
+check_alias(P1, [list|_]=P2) when is_list(P1) ->
+    check_alias([list|P1], P2);
+check_alias([H1|T1], [cons,_,_]=P2) ->
+    check_alias([cons,H1,T1], P2);
+%% Check old against old no constructor list forms.
+check_alias([P1|Ps1], [P2|Ps2]) ->
+    check_alias(P1, P2) andalso check_alias(Ps1, Ps2);
 check_alias(P1, _) when is_atom(P1) -> true;	%Variable
 check_alias(_, P2) when is_atom(P2) -> true;
 check_alias(P1, P2) -> P1 =:= P2.		%Atomic
@@ -888,14 +887,9 @@ check_alias_list(_, _) -> false.
 %% Functions for checking pattern bitsegments.
 
 pat_bitsegs(Segs, Vs0, Env, L, St0) ->
-    foldl(fun (S, {Vs,St}) -> pat_bitseg(S, Vs, Env, L, St) end,
-	  {Vs0,St0}, Segs).
-
-%% pat_bitseg([N|Specs], Vs0, Env, L, St0) ->
-%%     {Vs1,St1} = pat_bitel(N, Vs0, Env, L, St0),
-%%     {Vs1,pat_bitspecs(Specs, Env, L, St1)};
-%% pat_bitseg(N, Vs, Env, L, St) ->
-%%     pat_bitel(N, Vs, Env, L, St).
+    check_foldl(fun (S, Vs, St) -> pat_bitseg(S, Vs, Env, L, St) end,
+		fun (St) -> bad_pat_error(L, binary, St) end,
+		St0, Vs0, Segs).
 
 pat_bitseg([Pat|Specs]=Seg, Vs, Env, L, St0) ->
     case is_integer_list(Seg) of
@@ -1056,6 +1050,9 @@ bad_form_error(L, F, St) ->
 
 bad_gform_error(L, F, St) ->
     add_error(L, {bad_gform,F}, St).
+
+bad_pat_error(L, F, St) ->
+    add_error(L, {bad_pat,F}, St).
 
 bad_mod_def_error(L, D, St) ->
     add_error(L, {bad_mod_def,D}, St).
