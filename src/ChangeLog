@@ -1,3 +1,8 @@
+2010-11-25  Robert Virding  <rv@renat>
+
+	* lfe_lint.erl (pat_bitsegs): Use check_foldl instead.
+	(gexpr_bitsegs): Use check_foreach instead.
+
 2010-11-04  Robert Virding  <rv@renat.local>
 
 	* lfe_macro.erl (exp_predef): Extend ? macro to handle optional
@@ -47,7 +52,8 @@
 
 2010-06-07  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_lint.erl (pat_bitsegs): Allow strings (integer lists).
+	* lfe_lint.erl (expr_bitseg, gexpr_bitseg, pat_bitseg): Allow
+	strings (integer lists).
 
 	* lfe_codegen.erl (parse_bitsegs): Allow strings (integer lists).
 
