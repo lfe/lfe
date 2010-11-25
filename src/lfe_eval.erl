@@ -810,13 +810,13 @@ match([cons,H,T], [V|Vs], Env, Bs0) ->		%Explicit cons constructor
     end;
 match([list|Ps], Val, Env, Bs) ->		%Explicit list constructor
     match_list(Ps, Val, Env, Bs);
-match([_|_], _, _, _) -> no;			%No constructor
-
-%% match([P|Ps], [V|Vs], Env, Bs0) ->
-%%     case match(P, V, Env, Bs0) of
-%% 	{yes,Bs1} -> match(Ps, Vs, Env, Bs1);
-%% 	no -> no
-%%     end;
+%% Use old no contructor list forms.
+match([P|Ps], [V|Vs], Env, Bs0) ->
+    case match(P, V, Env, Bs0) of
+	{yes,Bs1} -> match(Ps, Vs, Env, Bs1);
+	no -> no
+    end;
+%% match([_|_], _, _, _) -> no;			%No constructor
 
 match([], [], _, Bs) -> {yes,Bs};
 match(Symb, Val, Env, Bs) when is_atom(Symb) ->
