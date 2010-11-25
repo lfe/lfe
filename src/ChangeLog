@@ -1,3 +1,37 @@
+2010-11-25  Robert Virding  <rv@renat>
+
+	* lfe_lint.erl (pat_bitsegs): Use check_foldl instead.
+	(gexpr_bitsegs): Use check_foreach instead.
+
+2010-11-04  Robert Virding  <rv@renat.local>
+
+	* lfe_macro.erl (exp_predef): Extend ? macro to handle optional
+	timeout and default value.
+
+2010-11-01  Robert Virding  <rv@renat>
+
+	* lfe_scan.xrl: Check creating atoms/symbols and code cleanup.
+
+2010-10-27  Robert Virding  <rv@renat.local>
+
+	* lfe_shell.erl (prompt): Prompt adds node name when alive.
+
+2010-09-06  Robert Virding  <rv@stanislaw.local>
+
+	* lfe_macro.erl (def_record, def_rec_fields): Record macros follow
+	new pattern code.
+	(expand_defmacro): Add explicit list constructor for args.
+	(c_l_tq): Add explicit cons constructor.
+
+	* lfe_codegen.erl (comp_pat, pat_list): Add code to generate
+	pattern code for explicit list constructors.
+
+	* lfe_eval.erl (match, match_list): Add code to match explicit
+	list constructors.
+
+	* lfe_lint.erl (check_pat, pat_list, check_alias): Add code to
+	test for explicit list constructors.
+
 2010-08-25  Robert Virding  <rv@stanislaw.local>
 
 	* lfe_macro.erl (c_tq, c_l_tq, c_b_tq): Add guards to generators
@@ -18,7 +52,8 @@
 
 2010-06-07  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_lint.erl (pat_bitsegs): Allow strings (integer lists).
+	* lfe_lint.erl (expr_bitseg, gexpr_bitseg, pat_bitseg): Allow
+	strings (integer lists).
 
 	* lfe_codegen.erl (parse_bitsegs): Allow strings (integer lists).
 

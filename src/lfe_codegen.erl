@@ -103,11 +103,11 @@ forms(Forms, St0, Core0) ->
     when_opt(fun () -> io:fwrite("core_lint: ~p\n",
 				 [(catch core_lint:module(Core1))])
 	     end, debug_print, St3),
-    when_opt(fun () ->
-		     Pp = (catch io:put_chars([core_pp:format(Core1),$\n])),
-		     io:fwrite("core_pp: ~p\n", [Pp])
-	     end, debug_print, St3),
-    %% debug_print("#core: ~p\n", [Core1], St3),
+    debug_print("#core: ~p\n", [Core1], St3),
+%%     when_opt(fun () ->
+%% 		     Pp = (catch io:put_chars([core_pp:format(Core1),$\n])),
+%% 		     io:fwrite("core_pp: ~p\n", [Pp])
+%% 	     end, debug_print, St3),
     {Core1,St3}.
 
 forms_env(Fbs, St) ->
@@ -515,6 +515,7 @@ comp_if(Te, Tr, Fa, Env, L, St0) ->
 	     arg=Cte,
 	     clauses=[Ctrue,Cfalse,Cfail]},St3}.
 
+%% This produces code which is harder to optimise, strangely enough.
 %% comp_if(Te, Tr, Fa, Env, L, St0) ->
 %%     {Cte,St1} = comp_expr(Te, Env, L, St0),	%Test expression
 %%     {Ctr,St2} = comp_expr(Tr, Env, L, St1),	%True expression
@@ -1097,6 +1098,13 @@ comp_pat(['=',P1,P2], L, Vs0, St0) ->
     {Cp2,Vs2,St2} = comp_pat(P2, L, Vs0, St1),
     Cp = pat_alias(Cp1, Cp2),
     {Cp,union(Vs1, Vs2),St2};
+comp_pat([cons,H,T], L, Vs0, St0) ->
+    {Ch,Vs1,St1} = comp_pat(H, L, Vs0, St0),
+    {Ct,Vs2,St2} = comp_pat(T, L, Vs1, St1),
+    {c_cons(Ch, Ct),Vs2,St2};
+comp_pat([list|Ps], L, Vs, St) ->
+    pat_list(Ps, L, Vs, St);
+%% Compile old no contructor list forms.
 comp_pat([H|T], L, Vs0, St0) ->
     {Ch,Vs1,St1} = comp_pat(H, L, Vs0, St0),
     {Ct,Vs2,St2} = comp_pat(T, L, Vs1, St1),
@@ -1110,6 +1118,12 @@ comp_pat(Tup, _, Vs, St) when is_tuple(Tup) ->
 comp_pat(Symb, L, Vs, St) when is_atom(Symb) ->
     pat_symb(Symb, L, Vs, St);			%Variable
 comp_pat(Numb, _, Vs, St) when is_number(Numb) -> {c_lit(Numb),Vs,St}.
+
+pat_list([P|Ps], L, Vs0, St0) ->
+    {Cp,Vs1,St1} = comp_pat(P, L, Vs0, St0),
+    {Cps,Vs2,St2} = pat_list(Ps, L, Vs1, St1),
+    {c_cons(Cp, Cps),Vs2,St2};
+pat_list([], _, Vs, St) -> {c_nil(),Vs,St}.
 
 pat_symb('_', L, Vs, St0) ->			%Don't care variable.
     {Cv,St1} = new_c_var(L, St0),

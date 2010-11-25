@@ -269,8 +269,10 @@ def_record(Name, Fdefs, Env, St0) ->
 	    [defun,Fu,[is,def],			%Update field list
 	     %% Convert default list to tuple to make setting easier.
 	     [fletrec,[[l,
-			[[[f,v|is],i],[l,is,[setelement,['-',[Fi,f],1],i,v]]],
-			[[[f],'_'],
+			[[[cons,f,[cons,v,is]],i],
+			 [l,is,[setelement,['-',[Fi,f],1],i,v]]],
+%%			[[[f,v|is],i],[l,is,[setelement,['-',[Fi,f],1],i,v]]],
+			[[[list,f],'_'],
 			 [':',erlang,error,
 			  [tuple,?Q(missing_value),?Q(Name),f]]],
 			[[[],i],i]]],
@@ -289,20 +291,23 @@ def_record(Name, Fdefs, Env, St0) ->
 	      ['let',[[def,[list|Defs]]],
 	       [backquote,
 		[tuple,?Q(Name),['unquote-splicing',[Fu,fds,def]]]]]]],
-	    ['defsyntax',Test,
-	     [[rec],['is_record',rec,[quote,Name],length(Fields)+1]]],
+	    ['defmacro',Test,[rec],
+	     [backquote,['is_record',[unquote,rec],
+			 [quote,Name],length(Fields)+1]]],
+%% 	    ['defsyntax',Test,
+%% 	     [[rec],['is_record',rec,[quote,Name],length(Fields)+1]]],
 	    ['defmacro',Match,
 	     [fds,
 	      ['let',[[def,[list|lists:duplicate(length(Fields),?Q('_'))]]],
 	       [backquote,
 		[tuple,?Q(Name),['unquote-splicing',[Fu,fds,def]]]]]]],
 	    ['defmacro',Set,
-	     [[rec|fds],
+	     [[cons,rec,fds],
 	      [fletrec,[[l,
-			 [[[f,v|is],r],
+			 [[[cons,f,[cons,v,is]],r],
 			  %% Force evaluation left-to-right.
 			  [l,is,[list,[quote,setelement],[Fi,f],r,v]]],
-			 [[[f],'_'],
+			 [[[list,f],'_'],
 			  [':',erlang,error,
 			   [tuple,?Q(missing_value),?Q(Name),f]]],
 			 [[[],i],i]]],
@@ -324,8 +329,9 @@ def_rec_fields(Fs, Name, St) ->
     {foldr(fun ({F,N}, Fas) ->
 		   Get = list_to_atom(concat([Name,'-',F])),
 		   Set = list_to_atom(concat(['set-',Name,'-',F])),
-		   [['defsyntax',Get,[[rec],[element,N,rec]]],
-		    ['defsyntax',Set,[[rec,new],[setelement,N,rec,new]]]|
+		   [[defmacro,Get,[rec],[backquote,[element,N,[unquote,rec]]]],
+		    [defmacro,Set,[rec,new],
+		     [backquote,[setelement,N,[unquote,rec],[unquote,new]]]]|
 		    Fas]
 	   end, [], Fis), St}.
 
@@ -548,13 +554,15 @@ expand_try(E0, B0, Env, St0) ->
 exp_macro([Mac|Args], Def0, Env, St0) ->
     %% lfe_io:format("macro: ~p\n", [Def0]),
     {Def1,St1} = expand(Def0, Env, St0),	%Expand definition
-    try 
 	Exp = lfe_eval:apply(Def1, [Args], Env),
-	{Exp,St1}
-    catch
-	error:Error ->
-	    erlang:error({expand_macro,Mac,Error})
-    end.
+	{Exp,St1}.
+%%     try 
+%% 	Exp = lfe_eval:apply(Def1, [Args], Env),
+%% 	{Exp,St1}
+%%     catch
+%% 	error:Error ->
+%% 	    erlang:error({expand_macro,Mac,Error})
+%%     end.
 
 %% exp_predef(Form, Env, State) -> {yes,Form,State} | no.
 %%  Handle the builtin predefined macros but only one at top-level and
@@ -578,8 +586,13 @@ exp_predef(['++'|Abody], _, St) ->
     {yes,Exp,St};
 exp_predef([':',M,F|As], _, St) ->
     {yes,['call',?Q(M),?Q(F)|As], St};
-exp_predef(['?'], _, St) ->
-    {yes,['receive',['omega','omega']], St};
+exp_predef(['?'|As], _, St) ->
+    Exp = case As of
+	      [To,Def] -> ['receive',['omega','omega'],['after',To,Def]];
+	      [To] -> ['?',To,[exit,?Q(timeout)]];
+	      [] -> ['receive',['omega','omega']]
+	  end,
+    {yes,Exp, St};
 exp_predef(['list*'|As], _, St) ->
     Exp = case As of
 	      [E] -> E;
@@ -737,7 +750,7 @@ expand_defun(Name, [Args|Rest]) ->
 
 expand_defmacro(Name, [Args|Rest]=Cls) ->
     case is_symb_list(Args) of
-	true -> [Name,['match-lambda',[[Args]|Rest]]];
+	true -> [Name,['match-lambda',[[[list|Args]]|Rest]]];
 	false ->
 	    Mcls = map(fun ([Head|Body]) -> [[Head]|Body] end, Cls),
 	    [Name,['match-lambda'|Mcls]]
@@ -1098,8 +1111,8 @@ c_l_tq(Exp, P, G, Gen, Qs, End, St0) ->
     {Rest,St3} = c_tq(Exp, Qs, [H,Us], St2),	%Do rest of qualifiers
     {['letrec-function',
       [[H,['match-lambda',
-	   [[[P|Us]],['when'|G],Rest],		%Matches pattern and guard
-	   [[['_'|Us]],[H,Us]],			%No match
+	   [[[cons,P,Us]],['when'|G],Rest],	%Matches pattern and guard
+	   [[[cons,'_',Us]],[H,Us]],		%No match
 	   [[[]],End]]]],			%End of list
       [H,Gen]],St3}.
 
