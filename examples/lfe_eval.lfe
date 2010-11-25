@@ -790,12 +790,12 @@
      ('no 'no)))
   ([(cons 'list ps) val env bs]		;Explicit list constructor
    (match-list ps val env bs))
-  ([(cons _ _) _ _ _] 'no)		;No constructor
-
-;;   ([(p . ps) (v . vs) env bs]
-;;    (case (match p v env bs)
-;;      ((tuple 'yes bs) (match ps vs env bs))
-;;      ('no 'no)))
+  ;; Use old no contructor list forms.
+  ([(p . ps) (v . vs) env bs]
+   (case (match p v env bs)
+     ((tuple 'yes bs) (match ps vs env bs))
+     ('no 'no)))
+;;  ([(cons _ _) _ _ _] 'no)		;No constructor
 
   ([() () env bs] (tuple 'yes bs))
   ([symb val env bs] (when (is_atom symb))
