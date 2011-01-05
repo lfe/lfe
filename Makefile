@@ -1,5 +1,5 @@
 # Makefile for LFE
-# This simple Makefile uses rebar to compile/install/clean if it
+# This simple Makefile uses rebar to compile/clean if it
 # exists, else does it explicitly.
 
 EBINDIR = ebin
@@ -29,9 +29,7 @@ compile:
 	fi
 
 install:
-	if which -s rebar; \
-	then rebar install; \
-	elif [ "$$ERL_LIBS" != "" ]; \
+	if [ "$$ERL_LIBS" != "" ]; \
 	then mkdir -p $(INSTALLDIR)/$(EBINDIR) ; \
 	     cp -pPR $(EBINDIR) $(INSTALLDIR); \
 	     cp -pPR $(EMACSDIR) $(INSTALLDIR); \
