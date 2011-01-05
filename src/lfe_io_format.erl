@@ -224,7 +224,7 @@ control($c, [A], F, Adj, P, Pad, _) when is_integer(A) ->
 %% control($c, [A], F, Adj, P, Pad, _Enc, _I) when is_integer(A) ->
 %%     char(A band 255, F, Adj, P, Pad);
 control($~, [], F, Adj, P, Pad, _) -> char($~, F, Adj, P, Pad);
-control($n, [], F, Adj, P, Pad, _) -> char($n, F, Adj, P, Pad);
+control($n, [], F, Adj, P, Pad, _) -> newline(F, Adj, P, Pad);
 control($i, [_], _, _, _, _, _) -> [].
 
 %% Default integer base
@@ -437,6 +437,11 @@ char(C, F, _Adj, none, _Pad) -> chars(C, F);
 char(C, none, _Adj, P, _Pad) -> chars(C, P);
 char(C, F, Adj, P, Pad) when F >= P ->
     adjust(chars(C, P), chars(Pad, F - P), Adj).
+
+%% newline(Field, Adjust, Precision, PadChar) -> [Char].
+
+newline(none, _, _, _) -> "\n";
+newline(F, _, _, _) -> chars($\n, F).
 
 %%
 %% Utilities

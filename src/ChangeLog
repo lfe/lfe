@@ -1,3 +1,9 @@
+2010-12-31  Robert Virding  <rv@renat.local>
+
+	* lfe_io_format.erl (control, newline): Handle ~n correctly.
+
+	* lfe_io_pretty.erl (print1): Prettyprint one element lists.
+
 2010-11-25  Robert Virding  <rv@renat>
 
 	* lfe_lint.erl (pat_bitsegs): Use check_foldl instead.

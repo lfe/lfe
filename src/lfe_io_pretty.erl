@@ -58,8 +58,6 @@ print1([quote,E], D, I, L) -> ["'",print1(E, D, I+1, L)];
 print1([backquote,E], D, I, L) -> ["`",print1(E, D, I+1, L)];
 print1([unquote,E], D, I, L) -> [",",print1(E, D, I+1, L)];
 print1(['unquote-splicing',E], D, I, L) -> [",@",print1(E, D, I+2, L)];
-print1([_]=List, D, I, L) ->
-    ["(",print1_list(List, D-1, I+1, L),")"];
 print1([Car|Cdr]=List, D, I, L) ->
     %% Handle printable lists specially.
     case io_lib:printable_list(List) of
