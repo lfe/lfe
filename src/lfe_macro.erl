@@ -1109,11 +1109,16 @@ c_l_tq(Exp, P, G, Gen, Qs, End, St0) ->
     {H,St1} = new_fun_name("lc", St0),		%Function name
     {Us,St2} = new_symb(St1),			%Tail variable
     {Rest,St3} = c_tq(Exp, Qs, [H,Us], St2),	%Do rest of qualifiers
+    %% Build the match, no match and end clauses, no nomatch clause if
+    %% pattern and guard guaranteed to match. Keeps compiler quiet.
+    Cs0 = [ [[[]],End] ],				%End od list
+    Cs1 = case is_atom(P) and (G == []) of	%No match, skip
+	      true -> Cs0;
+	      false -> [ [[[cons,'_',Us]],[H,Us]] |Cs0]
+	  end,
+    Cs2 = [ [[[cons,P,Us]],['when'|G],Rest] |Cs1], %Matches pattern and guard
     {['letrec-function',
-      [[H,['match-lambda',
-	   [[[cons,P,Us]],['when'|G],Rest],	%Matches pattern and guard
-	   [[[cons,'_',Us]],[H,Us]],		%No match
-	   [[[]],End]]]],			%End of list
+      [[H,['match-lambda'|Cs2]]],
       [H,Gen]],St3}.
 
 c_b_tq(Exp, P, G, Gen, Qs, End, St0) ->
@@ -1121,10 +1126,11 @@ c_b_tq(Exp, P, G, Gen, Qs, End, St0) ->
     {B,St2} = new_symb(St1),			%Bin variable
     {Rest,St3} = c_tq(Exp, Qs, [H,B], St2),	%Do rest of qualifiers
     Brest = [B,bitstring,'big-endian',unsigned,[unit,1]], %,[size,all]
+    %% Build the match and nomatch/end clauses.
+    MatchC = [[[binary,P,Brest]],['when'|G],Rest], %Matches pattern and guard
+    EndC = [[[binary,Brest]],End],		%No match
     {['letrec-function',
-      [[H,['match-lambda',
-	   [[[binary,P,Brest]],['when'|G],Rest], %Matches pattern and guard
-	   [[[binary,Brest]],End]]]],		%No match
+      [[H,['match-lambda',MatchC,EndC]]],
       [H,Gen]],St3}.
 
 %% c_tq(Exp, [['<-',P,Gen]|Qs], End, St0) ->	%List generator

@@ -183,7 +183,7 @@
 
 ;; (defun parse-bitseg (f env)
 ;;   (case f
-;;     ((pat . specs) (tuple pat (parse-bitspecs specs (make-spec) env)))
+;;     ((cons pat specs) (tuple pat (parse-bitspecs specs (make-spec) env)))
 ;;     (pat (tuple pat (parse-bitspecs () (make-spec) env)))))
 
 (defun eval-bitsegs (psps env)
@@ -791,7 +791,7 @@
   ([(cons 'list ps) val env bs]		;Explicit list constructor
    (match-list ps val env bs))
   ;; Use old no contructor list forms.
-  ([(p . ps) (v . vs) env bs]
+  ([(cons p ps) (cons v vs) env bs]
    (case (match p v env bs)
      ((tuple 'yes bs) (match ps vs env bs))
      ('no 'no)))
