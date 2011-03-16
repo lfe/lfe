@@ -1,3 +1,9 @@
+2011-03-16  Robert Virding  <rv@renat.local>
+
+	* lfe_macro.erl (expand_append): Expand ++ in such a way as to
+	allow use in patterns.
+	(expand_defmacro): Allow (defmacro name arg ...).
+
 2010-12-31  Robert Virding  <rv@renat.local>
 
 	* lfe_io_format.erl (control, newline): Handle ~n correctly.

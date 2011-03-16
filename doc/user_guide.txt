@@ -102,6 +102,7 @@ Common Lisp inspired macros
 	Define a toplevel function, this will expand to lambda or
 	match-lambda depending on structure.
 (defmacro name (arg ...) ...)
+(defmacro name arg ...)
 (defmacro name
   ((argpat ...) ...)
   ...)
@@ -279,14 +280,17 @@ Macros are definitely NOT hygienic in any form.
 To simplify writing macros there are a number of predefined macros:
 
 (defmacro name (arg ...) ...)
+(defmacro name arg ...)
 (defmacro name ((argpat ...) body) ...)
 
 Defmacro can be used for defining simple macros or sequences of
 matches depending on whether the arguments are a simple list of
-symbols or can be interpreted as a list of pattern/body pairs. For
-example:
+symbols or can be interpreted as a list of pattern/body pairs. In the
+second case when the argument is just a symbol it will be bound to the
+whole argument list. For example:
 
-(defmacro double (a) (+ a a))
+(defmacro double (a) `(+ ,a ,a))
+(defmacro my-list args `(list ,@args))
 (defmacro andalso
   (() `true)
   ((list e) `,e)

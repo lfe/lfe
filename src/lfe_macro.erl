@@ -553,16 +553,16 @@ expand_try(E0, B0, Env, St0) ->
 
 exp_macro([Mac|Args], Def0, Env, St0) ->
     %% lfe_io:format("macro: ~p\n", [Def0]),
-    {Def1,St1} = expand(Def0, Env, St0),	%Expand definition
+%%	Exp = lfe_eval:apply(Def1, [Args], Env),
+%%	{Exp,St1}.
+    try
+	{Def1,St1} = expand(Def0, Env, St0),	%Expand definition
 	Exp = lfe_eval:apply(Def1, [Args], Env),
-	{Exp,St1}.
-%%     try 
-%% 	Exp = lfe_eval:apply(Def1, [Args], Env),
-%% 	{Exp,St1}
-%%     catch
-%% 	error:Error ->
-%% 	    erlang:error({expand_macro,Mac,Error})
-%%     end.
+	{Exp,St1}
+    catch
+	error:Error ->
+	    erlang:error({expand_macro,[Mac|Args],Error})
+    end.
 
 %% exp_predef(Form, Env, State) -> {yes,Form,State} | no.
 %%  Handle the builtin predefined macros but only one at top-level and
@@ -578,11 +578,7 @@ exp_predef([cddr,E], _, St) -> {yes,[cdr,[cdr,E]],St};
 exp_predef([backquote,Bq], _, St) ->		%We do this here.
     {yes,bq_expand(Bq),St};
 exp_predef(['++'|Abody], _, St) ->
-    Exp = case Abody of
-	      [E] -> E;
-	      [E|Es] -> [call,?Q(erlang),?Q('++'),E,['++'|Es]];
-	      [] -> []
-	  end,
+    Exp = expand_append(Abody),
     {yes,Exp,St};
 exp_predef([':',M,F|As], _, St) ->
     {yes,['call',?Q(M),?Q(F)|As], St};
@@ -732,6 +728,30 @@ exp_predef([syntaxlet,Defs|Body], _, St) ->
 %% This was not a call to a predefined macro.
 exp_predef(_, _, _) -> no.
 
+%% expand_append(Args) -> Expansion.
+%%  Expand ++ in such a way as to allow its use in patterns. There are
+%%  a lot of interesting cases here. Only be smart with proper forms.
+
+expand_append(Args) ->
+    case Args of
+	%% Cases with quoted lists.
+	[?Q([A|As])|Es] -> [cons,?Q(A),['++',?Q(As)|Es]];
+	[?Q([])|Es] -> ['++'|Es];
+	%% Cases with explicit cons/list/list*.
+	[['list*',A]|Es] -> ['++',A|Es];
+	[['list*',A|As]|Es] -> [cons,A,['++',['list*'|As]|Es]];
+	[[list,A|As]|Es] -> [cons,A,['++',[list|As]|Es]];
+	[[list]|Es] -> ['++'|Es];
+	[[cons,H,T]|Es] -> [cons,H,['++',T|Es]];
+	[[]|Es] -> ['++'|Es];
+	%% Default cases with unquoted arg.
+	[E] -> E;				%Last arg not checked
+	[E|Es] -> expand_app(E, Es);
+	[] -> []
+    end.
+
+expand_app(E, Es) -> [call,?Q(erlang),?Q('++'),E,['++'|Es]].
+
 %% expand_defun(Name, Def) -> Lambda | Match-Lambda.
 %% Educated guess whether traditional (defun name (a1 a2 ...) ...)
 %% or matching (defun name (patlist1 ...) (patlist2 ...))
@@ -743,8 +763,10 @@ expand_defun(Name, [Args|Rest]) ->
     end.
 
 %% expand_defmacro(Name, Def) -> Lambda | MatchLambda.
+
 %%  Educated guess whether traditional (defmacro name (a1 a2 ...) ...)
-%%  or matching (defmacro name (patlist1 ...) (patlist2 ...))
+%%  or matching (defmacro name (patlist1 ...) (patlist2 ...)). Special
+%%  case (defmacro name arg ...) to make arg be whole argument list.
 %%  N.B. New macro definition is function of 1 argument, whole
 %%  argument list of macro call.
 
@@ -752,8 +774,12 @@ expand_defmacro(Name, [Args|Rest]=Cls) ->
     case is_symb_list(Args) of
 	true -> [Name,['match-lambda',[[[list|Args]]|Rest]]];
 	false ->
-	    Mcls = map(fun ([Head|Body]) -> [[Head]|Body] end, Cls),
-	    [Name,['match-lambda'|Mcls]]
+	    if is_atom(Args) ->			%Args is symbol
+		    [Name,['match-lambda',[[Args]|Rest]]];
+	       true ->
+		    Mcls = map(fun ([Head|Body]) -> [[Head]|Body] end, Cls),
+		    [Name,['match-lambda'|Mcls]]
+	    end
     end.
 
 %% expand_syntax(Name, Def) -> Lambda | MatchLambda.
