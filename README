@@ -14,10 +14,28 @@ of the function. The .beam file in ebin is for R13B.
 
 I will try to make a better fix soon. Sorry about that.
 
-v0.6
+v0.7
 ----
 
+Handle compiler option warnings_as_errors.
+
+Improved ++ macro can now be used in patterns.
+
+List/binary comprehensions generate fewer unnecessary compiler
+warnings.
+
 Added new example file with core macros implemented in LFE.
+
+New patterns with explicit constructors! We now follow the invariant
+that constructors and patterns should look the same. It is still
+possible to use old patterns but 'cons' and 'list' now as as "reserved
+words" like 'tuple' and 'binary'.
+
+Allow guards with generators in list/binary comprehensions. N.B. can
+cause unexpected behaviour with binary generators.
+
+v0.6
+----
 
 Allow literal strings in binaries, both as plain values and as values
 with specs, so (binary "abc" ("едц" utf-8)) is valid. In the second

@@ -1,3 +1,12 @@
+2011-04-12  Robert Virding  <rv@renat.local>
+
+	* lfe_comp.erl (erl_comp_opts, do_ok_return): Handle
+	warnings_as_errors ourselves in same way as vanilla compiler.
+
+2011-04-08  Robert Virding  <rv@renat.local>
+
+	* lfe_comp.erl (when_opt): Change argument order.
+
 2011-03-16  Robert Virding  <rv@renat.local>
 
 	* lfe_macro.erl (expand_append): Expand ++ in such a way as to
