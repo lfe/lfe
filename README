@@ -17,6 +17,9 @@ I will try to make a better fix soon. Sorry about that.
 v0.7
 ----
 
+Arithmetic operators + - * / now take multiple arguments. As yet only
+implemented as macros.
+
 Handle compiler option warnings_as_errors.
 
 Improved ++ macro can now be used in patterns.

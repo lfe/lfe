@@ -575,6 +575,33 @@ exp_predef([caar,E], _, St) -> {yes,[car,[car,E]],St};
 exp_predef([cadr,E], _, St) -> {yes,[car,[cdr,E]],St};
 exp_predef([cdar,E], _, St) -> {yes,[cdr,[car,E]],St};
 exp_predef([cddr,E], _, St) -> {yes,[cdr,[cdr,E]],St};
+%% Arithmetic operations.
+exp_predef(['+'|Es], _, St) ->
+    Exp = case Es of
+	      [A] -> exp_bif('+', [A]);
+	      [A|As] -> foldl(fun (E, Acc) -> exp_bif('+', [Acc,E]) end, A, As);
+	      [] -> 0				%Identity
+	  end,
+    {yes,Exp,St};
+exp_predef(['-'|Es], _, St) ->
+    Exp = case Es of
+	      [A] -> exp_bif('-', [A]);
+	      [A|As] -> foldl(fun (E, Acc) -> exp_bif('-', [Acc,E]) end, A, As)
+	  end,
+    {yes,Exp,St};
+exp_predef(['*'|Es], _, St) ->
+    Exp = case Es of
+	      [A] -> exp_bif('*', [1,A]);	%Check if number
+	      [A|As] -> foldl(fun (E, Acc) -> exp_bif('*', [Acc,E]) end, A, As);
+	      [] -> 1				%Identity
+	  end,
+    {yes,Exp,St};
+exp_predef(['/'|Es], _, St) ->
+    Exp = case Es of
+	      [A] -> exp_bif('/', [1,A]);
+	      [A|As] -> foldl(fun (E, Acc) -> exp_bif('/', [Acc,E]) end, A, As)
+	  end,
+    {yes,Exp,St};
 exp_predef([backquote,Bq], _, St) ->		%We do this here.
     {yes,bq_expand(Bq),St};
 exp_predef(['++'|Abody], _, St) ->
@@ -727,6 +754,8 @@ exp_predef([syntaxlet,Defs|Body], _, St) ->
     {yes,['let-macro',Mdefs|Body],St};
 %% This was not a call to a predefined macro.
 exp_predef(_, _, _) -> no.
+
+exp_bif(B, As) -> [call,?Q(erlang),?Q(B)|As].
 
 %% expand_append(Args) -> Expansion.
 %%  Expand ++ in such a way as to allow its use in patterns. There are

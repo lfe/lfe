@@ -1,3 +1,8 @@
+2011-04-19  Robert Virding  <rv@renat.local>
+
+	* lfe_macro.erl (exp_predef): Arithmetic operators take multiple
+	arguments.
+
 2011-04-12  Robert Virding  <rv@renat.local>
 
 	* lfe_comp.erl (erl_comp_opts, do_ok_return): Handle
