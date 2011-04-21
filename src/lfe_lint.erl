@@ -32,7 +32,6 @@
 -export([form/1,module/1,module/2,format_error/1]).
 
 -import(lfe_lib, [new_env/0,is_vbound/2,is_fbound/3,is_gbound/3,
-		  vbinding/2,fbinding/3,gbinding/3,
 		  add_vbinding/3,add_fbinding/4,add_ibinding/5,
 		  is_erl_bif/2,is_guard_bif/2,
 		  is_symb_list/1,is_proper_list/1]).

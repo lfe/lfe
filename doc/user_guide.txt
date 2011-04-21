@@ -460,8 +460,8 @@ Some examples:
      (== (rem v 2) 0))
   v)
 
-returns a list of all the even elements of the list l1 which greater
-than 5.
+returns a list of all the even elements of the list l1 which are
+greater than 5.
 
 (bc ((<= (f float (size 32)) b1)	;No wrapping, only bitseg needed
      (> f 10.0))
@@ -487,6 +487,15 @@ Predefined LFE functions
 
 The following more or less standard lisp functions are pre-defined:
 
+(<arith_op> expr ...)
+(<comp_op> expr ...)
+	The standard arithmentic operators, + - * /, and comparison
+	operators, > >= < =< == /= =:= =/= , can take multiple
+	arguments the same as their standard lisp counterparts. This
+	is still experimental and implemented using macros. They do,
+	however, behave like normal functions and evaluate ALL their
+	arguments before doing the arithmetic/comparisons operations.
+
 (acons key value list)
 (assoc key list)
 (rassoc value list)
@@ -498,16 +507,15 @@ The following more or less standard lisp functions are pre-defined:
 	The standard substituition functions.
 
 (eval expr)
-
 	Evaluate the expression expr. Note that only the pre-defined
 	lisp functions, erlang BIFs and exported functions can be
 	called. Also no local variables can be accessed. To access
 	local variables the expr to be evaluated can be wrapped in a
 	let defining these.
 
-	For example the data we wish to evaluate is in the variable
-	expr and it assumes there is a local variable "foo" we could
-	evaluate it by calling:
+	For example if the data we wish to evaluate is in the variable
+	expr and it assumes there is a local variable "foo" which it
+	needs to access then we could evaluate it by calling:
 
 	(eval `(let ((foo ,foo)) ,expr))
 
