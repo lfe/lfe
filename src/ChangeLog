@@ -1,3 +1,8 @@
+2011-04-24  Robert Virding  <rv@renat.local>
+
+	* lfe_codegen.erl (comp_gtest): Removed unnecessary special cases,
+	optimizer fixes this for us.
+
 2011-04-21  Robert Virding  <rv@renat.local>
 
 	* lfe_lint.erl: Remove unused erroneous lfe_lib imports.

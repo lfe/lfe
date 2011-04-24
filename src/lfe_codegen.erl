@@ -957,20 +957,23 @@ comp_guard(Gts, Env, L, St0) ->
 %% comp_gtest(GuardTests, Env, Line, State) -> {CoreTest,State}.
 %% Compile a guard test, making sure it returns a boolean value.
 
-comp_gtest([[quote,Bool]], _, _, St) when is_boolean(Bool) ->
-    {c_atom(Bool),St};
-comp_gtest([[Op|As]=Test], Env, L, St0) ->
-    Ar = length(As),
-    case erl_internal:bool_op(Op, Ar) orelse
-	erl_internal:comp_op(Op, Ar) orelse
-	erl_internal:type_test(Op, Ar) of
-	true -> comp_gexpr(Test, Env, L, St0);
-	false ->
-	    Call = fun (Cas, _, L, St) ->
-			   {c_call(c_atom(erlang), c_atom('=:='), Cas, L),St}
-		   end,
-	    comp_gargs([Test,?Q(true)], Call, Env, L, St0)
-    end;
+%% comp_gtest([[quote,Bool]=Test], _, _, St) when is_boolean(Bool) ->
+%%     io:format("We hit it: ~p\n", [Test]),
+%%     {c_atom(Bool),St};
+%% comp_gtest([[Op|As]=Test], Env, L, St0) ->
+%%     Ar = length(As),
+%%     case erl_internal:bool_op(Op, Ar) orelse
+%% 	erl_internal:comp_op(Op, Ar) orelse
+%% 	erl_internal:type_test(Op, Ar) of
+%% 	true ->
+%% 	    io:format("We hit it: ~p\n", [Test]),
+%% 	    comp_gexpr(Test, Env, L, St0);
+%% 	false ->
+%% 	    Call = fun (Cas, _, L, St) ->
+%% 			   {c_call(c_atom(erlang), c_atom('=:='), Cas, L),St}
+%% 		   end,
+%% 	    comp_gargs([Test,?Q(true)], Call, Env, L, St0)
+%%     end;
 comp_gtest(Ts, Env, L, St0) ->			%Not a bool test or boolean
     {Cg,St1} = comp_gbody(Ts, Env, L, St0),
     True = comp_lit(true),
