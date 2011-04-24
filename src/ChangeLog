@@ -1,3 +1,32 @@
+2011-04-24  Robert Virding  <rv@renat.local>
+
+	* lfe_codegen.erl (comp_gtest): Removed unnecessary special cases,
+	optimizer fixes this for us.
+
+2011-04-21  Robert Virding  <rv@renat.local>
+
+	* lfe_lint.erl: Remove unused erroneous lfe_lib imports.
+
+2011-04-19  Robert Virding  <rv@renat.local>
+
+	* lfe_macro.erl (exp_predef): Arithmetic and comparison functions
+	take multiple arguments.
+
+2011-04-12  Robert Virding  <rv@renat.local>
+
+	* lfe_comp.erl (erl_comp_opts, do_ok_return): Handle
+	warnings_as_errors ourselves in same way as vanilla compiler.
+
+2011-04-08  Robert Virding  <rv@renat.local>
+
+	* lfe_comp.erl (when_opt): Change argument order.
+
+2011-03-16  Robert Virding  <rv@renat.local>
+
+	* lfe_macro.erl (expand_append): Expand ++ in such a way as to
+	allow use in patterns.
+	(expand_defmacro): Allow (defmacro name arg ...).
+
 2010-12-31  Robert Virding  <rv@renat.local>
 
 	* lfe_io_format.erl (control, newline): Handle ~n correctly.

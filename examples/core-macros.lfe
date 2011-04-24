@@ -42,6 +42,17 @@
 (defmacro cddr (x) `(cdr (cdr ,x)))
 
 (defmacro ++
+  ;; Cases with quoted lists.
+  ((cons (list 'quote (cons a as)) es) `(cons ',a (++ ',as . ,es)))
+  ((cons (list 'quote ()) es) `(++ . ,es))
+  ;; Cases with explicit cons/list/list*.
+  ((cons (list 'list* a) es) `(++ ,a . ,es))
+  ((cons (cons 'list* (cons a as)) es) `(cons ,a (++ (list* . ,as) . ,es)))
+  ((cons (cons 'list (cons a as)) es) `(cons ,a (++ (list . ,as) . ,es)))
+  ((cons (list 'list) es) `(++ . ,es))
+  ((cons (list 'cons h t) es) `(cons ,h (++ ,t . ,es)))
+  ((cons () es) `(++ . ,es))
+  ;; Default cases with unquoted arg.
   ((list e) e)
   ((cons e es) `(call 'erlang '++ ,e (++ . ,es)))
   (() ()))
@@ -89,10 +100,11 @@
   ((cons e es) `(if ,e (andalso . ,es) 'false))
   (() `'true))
 
-(defmacro orelse
-  ((list e) e)
-  ((cons e es) `(if ,e 'true (orelse . ,es)))
-  (() `'false))
+(defmacro orelse args			;Using single argument
+  (case args
+    ((list e) e)
+    ((cons e es) `(if ,e 'true (orelse . ,es)))
+    (() `'false)))
 
 ;; This version of backquote is almost an exact copy of a quasiquote
 ;; expander for Scheme by André van Tonder. It is very compact and

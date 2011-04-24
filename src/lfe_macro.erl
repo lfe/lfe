@@ -412,11 +412,11 @@ expand(['define-function',Head|B0], Env, St0) ->
 expand([Fun|_]=Call, Env, St0) when is_atom(Fun) ->
     case get_mbinding(Fun, Env) of
 	{yes,Def} ->
- 	    {Exp,St1} = exp_macro(Call, Def, Env, St0),
+	    {Exp,St1} = exp_userdef_macro(Call, Def, Env, St0),
 	    expand(Exp, Env, St1);		%Expand macro expansion again
 	no ->
 	    %% Not there then use defaults.
-	    case exp_predef(Call, Env, St0) of
+	    case exp_predef_macro(Call, Env, St0) of
 		{yes,Exp,St1} -> expand(Exp, Env, St1);
 		no -> expand_tail(Call, Env, St0)
 	    end
@@ -546,23 +546,34 @@ expand_try(E0, B0, Env, St0) ->
 			   end, B0, Env, St1),
     {['try',E1|B1],St2}.
 
-%% exp_macro(Call, Def, Env, State) -> {Exp,State}.
+%% exp_userdef_macro(Call, Def, Env, State) -> {Exp,State}.
 %%  Evaluate the macro definition by applying it to the call args. The
 %%  definition is either a lambda or match-lambda, expand it and apply
 %%  it to argument list.
 
-exp_macro([Mac|Args], Def0, Env, St0) ->
+exp_userdef_macro([Mac|Args], Def0, Env, St0) ->
     %% lfe_io:format("macro: ~p\n", [Def0]),
-    {Def1,St1} = expand(Def0, Env, St0),	%Expand definition
+%%	Exp = lfe_eval:apply(Def1, [Args], Env),
+%%	{Exp,St1}.
+    try
+	{Def1,St1} = expand(Def0, Env, St0),	%Expand definition
 	Exp = lfe_eval:apply(Def1, [Args], Env),
-	{Exp,St1}.
-%%     try 
-%% 	Exp = lfe_eval:apply(Def1, [Args], Env),
-%% 	{Exp,St1}
-%%     catch
-%% 	error:Error ->
-%% 	    erlang:error({expand_macro,Mac,Error})
-%%     end.
+	{Exp,St1}
+    catch
+	error:Error ->
+	    erlang:error({expand_macro,[Mac|Args],Error})
+    end.
+
+%% exp_predef_macro(Call, Env, State) -> {Exp,State}.
+%%  Evaluate predefined macro definition catching errors.
+
+exp_predef_macro(Call, Env, St) ->
+    try
+	exp_predef(Call, Env, St)
+    catch
+	error:Error ->
+	    erlang:error({expand_macro,Call,Error})
+    end.
 
 %% exp_predef(Form, Env, State) -> {yes,Form,State} | no.
 %%  Handle the builtin predefined macros but only one at top-level and
@@ -575,14 +586,49 @@ exp_predef([caar,E], _, St) -> {yes,[car,[car,E]],St};
 exp_predef([cadr,E], _, St) -> {yes,[car,[cdr,E]],St};
 exp_predef([cdar,E], _, St) -> {yes,[cdr,[car,E]],St};
 exp_predef([cddr,E], _, St) -> {yes,[cdr,[cdr,E]],St};
+%% Arithmetic operations and comparison operations.
+%% Be careful to make these behave as if they were a function and
+%% strictly evalated all their arguments.
+exp_predef(['+'|Es], _, St0) ->
+    case Es of
+	[] -> {yes,0,St0};			%Identity
+	_ ->
+	    {Exp,St1} = expand_arith(Es, '+', St0),
+	    {yes,Exp,St1}
+    end;
+exp_predef(['-'|Es], _, St0) ->
+    case Es of
+	[_|_] ->				%Non-empty argument list
+	    {Exp,St1} = expand_arith(Es, '-', St0),
+	    {yes,Exp,St1}
+    end;
+exp_predef(['*'|Es], _, St0) ->
+    case Es of
+	[] -> {yes,1,St0};			%Identity
+	[_] -> {yes,exp_bif('*', [1|Es]),St0};	%Check if number
+	_ ->
+	    {Exp,St1} = expand_arith(Es, '*', St0),
+	    {yes,Exp,St1}
+    end;
+exp_predef(['/'|Es], _, St0) ->
+    case Es of
+	[_] -> {yes,exp_bif('/', [1|Es]),St0};	%According to definition
+	_ ->
+	    {Exp,St1} = expand_arith(Es, '/', St0),
+	    {yes,Exp,St1}
+    end;
+exp_predef([Op|Es], _, St0)			%Logical operators
+  when Op == '>'; Op == '>='; Op == '<'; Op == '=<';
+       Op == '=='; Op == '/='; Op == '=:='; Op == '=/=' ->
+    case Es of
+	[_|_] ->
+	    {Exp,St1} = expand_comp(Es, Op, St0),
+	    {yes,Exp,St1}
+    end;
 exp_predef([backquote,Bq], _, St) ->		%We do this here.
     {yes,bq_expand(Bq),St};
 exp_predef(['++'|Abody], _, St) ->
-    Exp = case Abody of
-	      [E] -> E;
-	      [E|Es] -> [call,?Q(erlang),?Q('++'),E,['++'|Es]];
-	      [] -> []
-	  end,
+    Exp = expand_append(Abody),
     {yes,Exp,St};
 exp_predef([':',M,F|As], _, St) ->
     {yes,['call',?Q(M),?Q(F)|As], St};
@@ -732,6 +778,65 @@ exp_predef([syntaxlet,Defs|Body], _, St) ->
 %% This was not a call to a predefined macro.
 exp_predef(_, _, _) -> no.
 
+exp_bif(B, As) -> [call,?Q(erlang),?Q(B)|As].
+
+%% expand_args(Args, State) -> {LetBinds,State}.
+%% Expand Args into a list of let bindings suitable for a let* or
+%% nested lets to force sequential left-to-right evaluation.
+
+expand_args(As, St) ->
+    mapfoldl(fun (A, St0) -> {V,St1} = new_symb(St0), {[V,A],St1} end, St, As).
+
+%% expand_arith(Args, Op, State) -> {Exp,State}.
+%% Expand arithmetic call strictly forcing evaluation of all
+%% arguments.  Note that single argument version may need special
+%% casing.
+
+expand_arith([A], Op, St) -> {exp_bif(Op, [A]),St};
+expand_arith([A,B], Op, St) -> {exp_bif(Op, [A,B]),St};
+expand_arith(As, Op, St0) ->
+    {Ls,St1} = expand_args(As, St0),
+    B = foldl(fun ([V,_], Acc) -> exp_bif(Op, [Acc,V]) end, hd(hd(Ls)), tl(Ls)),
+    {['let*',Ls,B],St1}.
+
+%% expand_comp(Args, Op, State) -> {Exp,State}.
+%% Expand comparison test strictly forcing evaluation of all
+%% arguments. Note that single argument version may need special
+%% casing.
+
+expand_comp([A], _, St) ->			%Force evaluation
+    {['let',[['_',A]],?Q(true)],St};
+expand_comp([A,B], Op, St) -> {exp_bif(Op, [A,B]),St};
+expand_comp(As, Op, St0) ->
+    {Ls,St1} = expand_args(As, St0),
+    {Ts,_} = mapfoldl(fun ([V,_], Acc) -> {exp_bif(Op, [Acc,V]),V} end,
+		      hd(hd(Ls)), tl(Ls)),
+    {['let*',Ls,['andalso'|Ts]],St1}.
+
+%% expand_append(Args) -> Expansion.
+%%  Expand ++ in such a way as to allow its use in patterns. There are
+%%  a lot of interesting cases here. Only be smart with proper forms.
+
+expand_append(Args) ->
+    case Args of
+	%% Cases with quoted lists.
+	[?Q([A|As])|Es] -> [cons,?Q(A),['++',?Q(As)|Es]];
+	[?Q([])|Es] -> ['++'|Es];
+	%% Cases with explicit cons/list/list*.
+	[['list*',A]|Es] -> ['++',A|Es];
+	[['list*',A|As]|Es] -> [cons,A,['++',['list*'|As]|Es]];
+	[[list,A|As]|Es] -> [cons,A,['++',[list|As]|Es]];
+	[[list]|Es] -> ['++'|Es];
+	[[cons,H,T]|Es] -> [cons,H,['++',T|Es]];
+	[[]|Es] -> ['++'|Es];
+	%% Default cases with unquoted arg.
+	[E] -> E;				%Last arg not checked
+	[E|Es] -> expand_app(E, Es);
+	[] -> []
+    end.
+
+expand_app(E, Es) -> [call,?Q(erlang),?Q('++'),E,['++'|Es]].
+
 %% expand_defun(Name, Def) -> Lambda | Match-Lambda.
 %% Educated guess whether traditional (defun name (a1 a2 ...) ...)
 %% or matching (defun name (patlist1 ...) (patlist2 ...))
@@ -743,8 +848,10 @@ expand_defun(Name, [Args|Rest]) ->
     end.
 
 %% expand_defmacro(Name, Def) -> Lambda | MatchLambda.
+
 %%  Educated guess whether traditional (defmacro name (a1 a2 ...) ...)
-%%  or matching (defmacro name (patlist1 ...) (patlist2 ...))
+%%  or matching (defmacro name (patlist1 ...) (patlist2 ...)). Special
+%%  case (defmacro name arg ...) to make arg be whole argument list.
 %%  N.B. New macro definition is function of 1 argument, whole
 %%  argument list of macro call.
 
@@ -752,8 +859,12 @@ expand_defmacro(Name, [Args|Rest]=Cls) ->
     case is_symb_list(Args) of
 	true -> [Name,['match-lambda',[[[list|Args]]|Rest]]];
 	false ->
-	    Mcls = map(fun ([Head|Body]) -> [[Head]|Body] end, Cls),
-	    [Name,['match-lambda'|Mcls]]
+	    if is_atom(Args) ->			%Args is symbol
+		    [Name,['match-lambda',[[Args]|Rest]]];
+	       true ->
+		    Mcls = map(fun ([Head|Body]) -> [[Head]|Body] end, Cls),
+		    [Name,['match-lambda'|Mcls]]
+	    end
     end.
 
 %% expand_syntax(Name, Def) -> Lambda | MatchLambda.
@@ -1176,14 +1287,15 @@ expand_macro_1([Name|_]=Call, Env) when is_atom(Name) ->
     case lfe_lib:is_core_form(Name) of
 	true -> no;				%Don't expand core forms
 	false ->
+	    St = #mac{expand=false},		%Default state
 	    case get_mbinding(Name, Env) of
 		{yes,Def} ->
 		    %% User macro bindings.
-		    {Exp,_} = exp_macro(Call, Def, Env, #mac{expand=false}),
+		    {Exp,_} = exp_userdef_macro(Call, Def, Env, St),
 		    {yes,Exp};
 		no ->
 		    %% Default macro bindings.
-		    case exp_predef(Call, Env, #mac{}) of
+		    case exp_predef_macro(Call, Env, St) of
 			{yes,Exp,_} -> {yes,Exp};
 			no -> no
 		    end

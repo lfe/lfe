@@ -34,8 +34,7 @@
 %% -compile(export_all).
 
 -import(lists, [member/2,keysearch/3,filter/2,foreach/2,
-		all/2,map/2,flatmap/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3,
-		concat/1]).
+		all/2,map/2,flatmap/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3]).
 -import(ordsets, [add_element/2,is_element/2,from_list/1,union/2]).
 -import(orddict, [store/3,find/2]).
 
@@ -263,6 +262,7 @@ erl_comp_opts(Os) ->
 	       ('E') -> false;
 	       (dcore) -> false;
 	       (to_core0) -> false;
+	       (warnings_as_errors) -> false;	%We handle this ourselves
 	       (_) -> true			%Everything else
 	   end, [return|Os]).			%Ensure return!
 
@@ -270,17 +270,21 @@ erl_comp_opts(Os) ->
 %% do_error_return(State) -> {error,...} | error.
 
 do_ok_return(#comp{lfile=Lfile,opts=Opts,ret=Ret0,warnings=Ws}=St) ->
-    when_opt(fun () -> list_warnings(Lfile, Ws) end, report, Opts),
-    %% Fix right return.
-    Ret1 = case member(return, Opts) of
-	       true -> Ret0 ++ [return_errors(Lfile, Ws)];
-	       false -> Ret0
-	   end,
-    list_to_tuple([ok,St#comp.mod|Ret1]).
+    case member(warnings_as_errors, Opts) andalso length(Ws) > 0 of
+	true -> do_error_return(St);		%Warnings are errors!
+	false ->
+	    when_opt(report, Opts, fun () -> list_warnings(Lfile, Ws) end),
+	    %% Fix right return.
+	    Ret1 = case member(return, Opts) of
+		       true -> Ret0 ++ [return_errors(Lfile, Ws)];
+		       false -> Ret0
+		   end,
+	    list_to_tuple([ok,St#comp.mod|Ret1])
+    end.
 
 do_error_return(#comp{lfile=Lfile,opts=Opts,errors=Es,warnings=Ws}) ->
-    when_opt(fun () -> list_errors(Lfile, Es) end, report, Opts),
-    when_opt(fun () -> list_warnings(Lfile, Ws) end, report, Opts),
+    when_opt(report, Opts, fun () -> list_errors(Lfile, Es) end),
+    when_opt(report, Opts, fun () -> list_warnings(Lfile, Ws) end),
     %% Fix right return.
     case member(return, Opts) of
 	true -> {error,return_errors(Lfile, Es),return_errors(Lfile, Ws)};
@@ -309,20 +313,20 @@ list_errors(F, Es) ->
 	    end, Es).
 
 debug_print(Format, Args, St) ->
-    when_opt(fun () -> lfe_io:format(Format, Args) end,
-	     debug_print, St#comp.opts).
+    when_opt(debug_print, St#comp.opts,
+	    fun () -> lfe_io:format(Format, Args) end).
 
-%% when_opt(Fun, Option, Options) -> ok.
-%% unless_opt(Fun, Option, Options) -> ok.
+%% when_opt(Option, Options, Fun) -> ok.
+%% unless_opt(Option, Options, Fun) -> ok.
 %%  Vall Fun when Option is/is not a member of Options.
 
-when_opt(Fun, Opt, Opts) ->
+when_opt(Opt, Opts, Fun) ->
     case member(Opt, Opts) of
 	true -> Fun();
 	false -> ok
     end.
 
-%% unless_opt(Fun, Opt, Opts) ->
+%% unless_opt(Opt, Opts, Fun) ->
 %%     case member(Opt, Opts) of
 %% 	true -> ok;
 %% 	false ->  Fun()

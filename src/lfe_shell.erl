@@ -83,7 +83,10 @@ server_loop(Env0, BaseEnv) ->
 		  %% reporting but which LFE prettyprints data.
 		  St = erlang:get_stacktrace(),
 		  Sf = fun (M, _F, _A) ->
-			       (M == lfe_eval) or (M == lfe_shell)
+			       %% Don't want to see these in stacktrace.
+			       (M == lfe_eval)
+				   or (M == lfe_shell)
+				   or (M == lfe_macro)
 		       end,
 		  Ff = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
 		  Cs = lfe_lib:format_exception(Class, Error, St, Sf, Ff, 1),
