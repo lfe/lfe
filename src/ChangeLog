@@ -1,5 +1,8 @@
 2011-05-30  Robert Virding  <rv@renat.local>
 
+	* lfe_macro.erl (exp_defrecord): Add ets/mnesia match pattern
+	macro emp-XXX.
+
 	* lfe_eval.erl, lfe_shell.erl, lfe_macro.erl: Restructure
 	lfe_macro.erl and redefine interface.
 

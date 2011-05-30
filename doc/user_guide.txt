@@ -376,6 +376,7 @@ field-name value to get non-default values. E.g. for
 => (make-person {{field value}} ... )
    (match-person {{field value}} ... )
    (is-person r)
+   (emp-person {{field value}} ... )
    (set-person r {{field value}} ... )
    (person-name r)
    (set-person-name r name)
@@ -394,6 +395,15 @@ field-name value to get non-default values. E.g. for
 
 	Will match a person with age 55 and bind the variable name to
 	the name field of the record. Can use any variable name here.
+
+(is-person john)
+
+	Test if john is a person record.
+
+(emp-person age '$1)
+
+	Create an ets/mnesia match pattern for record person where the
+	age field is set to $1 and all other fields are set to '_.
 
 (person-address john)
 
