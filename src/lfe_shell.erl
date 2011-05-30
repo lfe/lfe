@@ -134,7 +134,7 @@ prompt() ->
 eval_form(Form, Env0, Benv) ->
     %% lfe_io:prettyprint({Form,Env0}),
     %% io:fwrite("ef: ~p\n", [{Form,Env0}]),
-    Eform = lfe_macro:expand_form(Form, Env0),
+    Eform = lfe_macro:expand_expr_all(Form, Env0),
     case eval_internal(Eform, Env0, Benv) of
 	{yes,Value,Env1} -> {Value,Env1};
 	no ->
@@ -219,20 +219,21 @@ m(Args, Eenv, _) ->
 
 macroexpand(S, Eenv, _) ->
     Arg = lfe_eval:expr(S, Eenv),
-    case lfe_macro:expand_macro(Arg, Eenv) of
+    case lfe_macro:expand_expr(Arg, Eenv) of
 	{yes,Exp} -> {yes,Exp,Eenv};
 	no -> {yes,Arg,Eenv}
     end.
 
 macroexpand_1(S, Eenv, _) ->
     Arg = lfe_eval:expr(S, Eenv),
-    case lfe_macro:expand_macro_1(Arg, Eenv) of
+    case lfe_macro:expand_expr_1(Arg, Eenv) of
 	{yes,Exp} -> {yes,Exp,Eenv};
 	no -> {yes,Arg,Eenv}
     end.
 
 macroexpand_all(S, Eenv, _) ->
-    Exp = lfe_macro:expand_form(lfe_eval:expr(S, Eenv), Eenv),
+    Arg = lfe_eval:expr(S, Eenv),
+    Exp = lfe_macro:expand_expr_all(Arg, Eenv),
     {yes,Exp,Eenv}.
 
 %% set(Args, EvalEnv, BaseEnv) -> {yes,Result,Env} | no.

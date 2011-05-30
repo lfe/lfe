@@ -55,7 +55,7 @@
 (defun expr (e) (expr e (new_env)))
 
 (defun expr (e env)
-  (let ((exp (: lfe_macro expand_form e env)))
+  (let ((exp (: lfe_macro expand_expr_all e env)))
     (eval-expr exp env)))
 
 ;; gexpr(Sexpr) -> Value
@@ -73,10 +73,10 @@
 
 (defun apply (f args)
   (let ((env (new_env)))
-    (lfe-apply (tuple 'expr f env) args env)))
+    (eval-apply (tuple 'expr f env) args env)))
 
 (defun apply (f args env)
-  (lfe-apply (tuple 'expr f env) args env))
+  (eval-apply (tuple 'expr f env) args env))
 
 ;; (eval-expr Sexpr Environment) -> Value.
 ;;  Evaluate a sexpr in the current environment. Try to catch core
@@ -129,7 +129,7 @@
      (let ((ar (length es)))		;Arity
        (case (get_fbinding fun ar env)
 	 ((tuple 'yes m f) (: erlang apply m f (eval-list es env)))
-	 ((tuple 'yes f) (lfe-apply f (eval-list es env) env))
+	 ((tuple 'yes f) (eval-apply f (eval-list es env) env))
 	 ('no (: erlang error (tuple 'unbound_func (tuple fun ar)))))))
     ((cons f es)
      (: erlang error (tuple 'bad_form 'application)))
@@ -481,15 +481,15 @@
 (defun add_expr_func (name ar def env)
   (add_fbinding name ar (tuple 'expr def env) env))
 
-;; (lfe-apply function args env) -> value
+;; (eval-apply function args env) -> value
 ;;  This is used to evaluate interpreted functions. Macros are
 ;;  expanded completely in the function definition before it is
 ;;  applied.
 
-(defun lfe-apply (f es env0)
+(defun eval-apply (f es env0)
   (case f
     ((tuple 'expr func env)
-     (case (: lfe_macro expand_form func env)
+     (case (: lfe_macro expand_expr_all func env)
        ((list* 'lambda args body) (apply-lambda args body es env))
        ((cons 'match-lambda cls) (apply-match-clauses cls es env))))
     ((tuple 'letrec body fbs env)
@@ -499,7 +499,7 @@
 			     (add_fbinding v ar
 					   (tuple 'letrec lambda fbs env) e)))
 			  env fbs)))
-       (lfe-apply (tuple 'expr body newenv) es env0)))))
+       (eval-apply (tuple 'expr body newenv) es env0)))))
 
 ;; (eval-if body env) -> value
 

@@ -62,7 +62,7 @@ eval(E, Env) -> expr(E, Env).
 expr(E) -> expr(E, new_env()).
 
 expr(E, Env) ->
-    Exp = lfe_macro:expand_form(E, Env),
+    Exp = lfe_macro:expand_expr_all(E, Env),
     %% lfe_io:fwrite("e: ~p\n", [{E,Exp,Env}]),
     eval_expr(Exp, Env).
 
@@ -489,7 +489,7 @@ add_expr_func(Name, Ar, Def, Env) ->
 %%  applied.
 
 eval_apply({expr,Func,Env}, Es, _) ->
-    case lfe_macro:expand_form(Func, Env) of
+    case lfe_macro:expand_expr_all(Func, Env) of
 	[lambda,Args|Body] -> apply_lambda(Args, Body, Es, Env);
 	['match-lambda'|Cls] -> apply_match_clauses(Cls, Es, Env)
     end;
@@ -503,7 +503,7 @@ eval_apply({letrec,Body,Fbs,Env}, Es, Ee) ->
 
 %% eval_if(IfBody, Env) -> Value.
 
-eval_if([Test,True], Env) ->
+eval_if([Test,True], Env) ->			%Add default false value
     eval_if(Test, True, [quote,false], Env);
 eval_if([Test,True,False], Env) ->
     eval_if(Test, True, False, Env).

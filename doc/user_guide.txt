@@ -213,8 +213,8 @@ have only one apply:
 Function shadowing
 ------------------
 
-Unqualified functions shadow as stated above in the following order
-within a module:
+Unqualified functions shadow as stated above which results in the
+following order within a module, outermost to innermost:
 
 	Predefined BIFs (same as in vanilla Erlang)
 	Predefined LFE BIFs
@@ -292,9 +292,9 @@ whole argument list. For example:
 (defmacro double (a) `(+ ,a ,a))
 (defmacro my-list args `(list ,@args))
 (defmacro andalso
-  (() `true)
   ((list e) `,e)
-  ((cons e es) `(case ,e ('true (andalso ,@es)) ('false 'false))))
+  ((cons e es) `(if ,e (andalso ,@es) 'false))
+  (() `'true))
 
 The macro definitions in a macrolet obey the same rules as defmacro.
 

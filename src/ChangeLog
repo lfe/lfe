@@ -1,3 +1,8 @@
+2011-05-30  Robert Virding  <rv@renat.local>
+
+	* lfe_eval.erl, lfe_shell.erl, lfe_macro.erl: Restructure
+	lfe_macro.erl and redefine interface.
+
 2011-04-24  Robert Virding  <rv@renat.local>
 
 	* lfe_codegen.erl (comp_gtest): Removed unnecessary special cases,
