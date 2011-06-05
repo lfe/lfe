@@ -672,7 +672,29 @@ exp_predef(['defrecord'|Def], Env0, St0) ->
 exp_predef(['include-file'|Ibody], _, St) ->
     %% This is a VERY simple include file macro!
     [F] = Ibody,
-    {ok,Fs} = lfe_io:read_file(F),		%No real error handling
+    case lfe_io:read_file(F) of			%Try to read file
+	{ok,Fs} -> {yes,['progn'|Fs],St};
+	{error,E} -> erlang:error({E,F}), no
+    end;
+exp_predef(['include-lib'|Ibody], _, St) ->
+    %% This is a VERY simple include lib macro! First try to include
+    %% the file directly else assume first directory name is a library
+    %% name.
+    [F] = Ibody,
+    Fs = case lfe_io:read_file(F) of
+	     {ok,Fs0} -> Fs0;
+	     {error,_} ->
+		 [LibName|Rest] = filename:split(F),
+		 case code:lib_dir(list_to_atom(LibName)) of
+		     LibDir when is_list(LibDir) ->
+			 LibF = filename:join([LibDir|Rest]),
+			 case lfe_io:read_file(LibF) of
+			     {ok,Fs0} -> Fs0;
+			     {error,E} -> erlang:error({E,LibF})
+			 end;
+		     {error,E} -> erlang:error({E,F})
+		 end
+	 end,
     {yes,['progn'|Fs],St};
 %% Compatibility macros for the older Scheme like syntax.
 exp_predef(['begin'|Body], _, St) ->
@@ -798,7 +820,6 @@ exp_defun(Name, [Args|Rest]) ->
     end.
 
 %% exp_defmacro(Name, Def) -> Lambda | MatchLambda.
-
 %%  Educated guess whether traditional (defmacro name (a1 a2 ...) ...)
 %%  or matching (defmacro name (patlist1 ...) (patlist2 ...)). Special
 %%  case (defmacro name arg ...) to make arg be whole argument list.

@@ -1,3 +1,7 @@
+2011-06-05  Robert Virding  <rv@renat.local>
+
+	* lfe_macro.erl (exp_predef): Add simple include-lib macro.
+
 2011-05-30  Robert Virding  <rv@renat.local>
 
 	* lfe_macro.erl (exp_defrecord): Add ets/mnesia match pattern

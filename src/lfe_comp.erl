@@ -260,6 +260,7 @@ erl_comp_opts(Os) ->
 	       (report_errors) -> false;
 	       ('S') -> false;
 	       ('E') -> false;
+	       ('P') -> false;
 	       (dcore) -> false;
 	       (to_core0) -> false;
 	       (warnings_as_errors) -> false;	%We handle this ourselves

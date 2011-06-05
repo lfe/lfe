@@ -33,6 +33,7 @@ install:
 	then mkdir -p $(INSTALLDIR)/$(EBINDIR) ; \
 	     cp -pPR $(EBINDIR) $(INSTALLDIR); \
 	     cp -pPR $(EMACSDIR) $(INSTALLDIR); \
+	     cp -pPR $(INCDIR) $(INSTALLDIR); \
 	else exit 1; \
 	fi
 
