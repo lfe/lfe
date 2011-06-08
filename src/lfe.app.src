@@ -14,6 +14,7 @@
              lfe_lib,
              lfe_lint,
              lfe_macro,
+	     lfe_ms,
              lfe_parse,
              lfe_pmod,
              lfe_scan,

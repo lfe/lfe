@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2010 Robert Virding. All rights reserved.
+%% Copyright (c) 2008-2011 Robert Virding. All rights reserved.
 %%
 %% Redistribution and use in source and binary forms, with or without
 %% modification, are permitted provided that the following conditions
@@ -222,4 +222,5 @@ indent_type(syntaxlet) -> 1;
 indent_type('do') -> 2;
 indent_type('lc') -> 1;				%List comprehensions
 indent_type('bc') -> 1;				%Binary comprehensions
+indent_type('match-spec') -> 0;
 indent_type(_) -> none.

@@ -1,3 +1,7 @@
+2011-06-08  Robert Virding  <rv@renat.local>
+
+	* lfe_macro.erl (exp_predef): Add match-spec macro.
+
 2011-06-05  Robert Virding  <rv@renat.local>
 
 	* lfe_macro.erl (exp_predef): Add simple include-lib macro.

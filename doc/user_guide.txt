@@ -1,15 +1,15 @@
-	Lisp Flavoured Erlang
-	=====================
+        Lisp Flavoured Erlang
+        =====================
 
 Note {{ ... }} is use to denote optional syntax.
 
 Special syntactic rules
 -----------------------
 
-#b #o #d #x #23r	- Based integers
-#(e e ... )		- Tuple constants
-#b(e e ... )		- Binary constant, e ... are valid literals segments
-[ ... ]			- Allowed as alternative to ( ... )
+#b #o #d #x #23r        - Based integers
+#(e e ... )             - Tuple constants
+#b(e e ... )            - Binary constant, e ... are valid literals segments
+[ ... ]                 - Allowed as alternative to ( ... )
 
 Supported Core forms
 --------------------
@@ -22,20 +22,20 @@ Supported Core forms
 (tuple e ... )
 (binary seg ... )
 (lambda (arg ...) ...)
-(match-lambda					- Matches clauses
-  ((arg ... ) {{(when e ...)}} ...)
+(match-lambda
+  ((arg ... ) {{(when e ...)}} ...)             - Matches clauses
   ... )
 (let ((pat {{(when e ...)}} e)
       ...)
   ... )
-(let-function ((name lambda|match-lambda)	- Only define local functions
-	       ... )
+(let-function ((name lambda|match-lambda)       - Only define local functions
+               ... )
   ... )
-(letrec-function ((name lambda|match-lambda)	- Only define local functions
-		  ... )
+(letrec-function ((name lambda|match-lambda)    - Only define local functions
+                  ... )
   ... )
-(let-macro ((name lambda-match-lambda)		- Only define local macros
-	    ...)
+(let-macro ((name lambda-match-lambda)          - Only define local macros
+            ...)
   ...)
 (progn ... )
 (if test true-expr {{false-expr}})
@@ -50,47 +50,48 @@ Supported Core forms
 (try
   e
   {{(case ((pat {{(when e ...)}} ... )
-	  ... ))}}
+          ... ))}}
   {{(catch
      (((tuple type value ignore) {{(when e ...)}}
-				 	- Must be tuple of length 3 here!
+                                        - Must be tuple of length 3 here!
       ... )
      ... )}}
   {{(after ... )}})
 (funcall func arg ... )
-(call mod func arg ... )		- Call to Mod:Func(Arg, ... )
+(call mod func arg ... )                - Call to Mod:Func(Arg, ... )
 
 (define-function name lambda|match-lambda)
 (define-macro name lambda|match-lambda)
-	Define functions/macros at top-level.
+        Define functions/macros at top-level.
 
 
 Supported macro forms
 ---------------------
 
 (: mod func arg ... ) =>
-	(call 'mod 'func arg ... )
-(? {{timeout {{default}} }})		- Receive next message,
-					  optional timeout and default value
+        (call 'mod 'func arg ... )
+(? {{timeout {{default}} }})            - Receive next message,
+                                          optional timeout and default value
 (++ ... )
 (list* ...)
-(let* (...) ... )			- Sequential let's
+(let* (...) ... )                       - Sequential let's
 (flet ((name (arg ...) ...)
        ...)
   ...)
-(flet* (...) ... )			- Sequential flet's
+(flet* (...) ... )                      - Sequential flet's
 (fletrec ((name (arg ...) ...)
-	  ...)
+          ...)
   ...)
-	Define local functions, this will expand to lambda or
-	match-lambda depending on structure as with defun.
-(cond ... )				- The normal cond, with (?= pat expr)
+        Define local functions, this will expand to lambda or
+        match-lambda depending on structure as with defun.
+(cond ... )                             - The normal cond, with (?= pat expr)
 (andalso ... )
 (orelse ... )
-(fun func arity)			- fun func/arity
-(fun mod func arity)			- fun mod:func/arity
-(lc (qual ...) ...)			- [ expr || qual ... ]
-(bc (qual ...) ...)			- << expr || qual ... >>
+(fun func arity)                        - fun func/arity
+(fun mod func arity)                    - fun mod:func/arity
+(lc (qual ...) ...)                     - [ expr || qual ... ]
+(bc (qual ...) ...)                     - << expr || qual ... >>
+(match-spec ...)                        - ets:fun2ms(fun ( ) -> end)
 
 Common Lisp inspired macros
 ---------------------------
@@ -99,27 +100,27 @@ Common Lisp inspired macros
 (defun name
   ((argpat ...) ...)
   ...)
-	Define a toplevel function, this will expand to lambda or
-	match-lambda depending on structure.
+        Define a toplevel function, this will expand to lambda or
+        match-lambda depending on structure.
 (defmacro name (arg ...) ...)
 (defmacro name arg ...)
 (defmacro name
   ((argpat ...) ...)
   ...)
-	Define a top-level macro, this will expand to lambda or
-	match-lambda depending on structure.
+        Define a top-level macro, this will expand to lambda or
+        match-lambda depending on structure.
 (defsyntax name
   (pat exp)
   ...)
-	Define a top-level macro using Scheme inspired syntax-rules
-	format.
+        Define a top-level macro using Scheme inspired syntax-rules
+        format.
 (macrolet ((name (arg ...) ...)
-	   ...)
+           ...)
   ...)
 (syntaxlet ((name (pat exp) ...)
-	    ...)
+            ...)
   ...)
-	Define local macros in macro or syntax-rule format.
+        Define local macros in macro or syntax-rule format.
 (defmodule name ...)
 (defrecord name ...)
 
@@ -131,7 +132,7 @@ Older Scheme inspired macros
 (define-syntax name
   (syntax-rules (pat exp) ...)|(macro (pat body) ...))
 (let-syntax ((name ...)
-	     ...)
+             ...)
   ...)
 (begin ...)
 (define-module name ...)
@@ -143,11 +144,11 @@ Patterns
 Written as normal data expressions where symbols are variables and use
 quote to match explicit values. Binaries and tuples have special syntax.
 
-{ok,X}			-> (tuple 'ok x)
-error			-> 'error
-{yes,[X|Xs]}		-> (tuple 'yes (cons x xs))
-<<34,F/float>>		-> (binary 34 (f float))
-[P|Ps]=All		-> (= (cons p ps) all)
+{ok,X}                  -> (tuple 'ok x)
+error                   -> 'error
+{yes,[X|Xs]}            -> (tuple 'yes (cons x xs))
+<<34,F/float>>          -> (binary 34 (f float))
+[P|Ps]=All              -> (= (cons p ps) all)
 
 Repeated variables are *NOT* supported in patterns, there is no
 automatic comparison of values. It must explicitly be done in a
@@ -180,11 +181,11 @@ following guard expressions:
 (list gexpr ...)
 (tuple gexpr ...)
 (binary ...)
-(progn gtest ...)		- Sequence of guard tests
+(progn gtest ...)               - Sequence of guard tests
 (if gexpr gexpr gexpr)
 (type-test e)
-(guard-bif ...)			- Guard BIFs, arithmetic,
-				  boolean and comparison operators
+(guard-bif ...)                 - Guard BIFs, arithmetic,
+                                  boolean and comparison operators
 
 An empty guard, (when), always succeeds as there is no test which
 fails. This simplifies writing macros which handle guards.
@@ -216,11 +217,11 @@ Function shadowing
 Unqualified functions shadow as stated above which results in the
 following order within a module, outermost to innermost:
 
-	Predefined BIFs (same as in vanilla Erlang)
-	Predefined LFE BIFs
-	Imports
-	Top-level defines
-	Flet/fletrec
+        Predefined BIFs (same as in vanilla Erlang)
+        Predefined LFE BIFs
+        Imports
+        Top-level defines
+        Flet/fletrec
 
 This means that it is perfectly legal to shadow BIFs by imports,
 BIFs/imports by top-level functions and BIFs/imports/top-level by
@@ -239,10 +240,10 @@ Module definition
 
 (defmodule name
   (export (f 2) (g 1) ... )
-  (export all)					;Export all functions
+  (export all)                                  ;Export all functions
   (import (from mod (f1 2) (f2 1) ... )
-	  (rename mod ((f1 2) sune) ((f2 1) kurt) ... ))
-  (import (prefix mod mod-prefix))		- NYI
+          (rename mod ((f1 2) sune) ((f2 1) kurt) ... ))
+  (import (prefix mod mod-prefix))              - NYI
   (attr-1 value-1 value-2)
   ... )
 
@@ -387,37 +388,37 @@ field-name value to get non-default values. E.g. for
 
 (make-person name '"Robert" age 54)
 
-	Will create a new person record with the name field set to
-	"Robert", the age field set to 54 and the address field set to
-	the default "".
+        Will create a new person record with the name field set to
+        "Robert", the age field set to 54 and the address field set to
+        the default "".
 
 (match-person name name age 55)
 
-	Will match a person with age 55 and bind the variable name to
-	the name field of the record. Can use any variable name here.
+        Will match a person with age 55 and bind the variable name to
+        the name field of the record. Can use any variable name here.
 
 (is-person john)
 
-	Test if john is a person record.
+        Test if john is a person record.
 
 (emp-person age '$1)
 
-	Create an ets/mnesia match pattern for record person where the
-	age field is set to $1 and all other fields are set to '_.
+        Create an ets/mnesia match pattern for record person where the
+        age field is set to $1 and all other fields are set to '_.
 
 (person-address john)
 
-	Return the address field of the person record john.
+        Return the address field of the person record john.
 
 (set-person-address john '"back street")
 
-	Sets the address field of the person record john to
-	"back street".
+        Sets the address field of the person record john to
+        "back street".
 
 (set-person john age 35 address '"front street")
 
-	In the person record john set the age field to 35 and the
-	address field to "front street".
+        In the person record john set the age field to 35 and the
+        address field to "front street".
 
 Binaries/bitstrings
 -------------------
@@ -427,12 +428,12 @@ A binary is
 (binary seg ... )
 
 where seg is
-	byte
-	string
-	(val integer|float|binary|bitstring|bytes|bits
-	     (size n) (unit n)
-	     big-endian|little-endian|native-endian|little|native|big
-	     signed|unsigned)
+        byte
+        string
+        (val integer|float|binary|bitstring|bytes|bits
+             (size n) (unit n)
+             big-endian|little-endian|native-endian|little|native|big
+             signed|unsigned)
 
 Val can also be a string in which case the specifiers will be applied
 to every character in the string. As strings are just lists of
@@ -458,11 +459,11 @@ elements of the binary.
 
 The supported qualifiers, in both list/binary comprehensions are:
 
-(<- pat {{guard}} list-expr)	    - Extract elements from a list expression
+(<- pat {{guard}} list-expr)        - Extract elements from a list expression
 (<= bin-pat {{guard}} binary-expr)  - Extract elements from a binary/bits
-				      expression
-(?= pat {{guard}} expr)	 - Match test and bind variables in pat
-expr			 - Normal boolean test
+                                      expression
+(?= pat {{guard}} expr)  - Match test and bind variables in pat
+expr                     - Normal boolean test
 
 Some examples:
 
@@ -473,10 +474,10 @@ Some examples:
 returns a list of all the even elements of the list l1 which are
 greater than 5.
 
-(bc ((<= (f float (size 32)) b1)	;No wrapping, only bitseg needed
+(bc ((<= (f float (size 32)) b1)        ;No wrapping, only bitseg needed
      (> f 10.0))
   (: io fwrite '"~p\n" (list f))
-  (f float (size 64)))			;No wrapping, only bitseg needed
+  (f float (size 64)))                  ;No wrapping, only bitseg needed
 
 returns a binary of floats of size 64 of floats which are larger than
 10.0 from the binary b1 and of size 32. The returned numbers are first
@@ -492,6 +493,24 @@ stop extraction. Using a guard is probably not what you want!
 
 Normal vanilla Erlang does the same thing but does not allow guards.
 
+ETS and Mnesia
+--------------
+
+Apart from (emp-record ...) macros for ETS/Mnesia match patterns LFE
+also supports match specifications and Query List Comprehensions. The
+syntax for a match specification is the same as for match-lambdas:
+
+(match-spec
+  ((arg ... ) {{(when e ...)}} ...)             - Matches clauses
+  ... )
+
+It is a macro which creates the match specification structure which is
+used in ets:select and mnesia:select. The same restrictions as to what
+can be done apply as for vanilla match specifications.
+
+(: ets select db (match-spec
+                   ([(tuple _ a b)] (when (> a 3)) (tuple 'ok b))))
+
 Predefined LFE functions
 ------------------------
 
@@ -499,35 +518,35 @@ The following more or less standard lisp functions are pre-defined:
 
 (<arith_op> expr ...)
 (<comp_op> expr ...)
-	The standard arithmentic operators, + - * /, and comparison
-	operators, > >= < =< == /= =:= =/= , can take multiple
-	arguments the same as their standard lisp counterparts. This
-	is still experimental and implemented using macros. They do,
-	however, behave like normal functions and evaluate ALL their
-	arguments before doing the arithmetic/comparisons operations.
+        The standard arithmentic operators, + - * /, and comparison
+        operators, > >= < =< == /= =:= =/= , can take multiple
+        arguments the same as their standard lisp counterparts. This
+        is still experimental and implemented using macros. They do,
+        however, behave like normal functions and evaluate ALL their
+        arguments before doing the arithmetic/comparisons operations.
 
 (acons key value list)
 (assoc key list)
 (rassoc value list)
-	The standard association list functions.
+        The standard association list functions.
 
 (subst new old tree)
 (subst-if new test tree)
 (subst-if-not new test tree)
-	The standard substituition functions.
+        The standard substituition functions.
 
 (eval expr)
-	Evaluate the expression expr. Note that only the pre-defined
-	lisp functions, erlang BIFs and exported functions can be
-	called. Also no local variables can be accessed. To access
-	local variables the expr to be evaluated can be wrapped in a
-	let defining these.
+        Evaluate the expression expr. Note that only the pre-defined
+        lisp functions, erlang BIFs and exported functions can be
+        called. Also no local variables can be accessed. To access
+        local variables the expr to be evaluated can be wrapped in a
+        let defining these.
 
-	For example if the data we wish to evaluate is in the variable
-	expr and it assumes there is a local variable "foo" which it
-	needs to access then we could evaluate it by calling:
+        For example if the data we wish to evaluate is in the variable
+        expr and it assumes there is a local variable "foo" which it
+        needs to access then we could evaluate it by calling:
 
-	(eval `(let ((foo ,foo)) ,expr))
+        (eval `(let ((foo ,foo)) ,expr))
 
 Notes
 -----

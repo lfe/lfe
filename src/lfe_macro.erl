@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2010 Robert Virding. All rights reserved.
+%% Copyright (c) 2008-2011 Robert Virding. All rights reserved.
 %%
 %% Redistribution and use in source and binary forms, with or without
 %% modification, are permitted provided that the following conditions
@@ -747,8 +747,17 @@ exp_predef([macrolet,Defs|Body], _, St) ->
 exp_predef([syntaxlet,Defs|Body], _, St) ->
     Mdefs = map(fun ([Name|Rules]) -> exp_rules(Name, [], Rules) end, Defs),
     {yes,['let-macro',Mdefs|Body],St};
+%% This has to go here for the time being so as to be able to macro
+%% expand body.
+exp_predef(['match-spec'|Body], Env, St0) ->
+    %% Expand it like a match-lambda.
+    {Exp,St1} = expand_ml_clauses(Body, Env, St0),
+    MS = lfe_ms:expand(Exp),
+    {yes,MS,St1};
 %% This was not a call to a predefined macro.
 exp_predef(_, _, _) -> no.
+
+%% exp_bif(Bif, Args) -> Expansion.
 
 exp_bif(B, As) -> [call,?Q(erlang),?Q(B)|As].
 
@@ -803,11 +812,9 @@ exp_append(Args) ->
 	[[]|Es] -> ['++'|Es];
 	%% Default cases with unquoted arg.
 	[E] -> E;				%Last arg not checked
-	[E|Es] -> exp_append(E, Es);
+	[E|Es] -> exp_bif('++', [E,['++'|Es]]);
 	[] -> []
     end.
-
-exp_append(E, Es) -> [call,?Q(erlang),?Q('++'),E,['++'|Es]].
 
 %% exp_defun(Name, Def) -> Lambda | Match-Lambda.
 %% Educated guess whether traditional (defun name (a1 a2 ...) ...)
