@@ -507,7 +507,7 @@ exp_userdef_macro([Mac|Args], Def0, Env, St0) ->
 %%	{Exp,St1}.
     try
 	{Def1,St1} = expand(Def0, Env, St0),	%Expand definition
-	Exp = lfe_eval:apply(Def1, [Args], Env),
+	Exp = lfe_eval:apply(Def1, [Args,Env], Env),
 	{yes,Exp,St1}
     catch
 	error:Error ->
@@ -711,8 +711,6 @@ exp_predef(['define',Head|Body], _, St) ->
 exp_predef(['define-record'|Def], _, St) ->
     {yes,[defrecord|Def],St};
 exp_predef(['define-syntax',Name,Def], _, St) ->
-    %% N.B. New macro definition is function of 1 argument, whole
-    %% argument list of macro call.
     Mdef = exp_syntax(Name, Def),
     {yes,['define-macro'|Mdef],St};
 exp_predef(['let-syntax',Defs|Body], _, St) ->
@@ -732,8 +730,6 @@ exp_predef([defmacro,Name|Def], _, St) ->
     Mdef = exp_defmacro(Name, Def),
     {yes,['define-macro'|Mdef],St};
 exp_predef([defsyntax,Name|Rules], _, St) ->
-    %% Expand into call function which expands macro an invocation
-    %% time, this saves much space and costs us nothing.
     {yes,['define-macro'|exp_rules(Name, [], Rules)],St};
 exp_predef([flet,Defs|Body], _, St) ->
     Fdefs = map(fun ([Name|Def]) -> exp_defun(Name, Def) end, Defs),
@@ -830,17 +826,17 @@ exp_defun(Name, [Args|Rest]) ->
 %%  Educated guess whether traditional (defmacro name (a1 a2 ...) ...)
 %%  or matching (defmacro name (patlist1 ...) (patlist2 ...)). Special
 %%  case (defmacro name arg ...) to make arg be whole argument list.
-%%  N.B. New macro definition is function of 1 argument, whole
-%%  argument list of macro call.
+%%  N.B. New macro definition is function of 2 arguments, the whole
+%%  argument list of macro call, and the current macro environment.
 
 exp_defmacro(Name, [Args|Rest]=Cls) ->
     case is_symb_list(Args) of
-	true -> [Name,['match-lambda',[[[list|Args]]|Rest]]];
+	true -> [Name,['match-lambda',[[[list|Args],'$ENV']|Rest]]];
 	false ->
 	    if is_atom(Args) ->			%Args is symbol
-		    [Name,['match-lambda',[[Args]|Rest]]];
+		    [Name,['match-lambda',[[Args,'$ENV']|Rest]]];
 	       true ->
-		    Mcls = map(fun ([Head|Body]) -> [[Head]|Body] end, Cls),
+		    Mcls = map(fun ([Head|Body]) -> [[Head,'$ENV']|Body] end, Cls),
 		    [Name,['match-lambda'|Mcls]]
 	    end
     end.
@@ -941,13 +937,13 @@ exp_defrec_fields(Fs, Name, St) ->
 	   end, [], Fis), St}.
 
 %% exp_syntax(Name, Def) -> Lambda | MatchLambda.
-%%  N.B. New macro definition is function of 1 argument, whole
-%%  argument list of macro call.
+%%  N.B. New macro definition is function of 2 arguments, the whole
+%%  argument list of macro call, and the current macro environment.
 
 exp_syntax(Name, Def) ->
     case Def of
 	[macro|Cls] ->
-	    Mcls = map(fun ([Pat|Body]) -> [[Pat]|Body] end, Cls),
+	    Mcls = map(fun ([Pat|Body]) -> [[Pat,'$ENV']|Body] end, Cls),
 	    [Name,['match-lambda'|Mcls]];
 	['syntax-rules'|Rules] ->
 	    exp_rules(Name, [], Rules)
@@ -956,9 +952,11 @@ exp_syntax(Name, Def) ->
 %% exp_rules(Name, Keywords, Rules) -> Lambda.
 %%  Expand into call function which expands macro an invocation time,
 %%  this saves much space and costs us nothing.
+%%  N.B. New macro definition is function of 2 arguments, the whole
+%%  argument list of macro call, and the current macro environment.
 
 exp_rules(Name, Keywords, Rules) ->
-    [Name,[lambda,[args],
+    [Name,[lambda,[args,'$ENV'],
 	   [':',lfe_macro,mbe_syntax_rules_proc,
 	    [quote,Name],[quote,Keywords],[quote,Rules],args]]].
 

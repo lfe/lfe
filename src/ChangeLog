@@ -1,3 +1,14 @@
+2011-06-15  Robert Virding  <rv@renat.local>
+
+	* lfe_shell.erl (macroexpand, macroexpand-1, macroexpand-all): No
+	longer shell functions.
+
+	* lfe_lib.erl (del_vbinding): New function.
+
+2011-06-14  Robert Virding  <rv@renat.local>
+
+	* lfe_io_pretty.erl (indent_type): Add funcall.
+
 2011-06-08  Robert Virding  <rv@renat.local>
 
 	* lfe_macro.erl (exp_predef): Add match-spec macro.

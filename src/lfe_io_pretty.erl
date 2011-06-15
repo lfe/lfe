@@ -206,6 +206,7 @@ indent_type('case') -> 1;
 indent_type('receive') -> 0;
 indent_type('catch') -> 0;
 indent_type('try') -> 1;
+indent_type('funcall') -> 1;
 indent_type('call') -> 2;
 indent_type('define-function') -> 1;
 indent_type('define-macro') -> 1;

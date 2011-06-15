@@ -33,7 +33,7 @@
 
 -import(lfe_lib, [new_env/0,add_env/2,
 		  add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
-		  fetch_vbinding/2,update_vbinding/3,
+		  fetch_vbinding/2,update_vbinding/3,del_vbinding/2,
 		  add_fbinding/4,add_fbindings/3,get_fbinding/3,add_ibinding/5,
 		  get_gbinding/3,add_mbinding/3]).
 
@@ -97,20 +97,25 @@ server_loop(Env0, BaseEnv) ->
 	  end,
     server_loop(Env, BaseEnv).
 
-add_shell_vars(Env) ->
+add_shell_vars(Env0) ->
     %% Add default shell expression variables.
-    foldl(fun (Symb, E) -> add_vbinding(Symb, [], E) end, Env,
-	  ['+','++','+++','-','*','**','***']).
+    Env1 = foldl(fun (Symb, E) -> add_vbinding(Symb, [], E) end, Env0,
+		 ['+','++','+++','-','*','**','***']),
+    add_vbinding('$ENV', Env1, Env1).		%This gets it all
 
-update_shell_vars(Form, Value, Env) ->
-    foldl(fun ({Symb,Val}, E) -> update_vbinding(Symb, Val, E) end,
-	  Env,
-	  [{'+++',fetch_vbinding('++', Env)},
-	   {'++',fetch_vbinding('+', Env)},
-	   {'+',Form},
-	   {'***',fetch_vbinding('**', Env)},
-	   {'**',fetch_vbinding('*', Env)},
-	   {'*',Value}]).
+update_shell_vars(Form, Value, Env0) ->
+    Env1 = foldl(fun ({Symb,Val}, E) -> update_vbinding(Symb, Val, E) end,
+		 Env0,
+		 [{'+++',fetch_vbinding('++', Env0)},
+		  {'++',fetch_vbinding('+', Env0)},
+		  {'+',Form},
+		  {'***',fetch_vbinding('**', Env0)},
+		  {'**',fetch_vbinding('*', Env0)},
+		  {'*',Value}]),
+    %% Be cunning with $ENV, remove self references so it doesn't grow
+    %% indefinitely.
+    Env2 = del_vbinding('$ENV', Env1),
+    add_vbinding('$ENV', Env2, Env2).
 
 add_shell_macros(Env0) ->
     %% We write macros in LFE and expand them with macro package.
@@ -158,12 +163,6 @@ eval_internal([l|Args], Eenv, Benv) ->		%Load modules
     l(Args, Eenv, Benv);
 eval_internal([m|Args], Eenv, Benv) ->		%Module info
     m(Args, Eenv, Benv);
-eval_internal([macroexpand,S], Eenv, Benv) ->	%Macroexpand top of form
-    macroexpand(S, Eenv, Benv);
-eval_internal(['macroexpand-1',S], Eenv, Benv) ->
-    macroexpand_1(S, Eenv, Benv);
-eval_internal(['macroexpand-all',S], Eenv, Benv) ->
-    macroexpand_all(S, Eenv, Benv);
 eval_internal([set|Args], Eenv, Benv) ->	%Set variables in shell
     set(Args, Eenv, Benv);
 eval_internal(_, _, _) -> no.			%Not an internal function
@@ -211,30 +210,6 @@ l(Args, Eenv, _) ->
 m([], Eenv, _) -> {yes,c:m(),Eenv};
 m(Args, Eenv, _) ->
     {yes,map(fun (M) -> c:m(lfe_eval:expr(M, Eenv)) end, Args), Eenv}.
-
-%% macroexpand(Sexpr, EvalEnv, BaseEnv) -> {yes,Res,Env}.
-%% macroexpand_1(Sexpr, EvalEnv, BaseEnv) -> {yes,Res,Env}.
-%% macroexpand_all(Sexpr, EvalEnv, BaseEnv) -> {yes,Res,Env}.
-%%  We special case these at shell level so as to get shell environment.
-
-macroexpand(S, Eenv, _) ->
-    Arg = lfe_eval:expr(S, Eenv),
-    case lfe_macro:expand_expr(Arg, Eenv) of
-	{yes,Exp} -> {yes,Exp,Eenv};
-	no -> {yes,Arg,Eenv}
-    end.
-
-macroexpand_1(S, Eenv, _) ->
-    Arg = lfe_eval:expr(S, Eenv),
-    case lfe_macro:expand_expr_1(Arg, Eenv) of
-	{yes,Exp} -> {yes,Exp,Eenv};
-	no -> {yes,Arg,Eenv}
-    end.
-
-macroexpand_all(S, Eenv, _) ->
-    Arg = lfe_eval:expr(S, Eenv),
-    Exp = lfe_macro:expand_expr_all(Arg, Eenv),
-    {yes,Exp,Eenv}.
 
 %% set(Args, EvalEnv, BaseEnv) -> {yes,Result,Env} | no.
 
