@@ -848,7 +848,7 @@ comp_bitsegs([], Csegs, _, L, St) ->
 -record(spec, {type=integer,size=default,unit=default,
 	       sign=default,endian=default}).
 
-%% comp_bitseg(ValSpec, Env, Line, State) -> {#c_bitstr{},State}.
+%% comp_bitseg(ValSpec, Env, Line, State) -> {Cval,Csize,Unit,Type,Fs,State}.
 
 comp_bitseg(Vsp, Env, L, St0) ->
     {Val,{Ty,Sz,Un,Si,En}} = Vsp,
