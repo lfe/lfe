@@ -41,20 +41,31 @@
 ;; Create an initialse the ets table.
 (defun new ()
   (let ((db (: ets new 'ets_demo '(#(keypos 2) set))))
-    ;; First somw people in London.
-    (: ets insert db (make-person name 'fred place 'london job 'waiter))
-    (: ets insert db (make-person name 'bert place 'london job 'waiter))
-    (: ets insert db (make-person name 'john place 'london job 'painter))
-    (: ets insert db (make-person name 'paul place 'london job 'driver))
-    ;; Now some in Paris.
-    (: ets insert db (make-person name 'jean place 'paris job 'waiter))
-    (: ets insert db (make-person name 'gerard place 'paris job 'driver))
-    (: ets insert db (make-person name 'claude place 'paris job 'painter))
-    (: ets insert db (make-person name 'yves place 'paris job 'waiter))
-    ;; And some in Rome.
-    (: ets insert db (make-person name 'roberto place 'rome job 'waiter))
-    (: ets insert db (make-person name 'guiseppe place 'rome job 'driver))
-    (: ets insert db (make-person name 'paulo place 'rome job 'painter))
+    (let ((people '(
+		    ;; First some people in London.
+		    #(fred london waiter)
+		    #(bert london waiter)
+		    #(john london painter)
+		    #(paul london driver)
+		    ;; Now some in Paris.
+		    #(jean paris waiter)
+		    #(gerard paris driver)
+		    #(claude paris painter)
+		    #(yves paris waiter)
+		    ;; And some in Rome.
+		    #(roberto rome waiter)
+		    #(guiseppe rome driver)
+		    #(paulo rome painter)
+		    ;; And some in Berlin.
+		    #(fritz berlin painter)
+		    #(kurt berlin driver)
+		    #(hans berlin waiter)
+		    #(franz berlin waiter)
+		    )))
+      (: lists foreach (match-lambda
+			 ([(tuple n p j)]
+			  (: ets insert db (make-person name n place p job j))))
+	 people))
     db))				;Return the table
 
 ;; Match records by place using match, match_object and the emp-XXXX macro.

@@ -403,8 +403,8 @@ field-name value to get non-default values. E.g. for
 
 (emp-person age '$1)
 
-        Create an ets/mnesia match pattern for record person where the
-        age field is set to $1 and all other fields are set to '_.
+        Create an Ets Match Pattern for record person where the age
+        field is set to $1 and all other fields are set to '_.
 
 (person-address john)
 
@@ -496,20 +496,57 @@ Normal vanilla Erlang does the same thing but does not allow guards.
 ETS and Mnesia
 --------------
 
-Apart from (emp-record ...) macros for ETS/Mnesia match patterns LFE
-also supports match specifications and Query List Comprehensions. The
-syntax for a match specification is the same as for match-lambdas:
+Apart from (emp-record ...) macros for ETS Match Patterns, which are
+also valid in Mnesia, LFE also supports match specifications and Query
+List Comprehensions. The syntax for a match specification is the same
+as for match-lambdas:
 
 (match-spec
   ((arg ... ) {{(when e ...)}} ...)             - Matches clauses
   ... )
 
-It is a macro which creates the match specification structure which is
-used in ets:select and mnesia:select. The same restrictions as to what
-can be done apply as for vanilla match specifications.
+For example:
 
 (: ets select db (match-spec
                    ([(tuple _ a b)] (when (> a 3)) (tuple 'ok b))))
+
+It is a macro which creates the match specification structure which is
+used in ets:select and mnesia:select. The same match-spec macro can
+also be used with the dbg module. The same restrictions as to what can
+be done apply as for vanilla match specifications:
+
+- There is only a limited number of BIFs which are allowed
+- There are some special functions only for use with dbg
+- For ets/mnesia it takes a single parameter which must a tuple or a
+  variable
+- For dbg it takes a single parameter which must a list or a variable
+
+N.B. the current macro neither knows nor cares whether it is being
+used in ets/mnesia or in dbg. It is up to the user to get this right.
+
+Macros, especially record macros, can freely be used inside match
+specs.
+
+*CAVEAT* Some things which are known not to work in the current
+ version are andalso, orelse and record updates.
+
+Query List Comprehensions
+-------------------------
+
+LFE supports QLCs for mnesia through the qlc macro. It has the same
+structure as a list comprehension and generates a Query Handle in the
+same way as with qlc:q([...]). The handle can be used together with
+all the combination functions in the module qlc.
+
+For example:
+
+(qlc ((<- (tuple k v) (: ets table e2)) (== k i)) v)
+
+Macros, especially record macros, can freely be used inside query list
+comprehensions.
+
+*CAVEAT* Some things which are known not to work in the current
+ version are nested QLCs.
 
 Predefined LFE functions
 ------------------------
@@ -535,7 +572,7 @@ The following more or less standard lisp functions are pre-defined:
 (subst-if-not new test tree)
         The standard substituition functions.
 
-(eval expr)
+(eval expr {{environment}})
         Evaluate the expression expr. Note that only the pre-defined
         lisp functions, erlang BIFs and exported functions can be
         called. Also no local variables can be accessed. To access

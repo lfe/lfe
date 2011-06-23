@@ -502,6 +502,7 @@ exp_macro([Name|_]=Call, Env, St) ->
 %%  it to argument list.
 
 exp_userdef_macro([Mac|Args], Def0, Env, St0) ->
+    %% lfe_io:format("udef: ~p\n", [[Mac|Args]]),
     %% lfe_io:format("macro: ~p\n", [Def0]),
 %%	Exp = lfe_eval:apply(Def1, [Args], Env),
 %%	{Exp,St1}.
@@ -518,11 +519,14 @@ exp_userdef_macro([Mac|Args], Def0, Env, St0) ->
 %%  Evaluate predefined macro definition catching errors.
 
 exp_predef_macro(Call, Env, St) ->
+    %% lfe_io:format("pdef: ~p\n", [Call]),
     try
 	exp_predef(Call, Env, St)
     catch
 	error:Error ->
-	    erlang:error({expand_macro,Call,Error})
+	    St = erlang:get_stacktrace(),	%Return the stack trace
+	    lfe_io:format("pdef: ~p\n", [{Error,St}]),
+	    erlang:error({expand_macro,Call,{Error,St}})
     end.
 
 %% exp_predef(Form, Env, State) -> {yes,Form,State} | no.
@@ -637,13 +641,13 @@ exp_predef(['do'|Dbody], _, St0) ->
     {yes,Exp,St1};
 exp_predef([lc|Lbody], _, St0) ->
     %% (lc (qual ...) e ...)
-    [Qs|E] = Lbody,
-    {Exp,St1} = lc_te(E, Qs, St0),
+    [Qs|Es] = Lbody,
+    {Exp,St1} = lc_te(Es, Qs, St0),
     {yes,Exp,St1};
 exp_predef([bc|Bbody], _, St0) ->
     %% (bc (qual ...) e ...)
-    [Qs|E] = Bbody,
-    {Exp,St1} = bc_te(E, Qs, St0),
+    [Qs|Es] = Bbody,
+    {Exp,St1} = bc_te(Es, Qs, St0),
     {yes,Exp,St1};
 exp_predef(['andalso'|Abody], _, St) ->
     Exp = case Abody of
@@ -750,8 +754,36 @@ exp_predef(['match-spec'|Body], Env, St0) ->
     {Exp,St1} = expand_ml_clauses(Body, Env, St0),
     MS = lfe_ms:expand(Exp),
     {yes,MS,St1};
+exp_predef([qlc,Qs|Es], Env, St0) ->
+    %% (qlc (qual ...) e ...)
+    %% Expand macro in the QLC before translating it preserving structure
+    {Eqs,St1} = exp_qlc_quals(Qs, Env, St0),
+    {Ees,St2} = expand_list(Es, Env, St1),
+    %% Now translate to vanilla AST, call qlc expand, convert back to LFE.
+    V0 = lfe_trans:to_vanilla([lc,Eqs|Ees], 42),
+    %% lfe_io:format("Q0 = ~p\n", [[lc,Eqs|Ees]]),
+    %% io:put_chars([erl_pp:expr(V0),"\n"]),
+    {ok,V1} = lfe_qlc:expand(V0),
+    %% io:put_chars([erl_pp:expr(V1),"\n"]),
+    Exp = lfe_trans:from_vanilla(V1),
+    %% lfe_io:format("Q1 = ~p\n", [Exp]),
+    {yes,Exp,St2};
 %% This was not a call to a predefined macro.
 exp_predef(_, _, _) -> no.
+
+exp_qlc_quals(Qs, Env, St) ->
+    mapfoldl(fun (Q, S) -> exp_qlc_qual(Q, Env, S) end, St, Qs).
+
+exp_qlc_qual(['<-',P0,['when'|G0],E0], Env, St0) ->
+    {P1,St1} = expand(P0, Env, St0),
+    {G1,St2} = expand_tail(G0, Env, St1),
+    {E1,St3} = expand(E0, Env, St2),
+    {['<-',P1,['when'|G1],E1],St3};
+exp_qlc_qual(['<-',P0,E0], Env, St0) ->
+    {P1,St1} = expand(P0, Env, St0),
+    {E1,St2} = expand(E0, Env, St1),
+    {['<-',P1,E1],St2};
+exp_qlc_qual(T, Env, St) -> expand(T, Env, St).
 
 %% exp_bif(Bif, Args) -> Expansion.
 
