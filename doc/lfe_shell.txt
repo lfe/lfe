@@ -48,23 +48,6 @@ DESCRIPTION
 		All the commands in the standard Erlang shell can be
 		reached in this way.
 
-	(macroexpand-1 Expr)
-		If Expr is a macro call, does one round of expansion,
-		otherwise returns Expr.
-
-	(macroexpand Expr)
-		Returns the expansion returned by calling
-		macroexpand-1 repeatedly, starting with Expr, until
-		the result is no longer a macro call.
-
-	(macroexpand-all Expr)
-		Returns the expansion from the expression where all
-		macro calls have been expanded with macroexpand.
-
-	NOTE that when macroexpand-1 and macroexpand are called in
-	expressions entered in the shell then they will also expand
-	macros visible in the shell, e.g. from slurped filed.
-
 	Builtin shell variables:
 
 	+/++/+++
