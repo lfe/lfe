@@ -29,7 +29,7 @@
 
 -module(lfe_bits).
 
--export([parse_bitspecs/1]).
+-export([parse_bitspecs/1,get_bitspecs/1]).
 
 %% The standard imports
 -import(lists, [foldl/3]).
@@ -38,24 +38,38 @@
 -record(spec, {type=default,size=default,unit=default,
 	       sign=default,endian=default}).
 
-%% parse_bitspecs(Specs) -> {ok,Size,{Type,Unit,Sign,End}} | {error,Error}.
-%% Parse a bitspec and return data. The size field is unevaluated. We
-%% only return the first error found, it is of type:
-%% {illegal_bitspec,Spec}.
+%% get_bitspecs(Specs) -> {ok,Size,{Type,Unit,Sign,End}} | {error,Error}.
+%% Parse a bitspec, apply defaults and return data. The size field is
+%% unevaluated. We only return the first error found.
 
-parse_bitspecs(Ss) ->
+get_bitspecs(Specs) ->
     try
-	{Ty,Sz,Un,Si,En} = parse_bitspecs(Ss, #spec{}),
+	#spec{type=Ty0,size=Sz0,unit=Un0,sign=Si0,endian=En0} =
+	    parse_bitspecs(Specs, #spec{}),
+	{Ty,Sz,Un,Si,En} = apply_defaults(Ty0, Sz0, Un0, Si0, En0),
 	{ok,Sz,{Ty,Un,Si,En}}
     catch
 	throw:Error -> Error
     end.
 
+%% parse_bitspecs(Specs) -> {ok,Size,{Type,Unit,Sign,End}} | {error,Error}.
+%% Parse a bitspec and return data. Unmentioned fields get the value
+%% default. We only return the first error found.
+
+parse_bitspecs(Specs) ->
+    case catch parse_bitspecs(Specs, #spec{}) of
+	#spec{type=Ty,size=Sz,unit=Un,sign=Si,endian=En} ->
+	    {ok,Sz,{Ty,Un,Si,En}};
+	Error -> Error
+    end.
+
+%% parse_bitspecs(Specs, #spec{}) -> #spec{}.
+%% Parse a bitspec and return a #spec{} record. Unmentioned fields get
+%% the value default. Errors throw the tuple {error,Error} and must be
+%% caught.
+
 parse_bitspecs(Ss, Sp0) ->
-    Sp1 = foldl(fun (S, Sp) -> parse_bitspec(S, Sp) end, Sp0, Ss),
-    %% Adjust the values depending on type and given value.
-    #spec{type=Type,size=Size,unit=Unit,sign=Sign,endian=End} = Sp1,
-    apply_defaults(Type, Size, Unit, Sign, End).
+    foldl(fun (S, Sp) -> parse_bitspec(S, Sp) end, Sp0, Ss).
 
 %% parse_bitspec(Spec, #spec{}) -> #spec{}.
 %%  We also convert synonyms to the standard value.
@@ -103,12 +117,12 @@ apply_defaults(binary, default, Un, Si, En) ->
 apply_defaults(integer, default, Un, Si, En) ->
     check_unit(Un),
     apply_defaults(integer, 8, Un, Si, En);
-apply_defaults(utf8=Ty, default, Un, Si, En) ->
-    apply_defaults(Ty, undefined, Un, Si, En);
-apply_defaults(utf16=Ty, default, Un, Si, En) ->
-    apply_defaults(Ty, undefined, Un, Si, En);
-apply_defaults(utf32=Ty, default, Un, Si, En) ->
-    apply_defaults(Ty, undefined, Un, Si, En);
+apply_defaults(utf8, default, Un, Si, En) ->
+    apply_defaults(utf8, undefined, Un, Si, En);
+apply_defaults(utf16, default, Un, Si, En) ->
+    apply_defaults(utf16, undefined, Un, Si, En);
+apply_defaults(utf32, default, Un, Si, En) ->
+    apply_defaults(utf32, undefined, Un, Si, En);
 apply_defaults(float, default, Un, Si, En) ->
     check_unit(Un),
     apply_defaults(float, 64, 1, Si, En);
@@ -131,6 +145,3 @@ apply_defaults(Ty, Sz, Un, Si, En) ->
 
 check_unit(default) -> ok;
 check_unit(_) -> throw({error,bittype_unit}).
-
-val_or_def(default, Def) -> Def;
-val_or_def(V, _) -> V.

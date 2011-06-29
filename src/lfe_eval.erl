@@ -159,36 +159,36 @@ eval_body([], _) -> [].				%Empty body
 %%  Construct a binary from Bitsegs. This code is taken from eval_bits.erl.
 
 eval_binary(Segs, Env) ->
-    Vsps = parse_bitsegs(Segs),
+    Vsps = get_bitsegs(Segs),
     eval_bitsegs(Vsps, Env).
 
-parse_bitsegs(Segs) ->
-    foldr(fun (S, Vs) -> parse_bitseg(S, Vs) end, [], Segs).
+get_bitsegs(Segs) ->
+    foldr(fun (S, Vs) -> get_bitseg(S, Vs) end, [], Segs).
 
-%% parse_bitseg(Bitseg, ValSpecs) -> ValSpecs.
+%% get_bitseg(Bitseg, ValSpecs) -> ValSpecs.
 %% A bitseg is either an atomic value, a list of value and specs, or a string.
 
-parse_bitseg([Val|Specs]=F, Vsps) ->
+get_bitseg([Val|Specs]=F, Vsps) ->
     case is_integer_list(F) of			%Is bitseg a string?
 	true ->					%A string
-	    {Sz,Ty} = parse_bitspecs([]),
+	    {Sz,Ty} = get_bitspecs([]),
 	    foldr(fun (V, Vs) -> [{V,Sz,Ty}|Vs] end, Vsps, F);
 	false ->				%A value and spec
-	    {Sz,Ty} = parse_bitspecs(Specs),
+	    {Sz,Ty} = get_bitspecs(Specs),
 	    case is_integer_list(Val) of	%Is val a string?
 		true -> foldr(fun (V, Vs) -> [{V,Sz,Ty}|Vs] end, Vsps, Val);
 		false -> [{Val,Sz,Ty}|Vsps]	%The default
 	    end
     end;
-parse_bitseg(Val, Vsps) ->
-    {Sz,Ty} = parse_bitspecs([]),
+get_bitseg(Val, Vsps) ->
+    {Sz,Ty} = get_bitspecs([]),
     [{Val,Sz,Ty}|Vsps].
 
-%% parse_bitspec(Specs) -> {Size,Type}.
+%% get_bitspec(Specs) -> {Size,Type}.
 %%  Get the error handling as we want it.
 
-parse_bitspecs(Ss) ->
-    case lfe_bits:parse_bitspecs(Ss) of
+get_bitspecs(Ss) ->
+    case lfe_bits:get_bitspecs(Ss) of
 	{ok,Sz,Ty} -> {Sz,Ty};
 	{error,Error} -> erlang:error(Error)
     end.
@@ -698,7 +698,7 @@ eval_glist(Es, Env) ->
 %%  Construct a binary from Bitsegs. This code is taken from eval_bits.erl.
 
 eval_gbinary(Segs, Env) ->
-    Vsps = parse_bitsegs(Segs),
+    Vsps = get_bitsegs(Segs),
     eval_gbitsegs(Vsps, Env).
 
 eval_gbitsegs(Vsps, Env) ->
@@ -793,7 +793,7 @@ match_symb(Symb, Val, _, Bs) ->
 %%  error, we use catch to trap it.
 
 match_binary(Segs, Bin, Env, Bs0) ->
-    Psps = parse_bitsegs(Segs),
+    Psps = get_bitsegs(Segs),
     match_bitsegs(Psps, Bin, Env, Bs0).
 %%     case catch match_bitsegs(Psps, Bin, Env, Bs0) of
 %% 	{yes,Bs1} -> {yes,Bs1};			%Matched whole binary

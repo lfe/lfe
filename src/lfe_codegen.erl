@@ -728,33 +728,33 @@ comp_funcall_1(F, As, Env, L, St0) ->
 %% Compile a binary.
 
 comp_binary(Fs, Env, L, St0) ->
-    Vsps = parse_bitsegs(Fs),
+    Vsps = get_bitsegs(Fs),
     comp_bitsegs(Vsps, Env, L, St0).
 
-parse_bitsegs(Fs) ->
-    foldr(fun (F, Vs) -> parse_bitseg(F, Vs) end, [], Fs).
+get_bitsegs(Fs) ->
+    foldr(fun (F, Vs) -> get_bitseg(F, Vs) end, [], Fs).
 
-%% parse_bitseg(Bitseg, ValSpecs) -> ValSpecs.
+%% get_bitseg(Bitseg, ValSpecs) -> ValSpecs.
 %% A bitseg is either an atomic value, a list of value and specs, or a string.
 
-parse_bitseg([Val|Specs]=F, Vsps) ->
+get_bitseg([Val|Specs]=F, Vsps) ->
     case is_integer_list(F) of			%Is bitseg a string?
 	true ->					%A string
-	    {Sz,Ty} = parse_bitspecs([]),
+	    {Sz,Ty} = get_bitspecs([]),
 	    foldr(fun (V, Vs) -> [{V,Sz,Ty}|Vs] end, Vsps, F);
 	false ->				%A value and spec
-	    {Sz,Ty} = parse_bitspecs(Specs),
+	    {Sz,Ty} = get_bitspecs(Specs),
 	    case is_integer_list(Val) of	%Is val a string?
 		true -> foldr(fun (V, Vs) -> [{V,Sz,Ty}|Vs] end, Vsps, Val);
 		false -> [{Val,Sz,Ty}|Vsps]	%The default
 	    end
     end;
-parse_bitseg(Val, Vsps) ->
-    {Sz,Ty} = parse_bitspecs([]),
+get_bitseg(Val, Vsps) ->
+    {Sz,Ty} = get_bitspecs([]),
     [{Val,Sz,Ty}|Vsps].
 
-parse_bitspecs(Ss) ->
-    {ok,Sz,Ty} = lfe_bits:parse_bitspecs(Ss),
+get_bitspecs(Ss) ->
+    {ok,Sz,Ty} = lfe_bits:get_bitspecs(Ss),
     {Sz,Ty}.
 
 is_integer_list([I|Is]) when is_integer(I) ->
@@ -1034,7 +1034,7 @@ pat_alias_list(_, _) -> throw(nomatch).
 %% pat_binary(Segs, Line, PatVars, State) -> {#c_binary{},PatVars,State}.
 
 pat_binary(Segs, L, Vs0, St0) ->
-    Vsps = parse_bitsegs(Segs),
+    Vsps = get_bitsegs(Segs),
     {Csegs,Vs1,St1} = pat_bitsegs(Vsps, L, Vs0, St0),
     {#c_binary{anno=[L],segments=Csegs},Vs1,St1}.
 

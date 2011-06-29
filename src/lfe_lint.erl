@@ -423,7 +423,7 @@ bitseg(Val, Env, L, St, Check) ->
     Check(Val, Env, L, St).
 
 bitspecs(Specs, Env, L, St, Check) ->
-    case lfe_bits:parse_bitspecs(Specs) of
+    case lfe_bits:get_bitspecs(Specs) of
 	{ok,Sz,Ty} -> bit_size(Sz, Ty, Env, L, St, Check);
 	{error,E} -> add_error(L, E, St)
     end.
@@ -891,7 +891,7 @@ pat_bitseg(Pat, Vs, Env, L, St) ->
     pat_bitel(Pat, Vs, Env, L, St).
 
 pat_bitspecs(Specs, Env, L, St) ->
-    case lfe_bits:parse_bitspecs(Specs) of
+    case lfe_bits:get_bitspecs(Specs) of
 	{ok,Sz,Ty} -> pat_bit_size(Sz, Ty, Env, L, St);
 	{error,E} -> add_error(L, E, St)
     end.

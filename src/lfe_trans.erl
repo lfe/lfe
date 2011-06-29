@@ -363,24 +363,24 @@ to_bitsegs(Ss, L) -> map(fun (S) -> to_bitseg(S, L) end, Ss).
 to_bitseg([Val|Specs]=F, L) ->
     case is_integer_list(F) of
 	true ->
-	    {Size,Type} = parse_bitspecs([]),
+	    {Size,Type} = to_bitspecs([]),
 	    to_bin_element({string,L,F},to_expr(Size, L), Type, L);
 	false ->
-	    {Size,Type} = parse_bitspecs(Specs),
+	    {Size,Type} = to_bitspecs(Specs),
 	    to_bin_element(to_expr(Val, L),to_expr(Size, L), Type, L)
     end;
 to_bitseg(Val, L) ->
-    {Size,Type} = parse_bitspecs([]),
+    {Size,Type} = to_bitspecs([]),
     to_bin_element(to_expr(Val, L),to_expr(Size, L), Type, L).
 
 to_bin_element(Val, Size, {Type,Unit,Sign,End}, L) ->
     {bin_element,L,Val,Size,[Type,{unit,Unit},Sign,End]}.
 
-%% parse_bitspec(Specs) -> {Size,Type}.
+%% to_bitspec(Specs) -> {Size,Type}.
 %%  Get the error handling as we want it.
 
-parse_bitspecs(Ss) ->
-    case lfe_bits:parse_bitspecs(Ss) of
+to_bitspecs(Ss) ->
+    case lfe_bits:get_bitspecs(Ss) of
 	{ok,Sz,Ty} -> {Sz,Ty};
 	{error,Error} -> erlang:error(Error)
     end.
