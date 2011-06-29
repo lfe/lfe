@@ -33,13 +33,20 @@
 
 -export([from_vanilla/1,to_vanilla/2]).
 
--import(lists, [map/2,foldr/3,splitwith/2]).
+-import(lists, [map/2,foldl/3,foldr/3,splitwith/2]).
 
 -define(Q(E), [quote,E]).			%We do a lot of quoting
 
 %% from_vanilla(AST) -> Sexpr.
 
-from_vanilla(AST) -> from_expr(AST).
+from_vanilla(AST) ->
+    %% Be very LOUD for the time being.
+    case catch {ok,from_expr(AST)} of
+	{ok,S} -> S;
+	Other ->
+	    io:format("BOOM: ~p\n", [Other]),
+	    error(Other)
+    end.
 
 from_expr({var,_,V}) -> V;
 from_expr({nil,_}) -> [];
@@ -71,9 +78,23 @@ from_expr({'receive',_,Cls}) ->
 from_expr({'receive',_,Cls,Timeout,Body}) ->
     ['receive'|from_icrt_cls(Cls) ++
 	 [['after',from_expr(Timeout)|from_body(Body)]]];
+%% More complex special forms. These become LFE macros.
+from_expr({lc,_,E0,Qs0}) ->
+    Qs1 = from_lc_quals(Qs0),
+    E1 = from_expr(E0),
+    [lc,Qs1,E1];
+from_expr({record,_,R,Fs}) ->			%Create a record
+    MR = list_to_atom("make-" ++ atom_to_list(R)),
+    [MR|from_rec_fields(Fs)];
+from_expr({record,_,E,R,Fs}) ->			%Set fields in record
+    SR = list_to_atom("set-" ++ atom_to_list(R)),
+    [SR,from_expr(E)|from_rec_fields(Fs)];
+from_expr({record_field,_,E,R,{atom,_,F}}) ->	%We KNOW!
+    RF = list_to_atom(atom_to_list(R) ++ "-" ++ atom_to_list(F)),
+    [RF,from_expr(E)];
+%% Function calls.
 from_expr({op,_,Op,A}) -> [Op,from_expr(A)];
 from_expr({op,_,Op,L,R}) -> [Op,from_expr(L),from_expr(R)];
-%% Function calls.
 from_expr({call,_,{remote,_,M,F},As}) ->	%Remote function call
     [call,from_expr(M),from_expr(F)|from_expr_list(As)];
 from_expr({call,_,{atom,_,F},As}) ->		%Local function call
@@ -123,6 +144,24 @@ from_fun_cl({clause,_,H,[],B}) -> [from_pat_list(H)|from_body(B)];
 from_fun_cl({clause,_,H,[G],B}) ->
     [from_pat_list(H),['when'|from_body(G)]|from_body(B)].
 
+%% from_lc_quals(Qualifiers) -> Qualifiers.
+
+from_lc_quals([{generate,_,P,E}|Qs]) ->
+    [['<-',from_pat(P),from_expr(E)]|from_lc_quals(Qs)];
+from_lc_quals([T|Qs]) ->
+    [from_expr(T)|from_lc_quals(Qs)];
+from_lc_quals([]) -> [].
+
+%% from_rec_fields(Recfields) -> Recfields.
+
+from_rec_fields([{record_field,_,{atom,_,F},E}|Fs]) ->
+    [F,from_expr(E)|from_rec_fields(Fs)];
+from_rec_fields([{record_field,_,{var,_,F},E}|Fs]) -> %Hmm, special case
+    [F,from_expr(E)|from_rec_fields(Fs)];
+from_rec_fields([]) -> [].
+
+%% from_bitsegs(Segs) -> Segs.
+
 from_bitsegs([{bin_element,_,Seg,Size,Type}|Ss]) ->
     [from_bitseg(Seg, Size, Type)|from_bitsegs(Ss)];
 from_bitsegs([]) -> [].
@@ -149,15 +188,25 @@ from_pat({atom,_,A}) -> ?Q(A);			%Must quote here
 from_pat({cons,_,H,T}) ->
     [cons,from_pat(H),from_pat(T)];
 from_pat({tuple,_,Es}) ->
-    [tuple|from_pat_list(Es)].
+    [tuple|from_pat_list(Es)];
+from_pat({record,_,R,Fs}) ->			%Match a record
+    MR = list_to_atom("match-" ++ atom_to_list(R)),
+    [MR|from_rec_fields(Fs)];
+from_pat({match,_,P1,P2}) ->			%Aliases
+    ['=',from_pat(P1),from_pat(P2)].
 
 from_pat_list(Ps) -> [ from_pat(P) || P <- Ps ].
 
 %% to_vanilla(Sexp, LineNumber) -> AST.
 
 to_vanilla(S, L) ->
-    %%lfe_io:format("~p\n", [S]),
-    to_expr(S, L).
+    %% Be very LOUD for the time being.
+    case catch {ok,to_expr(S, L)} of
+	{ok,AST} -> AST;
+	Other ->
+	    io:format("BOOM: ~p\n", [Other]),
+	    error(Other)
+    end.
 
 %% to_expr(Expr, LineNumber) -> Expr.
 
@@ -210,6 +259,7 @@ to_expr(['receive'|Cls0], L) ->
 	    {'receive',L,to_icrt_cls(Cls1, L)}
     end;
 %% Special known macros.
+%% No record stuff here as they are macros which have been expanded.
 to_expr([lc,Qs0|Es], L) ->
     Qs1 = to_lc_quals(Qs0, L),
     {lc,L,to_block(Es, L),Qs1};
@@ -246,16 +296,6 @@ is_erl_op(Op, Ar) ->
 	orelse erl_internal:comp_op(Op, Ar)
 	orelse erl_internal:list_op(Op, Ar)
 	orelse erl_internal:send_op(Op, Ar).
-
-%% to_lc_quals(Qualifiers, Line) -> Qualifiers
-
-to_lc_quals([['<-',P,E]|Qs], L) ->
-    [{generate,L,to_pat(P, L),to_expr(E, L)}|to_lc_quals(Qs, L)];
-to_lc_quals([['<-',P,['when'|G],E]|Qs], L) ->
-    to_lc_quals([['<-',P,E]|G ++ Qs], L);	%Move guards to tests
-to_lc_quals([T|Qs], L) ->
-    [to_expr(T, L)|to_lc_quals(Qs, L)];
-to_lc_quals([], _) -> [].
 
 to_body(Es, L) -> [ to_expr(E, L) || E <- Es ].
 
@@ -305,16 +345,45 @@ to_fun_cl([As,['when'|G]|B], L) ->
 to_fun_cl([As|B], L) ->
     {clause,L,to_pat_list(As, L),[],to_body(B, L)}.
 
+%% to_lc_quals(Qualifiers, LineNumber) -> Qualifiers
+
+to_lc_quals([['<-',P,E]|Qs], L) ->
+    [{generate,L,to_pat(P, L),to_expr(E, L)}|to_lc_quals(Qs, L)];
+to_lc_quals([['<-',P,['when'|G],E]|Qs], L) ->
+    to_lc_quals([['<-',P,E]|G ++ Qs], L);	%Move guards to tests
+to_lc_quals([T|Qs], L) ->
+    [to_expr(T, L)|to_lc_quals(Qs, L)];
+to_lc_quals([], _) -> [].
+
+%% to_bitsegs(Segs, LineNumber) -> Segs.
+%% This gives a verbose value, but it is correct.
+
 to_bitsegs(Ss, L) -> map(fun (S) -> to_bitseg(S, L) end, Ss).
 
 to_bitseg([Val|Specs]=F, L) ->
     case is_integer_list(F) of
-	true -> {bitelement,L,{string,L,F},default,default};
+	true ->
+	    {Size,Type} = parse_bitspecs([]),
+	    to_bin_element({string,L,F},to_expr(Size, L), Type, L);
 	false ->
-	    {bitelement,L,to_expr(Val, L),default,default}
+	    {Size,Type} = parse_bitspecs(Specs),
+	    to_bin_element(to_expr(Val, L),to_expr(Size, L), Type, L)
     end;
 to_bitseg(Val, L) ->
-    {bitelement,L,to_expr(Val, L),default,default}.
+    {Size,Type} = parse_bitspecs([]),
+    to_bin_element(to_expr(Val, L),to_expr(Size, L), Type, L).
+
+to_bin_element(Val, Size, {Type,Unit,Sign,End}, L) ->
+    {bin_element,L,Val,Size,[Type,{unit,Unit},Sign,End]}.
+
+%% parse_bitspec(Specs) -> {Size,Type}.
+%%  Get the error handling as we want it.
+
+parse_bitspecs(Ss) ->
+    case lfe_bits:parse_bitspecs(Ss) of
+	{ok,Sz,Ty} -> {Sz,Ty};
+	{error,Error} -> erlang:error(Error)
+    end.
 
 %% to_pat(Pattern, LineNumber) -> Pattern.
 
@@ -322,6 +391,8 @@ to_pat([], L) -> {nil,L};
 to_pat(I, L) when is_integer(I) -> {integer,L,I};
 to_pat(F, L) when is_float(F) -> {float,L,F};
 to_pat(V, L) when is_atom(V) -> {var,L,V};	%Unquoted atom
+to_pat(T, L) when is_tuple(T) ->		%Tuple literal
+    {tuple,L,to_lit_list(tuple_to_list(T), L)};
 to_pat(?Q(P), L) -> to_lit(P, L);		%Everything quoted here
 to_pat([cons,H,T], L) ->
     {cons,L,to_pat(H, L),to_pat(T, L)};
@@ -331,8 +402,8 @@ to_pat(['list*'|Es], L) ->
     to_list_s(Es, L, fun to_pat/2);
 to_pat([tuple|Es], L) ->
     {tuple,L,to_pat_list(Es, L)};
-to_pat(T, L) when is_tuple(T) ->
-    {tuple,L,to_lit_list(tuple_to_list(T), L)}.
+to_pat(['=',P1,P2], L) ->			%Alias
+    {match,L,to_pat(P1, L),to_pat(P2, L)}.
 
 to_pat_list(Ps, L) -> [ to_pat(P, L) || P <- Ps ].
 

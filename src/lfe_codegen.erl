@@ -724,111 +724,45 @@ comp_funcall_1(F, As, Env, L, St0) ->
 %%     {[Cf|Cas],St1} = comp_args([F|As], Env, L, St0),
 %%     {#c_apply{anno=[L],op=Cf,args=Cas},St1}.
 
-%% %% comp_binary(Segs, Env, Line, State) -> {#c_binary{},State}.
-
-%% comp_binary(Segs, Env, L, St) ->
-%%     comp_bitsegs(Segs, Env, L, St).
-
-%% %% comp_bitsegs(BitSegs, Env, Line, State) -> {CBitsegs,State}.
-%% %% Compile the bitsegements sequentialising them with simple_seq.
-
-%% comp_bitsegs(Segs, Env, L, St) ->
-%%     comp_bitsegs(Segs, [], Env, L, St).
-
-%% comp_bitsegs([Seg|Segs], Csegs, Env, L, St0) ->
-%%     {Val,Sz,Un,Ty,Fs,St1} = comp_bitseg(Seg, Env, L, St0),
-%%     %% Sequentialise Val and Size if necessary, then do rest
-%%     Next = fun ([Cv,Csz], Env, L, St) ->
-%% 		   Cs = c_bitseg(Cv, Csz, Un, Ty, Fs),
-%% 		   comp_bitsegs(Segs, [Cs|Csegs], Env, L, St)
-%% 	   end,
-%%     simple_seq([Val,Sz], Next, Env, L, St1);
-%% comp_bitsegs([], Csegs, _, L, St) ->
-%%     {#c_binary{anno=[L],segments=reverse(Csegs)},St}.
-
-%% %% comp_bitseg(Bitseg, Env, Line, State) -> {#c_bitstr{},State}.
-
-%% -record(spec, {type=integer,size=default,unit=default,
-%% 	       sign=default,endian=default}).
-
-%% comp_bitseg([Val|Specs], Env, L, St0) ->
-%%     {Cv,St1} = comp_expr(Val, Env, L, St0),
-%%     {{Ty,Sz,Un,Si,En},St2} = parse_bitspecs(Specs, #spec{}, Env, L, St1),
-%%     {Cv,Sz,c_int(Un),c_atom(Ty),c_lit([Si,En]),St2};
-%% comp_bitseg(Val, Env, L, St0) ->
-%%     {Cv,St1} = comp_expr(Val, Env, L, St0),
-%%     %% Create default segment.
-%%     {{Ty,Sz,Un,Si,En},St2} = parse_bitspecs([], #spec{}, Env, L, St1),
-%%     {Cv,Sz,c_int(Un),c_atom(Ty),c_lit([Si,En]),St2}.
-
-
-%% %% parse_bitspecs(Specs, Spec, Env, Line, State) ->
-%% %%      {{Type,Size,Unit,Sign,End},State}.
-%% %%  Only Size is already in Core form as it can be an expression.
-
-%% parse_bitspecs(Ss, Sp0, Env, L, St0) ->
-%%     {Sp1,St1} = foldl(fun (S, {Sp,St}) -> parse_bitspec(S, Sp, Env, L, St) end,
-%% 		      {Sp0,St0}, Ss),
-%%     %% Adjust the values depending on type and given value.
-%%     #spec{type=Type,size=Csize,unit=Cunit,sign=Csign,endian=Cend} = Sp1,
-%%     case Type of
-%% 	integer ->
-%% 	    {{integer,val_or_def(Csize, c_int(8)),val_or_def(Cunit, 1),
-%% 	      val_or_def(Csign, unsigned),val_or_def(Cend, big)},St1};
-%% 	float ->
-%% 	    {{float,val_or_def(Csize, c_int(64)),val_or_def(Cunit, 1),
-%% 	      val_or_def(Csign, unsigned),val_or_def(Cend, big)},St1};
-%% 	utf8 ->					%Ignore unused fields!
-%% 	    {{utf8,c_lit(undefined),undefined,
-%% 	      val_or_def(Csign, unsigned),val_or_def(Cend, big)},St1};
-%% 	utf16 ->				%Ignore unused fields!
-%% 	    {{utf16,c_lit(undefined),undefined,
-%% 	      val_or_def(Csign, unsigned),val_or_def(Cend, big)},St1};
-%% 	utf32 ->				%Ignore unused fields!
-%% 	    {{utf32,c_lit(undefined),undefined,
-%% 	      val_or_def(Csign, unsigned),val_or_def(Cend, big)},St1};
-%% 	binary ->
-%% 	    {{binary,val_or_def(Csize, c_atom(all)),val_or_def(Cunit, 8),
-%% 	      val_or_def(Csign, unsigned),val_or_def(Cend, big)},St1};
-%% 	bitstring ->
-%% 	    {{binary,val_or_def(Csize, c_atom(all)),val_or_def(Cunit, 1),
-%% 	      val_or_def(Csign, unsigned),val_or_def(Cend, big)},St1}
-%%     end.
-
-%% %% Types.
-%% parse_bitspec(integer, Sp, _, _, St) -> {Sp#spec{type=integer},St};
-%% parse_bitspec(float, Sp, _, _, St) -> {Sp#spec{type=float},St};
-%% parse_bitspec(binary, Sp, _, _, St) -> {Sp#spec{type=binary},St};
-%% parse_bitspec(bytes, Sp, _, _, St) -> {Sp#spec{type=binary},St};
-%% parse_bitspec(bitstring, Sp, _, _, St) -> {Sp#spec{type=bitstring},St};
-%% parse_bitspec(bits, Sp, _, _, St) -> {Sp#spec{type=bitstring},St};
-%% %% Unicode types.
-%% parse_bitspec('utf-8', Sp, _, _, St) -> {Sp#spec{type=utf8},St};
-%% parse_bitspec('utf-16', Sp, _, _, St) -> {Sp#spec{type=utf16},St};
-%% parse_bitspec('utf-32', Sp, _, _, St) -> {Sp#spec{type=utf32},St};
-%% %% Endianness.
-%% parse_bitspec('big-endian', Sp, _, _, St) -> {Sp#spec{endian=big},St};
-%% parse_bitspec('big', Sp, _, _, St) -> {Sp#spec{endian=big},St};
-%% parse_bitspec('little-endian', Sp, _, _, St) -> {Sp#spec{endian=little},St};
-%% parse_bitspec('little', Sp, _, _, St) -> {Sp#spec{endian=little},St};
-%% parse_bitspec('native-endian', Sp, _, _, St) -> {Sp#spec{endian=native},St};
-%% parse_bitspec('native', Sp, _, _, St) -> {Sp#spec{endian=native},St};
-%% %% Sign.
-%% parse_bitspec(signed, Sp, _, _, St) -> {Sp#spec{sign=signed},St};
-%% parse_bitspec(unsigned, Sp, _, _, St) -> {Sp#spec{sign=unsigned},St};
-%% %% Size.
-%% parse_bitspec([unit,N], Sp, _, _, St) -> {Sp#spec{unit=N},St};
-%% parse_bitspec([size,N], Sp, Env, L, St0) ->
-%%     {Csz,St1} = comp_expr(N, Env, L, St0),
-%%     {Sp#spec{size=Csz},St1}.
-
 %% comp_binary(Segs, Env, Line, State) -> {CbinaryExpr,State}.
+%% Compile a binary.
 
 comp_binary(Fs, Env, L, St0) ->
     Vsps = parse_bitsegs(Fs),
     comp_bitsegs(Vsps, Env, L, St0).
 
-%% comp_bitsegs(ValSpecs, Env, Line, State) -> {CbinaryExpr,State}.
+parse_bitsegs(Fs) ->
+    foldr(fun (F, Vs) -> parse_bitseg(F, Vs) end, [], Fs).
+
+%% parse_bitseg(Bitseg, ValSpecs) -> ValSpecs.
+%% A bitseg is either an atomic value, a list of value and specs, or a string.
+
+parse_bitseg([Val|Specs]=F, Vsps) ->
+    case is_integer_list(F) of			%Is bitseg a string?
+	true ->					%A string
+	    {Sz,Ty} = parse_bitspecs([]),
+	    foldr(fun (V, Vs) -> [{V,Sz,Ty}|Vs] end, Vsps, F);
+	false ->				%A value and spec
+	    {Sz,Ty} = parse_bitspecs(Specs),
+	    case is_integer_list(Val) of	%Is val a string?
+		true -> foldr(fun (V, Vs) -> [{V,Sz,Ty}|Vs] end, Vsps, Val);
+		false -> [{Val,Sz,Ty}|Vsps]	%The default
+	    end
+    end;
+parse_bitseg(Val, Vsps) ->
+    {Sz,Ty} = parse_bitspecs([]),
+    [{Val,Sz,Ty}|Vsps].
+
+parse_bitspecs(Ss) ->
+    {ok,Sz,Ty} = lfe_bits:parse_bitspecs(Ss),
+    {Sz,Ty}.
+
+is_integer_list([I|Is]) when is_integer(I) ->
+    is_integer_list(Is);
+is_integer_list([]) -> true;
+is_integer_list(_) -> false.
+
+%% comp_bitsegs(ValSpecs, Env, Line, State) -> {CBitSegs,State}.
 %% Compile the bitsegements sequentialising them with simple_seq.
 
 comp_bitsegs(Vsps, Env, L, St) ->
@@ -845,101 +779,21 @@ comp_bitsegs([Vsp|Segs], Csegs, Env, L, St0) ->
 comp_bitsegs([], Csegs, _, L, St) ->
     {#c_binary{anno=[L],segments=reverse(Csegs)},St}.
 
--record(spec, {type=integer,size=default,unit=default,
-	       sign=default,endian=default}).
-
 %% comp_bitseg(ValSpec, Env, Line, State) -> {Cval,Csize,Unit,Type,Fs,State}.
+%% Need to handle some special cases.
 
-comp_bitseg(Vsp, Env, L, St0) ->
-    {Val,{Ty,Sz,Un,Si,En}} = Vsp,
+comp_bitseg({Val,_,{Ty,_,Si,En}}, Env, L, St0)
+  when Ty =:= utf8 ; Ty =:= utf16 ; Ty =:= utf32 ->
+    %% Special case utf types.
+    {Cval,St1} = comp_expr(Val, Env, L, St0),
+    Undef = c_atom(undefined),
+    {Cval,Undef,Undef,c_atom(Ty),c_lit([Si,En]),St1};
+comp_bitseg({Val,all,{binary,_,_,_}=Ty}, Env, L, St) ->
+    comp_bitseg({Val,?Q(all),Ty}, Env, L, St);
+comp_bitseg({Val,Sz,{Ty,Un,Si,En}}, Env, L, St0) ->
     {Cval,St1} = comp_expr(Val, Env, L, St0),
     {Csize,St2} = comp_expr(Sz, Env, L, St1),
     {Cval,Csize,c_int(Un),c_atom(Ty),c_lit([Si,En]),St2}.
-
-parse_bitsegs(Fs) ->
-    foldr(fun (F, Vs) -> parse_bitseg(F, Vs) end, [], Fs).
-
-%% parse_bitseg(Bitseg, ValSpecs) -> ValSpecs.
-%% A bitseg is either an atomic value, a list of value and specs, or a string.
-
-parse_bitseg([Val|Specs]=F, Vsps) ->
-    case is_integer_list(F) of			%Is bitseg a string?
-	true ->					%A string
-	    Sp = parse_bitspecs([], #spec{}),
-	    foldr(fun (V, Vs) -> [{V,Sp}|Vs] end, Vsps, F);
-	false ->				%A value and spec
-	    Sp = parse_bitspecs(Specs, #spec{}),
-	    case is_integer_list(Val) of	%Is val a string?
-		true -> foldr(fun (V, Vs) -> [{V,Sp}|Vs] end, Vsps, Val);
-		false -> [{Val,Sp}|Vsps]	%The default
-	    end
-    end;
-parse_bitseg(Val, Vsps) ->
-    [{Val,parse_bitspecs([], #spec{})}|Vsps].
-
-is_integer_list([I|Is]) when is_integer(I) ->
-    is_integer_list(Is);
-is_integer_list([]) -> true;
-is_integer_list(_) -> false.
-
-%% parse_bitspecs(Specs, Spec) -> {Type,Size,Unit,Sign,End}.
-%%  Only Size is already in Core form as it can be an expression.
-
-parse_bitspecs(Ss, Sp0) ->
-    Sp1 = foldl(fun (S, Sp) -> parse_bitspec(S, Sp) end, Sp0, Ss),
-    %% Adjust the values depending on type and given value.
-    #spec{type=Type,size=Size,unit=Unit,sign=Sign,endian=End} = Sp1,
-    case Type of
-	integer ->
-	    {integer,val_or_def(Size, 8),val_or_def(Unit, 1),
-	     val_or_def(Sign, unsigned),val_or_def(End, big)};
-	utf8 ->					%Ignore unused specs!
-	    {utf8,?Q(undefined),undefined,
-	     val_or_def(Sign, unsigned),val_or_def(End, big)};
-	utf16 ->				%Ignore unused specs!
-	    {utf16,?Q(undefined),undefined,
-	     val_or_def(Sign, unsigned),val_or_def(End, big)};
-	utf32 ->				%Ignore unused specs!
-	    {utf32,?Q(undefined),undefined,
-	     val_or_def(Sign, unsigned),val_or_def(End, big)};
-	float ->
-	    {float,val_or_def(Size, 64),val_or_def(Unit, 1),
-	     val_or_def(Sign, unsigned),val_or_def(End, big)};
-	binary ->
-	    {binary,val_or_def(Size, ?Q(all)),val_or_def(Unit, 8),
-	     val_or_def(Sign, unsigned),val_or_def(End, big)};
-	bitstring ->
-	    {binary,val_or_def(Size, ?Q(all)),val_or_def(Unit, 1),
-	     val_or_def(Sign, unsigned),val_or_def(End, big)}
-    end.
-
-%% Types.
-parse_bitspec(integer, Sp) -> Sp#spec{type=integer};
-parse_bitspec(float, Sp) -> Sp#spec{type=float};
-parse_bitspec(binary, Sp) -> Sp#spec{type=binary};
-parse_bitspec(bytes, Sp) -> Sp#spec{type=binary};
-parse_bitspec(bitstring, Sp) -> Sp#spec{type=bitstring};
-parse_bitspec(bits, Sp) -> Sp#spec{type=bitstring};
-%% Unicode types.
-parse_bitspec('utf-8', Sp) -> Sp#spec{type=utf8};
-parse_bitspec('utf-16', Sp) -> Sp#spec{type=utf16};
-parse_bitspec('utf-32', Sp) -> Sp#spec{type=utf32};
-%% Endianness.
-parse_bitspec('big-endian', Sp) -> Sp#spec{endian=big};
-parse_bitspec('big', Sp) -> Sp#spec{endian=big};
-parse_bitspec('little-endian', Sp) -> Sp#spec{endian=little};
-parse_bitspec('little', Sp) -> Sp#spec{endian=little};
-parse_bitspec('native-endian', Sp) -> Sp#spec{endian=native};
-parse_bitspec('native', Sp) -> Sp#spec{endian=native};
-%% Sign.
-parse_bitspec(signed, Sp) -> Sp#spec{sign=signed};
-parse_bitspec(unsigned, Sp) -> Sp#spec{sign=unsigned};
-%% Size.
-parse_bitspec([size,N], Sp) -> Sp#spec{size=N};
-parse_bitspec([unit,N], Sp) -> Sp#spec{unit=N}.
-
-val_or_def(default, Def) -> Def;
-val_or_def(V, _) -> V.
 
 %% comp_guard(GuardTests, Env, Line, State) -> {CoreGuard,State}.
 %% Can compile much of the guard as an expression but must wrap it all
@@ -1177,36 +1031,6 @@ pat_alias_list([A1|A1s], [A2|A2s]) ->
 pat_alias_list([], []) -> [];
 pat_alias_list(_, _) -> throw(nomatch).
 
-%% %% pat_binary(Segs, Line, PatVars, State) -> {#c_binary{},PatVars,State}.
-
-%% pat_binary(Segs, L, Vs0, St0) ->
-%%     {Csegs,Vs1,St1} = pat_bitsegs(Segs, L, Vs0, St0),
-%%     {#c_binary{anno=[L],segments=Csegs},Vs1,St1}.
-
-%% %% pat_bitsegs(Segs, Line, PatVars, State) -> {CBitsegs,PatVars,State}.
-
-%% pat_bitsegs(Segs, L, Vs0, St0) ->
-%%     {Csegs,{Vs1,St1}} =
-%% 	mapfoldl(fun (S, {Vsa,Sta}) ->
-%% 			 {Cs,Vsb,Stb} = pat_bitseg(S, L, Vsa, Sta),
-%% 			 {Cs,{Vsb,Stb}}
-%% 		 end, {Vs0,St0}, Segs),
-%%     {Csegs,Vs1,St1}.
-
-%% %% pat_bitseg(Seg, Line, PatVars, State) -> {#c_bitstr{},PatVars,State}.
-%% %%  ??? Should noenv be new_env() instead ???
-%% %%  ??? We know its correct so why worry? ???
-
-%% pat_bitseg([Pat|Specs], L, Vs0, St0) ->
-%%     {Cp,Vs1,St1} = comp_pat(Pat, L, Vs0, St0),
-%%     {{Ty,Sz,Un,Si,En},St2} = parse_bitspecs(Specs, #spec{}, noenv, L, St1),
-%%     {c_bitseg(Cp, Sz, c_int(Un), c_atom(Ty), c_lit([Si,En])),Vs1,St2};
-%% pat_bitseg(Pat, L, Vs0, St0) ->
-%%     {Cp,Vs1,St1} = comp_pat(Pat, L, Vs0, St0),
-%%     %% Create default segment.
-%%     {{Ty,Sz,Un,Si,En},St2} = parse_bitspecs([], #spec{}, noenv, L, St1),
-%%     {c_bitseg(Cp, Sz, c_int(Un), c_atom(Ty), c_lit([Si,En])),Vs1,St2}.
-
 %% pat_binary(Segs, Line, PatVars, State) -> {#c_binary{},PatVars,State}.
 
 pat_binary(Segs, L, Vs0, St0) ->
@@ -1228,8 +1052,15 @@ pat_bitsegs(Segs, L, Vs0, St0) ->
 %%  ??? Should noenv be new_env() instead ???
 %%  ??? We know its correct so why worry? ???
 
-pat_bitseg(Vsp, L, Vs0, St0) ->
-    {Pat,{Ty,Sz,Un,Si,En}} = Vsp,
+pat_bitseg({Pat,_,{Ty,_,Si,En}}, L, Vs0, St0)
+  when Ty =:= utf8 ; Ty =:= utf16 ; Ty =:= utf32 ->
+    %% Special case utf types.
+    {Cpat,Vs1,St1} = comp_pat(Pat, L, Vs0, St0),
+    Undef = c_atom(undefined),
+    {c_bitseg(Cpat,Undef,Undef,c_atom(Ty),c_lit([Si,En])),Vs1,St1};
+pat_bitseg({Pat,all,{binary,_,_,_}=Ty}, L, Vs, St) ->
+    pat_bitseg({Pat,?Q(all),Ty}, L, Vs, St);
+pat_bitseg({Pat,Sz,{Ty,Un,Si,En}}, L, Vs0, St0) ->
     {Cpat,Vs1,St1} = comp_pat(Pat, L, Vs0, St0),
     {Csize,St2} = comp_expr(Sz, noenv, L, St1),
     {c_bitseg(Cpat, Csize, c_int(Un), c_atom(Ty), c_lit([Si,En])),Vs1,St2}.

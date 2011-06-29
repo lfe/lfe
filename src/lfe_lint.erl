@@ -91,8 +91,11 @@ format_error({redef_fun,F}) ->
 format_error(illegal_pat) -> "illegal pattern";
 format_error(illegal_guard) -> "illegal guard";
 format_error(illegal_bitseg) -> "illegal bit segment";
-format_error({illegal_bitspec,S}) ->
-    lfe_io:format1("illegal bit specification: ~w", [S]);
+format_error({undefined_bittype,S}) ->
+    lfe_io:format1("bit type ~w undefined", [S]);
+format_error(bittype_unit) ->
+    "bit unit size can only be specified together with size";
+format_error(illegal_bitsize) -> "illegal bit size";
 format_error(unknown_form) -> "unknown form".
 
 %% module(Forms) -> {ok,[Warning]} | {error,[Error],[Warning]}.
@@ -396,40 +399,49 @@ check_exprs(Es, Env, L, St) ->
     foldl(fun (E, S) -> check_expr(E, Env, L, S) end, St, Es).
 
 %% expr_bitsegs(BitSegs, Env, Line, State) -> State.
-%% expr_bitseg(BitSeg, Env, Line, State) -> State.
-%% expr_bitspecs(BitSpecs, Env, Line, State) -> State.
-%% expr_bitspec(BitSpec, Env, Line, State) -> State.
-%% Functions for checking expression bitsegments.
 
 expr_bitsegs(Segs, Env, L, St0) ->
-    foreach_form(fun (S, St) -> expr_bitseg(S, Env, L, St) end,
+    foreach_form(fun (S, St) -> bitseg(S, Env, L, St, fun check_expr/4) end,
 		 binary, L, St0, Segs).
 
-expr_bitseg([Val|Specs]=Seg, Env, L, St0) ->
+%% bitseg(BitSeg, Env, Line, State) -> State.
+%% bitspecs(BitSpecs, Env, Line, State) -> State.
+%% bit_size(Size, Type, Env, Line, State) -> State.
+%% Functions for checking expression bitsegments.
+
+bitseg([Val|Specs]=Seg, Env, L, St0, Check) ->
     case is_integer_list(Seg) of
 	true -> St0;				%This is good
 	false ->
-	    St1 = expr_bitspecs(Specs, Env, L, St0),
+	    St1 = bitspecs(Specs, Env, L, St0, Check),
 	    case is_integer_list(Val) of
 		true -> St1;			%This is good
-		false -> check_expr(Val, Env, L, St1)
+		false -> Check(Val, Env, L, St1)
 	    end
     end;
-expr_bitseg(Val, Env, L, St) ->
-    check_expr(Val, Env, L, St).
+bitseg(Val, Env, L, St, Check) ->
+    Check(Val, Env, L, St).
+
+bitspecs(Specs, Env, L, St, Check) ->
+    case lfe_bits:parse_bitspecs(Specs) of
+	{ok,Sz,Ty} -> bit_size(Sz, Ty, Env, L, St, Check);
+	{error,E} -> add_error(L, E, St)
+    end.
+
+bit_size(all, {Ty,_,_,_}, _, L, St, _) ->
+    if Ty =:= binary -> St;
+       true -> add_error(L, illegal_bitsize, St)
+    end;
+bit_size(undefined, {Ty,_,_,_}, _, L, St, _) ->
+    if Ty =:= utf8; Ty =:= utf16; Ty =:= utf32 -> St;
+       true -> add_error(L, illegal_bitsize, St)
+    end;
+bit_size(Sz, _, Env, L, St, Check) -> Check(Sz, Env, L, St).
 
 is_integer_list([I|Is]) when is_integer(I) ->
     is_integer_list(Is);
 is_integer_list([]) -> true;
 is_integer_list(_) -> false.
-
-expr_bitspecs(Specs, Env, L, St0) ->
-    foldl(fun (S, St) -> expr_bitspec(S, Env, L, St) end, St0, Specs).    
-
-expr_bitspec([size,N], Env, L, St) ->		%Shadow for (size expr)
-    check_expr(N, Env, L, St);
-expr_bitspec(S, _, L, St) ->
-    check_bitspec(S, L, St).
 
 %% check_lambda(LambdaBody, Env, Line, State) -> State.
 %% Check form (lambda Args ...).
@@ -502,7 +514,7 @@ check_let(_, _, L, St) ->
 
 check_let_vb(Vb, Env, L, St0) ->
     %% Get the environments right here!
-    case check_pat_guard(Vb, Env, L, St0) of
+    case pattern_guard(Vb, Env, L, St0) of
 	{[Val],Pvs,_,St1} ->			%One value expression only
 	    {Pvs,check_expr(Val, Env, L, St1)};
 	{_,_,_,St1} -> {[],bad_form_error(L, 'let', St1)}
@@ -633,7 +645,7 @@ check_rec_clauses([], _, _, St) -> St;
 check_rec_clauses(_, _, L, St) -> bad_form_error(L, 'receive', St).
 
 check_clause([_|_]=Cl, Env0, L, St0) ->
-    {B,_,Env1,St1} = check_pat_guard(Cl, Env0, L, St0),
+    {B,_,Env1,St1} = pattern_guard(Cl, Env0, L, St0),
     check_body(B, Env1, L, St1);
 check_clause(_, _, L, St) -> bad_form_error(L, clause, St).
 
@@ -660,17 +672,17 @@ check_try_catch([['after'|B]], Env, L, St) ->
     check_body(B, Env, L, St);
 check_try_catch(_, _, L, St) -> bad_form_error(L, 'try', St).
 
-%% check_pat_guard([Pat{,Guard}|Body], Env, L, State) ->
+%% pattern_guard([Pat{,Guard}|Body], Env, L, State) ->
 %%      {Body,PatVars,Env,State}.
 %%  Check pattern and guard in a clause. We know there is at least pattern!
 
-check_pat_guard([Pat,['when'|G]|Body], Env0, L, St0) ->
-    {Pvs,St1} = check_pat(Pat, Env0, L, St0),
+pattern_guard([Pat,['when'|G]|Body], Env0, L, St0) ->
+    {Pvs,St1} = pattern(Pat, Env0, L, St0),
     Env1 = add_vbindings(Pvs, Env0),
     St2 = check_guard(G, Env1, L, St1),
     {Body,Pvs,Env1,St2};
-check_pat_guard([Pat|Body], Env0, L, St0) ->
-    {Pvs,St1} = check_pat(Pat, Env0, L, St0),
+pattern_guard([Pat|Body], Env0, L, St0) ->
+    {Pvs,St1} = pattern(Pat, Env0, L, St0),
     Env1 = add_vbindings(Pvs, Env0),
     {Body,Pvs,Env1,St1}.
 
@@ -752,80 +764,55 @@ check_gif(_, _, L, St) ->
     bad_gform_error(L, 'if', St).		%Signal as guard error.
 
 %% gexpr_bitsegs(BitSegs, Env, Line, State) -> State.
-%% gexpr_bitseg(BitSeg, Env, Line, State) -> State.
-%% gexpr_bitspecs(BitSpecs, Env, Line, State) -> State.
-%% gexpr_bitspec(BitSpec, Env, Line, State) -> State.
-%% Functions for checking guard expression bitsegments.
 
 gexpr_bitsegs(Segs, Env, L, St0) ->
-    check_foreach(fun (S, St) -> gexpr_bitseg(S, Env, L, St) end,
+    check_foreach(fun (S, St) -> bitseg(S, Env, L, St, fun check_gexpr/4) end,
 		  fun (St) -> bad_gform_error(L, binary, St) end, St0, Segs).
 
-gexpr_bitseg([Val|Specs]=Seg, Env, L, St0) ->
-    case is_integer_list(Seg) of
-	true -> St0;				%This is good
-	false ->
-	    St1 = gexpr_bitspecs(Specs, Env, L, St0),
-	    case is_integer_list(Val) of
-		true -> St1;			%This is good
-		false -> check_gexpr(Val, Env, L, St1)
-	    end
-    end;
-gexpr_bitseg(Val, Env, L, St) ->
-    check_gexpr(Val, Env, L, St).
- 
-gexpr_bitspecs(Specs, Env, L, St0) ->
-    foldl(fun (S, St) -> gexpr_bitspec(S, Env, L, St) end, St0, Specs).    
-
-gexpr_bitspec([size,N], Env, L, St) ->		%Shadow for (size expr)
-    check_gexpr(N, Env, L, St);
-gexpr_bitspec(S, _, L, St) ->
-    check_bitspec(S, L, St).
-
-%% check_pat(Pattern, Env, L, State) -> {PatVars,State}.
+%% pattern(Pattern, Env, L, State) -> {PatVars,State}.
 %% Return the *set* of Variables in Pattern.
 
-check_pat(Pat, Env, L, St) ->
+pattern(Pat, Env, L, St) ->
     %% io:fwrite("pat: ~p\n", [Pat]),
     try
-	check_pat(Pat, [], Env, L, St)
+	pattern(Pat, [], Env, L, St)
     catch
 	_:_ -> add_error(L, illegal_pat, St)
     end.
 
-check_pat([quote,_], Vs, _, _, St) -> {Vs,St};	%Go no deeper with quote
-check_pat([tuple|Ps], Vs, Env, L, St) ->	%Tuple elements
+pattern([quote,_], Vs, _, _, St) -> {Vs,St};	%Go no deeper with quote
+pattern([tuple|Ps], Vs, Env, L, St) ->		%Tuple elements
     pat_list(Ps, Vs, Env, L, St);
-check_pat([binary|Segs], Vs, Env, L, St) ->
+pattern([binary|Segs], Vs, Env, L, St) ->
     pat_bitsegs(Segs, Vs, Env, L, St);
-check_pat(['=',P1,P2], Vs0, Env, L, St0) ->
+pattern(['=',P1,P2], Vs0, Env, L, St0) ->
     %% Must check patterns together as same variable can occur
     %% in both branches.
-    {Vs1,St1} = check_pat(P1, Vs0, Env, L, St0),
-    {Vs2,St2} = check_pat(P2, Vs1, Env, L, St1),
-    St3 = case check_alias(P1, P2) of
+    {Vs1,St1} = pattern(P1, Vs0, Env, L, St0),
+    {Vs2,St2} = pattern(P2, Vs1, Env, L, St1),
+    St3 = case pat_alias(P1, P2) of
 	      true -> St2;		%Union of variables now visible
 	      false -> add_error(L, bad_alias, St2)
 	  end,
     {Vs2,St3};
-check_pat([cons,H,T], Vs0, Env, L, St0) ->	%Explicit cons constructor
-    {Vs1,St1} = check_pat(H, Vs0, Env, L, St0),
-    check_pat(T, Vs1, Env, L, St1);
-check_pat([list|Ps], Vs, Env, L, St) ->		%Explicit list constructor
+pattern([cons,H,T], Vs0, Env, L, St0) ->	%Explicit cons constructor
+    {Vs1,St1} = pattern(H, Vs0, Env, L, St0),
+    pattern(T, Vs1, Env, L, St1);
+pattern([list|Ps], Vs, Env, L, St) ->		%Explicit list constructor
     pat_list(Ps, Vs, Env, L, St);
 %% Check old no contructor list forms.
-check_pat([H|T], Vs0, Env, L, St0) ->
-    {Vs1,St1} = check_pat(H, Vs0, Env, L, St0),
-    check_pat(T, Vs1, Env, L, St1);
-%% check_pat([_|_], Vs, _, L, St) ->
+pattern([H|T], Vs0, Env, L, St0) ->
+    {Vs1,St1} = pattern(H, Vs0, Env, L, St0),
+    pattern(T, Vs1, Env, L, St1);
+%% pattern([_|_], Vs, _, L, St) ->
 %%     {Vs,add_error(L, illegal_pat, St)};
-check_pat([], Vs, _, _, St) -> {Vs,St};
-check_pat(Symb, Vs, _, L, St) when is_atom(Symb) ->
+pattern([], Vs, _, _, St) -> {Vs,St};
+pattern(Symb, Vs, _, L, St) when is_atom(Symb) ->
     pat_symb(Symb, Vs, L, St);
-check_pat(_, Vs, _, _, St) -> {Vs,St}.		%Atomic
+pattern(_, Vs, _, _, St) -> {Vs,St}.		%Atomic
 
 pat_list([P|Ps], Vs0, Env, L, St0) ->
-    {Vs1,St1} = check_pat(P, Vs0, Env, L, St0),
+    {Vs1,St1} = pattern(P, Vs0, Env, L, St0),
     pat_list(Ps, Vs1, Env, L, St1);
 pat_list([], Vs, _, _, St) -> {Vs,St};
 pat_list(_, Vs, _, L, St) -> {Vs,add_error(L, illegal_pat, St)}.
@@ -837,52 +824,52 @@ pat_symb(Symb, Vs, L, St) ->
 	false -> {add_element(Symb, Vs),St}
     end.    
 
-%% check_alias(Pattern, Pattern) -> true | false.
+%% pat_alias(Pattern, Pattern) -> true | false.
 %%  Check if two aliases are compatible. Note that binaries can never
 %%  be aliased, this is from erlang.
 
-check_alias([quote,P1], [quote,P2]) -> P1 =:= P2;
-check_alias([tuple|Ps1], [tuple|Ps2]) ->
-    check_alias_list(Ps1, Ps2);
-%% check_alias([tuple|Ps1], P2) when is_tuple(P2) ->
-%%     check_alias_list(Ps1, tuple_to_list(P2));
-%% check_alias(P1, [tuple|Ps2]) when is_tuple(P1) ->
-%%     check_alias_list(tuple_to_list(P1), Ps2);
-check_alias([binary|_], [binary|_]) -> false;
-check_alias([cons,H1,T1], [cons,H2,T2]) ->
-    check_alias(H1, H2) andalso check_alias(T1, T2);
-check_alias([cons,H1,T1], [list,H2|T2]) ->
-    check_alias(H1, H2) andalso check_alias(T1, [list|T2]);
-check_alias([list|Ps1], [list|Ps2]) ->
-    check_alias_list(Ps1, Ps2);
-check_alias([list,H1|T1], [cons,H2,T2]) ->
-    check_alias(H1, H2) andalso check_alias([list|T1], T2);
+pat_alias([quote,P1], [quote,P2]) -> P1 =:= P2;
+pat_alias([tuple|Ps1], [tuple|Ps2]) ->
+    pat_alias_list(Ps1, Ps2);
+%% pat_alias([tuple|Ps1], P2) when is_tuple(P2) ->
+%%     pat_alias_list(Ps1, tuple_to_list(P2));
+%% pat_alias(P1, [tuple|Ps2]) when is_tuple(P1) ->
+%%     pat_alias_list(tuple_to_list(P1), Ps2);
+pat_alias([binary|_], [binary|_]) -> false;
+pat_alias([cons,H1,T1], [cons,H2,T2]) ->
+    pat_alias(H1, H2) andalso pat_alias(T1, T2);
+pat_alias([cons,H1,T1], [list,H2|T2]) ->
+    pat_alias(H1, H2) andalso pat_alias(T1, [list|T2]);
+pat_alias([list|Ps1], [list|Ps2]) ->
+    pat_alias_list(Ps1, Ps2);
+pat_alias([list,H1|T1], [cons,H2,T2]) ->
+    pat_alias(H1, H2) andalso pat_alias([list|T1], T2);
 %% Check against old no contructor list forms.
-check_alias([list|_]=P1, P2) when is_list(P2) ->
-    check_alias(P1, [list|P2]);
-check_alias([cons,_,_]=P1, [H2|T2]) ->
-    check_alias(P1, [cons,H2,T2]);
-check_alias(P1, [list|_]=P2) when is_list(P1) ->
-    check_alias([list|P1], P2);
-check_alias([H1|T1], [cons,_,_]=P2) ->
-    check_alias([cons,H1,T1], P2);
+pat_alias([list|_]=P1, P2) when is_list(P2) ->
+    pat_alias(P1, [list|P2]);
+pat_alias([cons,_,_]=P1, [H2|T2]) ->
+    pat_alias(P1, [cons,H2,T2]);
+pat_alias(P1, [list|_]=P2) when is_list(P1) ->
+    pat_alias([list|P1], P2);
+pat_alias([H1|T1], [cons,_,_]=P2) ->
+    pat_alias([cons,H1,T1], P2);
 %% Check old against old no constructor list forms.
-check_alias([P1|Ps1], [P2|Ps2]) ->
-    check_alias(P1, P2) andalso check_alias(Ps1, Ps2);
-check_alias(P1, _) when is_atom(P1) -> true;	%Variable
-check_alias(_, P2) when is_atom(P2) -> true;
-check_alias(P1, P2) -> P1 =:= P2.		%Atomic
+pat_alias([P1|Ps1], [P2|Ps2]) ->
+    pat_alias(P1, P2) andalso pat_alias(Ps1, Ps2);
+pat_alias(P1, _) when is_atom(P1) -> true;	%Variable
+pat_alias(_, P2) when is_atom(P2) -> true;
+pat_alias(P1, P2) -> P1 =:= P2.		%Atomic
 
-check_alias_list([P1|Ps1], [P2|Ps2]) ->
-    check_alias(P1, P2) andalso check_alias_list(Ps1, Ps2);
-check_alias_list([], []) -> true;
-check_alias_list(_, _) -> false.
+pat_alias_list([P1|Ps1], [P2|Ps2]) ->
+    pat_alias(P1, P2) andalso pat_alias_list(Ps1, Ps2);
+pat_alias_list([], []) -> true;
+pat_alias_list(_, _) -> false.
 
 %% pat_bitsegs(BitSegs, PatVars, Env, Line, State) -> {PatVars,State}.
 %% pat_bitseg(BitSeg, PatVars, Env, Line, State) -> {PatVars,State}.
-%% pat_bitel(BitElement, PatVars, Env, Line, State) -> {PatVars,State}.
 %% pat_bitspecs(BitSpecs, Env, Line, State) -> State.
-%% pat_bitspec(BitSpec, Env, Line, State) -> State.
+%% pat_bit_size(Size, Type, Env, Line, State) -> State.
+%% pat_bitel(BitElement, PatVars, Env, Line, State) -> {PatVars,State}.
 %% Functions for checking pattern bitsegments.
 
 pat_bitsegs(Segs, Vs0, Env, L, St0) ->
@@ -903,50 +890,33 @@ pat_bitseg([Pat|Specs]=Seg, Vs, Env, L, St0) ->
 pat_bitseg(Pat, Vs, Env, L, St) ->
     pat_bitel(Pat, Vs, Env, L, St).
 
+pat_bitspecs(Specs, Env, L, St) ->
+    case lfe_bits:parse_bitspecs(Specs) of
+	{ok,Sz,Ty} -> pat_bit_size(Sz, Ty, Env, L, St);
+	{error,E} -> add_error(L, E, St)
+    end.
+
+pat_bit_size(all, {Ty,_,_,_}, _, L, St) ->
+    if Ty =:= binary -> St;
+       true -> add_error(L, illegal_bitsize, St)
+    end;
+pat_bit_size(undefined, {Ty,_,_,_}, _, L, St) ->
+    if Ty =:= utf8; Ty =:= utf16; Ty =:= utf32 -> St;
+       true -> add_error(L, illegal_bitsize, St)
+    end;
+pat_bit_size(N, _, _, _, St) when is_integer(N), N > 0 -> St;
+pat_bit_size(S, _, Env, L, St) when is_atom(S) ->
+    %% Size must be bound here.
+    case is_vbound(S, Env) of
+	true -> St;
+	false -> add_error(L, {unbound_symb,S}, St)
+    end;
+pat_bit_size(_, _, _, L, St) -> add_error(L, illegal_bitsize, St).
+
 pat_bitel(N, Vs, _, _, St) when is_number(N) -> {Vs,St};
 pat_bitel(Symb, Vs, _, L, St) when is_atom(Symb) ->
     pat_symb(Symb, Vs, L, St);
 pat_bitel(_, Vs, _, L, St) -> {Vs,add_error(L, illegal_bitseg, St)}.
-
-pat_bitspecs(Specs, Env, L, St0) ->
-    foldl(fun (S, St) -> pat_bitspec(S, Env, L, St) end, St0, Specs).    
-
-pat_bitspec([size,N], _, _, St) when is_integer(N), N > 0 -> St;
-pat_bitspec([size,Symb], Env, L, St) when is_atom(Symb) ->
-    %% Size must be bound here.
-    case is_vbound(Symb, Env) of
-	true -> St;
-	false -> add_error(L, {unbound_symb,Symb}, St)
-    end;
-pat_bitspec(S, _, L, St) ->
-    check_bitspec(S, L, St).
-
-%% Types.
-check_bitspec(integer, _, St) -> St;
-check_bitspec(float, _, St) -> St;
-check_bitspec(binary, _, St) -> St;
-check_bitspec(bytes, _, St) -> St;
-check_bitspec(bitstring, _, St) -> St;
-check_bitspec(bits, _, St) -> St;
-%% Unicode types.
-check_bitspec('utf-8', _, St) -> St;
-check_bitspec('utf-16', _, St) -> St;
-check_bitspec('utf-32', _, St) -> St;
-%% Endianness
-check_bitspec('big-endian', _, St) -> St;
-check_bitspec('big', _, St) -> St;
-check_bitspec('little-endian', _, St) -> St;
-check_bitspec('little', _, St) -> St;
-check_bitspec('native-endian', _, St) -> St;
-check_bitspec('native', _, St) -> St;
-%% Sign.
-check_bitspec(signed, _, St) -> St;
-check_bitspec(unsigned, _, St) -> St;
-%% Size.
-check_bitspec([unit,N], _, St) when is_integer(N), N >= 1, N =< 256 -> St;
-check_bitspec([size,N], _, St) when is_integer(N), N > 0 -> St;
-check_bitspec(Spec, L, St) ->
-    add_error(L, {illegal_bitspec,Spec}, St).
 
 %% Functions for checking lists of forms, generate bad_form error if
 %% not proper list.

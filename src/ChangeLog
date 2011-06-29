@@ -1,3 +1,12 @@
+2011-06-29  Robert Virding  <rv@renat.local>
+
+	* lfe_lint.erl, lfe_codegen.erl, lfe_eval.erl, lfe_trans.erl: Now
+	use lfe_bits to parse binaries.
+
+2011-06-26  Robert Virding  <rv@renat.local>
+
+	* lfe_macro.erl (exp_predef): Add match-spec and qlc macros.
+
 2011-06-15  Robert Virding  <rv@renat.local>
 
 	* lfe_shell.erl (macroexpand, macroexpand-1, macroexpand-all): No
