@@ -1,7 +1,7 @@
 %%
 %% %CopyrightBegin%
 %%
-%% Copyright Ericsson AB 2004-2010. All Rights Reserved.
+%% Copyright Ericsson AB 2004-2011. All Rights Reserved.
 %%
 %% The contents of this file are subject to the Erlang Public License,
 %% Version 1.1, (the "License"); you may not use this file except in
@@ -20,9 +20,8 @@
 
 %%% Purpose: Implements the qlc Parse Transform.
 
-%%-export([parse_transform/2, transform_from_evaluator/2, 
-%%         transform_expression/2]).
--export([transform_from_evaluator/2,transform_expression/2]).
+-export([parse_transform/2, transform_from_evaluator/2, 
+         transform_expression/2]).
 
 -export([expand/1]).
 
@@ -66,6 +65,12 @@
 %%% Exported functions
 %%%
 
+-spec(parse_transform(Forms, Options) -> Forms2 when
+      Forms :: [erl_parse:abstract_form()],
+      Forms2 :: [erl_parse:abstract_form()],
+      Options :: [Option],
+      Option :: type_checker | compile:option()).
+
 parse_transform(Forms, Options) ->
     ?DEBUG("qlc Parse Transform~n", []),
     State = #state{imp = is_qlc_q_imported(Forms),
@@ -99,12 +104,26 @@ parse_transform(Forms, Options) ->
             end
     end.
 
+-spec(transform_from_evaluator(LC, Bs) -> Expr when
+      LC :: erl_parse:abstract_expr(),
+      Expr :: erl_parse:abstract_expr(),
+      Bs :: erl_eval:binding_struct()).
+
 transform_from_evaluator(LC, Bindings) ->
     ?DEBUG("qlc Parse Transform (Evaluator Version)~n", []),
     transform_expression(LC, Bindings, false).
 
+-spec(transform_expression(LC, Bs) -> Expr when
+      LC :: erl_parse:abstract_expr(),
+      Expr :: erl_parse:abstract_expr(),
+      Bs :: erl_eval:binding_struct()).
+
 transform_expression(LC, Bindings) ->
     transform_expression(LC, Bindings, true).
+
+-spec(expand(LC) -> {ok,Expr} when
+      LC :: erl_parse:abstract_expr(),
+      Expr :: erl_parse:abstract_expr()).
 
 expand(LC) ->
     %%io:format("LC <- ~p\n", [LC]),
@@ -546,6 +565,7 @@ transform(FormsNoShadows, State) ->
     {_,Source} = qlc_mapfold(fun(Id, {lc,_L,E,_Qs}=LC, Dict) ->
                                      {LC,dict:store(Id, E, Dict)}
                              end, Source0, FormsNoShadows, State),
+
 
     %% Unused variables introduced in filters are not optimized away.
     F2 = fun(Id, {lc,_L,E,Qs}, {IntroVs0,XWarn0}) ->
