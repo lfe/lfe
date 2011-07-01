@@ -42,7 +42,7 @@
 		  add_ibinding/5,get_gbinding/3]).
 
 -import(lists, [reverse/1,all/2,map/2,foldl/3,foldr/3]).
--import(orddict, [find/2,store/3]).
+-import(orddict, [find/2,fetch/2,store/3,is_key/2]).
 
 -deprecated([eval/1,eval/2]).
 
@@ -724,98 +724,135 @@ eval_gif(Test, True, False, Env) ->
 	false -> eval_gexpr(False, Env)
     end.
 
-%% match(Pattern, Value, Env) -> {yes,Bindings} | no.
+%% match(Pattern, Value, Env) -> {yes,PatBindings} | no.
 %%  Try to match Pattern against Value within the current environment
 %%  returning bindings. Bindings is an orddict.
 
-match(Pat, Val, Env) -> match(Pat, Val, Env, []).
+match(Pat, Val, Env) -> match(Pat, Val, [], Env).
 
-match([quote,P], Val, _, Bs) ->
-    if P == Val -> {yes,Bs};
+match([quote,P], Val, Pbs, _) ->
+    if P == Val -> {yes,Pbs};
        true -> no
     end;
-match([tuple|Ps], Val, Env, Bs) ->
+match([tuple|Ps], Val, Pbs, Env) ->
     %% io:fwrite("~p ~p\n", [Ps,Val]),
     case is_tuple(Val) of
-	true -> match_list(Ps, tuple_to_list(Val), Env, Bs);
+	true -> match_list(Ps, tuple_to_list(Val), Pbs, Env);
 	false -> no
     end;
-match([binary|Fs], Val, Env, Bs) ->
+match([binary|Fs], Val, Pbs, Env) ->
     case is_bitstring(Val) of
-	true -> match_binary(Fs, Val, Env, Bs);
+	true -> match_binary(Fs, Val, Pbs, Env);
 	false -> no
     end;
-match(['=',P1,P2], Val, Env, Bs0) ->		%Aliases
-    case match(P1, Val, Env, Bs0) of
-	{yes,Bs1} -> match(P2, Val, Env, Bs1);
+match(['=',P1,P2], Val, Pbs0, Env) ->		%Aliases
+    case match(P1, Val, Pbs0, Env) of
+	{yes,Pbs1} -> match(P2, Val, Pbs1, Env);
 	no -> no
     end;
-match([cons,H,T], [V|Vs], Env, Bs0) ->		%Explicit cons constructor
-    case match(H, V, Env, Bs0) of
-	{yes,Bs1} -> match(T, Vs, Env, Bs1);
+match([cons,H,T], [V|Vs], Pbs0, Env) ->		%Explicit cons constructor
+    case match(H, V, Pbs0, Env) of
+	{yes,Pbs1} -> match(T, Vs, Pbs1, Env);
 	no -> no
     end;
-match([list|Ps], Val, Env, Bs) ->		%Explicit list constructor
-    match_list(Ps, Val, Env, Bs);
+match([list|Ps], Val, Pbs, Env) ->		%Explicit list constructor
+    match_list(Ps, Val, Pbs, Env);
 %% Use old no contructor list forms.
-match([P|Ps], [V|Vs], Env, Bs0) ->
-    case match(P, V, Env, Bs0) of
-	{yes,Bs1} -> match(Ps, Vs, Env, Bs1);
+match([P|Ps], [V|Vs], Pbs0, Env) ->
+    case match(P, V, Pbs0, Env) of
+	{yes,Pbs1} -> match(Ps, Vs, Pbs1, Env);
 	no -> no
     end;
 %% match([_|_], _, _, _) -> no;			%No constructor
 
-match([], [], _, Bs) -> {yes,Bs};
-match(Symb, Val, Env, Bs) when is_atom(Symb) ->
-    match_symb(Symb, Val, Env, Bs);
-match(Val, Val, _, Bs) -> {yes,Bs};
+match([], [], Pbs, _) -> {yes,Pbs};
+match(Symb, Val, Pbs, Env) when is_atom(Symb) ->
+    match_symb(Symb, Val, Pbs, Env);
+match(Val, Val, Pbs, _) -> {yes,Pbs};
 match(_, _, _, _) -> no.
 
-match_list([P|Ps], [V|Vs], Env, Bs0) ->
-    case match(P, V, Env, Bs0) of
-	{yes,Bs1} -> match_list(Ps, Vs, Env, Bs1);
+match_list([P|Ps], [V|Vs], Pbs0, Env) ->
+    case match(P, V, Pbs0, Env) of
+	{yes,Pbs1} -> match_list(Ps, Vs, Pbs1, Env);
 	no -> no
     end;
-match_list([], [], _, Bs) -> {yes,Bs};
+match_list([], [], Pbs, _) -> {yes,Pbs};
 match_list(_, _, _, _) -> no.
 
-match_symb('_', _, _, Bs) -> {yes,Bs};		%Don't care variable.
-match_symb(Symb, Val, _, Bs) ->
+match_symb('_', _, Pbs, _) -> {yes,Pbs};	%Don't care variable.
+match_symb(S, Val, Pbs, _) ->
     %% Check if Symb already bound.
-    case find(Symb, Bs) of
-	{ok,_} -> no;				%Already bound, multiple var
-	error -> {yes,store(Symb, Val, Bs)}	%Not yet bound
+    case find(S, Pbs) of
+	{ok,_} -> erlang:error({multi_var,S});	%Already bound, multiple var
+	error -> {yes,store(S, Val, Pbs)}	%Not yet bound
     end.
 
-%% match_binary(Bitsegs, Binary, Env, Bindings) -> {yes,Bindings} | no.
+%% match_binary(Bitsegs, Binary, PatBindings, Env) -> {yes,PatBindings} | no.
 %%  Match Bitsegs against Binary. This code is taken from
-%%  eval_bits.erl. All bitspec errors and bad matches result in an
-%%  error, we use catch to trap it.
+%%  eval_bits.erl. Bitspec errors generate an error. Bad matches
+%%  result in an error, we use catch to trap it.
 
-match_binary(Segs, Bin, Env, Bs0) ->
+match_binary(Segs, Bin, Pbs0, Env) ->
     Psps = get_bitsegs(Segs),
-    match_bitsegs(Psps, Bin, Env, Bs0).
-%%     case catch match_bitsegs(Psps, Bin, Env, Bs0) of
-%% 	{yes,Bs1} -> {yes,Bs1};			%Matched whole binary
-%% 	{'EXIT',_} -> no			%Error is no match
-%%     end.
+    match_bitsegs(Psps, Bin, [], Pbs0, Env).
 
-match_bitsegs([{Pat,Sz,Ty}|Psps], Bin0, Env, Bs0) ->
-    {yes,Bin1,Bs1} = match_bitseg(Pat, Sz, Ty, Bin0, Env, Bs0),
-    match_bitsegs(Psps, Bin1, Env, Bs1);
-match_bitsegs([], <<>>, _, Bs) -> {yes,Bs}.	%Reached the end of both
+match_bitsegs([{Pat,Sz,Ty}|Psps], Bin0, Bbs0, Pbs0, Env) ->
+    case match_bitseg(Pat, Sz, Ty, Bin0, Bbs0, Pbs0, Env) of
+	{yes,Bin1,Bbs1,Pbs1} ->
+	    match_bitsegs(Psps, Bin1, Bbs1, Pbs1, Env);
+	no -> no
+    end;
+match_bitsegs([], <<>>, _, Pbs, _) -> {yes,Pbs}; %Reached the end of both
+match_bitsegs([], _, _, _, _) -> no.		 %More to go
 
-match_bitseg(Pat, Size, Type, Bin0, Env, Bs0) ->
-    Sz = get_pat_bitsize(Size, Type, Env),
-    {Val,Bin1} = get_pat_bitseg(Bin0, Sz, Type),
-    {yes,Bs1} = match(Pat, Val, Env, Bs0),
-    {yes,Bin1,Bs1}.
+match_bitseg(Pat, Size, Type, Bin0, Bbs0, Pbs0, Env) ->
+    Sz = get_pat_bitsize(Size, Type, Bbs0, Pbs0, Env),
+    case catch {ok,get_pat_bitseg(Bin0, Sz, Type)} of
+	{ok,{Val,Bin1}} ->
+	    case match_bitexpr(Pat, Val, Bbs0, Pbs0, Env) of
+		{yes,Bbs1,Pbs1} -> {yes,Bin1,Bbs1,Pbs1};
+		no -> no
+	    end;
+	_ -> no
+    end.
 
-get_pat_bitsize(all, {binary,_,_,_}, _) -> all;
-get_pat_bitsize(S, _, _) when is_integer(S) -> S;
-get_pat_bitsize(S, _, Env) when is_atom(S) -> eval_expr(S, Env).
+get_pat_bitsize(all, {Ty,_,_,_}, _, _, _) ->
+    if Ty =:= binary -> all;
+       true -> erlang:error(illegal_bitsize)
+    end;
+get_pat_bitsize(undefined, {Ty,_,_,_}, _, _, _) ->
+    if Ty =:= utf8; Ty =:= utf16; Ty =:= utf32 -> undefined;
+       true -> erlang:error(illegal_bitsize)
+    end;
+get_pat_bitsize(S, _, _, _, _) when is_integer(S) -> S;
+get_pat_bitsize(S, _, Bbs, _, Env) when is_atom(S) ->
+    %% Variable either in environment or bound in binary.
+    case get_vbinding(S, Env) of
+	{yes,V} -> V;
+	no ->
+	    case find(S, Bbs) of
+		{ok,V} -> V;
+		error -> erlang:error({unbound_symb,S})
+	    end
+    end.
+
+match_bitexpr(N, Val, Bbs, Pbs, _) when is_number(N) ->
+    if N =:= Val -> {yes,Bbs,Pbs};
+       true -> no
+    end;
+match_bitexpr('_', _, Bbs, Pbs, _) -> {yes,Bbs,Pbs};
+match_bitexpr(S, Val, Bbs, Pbs, _) when is_atom(S) ->
+    %% Don't need value, just check if symbol is set.
+    case is_key(S, Bbs) or is_key(S, Pbs) of
+	true -> erlang:error({multi_var,S});
+	false ->
+	    {yes,store(S, Val, Bbs),store(S, Val, Pbs)}
+    end;
+match_bitexpr(_, _, _, _, _) -> erlang:error(illegal_bitseg).
 
 %% get_pat_bitseg(Binary, Size, {Type,Unit,Sign,Endian}) -> {Value,RestBinary}.
+%%  This function can signal error if impossible to get specified bit
+%%  segment.
 
 get_pat_bitseg(Bin, Size, Type) ->
     case Type of

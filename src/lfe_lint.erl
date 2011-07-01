@@ -29,7 +29,7 @@
 
 -module(lfe_lint).
 
--export([form/1,module/1,module/2,format_error/1]).
+-export([module/1,module/2,form/1,expr/1,expr/2,format_error/1]).
 
 -import(lfe_lib, [new_env/0,is_vbound/2,is_fbound/3,is_gbound/3,
 		  add_vbinding/3,add_fbinding/4,add_ibinding/5,
@@ -55,10 +55,6 @@
 	       warnings=[],			%Warnings
 	       line=[],				%Current line
 	       func=[]}).			%Current function
-
-form(F) ->
-    module([{['define-module',dummy],1},
-	    {F,2}]).
 
 %% Errors.
 format_error({bad_mod_def,D}) ->
@@ -97,6 +93,22 @@ format_error(bittype_unit) ->
     "bit unit size can only be specified together with size";
 format_error(illegal_bitsize) -> "illegal bit size";
 format_error(unknown_form) -> "unknown form".
+
+%% expr(Expr) -> {ok,[Warning]} | {error,[Error],[Warning]}.
+%% expr(Expr, Env) -> {ok,[Warning]} | {error,[Error],[Warning]}.
+
+expr(E) -> expr(E, new_env()).
+
+expr(E, Env) ->
+    St0 = #lint{},
+    St1 = check_expr(E, Env, 1, St0),
+    return_status(St1).
+
+%% form(Form) -> {ok,[Warning]} | {error,[Error],[Warning]}.
+
+form(F) ->
+    module([{['define-module',dummy],1},
+	    {F,2}]).
 
 %% module(Forms) -> {ok,[Warning]} | {error,[Error],[Warning]}.
 %% module(Forms, Options) -> {ok,[Warning]} | {error,[Error],[Warning]}.
@@ -207,7 +219,7 @@ check_import(_, L, St) -> import_error(L, St).
 
 check_import(Fun, Mod, L, St0, Fs) ->
     Imps0 = safe_fetch(Mod, St0#lint.imps, []),
-    {Imps1,St1} = foldl_form(Fun, import, L, St0, Imps0, Fs),
+    {Imps1,St1} = foldl_form(Fun, import, L, Imps0, St0, Fs),
     St1#lint{imps=store(Mod, Imps1, St1#lint.imps)}.
 
 import_error(L, St) -> bad_mod_def_error(L, import, St).
@@ -428,6 +440,9 @@ bitspecs(Specs, Env, L, St, Check) ->
 	{error,E} -> add_error(L, E, St)
     end.
 
+%% Catch the case where size was explicitly given as 'undefined' or
+%% 'all' for the wrong type.
+
 bit_size(all, {Ty,_,_,_}, _, L, St, _) ->
     if Ty =:= binary -> St;
        true -> add_error(L, illegal_bitsize, St)
@@ -504,7 +519,7 @@ check_let([Vbs|Body], Env, L, St0) ->
 			  end,
 		    {union(Pv, Pvs), Stc}
 	    end,
-    {Pvs,St1} = foldl_form(Check, 'let', L, St0, [], Vbs),
+    {Pvs,St1} = foldl_form(Check, 'let', L, [], St0, Vbs),
     check_body(Body, add_vbindings(Pvs, Env), L, St1);
 check_let(_, _, L, St) ->
     bad_form_error(L, 'let', St).
@@ -549,7 +564,7 @@ collect_let_funcs(Fbs0, Type, L, St0) ->
 		    {[{V,Match,L}|Fbs],St};
 		(_, Fbs, St) -> {Fbs,bad_form_error(L, Type, St)}
 	    end,
-    foldr_form(Check, Type, L, St0, [], Fbs0).	%Preserve order
+    foldr_form(Check, Type, L, [], St0, Fbs0).	%Preserve order
 
 %% check_let_bindings(FuncBindings, Env, State) -> {Funcs,Env,State}.
 %%  Check the function bindings and return new environment. We only
@@ -770,58 +785,65 @@ gexpr_bitsegs(Segs, Env, L, St0) ->
 		  fun (St) -> bad_gform_error(L, binary, St) end, St0, Segs).
 
 %% pattern(Pattern, Env, L, State) -> {PatVars,State}.
-%% Return the *set* of Variables in Pattern.
+%% pattern(Pattern, PatVars, Env, L, State) -> {PatVars,State}.
+%%  Return the *set* of Variables in Pattern.  Patterns are
+%%  complicated by the fact that we don't allow multiple occurrence of
+%%  variables, this is an error. Explicit guards tests are
+%%  necessary. So we need to carry around the current pattern
+%%  variables as well as the environment.
 
 pattern(Pat, Env, L, St) ->
     %% io:fwrite("pat: ~p\n", [Pat]),
-    try
-	pattern(Pat, [], Env, L, St)
-    catch
-	_:_ -> add_error(L, illegal_pat, St)
-    end.
+    %% pattern/5 should never fail!
+    pattern(Pat, [], Env, L, St).
+%%     try
+%% 	pattern(Pat, [], Env, L, St)
+%%     catch
+%% 	_:_ -> {[],add_error(L, illegal_pat, St)}
+%%     end.
 
-pattern([quote,_], Vs, _, _, St) -> {Vs,St};	%Go no deeper with quote
-pattern([tuple|Ps], Vs, Env, L, St) ->		%Tuple elements
-    pat_list(Ps, Vs, Env, L, St);
-pattern([binary|Segs], Vs, Env, L, St) ->
-    pat_bitsegs(Segs, Vs, Env, L, St);
-pattern(['=',P1,P2], Vs0, Env, L, St0) ->
+pattern([quote,_], Pvs, _, _, St) -> {Pvs,St};	%Go no deeper with quote
+pattern([tuple|Ps], Pvs, Env, L, St) ->		%Tuple elements
+    pat_list(Ps, Pvs, Env, L, St);
+pattern([binary|Segs], Pvs, Env, L, St) ->
+    pat_binary(Segs, Pvs, Env, L, St);
+pattern(['=',P1,P2], Pvs0, Env, L, St0) ->
     %% Must check patterns together as same variable can occur
     %% in both branches.
-    {Vs1,St1} = pattern(P1, Vs0, Env, L, St0),
-    {Vs2,St2} = pattern(P2, Vs1, Env, L, St1),
+    {Pvs1,St1} = pattern(P1, Pvs0, Env, L, St0),
+    {Pvs2,St2} = pattern(P2, Pvs1, Env, L, St1),
     St3 = case pat_alias(P1, P2) of
 	      true -> St2;		%Union of variables now visible
 	      false -> add_error(L, bad_alias, St2)
 	  end,
-    {Vs2,St3};
-pattern([cons,H,T], Vs0, Env, L, St0) ->	%Explicit cons constructor
-    {Vs1,St1} = pattern(H, Vs0, Env, L, St0),
-    pattern(T, Vs1, Env, L, St1);
-pattern([list|Ps], Vs, Env, L, St) ->		%Explicit list constructor
-    pat_list(Ps, Vs, Env, L, St);
+    {Pvs2,St3};
+pattern([cons,H,T], Pvs0, Env, L, St0) ->	%Explicit cons constructor
+    {Pvs1,St1} = pattern(H, Pvs0, Env, L, St0),
+    pattern(T, Pvs1, Env, L, St1);
+pattern([list|Ps], Pvs, Env, L, St) ->		%Explicit list constructor
+    pat_list(Ps, Pvs, Env, L, St);
 %% Check old no contructor list forms.
-pattern([H|T], Vs0, Env, L, St0) ->
-    {Vs1,St1} = pattern(H, Vs0, Env, L, St0),
-    pattern(T, Vs1, Env, L, St1);
-%% pattern([_|_], Vs, _, L, St) ->
-%%     {Vs,add_error(L, illegal_pat, St)};
-pattern([], Vs, _, _, St) -> {Vs,St};
-pattern(Symb, Vs, _, L, St) when is_atom(Symb) ->
-    pat_symb(Symb, Vs, L, St);
-pattern(_, Vs, _, _, St) -> {Vs,St}.		%Atomic
+pattern([H|T], Pvs0, Env, L, St0) ->
+    {Pvs1,St1} = pattern(H, Pvs0, Env, L, St0),
+    pattern(T, Pvs1, Env, L, St1);
+%% pattern([_|_], Pvs, _, L, St) ->
+%%     {Pvs,add_error(L, illegal_pat, St)};
+pattern([], Pvs, _, _, St) -> {Pvs,St};
+pattern(Symb, Pvs, _, L, St) when is_atom(Symb) ->
+    pat_symb(Symb, Pvs, L, St);
+pattern(_, Pvs, _, _, St) -> {Pvs,St}.		%Atomic
 
-pat_list([P|Ps], Vs0, Env, L, St0) ->
-    {Vs1,St1} = pattern(P, Vs0, Env, L, St0),
-    pat_list(Ps, Vs1, Env, L, St1);
-pat_list([], Vs, _, _, St) -> {Vs,St};
-pat_list(_, Vs, _, L, St) -> {Vs,add_error(L, illegal_pat, St)}.
+pat_list([P|Ps], Pvs0, Env, L, St0) ->
+    {Pvs1,St1} = pattern(P, Pvs0, Env, L, St0),
+    pat_list(Ps, Pvs1, Env, L, St1);
+pat_list([], Pvs, _, _, St) -> {Pvs,St};
+pat_list(_, Pvs, _, L, St) -> {Pvs,add_error(L, illegal_pat, St)}.
 
-pat_symb('_', Vs, _, St) -> {Vs,St};		%Don't care variable
-pat_symb(Symb, Vs, L, St) ->
-    case is_element(Symb, Vs) of
-	true -> {Vs,multi_var_error(L, Symb, St)};
-	false -> {add_element(Symb, Vs),St}
+pat_symb('_', Pvs, _, St) -> {Pvs,St};		%Don't care variable
+pat_symb(Symb, Pvs, L, St) ->
+    case is_element(Symb, Pvs) of
+	true -> {Pvs,multi_var_error(L, Symb, St)};
+	false -> {add_element(Symb, Pvs),St}
     end.    
 
 %% pat_alias(Pattern, Pattern) -> true | false.
@@ -865,58 +887,80 @@ pat_alias_list([P1|Ps1], [P2|Ps2]) ->
 pat_alias_list([], []) -> true;
 pat_alias_list(_, _) -> false.
 
-%% pat_bitsegs(BitSegs, PatVars, Env, Line, State) -> {PatVars,State}.
-%% pat_bitseg(BitSeg, PatVars, Env, Line, State) -> {PatVars,State}.
-%% pat_bitspecs(BitSpecs, Env, Line, State) -> State.
-%% pat_bit_size(Size, Type, Env, Line, State) -> State.
-%% pat_bitel(BitElement, PatVars, Env, Line, State) -> {PatVars,State}.
-%% Functions for checking pattern bitsegments.
+%% pat_binary(BitSegs, PatVars, Env, Line, State) -> {PatVars,State}.
+%% pat_bitsegs(BitSegs, BitVars, PatVars, Env, Line, State) ->
+%%     {BitVars,PatVars,State}.
+%% pat_bitseg(BitSeg, BitVars, PatVars, Env, Line, State) ->
+%%     {BitVars,PatVars,State}.
+%% pat_bitspecs(BitSpecs, BitVars, PatVars, Env, Line, State) -> State.
+%% pat_bit_size(Size, Type, BitVars, PatVars, Env, Line, State) -> State.
+%% pat_bit_expr(BitElement, BitVars, PatVars, Env, Line, State) ->
+%%     {BitVars,PatVars,State}.
+%%  Functions for checking pattern bitsegments. This gets a bit
+%%  complex as we allow using values from left but only as sizes, no
+%%  implicit equality checks so multiple pattern variables are an
+%%  error. We only update BitVars during the match.
 
-pat_bitsegs(Segs, Vs0, Env, L, St0) ->
-    check_foldl(fun (S, Vs, St) -> pat_bitseg(S, Vs, Env, L, St) end,
-		fun (St) -> bad_pat_error(L, binary, St) end,
-		St0, Vs0, Segs).
+pat_binary(Segs, Pvs, Env, L, St) ->
+    pat_bitsegs(Segs, [], Pvs, Env, L, St).
 
-pat_bitseg([Pat|Specs]=Seg, Vs, Env, L, St0) ->
+pat_bitsegs(Segs, Bvs0, Pvs, Env, L, St0) ->
+    {Bvs1,St1} =
+	check_foldl(fun (Seg, Bvs, St) ->
+			    pat_bitseg(Seg, Bvs, Pvs, Env, L, St)
+		    end,
+		    fun (St) -> bad_pat_error(L, binary, St) end,
+		    Bvs0, St0, Segs),
+    {union(Bvs1, Pvs),St1}.			%Add bitvars to patvars
+
+pat_bitseg([Pat|Specs]=Seg, Bvs, Pvs, Env, L, St0) ->
     case is_integer_list(Seg) of
-	true -> {Vs,St0};			%This is good
+	true -> {Bvs,St0};			%This is good
 	false ->
-	    St1 = pat_bitspecs(Specs, Env, L, St0),
+	    St1 = pat_bitspecs(Specs, Bvs, Pvs, Env, L, St0),
 	    case is_integer_list(Pat) of
-		true -> {Vs,St1};		%This is good
-		false -> pat_bitel(Pat, Vs, Env, L, St1)
+		true -> {Bvs,St1};		%This is good
+		false -> pat_bit_expr(Pat, Bvs, Pvs, Env, L, St1)
 	    end
     end;
-pat_bitseg(Pat, Vs, Env, L, St) ->
-    pat_bitel(Pat, Vs, Env, L, St).
+pat_bitseg(Pat, Bvs, Pvs, Env, L, St) ->
+    pat_bit_expr(Pat, Bvs, Pvs, Env, L, St).
 
-pat_bitspecs(Specs, Env, L, St) ->
+pat_bitspecs(Specs, Bvs, Pvs, Env, L, St) ->
     case lfe_bits:get_bitspecs(Specs) of
-	{ok,Sz,Ty} -> pat_bit_size(Sz, Ty, Env, L, St);
+	{ok,Sz,Ty} -> pat_bit_size(Sz, Ty, Bvs, Pvs, Env, L, St);
 	{error,E} -> add_error(L, E, St)
     end.
 
-pat_bit_size(all, {Ty,_,_,_}, _, L, St) ->
+%% Catch the case where size was explicitly given as 'undefined' or
+%% 'all' for the wrong type.
+
+pat_bit_size(all, {Ty,_,_,_}, _, _, _, L, St) ->
     if Ty =:= binary -> St;
        true -> add_error(L, illegal_bitsize, St)
     end;
-pat_bit_size(undefined, {Ty,_,_,_}, _, L, St) ->
+pat_bit_size(undefined, {Ty,_,_,_}, _, _, _, L, St) ->
     if Ty =:= utf8; Ty =:= utf16; Ty =:= utf32 -> St;
        true -> add_error(L, illegal_bitsize, St)
     end;
-pat_bit_size(N, _, _, _, St) when is_integer(N), N > 0 -> St;
-pat_bit_size(S, _, Env, L, St) when is_atom(S) ->
-    %% Size must be bound here.
-    case is_vbound(S, Env) of
+pat_bit_size(N, _, _, _, _, _, St) when is_integer(N), N > 0 -> St;
+pat_bit_size(S, _, Bvs, _, Env, L, St) when is_atom(S) ->
+    %% Size must be bound here or occur earlier in binary pattern.
+    case is_element(S, Bvs) or is_vbound(S, Env) of
 	true -> St;
 	false -> add_error(L, {unbound_symb,S}, St)
     end;
-pat_bit_size(_, _, _, L, St) -> add_error(L, illegal_bitsize, St).
+pat_bit_size(_, _, _, _, _, L, St) -> add_error(L, illegal_bitsize, St).
 
-pat_bitel(N, Vs, _, _, St) when is_number(N) -> {Vs,St};
-pat_bitel(Symb, Vs, _, L, St) when is_atom(Symb) ->
-    pat_symb(Symb, Vs, L, St);
-pat_bitel(_, Vs, _, L, St) -> {Vs,add_error(L, illegal_bitseg, St)}.
+pat_bit_expr(N, Bvs, _, _, _, St) when is_number(N) -> {Bvs,St};
+pat_bit_expr('_', Bvs, _, _, _, St) -> {Bvs,St};
+pat_bit_expr(S, Bvs, Pvs, _, L, St) when is_atom(S) ->
+    case is_element(S, Bvs) or is_element(S, Pvs) of
+	true -> {Bvs,multi_var_error(L, S, St)};
+	false -> {add_element(S, Bvs),St}
+    end;
+pat_bit_expr(_, Bvs, _, _, L, St) ->
+    {Bvs,add_error(L, illegal_bitseg, St)}.
 
 %% Functions for checking lists of forms, generate bad_form error if
 %% not proper list.
@@ -927,16 +971,16 @@ foreach_form(Check, T, L, St, Fs) ->
 %% map_form(Check, T, L, St, Fs) ->
 %%     check_map(Check, fun (S) -> bad_form_error(L, T, S) end, St, Fs).
 
-foldl_form(Fun, T, L, St, Acc, Fs) ->
-    check_foldl(Fun, fun (S) -> bad_form_error(L, T, S) end, St, Acc, Fs).
+foldl_form(Fun, T, L, Acc, St, Fs) ->
+    check_foldl(Fun, fun (S) -> bad_form_error(L, T, S) end, Acc, St, Fs).
 
-foldr_form(Fun, T, L, St, Acc, Fs) ->
-    check_foldr(Fun, fun (S) -> bad_form_error(L, T, S) end, St, Acc, Fs).
+foldr_form(Fun, T, L, Acc, St, Fs) ->
+    check_foldr(Fun, fun (S) -> bad_form_error(L, T, S) end, Acc, St, Fs).
 
 %% check_foreach(Check, Err, State, Forms) -> State.
 %% check_map(Check, Err, State, Forms) -> {Results,State}.
-%% check_foldl(Check, Err, State, Acc, Forms) -> {Acc,State}.
-%% check_foldr(Check, Err, State, Acc, Forms) -> {Acc,State}.
+%% check_foldl(Check, Err, Acc, State, Forms) -> {Acc,State}.
+%% check_foldr(Check, Err, Acc, State, Forms) -> {Acc,State}.
 %%  These functions automatically manage a state variable and check for
 %%  proper top list. Could easily and clearly be done with a Lisp
 %%  macro.
@@ -955,17 +999,17 @@ check_foreach(_, Err, St, _) -> Err(St).
 %% check_map(_, _, St, []) -> {[],St};
 %% check_map(_, Err, St, _) -> {[],Err(St)}.
 
-check_foldl(Check, Err, St0, Acc0, [F|Fs]) ->
+check_foldl(Check, Err, Acc0, St0, [F|Fs]) ->
     {Acc1,St1} = Check(F, Acc0, St0),
-    check_foldl(Check, Err, St1, Acc1, Fs);
-check_foldl(_, _, St, Acc, []) -> {Acc,St};
-check_foldl(_, Err, St, Acc, _) -> {Acc,Err(St)}.
+    check_foldl(Check, Err, Acc1, St1, Fs);
+check_foldl(_, _, Acc, St, []) -> {Acc,St};
+check_foldl(_, Err, Acc, St, _) -> {Acc,Err(St)}.
 
-check_foldr(Check, Err, St0, Acc0, [F|Fs]) ->
-    {Acc1,St1} = check_foldr(Check, Err, St0, Acc0, Fs),
+check_foldr(Check, Err, Acc0, St0, [F|Fs]) ->
+    {Acc1,St1} = check_foldr(Check, Err, Acc0, St0, Fs),
     Check(F, Acc1, St1);
-check_foldr(_, _, St, Acc, []) -> {Acc,St};
-check_foldr(_, Err, St, Acc, _) -> {Acc,Err(St)}.
+check_foldr(_, _, Acc, St, []) -> {Acc,St};
+check_foldr(_, Err, Acc, St, _) -> {Acc,Err(St)}.
 
 %% Versions which completely wrap with a try. These may catch too much!
 %% check_foreach(Fun, Err, St, Fs) ->
@@ -982,7 +1026,7 @@ check_foldr(_, Err, St, Acc, _) -> {Acc,Err(St)}.
 %% 	_:_ -> {[],Err(St)}
 %%     end.
 
-%% check_foldl(Fun, Err, St, Acc, Fs) ->
+%% check_foldl(Fun, Err, Acc, St, Fs) ->
 %%     try
 %% 	foldl(fun (F, {A,S}) -> Fun(F, A, S) end, {Acc,St}, Fs)
 %%     catch
