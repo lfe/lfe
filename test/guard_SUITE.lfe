@@ -1,4 +1,4 @@
-;; Copyright (c) 2010 Robert Virding. All rights reserved.
+;; Copyright (c) 2010-2011 Robert Virding. All rights reserved.
 ;;
 ;; Redistribution and use in source and binary forms, with or without
 ;; modification, are permitted provided that the following conditions
@@ -25,103 +25,103 @@
 
 ;; File    : guard_SUITE.lfe
 ;; Author  : Robert Virding
-;; Purpose : Guard test suite.
+;; Purpose : Guard test suite from R14B02.
 
-;; This is a direct translation of guard_SUITE.erl except for tests
-;; with guards containing ';'. We have usually removed these or been
-;; careful with these as they don't handle errors the same way as 'or'
-;; (which is all we have).
+;; This is a direct translation of guard_SUITE.erl from R14B02 except
+;; for tests with guards containing ';'. We have usually removed these
+;; or been careful with these as they don't handle errors the same way
+;; as 'or' (which is all we have).
+;;
+;; Note that some of these tests are not LFE specific but more general
+;; guard tests but we include them anyway for completeness.
 
-;; -include("test_server.hrl").
-;; Can't save line number so we save expr evaluated.
-
-;; As close as we can get to a vanilla erlang if, a case with no match.
-(defmacro eif
-  (args
-   (fletrec ((r ([(t v . as)] `((_ (when ,t) ,v) . ,(r as)))
-		([()] ())))
-     `(case 1 . ,(r args)))))
-
-(defmacro test-pat (pat expr)
-  `(let* ((val ,expr)
-	  (,pat val))
-     val))
-
-;; We don't have any sensible line numbers to save so we save form.
-(defmacro line (expr)
-  `(progn (put 'test_server_loc (tuple 'guard_SUITE ',expr))
-	  ,expr))
+(include-file "test_server.lfe")
 
 (defmodule guard_SUITE
-  (export (all 1)
+  (export (all 0) (suite 0) (groups 0) (init_per_suite 1) (end_per_suite 1)
+	  (init_per_group 2) (end_per_group 2)
 	  (misc 1) (const_cond 1) (basic_not 1) (complex_not 1) (nested_nots 1)
-	  (comma 1) (or_guard 1) (more_or_guards 1) (complex_or_guards 1)
-	  (and_guard 1)
+	  (semicolon 1) (complex_semicolon 1) (comma 1)
+	  (or_guard 1) (more_or_guards 1)
+	  (complex_or_guards 1) (and_guard 1)
  	  (xor_guard 1) (more_xor_guards 1)
+	  (old_guard_tests 1)
 	  (build_in_guard 1) (gbif 1)
 	  (t_is_boolean 1) (is_function_2 1)
- 	  (tricky 1) (rel_ops 1)
-	  ;; (literal_type_tests 1)
+	  (tricky 1) (rel_ops 1) (literal_type_tests 1)
 	  (basic_andalso_orelse 1) (traverse_dcd 1)
-	  (check_qlc_hrl 1) (andalso_semi 1) (tup_size 1)
+	  (check_qlc_hrl 1) (andalso_semi 1) (t_tuple_size 1) (binary_part 1)
 	  ))
 
-(defun all
-  (['suite]
-   ;; test_lib:recompile(?MODULE),
-   (list 'misc 'const_cond 'basic_not 'complex_not 'nested_nots
-	 'comma 'or_guard 'more_or_guards 'complex_or_guards
-	 'and_guard
-	 'xor_guard 'more_xor_guards
-	 'build_in_guard 'gbif
-	 't_is_boolean 'is_function_2 'tricky 'rel_ops
-	 ;; 'literal_type_tests
-	 'basic_andalso_orelse 'traverse_dcd 'check_qlc_hrl
-	 'andalso_semi 'tup_size)))
+(defmacro MODULE () `'guard_SUITE)
+
+(defun all ()
+  ;; (: test_lib recompile (MODULE))
+  (list 'misc 'const_cond 'basic_not 'complex_not 'nested_nots
+	'semicolon 'complex_semicolon 'comma 'or_guard
+	'more_or_guards 'complex_or_guards 'and_guard 'xor_guard
+	'more_xor_guards 'build_in_guard 'old_guard_tests 'gbif
+	't_is_boolean 'is_function_2 'tricky 'rel_ops
+	'literal_type_tests 'basic_andalso_orelse 'traverse_dcd
+	'check_qlc_hrl 'andalso_semi 't_tuple_size 'binary_part))
+
+;;(defun suite () (list (tuple 'ct_hooks (list 'ts_install_cth))))
+(defun suite () ())
+
+(defun groups () ())
+
+(defun init_per_suite (config) config)
+
+(defun end_per_suite (config) 'ok)
+
+(defun init_per_group (name config) config)
+
+(defun end_per_group (name config) config)
 
 (defun misc
   ([config] (when (is_list config))
    (line (test-pat 42 (case (id 42)
 			(x (when (- x)) 'ok)
 			(x x))))
-   ;; These are all semicolon safe.
    (line (test-pat (tuple 'a 'b 'c)
-		   (misc_1 '(#(#(a b c)) #((4)) #((3)) #(-2)))))
-   (line (test-pat 'none (misc_1 '(#(#(a b c)) #((4)) #((3)) #(-3)))))
-   (line (test-pat 'none (misc_1 '(#(#(a b c)) #((4)) #((7)) #(-2)))))
-   (line (test-pat 'none (misc_1 '(#(#(a b c)) #((4)) #((3)) #((1 2 3))))))
+		   (misc-1 '(#(#(a b c)) #((4)) #((3)) #(-2)))))
+   (line (test-pat 'none (misc-1 '(#(#(a b c)) #((4)) #((3)) #(-3)))))
+   (line (test-pat 'none (misc-1 '(#(#(a b c)) #((4)) #((7)) #(-2)))))
+   (line (test-pat 'none (misc-1 '(#(#(a b c)) #((4)) #((3)) #((1 2 3))))))
 
-   (line (test-pat (tuple 'ok 'buf #b()) (get_data #(o true raw) 0 'buf)))
-   (line (test-pat (tuple 'ok 'buf #b()) (get_data #(o true raw) 42 'buf)))
-   (line (test-pat (tuple 'ok 'buf #b()) (get_data #(o false raw) 0 'buf)))
-   (line (test-pat 'error (get_data #(o false raw) 42 'buf)))
+   (line (test-pat (tuple 'ok 'buf #b()) (get-data #(o true raw) 0 'buf)))
+   (line (test-pat (tuple 'ok 'buf #b()) (get-data #(o true raw) 42 'buf)))
+   (line (test-pat (tuple 'ok 'buf #b()) (get-data #(o false raw) 0 'buf)))
+   (line (test-pat 'error (get-data #(o false raw) 42 'buf)))
 
-   (line (test-pat (tuple 'ok 'buf #b()) (get_data #(o true 0) 0 'buf)))
-   (line (test-pat (tuple 'ok 'buf #b()) (get_data #(o true 0) 42 'buf)))
-   (line (test-pat (tuple 'ok 'buf #b()) (get_data #(o false 0) 0 'buf)))
-   (line (test-pat 'error (get_data #(o false 0) 42 'buf)))
+   (line (test-pat (tuple 'ok 'buf #b()) (get-data #(o true 0) 0 'buf)))
+   (line (test-pat (tuple 'ok 'buf #b()) (get-data #(o true 0) 42 'buf)))
+   (line (test-pat (tuple 'ok 'buf #b()) (get-data #(o false 0) 0 'buf)))
+   (line (test-pat 'error (get-data #(o false 0) 42 'buf)))
    'ok))
 
-(defun misc_1
-  ([((tuple w) (tuple x) (tuple y) (tuple z))]
+;; This is semicolon safe.
+(defun misc-1
+  ([(list (tuple w) (tuple x) (tuple y) (tuple z))]
    (eif (andalso (> x y) (=:= (abs z) 2)) (id w)
 	'true 'none)))
 
-(defun get_data
+;; This is semicolon safe.
+(defun get-data
   ([(tuple 'o active raw) bytes buffer] (when (or (=:= raw 'raw) (=:= raw 0)))
    (eif (orelse (=/= active 'false) (=:= bytes 0)) (tuple 'ok buffer #b())
 	'true 'error)))
 
 (defun const_cond
   ([config] (when (is_list config))
-   (line (test-pat 'ok (const_cond #() 0)))
-   (line (test-pat 'ok (const_cond #(a) 1)))
-   (line (test-pat 'error (const_cond #(a b) 3)))
-   (line (test-pat 'error (const_cond #(a) 0)))
-   (line (test-pat 'error (const_cond #(a b) 1)))
+   (line (test-pat 'ok (const-cond #() 0)))
+   (line (test-pat 'ok (const-cond #(a) 1)))
+   (line (test-pat 'error (const-cond #(a b) 3)))
+   (line (test-pat 'error (const-cond #(a) 0)))
+   (line (test-pat 'error (const-cond #(a b) 1)))
    'ok))
 
-(defun const_cond (t sz)
+(defun const-cond (t sz)
   (case t
     (_ (when 'false) 'never)
     (_ (when (is_tuple t) (== 'eq 'eq) (== (tuple_size t) sz)) 'ok)
@@ -202,39 +202,49 @@
 (defun nested_nots
   ([config] (when (is_list config))
    ;; These are all semicolon safe.
-   (line (test-pat 'true (nested_not_1 0 0)))
-   (line (test-pat 'true (nested_not_1 0 1)))
-   (line (test-pat 'true (nested_not_1 'a 'b)))
-   (line (test-pat 'true (nested_not_1 10 0)))
-   (line (test-pat 'false (nested_not_1 'z 'a)))
-   (line (test-pat 'false (nested_not_1 3.4 #(anything goes))))
-   (line (test-pat 'false (nested_not_1 3.4 'atom)))
-   (line (test-pat 'true (nested_not_1 3.0 '(list))))
+   (line (test-pat 'true (nested-not-1 0 0)))
+   (line (test-pat 'true (nested-not-1 0 1)))
+   (line (test-pat 'true (nested-not-1 'a 'b)))
+   (line (test-pat 'true (nested-not-1 10 0)))
+   (line (test-pat 'false (nested-not-1 'z 'a)))
+   (line (test-pat 'false (nested-not-1 3.4 #(anything goes))))
+   (line (test-pat 'false (nested-not-1 3.4 'atom)))
+   (line (test-pat 'true (nested-not-1 3.0 '(list))))
 
-   (line (test-pat 'true (nested_not_2 'false 'false 42)))
-   (line (test-pat 'true (nested_not_2 'false 'true 42)))
-   (line (test-pat 'true (nested_not_2 'true 'false 42)))
-   (line (test-pat 'true (nested_not_2 'true 'true 42)))
-   (line (test-pat 'true (nested_not_2 'false 'false 'atom)))
-   (line (test-pat 'false (nested_not_2 'false 'true 'atom)))
-   (line (test-pat 'false (nested_not_2 'true 'false 'atom)))
-   (line (test-pat 'false (nested_not_2 'true 'true 'atom)))
+   (line (test-pat 'true (nested-not-2 'false 'false 42)))
+   (line (test-pat 'true (nested-not-2 'false 'true 42)))
+   (line (test-pat 'true (nested-not-2 'true 'false 42)))
+   (line (test-pat 'true (nested-not-2 'true 'true 42)))
+   (line (test-pat 'true (nested-not-2 'false 'false 'atom)))
+   (line (test-pat 'false (nested-not-2 'false 'true 'atom)))
+   (line (test-pat 'false (nested-not-2 'true 'false 'atom)))
+   (line (test-pat 'false (nested-not-2 'true 'true 'atom)))
    'ok))
 
-(defun nested_not_1
+(defun nested-not-1
   ([x y] (when (not (and (or (> x y) (not (is_atom x)))
 			     (or (is_atom y) (== x 3.4)))))
    'true)
   ([_ _] 'false))
 
-(defun nested_not_2 (x y z)
-  (nested_not_2 x y z 'true))
+(defun nested-not-2 (x y z)
+  (nested-not-2 x y z 'true))
 
-(defun nested_not_2
+(defun nested-not-2
   ([x y z true] (when (not (and true (not (or (and (not x) (not y))
 					      (not (is_atom z)))))))
    'true)
   ([_ _ _ _] 'false))
+
+(defun semicolon
+  ([config] (when (is_list config))
+   ;; Not relevant for LFE.
+   'ok))
+
+(defun complex_semicolon
+  ([config] (when (is_list config))
+   ;; Not relevant for LFE.
+   'ok))
 
 ;; Use (progn ...) as equivalent of comma, this is reasonable.
 (defun comma
@@ -409,103 +419,103 @@
 
 (defun complex_or_guards
   ([config] (when (is_list config))
-   ;; complex_or_1/2
-   (line (test-pat 'ok (complex_or_1 #(a b c d) #(1 2 3))))
-   (line (test-pat 'ok (complex_or_1 #(a b c d) #(1))))
-   (line (test-pat 'ok (complex_or_1 #(a) #(1 2 3))))
-   (line (test-pat 'error (complex_or_1 #(a) #(1))))
+   ;; complex-or-1/2
+   (line (test-pat 'ok (complex-or-1 #(a b c d) #(1 2 3))))
+   (line (test-pat 'ok (complex-or-1 #(a b c d) #(1))))
+   (line (test-pat 'ok (complex-or-1 #(a) #(1 2 3))))
+   (line (test-pat 'error (complex-or-1 #(a) #(1))))
 
-   (line (test-pat 'error (complex_or_1 1 2)))
-   (line (test-pat 'error (complex_or_1 () #(a b c d))))
-   (line (test-pat 'error (complex_or_1 #(a b c d) ())))
+   (line (test-pat 'error (complex-or-1 1 2)))
+   (line (test-pat 'error (complex-or-1 () #(a b c d))))
+   (line (test-pat 'error (complex-or-1 #(a b c d) ())))
 
-   ;; complex_or_2/1
-   (line (test-pat 'ok (complex_or_2 #(true #()))))
-   (line (test-pat 'ok (complex_or_2 #(false #(a)))))
-   (line (test-pat 'ok (complex_or_2 #(false #(a b c)))))
-   (line (test-pat 'ok (complex_or_2 #(true #(a b c)))))
+   ;; complex-or-2/1
+   (line (test-pat 'ok (complex-or-2 #(true #()))))
+   (line (test-pat 'ok (complex-or-2 #(false #(a)))))
+   (line (test-pat 'ok (complex-or-2 #(false #(a b c)))))
+   (line (test-pat 'ok (complex-or-2 #(true #(a b c)))))
 
-   (line (test-pat 'error (complex_or_2 #(blurf #(a b c)))))
+   (line (test-pat 'error (complex-or-2 #(blurf #(a b c)))))
 
-   (line (test-pat 'error (complex_or_2 #(true))))
-   (line (test-pat 'error (complex_or_2 #(true no_tuple))))
-   (line (test-pat 'error (complex_or_2 #(true ()))))
+   (line (test-pat 'error (complex-or-2 #(true))))
+   (line (test-pat 'error (complex-or-2 #(true no_tuple))))
+   (line (test-pat 'error (complex-or-2 #(true ()))))
 
-   ;; complex_or_3/2
-   (line (test-pat 'ok (complex_or_3 #(true) #())))
-   (line (test-pat 'ok (complex_or_3 #(false) #(a))))
-   (line (test-pat 'ok (complex_or_3 #(false) #(a b c))))
-   (line (test-pat 'ok (complex_or_3 #(true) #(a b c d))))
-   (line (test-pat 'ok (complex_or_3 #(false) #b(1 2 3))))
-   (line (test-pat 'ok (complex_or_3 #(true) #b(1 2 3 4))))
+   ;; complex-or-3/2
+   (line (test-pat 'ok (complex-or-3 #(true) #())))
+   (line (test-pat 'ok (complex-or-3 #(false) #(a))))
+   (line (test-pat 'ok (complex-or-3 #(false) #(a b c))))
+   (line (test-pat 'ok (complex-or-3 #(true) #(a b c d))))
+   (line (test-pat 'ok (complex-or-3 #(false) #b(1 2 3))))
+   (line (test-pat 'ok (complex-or-3 #(true) #b(1 2 3 4))))
 
-   (line (test-pat 'error (complex_or_3 'blurf #(a b c))))
+   (line (test-pat 'error (complex-or-3 'blurf #(a b c))))
 
-   (line (test-pat 'error (complex_or_3 #(false) #b(1 2 3 4))))
-   (line (test-pat 'error (complex_or_3 () #b(1 2))))
-   (line (test-pat 'error (complex_or_3 #(true) 45)))
-   (line (test-pat 'error (complex_or_3 #b() #b())))
+   (line (test-pat 'error (complex-or-3 #(false) #b(1 2 3 4))))
+   (line (test-pat 'error (complex-or-3 () #b(1 2))))
+   (line (test-pat 'error (complex-or-3 #(true) 45)))
+   (line (test-pat 'error (complex-or-3 #b() #b())))
 
-   ;; complex_or_4/2
-   (line (test-pat 'ok (complex_or_4 #b(1 2 3) #(true))))
-   (line (test-pat 'ok (complex_or_4 #b(1 2 3) #(false))))
-   (line (test-pat 'ok (complex_or_4 #b(1 2 3) #(true))))
-   (line (test-pat 'ok (complex_or_4 #(1 2 3) #(true))))
-   (line (test-pat 'error (complex_or_4 #(1 2 3 4) #(false))))
+   ;; complex-or-4/2
+   (line (test-pat 'ok (complex-or-4 #b(1 2 3) #(true))))
+   (line (test-pat 'ok (complex-or-4 #b(1 2 3) #(false))))
+   (line (test-pat 'ok (complex-or-4 #b(1 2 3) #(true))))
+   (line (test-pat 'ok (complex-or-4 #(1 2 3) #(true))))
+   (line (test-pat 'error (complex-or-4 #(1 2 3 4) #(false))))
 
-   (line (test-pat 'error (complex_or_4 #(1 2 3 4) ())))
-   (line (test-pat 'error (complex_or_4 () #(true))))
+   (line (test-pat 'error (complex-or-4 #(1 2 3 4) ())))
+   (line (test-pat 'error (complex-or-4 () #(true))))
 
-   ;; complex_or_5/2
-   (line (test-pat 'ok (complex_or_5 #b(1) #(false))))
-   (line (test-pat 'ok (complex_or_5 #b(1 2 3) #(true))))
-   (line (test-pat 'ok (complex_or_5 #b(1 2 3 4) #(false))))
-   (line (test-pat 'ok (complex_or_5 #(1 2 3) #(false))))
-   (line (test-pat 'ok (complex_or_5 #(1 2 3 4) #(false))))
+   ;; complex-or-5/2
+   (line (test-pat 'ok (complex-or-5 #b(1) #(false))))
+   (line (test-pat 'ok (complex-or-5 #b(1 2 3) #(true))))
+   (line (test-pat 'ok (complex-or-5 #b(1 2 3 4) #(false))))
+   (line (test-pat 'ok (complex-or-5 #(1 2 3) #(false))))
+   (line (test-pat 'ok (complex-or-5 #(1 2 3 4) #(false))))
 
-   (line (test-pat 'error (complex_or_5 'blurf #(false))))
-   (line (test-pat 'error (complex_or_5 #b(1) 'klarf)))
-   (line (test-pat 'error (complex_or_5 'blurf 'klarf)))
+   (line (test-pat 'error (complex-or-5 'blurf #(false))))
+   (line (test-pat 'error (complex-or-5 #b(1) 'klarf)))
+   (line (test-pat 'error (complex-or-5 'blurf 'klarf)))
 
-   ;; complex_or_6/2
-   (line (test-pat 'ok (complex_or_6 #(true true) #(1 2 3 4))))
-   (line (test-pat 'ok (complex_or_6 #(true true) #b(1 2 3 4))))
-   (line (test-pat 'ok (complex_or_6 #(false false) #b(1 2 3 4))))
-   (line (test-pat 'ok (complex_or_6 #(false true) #b(1))))
-   (line (test-pat 'ok (complex_or_6 #(true false) #(1))))
-   (line (test-pat 'ok (complex_or_6 #(true true) #(1))))
+   ;; complex-or-6/2
+   (line (test-pat 'ok (complex-or-6 #(true true) #(1 2 3 4))))
+   (line (test-pat 'ok (complex-or-6 #(true true) #b(1 2 3 4))))
+   (line (test-pat 'ok (complex-or-6 #(false false) #b(1 2 3 4))))
+   (line (test-pat 'ok (complex-or-6 #(false true) #b(1))))
+   (line (test-pat 'ok (complex-or-6 #(true false) #(1))))
+   (line (test-pat 'ok (complex-or-6 #(true true) #(1))))
 
-   (line (test-pat 'error (complex_or_6 #(false false) #(1))))
+   (line (test-pat 'error (complex-or-6 #(false false) #(1))))
 
-   (line (test-pat 'error (complex_or_6 #(true) #(1 2 3 4))))
-   (line (test-pat 'error (complex_or_6 #() #(1 2 3 4))))
-   (line (test-pat 'error (complex_or_6 () #(1 2 3 4))))
-   (line (test-pat 'error (complex_or_6 () #(1 2 3 4))))
-   (line (test-pat 'error (complex_or_6 #(true false) 'klurf)))
+   (line (test-pat 'error (complex-or-6 #(true) #(1 2 3 4))))
+   (line (test-pat 'error (complex-or-6 #() #(1 2 3 4))))
+   (line (test-pat 'error (complex-or-6 () #(1 2 3 4))))
+   (line (test-pat 'error (complex-or-6 () #(1 2 3 4))))
+   (line (test-pat 'error (complex-or-6 #(true false) 'klurf)))
 
    'ok))
 
-(defun complex_or_1 (a b)
+(defun complex-or-1 (a b)
   (eif (or (and (< 3 (tuple_size a)) (< (tuple_size a) 9))
 	   (and (< 2 (tuple_size b)) (< (tuple_size b) 7)))
        'ok 'true 'error))
 
-(defun complex_or_2 (tuple)
+(defun complex-or-2 (tuple)
   (eif (or (element 1 tuple) (not (> (tuple_size (element 2 tuple)) 3)))
        'ok 'true 'error))
 
-(defun complex_or_3 (a b)
+(defun complex-or-3 (a b)
   (eif (or (not (> (size b) 3)) (element 1 a)) 'ok 'true 'error))
 
-(defun complex_or_4 (a b)
+(defun complex-or-4 (a b)
   (eif (or (not (and (is_tuple a) (> (size a) 3))) (element 1 b))
        'ok 'true 'error))
 
-(defun complex_or_5 (a b)
+(defun complex-or-5 (a b)
   (eif (or (not (and (is_tuple a) (> (size a) 3))) (not (element 1 b)))
        'ok 'true 'error))
 
-(defun complex_or_6 (a b)
+(defun complex-or-6 (a b)
   (eif (or (not (and (not (element 1 a)) (not (element 2 a))))
 	   (not (not (> (size b) 3))))
        'ok 'true 'error))
@@ -672,13 +682,18 @@
 			      'ok)))
      )))
 
-(defun gbif
+(defun old_guard_tests
   ([config] (when (is_list config))
-   (line (test-pat 'error (gbif_1 1 #(false true))))
-   (line (test-pat 'ok (gbif_1 2 #(false true))))
+   ;; Not relevant in LFE.
    'ok))
 
-(defun gbif_1
+(defun gbif
+  ([config] (when (is_list config))
+   (line (test-pat 'error (gbif-1 1 #(false true))))
+   (line (test-pat 'ok (gbif-1 2 #(false true))))
+   'ok))
+
+(defun gbif-1
   ([p t] (when (element p t)) 'ok)
   ([_ _] 'error))
 
@@ -729,11 +744,11 @@
    (line (test-pat 'error (bool (id (make_ref)))))
    (line (test-pat 'error (bool (id #b(1 2 3)))))
 
-   (line (test-pat 'true (my_is_bool 'true)))
-   (line (test-pat 'true (my_is_bool 'false)))
-   (line (test-pat 'false (my_is_bool ())))
-   (line (test-pat 'false (my_is_bool '(1 2 3 4))))
-   (line (test-pat 'false (my_is_bool #(a b c))))
+   (line (test-pat 'true (my-is-bool 'true)))
+   (line (test-pat 'true (my-is-bool 'false)))
+   (line (test-pat 'false (my-is-bool ())))
+   (line (test-pat 'false (my-is-bool '(1 2 3 4))))
+   (line (test-pat 'false (my-is-bool #(a b c))))
 
    'ok))
 
@@ -741,18 +756,18 @@
   ([x] (when (is_boolean x)) 'ok)
   ([_] 'error))
 
-(defun my_is_bool (v)
-  (let* ((r0 (my_is_bool_a v))
-	 (res (when (=:= res r0)) (my_is_bool_b v)))
+(defun my-is-bool (v)
+  (let* ((r0 (my-is-bool-a v))
+	 (res (when (=:= res r0)) (my-is-bool-b v)))
     res))
 
-(defun my_is_bool_a (v)
+(defun my-is-bool-a (v)
   (case v
     ('true 'true)
     ('false 'true)
     (_ 'false)))
 
-(defun my_is_bool_b (v)
+(defun my-is-bool-b (v)
   (case v
     ('false 'true)
     ('true 'true)
@@ -770,25 +785,25 @@
 
 (defun tricky
   ([config] (when (is_list config))
-   (line (test-pat 'not_ok (tricky_1 1 2)))
-   (line (test-pat 'not_ok (tricky_1 1 'blurf)))
-   (line (test-pat 'not_ok (tricky_1 'foo 2)))
-   (line (test-pat 'not_ok (tricky_1 'a 'b)))
+   (line (test-pat 'not_ok (tricky-1 1 2)))
+   (line (test-pat 'not_ok (tricky-1 1 'blurf)))
+   (line (test-pat 'not_ok (tricky-1 'foo 2)))
+   (line (test-pat 'not_ok (tricky-1 'a 'b)))
 
-   (line (test-pat 'error (tricky_2 0.5)))
-   (line (test-pat 'error (tricky_2 'a)))
-   (line (test-pat 'error (tricky_2 #(a b c))))
+   (line (test-pat 'error (tricky-2 0.5)))
+   (line (test-pat 'error (tricky-2 'a)))
+   (line (test-pat 'error (tricky-2 #(a b c))))
 
    (line (test-pat 'false (rb 100000 '(1) 42)))
    (line (test-pat 'true (rb 100000 '() 42)))
    (line (test-pat 'true (rb 555 '(a b c) 19)))
    'ok))
 
-(defun tricky_1
+(defun tricky-1
   ([x y] (when (abs (or (== x 1) (== y 2)))) 'ok)
   ([_ _] 'not_ok))
 
-(defun tricky_2
+(defun tricky-2
   ([x] (when (or (float x) (float x))) 'ok)
   ([_] 'error))
 
@@ -865,13 +880,15 @@
 ;; -undef(TestOp).
 
 
-;; %% Test type tests on literal values. (From emulator test suites.)
-;; literal_type_tests(Config) when is_list(Config) ->
-;;     case ?MODULE of
-;; 	guard_SUITE -> literal_type_tests_1(Config);
-;; 	_ -> {skip,"Enough to run this case once."}
-;;     end.
+;; Test type tests on literal values. (From emulator test suites.)
+(defun literal_type_tests
+  ([config] (when (is_list config))
+   (case 'guard_suite
+     ('guard_suite (literal-type-tests-1 config))
+     (_ #(skip "Enough to run this case once.")))))
 
+(defun literal-type-tests-1 (config)
+  'ok)
 ;; literal_type_tests_1(Config) ->
 ;;     %% Generate an Erlang module with all different type of type tests.
 ;;     ?line Tests = make_test([{T,L} || T <- type_tests(), L <- literals()] ++
@@ -966,17 +983,22 @@
 				      (=:= (element 2 t) 'integers))
 			     (+ (element 3 t) (element 4 t))
 			     'true 'error)))
-     (line (test-pat 42 (basic_rt #(type integers 40 2))))
-     (line (test-pat 5.0 (basic_rt #(vector #(3.0 4.0)))))
-     (line (test-pat 20 (basic_rt '(+ 3 7))))
-     (line (test-pat (tuple 'Set a b) (basic_rt #(#(Set a b) #(Set a b)))))
-     (line (test-pat 12 (basic_rt #(klurf 4))))
+     (line (test-pat 65 (case ()
+			  (() (andalso (=:= (element 1 t) 'type)
+				       (=:= (tuple_size t) 4)
+				       (=:= (element 2 t) 'integers))
+			   (+ (element 3 t) (element 4 t))))))
+     (line (test-pat 42 (basic-rt #(type integers 40 2))))
+     (line (test-pat 5.0 (basic-rt #(vector #(3.0 4.0)))))
+     (line (test-pat 20 (basic-rt '(+ 3 7))))
+     (line (test-pat (tuple 'Set 'a 'b) (basic-rt #(#(Set a b) #(Set a b)))))
+     (line (test-pat 12 (basic-rt #(klurf 4))))
 
-     (line (test-pat 'error (basic_rt #(type integers 40 2 3))))
-     (line (test-pat 'error (basic_rt #(kalle integers 40 2))))
-     (line (test-pat 'error (basic_rt #(kalle integers 40 2))))
-     (line (test-pat 'error (basic_rt #(1 2))))
-     (line (test-pat 'error (basic_rt ())))
+     (line (test-pat 'error (basic-rt #(type integers 40 2 3))))
+     (line (test-pat 'error (basic-rt #(kalle integers 40 2))))
+     (line (test-pat 'error (basic-rt #(kalle integers 40 2))))
+     (line (test-pat 'error (basic-rt #(1 2))))
+     (line (test-pat 'error (basic-rt ())))
 
      (let ((rel-prod-body (lambda (r1 r2)
 			    (eif (andalso (=:= (: erlang size r1) 3)
@@ -988,7 +1010,6 @@
 
      ;; 'andalso'/'orelse' with calls known to fail already at compile time.
      ;; Used to crash the code generator.
-
      (let (('error (funcall (lambda ()
 			      (let ((r #(vars true)))
 				(eif (andalso (is_record r 'vars 2)
@@ -1007,16 +1028,16 @@
 
      'ok)))
 
-(defun basic_rt
+(defun basic-rt
   ([t] (when (andalso (is_tuple t) (=:= (tuple_size t) 4)
-		      (=:= (element 1 t) 'type) (=:= (element 2 t) 'integers)))
+		      (=:= (element 1 t) 'type) (== (element 2 t) 'integers)))
    (+ (element 3 t) (element 4 t)))
   ([t] (when (andalso (is_tuple t) (=:= (tuple_size t) 2)
 		      (=:= (element 1 t) 'vector)))
    (let (((tuple x y) (element 2 t)))
      (eif (progn (is_float x) (is_float y)) (: math sqrt (+ (* x x) (* y y))))
      ))
-  ([('+ a b)]
+  ([(list '+ a b)]
     (* (id (+ a b)) 2))
   ([(tuple r1 r2)] (when (andalso (=:= (: erlang size r1) 3)
 				  (=:= (: erlang element 1 r1) 'Set)
@@ -1036,13 +1057,13 @@
 		#(log_header dcd_log "2.0" a b c)
 		#(log_header dcd_log "0.0" a b c) blurf))
 	  (#(cont (#(log_header dcd_log "0.0" a b c) blurf) log funny)
-	   (traverse_dcd (tuple 'cont l0) 'log 'funny))
+	   (traverse-dcd (tuple 'cont l0) 'log 'funny))
 	  (l1 '(#(log_header dcd_log "1.0")))
 	  ((tuple 'cont l1 'log 'funny)
-	   (traverse_dcd (tuple 'cont l1) 'log 'funny))
+	   (traverse-dcd (tuple 'cont l1) 'log 'funny))
 	  (l2 '(#(a tuple)))
 	  ((tuple 'cont l2 'log 'funny)
-	   (traverse_dcd (tuple 'cont l2) 'log 'funny)))
+	   (traverse-dcd (tuple 'cont l2) 'log 'funny)))
      'ok)))
 
 ;; The function starts out with 3 arguments in {x,0}, {x,1}, {x,2}.
@@ -1053,15 +1074,15 @@
 ;;
 ;; (From mnesia_checkpoint.erl, modified.)
 
-(defun traverse_dcd
-  ([(tuple cont (logh . rest)) log fun]
+(defun traverse-dcd
+  ([(tuple cont (cons logh rest)) log fun]
    (when (andalso (is_tuple logh) (=:= (tuple_size logh) 6)
 		  (=:= (element 1 logh) 'log_header)
 		  (== (element 2 logh) 'dcd_log))
 	 (andalso (is_tuple logh) (=:= (tuple_size logh) 6)
 		  (=:= (element 1 logh) 'log_header)
 		  (>= (element 3 logh) '"1.0")))
-   (traverse_dcd (tuple cont rest) log fun))
+   (traverse-dcd (tuple cont rest) log fun))
   ([(tuple cont recs) log fun]
    (tuple cont recs log fun)))
 
@@ -1084,61 +1105,169 @@
 (defun cqlc (m f as st)
   (let ((arity (length as)))
     (case as
-      (((tuple 'lc _ _ _) . _)
+      ((cons (tuple 'lc _ _ _) _)
        (when (=:= m 'qlc) (=:= f 'q) (< arity 3)
-	     (not (andalso (orelse (=:= (element 1 st) 'r1) 'fail)
-				  (=:= (tuple_size st) 3)
-				  (element 2 st))))
+	     (not (and (orelse (=:= (element 1 st) 'r1) 'fail)
+		       (and (=:= (tuple_size st) 3)
+			    (element 2 st)))))
        'foo)
       (_ st))))
 
 ;; OTP-7679: Thanks to Hunter Morris. (almost anyway)
 (defun andalso_semi
   ([config] (when (is_list config))
-   (line (test-pat 'ok (andalso_semi_foo 0)))
-   (line (test-pat 'ok (andalso_semi_foo 1)))
-   (line (test-pat (tuple 'EXIT (tuple (tuple 'case_clause _) _))
-		   (catch (andalso_semi_foo 2))))
+   (line (test-pat 'ok (andalso-semi-foo 0)))
+   (line (test-pat 'ok (andalso-semi-foo 1)))
+   (line (fc (catch (andalso-semi-foo 2))))
 
-   (line (test-pat 'ok (andalso_semi_bar '(a b c))))
-   (line (test-pat 'ok (andalso_semi_bar 1)))
-   (line (test-pat (tuple 'EXIT (tuple (tuple 'case_clause _) _))
-		   (catch (andalso_semi_bar '(a b)))))
+   (line (test-pat 'ok (andalso-semi-bar '(a b c))))
+   (line (test-pat 'ok (andalso-semi-bar 1)))
+   (line (fc (catch (andalso-semi-bar '(a b)))))
    'ok))
 
-(defun andalso_semi_foo
+(defun andalso-semi-foo
   ([bar] (when (or (andalso (is_integer bar) (=:= bar 0)) (=:= bar 1)))
    'ok))
 
-(defun andalso_semi_bar
+(defun andalso-semi-bar
   ([bar] (when (or (andalso (is_list bar) (=:= (length bar) 3)) (=:= bar 1)))
    'ok))
 
-(defun tup_size				;Cannot redefine tuple_size
+(defun t_tuple_size				;Cannot redefine tuple_size
   ([config] (when (is_list config))
-   (line (test-pat 10 (do_tuple_size #(1 2 3 4))))
-   (line (test-pat (tuple 'EXIT (tuple (tuple 'case_clause _) _))
-		   (catch (do_tuple_size #(1 2 3)))))
-   (line (test-pat (tuple 'EXIT (tuple (tuple 'case_clause _) _))
-		   (catch (do_tuple_size 42))))
+   (line (test-pat 10 (do-tuple-size #(1 2 3 4))))
+   (line (fc (catch (do-tuple-size #(1 2 3)))))
+   (line (fc (catch (do-tuple-size 42))))
 
-   (line (test-pat 'error (ludicrous_tuple_size #(a b c))))
-   (line (test-pat 'error (ludicrous_tuple_size '(a b c))))
+   (line (test-pat 'error (ludicrous-tuple-size #(a b c))))
+   (line (test-pat 'error (ludicrous-tuple-size '(a b c))))
 
+   ;; Test the "unsafe case" - the register assigned the tuple size is
+   ;; not killed.
    ;; Compile case not relevant for LFE.
    'ok))
 
-(defun do_tuple_size
-  ((t) (when (=:= (tuple_size t) 4))
+(defun do-tuple-size
+  ([t] (when (=:= (tuple_size t) 4))
    (let (((tuple a b c d) t))
-     (+ (+ (+ a b) c) d))))
+     (+ a b c d))))
 
-(defun ludicrous_tuple_size
-  ((t) (when (=:= (tuple_size t) #x7777777777777777777777777777777777)) 'ok)
-  ((t) (when (=:= (tuple_size t) #x10000000000000000)) 'ok)
-  ((t) (when (=:= (tuple_size t) (- (bsl 1 64) 1))) 'ok)
-  ((t) (when (=:= (tuple_size t) #xFFFFFFFFFFFFFFFF)) 'ok)
-  ((_) 'error))
+(defun ludicrous-tuple-size
+  ([t] (when (=:= (tuple_size t) #x7777777777777777777777777777777777)) 'ok)
+  ([t] (when (=:= (tuple_size t) #x10000000000000000)) 'ok)
+  ([t] (when (=:= (tuple_size t) (- (bsl 1 64) 1))) 'ok)
+  ([t] (when (=:= (tuple_size t) #xFFFFFFFFFFFFFFFF)) 'ok)
+  ([_] 'error))
+
+(defmacro MASK-ERROR (e) `(mask-error (catch ,e)))
+(defun mask-error
+  ([(tuple 'EXIT (tuple err _))] err)
+  ([else] else))
+
+(defun binary_part
+  (['doc] '"Tests the binary_part/2,3 guard (GC) bif's")
+  ([config] (when (is_list config))
+   ;; This is more or less a copy of what the guard_SUITE in emulator
+   ;; does to cover the guard bif's
+   (line (test-pat 1 (bp-test #b(1 2 3))))
+   (line (test-pat 2 (bp-test #b(2 1 3))))
+   (line (test-pat 'error (bp-test #b(1))))
+   (line (test-pat 'error (bp-test #b())))
+   (line (test-pat 'error (bp-test 'apa)))
+   (line (test-pat 3 (bp-test #b(2 3 3))))
+
+   ;; With one variable (pos)
+   (line (test-pat 1 (bp-test #b(1 2 3) 1)))
+   (line (test-pat 2 (bp-test #b(2 1 3) 1)))
+   (line (test-pat 'error (bp-test #b(1) 1)))
+   (line (test-pat 'error (bp-test #b() 1)))
+   (line (test-pat 'error (bp-test 'apa 1)))
+   (line (test-pat 3 (bp-test #b(2 3 3) 1)))
+
+   ;; With one variable (length)
+   (line (test-pat 1 (bp-test-y #b(1 2 3) 1)))
+   (line (test-pat 2 (bp-test-y #b(2 1 3) 1)))
+   (line (test-pat 'error (bp-test-y #b(1) 1)))
+   (line (test-pat 'error (bp-test-y #b() 1)))
+   (line (test-pat 'error (bp-test-y 'apa 1)))
+   (line (test-pat 3 (bp-test-y #b(2 3 3) 2)))
+
+   ;; With one variable (whole tuple)
+   (line (test-pat 1 (bp-test-x #b(1 2 3) #(1 1))))
+   (line (test-pat 2 (bp-test-x #b(2 1 3) #(1 1))))
+   (line (test-pat 'error (bp-test-x #b(1) #(1 1))))
+   (line (test-pat 'error (bp-test-x #b() #(1 1))))
+   (line (test-pat 'error (bp-test-x 'apa #(1 1))))
+   (line (test-pat 3 (bp-test-x #b(2 3 3) #(1 2))))
+
+   ;; With two variables
+   (line (test-pat 1 (bp-test #b(1 2 3) 1 1)))
+   (line (test-pat 2 (bp-test #b(2 1 3) 1 1)))
+   (line (test-pat 'error (bp-test #b(1) 1 1)))
+   (line (test-pat 'error (bp-test #b() 1 1)))
+   (line (test-pat 'error (bp-test 'apa 1 1)))
+   (line (test-pat 3 (bp-test #b(2 3 3) 1 2)))
+
+   ;; Direct (autoimported) call, these will be evaluated by the compiler...
+   (line (test-pat #b(2) (binary_part #b(1 2 3) 1 1)))
+   (line (test-pat #b(1) (binary_part #b(2 1 3) 1 1)))
+
+   ;; Compiler warnings due to constant evaluation expected (3)
+   (line (test-pat 'badarg (MASK-ERROR (binary_part #b(1) 1 1))))
+   (line (test-pat 'badarg (MASK-ERROR (binary_part #b() 1 1))))
+   (line (test-pat 'badarg (MASK-ERROR (binary_part 'apa 1 1))))
+   (line (test-pat #b(3 3) (binary_part #b(2 3 3) 1 2)))
+
+   ;; Direct call through apply
+   (line (test-pat #b(2) (apply 'erlang 'binary_part '(#b(1 2 3) 1 1))))
+   (line (test-pat #b(1) (apply 'erlang 'binary_part '(#b(2 1 3) 1 1))))
+
+   ;; Constant propagation
+   (let ((bin #b(1 2 3)))
+     (line (test-pat 'ok (eif (=:= (binary_part bin 1 1) #b(2)) 'ok
+			      ;; Compiler warning, clause cannot match (expected)
+			      'true 'error)))
+     (line (test-pat 'ok (eif (=:= (binary_part bin #(1 1)) #b(2)) 'ok
+			      ;; Compiler warning, clause cannot match (expected)
+			      'true 'error))))
+
+   'ok))
+
+(defun bp-test
+  ([b] (when (=:= (length b) 137)) 1)
+  ([b] (when (=:= (binary_part b #(1 1)) #b(2))) 1)
+  ([b] (when (=:= (: erlang binary_part b 1 1) #b(1))) 2)
+  ([b] (when (=:= (: erlang binary_part b #(1 2)) #b(3 3))) 3)
+  ([_] 'error))
+
+(defun bp-test
+  ([b a] (when (=:= (length b) a)) 1)
+  ([b a] (when (=:= (binary_part b (tuple a 1)) #b(2))) 1)
+  ([b a] (when (=:= (: erlang binary_part b a 1) #b(1))) 2)
+  ([b a] (when (=:= (: erlang binary_part b (tuple a 2)) #b(3 3))) 3)
+  ([_ _] 'error))
+
+(defun bp-test-x
+  ([b a] (when (=:= (length b) a)) 1)
+  ([b a] (when (=:= (binary_part b a ) #b(2))) 1)
+  ([b a] (when (=:= (: erlang binary_part b a) #b(1))) 2)
+  ([b a] (when (=:= (: erlang binary_part b a) #b(3 3))) 3)
+  ([_ _] 'error))
+
+(defun bp-test-y
+  ([b a] (when (=:= (length b) a)) 1)
+  ([b a] (when (=:= (binary_part b (tuple 1 a)) #b(2))) 1)
+  ([b a] (when (=:= (: erlang binary_part b 1 a) #b(1))) 2)
+  ([b a] (when (=:= (: erlang binary_part b (tuple 1 a)) #b(3 3))) 3)
+  ([_ _] 'error))
+
+(defun bp-test
+  ([b a _] (when (=:= (length b) a)) 1)
+
+  ([b a c] (when (=:= (binary_part b (tuple a c)) #b(2))) 1)
+  ([b a c] (when (=:= (: erlang binary_part b a c) #b(1))) 2)
+  ([b a c] (when (=:= (: erlang binary_part b (tuple a c)) #b(3 3))) 3)
+  ([_ _ _] 'error))
 
 ;; Call this function to turn off constant propagation.
 (defun id (i) i)
@@ -1150,3 +1279,10 @@
      (: lfe_io format '"Expected: ~p\n" (list result))
      (: lfe_io format '"     Got: ~p\n" (list other))
      (: test_server fail))))
+
+(defun fc
+  ([(tuple 'EXIT (tuple 'function_clause))] 'ok)
+  ([(tuple 'EXIT (tuple (tuple 'case_clause _) _))] 'ok))
+
+;;  ([(tuple 'EXIT (tuple (tuple 'case_clause _) _))]
+;;   (when (=:= 'guard_SUITE 'guard_inline_SUITE)) 'ok))
