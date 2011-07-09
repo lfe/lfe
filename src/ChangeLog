@@ -1,3 +1,7 @@
+2011-07-09  Robert Virding  <rv@renat.local>
+
+	* lfe_trans.erl (from_bitseg): Fix handling of binaries.
+
 2011-07-02  Robert Virding  <rv@renat.local>
 
 	* lfe_eval.erl (match_binary): Fix handling of binary and pattern
