@@ -20,10 +20,19 @@
 
 %%% Purpose: Implements the qlc Parse Transform.
 
+%%% This file is qlc_pt.erl from R14B03 with the following changes:
+%%%
+%%% - Added interface functions expand/1/2 to use from LFE macro
+%%%   expander.
+%%% - Removed old interface functions and all functions which are now
+%%%   unused.
+%%% - Added fixes to undo_no_shadows1/1 and restore_line_numbers1/1 to
+%%%   compensate for bug in erl_scan:set_attr/3.
+
 -export([parse_transform/2, transform_from_evaluator/2, 
          transform_expression/2]).
 
--export([expand/1]).
+-export([expand/1,expand/2]).
 
 -include_lib("stdlib/include/ms_transform.hrl").
 
@@ -125,19 +134,26 @@ transform_expression(LC, Bindings) ->
       LC :: erl_parse:abstract_expr(),
       Expr :: erl_parse:abstract_expr()).
 
-expand(LC) ->
-    %%io:format("LC <- ~p\n", [LC]),
+%% expand(LC, Opts) -> {ok,Expr}.
+%%  Expand the list comprehension of a QLC into a call to qlc:q/2
+%%  together with the options. The LC is an Erlang AST and the options
+%%  is a list of AST's not an AST of a list.
+
+expand(LC) -> expand(LC, []).
+
+expand(LC, Opts) ->
     St = #state{imp=false,
 		maxargs=?EVAL_MAX_NUM_OF_ARGS,
 		records=[]},
-    QLC = ?QLC_Q(1, 1, 1, 1, LC, []),
+    QLC = ?QLC_Q(1, 1, 1, 1, LC, Opts),
+    %%io:format("QLC <- ~p\n", [QLC]),
     F = {function,1,foo,0,[{clause,1,[],[],[QLC]}]},
-    Fs0 = [{attribute,1,module,foo},F],
+    Fs0 = [{attribute,1,module,foo},F],		%Do we need full module?
     %% Fs0 = [F],
     Fs1 = no_shadows(Fs0, St),
     {Fs2,_} = transform(Fs1, St),
     {function,_,foo,0,[{clause,_,[],[],[Exp]}]} = lists:last(Fs2),
-    %%io:format("LC -> ~p\n", [Exp]),
+    %%io:format("QLC -> ~p\n", [Exp]),
     {ok,Exp}.
 
 %%%
@@ -2665,6 +2681,8 @@ undo_no_shadows1({var, L, _}=Var) ->
         {line,{nos,V,_VL}} ->
             NL = erl_parse:set_line(L, fun({nos,_V,VL}) -> VL end),
             undo_no_shadows1({var, NL, V});
+        %% Next clause added to fix error in erl_scan:set_attr/3. /RV
+        {line,Line} when is_integer(Line) -> setelement(2, Var, Line);
         _Else ->
             Var
     end.
@@ -2677,6 +2695,8 @@ restore_line_numbers1({var, L, V}=Var) ->
         {line,{nos,_,_}} ->
             NL = erl_parse:set_line(L, fun({nos,_V,VL}) -> VL end),
             restore_line_numbers1({var, NL, V});
+        %% Next clause added to fix error in erl_scan:set_attr/3. /RV
+        {line,Line} when is_integer(Line) -> setelement(2, Var, Line);
         _Else ->
             Var
     end.

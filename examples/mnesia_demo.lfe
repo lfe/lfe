@@ -87,9 +87,9 @@
 ;; Use Query List Comprehensions to match records
 (defun by_place_qlc (place)
   (let ((f (lambda ()
-	     (let ((q (qlc ((<- person (: mnesia table 'person))
-			    (=:= (person-place person) place))
-			   person)))
+	     (let ((q (qlc (lc ((<- person (: mnesia table 'person))
+				(=:= (person-place person) place))
+			     person))))
 	       (: qlc e q)))))
     (: mnesia transaction f)))
 

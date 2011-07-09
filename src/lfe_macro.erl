@@ -55,6 +55,8 @@
 
 -define(Q(E), [quote,E]).			%We do a lot of quoting!
 -define(BQ(E), [backquote,E]).
+-define(UQ(E), [unquote,E]).
+-define(UQ_S(E), ['unquote-splicing',E]).
 
 -record(mac, {expand=true,			%Expand everything
 	      vc=0,				%Variable counter
@@ -502,8 +504,6 @@ exp_macro([Name|_]=Call, Env, St) ->
 %%  it to argument list.
 
 exp_userdef_macro([Mac|Args], Def0, Env, St0) ->
-    %% lfe_io:format("udef: ~p\n", [[Mac|Args]]),
-    %% lfe_io:format("macro: ~p\n", [Def0]),
 %%	Exp = lfe_eval:apply(Def1, [Args], Env),
 %%	{Exp,St1}.
     try
@@ -525,7 +525,6 @@ exp_predef_macro(Call, Env, St) ->
     catch
 	error:Error ->
 	    St = erlang:get_stacktrace(),	%Return the stack trace
-	    lfe_io:format("pdef: ~p\n", [{Error,St}]),
 	    erlang:error({expand_macro,Call,{Error,St}})
     end.
 
@@ -754,22 +753,35 @@ exp_predef(['match-spec'|Body], Env, St0) ->
     {Exp,St1} = expand_ml_clauses(Body, Env, St0),
     MS = lfe_ms:expand(Exp),
     {yes,MS,St1};
-exp_predef([qlc,Qs|Es], Env, St0) ->
-    %% (qlc (qual ...) e ...)
-    %% Expand macro in the QLC before translating it preserving structure
-    {Eqs,St1} = exp_qlc_quals(Qs, Env, St0),
-    {Ees,St2} = expand_list(Es, Env, St1),
-    %% Now translate to vanilla AST, call qlc expand, convert back to LFE.
-    V0 = lfe_trans:to_vanilla([lc,Eqs|Ees], 42),
-    %% lfe_io:format("Q0 = ~p\n", [[lc,Eqs|Ees]]),
-    %% io:put_chars([erl_pp:expr(V0),"\n"]),
-    {ok,V1} = lfe_qlc:expand(V0),
-    %% io:put_chars([erl_pp:expr(V1),"\n"]),
-    Exp = lfe_trans:from_vanilla(V1),
-    %% lfe_io:format("Q1 = ~p\n", [Exp]),
-    {yes,Exp,St2};
+%% (qlc (lc (qual ...) e ...) opts)
+exp_predef([qlc,LC], Env, St) -> exp_qlc(LC, [], Env, St);
+exp_predef([qlc,LC,Opts], Env, St) -> exp_qlc(LC, [Opts], Env, St);
 %% This was not a call to a predefined macro.
 exp_predef(_, _, _) -> no.
+
+%% exp_qlc(LC, Opts, Env, State) -> {yes,Expansion,State}.
+%% Expand a Query List Comprehension returning a call to qlc:q/2. We
+%% first convert the LC into vanilla erlang AST, expand it using in
+%% lfe_qlc.erl, which ql_pt.erl with a special interface, then convert
+%% it back to LFE.
+
+exp_qlc([lc,Qs|Es], Opts, Env, St0) ->
+    %% Expand macros in the LC before translating it preserving
+    %% structure.
+    {Eqs,St1} = exp_qlc_quals(Qs, Env, St0),
+    {Ees,St2} = expand_list(Es, Env, St1),
+    %%lfe_io:format("Q0 = ~p\n", [[lc,Eqs|Ees]]),
+    %% Now translate to vanilla AST, call qlc expand, convert back to
+    %% LFE.  lfe_qlc:expand/2 wants a list of conversions not
+    %% a conversion of a list.
+    Vlc = lfe_trans:to_vanilla([lc,Eqs|Ees], 42),
+    Vos = map(fun (O) -> lfe_trans:to_vanilla(O, 42) end, Opts),
+    %% io:put_chars([erl_pp:expr(Vlc),"\n"]),
+    {ok,Vexp} = lfe_qlc:expand(Vlc, Vos),
+    %%io:put_chars([erl_pp:expr(Vexp),"\n"]),
+    Exp = lfe_trans:from_vanilla(Vexp),
+    %%lfe_io:format("Q1 = ~p\n", [Exp]),
+    {yes,Exp,St2}.
 
 exp_qlc_quals(Qs, Env, St) ->
     mapfoldl(fun (Q, S) -> exp_qlc_qual(Q, Env, S) end, St, Qs).
@@ -921,15 +933,12 @@ exp_defrecord(Name, Fdefs, Env, St0) ->
     {Fdef,St1} = exp_defrec_fields(Fields, Name, St0), %Name is element 1!
     Macs = [['defmacro',Make,fds,
 	     ['let',[[def,[list|Defs]]],
-	      [backquote,
-	       [tuple,?Q(Name),['unquote-splicing',[Fu,fds,def]]]]]],
+	      ?BQ([tuple,?Q(Name),?UQ_S([Fu,fds,def])])]],
 	    ['defmacro',Match,fds,
 	     ['let',[[def,[list|lists:duplicate(length(Fields),?Q('_'))]]],
-	      [backquote,
-	       [tuple,?Q(Name),['unquote-splicing',[Fu,fds,def]]]]]],
+	      ?BQ([tuple,?Q(Name),?UQ_S([Fu,fds,def])])]],
 	    ['defmacro',Test,[rec],
-	     [backquote,['is_record',[unquote,rec],
-			 [quote,Name],length(Fields)+1]]],
+	     ?BQ(['is_record',?UQ(rec),?Q(Name),length(Fields)+1])],
 	    ['defmacro',Set,
 	     [[cons,rec,fds],
 	      [fletrec,[[l,
@@ -943,8 +952,7 @@ exp_defrecord(Name, Fdefs, Env, St0) ->
 	       [l,fds,rec]]]],
 	    ['defmacro',EMP,fds,
 	      ['let',[[def,[list|lists:duplicate(length(Fields),?Q(?Q('_')))]]],
-	       [backquote,
-		[tuple,?Q(Name),['unquote-splicing',[Fu,fds,def]]]]]]
+	       ?BQ([tuple,?Q(Name),?UQ_S([Fu,fds,def])])]]
 	    |
 	    Fdef],
     %% lfe_io:format("~p\n", [{Funs,Macs}]),
@@ -962,9 +970,9 @@ exp_defrec_fields(Fs, Name, St) ->
     {foldr(fun ({F,N}, Fas) ->
 		   Get = list_to_atom(concat([Name,'-',F])),
 		   Set = list_to_atom(concat(['set-',Name,'-',F])),
-		   [[defmacro,Get,[rec],[backquote,[element,N,[unquote,rec]]]],
+		   [[defmacro,Get,[rec],?BQ([element,N,?UQ(rec)])],
 		    [defmacro,Set,[rec,new],
-		     [backquote,[setelement,N,[unquote,rec],[unquote,new]]]]|
+		     ?BQ([setelement,N,?UQ(rec),?UQ(new)])]|
 		    Fas]
 	   end, [], Fis), St}.
 
