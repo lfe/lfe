@@ -33,7 +33,9 @@
 
 -export([from_vanilla/1,to_vanilla/2]).
 
--import(lists, [map/2,foldl/3,foldr/3,splitwith/2]).
+-import(lists, [map/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3,splitwith/2]).
+
+-import(orddict, [new/0,find/2,store/3]).
 
 -define(Q(E), [quote,E]).			%We do a lot of quoting
 
@@ -54,8 +56,13 @@ from_expr({integer,_,I}) -> I;
 from_expr({float,_,F}) -> F;
 from_expr({atom,_,A}) -> ?Q(A);			%Must quote here
 from_expr({string,_,S}) -> ?Q(S);		%Must quote here
-from_expr({cons,_,H,T}) ->
-    [cons,from_expr(H),from_expr(T)];
+from_expr({cons,_,H0,T0}) ->
+    H = from_expr(H0),
+    case from_expr(T0) of			%Make it more elegant
+	[list|T] -> [list,H|T];
+	[] -> [list,H];
+	T -> [cons,H,T]
+    end;
 from_expr({tuple,_,Es}) ->
     [tuple|from_expr_list(Es)];
 from_expr({bin,_,Segs}) ->
@@ -169,9 +176,10 @@ from_bitsegs([]) -> [].
 from_bitseg_size(default) -> [];
 from_bitseg_size(Size) -> [[size,from_expr(Size)]].
 
-from_bitseg_type(_) -> [].
+from_bitseg_type(default) -> [];
+from_bitseg_type(Ts) ->
+    map(fun ({unit,U}) -> [unit,U]; (T) -> T end, Ts).
 
-from_bitseg({integer,_,I}, default, default) -> I;
 from_bitseg({integer,_,I}, Size, Type) ->
     [I|from_bitseg_type(Type) ++ from_bitseg_size(Size)];
 from_bitseg({float,_,F}, Size, Type) ->
@@ -198,88 +206,94 @@ from_pat({match,_,P1,P2}) ->			%Aliases
 from_pat_list(Ps) -> [ from_pat(P) || P <- Ps ].
 
 %% to_vanilla(Sexp, LineNumber) -> AST.
+%%  Convert an LFE sexpr to an vanilla AST. The only difficulty is the
+%%  handling of variables in (let ...). We assume that all macros have
+%%  been expanded EXCEPT lc which we need for QLC's.
 
 to_vanilla(S, L) ->
     %% Be very LOUD for the time being.
-    case catch {ok,to_expr(S, L)} of
+    case catch {ok,to_expr(S, L, new())} of
 	{ok,AST} -> AST;
 	Other ->
 	    io:format("BOOM: ~p\n", [Other]),
 	    error(Other)
     end.
 
-%% to_expr(Expr, LineNumber) -> Expr.
+%% to_expr(Expr, LineNumber, Vars) -> Expr.
 
-to_expr([], L) -> {nil,L};
-to_expr(I, L) when is_integer(I) -> {integer,L,I};
-to_expr(F, L) when is_float(F) -> {float,L,F};
-to_expr(V, L) when is_atom(V) -> {var,L,V};	%Unquoted atom
-to_expr(T, L) when is_tuple(T) ->
-    {tuple,L,to_expr_list(tuple_to_list(T), L)};
-to_expr(?Q(V), L) -> to_lit(V, L);
-to_expr([cons,H,T], L) ->
-    {cons,L,to_expr(H, L),to_expr(T, L)};
-to_expr([car,E], L) -> {call,L,{atom,L,hd},[to_expr(E, L)]};
-to_expr([cdr,E], L) -> {call,L,{atom,L,tl},[to_expr(E, L)]};
-to_expr([list|Es], L) ->
-    foldr(fun (E, T) -> {cons,L,to_expr(E, L),T} end, {nil,L}, Es);
-to_expr(['list*'|Es], L) ->			%Macro
-    to_list_s(Es, L, fun to_expr/2);
-to_expr([tuple|Es], L) ->
-    {tuple,L,to_expr_list(Es, L)};
-to_expr([binary|Segs], L) ->
-    {bin,L,to_bitsegs(Segs, L)};
+to_expr([], L, _) -> {nil,L};
+to_expr(I, L, _) when is_integer(I) -> {integer,L,I};
+to_expr(F, L, _) when is_float(F) -> {float,L,F};
+to_expr(V, L, Vs) when is_atom(V) ->		%Unquoted atom
+    {var,L,var_name(V, Vs)};
+to_expr(T, L, Vs) when is_tuple(T) ->
+    {tuple,L,to_expr_list(tuple_to_list(T), L, Vs)};
+to_expr(?Q(V), L, _) -> to_lit(V, L);
+to_expr([cons,H,T], L, Vs) ->
+    {cons,L,to_expr(H, L, Vs),to_expr(T, L, Vs)};
+to_expr([car,E], L, Vs) -> {call,L,{atom,L,hd},[to_expr(E, L, Vs)]};
+to_expr([cdr,E], L, Vs) -> {call,L,{atom,L,tl},[to_expr(E, L, Vs)]};
+to_expr([list|Es], L, Vs) ->
+    foldr(fun (E, T) -> {cons,L,to_expr(E, L, Vs),T} end, {nil,L}, Es);
+to_expr([tuple|Es], L, Vs) ->
+    {tuple,L,to_expr_list(Es, L, Vs)};
+to_expr([binary|Segs], L, Vs) ->
+    {bin,L,to_bitsegs(Segs, L, Vs)};
 %% Core closure special forms.
-to_expr([lambda,As|B], L) ->
-    {'fun',L,{clauses,[to_fun_cl([As|B], L)]}};
-to_expr(['match-lambda'|Cls], L) ->
-    {'fun',L,{clauses,to_fun_cls(Cls, L)}};
-to_expr(['fun',F,A], L) -> {'fun',L,{function,F,A}};
-to_expr(['fun',M,F,A], L) -> {'fun',L,{function,M,F,A}};
-to_expr(['let',Lbs0|B0], L) ->
-    Lbs1 = to_let_bindings(Lbs0, L),
-    B1 = to_body(B0, L),
+to_expr([lambda,As|B], L, Vs) ->
+    {'fun',L,{clauses,[to_fun_cl([As|B], L, Vs)]}};
+to_expr(['match-lambda'|Cls], L, Vs) ->
+    {'fun',L,{clauses,to_fun_cls(Cls, L, Vs)}};
+to_expr(['fun',F,A], L, _) -> {'fun',L,{function,F,A}};
+to_expr(['fun',M,F,A], L, _) -> {'fun',L,{function,M,F,A}};
+to_expr(['let',Lbs0|B0], L, Vs0) ->
+    {Lbs1,Vs1} = to_let_bindings(Lbs0, L, Vs0),
+    B1 = to_body(B0, L, Vs1),
     {block,L,Lbs1 ++ B1};
 %% Core control special forms.
-to_expr([progn|B], L) -> to_block(B, L);
-to_expr(['if',Test,True], L) ->
-    to_expr(['if',Test,True,?Q(false)], L);
-to_expr(['if',Test,True,False], L) ->
-    {'case',L,to_expr(Test, L),
-     to_icrt_cls([[?Q(true),True],[?Q(false),False]], L)};
-to_expr(['case',E|Cls], L) ->
-    {'case',L,to_expr(E, L),to_icrt_cls(Cls, L)};
-to_expr(['receive'|Cls0], L) ->
+to_expr([progn|B], L, Vs) -> to_block(B, L, Vs);
+to_expr(['if',Test,True], L, Vs) ->
+    to_expr(['if',Test,True,?Q(false)], L, Vs);
+to_expr(['if',Test,True,False], L, Vs) ->
+    {'case',L,to_expr(Test, L, Vs),
+     to_icrt_cls([[?Q(true),True],[?Q(false),False]], L, Vs)};
+to_expr(['case',E|Cls], L, Vs) ->
+    {'case',L,to_expr(E, L, Vs),to_icrt_cls(Cls, L, Vs)};
+to_expr(['receive'|Cls0], L, Vs) ->
     %% Get the right receive form depending on whether there is an after.
     {Cls1,A} = splitwith(fun (['after'|_]) -> false; (_) -> true end, Cls0),
     case A of
 	[['after',T|B]] ->
-	    {'receive',L,to_icrt_cls(Cls1, L),to_expr(T, L),to_body(B, L)};
+	    {'receive',L,to_icrt_cls(Cls1, L, Vs),
+	     to_expr(T, L, Vs),to_body(B, L, Vs)};
 	[] ->
-	    {'receive',L,to_icrt_cls(Cls1, L)}
+	    {'receive',L,to_icrt_cls(Cls1, L, Vs)}
     end;
 %% Special known macros.
 %% No record stuff here as they are macros which have been expanded.
-to_expr([lc,Qs0|Es], L) ->
-    Qs1 = to_lc_quals(Qs0, L),
-    {lc,L,to_block(Es, L),Qs1};
+%% Only lc for QLC.
+to_expr([lc,Qs0|Es], L, Vs0) ->
+    {Qs1,Vs1} = to_lc_quals(Qs0, L, Vs0),
+    {lc,L,to_block(Es, L, Vs1),Qs1};
 %% General function calls.
-to_expr([call,?Q(erlang),?Q(F)|As], L) ->
+to_expr([call,?Q(erlang),?Q(F)|As], L, Vs) ->
     %% This is semantically the same but some tools behave differently
     %% (qlc_pt).
     case is_erl_op(F, length(As)) of
-	true -> list_to_tuple([op,L,F|to_expr_list(As, L)]);
+	true -> list_to_tuple([op,L,F|to_expr_list(As, L, Vs)]);
 	false ->
-	    {call,L,{remote,{atom,L,erlang},{atom,L,F}},to_expr_list(As, L)}
+	    {call,L,{remote,{atom,L,erlang},{atom,L,F}},
+	     to_expr_list(As, L, Vs)}
     end;
-to_expr([call,M,F|As], L) ->
-    {call,L,{remote,L,to_expr(M, L),to_expr(F, L)},to_expr_list(As, L)};
-to_expr([F|As], L) when is_atom(F) ->		%General function call
+to_expr([call,M,F|As], L, Vs) ->
+    {call,L,{remote,L,to_expr(M, L, Vs),to_expr(F, L, Vs)},
+     to_expr_list(As, L, Vs)};
+to_expr([F|As], L, Vs) when is_atom(F) ->	%General function call
     case is_erl_op(F, length(As)) of
-	true -> list_to_tuple([op,L,F|to_expr_list(As, L)]);
-	false -> {call,L,{atom,L,F},to_expr_list(As, L)}
+	true -> list_to_tuple([op,L,F|to_expr_list(As, L, Vs)]);
+	false -> {call,L,{atom,L,F},to_expr_list(As, L, Vs)}
     end;
-to_expr(List, L) ->
+to_expr(List, L, _) ->
     case is_integer_list(List) of
 	true -> {string,L,List};
 	false ->
@@ -297,81 +311,94 @@ is_erl_op(Op, Ar) ->
 	orelse erl_internal:list_op(Op, Ar)
 	orelse erl_internal:send_op(Op, Ar).
 
-to_body(Es, L) -> [ to_expr(E, L) || E <- Es ].
+to_body(Es, L, Vs) -> [ to_expr(E, L, Vs) || E <- Es ].
 
-to_expr_list(Es, L) -> [ to_expr(E, L) || E <- Es ].
+to_expr_list(Es, L, Vs) -> [ to_expr(E, L, Vs) || E <- Es ].
 
-to_list_s([E], L, F) -> F(E, L);
-to_list_s([E|Es], L, F) ->
-    {cons,L,F(E, L),to_list_s(Es, L, F)};
-to_list_s([], L, _) -> {nil,L}.
+to_list_s([E], L, Vs, F) -> F(E, L, Vs);
+to_list_s([E|Es], L, Vs, F) ->
+    {cons,L,F(E, L, Vs),to_list_s(Es, L, Vs, F)};
+to_list_s([], L, _, _) -> {nil,L}.
 
-%% to_block(Expressions, LineNumber) -> Block.
+%% to_block(Expressions, LineNumber, Vars) -> Block.
 %% Don't generate {block,...} if only one expression, though
 %% semantically the same some tools can't handle it (qlc_pt).
 
-to_block(Es0, L) ->
-    case to_expr_list(Es0, L) of
+to_block(Es0, L, Vs) ->
+    case to_expr_list(Es0, L, Vs) of
 	[E] -> E;				%No need to wrap
 	Es1 -> {block,L,Es1}			%Must wrap
     end.
 
-%% to_let_bindings(Bindings, LineNumber) -> Block.
+%% to_let_bindings(Bindings, LineNumber, Vars) -> {Block,Vars}.
 
-to_let_bindings(Lbs, L) ->
-    map(fun ([P,V]) -> {match,L,to_pat(P, L),to_expr(V, L)} end, Lbs).
+to_let_bindings(Lbs, L, Vs) ->
+    F = fun ([P0,V0], Vs0) ->
+		{P1,Vs1} = to_pat(P0, L, Vs0),
+		%% The expression doesn't see new bindings.
+		{{match,L,P1,to_expr(V0, L, Vs0)},Vs1}
+	end,
+    mapfoldl(F, Vs, Lbs).
 
-%% to_icrt_cls(Clauses, LineNumber) -> Clauses.
-%% to_icrt_cl(Clause, LineNumber) -> Clause.
+%% to_icrt_cls(Clauses, LineNumber, Vars) -> Clauses.
+%% to_icrt_cl(Clause, LineNumber, Vars) -> Clause.
 %%  If/case/receive/try clauses.
 
-to_icrt_cls(Cls, L) ->
-    lists:map(fun (Cl) -> to_icrt_cl(Cl, L) end, Cls).
+to_icrt_cls(Cls, L, Vs) ->
+    lists:map(fun (Cl) -> to_icrt_cl(Cl, L, Vs) end, Cls).
 
-to_icrt_cl([P,['when'|G]|B], L) ->
-    {clause,L,[to_pat(P, L)],to_body(G, L),to_body(B, L)};
-to_icrt_cl([P|B], L) ->
-    {clause,L,[to_pat(P, L)],[],to_body(B, L)}.
+to_icrt_cl([P0,['when'|G]|B], L, Vs0) ->
+    {P1,Vs1} = to_pat(P0, L, Vs0),
+    {clause,L,[P1],to_body(G, L, Vs1),to_body(B, L, Vs1)};
+to_icrt_cl([P0|B], L, Vs0) ->
+    {P1,Vs1} = to_pat(P0, L, Vs0),
+    {clause,L,[P1],[],to_body(B, L, Vs1)}.
 
-%% to_fun_cls(Clauses, LineNumber) -> Clauses.
-%% to_fun_cl(Clause, LineNumber) -> Clause.
+%% to_fun_cls(Clauses, LineNumber, Vars) -> Clauses.
+%% to_fun_cl(Clause, LineNumber, Vars) -> Clause.
 %%  Function clauses.
 
-to_fun_cls(Cls, L) ->
-    lists:map(fun (Cl) -> to_fun_cl(Cl, L) end, Cls).
+to_fun_cls(Cls, L, Vs) ->
+    lists:map(fun (Cl) -> to_fun_cl(Cl, L, Vs) end, Cls).
 
-to_fun_cl([As,['when'|G]|B], L) ->
-    {clause,L,to_pat_list(As, L),to_body(G, L),to_body(B, L)};
-to_fun_cl([As|B], L) ->
-    {clause,L,to_pat_list(As, L),[],to_body(B, L)}.
+to_fun_cl([As0,['when'|G]|B], L, Vs0) ->
+    {As1,Vs1} = to_pat_list(As0, L, Vs0),
+    {clause,L,As1,to_body(G, L, Vs1),to_body(B, L, Vs1)};
+to_fun_cl([As0|B], L, Vs0) ->
+    {As1,Vs1} = to_pat_list(As0, L, Vs0),
+    {clause,L,As1,[],to_body(B, L, Vs1)}.
 
-%% to_lc_quals(Qualifiers, LineNumber) -> Qualifiers
+%% to_lc_quals(Qualifiers, LineNumber, Vars) -> {Qualifiers,Vars}
 
-to_lc_quals([['<-',P,E]|Qs], L) ->
-    [{generate,L,to_pat(P, L),to_expr(E, L)}|to_lc_quals(Qs, L)];
-to_lc_quals([['<-',P,['when'|G],E]|Qs], L) ->
-    to_lc_quals([['<-',P,E]|G ++ Qs], L);	%Move guards to tests
-to_lc_quals([T|Qs], L) ->
-    [to_expr(T, L)|to_lc_quals(Qs, L)];
-to_lc_quals([], _) -> [].
+to_lc_quals([['<-',P0,E]|Qs0], L, Vs0) ->
+    {P1,Vs1} = to_pat(P0, L, Vs0),
+    G = {generate,L,P1,to_expr(E, L, Vs0)},
+    {Qs1,Vs2} = to_lc_quals(Qs0, L, Vs1),
+    {[G|Qs1],Vs2};
+to_lc_quals([['<-',P,['when'|G],E]|Qs], L, Vs) ->
+    to_lc_quals([['<-',P,E]|G ++ Qs], L, Vs);	%Move guards to tests
+to_lc_quals([T|Qs0], L, Vs0) ->
+    {Qs1,Vs1} = to_lc_quals(Qs0, L, Vs0),
+    {[to_expr(T, L, Vs0)|Qs1],Vs1};
+to_lc_quals([], _, Vs) -> {[],Vs}.
 
-%% to_bitsegs(Segs, LineNumber) -> Segs.
+%% to_bitsegs(Segs, LineNumber, Vars) -> Segs.
 %% This gives a verbose value, but it is correct.
 
-to_bitsegs(Ss, L) -> map(fun (S) -> to_bitseg(S, L) end, Ss).
+to_bitsegs(Ss, L, Vs) -> map(fun (S) -> to_bitseg(S, L, Vs) end, Ss).
 
-to_bitseg([Val|Specs]=F, L) ->
+to_bitseg([Val|Specs]=F, L, Vs) ->
     case is_integer_list(F) of
 	true ->
 	    {Size,Type} = to_bitspecs([]),
-	    to_bin_element({string,L,F},to_expr(Size, L), Type, L);
+	    to_bin_element({string,L,F},to_expr(Size, L, Vs), Type, L);
 	false ->
 	    {Size,Type} = to_bitspecs(Specs),
-	    to_bin_element(to_expr(Val, L),to_expr(Size, L), Type, L)
+	    to_bin_element(to_expr(Val, L, Vs),to_expr(Size, L, Vs), Type, L)
     end;
-to_bitseg(Val, L) ->
+to_bitseg(Val, L, Vs) ->
     {Size,Type} = to_bitspecs([]),
-    to_bin_element(to_expr(Val, L),to_expr(Size, L), Type, L).
+    to_bin_element(to_expr(Val, L, Vs),to_expr(Size, L, Vs), Type, L).
 
 to_bin_element(Val, Size, {Type,Unit,Sign,End}, L) ->
     {bin_element,L,Val,Size,[Type,{unit,Unit},Sign,End]}.
@@ -385,27 +412,37 @@ to_bitspecs(Ss) ->
 	{error,Error} -> erlang:error(Error)
     end.
 
-%% to_pat(Pattern, LineNumber) -> Pattern.
+%% to_pat(Pattern, LineNumber, Vars) -> {Pattern,Vars}.
 
-to_pat([], L) -> {nil,L};
-to_pat(I, L) when is_integer(I) -> {integer,L,I};
-to_pat(F, L) when is_float(F) -> {float,L,F};
-to_pat(V, L) when is_atom(V) -> {var,L,V};	%Unquoted atom
-to_pat(T, L) when is_tuple(T) ->		%Tuple literal
+to_pat([], L, Vs) -> {{nil,L},Vs};
+to_pat(I, L, Vs) when is_integer(I) -> {{integer,L,I},Vs};
+to_pat(F, L, Vs) when is_float(F) -> {{float,L,F},Vs};
+to_pat(V0, L, Vs0) when is_atom(V0) ->		%Unquoted atom
+    {V1,Vs1} = new_var_name(V0, Vs0),
+    {{var,L,V1},Vs1};
+to_pat(T, L, _) when is_tuple(T) ->		%Tuple literal
     {tuple,L,to_lit_list(tuple_to_list(T), L)};
-to_pat(?Q(P), L) -> to_lit(P, L);		%Everything quoted here
-to_pat([cons,H,T], L) ->
-    {cons,L,to_pat(H, L),to_pat(T, L)};
-to_pat([list|Es], L) ->
-    foldr(fun (E, T) -> {cons,L,to_pat(E, L),T} end, {nil,L}, Es);
-to_pat(['list*'|Es], L) ->
-    to_list_s(Es, L, fun to_pat/2);
-to_pat([tuple|Es], L) ->
-    {tuple,L,to_pat_list(Es, L)};
-to_pat(['=',P1,P2], L) ->			%Alias
-    {match,L,to_pat(P1, L),to_pat(P2, L)}.
+to_pat(?Q(P), L, Vs) -> {to_lit(P, L),Vs};	%Everything quoted here
+to_pat([cons,H0,T0], L, Vs0) ->
+    {H1,Vs1} = to_pat(H0, L, Vs0),
+    {T1,Vs2} = to_pat(T0, L, Vs1),
+    {{cons,L,H1,T1},Vs2};
+to_pat([list|Ps], L, Vs) ->
+    F = fun (P0, {T,Vs0}) ->
+		{P1,Vs1} = to_pat(P0, L, Vs0),
+		{{cons,L,P1,T},Vs1}
+	end,
+    foldr(F, {{nil,L},Vs}, Ps);
+to_pat([tuple|Ps0], L, Vs0) ->
+    {Ps1,Vs1} = to_pat_list(Ps0, L, Vs0),
+    {{tuple,L,Ps1},Vs1};
+to_pat(['=',P1,P2], L, Vs0) ->			%Alias
+    {P11,Vs1} = to_pat(P1, L, Vs0),
+    {P21,Vs2} = to_pat(P2, L, Vs1),
+    {{match,L,P11,P21},Vs2}.
 
-to_pat_list(Ps, L) -> [ to_pat(P, L) || P <- Ps ].
+to_pat_list(Ps, L, Vs) ->
+    mapfoldl(fun (P, Vs0) -> to_pat(P, L, Vs0) end, Vs, Ps).
 
 to_lit([], L) -> {nil,L};
 to_lit(I, L) when is_integer(I) -> {integer,L,I};
@@ -422,3 +459,25 @@ is_integer_list([I|Is]) when is_integer(I) ->
     is_integer_list(Is);
 is_integer_list([]) -> true;
 is_integer_list(_) -> false.
+
+%% var_name(Var, Vars) -> Var.
+%% new_var_name(Var, Vars) -> {Var,Vars}.
+%%  New_var_name is used in patterns and always generates a new unused
+%%  var name. This so we don't have to know all vars which we may be
+%%  shadowing.
+
+var_name(V, Vs) ->
+    case find(V, Vs) of
+	{ok,V1} -> V1;
+	error -> V
+    end.
+
+new_var_name(Base, Vs) ->
+    case find(Base, Vs) of
+	{ok,V} ->
+	    V1 = list_to_atom(lists:concat([V,'_'])),
+	    {V1,store(Base, V1, Vs)};
+	error ->
+	    V1 = list_to_atom(lists:concat(['_',Base,'_'])),
+	    {V1,store(Base, V1, Vs)}
+    end.
