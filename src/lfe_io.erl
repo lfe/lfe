@@ -145,19 +145,12 @@ print1(_, 0) -> "...";
 print1(Symb, _) when is_atom(Symb) -> print1_symb(Symb);
 print1(Numb,_ ) when is_integer(Numb) -> integer_to_list(Numb);
 print1(Numb, _) when is_float(Numb) -> io_lib_format:fwrite_g(Numb);
-print1([E|Es], D) ->
-    if D =:= 1 -> "(...)";			%This looks much better
-       true ->
-	    [$(,print1(E, D-1),print1_tail(Es, D-1),$)]
-    end;
-print1([], _) -> "()";
+print1(List, D) when is_list(List) ->
+    [$(,print1_list(List, D-1),$)];
 print1({}, _) -> "#()";
 print1(Vec, D) when is_tuple(Vec) ->
-    if D =:= 1 -> "#(...)";			%This looks much better
-       true ->
-	    [E|Es] = tuple_to_list(Vec),
-	    ["#(",print1(E, D-1),print1_tail(Es, D-1),")"]
-    end;
+    Es = tuple_to_list(Vec),
+    ["#(",print1_list(Es, D-1),")"];
 print1(Bit, _) when is_bitstring(Bit) ->
     ["#B(",print1_bits(Bit),$)];
 print1(Other, D) ->				%Use standard Erlang for rest
@@ -189,14 +182,23 @@ print1_bits(Bits, _) ->				%0 < Size < 8
     <<B:N>> = Bits,
     io_lib:format("(~w (size ~w))", [B,N]).
 
+%% print1_list(List, Depth) -> Chars.
+%% Print the elements in a list. We handle the empty list and depth=0.
+
+print1_list([], _) -> [];
+print1_list(_, 0) -> "...";
+print1_list([Car|Cdr], D) ->
+    [print1(Car, D)|print1_tail(Cdr, D-1)].
+
 %% print1_tail(Tail, Depth)
-%% Print the tail of a list. We know about dotted pairs.
+%% Print the tail of a list decrasing the depth for each element. We
+%% know about dotted pairs.
 
 print1_tail([], _) -> "";
-print1_tail(_, 1) -> " ...";
+print1_tail(_, 0) -> " ...";
 print1_tail([S|Ss], D) ->
-    [$\s,print1(S, D-1)|print1_tail(Ss, D-1)];
-print1_tail(S, D) -> [" . "|print1(S, D-1)].
+    [$\s,print1(S, D)|print1_tail(Ss, D-1)];
+print1_tail(S, D) -> [" . "|print1(S, D)].
 
 %% quote_symbol(Symbol, SymbChars) -> bool().
 %% Check if symbol needs to be quoted when printed. If it can read as
