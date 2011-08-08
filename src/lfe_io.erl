@@ -278,18 +278,23 @@ prettyprint1(S, D) -> lfe_io_pretty:print1(S, D, 0, 80).
 prettyprint1(S, D, I) -> lfe_io_pretty:print1(S, D, I, 80).
 prettyprint1(S, D, I, L) -> lfe_io_pretty:print1(S, D, I, L).
 
-%% format([IoDevice,] Format, Data) -> ok.
-%% fwrite([IoDevice,] Format, Data) -> ok.
-%% format1(Format, Data) -> [char()].
-%% fwrite1(Format, Data) -> [char()].
+%% format([IoDevice,] Format, Args) -> ok.
+%% fwrite([IoDevice,] Format, Args) -> ok.
+%% format1(Format, Args) -> [char()].
+%% fwrite1(Format, Args) -> [char()].
 %%  External interface to the formated output functions.
 
-format(F, D) -> format(standard_io, F, D).
-format(Io, F, D) -> io:put_chars(Io, format1(F, D)).
+format(F, As) -> format(standard_io, F, As).
+format(Io, F, As) -> io:put_chars(Io, format1(F, As)).
 
-format1(F, D) -> lfe_io_format:format1(F, D).
+format1(F, As) -> fwrite1(F, As).
 
-fwrite(F, D) -> fwrite(standard_io, F, D).
-fwrite(Io, F, D) -> io:put_chars(Io, fwrite1(F, D)).
+fwrite(F, As) -> fwrite(standard_io, F, As).
+fwrite(Io, F, As) -> io:put_chars(Io, fwrite1(F, As)).
 
-fwrite1(F, D) -> lfe_io_format:fwrite1(F, D).
+fwrite1(F, As) ->
+    case catch lfe_io_format:fwrite1(F, As) of
+	{'EXIT',_} ->				%Something went wrong
+	    erlang:error(badarg, [F,As]);	%Signal from here
+	Result -> Result
+    end.
