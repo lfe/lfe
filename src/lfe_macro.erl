@@ -36,7 +36,7 @@
 -export([expand_expr/2,expand_expr_1/2,expand_expr_all/2]).
 
 %% These work on list of forms in "file format".
--export([expand_forms/1,expand_forms/2,macro_forms/2]).
+-export([expand_forms/2,macro_forms/2,format_error/1]).
 
 -export([mbe_syntax_rules_proc/4,mbe_syntax_rules_proc/5,
 	 mbe_match_pat/3,mbe_get_bindings/3,mbe_expand_pattern/3]).
@@ -60,9 +60,17 @@
 
 -record(mac, {expand=true,			%Expand everything
 	      vc=0,				%Variable counter
-	      fc=0}).				%Function counter
+	      fc=0,				%Function counter
+	      errors=[],			%Errors
+	      warnings=[]			%Warnings
+	     }).
 
-default_exps() -> new_env().
+%% Errors
+format_error({bad_form,Type}) ->
+    lfe_io:format1("bad form: ~w", [Type]);
+format_error({expand_macro,Call,_}) ->
+    %% Can be very big so only print limited depth.
+    lfe_io:format1("error expanding ~W", [Call,7]).
 
 %% expand_expr(Form, Env) -> {yes,Exp} | no.
 %% expand_expr_1(Form, Env) -> {yes,Exp} | no.
@@ -77,17 +85,22 @@ expand_expr_1([Name|_]=Call, Env) when is_atom(Name) ->
     end;
 expand_expr_1(_, _) -> no.
 
-expand_expr(Form, Env) ->
-    case expand_expr_1(Form, Env) of
-	{yes,Exp} -> {yes,expand_expr_loop(Exp, Env)};
+expand_expr([Name|_]=Call, Env) when is_atom(Name) ->
+    St0 = #mac{expand=false},			%Default state
+    case exp_macro(Call, Env, St0) of
+	{yes,Exp0,St1} ->
+	    {Exp1,_} = expand_expr_loop(Exp0, Env, St1),
+	    {yes,Exp1};
 	no -> no
-    end.
+    end;
+expand_expr(_, _) -> no.
 
-expand_expr_loop(Form, Env) ->
-    case expand_expr_1(Form, Env) of
-	{yes,Exp} -> expand_expr_loop(Exp, Env);
-	no -> Form
-    end.
+expand_expr_loop([Name|_]=Call, Env, St0) when is_atom(Name) ->
+    case exp_macro(Call, Env, St0) of
+	{yes,Exp,St1} -> expand_expr_loop(Exp, Env, St1);
+	no -> {Call,St0}
+    end;
+expand_expr_loop(E, _, St) -> {E,St}.
 
 %% expand_expr_all(From, Env) -> Exp.
 %%  Expand all the macros in an expression.
@@ -96,27 +109,26 @@ expand_expr_all(F, Env) ->
     {Ef,_} = expand(F, Env, #mac{expand=true}),
     Ef.
 
-%% expand_forms(FileForms) -> FileForms.
 %% expand_forms(FileForms, Env) -> {FileForms,Env}.
-%%  Expand forms in "file format", {Form,LineNumber}. When we pass an
-%%  environment in we get back an updated one.
+%%  Expand forms in "file format", {Form,LineNumber}.
 
-expand_forms(Fs0) ->
-    {Fs1,_} = expand_forms(Fs0, default_exps()),
-    Fs1.
-
-expand_forms(Fs0, Env0) ->
-    {Fs1,Env1,_} = pass(Fs0, Env0, #mac{expand=true}),
-    {Fs1,Env1}.
+expand_forms(Fs, Env) ->
+    do_forms(Fs, Env, true).
 
 %% macro_forms(FileForms, Env) -> {FileForms,Env}.
 %%  Collect, and remove, all macro definitions in a list of forms. All
 %%  top level macro calls are also expanded and any new macro
 %%  definitions are collected.
 
-macro_forms(Fs0, Env0) ->
-    {Fs1,Env1,_} = pass(Fs0, Env0, #mac{expand=false}),
-    {Fs1,Env1}.
+macro_forms(Fs, Env) ->
+    do_forms(Fs, Env, false).
+
+do_forms(Fs0, Env0, Expand) ->
+    {Fs1,Env1,St} = pass(Fs0, Env0, #mac{expand=Expand}),
+    case St#mac.errors of
+	[] -> {ok,Fs1,Env1,St#mac.warnings};	%No errors
+	Es -> {error,Es,St#mac.warnings}
+    end.
 
 %% pass(FileForms, Env, State) -> {FileForms,Env,State}.
 %%  Pass over a list of fileforms, {Form,Line}, collecting and
@@ -133,22 +145,19 @@ pass([{['eval-when-compile'|Ewcs0],L}|Fs0], Env0, St0) ->
     {Fs1,Env2,St2} = pass(Fs0, Env1, St1),
     {[{['progn'|Ecws1],L}|Fs1],Env2,St2};
 pass([{['define-macro'|Def]=F,L}|Fs0], Env0, St0) ->
-    case define_macro(Def, Env0, St0) of
+    case pass_define_macro(Def, L, Env0, St0) of
 	{yes,Env1,St1} -> pass(Fs0, Env1, St1);
-	no ->
+	{no,St1} ->
 	    %% Ignore it and pass it on to generate error later.
-	    {Fs1,Env1,St1} = pass(Fs0, Env0, St0),
-	    {[{F,L}|Fs1],Env1,St1}
+	    {Fs1,Env1,St2} = pass(Fs0, Env0, St1),
+	    {[{F,L}|Fs1],Env1,St2}
     end;
 pass([{F,L}|Fs0], Env0, St0) ->
-    %% First expand enough to test top form, if so process again.
-    case expand_expr(F, Env0) of
-	{yes,Exp} -> pass([{Exp,L}|Fs0], Env0, St0);
-	no -> 
-	    %% Expand all if flag set.
-	    {F1,St1} = if St0#mac.expand -> expand(F, Env0, St0);
-			  true -> {F,St0}
-		       end,
+    %% First expand enough to test top form, else maybe expand all.
+    case pass_expand_expr(F, L, Env0, St0, St0#mac.expand) of
+	{yes,Exp,St1} ->			%Top form expanded
+	    pass([{Exp,L}|Fs0], Env0, St1);
+	{no,F1,St1} -> 				%Expanded all if flag set
 	    {Fs1,Env1,St2} = pass(Fs0, Env0, St1),
 	    {[{F1,L}|Fs1],Env1,St2}
     end;
@@ -169,22 +178,19 @@ pass_progn([['eval-when-compile'|Ewcs0]|Fs0], L, Env0, St0) ->
     {Fs1,Env2,St2} = pass_progn(Fs0, L, Env1, St1),
     {[['progn'|Ecws1]|Fs1],Env2,St2};
 pass_progn([['define-macro'|Def]=F|Fs0], L, Env0, St0) ->
-    case define_macro(Def, Env0, St0) of
+    case pass_define_macro(Def, L, Env0, St0) of
 	{yes,Env1,St1} -> pass_progn(Fs0, L, Env1, St1);
-	no ->
+	{no,St1} ->
 	    %% Ignore it and pass it on to generate error later.
-	    {Fs1,Env1,St1} = pass_progn(Fs0, L, Env0, St0),
-	    {[F|Fs1],Env1,St1}
+	    {Fs1,Env1,St2} = pass_progn(Fs0, L, Env0, St1),
+	    {[F|Fs1],Env1,St2}
     end;
 pass_progn([F|Fs0], L, Env0, St0) ->
     %% First expand enough to test top form, if so process again.
-    case expand_expr(F, Env0) of
-	{yes,Exp} -> pass_progn([Exp|Fs0], L, Env0, St0);
-	no -> 
-	    %% Expand all if flag set.
-	    {F1,St1} = if St0#mac.expand -> expand(F, Env0, St0);
-			  true -> {F,St0}
-		       end,
+    case pass_expand_expr(F, L, Env0, St0, St0#mac.expand) of
+	{yes,Exp,St1} ->			%Top form expanded
+	    pass_progn([Exp|Fs0], L, Env0, St1);
+	{no,F1,St1} -> 				%Expanded all if flag set
 	    {Fs1,Env1,St2} = pass_progn(Fs0, L, Env0, St1),
 	    {[F1|Fs1],Env1,St2}
     end;
@@ -195,8 +201,8 @@ pass_progn([], _, Env, St) -> {[],Env,St}.
 %%  defintions. All forms must be expanded at top-level to check
 %%  form. Nesting of forms by progn is preserved. All functions are
 %%  put into one letrec structure in environment so they are mutally
-%%  recursive. They can call functions in previously defined
-%%  eval-when-compile's.
+%%  recursive, while unrecognised forms are returned. They can call
+%%  functions in previously defined eval-when-compile's.
 
 pass_ewc(Fs0, L, Env0, St0) ->
     {Fs1,Fbs,Env1,St1} = pass_ewc(Fs0, L, [], Env0, St0),
@@ -213,12 +219,12 @@ pass_ewc([['eval-when-compile'|Ewcs0]|Fs0], L, Fbs0, Env0, St0) ->
     {[['progn'|Ecws1]|Fs1],Fbs2,Env2,St2};
 %% Do we want macros here???
 %% pass_ewc([['define-macro'|Def]=F|Fs0], L, Fbs0, Env0, St0) ->
-%%     case define_macro(Def, Env0, St0) of
+%%     case pass_define_macro(Def, L, Env0, St0) of
 %% 	{yes,Env1,St1} -> pass_ewc(Fs0, L, Fbs0, Env1, St1);
-%% 	no ->
+%% 	{no,St1} ->
 %% 	    %% Ignore it and pass it on to generate error later.
-%% 	    {Fs1,Fbs1,Env1,St1} = pass_ewc(Fs0, L, Fbs0, Env0, St0),
-%% 	    {[F|Fs1],Fbs1,Env1,St1}
+%% 	    {Fs1,Fbs1,Env1,St2} = pass_ewc(Fs0, L, Fbs0, Env0, St1),
+%% 	    {[F|Fs1],Fbs1,Env1,St2}
 %%     end;
 pass_ewc([['define-function',Name,Def]=F|Fs0], L, Fbs0, Env0, St0) ->
     case func_arity(Def) of
@@ -233,12 +239,12 @@ pass_ewc([['define-function',Name,Def]=F|Fs0], L, Fbs0, Env0, St0) ->
     end;
 pass_ewc([F|Fs0], L, Fbs0, Env0, St0) ->
     %% First expand enough to test top form, if so process again.
-    case expand_expr(F, Env0) of
-	{yes,Exp} -> pass_ewc([Exp|Fs0], L, Fbs0, Env0, St0);
-	no -> 
-	    %% Ignore it and pass it on to generate error later.
-	    {Fs1,Fbs1,Env1,St1} = pass_ewc(Fs0, L, Fbs0, Env0, St0),
-	    {[F|Fs1],Fbs1,Env1,St1}
+    case pass_expand_expr(F, L, Env0, St0, false) of
+	{yes,Exp,St1} ->			%Top form expanded
+	    pass_ewc([Exp|Fs0], L, Fbs0, Env0, St1);
+	{no,F1,St1} -> 				%Not expanded
+	    {Fs1,Fbs1,Env1,St2} = pass_ewc(Fs0, L, Fbs0, Env0, St1),
+	    {[F1|Fs1],Fbs1,Env1,St2}
     end;
 pass_ewc([], _, Fbs, Env, St) -> {[],Fbs,Env,St}.
 
@@ -254,15 +260,41 @@ func_arity(['match-lambda',[Pat|_]|_]) ->
     end;
 func_arity(_) -> no.
 
-%% define_macro([Name,Def], Env, State) -> {yes,Env,State} | no.
+%% pass_expand_expr(Expr, Line, Env, State) -> {yes,Exp,State} | {no,State}.
+%% Try to macro expand Expr, catch errors and return them in State.
+
+pass_expand_expr(E0, L, Env, St0, Expand) ->
+    try
+	case exp_macro(E0, Env, St0) of
+	    {yes,_,_}=Yes -> Yes;
+	    no when Expand ->			%Expand all if flag set.
+		{E1,St1} = expand(E0, Env, St0),
+		{no,E1,St1};
+	    no -> {no,E0,St0}
+	end
+    catch
+	_:Error -> {no,E0,add_error(L, Error, St0)}
+    end.
+
+%% add_error(Line, Error, State) -> State.
+%% add_warning(Line, Warning, State) -> State.
+
+add_error(L, E, St) ->
+    St#mac{errors=St#mac.errors ++ [{L,?MODULE,E}]}.
+
+%% add_warning(L, W, St) ->
+%%     St#mac{warnings=St#mac.warnings ++ [{L,?MODULE,W}]}.
+
+%% pass_define_macro([Name,Def], Line, Env, State) ->
+%%     {yes,Env,State} | {no,State}.
 %% Add the macro definition to the environment. We do a small format
 %% check.
 
-define_macro([Name,Def], Env, St) ->
+pass_define_macro([Name,Def], L, Env, St) ->
     case Def of
 	['lambda'|_] -> {yes,add_mbinding(Name, Def, Env),St};
 	['match-lambda'|_] -> {yes,add_mbinding(Name, Def, Env),St};
-	_ -> no
+	_ -> {no,add_error(L, {bad_form,macro}, St)}
     end.
 
 %% expand(Form, Env, State) -> {Form,State}.
@@ -486,7 +518,7 @@ expand_try(E0, B0, Env, St0) ->
 
 exp_macro([Name|_]=Call, Env, St) ->
     case lfe_lib:is_core_form(Name) of
-	true -> no;				%Don't expand core forms
+	true -> no;				%Never expand core forms
 	false ->
 	    case get_mbinding(Name, Env) of
 		{yes,Def} ->
@@ -504,14 +536,15 @@ exp_macro([Name|_]=Call, Env, St) ->
 %%  it to argument list.
 
 exp_userdef_macro([Mac|Args], Def0, Env, St0) ->
-%%	Exp = lfe_eval:apply(Def1, [Args], Env),
-%%	{Exp,St1}.
+    %%lfe_io:format("udef: ~p\n", [[Mac|Args]]),
+    %%lfe_io:format("macro: ~p\n", [Def0]),
     try
 	{Def1,St1} = expand(Def0, Env, St0),	%Expand definition
 	Exp = lfe_eval:apply(Def1, [Args,Env], Env),
 	{yes,Exp,St1}
     catch
 	error:Error ->
+	    %% St = erlang:get_stacktrace(),
 	    erlang:error({expand_macro,[Mac|Args],Error})
     end.
 
@@ -519,13 +552,13 @@ exp_userdef_macro([Mac|Args], Def0, Env, St0) ->
 %%  Evaluate predefined macro definition catching errors.
 
 exp_predef_macro(Call, Env, St) ->
-    %% lfe_io:format("pdef: ~p\n", [Call]),
+    %%lfe_io:format("pdef: ~p\n", [Call]),
     try
 	exp_predef(Call, Env, St)
     catch
 	error:Error ->
-	    St = erlang:get_stacktrace(),	%Return the stack trace
-	    erlang:error({expand_macro,Call,{Error,St}})
+	    %% St = erlang:get_stacktrace(),
+	    erlang:error({expand_macro,Call,Error})
     end.
 
 %% exp_predef(Form, Env, State) -> {yes,Form,State} | no.
@@ -771,8 +804,8 @@ exp_qlc([lc,Qs|Es], Opts, Env, St0) ->
     {Eqs,St1} = exp_qlc_quals(Qs, Env, St0),
     {Ees,St2} = expand_list(Es, Env, St1),
     %%lfe_io:format("Q0 = ~p\n", [[lc,Eqs|Ees]]),
-    %% Now translate to vanilla AST, call qlc expand, convert back to
-    %% LFE.  lfe_qlc:expand/2 wants a list of conversions not
+    %% Now translate to vanilla AST, call qlc expand and then convert
+    %% back to LFE.  lfe_qlc:expand/2 wants a list of conversions not
     %% a conversion of a list.
     Vlc = lfe_trans:to_vanilla([lc,Eqs|Ees], 42),
     Vos = map(fun (O) -> lfe_trans:to_vanilla(O, 42) end, Opts),
@@ -1121,49 +1154,49 @@ is_mbe_symbol(S) ->
 %% is_mbe_ellipsis(_) -> false.
 
 mbe_match_pat([quote,P], E, _) -> P =:= E;
-mbe_match_pat([tuple|Ps], [tuple|Es], K) ->	%Match tuple constructor
-    mbe_match_pat(Ps, Es, K);
-mbe_match_pat([tuple|Ps], E, K) ->		%Match literal tuple
+mbe_match_pat([tuple|Ps], [tuple|Es], Ks) ->	%Match tuple constructor
+    mbe_match_pat(Ps, Es, Ks);
+mbe_match_pat([tuple|Ps], E, Ks) ->		%Match literal tuple
     case is_tuple(E) of
-	true -> mbe_match_pat(Ps, tuple_to_list(E), K);
+	true -> mbe_match_pat(Ps, tuple_to_list(E), Ks);
 	false -> false
     end;
-mbe_match_pat(?mbe_ellipsis(Pcar, _), E, K) ->
+mbe_match_pat(?mbe_ellipsis(Pcar, _), E, Ks) ->
     case is_proper_list(E) of
 	true ->
-	    all(fun (X) -> mbe_match_pat(Pcar, X, K) end, E);
+	    all(fun (X) -> mbe_match_pat(Pcar, X, Ks) end, E);
 	false -> false
     end;
-mbe_match_pat([Pcar|Pcdr], E, K) ->    
+mbe_match_pat([Pcar|Pcdr], E, Ks) ->
     case E of
 	[Ecar|Ecdr] ->
-	    mbe_match_pat(Pcar, Ecar, K) andalso
-		mbe_match_pat(Pcdr, Ecdr, K);
+	    mbe_match_pat(Pcar, Ecar, Ks) andalso
+		mbe_match_pat(Pcdr, Ecdr, Ks);
 	_ -> false
     end;
-mbe_match_pat(Pat, E, K) ->    
+mbe_match_pat(Pat, E, Ks) ->
     case is_mbe_symbol(Pat) of
 	true ->
-	    case member(Pat, K) of
+	    case member(Pat, Ks) of
 		true -> Pat =:= E;
 		false -> true
 	    end;
 	false -> Pat =:= E
     end.
 
-mbe_get_ellipsis_nestings(Pat, K) ->
-    m_g_e_n(Pat, K).
+mbe_get_ellipsis_nestings(Pat, Ks) ->
+    m_g_e_n(Pat, Ks).
 
 m_g_e_n([quote,_], _) -> [];
-m_g_e_n([tuple|Ps], K) -> m_g_e_n(Ps, K);
-m_g_e_n(?mbe_ellipsis(Pcar, Pcddr), K) ->
-    [m_g_e_n(Pcar, K)|m_g_e_n(Pcddr, K)];
-m_g_e_n([Pcar|Pcdr], K) ->
-    m_g_e_n(Pcar, K) ++ m_g_e_n(Pcdr, K);
-m_g_e_n(Pat, K) ->
+m_g_e_n([tuple|Ps], Ks) -> m_g_e_n(Ps, Ks);
+m_g_e_n(?mbe_ellipsis(Pcar, Pcddr), Ks) ->
+    [m_g_e_n(Pcar, Ks)|m_g_e_n(Pcddr, Ks)];
+m_g_e_n([Pcar|Pcdr], Ks) ->
+    m_g_e_n(Pcar, Ks) ++ m_g_e_n(Pcdr, Ks);
+m_g_e_n(Pat, Ks) ->
     case is_mbe_symbol(Pat) of
 	true ->
-	    case member(Pat, K) of
+	    case member(Pat, Ks) of
 		true -> [];
 		false -> [Pat]
 	    end;
@@ -1197,20 +1230,20 @@ mbe_intersect(V, Y) ->
 %% mbe_get_bindings(Pattern, Expression, Keywords) -> Bindings.
 
 mbe_get_bindings([quote,_], _, _) -> [];
-mbe_get_bindings([tuple|Ps], [tuple|Es], K) ->	%Tuple constructor
-    mbe_get_bindings(Ps, Es, K);
-mbe_get_bindings([tuple|Ps], E, K) ->		%Literal tuple
-    mbe_get_bindings(Ps, tuple_to_list(E), K);
-mbe_get_bindings(?mbe_ellipsis(Pcar, _), E, K) ->
-    [[mbe_get_ellipsis_nestings(Pcar, K) |
-      map(fun (X) -> mbe_get_bindings(Pcar, X, K) end, E)]];
-mbe_get_bindings([Pcar|Pcdr], [Ecar|Ecdr], K) ->
-    mbe_get_bindings(Pcar, Ecar, K) ++
-	mbe_get_bindings(Pcdr, Ecdr, K);
-mbe_get_bindings(Pat, E, K) ->
+mbe_get_bindings([tuple|Ps], [tuple|Es], Ks) ->	%Tuple constructor
+    mbe_get_bindings(Ps, Es, Ks);
+mbe_get_bindings([tuple|Ps], E, Ks) ->		%Literal tuple
+    mbe_get_bindings(Ps, tuple_to_list(E), Ks);
+mbe_get_bindings(?mbe_ellipsis(Pcar, _), E, Ks) ->
+    [[mbe_get_ellipsis_nestings(Pcar, Ks) |
+      map(fun (X) -> mbe_get_bindings(Pcar, X, Ks) end, E)]];
+mbe_get_bindings([Pcar|Pcdr], [Ecar|Ecdr], Ks) ->
+    mbe_get_bindings(Pcar, Ecar, Ks) ++
+	mbe_get_bindings(Pcdr, Ecdr, Ks);
+mbe_get_bindings(Pat, E, Ks) ->
     case is_mbe_symbol(Pat) of
 	true ->
-	    case member(Pat, K) of
+	    case member(Pat, Ks) of
 		true -> [];
 		false -> [[Pat|E]]
 	    end;
@@ -1219,22 +1252,22 @@ mbe_get_bindings(Pat, E, K) ->
 
 %% mbe_expand_pattern(Pattern, Bindings, Keywords) -> Form.
 
-mbe_expand_pattern([quote,P], R, K) ->
-    [quote,mbe_expand_pattern(P, R, K)];
-mbe_expand_pattern([tuple|Ps], R, K) ->
-    [tuple|mbe_expand_pattern(Ps, R, K)];
-mbe_expand_pattern(?mbe_ellipsis(Pcar, Pcddr), R, K) ->
-    Nestings = mbe_get_ellipsis_nestings(Pcar, K),
+mbe_expand_pattern([quote,P], R, Ks) ->
+    [quote,mbe_expand_pattern(P, R, Ks)];
+mbe_expand_pattern([tuple|Ps], R, Ks) ->
+    [tuple|mbe_expand_pattern(Ps, R, Ks)];
+mbe_expand_pattern(?mbe_ellipsis(Pcar, Pcddr), R, Ks) ->
+    Nestings = mbe_get_ellipsis_nestings(Pcar, Ks),
     Rr = mbe_ellipsis_sub_envs(Nestings, R),
-    map(fun (R0) -> mbe_expand_pattern(Pcar, R0 ++ R, K) end, Rr) ++
-		mbe_expand_pattern(Pcddr, R, K);
-mbe_expand_pattern([Pcar|Pcdr], R, K) ->
-    [mbe_expand_pattern(Pcar, R, K)|
-     mbe_expand_pattern(Pcdr, R, K)];
-mbe_expand_pattern(Pat, R, K) ->
+    map(fun (R0) -> mbe_expand_pattern(Pcar, R0 ++ R, Ks) end, Rr) ++
+		mbe_expand_pattern(Pcddr, R, Ks);
+mbe_expand_pattern([Pcar|Pcdr], R, Ks) ->
+    [mbe_expand_pattern(Pcar, R, Ks)|
+     mbe_expand_pattern(Pcdr, R, Ks)];
+mbe_expand_pattern(Pat, R, Ks) ->
     case is_mbe_symbol(Pat) of
 	true ->
-	    case member(Pat, K) of
+	    case member(Pat, Ks) of
 		true -> Pat;
 		false ->
 		    case lfe_lib:assoc(Pat, R) of
@@ -1266,7 +1299,11 @@ mbe_syntax_rules_proc(Name, Ks0, Cls, Argsym, Ksym) ->
 			[quote,Inpat],Argsym,Ksym]]],
 		   [':',lfe_macro,mbe_expand_pattern,[quote,Outpat],r,Ksym]]]
 	 end, Cls) ++
-    [[[quote,true],[exit,[tuple,[quote,macro_clause],[quote,Name]]]]]].
+    [[[quote,true],[':',erlang,error,
+		    [tuple,
+		     [quote,expand_macro],
+		     [cons,[quote,Name],Argsym], %??? Must check this
+		     [quote,macro_clause]]]]]].
 
 %% Do it all directly.
 mbe_syntax_rules_proc(Name, Ks0, Cls, Args) ->
@@ -1280,7 +1317,7 @@ mbe_syntax_rules_proc(Name, Ks0, Cls, Args) ->
 		       end
 	       end, Cls) of
 	[Res] -> Res;
-	false -> exit({macro_clause,Name})
+	false -> erlang:error({expand_macro,[Name|Args],macro_clause})
     end.
 
 %% lc_te(Exprs, Qualifiers, State) -> {Exp,State}.
@@ -1308,24 +1345,24 @@ bc_te(Es, Qs, St) ->
 
 %% c_tq(BuildExp, Qualifiers, End, State) -> {Exp,State}.
 
-c_tq(Exp, [['<-',P,Gen]|Qs], End, St) ->	%List generator
+c_tq(Exp, [['<-',P,Gen]|Qs], End, St) ->		%List generator
     c_l_tq(Exp, P, [], Gen, Qs, End, St);
-c_tq(Exp, [['<-',P,['when'|G],Gen]|Qs], End, St) -> %List generator
+c_tq(Exp, [['<-',P,['when'|G],Gen]|Qs], End, St) ->	%List generator
     c_l_tq(Exp, P, G, Gen, Qs, End, St);
-c_tq(Exp, [['<=',P,Gen]|Qs], End, St) ->	%Bits generator
+c_tq(Exp, [['<=',P,Gen]|Qs], End, St) ->		%Bits generator
     c_b_tq(Exp, P, [], Gen, Qs, End, St);
 c_tq(Exp, [['<=',P,['when'|G],Gen]|Qs], End, St) ->	%Bits generator
     c_b_tq(Exp, P, G, Gen, Qs, End, St);
-c_tq(Exp, [['?=',P,E]|Qs], End, St0) ->		%Test match
+c_tq(Exp, [['?=',P,E]|Qs], End, St0) ->			%Test match
     {Rest,St1} = c_tq(Exp, Qs, End, St0),
     {['case',E,[P,Rest],['_',End]],St1};
-c_tq(Exp, [['?=',P,['when'|_]=G,E]|Qs], End, St0) ->
+c_tq(Exp, [['?=',P,['when'|_]=G,E]|Qs], End, St0) ->	%Test match
     {Rest,St1} = c_tq(Exp, Qs, End, St0),
     {['case',E,[P,G,Rest],['_',End]],St1};
-c_tq(Exp, [T|Qs], End, St0) ->			%Test
+c_tq(Exp, [T|Qs], End, St0) ->				%Test
     {Rest,St1} = c_tq(Exp, Qs, End, St0),
     {['if',T,Rest,End],St1};
-c_tq(Exp, [], End, St) ->			%End of qualifiers
+c_tq(Exp, [], End, St) ->				%End of qualifiers
     Exp(End, St).
 
 c_l_tq(Exp, P, G, Gen, Qs, End, St0) ->
@@ -1334,7 +1371,7 @@ c_l_tq(Exp, P, G, Gen, Qs, End, St0) ->
     {Rest,St3} = c_tq(Exp, Qs, [H,Us], St2),	%Do rest of qualifiers
     %% Build the match, no match and end clauses, no nomatch clause if
     %% pattern and guard guaranteed to match. Keeps compiler quiet.
-    Cs0 = [ [[[]],End] ],				%End od list
+    Cs0 = [ [[[]],End] ],			%End of list
     Cs1 = case is_atom(P) and (G == []) of	%No match, skip
 	      true -> Cs0;
 	      false -> [ [[[cons,'_',Us]],[H,Us]] |Cs0]

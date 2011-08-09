@@ -121,7 +121,8 @@ add_shell_macros(Env0) ->
     %% We write macros in LFE and expand them with macro package.
     Ms = [
 	 ],
-    {_,Env1} = lfe_macro:macro_forms(Ms, Env0),
+    %% Any errors here will crash shell startup!
+    {ok,_,Env1,_} = lfe_macro:macro_forms(Ms, Env0),
     %% io:fwrite("asm: ~p\n", [Env1]),
     Env1.
 
@@ -236,7 +237,8 @@ slurp([File], Eenv, Benv) ->
     Name = lfe_eval:expr(File, Eenv),		%Get file name
     {ok,Fs0} = lfe_io:parse_file(Name),
     St0 = #slurp{mod='-no-mod-',imps=[]},
-    {Fs1,Fenv0} = lfe_macro:macro_forms(Fs0, new_env()),
+    %% Any errors here will crash slurp!
+    {ok,Fs1,Fenv0,_} = lfe_macro:macro_forms(Fs0, new_env()),
     {Fbs,St1} = lfe_lib:proc_forms(fun collect_form/3, Fs1, St0),
     %% Add imports to environment.
     Fenv1 = foldl(fun ({M,Is}, Env) ->

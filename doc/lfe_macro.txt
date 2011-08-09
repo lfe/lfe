@@ -27,11 +27,12 @@ DATA TYPES
 
 EXPORTS
 
-expand_forms([FileSexpr], Env) -> {[FileSexpr],Env}.
+expand_forms([FileSexpr], Env) -> ExpRet
 
 	where
 	  FileSexpr = filesexpr()
 	  Env = env()
+	  ExpRet = {yes,[FileSexpr],Env,Warnings} | {error,Errors,Warnings}
 
 macro_forms([FileSexpr], Env) -> {[FileSexpr],Env}.
 

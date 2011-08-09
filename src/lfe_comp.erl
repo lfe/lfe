@@ -133,16 +133,22 @@ do_forms(St0) ->
 %%  The actual compiler passes.
 
 do_macro_expand(St) ->
-    {Fs,Env} = lfe_macro:expand_forms(St#comp.code, new_env()),
-    debug_print("mac: ~p\n", [{Fs,Env}], St),
-    {ok,St#comp{code=Fs}}.
+    case lfe_macro:expand_forms(St#comp.code, new_env()) of
+	{ok,Fs,Env,Ws} ->
+	    debug_print("mac: ~p\n", [{Fs,Env}], St),
+	    {ok,St#comp{code=Fs,warnings=St#comp.warnings ++ Ws}};
+	{error,Es,Ws} ->
+	    {error,St#comp{errors=St#comp.errors ++ Es,
+			   warnings=St#comp.warnings ++ Ws}}
+    end.
 
 do_lint(St) ->
     case lfe_lint:module(St#comp.code, St#comp.opts) of
 	{ok,Ws} ->
-	    {ok,St#comp{warnings=Ws}};
+	    {ok,St#comp{warnings=St#comp.warnings ++ Ws}};
 	{error,Es,Ws} ->
-	    {error,St#comp{errors=Es,warnings=Ws}}
+	    {error,St#comp{errors=St#comp.errors ++ Es,
+			   warnings=St#comp.warnings ++ Ws}}
     end.
 
 do_lfe_codegen(#comp{code=Fs0}=St) ->
@@ -159,8 +165,8 @@ do_erl_comp(St) ->
 	{ok,_,Result,Ews} ->
 	    {ok,St#comp{code=Result,warnings=Ws ++ fix_erl_errors(Ews)}};
 	{error,Ees,Ews} ->
-	    {error,St#comp{warnings=Es ++ fix_erl_errors(Ees),
-			   errors=Ws ++ fix_erl_errors(Ews)}}
+	    {error,St#comp{errors=Es ++ fix_erl_errors(Ees),
+			   warnings=Ws ++ fix_erl_errors(Ews)}}
     end.
 
 %% passes() -> [Pass].
@@ -272,6 +278,8 @@ werr(#comp{opts=Opts,warnings=Ws}) ->
 
 %% do_ok_return(State) -> {ok,Mod,...}.
 %% do_error_return(State) -> {error,...} | error.
+%% Note that this handling of 'warnings_as_errors' is the same in the
+%% vanilla erlang compiler 'compile'.
 
 do_ok_return(#comp{lfile=Lfile,opts=Opts,ret=Ret0,warnings=Ws}=St) ->
     case werr(St) of

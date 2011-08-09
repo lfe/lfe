@@ -268,9 +268,10 @@ Macros
 Macro calls are expanded in both body and patterns. This can be very
 useful to have both make and match macros, but be careful with names.
 
-A macro is function of one argument which is a called with a list of
-the arguments to the macro call. It can be either a lambda or a
-match-lambda. The basic forms for defining macros are:
+A macro is function of two argument which is a called with a list of
+the arguments to the macro call and the current macro environment. It
+can be either a lambda or a match-lambda. The basic forms for defining
+macros are:
 
 (define-macro name lambda|match-lambda)
 (let-macro ((name lambda|match-lambda)
@@ -298,6 +299,16 @@ whole argument list. For example:
   (() `'true))
 
 The macro definitions in a macrolet obey the same rules as defmacro.
+
+The macro functions created by defmacro and macrolet automatically add
+the second argument with the current macro environment with the name
+$ENV. This allows explicit expansion of macros inside the macro and
+also manipulation of the macro environment. No changes to the
+environment are exported outside the macro.
+
+User defined macros shadow the predefined macros so it is possible to
+redefine the built-in macro definitions. However, see the caveat
+below!
 
 Yes, we have the backquote. It is implemented as a macro so it is
 expanded at macro expansion time.
@@ -540,13 +551,13 @@ all the combination functions in the module qlc.
 
 For example:
 
-(qlc ((<- (tuple k v) (: ets table e2)) (== k i)) v)
+(qlc (lc ((<- (tuple k v) (: ets table e2)) (== k i)) v) {{Option}})
 
 Macros, especially record macros, can freely be used inside query list
 comprehensions.
 
 *CAVEAT* Some things which are known not to work in the current
- version are nested QLCs.
+ version are nested QLCs and let/case/recieve which shadow variables.
 
 Predefined LFE functions
 ------------------------
