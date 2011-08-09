@@ -5,7 +5,7 @@
 -module(test_bin_e).
 
 -export([a/0,a/1,af/2,afp/2,a/3]).		%Constructors
--export([p1/1,p2/1,p2p/1,p3/1]).		%Patterns
+-export([p1/1,p2/1,p2p/1,p3/1,p4/0]).		%Patterns
 -export([b/1,b/2,bb1/2,bb2/2]).			%Binaries/bitstrings
 -export([u/1,u/2]).				%Unicode types
 -export([vs1/2,vs2/2,vs3/2]).			%Value and size expressions
@@ -46,6 +46,16 @@ p3(B) ->
 	<<X/unsigned,Y:16/big,Z:3/little,ZZ/bitstring>> ->
 	    [X,Y,Z,ZZ]
     end.
+
+p4() ->
+    Bin = <<2,"AB","CD">>,
+    Tup = {2,<<"AB">>,<<"CD">>},
+    <<S,B:S/binary,Rest/binary>> = Bin,
+    %% Test equality
+    (Tup =:= {S,B,Rest}) and (Tup =:= p4_1(<<2,"AB","CD">>)).
+
+p4_1(<<S,B:S/binary,Rest/binary>>) ->
+    {S,B,Rest}.
 
 %% Binaries/bitstrings.
 
