@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2010 Robert Virding. All rights reserved.
+%% Copyright (c) 2008-2011 Robert Virding. All rights reserved.
 %%
 %% Redistribution and use in source and binary forms, with or without
 %% modification, are permitted provided that the following conditions
@@ -42,7 +42,7 @@
 		  add_ibinding/5,get_gbinding/3]).
 
 -import(lists, [reverse/1,all/2,map/2,foldl/3,foldr/3]).
--import(orddict, [find/2,store/3]).
+-import(orddict, [find/2,fetch/2,store/3,is_key/2]).
 
 -deprecated([eval/1,eval/2]).
 
@@ -62,7 +62,7 @@ eval(E, Env) -> expr(E, Env).
 expr(E) -> expr(E, new_env()).
 
 expr(E, Env) ->
-    Exp = lfe_macro:expand_form(E, Env),
+    Exp = lfe_macro:expand_expr_all(E, Env),
     %% lfe_io:fwrite("e: ~p\n", [{E,Exp,Env}]),
     eval_expr(Exp, Env).
 
@@ -144,7 +144,7 @@ eval_expr(Symb, Env) when is_atom(Symb) ->
 	{yes,Val} -> Val;
 	no -> erlang:error({unbound_symb,Symb})
     end;
-eval_expr(E, _) -> E.				%Atoms evaluate to themselves.
+eval_expr(E, _) -> E.				%Atomic evaluate to themselves.
 
 eval_list(Es, Env) ->
     map(fun (E) -> eval_expr(E, Env) end, Es).
@@ -159,138 +159,85 @@ eval_body([], _) -> [].				%Empty body
 %%  Construct a binary from Bitsegs. This code is taken from eval_bits.erl.
 
 eval_binary(Segs, Env) ->
-    Vsps = parse_bitsegs(Segs, Env),
+    Vsps = get_bitsegs(Segs),
     eval_bitsegs(Vsps, Env).
 
--record(spec, {type=integer,size=default,unit=default,
-	       sign=default,endian=default}).
+get_bitsegs(Segs) ->
+    foldr(fun (S, Vs) -> get_bitseg(S, Vs) end, [], Segs).
 
-parse_bitsegs(Segs, Env) ->
-%%    map(fun (S) -> parse_bitseg(S, Env) end, Segs),
-    foldr(fun (S, Vs) -> parse_bitseg(S, Vs, Env) end, [], Segs).
-
-%% parse_bitseg(Bitseg, ValSpecs, Env) -> ValSpecs.
+%% get_bitseg(Bitseg, ValSpecs) -> ValSpecs.
 %% A bitseg is either an atomic value, a list of value and specs, or a string.
 
-parse_bitseg([Val|Specs]=F, Vsps, Env) ->
+get_bitseg([Val|Specs]=F, Vsps) ->
     case is_integer_list(F) of			%Is bitseg a string?
 	true ->					%A string
-	    Sp = parse_bitspecs([], #spec{}, Env),
-	    foldr(fun (V, Vs) -> [{V,Sp}|Vs] end, Vsps, F);
+	    {Sz,Ty} = get_bitspecs([]),
+	    foldr(fun (V, Vs) -> [{V,Sz,Ty}|Vs] end, Vsps, F);
 	false ->				%A value and spec
-	    Sp = parse_bitspecs(Specs, #spec{}, Env),
+	    {Sz,Ty} = get_bitspecs(Specs),
 	    case is_integer_list(Val) of	%Is val a string?
-		true -> foldr(fun (V, Vs) -> [{V,Sp}|Vs] end, Vsps, Val);
-		false -> [{Val,Sp}|Vsps]	%The default
+		true -> foldr(fun (V, Vs) -> [{V,Sz,Ty}|Vs] end, Vsps, Val);
+		false -> [{Val,Sz,Ty}|Vsps]	%The default
 	    end
     end;
-parse_bitseg(Val, Vsps, Env) ->
-    [{Val,parse_bitspecs([], #spec{}, Env)}|Vsps].
+get_bitseg(Val, Vsps) ->
+    {Sz,Ty} = get_bitspecs([]),
+    [{Val,Sz,Ty}|Vsps].
+
+%% get_bitspec(Specs) -> {Size,Type}.
+%%  Get the error handling as we want it.
+
+get_bitspecs(Ss) ->
+    case lfe_bits:get_bitspecs(Ss) of
+	{ok,Sz,Ty} -> {Sz,Ty};
+	{error,Error} -> erlang:error(Error)
+    end.
 
 is_integer_list([I|Is]) when is_integer(I) ->
     is_integer_list(Is);
 is_integer_list([]) -> true;
 is_integer_list(_) -> false.
 
-%% parse_bitseg([Val|Specs], Env) ->
-%%     {Val,parse_bitspecs(Specs, #spec{}, Env)};
-%% parse_bitseg(Val, Env) ->
-%%     {Val,parse_bitspecs([], #spec{}, Env)}.
+%% eval_bitsegs(VSTys, Env) -> Binary.
 
 eval_bitsegs(Vsps, Env) ->
-    foldl(fun ({Val,Spec}, Acc) ->
-		  Bin = eval_bitseg(Val, Spec, Env),
+    foldl(fun ({Val,Sz,Ty}, Acc) ->
+		  Bin = eval_bitseg(Val, Sz, Ty, Env),
 		  <<Acc/bitstring,Bin/bitstring>>
 	  end, <<>>, Vsps).
 
-eval_bitseg(Val, Spec, Env) ->
+eval_bitseg(Val, Sz, Ty, Env) ->
     V = eval_expr(Val, Env),
-    eval_exp_bitseg(V, Spec).
+    eval_exp_bitseg(V, Sz, fun (S) -> eval_expr(S, Env) end, Ty).
 
-%% parse_bitspecs(Specs, Spec, Env) -> {Type,Size,Unit,Sign,End}.
+%% eval_exp_bitseg(Value, Size, EvalSize, {Type,Unit,Sign,Endian}) -> Binary.
 
-parse_bitspecs(Ss, Sp0, Env) ->
-    Sp1 = foldl(fun (S, Sp) -> parse_bitspec(S, Sp, Env) end, Sp0, Ss),
-    %% Adjust the values depending on type and given value.
-    #spec{type=Type,size=Size,unit=Unit,sign=Sign,endian=End} = Sp1,
+eval_exp_bitseg(Val, Size, Eval, Type) ->
     case Type of
-	integer ->
-	    {integer,
-	     val_or_def(Size, 8),val_or_def(Unit, 1),
-	     val_or_def(Sign, unsigned),val_or_def(End, big)};
-	utf8 ->					%Ignore unused specs!
-	    {utf8,undefined,undefined,undefined,undefined};
-	utf16 ->				%Ignore unused specs!
-	    {utf16,undefined,undefined,undefined,val_or_def(End, big)};
-	utf32 ->				%Ignore unused specs!
-	    {utf32,undefined,undefined,undefined,val_or_def(End, big)};
-	float ->
-	    {float,
-	     val_or_def(Size, 64),val_or_def(Unit, 1),
-	     val_or_def(Sign, unsigned),val_or_def(End, big)};
-	binary ->
-	    {binary,
-	     val_or_def(Size, all),val_or_def(Unit, 8),
-	     val_or_def(Sign, unsigned),val_or_def(End, big)};
-	bitstring ->
-	    {binary,
-	     val_or_def(Size, all),val_or_def(Unit, 1),
-	     val_or_def(Sign, unsigned),val_or_def(End, big)}
-    end.
-
-%% Types.
-parse_bitspec(integer, Sp, _) -> Sp#spec{type=integer};
-parse_bitspec(float, Sp, _) -> Sp#spec{type=float};
-parse_bitspec(binary, Sp, _) -> Sp#spec{type=binary};
-parse_bitspec(bytes, Sp, _) -> Sp#spec{type=binary};
-parse_bitspec(bitstring, Sp, _) -> Sp#spec{type=bitstring};
-parse_bitspec(bits, Sp, _) -> Sp#spec{type=bitstring};
-%% Unicode types.
-parse_bitspec('utf-8', Sp, _) -> Sp#spec{type=utf8};
-parse_bitspec('utf-16', Sp, _) -> Sp#spec{type=utf16};
-parse_bitspec('utf-32', Sp, _) -> Sp#spec{type=utf32};
-%% Endianness.
-parse_bitspec('big-endian', Sp, _) -> Sp#spec{endian=big};
-parse_bitspec('big', Sp, _) -> Sp#spec{endian=big};
-parse_bitspec('little-endian', Sp, _) -> Sp#spec{endian=little};
-parse_bitspec('little', Sp, _) -> Sp#spec{endian=little};
-parse_bitspec('native-endian', Sp, _) -> Sp#spec{endian=native};
-parse_bitspec('native', Sp, _) -> Sp#spec{endian=native};
-%% Sign.
-parse_bitspec(signed, Sp, _) -> Sp#spec{sign=signed};
-parse_bitspec(unsigned, Sp, _) -> Sp#spec{sign=unsigned};
-%% Size.
-parse_bitspec([size,N], Sp, Env) ->
-    Size = eval_expr(N, Env),
-    Sp#spec{size=Size};
-parse_bitspec([unit,N], Sp, _) when is_integer(N), N > 0 -> Sp#spec{unit=N};
-%% Illegal spec.
-parse_bitspec(Spec, _, _) -> erlang:error({illegal_bitspec,Spec}).
-
-val_or_def(default, Def) -> Def;
-val_or_def(V, _) -> V.
-
-%% eval_exp_bitseg(Value, {Type,Size,Unit,Sign,Endian}) -> Binary.
-
-eval_exp_bitseg(Val, Spec) ->
-    case Spec of
 	%% Integer types.
-	{integer,Sz,Un,Si,En} -> eval_int_bitseg(Val, Sz*Un, Si, En);
+	{integer,Un,Si,En} ->
+	    Sz = Eval(Size),
+	    eval_int_bitseg(Val, Sz*Un, Si, En);
 	%% Unicode types, ignore unused fields.
-	{utf8,_,_,_,_} -> <<Val/utf8>>;
-	{utf16,_,_,_,En} -> eval_utf16_bitseg(Val, En);
-	{utf32,_,_,_,En} -> eval_utf32_bitseg(Val, En);
+	{utf8,_,_,_} -> <<Val/utf8>>;
+	{utf16,_,_,En} -> eval_utf16_bitseg(Val, En);
+	{utf32,_,_,En} -> eval_utf32_bitseg(Val, En);
 	%% Float types.
-	{float,Sz,Un,_,En} -> eval_float_bitseg(Val, Sz*Un, En);
+	{float,Un,_,En} ->
+	    Sz = Eval(Size),
+	    eval_float_bitseg(Val, Sz*Un, En);
 	%% Binary types.
-	{binary,all,Unit,_,_} ->
-	    case bit_size(Val) of
-		Size when Size rem Unit =:= 0 ->
-		    <<Val:Size/bitstring>>;
-		_ -> erlang:error(badarg)
-	    end;
-	{binary,Size,Unit,_,_} ->
-	    <<Val:(Size*Unit)/bitstring>>
+	{binary,Unit,_,_} ->
+	    if Size == all ->
+		    case bit_size(Val) of
+			Sz when Sz rem Unit =:= 0 ->
+			    <<Val:Sz/bitstring>>;
+			_ -> erlang:error(badarg)
+		    end;
+	       true ->
+		    Sz = Eval(Size),
+		    <<Val:(Sz*Unit)/bitstring>>
+	    end
     end.
 
 eval_int_bitseg(Val, Sz, signed, big) -> <<Val:Sz/signed>>;
@@ -489,7 +436,7 @@ add_expr_func(Name, Ar, Def, Env) ->
 %%  applied.
 
 eval_apply({expr,Func,Env}, Es, _) ->
-    case lfe_macro:expand_form(Func, Env) of
+    case lfe_macro:expand_expr_all(Func, Env) of
 	[lambda,Args|Body] -> apply_lambda(Args, Body, Es, Env);
 	['match-lambda'|Cls] -> apply_match_clauses(Cls, Es, Env)
     end;
@@ -503,7 +450,7 @@ eval_apply({letrec,Body,Fbs,Env}, Es, Ee) ->
 
 %% eval_if(IfBody, Env) -> Value.
 
-eval_if([Test,True], Env) ->
+eval_if([Test,True], Env) ->			%Add default false value
     eval_if(Test, True, [quote,false], Env);
 eval_if([Test,True,False], Env) ->
     eval_if(Test, True, False, Env).
@@ -751,18 +698,18 @@ eval_glist(Es, Env) ->
 %%  Construct a binary from Bitsegs. This code is taken from eval_bits.erl.
 
 eval_gbinary(Segs, Env) ->
-    Vsps = parse_bitsegs(Segs, Env),
+    Vsps = get_bitsegs(Segs),
     eval_gbitsegs(Vsps, Env).
 
 eval_gbitsegs(Vsps, Env) ->
-    foldl(fun ({Val,Spec}, Acc) ->
-		  Bin = eval_gbitseg(Val, Spec, Env),
+    foldl(fun ({Val,Sz,Ty}, Acc) ->
+		  Bin = eval_gbitseg(Val, Sz, Ty, Env),
 		  <<Acc/bitstring,Bin/bitstring>>
 	  end, <<>>, Vsps).
 
-eval_gbitseg(Val, Spec, Env) ->
+eval_gbitseg(Val, Sz, Ty, Env) ->
     V = eval_gexpr(Val, Env),
-    eval_exp_bitseg(V, Spec).
+    eval_exp_bitseg(V, Sz, fun(S) -> eval_gexpr(S, Env) end, Ty).
 
 %% eval_gif(IfBody, Env) -> Val.
 
@@ -777,112 +724,157 @@ eval_gif(Test, True, False, Env) ->
 	false -> eval_gexpr(False, Env)
     end.
 
-%% match(Pattern, Value, Env) -> {yes,Bindings} | no.
+%% match(Pattern, Value, Env) -> {yes,PatBindings} | no.
 %%  Try to match Pattern against Value within the current environment
 %%  returning bindings. Bindings is an orddict.
 
-match(Pat, Val, Env) -> match(Pat, Val, Env, []).
+match(Pat, Val, Env) -> match(Pat, Val, [], Env).
 
-match([quote,P], Val, _, Bs) ->
-    if P == Val -> {yes,Bs};
+match([quote,P], Val, Pbs, _) ->
+    if P == Val -> {yes,Pbs};
        true -> no
     end;
-match([tuple|Ps], Val, Env, Bs) ->
+match([tuple|Ps], Val, Pbs, Env) ->
     %% io:fwrite("~p ~p\n", [Ps,Val]),
     case is_tuple(Val) of
-	true -> match_list(Ps, tuple_to_list(Val), Env, Bs);
+	true -> match_list(Ps, tuple_to_list(Val), Pbs, Env);
 	false -> no
     end;
-match([binary|Fs], Val, Env, Bs) ->
+match([binary|Fs], Val, Pbs, Env) ->
     case is_bitstring(Val) of
-	true -> match_binary(Fs, Val, Env, Bs);
+	true -> match_binary(Fs, Val, Pbs, Env);
 	false -> no
     end;
-match(['=',P1,P2], Val, Env, Bs0) ->		%Aliases
-    case match(P1, Val, Env, Bs0) of
-	{yes,Bs1} -> match(P2, Val, Env, Bs1);
+match(['=',P1,P2], Val, Pbs0, Env) ->		%Aliases
+    case match(P1, Val, Pbs0, Env) of
+	{yes,Pbs1} -> match(P2, Val, Pbs1, Env);
 	no -> no
     end;
-match([cons,H,T], [V|Vs], Env, Bs0) ->		%Explicit cons constructor
-    case match(H, V, Env, Bs0) of
-	{yes,Bs1} -> match(T, Vs, Env, Bs1);
+match([cons,H,T], [V|Vs], Pbs0, Env) ->		%Explicit cons constructor
+    case match(H, V, Pbs0, Env) of
+	{yes,Pbs1} -> match(T, Vs, Pbs1, Env);
 	no -> no
     end;
-match([list|Ps], Val, Env, Bs) ->		%Explicit list constructor
-    match_list(Ps, Val, Env, Bs);
+match([list|Ps], Val, Pbs, Env) ->		%Explicit list constructor
+    match_list(Ps, Val, Pbs, Env);
 %% Use old no contructor list forms.
-match([P|Ps], [V|Vs], Env, Bs0) ->
-    case match(P, V, Env, Bs0) of
-	{yes,Bs1} -> match(Ps, Vs, Env, Bs1);
+match([P|Ps], [V|Vs], Pbs0, Env) ->
+    case match(P, V, Pbs0, Env) of
+	{yes,Pbs1} -> match(Ps, Vs, Pbs1, Env);
 	no -> no
     end;
 %% match([_|_], _, _, _) -> no;			%No constructor
 
-match([], [], _, Bs) -> {yes,Bs};
-match(Symb, Val, Env, Bs) when is_atom(Symb) ->
-    match_symb(Symb, Val, Env, Bs);
-match(Val, Val, _, Bs) -> {yes,Bs};
+match([], [], Pbs, _) -> {yes,Pbs};
+match(Symb, Val, Pbs, Env) when is_atom(Symb) ->
+    match_symb(Symb, Val, Pbs, Env);
+match(Val, Val, Pbs, _) -> {yes,Pbs};
 match(_, _, _, _) -> no.
 
-match_list([P|Ps], [V|Vs], Env, Bs0) ->
-    case match(P, V, Env, Bs0) of
-	{yes,Bs1} -> match_list(Ps, Vs, Env, Bs1);
+match_list([P|Ps], [V|Vs], Pbs0, Env) ->
+    case match(P, V, Pbs0, Env) of
+	{yes,Pbs1} -> match_list(Ps, Vs, Pbs1, Env);
 	no -> no
     end;
-match_list([], [], _, Bs) -> {yes,Bs};
+match_list([], [], Pbs, _) -> {yes,Pbs};
 match_list(_, _, _, _) -> no.
 
-match_symb('_', _, _, Bs) -> {yes,Bs};		%Don't care variable.
-match_symb(Symb, Val, _, Bs) ->
+match_symb('_', _, Pbs, _) -> {yes,Pbs};	%Don't care variable.
+match_symb(S, Val, Pbs, _) ->
     %% Check if Symb already bound.
-    case find(Symb, Bs) of
-	{ok,_} -> no;				%Already bound, multiple var
-	error -> {yes,store(Symb, Val, Bs)}	%Not yet bound
+    case find(S, Pbs) of
+	{ok,_} -> erlang:error({multi_var,S});	%Already bound, multiple var
+	error -> {yes,store(S, Val, Pbs)}	%Not yet bound
     end.
 
-%% match_binary(Bitsegs, Binary, Env, Bindings) -> {yes,Bindings} | no.
+%% match_binary(Bitsegs, Binary, PatBindings, Env) -> {yes,PatBindings} | no.
 %%  Match Bitsegs against Binary. This code is taken from
-%%  eval_bits.erl. All bitspec errors and bad matches result in an
-%%  error, we use catch to trap it.
+%%  eval_bits.erl. Bitspec errors generate an error. Bad matches
+%%  result in an error, we use catch to trap it.
 
-match_binary(Segs, Bin, Env, Bs0) ->
-    Psps = parse_bitsegs(Segs, Env),
-    case catch match_bitsegs(Psps, Bin, Env, Bs0) of
-	{yes,Bs1} -> {yes,Bs1};			%Matched whole binary
-	{'EXIT',_} -> no			%Error is no match
+match_binary(Segs, Bin, Pbs0, Env) ->
+    Psps = get_bitsegs(Segs),
+    match_bitsegs(Psps, Bin, [], Pbs0, Env).
+
+match_bitsegs([{Pat,Sz,Ty}|Psps], Bin0, Bbs0, Pbs0, Env) ->
+    case match_bitseg(Pat, Sz, Ty, Bin0, Bbs0, Pbs0, Env) of
+	{yes,Bin1,Bbs1,Pbs1} ->
+	    match_bitsegs(Psps, Bin1, Bbs1, Pbs1, Env);
+	no -> no
+    end;
+match_bitsegs([], <<>>, _, Pbs, _) -> {yes,Pbs}; %Reached the end of both
+match_bitsegs([], _, _, _, _) -> no.		 %More to go
+
+match_bitseg(Pat, Size, Type, Bin0, Bbs0, Pbs0, Env) ->
+    Sz = get_pat_bitsize(Size, Type, Bbs0, Pbs0, Env),
+    case catch {ok,get_pat_bitseg(Bin0, Sz, Type)} of
+	{ok,{Val,Bin1}} ->
+	    case match_bitexpr(Pat, Val, Bbs0, Pbs0, Env) of
+		{yes,Bbs1,Pbs1} -> {yes,Bin1,Bbs1,Pbs1};
+		no -> no
+	    end;
+	_ -> no
     end.
 
-match_bitsegs([{Pat,Specs}|Psps], Bin0, Env, Bs0) ->
-    {yes,Bin1,Bs1} = match_bitseg(Pat, Specs, Bin0, Env, Bs0),
-    match_bitsegs(Psps, Bin1, Env, Bs1);
-match_bitsegs([], <<>>, _, Bs) -> {yes,Bs}.	%Reached the end of both
+get_pat_bitsize(all, {Ty,_,_,_}, _, _, _) ->
+    if Ty =:= binary -> all;
+       true -> erlang:error(illegal_bitsize)
+    end;
+get_pat_bitsize(undefined, {Ty,_,_,_}, _, _, _) ->
+    if Ty =:= utf8; Ty =:= utf16; Ty =:= utf32 -> undefined;
+       true -> erlang:error(illegal_bitsize)
+    end;
+get_pat_bitsize(S, _, _, _, _) when is_integer(S) -> S;
+get_pat_bitsize(S, _, Bbs, _, Env) when is_atom(S) ->
+    %% Variable either in environment or bound in binary.
+    case get_vbinding(S, Env) of
+	{yes,V} -> V;
+	no ->
+	    case find(S, Bbs) of
+		{ok,V} -> V;
+		error -> erlang:error({unbound_symb,S})
+	    end
+    end.
 
-match_bitseg(Pat, Spec, Bin0, Env, Bs0) ->
-    {Val,Bin1} = get_pat_bitseg(Bin0, Spec),
-    {yes,Bs1} = match(Pat, Val, Env, Bs0),
-    {yes,Bin1,Bs1}.
+match_bitexpr(N, Val, Bbs, Pbs, _) when is_number(N) ->
+    if N =:= Val -> {yes,Bbs,Pbs};
+       true -> no
+    end;
+match_bitexpr('_', _, Bbs, Pbs, _) -> {yes,Bbs,Pbs};
+match_bitexpr(S, Val, Bbs, Pbs, _) when is_atom(S) ->
+    %% Don't need value, just check if symbol is set.
+    case is_key(S, Bbs) or is_key(S, Pbs) of
+	true -> erlang:error({multi_var,S});
+	false ->
+	    {yes,store(S, Val, Bbs),store(S, Val, Pbs)}
+    end;
+match_bitexpr(_, _, _, _, _) -> erlang:error(illegal_bitseg).
 
-%% get_pat_bitseg(Binary, {Type,Size,Unit,Sign,Endian}) -> {Value,RestBinary}.
+%% get_pat_bitseg(Binary, Size, {Type,Unit,Sign,Endian}) -> {Value,RestBinary}.
+%%  This function can signal error if impossible to get specified bit
+%%  segment.
 
-get_pat_bitseg(Bin, Spec) ->
-    case Spec of
+get_pat_bitseg(Bin, Size, Type) ->
+    case Type of
 	%% Integer types.
-	{integer,Sz,Un,Si,En} ->
-	    get_int_bitseg(Bin, Sz*Un, Si, En);
+	{integer,Un,Si,En} ->
+	    get_int_bitseg(Bin, Size*Un, Si, En);
 	%% Unicode types, ignore unused bitsegs.
-	{utf8,_,_,_,_} -> get_utf8_bitseg(Bin);
-	{utf16,_,_,_,En} -> get_utf16_bitseg(Bin, En);
-	{utf32,_,_,_,En} -> get_utf32_bitseg(Bin, En);
+	{utf8,_,_,_} -> get_utf8_bitseg(Bin);
+	{utf16,_,_,En} -> get_utf16_bitseg(Bin, En);
+	{utf32,_,_,En} -> get_utf32_bitseg(Bin, En);
 	%% Float types.
-	{float,Sz,Un,_,En} -> get_float_bitseg(Bin, Sz*Un, En);
+	{float,Un,_,En} -> get_float_bitseg(Bin, Size*Un, En);
 	%% Binary types.
-	{binary,all,Un,_,_} ->
-	    0 = (bit_size(Bin) rem Un),
-	    {Bin,<<>>};
-	{binary,Sz,Un,_,_} ->
-	    TotSize = Sz * Un,
-	    <<Val:TotSize/bitstring,Rest/bitstring>> = Bin,
-	    {Val,Rest}
+	{binary,Un,_,_} ->
+	    if Size == all ->
+		    0 = (bit_size(Bin) rem Un),
+		    {Bin,<<>>};
+	       true ->
+		    TotSize = Size * Un,
+		    <<Val:TotSize/bitstring,Rest/bitstring>> = Bin,
+		    {Val,Rest}
+	    end
     end.
 
 get_int_bitseg(Bin, Sz, signed, big) ->

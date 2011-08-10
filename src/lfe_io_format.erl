@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2010 Robert Virding. All rights reserved.
+%% Copyright (c) 2008-2011 Robert Virding. All rights reserved.
 %%
 %% Redistribution and use in source and binary forms, with or without
 %% modification, are permitted provided that the following conditions
@@ -33,15 +33,13 @@
 
 -module(lfe_io_format).
 
--export([format1/2,fwrite1/2]).
+-export([fwrite1/2]).
 
 -import(lists, [reverse/1,foldl/3]).
 
 %% -compile([export_all]).
 
-fwrite1(Format, Data) -> format1(Format, Data).
-
-format1(Format, Data) ->
+fwrite1(Format, Data) ->
     Cs = collect(Format, Data),
     Pc = pcount(Cs),
     build(Cs, Pc, 0).

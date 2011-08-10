@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2010 Robert Virding. All rights reserved.
+%% Copyright (c) 2008-2011 Robert Virding. All rights reserved.
 %%
 %% Redistribution and use in source and binary forms, with or without
 %% modification, are permitted provided that the following conditions
@@ -32,7 +32,7 @@
 %% Environment functions.
 -export([new_env/0,add_env/2,
 	 add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
-	 fetch_vbinding/2,update_vbinding/3,
+	 fetch_vbinding/2,update_vbinding/3,del_vbinding/2,
 	 add_fbinding/4,add_fbindings/2,update_fbinding/4,
 	 is_fbound/3,get_fbinding/3,add_ibinding/5,
 	 is_gbound/3,get_gbinding/3,
@@ -48,7 +48,9 @@
 %% Standard lisp library.
 -export([is_lfe_bif/2,acons/3,assoc/2,rassoc/2,
 	 subst/3,'subst-if'/3,'subst-if-not'/3,
-	 eval/1]).
+	 eval/1,eval/2,macroexpand/1,macroexpand/2,
+	 'macroexpand-1'/1,'macroexpand-1'/2,
+	 'macroexpand-all'/1,'macroexpand-all'/2]).
 
 %% Miscellaneous useful LFE functions.
 -export([format_exception/6,format_stacktrace/3]).
@@ -116,6 +118,10 @@ get_vbinding(_, []) -> no.
 
 fetch_vbinding(N, [{variable,N,V}|_]) -> V;
 fetch_vbinding(N, [_|Env]) -> fetch_vbinding(N, Env).
+
+del_vbinding(N, [{variable,N,_}|Env]) -> Env;
+del_vbinding(N, [Vb|Env]) -> [Vb|del_vbinding(N, Env)];
+del_vbinding(_, []) -> [].			%Be nice but should we
 
 add_fbinding(N, A, V, Env) -> [{function,N,A,V}|Env].
 
@@ -255,7 +261,7 @@ is_core_form(_) -> false.
 %%  Process a (progn ... ) nested list of forms where top level list
 %%  has elements {Form,LineNumber}. Return a flat list of results and
 %%  passes through State. All the elements are processed left to
-%%  right.
+%%  right. The accumulator is in reverse order!
 
 proc_forms(Fun, Fs, St) -> proc_forms(Fun, Fs, [], St).
 
@@ -302,6 +308,9 @@ proc_forms_progn(_, [], _, Rs, St) ->
 %% subst-if(New, Test, Tree) -> Tree.
 %% subst-if-not(New, Test, Tree) -> Tree.
 %% eval(Sexpr) -> Value.
+%% macroexpand(Form [,Environment]) -> {yes,Expansion} | no.
+%% macroexpand-1(Form [,Environment]) -> {yes,Expansion} | no.
+%% macroexpand-all(Form [,Environment]) -> {yes,Expansion} | no.
 
 is_lfe_bif(acons, 3) -> true;
 is_lfe_bif(assoc, 2) -> true;
@@ -310,6 +319,13 @@ is_lfe_bif(subst, 3) -> true;
 is_lfe_bif('subst-if', 3) -> true;
 is_lfe_bif('subst-if-not', 3) -> true;
 is_lfe_bif(eval, 1) -> true;
+is_lfe_bif(eval, 2) -> true;
+is_lfe_bif(macroexpand, 1) -> true;
+is_lfe_bif(macroexpand, 2) -> true;
+is_lfe_bif('macroexpand-1', 1) -> true;
+is_lfe_bif('macroexpand-1', 2) -> true;
+is_lfe_bif('macroexpand-all', 1) -> true;
+is_lfe_bif('macroexpand-all', 2) -> true;
 is_lfe_bif(_, _) -> false.
 
 acons(K, V, Alist) -> [[K|V]|Alist].
@@ -355,7 +371,25 @@ subst(_, _, Tree) -> Tree.
 	    end
     end.
 
-eval(Sexpr) -> lfe_eval:expr(Sexpr, new_env()).	%Empty environment.
+eval(Sexpr) -> eval(Sexpr, new_env()).		%Empty environment.
+eval(Sexpr, Env) -> lfe_eval:expr(Sexpr, Env).
+
+macroexpand(Form) -> macroexpand(Form, new_env()).
+macroexpand(Form, Env) ->
+    case lfe_macro:expand_expr(Form, Env) of
+	{yes,Exp} -> Exp;
+	no -> Form
+    end.
+
+'macroexpand-1'(Form) -> 'macroexpand-1'(Form, new_env()).
+'macroexpand-1'(Form, Env) ->
+    case lfe_macro:expand_expr_1(Form, Env) of
+	{yes,Exp} -> Exp;
+	no -> Form
+    end.
+
+'macroexpand-all'(Form) -> 'macroexpand-all'(Form, new_env()).
+'macroexpand-all'(Form, Env) -> lfe_macro:expand_expr_all(Form, Env).
 
 %% Miscellaneous useful LFE functions.
 

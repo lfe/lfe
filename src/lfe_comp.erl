@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2010 Robert Virding. All rights reserved.
+%% Copyright (c) 2008-2011 Robert Virding. All rights reserved.
 %%
 %% Redistribution and use in source and binary forms, with or without
 %% modification, are permitted provided that the following conditions
@@ -133,16 +133,22 @@ do_forms(St0) ->
 %%  The actual compiler passes.
 
 do_macro_expand(St) ->
-    {Fs,Env} = lfe_macro:expand_forms(St#comp.code, new_env()),
-    debug_print("mac: ~p\n", [{Fs,Env}], St),
-    {ok,St#comp{code=Fs}}.
+    case lfe_macro:expand_forms(St#comp.code, new_env()) of
+	{ok,Fs,Env,Ws} ->
+	    debug_print("mac: ~p\n", [{Fs,Env}], St),
+	    {ok,St#comp{code=Fs,warnings=St#comp.warnings ++ Ws}};
+	{error,Es,Ws} ->
+	    {error,St#comp{errors=St#comp.errors ++ Es,
+			   warnings=St#comp.warnings ++ Ws}}
+    end.
 
 do_lint(St) ->
     case lfe_lint:module(St#comp.code, St#comp.opts) of
 	{ok,Ws} ->
-	    {ok,St#comp{warnings=Ws}};
+	    {ok,St#comp{warnings=St#comp.warnings ++ Ws}};
 	{error,Es,Ws} ->
-	    {error,St#comp{errors=Es,warnings=Ws}}
+	    {error,St#comp{errors=St#comp.errors ++ Es,
+			   warnings=St#comp.warnings ++ Ws}}
     end.
 
 do_lfe_codegen(#comp{code=Fs0}=St) ->
@@ -159,8 +165,8 @@ do_erl_comp(St) ->
 	{ok,_,Result,Ews} ->
 	    {ok,St#comp{code=Result,warnings=Ws ++ fix_erl_errors(Ews)}};
 	{error,Ees,Ews} ->
-	    {error,St#comp{warnings=Es ++ fix_erl_errors(Ees),
-			   errors=Ws ++ fix_erl_errors(Ews)}}
+	    {error,St#comp{errors=Es ++ fix_erl_errors(Ees),
+			   warnings=Ws ++ fix_erl_errors(Ews)}}
     end.
 
 %% passes() -> [Pass].
@@ -183,7 +189,7 @@ passes() ->
      {when_flag,to_core,{done,fun core_pp/2,"core"}},
      {when_flag,to_kernel,{done,fun kernel_pp/2,"kernel"}},
      {when_flag,to_asm,{done,fun asm_pp/2,"S"}},
-     {done,fun beam_write/2,"beam"}].		%Should be last
+     {unless_test,fun werr/1,{done,fun beam_write/2,"beam"}}]. %Should be last
 
 do_passes([{do,Fun}|Ps], St0) ->
     case Fun(St0) of
@@ -260,17 +266,23 @@ erl_comp_opts(Os) ->
 	       (report_errors) -> false;
 	       ('S') -> false;
 	       ('E') -> false;
+	       ('P') -> false;
 	       (dcore) -> false;
 	       (to_core0) -> false;
 	       (warnings_as_errors) -> false;	%We handle this ourselves
 	       (_) -> true			%Everything else
 	   end, [return|Os]).			%Ensure return!
 
+werr(#comp{opts=Opts,warnings=Ws}) ->
+    member(warnings_as_errors, Opts) andalso length(Ws) > 0.
+
 %% do_ok_return(State) -> {ok,Mod,...}.
 %% do_error_return(State) -> {error,...} | error.
+%% Note that this handling of 'warnings_as_errors' is the same in the
+%% vanilla erlang compiler 'compile'.
 
 do_ok_return(#comp{lfile=Lfile,opts=Opts,ret=Ret0,warnings=Ws}=St) ->
-    case member(warnings_as_errors, Opts) andalso length(Ws) > 0 of
+    case werr(St) of
 	true -> do_error_return(St);		%Warnings are errors!
 	false ->
 	    when_opt(report, Opts, fun () -> list_warnings(Lfile, Ws) end),

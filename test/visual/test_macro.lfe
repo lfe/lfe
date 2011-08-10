@@ -113,3 +113,16 @@
 	(m y (- m 1))
 	(c 0 (+ c 1)))
        ((> n m) c)))
+
+;; Some macro calls which will generate errors!
+(defun xx1 (x y)
+  (let@ 1 2 x))
+
+(progn
+  (progn
+    (defun xx2 (x y)
+      (let& 1 x))
+    )
+  (defun xx3 (x y)
+    (let* 1 2 x))
+  )

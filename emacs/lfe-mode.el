@@ -108,7 +108,7 @@ Leave point after open-bracket."
   (eval-when-compile
     (list
      (list (concat "(\\(def\\("
-		   ;; Base forms and old model names.
+		   ;; Base forms and old style names.
 		   "\\(ine\\(-module\\|-function\\|-macro\\|"
 		   "-syntax\\|-record\\)?\\)\\|"
 		   ;; New model function names
@@ -161,6 +161,7 @@ Leave point after open-bracket."
 	       "andalso" "cond" "do" "fun" "list*" "let*" "flet*" "macro"
 	       "orelse" "syntax-rules" "lc" "bc" "flet" "fletrec"
 	       "macrolet" "syntaxlet" "begin" "let-syntax"
+	       "match-spec"
 	       ":" "?" "++") t)
 	"\\>") '(1 font-lock-keyword-face))
       ;; Type tests.
@@ -255,6 +256,7 @@ Leave point after open-bracket."
 (put 'do 'lfe-indent-function 2)
 (put 'lc 'lfe-indent-function 1)
 (put 'bc 'lfe-indent-function 1)
+(put 'match-spec 'lfe-indent-function 0)
 
 ;; The end.
 (provide 'lfe-mode)

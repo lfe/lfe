@@ -4,7 +4,7 @@
 
 (defmodule test_bin
   (export (a 0) (a 1) (af 2) (afp 2) (a 3) ;Constructors
-	  (p1 1) (p2 1) (p2p 1) (p3 1))	   ;Patterns
+	  (p1 1) (p2 1) (p2p 1) (p3 1) (p4 0))	   ;Patterns
   (export (b 1) (b 2) (bb1 2) (bb2 2))	   ;Binaries/bitstrings
   (export (u 1) (u 2))			   ;Unicode types
   (export (vs1 2) (vs2 2) (vs3 2))	   ;Value and size expressions
@@ -48,6 +48,16 @@
     ((binary (x unsigned) (y (size 16) big-endian) (z (size 3) little-endian)
 	     (zz bitstring))
      (list x y z zz))))
+
+(defun p4 ()
+  (let* ((bin #b(2 "AB" "CD"))
+	 (tup #(2 #b("AB") #b("CD")))
+	 ((binary s (b binary (size s)) (rest binary)) bin))
+    ;; Test equality
+    (=:= tup (tuple s b rest) (p4-1 bin))))
+
+(defun p4-1
+  ([(binary s (b binary (size s)) (rest binary))] (tuple s b rest)))
 
 ;; Binaries/bitstrings.
 
