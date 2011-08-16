@@ -17,6 +17,9 @@ I will try to make a better fix soon. Sorry about that.
 v0.7
 ----
 
+Added Travis-CI support. You can use this .travis.yml and add lfe to
+http://travis-ci.org. (Ward Bekker)
+
 First version of Query List Comprehensions.
 
 Add access to current macro environment through the variable $ENV
