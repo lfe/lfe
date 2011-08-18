@@ -37,7 +37,7 @@ all: compile docs
 
 ## Compile using rebar if it exists else using make
 compile:
-	if which -s rebar; \
+	if which rebar > /dev/null; \
 	then rebar compile; \
 	else $(MAKE) $(MFLAGS) erlc_compile; \
 	fi
@@ -57,8 +57,8 @@ install:
 docs:
 
 clean:
-	if which -s rebar; \
+	if which rebar > /dev/null; \
 	then rebar clean; \
 	else rm -rf $(BINDIR)/*.beam; \
 	fi
-	rm -rf erl_crash.dump 
+	rm -rf erl_crash.dump
