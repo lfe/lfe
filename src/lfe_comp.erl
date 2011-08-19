@@ -189,7 +189,7 @@ passes() ->
      {when_flag,to_core,{done,fun core_pp/2,"core"}},
      {when_flag,to_kernel,{done,fun kernel_pp/2,"kernel"}},
      {when_flag,to_asm,{done,fun asm_pp/2,"S"}},
-     {unless_test,fun werr/1,{done,fun beam_write/2,"beam"}}]. %Should be last
+     {unless_test,fun werror/1,{done,fun beam_write/2,"beam"}}]. %Should be last
 
 do_passes([{do,Fun}|Ps], St0) ->
     case Fun(St0) of
@@ -273,7 +273,7 @@ erl_comp_opts(Os) ->
 	       (_) -> true			%Everything else
 	   end, [return|Os]).			%Ensure return!
 
-werr(#comp{opts=Opts,warnings=Ws}) ->
+werror(#comp{opts=Opts,warnings=Ws}) ->
     member(warnings_as_errors, Opts) andalso length(Ws) > 0.
 
 %% do_ok_return(State) -> {ok,Mod,...}.
@@ -282,7 +282,7 @@ werr(#comp{opts=Opts,warnings=Ws}) ->
 %% vanilla erlang compiler 'compile'.
 
 do_ok_return(#comp{lfile=Lfile,opts=Opts,ret=Ret0,warnings=Ws}=St) ->
-    case werr(St) of
+    case werror(St) of
 	true -> do_error_return(St);		%Warnings are errors!
 	false ->
 	    when_opt(report, Opts, fun () -> list_warnings(Lfile, Ws) end),
