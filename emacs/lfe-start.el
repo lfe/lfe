@@ -1,8 +1,11 @@
 ;;; lfe-start.el - Initialise the LFE mode package.
 ;;; Author: Robert Virding
 
-;; Declare autoload functions in lfe-mode.el.
+;; Declare autoload functions in lfe-mode.el and inferior-lfe.el.
 (autoload 'lfe-mode "lfe-mode" "Major mode for editing LFE code." t)
+(autoload 'inferior-lfe-mode "inferior-lfe" "Major mode for interacting with an inferior LFE process." t)
+(autoload 'inferior-lfe "inferior-lfe" "Run an LFE process." t)
+(autoload 'run-lfe "inferior-lfe" "Run an LFE process." t)
 
 ;; Associate ".lfe" with LFE mode.
 (let ((a '("\\.lfe\\'" . lfe-mode)))
