@@ -274,7 +274,7 @@ erl_comp_opts(Os) ->
 	   end, [return|Os]).			%Ensure return!
 
 werror(#comp{opts=Opts,warnings=Ws}) ->
-    member(warnings_as_errors, Opts) andalso length(Ws) > 0.
+    Ws =/= [] andalso member(warnings_as_errors, Opts).
 
 %% do_ok_return(State) -> {ok,Mod,...}.
 %% do_error_return(State) -> {error,...} | error.
