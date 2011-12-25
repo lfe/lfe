@@ -437,8 +437,9 @@ add_expr_func(Name, Ar, Def, Env) ->
 
 eval_apply({expr,Func,Env}, Es, _) ->
     case lfe_macro:expand_expr_all(Func, Env) of
-	[lambda,Args|Body] -> apply_lambda(Args, Body, Es, Env);
-	['match-lambda'|Cls] -> apply_match_clauses(Cls, Es, Env)
+    [lambda,Args|Body] -> apply_lambda(Args, Body, Es, Env);
+    ['match-lambda'|Cls] -> apply_match_clauses(Cls, Es, Env);
+    Fun when erlang:is_function(Fun) -> erlang:apply(Fun, Es)
     end;
 eval_apply({letrec,Body,Fbs,Env}, Es, Ee) ->
     %% A function created by/for letrec-function.
