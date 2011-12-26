@@ -35,13 +35,13 @@
   (export (all 0) (suite 0) (groups 0) (init_per_suite 1) (end_per_suite 1)
 	  (init_per_group 2) (end_per_group 2)
 	  ;; (init_per_testcase 2) (end_per_testcase 2)
-	  (guard_1 1) (binary_1 1)))
+	  (guard_1 1) (binary_1 1) (binding_1 0)))
 
 (defmacro MODULE () `'eval_SUITE)
 
 (defun all ()
   ;; (: test_lib recompile (MODULE))
-  (list 'guard_1 'binary_1))
+  (list 'guard_1 'binary_1 'binding_1))
 
 ;;(defun suite () (list (tuple 'ct_hooks (list 'ts_install_cth))))
 (defun suite () ())
@@ -56,7 +56,7 @@
 
 (defun end_per_group (name config) config)
 
-(defun guard_1 
+(defun guard_1
   (['suite] ())
   (['doc] '"Guard tests.")
   ([config] (when (is_list config))
@@ -95,3 +95,9 @@
 			    (a #b(2 "AB" "CD"))))))
 
    'ok))
+
+(defun binding_1 ()
+  (funcall (: lfe_eval expr
+             '(lambda () (xy 1 2))
+             (: lfe_eval add_expr_func 'xy 2 (lambda (_ _) 'ok)
+               (: lfe_lib new_env)))))

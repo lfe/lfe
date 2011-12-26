@@ -1,3 +1,7 @@
+2011-08-19  Robert Virding  <rv@renat.local>
+
+	* lfe_macro.erl (pass_expand_expr): Only try to expand lists.
+
 2011-07-09  Robert Virding  <rv@renat.local>
 
 	* lfe_trans.erl (from_bitseg): Fix handling of binaries.

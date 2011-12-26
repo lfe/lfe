@@ -260,10 +260,12 @@ func_arity(['match-lambda',[Pat|_]|_]) ->
     end;
 func_arity(_) -> no.
 
-%% pass_expand_expr(Expr, Line, Env, State) -> {yes,Exp,State} | {no,State}.
+%% pass_expand_expr(Expr, Line, Env, State, ExpandFlag) ->
+%%     {yes,Exp,State} | {no,State}.
 %% Try to macro expand Expr, catch errors and return them in State.
+%% Only try to expand list expressions.
 
-pass_expand_expr(E0, L, Env, St0, Expand) ->
+pass_expand_expr([_|_]=E0, L, Env, St0, Expand) ->
     try
 	case exp_macro(E0, Env, St0) of
 	    {yes,_,_}=Yes -> Yes;
@@ -274,7 +276,8 @@ pass_expand_expr(E0, L, Env, St0, Expand) ->
 	end
     catch
 	_:Error -> {no,E0,add_error(L, Error, St0)}
-    end.
+    end;
+pass_expand_expr(E, _, _, St, _) -> {no,E,St}.
 
 %% add_error(Line, Error, State) -> State.
 %% add_warning(Line, Warning, State) -> State.
