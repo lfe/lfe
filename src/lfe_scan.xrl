@@ -42,10 +42,9 @@ SSYM	= [^][()}{|";#`',\000-\s]
 WS	= ([\000-\s]|;[^\n]*)
 
 Rules.
-%% Separaters
+%% Separators
 #[bB]\(		:	{token,{'#B(',TokenLine}}.
 #\(		:	{token,{'#(',TokenLine}}.
-#'		:	{token,{'#\'',TokenLine}}.
 #`		:	{token,{'#`',TokenLine}}.
 #;		:	{token,{'#;',TokenLine}}.
 #,		:	{token,{'#,',TokenLine}}.
@@ -68,6 +67,11 @@ Rules.
 			%% Strip quotes.
 			S = string:substr(TokenChars, 2, TokenLen - 2),
 			symbol_token(chars(S), TokenLine).
+%% Funs
+#'{SSYM}{SYM}*/{D}+	:
+            %% Strip sharpsign single-quote.
+            FunStr = string:substr(TokenChars,3),
+            {token,{'fun',TokenLine,FunStr}}.
 %% Based numbers
 #[bB]{B}+	:	base_token(string:substr(TokenChars, 3), 2, TokenLine).
 #[oO]{O}+	:	base_token(string:substr(TokenChars, 3), 8, TokenLine).
