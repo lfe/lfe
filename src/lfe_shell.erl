@@ -82,11 +82,14 @@ server_loop(Env0, BaseEnv) ->
 		  %% Use LFE's simplified version of erlang shell's error
 		  %% reporting but which LFE prettyprints data.
 		  St = erlang:get_stacktrace(),
-		  Sf = fun (M, _F, _A) ->
+		  Sf = fun ({M,_F,_A}) ->	%Pre R15
 			       %% Don't want to see these in stacktrace.
-			       (M == lfe_eval)
-				   or (M == lfe_shell)
-				   or (M == lfe_macro)
+			       (M == lfe_eval) or (M == lfe_shell)
+				   or (M == lfe_macro) or (M == lists);
+			   ({M,_F,_A,_L}) ->	%R15 and later
+			       %% Don't want to see these in stacktrace.
+			       (M == lfe_eval) or (M == lfe_shell)
+				   or (M == lfe_macro) or (M == lists)
 		       end,
 		  Ff = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
 		  Cs = lfe_lib:format_exception(Class, Error, St, Sf, Ff, 1),

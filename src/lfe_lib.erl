@@ -413,9 +413,14 @@ format_exception(Cl, Error, St, Sf, Ff, I) ->
 %%  Format a stacktrace. SkipFun is used to trim the end of stack;
 %%  FormatFun is used to format terms.
 
-format_stacktrace(St0, Sf, Ff) ->
-    St1 = reverse(dropwhile(fun ({M,F,A}) -> Sf(M, F, A) end, reverse(St0))),
-    map(fun ({M,F,A}) when is_integer(A) ->
-		lfe_io:format1("  in (~w ~w ~w)\n", [M,F,A]);
-	    ({M,F,A}) -> ["  in ",Ff([':',M,F|A], 5),"\n"]
-	end, St1).
+format_stacktrace(St0, Skip, Format) ->
+    St1 = reverse(dropwhile(Skip, reverse(St0))),
+    Print = fun ({M,F,A}) when is_integer(A) ->	%Pre R15
+		    lfe_io:format1("  in (~w ~w ~w)\n", [M,F,A]);
+		({M,F,A}) -> ["  in ",Format([':',M,F|A], 5),"\n"];
+		%% R15 and later.
+		({M,F,A,_}) when is_integer(A) ->
+		    lfe_io:format1("  in (~w ~w ~w)\n", [M,F,A]);
+		({M,F,A,_}) -> ["  in ",Format([':',M,F|A], 5),"\n"]
+	end,
+    map(Print, St1).
