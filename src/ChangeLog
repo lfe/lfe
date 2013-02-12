@@ -1,3 +1,8 @@
+2013-02-12  Robert Virding  <rv@renat.local>
+
+	* <All files>: Changed Copyright notice and now use Apache License
+	V2.0.
+
 2011-08-19  Robert Virding  <rv@renat.local>
 
 	* lfe_macro.erl (pass_expand_expr): Only try to expand lists.
@@ -630,7 +635,7 @@
 2008-09-24    <rv@DOUGLAS>
 
 	* lfe_codegen.erl: Contains code generation part of compiler.
-	
+
 	* lfe_comp.erl: Moved code generation into lfe_codegen.
 
 2008-09-23    <rv@DOUGLAS>
@@ -695,7 +700,7 @@
 
 2008-05-17    <rv@DOUGLAS>
 
-	* lfe_comp.erl (collect_mdef): 
+	* lfe_comp.erl (collect_mdef):
 	* lfe_lint.erl (check_mdef): Added general attributes.
 
 2008-05-13    <rv@DOUGLAS>
@@ -733,8 +738,8 @@
 
 2008-04-13    <rv@DOUGLAS>
 
-	* lfe_eval.erl (match): 
-	* lfe_lint.erl (check_pat): 
+	* lfe_eval.erl (match):
+	* lfe_lint.erl (check_pat):
 	* lfe_comp.erl (comp_pat): Added aliases (= pat1 pat2). Known bug:
 	compiler bombs if it detects mismatch.
 
@@ -744,10 +749,10 @@
 	copyright smae as FreeBSD.
 
 2008-04-09    <rv@DOUGLAS>
-	
-	* lfe_macro.erl: 
-	* lfe_lib.erl: 
-	* lfe_lint.erl: 
+
+	* lfe_macro.erl:
+	* lfe_lib.erl:
+	* lfe_lint.erl:
 	* lfe_comp.erl: Added flet, with normal scoping of functions, and
 	renamed letrec to fletrec for consistency.
 
@@ -776,7 +781,7 @@
 	* lfe_macro.erl (expand_forms): Added new two pass macro
 	processing with a macro pass and an expansion pass.
 
-	* lfe_comp.erl: 
+	* lfe_comp.erl:
 	  lfe_lint.erl: Use proc_forms for collecting, nested safe.
 
 	* lfe_lib.erl (proc_forms): Process (begin ...) nested forms.
@@ -789,7 +794,7 @@
 
 2008-03-06    <rv@DOUGLAS>
 
-	* lfe_eval.erl (eval_lambda, eval_match_lambda): 
+	* lfe_eval.erl (eval_lambda, eval_match_lambda):
 
 	Fixed bug in handling of funs, they were attuned only to evals
 	calls not to general usage. They now handle arguments correctly.
@@ -799,7 +804,7 @@
 	* lfe_comp.erl (pat_symb)
 	  lfe_lint.erl (pat_symb)
 	  lfe_eval.erl (match_symb): Added _ don't care variable to patterns.
-	  
+
 2008-03-05    <rv@DOUGLAS>
 
 	* lfe_macro.erl (match): Uses match/3 from lfe_eval.

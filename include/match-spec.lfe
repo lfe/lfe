@@ -12,22 +12,12 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-;; As close as we can get to a vanilla erlang if, a case with no match.
-(defmacro eif
-  (args
-   (fletrec ((r ([(t v . as)] `((_ (when ,t) ,v) . ,(r as)))
-		([()] ())))
-     `(case 1 . ,(r args)))))
+;; File    : match-spec.lfe
+;; Author  : Robert Virding
+;; Purpose : The match-spec macro as it could have been implemented in LFE.
 
-(defmacro test-pat (pat expr)
-  `(let* ((val ,expr)
-	  (,pat val))
-     val))
-
-;; We don't have any sensible line numbers to save so we save form.
-(defmacro line (expr)
-  `(progn (put 'test_server_loc (tuple (MODULE) ',expr))
-	  ,expr))
-
-(defmacro config args
-  `(: test_server lookup_config . ,args))
+(defmacro match-spec body
+  ;; Body is clauses so expand it like a match-lambda.
+  (let (((cons 'match-lambda exp)
+	 (macroexpand-all (cons 'match-lambda body) $ENV)))
+    (: lfe_ms expand exp)))
