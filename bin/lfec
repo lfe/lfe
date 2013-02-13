@@ -1,0 +1,42 @@
+#! /usr/bin/env escript
+%% -*- mode: erlang; -*-
+%% Copyright (c) 2008-2013 Robert Virding.
+%%
+%% Licensed under the Apache License, Version 2.0 (the "License");
+%% you may not use this file except in compliance with the License.
+%% You may obtain a copy of the License at
+%%
+%%     http://www.apache.org/licenses/LICENSE-2.0
+%%
+%% Unless required by applicable law or agreed to in writing, software
+%% distributed under the License is distributed on an "AS IS" BASIS,
+%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%% See the License for the specific language governing permissions and
+%% limitations under the License.
+
+main([]) -> usage();
+main(Args0) ->
+    fix_code_path(),
+    %% Set default options as an orddict.
+    Opts0 = [{outdir,"."}],
+    {Args1,Opts1} = parse_opts(Args0, Opts0),
+    %% Remaing args are filenames, add default options.
+    lists:map(fun (A) -> lfe_comp:file(A, [verbose,report|Opts1]) end, Args1).
+
+%% Remove "." from code path to make sure we don't get conflicts with
+%% newly compiled files.
+fix_code_path() ->
+    P0 = code:get_path(),
+    P1 = lists:delete(".", P0),
+    code:set_path(P1).
+
+parse_opts(["-o",Odir|As], Opts) ->
+    parse_opts(As, orddict:store(outdir, Odir, Opts));
+parse_opts(As, Opts) -> {As,Opts}.
+
+usage() ->
+    Usage =
+	"Usage:  lfec [options] file ...\n" ++
+	"Options:\n" ++
+	"-o name        name of output directory\n",
+    io:put_chars(Usage).

@@ -20,10 +20,11 @@
 ;;   (setq lfe-mode-syntax-table (copy-syntax-table lisp-mode-syntax-table)))
 
 (defvar lfe-mode-map
-  (let ((map (copy-keymap lisp-mode-map)))
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map lisp-mode-shared-map)
     (define-key map "\e[" 'lfe-insert-brackets)
     map)
-  "*Keymap used in Lisp Flavoured Erlang mode.")
+  "Keymap for Lisp Flavoured Erlang mode.")
 
 ;; (unless lfe-mode-map
 ;;   (setq lfe-mode-map (copy-keymap lisp-mode-map))
@@ -38,14 +39,25 @@ Leave point after open-bracket."
 (defvar lfe-mode-abbrev-table ()
   "Abbrev table used in Lisp Flavoured Erlang mode.")
 
-(define-derived-mode lfe-mode nil "LFE"
-  "Major mode for editing Lisp Flavoured Erlang. It's just like lisp mode."
-  (use-local-map lfe-mode-map)
+(defvar lfe-mode-hook nil
+  "*Hook for customizing Inferior LFE mode.")
+
+(defun lfe-mode ()
+  "Major mode for editing Lisp Flavoured Erlang. It's just like lisp mode.
+
+Other commands:
+\\{lfe-mode-map}"
+  (interactive)
+  (kill-all-local-variables)
+  (setq major-mode 'lfe-mode)
+  (setq mode-name "LFE")
   (lfe-mode-variables)
+  (use-local-map lfe-mode-map)
 ;;   ;; For making font-lock case independant, which LFE isn't.
 ;;   (make-local-variable 'font-lock-keywords-case-fold-search)
 ;;   (setq font-lock-keywords-case-fold-search t)
-  (setq imenu-case-fold-search t))
+  (setq imenu-case-fold-search t)
+  (run-mode-hooks 'lfe-mode-hook))
 
 (defun lfe-mode-variables ()
   (set-syntax-table lfe-mode-syntax-table)
@@ -161,7 +173,7 @@ Leave point after open-bracket."
 	       "andalso" "cond" "do" "fun" "list*" "let*" "flet*" "macro"
 	       "orelse" "syntax-rules" "lc" "bc" "flet" "fletrec"
 	       "macrolet" "syntaxlet" "begin" "let-syntax"
-	       "match-spec"
+	       "match-spec" "qlc"
 	       ":" "?" "++") t)
 	"\\>") '(1 font-lock-keyword-face))
       ;; Type tests.
@@ -260,5 +272,8 @@ Leave point after open-bracket."
 
 ;; The end.
 (provide 'lfe-mode)
+
+(defvar lfe-load-hook nil
+  "*Functions to run when Erlang mode is loaded.")
 
 (run-hooks 'lfe-load-hook)
