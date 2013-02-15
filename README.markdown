@@ -1,9 +1,10 @@
+# LFE
+
 LFE, Lisp Flavoured Erlang, is a lisp syntax front-end to the Erlang
 compiler. Code produced with it is compatible with "normal" Erlang
 code. An LFE evaluator and shell is also included.
 
-NOTE NOTE NOTE
---------------
+## Important Note
 
 A quick fix has been added to compensate for some incompatibilites in
 Core erlang between the old R12B and the new R13B. The fixes are found
@@ -14,8 +15,9 @@ of the function. The .beam file in ebin is for R13B.
 
 I will try to make a better fix soon. Sorry about that.
 
-v0.7
-----
+# Version History
+
+## v0.7
 
 Added Travis-CI support. You can use this .travis.yml and add lfe to
 http://travis-ci.org. (Ward Bekker)
@@ -51,8 +53,7 @@ words" like 'tuple' and 'binary'.
 Allow guards with generators in list/binary comprehensions. N.B. can
 cause unexpected behaviour with binary generators.
 
-v0.6
-----
+## v0.6
 
 Allow literal strings in binaries, both as plain values and as values
 with specs, so (binary "abc" ("едц" utf-8)) is valid. In the second
@@ -76,8 +77,7 @@ Improve prettyprinting of defuns.
 
 Many internal improvements.
 
-v0.5
-----
+## v0.5
 
 Added macro list*.
 
@@ -103,8 +103,8 @@ Improved pretty-printing.
 
 Many internal improvements.
 
-v0.4
-----
+## v0.4
+
 This will be the last development version for Erlang R12B-5 and older,
 all future development will for R13B. If there is enough interest I
 may start a separate branch for R12B.
@@ -126,8 +126,8 @@ more complex macros.
 Better and more documention. The documentation is still normal text
 files as Edoc and I are not in agreement on how things should work.
 
-v0.3
-----
+## v0.3
+
 This is the first version with the modified internal core forms and
 macro intefaces for the new CL inspired style and the older Scheme
 inspired style.
