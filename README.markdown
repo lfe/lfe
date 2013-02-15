@@ -7,8 +7,8 @@ code. An LFE evaluator and shell is also included.
 ## Important Note
 
 A quick fix has been added to compensate for some incompatibilites in
-Core erlang between the old R12B and the new R13B. The fixes are found
-in the file lfe_codegen.erl. For one fix code must be chosen depending
+Core Erlang between the old R12B and the new R13B. The fixes are found
+in the file ```lfe_codegen.erl```. For one fix code must be chosen depending
 on whether the systems runs on R12B or R13B, this is the (tiny)
 function ```c_fname/3``` near the end of the file. Choose the right version
 of the function. The ```.beam``` file in ebin is for R13B.
@@ -24,12 +24,12 @@ http://travis-ci.org. (Ward Bekker)
 
 First version of Query List Comprehensions.
 
-Add access to current macro environment through the variable $ENV
+Add access to current macro environment through the variable ```$ENV```
 within macros which allows explicit macro expansion.
 
 First version of match-specification generator.
 
-Add ets/mnesia match patterns to records.
+Add ```ets/mnesia``` match patterns to records.
 
 Arithmetic functions ```+``` ```-``` ```*``` ```/``` and comparison functions
 ```>``` ```>=``` ```<``` ```=<``` ```==``` ```/=``` ```=:=``` ```=/=``` now
@@ -39,7 +39,7 @@ macros.
 Handle compiler option ```warnings_as_errors``` in the same way as the
 vanilla Erlang compiler.
 
-Improved ```++``` macro can now be used in patterns.
+Improved ```++``` macro; it can now be used in patterns.
 
 List/binary comprehensions generate fewer unnecessary compiler
 warnings.
@@ -48,7 +48,7 @@ Added new example file with core macros implemented in LFE.
 
 New patterns with explicit constructors! We now follow the invariant
 that constructors and patterns should look the same. It is still
-possible to use old patterns but ```cons``` and ```list``` now as as "reserved
+possible to use old patterns but ```cons``` and ```list``` are now "reserved
 words" like ```tuple``` and ```binary```.
 
 Allow guards with generators in list/binary comprehensions. N.B. can
@@ -74,7 +74,7 @@ longer necessary.
 
 Read and output based integers.
 
-Improve prettyprinting of defuns.
+Improve prettyprinting of ```defuns```.
 
 Many internal improvements.
 
@@ -90,11 +90,11 @@ compiler.
 Added unicode types to binaries: utf-8, utf-16 and utf-32.
 
 Shell and compiler now print error data in LFE instead of vanilla.
-Shell error reporting still pretty basic, not as "beautiful" as
+Shell error reporting is still pretty basic, not as "beautiful" as
 vanilla.
 
-Cleaned up i/o functions and added formatted output function. Still
-use vanilla command characters.
+Cleaned up i/o functions and added formatted output function. It still
+uses vanilla command characters.
 
 All i/o goes through the module ```lfe_io````. The functions which return
 the corresponding printable string end in 1. So ```lfe_io:format``` prints
@@ -114,7 +114,7 @@ Parameterized modules.
 
 Added ```(export all)``` attribute to module definition.
 
-New records which allow giving default values as in vanilla Erlang.
+Added new records which allow giving default values as in vanilla Erlang.
 Records are still compatible with vanilla Erlang but now more pratical
 to use. NOTE this change is not backwards compatible as syntax for
 ```(make- ...)``` and ```(match- ...)``` have changed. Also added general
@@ -125,13 +125,13 @@ functions to be defined when compiling the forms. These are useful for
 more complex macros.
 
 Better and more documention. The documentation is still normal text
-files as Edoc and I are not in agreement on how things should work.
+files as Edoc and are not in agreement on how things should work.
 
 ## v0.3
 
 This is the first version with the modified internal core forms and
-macro intefaces for the new CL inspired style and the older Scheme
-inspired style.
+macro intefaces for the new CL-inspired style and the older Scheme-inspired
+style.
 
 Two new modules have been added:
 
@@ -147,5 +147,5 @@ NOTE order of commands important, must be ```-noshell -noinput```! Add
 
 ```lfe_gen``` is a trial interface for using LFE for dynamic code
 generation. LFE is much easier to generate as an Erkang list than
-Erlang forms. This module helps defining and compiling a module. Note,
+Erlang forms. This module helps with defining and compiling a module. Note,
 that while it works, this module is very experimental and may change.
