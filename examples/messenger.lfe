@@ -23,7 +23,7 @@
 ;;  > (c '"messenger")
 ;;  #(module messenger)
 ;;  > (set pid (spawn 'messenger 'print-result ()))
-;;  <0.55.0>
+;;  <0.34.0>
 ;;  > (! pid '"Zaphod was here.")
 ;;  "Zaphod was here."
 ;;  Received message: 'Zaphod was here.'
