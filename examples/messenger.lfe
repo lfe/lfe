@@ -38,7 +38,6 @@
  (export (print-result 0)))
 
 (defun print-result ()
-  (receive
-    (msg
-      (: io format '"Received message: '~s'~n" (list msg))
-      (print-result))))
+  (receive (msg
+    (: io format '"Received message: '~s'~n" (list msg))
+    (print-result))))
