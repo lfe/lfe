@@ -18,7 +18,7 @@ SRCS = $(notdir $(wildcard $(SRCDIR)/*.erl))
 EBINS = $(SRCS:.erl=.beam)
 
 ## Where we install LFE, in the ERL_LIBS directory.
-INSTALLDIR = $(ERL_LIBS)/lfe
+INSTALLDIR = $(ERL_LIBS)/lfe-$(shell cat VERSION)
 
 .SUFFIXES: .erl .beam
 
