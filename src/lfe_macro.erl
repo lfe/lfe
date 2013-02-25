@@ -30,7 +30,6 @@
 -export([mbe_syntax_rules_proc/4,mbe_syntax_rules_proc/5,
 	 mbe_match_pat/3,mbe_get_bindings/3,mbe_expand_pattern/3]).
 
-
 %% -compile([export_all]).
 
 -import(lfe_lib, [new_env/0,add_fbinding/4,is_fbound/3,
@@ -42,12 +41,15 @@
 -import(orddict, [find/2,store/3]).
 -import(ordsets, [add_element/2,is_element/2]).
 
--define(Q(E), [quote,E]).			%We do a lot of quoting!
+%% We do a lot of quoting!
+-define(Q(E), [quote,E]).
 -define(BQ(E), [backquote,E]).
 -define(UQ(E), [unquote,E]).
 -define(UQ_S(E), ['unquote-splicing',E]).
 
+%% Macro expander state.
 -record(mac, {expand=true,			%Expand everything
+	      line=1,				%Line no of current form
 	      vc=0,				%Variable counter
 	      fc=0,				%Function counter
 	      errors=[],			%Errors
@@ -67,7 +69,7 @@ format_error({expand_macro,Call,_}) ->
 %%  or as far as it can go.
 
 expand_expr_1([Name|_]=Call, Env) when is_atom(Name) ->
-    St = #mac{expand=false},			%Default state
+    St = #mac{expand=false,line=1},		%Default state
     case exp_macro(Call, Env, St) of
 	{yes,Exp,_} -> {yes,Exp};
 	no -> no
@@ -75,7 +77,7 @@ expand_expr_1([Name|_]=Call, Env) when is_atom(Name) ->
 expand_expr_1(_, _) -> no.
 
 expand_expr([Name|_]=Call, Env) when is_atom(Name) ->
-    St0 = #mac{expand=false},			%Default state
+    St0 = #mac{expand=false,line=1},		%Default state
     case exp_macro(Call, Env, St0) of
 	{yes,Exp0,St1} ->
 	    {Exp1,_} = expand_expr_loop(Exp0, Env, St1),
@@ -98,13 +100,15 @@ expand_expr_all(F, Env) ->
     {Ef,_} = expand(F, Env, #mac{expand=true}),
     Ef.
 
-%% expand_forms(FileForms, Env) -> {FileForms,Env}.
+%% expand_forms(FileForms, Env) ->
+%%     {ok,FileForms,Env,Warnings} | {error,Errors,Warnings}.
 %%  Expand forms in "file format", {Form,LineNumber}.
 
 expand_forms(Fs, Env) ->
     do_forms(Fs, Env, true).
 
-%% macro_forms(FileForms, Env) -> {FileForms,Env}.
+%% macro_forms(FileForms, Env) ->
+%%     {ok,FileForms,Env,Warnings} | {error,Errors,Warnings}.
 %%  Collect, and remove, all macro definitions in a list of forms. All
 %%  top level macro calls are also expanded and any new macro
 %%  definitions are collected.
@@ -126,15 +130,15 @@ do_forms(Fs0, Env0, Expand) ->
 %%  Nesting of forms by progn is preserved.
 
 pass([{['progn'|Pfs0],L}|Fs0], Env0, St0) ->
-    {Pfs1,Env1,St1} = pass_progn(Pfs0, L, Env0, St0),
+    {Pfs1,Env1,St1} = pass_progn(Pfs0, Env0, St0#mac{line=L}),
     {Fs1,Env2,St2} = pass(Fs0, Env1, St1),
     {[{['progn'|Pfs1],L}|Fs1],Env2,St2};
 pass([{['eval-when-compile'|Ewcs0],L}|Fs0], Env0, St0) ->
-    {Ecws1,Env1,St1} = pass_ewc(Ewcs0, L, Env0, St0),
+    {Ecws1,Env1,St1} = pass_ewc(Ewcs0, Env0, St0#mac{line=L}),
     {Fs1,Env2,St2} = pass(Fs0, Env1, St1),
     {[{['progn'|Ecws1],L}|Fs1],Env2,St2};
 pass([{['define-macro'|Def]=F,L}|Fs0], Env0, St0) ->
-    case pass_define_macro(Def, L, Env0, St0) of
+    case pass_define_macro(Def, Env0, St0#mac{line=L}) of
 	{yes,Env1,St1} -> pass(Fs0, Env1, St1);
 	{no,St1} ->
 	    %% Ignore it and pass it on to generate error later.
@@ -143,7 +147,7 @@ pass([{['define-macro'|Def]=F,L}|Fs0], Env0, St0) ->
     end;
 pass([{F,L}|Fs0], Env0, St0) ->
     %% First expand enough to test top form, else maybe expand all.
-    case pass_expand_expr(F, L, Env0, St0, St0#mac.expand) of
+    case pass_expand_expr(F, Env0, St0#mac{line=L}, St0#mac.expand) of
 	{yes,Exp,St1} ->			%Top form expanded
 	    pass([{Exp,L}|Fs0], Env0, St1);
 	{no,F1,St1} -> 				%Expanded all if flag set
@@ -152,40 +156,40 @@ pass([{F,L}|Fs0], Env0, St0) ->
     end;
 pass([], Env, St) -> {[],Env,St}.
 
-%% pass_progn(Forms, Line, Env, State) -> {Forms,Env,State}.
+%% pass_progn(Forms, Env, State) -> {Forms,Env,State}.
 %%  Pass over a list of forms collecting and removing all macro
 %%  defintions. All forms must be expanded at top-level to check form,
 %%  but all can be expanded to full depth. Nesting of forms by progn
 %%  is preserved.
 
-pass_progn([['progn'|Pfs0]|Fs0], L, Env0, St0) ->
-    {Pfs1,Env1,St1} = pass_progn(Pfs0, L, Env0, St0),
-    {Fs1,Env2,St2} = pass_progn(Fs0, L, Env1, St1),
+pass_progn([['progn'|Pfs0]|Fs0], Env0, St0) ->
+    {Pfs1,Env1,St1} = pass_progn(Pfs0, Env0, St0),
+    {Fs1,Env2,St2} = pass_progn(Fs0, Env1, St1),
     {[['progn'|Pfs1]|Fs1],Env2,St2};
-pass_progn([['eval-when-compile'|Ewcs0]|Fs0], L, Env0, St0) ->
-    {Ecws1,Env1,St1} = pass_ewc(Ewcs0, L, Env0, St0),
-    {Fs1,Env2,St2} = pass_progn(Fs0, L, Env1, St1),
+pass_progn([['eval-when-compile'|Ewcs0]|Fs0], Env0, St0) ->
+    {Ecws1,Env1,St1} = pass_ewc(Ewcs0, Env0, St0),
+    {Fs1,Env2,St2} = pass_progn(Fs0, Env1, St1),
     {[['progn'|Ecws1]|Fs1],Env2,St2};
-pass_progn([['define-macro'|Def]=F|Fs0], L, Env0, St0) ->
-    case pass_define_macro(Def, L, Env0, St0) of
-	{yes,Env1,St1} -> pass_progn(Fs0, L, Env1, St1);
+pass_progn([['define-macro'|Def]=F|Fs0], Env0, St0) ->
+    case pass_define_macro(Def, Env0, St0) of
+	{yes,Env1,St1} -> pass_progn(Fs0, Env1, St1);
 	{no,St1} ->
 	    %% Ignore it and pass it on to generate error later.
-	    {Fs1,Env1,St2} = pass_progn(Fs0, L, Env0, St1),
+	    {Fs1,Env1,St2} = pass_progn(Fs0, Env0, St1),
 	    {[F|Fs1],Env1,St2}
     end;
-pass_progn([F|Fs0], L, Env0, St0) ->
+pass_progn([F|Fs0], Env0, St0) ->
     %% First expand enough to test top form, if so process again.
-    case pass_expand_expr(F, L, Env0, St0, St0#mac.expand) of
+    case pass_expand_expr(F, Env0, St0, St0#mac.expand) of
 	{yes,Exp,St1} ->			%Top form expanded
-	    pass_progn([Exp|Fs0], L, Env0, St1);
+	    pass_progn([Exp|Fs0], Env0, St1);
 	{no,F1,St1} -> 				%Expanded all if flag set
-	    {Fs1,Env1,St2} = pass_progn(Fs0, L, Env0, St1),
+	    {Fs1,Env1,St2} = pass_progn(Fs0, Env0, St1),
 	    {[F1|Fs1],Env1,St2}
     end;
-pass_progn([], _, Env, St) -> {[],Env,St}.
+pass_progn([], Env, St) -> {[],Env,St}.
 
-%% pass_ewc(Forms, Line, Env, State) -> {Forms,Env,State}.
+%% pass_ewc(Forms, Env, State) -> {Forms,Env,State}.
 %%  Pass over a list of forms collecting and removing all function
 %%  defintions. All forms must be expanded at top-level to check
 %%  form. Nesting of forms by progn is preserved. All functions are
@@ -193,49 +197,49 @@ pass_progn([], _, Env, St) -> {[],Env,St}.
 %%  recursive, while unrecognised forms are returned. They can call
 %%  functions in previously defined eval-when-compile's.
 
-pass_ewc(Fs0, L, Env0, St0) ->
-    {Fs1,Fbs,Env1,St1} = pass_ewc(Fs0, L, [], Env0, St0),
+pass_ewc(Fs0, Env0, St0) ->
+    {Fs1,Fbs,Env1,St1} = pass_ewc(Fs0, [], Env0, St0),
     Env2 = lfe_eval:make_letrec_env(Fbs, Env1),
     {Fs1,Env2,St1}.
 
-pass_ewc([['progn'|Pfs0]|Fs0], L, Fbs0, Env0, St0) ->
-    {Pfs1,Fbs1,Env1,St1} = pass_ewc(Pfs0, L, Fbs0, Env0, St0),
-    {Fs1,Fbs2,Env2,St2} = pass_ewc(Fs0, L, Fbs1, Env1, St1),
+pass_ewc([['progn'|Pfs0]|Fs0], Fbs0, Env0, St0) ->
+    {Pfs1,Fbs1,Env1,St1} = pass_ewc(Pfs0, Fbs0, Env0, St0),
+    {Fs1,Fbs2,Env2,St2} = pass_ewc(Fs0, Fbs1, Env1, St1),
     {[['progn'|Pfs1]|Fs1],Fbs2,Env2,St2};
-pass_ewc([['eval-when-compile'|Ewcs0]|Fs0], L, Fbs0, Env0, St0) ->
-    {Ecws1,Fbs1,Env1,St1} = pass_ewc(Ewcs0, L, Fbs0, Env0, St0),
-    {Fs1,Fbs2,Env2,St2} = pass_ewc(Fs0, L, Fbs1, Env1, St1),
+pass_ewc([['eval-when-compile'|Ewcs0]|Fs0], Fbs0, Env0, St0) ->
+    {Ecws1,Fbs1,Env1,St1} = pass_ewc(Ewcs0, Fbs0, Env0, St0),
+    {Fs1,Fbs2,Env2,St2} = pass_ewc(Fs0, Fbs1, Env1, St1),
     {[['progn'|Ecws1]|Fs1],Fbs2,Env2,St2};
 %% Do we want macros here???
-%% pass_ewc([['define-macro'|Def]=F|Fs0], L, Fbs0, Env0, St0) ->
-%%     case pass_define_macro(Def, L, Env0, St0) of
-%% 	{yes,Env1,St1} -> pass_ewc(Fs0, L, Fbs0, Env1, St1);
+%% pass_ewc([['define-macro'|Def]=F|Fs0], Fbs0, Env0, St0) ->
+%%     case pass_define_macro(Def, Env0, St0) of
+%% 	{yes,Env1,St1} -> pass_ewc(Fs0, Fbs0, Env1, St1);
 %% 	{no,St1} ->
 %% 	    %% Ignore it and pass it on to generate error later.
-%% 	    {Fs1,Fbs1,Env1,St2} = pass_ewc(Fs0, L, Fbs0, Env0, St1),
+%% 	    {Fs1,Fbs1,Env1,St2} = pass_ewc(Fs0, Fbs0, Env0, St1),
 %% 	    {[F|Fs1],Fbs1,Env1,St2}
 %%     end;
-pass_ewc([['define-function',Name,Def]=F|Fs0], L, Fbs0, Env0, St0) ->
+pass_ewc([['define-function',Name,Def]=F|Fs0], Fbs0, Env0, St0) ->
     case func_arity(Def) of
 	{yes,Ar} ->				%Definition not too bad
 	    Fb = {Name,Ar,Def},
 	    %% Env1 = lfe_eval:add_expr_func(Name, Ar, Def, Env0),
-	    pass_ewc(Fs0, L, [Fb|Fbs0], Env0, St0);
+	    pass_ewc(Fs0, [Fb|Fbs0], Env0, St0);
 	no ->					%Definition really bad
 	    %% Ignore it and pass it on to generate error later.
-	    {Fs1,Fbs1,Env1,St1} = pass_ewc(Fs0, L, Fbs0, Env0, St0),
+	    {Fs1,Fbs1,Env1,St1} = pass_ewc(Fs0, Fbs0, Env0, St0),
 	    {[F|Fs1],Fbs1,Env1,St1}
     end;
-pass_ewc([F|Fs0], L, Fbs0, Env0, St0) ->
+pass_ewc([F|Fs0], Fbs0, Env0, St0) ->
     %% First expand enough to test top form, if so process again.
-    case pass_expand_expr(F, L, Env0, St0, false) of
+    case pass_expand_expr(F, Env0, St0, false) of
 	{yes,Exp,St1} ->			%Top form expanded
-	    pass_ewc([Exp|Fs0], L, Fbs0, Env0, St1);
+	    pass_ewc([Exp|Fs0], Fbs0, Env0, St1);
 	{no,F1,St1} -> 				%Not expanded
-	    {Fs1,Fbs1,Env1,St2} = pass_ewc(Fs0, L, Fbs0, Env0, St1),
+	    {Fs1,Fbs1,Env1,St2} = pass_ewc(Fs0, Fbs0, Env0, St1),
 	    {[F1|Fs1],Fbs1,Env1,St2}
     end;
-pass_ewc([], _, Fbs, Env, St) -> {[],Fbs,Env,St}.
+pass_ewc([], Fbs, Env, St) -> {[],Fbs,Env,St}.
 
 func_arity([lambda,Args|_]) ->
     case is_symb_list(Args) of
@@ -249,12 +253,12 @@ func_arity(['match-lambda',[Pat|_]|_]) ->
     end;
 func_arity(_) -> no.
 
-%% pass_expand_expr(Expr, Line, Env, State, ExpandFlag) ->
+%% pass_expand_expr(Expr, Env, State, ExpandFlag) ->
 %%     {yes,Exp,State} | {no,State}.
 %% Try to macro expand Expr, catch errors and return them in State.
 %% Only try to expand list expressions.
 
-pass_expand_expr([_|_]=E0, L, Env, St0, Expand) ->
+pass_expand_expr([_|_]=E0, Env, St0, Expand) ->
     try
 	case exp_macro(E0, Env, St0) of
 	    {yes,_,_}=Yes -> Yes;
@@ -264,9 +268,9 @@ pass_expand_expr([_|_]=E0, L, Env, St0, Expand) ->
 	    no -> {no,E0,St0}
 	end
     catch
-	_:Error -> {no,E0,add_error(L, Error, St0)}
+	_:Error -> {no,E0,add_error(St0#mac.line, Error, St0)}
     end;
-pass_expand_expr(E, _, _, St, _) -> {no,E,St}.
+pass_expand_expr(E, _, St, _) -> {no,E,St}.
 
 %% add_error(Line, Error, State) -> State.
 %% add_warning(Line, Warning, State) -> State.
@@ -282,11 +286,11 @@ add_error(L, E, St) ->
 %% Add the macro definition to the environment. We do a small format
 %% check.
 
-pass_define_macro([Name,Def], L, Env, St) ->
+pass_define_macro([Name,Def], Env, St) ->
     case Def of
 	['lambda'|_] -> {yes,add_mbinding(Name, Def, Env),St};
 	['match-lambda'|_] -> {yes,add_mbinding(Name, Def, Env),St};
-	_ -> {no,add_error(L, {bad_form,macro}, St)}
+	_ -> {no,add_error(St#mac.line, {bad_form,macro}, St)}
     end.
 
 %% expand(Form, Env, State) -> {Form,State}.
@@ -700,7 +704,7 @@ exp_predef(['defrecord'|Def], Env0, St0) ->
 exp_predef(['include-file'|Ibody], _, St) ->
     %% This is a VERY simple include file macro!
     [F] = Ibody,
-    case lfe_io:read_file(F) of			%Try to read file
+    case lfe_io:read_file(F) of                        %Try to read file
 	{ok,Fs} -> {yes,['progn'|Fs],St};
 	{error,E} -> erlang:error({E,F}), no
     end;
