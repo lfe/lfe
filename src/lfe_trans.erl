@@ -20,7 +20,8 @@
 
 -module(lfe_trans).
 
--export([from_vanilla/1,to_vanilla/2]).
+-export([from_vanilla/1,from_expr/1,from_body/1,from_lit/1,
+	 to_vanilla/2,to_expr/2,to_lit/2]).
 
 -import(lists, [map/2,foldl/3,foldr/3,splitwith/2]).
 
@@ -37,12 +38,12 @@ from_vanilla(AST) ->
 	    error(Other)
     end.
 
-from_expr({var,_,V}) -> V;
+from_expr({var,_,V}) -> V;			%Unquoted atom
 from_expr({nil,_}) -> [];
 from_expr({integer,_,I}) -> I;
 from_expr({float,_,F}) -> F;
-from_expr({atom,_,A}) -> ?Q(A);			%Must quote here
-from_expr({string,_,S}) -> ?Q(S);		%Must quote here
+from_expr({atom,_,A}) -> ?Q(A);			%Quoted atom
+from_expr({string,_,S}) -> ?Q(S);		%Quoted string
 from_expr({cons,_,H,T}) ->
     [cons,from_expr(H),from_expr(T)];
 from_expr({tuple,_,Es}) ->
@@ -173,11 +174,11 @@ from_bitseg_type(default) -> [];
 from_bitseg_type(Ts) ->
     map(fun ({unit,U}) -> [unit,U]; (T) -> T end, Ts).
 
-from_pat({var,_,V}) -> V;
+from_pat({var,_,V}) -> V;			%Unquoted atom
 from_pat({nil,_}) -> [];
 from_pat({integer,_,I}) -> I;
 from_pat({float,_,F}) -> F;
-from_pat({atom,_,A}) -> ?Q(A);			%Must quote here
+from_pat({atom,_,A}) -> ?Q(A);			%Quoted atom
 from_pat({cons,_,H,T}) ->
     [cons,from_pat(H),from_pat(T)];
 from_pat({tuple,_,Es}) ->
@@ -189,6 +190,18 @@ from_pat({match,_,P1,P2}) ->			%Aliases
     ['=',from_pat(P1),from_pat(P2)].
 
 from_pat_list(Ps) -> [ from_pat(P) || P <- Ps ].
+
+from_lit({nil,_}) -> [];
+from_lit({integer,_,I}) -> I;
+from_lit({float,_,F}) -> F;
+from_lit({atom,_,A}) -> A;			%Quoted atom
+from_lit({string,_,S}) -> S;
+from_lit({cons,_,H,T}) ->
+    [cons,from_lit(H),from_lit(T)];
+from_lit({tuple,_,Es}) ->
+    [tuple|from_lit_list(Es)].
+
+from_lit_list(Es) -> [ from_lit(E) || E <- Es ].
 
 %% to_vanilla(Sexp, LineNumber) -> AST.
 
