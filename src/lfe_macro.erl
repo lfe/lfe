@@ -41,20 +41,7 @@
 -import(orddict, [find/2,store/3]).
 -import(ordsets, [add_element/2,is_element/2]).
 
-%% We do a lot of quoting!
--define(Q(E), [quote,E]).
--define(BQ(E), [backquote,E]).
--define(UQ(E), [unquote,E]).
--define(UQ_S(E), ['unquote-splicing',E]).
-
-%% Macro expander state.
--record(mac, {expand=true,			%Expand everything
-	      line=1,				%Line no of current form
-	      vc=0,				%Variable counter
-	      fc=0,				%Function counter
-	      errors=[],			%Errors
-	      warnings=[]			%Warnings
-	     }).
+-include("lfe_macro.hrl").
 
 %% Errors
 format_error({bad_form,Type}) ->
@@ -698,9 +685,8 @@ exp_predef(['fun',M,F,Ar], _, St0)
   when is_atom(M), is_atom(F), is_integer(Ar), Ar >= 0 ->
     {Vs,St1} = new_symbs(Ar, St0),
     {yes,['lambda',Vs,['call',?Q(M),?Q(F)|Vs]],St1};
-exp_predef(['defrecord'|Def], Env0, St0) ->
-    {Funs,Macs,_,St1} = exp_defrecord(Def, Env0, St0),
-    {yes,[progn,['eval-when-compile'|Funs]|Macs],St1};
+exp_predef(['defrecord'|Def], Env, St) ->
+    lfe_macro_record:defrecord(Def, Env, St);
 exp_predef(['include-file'|Ibody], Env, St) ->
     lfe_macro_include:file(Ibody, Env, St);
 exp_predef(['include-lib'|Ibody], Env, St) ->
@@ -890,97 +876,6 @@ exp_defmacro(Name, [Args|Rest]=Cls) ->
 		    [Name,['match-lambda'|Mcls]]
 	    end
     end.
-
-%% exp_defrecord([Name|FieldDefs], Env, State) -> {Funs,Macs,Env,State}.
-%% exp_defrecord(Name, FieldDefs, Env, State) -> {Funs,Macs,Env,State}.
-%%  Define a VERY simple record by generating macros for all accesses.
-%%  (define-record point x y)
-%%    => make-point, is-point, match-point, set-point,
-%%       point-x, set-point-x, point-y, set-point-y.
-
-exp_defrecord([Name|Fdefs], Env, St) ->
-    exp_defrecord(Name, Fdefs, Env, St).
-
-exp_defrecord(Name, Fdefs, Env, St0) ->
-    %% Get field names, default values and indices.
-    Fields = map(fun ([F,_])when is_atom(F) -> F;
-		     (F) when is_atom(F) -> F
-		 end, Fdefs),
-    Defs = map(fun ([F,D])when is_atom(F) -> ?Q(D);
-		   (F) when is_atom(F) -> ?Q(?Q(undefined))
-	       end, Fdefs),
-    Findex = exp_defrec_indexes(Fields),
-    %% Make names for helper functions.
-    Fi = list_to_atom(concat([Name,'-',field,'-',index])),
-    Fu = list_to_atom(concat([Name,'-',field,'-',update])),
-    %% Build helper functions.
-    Funs = [[defun,Fi|				%Get index of field
-	     map(fun ({F,I}) -> [[?Q(F)],I] end, Findex) ++
-	     [[[f],[':',erlang,error,[tuple,?Q(undefined_field),?Q(Name),f]]]]],
-	    [defun,Fu,[is,def],			%Update field list
-	     %% Convert default list to tuple to make setting easier.
-	     [fletrec,[[l,
-			[[[cons,f,[cons,v,is]],i],
-			 [l,is,[setelement,['-',[Fi,f],1],i,v]]],
-			[[[list,f],'_'],
-			 [':',erlang,error,
-			  [tuple,?Q(missing_value),?Q(Name),f]]],
-			[[[],i],i]]],
-	      ['let',[[i,[l,is,[list_to_tuple,def]]]],
-	       [tuple_to_list,i]]]]
-	   ],
-    %% Make names for record creator/tester/matcher/setter.
-    Make = list_to_atom(concat(['make','-',Name])),
-    Match = list_to_atom(concat(['match','-',Name])),
-    Test = list_to_atom(concat(['is','-',Name])),
-    EMP = list_to_atom(concat(['emp','-',Name])),
-    Set = list_to_atom(concat(['set','-',Name])),
-    %% Make access macros.
-    {Fdef,St1} = exp_defrec_fields(Fields, Name, St0), %Name is element 1!
-    Macs = [['defmacro',Make,fds,
-	     ['let',[[def,[list|Defs]]],
-	      ?BQ([tuple,?Q(Name),?UQ_S([Fu,fds,def])])]],
-	    ['defmacro',Match,fds,
-	     ['let',[[def,[list|lists:duplicate(length(Fields),?Q('_'))]]],
-	      ?BQ([tuple,?Q(Name),?UQ_S([Fu,fds,def])])]],
-	    ['defmacro',Test,[rec],
-	     ?BQ(['is_record',?UQ(rec),?Q(Name),length(Fields)+1])],
-	    ['defmacro',Set,
-	     [[cons,rec,fds],
-	      [fletrec,[[l,
-			 [[[cons,f,[cons,v,is]],r],
-			  %% Force evaluation left-to-right.
-			  [l,is,[list,[quote,setelement],[Fi,f],r,v]]],
-			 [[[list,f],'_'],
-			  [':',erlang,error,
-			   [tuple,?Q(missing_value),?Q(Name),f]]],
-			 [[[],i],i]]],
-	       [l,fds,rec]]]],
-	    ['defmacro',EMP,fds,
-	      ['let',[[def,[list|lists:duplicate(length(Fields),?Q(?Q('_')))]]],
-	       ?BQ([tuple,?Q(Name),?UQ_S([Fu,fds,def])])]]
-	    |
-	    Fdef],
-    %% lfe_io:format("~p\n", [{Funs,Macs}]),
-    {Funs,Macs,Env,St1}.
-
-exp_defrec_indexes([F|Fs]) ->
-    exp_defrec_indexes([F|Fs], 2).		%First element is record name
-
-exp_defrec_indexes([F|Fs], N) ->
-    [{F,N}|exp_defrec_indexes(Fs, N+1)];
-exp_defrec_indexes([], _) -> [].
-
-exp_defrec_fields(Fs, Name, St) ->
-    Fis = exp_defrec_indexes(Fs),		%Calculate indexes
-    {foldr(fun ({F,N}, Fas) ->
-		   Get = list_to_atom(concat([Name,'-',F])),
-		   Set = list_to_atom(concat(['set-',Name,'-',F])),
-		   [[defmacro,Get,[rec],?BQ([element,N,?UQ(rec)])],
-		    [defmacro,Set,[rec,new],
-		     ?BQ([setelement,N,?UQ(rec),?UQ(new)])]|
-		    Fas]
-	   end, [], Fis), St}.
 
 %% exp_syntax(Name, Def) -> Lambda | MatchLambda.
 %%  N.B. New macro definition is function of 2 arguments, the whole
