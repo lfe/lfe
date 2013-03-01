@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2013 Robert Virding
+%% Copyright (c) 2013 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -29,6 +29,8 @@
 
 -compile([export_all]).
 
+-include("lfe_macro.hrl").
+
 read_hrl_file_1(Name) ->
     case epp:open(Name, []) of
 	{ok,Epp} ->
@@ -40,21 +42,7 @@ read_hrl_file_1(Name) ->
 	{error,E} -> {error,E}
     end.
 
-%% We do a lot of quoting!
--define(Q(E), [quote,E]).
--define(BQ(E), [backquote,E]).
--define(UQ(E), [unquote,E]).
--define(UQ_S(E), ['unquote-splicing',E]).
-
-%% Macro expander state. THIS MUST BE THE SAME!
--record(mac, {expand=true,			%Expand everything
-	      line=1,				%Line no of current form
-	      vc=0,				%Variable counter
-	      fc=0,				%Function counter
-	      errors=[],			%Errors
-	      warnings=[]			%Warnings
-	     }).
-
+%% Errors.
 format_error({notrans_record,R}) ->
     io_lib:format("unable to translate record ~w", [R]);
 format_error({notrans_macro,M}) ->

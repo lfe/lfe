@@ -391,8 +391,10 @@ field-name value to get non-default values. E.g. for
    (emp-person {{field value}} ... )
    (set-person r {{field value}} ... )
    (person-name r)
+   (person-name)
    (set-person-name r name)
    (person-age r)
+   (person-age)
    (set-person-age r age)
    (person-address r)
    (set-person-address r address)
@@ -420,6 +422,10 @@ field-name value to get non-default values. E.g. for
 (person-address john)
 
         Return the address field of the person record john.
+
+(person-address)
+
+	Return the index of the address field of a person record.
 
 (set-person-address john '"back street")
 
