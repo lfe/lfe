@@ -56,7 +56,7 @@ file(Body, _, St0) ->
     Name = check_name(Body),
     case read_file(Name, St0) of		%Try to read file
 	{ok,Fs,St1} -> {yes,['progn'|Fs],St1};
-	{error,E} -> error({E,Name})
+	{error,E} -> error(E)
     end.
 
 %% lib([FileName], Env, State) -> {yes,(progn ...),State} | no.
