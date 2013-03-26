@@ -48,7 +48,7 @@ format_error({bad_form,Type}) ->
     lfe_io:format1("bad form: ~w", [Type]);
 format_error({expand_macro,Call,_}) ->
     %% Can be very big so only print limited depth.
-    lfe_io:format1("error expanding ~W", [Call,7]).
+    lfe_io:format1("error expanding ~P", [Call,10]).
 
 %% expand_expr(Form, Env) -> {yes,Exp} | no.
 %% expand_expr_1(Form, Env) -> {yes,Exp} | no.
