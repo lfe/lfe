@@ -62,16 +62,16 @@
 %% The computed First and Follow sets for the productions. This is the
 %% only really tricky bit.
 %%
-%% First(f) = {symbol,number,string,fun,(,[,',`,,,,@,#/,#B(}
-%% First(s) = {symbol,number,string,fun,(,[,',`,,,,@,#/,#B(}
-%% First(l) = {symbol,number,string,fun,(,[,',`,,,,@,#/,#B(,empty}
-%% First(t) = {symbol,number,string,fun,(,[,.,',`,,,,@,#/,#B(,empty}
-%% First(p) = {symbol,number,string,fun,(,[,',`,,,,@,#/,#B(,empty}
+%% First(f) = {symbol number string fun ( [ ' ` , ,@ #( #B(}
+%% First(s) = {symbol number string fun ( [ ' ` , ,@ #( #B(}
+%% First(l) = {symbol number string fun ( [ ' ` , ,@ #( #B( empty}
+%% First(t) = {symbol number string fun ( [ . ' ` , ,@ #( #B( empty}
+%% First(p) = {symbol number string fun ( [ ' ` , ,@ #( #B( empty}
 %% Follow(f) = empty
-%% Follow(s) = {symbol,number,string,fun,(,[,),],',`,,,,@,#/,#B(}
-%% Follow(l) = {symbol,number,string,fun,(,[,),],',`,,,,@,#/,#B(}
-%% Follow(t) = {symbol,number,string,fun,(,[,),],',`,,,,@,#/,#B(}
-%% Follow(p) = {symbol,number,string,fun,(,[,),],',`,,,,@,#/,#B(}
+%% Follow(s) = {symbol number string fun ( [ ) ] ' ` , ,@ #( #B(}
+%% Follow(l) = {symbol number string fun ( [ ) ] ' ` , ,@ #( #B(}
+%% Follow(t) = {symbol number string fun ( [ ) ] ' ` , ,@ #( #B(}
+%% Follow(p) = {symbol number string fun ( [ ) ] ' ` , ,@ #( #B(}
 
 %% The table (tedious).
 %% Top  symbol      (         )       [       ]       .       '`,,@    #(#B(

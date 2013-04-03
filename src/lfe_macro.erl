@@ -21,6 +21,9 @@
 
 -module(lfe_macro).
 
+-compile(export_all).
+
+
 %% These work on individual expressions.
 -export([expand_expr/2,expand_expr_1/2,expand_expr_all/2]).
 
@@ -360,17 +363,6 @@ expand([Fun|_]=Call, Env, St0) when is_atom(Fun) ->
 	{yes,Exp,St1} -> expand(Exp, Env, St1);
 	no -> expand_tail(Call, Env, St0)
     end;
-%%     case get_mbinding(Fun, Env) of
-%% 	{yes,Def} ->
-%% 	    {Exp,St1} = exp_userdef_macro(Call, Def, Env, St0),
-%% 	    expand(Exp, Env, St1);		%Expand macro expansion again
-%% 	no ->
-%% 	    %% Not there then use defaults.
-%% 	    case exp_predef_macro(Call, Env, St0) of
-%% 		{yes,Exp,St1} -> expand(Exp, Env, St1);
-%% 		no -> expand_tail(Call, Env, St0)
-%% 	    end
-%%     end;
 expand([_|_]=Call, Env, St) -> expand_tail(Call, Env, St);
 expand(Tup, _, St) when is_tuple(Tup) ->
     %% Should we expand this? We assume implicit quote here.
@@ -527,8 +519,8 @@ exp_userdef_macro([Mac|Args], Def0, Env, St0) ->
 	{yes,Exp,St1}
     catch
 	error:Error ->
-	    %% St = erlang:get_stacktrace(),
-	    erlang:error({expand_macro,[Mac|Args],Error})
+	    Stack = erlang:get_stacktrace(),
+	    erlang:error({expand_macro,[Mac|Args],{Error,Stack}})
     end.
 
 %% exp_predef_macro(Call, Env, State) -> {yes,Exp,State} | no.
@@ -540,8 +532,8 @@ exp_predef_macro(Call, Env, St) ->
 	exp_predef(Call, Env, St)
     catch
 	error:Error ->
-	    %% St = erlang:get_stacktrace(),
-	    erlang:error({expand_macro,Call,Error})
+	    Stack = erlang:get_stacktrace(),
+	    erlang:error({expand_macro,Call,{Error,Stack}})
     end.
 
 %% exp_predef(Form, Env, State) -> {yes,Form,State} | no.
@@ -687,6 +679,7 @@ exp_predef(['fun',M,F,Ar], _, St0)
     {yes,['lambda',Vs,['call',?Q(M),?Q(F)|Vs]],St1};
 exp_predef(['defrecord'|Def], Env, St) ->
     lfe_macro_record:defrecord(Def, Env, St);
+%% Include-XXX as macros for now. Move to top-level forms?
 exp_predef(['include-file'|Ibody], Env, St) ->
     lfe_macro_include:file(Ibody, Env, St);
 exp_predef(['include-lib'|Ibody], Env, St) ->
@@ -1015,7 +1008,7 @@ new_fun_name(Pre, St) ->
 -define(mbe_ellipsis(Car, Cddr), [Car,'...'|Cddr]).
 
 is_mbe_symbol(S) ->
-    is_atom(S) andalso (S /= true) andalso (S /= false).
+    is_atom(S) andalso not is_boolean(S).
 
 %% Tests if ellipsis pattern, (p ... . rest)
 %% is_mbe_ellipsis(?mbe_ellipsis(_, _)) -> true;
