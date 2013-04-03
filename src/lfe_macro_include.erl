@@ -53,9 +53,12 @@ format_error({notrans_macro,M}) ->
 %%  include file macro! We just signal errors.
 
 file(Body, _, St0) ->
-    Name = check_name(Body),
-    case read_file(Name, St0) of		%Try to read file
-	{ok,Fs,St1} -> {yes,['progn'|Fs],St1};
+    case include_name(Body) of
+	{ok,Name} ->
+	    case read_file(Name, St0) of	%Try to read file
+		{ok,Fs,St1} -> {yes,['progn'|Fs],St1};
+		{error,E} -> error(E)
+	    end;
 	{error,E} -> error(E)
     end.
 
@@ -65,28 +68,35 @@ file(Body, _, St0) ->
 %%  first directory name is a library name. We just signal errors.
 
 lib(Body, _, St0) ->
-    Name = check_name(Body),
-    case read_file(Name, St0) of
-	{ok,Fs,St1} -> {yes,['progn'|Fs],St1};
-	{error,_} ->
-	    case lib_file_name(Name) of
-		{ok,Lfile} ->
-		    case read_file(Lfile, St0) of
-			{ok,Fs,St1} -> {yes,['progn'|Fs],St1};
-			{error,E} -> error(E)
-		    end;
-		{error,_} -> error(badarg)
-	    end
+    case include_name(Body) of
+	{ok,Name} ->
+	    case read_file(Name, St0) of
+		{ok,Fs,St1} -> {yes,['progn'|Fs],St1};
+		{error,_} ->
+		    case lib_file_name(Name) of
+			{ok,Lfile} ->
+			    case read_file(Lfile, St0) of
+				{ok,Fs,St1} -> {yes,['progn'|Fs],St1};
+				{error,E} -> error(E)
+			    end;
+			{error,_} -> error(badarg)
+		    end
+	    end;
+	{error,E} -> error(E)
     end.
 
-check_name([Name]) ->
-    case io_lib:unicode_char_list(Name) of
-	true -> Name;
-	false -> error(badarg)
+%% include_name(Body) -> bool().
+%%  Gets the file name from the include-XXX body.
+
+include_name([Name]) ->
+    case io_lib:char_list(Name) of
+	true -> {ok,Name};
+	false -> {error,badarg}
     end;
-check_name(_) -> error(badarg).
+include_name(_) -> {error,badarg}.
 
 %% lib_file_name(LibPath) -> {ok,LibFileName} | {error,Error}.
+%%  Construct path to true library file.
 
 lib_file_name(Lpath) ->
     [Lname|Rest] = filename:split(Lpath),
@@ -152,17 +162,20 @@ record_field({record_field,_,F,Def}) ->
 
 trans_macros([{_,undefined}|Ms]) ->		%Skip undefined macros
     trans_macros(Ms);
-trans_macros([{{atom,Mac},_}|Ms]) when Mac =:= 'LINE' ;
-				       Mac =:= 'FILE' ->
-    %% These are meaningless here.
+trans_macros([{{atom,Mac},{none,_}}|Ms]) ->	%Skip predefined macros
     trans_macros(Ms);
-trans_macros([{{atom,Mac},Def}|Ms]) ->
-    Mdef = trans_macro(Mac, Def),
-    [Mdef|trans_macros(Ms)];
+trans_macros([{{atom,Mac},Defs}|Ms]) ->
+    case trans_macro_defs(Defs) of
+	[] -> trans_macros(Ms);
+	Lcls -> [[defmacro,Mac|Lcls]|trans_macros(Ms)]
+    end;
+%% trans_macros([{{atom,Mac},Defs}|Ms]) ->
+%%     Mdef = trans_macro(Mac, Def),
+%%     [Mdef|trans_macros(Ms)];
 trans_macros([]) -> [].
 
-trans_macro(Mac, {none,Ts}) ->			%Predefined macros
-    [defmacro,Mac,[]|trans_macro_body([], Ts)];
+%% trans_macro(Mac, {none,Ts}) ->			%Predefined macros
+%%     [defmacro,Mac,[]|trans_macro_body([], Ts)];
 trans_macro(Mac, Defs) ->
     case trans_macro_defs(Defs) of
 	[] -> [progn];

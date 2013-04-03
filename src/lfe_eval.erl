@@ -252,7 +252,7 @@ eval_float_bitseg(Val, Sz, native) -> <<Val:Sz/float-native>>.
 %%  Evaluate (lambda args ...).
 
 eval_lambda([Args|Body], Env) ->
-    %% This is a really ugly hack!
+    %% This is a really ugly hack! But it's the same hack as in erl_eval.
     case length(Args) of
 	0 -> fun () -> apply_lambda([], Body, [], Env) end;
 	1 -> fun (A) -> apply_lambda(Args, Body, [A], Env) end;
@@ -296,7 +296,7 @@ bind_args([], [], Env) -> Env.
 %%  Evaluate (match-lambda cls ...).
 
 eval_match_lambda(Cls, Env) ->
-    %% This is a really ugly hack!
+    %% This is a really ugly hack! But it's the same hack as in erl_eval.
     case match_lambda_arity(Cls) of
 	0 -> fun () -> apply_match_clauses(Cls, [], Env) end;
 	1 -> fun (A) -> apply_match_clauses(Cls, [A], Env) end;
