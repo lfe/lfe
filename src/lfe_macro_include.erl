@@ -129,8 +129,8 @@ read_hrl_file(Name, St) ->
     case epp:open(Name, []) of
 	{ok,Epp} ->
 	    %% These are two undocumented functions of epp.
-	    Fs = epp:parse_file(Epp),
-	    Ms = epp:macro_defs(Epp),
+	    Fs = epp:parse_file(Epp),		%This must be called first
+	    Ms = epp:macro_defs(Epp),		% then this!
 	    epp:close(Epp),			%Now we close epp
 	    parse_hrl_file(Fs, Ms, St);
 	{error,E} -> {error,E}
@@ -143,6 +143,10 @@ parse_hrl_file(Fs0, Ms0, St) ->
     Ms1 = trans_macros(Ms0),
     {ok,Fs1 ++ Ms1,St}.
 
+%% trans_forms(Forms) -> Forms.
+%%  Translate the record defintions in the forms to LFE record
+%%  definitions. Ignore all type declarations and other forms.
+
 trans_forms([{attribute,_,record,{Name,Fields}}|Fs]) ->
     Rs = record_fields(Fields),
     [[defrecord,Name|Rs]|trans_forms(Fs)];
@@ -153,34 +157,42 @@ trans_forms([]) -> [].
 record_fields(Fs) ->
     [ record_field(F) || F <- Fs ].
 
-record_field({record_field,_,F}) ->
+record_field({record_field,_,F}) ->		%Just the field name
     lfe_trans:from_lit(F);
-record_field({record_field,_,F,Def}) ->
+record_field({record_field,_,F,Def}) ->		%Field name and default value
     Fd = lfe_trans:from_lit(F),
     Ld = lfe_trans:from_expr(Def),
     [Fd,Ld].
 
-trans_macros([{_,undefined}|Ms]) ->		%Skip undefined macros
-    trans_macros(Ms);
-trans_macros([{{atom,Mac},{none,_}}|Ms]) ->	%Skip predefined macros
-    trans_macros(Ms);
+%% trans_macros(MacroDefs) -> Forms.
+%%  Translate macro definitions to LFE macro definitions. Ignore
+%%  undefined and predefined macros.
+
 trans_macros([{{atom,Mac},Defs}|Ms]) ->
-    case trans_macro_defs(Defs) of
-	[] -> trans_macros(Ms);
-	Lcls -> [[defmacro,Mac|Lcls]|trans_macros(Ms)]
+    case trans_macro(Mac, Defs) of
+	[] -> trans_macros(Ms);			%No definition, ignore
+	Mdef -> [Mdef|trans_macros(Ms)]
     end;
-%% trans_macros([{{atom,Mac},Defs}|Ms]) ->
-%%     Mdef = trans_macro(Mac, Def),
-%%     [Mdef|trans_macros(Ms)];
 trans_macros([]) -> [].
 
-%% trans_macro(Mac, {none,Ts}) ->			%Predefined macros
-%%     [defmacro,Mac,[]|trans_macro_body([], Ts)];
+trans_macro(_, undefined) -> [];		%Undefined macros
+trans_macro(_, {none,_}) -> [];			%Predefined macros
 trans_macro(Mac, Defs) ->
     case trans_macro_defs(Defs) of
-	[] -> [progn];
+	[] -> [];				%No definition
 	Lcls -> [defmacro,Mac|Lcls]
     end.
+
+%% trans_macro_defs(MacroDef) -> [] | [Clause].
+
+%%  Translate macro definition to a list of clauses. Put the no arg
+%%  version last as a catch all. Clash if macro has no arg definition
+%%  *and* function definition with args:
+%%  -define(foo, 42).
+%%  -define(foo(), 17).
+%%
+%%  NOTE: Don't yet generate code to macros with *only* no arg case to
+%%  be used as functions. So -define(foo, bar) won't work for (foo 42).
 
 trans_macro_defs([{none,Ds}|Defs]) ->		%Put the no arg version last
     trans_macro_defs_1(Defs ++ [{none,Ds}]);
