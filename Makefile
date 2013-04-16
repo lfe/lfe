@@ -10,25 +10,27 @@ EMACSDIR = emacs
 
 VPATH = $(SRCDIR)
 
-ERLCFLAGS = -W0 +debug_info
+ERLCFLAGS = -W1
 ERLC = erlc
 
-## The .erl and .beam files
-SRCS = $(notdir $(wildcard $(SRCDIR)/*.erl))
-EBINS = $(SRCS:.erl=.beam)
+## The .erl, .xrl, .yrl and .beam files
+ESRCS = $(notdir $(wildcard $(SRCDIR)/*.erl))
+XSRCS = $(notdir $(wildcard $(SRCDIR)/*.xrl))
+YSRCS = $(notdir $(wildcard $(SRCDIR)/*.yrl))
+EBINS = $(ESRCS:.erl=.beam) $(XSRCS:.xrl=.beam) $(YSRCS:.yrl=.beam)
 
 ## Where we install LFE, in the ERL_LIBS directory.
 INSTALLDIR = $(ERL_LIBS)/lfe-$(shell cat VERSION)
 
 .SUFFIXES: .erl .beam
 
-$(BINDIR)/%.beam: %.erl
+$(BINDIR)/%.beam: $(SRCDIR)/%.erl
 	$(ERLC) -I $(INCDIR) -o $(BINDIR) $(ERLCFLAGS) $<
 
-$(SRCDIR)/%.erl: %.xrl
+%.erl: %.xrl
 	$(ERLC) -o $(SRCDIR) $<
 
-$(SRCDIR)/%.erl: %.yrl
+%.erl: %.yrl
 	$(ERLC) -o $(SRCDIR) $<
 
 all: compile docs
@@ -62,3 +64,9 @@ clean:
 	else rm -rf $(BINDIR)/*.beam; \
 	fi
 	rm -rf erl_crash.dump
+
+echo:
+	@ echo $(ESRCS)
+	@ echo $(XSRCS)
+	@ echo $(YSRCS)
+	@ echo $(EBINS)
