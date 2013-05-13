@@ -272,37 +272,30 @@ slurp_errors(F, Es) ->
 		    lfe_io:format("~s: ~s\n", [F,Cs])
 	    end, Es).
 
-collect_form(['define-module',Mod|Mdef], _, St0) when is_atom(Mod) ->
+collect_form(['define-module',Mod|Mdef], _, St0) ->
     St1 = collect_mdef(Mdef, St0),
     {[],St1#slurp{mod=Mod}};
-collect_form(['define-function',F,[lambda,As|_]=Lambda], _, St)
-  when is_atom(F) ->
+collect_form(['define-function',F,[lambda,As|_]=Lambda], _, St) ->
     {[{F,length(As),Lambda}],St};
-collect_form(['define-function',F,['match-lambda',[Pats|_]|_]=Match], _, St)
-  when is_atom(F) ->
-    {[{F,length(Pats),Match}],St};
-collect_form(_, _, _) ->
-    exit(unknown_form).
+collect_form(['define-function',F,['match-lambda',[Pats|_]|_]=Match], _, St) ->
+    {[{F,length(Pats),Match}],St}.
 
-collect_mdef([[import|Imps]|Mdef], St) ->
-    collect_mdef(Mdef, collect_imps(Imps, St));
-collect_mdef([_|Mdef], St) ->
-    %% Ignore everything else.
+collect_mdef([[import|Is]|Mdef], St) ->
+    collect_mdef(Mdef, collect_imps(Is, St));
+collect_mdef([_|Mdef], St) ->			%Ignore everything else
     collect_mdef(Mdef, St);
 collect_mdef([], St) -> St.
 
-collect_imps([['from',Mod|Fs]|Is], St0) when is_atom(Mod) ->
-    St1 = collect_imp(fun ([F,A], Imps) when is_atom(F), is_integer(A) ->
-			      store({F,A}, F, Imps)
-		      end, Mod, St0, Fs),
-    collect_imps(Is, St1);
-collect_imps([['rename',Mod|Rs]|Is], St0) when is_atom(Mod) ->
-    St1 = collect_imp(fun ([[F,A],R], Imps)
-			  when is_atom(F), is_integer(A), is_atom(R) ->
-			      store({F,A}, R, Imps)
-		      end, Mod, St0, Rs),
-    collect_imps(Is, St1);
-collect_imps([], St) -> St.
+collect_imps(Is, St) ->
+    foldl(fun (I, S) -> collect_imp(I, S) end, St, Is).
+
+collect_imp(['from',Mod|Fs], St) ->
+    collect_imp(fun ([F,A], Imps) -> store({F,A}, F, Imps) end,
+		Mod, St, Fs);
+collect_imp(['rename',Mod|Rs], St) ->
+    collect_imp(fun ([[F,A],R], Imps) -> store({F,A}, R, Imps) end,
+		Mod, St, Rs);
+collect_imp(_, St) -> St.			%Ignore everything else
 
 collect_imp(Fun, Mod, St, Fs) ->
     Imps0 = safe_fetch(Mod, St#slurp.imps, []),
