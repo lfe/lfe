@@ -170,6 +170,7 @@ passes() ->
     [{do,fun do_macro_expand/1},
      {when_flag,to_exp,{done,fun sexpr_pp/2,"expand"}},
      {do,fun do_lint/1},
+     {when_flag,to_lint,{done,fun sexpr_pp/2,"lint"}},
      {do,fun do_lfe_codegen/1},
      {when_flag,to_core0,{done,fun core_pp/2,"core"}},
      {do,fun do_erl_comp/1},
