@@ -221,27 +221,56 @@ set(_, _, _) -> no.
 %% slurp(File, EvalEnv, BaseEnv) -> {yes,{mod,Mod},Env} | no.
 %%  Load in a file making all functions available. The module is
 %%  loaded in an empty environment and that environment is finally
-%%  added to the standard base environment.
+%%  added to the standard base environment. We could not use the
+%%  compiler here as we need the macro environment.
 
 -record(slurp, {mod,imps=[]}).			%For slurping
 
 slurp([File], Eenv, Benv) ->
     Name = lfe_eval:expr(File, Eenv),		%Get file name
-    {ok,Fs0} = lfe_io:parse_file(Name),
-    St0 = #slurp{mod='-no-mod-',imps=[]},
-    %% Any errors here will crash slurp!
-    {ok,Fs1,Fenv0,_} = lfe_macro:macro_forms(Fs0, new_env()),
-    {Fbs,St1} = lfe_lib:proc_forms(fun collect_form/3, Fs1, St0),
-    %% Add imports to environment.
-    Fenv1 = foldl(fun ({M,Is}, Env) ->
-			  foldl(fun ({{F,A},R}, E) ->
-					add_ibinding(M, F, A, R, E)
-				end, Env, Is)
-		  end, Fenv0, St1#slurp.imps),
-    %% Get a new environment with all functions defined.
-    Fenv2 = lfe_eval:make_letrec_env(Fbs, Fenv1),
-    {yes,{ok,St1#slurp.mod},add_env(Fenv2, Benv)};
+    case slurp_file(Name) of			%Parse, expand and lint file
+	{ok,Fs,Fenv0,_} ->
+	    St0 = #slurp{mod='-no-mod-',imps=[]},
+	    {Fbs,St1} = lfe_lib:proc_forms(fun collect_form/3, Fs, St0),
+	    %% Add imports to environment.
+	    Fenv1 = foldl(fun ({M,Is}, Env) ->
+				  foldl(fun ({{F,A},R}, E) ->
+						add_ibinding(M, F, A, R, E)
+					end, Env, Is)
+			  end, Fenv0, St1#slurp.imps),
+	    %% Get a new environment with all functions defined.
+	    Fenv2 = lfe_eval:make_letrec_env(Fbs, Fenv1),
+	    {yes,{ok,St1#slurp.mod},add_env(Fenv2, Benv)};
+	{error,Es,_} ->
+	    slurp_errors(Name, Es),
+	    {yes,error,Benv}
+    end;
 slurp(_, _, _) -> no.
+
+slurp_file(Name) ->
+    %% Parse, expand macros and lint file.
+    case lfe_io:parse_file(Name) of
+	{ok,Fs0} ->
+	    case lfe_macro:expand_forms(Fs0, new_env()) of
+		{ok,Fs1,Fenv,_} ->
+		    case lfe_lint:module(Fs1, []) of
+			{ok,Ws} -> {ok,Fs1,Fenv,Ws};
+			{error,_,_}=Error -> Error
+		    end;
+		{error,_,_}=Error -> Error
+	    end;
+	{error,E} -> {error,[E],[]}
+    end.
+
+slurp_errors(F, Es) ->
+    %% Directly from lfe_comp.
+    foreach(fun ({Line,Mod,Error}) ->
+		    Cs = Mod:format_error(Error),
+		    lfe_io:format("~s:~w: ~s\n", [F,Line,Cs]);
+		({Mod,Error}) ->
+		    Cs = Mod:format_error(Error),
+		    lfe_io:format("~s: ~s\n", [F,Cs])
+	    end, Es).
 
 collect_form(['define-module',Mod|Mdef], _, St0) when is_atom(Mod) ->
     St1 = collect_mdef(Mdef, St0),
