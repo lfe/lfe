@@ -847,8 +847,21 @@ exp_append(Args) ->
 
 exp_defun(Name, [Args|Rest]) ->
     case is_symb_list(Args) of
-	true -> [Name,[lambda,Args|Rest]];
-	false -> [Name,['match-lambda',Args|Rest]]
+	true -> exp_lambda_defun(Name, Args, Rest);
+	false -> exp_match_defun(Name, Args, Rest)
+    end.
+
+exp_lambda_defun(Name, Args, [Comm|Fs]=Rest) ->
+    case io_lib:char_list(Comm) and (Fs =/= []) of
+	true -> [Name,['lambda',Args|Fs]];
+	false -> [Name,['lambda',Args|Rest]]
+    end;
+exp_lambda_defun(Name, Args, []) -> [Name,['lambda',Args]].
+
+exp_match_defun(Name, Comm, Rest) ->
+    case io_lib:char_list(Comm) and (Rest =/= []) of
+	true -> [Name,['match-lambda'|Rest]];
+	false -> [Name,['match-lambda',Comm|Rest]]
     end.
 
 %% exp_defmacro(Name, Def) -> Lambda | MatchLambda.
