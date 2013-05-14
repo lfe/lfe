@@ -190,6 +190,34 @@ following guard expressions:
 An empty guard, (when), always succeeds as there is no test which
 fails. This simplifies writing macros which handle guards.
 
+Comments in Function Definitions
+--------------------------------
+
+Inside functions defined with defun LFE permits optional comment
+strings in the Common Lisp style after the argument list. So we can
+have:
+
+(defun max (x y)
+  "The max function."
+  (if (>= x y) x y))
+
+Optional comments are also allowed in match style functions after the
+function name and before the clauses:
+
+(defun max
+  "The max function."
+  ((x y) (when (>= x y)) x)
+  ((x y) y))
+
+This is also possible in a similar style in local functions defined by
+flet and fletrec:
+
+(defun foo (x y)
+  "The max function."
+  (flet ((m (a b) "Local comment"
+            (if (>= a b) a b)))
+    (m x y)))
+
 Bindings and Scoping
 --------------------
 
@@ -425,7 +453,7 @@ field-name value to get non-default values. E.g. for
 
 (person-address)
 
-	Return the index of the address field of a person record.
+        Return the index of the address field of a person record.
 
 (set-person-address john '"back street")
 
@@ -590,22 +618,22 @@ The following more or less standard lisp functions are pre-defined:
         The standard substituition functions.
 
 (macroexpand-1 expr {{environment}})
-	If Expr is a macro call, does one round of expansion,
-	otherwise returns Expr.
+        If Expr is a macro call, does one round of expansion,
+        otherwise returns Expr.
 
 (macroexpand expr {{environment}})
-	Returns the expansion returned by calling macroexpand-1
-	repeatedly, starting with Expr, until the result is no longer
-	a macro call.
+        Returns the expansion returned by calling macroexpand-1
+        repeatedly, starting with Expr, until the result is no longer
+        a macro call.
 
 (macroexpand-all expr {{environment}})
-	Returns the expansion from the expression where all macro
-	calls have been expanded with macroexpand.
+        Returns the expansion from the expression where all macro
+        calls have been expanded with macroexpand.
 
-	NOTE that when no explicit environment is given the
-	macroexpand functions then only the default built-in macros
-	will be expanded. Inside macros and in the shell the variable
-	$ENV is bound to the current macro environment.
+        NOTE that when no explicit environment is given the
+        macroexpand functions then only the default built-in macros
+        will be expanded. Inside macros and in the shell the variable
+        $ENV is bound to the current macro environment.
 
 (eval expr {{environment}})
         Evaluate the expression expr. Note that only the pre-defined
