@@ -26,7 +26,7 @@
 %% Deprecated exports.
 -export([eval/1,eval/2,eval_list/2]).
 
--import(lfe_lib, [new_env/0,add_vbinding/3,add_vbindings/2,get_vbinding/2,
+-import(lfe_env, [new/0,add_vbinding/3,add_vbindings/2,get_vbinding/2,
 		  add_fbinding/4,add_fbindings/2,get_fbinding/3,
 		  add_ibinding/5,get_gbinding/3]).
 
@@ -48,7 +48,7 @@ eval(E, Env) -> expr(E, Env).
 %% expr(Sexpr, Env) -> Value.
 %% Evaluate the sexpr, first expanding all macros.
 
-expr(E) -> expr(E, new_env()).
+expr(E) -> expr(E, lfe_env:new()).
 
 expr(E, Env) ->
     Exp = lfe_macro:expand_expr_all(E, Env),
@@ -58,7 +58,7 @@ expr(E, Env) ->
 %% gexpr(Sexpr) -> Value.
 %% gexpr(Sexpr, Env) -> Value.
 
-gexpr(E) -> gexpr(E, new_env()).
+gexpr(E) -> gexpr(E, lfe_env:new()).
 
 gexpr(E, Env) -> eval_gexpr(E, Env).
 
@@ -69,7 +69,7 @@ gexpr(E, Env) -> eval_gexpr(E, Env).
 %%  internally. Args should already be evaluated.
 
 apply(F, Args) ->
-    Env = new_env(),
+    Env = lfe_env:new(),
     eval_apply({expr,F,Env}, Args, Env).
 
 apply(F, Args, Env) ->

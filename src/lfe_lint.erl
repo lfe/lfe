@@ -20,9 +20,10 @@
 
 -export([module/1,module/2,form/1,expr/1,expr/2,format_error/1]).
 
--import(lfe_lib, [new_env/0,is_vbound/2,is_fbound/3,is_gbound/3,
-		  add_vbinding/3,add_fbinding/4,add_ibinding/5,
-		  is_erl_bif/2,is_guard_bif/2,
+-import(lfe_env, [new/0,is_vbound/2,is_fbound/3,is_gbound/3,
+		  add_vbinding/3,add_fbinding/4,add_ibinding/5]).
+
+-import(lfe_lib, [is_erl_bif/2,is_guard_bif/2,
 		  is_symb_list/1,is_proper_list/1]).
 
 %% -compile(export_all).
@@ -86,7 +87,7 @@ format_error(unknown_form) -> "unknown form".
 %% expr(Expr) -> {ok,[Warning]} | {error,[Error],[Warning]}.
 %% expr(Expr, Env) -> {ok,[Warning]} | {error,[Error],[Warning]}.
 
-expr(E) -> expr(E, new_env()).
+expr(E) -> expr(E, lfe_env:new()).
 
 expr(E, Env) ->
     St0 = #lint{},
@@ -247,7 +248,7 @@ init_state(St) ->
 			 foldl(fun ({{F,A},R}, E) ->
 				       add_ibinding(M, F, A, R, E)
 			       end, Env, Fs)
-		 end, new_env(), St#lint.imps),
+		 end, lfe_env:new(), St#lint.imps),
     %% Basic predefines
     Predefs0 = [{module_info,[lambda,[],[quote,dummy]],1},
 		{module_info,[lambda,[x],[quote,dummy]],1}],
@@ -1071,10 +1072,10 @@ illegal_guard_error(L, St) ->
 %% These just add arity as a dummy values as we are not interested in
 %% value but it might be useful.
 
-add_fbinding(N, A, Env) -> lfe_lib:add_fbinding(N, A, A, Env).
+add_fbinding(N, A, Env) -> lfe_env:add_fbinding(N, A, A, Env).
 
 add_vbindings(Vs, Env) ->
-    foldl(fun (V, E) -> lfe_lib:add_vbinding(V, dummy, E) end, Env, Vs).
+    foldl(fun (V, E) -> lfe_env:add_vbinding(V, dummy, E) end, Env, Vs).
 
 %% safe_fetch(Key, Dict, Default) -> Value.
 

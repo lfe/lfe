@@ -35,9 +35,10 @@
 
 %% -compile([export_all]).
 
--import(lfe_lib, [new_env/0,add_fbinding/4,is_fbound/3,
-		  add_mbinding/3,is_mbound/2,get_mbinding/2,
-		  is_symb_list/1,is_proper_list/1]).
+-import(lfe_env, [new/0,add_fbinding/4,is_fbound/3,
+		  add_mbinding/3,is_mbound/2,get_mbinding/2]).
+
+-import(lfe_lib, [is_symb_list/1,is_proper_list/1]).
 
 -import(lists, [any/2,all/2,map/2,foldl/3,foldr/3,mapfoldl/3,
 		reverse/1,reverse/2,member/2,concat/1]).

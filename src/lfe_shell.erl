@@ -20,7 +20,7 @@
 
 -export([start/0,start/1,server/0,server/1]).
 
--import(lfe_lib, [new_env/0,add_env/2,
+-import(lfe_env, [new/0,add_env/2,
 		  add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
 		  fetch_vbinding/2,update_vbinding/3,del_vbinding/2,
 		  add_fbinding/4,add_fbindings/3,get_fbinding/3,add_ibinding/5,
@@ -44,7 +44,7 @@ server(_) ->
     io:fwrite("LFE Shell V~s (abort with ^G)\n",
 	      [erlang:system_info(version)]),
     %% Add default nil bindings to predefined shell variables.
-    Env0 = add_shell_macros(new_env()),
+    Env0 = add_shell_macros(lfe_env:new()),
     Env1 = add_shell_vars(Env0),
     server_loop(Env1, Env1).
 
@@ -251,7 +251,7 @@ slurp_file(Name) ->
     %% Parse, expand macros and lint file.
     case lfe_io:parse_file(Name) of
 	{ok,Fs0} ->
-	    case lfe_macro:expand_forms(Fs0, new_env()) of
+	    case lfe_macro:expand_forms(Fs0, lfe_env:new()) of
 		{ok,Fs1,Fenv,_} ->
 		    case lfe_lint:module(Fs1, []) of
 			{ok,Ws} -> {ok,Fs1,Fenv,Ws};

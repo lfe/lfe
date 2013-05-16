@@ -27,8 +27,6 @@
 -import(ordsets, [add_element/2,is_element/2,from_list/1,union/2]).
 -import(orddict, [store/3,find/2]).
 
--import(lfe_lib, [new_env/0]).
-
 -include_lib("compiler/src/core_parse.hrl").
 
 -record(comp, {base="",				%Base name
@@ -122,7 +120,7 @@ do_forms(St0) ->
 %%  The actual compiler passes.
 
 do_macro_expand(St) ->
-    case lfe_macro:expand_forms(St#comp.code, new_env()) of
+    case lfe_macro:expand_forms(St#comp.code, lfe_env:new()) of
 	{ok,Fs,Env,Ws} ->
 	    debug_print("mac: ~p\n", [{Fs,Env}], St),
 	    {ok,St#comp{code=Fs,warnings=St#comp.warnings ++ Ws}};
