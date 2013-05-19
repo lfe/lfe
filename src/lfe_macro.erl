@@ -23,7 +23,6 @@
 
 -compile(export_all).
 
-
 %% These work on individual expressions.
 -export([expand_expr/2,expand_expr_1/2,expand_expr_all/2]).
 
@@ -706,8 +705,14 @@ exp_predef(['let-syntax',Defs|Body], _, St) ->
     Mdefs = map(fun ([Name,Def]) -> exp_syntax(Name, Def) end, Defs),
     {yes,['let-macro',Mdefs|Body],St};
 %% Common Lisp inspired macros.
-exp_predef([defmodule|Mod], _, St) ->
-    {yes,['define-module'|Mod],St};
+exp_predef([defmodule|Mdef], _, St) ->
+    %% Need to handle parametrised module defs here. Limited checking.
+    Mname = case Mdef of
+		[[Mod|_]|_] -> Mod;		%Parametrised module
+		[Mod|_] -> Mod			%Normal module
+	    end,
+    MODULE = [defmacro,'MODULE',[],?BQ(?Q(Mname))],
+    {yes,[progn,['define-module'|Mdef],MODULE],St};
 exp_predef([defun,Name|Def], _, St) ->
     %% Educated guess whether traditional (defun name (a1 a2 ...) ...)
     %% or matching (defun name (patlist1 ...) (patlist2 ...))
