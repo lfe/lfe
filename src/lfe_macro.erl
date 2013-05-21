@@ -851,24 +851,26 @@ exp_append(Args) ->
 %% Educated guess whether traditional (defun name (a1 a2 ...) ...)
 %% or matching (defun name (patlist1 ...) (patlist2 ...))
 
-exp_defun(Name, [Args|Rest]) ->
+exp_defun(Name, [Args|Rest]=Def) ->
     case is_symb_list(Args) of
-	true -> exp_lambda_defun(Name, Args, Rest);
-	false -> exp_match_defun(Name, Args, Rest)
+	true -> [Name,exp_lambda_defun(Args, Rest)];
+	false -> [Name,exp_match_defun(Def)]
     end.
 
-exp_lambda_defun(Name, Args, [Comm|Fs]=Rest) ->
-    case io_lib:char_list(Comm) and (Fs =/= []) of
-	true -> [Name,['lambda',Args|Fs]];
-	false -> [Name,['lambda',Args|Rest]]
+exp_lambda_defun(Args, Rest) ->
+    %% Test whether first expression is a comment string.
+    ['lambda',Args|exp_drop_comment(Rest)].
+
+exp_match_defun(Def) ->
+    %% Test whether first thing is a comment string.
+    ['match-lambda'|exp_drop_comment(Def)].
+
+exp_drop_comment([Comm|Rest]=All) ->
+    case io_lib:char_list(Comm) of
+	true -> Rest;
+	false -> All
     end;
-exp_lambda_defun(Name, Args, []) -> [Name,['lambda',Args]].
-
-exp_match_defun(Name, Comm, Rest) ->
-    case io_lib:char_list(Comm) and (Rest =/= []) of
-	true -> [Name,['match-lambda'|Rest]];
-	false -> [Name,['match-lambda',Comm|Rest]]
-    end.
+exp_drop_comment([]) -> [].
 
 %% exp_defmacro(Name, Def) -> Lambda | MatchLambda.
 %%  Educated guess whether traditional (defmacro name (a1 a2 ...) ...)
@@ -877,17 +879,25 @@ exp_match_defun(Name, Comm, Rest) ->
 %%  N.B. New macro definition is function of 2 arguments, the whole
 %%  argument list of macro call, and the current macro environment.
 
-exp_defmacro(Name, [Args|Rest]=Cls) ->
-    case is_symb_list(Args) of
-	true -> [Name,['match-lambda',[[[list|Args],'$ENV']|Rest]]];
-	false ->
-	    if is_atom(Args) ->			%Args is symbol
-		    [Name,['match-lambda',[[Args,'$ENV']|Rest]]];
-	       true ->
-		    Mcls = map(fun ([Head|Body]) -> [[Head,'$ENV']|Body] end, Cls),
-		    [Name,['match-lambda'|Mcls]]
-	    end
-    end.
+exp_defmacro(Name, [Args|Rest]=Def) ->
+    Mcls = case is_symb_list(Args) of
+	       true -> exp_lambda_defmacro(Args, Rest);
+	       false ->
+		   if is_atom(Args) ->
+			   [[[Args,'$ENV']|exp_drop_comment(Rest)]];
+		      true ->
+			   exp_match_defmacro(Def)
+		   end
+	   end,
+    [Name,['match-lambda'|Mcls]].
+
+exp_lambda_defmacro(Args, Rest) ->
+    %% Test whether first expression is a comment string.
+    [[[[list|Args],'$ENV']|exp_drop_comment(Rest)]].
+
+exp_match_defmacro(Def) ->
+    Cls = exp_drop_comment(Def),
+    map(fun ([Head|Body]) -> [[Head,'$ENV']|Body] end, Cls).
 
 %% exp_syntax(Name, Def) -> Lambda | MatchLambda.
 %%  N.B. New macro definition is function of 2 arguments, the whole

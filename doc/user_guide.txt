@@ -214,7 +214,7 @@ flet and fletrec:
 
 (defun foo (x y)
   "The max function."
-  (flet ((m (a b) "Local comment"
+  (flet ((m (a b) "Local comment."
             (if (>= a b) a b)))
     (m x y)))
 
@@ -376,6 +376,39 @@ N.B. These are definitely NOT hygienic.
 
 *CAVEAT* While it is perfectly legal to define a Core form as a macro
  these will silently be ignored by the compiler.
+
+Comments in Macro Definitions
+--------------------------------
+
+Inside macros defined with defmacro LFE permits optional comment
+strings in the Common Lisp style after the argument list. So we can
+have:
+
+(defmacro double (a)
+  "Double macro."
+  `(+ ,a ,a))
+
+Optional comments are also allowed in match style macros after the
+macro name and before the clauses:
+
+(defmacro my-list args
+  "List of arguments."
+  `(list ,@args))
+
+(defmacro andalso
+  "The andalso form."
+  ((list e) `,e)
+  ((cons e es) `(if ,e (andalso ,@es) 'false))
+  (() `'true))
+
+This is also possible in a similar style in local functions defined by
+macrolet:
+
+(defun foo (x y)
+  "The max function."
+  (macrolet ((m (a b) "Poor macro definition."
+                `(if (>= ,a ,b) ,a ,b)))
+    (m x y)))
 
 Extended cond
 -------------
