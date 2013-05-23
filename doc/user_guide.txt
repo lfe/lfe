@@ -629,7 +629,7 @@ comprehensions.
 Predefined LFE functions
 ------------------------
 
-The following more or less standard lisp functions are pre-defined:
+The following more or less standard lisp functions are predefined:
 
 (<arith_op> expr ...)
 (<comp_op> expr ...)
@@ -641,13 +641,19 @@ The following more or less standard lisp functions are pre-defined:
         arguments before doing the arithmetic/comparisons operations.
 
 (acons key value list)
+(pairlis keys values {{list}})
 (assoc key list)
+(assoc-if test list)
+(assoc-if-not test list)
 (rassoc value list)
+(rassoc-if test list)
+(rassoc-if-not test list)
         The standard association list functions.
 
 (subst new old tree)
 (subst-if new test tree)
 (subst-if-not new test tree)
+(sublis alist tree)
         The standard substituition functions.
 
 (macroexpand-1 expr {{environment}})

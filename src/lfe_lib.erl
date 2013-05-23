@@ -26,8 +26,11 @@
 -export([proc_forms/3]).
 
 %% Standard lisp library.
--export([is_lfe_bif/2,acons/3,assoc/2,rassoc/2,
-	 subst/3,'subst-if'/3,'subst-if-not'/3,
+-export([is_lfe_bif/2,
+	 acons/3,pairlis/2,pairlis/3,
+	 assoc/2,'assoc-if'/2,'assoc-if-not'/2,
+	 rassoc/2,'rassoc-if'/2,'rassoc-if-not'/2,
+	 subst/3,'subst-if'/3,'subst-if-not'/3,sublis/2,
 	 eval/1,eval/2,macroexpand/1,macroexpand/2,
 	 'macroexpand-1'/1,'macroexpand-1'/2,
 	 'macroexpand-all'/1,'macroexpand-all'/2]).
@@ -154,22 +157,35 @@ proc_forms_progn(_, [], _, Rs, St) ->
 %% Standard lisp library functions.
 %% is_lfe_bif(Name, Arity) -> bool().
 %% acons(Key, Value, Alist) -> Alist.
+%% pairlis(Keys, Values, Alist) -> Alist.
 %% assoc(Key, Alist) -> [Key|Value] | [].
+%% assoc-if(Test, Alist) -> [Key|Value] | [].
+%% assoc-if-not(Test, Alist) -> [Key|Value] | [].
 %% rassoc(Value, Alist) -> [Key|Value] | [].
+%% rassoc-if(Test, Alist) -> [Key|Value] | [].
+%% rassoc-if-not(Test, Alist) -> [Key|Value] | [].
 %% subst(New, Old, Tree) -> Tree.
 %% subst-if(New, Test, Tree) -> Tree.
 %% subst-if-not(New, Test, Tree) -> Tree.
+%% sublis(Alist, Tree) -> Tree.
 %% eval(Sexpr) -> Value.
 %% macroexpand(Form [,Environment]) -> {yes,Expansion} | no.
 %% macroexpand-1(Form [,Environment]) -> {yes,Expansion} | no.
 %% macroexpand-all(Form [,Environment]) -> {yes,Expansion} | no.
 
 is_lfe_bif(acons, 3) -> true;
+is_lfe_bif(pairlis, 2) -> true;
+is_lfe_bif(pairlis, 3) -> true;
 is_lfe_bif(assoc, 2) -> true;
+is_lfe_bif('assoc-if', 2) -> true;
+is_lfe_bif('assoc-if-not', 2) -> true;
 is_lfe_bif(rassoc, 2) -> true;
+is_lfe_bif('rassoc-if', 2) -> true;
+is_lfe_bif('rassoc-if-not', 2) -> true;
 is_lfe_bif(subst, 3) -> true;
 is_lfe_bif('subst-if', 3) -> true;
 is_lfe_bif('subst-if-not', 3) -> true;
+is_lfe_bif(sublis, 2) -> true;
 is_lfe_bif(eval, 1) -> true;
 is_lfe_bif(eval, 2) -> true;
 is_lfe_bif(macroexpand, 1) -> true;
@@ -182,13 +198,47 @@ is_lfe_bif(_, _) -> false.
 
 acons(K, V, Alist) -> [[K|V]|Alist].
 
+pairlis(Ks, Vs) -> pairlis(Ks, Vs, []).
+
+pairlis([K|Ks], [V|Vs], Alist) ->
+    [[K|V]|pairlis(Ks, Vs, Alist)];
+pairlis([], [], Alist) -> Alist.
+
 assoc(K, [[K|_]=Pair|_]) -> Pair;
 assoc(K, [_|L]) -> assoc(K, L);
 assoc(_, []) -> [].
 
+'assoc-if'(Pred, [[K|_]=Pair|L]) ->
+    case Pred(K) of
+	true -> Pair;
+	false -> 'assoc-if'(Pred, L)
+    end;
+'assoc-if'(_, []) -> [].
+
+'assoc-if-not'(Pred, [[K|_]=Pair|L]) ->
+    case Pred(K) of
+	false -> Pair;
+	true -> 'assoc-if-not'(Pred, L)
+    end;
+'assoc-if-not'(_, []) -> [].
+
 rassoc(V, [[_|V]=Pair|_]) -> Pair;
 rassoc(V, [_|L]) -> rassoc(V, L);
 rassoc(_, []) -> [].
+
+'rassoc-if'(Pred, [[_|V]=Pair|L]) ->
+    case Pred(V) of
+	true -> Pair;
+	false -> 'rassoc-if'(Pred, L)
+    end;
+'rassoc-if'(_, []) -> [].
+
+'rassoc-if-not'(Pred, [[_|V]=Pair|L]) ->
+    case Pred(V) of
+	false -> Pair;
+	true -> 'rassoc-if-not'(Pred, L)
+    end;
+'rassoc-if-not'(_, []) -> [].
 
 %% subst(New, Old, Tree) -> Tree.
 
@@ -219,6 +269,19 @@ subst(_, _, Tree) -> Tree.
 	    case Tree of
 		[H|T] ->
 		    ['subst-if-not'(New, Test, H)|'subst-if-not'(New, Test, T)];
+		_ -> Tree
+	    end
+    end.
+
+%% sublis(AList, Tree) -> Tree.
+
+sublis(Alist, Tree) ->
+    case assoc(Tree, Alist) of
+	[_|New] -> New;				%Found it
+	[] ->					%Not there
+	    case Tree of
+		[H|T] ->
+		    [sublis(Alist, H)|sublis(Alist, T)];
 		_ -> Tree
 	    end
     end.
