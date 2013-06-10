@@ -753,8 +753,8 @@ match([P|Ps], [V|Vs], Pbs0, Env) ->
 	{yes,Pbs1} -> match(Ps, Vs, Pbs1, Env);
 	no -> no
     end;
-%% match([_|_], _, _, _) -> no;			%No constructor
-
+%% match([_|_], _, _, _) ->			%No constructor
+%%     erlang:error(illegal_pattern);
 match([], [], Pbs, _) -> {yes,Pbs};
 match(Symb, Val, Pbs, Env) when is_atom(Symb) ->
     match_symb(Symb, Val, Pbs, Env);
