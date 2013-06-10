@@ -129,16 +129,38 @@ prompt() ->
 
 %% eval_form(Form, EvalEnv, BaseEnv) -> {Value,Env}.
 
-eval_form(Form, Env0, Benv) ->
-    %% lfe_io:prettyprint({Form,Env0}),
-    %% io:fwrite("ef: ~p\n", [{Form,Env0}]),
-    Eform = lfe_macro:expand_expr_all(Form, Env0),
+eval_form(Form, Env, Benv) ->
+    eval_exp_form(lfe_macro:expand_expr_all(Form, Env), Env, Benv).
+
+eval_exp_form([set,Pat,Expr], Env0, Benv) ->
+    %% Special case to lint pattern.
+    case lfe_lint:pattern(Pat, Env0) of
+	{ok,Ws} -> list_warnings(Ws);
+	{error,Es,Ws} ->
+	    list_errors(Es),
+	    list_warnings(Ws)
+    end,
+    {yes,Value,Env1} = set([Pat,Expr], Env0, Benv),
+    {Value,Env1};
+eval_exp_form(Eform, Env0, Benv) ->
     case eval_internal(Eform, Env0, Benv) of
 	{yes,Value,Env1} -> {Value,Env1};
 	no ->
 	    %% Normal evaluation of form.
 	    {lfe_eval:expr(Eform, Env0),Env0}
     end.
+
+list_errors(Es) ->
+    foreach(fun ({L,M,E}) ->
+		    Cs = M:format_error(E),
+		    lfe_io:format("~w: ~s\n", [L,Cs])
+	    end, Es).
+
+list_warnings(Ws) ->
+    foreach(fun ({L,M,W}) ->
+		    Cs = M:format_error(W),
+		    lfe_io:format("~w: Warning: ~s\n", [L,Cs])
+	    end, Ws).
 
 %% eval_internal(Form, EvalEnv, BaseEnv) -> {yes,Value,Env} | no.
 %%  Check for and evaluate internal functions. These all evaluate
