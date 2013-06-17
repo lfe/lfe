@@ -1,0 +1,41 @@
+   Copyright (c) 2013 Robert Virding
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+
+Implementation Notes
+--------------------
+
+Translating LFE <-> Erlang
+--------------------------
+
+The only complecations are handling the variable scoping and
+converting between them. Some example cases:
+
+X = b(x),                   (progn
+X = c(y),                     (let ((X (when) (b 'x)))
+a(X, X).                        (let ((---0--- (when (=:= X ---0---)) (c 'y)))
+                                  (a X X))))
+
+Can only handle case of binding variable at "top level" in
+expressions, nested expressions need to be flattened which introduces
+a whole new level of complexity.
+
+(let ((X (f 1)))                X = f(1),
+  (a X)                         a(X),
+  (let ((X (g X)))              ___0___ = g(X),
+    (b X))                      b(___0___),
+  (c X))                        c(X)
+
+This is much easier as variables can never "escape" their scope, we
+just have to generate unique variable names.
