@@ -651,11 +651,15 @@ exp_predef([lc|Lbody], _, St0) ->
     [Qs|Es] = Lbody,
     {Exp,St1} = lc_te(Es, Qs, St0),
     {yes,Exp,St1};
+% Add an alias for lc
+exp_predef(['list-comp'|Lbody], _, St) -> {yes,[lc|Lbody],St};
 exp_predef([bc|Bbody], _, St0) ->
     %% (bc (qual ...) e ...)
     [Qs|Es] = Bbody,
     {Exp,St1} = bc_te(Es, Qs, St0),
     {yes,Exp,St1};
+% Add an alias for bc
+exp_predef(['binary-comp'|Lbody], _, St) -> {yes,[bc|Lbody],St};
 exp_predef(['andalso'|Abody], _, St) ->
     Exp = case Abody of
 	      [E] -> E;				%Let user check last call
