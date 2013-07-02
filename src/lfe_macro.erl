@@ -547,6 +547,33 @@ exp_predef([caar,E], _, St) -> {yes,[car,[car,E]],St};
 exp_predef([cadr,E], _, St) -> {yes,[car,[cdr,E]],St};
 exp_predef([cdar,E], _, St) -> {yes,[cdr,[car,E]],St};
 exp_predef([cddr,E], _, St) -> {yes,[cdr,[cdr,E]],St};
+%% More c*r macros, a la CL HyperSpec.
+exp_predef([caaar,E], _, St) -> {yes,[car,[car,[car,E]]],St};
+exp_predef([caadr,E], _, St) -> {yes,[car,[car,[cdr,E]]],St};
+exp_predef([cadar,E], _, St) -> {yes,[car,[cdr,[car,E]]],St};
+exp_predef([caddr,E], _, St) -> {yes,[car,[cdr,[cdr,E]]],St};
+exp_predef([cdaar,E], _, St) -> {yes,[cdr,[car,[car,E]]],St};
+exp_predef([cdadr,E], _, St) -> {yes,[cdr,[car,[cdr,E]]],St};
+exp_predef([cddar,E], _, St) -> {yes,[cdr,[cdr,[car,E]]],St};
+exp_predef([cdddr,E], _, St) -> {yes,[cdr,[cdr,[cdr,E]]],St};
+%% Six-letter c*r macros from the CL HyperSpec.
+exp_predef([caaaar,E], _, St) -> {yes,[car,[car,[car,[car,E]]]],St};
+exp_predef([caaadr,E], _, St) -> {yes,[car,[car,[car,[cdr,E]]]],St};
+exp_predef([caadar,E], _, St) -> {yes,[car,[car,[cdr,[car,E]]]],St};
+exp_predef([caaddr,E], _, St) -> {yes,[car,[car,[cdr,[cdr,E]]]],St};
+exp_predef([cadaar,E], _, St) -> {yes,[car,[cdr,[car,[car,E]]]],St};
+exp_predef([cadadr,E], _, St) -> {yes,[car,[cdr,[car,[cdr,E]]]],St};
+exp_predef([caddar,E], _, St) -> {yes,[car,[cdr,[cdr,[car,E]]]],St};
+exp_predef([cadddr,E], _, St) -> {yes,[car,[cdr,[cdr,[cdr,E]]]],St};
+exp_predef([cdaaar,E], _, St) -> {yes,[cdr,[car,[car,[car,E]]]],St};
+exp_predef([cdaadr,E], _, St) -> {yes,[cdr,[car,[car,[cdr,E]]]],St};
+exp_predef([cdadar,E], _, St) -> {yes,[cdr,[car,[cdr,[car,E]]]],St};
+exp_predef([cdaddr,E], _, St) -> {yes,[cdr,[car,[cdr,[cdr,E]]]],St};
+exp_predef([cddaar,E], _, St) -> {yes,[cdr,[cdr,[car,[car,E]]]],St};
+exp_predef([cddadr,E], _, St) -> {yes,[cdr,[cdr,[car,[cdr,E]]]],St};
+exp_predef([cdddar,E], _, St) -> {yes,[cdr,[cdr,[cdr,[car,E]]]],St};
+exp_predef([cddddr,E], _, St) -> {yes,[cdr,[cdr,[cdr,[cdr,E]]]],St};
+
 %% Arithmetic operations and comparison operations.
 %% Be careful to make these behave as if they were a function and
 %% strictly evalated all their arguments.
