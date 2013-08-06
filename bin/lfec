@@ -32,6 +32,13 @@ fix_code_path() ->
 
 parse_opts(["-o",Odir|As], Opts) ->
     parse_opts(As, orddict:store(outdir, Odir, Opts));
+parse_opts(["-pa",Dir|As], Opts) ->
+    code:add_patha(Dir),
+    parse_opts(As, Opts);
+parse_opts(["-pz",Dir|As], Opts) ->
+    code:add_pathz(Dir),
+    parse_opts(As, Opts);
+parse_opts(["--"|As], Opts) -> {As,Opts};
 parse_opts(As, Opts) -> {As,Opts}.
 
 usage() ->
