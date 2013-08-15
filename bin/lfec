@@ -45,5 +45,7 @@ usage() ->
     Usage =
 	"Usage:  lfec [options] file ...\n" ++
 	"Options:\n" ++
-	"-o name        name of output directory\n",
+	"-o name        name of output directory\n" ++
+	"-pa path       add path to the front of Erlang's code path\n" ++
+	"-pz path       add path to the end of Erlang's code path\n",
     io:put_chars(Usage).
