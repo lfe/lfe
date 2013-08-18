@@ -51,13 +51,15 @@ start(Lopts) ->
 		halt(?ERROR_STATUS)
 	end
     catch
+	%% Catch program errors.
 	throw:Str ->
 	    lfe_io:format("lfescript: ~s\n", [Str]),
 	    halt(?ERROR_STATUS);
 	_:Reason ->
-            lfe_io:format("lfescript: Internal error: ~p\n", [Reason]),
-            lfe_io:format("~p\n", [erlang:get_stacktrace()]),
-            halt(?ERROR_STATUS)
+	    Stack = erlang:get_stacktrace(),	%Need to get this first
+	    lfe_io:format("lfescript: Internal error: ~p\n", [Reason]),
+	    lfe_io:format("~p\n", [Stack]),
+	    halt(?ERROR_STATUS)
     end.
 
 %% parse_check_run(FileName, Args, Options) -> no_return().
@@ -146,7 +148,8 @@ expand_macros(Fs0, File, _, _) ->
 %%  make lfe_lint happy.
 
 check_code(Fs, File, _, _) ->
-    case lfe_lint:module([{['define-module',dummy],1}|Fs], []) of
+    Module = [{['define-module',dummy,[export,[main,1]]],1}|Fs],
+    case lfe_lint:module(Module, []) of
 	{ok,Ws} ->
 	    list_warnings(File, Ws);
 	{error,Es,Ws} -> error_exit(File, Es, Ws)
@@ -171,8 +174,9 @@ eval_code(Fenv, _, Args, _) ->
     try
 	lfe_eval:expr([main,[quote,Args]], Fenv)
     catch
+	%% Catch all exceptions in the code.
 	Class:Error ->
-	    St = erlang:get_stacktrace(),
+	    St = erlang:get_stacktrace(),	%Need to get this first
 	    Sf = fun (_) -> false end,
 	    Ff = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
 	    Cs = lfe_lib:format_exception(Class, Error, St, Sf, Ff, 1),
