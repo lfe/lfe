@@ -187,12 +187,12 @@ trans_macro(Mac, Defs) ->
 
 %%  Translate macro definition to a list of clauses. Put the no arg
 %%  version last as a catch all. Clash if macro has no arg definition
-%%  *and* function definition with args:
+%%  *and* function definition with no args:
 %%  -define(foo, 42).
 %%  -define(foo(), 17).
 %%
 %%  NOTE: Don't yet generate code to macros with *only* no arg case to
-%%  be used as functions. So -define(foo, bar) won't work for (foo 42).
+%%  be used as functions. So -define(foo, bar) won't work for foo(42).
 
 trans_macro_defs([{none,Ds}|Defs]) ->		%Put the no arg version last
     trans_macro_defs_1(Defs ++ [{none,Ds}]);
@@ -207,25 +207,30 @@ trans_macro_defs_1([{none,{none,Ts}}|Defs]) ->
 	_ -> trans_macro_defs_1(Defs)		%Skip errors
     end;
 trans_macro_defs_1([{N,{As,Ts}}|Defs]) when is_integer(N) ->
-    case catch {ok,trans_macro_body(As, Ts)} of
-	{ok,Ld} -> [[As|Ld]|trans_macro_defs_1(Defs)];
+    case {ok,trans_macro_body(As, Ts)} of
+	{ok,Ld} -> [[[list|As]|Ld]|trans_macro_defs_1(Defs)];
 	_ -> trans_macro_defs_1(Defs)		%Skip errors
     end;
 trans_macro_defs_1([]) -> [].
 
 trans_macro_body(As, Ts0) ->
+    Ts1 = trans_qm(Ts0),
     %% Wrap variables in arg list with an (unquote ...) call.
-    Ts1 = lists:foldr(fun ({var,L,V}=T, Ts) ->
+    Ts2 = lists:foldr(fun ({var,L,V}=T, Ts) ->
 			      case lists:member(V, As) of
 				  true ->
 				      [{atom,L,unquote},{'(',L},T,{')',L}|Ts];
 				  false -> [T|Ts]
 			      end;
 			  (T, Ts) -> [T|Ts]
-		      end, [], Ts0),
+		      end, [], Ts1),
     %% Only allow single expressions, otherwise screws up backquoting.
-    {ok,[E]} = erl_parse:parse_exprs(Ts1 ++ [{dot,0}]),
-    [?BQ(lfe_trans:from_expr(E))].
+    case erl_parse:parse_exprs(Ts2 ++ [{dot,0}]) of
+	{ok,[E]} ->
+	    [?BQ(lfe_trans:from_expr(E))];
+	Other -> io:format("~p\n", [Other]),
+		 []
+    end.
 
     %% {ok,[_]=F} = erl_parse:parse_exprs(Ts1 ++ [{dot,0}]),
     %% backquote_last(lfe_trans:from_body(F)).
@@ -233,3 +238,18 @@ trans_macro_body(As, Ts0) ->
 %% Backquote the last expression in the body.
 %% backquote_last([E]) -> [?BQ(E)];
 %% backquote_last([E|Es]) -> [E|backquote_last(Es)].
+
+%% trans_qm(Tokens) -> Tokens.
+%%  Translate variable argument names to atoms to get correct
+%%  translation later on: ?Sune -> ?'Sune' -> (Sune)
+
+trans_qm([{'?',_},{atom,_,_}=A,{'(',_}=P|Ts]) ->
+    [A,P|trans_qm(Ts)];
+trans_qm([{'?',_},{var,L,V},{'(',_}=P|Ts]) ->
+    [{atom,L,V},P|trans_qm(Ts)];
+trans_qm([{'?',L},{atom,_,_}=A|Ts]) ->
+    [A,{'(',L},{')',L}|trans_qm(Ts)];
+trans_qm([{'?',L},{var,_,V}|Ts]) ->
+    [{atom,L,V},{'(',L},{')',L}|trans_qm(Ts)];
+trans_qm([T|Ts]) -> [T|trans_qm(Ts)];
+trans_qm([]) -> [].
