@@ -32,11 +32,20 @@ fix_code_path() ->
 
 parse_opts(["-o",Odir|As], Opts) ->
     parse_opts(As, orddict:store(outdir, Odir, Opts));
+parse_opts(["-pa",Dir|As], Opts) ->
+    code:add_patha(Dir),
+    parse_opts(As, Opts);
+parse_opts(["-pz",Dir|As], Opts) ->
+    code:add_pathz(Dir),
+    parse_opts(As, Opts);
+parse_opts(["--"|As], Opts) -> {As,Opts};
 parse_opts(As, Opts) -> {As,Opts}.
 
 usage() ->
     Usage =
 	"Usage:  lfec [options] file ...\n" ++
 	"Options:\n" ++
-	"-o name        name of output directory\n",
+	"-o name        name of output directory\n" ++
+	"-pa path       add path to the front of Erlang's code path\n" ++
+	"-pz path       add path to the end of Erlang's code path\n",
     io:put_chars(Usage).

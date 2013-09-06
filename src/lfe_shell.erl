@@ -20,7 +20,7 @@
 
 -export([start/0,start/1,server/0,server/1]).
 
--import(lfe_lib, [new_env/0,add_env/2,
+-import(lfe_env, [new/0,add_env/2,
 		  add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
 		  fetch_vbinding/2,update_vbinding/3,del_vbinding/2,
 		  add_fbinding/4,add_fbindings/3,get_fbinding/3,add_ibinding/5,
@@ -44,7 +44,7 @@ server(_) ->
     io:fwrite("LFE Shell V~s (abort with ^G)\n",
 	      [erlang:system_info(version)]),
     %% Add default nil bindings to predefined shell variables.
-    Env0 = add_shell_macros(new_env()),
+    Env0 = add_shell_macros(lfe_env:new()),
     Env1 = add_shell_vars(Env0),
     server_loop(Env1, Env1).
 
@@ -129,16 +129,38 @@ prompt() ->
 
 %% eval_form(Form, EvalEnv, BaseEnv) -> {Value,Env}.
 
-eval_form(Form, Env0, Benv) ->
-    %% lfe_io:prettyprint({Form,Env0}),
-    %% io:fwrite("ef: ~p\n", [{Form,Env0}]),
-    Eform = lfe_macro:expand_expr_all(Form, Env0),
+eval_form(Form, Env, Benv) ->
+    eval_exp_form(lfe_macro:expand_expr_all(Form, Env), Env, Benv).
+
+eval_exp_form([set,Pat,Expr], Env0, Benv) ->
+    %% Special case to lint pattern.
+    case lfe_lint:pattern(Pat, Env0) of
+	{ok,Ws} -> list_warnings(Ws);
+	{error,Es,Ws} ->
+	    list_errors(Es),
+	    list_warnings(Ws)
+    end,
+    {yes,Value,Env1} = set([Pat,Expr], Env0, Benv),
+    {Value,Env1};
+eval_exp_form(Eform, Env0, Benv) ->
     case eval_internal(Eform, Env0, Benv) of
 	{yes,Value,Env1} -> {Value,Env1};
 	no ->
 	    %% Normal evaluation of form.
 	    {lfe_eval:expr(Eform, Env0),Env0}
     end.
+
+list_errors(Es) ->
+    foreach(fun ({L,M,E}) ->
+		    Cs = M:format_error(E),
+		    lfe_io:format("~w: ~s\n", [L,Cs])
+	    end, Es).
+
+list_warnings(Ws) ->
+    foreach(fun ({L,M,W}) ->
+		    Cs = M:format_error(W),
+		    lfe_io:format("~w: Warning: ~s\n", [L,Cs])
+	    end, Ws).
 
 %% eval_internal(Form, EvalEnv, BaseEnv) -> {yes,Value,Env} | no.
 %%  Check for and evaluate internal functions. These all evaluate
@@ -221,59 +243,81 @@ set(_, _, _) -> no.
 %% slurp(File, EvalEnv, BaseEnv) -> {yes,{mod,Mod},Env} | no.
 %%  Load in a file making all functions available. The module is
 %%  loaded in an empty environment and that environment is finally
-%%  added to the standard base environment.
+%%  added to the standard base environment. We could not use the
+%%  compiler here as we need the macro environment.
 
 -record(slurp, {mod,imps=[]}).			%For slurping
 
 slurp([File], Eenv, Benv) ->
     Name = lfe_eval:expr(File, Eenv),		%Get file name
-    {ok,Fs0} = lfe_io:parse_file(Name),
-    St0 = #slurp{mod='-no-mod-',imps=[]},
-    %% Any errors here will crash slurp!
-    {ok,Fs1,Fenv0,_} = lfe_macro:macro_forms(Fs0, new_env()),
-    {Fbs,St1} = lfe_lib:proc_forms(fun collect_form/3, Fs1, St0),
-    %% Add imports to environment.
-    Fenv1 = foldl(fun ({M,Is}, Env) ->
-			  foldl(fun ({{F,A},R}, E) ->
-					add_ibinding(M, F, A, R, E)
-				end, Env, Is)
-		  end, Fenv0, St1#slurp.imps),
-    %% Get a new environment with all functions defined.
-    Fenv2 = lfe_eval:make_letrec_env(Fbs, Fenv1),
-    {yes,{ok,St1#slurp.mod},add_env(Fenv2, Benv)};
+    case slurp_file(Name) of			%Parse, expand and lint file
+	{ok,Fs,Fenv0,_} ->
+	    St0 = #slurp{mod='-no-mod-',imps=[]},
+	    {Fbs,St1} = lfe_lib:proc_forms(fun collect_form/3, Fs, St0),
+	    %% Add imports to environment.
+	    Fenv1 = foldl(fun ({M,Is}, Env) ->
+				  foldl(fun ({{F,A},R}, E) ->
+						add_ibinding(M, F, A, R, E)
+					end, Env, Is)
+			  end, Fenv0, St1#slurp.imps),
+	    %% Get a new environment with all functions defined.
+	    Fenv2 = lfe_eval:make_letrec_env(Fbs, Fenv1),
+	    {yes,{ok,St1#slurp.mod},add_env(Fenv2, Benv)};
+	{error,Es,_} ->
+	    slurp_errors(Name, Es),
+	    {yes,error,Benv}
+    end;
 slurp(_, _, _) -> no.
 
-collect_form(['define-module',Mod|Mdef], _, St0) when is_atom(Mod) ->
+slurp_file(Name) ->
+    %% Parse, expand macros and lint file.
+    case lfe_io:parse_file(Name) of
+	{ok,Fs0} ->
+	    case lfe_macro:expand_forms(Fs0, lfe_env:new()) of
+		{ok,Fs1,Fenv,_} ->
+		    case lfe_lint:module(Fs1, []) of
+			{ok,Ws} -> {ok,Fs1,Fenv,Ws};
+			{error,_,_}=Error -> Error
+		    end;
+		{error,_,_}=Error -> Error
+	    end;
+	{error,E} -> {error,[E],[]}
+    end.
+
+slurp_errors(F, Es) ->
+    %% Directly from lfe_comp.
+    foreach(fun ({Line,Mod,Error}) ->
+		    Cs = Mod:format_error(Error),
+		    lfe_io:format("~s:~w: ~s\n", [F,Line,Cs]);
+		({Mod,Error}) ->
+		    Cs = Mod:format_error(Error),
+		    lfe_io:format("~s: ~s\n", [F,Cs])
+	    end, Es).
+
+collect_form(['define-module',Mod|Mdef], _, St0) ->
     St1 = collect_mdef(Mdef, St0),
     {[],St1#slurp{mod=Mod}};
-collect_form(['define-function',F,[lambda,As|_]=Lambda], _, St)
-  when is_atom(F) ->
+collect_form(['define-function',F,[lambda,As|_]=Lambda], _, St) ->
     {[{F,length(As),Lambda}],St};
-collect_form(['define-function',F,['match-lambda',[Pats|_]|_]=Match], _, St)
-  when is_atom(F) ->
-    {[{F,length(Pats),Match}],St};
-collect_form(_, _, _) ->
-    exit(unknown_form).
+collect_form(['define-function',F,['match-lambda',[Pats|_]|_]=Match], _, St) ->
+    {[{F,length(Pats),Match}],St}.
 
-collect_mdef([[import|Imps]|Mdef], St) ->
-    collect_mdef(Mdef, collect_imps(Imps, St));
-collect_mdef([_|Mdef], St) ->
-    %% Ignore everything else.
+collect_mdef([[import|Is]|Mdef], St) ->
+    collect_mdef(Mdef, collect_imps(Is, St));
+collect_mdef([_|Mdef], St) ->			%Ignore everything else
     collect_mdef(Mdef, St);
 collect_mdef([], St) -> St.
 
-collect_imps([['from',Mod|Fs]|Is], St0) when is_atom(Mod) ->
-    St1 = collect_imp(fun ([F,A], Imps) when is_atom(F), is_integer(A) ->
-			      store({F,A}, F, Imps)
-		      end, Mod, St0, Fs),
-    collect_imps(Is, St1);
-collect_imps([['rename',Mod|Rs]|Is], St0) when is_atom(Mod) ->
-    St1 = collect_imp(fun ([[F,A],R], Imps)
-			  when is_atom(F), is_integer(A), is_atom(R) ->
-			      store({F,A}, R, Imps)
-		      end, Mod, St0, Rs),
-    collect_imps(Is, St1);
-collect_imps([], St) -> St.
+collect_imps(Is, St) ->
+    foldl(fun (I, S) -> collect_imp(I, S) end, St, Is).
+
+collect_imp(['from',Mod|Fs], St) ->
+    collect_imp(fun ([F,A], Imps) -> store({F,A}, F, Imps) end,
+		Mod, St, Fs);
+collect_imp(['rename',Mod|Rs], St) ->
+    collect_imp(fun ([[F,A],R], Imps) -> store({F,A}, R, Imps) end,
+		Mod, St, Rs);
+collect_imp(_, St) -> St.			%Ignore everything else
 
 collect_imp(Fun, Mod, St, Fs) ->
     Imps0 = safe_fetch(Mod, St#slurp.imps, []),

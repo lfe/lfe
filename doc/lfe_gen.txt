@@ -58,7 +58,7 @@ compile_mod(Mod) -> CompRet
 
 	M0 = lfe_gen:new_module(foo),
 	M1 = lfe_gen:add_exports([{a,0}], M0),
-	M2 = lfe_gen:add_form([defun,a,[],[quote,yes]], M2),
+	M2 = lfe_gen:add_form([defun,a,[],[quote,yes]], M1),
 	lfe_gen:compile_mod(M2)
 
 Example

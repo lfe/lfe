@@ -41,6 +41,11 @@ file(FileName, Options) -> CompRet
 		file <File>.expand. No object file is produced. Mainly
 		useful for debugging and interest.
 
+	to_lint
+		Print a listing of the macro expanded and linted LFE
+		code in the file <File>.lint. No object file is
+		produced. Mainly useful for debugging and interest.
+
 	to_core0
 	to_core
 		Print a listing of the Core Erlang code before/after

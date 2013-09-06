@@ -28,7 +28,7 @@
 -import(ordsets, [add_element/2,is_element/2,from_list/1,union/2]).
 -import(orddict, [store/3,find/2]).
 
--import(lfe_lib, [new_env/0,add_vbinding/3,add_vbindings/2,get_vbinding/2,
+-import(lfe_env, [new/0,add_vbinding/3,add_vbindings/2,get_vbinding/2,
 		  add_fbinding/4,add_fbindings/2,get_fbinding/3,
 		  add_ibinding/5,get_gbinding/3]).
 
@@ -49,7 +49,7 @@ module([{['define-module',[_|_]|_],_}|_]=Fs, Opts) ->
 module(Fs, _) -> Fs.				%Normal module, do nothing
 
 expand_module(Fs0, Opts) ->
-    St0 = #param{env=new_env()},
+    St0 = #param{env=lfe_env:new()},
     {Fs1,St1} = lfe_lib:proc_forms(fun exp_form/3, Fs0, St0),
     debug_print("#param: ~p\n", [{Fs1,St1}], Opts),
     %% {ok,_} = lfe_lint:module(Fs1, Opts),
