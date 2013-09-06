@@ -28,7 +28,7 @@
 -import(ordsets, [add_element/2,is_element/2,from_list/1,union/2]).
 -import(orddict, [store/3,find/2]).
 
--import(lfe_lib, [new_env/0,add_env/2,
+-import(lfe_env, [new/0,add_env/2,
 		  add_vbinding/3,get_vbinding/2,add_fbinding/4,get_fbinding/3,
 		  add_ibinding/5,get_gbinding/3]).
 
@@ -105,7 +105,7 @@ forms_env(Fbs, St) ->
 			foldl(fun ({{F,A},R}, E) ->
 				      add_ibinding(M, F, A, R, E)
 			      end, Env, Fs)
-		end, new_env(), St#cg.imps),
+		end, lfe_env:new(), St#cg.imps),
     foldl(fun ({Name,Def,_}, E) ->
 		  add_fbinding(Name, func_arity(Def), Name, E)
 	  end, Env, Fbs).
@@ -1038,7 +1038,7 @@ pat_bitsegs(Segs, L, Vs0, St0) ->
     {Csegs,Vs1,St1}.
 
 %% pat_bitseg(Seg, Line, PatVars, State) -> {#c_bitstr{},PatVars,State}.
-%%  ??? Should noenv be new_env() instead ???
+%%  ??? Should noenv be lfe_env:new() instead ???
 %%  ??? We know its correct so why worry? ???
 
 pat_bitseg({Pat,_,{Ty,_,Si,En}}, L, Vs0, St0)

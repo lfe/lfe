@@ -14,4 +14,4 @@
 # limitations under the License.
 
 # Run LFE shell by default. Can add -pa if necessary.
-erl "$@" -noshell -noinput -s lfe_boot start
+erl -user lfe_boot "$@"

@@ -18,11 +18,13 @@
 
 -module(lfe_lint).
 
--export([module/1,module/2,form/1,expr/1,expr/2,format_error/1]).
+-export([module/1,module/2,form/1,expr/1,expr/2,pattern/1,pattern/2,
+	 format_error/1]).
 
--import(lfe_lib, [new_env/0,is_vbound/2,is_fbound/3,is_gbound/3,
-		  add_vbinding/3,add_fbinding/4,add_ibinding/5,
-		  is_erl_bif/2,is_guard_bif/2,
+-import(lfe_env, [new/0,is_vbound/2,is_fbound/3,is_gbound/3,
+		  add_vbinding/3,add_fbinding/4,add_ibinding/5]).
+
+-import(lfe_lib, [is_erl_bif/2,is_guard_bif/2,
 		  is_symb_list/1,is_proper_list/1]).
 
 %% -compile(export_all).
@@ -81,16 +83,28 @@ format_error({undefined_bittype,S}) ->
 format_error(bittype_unit) ->
     "bit unit size can only be specified together with size";
 format_error(illegal_bitsize) -> "illegal bit size";
+format_error({deprecated,What}) ->
+    lfe_io:format1("deprecated ~s", [What]);
 format_error(unknown_form) -> "unknown form".
 
 %% expr(Expr) -> {ok,[Warning]} | {error,[Error],[Warning]}.
 %% expr(Expr, Env) -> {ok,[Warning]} | {error,[Error],[Warning]}.
 
-expr(E) -> expr(E, new_env()).
+expr(E) -> expr(E, lfe_env:new()).
 
 expr(E, Env) ->
     St0 = #lint{},
     St1 = check_expr(E, Env, 1, St0),
+    return_status(St1).
+
+%% pattern(Pattern) -> {ok,[Warning]} | {error,[Error],[Warning]}.
+%% pattern(Pattern, Env) -> {ok,[Warning]} | {error,[Error],[Warning]}.
+
+pattern(P) -> pattern(P, lfe_env:new()).
+
+pattern(P, Env) ->
+    St0 = #lint{},
+    {_,St1} = pattern(P, Env, 1, St0),
     return_status(St1).
 
 %% form(Form) -> {ok,[Warning]} | {error,[Error],[Warning]}.
@@ -247,7 +261,7 @@ init_state(St) ->
 			 foldl(fun ({{F,A},R}, E) ->
 				       add_ibinding(M, F, A, R, E)
 			       end, Env, Fs)
-		 end, new_env(), St#lint.imps),
+		 end, lfe_env:new(), St#lint.imps),
     %% Basic predefines
     Predefs0 = [{module_info,[lambda,[],[quote,dummy]],1},
 		{module_info,[lambda,[x],[quote,dummy]],1}],
@@ -814,9 +828,9 @@ pattern([cons,H,T], Pvs0, Env, L, St0) ->	%Explicit cons constructor
 pattern([list|Ps], Pvs, Env, L, St) ->		%Explicit list constructor
     pat_list(Ps, Pvs, Env, L, St);
 %% Check old no contructor list forms.
-pattern([H|T], Pvs0, Env, L, St0) ->
-    {Pvs1,St1} = pattern(H, Pvs0, Env, L, St0),
-    pattern(T, Pvs1, Env, L, St1);
+pattern([_|_]=List, Pvs0, Env, L, St0) ->
+    St1 = add_warning(L, {deprecated,"pattern"}, St0),
+    pat_list(List, Pvs0, Env, L, St1);
 %% pattern([_|_], Pvs, _, L, St) ->
 %%     {Pvs,add_error(L, illegal_pat, St)};
 pattern([], Pvs, _, _, St) -> {Pvs,St};
@@ -1046,8 +1060,8 @@ safe_length(_, Acc) -> Acc.
 add_error(L, E, St) ->
     St#lint{errors=St#lint.errors ++ [{L,?MODULE,E}]}.
 
-%% add_warning(L, W, St) ->
-%%     St#lint{warnings=St#lint.warnings ++ [{L,?MODULE,W}]}.
+add_warning(L, W, St) ->
+    St#lint{warnings=St#lint.warnings ++ [{L,?MODULE,W}]}.
 
 bad_form_error(L, F, St) ->
     add_error(L, {bad_form,F}, St).
@@ -1071,10 +1085,10 @@ illegal_guard_error(L, St) ->
 %% These just add arity as a dummy values as we are not interested in
 %% value but it might be useful.
 
-add_fbinding(N, A, Env) -> lfe_lib:add_fbinding(N, A, A, Env).
+add_fbinding(N, A, Env) -> lfe_env:add_fbinding(N, A, A, Env).
 
 add_vbindings(Vs, Env) ->
-    foldl(fun (V, E) -> lfe_lib:add_vbinding(V, dummy, E) end, Env, Vs).
+    foldl(fun (V, E) -> lfe_env:add_vbinding(V, dummy, E) end, Env, Vs).
 
 %% safe_fetch(Key, Dict, Default) -> Value.
 

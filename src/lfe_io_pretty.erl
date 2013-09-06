@@ -82,7 +82,8 @@ print1(Other, _, _, _) ->
 %% print1_defun(List, Depth, Indentation, LineLength) -> [char()].
 %% Print a defun depending on whether it is traditional or matching.
 
-print1_defun([Def,Name,Args|Rest], D, I, L) when is_atom(Name), D > 3 ->
+print1_defun([Def,Name,Args|Rest], D, I, L) when
+      is_atom(Name), (D > 3) or (D < 0) ->
     Dcs = atom_to_list(Def),			%Might not actually be defun
     Ncs = atom_to_list(Name),
     case lfe_lib:is_symb_list(Args) of
@@ -103,7 +104,7 @@ print1_defun(List, D, I, L) ->
 %% Print a special type form indenting first TypeCount elements afer
 %% type and rest indented 2 steps.
 
-print1_type([Car|Cdr], D, I, L, N) when D > 2 ->
+print1_type([Car|Cdr], D, I, L, N) when (D > 2) or (D < 0) ->
     %% Handle special lists, we KNOW Car is an atom.
     Cs = atom_to_list(Car),
     NewI = I + length(Cs) + 2,
