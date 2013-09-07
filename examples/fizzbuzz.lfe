@@ -26,7 +26,8 @@
 (defmodule fizzbuzz
   (export (buzz 1)
           (buzz1 1)
-          (buzz2 1)))
+          (buzz2 1)
+          (buzz3 1)))
 
 (defun get-fizz (n)
   ;; Request a FizzBuzz result for a given number.
@@ -62,21 +63,58 @@
    ;; woo!
    (buzz n))
   ((_)
-   ;; Otherwise return a nice error message.
-   ;; (: erlang error (tuple 'error '"Buzz1/1 only accepts whole numbers > 0"))
-   (tuple 'error '"Buzz/1 only accepts whole numbers > 0")))
+   ;; Otherwise return a nice error message. There are many different
+   ;; ways you can return an error in erlang and it depends entirely on
+   ;; what you're trying to achieve. Depending on your requirements,
+   ;; sending back an 'error atom is sufficient.
+   ;;
+   ;; You can also provide an error tuple. With the 'error atom and a reason.
+   ;;
+   ;; -> (tuple 'error '"Buzz/1 only accepts whole numbers > 0")
+   ;;
+   ;; Or if necessary you can trigger an Erlang error:
+   ;; 
+   ;; -> (: erlang error (tuple 'error '"Buzz1/1 only accepts whole numbers > 0"))
+   ;;
+   ;; In this example it is enough we return the error atom.
+   'error))
 
-(defun start-buzz2
-  ;; Completion pattern, we've emptied the provided list
+(defun buzz2
+  ;; A concise recursive implementation without a guard
+  ;; the guard or the use of the accumulator.
+  ([(cons x xs)]
+   ;; When using the 'cons', the list _must_ be the second argument.
+   ;; You cannot append to the end of a list.
+   (cons (get-fizz x) (buzz3 xs)))
+  ;; Pattern match to an empty list as our termination condition.
+  ([()] ()))
+
+(defun buzz3 (col)
+  ;; A tail-recursive implementation of FizzBuzz using a common pattern within
+  ;; Erlang. Supplying an accmulator to keep our recursion in a constant space.
+  ;; The problem with this however is that the list we create using this method
+  ;; will be reversed, as Erlang only allows to append to the head of a list.
+  (tail-buzz [] col))
+
+(defun tail-buzz
+  ;; This is our base case, we've exhausted the list that was provided as input
+  ;; and we have our completed list of FizzBuzz results. Because we've been
+  ;; building our list by prepending our new result at each step our list in
+  ;; reverse order and must be reversed. Unless you want a list in reverse
+  ;; order in which case you can happily skip it. :)
   ((acc [])
-   acc)
-  ;; Worker pattern, we have results to work through!
+   ;; Use the built in lists:reverse/1 function as it is is a much loved
+   ;; component of Erlang and due to Erlang favouring this form of tail recursive
+   ;; functions it has been highly optimised for the task. There is a great
+   ;; explanation and discussion of this topic in Learn You Some Erlang. I
+   ;; recommend you check it out.
+   (: lists reverse acc))
+  ;; Similar to our other recursive implementation we split the list we receive
+  ;; into a Head component (x) and a Tail component (xs). In Erlang speak [H|T].
+  ;; Note the lack of square parenthesis, as we have two function arguments we
+  ;; need to wrap them both in a list and simply a call to 'cons' is enough to
+  ;; type check that we have received a list as our second argument.
   ((acc (cons x xs))
-   ;; Very curious results in the repl from this particular one :\
-   (start-buzz2 (cons acc (get-fizz x)) xs)))
-
-(defun buzz2 ((col) (when (: erlang is_list col))
-  ;;An alternative implementation using destructuring and
-  ;;recursion to operate on a given list instead of assuming
-  ;;its structure.
-  (start-buzz2 [] col)))
+   ;; Place the result of our FizzBuzz at the start of the list and dive into
+   ;; the breach once more!   
+   (tail-buzz (cons (get-fizz x) acc) xs)))
