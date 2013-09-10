@@ -38,10 +38,10 @@
   ;; using pattern matching to simply return the
   ;; result that we want instead of getting tied
   ;; in knots with conditionals.
-  ((_ 0 0) '"FizzBuzz")
-  ((_ 0 _) '"Fizz")
-  ((_ _ 0) '"Buzz")
-  ((n _ _) n))
+  ([_ 0 0] '"FizzBuzz")
+  ([_ 0 _] '"Fizz")
+  ([_ _ 0] '"Buzz")
+  ([n _ _] n))
 
 (defun buzz (n)
   ;; This is the basic version, takes an argument
@@ -58,11 +58,11 @@
   ;; unwanted arguments.
   ;; Only run the FizzBuzz solution when we have a positive
   ;; whole number that is greater than zero
-  ((n) (when (and (: erlang is_integer n)
+  ([n] (when (and (: erlang is_integer n)
                   (> n 0)))
    ;; woo!
    (buzz n))
-  ((_)
+  ([_]
    ;; Otherwise return a nice error message. There are many different
    ;; ways you can return an error in erlang and it depends entirely on
    ;; what you're trying to achieve. Depending on your requirements,
@@ -102,7 +102,7 @@
   ;; building our list by prepending our new result at each step our list in
   ;; reverse order and must be reversed. Unless you want a list in reverse
   ;; order in which case you can happily skip it. :)
-  ((acc [])
+  ([acc []]
    ;; Use the built in lists:reverse/1 function as it is is a much loved
    ;; component of Erlang and due to Erlang favouring this form of tail recursive
    ;; functions it has been highly optimised for the task. There is a great
@@ -114,7 +114,7 @@
   ;; Note the lack of square parenthesis, as we have two function arguments we
   ;; need to wrap them both in a list and simply a call to 'cons' is enough to
   ;; type check that we have received a list as our second argument.
-  ((acc (cons x xs))
+  ([acc (cons x xs)]
    ;; Place the result of our FizzBuzz at the start of the list and dive into
    ;; the breach once more!   
    (tail-buzz (cons (get-fizz x) acc) xs)))
