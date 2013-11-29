@@ -75,14 +75,16 @@
 (defun int-successor (n)
   (+ n 1))
 
-; converts a called church numeral to an integer, e.g.:
-;   > (church->int1 (five))
 (defun church->int1 (church-numeral)
+  "Converts a called church numeral to an integer, e.g.:
+     > (church->int1 (five))
+  "
   (funcall (funcall church-numeral #'int-successor/1) 0))
 
-; converts a non-called church numeral to an integer, e.g.:
-;   > (church->int2 #'five/0)
 (defun church->int2 (church-numeral)
+  "Converts a non-called church numeral to an integer, e.g.:
+     > (church->int2 #'five/0)
+  "
   (funcall (funcall (funcall church-numeral) #'int-successor/1) 0))
 
 (defun church-successor (church-numeral)
