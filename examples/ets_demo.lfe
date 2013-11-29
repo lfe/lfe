@@ -31,45 +31,45 @@
 (defun new ()
   (let ((db (: ets new 'ets_demo '(#(keypos 2) set))))
     (let ((people '(
-		    ;; First some people in London.
-		    #(fred london waiter)
-		    #(bert london waiter)
-		    #(john london painter)
-		    #(paul london driver)
-		    ;; Now some in Paris.
-		    #(jean paris waiter)
-		    #(gerard paris driver)
-		    #(claude paris painter)
-		    #(yves paris waiter)
-		    ;; And some in Rome.
-		    #(roberto rome waiter)
-		    #(guiseppe rome driver)
-		    #(paulo rome painter)
-		    ;; And some in Berlin.
-		    #(fritz berlin painter)
-		    #(kurt berlin driver)
-		    #(hans berlin waiter)
-		    #(franz berlin waiter)
-		    )))
+            ;; First some people in London.
+            #(fred london waiter)
+            #(bert london waiter)
+            #(john london painter)
+            #(paul london driver)
+            ;; Now some in Paris.
+            #(jean paris waiter)
+            #(gerard paris driver)
+            #(claude paris painter)
+            #(yves paris waiter)
+            ;; And some in Rome.
+            #(roberto rome waiter)
+            #(guiseppe rome driver)
+            #(paulo rome painter)
+            ;; And some in Berlin.
+            #(fritz berlin painter)
+            #(kurt berlin driver)
+            #(hans berlin waiter)
+            #(franz berlin waiter)
+            )))
       (: lists foreach (match-lambda
-			 ([(tuple n p j)]
-			  (: ets insert db (make-person name n place p job j))))
-	 people))
-    db))				;Return the table
+             ([(tuple n p j)]
+              (: ets insert db (make-person name n place p job j))))
+     people))
+    db))                ;Return the table
 
 ;; Match records by place using match, match_object and the emp-XXXX macro.
 (defun by_place (db place)
   (let ((s1 (: ets match db (emp-person name '$1 place place job '$2)))
-	(s2 (: ets match_object db (emp-person place place))))
+    (s2 (: ets match_object db (emp-person place place))))
     (tuple s1 s2)))
 
 ;; Use match specifications to match records
 (defun by_place_ms (db place)
   (: ets select db (match-spec ([(match-person name n place p job j)]
-				(when (=:= place p))
-				(list 'p n j)))))
+                (when (=:= place p))
+                (list 'p n j)))))
 
 (defun not_painter (db place)
   (: ets select db (match-spec ([(match-person name n place p job j)]
-				(when (=:= place p) (=/= j 'painter))
-				(list 'p n j)))))
+                (when (=:= place p) (=/= j 'painter))
+                (list 'p n j)))))
