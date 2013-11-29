@@ -84,22 +84,22 @@
 (defun send (object command arg)
   (funcall (get-method object command) arg))
 
-; returns an updated account object
 (defun withdraw (object amt)
+  "Returns an updated account object."
   (funcall (get-method object 'withdraw) amt))
 
-; returns an updated account object
 (defun deposit (object amt)
+  "Returns an updated account object."
   (funcall (get-method object 'deposit) amt))
 
-; returns a float representing the balance
 (defun balance (object)
+  "Returns a float representing the balance."
   (funcall (get-method object 'balance)))
 
-; returns a string represnting the account holder
 (defun name (object)
+  "Returns a string represnting the account holder."
   (funcall (get-method object 'name)))
 
-; returns an updated account object
 (defun interest (object)
+  "Returns an updated account object."
   (funcall (get-method object 'interest)))
