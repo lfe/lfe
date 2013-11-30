@@ -138,7 +138,8 @@
 
 (defun start_ring (n-rings n-msgs)
   ;; Create the desired number of "servers" in the ring.
-  (let [((cons x xs) (create-pids-one-arg 'ring n-msgs (: lists seq 1 n-rings)))]
+  (let [((cons x xs)
+          (create-pids-one-arg 'ring n-msgs (: lists seq 1 n-rings)))]
     ;; Get it rolling.
     (! x (tuple 'pass (++ xs (list x)) 0))))
 
@@ -162,7 +163,8 @@
 
 
 (defun contact_stars
-  ;; This function sends a message to each of the individual stars in turn until the list is exhausted.
+  ;; This function sends a message to each of the individual stars in turn
+  ;; until the list is exhausted.
   ([()] 'done) ;; No more stars, we're done here.
   ([(cons x xs)]
    (: io format '"Sent message to star~n" '())
@@ -175,9 +177,9 @@
   ((n-stars n-msgs) (when (is_number n-stars) (is_number n-msgs))
    ;; Use the function from earlier to create our list of pids
    (let* [(stars (create-pids-one-arg 'star n-stars (: lists seq 1 n-stars)))
-          ;; For every message, trigger a sequence of communication with every star.
-          ;; This is inside the let* so I can deliberately discard the value and not
-          ;; be yelled at by the compiler.
+          ;; For every message, trigger a sequence of communication with every
+          ;; star. This is inside the let* so I can deliberately discard the
+          ;; value and not be yelled at by the compiler.
           (_ (lc ((<- _ (: lists seq 1 n-msgs))) (contact_stars stars)))]
      ;; Ensure all the star processes are killed off.
      (lc ((<- star stars)) (! star 'die)))))

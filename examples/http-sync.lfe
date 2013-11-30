@@ -57,8 +57,7 @@
   (export all))
 
 (defun parse-args (flag)
-  "
-  Given one or more command-line arguments, extract the passed values.
+  "Given one or more command-line arguments, extract the passed values.
 
   For example, if the following was passed via the command line:
 
@@ -70,31 +69,24 @@
       ...
       )
   In this example, the value assigned to the arg variable would be a list
-  containing the values my-value-1 and my-value-2.
-  "
+  containing the values my-value-1 and my-value-2."
   (let (((tuple 'ok data) (: init get_argument flag)))
     (: lists merge data)))
 
 (defun get-pages ()
-  "
-  With no argument, assume 'url parameter was passed via command line.
-  "
+  "With no argument, assume 'url parameter was passed via command line."
   (get-pages
     (parse-args 'url)))
 
 (defun get-pages (urls)
-  "
-  Start inets and make (potentially many) HTTP requests.
-  "
+  "Start inets and make (potentially many) HTTP requests."
   (: inets start)
   (: lists map
     (lambda (x)
       (get-page x)) urls))
 
 (defun get-page (url)
-  "
-  Make a single HTTP request.
-  "
+  "Make a single HTTP request."
   (case (: httpc request url)
     ((tuple 'ok result)
       (: io format '"Result: ~p~n" (list result)))
