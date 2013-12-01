@@ -15,7 +15,7 @@
 ;; File    : messenger-back.lfe
 ;; Author  : Duncan McGreggor
 ;; Purpose : Demonstrating bidirectional message passing between the shell and
-;;           aspawned process.
+;;           a spawned process.
 
 ;; This file contains a simple demo for passing messages to an Erlang process
 ;; in LFE and the sending a message back to the calling process. To use, do the
