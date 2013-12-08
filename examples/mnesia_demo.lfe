@@ -32,32 +32,32 @@
   (: mnesia create_table 'person '(#(attributes (name place job))))
   ;; Initialise the table.
   (let ((people '(
-		  ;; First some people in London.
-		  #(fred london waiter)
-		  #(bert london waiter)
-		  #(john london painter)
-		  #(paul london driver)
-		  ;; Now some in Paris.
-		  #(jean paris waiter)
-		  #(gerard paris driver)
-		  #(claude paris painter)
-		  #(yves paris waiter)
-		  ;; And some in Rome.
-		  #(roberto rome waiter)
-		  #(guiseppe rome driver)
-		  #(paulo rome painter)
-		  ;; And some in Berlin.
-		  #(fritz berlin painter)
-		  #(kurt berlin driver)
-		  #(hans berlin waiter)
-		  #(franz berlin waiter)
-		  )))
+          ;; First some people in London.
+          #(fred london waiter)
+          #(bert london waiter)
+          #(john london painter)
+          #(paul london driver)
+          ;; Now some in Paris.
+          #(jean paris waiter)
+          #(gerard paris driver)
+          #(claude paris painter)
+          #(yves paris waiter)
+          ;; And some in Rome.
+          #(roberto rome waiter)
+          #(guiseppe rome driver)
+          #(paulo rome painter)
+          ;; And some in Berlin.
+          #(fritz berlin painter)
+          #(kurt berlin driver)
+          #(hans berlin waiter)
+          #(franz berlin waiter)
+          )))
     (: lists foreach (match-lambda
-		       ([(tuple n p j)]
-			(: mnesia transaction
-			  (lambda ()
-			    (let ((new (make-person name n place p job j)))
-			      (: mnesia write new))))))
+               ([(tuple n p j)]
+            (: mnesia transaction
+              (lambda ()
+                (let ((new (make-person name n place p job j)))
+                  (: mnesia write new))))))
        people)))
 
 ;; Match records by place using match_object and the emp-XXXX macro.
@@ -68,18 +68,18 @@
 ;; Use match specifications to match records
 (defun by_place_ms (place)
   (let ((f (lambda () (: mnesia select 'person
-			 (match-spec ([(match-person name n place p job j)]
-				      (when (=:= p place))
-				      (tuple n j)))))))
+             (match-spec ([(match-person name n place p job j)]
+                      (when (=:= p place))
+                      (tuple n j)))))))
     (: mnesia transaction f)))
 
 ;; Use Query List Comprehensions to match records
 (defun by_place_qlc (place)
   (let ((f (lambda ()
-	     (let ((q (qlc (lc ((<- person (: mnesia table 'person))
-				(=:= (person-place person) place))
-			     person))))
-	       (: qlc e q)))))
+         (let ((q (qlc (lc ((<- person (: mnesia table 'person))
+                (=:= (person-place person) place))
+                 person))))
+           (: qlc e q)))))
     (: mnesia transaction f)))
 
 ;; Ignore this
