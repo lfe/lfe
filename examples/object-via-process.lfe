@@ -79,21 +79,17 @@
  (export all))
 
 (defun fish-class (species)
-  "
-  This is the constructor that will be used most often, only requiring that
+  "This is the constructor that will be used most often, only requiring that
   one pass a 'species' string.
 
-  When the children are not defined, simply use an empty list.
-  "
+  When the children are not defined, simply use an empty list."
   (fish-class species ()))
 
 (defun fish-class (species children)
-  "
-  This constructor is useful for two reasons:
+  "This constructor is useful for two reasons:
     1) as a way of abstracting out the id generation from the
        larger constructor, and
-    2) spawning the 'object loop' code (fish-class/3).
-  "
+    2) spawning the 'object loop' code (fish-class/3)."
   (let* (((binary (id (size 128))) (: crypto rand_bytes 16))
          (formatted-id (car
                          (: io_lib format
@@ -103,11 +99,9 @@
            (list species children formatted-id))))
 
 (defun fish-class (species children id)
-  "
-  This function is intended to be spawned as a separate process which is
+  "This function is intended to be spawned as a separate process which is
   used to track the state of a fish. In particular, fish-class/2 spawns
-  this function (which acts as a loop, pattern matching for messages).
-  "
+  this function (which acts as a loop, pattern matching for messages)."
   (let ((move-verb '"swam"))
     (receive
       ((tuple caller 'move distance)
@@ -137,24 +131,20 @@
         (fish-class species children-ids id))))))
 
 (defun call-method (object method-name)
-  "
-  This is a generic function, used to call into the given object (class
-  instance).
-  "
+  "This is a generic function, used to call into the given object (class
+  instance)."
   (! object (tuple (self) method-name))
   (receive
     (data data)))
 
 (defun call-method (object method-name arg)
-  "
-  Same as above, but with an additional argument.
-  "
+  "Same as above, but with an additional argument."
   (! object (tuple (self) method-name arg))
   (receive
     (data data)))
 
-; define object methods
 (defun get-id (object)
+  "Define object methods."
   (call-method object 'id))
 
 (defun get-species (object)
