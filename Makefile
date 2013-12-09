@@ -2,6 +2,7 @@
 # This simple Makefile uses rebar to compile/clean if it
 # exists, else does it explicitly.
 
+BINDIR = bin
 EBINDIR = ebin
 SRCDIR = src
 INCDIR = include
@@ -12,6 +13,11 @@ VPATH = $(SRCDIR)
 
 ERLCFLAGS = -W1
 ERLC = erlc
+
+EXPM=$(BINDIR)/expm
+LIB=lfe
+
+FINISH=-run init stop -noshell
 
 ## The .erl, .xrl, .yrl and .beam files
 ESRCS = $(notdir $(wildcard $(SRCDIR)/*.erl))
@@ -70,3 +76,27 @@ echo:
 	@ echo $(XSRCS)
 	@ echo $(YSRCS)
 	@ echo $(EBINS)
+
+$(BINDIR):
+	mkdir -p $(BINDIR)
+
+$(EXPM): $(BINDIR)
+	curl -o $(EXPM) http://expm.co/__download__/expm
+	chmod +x $(EXPM)
+
+get-deps: $(EXPM)
+
+get-version:
+	@echo
+	@echo -n app.src: ''
+	@erl -eval 'io:format("~p~n", [ \
+		proplists:get_value(vsn,element(3,element(2,hd(element(3, \
+		erl_eval:exprs(element(2, erl_parse:parse_exprs(element(2, \
+		erl_scan:string("Data = " ++ binary_to_list(element(2, \
+		file:read_file("src/$(LIB).app.src"))))))), []))))))])' \
+		$(FINISH)
+	@echo -n package.exs: ''
+	@grep version package.exs |awk '{print $$2}'|sed -e 's/,//g'
+
+upload: get-version
+	$(EXPM) publish
