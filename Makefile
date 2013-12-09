@@ -2,7 +2,7 @@
 # This simple Makefile uses rebar to compile/clean if it
 # exists, else does it explicitly.
 
-BINDIR = ebin
+EBINDIR = ebin
 SRCDIR = src
 INCDIR = include
 DOCDIR = doc
@@ -24,8 +24,8 @@ INSTALLDIR = $(ERL_LIBS)/lfe-$(shell cat VERSION)
 
 .SUFFIXES: .erl .beam
 
-$(BINDIR)/%.beam: $(SRCDIR)/%.erl
-	$(ERLC) -I $(INCDIR) -o $(BINDIR) $(ERLCFLAGS) $<
+$(EBINDIR)/%.beam: $(SRCDIR)/%.erl
+	$(ERLC) -I $(INCDIR) -o $(EBINDIR) $(ERLCFLAGS) $<
 
 %.erl: %.xrl
 	$(ERLC) -o $(SRCDIR) $<
@@ -45,12 +45,12 @@ compile:
 	fi
 
 ## Compile using erlc
-erlc_compile: $(addprefix $(BINDIR)/, $(EBINS))
+erlc_compile: $(addprefix $(EBINDIR)/, $(EBINS))
 
 install:
 	if [ "$$ERL_LIBS" != "" ]; \
 	then mkdir -p $(INSTALLDIR) ; \
-	     cp -pPR $(BINDIR) $(INSTALLDIR); \
+	     cp -pPR $(EBINDIR) $(INSTALLDIR); \
 	     cp -pPR $(EMACSDIR) $(INSTALLDIR); \
 	     cp -pPR $(INCDIR) $(INSTALLDIR); \
 	else exit 1; \
@@ -61,7 +61,7 @@ docs:
 clean:
 	if which rebar > /dev/null; \
 	then rebar clean; \
-	else rm -rf $(BINDIR)/*.beam; \
+	else rm -rf $(EBINDIR)/*.beam; \
 	fi
 	rm -rf erl_crash.dump
 
