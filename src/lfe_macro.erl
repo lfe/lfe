@@ -27,7 +27,9 @@
 -export([expand_expr/2,expand_expr_1/2,expand_expr_all/2]).
 
 %% These work on list of forms in "file format".
--export([expand_forms/2,macro_forms/2,format_error/1]).
+-export([expand_forms/2,macro_forms/2]).
+
+-export([format_error/1]).
 
 -export([mbe_syntax_rules_proc/4,mbe_syntax_rules_proc/5,
 	 mbe_match_pat/3,mbe_get_bindings/3,mbe_expand_pattern/3]).
@@ -258,16 +260,21 @@ pass_expand_expr([_|_]=E0, Env, St0, Expand) ->
 	    no -> {no,E0,St0}
 	end
     catch
-	_:Error -> {no,E0,add_error(St0#mac.line, Error, St0)}
+	_:Error -> {no,E0,add_error(Error, St0)}
     end;
 pass_expand_expr(E, _, St, _) -> {no,E,St}.
 
+%% add_error(Error, State) -> State.
 %% add_error(Line, Error, State) -> State.
+%% add_warning(Warning, State) -> State.
 %% add_warning(Line, Warning, State) -> State.
+
+add_error(E, St) -> add_error(St#mac.line, E, St).
 
 add_error(L, E, St) ->
     St#mac{errors=St#mac.errors ++ [{L,?MODULE,E}]}.
 
+%% add_warning(W, St) -> add_warning(St#mac.line, W, St).
 %% add_warning(L, W, St) ->
 %%     St#mac{warnings=St#mac.warnings ++ [{L,?MODULE,W}]}.
 
@@ -280,7 +287,7 @@ pass_define_macro([Name,Def], Env, St) ->
     case Def of
 	['lambda'|_] -> {yes,add_mbinding(Name, Def, Env),St};
 	['match-lambda'|_] -> {yes,add_mbinding(Name, Def, Env),St};
-	_ -> {no,add_error(St#mac.line, {bad_form,macro}, St)}
+	_ -> {no,add_error({bad_form,macro}, St)}
     end.
 
 %% expand(Form, Env, State) -> {Form,State}.
@@ -743,7 +750,7 @@ exp_predef([defmodule|Mdef], _, St) ->
 		[Mod|_] -> Mod			%Normal module
 	    end,
     MODULE = [defmacro,'MODULE',[],?BQ(?Q(Mname))],
-    {yes,[progn,['define-module'|Mdef],MODULE],St};
+    {yes,[progn,['define-module'|Mdef],MODULE],St#mac{module=Mname}};
 exp_predef([defun,Name|Def], _, St) ->
     %% Educated guess whether traditional (defun name (a1 a2 ...) ...)
     %% or matching (defun name (patlist1 ...) (patlist2 ...))
@@ -778,6 +785,11 @@ exp_predef(['match-spec'|Body], Env, St0) ->
 %% (qlc (lc (qual ...) e ...) opts)
 exp_predef([qlc,LC], Env, St) -> exp_qlc(LC, [], Env, St);
 exp_predef([qlc,LC,Opts], Env, St) -> exp_qlc(LC, [Opts], Env, St);
+%% Some predefined file macros.
+exp_predef(['MODULE'], _, St) ->
+    {yes,?Q(St#mac.module),St};
+exp_predef(['LINE'], _, St) ->
+    {yes,?Q(St#mac.line),St};
 %% This was not a call to a predefined macro.
 exp_predef(_, _, _) -> no.
 
@@ -796,12 +808,12 @@ exp_qlc([lc,Qs|Es], Opts, Env, St0) ->
     %% Now translate to vanilla AST, call qlc expand and then convert
     %% back to LFE.  lfe_qlc:expand/2 wants a list of conversions not
     %% a conversion of a list.
-    Vlc = lfe_trans:to_vanilla([lc,Eqs|Ees], 42),
-    Vos = map(fun (O) -> lfe_trans:to_vanilla(O, 42) end, Opts),
+    Vlc = lfe_trans:to_expr([lc,Eqs|Ees], 42),
+    Vos = map(fun (O) -> lfe_trans:to_expr(O, 42) end, Opts),
     %% io:put_chars([erl_pp:expr(Vlc),"\n"]),
     {ok,Vexp} = lfe_qlc:expand(Vlc, Vos),
     %%io:put_chars([erl_pp:expr(Vexp),"\n"]),
-    Exp = lfe_trans:from_vanilla(Vexp),
+    Exp = lfe_trans:from_expr(Vexp),
     %%lfe_io:format("Q1 = ~p\n", [Exp]),
     {yes,Exp,St2}.
 
