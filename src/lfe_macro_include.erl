@@ -145,36 +145,51 @@ read_hrl_file(Name, St) ->
     end.
 
 %% parse_hrl_file(Forms, Macros, State) -> {ok,Forms,State} | {error,Error}.
+%%  All the attributes go in an extend-module form.
 
-parse_hrl_file(Fs0, Ms0, St0) ->
-    {Fs1,St1} = trans_forms(Fs0, St0),
-    {Ms1,St2} = trans_macros(Ms0, St1),
-    {ok,Fs1 ++ Ms1,St2}.
+parse_hrl_file(Fs, Ms, St0) ->
+    {As,Lfs,St1} = trans_forms(Fs, St0),
+    {Lms,St2} = trans_macros(Ms, St1),
+    {ok,[['extend-module'|As]] ++ Lfs ++ Lms,St2}.
 
-%% trans_forms(Forms, State) -> {LForms,State}.
-%%  Translate the record and function defintions in the forms to LFE
-%%  record and function definitions. Ignore all type declarations and
-%%  other forms.
+%% trans_forms(Forms, State) -> {Attributes,LForms,State}.
+%%  Translate the record and function defintions and attributes in the
+%%  forms to LFE record and function definitions and
+%%  attributes. Ignore all type declarations and other forms.
 
 trans_forms([{attribute,_,record,{Name,Fields}}|Fs], St0) ->
-    {Lfs,St1} = trans_forms(Fs, St0),
+    {As,Lfs,St1} = trans_forms(Fs, St0),
     case catch {ok,trans_record(Name, Fields)} of
-	{ok,Lrec} -> {[Lrec|Lfs],St1};
+	{ok,Lrec} -> {As,[Lrec|Lfs],St1};
 	{'EXIT',_} ->				%Something went wrong
-	    {Lfs,add_warning({notrans_record,Name}, St1)}
+	    {As,Lfs,add_warning({notrans_record,Name}, St1)}
     end;
+trans_forms([{attribute,_,export,Es}|Fs], St0) ->
+    {As,Lfs,St1} = trans_forms(Fs, St0),
+    Les = trans_farity(Es),
+    {[[export|Les]|As],Lfs,St1};
+trans_forms([{attribute,_,import,{Mod,Es}}|Fs], St0) ->
+    {As,Lfs,St1} = trans_forms(Fs, St0),
+    Les = trans_farity(Es),
+    {[[import,[from,Mod|Les]]|As],Lfs,St1};
+trans_forms([{attribute,_,Name,E}|Fs], St0) ->
+    {As,Lfs,St1} = trans_forms(Fs, St0),
+    {[[Name,E]|As],Lfs,St1};
 trans_forms([{function,_,Name,Arity,Cls}|Fs], St0) ->
-    {Lfs,St1} = trans_forms(Fs, St0),
+    {As,Lfs,St1} = trans_forms(Fs, St0),
     case catch {ok,trans_function(Name, Arity, Cls)} of
-	{ok,Lfunc} -> {[Lfunc|Lfs],St1};
+	{ok,Lfunc} -> {As,[Lfunc|Lfs],St1};
 	{'EXIT',_} ->				%Something went wrong
-	    {Lfs,add_warning({notrans_function,Name,Arity}, St1)}
+	    {As,Lfs,add_warning({notrans_function,Name,Arity}, St1)}
     end;
 trans_forms([{error,_}|Fs], St) ->		%What should we do with these?
     trans_forms(Fs, St);
 trans_forms([_|Fs], St) ->			%Ignore everything else
      trans_forms(Fs, St);
-trans_forms([], St) -> {[],St}.
+trans_forms([], St) -> {[],[],St}.
+
+trans_farity(Es) ->
+    lists:map(fun ({F,A}) -> [F,A] end, Es).
 
 %% trans_record(Name, Fields) -> LRecDef.
 
