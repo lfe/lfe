@@ -158,6 +158,8 @@ collect_form(['define-module',Mod|Mdef], L, St0) ->
 collect_form(_, L, #lint{module=[]}=St) ->
     %% Set module name so this only triggers once.
     {[],bad_mdef_error(L, name, St#lint{module='-no-module-'})};
+collect_form(['extend-module'|Mdef], L, St) ->
+    {[],check_mdef(Mdef, L, St)};
 collect_form(['define-function',Func,Body], L, St) ->
     case Body of
 	[lambda|_] when is_atom(Func) ->
