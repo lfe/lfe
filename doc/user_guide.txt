@@ -60,6 +60,10 @@ Supported Core forms
 (funcall func arg ... )
 (call mod func arg ... )                - Call to Mod:Func(Arg, ... )
 
+(define-module name declaration ... )
+(extend-module declaration ... )
+	Define/extend module and declarations.
+
 (define-function name lambda|match-lambda)
 (define-macro name lambda|match-lambda)
         Define functions/macros at top-level.
@@ -135,7 +139,6 @@ Older Scheme inspired macros
              ...)
   ...)
 (begin ...)
-(define-module name ...)
 (define-record name ...)
 
 Patterns

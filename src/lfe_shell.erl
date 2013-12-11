@@ -297,6 +297,9 @@ slurp_errors(F, Es) ->
 collect_form(['define-module',Mod|Mdef], _, St0) ->
     St1 = collect_mdef(Mdef, St0),
     {[],St1#slurp{mod=Mod}};
+collect_form(['extend-module'|Mdef], _, St0) ->
+    St1 = collect_mdef(Mdef, St0),
+    {[],St1};
 collect_form(['define-function',F,[lambda,As|_]=Lambda], _, St) ->
     {[{F,length(As),Lambda}],St};
 collect_form(['define-function',F,['match-lambda',[Pats|_]|_]=Match], _, St) ->

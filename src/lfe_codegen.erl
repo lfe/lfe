@@ -135,6 +135,8 @@ make_exports(Exps, _) ->
 collect_form(['define-module',Mod|Mdef], _, St) ->
     %% Everything into State
     {[],collect_mdef(Mdef, St#cg{mod=Mod})};
+collect_form(['extend-module'|Mdef], _, St) ->
+    {[],collect_mdef(Mdef, St)};
 collect_form(['define-function',Name,[lambda|_]=Lambda], L, St) ->
     {[{Name,Lambda,L}],St};
 collect_form(['define-function',Name,['match-lambda'|_]=Match], L, St) ->

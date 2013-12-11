@@ -181,6 +181,7 @@ blanks(N, Tail) -> string:chars($\s, N, Tail).
 %% Old style forms.
 indent_type('define') -> 1;
 indent_type('define-module') -> 1;
+indent_type('extend-module') -> 0;
 indent_type('define-syntax') -> 1;
 indent_type('define-record') -> 1;
 indent_type('begin') -> 0;
