@@ -164,7 +164,7 @@ from_expr({match,_,P,E}, Vt0, St0) ->
     {Lp,Eqt,Vt1,St1} = from_pat(P, Vt0, St0),	%The pattern
     {Le,Vt2,St2} = from_expr(E, Vt1, St1),	%The expression
     {Lb,Vt3,St3} = from_expr(P, Vt2, St2),	%Pattern as value expression
-    Leg = from_eq_tests(Eqt),	%Implicit guard tests
+    Leg = from_eq_tests(Eqt),			%Implicit guard tests
     {['let',[[Lp,['when'|Leg],Le]],Lb],Vt3,St3};
 from_expr({op,_,Op,A}, Vt0, St0) ->
     {La,Vt1,St1} = from_expr(A, Vt0, St0),
