@@ -14,6 +14,10 @@ DESCRIPTION
 
 	Built-in shell functions:
 
+	(p Expr)
+	(pp Expr)
+		Print/prettyprint a value to full depth.
+
 	(c File [Options])
 		Compile and load an LFE file. Assumes default
 		extension .lfe.
