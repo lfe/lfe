@@ -261,32 +261,38 @@ trans_macro_defs([{N,{As,Ts}}|Defs]) when is_integer(N) ->
     [ListArgs|trans_macro_defs(Defs)];
 trans_macro_defs([]) -> [].
 
+trans_macro_body([], Ts0) ->
+    Ts1 = trans_qm(Ts0),
+    {ok,[E]} = erl_parse:parse_exprs(Ts1 ++ [{dot,0}]),
+    [?BQ(lfe_trans:from_expr(E))];
 trans_macro_body(As, Ts0) ->
     Ts1 = trans_qm(Ts0),
+    {ok,[E]} = erl_parse:parse_exprs(Ts1 ++ [{dot,0}]),
+    Le0 = lfe_trans:from_expr(E),
     %% Wrap variables in arg list with an (unquote ...) call.
-    Wrap = fun ({var,L,V}=T, Ts) ->
-		   case lists:member(V, As) of
-		       true ->
-			   [{atom,L,unquote},{'(',L},T,{')',L}|Ts];
-		       false -> [T|Ts]
-		   end;
-	       (T, Ts) -> [T|Ts]
-	   end,
-    Ts2 = lists:foldr(Wrap, [], Ts1),
-    %% Only allow single expressions, otherwise screws up backquoting.
-    {ok,[E]} = erl_parse:parse_exprs(Ts2 ++ [{dot,0}]),
-    [?BQ(lfe_trans:from_expr(E))].
-
-    %% case erl_parse:parse_exprs(Ts2 ++ [{dot,0}]) of
-    %% 	{ok,[E]} ->
-    %% 	    io:format("~p\n", [E]),
-    %% 	    [?BQ(lfe_trans:from_expr(E))];
-    %% 	Other -> io:format("~p\n~w\n", [Other,Ts2]),
-    %% 		 []
-    %% end.
+    Alist = [ [A|[unquote,A]] || A <- As ],
+    Le1 = lfe_lib:sublis(Alist, Le0),
+    %% Le1 = unquote_vars(Alist, Le0),
+    [?BQ(Le1)].
 
     %% {ok,[_]=F} = erl_parse:parse_exprs(Ts1 ++ [{dot,0}]),
     %% backquote_last(lfe_trans:from_body(F)).
+
+%% unquote_vars(Alist, Expr) -> Expr.
+%%  Special version of sublis which doesn't enter quotes. Specially
+%%  made for traversing code and unquote-ing vars.
+
+%% unquote_vars(_, ?Q(_)=E) -> E;
+%% unquote_vars(Alist, E) ->
+%%     case lfe_lib:assoc(E, Alist) of
+%% 	[_|New] -> New;				%Found it
+%% 	[] ->					%Not there
+%% 	    case E of
+%% 		[H|T] ->
+%% 		    [unquote_vars(Alist, H)|unquote_vars(Alist, T)];
+%% 		_ -> E
+%% 	    end
+%%     end.
 
 %% Backquote the last expression in the body.
 %% backquote_last([E]) -> [?BQ(E)];
