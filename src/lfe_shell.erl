@@ -166,6 +166,10 @@ list_warnings(Ws) ->
 %%  Check for and evaluate internal functions. These all evaluate
 %%  their arguments.
 
+eval_internal([p|Args], Eenv, Benv) ->		%Print out a value
+    p(Args, Eenv, Benv);
+eval_internal([pp|Args], Eenv, Benv) ->		%Prettyprint out a value
+    pp(Args, Eenv, Benv);
 eval_internal([slurp|Args], Eenv, Benv) ->	%Slurp in a file
     slurp(Args, Eenv, Benv);
 eval_internal([unslurp|_], _, Benv) ->		%Forget everything
@@ -181,6 +185,21 @@ eval_internal([m|Args], Eenv, Benv) ->		%Module info
 eval_internal([set|Args], Eenv, Benv) ->	%Set variables in shell
     set(Args, Eenv, Benv);
 eval_internal(_, _, _) -> no.			%Not an internal function
+
+%% p([Arg], EvalEnv, BaseEnv) -> {yes,Res,Env} | no.
+%% pp([Arg], EvalEnv, BaseEnv) -> {yes,Res,Env} | no.
+
+p([A], Eenv, _) ->
+    E = lfe_eval:expr(A, Eenv),
+    Cs = lfe_io:print1(E),
+    {yes,io:put_chars([Cs,$\n]),Eenv};
+p(_, _, _) -> no.
+
+pp([A], Eenv, _) ->
+    E = lfe_eval:expr(A, Eenv),
+    Cs = lfe_io:prettyprint1(E),
+    {yes,io:put_chars([Cs,$\n]),Eenv};
+pp(_, _, _) -> no.
 
 %% c(Args, EvalEnv, BaseEnv) -> {yes,Res,Env}.
 %%  Compile and load an LFE file.
