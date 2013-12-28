@@ -16,6 +16,12 @@
 %% Author  : Robert Virding
 %% Purpose : A simple Lisp Flavoured Erlang shell.
 
+%% We keep two environments, the BaseEnv which contains the predefined
+%% shell variables and shell macros, and a current environment. The
+%% BaseEnv is used when we need to revert to an "empty" environment.
+%% When we slurp in a file the functions are stored in the BaseEnv and
+%% the current environment is thrown away.
+
 -module(lfe_shell).
 
 -export([start/0,start/1,server/0,server/1]).
@@ -32,6 +38,9 @@
 
 %% -compile([export_all]).
 
+%% Shell state.
+-record(state, {env,base}).			%Current and base env
+
 start() ->
     spawn(fun () -> server(default) end).
 
@@ -43,34 +52,36 @@ server() -> server(default).
 server(_) ->
     io:fwrite("LFE Shell V~s (abort with ^G)\n",
 	      [erlang:system_info(version)]),
-    %% Add default nil bindings to predefined shell variables.
-    Env0 = add_shell_macros(lfe_env:new()),
-    Env1 = add_shell_vars(Env0),
-    server_loop(Env1, Env1).
+    %% Create a default base env of predefined shell variables with
+    %% default nil bindings and basic shell macros.
+    Base0 = add_shell_macros(lfe_env:new()),
+    Base1 = add_shell_vars(Base0),
+    St = #state{env=Base1,base=Base1},
+    server_loop(St).
 
-server_loop(Env0, BaseEnv) ->
-    Env = try
+server_loop(St0) ->
+    StX = try
 	      %% Read the form
 	      Prompt = prompt(),
 	      io:put_chars(Prompt),
 	      Form = lfe_io:read(),
-	      Env1 = update_vbinding('-', Form, Env0),
+	      Ee1 = update_vbinding('-', Form, St0#state.env),
 	      %% Macro expand and evaluate it.
-	      {Value,Env2} = eval_form(Form, Env1, BaseEnv),
+	      {Value,St1} = eval_form(Form, St0#state{env=Ee1}),
 	      %% Print the result, but only to depth 30.
 	      VS = lfe_io:prettyprint1(Value, 30),
 	      io:requests([{put_chars,VS},nl]),
 	      %% Update bindings.
-	      Env3 = update_shell_vars(Form, Value, Env2),
+	      Ee2 = update_shell_vars(Form, Value, St1#state.env),
 	      %% lfe_io:prettyprint({Env1,Env2}), io:nl(),
-	      Env3
+	      St1#state{env=Ee2}
 	  catch
 	      %% Very naive error handling, just catch, report and
 	      %% ignore whole caboodle.
 	      Class:Error ->
 		  %% Use LFE's simplified version of erlang shell's error
 		  %% reporting but which LFE prettyprints data.
-		  St = erlang:get_stacktrace(),
+		  Stk = erlang:get_stacktrace(),
 		  Sf = fun ({M,_F,_A}) ->	%Pre R15
 			       %% Don't want to see these in stacktrace.
 			       (M == lfe_eval) or (M == lfe_shell)
@@ -81,13 +92,13 @@ server_loop(Env0, BaseEnv) ->
 				   or (M == lfe_macro) or (M == lists)
 		       end,
 		  Ff = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
-		  Cs = lfe_lib:format_exception(Class, Error, St, Sf, Ff, 1),
+		  Cs = lfe_lib:format_exception(Class, Error, Stk, Sf, Ff, 1),
 		  io:put_chars(Cs),
 		  io:nl(),
 		  %% lfe_io:prettyprint({'EXIT',Class,Error,St}), io:nl(),
-		  Env0
+		  St0
 	  end,
-    server_loop(Env, BaseEnv).
+    server_loop(StX).
 
 add_shell_vars(Env0) ->
     %% Add default shell expression variables.
@@ -127,27 +138,27 @@ prompt() ->
 	false -> "> "
     end.
 
-%% eval_form(Form, EvalEnv, BaseEnv) -> {Value,Env}.
+%% eval_form(Form, State) -> {Value,State}.
 
-eval_form(Form, Env, Benv) ->
-    eval_exp_form(lfe_macro:expand_expr_all(Form, Env), Env, Benv).
+eval_form(Form, #state{env=Ee}=St) ->
+    eval_exp_form(lfe_macro:expand_expr_all(Form, Ee), St).
 
-eval_exp_form([set,Pat,Expr], Env0, Benv) ->
+eval_exp_form([set,Pat,Expr], #state{env=Ee}=St0) ->
     %% Special case to lint pattern.
-    case lfe_lint:pattern(Pat, Env0) of
+    case lfe_lint:pattern(Pat, Ee) of
 	{ok,Ws} -> list_warnings(Ws);
 	{error,Es,Ws} ->
 	    list_errors(Es),
 	    list_warnings(Ws)
     end,
-    {yes,Value,Env1} = set([Pat,Expr], Env0, Benv),
-    {Value,Env1};
-eval_exp_form(Eform, Env0, Benv) ->
-    case eval_internal(Eform, Env0, Benv) of
-	{yes,Value,Env1} -> {Value,Env1};
+    {yes,Value,St1} = set([Pat,Expr], St0),
+    {Value,St1};
+eval_exp_form(Eform, St0) ->
+    case eval_internal(Eform, St0) of
+	{yes,Value,St1} -> {Value,St1};
 	no ->
 	    %% Normal evaluation of form.
-	    {lfe_eval:expr(Eform, Env0),Env0}
+	    {lfe_eval:expr(Eform, St0#state.env),St0}
     end.
 
 list_errors(Es) ->
@@ -162,104 +173,105 @@ list_warnings(Ws) ->
 		    lfe_io:format("~w: Warning: ~s\n", [L,Cs])
 	    end, Ws).
 
-%% eval_internal(Form, EvalEnv, BaseEnv) -> {yes,Value,Env} | no.
+%% eval_internal(Form, State) -> {yes,Value,State} | no.
 %%  Check for and evaluate internal functions. These all evaluate
 %%  their arguments.
 
-eval_internal([p|Args], Eenv, Benv) ->		%Print out a value
-    p(Args, Eenv, Benv);
-eval_internal([pp|Args], Eenv, Benv) ->		%Prettyprint out a value
-    pp(Args, Eenv, Benv);
-eval_internal([slurp|Args], Eenv, Benv) ->	%Slurp in a file
-    slurp(Args, Eenv, Benv);
-eval_internal([unslurp|_], _, Benv) ->		%Forget everything
-    {yes,ok,Benv};
-eval_internal([c|Args], Eenv, Benv) ->		%Compile an LFE file
-    c(Args, Eenv, Benv);
-eval_internal([ec|Args], Eenv, Benv) ->		%Compile an Erlang file
-    ec(Args, Eenv, Benv);
-eval_internal([l|Args], Eenv, Benv) ->		%Load modules
-    l(Args, Eenv, Benv);
-eval_internal([m|Args], Eenv, Benv) ->		%Module info
-    m(Args, Eenv, Benv);
-eval_internal([set|Args], Eenv, Benv) ->	%Set variables in shell
-    set(Args, Eenv, Benv);
-eval_internal(_, _, _) -> no.			%Not an internal function
+eval_internal([p|Args], St) ->			%Print out a value
+    p(Args, St);
+eval_internal([pp|Args], St) ->			%Prettyprint out a value
+    pp(Args, St);
+eval_internal([slurp|Args], St) ->		%Slurp in a file
+    slurp(Args, St);
+eval_internal([unslurp|_], St) ->		%Forget everything
+    Be = St#state.base,
+    {yes,ok,St#state{env=Be}};
+eval_internal([c|Args], St) ->			%Compile an LFE file
+    c(Args, St);
+eval_internal([ec|Args], St) ->			%Compile an Erlang file
+    ec(Args, St);
+eval_internal([l|Args], St) ->			%Load modules
+    l(Args, St);
+eval_internal([m|Args], St) ->			%Module info
+    m(Args, St);
+eval_internal([set|Args], St) ->		%Set variables in shell
+    set(Args, St);
+eval_internal(_, _) -> no.			%Not an internal function
 
-%% p([Arg], EvalEnv, BaseEnv) -> {yes,Res,Env} | no.
-%% pp([Arg], EvalEnv, BaseEnv) -> {yes,Res,Env} | no.
+%% p([Arg], State) -> {yes,Res,State} | no.
+%% pp([Arg], State) -> {yes,Res,State} | no.
 
-p([A], Eenv, _) ->
-    E = lfe_eval:expr(A, Eenv),
+p([A], St) ->
+    E = lfe_eval:expr(A, St#state.env),
     Cs = lfe_io:print1(E),
-    {yes,io:put_chars([Cs,$\n]),Eenv};
-p(_, _, _) -> no.
+    {yes,io:put_chars([Cs,$\n]),St};
+p(_, _) -> no.
 
-pp([A], Eenv, _) ->
-    E = lfe_eval:expr(A, Eenv),
+pp([A], St) ->
+    E = lfe_eval:expr(A, St#state.env),
     Cs = lfe_io:prettyprint1(E),
-    {yes,io:put_chars([Cs,$\n]),Eenv};
-pp(_, _, _) -> no.
+    {yes,io:put_chars([Cs,$\n]),St};
+pp(_, _) -> no.
 
-%% c(Args, EvalEnv, BaseEnv) -> {yes,Res,Env}.
+%% c(Args, State) -> {yes,Res,State}.
 %%  Compile and load an LFE file.
 
-c([F], Eenv, Benv) -> c([F,[]], Eenv, Benv);
-c([F,Os], Eenv, _) ->
-    Name = lfe_eval:expr(F, Eenv),		%Evaluate arguments
-    Opts = lfe_eval:expr(Os, Eenv),
-    Loadm = fun ([]) -> {yes,{module,[]},Eenv};
+c([F], St) -> c([F,[]], St);
+c([F,Os], #state{env=Ee}=St) ->
+    Name = lfe_eval:expr(F, Ee),		%Evaluate arguments
+    Opts = lfe_eval:expr(Os, Ee),
+    Loadm = fun ([]) -> {yes,{module,[]},St};
 		(Mod) ->
 		    Base = filename:basename(Name, ".lfe"),
 		    code:purge(Mod),
 		    R = code:load_abs(Base),
-		    {yes,R,Eenv}
+		    {yes,R,St}
 	    end,
     case lfe_comp:file(Name, [report,verbose|Opts]) of
 	{ok,Mod,_} -> Loadm(Mod);
 	{ok,Mod} -> Loadm(Mod);
-	Other -> {yes,Other,Eenv}
+	Other -> {yes,Other,St}
     end;
-c(_, _, _) -> no.				%Unknown function,
+c(_, _) -> no.					%Unknown function,
 
-%% ec(Args, EvalEnv, BaseEnv) -> {yes,Res,Env}.
+%% ec(Args, State) -> {yes,Res,State}.
 %%  Compile and load an Erlang file.
 
-ec([F], Eenv, Benv) -> ec([F,[]], Eenv, Benv);
-ec([F,Os], Eenv, _) ->
-    Name = lfe_eval:expr(F, Eenv),		%Evaluate arguments
-    Opts = lfe_eval:expr(Os, Eenv),
-    {yes,c:c(Name, Opts),Eenv};
-ec(_, _, _) -> no.				%Unknown function
+ec([F], St) -> ec([F,[]], St);
+ec([F,Os], #state{env=Ee}=St) ->
+    Name = lfe_eval:expr(F, Ee),		%Evaluate arguments
+    Opts = lfe_eval:expr(Os, Ee),
+    {yes,c:c(Name, Opts),St};
+ec(_, _) -> no.					%Unknown function
 
-%% l(Args, EvalEnv, BaseEnv) -> {yes,Res,Env}.
+%% l(Args, State) -> {yes,Res,State}.
 %%  Load the modules in Args.
 
-l(Args, Eenv, _) ->
-    {yes,map(fun (M) -> c:l(lfe_eval:expr(M, Eenv)) end, Args), Eenv}.
+l(Args, #state{env=Ee}=St) ->
+    {yes,map(fun (M) -> c:l(lfe_eval:expr(M, Ee)) end, Args), St}.
 
-%% m(Args, EvalEnv, BaseEnv) -> {yes,Res,Env}.
+%% m(Args, State) -> {yes,Res,State}.
 %%  Module info.
 
-m([], Eenv, _) -> {yes,c:m(),Eenv};
-m(Args, Eenv, _) ->
-    {yes,map(fun (M) -> c:m(lfe_eval:expr(M, Eenv)) end, Args), Eenv}.
+m([], St) -> {yes,c:m(),St};
+m(Args, #state{env=Ee}=St) ->
+    {yes,map(fun (M) -> c:m(lfe_eval:expr(M, Ee)) end, Args), St}.
 
-%% set(Args, EvalEnv, BaseEnv) -> {yes,Result,Env} | no.
+%% set(Args, State) -> {yes,Result,State} | no.
 
-set([Pat,Exp], Eenv, _) ->
-    Val = lfe_eval:expr(Exp, Eenv),		%Evaluate expression
-    case lfe_eval:match(Pat, Val, Eenv) of
+set([Pat,Exp], #state{env=Ee0}=St0) ->
+    Val = lfe_eval:expr(Exp, Ee0),		%Evaluate expression
+    case lfe_eval:match(Pat, Val, Ee0) of
 	{yes,Bs} ->
-	    Env1 = foldl(fun ({N,V}, E) -> add_upd_vbinding(N, V, E) end,
-			 Eenv, Bs),
-	    {yes,Val,Env1};
+	    Ee1 = foldl(fun ({N,V}, E) -> add_upd_vbinding(N, V, E) end,
+			Ee0, Bs),
+	    {yes,Val,St0#state{env=Ee1}};
 	no -> erlang:error({badmatch,Val})
     end;
-%% set([Pat,['when',G],Exp], Eenv, _) ->
-set(_, _, _) -> no.
+%% set([Pat,['when',G],Exp], St) ->
+set(_, _) -> no.
 
-%% slurp(File, EvalEnv, BaseEnv) -> {yes,{mod,Mod},Env} | no.
+%% slurp(File, State) -> {yes,{ok,Mod},State} | no.
 %%  Load in a file making all functions available. The module is
 %%  loaded in an empty environment and that environment is finally
 %%  added to the standard base environment. We could not use the
@@ -267,26 +279,27 @@ set(_, _, _) -> no.
 
 -record(slurp, {mod,imps=[]}).			%For slurping
 
-slurp([File], Eenv, Benv) ->
-    Name = lfe_eval:expr(File, Eenv),		%Get file name
+slurp([File], #state{env=Ee,base=Be}=St0) ->
+    Name = lfe_eval:expr(File, Ee),		%Get file name
     case slurp_file(Name) of			%Parse, expand and lint file
 	{ok,Fs,Fenv0,_} ->
-	    St0 = #slurp{mod='-no-mod-',imps=[]},
-	    {Fbs,St1} = lfe_lib:proc_forms(fun collect_form/3, Fs, St0),
+	    Sl0 = #slurp{mod='-no-mod-',imps=[]},
+	    {Fbs,Sl1} = lfe_lib:proc_forms(fun collect_form/3, Fs, Sl0),
 	    %% Add imports to environment.
 	    Fenv1 = foldl(fun ({M,Is}, Env) ->
 				  foldl(fun ({{F,A},R}, E) ->
 						add_ibinding(M, F, A, R, E)
 					end, Env, Is)
-			  end, Fenv0, St1#slurp.imps),
+			  end, Fenv0, Sl1#slurp.imps),
 	    %% Get a new environment with all functions defined.
 	    Fenv2 = lfe_eval:make_letrec_env(Fbs, Fenv1),
-	    {yes,{ok,St1#slurp.mod},add_env(Fenv2, Benv)};
+	    St1 = St0#state{env=add_env(Fenv2, Be)},
+	    {yes,{ok,Sl1#slurp.mod},St1};
 	{error,Es,_} ->
 	    slurp_errors(Name, Es),
-	    {yes,error,Benv}
+	    {yes,error,St0#state{env=Be}}
     end;
-slurp(_, _, _) -> no.
+slurp(_, _) -> no.
 
 slurp_file(Name) ->
     %% Parse, expand macros and lint file.
@@ -362,8 +375,7 @@ safe_fetch(Key, D, Def) ->
 	error -> Def
     end.
 
-%% (defsyntax safe_fetch
-%%   ((key d def)
-%%    (case (find key d)
+%% (defmacro safe_fetch (key d def)
+%%   `(case (find ,key ,d)
 %%      ((tuple 'ok val) val)
-%%      ('error def))))
+%%      ('error ,def)))
