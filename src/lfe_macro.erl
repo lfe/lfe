@@ -89,7 +89,7 @@ expand_expr_loop(E, _, St) -> {E,St}.
 %%  Expand all the macros in an expression.
 
 expand_expr_all(F, Env) ->
-    {Ef,_} = expand(F, Env, #mac{expand=true}),
+    {Ef,_} = exp_form(F, Env, #mac{expand=true}),
     Ef.
 
 %% expand_forms(FileForms, Env) ->
@@ -255,7 +255,7 @@ pass_expand_expr([_|_]=E0, Env, St0, Expand) ->
 	case exp_macro(E0, Env, St0) of
 	    {yes,_,_}=Yes -> Yes;
 	    no when Expand ->			%Expand all if flag set.
-		{E1,St1} = expand(E0, Env, St0),
+		{E1,St1} = exp_form(E0, Env, St0),
 		{no,E1,St1};
 	    no -> {no,E0,St0}
 	end
@@ -290,164 +290,164 @@ pass_define_macro([Name,Def], Env, St) ->
 	_ -> {no,add_error({bad_form,macro}, St)}
     end.
 
-%% expand(Form, Env, State) -> {Form,State}.
+%% exp_form(Form, Env, State) -> {Form,State}.
 %%  Completely expand a form using expansions in Env and pre-defined
 %%  macros.  N.B. builtin core forms cannot be overidden and are
 %%  handled here first. The core forms also are particular about how
 %%  their bodies are to be expanded.
 
 %% Known Core forms which cannot be overidden.
-expand([quote,_]=Q, _, St) -> {Q,St};
-expand([cons,H0,T0], Env, St0) ->
-    {H1,St1} = expand(H0, Env, St0),
-    {T1,St2} = expand(T0, Env, St1),
+exp_form([quote,_]=Q, _, St) -> {Q,St};
+exp_form([cons,H0,T0], Env, St0) ->
+    {H1,St1} = exp_form(H0, Env, St0),
+    {T1,St2} = exp_form(T0, Env, St1),
     {[cons,H1,T1],St2};
-expand([car,E0], Env, St0) ->			%Catch these to prevent
-    {E1,St1} = expand(E0, Env, St0),		%redefining them
+exp_form([car,E0], Env, St0) ->			%Catch these to prevent
+    {E1,St1} = exp_form(E0, Env, St0),		%redefining them
     {[car,E1],St1};
-expand([cdr,E0], Env, St0) ->
-    {E1,St1} = expand(E0, Env, St0),
+exp_form([cdr,E0], Env, St0) ->
+    {E1,St1} = exp_form(E0, Env, St0),
     {[cdr,E1],St1};
-expand([list|As0], Env, St0) ->
-    {As1,St1} = expand_tail(As0, Env, St0),
+exp_form([list|As0], Env, St0) ->
+    {As1,St1} = exp_tail(As0, Env, St0),
     {[list|As1],St1};
-expand([tuple|As0], Env, St0) ->
-    {As1,St1} = expand_tail(As0, Env, St0),
+exp_form([tuple|As0], Env, St0) ->
+    {As1,St1} = exp_tail(As0, Env, St0),
     {[tuple|As1],St1};
-expand([binary|As0], Env, St0) ->
-    {As1,St1} = expand_tail(As0, Env, St0),
+exp_form([binary|As0], Env, St0) ->
+    {As1,St1} = exp_tail(As0, Env, St0),
     {[binary|As1],St1};
-expand(['lambda',Head|B0], Env, St0) ->
-    {B1,St1} = expand_tail(B0, Env, St0),
+exp_form(['lambda',Head|B0], Env, St0) ->
+    {B1,St1} = exp_tail(B0, Env, St0),
     {['lambda',Head|B1],St1};
-expand(['match-lambda'|B0], Env, St0) ->
-    {B1,St1} = expand_ml_clauses(B0, Env, St0),
+exp_form(['match-lambda'|B0], Env, St0) ->
+    {B1,St1} = exp_ml_clauses(B0, Env, St0),
     {['match-lambda'|B1],St1};
-expand(['let',Vbs0|B0], Env, St0) ->
+exp_form(['let',Vbs0|B0], Env, St0) ->
     %% We don't really have to syntax check very strongly here so we
     %% can use normal clause expansion. Lint will catch errors.
-    {Vbs1,St1} = expand_clauses(Vbs0, Env, St0),
-    {B1,St2} = expand_tail(B0, Env, St1),
+    {Vbs1,St1} = exp_clauses(Vbs0, Env, St0),
+    {B1,St2} = exp_tail(B0, Env, St1),
     {['let',Vbs1|B1],St2};
-expand(['let-function',Fbs|B], Env, St) ->
-    expand_let_function(Fbs, B, Env, St);
-expand(['letrec-function',Fbs|B], Env, St) ->
-    expand_letrec_function(Fbs, B, Env, St);
-expand(['let-macro',Mbs|B], Env, St) ->
-    expand_let_macro(Mbs, B, Env, St);
-expand(['progn'|B0], Env, St0)->
-    {B1,St1} = expand_tail(B0, Env, St0),
+exp_form(['let-function',Fbs|B], Env, St) ->
+    exp_let_function(Fbs, B, Env, St);
+exp_form(['letrec-function',Fbs|B], Env, St) ->
+    exp_letrec_function(Fbs, B, Env, St);
+exp_form(['let-macro',Mbs|B], Env, St) ->
+    exp_let_macro(Mbs, B, Env, St);
+exp_form(['progn'|B0], Env, St0)->
+    {B1,St1} = exp_tail(B0, Env, St0),
     {['progn'|B1],St1};
-expand(['if'|B0], Env, St0) ->
-    {B1,St1} = expand_tail(B0, Env, St0),
+exp_form(['if'|B0], Env, St0) ->
+    {B1,St1} = exp_tail(B0, Env, St0),
     {['if'|B1],St1};
-expand(['case',E0|Cls0], Env, St0) ->
-    {E1,St1} = expand(E0, Env, St0),
-    {Cls1,St2} = expand_clauses(Cls0, Env, St1),
+exp_form(['case',E0|Cls0], Env, St0) ->
+    {E1,St1} = exp_form(E0, Env, St0),
+    {Cls1,St2} = exp_clauses(Cls0, Env, St1),
     {['case',E1|Cls1],St2};
-expand(['receive'|Cls0], Env, St0) ->
-    {Cls1,St1} = expand_clauses(Cls0, Env, St0),
+exp_form(['receive'|Cls0], Env, St0) ->
+    {Cls1,St1} = exp_clauses(Cls0, Env, St0),
     {['receive'|Cls1],St1};
-expand(['catch'|B0], Env, St0) ->
-    {B1,St1} = expand_tail(B0, Env, St0),
+exp_form(['catch'|B0], Env, St0) ->
+    {B1,St1} = exp_tail(B0, Env, St0),
     {['catch'|B1],St1};
-expand(['try',E|B], Env, St) ->
-    expand_try(E, B, Env, St);
-expand(['funcall'|As0], Env, St0) ->
-    {As1,St1} = expand_tail(As0, Env, St0),
+exp_form(['try',E|B], Env, St) ->
+    exp_try(E, B, Env, St);
+exp_form(['funcall'|As0], Env, St0) ->
+    {As1,St1} = exp_tail(As0, Env, St0),
     {['funcall'|As1],St1};
-expand(['call'|As0], Env, St0) ->
-    {As1,St1} = expand_tail(As0, Env, St0),
+exp_form(['call'|As0], Env, St0) ->
+    {As1,St1} = exp_tail(As0, Env, St0),
     {['call'|As1],St1};
-expand(['define-function',Head|B0], Env, St0) ->
+exp_form(['define-function',Head|B0], Env, St0) ->
     %% Needs to be handled specially to protect Head.
-    {B1,St1} = expand_tail(B0, Env, St0),
+    {B1,St1} = exp_tail(B0, Env, St0),
     {['define-function',Head|B1],St1};
 %% Now the case where we can have macros.
-expand([Fun|_]=Call, Env, St0) when is_atom(Fun) ->
+exp_form([Fun|_]=Call, Env, St0) when is_atom(Fun) ->
     %% Expand top macro as much as possible.
     case exp_macro(Call, Env, St0) of
-	{yes,Exp,St1} -> expand(Exp, Env, St1);
-	no -> expand_tail(Call, Env, St0)
+	{yes,Exp,St1} -> exp_form(Exp, Env, St1);
+	no -> exp_tail(Call, Env, St0)
     end;
-expand([_|_]=Call, Env, St) -> expand_tail(Call, Env, St);
-expand(Tup, _, St) when is_tuple(Tup) ->
+exp_form([_|_]=Call, Env, St) -> exp_tail(Call, Env, St);
+exp_form(Tup, _, St) when is_tuple(Tup) ->
     %% Should we expand this? We assume implicit quote here.
     {Tup,St};
 %% Everything else is atomic.
-expand(F, _, St) -> {F,St}.			%Atomic
+exp_form(F, _, St) -> {F,St}.			%Atomic
 
-%% expand_list(Exprs, Env, State) -> {Exps,State}.
+%% exp_list(Exprs, Env, State) -> {Exps,State}.
 %%  Expand a proper list of exprs.
 
-expand_list(Es, Env, St) ->
-    mapfoldl(fun (E, S) -> expand(E, Env, S) end, St, Es).
+exp_list(Es, Env, St) ->
+    mapfoldl(fun (E, S) -> exp_form(E, Env, S) end, St, Es).
 
-%% expand_tail(Tail, Env, State) -> {Etail,State}.
-%% expand_tail(ExpFun, Tail, Env, State) -> {Etail,State}.
+%% exp_tail(Tail, Env, State) -> {Etail,State}.
+%% exp_tail(ExpFun, Tail, Env, State) -> {Etail,State}.
 %%  Expand the tail of a list, need not be a proper list.
 
-expand_tail(Tail, Env, St) ->
-    expand_tail(fun expand/3, Tail, Env, St).
+exp_tail(Tail, Env, St) ->
+    exp_tail(fun exp_form/3, Tail, Env, St).
 
-expand_tail(Fun, [E0|Es0], Env, St0) ->
+exp_tail(Fun, [E0|Es0], Env, St0) ->
     {E1,St1} = Fun(E0, Env, St0),
-    {Es1,St2} = expand_tail(Fun, Es0, Env, St1),
+    {Es1,St2} = exp_tail(Fun, Es0, Env, St1),
     {[E1|Es1],St2};
-expand_tail(_, [], _, St) -> {[],St};
-expand_tail(Fun, E, Env, St) -> Fun(E, Env, St). %Same on improper tail.
+exp_tail(_, [], _, St) -> {[],St};
+exp_tail(Fun, E, Env, St) -> Fun(E, Env, St). %Same on improper tail.
 
-%% expand_clauses(Clauses, Env, State) -> {ExpCls,State}.
-%% expand_ml_clauses(Clauses, Env, State) -> {ExpCls,State}.
+%% exp_clauses(Clauses, Env, State) -> {ExpCls,State}.
+%% exp_ml_clauses(Clauses, Env, State) -> {ExpCls,State}.
 %%  Expand macros in clause patterns, guards and body. Must handle
 %%  match-lambda clauses differently as pattern is an explicit list of
 %%  patterns *NOT* a pattern which is a list. This will affect what is
 %%  detected a macro call.
 
-expand_clauses(Cls, Env, St) ->
-    expand_tail(fun expand_clause/3, Cls, Env, St).
+exp_clauses(Cls, Env, St) ->
+    exp_tail(fun exp_clause/3, Cls, Env, St).
 
-expand_clause([P0,['when'|G0]|B0], Env, St0) ->
-    {P1,St1} = expand(P0, Env, St0),
-    {G1,St2} = expand_tail(G0, Env, St1),
-    {B1,St3} = expand_tail(B0, Env, St2),
+exp_clause([P0,['when'|G0]|B0], Env, St0) ->
+    {P1,St1} = exp_form(P0, Env, St0),
+    {G1,St2} = exp_tail(G0, Env, St1),
+    {B1,St3} = exp_tail(B0, Env, St2),
     {[P1,['when'|G1]|B1],St3};
-expand_clause([P0|B0], Env, St0) ->
-    {P1,St1} = expand(P0, Env, St0),
-    {B1,St2} = expand_tail(B0, Env, St1),
+exp_clause([P0|B0], Env, St0) ->
+    {P1,St1} = exp_form(P0, Env, St0),
+    {B1,St2} = exp_tail(B0, Env, St1),
     {[P1|B1],St2};
-expand_clause(Other, Env, St) -> expand(Other, Env, St).
+exp_clause(Other, Env, St) -> exp_form(Other, Env, St).
 
-expand_ml_clauses(Cls, Env, St) ->
-    expand_tail(fun expand_ml_clause/3, Cls, Env, St).
+exp_ml_clauses(Cls, Env, St) ->
+    exp_tail(fun exp_ml_clause/3, Cls, Env, St).
 
-expand_ml_clause([Ps0,['when'|G0]|B0], Env, St0) ->
-    {Ps1,St1} = expand_tail(Ps0, Env, St0),
-    {G1,St2} = expand_tail(G0, Env, St1),
-    {B1,St3} = expand_tail(B0, Env, St2),
+exp_ml_clause([Ps0,['when'|G0]|B0], Env, St0) ->
+    {Ps1,St1} = exp_tail(Ps0, Env, St0),
+    {G1,St2} = exp_tail(G0, Env, St1),
+    {B1,St3} = exp_tail(B0, Env, St2),
     {[Ps1,['when'|G1]|B1],St3};
-expand_ml_clause([Ps0|B0], Env, St0) ->
-    {Ps1,St1} = expand_tail(Ps0, Env, St0),
-    {B1,St2} = expand_tail(B0, Env, St1),
+exp_ml_clause([Ps0|B0], Env, St0) ->
+    {Ps1,St1} = exp_tail(Ps0, Env, St0),
+    {B1,St2} = exp_tail(B0, Env, St1),
     {[Ps1|B1],St2};
-expand_ml_clause(Other, Env, St) -> expand(Other, Env, St).
+exp_ml_clause(Other, Env, St) -> exp_form(Other, Env, St).
 
-%% expand_let_function(FuncBindings, Body, Env, State) -> {Expansion,State}.
-%% expand_letrec_function(FuncBindings, Body, Env, State) -> {Expansion,State}.
+%% exp_let_function(FuncBindings, Body, Env, State) -> {Expansion,State}.
+%% exp_letrec_function(FuncBindings, Body, Env, State) -> {Expansion,State}.
 %%  Expand a let/letrec-function. Here we are only interested in
 %%  marking functions as bound in the env and not what they are bound
 %%  to, we will not be calling them. We only want to shadow macros of
 %%  the same name.
 
-expand_let_function(Fbs0, B0, Env, St0) ->
-    {Fbs1,B1,St1} = do_expand_let_function(Fbs0, B0, Env, St0),
+exp_let_function(Fbs0, B0, Env, St0) ->
+    {Fbs1,B1,St1} = do_exp_let_function(Fbs0, B0, Env, St0),
     {['let-function',Fbs1|B1],St1}.
 
-expand_letrec_function(Fbs0, B0, Env, St0) ->
-    {Fbs1,B1,St1} = do_expand_let_function(Fbs0, B0, Env, St0),
+exp_letrec_function(Fbs0, B0, Env, St0) ->
+    {Fbs1,B1,St1} = do_exp_let_function(Fbs0, B0, Env, St0),
     {['letrec-function',Fbs1|B1],St1}.
 
-do_expand_let_function(Fbs0, B0, Env0, St0) ->
+do_exp_let_function(Fbs0, B0, Env0, St0) ->
     %% Only very limited syntax checking here (see above).
     Env1 = foldl(fun ([V,['lambda',Args|_]], Env) when is_atom(V) ->
 			 case is_proper_list(Args) of
@@ -461,15 +461,15 @@ do_expand_let_function(Fbs0, B0, Env0, St0) ->
 			 end;
 		     (_, Env) -> Env
 		 end, Env0, Fbs0),
-    {Fbs1,St1} = expand_clauses(Fbs0, Env1, St0),
-    {B1,St2} = expand_tail(B0, Env1, St1),
+    {Fbs1,St1} = exp_clauses(Fbs0, Env1, St0),
+    {B1,St2} = exp_tail(B0, Env1, St1),
     {Fbs1,B1,St2}.
 
-%% expand_let_macro(MacroBindings, Body, Env, State) -> {Expansion,State}.
+%% exp_let_macro(MacroBindings, Body, Env, State) -> {Expansion,State}.
 %%  Expand a let_syntax. We add the actual macro binding to the env as
 %%  we may need them while expanding the body.
 
-expand_let_macro(Mbs, B0, Env0, St0) ->
+exp_let_macro(Mbs, B0, Env0, St0) ->
     %% Add the macro defs from expansion and return body in a progn.
     Env1 = foldl(fun ([Name,['lambda'|_]=Def], Env) when is_atom(Name) ->
 			 add_mbinding(Name, Def, Env);
@@ -477,19 +477,19 @@ expand_let_macro(Mbs, B0, Env0, St0) ->
 			 add_mbinding(Name, Def, Env);
 		     (_, Env) -> Env		%Ignore mistakes
 		 end, Env0, Mbs),
-    {B1,St1} = expand_tail(B0, Env1, St0),	%Expand the body
+    {B1,St1} = exp_tail(B0, Env1, St0),	%Expand the body
     {['progn'|B1],St1}.
 
-expand_try(E0, B0, Env, St0) ->
-    {E1,St1} = expand(E0, Env, St0),
-    {B1,St2} = expand_tail(fun (['case'|Cls0], E, Sta) ->
-				   {Cls1,Stb} = expand_clauses(Cls0, E, Sta),
+exp_try(E0, B0, Env, St0) ->
+    {E1,St1} = exp_form(E0, Env, St0),
+    {B1,St2} = exp_tail(fun (['case'|Cls0], E, Sta) ->
+				   {Cls1,Stb} = exp_clauses(Cls0, E, Sta),
 				   {['case'|Cls1],Stb};
 			       (['catch'|Cls0], E, Sta) ->
-				   {Cls1,Stb} = expand_clauses(Cls0, E, Sta),
+				   {Cls1,Stb} = exp_clauses(Cls0, E, Sta),
 				   {['catch'|Cls1],Stb};
 			       (['after'|A0], E, Sta) ->
-				   {A1,Stb} = expand_tail(A0, E, Sta),
+				   {A1,Stb} = exp_tail(A0, E, Sta),
 				   {['after'|A1],Stb};
 			       (Other, _, St) -> {Other,St}
 			   end, B0, Env, St1),
@@ -521,7 +521,7 @@ exp_userdef_macro([Mac|Args], Def0, Env, St0) ->
     %%lfe_io:format("udef: ~p\n", [[Mac|Args]]),
     %%lfe_io:format("macro: ~p\n", [Def0]),
     try
-	{Def1,St1} = expand(Def0, Env, St0),	%Expand definition
+	{Def1,St1} = exp_form(Def0, Env, St0),	%Expand definition
 	Exp = lfe_eval:apply(Def1, [Args,Env], Env),
 	{yes,Exp,St1}
     catch
@@ -779,7 +779,7 @@ exp_predef([syntaxlet,Defs|Body], _, St) ->
 %% expand body.
 exp_predef(['match-spec'|Body], Env, St0) ->
     %% Expand it like a match-lambda.
-    {Exp,St1} = expand_ml_clauses(Body, Env, St0),
+    {Exp,St1} = exp_ml_clauses(Body, Env, St0),
     MS = lfe_ms:expand(Exp),
     {yes,MS,St1};
 %% (qlc (lc (qual ...) e ...) opts)
@@ -803,7 +803,7 @@ exp_qlc([lc,Qs|Es], Opts, Env, St0) ->
     %% Expand macros in the LC before translating it preserving
     %% structure.
     {Eqs,St1} = exp_qlc_quals(Qs, Env, St0),
-    {Ees,St2} = expand_list(Es, Env, St1),
+    {Ees,St2} = exp_list(Es, Env, St1),
     %%lfe_io:format("Q0 = ~p\n", [[lc,Eqs|Ees]]),
     %% Now translate to vanilla AST, call qlc expand and then convert
     %% back to LFE.  lfe_qlc:expand/2 wants a list of conversions not
@@ -821,15 +821,15 @@ exp_qlc_quals(Qs, Env, St) ->
     mapfoldl(fun (Q, S) -> exp_qlc_qual(Q, Env, S) end, St, Qs).
 
 exp_qlc_qual(['<-',P0,['when'|G0],E0], Env, St0) ->
-    {P1,St1} = expand(P0, Env, St0),
-    {G1,St2} = expand_tail(G0, Env, St1),
-    {E1,St3} = expand(E0, Env, St2),
+    {P1,St1} = exp_form(P0, Env, St0),
+    {G1,St2} = exp_tail(G0, Env, St1),
+    {E1,St3} = exp_form(E0, Env, St2),
     {['<-',P1,['when'|G1],E1],St3};
 exp_qlc_qual(['<-',P0,E0], Env, St0) ->
-    {P1,St1} = expand(P0, Env, St0),
-    {E1,St2} = expand(E0, Env, St1),
+    {P1,St1} = exp_form(P0, Env, St0),
+    {E1,St2} = exp_form(E0, Env, St1),
     {['<-',P1,E1],St2};
-exp_qlc_qual(T, Env, St) -> expand(T, Env, St).
+exp_qlc_qual(T, Env, St) -> exp_form(T, Env, St).
 
 %% exp_bif(Bif, Args) -> Expansion.
 
