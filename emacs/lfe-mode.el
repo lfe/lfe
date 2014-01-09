@@ -1,3 +1,5 @@
+;;; lfe-mode.el --- Lisp Flavoured Erlang mode
+
 ;; Copyright (c) 2012-2013 Robert Virding
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +14,6 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-;;; lfe-mode.el --- Lisp Flavoured Erlang mode
 ;;; Author Robert Virding
 ;;;
 ;;; Copied from lisp-mode and scheme-mode and modified for LFE.
@@ -302,3 +303,4 @@ Other commands:
   "*Functions to run when LFE mode is loaded.")
 
 (run-hooks 'lfe-load-hook)
+;;; lfe-mode.el ends here
