@@ -56,6 +56,7 @@ Leave point after open-bracket."
 (defvar lfe-mode-hook nil
   "*Hook for customizing Inferior LFE mode.")
 
+;;;###autoload
 (defun lfe-mode ()
   "Major mode for editing Lisp Flavoured Erlang. It's just like lisp mode.
 
@@ -283,6 +284,16 @@ Other commands:
 (put 'lc 'lfe-indent-function 1)
 (put 'bc 'lfe-indent-function 1)
 (put 'match-spec 'lfe-indent-function 0)
+
+;;;###autoload
+;; Associate ".lfe" with LFE mode.
+(add-to-list 'auto-mode-alist '("\\.lfe\\'" . lfe-mode) t)
+
+;;;###autoload
+;; Ignore files ending in ".jam", ".vee", and ".beam" when performing
+;; file completion.
+(dolist (lfe-ext '(".beam" ".jam" ".vee"))
+  (add-to-list 'completion-ignored-extensions lfe-ext))
 
 ;; The end.
 (provide 'lfe-mode)

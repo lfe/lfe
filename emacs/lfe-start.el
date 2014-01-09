@@ -23,17 +23,11 @@
 (autoload 'run-lfe "inferior-lfe" "Run an LFE process." t)
 
 ;; Associate ".lfe" with LFE mode.
-(let ((a '("\\.lfe\\'" . lfe-mode)))
-  (or (assoc (car a) auto-mode-alist)
-      (setq auto-mode-alist (cons a auto-mode-alist))))
+(add-to-list 'auto-mode-alist '("\\.lfe\\'" . lfe-mode) t)
 
 ;; Ignore files ending in ".jam", ".vee", and ".beam" when performing
 ;; file completion.
-(let ((lfe-ext '(".beam" ".jam" ".vee")))
-  (while lfe-ext
-    (unless (member (car lfe-ext) completion-ignored-extensions)
-      (setq completion-ignored-extensions
-	    (cons (car lfe-ext) completion-ignored-extensions)))
-    (setq lfe-ext (cdr lfe-ext))))
+(dolist (lfe-ext '(".beam" ".jam" ".vee"))
+  (add-to-list 'completion-ignored-extensions lfe-ext))
 
 (provide 'lfe-start)
