@@ -299,6 +299,6 @@ Other commands:
 (provide 'lfe-mode)
 
 (defvar lfe-load-hook nil
-  "*Functions to run when Erlang mode is loaded.")
+  "*Functions to run when LFE mode is loaded.")
 
 (run-hooks 'lfe-load-hook)
