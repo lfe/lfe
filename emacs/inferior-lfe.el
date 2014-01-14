@@ -61,6 +61,7 @@ This must be a list of strings.")
   "*Input matching this regexp are not saved on the history list.
 Defaults to a regexp ignoring all inputs of 0, 1, or 2 letters.")
 
+;;;###autoload
 (defun inferior-lfe-mode ()
   "Major mode for interacting with an inferior LFE process.
 
@@ -92,6 +93,7 @@ Customization: Entry to this mode runs the hooks on `comint-mode-hook' and
       (backward-sexp)
       (buffer-substring (point) end))))
 
+;;;###autoload
 (defun inferior-lfe (cmd)
   "Run an inferior LFE process, input and output via a buffer `*inferior-lfe*'."
 ;;   (interactive (list (if current-prefix-arg
@@ -123,6 +125,7 @@ Customization: Entry to this mode runs the hooks on `comint-mode-hook' and
 ;;        "inferior-lfe" "sh" nil
 ;;        (quote ("-i" "-c" ". /Users/rv/.bashrc ; lfe -env TERM vt100")))
 
+;;;###autoload
 (defalias 'run-lfe 'inferior-lfe)
 
 (defun lfe-eval-region (start end &optional and-go)
