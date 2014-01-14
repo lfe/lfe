@@ -3,3 +3,4 @@
 *.beam
 src/lfe_scan.erl
 erl_crash.dump
+*.elc
