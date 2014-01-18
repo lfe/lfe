@@ -31,6 +31,8 @@ SSYM	= [^][()}{|";#`',\000-\s]
 WS	= ([\000-\s]|;[^\n]*)
 
 Rules.
+%% Bracketed Comments using #| foo |#
+#\|[^\|]*\|+([^#\|][^\|]*\|+)*# : skip_token.
 %% Separators
 #[bB]\(		:	{token,{'#B(',TokenLine}}.
 #\(		:	{token,{'#(',TokenLine}}.
