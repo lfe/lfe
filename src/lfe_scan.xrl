@@ -32,8 +32,7 @@ WS	= ([\000-\s]|;[^\n]*)
 
 Rules.
 %% Bracketed Comments using #| foo |#
-#\|[^\|]*\|+([^#\|][^\|]*\|+)*# :
-  block_comment(string:substr(TokenChars, 3), TokenLine).
+#\|[^\|]*\|+([^#\|][^\|]*\|+)*# : block_comment(string:substr(TokenChars, 3)).
 %% Separators
 #[bB]\(		:	{token,{'#B(',TokenLine}}.
 #\(		:	{token,{'#(',TokenLine}}.
@@ -173,13 +172,11 @@ chars([]) -> [].
 %% comments because currently the parser cannot process them without
 %% a rebuild. But simply exploding on a '#|' is not going to be
 %% that helpful.
-block_comment(TokenChars, Line) ->
-  {ok, FindOpeningToken} = re:compile("(#\\|)+"),
-  case re:run(TokenChars, FindOpeningToken) of
-    {match, _} ->
-      {error, lists:concat(["illegal nested block comment line:", Line])};
-    _ ->
-      skip_token
+block_comment(TokenChars) ->
+  %% Check we're not opening another comment block.
+  case string:str(TokenChars, "#|") of
+    0 -> skip_token; %% No nesting found
+    _ -> {error, "illegal nested block comment"}
   end.
 
 hex_char(C) when C >= $0, C =< $9 -> true;
