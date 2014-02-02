@@ -86,6 +86,8 @@ get-deps: $(EXPM)
 
 get-version:
 	@echo
+	@echo "Getting version info ..."
+	@echo
 	@echo -n app.src: ''
 	@erl -eval 'io:format("~p~n", [ \
 		proplists:get_value(vsn,element(3,element(2,hd(element(3, \
@@ -97,4 +99,7 @@ get-version:
 	@grep version package.exs |awk '{print $$2}'|sed -e 's/,//g'
 
 upload: get-deps get-version
+	@echo
+	@echo "Continue with upload? "
+	@read
 	$(EXPM) publish
