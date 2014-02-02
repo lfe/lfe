@@ -77,14 +77,12 @@ echo:
 	@ echo $(YSRCS)
 	@ echo $(EBINS)
 
-$(BINDIR):
-	mkdir -p $(BINDIR)
-
 $(EXPM): $(BINDIR)
 	curl -o $(EXPM) http://expm.co/__download__/expm
 	chmod +x $(EXPM)
 
 get-deps: $(EXPM)
+	@rebar get-deps
 
 get-version:
 	@echo
@@ -98,5 +96,5 @@ get-version:
 	@echo -n package.exs: ''
 	@grep version package.exs |awk '{print $$2}'|sed -e 's/,//g'
 
-upload: get-version
+upload: get-deps get-version
 	$(EXPM) publish
