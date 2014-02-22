@@ -21,7 +21,8 @@
 -module(lfe_eval).
 
 -export([expr/1,expr/2,gexpr/1,gexpr/2,apply/2,apply/3,
-	 make_letrec_env/2,add_expr_func/4,match/3]).
+	 body/1,body/2,guard/1,guard/2,
+	 make_letrec_env/2,add_expr_func/4,match/3,match_when/4]).
 
 %% Deprecated exports.
 -export([eval/1,eval/2,eval_list/2]).
@@ -33,6 +34,7 @@
 -import(lists, [reverse/1,all/2,map/2,foldl/3,foldr/3]).
 -import(orddict, [find/2,fetch/2,store/3,is_key/2]).
 
+-compile({no_auto_import,[apply/3]}).		%For our apply/3 function
 -deprecated([eval/1,eval/2]).
 
 %% -compile([export_all]).
@@ -55,12 +57,12 @@ expr(E, Env) ->
     %% lfe_io:fwrite("e: ~p\n", [{E,Exp,Env}]),
     eval_expr(Exp, Env).
 
-%% gexpr(Sexpr) -> Value.
-%% gexpr(Sexpr, Env) -> Value.
+%% gexpr(GuardTest) -> Value.
+%% gexpr(GuardTest, Env) -> Value.
 
-gexpr(E) -> gexpr(E, lfe_env:new()).
+gexpr(Gt) -> gexpr(Gt, lfe_env:new()).
 
-gexpr(E, Env) -> eval_gexpr(E, Env).
+gexpr(Gt, Env) -> eval_gexpr(Gt, Env).
 
 %% apply(Function, Args) -> Expr.
 %% apply(Function, Args, Env) -> Expr.
@@ -69,11 +71,23 @@ gexpr(E, Env) -> eval_gexpr(E, Env).
 %%  internally. Args should already be evaluated.
 
 apply(F, Args) ->
-    Env = lfe_env:new(),
-    eval_apply({expr,F,Env}, Args, Env).
+    apply(F, Args, lfe_env:new()).
 
 apply(F, Args, Env) ->
-    eval_apply({expr,F,Env}, Args, Env).		%Env at function def
+    eval_apply_expr(F, Args, Env).		%Env at function def
+
+%% body(Body) -> Value.
+%% body(Body, Env) -> Value.
+%% guard(Guard) -> true | false.
+%% guard(Guard, Env) -> true | false.
+
+body(B) -> body(B, lfe_env:new()).
+
+body(B, Env) -> eval_body(B, Env).
+
+guard(G) -> guard(G, lfe_env:new()).
+
+guard(G, Env) -> eval_guard(G, Env).
 
 %% eval_expr(Sexpr, Environment) -> Value.
 %%  Evaluate a sexpr in the current environment. Try to catch core
@@ -364,11 +378,14 @@ eval_let([Vbs|Body], Env0) ->
 %% eval_let_function([FuncBindings|Body], Env) -> Value.
 
 eval_let_function([Fbs|Body], Env0) ->
+    Add = fun (F, Ar, Def, Lenv, Env) ->
+		  add_fbinding(F, Ar, {lexical_expr,Def,Lenv}, Env)
+	  end,
     Env1 = foldl(fun ([V,[lambda,Args|_]=Lambda], E) when is_atom(V) ->
-			 add_fbinding(V, length(Args), {expr,Lambda,Env0}, E);
+			 Add(V, length(Args), Lambda, Env0, E);
 		     ([V,['match-lambda',[Pats|_]|_]=Match], E)
 		       when is_atom(V) ->
-			 add_fbinding(V, length(Pats), {expr,Match,Env0}, E);
+			 Add(V, length(Pats), Match, Env0, E);
 		     (_, _) -> erlang:error({bad_form,'let-function'})
 		 end, Env0, Fbs),
     %% io:fwrite("elf: ~p\n", [{Body,Env1}]),
@@ -417,26 +434,35 @@ extend_letrec_env(Lete0, Fbs0, Env0) ->
 %%  environment.
 
 add_expr_func(Name, Ar, Def, Env) ->
-    add_fbinding(Name, Ar, {expr,Def,Env}, Env).
+    add_fbinding(Name, Ar, {lexical_expr,Def,Env}, Env).
 
 %% eval_apply(Function, Args, Env) -> Value.
 %%  This is used to evaluate interpreted functions. Macros are
 %%  expanded completely in the function definition before it is
 %%  applied.
 
-eval_apply({expr,Func,Env}, Es, _) ->
-    case lfe_macro:expand_expr_all(Func, Env) of
-    [lambda,Args|Body] -> apply_lambda(Args, Body, Es, Env);
-    ['match-lambda'|Cls] -> apply_match_clauses(Cls, Es, Env);
-    Fun when erlang:is_function(Fun) -> erlang:apply(Fun, Es)
-    end;
-eval_apply({letrec,Body,Fbs,Env}, Es, Ee) ->
+eval_apply({dynamic_expr,Func}, Es, Env) ->
+    eval_apply_expr(Func, Es, Env);
+eval_apply({lexical_expr,Func,Env}, Es, _) ->
+    eval_apply_expr(Func, Es, Env);
+eval_apply({letrec,Body,Fbs,Env}, Es, _) ->
     %% A function created by/for letrec-function.
     NewEnv = foldl(fun ({V,Ar,Lambda}, E) ->
 			   add_fbinding(V, Ar, {letrec,Lambda,Fbs,Env}, E)
 		   end, Env, Fbs),
     %% io:fwrite("la: ~p\n", [{Body,NewEnv}]),
-    eval_apply({expr,Body,NewEnv}, Es, Ee).
+    eval_apply_expr(Body, Es, NewEnv).
+
+%% eval_apply_expr(Function, Args, Env) -> Value.
+%%  Apply the Function definition to the (evaluated) Args in Env.
+%%  Macros are expanded first.
+
+eval_apply_expr(Func, Es, Env) ->
+    case lfe_macro:expand_expr_all(Func, Env) of
+	[lambda,Args|Body] -> apply_lambda(Args, Body, Es, Env);
+	['match-lambda'|Cls] -> apply_match_clauses(Cls, Es, Env);
+	Fun when erlang:is_function(Fun) -> erlang:apply(Fun, Es)
+    end.
 
 %% eval_if(IfBody, Env) -> Value.
 
