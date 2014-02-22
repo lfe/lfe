@@ -145,16 +145,43 @@ do_lfe_codegen(#comp{code=Fs0}=St) ->
     {ok,St#comp{code=Core,mod=Mod}}.
 
 do_erl_comp(St) ->
-    Opts = erl_comp_opts(St#comp.opts),
+    ErlOpts = erl_comp_opts(St),
     Es = St#comp.errors,
     Ws = St#comp.warnings,
-    case compile:forms(St#comp.code, [from_core,binary,no_bopt|Opts]) of
+    case compile:forms(St#comp.code, ErlOpts) of
 	{ok,_,Result,Ews} ->
 	    {ok,St#comp{code=Result,warnings=Ws ++ fix_erl_errors(Ews)}};
 	{error,Ees,Ews} ->
 	    {error,St#comp{errors=Es ++ fix_erl_errors(Ees),
 			   warnings=Ws ++ fix_erl_errors(Ews)}}
     end.
+
+%% erl_comp_opts(State) -> Options.
+%%  Strip out report options and make sure erlang compiler returns
+%%  errors and warnings. Also remove other options which might cause
+%%  strange behaviour.
+
+erl_comp_opts(St) ->
+    Os0 = St#comp.opts,
+    Filter = fun (report) -> false;		%No reporting!
+		 (report_warnings) -> false;
+		 (report_errors) -> false;
+		 ('S') -> false;
+		 ('E') -> false;
+		 ('P') -> false;
+		 (dcore) -> false;
+		 (to_core0) -> false;
+		 (warnings_as_errors) -> false;	%We handle this ourselves
+		 (_) -> true			%Everything else
+	     end,
+    Os1 = filter(Filter, Os0),
+    %% Now build options for the erlang compiler. 'no_bopt' turns off
+    %% an optimisation in the guard which crashes our code.
+    [from_core,					%We are compiling from core
+     {source,St#comp.lfile},			%Set the source file
+     return,					%Ensure we return something
+     binary,					%We want a binary
+     no_bopt|Os1].
 
 %% passes() -> [Pass].
 %% do_passes(Passes, State) -> {ok,State} | {error,State}.
@@ -242,24 +269,6 @@ beam_write(File, Beam) -> file:write(File, Beam).
 %% fix_erl_errors([{File,Errors}]) -> Errors.
 
 fix_erl_errors(Fes) -> flatmap(fun ({_,Es}) -> Es end, Fes).
-
-%% erl_comp_opts(Options) -> Options.
-%%  Strip out report options and make sure erlang compiler returns
-%%  errors and warnings. Also remove other options which might cause
-%%  strange behaviour.
-
-erl_comp_opts(Os) ->
-    filter(fun (report) -> false;		%No reporting!
-	       (report_warnings) -> false;
-	       (report_errors) -> false;
-	       ('S') -> false;
-	       ('E') -> false;
-	       ('P') -> false;
-	       (dcore) -> false;
-	       (to_core0) -> false;
-	       (warnings_as_errors) -> false;	%We handle this ourselves
-	       (_) -> true			%Everything else
-	   end, [return|Os]).			%Ensure return!
 
 werror(#comp{opts=Opts,warnings=Ws}) ->
     Ws =/= [] andalso member(warnings_as_errors, Opts).
