@@ -16,22 +16,23 @@
 ;; Author  : Robert Virding
 ;; Purpose : Lisp Flavoured Erlang interpreter.
 
-;;; We cannot use macros here as macros need the evaluator!
+;;; Shouldn't use macros here as macros need the evaluator! But we do.
 
 (defmodule lfe_eval
   (export (expr 1) (expr 2) (gexpr 1) (gexpr 2) (apply 2) (apply 3)
-      (make_letrec_env 2) (add_expr_func 4) (match 3))
+	  (body 1) (body 2) (guard 1) (guard 2)
+	  (make_letrec_env 2) (add_expr_func 4) (match 3) (match_when 4))
   ;; Deprecated exports.
   (export (eval 1) (eval 2) (eval_list 2))
-  (import (from lfe_lib (new_env 0)
-        (add_vbinding 3) (add_vbindings 2) (get_vbinding 2)
-        (add_fbinding 4) (add_fbindings 2) (get_fbinding 3)
-        (add_ibinding 5) (get_gbinding 3))
-      (from lists (reverse 1) (all 2) (map 2) (foldl 3) (foldr 3))
-      (from orddict (find 2) (store 3)))
+  (import (from lfe_env (new 0)
+		(add_vbinding 3) (add_vbindings 2) (get_vbinding 2)
+		(add_fbinding 4) (add_fbindings 2) (get_fbinding 3)
+		(add_ibinding 5) (get_gbinding 3))
+	  (from lists (reverse 1) (all 2) (map 2) (foldl 3) (foldr 3))
+	  (from orddict (find 2) (store 3)))
   (deprecated #(eval 1) #(eval 2)))
 
-(defun eval (e) (eval e (new_env)))
+(defun eval (e) (eval e (: lfe_env new)))
 
 (defun eval (e env) (eval-expr e env))
 
@@ -41,18 +42,18 @@
 ;; expr(Sexpr, Env) -> Value
 ;; Evaluate the sexpr, first expanding all macros.
 
-(defun expr (e) (expr e (new_env)))
+(defun expr (e) (expr e (: lfe_env new)))
 
 (defun expr (e env)
   (let ((exp (: lfe_macro expand_expr_all e env)))
     (eval-expr exp env)))
 
-;; gexpr(Sexpr) -> Value
-;; gexpr(Sexpr, Env) -> Value
+;; gexpr(guardtest) -> Value
+;; gexpr(guardtest, env) -> Value
 
-(defun gexpr (e) (gexpr e (new_env)))
+(defun gexpr (gt) (gexpr gt (: lfe_env new)))
 
-(defun gexpr (e env) (eval-gexpr e env))
+(defun gexpr (gt env) (eval-gexpr gt env))
 
 ;; (apply function args) -> expr.
 ;; (apply function args env) -> Expr.
@@ -61,11 +62,26 @@
 ;;  internally. Args should already be evaluated.
 
 (defun apply (f args)
-  (let ((env (new_env)))
-    (eval-apply (tuple 'expr f env) args env)))
+  (apply f args (: lfe_env new)))
 
 (defun apply (f args env)
-  (eval-apply (tuple 'expr f env) args env))
+  (eval-apply-expr f args env))
+
+;; (body body) -> value
+;; (body body env) -> value
+;; (guard guard) -> true | false
+;; (guard guard env) -> true | false
+
+(defun body (b) (body b (: lfe_env new)))
+
+(defun body (b env) (eval-body b env))
+
+(defun guard (g) (guard g (: lfe_env new)))
+
+(defun guard (g env) (eval-guard g env))
+
+(defun match_when (pat val body env)
+  (match-when pat val body env))
 
 ;; (eval-expr Sexpr Environment) -> Value.
 ;;  Evaluate a sexpr in the current environment. Try to catch core
@@ -411,17 +427,19 @@
 ;; (eval-let-function (FuncBindings . Body) Env) -> Value.
 
 (defun eval-let-function (form env0)
-  (let* (((cons fbs body) form)
-     (env (foldl (match-lambda
-               ([(list v (= (list* 'lambda as _) f)) e]
-            (when (is_atom v))
-            (add_fbinding v (length as) (tuple 'expr f env0) e))
-               ([(list v (= (list* 'match-lambda (cons pats _) _) f)) e]
-            (when (is_atom v))
-            (add_fbinding v (length pats) (tuple 'expr f env0) e))
-               ([_ _] (: erlang error (tuple 'bad_form 'let-function))))
-             env0 fbs)))
-    (eval-body body env)))
+  (flet ((add (f ar def lenv e)
+	      (add_fbinding f ar (tuple 'lexical_expr def lenv) e)))
+    (let* (((cons fbs body) form)
+	   (env (foldl (match-lambda
+			 ([(list v (= (list* 'lambda as _) f)) e]
+			  (when (is_atom v))
+			  (add v (length as) f env0 e))
+			 ([(list v (= (list* 'match-lambda (cons pats _) _) f)) e]
+			  (when (is_atom v))
+			  (add v (length pats) f env0 e))
+			 ([_ _] (: erlang error (tuple 'bad_form 'let-function))))
+		       env0 fbs)))
+      (eval-body body env))))
 
 ;; (eval-letrec-function (FuncBindings . Body) Env) -> Value.
 ;;  This is a tricky one. But we dynamically update the environment
@@ -468,7 +486,7 @@
 ;;  environment.
 
 (defun add_expr_func (name ar def env)
-  (add_fbinding name ar (tuple 'expr def env) env))
+  (add_fbinding name ar (tuple 'lexical_expr def env) env))
 
 ;; (eval-apply function args env) -> value
 ;;  This is used to evaluate interpreted functions. Macros are
@@ -477,18 +495,28 @@
 
 (defun eval-apply (f es env0)
   (case f
-    ((tuple 'expr func env)
-     (case (: lfe_macro expand_expr_all func env)
-       ((list* 'lambda args body) (apply-lambda args body es env))
-       ((cons 'match-lambda cls) (apply-match-clauses cls es env))))
+    ((tuple 'dynamic_expr func)
+     (eval-apply-expr func es env0))
+    ((tuple 'dynamic_expr func env)
+     (eval-apply-expr func es env))
     ((tuple 'letrec body fbs env)
      ;; A function created by/for letrec-function.
      (let ((newenv (foldl (match-lambda
-                ([(tuple v ar lambda) e]
-                 (add_fbinding v ar
-                       (tuple 'letrec lambda fbs env) e)))
-              env fbs)))
-       (eval-apply (tuple 'expr body newenv) es env0)))))
+			    ([(tuple v ar lambda) e]
+			     (add_fbinding v ar
+					   (tuple 'letrec lambda fbs env) e)))
+			  env fbs)))
+       (eval-apply-expr body es newenv)))))
+
+;; (eval-apply-expr function args env) -> value
+;;  Apply the function definition to the (evaluated) args in env.
+;;  Macros are expanded first.
+
+(defun eval-apply-expr (func es env)
+  (case (: lfe_macro expand_expr_all func env)
+    ((list* 'lambda args body) (apply-lambda args body es env))
+    ((cons 'match-lambda cls) (apply-match-clauses cls es env))
+    (fun (when (is_function fun)) (: erlang apply fun es))))
 
 ;; (eval-if body env) -> value
 
