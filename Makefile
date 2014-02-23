@@ -2,7 +2,8 @@
 # This simple Makefile uses rebar to compile/clean if it
 # exists, else does it explicitly.
 
-BINDIR = ebin
+BINDIR = bin
+EBINDIR = ebin
 SRCDIR = src
 INCDIR = include
 DOCDIR = doc
@@ -12,6 +13,11 @@ VPATH = $(SRCDIR)
 
 ERLCFLAGS = -W1
 ERLC = erlc
+
+EXPM=$(BINDIR)/expm
+LIB=lfe
+
+FINISH=-run init stop -noshell
 
 ## The .erl, .xrl, .yrl and .beam files
 ESRCS = $(notdir $(wildcard $(SRCDIR)/*.erl))
@@ -24,8 +30,8 @@ INSTALLDIR = $(ERL_LIBS)/lfe-$(shell cat VERSION)
 
 .SUFFIXES: .erl .beam
 
-$(BINDIR)/%.beam: $(SRCDIR)/%.erl
-	$(ERLC) -I $(INCDIR) -o $(BINDIR) $(ERLCFLAGS) $<
+$(EBINDIR)/%.beam: $(SRCDIR)/%.erl
+	$(ERLC) -I $(INCDIR) -o $(EBINDIR) $(ERLCFLAGS) $<
 
 %.erl: %.xrl
 	$(ERLC) -o $(SRCDIR) $<
@@ -45,12 +51,12 @@ compile:
 	fi
 
 ## Compile using erlc
-erlc_compile: $(addprefix $(BINDIR)/, $(EBINS))
+erlc_compile: $(addprefix $(EBINDIR)/, $(EBINS))
 
 install:
 	if [ "$$ERL_LIBS" != "" ]; \
 	then mkdir -p $(INSTALLDIR) ; \
-	     cp -pPR $(BINDIR) $(INSTALLDIR); \
+	     cp -pPR $(EBINDIR) $(INSTALLDIR); \
 	     cp -pPR $(EMACSDIR) $(INSTALLDIR); \
 	     cp -pPR $(INCDIR) $(INSTALLDIR); \
 	else exit 1; \
@@ -61,7 +67,7 @@ docs:
 clean:
 	if which rebar > /dev/null; \
 	then rebar clean; \
-	else rm -rf $(BINDIR)/*.beam; \
+	else rm -rf $(EBINDIR)/*.beam; \
 	fi
 	rm -rf erl_crash.dump
 
@@ -70,3 +76,30 @@ echo:
 	@ echo $(XSRCS)
 	@ echo $(YSRCS)
 	@ echo $(EBINS)
+
+$(EXPM): $(BINDIR)
+	curl -o $(EXPM) http://expm.co/__download__/expm
+	chmod +x $(EXPM)
+
+get-deps: $(EXPM)
+	@rebar get-deps
+
+get-version:
+	@echo
+	@echo "Getting version info ..."
+	@echo
+	@echo -n app.src: ''
+	@erl -eval 'io:format("~p~n", [ \
+		proplists:get_value(vsn,element(3,element(2,hd(element(3, \
+		erl_eval:exprs(element(2, erl_parse:parse_exprs(element(2, \
+		erl_scan:string("Data = " ++ binary_to_list(element(2, \
+		file:read_file("src/$(LIB).app.src"))))))), []))))))])' \
+		$(FINISH)
+	@echo -n package.exs: ''
+	@grep version package.exs |awk '{print $$2}'|sed -e 's/,//g'
+
+upload: get-deps get-version
+	@echo
+	@echo "Continue with upload? "
+	@read
+	$(EXPM) publish
