@@ -1,10 +1,50 @@
-;;; -*- Mode: LFE; -*-
-;;; Code from Paradigms of Artificial Intelligence Programming
-;;; Copyright (c) 1991 Peter Norvig
+;; -*- Mode: LFE; -*-
+;; Code from Paradigms of Artificial Intelligence Programming
+;; Copyright (c) 1991 Peter Norvig
 
-;;;; File gps1.lisp: First version of GPS (General Problem Solver)
+;; File    : gps1.lisp
+;; Author  : Peter Norvig, Robert Virding
+;; Purpose : Demonstrate the General Problem Solver from PAIP in LFE.
 
-;;;; Converted to LFE by Robert Virding
+;; This files was converted from the PAIP Common Lisp book source cdoe to LFE
+;; by Robert Virding. This example is the first (naive) GPS implementation
+;; given in the book.
+;;
+;; Here is some example usage for a successful run:
+;;
+;; > (slurp '"examples/gps1.lfe")
+;; #(ok gps1)
+;; > (gps '(son-at-home car-needs-battery have-money have-phone-book)
+;;        '(son-at-school)
+;;        (school-ops))
+;; executing 'look-up-number'
+;; executing 'telephone-shop'
+;; executing 'tell-shop-problem'
+;; executing 'give-shop-money'
+;; executing 'shop-installs-battery'
+;; executing 'drive-son-to-school'
+;; solved
+;; >
+;;
+;; Here is an unsuccessful run:
+;;
+;; > (gps '(son-at-home car-needs-battery have-money have-phone-book)
+;;        '(son-at-school have-money)
+;;        (school-ops))
+;; executing 'look-up-number'
+;; executing 'telephone-shop'
+;; executing 'tell-shop-problem'
+;; executing 'give-shop-money'
+;; executing 'shop-installs-battery'
+;; executing 'drive-son-to-school'
+;; false
+;; >
+;;
+;; And a trivial run (for Saturdays!):
+;;
+;; > (gps '(son-at-home) '(son-at-home) (school-ops))
+;; solved
+;;
 
 ;; Define macros for global variable access. This is a hack and very naughty!
 (defsyntax defvar
@@ -17,7 +57,6 @@
   ([name] (get 'name)))
 
 ;; Module definition.
-
 (defmodule gps1
   (export (gps 2) (gps 3) (school-ops 0))
   (import (from lists (member 2) (all 2) (any 2))
@@ -74,8 +113,7 @@
    (if (member e s2) (union es s2) (cons e (union es s2))))
   ([() s2] ()))
 
-;;; ==============================
-
+;; Define a list of operations to use with GPS.
 (defun school-ops ()
   (list
     (make-op action 'drive-son-to-school
