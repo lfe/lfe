@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2013 Robert Virding
+%% Copyright (c) 2008-2014 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -40,13 +40,15 @@
 %% is_vbound(Symb, Env) -> bool().
 %% get_vbinding(Name, Env) -> {yes,Val} | no.
 %% fetch_vbinding(Name, Env) -> Val.
+%% del_vbinding(Name, Env) -> Env.
 %% add_fbinding(Name, Arity, Val, Env) -> Env.
 %% add_fbindings([{Name,Arity,Val}], Env) -> Env.
 %% update_fbinding(Name, Arity, Val, Env) -> Env.
 %% add_ibinding(Mod, Name, Arity, LocalName, Env) -> Env.
 %% is_fbound(Symb, Arity, Env) -> bool().
-%% is_gbound(Symb, Arity, Env) -> bool().
 %% get_fbinding(Name, Arity, Env) -> {yes,Val} | {yes,Mod,Name} | no.
+%% is_gbound(Symb, Arity, Env) -> bool().
+%% get_gbinding(Name, Arity, Env) -> {yes,Mod,Name} | no.
 %% add_mbinding(Name, Macro, Env) -> Env.
 %% add_mbindings([{Name,Macro}], Env) -> Env.
 %% update_mbinding(Name, Macro, Env) -> Env.
@@ -57,9 +59,9 @@
 %%  dictionary but need an ordered sequence.
 %%
 %%  The dictionary has structures:
-%%  Variables - {Name,Value}
+%%  Variables - {variable,Name,Value}
 %%  Functions - {function,Name,Arity,Value}
-%%  Imports -   {function,Local,Arity,Module,Remote}
+%%  Imports -   {function,LocalName,Arity,Module,RemoteName}
 %%  Macros -    {macro,Name,Value}.
 %%
 %%  Macros and functions occupy the same environment so they shadow
