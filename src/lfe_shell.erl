@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2013 Robert Virding
+%% Copyright (c) 2008-2014 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -26,6 +26,9 @@
 
 -export([start/0,start/1,server/0,server/1]).
 
+%% The shell commands which generally callable.
+-export([p/1,pp/1,m/1,l/1,c/1,ec/1]).
+
 -import(lfe_env, [new/0,add_env/2,
 		  add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
 		  fetch_vbinding/2,update_vbinding/3,del_vbinding/2,
@@ -38,8 +41,14 @@
 
 %% -compile([export_all]).
 
+%% We do a lot of quoting!
+-define(Q(E), [quote,E]).
+-define(BQ(E), [backquote,E]).
+-define(UQ(E), [unquote,E]).
+-define(UQ_S(E), ['unquote-splicing',E]).
+
 %% Shell state.
--record(state, {env,base}).			%Current and base env
+-record(state, {curr,local,base}).		%Current, local and base env
 
 start() ->
     spawn(fun () -> server(default) end).
@@ -54,9 +63,10 @@ server(_) ->
 	      [erlang:system_info(version)]),
     %% Create a default base env of predefined shell variables with
     %% default nil bindings and basic shell macros.
-    Base0 = add_shell_macros(lfe_env:new()),
-    Base1 = add_shell_vars(Base0),
-    St = #state{env=Base1,base=Base1},
+    Base0 = add_shell_functions(lfe_env:new()),
+    Base1 = add_shell_macros(Base0),
+    Base2 = add_shell_vars(Base1),
+    St = #state{curr=Base2,local=Base2,base=Base2},
     server_loop(St).
 
 server_loop(St0) ->
@@ -65,16 +75,16 @@ server_loop(St0) ->
 	      Prompt = prompt(),
 	      io:put_chars(Prompt),
 	      Form = lfe_io:read(),
-	      Ee1 = update_vbinding('-', Form, St0#state.env),
+	      Ee1 = update_vbinding('-', Form, St0#state.curr),
 	      %% Macro expand and evaluate it.
-	      {Value,St1} = eval_form(Form, St0#state{env=Ee1}),
+	      {Value,St1} = eval_form(Form, St0#state{curr=Ee1}),
 	      %% Print the result, but only to depth 30.
 	      VS = lfe_io:prettyprint1(Value, 30),
 	      io:requests([{put_chars,VS},nl]),
 	      %% Update bindings.
-	      Ee2 = update_shell_vars(Form, Value, St1#state.env),
+	      Ee2 = update_shell_vars(Form, Value, St1#state.curr),
 	      %% lfe_io:prettyprint({Env1,Env2}), io:nl(),
-	      St1#state{env=Ee2}
+	      St1#state{curr=Ee2}
 	  catch
 	      %% Very naive error handling, just catch, report and
 	      %% ignore whole caboodle.
@@ -120,12 +130,28 @@ update_shell_vars(Form, Value, Env0) ->
     Env2 = del_vbinding('$ENV', Env1),
     add_vbinding('$ENV', Env2, Env2).
 
+add_shell_functions(Env0) ->
+    Fs = [{p,1,[lambda,[e],[':',lfe_shell,p,e]]},
+	  {pp,1,[lambda,[e],[':',lfe_shell,pp,e]]},
+	  {i,0,[lambda,[],[':',c,i]]},
+	  {i,1,[lambda,[ps],[':',c,i,ps]]},
+	  {regs,[lambda,[],[':',c,regs]]}
+	 ],
+    Add = fun ({N,Ar,Def}, E) ->
+		  lfe_env:add_fbinding(N, Ar, {lexical_expr,Def,Env0}, E)
+	  end,
+    Env1 = foldl(Add, Env0, Fs),
+    Env1.
+
 add_shell_macros(Env0) ->
     %% We write macros in LFE and expand them with macro package.
-    Ms = [
+    Ms = [{m,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,m,[list|?UQ(args)]])]},
+	  {l,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,l,[list|?UQ(args)]])]},
+	  {c,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,c,[list|?UQ(args)]])]},
+	  {ec,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ec,[list|?UQ(args)]])]}
 	 ],
     %% Any errors here will crash shell startup!
-    {ok,_,Env1,_} = lfe_macro:macro_forms(Ms, Env0),
+    Env1 = lfe_env:add_mbindings(Ms, Env0),
     %% io:fwrite("asm: ~p\n", [Env1]),
     Env1.
 
@@ -140,12 +166,12 @@ prompt() ->
 
 %% eval_form(Form, State) -> {Value,State}.
 
-eval_form(Form, #state{env=Ee}=St) ->
-    eval_exp_form(lfe_macro:expand_expr_all(Form, Ee), St).
+eval_form(Form, #state{curr=Ce}=St) ->
+    eval_exp_form(lfe_macro:expand_expr_all(Form, Ce), St).
 
-eval_exp_form([set,Pat,Expr], #state{env=Ee}=St0) ->
+eval_exp_form([set,Pat,Expr], #state{curr=Ce}=St0) ->
     %% Special case to lint pattern.
-    case lfe_lint:pattern(Pat, Ee) of
+    case lfe_lint:pattern(Pat, Ce) of
 	{ok,Ws} -> list_warnings(Ws);
 	{error,Es,Ws} ->
 	    list_errors(Es),
@@ -158,117 +184,52 @@ eval_exp_form(Eform, St0) ->
 	{yes,Value,St1} -> {Value,St1};
 	no ->
 	    %% Normal evaluation of form.
-	    {lfe_eval:expr(Eform, St0#state.env),St0}
+	    {lfe_eval:expr(Eform, St0#state.curr),St0}
     end.
 
-list_errors(Es) ->
+list_errors(Es) -> list_ews("~w: ~s\n", Es).
+
+list_warnings(Ws) -> list_ews("~w: Warning: ~s\n", Ws).
+
+list_ews(Format, Ews) ->
     foreach(fun ({L,M,E}) ->
 		    Cs = M:format_error(E),
-		    lfe_io:format("~w: ~s\n", [L,Cs])
-	    end, Es).
-
-list_warnings(Ws) ->
-    foreach(fun ({L,M,W}) ->
-		    Cs = M:format_error(W),
-		    lfe_io:format("~w: Warning: ~s\n", [L,Cs])
-	    end, Ws).
+		    lfe_io:format(Format, [L,Cs])
+	    end, Ews).
 
 %% eval_internal(Form, State) -> {yes,Value,State} | no.
-%%  Check for and evaluate internal functions. These all evaluate
-%%  their arguments.
+%%  Check for and evaluate internal forms. These are tested before any
+%%  functions and all evaluate their arguments.
 
-eval_internal([p|Args], St) ->			%Print out a value
-    p(Args, St);
-eval_internal([pp|Args], St) ->			%Prettyprint out a value
-    pp(Args, St);
 eval_internal([slurp|Args], St) ->		%Slurp in a file
     slurp(Args, St);
 eval_internal([unslurp|_], St) ->		%Forget everything
     Be = St#state.base,
-    {yes,ok,St#state{env=Be}};
-eval_internal([c|Args], St) ->			%Compile an LFE file
-    c(Args, St);
-eval_internal([ec|Args], St) ->			%Compile an Erlang file
-    ec(Args, St);
-eval_internal([l|Args], St) ->			%Load modules
-    l(Args, St);
-eval_internal([m|Args], St) ->			%Module info
-    m(Args, St);
+    {yes,ok,St#state{curr=Be}};
 eval_internal([set|Args], St) ->		%Set variables in shell
     set(Args, St);
 eval_internal(_, _) -> no.			%Not an internal function
 
-%% p([Arg], State) -> {yes,Res,State} | no.
-%% pp([Arg], State) -> {yes,Res,State} | no.
-
-p([A], St) ->
-    E = lfe_eval:expr(A, St#state.env),
-    Cs = lfe_io:print1(E),
-    {yes,io:put_chars([Cs,$\n]),St};
-p(_, _) -> no.
-
-pp([A], St) ->
-    E = lfe_eval:expr(A, St#state.env),
-    Cs = lfe_io:prettyprint1(E),
-    {yes,io:put_chars([Cs,$\n]),St};
-pp(_, _) -> no.
-
-%% c(Args, State) -> {yes,Res,State}.
-%%  Compile and load an LFE file.
-
-c([F], St) -> c([F,[]], St);
-c([F,Os], #state{env=Ee}=St) ->
-    Name = lfe_eval:expr(F, Ee),		%Evaluate arguments
-    Opts = lfe_eval:expr(Os, Ee),
-    Loadm = fun ([]) -> {yes,{module,[]},St};
-		(Mod) ->
-		    Base = filename:basename(Name, ".lfe"),
-		    code:purge(Mod),
-		    R = code:load_abs(Base),
-		    {yes,R,St}
-	    end,
-    case lfe_comp:file(Name, [report,verbose|Opts]) of
-	{ok,Mod,_} -> Loadm(Mod);
-	{ok,Mod} -> Loadm(Mod);
-	Other -> {yes,Other,St}
-    end;
-c(_, _) -> no.					%Unknown function,
-
-%% ec(Args, State) -> {yes,Res,State}.
-%%  Compile and load an Erlang file.
-
-ec([F], St) -> ec([F,[]], St);
-ec([F,Os], #state{env=Ee}=St) ->
-    Name = lfe_eval:expr(F, Ee),		%Evaluate arguments
-    Opts = lfe_eval:expr(Os, Ee),
-    {yes,c:c(Name, Opts),St};
-ec(_, _) -> no.					%Unknown function
-
-%% l(Args, State) -> {yes,Res,State}.
-%%  Load the modules in Args.
-
-l(Args, #state{env=Ee}=St) ->
-    {yes,map(fun (M) -> c:l(lfe_eval:expr(M, Ee)) end, Args), St}.
-
-%% m(Args, State) -> {yes,Res,State}.
-%%  Module info.
-
-m([], St) -> {yes,c:m(),St};
-m(Args, #state{env=Ee}=St) ->
-    {yes,map(fun (M) -> c:m(lfe_eval:expr(M, Ee)) end, Args), St}.
-
 %% set(Args, State) -> {yes,Result,State} | no.
 
-set([Pat,Exp], #state{env=Ee0}=St0) ->
-    Val = lfe_eval:expr(Exp, Ee0),		%Evaluate expression
-    case lfe_eval:match(Pat, Val, Ee0) of
+set([Pat,Exp], #state{curr=Ce0}=St) ->
+    Val = lfe_eval:expr(Exp, Ce0),		%Evaluate expression
+    case lfe_eval:match(Pat, Val, Ce0) of
 	{yes,Bs} ->
-	    Ee1 = foldl(fun ({N,V}, E) -> add_upd_vbinding(N, V, E) end,
-			Ee0, Bs),
-	    {yes,Val,St0#state{env=Ee1}};
+	    Ce1 = foldl(fun ({N,V}, E) -> add_upd_vbinding(N, V, E) end,
+			Ce0, Bs),
+	    {yes,Val,St#state{curr=Ce1}};
 	no -> erlang:error({badmatch,Val})
     end;
-%% set([Pat,['when',G],Exp], St) ->
+set([Pat,['when',G],Exp], #state{curr=Ce0}=St) ->
+    Val = lfe_eval:expr(Exp, Ce0),
+    case lfe_eval:match_when(Pat, Val, [['when'|G]], Ce0) of
+	{yes,_,Bs} ->
+	    Ce1 = foldl(fun ({N,V}, E) -> add_upd_vbinding(N, V, E) end,
+			Ce0, Bs),
+	    {yes,Val,St#state{curr=Ce1}};
+	no -> erlang:error({badmatch,Val})
+    end;
 set(_, _) -> no.
 
 %% slurp(File, State) -> {yes,{ok,Mod},State} | no.
@@ -279,7 +240,7 @@ set(_, _) -> no.
 
 -record(slurp, {mod,imps=[]}).			%For slurping
 
-slurp([File], #state{env=Ee,base=Be}=St0) ->
+slurp([File], #state{curr=Ee,base=Be}=St0) ->
     Name = lfe_eval:expr(File, Ee),		%Get file name
     case slurp_file(Name) of			%Parse, expand and lint file
 	{ok,Fs,Fenv0,_} ->
@@ -293,11 +254,11 @@ slurp([File], #state{env=Ee,base=Be}=St0) ->
 			  end, Fenv0, Sl1#slurp.imps),
 	    %% Get a new environment with all functions defined.
 	    Fenv2 = lfe_eval:make_letrec_env(Fbs, Fenv1),
-	    St1 = St0#state{env=add_env(Fenv2, Be)},
+	    St1 = St0#state{curr=add_env(Fenv2, Be)},
 	    {yes,{ok,Sl1#slurp.mod},St1};
 	{error,Es,_} ->
 	    slurp_errors(Name, Es),
-	    {yes,error,St0#state{env=Be}}
+	    {yes,error,St0#state{curr=Be}}
     end;
 slurp(_, _) -> no.
 
@@ -379,3 +340,52 @@ safe_fetch(Key, D, Def) ->
 %%   `(case (find ,key ,d)
 %%      ((tuple 'ok val) val)
 %%      ('error ,def)))
+
+%% The LFE shell command functions.
+%%  These are callable from outside the shell as well.
+
+p(E) ->
+    Cs = lfe_io:print1(E),
+    io:put_chars([Cs,$\n]).
+
+pp(E) ->
+    Cs = lfe_io:prettyprint1(E),
+    io:put_chars([Cs,$\n]).
+
+%% c(Args) -> Res,.
+%%  Compile and load an LFE file.
+
+c([F]) -> c([F,[]]);
+c([F,Os]) ->
+    Loadm = fun ([]) -> {module,[]};
+		(Mod) ->
+		    Base = filename:basename(F, ".lfe"),
+		    code:purge(Mod),
+		    R = code:load_abs(Base),
+		    R
+	    end,
+    case lfe_comp:file(F, [report,verbose|Os]) of
+	{ok,Mod,_} -> Loadm(Mod);
+	{ok,Mod} -> Loadm(Mod);
+	Other -> Other
+    end.
+
+%% ec(Args) -> Res.
+%%  Compile and load an Erlang file.
+
+ec([F]) -> ec([F,[]]);
+ec([F,Os]) ->
+    c:c(F, Os).
+
+%% l(Modules) -> ok.
+%%  Load the modules.
+
+l(Ms) ->
+    foreach(fun (M) -> c:l(M) end, Ms).
+
+%% m(Modules) -> ok.
+%%  Print module information.
+
+m([]) -> c:m();
+m(Ms) ->
+    foreach(fun (M) -> c:m(M) end, Ms).
