@@ -47,6 +47,10 @@ start a REPL:
     >
 ```
 
+Note that this will recompile all the deps (often useful for projects with
+changing dependencies). If you would prefer to only recompile code for the
+project itself, you can use ``make shell-no-deps`` instead.
+
 If you're running LFE from a git clone working dir, you can start the REPL
 like so:
 
