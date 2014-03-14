@@ -72,6 +72,7 @@ defrecord(Name, Fdefs, Env, St0) ->
     Test = list_to_atom(concat(['is','-',Name])),
     EMP = list_to_atom(concat(['emp','-',Name])),
     Set = list_to_atom(concat(['set','-',Name])),
+    Recfields = list_to_atom(concat(['fields','-',Name])),
     %% Make access macros.
     {Fdef,St1} = defrec_fields(Fields, Name, St0), %Name is element 1!
     Macs = [['defmacro',Make,fds,
@@ -95,7 +96,8 @@ defrecord(Name, Fdefs, Env, St0) ->
 	       [l,fds,rec]]]],
 	    ['defmacro',EMP,fds,
 	      ['let',[[def,[list|lists:duplicate(length(Fields),?Q(?Q('_')))]]],
-	       ?BQ([tuple,?Q(Name),?UQ_S([Fu,fds,def])])]]
+	       ?BQ([tuple,?Q(Name),?UQ_S([Fu,fds,def])])]],
+        ['defmacro',Recfields,[],?BQ(?Q(Fields))]
 	    |
 	    Fdef],
     %% lfe_io:format("~p\n", [{Funs,Macs}]),
