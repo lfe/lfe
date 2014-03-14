@@ -133,7 +133,7 @@ generation. LFE is much easier to generate as an Erkang list than
 Erlang forms. This module helps with defining and compiling a module. Note,
 that while it works, this module is very experimental and may change.
 
-## 0.2
+## v0.2
 
 The really *BIG* change is that LFE is now Lisp-2 like Common Lisp,
 i.e. functions and variables reside in different name spaces,
