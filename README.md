@@ -17,8 +17,8 @@ I will try to make a better fix soon. Sorry about that.
 
 ## Release Notes
 
-[doc/release-notes.md](doc/release-notes.md)
+[doc/release_notes.md](doc/release_notes.md)
 
 ## Version History
 
-[doc/version-history.md](doc/version-history.md)
+[doc/version_history.md](doc/version_history.md)
