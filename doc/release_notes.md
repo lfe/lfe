@@ -1,4 +1,6 @@
-New features in LFE 0.2 are:
+# LFE Release Notes
+
+## New features in LFE 0.2
 
 - The really *BIG* change is that LFE is now Lisp-2 like Common Lisp,
   i.e. functions and variables reside in different name spaces,
