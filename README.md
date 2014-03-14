@@ -4,6 +4,7 @@ LFE, Lisp Flavoured Erlang, is a lisp syntax front-end to the Erlang
 compiler. Code produced with it is compatible with "normal" Erlang
 code. An LFE evaluator and shell is also included.
 
+
 ## Important Note
 
 A quick fix has been added to compensate for some incompatibilites in
@@ -15,10 +16,10 @@ of the function. The ```.beam``` file in ebin is for R13B.
 
 I will try to make a better fix soon. Sorry about that.
 
-## Release Notes
-
-[doc/release_notes.md](doc/release_notes.md)
 
 ## Version History
+
+This following links to the document that tracks the release notes for most
+previous versions of LFE.
 
 [doc/version_history.md](doc/version_history.md)
