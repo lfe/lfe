@@ -145,7 +145,7 @@ do_lfe_codegen(#comp{code=Fs0}=St) ->
     {ok,St#comp{code=Core,mod=Mod}}.
 
 do_erl_comp(St) ->
-    ErlOpts = erl_comp_opts(St),
+    ErlOpts = erl_comp_opts(St),		%Options to erlang compiler
     Es = St#comp.errors,
     Ws = St#comp.warnings,
     case compile:forms(St#comp.code, ErlOpts) of
@@ -166,7 +166,7 @@ erl_comp_opts(St) ->
     Filter = fun (report) -> false;		%No reporting!
 		 (report_warnings) -> false;
 		 (report_errors) -> false;
-		 ('S') -> false;
+		 ('S') -> false;		%No stopping early
 		 ('E') -> false;
 		 ('P') -> false;
 		 (dcore) -> false;

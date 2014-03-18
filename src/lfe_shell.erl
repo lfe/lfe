@@ -135,7 +135,7 @@ add_shell_functions(Env0) ->
 	  {pp,1,[lambda,[e],[':',lfe_shell,pp,e]]},
 	  {i,0,[lambda,[],[':',c,i]]},
 	  {i,1,[lambda,[ps],[':',c,i,ps]]},
-	  {regs,[lambda,[],[':',c,regs]]}
+	  {regs,0,[lambda,[],[':',c,regs]]}
 	 ],
     Add = fun ({N,Ar,Def}, E) ->
 		  lfe_env:add_fbinding(N, Ar, {lexical_expr,Def,Env0}, E)
