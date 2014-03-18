@@ -24,12 +24,17 @@
 (defmodule mnesia_demo
   (export (new 0) (by_place 1) (by_place_ms 1) (by_place_qlc 1)))
 
-(defrecord person name place job)
+(defrecord person
+  name
+  place
+  job)
 
 (defun new ()
   ;; Start mnesia and create a table, we will get an in memory only schema.
   (: mnesia start)
-  (: mnesia create_table 'person '(#(attributes (name place job))))
+  (: mnesia create_table
+     'person
+     `(#(attributes ,(fields-person))))
   ;; Initialise the table.
   (let ((people '(
           ;; First some people in London.

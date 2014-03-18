@@ -452,6 +452,7 @@ field-name value to get non-default values. E.g. for
 => (make-person {{field value}} ... )
    (match-person {{field value}} ... )
    (is-person r)
+   (fields-person)
    (emp-person {{field value}} ... )
    (set-person r {{field value}} ... )
    (person-name r)
@@ -500,6 +501,12 @@ field-name value to get non-default values. E.g. for
 
         In the person record john set the age field to 35 and the
         address field to "front street".
+
+(fields-person)
+
+        Returns a list of fields for the record. This is useful for when
+        using LFE with Mnesia, as the record field names don't have to be
+        provided manually in the create_table call.
 
 Binaries/bitstrings
 -------------------
