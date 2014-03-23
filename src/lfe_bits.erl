@@ -25,7 +25,7 @@
 
 %% Everything default'ed.
 -record(spec, {type=default,size=default,unit=default,
-	       sign=default,endian=default}).
+           sign=default,endian=default}).
 
 %% get_bitspecs(Specs) -> {ok,Size,{Type,Unit,Sign,End}} | {error,Error}.
 %% Parse a bitspec, apply defaults and return data. The size field is
@@ -33,12 +33,12 @@
 
 get_bitspecs(Specs) ->
     try
-	#spec{type=Ty0,size=Sz0,unit=Un0,sign=Si0,endian=En0} =
-	    parse_bitspecs(Specs, #spec{}),
-	{Ty,Sz,Un,Si,En} = apply_defaults(Ty0, Sz0, Un0, Si0, En0),
-	{ok,Sz,{Ty,Un,Si,En}}
+    #spec{type=Ty0,size=Sz0,unit=Un0,sign=Si0,endian=En0} =
+        parse_bitspecs(Specs, #spec{}),
+    {Ty,Sz,Un,Si,En} = apply_defaults(Ty0, Sz0, Un0, Si0, En0),
+    {ok,Sz,{Ty,Un,Si,En}}
     catch
-	throw:Error -> Error
+    throw:Error -> Error
     end.
 
 %% parse_bitspecs(Specs) -> {ok,Size,{Type,Unit,Sign,End}} | {error,Error}.
@@ -47,9 +47,9 @@ get_bitspecs(Specs) ->
 
 parse_bitspecs(Specs) ->
     case catch parse_bitspecs(Specs, #spec{}) of
-	#spec{type=Ty,size=Sz,unit=Un,sign=Si,endian=En} ->
-	    {ok,Sz,{Ty,Un,Si,En}};
-	Error -> Error
+    #spec{type=Ty,size=Sz,unit=Un,sign=Si,endian=En} ->
+        {ok,Sz,{Ty,Un,Si,En}};
+    Error -> Error
     end.
 
 %% parse_bitspecs(Specs, #spec{}) -> #spec{}.

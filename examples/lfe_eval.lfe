@@ -20,16 +20,16 @@
 
 (defmodule lfe_eval
   (export (expr 1) (expr 2) (gexpr 1) (gexpr 2) (apply 2) (apply 3)
-	  (body 1) (body 2) (guard 1) (guard 2)
-	  (make_letrec_env 2) (add_expr_func 4) (match 3) (match_when 4))
+      (body 1) (body 2) (guard 1) (guard 2)
+      (make_letrec_env 2) (add_expr_func 4) (match 3) (match_when 4))
   ;; Deprecated exports.
   (export (eval 1) (eval 2) (eval_list 2))
   (import (from lfe_env (new 0)
-		(add_vbinding 3) (add_vbindings 2) (get_vbinding 2)
-		(add_fbinding 4) (add_fbindings 2) (get_fbinding 3)
-		(add_ibinding 5) (get_gbinding 3))
-	  (from lists (reverse 1) (all 2) (map 2) (foldl 3) (foldr 3))
-	  (from orddict (find 2) (store 3)))
+        (add_vbinding 3) (add_vbindings 2) (get_vbinding 2)
+        (add_fbinding 4) (add_fbindings 2) (get_fbinding 3)
+        (add_ibinding 5) (get_gbinding 3))
+      (from lists (reverse 1) (all 2) (map 2) (foldl 3) (foldr 3))
+      (from orddict (find 2) (store 3)))
   (deprecated #(eval 1) #(eval 2)))
 
 (defun eval (e) (eval e (: lfe_env new)))
@@ -428,17 +428,17 @@
 
 (defun eval-let-function (form env0)
   (flet ((add (f ar def lenv e)
-	      (add_fbinding f ar (tuple 'lexical_expr def lenv) e)))
+          (add_fbinding f ar (tuple 'lexical_expr def lenv) e)))
     (let* (((cons fbs body) form)
-	   (env (foldl (match-lambda
-			 ([(list v (= (list* 'lambda as _) f)) e]
-			  (when (is_atom v))
-			  (add v (length as) f env0 e))
-			 ([(list v (= (list* 'match-lambda (cons pats _) _) f)) e]
-			  (when (is_atom v))
-			  (add v (length pats) f env0 e))
-			 ([_ _] (: erlang error (tuple 'bad_form 'let-function))))
-		       env0 fbs)))
+       (env (foldl (match-lambda
+             ([(list v (= (list* 'lambda as _) f)) e]
+              (when (is_atom v))
+              (add v (length as) f env0 e))
+             ([(list v (= (list* 'match-lambda (cons pats _) _) f)) e]
+              (when (is_atom v))
+              (add v (length pats) f env0 e))
+             ([_ _] (: erlang error (tuple 'bad_form 'let-function))))
+               env0 fbs)))
       (eval-body body env))))
 
 ;; (eval-letrec-function (FuncBindings . Body) Env) -> Value.
@@ -502,10 +502,10 @@
     ((tuple 'letrec body fbs env)
      ;; A function created by/for letrec-function.
      (let ((newenv (foldl (match-lambda
-			    ([(tuple v ar lambda) e]
-			     (add_fbinding v ar
-					   (tuple 'letrec lambda fbs env) e)))
-			  env fbs)))
+                ([(tuple v ar lambda) e]
+                 (add_fbinding v ar
+                       (tuple 'letrec lambda fbs env) e)))
+              env fbs)))
        (eval-apply-expr body es newenv)))))
 
 ;; (eval-apply-expr function args env) -> value
