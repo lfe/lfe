@@ -74,6 +74,8 @@ Supported macro forms
 
 (: mod func arg ... ) =>
         (call 'mod 'func arg ... )
+(mod:func arg ... ) =>
+        (call 'mod 'func arg ... )
 (? {{timeout {{default}} }})            - Receive next message,
                                           optional timeout and default value
 (++ ... )
