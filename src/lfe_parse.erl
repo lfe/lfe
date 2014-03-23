@@ -109,8 +109,8 @@ reduce(11, [_,L,_|Vs]) ->            %s->#( p )
     [list_to_tuple(L)|Vs];
 reduce(12, [_,L,B|Vs]) ->            %s->#B( p )
     case catch lfe_eval:expr([binary|L]) of
-	Bin when is_bitstring(Bin) -> [Bin|Vs];
-	_ -> {error,line(B),{illegal,binary}}
+    Bin when is_bitstring(Bin) -> [Bin|Vs];
+    _ -> {error,line(B),{illegal,binary}}
     end;
 reduce(13, [T,H|Vs]) -> [[H|T]|Vs];  %l->s t
 reduce(14, Vs) -> [[]|Vs];           %l->empty
@@ -200,11 +200,11 @@ table(_, _) -> error.
 %% sexpr(Continuation, Tokens) ->
 %%      {ok,Line,Sexpr,Rest} | {more,Continuation} | {error,Error,Rest}.
 
-sexpr(Ts) -> sexpr([], Ts).			%Start with empty state
+sexpr(Ts) -> sexpr([], Ts).            %Start with empty state
 
 sexpr(Cont, Ts) -> parse1(Cont, Ts).
 
--record(lp, {l=none,st=[],vs=[]}).		%Line, States, Values
+-record(lp, {l=none,st=[],vs=[]}).     %Line, States, Values
 
 %% parse1(Tokens) ->
 %%      {ok,Line,Sexpr,Rest} | {more,Continuation} | {error,Error,Rest}.
@@ -213,18 +213,18 @@ sexpr(Cont, Ts) -> parse1(Cont, Ts).
 %% This is the opt-level of the LL engine. It
 %% initialises/packs/unpacks the continuation information.
 
-parse1([], Ts) ->				%First call
-    Start = start(),				%The start state.
+parse1([], Ts) ->                           %First call
+    Start = start(),                        %The start state.
     parse1(#lp{l=none,st=[Start],vs=[]}, Ts);
-parse1(#lp{l=none}=Lp, [T|_]=Ts) ->		%Guarantee a start line
+parse1(#lp{l=none}=Lp, [T|_]=Ts) ->         %Guarantee a start line
     parse1(Lp#lp{l=line(T)}, Ts);
 parse1(#lp{l=L,st=St0,vs=Vs0}, Ts) ->
     case parse2(Ts, St0, Vs0) of
-	{done,Rest,[],[V]} -> {ok,L,V,Rest};
-	{more,[],St1,Vs1} -> {more,#lp{l=L,st=St1,vs=Vs1}};
-	{error,Line,Error,Rest,_,_} ->
-	    %% Can't really continue from errors here.
-	    {error,{Line,?MODULE,Error},Rest}
+    {done,Rest,[],[V]} -> {ok,L,V,Rest};
+    {more,[],St1,Vs1} -> {more,#lp{l=L,st=St1,vs=Vs1}};
+    {error,Line,Error,Rest,_,_} ->
+        %% Can't really continue from errors here.
+        {error,{Line,?MODULE,Error},Rest}
     end.
 
 %% parse2(Tokens, StateStack, ValueStack) ->
@@ -241,24 +241,24 @@ parse2(Ts, [{reduce,R}|St], Vs0) ->
     %% io:fwrite("p: ~p\n", [{R,Vs}]),
     %% Try to reduce values and push value on value stack.
     case reduce(R, Vs0) of
-	{error,L,E} -> {error,L,E,Ts,St,Vs0};
-	Vs1 -> parse2(Ts, St, Vs1)
+    {error,L,E} -> {error,L,E,Ts,St,Vs0};
+    Vs1 -> parse2(Ts, St, Vs1)
     end;
-parse2(Ts, [], Vs) -> {done,Ts,[],Vs};		%All done
+parse2(Ts, [], Vs) -> {done,Ts,[],Vs};          %All done
 parse2([T|Ts]=Ts0, [S|St]=St0, Vs) ->
     %% io:fwrite("p: ~p\n", [{St0,Ts0}]),
     %% Try to match token type against state on stack.
     case type(T) of
-	S -> parse2(Ts, St, [T|Vs]);		%Match
-	Type ->					%Try to predict
-	    case table(S, Type) of
-		error -> {error,line(T),{illegal,Type},Ts0,St0,Vs};
-		Top -> parse2(Ts0, Top ++ St, Vs)
-	    end
+    S -> parse2(Ts, St, [T|Vs]);                %Match
+    Type ->                                     %Try to predict
+        case table(S, Type) of
+        error -> {error,line(T),{illegal,Type},Ts0,St0,Vs};
+        Top -> parse2(Ts0, Top ++ St, Vs)
+        end
     end;
-parse2([], St, Vs) ->				%Need more tokens
+parse2([], St, Vs) ->                           %Need more tokens
     {more,[],St,Vs};
-parse2({eof,L}=Ts, St, Vs) ->			%No more tokens
+parse2({eof,L}=Ts, St, Vs) ->                   %No more tokens
     {error,L,{missing,token},Ts,St,Vs}.
 
 %% Access the fields of a token.

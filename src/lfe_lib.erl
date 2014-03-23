@@ -27,13 +27,13 @@
 
 %% Standard lisp library.
 -export([is_lfe_bif/2,
-	 acons/3,pairlis/2,pairlis/3,
-	 assoc/2,'assoc-if'/2,'assoc-if-not'/2,
-	 rassoc/2,'rassoc-if'/2,'rassoc-if-not'/2,
-	 subst/3,'subst-if'/3,'subst-if-not'/3,sublis/2,
-	 eval/1,eval/2,macroexpand/1,macroexpand/2,
-	 'macroexpand-1'/1,'macroexpand-1'/2,
-	 'macroexpand-all'/1,'macroexpand-all'/2]).
+     acons/3,pairlis/2,pairlis/3,
+     assoc/2,'assoc-if'/2,'assoc-if-not'/2,
+     rassoc/2,'rassoc-if'/2,'rassoc-if-not'/2,
+     subst/3,'subst-if'/3,'subst-if-not'/3,sublis/2,
+     eval/1,eval/2,macroexpand/1,macroexpand/2,
+     'macroexpand-1'/1,'macroexpand-1'/2,
+     'macroexpand-all'/1,'macroexpand-all'/2]).
 
 %% Miscellaneous useful LFE functions.
 -export([format_exception/6,format_stacktrace/3]).
@@ -52,17 +52,17 @@ is_bif(Name, Ar) ->
 
 is_erl_bif(Op, Ar) ->
     erl_internal:bif(Op, Ar)
-	orelse erl_internal:arith_op(Op, Ar)
-	orelse erl_internal:bool_op(Op, Ar)
-	orelse erl_internal:comp_op(Op, Ar)
-	orelse erl_internal:list_op(Op, Ar)
-	orelse erl_internal:send_op(Op, Ar).
+    orelse erl_internal:arith_op(Op, Ar)
+    orelse erl_internal:bool_op(Op, Ar)
+    orelse erl_internal:comp_op(Op, Ar)
+    orelse erl_internal:list_op(Op, Ar)
+    orelse erl_internal:send_op(Op, Ar).
 
 is_guard_bif(Op ,Ar) ->
     erl_internal:guard_bif(Op, Ar)
-	orelse erl_internal:arith_op(Op, Ar)
-	orelse erl_internal:bool_op(Op, Ar)
-	orelse erl_internal:comp_op(Op, Ar).
+    orelse erl_internal:arith_op(Op, Ar)
+    orelse erl_internal:bool_op(Op, Ar)
+    orelse erl_internal:comp_op(Op, Ar).
 
 %% is_symb(Sexpr) -> bool().
 %% is_symb_list(Sexprs) -> bool().
@@ -73,7 +73,7 @@ is_symb(S) -> is_atom(S).
 is_symb_list([S|Ss]) when is_atom(S) ->
     is_symb_list(Ss);
 is_symb_list([]) -> true;
-is_symb_list(_) -> false.			%Might not be a proper list
+is_symb_list(_) -> false.            %Might not be a proper list
 
 is_proper_list([_|Ss]) -> is_proper_list(Ss);
 is_proper_list([]) -> true;
@@ -210,15 +210,15 @@ assoc(_, []) -> [].
 
 'assoc-if'(Pred, [[K|_]=Pair|L]) ->
     case Pred(K) of
-	true -> Pair;
-	false -> 'assoc-if'(Pred, L)
+    true -> Pair;
+    false -> 'assoc-if'(Pred, L)
     end;
 'assoc-if'(_, []) -> [].
 
 'assoc-if-not'(Pred, [[K|_]=Pair|L]) ->
     case Pred(K) of
-	false -> Pair;
-	true -> 'assoc-if-not'(Pred, L)
+    false -> Pair;
+    true -> 'assoc-if-not'(Pred, L)
     end;
 'assoc-if-not'(_, []) -> [].
 
@@ -228,15 +228,15 @@ rassoc(_, []) -> [].
 
 'rassoc-if'(Pred, [[_|V]=Pair|L]) ->
     case Pred(V) of
-	true -> Pair;
-	false -> 'rassoc-if'(Pred, L)
+    true -> Pair;
+    false -> 'rassoc-if'(Pred, L)
     end;
 'rassoc-if'(_, []) -> [].
 
 'rassoc-if-not'(Pred, [[_|V]=Pair|L]) ->
     case Pred(V) of
-	false -> Pair;
-	true -> 'rassoc-if-not'(Pred, L)
+    false -> Pair;
+    true -> 'rassoc-if-not'(Pred, L)
     end;
 'rassoc-if-not'(_, []) -> [].
 
@@ -251,56 +251,56 @@ subst(_, _, Tree) -> Tree.
 
 'subst-if'(New, Test, Tree) ->
     case Test(Tree) of
-	true -> New;
-	false ->
-	    case Tree of
-		[H|T] ->
-		    ['subst-if'(New, Test, H)|'subst-if'(New, Test, T)];
-		_ -> Tree
-	    end
+    true -> New;
+    false ->
+        case Tree of
+        [H|T] ->
+            ['subst-if'(New, Test, H)|'subst-if'(New, Test, T)];
+        _ -> Tree
+        end
     end.
 
 %% subst-if-not(New, Test, Tree) -> Tree.
 
 'subst-if-not'(New, Test, Tree) ->
     case Test(Tree) of
-	false -> New;
-	true ->
-	    case Tree of
-		[H|T] ->
-		    ['subst-if-not'(New, Test, H)|'subst-if-not'(New, Test, T)];
-		_ -> Tree
-	    end
+    false -> New;
+    true ->
+        case Tree of
+        [H|T] ->
+            ['subst-if-not'(New, Test, H)|'subst-if-not'(New, Test, T)];
+        _ -> Tree
+        end
     end.
 
 %% sublis(AList, Tree) -> Tree.
 
 sublis(Alist, Tree) ->
     case assoc(Tree, Alist) of
-	[_|New] -> New;				%Found it
-	[] ->					%Not there
-	    case Tree of
-		[H|T] ->
-		    [sublis(Alist, H)|sublis(Alist, T)];
-		_ -> Tree
-	    end
+    [_|New] -> New;                         %Found it
+    [] ->                                   %Not there
+        case Tree of
+        [H|T] ->
+            [sublis(Alist, H)|sublis(Alist, T)];
+        _ -> Tree
+        end
     end.
 
-eval(Sexpr) -> eval(Sexpr, lfe_env:new()).		%Empty environment.
+eval(Sexpr) -> eval(Sexpr, lfe_env:new()).  %Empty environment.
 eval(Sexpr, Env) -> lfe_eval:expr(Sexpr, Env).
 
 macroexpand(Form) -> macroexpand(Form, lfe_env:new()).
 macroexpand(Form, Env) ->
     case lfe_macro:expand_expr(Form, Env) of
-	{yes,Exp} -> Exp;
-	no -> Form
+    {yes,Exp} -> Exp;
+    no -> Form
     end.
 
 'macroexpand-1'(Form) -> 'macroexpand-1'(Form, lfe_env:new()).
 'macroexpand-1'(Form, Env) ->
     case lfe_macro:expand_expr_1(Form, Env) of
-	{yes,Exp} -> Exp;
-	no -> Form
+    {yes,Exp} -> Exp;
+    no -> Form
     end.
 
 'macroexpand-all'(Form) -> 'macroexpand-all'(Form, lfe_env:new()).
@@ -315,12 +315,12 @@ macroexpand(Form, Env) ->
 %%  used to format terms; and Indentation is the current column.
 
 format_exception(Cl, Error, St, Sf, Ff, I) ->
-    Cs = case Cl of				%Class type as string
-	     throw -> "throw";
-	     exit -> "exit";
-	     error -> "error"
-	 end,
-    P = "exception " ++ Cs ++ ": ",		%Class description string
+    Cs = case Cl of                         %Class type as string
+         throw -> "throw";
+         exit -> "exit";
+         error -> "error"
+     end,
+    P = "exception " ++ Cs ++ ": ",         %Class description string
     [P,lfe_io:prettyprint1(Error, 10, length(P)+I-1),"\n",
      format_stacktrace(St, Sf, Ff)].
 
@@ -330,12 +330,12 @@ format_exception(Cl, Error, St, Sf, Ff, I) ->
 
 format_stacktrace(St0, Skip, Format) ->
     St1 = reverse(dropwhile(Skip, reverse(St0))),
-    Print = fun ({M,F,A}) when is_integer(A) ->	%Pre R15
-		    lfe_io:format1("  in (~w ~w ~w)\n", [M,F,A]);
-		({M,F,A}) -> ["  in ",Format([':',M,F|A], 5),"\n"];
-		%% R15 and later.
-		({M,F,A,_}) when is_integer(A) ->
-		    lfe_io:format1("  in (~w ~w ~w)\n", [M,F,A]);
-		({M,F,A,_}) -> ["  in ",Format([':',M,F|A], 5),"\n"]
-	end,
+    Print = fun ({M,F,A}) when is_integer(A) ->    %Pre R15
+            lfe_io:format1("  in (~w ~w ~w)\n", [M,F,A]);
+        ({M,F,A}) -> ["  in ",Format([':',M,F|A], 5),"\n"];
+        %% R15 and later.
+        ({M,F,A,_}) when is_integer(A) ->
+            lfe_io:format1("  in (~w ~w ~w)\n", [M,F,A]);
+        ({M,F,A,_}) -> ["  in ",Format([':',M,F|A], 5),"\n"]
+    end,
     map(Print, St1).

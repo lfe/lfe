@@ -31,14 +31,14 @@
 
   (defun aa (x y)
     (let& ((o (e x))
-	   (p (e-1 y)))
-	  (tuple o p)))
+       (p (e-1 y)))
+      (tuple o p)))
   )
 
 (defun ab (x y)
   (let@ ((o (e x))
-	 (p (e-1 y)))
-	(tuple o p)))
+     (p (e-1 y)))
+    (tuple o p)))
 
 (defun ac (x y)
   (and-also (e x) (e-1 y) (aa x y))
@@ -50,17 +50,17 @@
 
 (defun ae (x y)
   (c-ond ((p-1 x) (e-1 y) (list x y))
-	 ((?= (p . ps) (e-1 x))		;Match (p . ps) or fail
-	  (list p ps))
-	 ((p-2 x) (e y) (tuple x y))
-	 (else (e y))))
+     ((?= (p . ps) (e-1 x))        ;Match (p . ps) or fail
+      (list p ps))
+     ((p-2 x) (e y) (tuple x y))
+     (else (e y))))
 
 (defun af (x y)
   (cond ((p-1 x) (e-1 y) (list x y))
-	((?= (p . ps) (e-1 x))		;Match (p . ps) or fail
-	 (list p ps))
-	((p-2 x) (e y) (tuple x y))
-	(else (e y))))
+    ((?= (p . ps) (e-1 x))        ;Match (p . ps) or fail
+     (list p ps))
+    ((p-2 x) (e y) (tuple x y))
+    (else (e y))))
 
 (defun e (x) (list 'e x))
 
@@ -75,8 +75,8 @@
 (defun a (age)
   (let ((p (make-person name '"Sune" age 100)))
     (list p
-	  (set-person-age p age)
-	  (set-person p name '"Kurt" age 53))))
+      (set-person-age p age)
+      (set-person p name '"Kurt" age 53))))
 
 (defun b (x y)
   (e x)
@@ -85,7 +85,7 @@
     (fletrec ((e (a) (aa a a)))
       (e x))))
 
-(define-syntax tmac			;Old style still valid
+(define-syntax tmac            ;Old style still valid
   (macro
     ((e) `(tuple 'ok ,e))
     ((e . es) `(tuple 'ok (tuple ,e . ,es)))))
@@ -93,13 +93,13 @@
 (defun t1 (x y)
   (list (tmac x) (tmac x 1 y 2)))
 
-(define-syntax d-o			;Old style still valid
+(define-syntax d-o            ;Old style still valid
   (syntax-rules
     ([((v i c) ...) (t r) b ...]
      (fletrec ((f (v ...)
-		  (if t
-		    r
-		    (progn b ... (f c ...)))))
+          (if t
+            r
+            (progn b ... (f c ...)))))
        (f i ...)))))
 
 (defun d1 (x y)
@@ -110,8 +110,8 @@
 
 (defun d2 (x y)
   (d-o ((n x (+ n 1))
-	(m y (- m 1))
-	(c 0 (+ c 1)))
+    (m y (- m 1))
+    (c 0 (+ c 1)))
        ((> n m) c)))
 
 ;; Some macro calls which will generate errors!

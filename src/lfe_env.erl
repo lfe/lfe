@@ -19,13 +19,13 @@
 -module(lfe_env).
 
 -export([new/0,add_env/2,
-	 add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
-	 fetch_vbinding/2,update_vbinding/3,del_vbinding/2,
-	 add_fbinding/4,add_fbindings/2,update_fbinding/4,
-	 is_fbound/3,get_fbinding/3,add_ibinding/5,
-	 is_gbound/3,get_gbinding/3,
-	 add_mbinding/3,add_mbindings/2,update_mbinding/3,
-	 is_mbound/2,get_mbinding/2]).
+    add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
+    fetch_vbinding/2,update_vbinding/3,del_vbinding/2,
+    add_fbinding/4,add_fbindings/2,update_fbinding/4,
+    is_fbound/3,get_fbinding/3,add_ibinding/5,
+    is_gbound/3,get_gbinding/3,
+    add_mbinding/3,add_mbindings/2,update_mbinding/3,
+    is_mbound/2,get_mbinding/2]).
 
 -import(lfe_lib, [is_bif/2,is_lfe_bif/2,is_erl_bif/2,is_guard_bif/2]).
 -import(lists, [reverse/1,reverse/2,map/2,foldl/3,dropwhile/2]).
@@ -96,7 +96,7 @@ fetch_vbinding(N, [_|Env]) -> fetch_vbinding(N, Env).
 
 del_vbinding(N, [{variable,N,_}|Env]) -> Env;
 del_vbinding(N, [Vb|Env]) -> [Vb|del_vbinding(N, Env)];
-del_vbinding(_, []) -> [].			%Be nice but should we
+del_vbinding(_, []) -> [].            %Be nice but should we
 
 add_fbinding(N, A, V, Env) -> [{function,N,A,V}|Env].
 
@@ -112,40 +112,40 @@ add_ibinding(M, R, A, L, Env) -> [{function,L,A,M,R}|Env].
 
 is_fbound(N, A, [{function,N,A,_}|_]) -> true;
 is_fbound(N, A, [{function,N,A,_,_}|_]) -> true;
-is_fbound(N, _, [{macro,N,_}|_]) -> false;	%Macros shadow
+is_fbound(N, _, [{macro,N,_}|_]) -> false;    %Macros shadow
 is_fbound(N, A, [_|Env]) -> is_fbound(N, A, Env);
-is_fbound(N, A, []) -> is_bif(N, A).    	%Known BIF, LFE or erlang
+is_fbound(N, A, []) -> is_bif(N, A).          %Known BIF, LFE or erlang
 
 get_fbinding(N, A, [{function,N,A,V}|_]) -> {yes,V};
-get_fbinding(N, A, [{function,N,A,M,F}|_]) -> {yes,M,F};	%Import
-get_fbinding(N, _, [{macro,N,_}|_]) -> no;			%Macros shadow
+get_fbinding(N, A, [{function,N,A,M,F}|_]) -> {yes,M,F};    %Import
+get_fbinding(N, _, [{macro,N,_}|_]) -> no;                  %Macros shadow
 get_fbinding(N, A, [_|Env]) -> get_fbinding(N, A, Env);
 get_fbinding(N, A, []) ->
     %% First check if is an LFE BIF.
     case is_lfe_bif(N, A) of
-	true -> {yes,lfe_lib,N};
-	false ->
-	    %% Now check if it is a known BIF.
-	    case is_erl_bif(N, A) of
-		true -> {yes,erlang,N};
-		false -> no
-	    end
+    true -> {yes,lfe_lib,N};
+    false ->
+        %% Now check if it is a known BIF.
+        case is_erl_bif(N, A) of
+        true -> {yes,erlang,N};
+        false -> no
+        end
     end.
 
 is_gbound(N, A, [{function,N,A,_}|_]) -> false;
 is_gbound(N, A, [{function,N,A,_,_}|_]) -> false;
-is_gbound(N, _, [{macro,N,_}|_]) -> false;	%Macros shadow
+is_gbound(N, _, [{macro,N,_}|_]) -> false;          %Macros shadow
 is_gbound(N, A, [_|Env]) -> is_gbound(N, A, Env);
-is_gbound(N, A, []) -> is_guard_bif(N, A).    	%Known guard BIF
+is_gbound(N, A, []) -> is_guard_bif(N, A).          %Known guard BIF
 
 get_gbinding(N, A, [{function,N,A,_}|_]) -> no;
-get_gbinding(N, A, [{function,N,A,_,_}|_]) -> no;	%Import
-get_gbinding(N, _, [{macro,N,_}|_]) -> no;		%Macros shadow
+get_gbinding(N, A, [{function,N,A,_,_}|_]) -> no;   %Import
+get_gbinding(N, _, [{macro,N,_}|_]) -> no;          %Macros shadow
 get_gbinding(N, A, [_|Env]) -> get_gbinding(N, A, Env);
 get_gbinding(N, A, []) ->
     case is_guard_bif(N, A) of
-	true -> {yes,erlang,N};
-	false -> no
+    true -> {yes,erlang,N};
+    false -> no
     end.
 
 add_mbinding(N, V, Env) -> [{macro,N,V}|Env].
@@ -158,14 +158,14 @@ update_mbinding(N, V, [{macro,N,_}|Env]) ->
 update_mbinding(N, V, [Mb|Env]) ->
     [Mb|update_mbinding(N, V, Env)].
 
-is_mbound(N, [{function,N,_,_}|_]) -> false;	%Functions shadow
-is_mbound(N, [{function,N,_,_,_}|_]) -> false;	%Functions shadow
+is_mbound(N, [{function,N,_,_}|_]) -> false;    %Functions shadow
+is_mbound(N, [{function,N,_,_,_}|_]) -> false;  %Functions shadow
 is_mbound(N, [{macro,N,_}|_]) -> true;
 is_mbound(N, [_|Env]) -> is_mbound(N, Env);
 is_mbound(_, []) -> false.
 
-get_mbinding(N, [{function,N,_,_}|_]) -> no;	%Functions shadow
-get_mbinding(N, [{function,N,_,_,_}|_]) -> no;	%Functions shadow
+get_mbinding(N, [{function,N,_,_}|_]) -> no;    %Functions shadow
+get_mbinding(N, [{function,N,_,_,_}|_]) -> no;  %Functions shadow
 get_mbinding(N, [{macro,N,V}|_]) -> {yes,V};
 get_mbinding(N, [_|Env]) -> get_mbinding(N, Env);
 get_mbinding(_, []) -> no.
