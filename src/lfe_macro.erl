@@ -536,11 +536,40 @@ exp_userdef_macro([Mac|Args], Def0, Env, St0) ->
 exp_predef_macro(Call, Env, St) ->
     %%lfe_io:format("pdef: ~p\n", [Call]),
     try
-	exp_predef(Call, Env, St)
+    %lfe_io:format("exp_predef_macro: ~p\n", [Call]),
+    exp_predef(check_erl_call(Call), Env, St)
     catch
-	error:Error ->
-	    Stack = erlang:get_stacktrace(),
-	    erlang:error({expand_macro,Call,{Error,Stack}})
+    error:Error ->
+        Stack = erlang:get_stacktrace(),
+        erlang:error({expand_macro,Call,{Error,Stack}})
+    end.
+
+%% check_erl_call(Call) -> Converted | Call.
+%%  Check to see if the call is of the 'mod:func' form, and if so,
+%%  convert that to the LFE-standard ': mod func' call. If not,
+%%  simply return the passed call value.
+
+check_erl_call(Call) ->
+    case Call of
+        [Name|As] ->
+            %io:format("check_erl_call: ~p, ~p~n", [Name,As]),
+            convert_call(Name,As);
+        _ -> Call
+    end.
+
+%% convert_call(Name, As) -> [':',Mod,Func]++As | [Name]++As
+%%  If the passed name contains a colon-separated atom (i.e.,
+%%  module name and function name), change it to standard LFE
+%%  form. If not, return the name unconverted.
+
+convert_call(Name, As) ->
+    case string:tokens(atom_to_list(Name),":") of
+        [M,F] ->
+            %io:format("convert_call/2: ~p, ~p, ~p, ~p~n", [Name,As,M,F]),
+            [':',list_to_atom(M),list_to_atom(F)] ++ As;
+        _ ->
+            %io:format("convert_call/2: ~p, ~p~n", [Name,As]),
+            [Name] ++ As
     end.
 
 %% exp_predef(Form, Env, State) -> {yes,Form,State} | no.
