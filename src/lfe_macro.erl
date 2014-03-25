@@ -790,6 +790,12 @@ exp_predef(['MODULE'], _, St) ->
     {yes,?Q(St#mac.module),St};
 exp_predef(['LINE'], _, St) ->
     {yes,?Q(St#mac.line),St};
+exp_predef([Fun|As], _, St) when is_atom(Fun) ->
+    case string:tokens(atom_to_list(Fun), ":") of
+        [M,F] ->
+            {yes,[call,?Q(list_to_atom(M)),?Q(list_to_atom(F))|As],St};
+        _ -> no                                 %This will also catch a:b:c
+    end;
 %% This was not a call to a predefined macro.
 exp_predef(_, _, _) -> no.
 
