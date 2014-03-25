@@ -89,14 +89,12 @@ get-version:
 	@echo "Getting version info ..."
 	@echo
 	@echo -n app.src: ''
-	@erl -eval 'io:format("~p~n", [ \
-		proplists:get_value(vsn,element(3,element(2,hd(element(3, \
-		erl_eval:exprs(element(2, erl_parse:parse_exprs(element(2, \
-		erl_scan:string("Data = " ++ binary_to_list(element(2, \
-		file:read_file("src/$(LIB).app.src"))))))), []))))))])' \
+	@erl -eval '{ok,[App]}=file:consult("src/$(LIB).app.src"), \
+		V=proplists:get_value(vsn,element(3,App)), \
+		io:format("~p~n",[V])' \
 		$(FINISH)
 	@echo -n package.exs: ''
-	@grep version package.exs |awk '{print $$2}'|sed -e 's/,//g'
+	@grep version package.exs | awk '{print $$2}'| sed -e 's/,//g'
 
 upload: get-deps get-version
 	@echo
