@@ -28,31 +28,31 @@
 
 (defmodule guard_SUITE
   (export (all 0) (suite 0) (groups 0) (init_per_suite 1) (end_per_suite 1)
-	  (init_per_group 2) (end_per_group 2)
-	  (misc 1) (const_cond 1) (basic_not 1) (complex_not 1) (nested_nots 1)
-	  (semicolon 1) (complex_semicolon 1) (comma 1)
-	  (or_guard 1) (more_or_guards 1)
-	  (complex_or_guards 1) (and_guard 1)
- 	  (xor_guard 1) (more_xor_guards 1)
-	  (old_guard_tests 1)
-	  (build_in_guard 1) (gbif 1)
-	  (t_is_boolean 1) (is_function_2 1)
-	  (tricky 1) (rel_ops 1) (literal_type_tests 1)
-	  (basic_andalso_orelse 1) (traverse_dcd 1)
-	  (check_qlc_hrl 1) (andalso_semi 1) (t_tuple_size 1) (binary_part 1)
-	  ))
+      (init_per_group 2) (end_per_group 2)
+      (misc 1) (const_cond 1) (basic_not 1) (complex_not 1) (nested_nots 1)
+      (semicolon 1) (complex_semicolon 1) (comma 1)
+      (or_guard 1) (more_or_guards 1)
+      (complex_or_guards 1) (and_guard 1)
+       (xor_guard 1) (more_xor_guards 1)
+      (old_guard_tests 1)
+      (build_in_guard 1) (gbif 1)
+      (t_is_boolean 1) (is_function_2 1)
+      (tricky 1) (rel_ops 1) (literal_type_tests 1)
+      (basic_andalso_orelse 1) (traverse_dcd 1)
+      (check_qlc_hrl 1) (andalso_semi 1) (t_tuple_size 1) (binary_part 1)
+      ))
 
 (defmacro MODULE () `'guard_SUITE)
 
 (defun all ()
   ;; (: test_lib recompile (MODULE))
   (list 'misc 'const_cond 'basic_not 'complex_not 'nested_nots
-	'semicolon 'complex_semicolon 'comma 'or_guard
-	'more_or_guards 'complex_or_guards 'and_guard 'xor_guard
-	'more_xor_guards 'build_in_guard 'old_guard_tests 'gbif
-	't_is_boolean 'is_function_2 'tricky 'rel_ops
-	'literal_type_tests 'basic_andalso_orelse 'traverse_dcd
-	'check_qlc_hrl 'andalso_semi 't_tuple_size 'binary_part))
+    'semicolon 'complex_semicolon 'comma 'or_guard
+    'more_or_guards 'complex_or_guards 'and_guard 'xor_guard
+    'more_xor_guards 'build_in_guard 'old_guard_tests 'gbif
+    't_is_boolean 'is_function_2 'tricky 'rel_ops
+    'literal_type_tests 'basic_andalso_orelse 'traverse_dcd
+    'check_qlc_hrl 'andalso_semi 't_tuple_size 'binary_part))
 
 ;;(defun suite () (list (tuple 'ct_hooks (list 'ts_install_cth))))
 (defun suite () ())
@@ -70,10 +70,10 @@
 (defun misc
   ([config] (when (is_list config))
    (line (test-pat 42 (case (id 42)
-			(x (when (- x)) 'ok)
-			(x x))))
+            (x (when (- x)) 'ok)
+            (x x))))
    (line (test-pat (tuple 'a 'b 'c)
-		   (misc-1 '(#(#(a b c)) #((4)) #((3)) #(-2)))))
+           (misc-1 '(#(#(a b c)) #((4)) #((3)) #(-2)))))
    (line (test-pat 'none (misc-1 '(#(#(a b c)) #((4)) #((3)) #(-3)))))
    (line (test-pat 'none (misc-1 '(#(#(a b c)) #((4)) #((7)) #(-2)))))
    (line (test-pat 'none (misc-1 '(#(#(a b c)) #((4)) #((3)) #((1 2 3))))))
@@ -93,13 +93,13 @@
 (defun misc-1
   ([(list (tuple w) (tuple x) (tuple y) (tuple z))]
    (eif (andalso (> x y) (=:= (abs z) 2)) (id w)
-	'true 'none)))
+    'true 'none)))
 
 ;; This is semicolon safe.
 (defun get-data
   ([(tuple 'o active raw) bytes buffer] (when (or (=:= raw 'raw) (=:= raw 0)))
    (eif (orelse (=/= active 'false) (=:= bytes 0)) (tuple 'ok buffer #b())
-	'true 'error)))
+    'true 'error)))
 
 (defun const_cond
   ([config] (when (is_list config))
@@ -120,13 +120,13 @@
 (defun basic_not
   ([config] (when (is_list config))
    (let* ((true (id 'true))
-	  (false (id 'false))
-	  (glurf (id 'glurf))
-	  (a (id 5))
-	  (b (id 37.5))
-	  (c (id -1))
-	  (d (id 5))
-	  (atuple (tuple false true glurf)))
+      (false (id 'false))
+      (glurf (id 'glurf))
+      (a (id 5))
+      (b (id 37.5))
+      (c (id -1))
+      (d (id 5))
+      (atuple (tuple false true glurf)))
 
      ;; These are all semicolon safe.
      (line (check (lambda () (eif (not 'false) 'ok 'true 'error)) 'ok))
@@ -139,18 +139,18 @@
      (line (check (lambda () (eif (> a d) 'gt (< a d) 'lt (== a d) 'eq)) 'eq))
 
      (line (check (lambda () (eif (not (> 7 453)) 'le (not (< 7 453)) 'ge
-				  (not (== 7 453)) 'ne 'true 'eq)) 'le))
+                  (not (== 7 453)) 'ne 'true 'eq)) 'le))
      (line (check (lambda () (eif (not (> 7 -8)) 'le (not (< 7 -8)) 'ge
-				  (not (== 7 -8)) 'ne 'true 'eq)) 'ge))
+                  (not (== 7 -8)) 'ne 'true 'eq)) 'ge))
      (line (check (lambda () (eif (not (> 7 7)) 'le (not (< 7 7)) 'ge
-				  (not (== 7 7)) 'ne 'true 'eq)) 'le))
+                  (not (== 7 7)) 'ne 'true 'eq)) 'le))
 
      (line (check (lambda () (eif (not (> a b)) 'le (not (< a b)) 'le
-				  (not (== a b)) 'ne 'true 'eq)) 'le))
+                  (not (== a b)) 'ne 'true 'eq)) 'le))
      (line (check (lambda () (eif (not (> a c)) 'le (not (< a c)) 'ge
-				  (not (== a c)) 'ne 'true 'eq)) 'ge))
+                  (not (== a c)) 'ne 'true 'eq)) 'ge))
      (line (check (lambda () (eif (not (> a d)) 'le (not (< a d)) 'ge
-				  (not (== a d)) 'ne 'true 'eq)) 'le))
+                  (not (== a d)) 'ne 'true 'eq)) 'le))
 
      (line (check (lambda () (eif (not (element 1 atuple)) 'ok 'true 'error)) 'ok))
      (line (check (lambda () (eif (not (element 2 atuple)) 'ok 'true 'error)) 'error))
@@ -169,22 +169,22 @@
      (line (check (lambda () (eif (not (element 2 atuple)) 'ok 'true 'error)) 'error))
 
      (line (check (lambda () (eif (not (== (element 3 atuple) 'gurka)) 'ok
-				  'true 'error)) 'error))
+                  'true 'error)) 'error))
      (line (check (lambda () (eif (not (=/= (element 3 atuple) 'gurka)) 'ok
-				  'true 'error)) 'ok))
+                  'true 'error)) 'ok))
 
      (line (check (lambda () (eif (== (tuple 'a (not (element 2 atuple)))
-				      #(a false)) 'ok 'true 'error)) 'ok))
+                      #(a false)) 'ok 'true 'error)) 'ok))
      (line (check (lambda () (eif (== (tuple 'a (not (element 1 atuple)))
-				      #(a false)) 'ok 'true 'error)) 'error))
+                      #(a false)) 'ok 'true 'error)) 'error))
 
      (line (check (lambda () (eif (not (or (element 1 atuple)
-					   (element 3 atuple)))
-				  'ok 'true 'error)) 'error))
+                       (element 3 atuple)))
+                  'ok 'true 'error)) 'error))
      ;; Orelse
      (line (check (lambda () (eif (not (orelse (element 1 atuple)
-					       (element 3 atuple)))
-				  'ok 'true 'error)) 'error))
+                           (element 3 atuple)))
+                  'ok 'true 'error)) 'error))
 
      'ok)))
 
@@ -212,7 +212,7 @@
 
 (defun nested-not-1
   ([x y] (when (not (and (or (> x y) (not (is_atom x)))
-			     (or (is_atom y) (== x 3.4)))))
+                 (or (is_atom y) (== x 3.4)))))
    'true)
   ([_ _] 'false))
 
@@ -221,7 +221,7 @@
 
 (defun nested-not-2
   ([x y z true] (when (not (and true (not (or (and (not x) (not y))
-					      (not (is_atom z)))))))
+                          (not (is_atom z)))))))
    'true)
   ([_ _ _ _] 'false))
 
@@ -245,16 +245,16 @@
    (line (check (lambda () (eif (progn 'true 'true) 'ok)) 'ok))
    (line (check (lambda () (eif (progn 'false 'false) 'ok 'true 'error)) 'error))
    (line (check (lambda () (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
-				  (catch (eif (progn 'true 'false) 'ok
-					      (progn 'false 'true) 'ok
-					      (progn 'false 'false) 'ok))))
-			     'exit))
-		'exit))
+                  (catch (eif (progn 'true 'false) 'ok
+                          (progn 'false 'true) 'ok
+                          (progn 'false 'false) 'ok))))
+                 'exit))
+        'exit))
 
    (let ((true (id 'true))
-	 (false (id 'false))
-	 (glurf (id 'glurf))
-	 (atuple (id #(a b c))))
+     (false (id 'false))
+     (glurf (id 'glurf))
+     (atuple (id #(a b c))))
 
      ;; ',' combinations of true/false in variables.
      (line (check (lambda () (eif (progn true false) 'ok 'true 'error)) 'error))
@@ -263,11 +263,11 @@
      ;; These used to crash the compiler!
      (line (check (lambda () (eif (progn false false) 'ok 'true 'error)) 'error))
      (line (check (lambda () (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
-				    (catch (eif (progn true false) 'ok
-						(progn false true) 'ok
-						(progn false false) 'ok))))
-			       'exit))
-		  'exit))
+                    (catch (eif (progn true false) 'ok
+                        (progn false true) 'ok
+                        (progn false false) 'ok))))
+                   'exit))
+          'exit))
 
      ;; ',' combinations of true/false, and non-boolean in variables.
      (line (check (lambda () (eif (progn true glurf) 'ok 'true 'error)) 'error))
@@ -276,37 +276,37 @@
      ;; These used to crash the compiler!
      (line (check (lambda () (eif (progn glurf glurf) 'ok 'true 'error)) 'error))
      (line (check (lambda () (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
-				    (catch (eif (progn true glurf) 'ok
-						(progn glurf true) 'ok
-						(progn glurf glurf) 'ok))))
-			       'exit))
-		  'exit))
+                    (catch (eif (progn true glurf) 'ok
+                        (progn glurf true) 'ok
+                        (progn glurf glurf) 'ok))))
+                   'exit))
+          'exit))
 
      ;; ',' combinations of true/false with errors.
      (line (check (lambda () (eif (progn true (element 42 atuple)) 'ok
-				  'true 'error)) 'error))
+                  'true 'error)) 'error))
      (line (check (lambda () (eif (progn (element 42 atuple) true) 'ok
-				  'true 'error)) 'error))
+                  'true 'error)) 'error))
      (line (check (lambda () (eif (progn true true) 'ok)) 'ok))
      (line (check (lambda () (eif (progn (element 42 atuple)
-					 (element 42 atuple))
-				  'ok 'true 'error)) 'error))
+                     (element 42 atuple))
+                  'ok 'true 'error)) 'error))
      (line (check (lambda ()
-		    (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
-			   (catch (eif (progn true (element 42 atuple)) 'ok
-				       (progn (element 42 atuple) true) 'ok
-				       (progn (element 42 atuple)
-					      (element 42 atuple)) 'ok))))
-			       'exit))
-		  'exit)))
+            (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
+               (catch (eif (progn true (element 42 atuple)) 'ok
+                       (progn (element 42 atuple) true) 'ok
+                       (progn (element 42 atuple)
+                          (element 42 atuple)) 'ok))))
+                   'exit))
+          'exit)))
 
    'ok))
 
 (defun or_guard
   ([config] (when (is_list config))
    (let ((true (id 'true))
-	 (false (id 'false))
-	 (glurf (id 'glurf)))
+     (false (id 'false))
+     (glurf (id 'glurf)))
 
      ;; 'or' combinations of literal true/false.
      (line (check (lambda () (eif (or 'true 'false) 'ok)) 'ok))
@@ -319,9 +319,9 @@
      (line (check (lambda () (eif (or 'glurf 'glurf) 'ok 'true 'error)) 'error))
 
      (line (check (lambda () (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
-				    (catch (eif (or 'false 'false) 'ok))))
-			       'exit))
-		  'exit))
+                    (catch (eif (or 'false 'false) 'ok))))
+                   'exit))
+          'exit))
 
      ;; 'or' combinations using variables containing true/false.
      (line (check (lambda () (eif (or true false) 'ok)) 'ok))
@@ -336,74 +336,74 @@
      (line (check (lambda () (eif (or glurf glurf) 'ok 'true 'error)) 'error))
 
      (line (check (lambda ()
-     		    (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
-     			   (catch (eif (or false false) 'ok))))
-     		      'exit))
-     		  'exit)))
+                 (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
+                    (catch (eif (or false false) 'ok))))
+                   'exit))
+               'exit)))
 
    'ok))
 
 (defun more_or_guards
   ([config] (when (is_list config))
    (let* ((true (id 'true))
-	  (false (id 'false))
-	  (atuple (id #(false true gurks))))
+      (false (id 'false))
+      (atuple (id #(false true gurks))))
 
      (line (check (lambda ()
-		    (eif (or (element 42 atuple) false) 'ok 'true 'error))
-		  'error))
+            (eif (or (element 42 atuple) false) 'ok 'true 'error))
+          'error))
 
      (line (check (lambda ()
-		    (eif (or false (element 42 atuple)) 'ok 'true 'error))
-		  'error))
+            (eif (or false (element 42 atuple)) 'ok 'true 'error))
+          'error))
 
      (line (check (lambda ()
-		    (eif (or (element 18 atuple) (element 42 atuple)) 'ok
-			 'true 'error))
-		  'error))
+            (eif (or (element 18 atuple) (element 42 atuple)) 'ok
+             'true 'error))
+          'error))
 
      (line (check (lambda ()
-		    (eif (or true (element 42 atuple)) 'ok
-			 'true 'error))
-		  'error))
+            (eif (or true (element 42 atuple)) 'ok
+             'true 'error))
+          'error))
 
      (line (check (lambda ()
-		    (eif (or (element 42 atuple) true) 'ok
-			 'true 'error))
-		  'error))
+            (eif (or (element 42 atuple) true) 'ok
+             'true 'error))
+          'error))
 
      (line (check (lambda ()
-		    (eif (or (or (element 1 atuple) (element 42 atuple)) true)
-			 'ok 'true 'error))
-		  'error))
+            (eif (or (or (element 1 atuple) (element 42 atuple)) true)
+             'ok 'true 'error))
+          'error))
 
      (line (check (lambda ()
-		    (eif (or (or (element 1 atuple) true) (element 42 atuple))
-			 'ok 'true 'error))
-		  'error))
+            (eif (or (or (element 1 atuple) true) (element 42 atuple))
+             'ok 'true 'error))
+          'error))
 
      (line (check (lambda ()
-		    (eif (or (== (binary (false (size 8))) #b(0))
-			     (element 2 atuple)) 'ok
-			 'true 'error))
-		  'error))
+            (eif (or (== (binary (false (size 8))) #b(0))
+                 (element 2 atuple)) 'ok
+             'true 'error))
+          'error))
 
      (line (check (lambda ()
-		    (eif (or (element 2 atuple)
-			     (== (binary (true (size 8))) #b(0))) 'ok
-			 'true 'error))
-		  'error))
+            (eif (or (element 2 atuple)
+                 (== (binary (true (size 8))) #b(0))) 'ok
+             'true 'error))
+          'error))
 
      (line (check (lambda ()
-		    (eif (or (element 2 atuple) (element 42 atuple)) 'ok
-			 'true 'error))
-		  'error))
+            (eif (or (element 2 atuple) (element 42 atuple)) 'ok
+             'true 'error))
+          'error))
 
      (line (check (lambda ()
-		    (eif (or (or (element 1 atuple) (element 2 atuple))
-			     (element 19 atuple)) 'ok
-			 'true 'error))
-		  'error)))
+            (eif (or (or (element 1 atuple) (element 2 atuple))
+                 (element 19 atuple)) 'ok
+             'true 'error))
+          'error)))
    'ok))
 
 (defun complex_or_guards
@@ -486,7 +486,7 @@
 
 (defun complex-or-1 (a b)
   (eif (or (and (< 3 (tuple_size a)) (< (tuple_size a) 9))
-	   (and (< 2 (tuple_size b)) (< (tuple_size b) 7)))
+       (and (< 2 (tuple_size b)) (< (tuple_size b) 7)))
        'ok 'true 'error))
 
 (defun complex-or-2 (tuple)
@@ -506,7 +506,7 @@
 
 (defun complex-or-6 (a b)
   (eif (or (not (and (not (element 1 a)) (not (element 2 a))))
-	   (not (not (> (size b) 3))))
+       (not (not (> (size b) 3))))
        'ok 'true 'error))
 
 (defun and_guard
@@ -523,17 +523,17 @@
    (line (check (lambda () (eif (and 'glurf 'glurf) 'ok 'true 'error)) 'error))
 
    (line (check (lambda ()
-		  (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
-			 (catch (eif (and 'true 'false) 'ok
-				     (and 'false 'true) 'ok
-				     (and 'false 'false) 'ok))))
-		    'exit))
-		'exit))
+          (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
+             (catch (eif (and 'true 'false) 'ok
+                     (and 'false 'true) 'ok
+                     (and 'false 'false) 'ok))))
+            'exit))
+        'exit))
 
    (let* ((true (id 'true))
-	  (false (id 'false))
-	  (glurf (id 'glurf))
-	  (atuple (id #(a b c))))
+      (false (id 'false))
+      (glurf (id 'glurf))
+      (atuple (id #(a b c))))
 
      ;; 'and' combinations of true/false in variables.
 
@@ -543,12 +543,12 @@
      (line (check (lambda () (eif (and false false) 'ok 'true 'error)) 'error))
 
      (line (check (lambda ()
-		    (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
-			   (catch (eif (and true false) 'ok
-				       (and false true) 'ok
-				       (and false false) 'ok))))
-		      'exit))
-		  'exit))
+            (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
+               (catch (eif (and true false) 'ok
+                       (and false true) 'ok
+                       (and false false) 'ok))))
+              'exit))
+          'exit))
 
      ;; 'and' combinations of true/false and a non-boolean in variables.
 
@@ -557,39 +557,39 @@
      (line (check (lambda () (eif (and glurf glurf) 'ok 'true 'error)) 'error))
 
      (line (check (lambda ()
-		    (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
-			   (catch (eif (and 'true 'glurf) 'ok
-				       (and 'glurf 'true) 'ok
-				       (and 'glurf 'glurf) 'ok))))
-		      'exit))
-		  'exit))
+            (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
+               (catch (eif (and 'true 'glurf) 'ok
+                       (and 'glurf 'true) 'ok
+                       (and 'glurf 'glurf) 'ok))))
+              'exit))
+          'exit))
 
      ;; 'and' combinations of true/false with errors.
      (line (check (lambda () (eif (and true (element 42 atuple)) 'ok
-				  'true 'error)) 'error))
+                  'true 'error)) 'error))
      (line (check (lambda () (eif (and (element 42 atuple) true) 'ok
-				  'true 'error)) 'error))
+                  'true 'error)) 'error))
      (line (check (lambda () (eif (and true true) 'ok)) 'ok))
      (line (check (lambda () (eif (and (element 42 atuple)
-				       (element 42 atuple)) 'ok
-				       'true 'error)) 'error))
+                       (element 42 atuple)) 'ok
+                       'true 'error)) 'error))
      (line (check (lambda ()
-		    (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
-			   (catch (eif (and true (element 42 atuple)) 'ok
-				       (and (element 42 atuple) true) 'ok
-				       (and (element 42 atuple)
-					    (element 42 atuple)) 'ok))))
-		      'exit))
-		  'exit))
+            (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
+               (catch (eif (and true (element 42 atuple)) 'ok
+                       (and (element 42 atuple) true) 'ok
+                       (and (element 42 atuple)
+                        (element 42 atuple)) 'ok))))
+              'exit))
+          'exit))
 
      (line (test-pat 'ok (relprod #(Set a b) #(Set a b)))))
    'ok))
 
 (defun relprod
   ([r1 r2] (when (and (=:= (: erlang size r1) 3)
-		      (=:= (: erlang element 1 r1) 'Set))
-		 (and (=:= (: erlang size r2) 3)
-		      (=:= (: erlang element 1 r2) 'Set)))
+              (=:= (: erlang element 1 r1) 'Set))
+         (and (=:= (: erlang size r2) 3)
+              (=:= (: erlang element 1 r2) 'Set)))
    'ok))
 
 (defun xor_guard
@@ -601,34 +601,34 @@
    (line (check (lambda () (eif (xor 'false 'false) 'ok 'true 'error)) 'error))
 
    (line (check (lambda ()
-		  (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
-			 (catch (eif (xor 'false 'false) 'ok))))
-		    'exit))
-		'exit))
+          (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
+             (catch (eif (xor 'false 'false) 'ok))))
+            'exit))
+        'exit))
    (line (check (lambda ()
-		  (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
-			 (catch (eif (xor 'true 'true) 'ok))))
-		    'exit))
-		'exit))
+          (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
+             (catch (eif (xor 'true 'true) 'ok))))
+            'exit))
+        'exit))
 
    ;; 'xor' combinations using variables containing true/false.
    (let ((true (id 'true))
-	 (false (id 'false)))
+     (false (id 'false)))
      (line (check (lambda () (eif (xor true false) 'ok)) 'ok))
      (line (check (lambda () (eif (xor false true) 'ok)) 'ok))
      (line (check (lambda () (eif (xor true true) 'ok 'true 'error)) 'error))
      (line (check (lambda () (eif (xor false false) 'ok 'true 'error)) 'error))
 
      (line (check (lambda ()
-		    (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
-			   (catch (eif (xor false false) 'ok))))
-		      'exit))
-		  'exit))
+            (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
+               (catch (eif (xor false false) 'ok))))
+              'exit))
+          'exit))
      (line (check (lambda ()
-		    (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
-			   (catch (eif (xor true true) 'ok))))
-		      'exit))
-		  'exit))
+            (let (((tuple 'EXIT (tuple (tuple 'case_clause _) _))
+               (catch (eif (xor true true) 'ok))))
+              'exit))
+          'exit))
      )
 
    'ok))
@@ -636,39 +636,39 @@
 (defun more_xor_guards
   ([config] (when (is_list config))
    (let ((true (id 'true))
-	 (false (id 'false))
-	 (atuple (id #(false true gurka))))
+     (false (id 'false))
+     (atuple (id #(false true gurka))))
 
      (line (check (lambda ()
-		    (eif (xor (element 42 atuple) false) 'ok 'true 'error))
-		  'error))
+            (eif (xor (element 42 atuple) false) 'ok 'true 'error))
+          'error))
 
      (line (check (lambda ()
-		    (eif (xor (xor false (element 42 atuple)) false)
-			 'ok 'true 'error))
-		  'error))
+            (eif (xor (xor false (element 42 atuple)) false)
+             'ok 'true 'error))
+          'error))
 
      (line (check (lambda ()
-		    (eif (xor (element 18 atuple) (element 42 atuple))
-			 'ok 'true 'error))
-		  'error))
+            (eif (xor (element 18 atuple) (element 42 atuple))
+             'ok 'true 'error))
+          'error))
 
      (line (check (lambda ()
-		    (eif (xor true (element 42 atuple)) 'ok 'true 'error))
-		  'error))
+            (eif (xor true (element 42 atuple)) 'ok 'true 'error))
+          'error))
 
      (line (check (lambda ()
-		    (eif (xor (element 42 atuple) true) 'ok 'true 'error))
-		  'error))
+            (eif (xor (element 42 atuple) true) 'ok 'true 'error))
+          'error))
 
    'ok)))
 
 (defun build_in_guard
   ([config] (when (is_list config))
    (let* ((subbin #b((5.0 float)))
-	  (b (binary 1 (subbin binary) (3.5 float))))
+      (b (binary 1 (subbin binary) (3.5 float))))
      (line (test-pat 'ok (eif (=:= b (binary 1 (subbin binary) (3.5 float)))
-			      'ok)))
+                  'ok)))
      )))
 
 (defun old_guard_tests
@@ -747,7 +747,7 @@
 
 (defun my-is-bool (v)
   (let* ((r0 (my-is-bool-a v))
-	 (res (when (=:= res r0)) (my-is-bool-b v)))
+     (res (when (=:= res r0)) (my-is-bool-b v)))
     res))
 
 (defun my-is-bool-a (v)
@@ -805,27 +805,27 @@
 
 (defmacro T (op a b)
   `(let* (('ok (eif (,op ,a ,b) 'ok 'true 'error))
-	  ('ok (eif (not (,op ,a ,b)) 'error 'true 'ok)))
+      ('ok (eif (not (,op ,a ,b)) 'error 'true 'ok)))
      (funcall
       (lambda (x y true false)
-	(let* (('ok (eif (,op x y) 'ok 'true 'error))
-	       ('ok (eif (or (or false (,op x y)) false) 'ok 'true 'error))
-	       ('ok (eif (and (,op x y) true) 'ok 'true 'error))
-	       ('ok (eif (not (,op x y)) 'error 'true 'ok))
-	       ('ok (eif (or (or false (not (,op x y))) false) 'error
-			 'true 'ok)))
-	  'ok)) (id ,a) (id ,b) (id 'true) (id 'false))))
+    (let* (('ok (eif (,op x y) 'ok 'true 'error))
+           ('ok (eif (or (or false (,op x y)) false) 'ok 'true 'error))
+           ('ok (eif (and (,op x y) true) 'ok 'true 'error))
+           ('ok (eif (not (,op x y)) 'error 'true 'ok))
+           ('ok (eif (or (or false (not (,op x y))) false) 'error
+             'true 'ok)))
+      'ok)) (id ,a) (id ,b) (id 'true) (id 'false))))
 
 (defmacro F (op a b)
   `(let* (('ok (eif (,op ,a ,b) 'error 'true 'ok))
-	  ('ok (eif (not (,op ,a ,b)) 'ok 'true 'error)))
+      ('ok (eif (not (,op ,a ,b)) 'ok 'true 'error)))
      (funcall
       (lambda (x y true false)
-	(let* (('ok (eif (,op ,a ,b) 'error 'true 'ok))
-	       ('ok (eif (or (or false (,op x y)) false) 'error 'true 'ok))
-	       ('ok (eif (or (not (,op x y)) false) 'ok 'true 'error))
-	       ('ok (eif (and (not (,op x y)) true) 'ok 'true 'error)))
-	  'ok)) (id ,a) (id ,b) (id 'true) (id 'false))))
+    (let* (('ok (eif (,op ,a ,b) 'error 'true 'ok))
+           ('ok (eif (or (or false (,op x y)) false) 'error 'true 'ok))
+           ('ok (eif (or (not (,op x y)) false) 'ok 'true 'error))
+           ('ok (eif (and (not (,op x y)) true) 'ok 'true 'error)))
+      'ok)) (id ,a) (id ,b) (id 'true) (id 'false))))
 
 (defun rel_ops
   ([config] (when (is_list config))
@@ -881,13 +881,13 @@
 ;; literal_type_tests_1(Config) ->
 ;;     %% Generate an Erlang module with all different type of type tests.
 ;;     ?line Tests = make_test([{T,L} || T <- type_tests(), L <- literals()] ++
-;; 			    [{is_function,L1,L2} ||
-;; 				L1 <- literals(), L2 <- literals()]),
+;;                 [{is_function,L1,L2} ||
+;;                 L1 <- literals(), L2 <- literals()]),
 ;;     ?line Mod = literal_test,
 ;;     ?line Func = {function, 0, test, 0, [{clause,0,[],[],Tests}]},
 ;;     ?line Form = [{attribute,0,module,Mod},
-;; 		  {attribute,0,compile,export_all},
-;; 		  Func, {eof,0}],
+;;           {attribute,0,compile,export_all},
+;;           Func, {eof,0}],
 
 ;;     %% Print generated code for inspection.
 ;;     ?line lists:foreach(fun (F) -> io:put_chars([erl_pp:form(F),"\n"]) end, Form),
@@ -902,7 +902,7 @@
 
 ;;     %% Test compile:form/2.  Turn off all optimizations.
 ;;     ?line {ok,Mod,Code2} = compile:forms(Form, [binary,report,time,
-;; 						no_copt,no_postopt]),
+;;                         no_copt,no_postopt]),
 ;;     ?line smoke_disasm(Config, Mod, Code2),
 ;;     ?line {module,Mod} = code:load_binary(Mod, Mod, Code2),
 ;;     ?line Mod:test(),
@@ -968,15 +968,15 @@
   ([config] (when (is_list config))
    (let ((t (id #(type integers 23 42))))
      (line (test-pat 65 (eif (andalso (=:= (element 1 t) 'type)
-				      (=:= (tuple_size t) 4)
-				      (=:= (element 2 t) 'integers))
-			     (+ (element 3 t) (element 4 t))
-			     'true 'error)))
+                      (=:= (tuple_size t) 4)
+                      (=:= (element 2 t) 'integers))
+                 (+ (element 3 t) (element 4 t))
+                 'true 'error)))
      (line (test-pat 65 (case ()
-			  (() (andalso (=:= (element 1 t) 'type)
-				       (=:= (tuple_size t) 4)
-				       (=:= (element 2 t) 'integers))
-			   (+ (element 3 t) (element 4 t))))))
+              (() (andalso (=:= (element 1 t) 'type)
+                       (=:= (tuple_size t) 4)
+                       (=:= (element 2 t) 'integers))
+               (+ (element 3 t) (element 4 t))))))
      (line (test-pat 42 (basic-rt #(type integers 40 2))))
      (line (test-pat 5.0 (basic-rt #(vector #(3.0 4.0)))))
      (line (test-pat 20 (basic-rt '(+ 3 7))))
@@ -990,69 +990,69 @@
      (line (test-pat 'error (basic-rt ())))
 
      (let ((rel-prod-body (lambda (r1 r2)
-			    (eif (andalso (=:= (: erlang size r1) 3)
-					  (=:= (: erlang element 1 r1) 'Set)
-					  (=:= (: erlang size r2) 3)
-					  (=:= (: erlang element 1 r2) 'Set))
-				 'ok))))
+                (eif (andalso (=:= (: erlang size r1) 3)
+                      (=:= (: erlang element 1 r1) 'Set)
+                      (=:= (: erlang size r2) 3)
+                      (=:= (: erlang element 1 r2) 'Set))
+                 'ok))))
        (line (test-pat 'ok (funcall rel-prod-body #(Set a b) #(Set a b)))))
 
      ;; 'andalso'/'orelse' with calls known to fail already at compile time.
      ;; Used to crash the code generator.
      (let (('error (funcall (lambda ()
-			      (let ((r #(vars true)))
-				(eif (andalso (is_record r 'vars 2)
-					      (element 99 r))
-				     'ok
-				     'true 'error)))
-			    ))
-	   ('error (funcall (lambda (x)
-			      (let ((l #(a b c)))
-				(eif (andalso (is_list x)
-					      (> (length l) 4))
-				     'ok
-				     'true 'error)))
-			    ())))
+                  (let ((r #(vars true)))
+                (eif (andalso (is_record r 'vars 2)
+                          (element 99 r))
+                     'ok
+                     'true 'error)))
+                ))
+       ('error (funcall (lambda (x)
+                  (let ((l #(a b c)))
+                (eif (andalso (is_list x)
+                          (> (length l) 4))
+                     'ok
+                     'true 'error)))
+                ())))
        ())
 
      'ok)))
 
 (defun basic-rt
   ([t] (when (andalso (is_tuple t) (=:= (tuple_size t) 4)
-		      (=:= (element 1 t) 'type) (== (element 2 t) 'integers)))
+              (=:= (element 1 t) 'type) (== (element 2 t) 'integers)))
    (+ (element 3 t) (element 4 t)))
   ([t] (when (andalso (is_tuple t) (=:= (tuple_size t) 2)
-		      (=:= (element 1 t) 'vector)))
+              (=:= (element 1 t) 'vector)))
    (let (((tuple x y) (element 2 t)))
      (eif (progn (is_float x) (is_float y)) (: math sqrt (+ (* x x) (* y y))))
      ))
   ([(list '+ a b)]
     (* (id (+ a b)) 2))
   ([(tuple r1 r2)] (when (andalso (=:= (: erlang size r1) 3)
-				  (=:= (: erlang element 1 r1) 'Set)
-				  (=:= (: erlang size r2) 3)
-				  (=:= (: erlang element 1 r2) 'Set)))
+                  (=:= (: erlang element 1 r1) 'Set)
+                  (=:= (: erlang size r2) 3)
+                  (=:= (: erlang element 1 r2) 'Set)))
    (let* ((r1 (id r1))
-	  (r2 (id r2)))
+      (r2 (id r2)))
      r1))
   ([t] (when (andalso (is_tuple t) (=:= (tuple_size t) 2)
-		      (=:= (element 1 t) 'klurf)))
+              (=:= (element 1 t) 'klurf)))
    (* 3 (id (element 2 t))))
   ([_] 'error))
 
 (defun traverse_dcd
   ([config] (when (is_list config))
    (let* ((l0 '(#(log_header dcd_log "1.0" a b c)
-		#(log_header dcd_log "2.0" a b c)
-		#(log_header dcd_log "0.0" a b c) blurf))
-	  (#(cont (#(log_header dcd_log "0.0" a b c) blurf) log funny)
-	   (traverse-dcd (tuple 'cont l0) 'log 'funny))
-	  (l1 '(#(log_header dcd_log "1.0")))
-	  ((tuple 'cont l1 'log 'funny)
-	   (traverse-dcd (tuple 'cont l1) 'log 'funny))
-	  (l2 '(#(a tuple)))
-	  ((tuple 'cont l2 'log 'funny)
-	   (traverse-dcd (tuple 'cont l2) 'log 'funny)))
+        #(log_header dcd_log "2.0" a b c)
+        #(log_header dcd_log "0.0" a b c) blurf))
+      (#(cont (#(log_header dcd_log "0.0" a b c) blurf) log funny)
+       (traverse-dcd (tuple 'cont l0) 'log 'funny))
+      (l1 '(#(log_header dcd_log "1.0")))
+      ((tuple 'cont l1 'log 'funny)
+       (traverse-dcd (tuple 'cont l1) 'log 'funny))
+      (l2 '(#(a tuple)))
+      ((tuple 'cont l2 'log 'funny)
+       (traverse-dcd (tuple 'cont l2) 'log 'funny)))
      'ok)))
 
 ;; The function starts out with 3 arguments in {x,0}, {x,1}, {x,2}.
@@ -1066,11 +1066,11 @@
 (defun traverse-dcd
   ([(tuple cont (cons logh rest)) log fun]
    (when (andalso (is_tuple logh) (=:= (tuple_size logh) 6)
-		  (=:= (element 1 logh) 'log_header)
-		  (== (element 2 logh) 'dcd_log))
-	 (andalso (is_tuple logh) (=:= (tuple_size logh) 6)
-		  (=:= (element 1 logh) 'log_header)
-		  (>= (element 3 logh) '"1.0")))
+          (=:= (element 1 logh) 'log_header)
+          (== (element 2 logh) 'dcd_log))
+     (andalso (is_tuple logh) (=:= (tuple_size logh) 6)
+          (=:= (element 1 logh) 'log_header)
+          (>= (element 3 logh) '"1.0")))
    (traverse-dcd (tuple cont rest) log fun))
   ([(tuple cont recs) log fun]
    (tuple cont recs log fun)))
@@ -1086,7 +1086,7 @@
      (line (test-pat st (cqlc 'qlc 'q '(#(lc 1 2 3) b c) st)))
      (line (test-pat st (cqlc 'qlc 'q '(a b) st)))
      (line (test-pat (tuple 'r1 'true 'kalle)
-		     (cqlc 'qlc 'q '(#(lc 1 2 3) b) #(r1 true kalle))))
+             (cqlc 'qlc 'q '(#(lc 1 2 3) b) #(r1 true kalle))))
 
      'ok)))
 
@@ -1096,9 +1096,9 @@
     (case as
       ((cons (tuple 'lc _ _ _) _)
        (when (=:= m 'qlc) (=:= f 'q) (< arity 3)
-	     (not (and (orelse (=:= (element 1 st) 'r1) 'fail)
-		       (and (=:= (tuple_size st) 3)
-			    (element 2 st)))))
+         (not (and (orelse (=:= (element 1 st) 'r1) 'fail)
+               (and (=:= (tuple_size st) 3)
+                (element 2 st)))))
        'foo)
       (_ st))))
 
@@ -1122,7 +1122,7 @@
   ([bar] (when (or (andalso (is_list bar) (=:= (length bar) 3)) (=:= bar 1)))
    'ok))
 
-(defun t_tuple_size				;Cannot redefine tuple_size
+(defun t_tuple_size                ;Cannot redefine tuple_size
   ([config] (when (is_list config))
    (line (test-pat 10 (do-tuple-size #(1 2 3 4))))
    (line (fc (catch (do-tuple-size #(1 2 3)))))
@@ -1214,11 +1214,11 @@
    ;; Constant propagation
    (let ((bin #b(1 2 3)))
      (line (test-pat 'ok (eif (=:= (binary_part bin 1 1) #b(2)) 'ok
-			      ;; Compiler warning, clause cannot match (expected)
-			      'true 'error)))
+                  ;; Compiler warning, clause cannot match (expected)
+                  'true 'error)))
      (line (test-pat 'ok (eif (=:= (binary_part bin #(1 1)) #b(2)) 'ok
-			      ;; Compiler warning, clause cannot match (expected)
-			      'true 'error))))
+                  ;; Compiler warning, clause cannot match (expected)
+                  'true 'error))))
 
    'ok))
 

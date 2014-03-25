@@ -31,13 +31,13 @@
 
 read_hrl_file_1(Name) ->
     case epp:open(Name, []) of
-	{ok,Epp} ->
-	    %% These are two undocumented functions of epp.
-	    Fs = epp:parse_file(Epp),
-	    Ms = epp:macro_defs(Epp),
-	    epp:close(Epp),			%Now we close epp
-	    {ok,Fs,Ms};
-	{error,E} -> {error,E}
+    {ok,Epp} ->
+        %% These are two undocumented functions of epp.
+        Fs = epp:parse_file(Epp),
+        Ms = epp:macro_defs(Epp),
+        epp:close(Epp),            %Now we close epp
+        {ok,Fs,Ms};
+    {error,E} -> {error,E}
     end.
 
 %% Errors.
@@ -62,12 +62,12 @@ add_warning(L, W, St) ->
 
 file(Body, _, St0) ->
     case include_name(Body) of
-	{ok,Name} ->
-	    case read_file(Name, St0) of	%Try to read file
-		{ok,Fs,St1} -> {yes,['progn'|Fs],St1};
-		{error,E} -> error(E)
-	    end;
-	{error,E} -> error(E)
+    {ok,Name} ->
+        case read_file(Name, St0) of    %Try to read file
+        {ok,Fs,St1} -> {yes,['progn'|Fs],St1};
+        {error,E} -> error(E)
+        end;
+    {error,E} -> error(E)
     end.
 
 %% lib([FileName], Env, State) -> {yes,(progn ...),State} | no.
@@ -77,20 +77,20 @@ file(Body, _, St0) ->
 
 lib(Body, _, St0) ->
     case include_name(Body) of
-	{ok,Name} ->
-	    case read_file(Name, St0) of
-		{ok,Fs,St1} -> {yes,['progn'|Fs],St1};
-		{error,_} ->
-		    case lib_file_name(Name) of
-			{ok,Lfile} ->
-			    case read_file(Lfile, St0) of
-				{ok,Fs,St1} -> {yes,['progn'|Fs],St1};
-				{error,E} -> error(E)
-			    end;
-			{error,_} -> error(badarg)
-		    end
-	    end;
-	{error,E} -> error(E)
+    {ok,Name} ->
+        case read_file(Name, St0) of
+        {ok,Fs,St1} -> {yes,['progn'|Fs],St1};
+        {error,_} ->
+            case lib_file_name(Name) of
+            {ok,Lfile} ->
+                case read_file(Lfile, St0) of
+                {ok,Fs,St1} -> {yes,['progn'|Fs],St1};
+                {error,E} -> error(E)
+                end;
+            {error,_} -> error(badarg)
+            end
+        end;
+    {error,E} -> error(E)
     end.
 
 %% include_name(Body) -> bool().
@@ -98,8 +98,8 @@ lib(Body, _, St0) ->
 
 include_name([Name]) ->
     case io_lib:char_list(Name) of
-	true -> {ok,Name};
-	false -> {error,badarg}
+    true -> {ok,Name};
+    false -> {error,badarg}
     end;
 include_name(_) -> {error,badarg}.
 
@@ -109,24 +109,24 @@ include_name(_) -> {error,badarg}.
 lib_file_name(Lpath) ->
     [Lname|Rest] = filename:split(Lpath),
     case code:lib_dir(list_to_atom(Lname)) of
-	Ldir when is_list(Ldir) ->
-	    {ok,filename:join([Ldir|Rest])};
-	{error,E} -> {error,E}
+    Ldir when is_list(Ldir) ->
+        {ok,filename:join([Ldir|Rest])};
+    {error,E} -> {error,E}
     end.
 
 %% read_file(FileName, State) -> {ok,Forms,State} | {error,Error}.
 
 read_file(Name, St) ->
     case lists:suffix(".hrl", Name) of
-	true -> read_hrl_file(Name, St);       %Read file as .hrl file
-	false -> read_lfe_file(Name, St)
+    true -> read_hrl_file(Name, St);       %Read file as .hrl file
+    false -> read_lfe_file(Name, St)
     end.
 
 read_lfe_file(Name, St) ->
     %% Read the file as an LFE file.
     case lfe_io:read_file(Name) of
-	{ok,Fs} -> {ok,Fs,St};
-	{error,E} -> {error,E}
+    {ok,Fs} -> {ok,Fs,St};
+    {error,E} -> {error,E}
     end.
 
 %% read_hrl_file(FileName, State) -> {ok,Forms,State} | {error,Error}.
@@ -135,13 +135,13 @@ read_lfe_file(Name, St) ->
 
 read_hrl_file(Name, St) ->
     case epp:open(Name, []) of
-	{ok,Epp} ->
-	    %% These are two undocumented functions of epp.
-	    Fs = epp:parse_file(Epp),		%This must be called first
-	    Ms = epp:macro_defs(Epp),		% then this!
-	    epp:close(Epp),			%Now we close epp
-	    parse_hrl_file(Fs, Ms, St);
-	{error,E} -> {error,E}
+    {ok,Epp} ->
+        %% These are two undocumented functions of epp.
+        Fs = epp:parse_file(Epp),       %This must be called first
+        Ms = epp:macro_defs(Epp),       % then this!
+        epp:close(Epp),                 %Now we close epp
+        parse_hrl_file(Fs, Ms, St);
+    {error,E} -> {error,E}
     end.
 
 %% parse_hrl_file(Forms, Macros, State) -> {ok,Forms,State} | {error,Error}.
@@ -160,9 +160,9 @@ parse_hrl_file(Fs, Ms, St0) ->
 trans_forms([{attribute,_,record,{Name,Fields}}|Fs], St0) ->
     {As,Lfs,St1} = trans_forms(Fs, St0),
     case catch {ok,trans_record(Name, Fields)} of
-	{ok,Lrec} -> {As,[Lrec|Lfs],St1};
-	{'EXIT',_} ->				%Something went wrong
-	    {As,Lfs,add_warning({notrans_record,Name}, St1)}
+    {ok,Lrec} -> {As,[Lrec|Lfs],St1};
+    {'EXIT',_} ->                %Something went wrong
+        {As,Lfs,add_warning({notrans_record,Name}, St1)}
     end;
 trans_forms([{attribute,_,export,Es}|Fs], St0) ->
     {As,Lfs,St1} = trans_forms(Fs, St0),
@@ -178,13 +178,13 @@ trans_forms([{attribute,_,Name,E}|Fs], St0) ->
 trans_forms([{function,_,Name,Arity,Cls}|Fs], St0) ->
     {As,Lfs,St1} = trans_forms(Fs, St0),
     case catch {ok,trans_function(Name, Arity, Cls)} of
-	{ok,Lfunc} -> {As,[Lfunc|Lfs],St1};
-	{'EXIT',_} ->				%Something went wrong
-	    {As,Lfs,add_warning({notrans_function,Name,Arity}, St1)}
+    {ok,Lfunc} -> {As,[Lfunc|Lfs],St1};
+    {'EXIT',_} ->                       %Something went wrong
+        {As,Lfs,add_warning({notrans_function,Name,Arity}, St1)}
     end;
-trans_forms([{error,_}|Fs], St) ->		%What should we do with these?
+trans_forms([{error,_}|Fs], St) ->      %What should we do with these?
     trans_forms(Fs, St);
-trans_forms([_|Fs], St) ->			%Ignore everything else
+trans_forms([_|Fs], St) ->              %Ignore everything else
      trans_forms(Fs, St);
 trans_forms([], St) -> {[],[],St}.
 
@@ -200,9 +200,9 @@ trans_record(Name, Fs) ->
 record_fields(Fs) ->
     [ record_field(F) || F <- Fs ].
 
-record_field({record_field,_,F}) ->		%Just the field name
+record_field({record_field,_,F}) ->     %Just the field name
     lfe_trans:from_lit(F);
-record_field({record_field,_,F,Def}) ->		%Field name and default value
+record_field({record_field,_,F,Def}) -> %Field name and default value
     Fd = lfe_trans:from_lit(F),
     Ld = lfe_trans:from_expr(Def),
     [Fd,Ld].
@@ -221,23 +221,23 @@ trans_function(Name, _, Cls) ->
 trans_macros([{{atom,Mac},Defs}|Ms], St0) ->
     {Lms,St1} = trans_macros(Ms, St0),
     case catch trans_macro(Mac, Defs, St1) of
-	{'EXIT',_} ->				%It crashed
-	    {Lms,add_warning({notrans_macro,Mac}, St1)};
-	{none,St2} -> {Lms,St2};		%No definition, ignore
-	{Mdef,St2} -> {[Mdef|Lms],St2}
+    {'EXIT',_} ->                       %It crashed
+        {Lms,add_warning({notrans_macro,Mac}, St1)};
+    {none,St2} -> {Lms,St2};            %No definition, ignore
+    {Mdef,St2} -> {[Mdef|Lms],St2}
     end;
 trans_macros([], St) -> {[],St}.
 
-trans_macro(_, undefined, St) -> {none,St};	%Undefined macros
-trans_macro(_, {none,_}, St) -> {none,St};	%Predefined macros
+trans_macro(_, undefined, St) -> {none,St}; %Undefined macros
+trans_macro(_, {none,_}, St) -> {none,St};  %Predefined macros
 trans_macro(Mac, Defs0, St) ->
     Defs1 = order_macro_defs(Defs0),
     case trans_macro_defs(Defs1) of
-	[] -> {none,St};			%No definitions
-	Lcls -> {[defmacro,Mac|Lcls],St}
+    [] -> {none,St};                        %No definitions
+    Lcls -> {[defmacro,Mac|Lcls],St}
     end.
 
-order_macro_defs([{none,Ds}|Defs]) ->		%Put the no arg version last
+order_macro_defs([{none,Ds}|Defs]) ->       %Put the no arg version last
     Defs ++ [{none,Ds}];
 order_macro_defs(Defs) -> Defs.
 
@@ -285,13 +285,13 @@ trans_macro_body(As, Ts0) ->
 %% unquote_vars(_, ?Q(_)=E) -> E;
 %% unquote_vars(Alist, E) ->
 %%     case lfe_lib:assoc(E, Alist) of
-%% 	[_|New] -> New;				%Found it
-%% 	[] ->					%Not there
-%% 	    case E of
-%% 		[H|T] ->
-%% 		    [unquote_vars(Alist, H)|unquote_vars(Alist, T)];
-%% 		_ -> E
-%% 	    end
+%%     [_|New] -> New;          %Found it
+%%     [] ->                    %Not there
+%%         case E of
+%%         [H|T] ->
+%%             [unquote_vars(Alist, H)|unquote_vars(Alist, T)];
+%%         _ -> E
+%%         end
 %%     end.
 
 %% Backquote the last expression in the body.

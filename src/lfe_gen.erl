@@ -20,7 +20,7 @@
 
 -export([compile_forms/1]).
 -export([new_module/1,add_exports/2,add_imports/2,add_form/2,
-	 print_mod/1,compile_mod/1]).
+     print_mod/1,compile_mod/1]).
 
 -import(lists, [map/2,foldl/3,mapfoldl/3]).
 -import(ordsets, [add_element/2]).
@@ -33,8 +33,8 @@
 
 compile_forms(Fs) ->
     case lfe_comp:forms(Fs, [return]) of
-	{ok,Mod,Bin,Ws} -> {ok,Mod,Bin,Ws};
-	{error,Es,Ws} -> {error,Es,Ws}
+    {ok,Mod,Bin,Ws} -> {ok,Mod,Bin,Ws};
+    {error,Es,Ws} -> {error,Es,Ws}
     end.
 
 %% new_module(Name) -> Module.
@@ -51,19 +51,19 @@ new_module(Name) ->
 add_exports(Exps, Mod) ->
     Es0 = Mod#gen.exps,
     Es1 = foldl(fun ({N,Ar}, Es) when is_atom(N), is_integer(Ar) ->
-			add_element({N,Ar}, Es)
-		end, Es0, Exps),
+            add_element({N,Ar}, Es)
+        end, Es0, Exps),
     Mod#gen{exps=Es1}.
 
 add_imports({from,M,Is}, Mod) ->
     Imps0 = Mod#gen.imps,
     Imps1 = collect_imp(fun ({F,A}, Imps) -> store({F,A}, F, Imps) end,
-			M, Imps0, Is),
+            M, Imps0, Is),
     Mod#gen{imps=Imps1};
 add_imports({rename,M,Is}, Mod) ->
     Imps0 = Mod#gen.imps,
     Imps1 = collect_imp(fun ({{F,A},R}, Imps) -> store({F,A}, R, Imps) end,
-			M, Imps0, Is),
+            M, Imps0, Is),
     Mod#gen{imps=Imps1}.
 
 add_form(Form, Mod) ->
@@ -73,9 +73,9 @@ compile_mod(Mod) ->
     Fs = [build_def(Mod)|Mod#gen.forms],
     compile_forms(Fs).
 
-print_mod(Mod) ->				%Needs fixing
+print_mod(Mod) ->                %Needs fixing
     map(fun (F) -> [lfe_io:prettyprint1(F),io_lib:nl()] end,
-	[build_def(Mod)|Mod#gen.forms]).
+    [build_def(Mod)|Mod#gen.forms]).
 
 collect_imp(Fun, Mod, Imps, Is) ->
     Mimps0 = safe_fetch(Mod, Imps, []),
@@ -87,9 +87,9 @@ collect_imp(Fun, Mod, Imps, Is) ->
 build_def(Mod) ->
     Exps = map(fun ({N,I}) -> [N,I] end, Mod#gen.exps),
     Imps = map(fun ({M,Is}) ->
-		       [rename,M|map(fun ({{L,Ar},R}) -> [[L,Ar],R] end,
-				     Is)]
-	       end, Mod#gen.imps),
+               [rename,M|map(fun ({{L,Ar},R}) -> [[L,Ar],R] end,
+                     Is)]
+           end, Mod#gen.imps),
     [defmodule,Mod#gen.name,
      [export|Exps],
      [import|Imps]].
@@ -98,6 +98,6 @@ build_def(Mod) ->
 
 safe_fetch(Key, D, Def) ->
     case find(Key, D) of
-	{ok,Val} -> Val;
-	error -> Def
+    {ok,Val} -> Val;
+    error -> Def
     end.

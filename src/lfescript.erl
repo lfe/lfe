@@ -42,24 +42,24 @@ start() -> start([]).
 
 start(Lopts) ->
     try
-	process_flag(trap_exit, false),
-	case init:get_plain_arguments() of
-	    [File|Args] ->
-		parse_check_run(File, Args, Lopts);
-	    [] ->
-		lfe_io:format("lfescript: Missing filename\n", []),
-		halt(?ERROR_STATUS)
-	end
+    process_flag(trap_exit, false),
+    case init:get_plain_arguments() of
+        [File|Args] ->
+        parse_check_run(File, Args, Lopts);
+        [] ->
+        lfe_io:format("lfescript: Missing filename\n", []),
+        halt(?ERROR_STATUS)
+    end
     catch
-	%% Catch program errors.
-	throw:Str ->
-	    lfe_io:format("lfescript: ~s\n", [Str]),
-	    halt(?ERROR_STATUS);
-	_:Reason ->
-	    Stack = erlang:get_stacktrace(),	%Need to get this first
-	    lfe_io:format("lfescript: Internal error: ~p\n", [Reason]),
-	    lfe_io:format("~p\n", [Stack]),
-	    halt(?ERROR_STATUS)
+    %% Catch program errors.
+    throw:Str ->
+        lfe_io:format("lfescript: ~s\n", [Str]),
+        halt(?ERROR_STATUS);
+    _:Reason ->
+        Stack = erlang:get_stacktrace(),    %Need to get this first
+        lfe_io:format("lfescript: Internal error: ~p\n", [Reason]),
+        lfe_io:format("~p\n", [Stack]),
+        halt(?ERROR_STATUS)
     end.
 
 %% parse_check_run(FileName, Args, Options) -> no_return().
@@ -76,7 +76,7 @@ parse_check_run(File, Args, Lopts) ->
     lists:member("s", Lopts) andalso halt(?OK_STATUS),
     Fenv1 = make_env(Fs1, Fenv0, File, Args, Lopts),
     eval_code(Fenv1, File, Args, Lopts),
-    halt(?OK_STATUS).				%Everything worked, just exit
+    halt(?OK_STATUS).                %Everything worked, just exit
 
 error_exit(File, Es, Ws) ->
     list_errors(File, Es),
@@ -102,34 +102,34 @@ list_errors(_, []) -> ok.
 
 parse_file(File, _, _) ->
     case parse_file(File) of
-	{ok,Fs} -> Fs;
-	{error,Error} ->
-	    error_exit(File, [Error], [])
+    {ok,Fs} -> Fs;
+    {error,Error} ->
+        error_exit(File, [Error], [])
     end.
 
 parse_file(File) ->
     case file:open(File, [read]) of
-	{ok,F} ->
-	    io:get_line(F, ''),			%Skip first line
-	    case io:request(F, {get_until,'',lfe_scan,tokens,[2]}) of
-		{ok,Ts,_} ->
-		    Ret = parse_file1(Ts, [], []),
-		    file:close(F),
-		    Ret;
-		{error,Error,_} -> {error,Error}
-	    end;
-	{error,Error} -> {error,{none,file,Error}}
+    {ok,F} ->
+        io:get_line(F, ''),            %Skip first line
+        case io:request(F, {get_until,'',lfe_scan,tokens,[2]}) of
+        {ok,Ts,_} ->
+            Ret = parse_file1(Ts, [], []),
+            file:close(F),
+            Ret;
+        {error,Error,_} -> {error,Error}
+        end;
+    {error,Error} -> {error,{none,file,Error}}
     end.
 
 parse_file1([_|_]=Ts0, Pc0, Ss) ->
     case lfe_parse:sexpr(Pc0, Ts0) of
-	{ok,L,S,Ts1} -> parse_file1(Ts1, [], [{S,L}|Ss]);
-	{more,Pc1} ->
-	    %% Need more tokens but there are none, so call again to
-	    %% generate an error message.
-	    {error,E,_} = lfe_parse:sexpr(Pc1, {eof,99999}),
-	    {error,E};
-	{error,E,_} -> {error,E}
+    {ok,L,S,Ts1} -> parse_file1(Ts1, [], [{S,L}|Ss]);
+    {more,Pc1} ->
+        %% Need more tokens but there are none, so call again to
+        %% generate an error message.
+        {error,E,_} = lfe_parse:sexpr(Pc1, {eof,99999}),
+        {error,E};
+    {error,E,_} -> {error,E}
     end;
 parse_file1([], _, Ss) -> {ok,lists:reverse(Ss)}.
 
@@ -137,10 +137,10 @@ parse_file1([], _, Ss) -> {ok,lists:reverse(Ss)}.
 
 expand_macros(Fs0, File, _, _) ->
     case lfe_macro:expand_forms(Fs0, lfe_env:new()) of
-	{ok,Fs1,Fenv,Ws} ->
-	    list_warnings(File, Ws),
-	    {Fs1,Fenv};
-	{error,Es,Ws} -> error_exit(File, Es, Ws)
+    {ok,Fs1,Fenv,Ws} ->
+        list_warnings(File, Ws),
+        {Fs1,Fenv};
+    {error,Es,Ws} -> error_exit(File, Es, Ws)
     end.
 
 %% check_code(Forms, File, Args, Lopts) -> ok.
@@ -150,9 +150,9 @@ expand_macros(Fs0, File, _, _) ->
 check_code(Fs, File, _, _) ->
     Module = [{['define-module',dummy,[export,[main,1]]],1}|Fs],
     case lfe_lint:module(Module, []) of
-	{ok,Ws} ->
-	    list_warnings(File, Ws);
-	{error,Es,Ws} -> error_exit(File, Es, Ws)
+    {ok,Ws} ->
+        list_warnings(File, Ws);
+    {error,Es,Ws} -> error_exit(File, Es, Ws)
     end.
 
 %% make_env(Forms, File, Args, Lopts) -> FunctionEnv.
@@ -172,14 +172,14 @@ collect_form(['define-function',F,['match-lambda',[Pats|_]|_]=Match], _, St) ->
 
 eval_code(Fenv, _, Args, _) ->
     try
-	lfe_eval:expr([main,[quote,Args]], Fenv)
+    lfe_eval:expr([main,[quote,Args]], Fenv)
     catch
-	%% Catch all exceptions in the code.
-	Class:Error ->
-	    St = erlang:get_stacktrace(),	%Need to get this first
-	    Sf = fun (_) -> false end,
-	    Ff = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
-	    Cs = lfe_lib:format_exception(Class, Error, St, Sf, Ff, 1),
-	    io:put_chars(Cs),
-	    halt(?ERROR_STATUS)
+    %% Catch all exceptions in the code.
+    Class:Error ->
+        St = erlang:get_stacktrace(),    %Need to get this first
+        Sf = fun (_) -> false end,
+        Ff = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
+        Cs = lfe_lib:format_exception(Class, Error, St, Sf, Ff, 1),
+        io:put_chars(Cs),
+        halt(?ERROR_STATUS)
     end.

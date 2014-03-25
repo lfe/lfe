@@ -81,7 +81,7 @@ field_value(Fmt, Args) ->
 
 field_value([C|Fmt], Args, F) when is_integer(C), C >= $0, C =< $9 ->
     field_value(Fmt, Args, 10*F + (C - $0));
-field_value(Fmt, Args, F) ->		%Default case
+field_value(Fmt, Args, F) ->        %Default case
     {F,Fmt,Args}.
 
 pad_char([$.,$*|Fmt], [Pad|Args]) -> {Pad,Fmt,Args};
@@ -93,9 +93,9 @@ pad_char(Fmt, Args) -> {$\s,Fmt,Args}.
 
 pcount(Cs) ->
     foldl(fun ({$p,_,_,_,_,_}, Acc) -> Acc+1;
-	      ({$P,_,_,_,_,_}, Acc) -> Acc+1;
-	      (_, Acc) -> Acc
-	  end, 0, Cs).
+          ({$P,_,_,_,_,_}, Acc) -> Acc+1;
+          (_, Acc) -> Acc
+      end, 0, Cs).
 
 %% build([Control], Pc, Indentation) -> [Char].
 %%  Interpret the control structures. Count the number of print
@@ -106,8 +106,8 @@ build([{C,As,F,Ad,P,Pad}|Cs], Pc0, I) ->
     S = control(C, As, F, Ad, P, Pad, I),
     Pc1 = decr_pc(C, Pc0),
     if
-	Pc1 > 0 -> [S|build(Cs, Pc1, indentation(S, I))];
-	true -> [S|build(Cs, Pc1, I)]
+    Pc1 > 0 -> [S|build(Cs, Pc1, indentation(S, I))];
+    true -> [S|build(Cs, Pc1, I)]
     end;
 build([$\n|Cs], Pc, _I) -> [$\n|build(Cs, Pc, 0)];
 build([$\t|Cs], Pc, I) -> [$\t|build(Cs, Pc, ((I + 8) div 8) * 8)];
@@ -131,7 +131,7 @@ indentation([C|Cs], I) ->
 indentation([], I) -> I.
 
 %% collect_cc([FormatChar], [Argument]) ->
-%%	{Control,[ControlArg],[FormatChar],[Arg]}.
+%%    {Control,[ControlArg],[FormatChar],[Arg]}.
 %%  Here we collect the argments for each control character.
 %%  Be explicit to cause failure early.
 
@@ -155,8 +155,8 @@ collect_cc([$n|Fmt], Args) when is_list(Args) -> {$n,[],Fmt,Args};
 collect_cc([$i|Fmt], [A|Args]) -> {$i,[A],Fmt,Args}.
 
 %% control(FormatChar, [Argument], FieldWidth, Adjust, Precision, PadChar,
-%%	   Indentation) ->
-%%	[Char]
+%%       Indentation) ->
+%%    [Char]
 %%  This is the main dispatch function for the various formatting commands.
 %%  Field widths and precisions have already been calculated.
 
@@ -186,13 +186,13 @@ control($b, [A], F, Adj, P, Pad, _) when is_integer(A) ->
     unprefixed_integer(A, F, Adj, base(P), Pad, true);
 control($B, [A], F, Adj, P, Pad, _) when is_integer(A) ->
     unprefixed_integer(A, F, Adj, base(P), Pad, false);
-control($x, [A,Prefix], F, Adj, P, Pad, _) when is_integer(A), 
-						is_atom(Prefix) ->
+control($x, [A,Prefix], F, Adj, P, Pad, _) when is_integer(A),
+                        is_atom(Prefix) ->
     prefixed_integer(A, F, Adj, base(P), Pad, atom_to_list(Prefix), true);
 control($x, [A,Prefix], F, Adj, P, Pad, _) when is_integer(A) ->
     true = io_lib:deep_char_list(Prefix), %Check if Prefix a character list
     prefixed_integer(A, F, Adj, base(P), Pad, Prefix, true);
-control($X, [A,Prefix], F, Adj, P, Pad, _) when is_integer(A), 
+control($X, [A,Prefix], F, Adj, P, Pad, _) when is_integer(A),
                                                  is_atom(Prefix) ->
     prefixed_integer(A, F, Adj, base(P), Pad, atom_to_list(Prefix), false);
 control($X, [A,Prefix], F, Adj, P, Pad, _) when is_integer(A) ->
@@ -249,7 +249,7 @@ print(T, D, F, right, P, _, _) ->
 
 %% fwrite_e(Float, Field, Adjust, Precision, PadChar)
 
-fwrite_e(Fl, none, Adj, none, Pad) ->		%Default values
+fwrite_e(Fl, none, Adj, none, Pad) ->        %Default values
     fwrite_e(Fl, none, Adj, 6, Pad);
 fwrite_e(Fl, none, _Adj, P, _Pad) when P >= 2 ->
     float_e(Fl, float_data(Fl), P);
@@ -258,12 +258,12 @@ fwrite_e(Fl, F, Adj, none, Pad) ->
 fwrite_e(Fl, F, Adj, P, Pad) when P >= 2 ->
     term(float_e(Fl, float_data(Fl), P), F, Adj, F, Pad).
 
-float_e(Fl, Fd, P) when Fl < 0.0 ->		%Negative numbers
+float_e(Fl, Fd, P) when Fl < 0.0 ->        %Negative numbers
     [$-|float_e(-Fl, Fd, P)];
 float_e(_Fl, {Ds,E}, P) ->
     case float_man(Ds, 1, P-1) of
-	{[$0|Fs],true} -> [[$1|Fs]|float_exp(E)];
-	{Fs,false} -> [Fs|float_exp(E-1)]
+    {[$0|Fs],true} -> [[$1|Fs]|float_exp(E)];
+    {Fs,false} -> [Fs|float_exp(E-1)]
     end.
 
 %% float_man([Digit], Icount, Dcount) -> {[Chars],CarryFlag}.
@@ -276,22 +276,22 @@ float_man(Ds, 0, Dc) ->
     {[$.|Cs],C};
 float_man([D|Ds], I, Dc) ->
     case float_man(Ds, I-1, Dc) of
-	{Cs,true} when D =:= $9 -> {[$0|Cs],true};
-	{Cs,true} -> {[D+1|Cs],false};
-	{Cs,false} -> {[D|Cs],false}
+    {Cs,true} when D =:= $9 -> {[$0|Cs],true};
+    {Cs,true} -> {[D+1|Cs],false};
+    {Cs,false} -> {[D|Cs],false}
     end;
-float_man([], I, Dc) ->				%Pad with 0's
+float_man([], I, Dc) ->                             %Pad with 0's
     {string:chars($0, I, [$.|string:chars($0, Dc)]),false}.
 
 float_man([D|_], 0) when D >= $5 -> {[],true};
 float_man([_|_], 0) -> {[],false};
 float_man([D|Ds], Dc) ->
     case float_man(Ds, Dc-1) of
-	{Cs,true} when D =:= $9 -> {[$0|Cs],true};
-	{Cs,true} -> {[D+1|Cs],false}; 
-	{Cs,false} -> {[D|Cs],false}
+    {Cs,true} when D =:= $9 -> {[$0|Cs],true};
+    {Cs,true} -> {[D+1|Cs],false};
+    {Cs,false} -> {[D|Cs],false}
     end;
-float_man([], Dc) -> {string:chars($0, Dc),false}.	%Pad with 0's
+float_man([], Dc) -> {string:chars($0, Dc),false}.  %Pad with 0's
 
 %% float_exp(Exponent) -> [Char].
 %%  Generate the exponent of a floating point number. Always include sign.
@@ -303,7 +303,7 @@ float_exp(E) ->
 
 %% fwrite_f(FloatData, Field, Adjust, Precision, PadChar)
 
-fwrite_f(Fl, none, Adj, none, Pad) ->		%Default values
+fwrite_f(Fl, none, Adj, none, Pad) ->               %Default values
     fwrite_f(Fl, none, Adj, 6, Pad);
 fwrite_f(Fl, none, _Adj, P, _Pad) when P >= 1 ->
     float_f(Fl, float_data(Fl), P);
@@ -315,11 +315,11 @@ fwrite_f(Fl, F, Adj, P, Pad) when P >= 1 ->
 float_f(Fl, Fd, P) when Fl < 0.0 ->
     [$-|float_f(-Fl, Fd, P)];
 float_f(Fl, {Ds,E}, P) when E =< 0 ->
-    float_f(Fl, {string:chars($0, -E+1, Ds),1}, P);	%Prepend enough 0's
+    float_f(Fl, {string:chars($0, -E+1, Ds),1}, P); %Prepend enough 0's
 float_f(_Fl, {Ds,E}, P) ->
     case float_man(Ds, E, P) of
-	{Fs,true} -> "1" ++ Fs;			%Handle carry
-	{Fs,false} -> Fs
+    {Fs,true} -> "1" ++ Fs;                         %Handle carry
+    {Fs,false} -> Fs
     end.
 
 %% float_data([FloatChar]) -> {[Digit],Exponent}
@@ -334,7 +334,7 @@ float_data([_|Cs], Ds) ->
     float_data(Cs, Ds).
 
 %% fwrite_g(Float, Field, Adjust, Precision, PadChar)
-%%  Use the f form if Float is >= 0.1 and < 1.0e4, 
+%%  Use the f form if Float is >= 0.1 and < 1.0e4,
 %%  and the prints correctly in the f form, else the e form.
 %%  Precision always means the # of significant digits.
 
@@ -343,20 +343,20 @@ fwrite_g(Fl, F, Adj, none, Pad) ->
 fwrite_g(Fl, F, Adj, P, Pad) when P >= 1 ->
     A = abs(Fl),
     E = if A < 1.0e-1 -> -2;
-	   A < 1.0e0  -> -1;
-	   A < 1.0e1  -> 0;
-	   A < 1.0e2  -> 1;
-	   A < 1.0e3  -> 2;
-	   A < 1.0e4  -> 3;
-	   true       -> fwrite_f
-	end,
+       A < 1.0e0  -> -1;
+       A < 1.0e1  -> 0;
+       A < 1.0e2  -> 1;
+       A < 1.0e3  -> 2;
+       A < 1.0e4  -> 3;
+       true       -> fwrite_f
+    end,
     if  P =< 1, E =:= -1;
-	P-1 > E, E >= -1 ->
-	    fwrite_f(Fl, F, Adj, P-1-E, Pad);
-	P =< 1 ->
-	    fwrite_e(Fl, F, Adj, 2, Pad);
-	true ->
-	    fwrite_e(Fl, F, Adj, P, Pad)
+    P-1 > E, E >= -1 ->
+        fwrite_f(Fl, F, Adj, P-1-E, Pad);
+    P =< 1 ->
+        fwrite_e(Fl, F, Adj, 2, Pad);
+    true ->
+        fwrite_e(Fl, F, Adj, P, Pad)
     end.
 
 %% string(StringList, Field, Adjust, Precision, PadChar)
@@ -383,11 +383,11 @@ string1(S, F, Adj, N, Pad) ->
 unprefixed_integer(Int, F, Adj, Base, Pad, Lowercase)
   when Base >= 2, Base =< 1+$Z-$A+10 ->
     if Int < 0 ->
-	    S = cond_lowercase(erlang:integer_to_list(-Int, Base), Lowercase),
-	    term([$-|S], F, Adj, none, Pad);
+        S = cond_lowercase(erlang:integer_to_list(-Int, Base), Lowercase),
+        term([$-|S], F, Adj, none, Pad);
        true ->
-	    S = cond_lowercase(erlang:integer_to_list(Int, Base), Lowercase),
-	    term(S, F, Adj, none, Pad)
+        S = cond_lowercase(erlang:integer_to_list(Int, Base), Lowercase),
+        term(S, F, Adj, none, Pad)
     end.
 
 %% prefixed_integer(Int, Field, Adjust, Base, PadChar, Prefix, Lowercase) ->
@@ -396,11 +396,11 @@ unprefixed_integer(Int, F, Adj, Base, Pad, Lowercase)
 prefixed_integer(Int, F, Adj, Base, Pad, Prefix, Lowercase)
   when Base >= 2, Base =< 1+$Z-$A+10 ->
     if Int < 0 ->
-	    S = cond_lowercase(erlang:integer_to_list(-Int, Base), Lowercase),
-	    term([$-,Prefix|S], F, Adj, none, Pad);
+        S = cond_lowercase(erlang:integer_to_list(-Int, Base), Lowercase),
+        term([$-,Prefix|S], F, Adj, none, Pad);
        true ->
-	    S = cond_lowercase(erlang:integer_to_list(Int, Base), Lowercase),
-	    term([Prefix|S], F, Adj, none, Pad)
+        S = cond_lowercase(erlang:integer_to_list(Int, Base), Lowercase),
+        term([Prefix|S], F, Adj, none, Pad)
     end.
 
 %% base_prefix(Base, Lowercase) -> [Char].
@@ -448,7 +448,7 @@ flat_trunc([H|T], S, N) when is_list(H) ->
     flat_trunc(H, [T|S], N);
 flat_trunc([C|T], S, N) -> [C|flat_trunc(T, S, N-1)];
 flat_trunc([], [H|T], N) -> flat_trunc(H, T, N);
-flat_trunc([], [], _) -> [].			%All done
+flat_trunc([], [], _) -> [].            %All done
 
 %% A deep version of string:chars/2,3
 
