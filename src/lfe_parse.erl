@@ -99,6 +99,8 @@ reduce(3, [T|Vs]) -> [val(T)|Vs];    %s->string
 reduce(4, [T|Vs]) ->                 %s->fun
     [make_fun(val(T))|Vs];
 reduce(5, [S,_|Vs]) -> [[quote,S]|Vs];        %s->' s
+reduce(55, [T|Vs]) -> [[quote, val(T)] | Vs];
+
 reduce(6, [S,_|Vs]) -> [[backquote,S]|Vs];    %s->` s
 reduce(7, [S,_|Vs]) -> [[unquote,S]|Vs];      %s->, s
 reduce(8, [S,_|Vs]) ->               %s->,@ s
@@ -109,8 +111,8 @@ reduce(11, [_,L,_|Vs]) ->            %s->#( p )
     [list_to_tuple(L)|Vs];
 reduce(12, [_,L,B|Vs]) ->            %s->#B( p )
     case catch lfe_eval:expr([binary|L]) of
-	Bin when is_bitstring(Bin) -> [Bin|Vs];
-	_ -> {error,line(B),{illegal,binary}}
+    Bin when is_bitstring(Bin) -> [Bin|Vs];
+    _ -> {error,line(B),{illegal,binary}}
     end;
 reduce(13, [T,H|Vs]) -> [[H|T]|Vs];  %l->s t
 reduce(14, Vs) -> [[]|Vs];           %l->empty
@@ -124,74 +126,79 @@ reduce(19, Vs) -> [[]|Vs].           %p->empty
 table(?FORM, symbol) -> [?EXPR];
 table(?FORM, number) -> [?EXPR];
 table(?FORM, string) -> [?EXPR];
-table(?FORM, 'fun') -> [?EXPR];
-table(?FORM, '\'') -> [?EXPR];
-table(?FORM, '`') -> [?EXPR];
-table(?FORM, ',') -> [?EXPR];
-table(?FORM, ',@') -> [?EXPR];
-table(?FORM, '(') -> [?EXPR];
-table(?FORM, '[') -> [?EXPR];
-table(?FORM, '#(') -> [?EXPR];
-table(?FORM, '#B(') -> [?EXPR];
+table(?FORM, quoted_string) -> [?EXPR];
+table(?FORM, 'fun')  -> [?EXPR];
+table(?FORM, '\'')   -> [?EXPR];
+table(?FORM, '`')    -> [?EXPR];
+table(?FORM, ',')    -> [?EXPR];
+table(?FORM, ',@')   -> [?EXPR];
+table(?FORM, '(')    -> [?EXPR];
+table(?FORM, '[')    -> [?EXPR];
+table(?FORM, '#(')   -> [?EXPR];
+table(?FORM, '#B(')  -> [?EXPR];
 
-table(?EXPR, symbol) -> [symbol,{reduce,1}];
-table(?EXPR, number) -> [number,{reduce,2}];
-table(?EXPR, string) -> [string,{reduce,3}];
-table(?EXPR, 'fun') -> ['fun',{reduce,4}];
-table(?EXPR, '\'') -> ['\'',?EXPR,{reduce,5}];
-table(?EXPR, '`') -> ['`',?EXPR,{reduce,6}];
-table(?EXPR, ',') -> [',',?EXPR,{reduce,7}];
-table(?EXPR, ',@') -> [',@',?EXPR,{reduce,8}];
-table(?EXPR, '(') -> ['(',?LIST,')',{reduce,9}];
-table(?EXPR, '[') -> ['[',?LIST,']',{reduce,10}];
-table(?EXPR, '#(') -> ['#(',?PROP,')',{reduce,11}];
-table(?EXPR, '#B(') -> ['#B(',?PROP,')',{reduce,12}];
+table(?EXPR, symbol) -> [symbol, {reduce,1}];
+table(?EXPR, number) -> [number, {reduce,2}];
+table(?EXPR, string) -> [string, {reduce,3}];
+table(?EXPR, quoted_string) -> [quoted_string, {reduce, 55}];
+table(?EXPR, 'fun')  -> ['fun', {reduce,4}];
+table(?EXPR, '\'')   -> ['\'',  ?EXPR, {reduce,5}];
+table(?EXPR, '`')    -> ['`',   ?EXPR, {reduce,6}];
+table(?EXPR, ',')    -> [',',   ?EXPR, {reduce,7}];
+table(?EXPR, ',@')   -> [',@',  ?EXPR, {reduce,8}];
+table(?EXPR, '(')    -> ['(',   ?LIST, ')', {reduce,9}];
+table(?EXPR, '[')    -> ['[',   ?LIST, ']', {reduce,10}];
+table(?EXPR, '#(')   -> ['#(',  ?PROP, ')', {reduce,11}];
+table(?EXPR, '#B(')  -> ['#B(', ?PROP, ')', {reduce,12}];
 
 table(?LIST, symbol) -> [?EXPR,?TAIL,{reduce,13}];
 table(?LIST, number) -> [?EXPR,?TAIL,{reduce,13}];
 table(?LIST, string) -> [?EXPR,?TAIL,{reduce,13}];
-table(?LIST, 'fun') -> [?EXPR,?TAIL,{reduce,13}];
-table(?LIST, '\'') -> [?EXPR,?TAIL,{reduce,13}];
-table(?LIST, '`') -> [?EXPR,?TAIL,{reduce,13}];
-table(?LIST, ',') -> [?EXPR,?TAIL,{reduce,13}];
-table(?LIST, ',@') -> [?EXPR,?TAIL,{reduce,13}];
-table(?LIST, '(') -> [?EXPR,?TAIL,{reduce,13}];
-table(?LIST, '[') -> [?EXPR,?TAIL,{reduce,13}];
-table(?LIST, '#(') -> [?EXPR,?TAIL,{reduce,13}];
-table(?LIST, '#B(') -> [?EXPR,?TAIL,{reduce,13}];
-table(?LIST, ')') -> [{reduce,14}];
-table(?LIST, ']') -> [{reduce,14}];
+table(?LIST, quoted_string) -> [?EXPR,?TAIL,{reduce,13}];
+table(?LIST, 'fun')  -> [?EXPR,?TAIL,{reduce,13}];
+table(?LIST, '\'')   -> [?EXPR,?TAIL,{reduce,13}];
+table(?LIST, '`')    -> [?EXPR,?TAIL,{reduce,13}];
+table(?LIST, ',')    -> [?EXPR,?TAIL,{reduce,13}];
+table(?LIST, ',@')   -> [?EXPR,?TAIL,{reduce,13}];
+table(?LIST, '(')    -> [?EXPR,?TAIL,{reduce,13}];
+table(?LIST, '[')    -> [?EXPR,?TAIL,{reduce,13}];
+table(?LIST, '#(')   -> [?EXPR,?TAIL,{reduce,13}];
+table(?LIST, '#B(')  -> [?EXPR,?TAIL,{reduce,13}];
+table(?LIST, ')')    -> [{reduce,14}];
+table(?LIST, ']')    -> [{reduce,14}];
 
 table(?TAIL, symbol) -> [?EXPR,?TAIL,{reduce,15}];
 table(?TAIL, number) -> [?EXPR,?TAIL,{reduce,15}];
 table(?TAIL, string) -> [?EXPR,?TAIL,{reduce,15}];
-table(?TAIL, 'fun') -> [?EXPR,?TAIL,{reduce,15}];
-table(?TAIL, '\'') -> [?EXPR,?TAIL,{reduce,15}];
-table(?TAIL, '`') -> [?EXPR,?TAIL,{reduce,15}];
-table(?TAIL, ',') -> [?EXPR,?TAIL,{reduce,15}];
-table(?TAIL, ',@') -> [?EXPR,?TAIL,{reduce,15}];
-table(?TAIL, '(') -> [?EXPR,?TAIL,{reduce,15}];
-table(?TAIL, '[') -> [?EXPR,?TAIL,{reduce,15}];
-table(?TAIL, '#(') -> [?EXPR,?TAIL,{reduce,15}];
-table(?TAIL, '#B(') -> [?EXPR,?TAIL,{reduce,15}];
-table(?TAIL, '.') -> ['.',?EXPR,{reduce,16}];
-table(?TAIL, ')') -> [{reduce,17}];
-table(?TAIL, ']') -> [{reduce,17}];
+table(?TAIL, quoted_string) -> [?EXPR,?TAIL,{reduce,15}];
+table(?TAIL, 'fun')  -> [?EXPR,?TAIL,{reduce,15}];
+table(?TAIL, '\'')   -> [?EXPR,?TAIL,{reduce,15}];
+table(?TAIL, '`')    -> [?EXPR,?TAIL,{reduce,15}];
+table(?TAIL, ',')    -> [?EXPR,?TAIL,{reduce,15}];
+table(?TAIL, ',@')   -> [?EXPR,?TAIL,{reduce,15}];
+table(?TAIL, '(')    -> [?EXPR,?TAIL,{reduce,15}];
+table(?TAIL, '[')    -> [?EXPR,?TAIL,{reduce,15}];
+table(?TAIL, '#(')   -> [?EXPR,?TAIL,{reduce,15}];
+table(?TAIL, '#B(')  -> [?EXPR,?TAIL,{reduce,15}];
+table(?TAIL, '.')    -> ['.',?EXPR,{reduce,16}];
+table(?TAIL, ')')    -> [{reduce,17}];
+table(?TAIL, ']')    -> [{reduce,17}];
 
 table(?PROP, symbol) -> [?EXPR,?PROP,{reduce,18}];
 table(?PROP, number) -> [?EXPR,?PROP,{reduce,18}];
 table(?PROP, string) -> [?EXPR,?PROP,{reduce,18}];
-table(?PROP, 'fun') -> [?EXPR,?PROP,{reduce,18}];
-table(?PROP, '\'') -> [?EXPR,?PROP,{reduce,18}];
-table(?PROP, '`') -> [?EXPR,?PROP,{reduce,18}];
-table(?PROP, ',') -> [?EXPR,?PROP,{reduce,18}];
-table(?PROP, ',@') -> [?EXPR,?PROP,{reduce,18}];
-table(?PROP, '(') -> [?EXPR,?PROP,{reduce,18}];
-table(?PROP, '[') -> [?EXPR,?PROP,{reduce,18}];
-table(?PROP, '#(') -> [?EXPR,?PROP,{reduce,18}];
-table(?PROP, '#B(') -> [?EXPR,?PROP,{reduce,18}];
-table(?PROP, ')') -> [{reduce,19}];
-table(?PROP, ']') -> [{reduce,19}];
+table(?PROP, quoted_string) -> [?EXPR,?PROP,{reduce,18}];
+table(?PROP, 'fun')  -> [?EXPR,?PROP,{reduce,18}];
+table(?PROP, '\'')   -> [?EXPR,?PROP,{reduce,18}];
+table(?PROP, '`')    -> [?EXPR,?PROP,{reduce,18}];
+table(?PROP, ',')    -> [?EXPR,?PROP,{reduce,18}];
+table(?PROP, ',@')   -> [?EXPR,?PROP,{reduce,18}];
+table(?PROP, '(')    -> [?EXPR,?PROP,{reduce,18}];
+table(?PROP, '[')    -> [?EXPR,?PROP,{reduce,18}];
+table(?PROP, '#(')   -> [?EXPR,?PROP,{reduce,18}];
+table(?PROP, '#B(')  -> [?EXPR,?PROP,{reduce,18}];
+table(?PROP, ')')    -> [{reduce,19}];
+table(?PROP, ']')    -> [{reduce,19}];
 
 table(_, _) -> error.
 
@@ -200,11 +207,11 @@ table(_, _) -> error.
 %% sexpr(Continuation, Tokens) ->
 %%      {ok,Line,Sexpr,Rest} | {more,Continuation} | {error,Error,Rest}.
 
-sexpr(Ts) -> sexpr([], Ts).			%Start with empty state
+sexpr(Ts) -> sexpr([], Ts).            %Start with empty state
 
 sexpr(Cont, Ts) -> parse1(Cont, Ts).
 
--record(lp, {l=none,st=[],vs=[]}).		%Line, States, Values
+-record(lp, {l=none,st=[],vs=[]}).     %Line, States, Values
 
 %% parse1(Tokens) ->
 %%      {ok,Line,Sexpr,Rest} | {more,Continuation} | {error,Error,Rest}.
@@ -213,18 +220,18 @@ sexpr(Cont, Ts) -> parse1(Cont, Ts).
 %% This is the opt-level of the LL engine. It
 %% initialises/packs/unpacks the continuation information.
 
-parse1([], Ts) ->				%First call
-    Start = start(),				%The start state.
+parse1([], Ts) ->                           %First call
+    Start = start(),                        %The start state.
     parse1(#lp{l=none,st=[Start],vs=[]}, Ts);
-parse1(#lp{l=none}=Lp, [T|_]=Ts) ->		%Guarantee a start line
+parse1(#lp{l=none}=Lp, [T|_]=Ts) ->         %Guarantee a start line
     parse1(Lp#lp{l=line(T)}, Ts);
 parse1(#lp{l=L,st=St0,vs=Vs0}, Ts) ->
     case parse2(Ts, St0, Vs0) of
-	{done,Rest,[],[V]} -> {ok,L,V,Rest};
-	{more,[],St1,Vs1} -> {more,#lp{l=L,st=St1,vs=Vs1}};
-	{error,Line,Error,Rest,_,_} ->
-	    %% Can't really continue from errors here.
-	    {error,{Line,?MODULE,Error},Rest}
+    {done,Rest,[],[V]} -> {ok,L,V,Rest};
+    {more,[],St1,Vs1} -> {more,#lp{l=L,st=St1,vs=Vs1}};
+    {error,Line,Error,Rest,_,_} ->
+        %% Can't really continue from errors here.
+        {error,{Line,?MODULE,Error},Rest}
     end.
 
 %% parse2(Tokens, StateStack, ValueStack) ->
@@ -241,30 +248,30 @@ parse2(Ts, [{reduce,R}|St], Vs0) ->
     %% io:fwrite("p: ~p\n", [{R,Vs}]),
     %% Try to reduce values and push value on value stack.
     case reduce(R, Vs0) of
-	{error,L,E} -> {error,L,E,Ts,St,Vs0};
-	Vs1 -> parse2(Ts, St, Vs1)
+    {error,L,E} -> {error,L,E,Ts,St,Vs0};
+    Vs1 -> parse2(Ts, St, Vs1)
     end;
-parse2(Ts, [], Vs) -> {done,Ts,[],Vs};		%All done
+parse2(Ts, [], Vs) -> {done,Ts,[],Vs};          %All done
 parse2([T|Ts]=Ts0, [S|St]=St0, Vs) ->
     %% io:fwrite("p: ~p\n", [{St0,Ts0}]),
     %% Try to match token type against state on stack.
     case type(T) of
-	S -> parse2(Ts, St, [T|Vs]);		%Match
-	Type ->					%Try to predict
-	    case table(S, Type) of
-		error -> {error,line(T),{illegal,Type},Ts0,St0,Vs};
-		Top -> parse2(Ts0, Top ++ St, Vs)
-	    end
+    S -> parse2(Ts, St, [T|Vs]);                %Match
+    Type ->                                     %Try to predict
+        case table(S, Type) of
+        error -> {error,line(T),{illegal,Type},Ts0,St0,Vs};
+        Top -> parse2(Ts0, Top ++ St, Vs)
+        end
     end;
-parse2([], St, Vs) ->				%Need more tokens
+parse2([], St, Vs) ->                           %Need more tokens
     {more,[],St,Vs};
-parse2({eof,L}=Ts, St, Vs) ->			%No more tokens
+parse2({eof,L}=Ts, St, Vs) ->                   %No more tokens
     {error,L,{missing,token},Ts,St,Vs}.
 
 %% Access the fields of a token.
 type(T) -> element(1, T).
 line(T) -> element(2, T).
-val(T) -> element(3, T).
+val(T)  -> element(3, T).
 
 %% Convert a fun string to a fun sexpr.
 %%   "F/A" -> ['fun', F, A].
