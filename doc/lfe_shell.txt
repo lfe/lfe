@@ -135,6 +135,27 @@ Starting the LFE shell
         will create a job running the LFE shell and connect to
         it. This also works when starting a remote shell.
 
+        When the shell starts, the user is presented with the following
+        message about quitting the shell prior to the first prompt:
+
+        LFE Shell V5.10.1 (abort with ^G)
+
+        For LFE shells not running on the Erlang VM, this may not be
+        an accurate or appropriate instruction. As such, this message
+        is configurable via an environment variable, allowing LFE shells
+        running on different VMs (with potentially different mechanisms
+        for quitting) to instruct their users appropriately.
+
+        For instance, this is how one would tell LFE on the JVM to use ^D
+        instead of ^G:
+
+        LFE_ABORT_MSG="(abort with ^D)" \
+            erl -noshell -noinput -s lfe_boot start
+
+        Which would give the following starting message:
+
+        LFE Shell V5.10.1 (abort with ^D)
+
 Running LFE shell scripts
 
         The LFE shell can also be directly called to run LFE shell
@@ -153,4 +174,3 @@ Running LFE shell scripts
                 A list of the arguments to the script as strings. If
                 no arguments have been given then this will be an
                 empty list.
-
