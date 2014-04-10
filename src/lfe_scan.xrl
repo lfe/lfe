@@ -34,11 +34,13 @@ Rules.
 %% Bracketed Comments using #| foo |#
 #\|[^\|]*\|+([^#\|][^\|]*\|+)*# : block_comment(string:substr(TokenChars, 3)).
 
-%% Quoted String
-'"(\\x{H}+;|\\.|[^"])*" :
+%% tripple quoted string
+%%  """abc""" == (list #\a #\b #\c)
+"""(\\x{H}+;|\\.|[^"])*""" :
     %% Strip quotes.
-    S = string:substr(TokenChars, 3, TokenLen - 3),
-    {token, {quoted_string, TokenLine, chars(S)}}.
+    S = string:substr(TokenChars, 4, TokenLen - 6),
+    {token, {string, TokenLine, chars(S)}}.
+
 
 %% Separators
 #[bB]\(  :    {token,{'#B(',TokenLine}}.
@@ -62,6 +64,7 @@ Rules.
             %% Strip quotes.
             S = string:substr(TokenChars, 2, TokenLen - 2),
             {token,{quoted_string,TokenLine,chars(S)}}.
+
 %% Symbols
 \|(\\x{H}+;|\\.|[^|])*\| :
             %% Strip quotes.
