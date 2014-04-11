@@ -190,10 +190,10 @@ print1_tail([S|Ss], D) ->
 print1_tail(S, D) -> [" . "|print1(S, D)].
 
 %% quote_symbol(Symbol, SymbChars) -> bool().
-%% Check if symbol needs to be quoted when printed. If it can read as
-%% a number then it must be quoted.
+%%  Check if symbol needs to be quoted when printed. If it can read as
+%%  a number then it must be quoted.
 
-quote_symbol('.', _) -> true;            %Needs quoting
+quote_symbol('.', _) -> true;                   %Needs quoting
 quote_symbol(_, [C|Cs]=Cs0) ->
     case catch {ok,list_to_float(Cs0)} of
     {ok,_} -> true;
@@ -208,9 +208,9 @@ symb_chars(Cs) -> all(fun symb_char/1, Cs).
 
 start_symb_char($#) -> false;
 start_symb_char($`) -> false;
-start_symb_char($') -> false;            %'
+start_symb_char($') -> false;                   %'
 start_symb_char($,) -> false;
-start_symb_char($|) -> false;            %Symbol quote character
+start_symb_char($|) -> false;                   %Symbol quote character
 start_symb_char(C) -> symb_char(C).
 
 symb_char($() -> false;
@@ -219,7 +219,7 @@ symb_char($[) -> false;
 symb_char($]) -> false;
 symb_char(${) -> false;
 symb_char($}) -> false;
-symb_char($") -> false;                %"
+symb_char($") -> false;
 symb_char($;) -> false;
 symb_char(C) -> ((C > $\s) and (C =< $~)) orelse (C > $\240).
 
@@ -233,27 +233,23 @@ print1_string1([], Q) ->    [Q];
 print1_string1([C|Cs], Q) ->
     string_char(C, Q, print1_string1(Cs, Q)).
 
-string_char(Q, Q, Tail) -> [$\\,Q|Tail];    %Must check these first!
+string_char(Q, Q, Tail) -> [$\\,Q|Tail];        %Must check these first!
 string_char($\\, _, Tail) -> [$\\,$\\|Tail];
 string_char(C, _, Tail) when C >= $\s, C =< $~ ->
     [C|Tail];
 string_char(C, _, Tail) when C >= $\240, C =< $\377 ->
     [C|Tail];
-string_char($\n, _, Tail) -> [$\\,$n|Tail];    %\n = LF
-string_char($\r, _, Tail) -> [$\\,$r|Tail];    %\r = CR
-string_char($\t, _, Tail) -> [$\\,$t|Tail];    %\t = TAB
-string_char($\v, _, Tail) -> [$\\,$v|Tail];    %\v = VT
-string_char($\b, _, Tail) -> [$\\,$b|Tail];    %\b = BS
-string_char($\f, _, Tail) -> [$\\,$f|Tail];    %\f = FF
-string_char($\e, _, Tail) -> [$\\,$e|Tail];    %\e = ESC
-string_char($\d, _, Tail) -> [$\\,$d|Tail];    %\d = DEL
-string_char(C, _, Tail) ->            %Other control characters.
-    C1 = hex(C bsr 4),
-    C2 = hex(C band 15),
-    [$\\,$x,C1,C2,$;|Tail].
-
-hex(C) when C >= 0, C < 10 -> C + $0;
-hex(C) when C >= 10, C < 16 -> C + $a.
+string_char($\n, _, Tail) -> [$\\,$n|Tail];     %\n = LF
+string_char($\r, _, Tail) -> [$\\,$r|Tail];     %\r = CR
+string_char($\t, _, Tail) -> [$\\,$t|Tail];     %\t = TAB
+string_char($\v, _, Tail) -> [$\\,$v|Tail];     %\v = VT
+string_char($\b, _, Tail) -> [$\\,$b|Tail];     %\b = BS
+string_char($\f, _, Tail) -> [$\\,$f|Tail];     %\f = FF
+string_char($\e, _, Tail) -> [$\\,$e|Tail];     %\e = ESC
+string_char($\d, _, Tail) -> [$\\,$d|Tail];     %\d = DEL
+string_char(C, _, Tail) ->
+    %%Unicode and other control characters.
+    "\\x" ++ erlang:integer_to_list(C, 16) ++ ";" ++ Tail.
 
 %% prettyprint([IoDevice], Sexpr) -> ok.
 %% prettyprint1(Sexpr, Depth, Indentation, LineLength) -> [char()].
@@ -283,7 +279,7 @@ fwrite(Io, F, As) -> io:put_chars(Io, fwrite1(F, As)).
 
 fwrite1(F, As) ->
     case catch lfe_io_format:fwrite1(F, As) of
-    {'EXIT',_} ->                %Something went wrong
-        erlang:error(badarg, [F,As]);    %Signal from here
-    Result -> Result
+        {'EXIT',_} ->                           %Something went wrong
+            erlang:error(badarg, [F,As]);       %Signal from here
+        Result -> Result
     end.
