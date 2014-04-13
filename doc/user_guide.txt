@@ -127,6 +127,9 @@ Common Lisp inspired macros
             ...)
   ...)
         Define local macros in macro or syntax-rule format.
+(prog1 ...)
+(prog2 ...)
+        Like their CL counterparts.
 (defmodule name ...)
 (defrecord name ...)
 

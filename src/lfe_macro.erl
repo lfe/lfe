@@ -536,11 +536,11 @@ exp_userdef_macro([Mac|Args], Def0, Env, St0) ->
 exp_predef_macro(Call, Env, St) ->
     %%lfe_io:format("pdef: ~p\n", [Call]),
     try
-    exp_predef(Call, Env, St)
+        exp_predef(Call, Env, St)
     catch
-    error:Error ->
-        Stack = erlang:get_stacktrace(),
-        erlang:error({expand_macro,Call,{Error,Stack}})
+        error:Error ->
+            Stack = erlang:get_stacktrace(),
+            erlang:error({expand_macro,Call,{Error,Stack}})
     end.
 
 %% exp_predef(Form, Env, State) -> {yes,Form,State} | no.
@@ -586,41 +586,41 @@ exp_predef([cddddr,E], _, St) -> {yes,[cdr,[cdr,[cdr,[cdr,E]]]],St};
 %% strictly evalated all their arguments.
 exp_predef(['+'|Es], _, St0) ->
     case Es of
-    [] -> {yes,0,St0};            %Identity
-    _ ->
-        {Exp,St1} = exp_arith(Es, '+', St0),
-        {yes,Exp,St1}
+        [] -> {yes,0,St0};                      %Identity
+        _ ->
+            {Exp,St1} = exp_arith(Es, '+', St0),
+            {yes,Exp,St1}
     end;
 exp_predef(['-'|Es], _, St0) ->
     case Es of
-    [_|_] ->                %Non-empty argument list
-        {Exp,St1} = exp_arith(Es, '-', St0),
-        {yes,Exp,St1}
+        [_|_] ->                                %Non-empty argument list
+            {Exp,St1} = exp_arith(Es, '-', St0),
+            {yes,Exp,St1}
     end;
 exp_predef(['*'|Es], _, St0) ->
     case Es of
-    [] -> {yes,1,St0};            %Identity
-    [_] -> {yes,exp_bif('*', [1|Es]),St0};    %Check if number
-    _ ->
-        {Exp,St1} = exp_arith(Es, '*', St0),
-        {yes,Exp,St1}
+        [] -> {yes,1,St0};                      %Identity
+        [_] -> {yes,exp_bif('*', [1|Es]),St0};  %Check if number
+        _ ->
+            {Exp,St1} = exp_arith(Es, '*', St0),
+            {yes,Exp,St1}
     end;
 exp_predef(['/'|Es], _, St0) ->
     case Es of
-    [_] -> {yes,exp_bif('/', [1|Es]),St0};    %According to definition
-    _ ->
-        {Exp,St1} = exp_arith(Es, '/', St0),
-        {yes,Exp,St1}
+        [_] -> {yes,exp_bif('/', [1|Es]),St0};  %According to definition
+        _ ->
+            {Exp,St1} = exp_arith(Es, '/', St0),
+            {yes,Exp,St1}
     end;
-exp_predef([Op|Es], _, St0)            %Logical operators
+exp_predef([Op|Es], _, St0)                     %Logical operators
   when Op == '>'; Op == '>='; Op == '<'; Op == '=<';
        Op == '=='; Op == '/='; Op == '=:='; Op == '=/=' ->
     case Es of
-    [_|_] ->
-        {Exp,St1} = exp_comp(Es, Op, St0),
-        {yes,Exp,St1}
+        [_|_] ->
+            {Exp,St1} = exp_comp(Es, Op, St0),
+            {yes,Exp,St1}
     end;
-exp_predef([backquote,Bq], _, St) ->        %We do this here.
+exp_predef([backquote,Bq], _, St) ->            %We do this here.
     {yes,exp_backquote(Bq),St};
 exp_predef(['++'|Abody], _, St) ->
     Exp = exp_append(Abody),
@@ -629,84 +629,84 @@ exp_predef([':',M,F|As], _, St) ->
     {yes,['call',?Q(M),?Q(F)|As], St};
 exp_predef(['?'|As], _, St) ->
     Exp = case As of
-          [To,Def] -> ['receive',['omega','omega'],['after',To,Def]];
-          [To] -> ['?',To,[exit,?Q(timeout)]];
-          [] -> ['receive',['omega','omega']]
-      end,
+              [To,Def] -> ['receive',['omega','omega'],['after',To,Def]];
+              [To] -> ['?',To,[exit,?Q(timeout)]];
+              [] -> ['receive',['omega','omega']]
+          end,
     {yes,Exp, St};
 exp_predef(['list*'|As], _, St) ->
     Exp = case As of
-          [E] -> E;
-          [E|Es] -> [cons,E,['list*'|Es]];
-          [] -> []
-      end,
+              [E] -> E;
+              [E|Es] -> [cons,E,['list*'|Es]];
+              [] -> []
+          end,
     {yes,Exp,St};
 exp_predef(['let*'|Lbody], _, St) ->
     Exp = case Lbody of
-          [[Vb|Vbs]|B] -> ['let',[Vb],['let*',Vbs|B]];
-          [[]|B] -> ['progn'|B];
-          [Vb|B] -> ['let',Vb|B]        %Pass error to let for lint.
-      end,
+              [[Vb|Vbs]|B] -> ['let',[Vb],['let*',Vbs|B]];
+              [[]|B] -> ['progn'|B];
+              [Vb|B] -> ['let',Vb|B]            %Pass error to let for lint.
+          end,
     {yes,Exp,St};
 exp_predef(['flet*'|Lbody], _, St) ->
     Exp = case Lbody of
-          [[Fb|Fbs]|B] -> ['flet',[Fb],['flet*',Fbs|B]];
-          [[]|B] -> ['progn'|B];
-          [Fb|B] -> ['flet',Fb|B]        %Pass error to flet for lint.
-      end,
+              [[Fb|Fbs]|B] -> ['flet',[Fb],['flet*',Fbs|B]];
+              [[]|B] -> ['progn'|B];
+              [Fb|B] -> ['flet',Fb|B]           %Pass error to flet for lint.
+          end,
     {yes,Exp,St};
 exp_predef(['cond'|Cbody], _, St) ->
     Exp = case Cbody of
-          [['else'|B]] -> ['progn'|B];
-          [[['?=',P,E]|B]|Cond] ->
-          ['case',E,[P|B],['_',['cond'|Cond]]];
-          [[['?=',P,['when'|_]=G,E]|B]|Cond] ->
-          ['case',E,[P,G|B],['_',['cond'|Cond]]];
-          [[Test|B]|Cond] ->
-          ['if',Test,['progn'|B],['cond'|Cond]];
-          [] -> ?Q(false)
-      end,
+              [['else'|B]] -> ['progn'|B];
+              [[['?=',P,E]|B]|Cond] ->
+                  ['case',E,[P|B],['_',['cond'|Cond]]];
+              [[['?=',P,['when'|_]=G,E]|B]|Cond] ->
+                  ['case',E,[P,G|B],['_',['cond'|Cond]]];
+              [[Test|B]|Cond] ->
+                  ['if',Test,['progn'|B],['cond'|Cond]];
+              [] -> ?Q(false)
+          end,
     {yes,Exp,St};
 exp_predef(['do'|Dbody], _, St0) ->
     %% (do ((v i c) ...) (test val) . body) but of limited use as it
     %% stands as we have to everything in new values.
-    [Pars,[Test,Ret]|B] = Dbody,        %Check syntax
+    [Pars,[Test,Ret]|B] = Dbody,                %Check syntax
     {Vs,Is,Cs} = foldr(fun ([V,I,C], {Vs,Is,Cs}) -> {[V|Vs],[I|Is],[C|Cs]} end,
-               {[],[],[]}, Pars),
+                       {[],[],[]}, Pars),
     {Fun,St1} = new_fun_name("do", St0),
     Exp = ['letrec-function',
-       [[Fun,[lambda,Vs,
-          ['if',Test,Ret,
-           ['progn'] ++ B ++ [[Fun|Cs]]]]]],
-       [Fun|Is]],
+           [[Fun,[lambda,Vs,
+                  ['if',Test,Ret,
+                   ['progn'] ++ B ++ [[Fun|Cs]]]]]],
+           [Fun|Is]],
     {yes,Exp,St1};
 exp_predef([lc|Lbody], _, St0) ->
     %% (lc (qual ...) e ...)
     [Qs|Es] = Lbody,
     {Exp,St1} = lc_te(Es, Qs, St0),
     {yes,Exp,St1};
-% Add an alias for lc
+%% Add an alias for lc.
 exp_predef(['list-comp'|Lbody], _, St) -> {yes,[lc|Lbody],St};
 exp_predef([bc|Bbody], _, St0) ->
     %% (bc (qual ...) e ...)
     [Qs|Es] = Bbody,
     {Exp,St1} = bc_te(Es, Qs, St0),
     {yes,Exp,St1};
-% Add an alias for bc
+%% Add an alias for bc.
 exp_predef(['binary-comp'|Lbody], _, St) -> {yes,[bc|Lbody],St};
 exp_predef(['andalso'|Abody], _, St) ->
     Exp = case Abody of
-          [E] -> E;                %Let user check last call
-          [E|Es] -> ['if',E,['andalso'|Es],?Q(false)];
-          [] -> ?Q(true)
-      end,
+              [E] -> E;                         %Let user check last call
+              [E|Es] -> ['if',E,['andalso'|Es],?Q(false)];
+              [] -> ?Q(true)
+          end,
     {yes,Exp,St};
 exp_predef(['orelse'|Obody], _, St) ->
     Exp = case Obody of
-          [E] -> E;                %Let user check last call
-          [E|Es] -> ['if',E,?Q(true),['orelse'|Es]];
-          [] -> ?Q(false)
-      end,
+              [E] -> E;                         %Let user check last call
+              [E|Es] -> ['if',E,?Q(true),['orelse'|Es]];
+              [] -> ?Q(false)
+          end,
     {yes,Exp,St};
 exp_predef(['fun',F,Ar], _, St0) when is_atom(F), is_integer(Ar), Ar >= 0 ->
     {Vs,St1} = new_symbs(Ar, St0),
@@ -727,12 +727,12 @@ exp_predef(['begin'|Body], _, St) ->
     {yes,['progn'|Body],St};
 exp_predef(['define',Head|Body], _, St) ->
     Exp = case is_symb_list(Head) of
-          true ->
-          ['define-function',hd(Head),[lambda,tl(Head)|Body]];
-          false ->
-          %% Let next step catch errors here.
-          ['define-function',Head|Body]
-      end,
+              true ->
+                  ['define-function',hd(Head),[lambda,tl(Head)|Body]];
+              false ->
+                  %% Let next step catch errors here.
+                  ['define-function',Head|Body]
+          end,
     {yes,Exp,St};
 exp_predef(['define-record'|Def], _, St) ->
     {yes,[defrecord|Def],St};
@@ -746,9 +746,9 @@ exp_predef(['let-syntax',Defs|Body], _, St) ->
 exp_predef([defmodule|Mdef], _, St) ->
     %% Need to handle parametrised module defs here. Limited checking.
     Mname = case Mdef of
-        [[Mod|_]|_] -> Mod;        %Parametrised module
-        [Mod|_] -> Mod            %Normal module
-        end,
+                [[Mod|_]|_] -> Mod;             %Parametrised module
+                [Mod|_] -> Mod                  %Normal module
+            end,
     MODULE = [defmacro,'MODULE',[],?BQ(?Q(Mname))],
     {yes,[progn,['define-module'|Mdef],MODULE],St#mac{module=Mname}};
 exp_predef([defun,Name|Def], _, St) ->
@@ -775,6 +775,14 @@ exp_predef([macrolet,Defs|Body], _, St) ->
 exp_predef([syntaxlet,Defs|Body], _, St) ->
     Mdefs = map(fun ([Name|Rules]) -> exp_rules(Name, [], Rules) end, Defs),
     {yes,['let-macro',Mdefs|Body],St};
+exp_predef([prog1|Body], _, St0) ->
+    [First|Rest] = Body,                        %Catch bad form here
+    {V,St1} = new_symb(St0),
+    {yes,['let',[[V,First]]|Rest ++ [V]],St1};
+exp_predef([prog2|Body], _, St0) ->
+    [First,Second|Rest] = Body,                 %Catch bad form here
+    {V,St1} = new_symb(St0),
+    {yes,['let',[[V,[progn,First,Second]]]|Rest ++ [V]],St1};
 %% This has to go here for the time being so as to be able to macro
 %% expand body.
 exp_predef(['match-spec'|Body], Env, St0) ->
