@@ -68,10 +68,11 @@ Rules.
 #[oO]{O}+    :    base_token(string:substr(TokenChars, 3), 8, TokenLine).
 #[dD]{D}+    :    base_token(string:substr(TokenChars, 3), 10, TokenLine).
 #[xX]{H}+    :    base_token(string:substr(TokenChars, 3), 16, TokenLine).
-#{D}+[rR]{B36}+ :
+#([0]?[2-9]|[12][0-9]|3[0-6])[rR]{B36}+ :
     %% Have to scan all possible digit chars and fail if wrong.
     {Base,[_|Ds]} = base1(string:substr(TokenChars, 2), 10, 0),
     base_token(Ds, Base, TokenLine).
+
 %% Atoms
 [+-]?{D}+        :
     case catch {ok,list_to_integer(TokenChars)} of
@@ -130,10 +131,11 @@ base_token(Cs, B, L) ->
 base1([C|Cs], Base, SoFar) when C >= $0, C =< $9, C < Base + $0 ->
     Next = SoFar * Base + (C - $0),
     base1(Cs, Base, Next);
-base1([C|Cs], Base, SoFar) when C >= $a, C =< $f, C < Base + $a - 10 ->
+base1([C|Cs], Base, SoFar) when C >= $a, C =< $z, C < Base + $a - 10 ->
     Next = SoFar * Base + (C - $a + 10),
     base1(Cs, Base, Next);
-base1([C|Cs], Base, SoFar) when C >= $A, C =< $F, C < Base + $A - 10 ->
+
+base1([C|Cs], Base, SoFar) when C >= $A, C =< $Z, C < Base + $A - 10 ->
     Next = SoFar * Base + (C - $A + 10),
     base1(Cs, Base, Next);
 base1([C|Cs], _Base, SoFar) -> {SoFar,[C|Cs]};
