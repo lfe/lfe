@@ -613,14 +613,13 @@ exp_predef(['/'|Es], _, St0) ->
             {yes,Exp,St1}
     end;
 exp_predef([Op|Es], _, St0)                     %Logical operators
-  when Op == '>'; Op == '>='; Op == '<'; Op == '=<'; Op == '<=';
+  when Op == '>'; Op == '>='; Op == '<'; Op == '=<';
        Op == '=='; Op == '/='; Op == '!='; Op == '=:='; Op == '==='; Op == '=/='; Op == '!==' ->
     case Op of
-      '<=' -> EOp = '=<';
-      '!=' -> EOp = '/=';
-      '===' -> EOp = '=:=';
-      '!==' -> EOp = '=/=';
-      _ -> EOp = Op
+        '!=' -> EOp = '/=';
+        '===' -> EOp = '=:=';
+        '!==' -> EOp = '=/=';
+        _ -> EOp = Op
     end,
     case Es of
         [_|_] ->
