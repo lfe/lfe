@@ -613,11 +613,18 @@ exp_predef(['/'|Es], _, St0) ->
             {yes,Exp,St1}
     end;
 exp_predef([Op|Es], _, St0)                     %Logical operators
-  when Op == '>'; Op == '>='; Op == '<'; Op == '=<';
-       Op == '=='; Op == '/='; Op == '=:='; Op == '=/=' ->
+  when Op == '>'; Op == '>='; Op == '<'; Op == '=<'; Op == '<=';
+       Op == '=='; Op == '/='; Op == '!='; Op == '=:='; Op == '==='; Op == '=/='; Op == '!==' ->
+    case Op of
+      '<=' -> EOp = '=<';
+      '!=' -> EOp = '/=';
+      '===' -> EOp = '=:=';
+      '!==' -> EOp = '=/=';
+      _ -> EOp = Op
+    end,
     case Es of
         [_|_] ->
-            {Exp,St1} = exp_comp(Es, Op, St0),
+            {Exp,St1} = exp_comp(Es, EOp, St0),
             {yes,Exp,St1}
     end;
 exp_predef([backquote,Bq], _, St) ->            %We do this here.
@@ -980,7 +987,7 @@ exp_rules(Name, Keywords, Rules) ->
        [':',lfe_macro,mbe_syntax_rules_proc,
         [quote,Name],[quote,Keywords],[quote,Rules],args]]].
 
-%%  By André van Tonder
+%%  By Andrï¿½ van Tonder
 %%  Unoptimized.  See Dybvig source for optimized version.
 %%  Resembles one by Richard Kelsey and Jonathan Rees.
 %%   (define-syntax quasiquote
