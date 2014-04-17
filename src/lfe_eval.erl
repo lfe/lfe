@@ -128,26 +128,26 @@ eval_expr(['catch'|Body], Env) ->
 eval_expr(['try'|Body], Env) ->
     eval_try(Body, Env);
 eval_expr([funcall,F|As], Env) ->
-    erlang:apply(eval_expr(F, Env), eval_list(As, Env));
+    eval_apply_expr(eval_expr(F, Env), eval_list(As, Env), Env);
 eval_expr([call|Body], Env) ->
     eval_call(Body, Env);
 %% General functions calls.
 eval_expr([Fun|Es], Env) when is_atom(Fun) ->
     %% Note that macros have already been expanded here.
-    Ar = length(Es),                %Arity
+    Ar = length(Es),                            %Arity
     case get_fbinding(Fun, Ar, Env) of
-    {yes,M,F} -> erlang:apply(M, F, eval_list(Es, Env));
-    {yes,F} -> eval_apply(F, eval_list(Es, Env), Env);
-    no -> erlang:error({unbound_func,{Fun,Ar}})
+        {yes,M,F} -> erlang:apply(M, F, eval_list(Es, Env));
+        {yes,F} -> eval_apply(F, eval_list(Es, Env), Env);
+        no -> erlang:error({unbound_func,{Fun,Ar}})
     end;
 eval_expr([_|_], _) ->
     erlang:error({bad_form,application});
 eval_expr(Symb, Env) when is_atom(Symb) ->
     case get_vbinding(Symb, Env) of
-    {yes,Val} -> Val;
-    no -> erlang:error({unbound_symb,Symb})
+        {yes,Val} -> Val;
+        no -> erlang:error({unbound_symb,Symb})
     end;
-eval_expr(E, _) -> E.                %Atomic evaluate to themselves.
+eval_expr(E, _) -> E.                           %Atomic evaluate to themselves
 
 eval_list(Es, Env) ->
     map(fun (E) -> eval_expr(E, Env) end, Es).
@@ -156,7 +156,7 @@ eval_body([E], Env) -> eval_expr(E, Env);
 eval_body([E|Es], Env) ->
     eval_expr(E, Env),
     eval_body(Es, Env);
-eval_body([], _) -> [].                %Empty body
+eval_body([], _) -> [].                         %Empty body
 
 %% eval_binary(Bitsegs, Env) -> Binary.
 %%  Construct a binary from Bitsegs. This code is taken from eval_bits.erl.
