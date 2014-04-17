@@ -1,84 +1,115 @@
 MODULE
 
-	lfe_shell
+        lfe_shell
 
 MODULE SUMMARY
 
-	Lisp Flavoured Erlang (LFE) shell
+        Lisp Flavoured Erlang (LFE) shell
 
 DESCRIPTION
 
-	There is now a simple LFE shell in which you can enter sexprs
-	which are evaluated and the value printed. There are no user
-	shell variables (scoping and lack of setq)
+        There is now a simple LFE shell in which you can enter sexprs
+        which are evaluated and the value printed. You can define
+        functions and macros as well as set variables.
 
-	Built-in shell functions:
+Built-in shell functions
 
-	(p Expr)
-	(pp Expr)
-		Print/prettyprint a value to full depth.
+        These are defined as normal functions and macros and can be
+        called from anywhere in the shell. They can even be redefined.
 
-	(c File [Options])
-		Compile and load an LFE file. Assumes default
-		extension .lfe.
+        (c File [Options])
+                Compile and load an LFE file. Assumes default
+                extension .lfe.
 
-	(l Module ...)
-		Load modules.
+        (ec File [Options])
+                Compile and load an Erlang file.
 
-	(m Module ...)
-		Print out module information, if no modules are given
-		then print information about all modules.
+        (i)
+                Print information about the currently running
+                processes in the system.
 
-	(ec File [Options])
-		Compile and load an Erlang file.
+        (l Module ...)
+                Load modules.
 
-	(slurp File)
-		Slurp in a source LFE file and makes all functions and
-		macros defined in the file available in the
-		shell. Only one file can be slurped at a time and
-		slurping a new file removes all data about the
-		previous one.
+        (m Module ...)
+                Print out module information, if no modules are given
+                then print information about all modules.
 
-	(unslurp)
-		Remove all function and macro definitions except the
-		default ones.
+        (pid x y z)
+                Create a pid from x, y, z.
 
-	(set Pattern Expr)
-		Evaluate Expr ad match the result with Pattern binding
-		variables in it. These variables can then be used in
-		the shell and also rebound in another set.
+        (p Expr)
+        (pp Expr)
+                Print/prettyprint a value to full depth.
 
-	(: c Command Arg ...)
-		All the commands in the standard Erlang shell can be
-		reached in this way.
+        (regs)
+                Print information about the currently running
+                processes in the system.
 
-	Builtin shell variables:
+        (: c Command Arg ...)
+                All the commands in the standard Erlang shell can be
+                reached in this way.
 
-	+/++/+++
-		The three previous expressions input.
-	*/**/***
-		The values of the previous 3 expressions.
-	-
-		The current expression input.
+Built-in shell commands
+
+        These are special forms which are only recognised at the
+        top-level in shell input. The cannot be redefined.
+
+        (reset-environment)
+                Resets the environment to its initial state.
+
+        (set Pattern Expr)
+        (set Pattern (when Guard) Expr)
+                Evaluate Expr and match the result with Pattern
+                binding variables in it. These variables can then be
+                used in the shell and also rebound in another set.
+
+        (slurp File)
+                Slurp in a source LFE file and makes all functions and
+                macros defined in the file available in the
+                shell. Only one file can be slurped at a time and
+                slurping a new file basically does an unslurp first.
+
+        (unslurp)
+                Revert back to the state before the last slurp
+                removing all function and macro definitions both in
+                the slurped file and defined in the shell since then.
+
+Builtin shell variables
+
+        +/++/+++
+                The three previous expressions input.
+
+        */**/***
+                The values of the previous 3 expressions.
+
+        -
+                The current expression input.
+
+Shell Environment
+
+        The shell maintains an environment of local function and macro
+        definitions, and variable bindings.
+
 
 Starting the LFE shell
 
-	The best way is probably to start Erlang directly running the
-	LFE shell with:
+        The best way is probably to start Erlang directly running the
+        LFE shell with:
 
-	erl -noshell -noinput -s lfe_boot start
+        erl -noshell -noinput -s lfe_boot start
 
-	This can easily be put in a shell script.
+        This can easily be put in a shell script.
 
-	From a normal Erlang shell the best way to start the shell is
-	by calling:
+        From a normal Erlang shell the best way to start the shell is
+        by calling:
 
-	17> lfe_shell:server().
+        17> lfe_shell:server().
 
-	Giving the user switch commands:
+        Giving the user switch commands:
 
-	--> s lfe_shell
-	--> c
+        --> s lfe_shell
+        --> c
 
-	will create a job running the LFE shell and connect to
-	it. This also works when starting a remote shell.
+        will create a job running the LFE shell and connect to
+        it. This also works when starting a remote shell.
