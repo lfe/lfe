@@ -27,13 +27,15 @@
 
 %% Standard lisp library.
 -export([is_lfe_bif/2,
-     acons/3,pairlis/2,pairlis/3,
-     assoc/2,'assoc-if'/2,'assoc-if-not'/2,
-     rassoc/2,'rassoc-if'/2,'rassoc-if-not'/2,
-     subst/3,'subst-if'/3,'subst-if-not'/3,sublis/2,
-     eval/1,eval/2,macroexpand/1,macroexpand/2,
-     'macroexpand-1'/1,'macroexpand-1'/2,
-     'macroexpand-all'/1,'macroexpand-all'/2]).
+         acons/3,pairlis/2,pairlis/3,
+         assoc/2,'assoc-if'/2,'assoc-if-not'/2,
+         rassoc/2,'rassoc-if'/2,'rassoc-if-not'/2,
+         subst/3,'subst-if'/3,'subst-if-not'/3,sublis/2,
+         eval/1,eval/2,
+         'macro-function'/1,'macro-function'/2,
+         macroexpand/1,macroexpand/2,
+         'macroexpand-1'/1,'macroexpand-1'/2,
+         'macroexpand-all'/1,'macroexpand-all'/2]).
 
 %% Miscellaneous useful LFE functions.
 -export([format_exception/6,format_stacktrace/3]).
@@ -169,9 +171,10 @@ proc_forms_progn(_, [], _, Rs, St) ->
 %% subst-if-not(New, Test, Tree) -> Tree.
 %% sublis(Alist, Tree) -> Tree.
 %% eval(Sexpr) -> Value.
-%% macroexpand(Form [,Environment]) -> {yes,Expansion} | no.
-%% macroexpand-1(Form [,Environment]) -> {yes,Expansion} | no.
-%% macroexpand-all(Form [,Environment]) -> {yes,Expansion} | no.
+%% macro-function(Name [,Environment]) -> Macro | [].
+%% macroexpand(Form [,Environment]) -> Expansion | Form.
+%% macroexpand-1(Form [,Environment]) -> Expansion | Form.
+%% macroexpand-all(Form [,Environment]) -> Expansion | Form.
 
 is_lfe_bif(acons, 3) -> true;
 is_lfe_bif(pairlis, 2) -> true;
@@ -188,6 +191,8 @@ is_lfe_bif('subst-if-not', 3) -> true;
 is_lfe_bif(sublis, 2) -> true;
 is_lfe_bif(eval, 1) -> true;
 is_lfe_bif(eval, 2) -> true;
+is_lfe_bif('macro-function', 1) -> true;
+is_lfe_bif('macro-function', 2) -> true;
 is_lfe_bif(macroexpand, 1) -> true;
 is_lfe_bif(macroexpand, 2) -> true;
 is_lfe_bif('macroexpand-1', 1) -> true;
@@ -289,18 +294,26 @@ sublis(Alist, Tree) ->
 eval(Sexpr) -> eval(Sexpr, lfe_env:new()).  %Empty environment.
 eval(Sexpr, Env) -> lfe_eval:expr(Sexpr, Env).
 
+'macro-function'(Symb) -> 'macro-function'(Symb, lfe_env:new()).
+'macro-function'(Symb, Env) ->
+    case lfe_env:get_mbinding(Symb, Env) of
+        {yes,Macro} ->
+            Macro;
+        no -> []
+    end.
+
 macroexpand(Form) -> macroexpand(Form, lfe_env:new()).
 macroexpand(Form, Env) ->
     case lfe_macro:expand_expr(Form, Env) of
-    {yes,Exp} -> Exp;
-    no -> Form
+        {yes,Exp} -> Exp;
+        no -> Form
     end.
 
 'macroexpand-1'(Form) -> 'macroexpand-1'(Form, lfe_env:new()).
 'macroexpand-1'(Form, Env) ->
     case lfe_macro:expand_expr_1(Form, Env) of
-    {yes,Exp} -> Exp;
-    no -> Form
+        {yes,Exp} -> Exp;
+        no -> Form
     end.
 
 'macroexpand-all'(Form) -> 'macroexpand-all'(Form, lfe_env:new()).
