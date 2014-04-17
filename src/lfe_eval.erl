@@ -21,8 +21,8 @@
 -module(lfe_eval).
 
 -export([expr/1,expr/2,gexpr/1,gexpr/2,apply/2,apply/3,
-     body/1,body/2,guard/1,guard/2,
-     make_letrec_env/2,add_expr_func/4,match/3,match_when/4]).
+         body/1,body/2,guard/1,guard/2,match/3,match_when/4,
+         make_letrec_env/2,add_lexical_func/4,add_dynamic_func/4]).
 
 %% Deprecated exports.
 -export([eval/1,eval/2,eval_list/2]).
@@ -429,27 +429,32 @@ make_letrec_env(Fbs0, Env) ->
 extend_letrec_env(Lete0, Fbs0, Env0) ->
     {Lete0,Env0}.
 
-%% add_expr_func(Name, Arity, Def, Env) -> Env.
+%% add_lexical_func(Name, Arity, Def, Env) -> Env.
+%% add_dynamic_func(Name, Arity, Def, Env) -> Env.
 %%  Add a function definition in the correct format to the
 %%  environment.
 
-add_expr_func(Name, Ar, Def, Env) ->
+add_lexical_func(Name, Ar, Def, Env) ->
     add_fbinding(Name, Ar, {lexical_expr,Def,Env}, Env).
+
+add_dynamic_func(Name, Ar, Def, Env) ->
+    add_fbinding(Name, Ar, {dynamic_expr,Def}, Env).
 
 %% eval_apply(Function, Args, Env) -> Value.
 %%  This is used to evaluate interpreted functions. Macros are
 %%  expanded completely in the function definition before it is
 %%  applied.
 
-eval_apply({dynamic_expr,Func}, Es, Env) ->
-    eval_apply_expr(Func, Es, Env);
+eval_apply({dynamic_expr,Func}, Es, Env0) ->
+    Env1 = lfe_env:clr_vars(Env0),              %Clear all variable bindings
+    eval_apply_expr(Func, Es, Env1);
 eval_apply({lexical_expr,Func,Env}, Es, _) ->
     eval_apply_expr(Func, Es, Env);
 eval_apply({letrec,Body,Fbs,Env}, Es, _) ->
     %% A function created by/for letrec-function.
     NewEnv = foldl(fun ({V,Ar,Lambda}, E) ->
-               add_fbinding(V, Ar, {letrec,Lambda,Fbs,Env}, E)
-           end, Env, Fbs),
+                           add_fbinding(V, Ar, {letrec,Lambda,Fbs,Env}, E)
+                   end, Env, Fbs),
     %% io:fwrite("la: ~p\n", [{Body,NewEnv}]),
     eval_apply_expr(Body, Es, NewEnv).
 
@@ -459,23 +464,23 @@ eval_apply({letrec,Body,Fbs,Env}, Es, _) ->
 
 eval_apply_expr(Func, Es, Env) ->
     case lfe_macro:expand_expr_all(Func, Env) of
-    [lambda,Args|Body] -> apply_lambda(Args, Body, Es, Env);
-    ['match-lambda'|Cls] -> apply_match_clauses(Cls, Es, Env);
-    Fun when erlang:is_function(Fun) -> erlang:apply(Fun, Es)
+        [lambda,Args|Body] -> apply_lambda(Args, Body, Es, Env);
+        ['match-lambda'|Cls] -> apply_match_clauses(Cls, Es, Env);
+        Fun when erlang:is_function(Fun) -> erlang:apply(Fun, Es)
     end.
 
 %% eval_if(IfBody, Env) -> Value.
 
-eval_if([Test,True], Env) ->            %Add default false value
+eval_if([Test,True], Env) ->                    %Add default false value
     eval_if(Test, True, [quote,false], Env);
 eval_if([Test,True,False], Env) ->
     eval_if(Test, True, False, Env).
 
 eval_if(Test, True, False, Env) ->
     case eval_expr(Test, Env) of
-    true -> eval_expr(True, Env);
-    false -> eval_expr(False, Env);
-    _ -> erlang:error(if_clause)        %Explicit error here
+        true -> eval_expr(True, Env);
+        false -> eval_expr(False, Env);
+        _ -> erlang:error(if_clause)            %Explicit error here
     end.
 
 %% eval_case(CaseBody, Env) -> Value.
@@ -485,8 +490,8 @@ eval_case([E|Cls], Env) ->
 
 eval_case_clauses(V, Cls, Env) ->
     case match_clause(V, Cls, Env) of
-    {yes,B,Vbs} -> eval_body(B, add_vbindings(Vbs, Env));
-    no -> erlang:error({case_clause,V})
+        {yes,B,Vbs} -> eval_body(B, add_vbindings(Vbs, Env));
+        no -> erlang:error({case_clause,V})
     end.
 
 match_clause(V, [[Pat|B0]|Cls], Env) ->
