@@ -312,82 +312,82 @@ bind_args([], [], Env) -> Env.
 eval_match_lambda(Cls, Env) ->
     %% This is a really ugly hack! But it's the same hack as in erl_eval.
     case match_lambda_arity(Cls) of
-    0 -> fun () -> apply_match_clauses(Cls, [], Env) end;
-    1 -> fun (A) -> apply_match_clauses(Cls, [A], Env) end;
-    2 -> fun (A,B) -> apply_match_clauses(Cls, [A,B], Env) end;
-    3 -> fun (A,B,C) -> apply_match_clauses(Cls, [A,B,C], Env) end;
-    4 -> fun (A,B,C,D) -> apply_match_clauses(Cls, [A,B,C,D], Env) end;
-    5 -> fun (A,B,C,D,E) -> apply_match_clauses(Cls, [A,B,C,D,E], Env) end;
+    0 -> fun () -> apply_match_lambda(Cls, [], Env) end;
+    1 -> fun (A) -> apply_match_lambda(Cls, [A], Env) end;
+    2 -> fun (A,B) -> apply_match_lambda(Cls, [A,B], Env) end;
+    3 -> fun (A,B,C) -> apply_match_lambda(Cls, [A,B,C], Env) end;
+    4 -> fun (A,B,C,D) -> apply_match_lambda(Cls, [A,B,C,D], Env) end;
+    5 -> fun (A,B,C,D,E) -> apply_match_lambda(Cls, [A,B,C,D,E], Env) end;
     6 -> fun (A,B,C,D,E,F) ->
-        apply_match_clauses(Cls, [A,B,C,D,E,F], Env) end;
+        apply_match_lambda(Cls, [A,B,C,D,E,F], Env) end;
     7 -> fun (A,B,C,D,E,F,G) ->
-        apply_match_clauses(Cls, [A,B,C,D,E,F,G], Env) end;
+        apply_match_lambda(Cls, [A,B,C,D,E,F,G], Env) end;
     8 -> fun (A,B,C,D,E,F,G,H) ->
-        apply_match_clauses(Cls, [A,B,C,D,E,F,G,H], Env) end;
+        apply_match_lambda(Cls, [A,B,C,D,E,F,G,H], Env) end;
     9 -> fun (A,B,C,D,E,F,G,H,I) ->
-        apply_match_clauses(Cls, [A,B,C,D,E,F,G,H,I], Env) end;
+        apply_match_lambda(Cls, [A,B,C,D,E,F,G,H,I], Env) end;
     10 -> fun (A,B,C,D,E,F,G,H,I,J) ->
-        apply_match_clauses(Cls, [A,B,C,D,E,F,G,H,I,J], Env) end;
+        apply_match_lambda(Cls, [A,B,C,D,E,F,G,H,I,J], Env) end;
     11 -> fun (A,B,C,D,E,F,G,H,I,J,K) ->
-        apply_match_clauses(Cls, [A,B,C,D,E,F,G,H,I,J,K], Env) end;
+        apply_match_lambda(Cls, [A,B,C,D,E,F,G,H,I,J,K], Env) end;
     12 -> fun (A,B,C,D,E,F,G,H,I,J,K,L) ->
-        apply_match_clauses(Cls, [A,B,C,D,E,F,G,H,I,J,K,L], Env) end;
+        apply_match_lambda(Cls, [A,B,C,D,E,F,G,H,I,J,K,L], Env) end;
     13 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M) ->
-        apply_match_clauses(Cls, [A,B,C,D,E,F,G,H,I,J,K,L,M], Env) end;
+        apply_match_lambda(Cls, [A,B,C,D,E,F,G,H,I,J,K,L,M], Env) end;
     14 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N) ->
-        apply_match_clauses(Cls, [A,B,C,D,E,F,G,H,I,J,K,L,M,N], Env) end;
+        apply_match_lambda(Cls, [A,B,C,D,E,F,G,H,I,J,K,L,M,N], Env) end;
     15 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O) ->
-        apply_match_clauses(Cls, [A,B,C,D,E,F,G,H,I,J,K,L,M,N,O], Env) end
+        apply_match_lambda(Cls, [A,B,C,D,E,F,G,H,I,J,K,L,M,N,O], Env) end
     end.
 
 match_lambda_arity([[Pats|_]|_]) -> length(Pats).
 
-apply_match_clauses([[Pats|B0]|Cls], Vals, Env) ->
+apply_match_lambda([[Pats|B0]|Cls], Vals, Env) ->
     if length(Vals) == length(Pats) ->
-        %% Sneaky! m-l args a list of patterns so wrap with list
-        %% and pass in as one pattern. Have already checked a
-        %% proper list.
-        case match_when([list|Pats], Vals, B0, Env) of
-        {yes,B1,Vbs} -> eval_body(B1, add_vbindings(Vbs, Env));
-        no -> apply_match_clauses(Cls, Vals, Env)
-        end;
+            %% Sneaky! m-l args a list of patterns so wrap with list
+            %% and pass in as one pattern. Have already checked a
+            %% proper list.
+            case match_when([list|Pats], Vals, B0, Env) of
+                {yes,B1,Vbs} -> eval_body(B1, add_vbindings(Vbs, Env));
+                no -> apply_match_lambda(Cls, Vals, Env)
+            end;
        true -> erlang:error(badarity)
     end;
-apply_match_clauses(_, _, _) -> erlang:error(function_clause).
+apply_match_lambda(_, _, _) -> erlang:error(function_clause).
 
 %% eval_let([PatBindings|Body], Env) -> Value.
 
 eval_let([Vbs|Body], Env0) ->
     %% Make sure we use the right environment.
     Env1 = foldl(fun ([Pat,E], Env) ->
-             Val = eval_expr(E, Env0),
-             case match(Pat, Val, Env0) of
-                 {yes,Bs} -> add_vbindings(Bs, Env);
-                 no -> erlang:error({badmatch,Val})
-             end;
-             ([Pat,['when'|_]=G,E], Env) ->
-             Val = eval_expr(E, Env0),
-             case match_when(Pat, Val, [G], Env0) of
-                 {yes,[],Bs} -> add_vbindings(Bs, Env);
-                 no -> erlang:error({badmatch,Val})
-             end;
-             (_, _) -> erlang:error({bad_form,'let'})
-         end, Env0, Vbs),
+                         Val = eval_expr(E, Env0),
+                         case match(Pat, Val, Env0) of
+                             {yes,Bs} -> add_vbindings(Bs, Env);
+                             no -> erlang:error({badmatch,Val})
+                         end;
+                     ([Pat,['when'|_]=G,E], Env) ->
+                         Val = eval_expr(E, Env0),
+                         case match_when(Pat, Val, [G], Env0) of
+                             {yes,[],Bs} -> add_vbindings(Bs, Env);
+                             no -> erlang:error({badmatch,Val})
+                         end;
+                     (_, _) -> erlang:error({bad_form,'let'})
+                 end, Env0, Vbs),
     eval_body(Body, Env1).
 
 %% eval_let_function([FuncBindings|Body], Env) -> Value.
 
 eval_let_function([Fbs|Body], Env0) ->
     Add = fun (F, Ar, Def, Lenv, Env) ->
-          add_fbinding(F, Ar, {lexical_expr,Def,Lenv}, Env)
-      end,
+                  add_fbinding(F, Ar, {lexical_expr,Def,Lenv}, Env)
+          end,
     Env1 = foldl(fun ([V,[lambda,Args|_]=Lambda], E) when is_atom(V) ->
-             Add(V, length(Args), Lambda, Env0, E);
-             ([V,['match-lambda',[Pats|_]|_]=Match], E)
-               when is_atom(V) ->
-             Add(V, length(Pats), Match, Env0, E);
-             (_, _) -> erlang:error({bad_form,'let-function'})
-         end, Env0, Fbs),
+                         Add(V, length(Args), Lambda, Env0, E);
+                     ([V,['match-lambda',[Pats|_]|_]=Match], E)
+                       when is_atom(V) ->
+                         Add(V, length(Pats), Match, Env0, E);
+                     (_, _) -> erlang:error({bad_form,'let-function'})
+                 end, Env0, Fbs),
     %% io:fwrite("elf: ~p\n", [{Body,Env1}]),
     eval_body(Body, Env1).
 
@@ -398,11 +398,11 @@ eval_let_function([Fbs|Body], Env0) ->
 eval_letrec_function([Fbs0|Body], Env0) ->
     %% Check and abstract out function bindings.
     Fbs1 = map(fun ([V,[lambda,Args|_]=Lambda]) when is_atom(V) ->
-               {V,length(Args),Lambda};
-           ([V,['match-lambda',[Pats|_]|_]=Match]) when is_atom(V) ->
-               {V,length(Pats),Match};
-           (_) -> erlang:error({bad_form,'letrec-function'})
-           end, Fbs0),
+                       {V,length(Args),Lambda};
+                   ([V,['match-lambda',[Pats|_]|_]=Match]) when is_atom(V) ->
+                       {V,length(Pats),Match};
+                   (_) -> erlang:error({bad_form,'letrec-function'})
+               end, Fbs0),
     Env1 = make_letrec_env(Fbs1, Env0),
     %% io:fwrite("elrf: ~p\n", [{Env0,Env1}]),
     eval_body(Body, Env1).
@@ -465,7 +465,7 @@ eval_apply({letrec,Body,Fbs,Env}, Es, _) ->
 eval_apply_expr(Func, Es, Env) ->
     case lfe_macro:expand_expr_all(Func, Env) of
         [lambda,Args|Body] -> apply_lambda(Args, Body, Es, Env);
-        ['match-lambda'|Cls] -> apply_match_clauses(Cls, Es, Env);
+        ['match-lambda'|Cls] -> apply_match_lambda(Cls, Es, Env);
         Fun when erlang:is_function(Fun) -> erlang:apply(Fun, Es)
     end.
 
