@@ -1,7 +1,7 @@
 (defmodule unit-lfunit-testset-tests
   (export all)
   (import
-    (from lfeunit-util
+    (from lfunit
       (check-failed-assert 2)
       (check-wrong-assert-exception 2))))
 
