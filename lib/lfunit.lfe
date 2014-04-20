@@ -19,11 +19,13 @@
 ;; This module contains utility functions for lfunit. Most of the functionality
 ;; of lfunit is actually in the included macro file.
 ;;
-;; Note that this code was originally copied by the authoer from an
+;; Note that this code was originally copied by the author from an
 ;; independent open source project, lfeunit.
 
 (defmodule lfunit
-  (export all))
+  (export
+    (check-failed-assert 2)
+    (check-wrong-assert-exception 2)))
 
 (include-lib "include/lfunit.lfe")
 
@@ -37,7 +39,7 @@
     (is-equal failure-type expected)))
 
 (defun check-wrong-assert-exception (data expected)
-  " This function
+  "This function
     1) unwraps the data held in the error result returned by
        assert-exception when an unexpected error occurs, and
     2) checks the buried failure type against an expected value, asserting
