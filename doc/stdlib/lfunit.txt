@@ -185,6 +185,23 @@ Naming
     to generated tests and fixtures, lfunit will convert all dashes
     in a (deftestgen ...) name to underscores.
 
+Running
+
+    LFE projects may take advantage of lfetool for many things,
+    one of which is running unit, integration, and system tests
+    with colorized output and regular, clean formatting.
+    Installation is done with the following:
+
+        $ curl -o ./lfetool https://raw.github.com/lfe/lfetool/master/lfetool
+        $ bash lfetool install /usr/local/bin
+
+    At which point, tests for your project may be run with:
+
+        $ lfetool tests unit
+        $ lfetool tests integration
+        $ lfetool tests system
+        $ lfetool tests all
+
 EXAMPLES
 
 Defining a Test Module
