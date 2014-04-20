@@ -58,15 +58,15 @@
   expression does not evaluate as false value, an error is returned."
   `(assertNot ,bool-expression))
 
-(defmacro is-equal (value expression)
+(defmacro is-equal (expected expression)
   "This macro checks the equality between a passed value and a quoated
   expression."
-  `(assertEqual ,value ,expression))
+  `(assertEqual ,expected ,expression))
 
-(defmacro is-not-equal (value expression)
+(defmacro is-not-equal (expected expression)
   "This macro checks the inequality between an expected value and a passed
   expression."
-  `(assertNotEqual ,value ,expression))
+  `(assertNotEqual ,expected ,expression))
 
 (defmacro is-exception (expected-class expected-term expression)
   "This macro check that the passeed expression raises the expected
