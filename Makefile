@@ -1,5 +1,5 @@
 # Makefile for LFE
-# This simple Makefile uses rebar to compile/clean if it
+# This simple Makefile uses rebar (in Unix) or rebar.cmd (in Windows) to compile/clean if it
 # exists, else does it explicitly.
 
 BINDIR = bin
@@ -45,7 +45,9 @@ all: compile docs
 
 ## Compile using rebar if it exists else using make
 compile:
-	if which rebar > /dev/null; \
+	if which rebar.cmd > /dev/null; \
+	then rebar.cmd compile; \
+	elif which rebar > /dev/null; \
 	then rebar compile; \
 	else $(MAKE) $(MFLAGS) erlc_compile; \
 	fi
@@ -65,7 +67,9 @@ install:
 docs:
 
 clean:
-	if which rebar > /dev/null; \
+	if which rebar.cmd > /dev/null; \
+	then rebar.cmd clean; \
+	elif which rebar > /dev/null; \
 	then rebar clean; \
 	else rm -rf $(EBINDIR)/*.beam; \
 	fi
@@ -82,7 +86,11 @@ $(EXPM): $(BINDIR)
 	chmod +x $(EXPM)
 
 get-deps: $(EXPM)
-	@rebar get-deps
+	if which rebar.cmd > /dev/null; \
+	then rebar.cmd get-deps; \
+	elif which rebar > /dev/null; \
+	then rebar get-deps; \
+	fi
 
 get-version:
 	@echo
