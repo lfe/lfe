@@ -80,10 +80,10 @@
   'badarith, etc.)."
   `(not (is-exception ,expected-class ,expected-term ,expression)))
 
-(defmacro is-error (error expression)
+(defmacro is-error (expected-term expression)
   "This macro is a convenience macro for is-exception with an
   exception class of 'error."
-  `(assertError ,error ,expression))
+  `(assertError ,expected-term ,expression))
 
 (defmacro is-not-error (expected-term expression)
   "This macro is a convenience macro for is-not-exception with an
