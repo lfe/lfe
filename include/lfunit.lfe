@@ -18,7 +18,7 @@
 
 ;; This macro file contains the meat of the code for lfunit.
 ;;
-;; Note that this code was originally copied by the authoer from an
+;; Note that this code was originally copied by the author from an
 ;; independent open source project, lfeunit.
 
 (include-lib "eunit/include/eunit.hrl")
@@ -32,7 +32,10 @@
 
 (defmacro deftestgen arg
   "This macro is for defining EUnit tests that use test generators."
-  (let ((name (re:replace (atom_to_list (car arg)) '"-" '"_" '(#(return list) global)))
+  (let ((name (re:replace (atom_to_list (car arg))
+                          '"-"
+                          '"_"
+                          '(#(return list) global)))
         (body (cdr arg)))
     `(defun ,(list_to_atom (++ name '"_test_")) ()
        ,@body)))
@@ -77,10 +80,10 @@
   'badarith, etc.)."
   `(not (is-exception ,expected-class ,expected-term ,expression)))
 
-(defmacro is-error (error body)
+(defmacro is-error (error expression)
   "This macro is a convenience macro for is-exception with an
   exception class of 'error."
-  `(assertError ,error ,body))
+  `(assertError ,error ,expression))
 
 (defmacro is-not-error (expected-term expression)
   "This macro is a convenience macro for is-not-exception with an
