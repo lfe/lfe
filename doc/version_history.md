@@ -1,5 +1,24 @@
 # LFE Version History
 
+## v0.8
+
+A lot of stuff. Amongst other things:
+
+Can define functions and macros in the shell.
+
+Improved reading of Erlang .hrl files, for example can read the
+eunit.hrl file.
+
+Can now call functions in other modules using the syntax
+
+``(foo:bar 1 2 3)``
+
+The older syntax ``(: foo bar 1 2 3)`` is still valid.
+
+Now support unnested block comments of the form ``#| ... |#``.
+
+Many new examples.
+
 ## v0.7
 
 Added Travis-CI support. You can use this ``.travis.yml`` and add lfe to
