@@ -195,12 +195,9 @@ Running
         $ curl -o ./lfetool https://raw.github.com/lfe/lfetool/master/lfetool
         $ bash lfetool install /usr/local/bin
 
-    At which point, tests for your project may be run with:
+    At which point, tests for LFE may be run with:
 
-        $ lfetool tests unit
-        $ lfetool tests integration
-        $ lfetool tests system
-        $ lfetool tests all
+        $ make check
 
 EXAMPLES
 
