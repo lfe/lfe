@@ -7,14 +7,14 @@
 
 (include-lib "include/lfunit.lfe")
 
-(deftest testset-with-one
+(deftest testset-with-one-element
   (list (is 'true)))
 
-(deftest testset-with-two
+(deftest testset-with-two-elements
   (list (is 'true)
         (is-not 'false)))
 
-(deftest testset-with-three
+(deftest testset-with-three-elements
   (list (is 'true)
         (is-not 'false)
         (is-equal 2 2)))
@@ -44,3 +44,16 @@
                       (catch
                         ((tuple type value _)
                          (check-failed-assert value 'assertEqual_failed))))))))
+
+(deftest two-testsets
+  (list (is 'true)
+        (is-not 'false))
+  (list (is-equal 1 1)
+        (is-not-equal 1 2)))
+
+(deftest three-testsets
+  (list (is 'true)
+        (is-not 'false))
+  (list (is-equal 1 1)
+        (is-not-equal 1 2))
+  (list (is-equal 42 (* 2 (+ 1 2 3 4 5 6)))))
