@@ -79,22 +79,18 @@
  (export all))
 
 (defun fish-class (species)
-  "
-  This is the constructor that will be used most often, only requiring that
+  "This is the constructor that will be used most often, only requiring that
   one pass a 'species' string.
 
-  When the children are not defined, simply use an empty list.
-  "
+  When the children are not defined, simply use an empty list."
   (fish-class species ()))
 
 (defun fish-class (species children)
-  "
-  This contructor is mostly useful as a way of abstracting out the id
+  "This contructor is mostly useful as a way of abstracting out the id
   generation from the larger constructor. Nothing else uses fish-class/2
   besides fish-class/1, so it's not strictly necessary.
 
-  When the id isn't known, generate one.
-  "
+  When the id isn't known, generate one."
   (let* (((binary (id (size 128))) (: crypto rand_bytes 16))
          (formatted-id (car
                          (: io_lib format
@@ -102,10 +98,8 @@
     (fish-class species children formatted-id)))
 
 (defun fish-class (species children id)
-  "
-  This is the constructor used internally, once the children and fish id are
-  known.
-  "
+  "This is the constructor used internally, once the children and fish id are
+  known."
   (let ((move-verb '"swam"))
     (lambda (method-name)
       (case method-name
@@ -141,14 +135,12 @@
             (: erlang length children)))))))
 
 (defun get-method (object method-name)
-  "
-  This is a generic function, used to call into the given object (class
-  instance).
-  "
+  "This is a generic function, used to call into the given object (class
+  instance)."
   (funcall object method-name))
 
-; define object methods
 (defun get-id (object)
+  "Define object methods."
   (funcall (get-method object 'id) object))
 
 (defun get-species (object)

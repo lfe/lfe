@@ -47,7 +47,7 @@
 ;; Testing patterns and guards in let.
 (defun e (x y)
   (let (((cons p ps) (when (is_number p)) (b x y))
-	(q (when (is_atom q)) (c x y)))
+    (q (when (is_atom q)) (c x y)))
     (d p q)))
 
 ;; Test equivalence of old and new patterns, compare generated code.
@@ -59,10 +59,10 @@
     ((m . n) (tuple 2 'old m n))
     ((cons m n) (tuple 2 'new m n))
     ((m n . o) (tuple 3 'old m n o))
-    ((cons m (cons n o))		;(list* m n o)
+    ((cons m (cons n o))        ;(list* m n o)
      (tuple 3 'new m n o))
     ;; cons/list become "reserved words" like tuple/binary.
-    ((m cons n o) (tuple 4 'old m n o))	;(cons m (cons n o))
+    ((m cons n o) (tuple 4 'old m n o))    ;(cons m (cons n o))
     ((m list n o) (tuple 5 'old m n o)) ;(cons m (list n o))
     ))
 

@@ -19,5 +19,5 @@
 (defmacro match-spec body
   ;; Body is clauses so expand it like a match-lambda.
   (let (((cons 'match-lambda exp)
-	 (macroexpand-all (cons 'match-lambda body) $ENV)))
+     (macroexpand-all (cons 'match-lambda body) $ENV)))
     (: lfe_ms expand exp)))

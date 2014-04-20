@@ -1,3 +1,5 @@
+;;; lfe-mode.el --- Lisp Flavoured Erlang mode
+
 ;; Copyright (c) 2012-2013 Robert Virding
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +14,6 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-;;; lfe-mode.el --- Lisp Flavoured Erlang mode
 ;;; Author Robert Virding
 ;;;
 ;;; Copied from lisp-mode and scheme-mode and modified for LFE.
@@ -56,6 +57,7 @@ Leave point after open-bracket."
 (defvar lfe-mode-hook nil
   "*Hook for customizing Inferior LFE mode.")
 
+;;;###autoload
 (defun lfe-mode ()
   "Major mode for editing Lisp Flavoured Erlang. It's just like lisp mode.
 
@@ -284,10 +286,21 @@ Other commands:
 (put 'bc 'lfe-indent-function 1)
 (put 'match-spec 'lfe-indent-function 0)
 
+;;;###autoload
+;; Associate ".lfe" with LFE mode.
+(add-to-list 'auto-mode-alist '("\\.lfe\\'" . lfe-mode) t)
+
+;;;###autoload
+;; Ignore files ending in ".jam", ".vee", and ".beam" when performing
+;; file completion.
+(dolist (lfe-ext '(".beam" ".jam" ".vee"))
+  (add-to-list 'completion-ignored-extensions lfe-ext))
+
 ;; The end.
 (provide 'lfe-mode)
 
 (defvar lfe-load-hook nil
-  "*Functions to run when Erlang mode is loaded.")
+  "*Functions to run when LFE mode is loaded.")
 
 (run-hooks 'lfe-load-hook)
+;;; lfe-mode.el ends here

@@ -50,50 +50,50 @@ print1(['unquote-splicing',E], D, I, L) -> [",@",print1(E, D, I+2, L)];
 print1([Car|_]=List, D, I, L) ->
     %% Handle printable lists specially.
     case io_lib:printable_list(List) of
-	true -> lfe_io:print1_string(List, $");	%"
-	false ->
-	    case print1_list_max(List, D-1, I+2, L) of
-		{yes,Print} -> ["(",Print,")"];
-		no ->
-		    %% Customise printing of lists.
-		    case indent_type(Car) of
-			none ->			%Normal lists.
-			    ["(",print1_list(List, D-1, I+1, L),")"];
-			defun ->		%Special case for defuns
-			    print1_defun(List, D, I, L);
-			N when is_integer(N) ->	%Special N first elements
-			    print1_type(List, D, I, L, N)
-		    end
-	    end
+    true -> lfe_io:print1_string(List, $");    %"
+    false ->
+        case print1_list_max(List, D-1, I+2, L) of
+        {yes,Print} -> ["(",Print,")"];
+        no ->
+            %% Customise printing of lists.
+            case indent_type(Car) of
+            none ->                     %Normal lists.
+                ["(",print1_list(List, D-1, I+1, L),")"];
+            defun ->                    %Special case for defuns
+                print1_defun(List, D, I, L);
+            N when is_integer(N) ->     %Special N first elements
+                print1_type(List, D, I, L, N)
+            end
+        end
     end;
 print1([], _, _, _) -> "()";
 print1({}, _, _, _) -> "#()";
 print1(Tup, D, I, L) when is_tuple(Tup) ->
     Es = tuple_to_list(Tup),
     case print1_list_max(Es, D-1, I+3, L) of
-	{yes,Print}  -> ["#(",Print,")"];
-	no -> ["#(",print1_list(Es, D-1, I+2, L),")"]
+    {yes,Print}  -> ["#(",Print,")"];
+    no -> ["#(",print1_list(Es, D-1, I+2, L),")"]
     end;
 print1(Bit, _, _, _) when is_bitstring(Bit) ->
-    ["#B(",lfe_io:print1_bits(Bit, 30),$)];	%First 30 bytes
+    ["#B(",lfe_io:print1_bits(Bit, 30),$)];     %First 30 bytes
 print1(Other, _, _, _) ->
-    lfe_io:print1(Other).			%Use standard LFE for rest
+    lfe_io:print1(Other).                       %Use standard LFE for rest
 
 %% print1_defun(List, Depth, Indentation, LineLength) -> [char()].
 %% Print a defun depending on whether it is traditional or matching.
 
 print1_defun([Def,Name,Args|Rest], D, I, L) when
       is_atom(Name), (D > 3) or (D < 0) ->
-    Dcs = atom_to_list(Def),			%Might not actually be defun
+    Dcs = atom_to_list(Def),            %Might not actually be defun
     Ncs = atom_to_list(Name),
     case lfe_lib:is_symb_list(Args) of
-	true ->					%Traditional
-	    Acs = print1(Args, D-2, I + length(Dcs) + length(Ncs) + 3, L),
-	    Tcs = print1_tail(Rest, D-3, I+2, L),
-	    ["(",Dcs," ",Ncs," ",Acs,Tcs,")"];
-	false ->				%Matching
-	    Tcs = print1_tail([Args|Rest], D-2, I+2, L),
-	    ["(",Dcs," ",Ncs,Tcs,")"]
+    true ->                    %Traditional
+        Acs = print1(Args, D-2, I + length(Dcs) + length(Ncs) + 3, L),
+        Tcs = print1_tail(Rest, D-3, I+2, L),
+        ["(",Dcs," ",Ncs," ",Acs,Tcs,")"];
+    false ->                %Matching
+        Tcs = print1_tail([Args|Rest], D-2, I+2, L),
+        ["(",Dcs," ",Ncs,Tcs,")"]
     end;
 print1_defun(List, D, I, L) ->
     %% Too short to get worked up about, or not a "proper" defun or
@@ -110,7 +110,7 @@ print1_type([Car|Cdr], D, I, L, N) when (D > 2) or (D < 0) ->
     NewI = I + length(Cs) + 2,
     {Spec,Rest} = split(N, Cdr),
     Tcs = [print1_list(Spec, D-1, NewI, L),
-	   print1_tail(Rest, D-2, I+2, L)],
+       print1_tail(Rest, D-2, I+2, L)],
     ["(" ++ Cs," ",Tcs,")"];
 print1_type(List, D, I, L, _) ->
     %% Too short to get worked up about or not enough depth.
@@ -133,7 +133,7 @@ split(N, [H|T]) ->
 print1_list_max([], _, _, _) -> {yes,[]};
 print1_list_max(_, 0, _, _) -> {yes,"..."};
 print1_list_max([Car|Cdr], D, I, L) ->
-    Cs = print1(Car, D, 0, 99999),		%Never break the line
+    Cs = print1(Car, D, 0, 99999),        %Never break the line
     print1_tail_max(Cdr, D-1, I + flatlength(Cs), L, [Cs]).
 
 %% print1_tail_max(Tail, Depth, Indentation, LineLength) -> {yes,Chars} | no.
@@ -142,14 +142,14 @@ print1_list_max([Car|Cdr], D, I, L) ->
 %%  we just quit as we know necessary "..." will have come from an
 %%  earlier print1 at same depth.
 
-print1_tail_max(_, _, I, L, _) when I >= L -> no;	%No more room
+print1_tail_max(_, _, I, L, _) when I >= L -> no;    %No more room
 print1_tail_max([], _, _, _, Acc) -> {yes,reverse(Acc)};
 print1_tail_max(_, 0, _, _, Acc) -> {yes,reverse(Acc, [" ..."])};
 print1_tail_max([Car|Cdr], D, I, L, Acc) ->
-    Cs = print1(Car, D, 0, 99999),		%Never break the line
+    Cs = print1(Car, D, 0, 99999),          %Never break the line
     print1_tail_max(Cdr, D-1, I + flatlength(Cs) + 1, L, [Cs," "|Acc]);
 print1_tail_max(S, D, I, L, Acc) ->
-    Cs = print1(S, D, 0, 99999),		%Never break the line
+    Cs = print1(S, D, 0, 99999),            %Never break the line
     print1_tail_max([], D-1, I + flatlength(Cs) + 3, L, [Cs," . "|Acc]).
 
 %% print1_list(List, Depth, Indentation, LineLength)
@@ -181,6 +181,7 @@ blanks(N, Tail) -> string:chars($\s, N, Tail).
 %% Old style forms.
 indent_type('define') -> 1;
 indent_type('define-module') -> 1;
+indent_type('extend-module') -> 0;
 indent_type('define-syntax') -> 1;
 indent_type('define-record') -> 1;
 indent_type('begin') -> 0;
@@ -213,7 +214,7 @@ indent_type('define-macro') -> 1;
 indent_type('eval-when-compile') -> 0;
 %% Core macros.
 indent_type(':') -> 2;
-indent_type('cond') -> 999;			%All following forms
+indent_type('cond') -> 999;            %All following forms
 indent_type('let*') -> 1;
 indent_type('flet') -> 1;
 indent_type('flet*') -> 1;
@@ -221,7 +222,7 @@ indent_type('fletrec') -> 1;
 indent_type(macrolet) -> 1;
 indent_type(syntaxlet) -> 1;
 indent_type('do') -> 2;
-indent_type('lc') -> 1;				%List comprehensions
-indent_type('bc') -> 1;				%Binary comprehensions
+indent_type('lc') -> 1;                %List comprehensions
+indent_type('bc') -> 1;                %Binary comprehensions
 indent_type('match-spec') -> 0;
 indent_type(_) -> none.
