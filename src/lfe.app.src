@@ -34,7 +34,10 @@
              lfe_qlc,
              lfe_scan,
              lfe_shell,
-             lfe_trans]},
+             lfe_trans,
+             %% stdlib
+             lfunit
+             ]},
   {registered, []},
   {applications, [kernel,stdlib]}
  ]}.

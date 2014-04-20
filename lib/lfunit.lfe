@@ -66,3 +66,7 @@
             '" , [...] }"))
        (expr-data (add-data 'expression expression (DEFAULT-DATA))))
     (add-data 'pattern pattern expr-data)))
+
+(defun add-data (key value data)
+  "A utility function for appending to assert* result data."
+  (++ data (list (tuple key value))))

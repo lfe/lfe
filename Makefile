@@ -43,6 +43,8 @@ all: compile docs
 
 .PHONY: compile erlc_compile install docs clean
 
+compile: compile-lfe compile-stdlib
+
 ## Compile using rebar if it exists else using make
 compile:
 	if which rebar.cmd > /dev/null; \
@@ -52,8 +54,14 @@ compile:
 	else $(MAKE) $(MFLAGS) erlc_compile; \
 	fi
 
+compile-stdlib:
+	./bin/lfec -o ./ebin/ -pa ./ebin/ lib/*.lfe
+
 ## Compile using erlc
 erlc_compile: $(addprefix $(EBINDIR)/, $(EBINS))
+
+check:
+	lfetool tests unit
 
 install:
 	if [ "$$ERL_LIBS" != "" ]; \

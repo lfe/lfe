@@ -110,3 +110,10 @@
 (defmacro is-match (guard expression)
   "This macro checks an expression against a guard."
   `(assertMatch ,guard ,expression))
+
+(defmacro DEFAULT-DATA ()
+  "This macro returns the boilerplate needed for every assertion's failure
+  cases."
+  `(list
+     (tuple 'module (MODULE))
+     (tuple 'line (LINE))))
