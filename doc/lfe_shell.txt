@@ -16,6 +16,7 @@ Built-in shell functions
 
         These are defined as normal functions and macros and can be
         called from anywhere in the shell. They can even be redefined.
+        They can also be explicitly called (: lfe_shell ...).
 
         (c File [Options])
                 Compile and load an LFE file. Assumes default
@@ -75,7 +76,7 @@ Built-in shell commands
                 removing all function and macro definitions both in
                 the slurped file and defined in the shell since then.
 
-Builtin shell variables
+Built-in shell variables
 
         +/++/+++
                 The three previous expressions input.
@@ -89,7 +90,11 @@ Builtin shell variables
 Shell Environment
 
         The shell maintains an environment of local function and macro
-        definitions, and variable bindings.
+        definitions, and variable bindings. The environment can be
+        accessed using the built-in shell variable $ENV. This can be
+        useful when calling functions like macroexpand and
+        macro-function which unless an explicit environment is given
+        will only search the defualt environment.
 
 
 Starting the LFE shell

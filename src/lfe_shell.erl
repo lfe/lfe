@@ -27,7 +27,7 @@
 -export([start/0,start/1,server/0,server/1]).
 
 %% The shell commands which generally callable.
--export([p/1,pp/1,m/1,l/1,c/1,ec/1]).
+-export([c/1,c/2,ec/1,ec/2,i/0,i/1,l/1,m/0,m/1,pid/3,p/1,pp/1,regs/0]).
 
 -import(lfe_env, [new/0,add_env/2,
                   add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
@@ -132,12 +132,14 @@ update_shell_vars(Form, Value, Env0) ->
     add_vbinding('$ENV', Env2, Env2).
 
 add_shell_functions(Env0) ->
-    Fs = [{p,1,[lambda,[e],[':',lfe_shell,p,e]]},
+    Fs = [{i,0,[lambda,[],[':',lfe_shell,i]]},
+          {i,1,[lambda,[ps],[':',lfe_shell,i,ps]]},
+          %% {m,0,[lambda,[],[':',lfe_shell,m]]},
+          %% {m,1,[lambda,[ms],[':',lfe_shell,m,ms]]},
+          {pid,3,[lambda,[i,j,k],[':',lfe_shell,pid,i,j,k]]},
+          {p,1,[lambda,[e],[':',lfe_shell,p,e]]},
           {pp,1,[lambda,[e],[':',lfe_shell,pp,e]]},
-          {i,0,[lambda,[],[':',c,i]]},
-          {i,1,[lambda,[ps],[':',c,i,ps]]},
-          {pid,3,[lambda,[i,j,k],[':',c,pid,i,j,k]]},
-          {regs,0,[lambda,[],[':',c,regs]]}
+          {regs,0,[lambda,[],[':',lfe_shell,regs]]}
          ],
     Add = fun ({N,Ar,Def}, E) ->
                   lfe_eval:add_dynamic_func(N, Ar, Def, E)
@@ -147,10 +149,12 @@ add_shell_functions(Env0) ->
 
 add_shell_macros(Env0) ->
     %% We write macros in LFE and expand them with macro package.
-    Ms = [{m,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,m,[list|?UQ(args)]])]},
+    Ms = [{c,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,c,?UQ_S(args)])]},
+          {ec,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ec,?UQ_S(args)])]},
           {l,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,l,[list|?UQ(args)]])]},
-          {c,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,c,[list|?UQ(args)]])]},
-          {ec,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ec,[list|?UQ(args)]])]}
+	  {m,['match-lambda',
+	      [[[],'$ENV'],?BQ([':',lfe_shell,m])],
+	      [[ms,'$ENV'],?BQ([':',lfe_shell,m,[list|?UQ(ms)]])]]}
          ],
     %% Any errors here will crash shell startup!
     Env1 = lfe_env:add_mbindings(Ms, Env0),
@@ -286,7 +290,8 @@ slurp([File], St0) ->
 
 slurp_1(Name, Ce) ->
     case slurp_file(Name) of                    %Parse, expand and lint file
-        {ok,Fs,Fenv0,_} ->
+        {ok,Fs,Fenv0,Ws} ->
+            slurp_warnings(Name, Ws),
             Sl0 = #slurp{mod='-no-mod-',imps=[]},
             {Fbs,Sl1} = lfe_lib:proc_forms(fun collect_form/3, Fs, Sl0),
             %% Add imports to environment.
@@ -298,8 +303,9 @@ slurp_1(Name, Ce) ->
             %% Get a new environment with all functions defined.
             Fenv2 = lfe_eval:make_letrec_env(Fbs, Fenv1),
             {ok,Sl1#slurp.mod,add_env(Fenv2, Ce)};
-        {error,Es,_} ->
+        {error,Es,Ws} ->
             slurp_errors(Name, Es),
+            slurp_warnings(Name, Ws),
             error
     end.
 
@@ -318,15 +324,15 @@ slurp_file(Name) ->
         {error,E} -> {error,[E],[]}
     end.
 
-slurp_errors(F, Es) ->
-    %% Directly from lfe_comp.
+slurp_errors(File, Es) -> slurp_ews(File, "~s:~w: ~s\n", Es).
+
+slurp_warnings(File, Es) -> slurp_ews(File, "~s:~w: Warning: ~s\n", Es).
+
+slurp_ews(File, Format, Ews) ->
     foreach(fun ({Line,Mod,Error}) ->
                     Cs = Mod:format_error(Error),
-                    lfe_io:format("~s:~w: ~s\n", [F,Line,Cs]);
-                ({Mod,Error}) ->
-                    Cs = Mod:format_error(Error),
-                    lfe_io:format("~s: ~s\n", [F,Cs])
-            end, Es).
+                    lfe_io:format(Format, [File,Line,Cs])
+            end, Ews).
 
 collect_form(['define-module',Mod|Mdef], _, St0) ->
     St1 = collect_mdef(Mdef, St0),
@@ -384,11 +390,13 @@ pp(E) ->
     Cs = lfe_io:prettyprint1(E),
     io:put_chars([Cs,$\n]).
 
-%% c(Args) -> Res,.
+%% c(File [,Args]) -> {ok,Module} | error.
 %%  Compile and load an LFE file.
 
-c([F]) -> c([F,[]]);
-c([F,Os]) ->
+c(F) -> c(F, []).
+
+c(F, Os0) ->
+    Os1 = [report,verbose|Os0],                 %Always report verbosely
     Loadm = fun ([]) -> {module,[]};
                 (Mod) ->
                     Base = filename:basename(F, ".lfe"),
@@ -396,18 +404,24 @@ c([F,Os]) ->
                     R = code:load_abs(Base),
                     R
             end,
-    case lfe_comp:file(F, [report,verbose|Os]) of
+    case lfe_comp:file(F, Os1) of
         {ok,Mod,_} -> Loadm(Mod);
         {ok,Mod} -> Loadm(Mod);
         Other -> Other
     end.
 
-%% ec(Args) -> Res.
+%% ec(File [,Args]) -> Res.
 %%  Compile and load an Erlang file.
 
-ec([F]) -> ec([F,[]]);
-ec([F,Os]) ->
-    c:c(F, Os).
+ec(F) -> c:c(F).
+
+ec(F, Os) -> c:c(F, Os).
+
+%% i([Pids]) -> ok.
+
+i() -> c:i().
+
+i(Pids) -> c:i(Pids).
 
 %% l(Modules) -> ok.
 %%  Load the modules.
@@ -415,9 +429,18 @@ ec([F,Os]) ->
 l(Ms) ->
     foreach(fun (M) -> c:l(M) end, Ms).
 
-%% m(Modules) -> ok.
+%% m([Modules]) -> ok.
 %%  Print module information.
 
-m([]) -> c:m();
+m() -> c:m().
+
 m(Ms) ->
     foreach(fun (M) -> c:m(M) end, Ms).
+
+%% pid(A, B, C) -> Pid.
+
+pid(A, B, C) -> c:pid(A, B, C).
+
+%% regs() -> ok.
+
+regs() -> c:regs().
