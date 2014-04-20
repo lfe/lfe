@@ -1,820 +1,820 @@
 2013-02-12  Robert Virding  <rv@renat.local>
 
-	* <All files>: Changed Copyright notice and now use Apache License
-	V2.0.
+    * <All files>: Changed Copyright notice and now use Apache License
+    V2.0.
 
 2011-08-19  Robert Virding  <rv@renat.local>
 
-	* lfe_macro.erl (pass_expand_expr): Only try to expand lists.
+    * lfe_macro.erl (pass_expand_expr): Only try to expand lists.
 
 2011-07-09  Robert Virding  <rv@renat.local>
 
-	* lfe_trans.erl (from_bitseg): Fix handling of binaries.
+    * lfe_trans.erl (from_bitseg): Fix handling of binaries.
 
 2011-07-02  Robert Virding  <rv@renat.local>
 
-	* lfe_eval.erl (match_binary): Fix handling of binary and pattern
-	vars.
+    * lfe_eval.erl (match_binary): Fix handling of binary and pattern
+    vars.
 
-	* lfe_lint.erl (pat_binary): Fix handling of binary and pattern
-	vars.
+    * lfe_lint.erl (pat_binary): Fix handling of binary and pattern
+    vars.
 
 2011-06-29  Robert Virding  <rv@renat.local>
 
-	* lfe_lint.erl, lfe_codegen.erl, lfe_eval.erl, lfe_trans.erl: Now
-	use lfe_bits to parse binaries.
+    * lfe_lint.erl, lfe_codegen.erl, lfe_eval.erl, lfe_trans.erl: Now
+    use lfe_bits to parse binaries.
 
 2011-06-26  Robert Virding  <rv@renat.local>
 
-	* lfe_macro.erl (exp_predef): Add match-spec and qlc macros.
+    * lfe_macro.erl (exp_predef): Add match-spec and qlc macros.
 
 2011-06-15  Robert Virding  <rv@renat.local>
 
-	* lfe_shell.erl (macroexpand, macroexpand-1, macroexpand-all): No
-	longer shell functions.
+    * lfe_shell.erl (macroexpand, macroexpand-1, macroexpand-all): No
+    longer shell functions.
 
-	* lfe_lib.erl (del_vbinding): New function.
+    * lfe_lib.erl (del_vbinding): New function.
 
 2011-06-14  Robert Virding  <rv@renat.local>
 
-	* lfe_io_pretty.erl (indent_type): Add funcall.
+    * lfe_io_pretty.erl (indent_type): Add funcall.
 
 2011-06-08  Robert Virding  <rv@renat.local>
 
-	* lfe_macro.erl (exp_predef): Add match-spec macro.
+    * lfe_macro.erl (exp_predef): Add match-spec macro.
 
 2011-06-05  Robert Virding  <rv@renat.local>
 
-	* lfe_macro.erl (exp_predef): Add simple include-lib macro.
+    * lfe_macro.erl (exp_predef): Add simple include-lib macro.
 
 2011-05-30  Robert Virding  <rv@renat.local>
 
-	* lfe_macro.erl (exp_defrecord): Add ets/mnesia match pattern
-	macro emp-XXX.
+    * lfe_macro.erl (exp_defrecord): Add ets/mnesia match pattern
+    macro emp-XXX.
 
-	* lfe_eval.erl, lfe_shell.erl, lfe_macro.erl: Restructure
-	lfe_macro.erl and redefine interface.
+    * lfe_eval.erl, lfe_shell.erl, lfe_macro.erl: Restructure
+    lfe_macro.erl and redefine interface.
 
 2011-04-24  Robert Virding  <rv@renat.local>
 
-	* lfe_codegen.erl (comp_gtest): Removed unnecessary special cases,
-	optimizer fixes this for us.
+    * lfe_codegen.erl (comp_gtest): Removed unnecessary special cases,
+    optimizer fixes this for us.
 
 2011-04-21  Robert Virding  <rv@renat.local>
 
-	* lfe_lint.erl: Remove unused erroneous lfe_lib imports.
+    * lfe_lint.erl: Remove unused erroneous lfe_lib imports.
 
 2011-04-19  Robert Virding  <rv@renat.local>
 
-	* lfe_macro.erl (exp_predef): Arithmetic and comparison functions
-	take multiple arguments.
+    * lfe_macro.erl (exp_predef): Arithmetic and comparison functions
+    take multiple arguments.
 
 2011-04-12  Robert Virding  <rv@renat.local>
 
-	* lfe_comp.erl (erl_comp_opts, do_ok_return): Handle
-	warnings_as_errors ourselves in same way as vanilla compiler.
+    * lfe_comp.erl (erl_comp_opts, do_ok_return): Handle
+    warnings_as_errors ourselves in same way as vanilla compiler.
 
 2011-04-08  Robert Virding  <rv@renat.local>
 
-	* lfe_comp.erl (when_opt): Change argument order.
+    * lfe_comp.erl (when_opt): Change argument order.
 
 2011-03-16  Robert Virding  <rv@renat.local>
 
-	* lfe_macro.erl (expand_append): Expand ++ in such a way as to
-	allow use in patterns.
-	(expand_defmacro): Allow (defmacro name arg ...).
+    * lfe_macro.erl (expand_append): Expand ++ in such a way as to
+    allow use in patterns.
+    (expand_defmacro): Allow (defmacro name arg ...).
 
 2010-12-31  Robert Virding  <rv@renat.local>
 
-	* lfe_io_format.erl (control, newline): Handle ~n correctly.
+    * lfe_io_format.erl (control, newline): Handle ~n correctly.
 
-	* lfe_io_pretty.erl (print1): Prettyprint one element lists.
+    * lfe_io_pretty.erl (print1): Prettyprint one element lists.
 
 2010-11-25  Robert Virding  <rv@renat>
 
-	* lfe_lint.erl (pat_bitsegs): Use check_foldl instead.
-	(gexpr_bitsegs): Use check_foreach instead.
+    * lfe_lint.erl (pat_bitsegs): Use check_foldl instead.
+    (gexpr_bitsegs): Use check_foreach instead.
 
 2010-11-04  Robert Virding  <rv@renat.local>
 
-	* lfe_macro.erl (exp_predef): Extend ? macro to handle optional
-	timeout and default value.
+    * lfe_macro.erl (exp_predef): Extend ? macro to handle optional
+    timeout and default value.
 
 2010-11-01  Robert Virding  <rv@renat>
 
-	* lfe_scan.xrl: Check creating atoms/symbols and code cleanup.
+    * lfe_scan.xrl: Check creating atoms/symbols and code cleanup.
 
 2010-10-27  Robert Virding  <rv@renat.local>
 
-	* lfe_shell.erl (prompt): Prompt adds node name when alive.
+    * lfe_shell.erl (prompt): Prompt adds node name when alive.
 
 2010-09-06  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_macro.erl (def_record, def_rec_fields): Record macros follow
-	new pattern code.
-	(expand_defmacro): Add explicit list constructor for args.
-	(c_l_tq): Add explicit cons constructor.
+    * lfe_macro.erl (def_record, def_rec_fields): Record macros follow
+    new pattern code.
+    (expand_defmacro): Add explicit list constructor for args.
+    (c_l_tq): Add explicit cons constructor.
 
-	* lfe_codegen.erl (comp_pat, pat_list): Add code to generate
-	pattern code for explicit list constructors.
+    * lfe_codegen.erl (comp_pat, pat_list): Add code to generate
+    pattern code for explicit list constructors.
 
-	* lfe_eval.erl (match, match_list): Add code to match explicit
-	list constructors.
+    * lfe_eval.erl (match, match_list): Add code to match explicit
+    list constructors.
 
-	* lfe_lint.erl (check_pat, pat_list, check_alias): Add code to
-	test for explicit list constructors.
+    * lfe_lint.erl (check_pat, pat_list, check_alias): Add code to
+    test for explicit list constructors.
 
 2010-08-25  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_macro.erl (c_tq, c_l_tq, c_b_tq): Add guards to generators
-	in comprehensions.
+    * lfe_macro.erl (c_tq, c_l_tq, c_b_tq): Add guards to generators
+    in comprehensions.
 
-	* lfe_lint.erl (format_error, check_gbody, check_gexpr)
-	(gexpr_bitsegs): Better error checking in guards.
+    * lfe_lint.erl (format_error, check_gbody, check_gexpr)
+    (gexpr_bitsegs): Better error checking in guards.
 
 2010-07-24  Robert Virding  <rv@host-90-237-128-188.mobileonline.telia.com>
 
-	* lfe_shell.erl (macroexpand, macroexpand_1): Return evaluated
-	argument if no expansion.
+    * lfe_shell.erl (macroexpand, macroexpand_1): Return evaluated
+    argument if no expansion.
 
 2010-07-12  Robert Virding  <rv@host-90-233-145-108.mobileonline.telia.com>
 
-	* lfe_scan.xrl: Have separate cases for integer, float and symbol
-	atoms, catch errors better.
+    * lfe_scan.xrl: Have separate cases for integer, float and symbol
+    atoms, catch errors better.
 
 2010-06-07  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_lint.erl (expr_bitseg, gexpr_bitseg, pat_bitseg): Allow
-	strings (integer lists).
+    * lfe_lint.erl (expr_bitseg, gexpr_bitseg, pat_bitseg): Allow
+    strings (integer lists).
 
-	* lfe_codegen.erl (parse_bitsegs): Allow strings (integer lists).
+    * lfe_codegen.erl (parse_bitsegs): Allow strings (integer lists).
 
-	* lfe_eval.erl (parse_bitsegs): Allow strings (integer lists).
+    * lfe_eval.erl (parse_bitsegs): Allow strings (integer lists).
 
-	* lfe_eval.lfe (eval-gbinary): Evaluate binaries in guards.
+    * lfe_eval.lfe (eval-gbinary): Evaluate binaries in guards.
 
-	* lfe_eval.erl (eval_gbinary): Evaluate binaries in guards.
+    * lfe_eval.erl (eval_gbinary): Evaluate binaries in guards.
 
 2010-06-03  Robert Virding  <rv@stanislaw.local>
 
-	* All files: Update copyright to 2010.
+    * All files: Update copyright to 2010.
 
 2010-04-30  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_eval.lfe (apply-lambda): New name and more logical argument
-	order for eval-lambda/4.
-	(apply-match-clauses): New name and more logical argument
-	order for eval-match-clauses/3.
+    * lfe_eval.lfe (apply-lambda): New name and more logical argument
+    order for eval-lambda/4.
+    (apply-match-clauses): New name and more logical argument
+    order for eval-match-clauses/3.
 
 2010-02-24  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_eval.erl (apply_lambda): New name and more logical argument
-	order for eval_lambda/4.
-	(apply_match_clauses): New name and more logical argument
-	order for eval_match_clauses/3.
+    * lfe_eval.erl (apply_lambda): New name and more logical argument
+    order for eval_lambda/4.
+    (apply_match_clauses): New name and more logical argument
+    order for eval_match_clauses/3.
 
-	* lfe_macro.erl (expand_clause, expand_ml_clause, exp_predef)
-	(c_tq): Guards are now a sequence of tests (when t ...).
+    * lfe_macro.erl (expand_clause, expand_ml_clause, exp_predef)
+    (c_tq): Guards are now a sequence of tests (when t ...).
 
 2010-02-20  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_io.erl (scan_and_parse): Use new re-entrant parser.
+    * lfe_io.erl (scan_and_parse): Use new re-entrant parser.
 
-	* lfe_parse.erl: Write to become re-entrant using LL(1) grammar.
+    * lfe_parse.erl: Write to become re-entrant using LL(1) grammar.
 
 2010-02-16  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_eval.lfe (eval-guard, match-when, eval-let): Guards are now
-	a sequence of tests (when t ...).
+    * lfe_eval.lfe (eval-guard, match-when, eval-let): Guards are now
+    a sequence of tests (when t ...).
 
-	* lfe_eval.erl (eval_guard, match_when, eval_let): Guards are now
-	a sequence of tests (when t ...).
+    * lfe_eval.erl (eval_guard, match_when, eval_let): Guards are now
+    a sequence of tests (when t ...).
 
-	* lfe_codegen.erl (comp_guard, comp_gtest, comp_clause_body)
-	(comp_let): Guards are now a sequence of tests (when t ...).
+    * lfe_codegen.erl (comp_guard, comp_gtest, comp_clause_body)
+    (comp_let): Guards are now a sequence of tests (when t ...).
 
-	* lfe_lint.erl (check_guard, check_pat_guard): Guards are now a
-	sequence of tests (when t ...).
+    * lfe_lint.erl (check_guard, check_pat_guard): Guards are now a
+    sequence of tests (when t ...).
 
 2010-02-15  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_codegen.erl (comp_body, append_c_seq): Try to flatten nested
-	sequences. The rest of the compiler likes this.
+    * lfe_codegen.erl (comp_body, append_c_seq): Try to flatten nested
+    sequences. The rest of the compiler likes this.
 
 2010-02-14  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_codegen.erl (comp_guard, comp_gtest, comp_gexpr)
-	(comp_gargs, comp_gif): Rewrite to get correct improved
-	guards. Not done yet.
+    * lfe_codegen.erl (comp_guard, comp_gtest, comp_gexpr)
+    (comp_gargs, comp_gif): Rewrite to get correct improved
+    guards. Not done yet.
 
-	* lfe_comp.erl (do_erl_comp): Added no_bopt to turn off boolean
-	optimisations in guards.
+    * lfe_comp.erl (do_erl_comp): Added no_bopt to turn off boolean
+    optimisations in guards.
 
 2010-02-09  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_io_format.erl (control, base_prefix): Output LFE based
-	integers.
+    * lfe_io_format.erl (control, base_prefix): Output LFE based
+    integers.
 
 2010-02-05  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_macro.erl (exp_predef): Add caar, cadr, cdar and cddr.
+    * lfe_macro.erl (exp_predef): Add caar, cadr, cdar and cddr.
 
-	* lfe_codegen.erl (c_try, c_call): Add to simplify code when
-	building.
+    * lfe_codegen.erl (c_try, c_call): Add to simplify code when
+    building.
 
-	* lfe_eval.lfe (eval-guard): Move guard handling into separate
-	function.
+    * lfe_eval.lfe (eval-guard): Move guard handling into separate
+    function.
 
-	* lfe_eval.erl (eval_guard): Move guard handling into separate
-	function.
+    * lfe_eval.erl (eval_guard): Move guard handling into separate
+    function.
 
-	* lfe_eval.lfe (eval-gexpr): Evaluate new guards.
+    * lfe_eval.lfe (eval-gexpr): Evaluate new guards.
 
-	* lfe_eval.erl (eval_gexpr): Evaluate new guards.
+    * lfe_eval.erl (eval_gexpr): Evaluate new guards.
 
-	* lfe_lint.erl (check_gexpr): Now recognise new guards.
+    * lfe_lint.erl (check_gexpr): Now recognise new guards.
 
 2010-02-04  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_macro.erl (exp_predef): orelse and andalso now expand to if.
+    * lfe_macro.erl (exp_predef): orelse and andalso now expand to if.
 
 2010-02-03  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_codegen.erl (comp_expr): Fold comp_call into comp_expr.
+    * lfe_codegen.erl (comp_expr): Fold comp_call into comp_expr.
 
 2010-01-29  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_eval.lfe (match-binary): Rewrite to only use error to signal
-	no match.
+    * lfe_eval.lfe (match-binary): Rewrite to only use error to signal
+    no match.
 
-	* lfe_eval.erl (match_binary): Rewrite to only use error to signal
-	no match.
+    * lfe_eval.erl (match_binary): Rewrite to only use error to signal
+    no match.
 
 2010-01-27  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_io_pretty.erl (print1_defun): Improved printing of defuns.
+    * lfe_io_pretty.erl (print1_defun): Improved printing of defuns.
 
-	* lfe_lint.erl (check_gif, check_if): Better error reporting.
+    * lfe_lint.erl (check_gif, check_if): Better error reporting.
 
-	* lfe_eval.erl (eval_catch_clauses): Fix right recursion.
+    * lfe_eval.erl (eval_catch_clauses): Fix right recursion.
 
 2010-01-26  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_eval.lfe: Change (binary (unit 1)) to (bitstring)
-	everywhere.
+    * lfe_eval.lfe: Change (binary (unit 1)) to (bitstring)
+    everywhere.
 
-	* lfe_eval.erl: Change /binary-unit:1 to /bitstring everywhere.
+    * lfe_eval.erl: Change /binary-unit:1 to /bitstring everywhere.
 
-	* lfe_lint.erl (check_gexpr): Restructure function.
+    * lfe_lint.erl (check_gexpr): Restructure function.
 
-	* lfe_macro.erl (bq_expand): Fix handling of tuples to be
-	efficient or handle splicing.
+    * lfe_macro.erl (bq_expand): Fix handling of tuples to be
+    efficient or handle splicing.
 
 2010-01-25  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_io.erl (print1): Don't special case standard character
-	macros in normal print, leave for prettyprint.
+    * lfe_io.erl (print1): Don't special case standard character
+    macros in normal print, leave for prettyprint.
 
 2010-01-20  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_eval.lfe (eval-let): Better error reporting.
+    * lfe_eval.lfe (eval-let): Better error reporting.
 
-	* lfe_eval.erl (eval_let): Better error reporting.
+    * lfe_eval.erl (eval_let): Better error reporting.
 
 2009-12-14  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_lint.erl (bad_mod_def_error): Broke this out and added what
-	is wrong.
+    * lfe_lint.erl (bad_mod_def_error): Broke this out and added what
+    is wrong.
 
-	* lfe_codegen.erl (is_simple): Added as no longer in
-	core_lib. Thanks to Matt Stancliff for pointing it out.
+    * lfe_codegen.erl (is_simple): Added as no longer in
+    core_lib. Thanks to Matt Stancliff for pointing it out.
 
 2009-11-04  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_codegen.erl (comp_bitsegs): Seuentialise evaluation of
-	bitseg values and sizes.
-	(make_seq): Sequentialise sequence of expressions using let.
+    * lfe_codegen.erl (comp_bitsegs): Seuentialise evaluation of
+    bitseg values and sizes.
+    (make_seq): Sequentialise sequence of expressions using let.
 
 2009-10-28  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_lib.erl (format_exception): Restructured code.
+    * lfe_lib.erl (format_exception): Restructured code.
 
-	* lfe_codegen.erl (comp_funcall_1): Sequentialise evaluation of
-	arguments to apply.
+    * lfe_codegen.erl (comp_funcall_1): Sequentialise evaluation of
+    arguments to apply.
 
 2009-10-14  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_macro.erl (exp_predef): Added macro list* and restructured
-	code a little.
+    * lfe_macro.erl (exp_predef): Added macro list* and restructured
+    code a little.
 
 2009-10-13  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_eval.lfe (eval-binary, match-binary): Restructured code.
+    * lfe_eval.lfe (eval-binary, match-binary): Restructured code.
 
-	* lfe_eval.erl (eval_binary, match_binary): Restructured code.
+    * lfe_eval.erl (eval_binary, match_binary): Restructured code.
 
 2009-10-06  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_codegen.erl (comp_args, comp_call): Sequentialised
-	evaluation of arguments enforcing left-to-right semantics.
+    * lfe_codegen.erl (comp_args, comp_call): Sequentialised
+    evaluation of arguments enforcing left-to-right semantics.
 
 2009-10-02  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_codegen.erl: Cleaned up handling of literals.
+    * lfe_codegen.erl: Cleaned up handling of literals.
 
 2009-09-26  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_eval.lfe (eval-binary, match-binary): Cleaned up handling of
-	binaries.
+    * lfe_eval.lfe (eval-binary, match-binary): Cleaned up handling of
+    binaries.
 
-	* lfe_eval.erl (eval_binary, match_binary): Cleaned up handling of
-	binaries.
+    * lfe_eval.erl (eval_binary, match_binary): Cleaned up handling of
+    binaries.
 
-	* lfe-eval.lfe (get-integer, get-float): Got endian names right
-	internally.
+    * lfe-eval.lfe (get-integer, get-float): Got endian names right
+    internally.
 
-	* lfe_shell.erl (set): New shell command to set variables in
-	shell.
+    * lfe_shell.erl (set): New shell command to set variables in
+    shell.
 
 2009-09-25  Robert Virding  <rv@stanislaw.local>
 
-	* lfe-eval.lfe (eval-bitspec, eval-exp-field, get-value): Added
-	unicode types.
+    * lfe-eval.lfe (eval-bitspec, eval-exp-field, get-value): Added
+    unicode types.
 
 2009-09-18  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_lint.erl (check_mdef): Fixed handling of attributes.
+    * lfe_lint.erl (check_mdef): Fixed handling of attributes.
 
-	* lfe_codegen.erl (collect_mdef): Fixed handling of attributes.
+    * lfe_codegen.erl (collect_mdef): Fixed handling of attributes.
 
 2009-09-16  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_eval.erl (eval-lambda): Lambda args can now hold don't care
-	variable.
+    * lfe_eval.erl (eval-lambda): Lambda args can now hold don't care
+    variable.
 
-	* lfe_lint.erl (check_lambda_args): Lambda args can now hold don't
-	care variable.
+    * lfe_lint.erl (check_lambda_args): Lambda args can now hold don't
+    care variable.
 
-	* lfe_codegen.erl (comp_lambda): Lambda args can now hold don't
-	care variable.
-	(comp_let): Simple lets without matching can now hold don't care
-	variables.
+    * lfe_codegen.erl (comp_lambda): Lambda args can now hold don't
+    care variable.
+    (comp_let): Simple lets without matching can now hold don't care
+    variables.
 
 2009-08-31  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_io_pretty.erl (print1_list_max, print1_tail_max): Get it
-	right when depth = 0.
+    * lfe_io_pretty.erl (print1_list_max, print1_tail_max): Get it
+    right when depth = 0.
 
-	* lfe_comp.erl (passes, do_passes): Add an explicit pass driven
-	style to compiler.
+    * lfe_comp.erl (passes, do_passes): Add an explicit pass driven
+    style to compiler.
 
 2009-08-30  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_io_pretty.erl (print1_list_max, print1_tail_max): Bit more
-	efficient pretty printing on the rest of the line.
+    * lfe_io_pretty.erl (print1_list_max, print1_tail_max): Bit more
+    efficient pretty printing on the rest of the line.
 
 2009-08-13  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_comp.erl (list_warnings, list_errors): Use lfe_io format.
+    * lfe_comp.erl (list_warnings, list_errors): Use lfe_io format.
 
 2009-08-12  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_eval.erl (eval_bitspec, eval_exp_field, get_value): Added
-	unicode types.
+    * lfe_eval.erl (eval_bitspec, eval_exp_field, get_value): Added
+    unicode types.
 
-	* lfe_codegen.erl (comp_bitspec, comp_bitspecs): Added unicode
-	types.
+    * lfe_codegen.erl (comp_bitspec, comp_bitspecs): Added unicode
+    types.
 
-	* lfe_lint.erl (pat_bitsegs): No need for try.
-	(pat_bitspec): Added unicode types.
+    * lfe_lint.erl (pat_bitsegs): No need for try.
+    (pat_bitspec): Added unicode types.
 
 2009-08-10  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_shell.erl (add_shell_macros, eval_internal): Moved shell
-	commands from macros to functions. Avoid weird results.
+    * lfe_shell.erl (add_shell_macros, eval_internal): Moved shell
+    commands from macros to functions. Avoid weird results.
 
 2009-08-07  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_parse.erl (sexpr1): Binary constants can now have any type
-	of bit segments.
+    * lfe_parse.erl (sexpr1): Binary constants can now have any type
+    of bit segments.
 
-	* lfe_io.erl (print1_bits): Fix printing of last non 8 bits.
+    * lfe_io.erl (print1_bits): Fix printing of last non 8 bits.
 
 2009-08-04  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_shell.erl, lfe_lib.erl (format_exception)
-	(format_stacktrace): Moved to lfe_lib.erl.
+    * lfe_shell.erl, lfe_lib.erl (format_exception)
+    (format_stacktrace): Moved to lfe_lib.erl.
 
-	* lfe_io_pretty.erl (print1): Improve printing of lists.
+    * lfe_io_pretty.erl (print1): Improve printing of lists.
 
 2009-08-03  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_eval.erl (eval_let, eval_let_function)
-	(eval_letrec_function): Added explicit bad form error.
+    * lfe_eval.erl (eval_let, eval_let_function)
+    (eval_letrec_function): Added explicit bad form error.
 
-	* lfe_io_pretty.erl (print1): Added max depth and line length to
-	pretty print sexpr.
+    * lfe_io_pretty.erl (print1): Added max depth and line length to
+    pretty print sexpr.
 
 2009-08-02  Robert Virding  <rv@stanislaw.local>
 
-	* lfe_io.erl (print1): Added max depth to print sexpr.
+    * lfe_io.erl (print1): Added max depth to print sexpr.
 
-	* lfe_io_pretty.erl: Moved prettyprinting to separate file,
-	externl calls still through lfe_io.
-
-2009-05-21  Robert Virding  <rv@arthur>
-
-	* lfe_codegen.erl (c_fname): Changed to R13B version.
+    * lfe_io_pretty.erl: Moved prettyprinting to separate file,
+    externl calls still through lfe_io.
 
 2009-05-21  Robert Virding  <rv@arthur>
 
-	* All files: Released LFE 0.4 to Git.
+    * lfe_codegen.erl (c_fname): Changed to R13B version.
 
 2009-05-21  Robert Virding  <rv@arthur>
 
-	* lfe_codegen.erl (c_fname): Changed to R12B version.
+    * All files: Released LFE 0.4 to Git.
+
+2009-05-21  Robert Virding  <rv@arthur>
+
+    * lfe_codegen.erl (c_fname): Changed to R12B version.
 
 2009-05-14  Robert Virding  <rv@arthur>
 
-	* lfe_shell.erl (eval_internal): Added macroexpand-all.
+    * lfe_shell.erl (eval_internal): Added macroexpand-all.
 
-	* lfe_shell.erl (macroexpand): Now call lfe_macro:expand_macro.
+    * lfe_shell.erl (macroexpand): Now call lfe_macro:expand_macro.
 
-	* lfe_macro.erl: Renamed macroexpand and macroexpand_1 back to
-	expand_macro and expand_macro_1, more consistent.
+    * lfe_macro.erl: Renamed macroexpand and macroexpand_1 back to
+    expand_macro and expand_macro_1, more consistent.
 
-	* lfe_lib.erl: Removed macroexpand and macroexpand-1 from library,
-	useless.
+    * lfe_lib.erl: Removed macroexpand and macroexpand-1 from library,
+    useless.
 
 2009-05-13  Robert Virding  <rv@arthur>
 
-	* lfe_lint.erl (init_state): Use add_exports for parameterised
-	modules.
+    * lfe_lint.erl (init_state): Use add_exports for parameterised
+    modules.
 
 2009-04-24  Robert Virding  <rv@rv-laptop>
 
-	* lfe_codegen.erl (c_fname): Have two versions for both R12B and
-	R13B.
-	(make_literal, make_literal_list, concrete_list): Copied these
-	from old R12B core_lib.erl as they have disappeared in R13B.
+    * lfe_codegen.erl (c_fname): Have two versions for both R12B and
+    R13B.
+    (make_literal, make_literal_list, concrete_list): Copied these
+    from old R12B core_lib.erl as they have disappeared in R13B.
 
 2009-03-04  Robert Virding  <rv@arthur>
 
-	* lfe_pmod.erl (exp_mdef, collect_imps): Restructured to use folds.
-	(exp_form, exp_mdef): Handle extends in parameterised modules.
+    * lfe_pmod.erl (exp_mdef, collect_imps): Restructured to use folds.
+    (exp_form, exp_mdef): Handle extends in parameterised modules.
 
-	* lfe_lint.erl (para_defs): Fix instance function depending on
-	whether parameterized module extends.
+    * lfe_lint.erl (para_defs): Fix instance function depending on
+    whether parameterized module extends.
 
 2009-03-03  Robert Virding  <rv@arthur>
 
-	* lfe_lint.erl: Restructured to improve and handle parameterized
-	modules.
+    * lfe_lint.erl: Restructured to improve and handle parameterized
+    modules.
 
-	* lfe_comp.erl (do_forms): Added call lfe_pmod:module.
+    * lfe_comp.erl (do_forms): Added call lfe_pmod:module.
 
 2009-03-02  Robert Virding  <rv@arthur>
 
-	* lfe_macro.erl (expand_rules): Raise handling of keywords in
-	syntax rules.
+    * lfe_macro.erl (expand_rules): Raise handling of keywords in
+    syntax rules.
 
 2009-02-26  Robert Virding  <rv@arthur>
 
-	* lfe_lint.erl (pat_bitspec, expr_bitspec, gexpr_bitspec): Fixed
-	checking of bitsegs in patterns and exprs.
+    * lfe_lint.erl (pat_bitspec, expr_bitspec, gexpr_bitspec): Fixed
+    checking of bitsegs in patterns and exprs.
 
 2009-01-23  Robert Virding  <rv@arthur>
 
-	* lfe_macro.erl: New convention, expand??? functions do deep
-	expansion, exp??? do not.
-	(expand, exp_predef): Moved backquote expansion to pre-defined
-	default macros.
+    * lfe_macro.erl: New convention, expand??? functions do deep
+    expansion, exp??? do not.
+    (expand, exp_predef): Moved backquote expansion to pre-defined
+    default macros.
 
-	* lfe_io.erl, lfe_macro.erl, lfe_parse.erl, lfe-shell.erl:
-	Quasiquote now called backquote.
+    * lfe_io.erl, lfe_macro.erl, lfe_parse.erl, lfe-shell.erl:
+    Quasiquote now called backquote.
 
 2009-01-12  Robert Virding  <rv@arthur>
 
-	* lfe_comp.erl (erl_comp, lfe_comp_opts, erl_comp_opts): Fixed
-	handling of what to return, dcore, to_core, binary and
-	file (default) now mutally exclusive.
-	(do_ok_return, do_error_return): return and report now not
-	exclusive and you can have both.
+    * lfe_comp.erl (erl_comp, lfe_comp_opts, erl_comp_opts): Fixed
+    handling of what to return, dcore, to_core, binary and
+    file (default) now mutally exclusive.
+    (do_ok_return, do_error_return): return and report now not
+    exclusive and you can have both.
 
 2008-11-19    <rv@DOUGLAS>
 
-	* lfe_macro.erl (def_record): Added general set-<name> macro.
+    * lfe_macro.erl (def_record): Added general set-<name> macro.
 
 2008-10-25    <rv@DOUGLAS>
 
-	* lfe_lib.erl: Started adding standard lisp library functions.
+    * lfe_lib.erl: Started adding standard lisp library functions.
 
 2008-10-18    <rv@DOUGLAS>
 
-	* lfe_lint.erl (check_alias): Binaries can never be aliased.
+    * lfe_lint.erl (check_alias): Binaries can never be aliased.
 
 2008-10-14    <rv@DOUGLAS>
 
-	* lfe_eval.lfe: Update record spec to new record syntax.
-	(eval-expr): Expand macros when called, don't assume everything
-	already expanded.
-	(eval-let-function eval-letrec-function): Fix handling of
-	match-lambda, none before.
+    * lfe_eval.lfe: Update record spec to new record syntax.
+    (eval-expr): Expand macros when called, don't assume everything
+    already expanded.
+    (eval-let-function eval-letrec-function): Fix handling of
+    match-lambda, none before.
 
 2008-10-13    <rv@DOUGLAS>
 
-	* lfe_shell.erl (macroexpand, macroexpand_1): Added these as shell
-	commands to expand macros.
+    * lfe_shell.erl (macroexpand, macroexpand_1): Added these as shell
+    commands to expand macros.
 
-	* lfe_io.erl (read_file1, scan_and_parse, parse_file1): Now call
-	lfe_parse:sexpr.
+    * lfe_io.erl (read_file1, scan_and_parse, parse_file1): Now call
+    lfe_parse:sexpr.
 
-	* lfe_parse.erl (sexpr): Name change of function.
+    * lfe_parse.erl (sexpr): Name change of function.
 
 2008-10-11    <rv@DOUGLAS>
 
-	* lfe_gen.erl (compile_forms): Now does not tag forms before
-	calling compiler.
+    * lfe_gen.erl (compile_forms): Now does not tag forms before
+    calling compiler.
 
-	* lfe_comp.erl (forms): Forms/1/2 now take list of raw forms as
-	input, add index as "linenumber".
+    * lfe_comp.erl (forms): Forms/1/2 now take list of raw forms as
+    input, add index as "linenumber".
 
 2008-10-10    <rv@DOUGLAS>
 
-	* lfe_codegen.erl (sequentialise_args): First attempt at
-	sequentialising code to enforce left-to-right evaluation. Also
-	avoids bugs in erlang compiler. Not good enough yet. But got arond
-	bug with element/2 inerlang compiler.
+    * lfe_codegen.erl (sequentialise_args): First attempt at
+    sequentialising code to enforce left-to-right evaluation. Also
+    avoids bugs in erlang compiler. Not good enough yet. But got arond
+    bug with element/2 inerlang compiler.
 
 2008-10-09    <rv@DOUGLAS>
 
-	* lfe_codegen.erl (forms, collect_mdef): Added (export all).
+    * lfe_codegen.erl (forms, collect_mdef): Added (export all).
 
-	* lfe_lint.erl (check_mdef, check_module): Added (export all).
+    * lfe_lint.erl (check_mdef, check_module): Added (export all).
 
 2008-10-08    <rv@DOUGLAS>
 
-	* lfe_macro.erl (def_record): First version of new defrecord.
+    * lfe_macro.erl (def_record): First version of new defrecord.
 
-	* lfe_lib.erl (is_core_form): Added all core forms.
+    * lfe_lib.erl (is_core_form): Added all core forms.
 
 2008-10-06    <rv@DOUGLAS>
 
-	* lfe_macro.erl (pass_ewc): First version of eval-when-compile.
-	(exp_macro): Macro expander now gets environment for ewc
-	functions.
+    * lfe_macro.erl (pass_ewc): First version of eval-when-compile.
+    (exp_macro): Macro expander now gets environment for ewc
+    functions.
 
 2008-10-05    <rv@DOUGLAS>
 
-	* lfe_shell.erl (slurp): Don't expand macros at slurp time, push
-	until evaluation.
+    * lfe_shell.erl (slurp): Don't expand macros at slurp time, push
+    until evaluation.
 
-	* lfe_eval.erl (eval_expr): Expand macros when called, don't
-	assume everything already expanded.
+    * lfe_eval.erl (eval_expr): Expand macros when called, don't
+    assume everything already expanded.
 
 2008-10-04    <rv@DOUGLAS>
 
-	* lfe_macro.erl (pass, pass_progn): Macro collection and expansion
-	now done in one pass.
+    * lfe_macro.erl (pass, pass_progn): Macro collection and expansion
+    now done in one pass.
 
 2008-10-03    <rv@DOUGLAS>
 
-	* lfe_shell.erl (add_shell_macros): Fixed c macro so it reload
-	code.
+    * lfe_shell.erl (add_shell_macros): Fixed c macro so it reload
+    code.
 
-	* lfe_eval.erl (eval_if): Better error reporting.
+    * lfe_eval.erl (eval_if): Better error reporting.
 
-	* lfe_comp.erl: Handling errors and warnings better now.
+    * lfe_comp.erl: Handling errors and warnings better now.
 
 2008-10-02    <rv@DOUGLAS>
 
-	* lfe_comp.erl: Fix handling of return values.
+    * lfe_comp.erl: Fix handling of return values.
 
-	* lfe_io.erl (read_file, parse_file): Both return errors more
-	consistently now.
+    * lfe_io.erl (read_file, parse_file): Both return errors more
+    consistently now.
 
 2008-09-30    <rv@DOUGLAS>
 
-	* lfe_macro.erl (macro): Moved expanding expansion to caller, more
-	logical.
+    * lfe_macro.erl (macro): Moved expanding expansion to caller, more
+    logical.
 
-	* lfe_io.erl (prettyprint1, print1): Added default case which just
-	prints the vanilla Erlang way.
-
-2008-09-28    <rv@DOUGLAS>
-
-	* All files: Released LFE 0.3 to Git.
+    * lfe_io.erl (prettyprint1, print1): Added default case which just
+    prints the vanilla Erlang way.
 
 2008-09-28    <rv@DOUGLAS>
 
-	* lfe_gen.erl: Support for dynamic code generation.
+    * All files: Released LFE 0.3 to Git.
 
-	* lfe_boot.erl: Start Erlang with the LFE shell running.
+2008-09-28    <rv@DOUGLAS>
 
-	* lfe_io.erl (print1_bits): Allow printing of some of the bytes in
-	a bitstring.
+    * lfe_gen.erl: Support for dynamic code generation.
+
+    * lfe_boot.erl: Start Erlang with the LFE shell running.
+
+    * lfe_io.erl (print1_bits): Allow printing of some of the bytes in
+    a bitstring.
 
 2008-09-27    <rv@DOUGLAS>
 
-	* lfe_macro.erl (macro): Apply function of course.
+    * lfe_macro.erl (macro): Apply function of course.
 
-	* lfe_eval.erl (apply): Redefined to make usable from outside.
+    * lfe_eval.erl (apply): Redefined to make usable from outside.
 
 2008-09-26    <rv@DOUGLAS>
 
-	* lfe_shell.erl (server_loop): Changed prompt to "> ".
-	(add_shell_macros): Put macros in correct format.
+    * lfe_shell.erl (server_loop): Changed prompt to "> ".
+    (add_shell_macros): Put macros in correct format.
 
 2008-09-25    <rv@DOUGLAS>
 
-	* lfe_io.erl (indent_type): Cleaning up indent forms.
+    * lfe_io.erl (indent_type): Cleaning up indent forms.
 
-	* lfe_lint.erl (check_match_lambda): Better checking of match-lambdas-
-	(check_let/rec_function): Cleaning up let/letrec code.
+    * lfe_lint.erl (check_match_lambda): Better checking of match-lambdas-
+    (check_let/rec_function): Cleaning up let/letrec code.
 
 2008-09-24    <rv@DOUGLAS>
 
-	* lfe_codegen.erl: Contains code generation part of compiler.
+    * lfe_codegen.erl: Contains code generation part of compiler.
 
-	* lfe_comp.erl: Moved code generation into lfe_codegen.
+    * lfe_comp.erl: Moved code generation into lfe_codegen.
 
 2008-09-23    <rv@DOUGLAS>
 
-	* lfe_io.erl (parse_file): Now returns errors instead of exiting.
+    * lfe_io.erl (parse_file): Now returns errors instead of exiting.
 
-	* lfe_parse.erl (format_error): New function.
+    * lfe_parse.erl (format_error): New function.
 
 2008-09-22    <rv@DOUGLAS>
 
-	* lfe_macro.erl (c_tq): Fixed old use of fletrec to use
-	letrec-function.
+    * lfe_macro.erl (c_tq): Fixed old use of fletrec to use
+    letrec-function.
 
 2008-09-21    <rv@DOUGLAS>
 
-	* lfe_io.erl: Modified to support new core forms and macros.
+    * lfe_io.erl: Modified to support new core forms and macros.
 
-	* lfe_shell.erl: Modified to support new core forms and macros.
+    * lfe_shell.erl: Modified to support new core forms and macros.
 
-	* lfe_eval.erl: Modified to support new core forms and macros.
+    * lfe_eval.erl: Modified to support new core forms and macros.
 
-	* lfe_comp.erl: Modified to support new core forms and macros.
+    * lfe_comp.erl: Modified to support new core forms and macros.
 
-	* lfe_lib.erl: Modified to support new core forms and macros.
+    * lfe_lib.erl: Modified to support new core forms and macros.
 
-	* lfe_lint.erl: Modified to support new core forms and macros.
+    * lfe_lint.erl: Modified to support new core forms and macros.
 
-	* lfe_macro.erl: Modified to support new core forms and macros.
+    * lfe_macro.erl: Modified to support new core forms and macros.
 
 2008-08-29    <rv@DOUGLAS>
 
-	* lfe_eval.erl (match_symb): Disallow all multiple occurrences of
-	variables.
+    * lfe_eval.erl (match_symb): Disallow all multiple occurrences of
+    variables.
 
 2008-06-18    <rv@DOUGLAS>
 
-	* All files: Released LFE 0.2.1.
+    * All files: Released LFE 0.2.1.
 
 2008-06-14    <rv@DOUGLAS>
 
-	* lfe_comp.erl (c_primop): Added c_primop to make #c_primop{}.
+    * lfe_comp.erl (c_primop): Added c_primop to make #c_primop{}.
 
 2008-06-10    <rv@DOUGLAS>
 
-	* lfe_macro.erl (default1): Now use (?= pat exp) and (?= pat guard
-	exp) to match and export pattern variables in cond.
-	(lc_tq, bc_tq): Now use (?= pat exp) and (?= pat guard exp) to
-	test and export pattern variables in list/binary comprehensions.
+    * lfe_macro.erl (default1): Now use (?= pat exp) and (?= pat guard
+    exp) to match and export pattern variables in cond.
+    (lc_tq, bc_tq): Now use (?= pat exp) and (?= pat guard exp) to
+    test and export pattern variables in list/binary comprehensions.
 
-	* lfe_eval.erl (match): Binaries may also match bitstrings, they
-	refer to binaries and bitstrings.
+    * lfe_eval.erl (match): Binaries may also match bitstrings, they
+    refer to binaries and bitstrings.
 
 2008-06-07    <rv@DOUGLAS>
 
-	* lfe_comp.erl (comp_func): Generalised, and now called by
-	comp_define.
-	(func_arity): Used to simplfy tests for arity.
+    * lfe_comp.erl (comp_func): Generalised, and now called by
+    comp_define.
+    (func_arity): Used to simplfy tests for arity.
 
 2008-05-22    <rv@DOUGLAS>
 
-	* lfe_lib.erl (proc_forms): Return forms in order.
+    * lfe_lib.erl (proc_forms): Return forms in order.
 
 2008-05-17    <rv@DOUGLAS>
 
-	* lfe_comp.erl (collect_mdef):
-	* lfe_lint.erl (check_mdef): Added general attributes.
+    * lfe_comp.erl (collect_mdef):
+    * lfe_lint.erl (check_mdef): Added general attributes.
 
 2008-05-13    <rv@DOUGLAS>
 
-	* lfe_macro.erl (lc_tq): Added list comprehensions as macros.
+    * lfe_macro.erl (lc_tq): Added list comprehensions as macros.
 
 2008-05-10    <rv@DOUGLAS>
 
-	* lfe_macro.erl (default1): Added (match Pat Exp) and (match Pat
-	Guard Exp) case to cond which succeeds if pattern matches *and*
-	makes pattern variables available in body. Trivial code. Bad
-	name??
+    * lfe_macro.erl (default1): Added (match Pat Exp) and (match Pat
+    Guard Exp) case to cond which succeeds if pattern matches *and*
+    makes pattern variables available in body. Trivial code. Bad
+    name??
 
 2008-05-04    <rv@DOUGLAS>
 
-	* lfe_comp.erl (filenames): Output now goes default to current
-	directory, redirect with {outdir,Dir} option.
+    * lfe_comp.erl (filenames): Output now goes default to current
+    directory, redirect with {outdir,Dir} option.
 
 2008-04-25    <rv@DOUGLAS>
 
-	* All files: Released LFE 0.2.
+    * All files: Released LFE 0.2.
 
 2008-04-20    <rv@DOUGLAS>
 
-	* lfe_shell.erl (eval_internal): Added shell functions to compile
-	files and load modules.
+    * lfe_shell.erl (eval_internal): Added shell functions to compile
+    files and load modules.
 
 2008-04-14    <rv@DOUGLAS>
 
-	* lfe_lint.erl (check_alias): Check aliases in lint but more
-	restrictive than is possible in compiler, and it generates an
-	error!
+    * lfe_lint.erl (check_alias): Check aliases in lint but more
+    restrictive than is possible in compiler, and it generates an
+    error!
 
-	* lfe_comp.erl (comp_let): Fixed handling of guards in let.
+    * lfe_comp.erl (comp_let): Fixed handling of guards in let.
 
 2008-04-13    <rv@DOUGLAS>
 
-	* lfe_eval.erl (match):
-	* lfe_lint.erl (check_pat):
-	* lfe_comp.erl (comp_pat): Added aliases (= pat1 pat2). Known bug:
-	compiler bombs if it detects mismatch.
+    * lfe_eval.erl (match):
+    * lfe_lint.erl (check_pat):
+    * lfe_comp.erl (comp_pat): Added aliases (= pat1 pat2). Known bug:
+    compiler bombs if it detects mismatch.
 
 2008-04-12    <rv@DOUGLAS>
 
-	* <All files>: Added Copyright notice. Using simpplified BSD
-	copyright smae as FreeBSD.
+    * <All files>: Added Copyright notice. Using simpplified BSD
+    copyright smae as FreeBSD.
 
 2008-04-09    <rv@DOUGLAS>
 
-	* lfe_macro.erl:
-	* lfe_lib.erl:
-	* lfe_lint.erl:
-	* lfe_comp.erl: Added flet, with normal scoping of functions, and
-	renamed letrec to fletrec for consistency.
+    * lfe_macro.erl:
+    * lfe_lib.erl:
+    * lfe_lint.erl:
+    * lfe_comp.erl: Added flet, with normal scoping of functions, and
+    renamed letrec to fletrec for consistency.
 
 2008-04-06    <rv@DOUGLAS>
 
-	* lfe_shell.erl (slurp): Load a file into the shell making all
-	functions available to call.
+    * lfe_shell.erl (slurp): Load a file into the shell making all
+    functions available to call.
 
-	* lfe_eval.erl (eval_letrec): Correct solution for letrec, bit
-	slow though as it must rebuild env for each call, but not too bad
-	reall.
+    * lfe_eval.erl (eval_letrec): Correct solution for letrec, bit
+    slow though as it must rebuild env for each call, but not too bad
+    reall.
 
 2008-04-01    <rv@DOUGLAS>
 
-	* lfe_eval.erl (eval_letrec): Maybe have solution for letrec, uses
-	dynamic binding for recursive call within functions.
-	(eval_binary, match_binary): Added code for evaluating and
-	matching binaries. Taken from eval_bits.erl in standard
-	distribution.
+    * lfe_eval.erl (eval_letrec): Maybe have solution for letrec, uses
+    dynamic binding for recursive call within functions.
+    (eval_binary, match_binary): Added code for evaluating and
+    matching binaries. Taken from eval_bits.erl in standard
+    distribution.
 
 2008-03-29    <rv@DOUGLAS>
 
-	* lfe_eval.erl (eval_try): Can now eval try. Needs to be cleaned
-	up a bit though.
+    * lfe_eval.erl (eval_try): Can now eval try. Needs to be cleaned
+    up a bit though.
 
-	* lfe_macro.erl (expand_forms): Added new two pass macro
-	processing with a macro pass and an expansion pass.
+    * lfe_macro.erl (expand_forms): Added new two pass macro
+    processing with a macro pass and an expansion pass.
 
-	* lfe_comp.erl:
-	  lfe_lint.erl: Use proc_forms for collecting, nested safe.
+    * lfe_comp.erl:
+      lfe_lint.erl: Use proc_forms for collecting, nested safe.
 
-	* lfe_lib.erl (proc_forms): Process (begin ...) nested forms.
+    * lfe_lib.erl (proc_forms): Process (begin ...) nested forms.
 
 2008-03-25    <rv@DOUGLAS>
 
-	* lfe_macro.erl (default1): Just does top-level expansion of a
-	default macro.
-	(expand_macro): Added for testing macros.
+    * lfe_macro.erl (default1): Just does top-level expansion of a
+    default macro.
+    (expand_macro): Added for testing macros.
 
 2008-03-06    <rv@DOUGLAS>
 
-	* lfe_eval.erl (eval_lambda, eval_match_lambda):
+    * lfe_eval.erl (eval_lambda, eval_match_lambda):
 
-	Fixed bug in handling of funs, they were attuned only to evals
-	calls not to general usage. They now handle arguments correctly.
+    Fixed bug in handling of funs, they were attuned only to evals
+    calls not to general usage. They now handle arguments correctly.
 
-	* lfe_macro.erl (expand_clause): Added macro expansion of patterns.
+    * lfe_macro.erl (expand_clause): Added macro expansion of patterns.
 
-	* lfe_comp.erl (pat_symb)
-	  lfe_lint.erl (pat_symb)
-	  lfe_eval.erl (match_symb): Added _ don't care variable to patterns.
+    * lfe_comp.erl (pat_symb)
+      lfe_lint.erl (pat_symb)
+      lfe_eval.erl (match_symb): Added _ don't care variable to patterns.
 
 2008-03-05    <rv@DOUGLAS>
 
-	* lfe_macro.erl (match): Uses match/3 from lfe_eval.
+    * lfe_macro.erl (match): Uses match/3 from lfe_eval.
 
-	* lfe_eval.erl (match): Uses orddict for bindings.
+    * lfe_eval.erl (match): Uses orddict for bindings.
 
-	* lfe_macro.erl (match): Fixed return type error for orddict:find.
-	(def_record): Use pre-defined test is_record/3 for is-REC macro.
+    * lfe_macro.erl (match): Fixed return type error for orddict:find.
+    (def_record): Use pre-defined test is_record/3 for is-REC macro.
 
 2008-03-02    <rv@DOUGLAS>
 
-	* LFE 0.1.zip: First release of LFE.
+    * LFE 0.1.zip: First release of LFE.
 

@@ -24,11 +24,11 @@
 -module(lfe_io).
 
 -export([parse_file/1,read_file/1,read/0,read/1,
-	 print/1,print/2,print1/1,print1/2]).
+     print/1,print/2,print1/1,print1/2]).
 -export([prettyprint/1,prettyprint/2,
-	 prettyprint1/1,prettyprint1/2,prettyprint1/3,prettyprint1/4]).
+     prettyprint1/1,prettyprint1/2,prettyprint1/3,prettyprint1/4]).
 -export([format/2,format/3,fwrite/2,fwrite/3,
-	 format1/2,fwrite1/2]).
+     format1/2,fwrite1/2]).
 
 -export([print1_symb/1,print1_string/2,print1_bits/2]).
 
@@ -45,13 +45,13 @@ parse_file(Name) ->
 
 parse_file1([_|_]=Ts0, Pc0, Ss) ->
     case lfe_parse:sexpr(Pc0, Ts0) of
-	{ok,L,S,Ts1} -> parse_file1(Ts1, [], [{S,L}|Ss]);
-	{more,Pc1} ->
-	    %% Need more tokens but there are none, so call again to
-	    %% generate an error message.
-	    {error,E,_} = lfe_parse:sexpr(Pc1, {eof,99999}),
-	    {error,E};
-	{error,E,_} -> {error,E}
+    {ok,L,S,Ts1} -> parse_file1(Ts1, [], [{S,L}|Ss]);
+    {more,Pc1} ->
+        %% Need more tokens but there are none, so call again to
+        %% generate an error message.
+        {error,E,_} = lfe_parse:sexpr(Pc1, {eof,99999}),
+        {error,E};
+    {error,E,_} -> {error,E}
     end;
 parse_file1([], _, Ss) -> {ok,reverse(Ss)}.
 
@@ -63,13 +63,13 @@ read_file(Name) ->
 
 read_file1([_|_]=Ts0, Ss) ->
     case lfe_parse:sexpr(Ts0) of
-	{ok,_,S,Ts1} -> read_file1(Ts1, [S|Ss]);
-	{more,Pc1} ->
-	    %% Need more tokens but there are none, so call again to
-	    %% generate an error message.
-	    {error,E,_} = lfe_parse:sexpr(Pc1, {eof,99999}),
-	    {error,E};
-	{error,E,_} -> {error,E}
+    {ok,_,S,Ts1} -> read_file1(Ts1, [S|Ss]);
+    {more,Pc1} ->
+        %% Need more tokens but there are none, so call again to
+        %% generate an error message.
+        {error,E,_} = lfe_parse:sexpr(Pc1, {eof,99999}),
+        {error,E};
+    {error,E,_} -> {error,E}
     end;
 read_file1([], Ss) -> {ok,reverse(Ss)}.
 
@@ -78,14 +78,14 @@ read_file1([], Ss) -> {ok,reverse(Ss)}.
 
 with_token_file(Name, Do) ->
     case file:open(Name, [read]) of
-	{ok,F} ->
-	    Ret = case io:request(F, {get_until,'',lfe_scan,tokens,[1]}) of
-		      {ok,Ts,_} -> Do(Ts);
-		      {error,Error,_} -> {error,Error}
-		  end,
-	    file:close(F),			%Close the file
-	    Ret;				% and return value
-	{error,Error} -> {error,{none,file,Error}}
+    {ok,F} ->
+        Ret = case io:request(F, {get_until,'',lfe_scan,tokens,[1]}) of
+              {ok,Ts,_} -> Do(Ts);
+              {error,Error,_} -> {error,Error}
+          end,
+        file:close(F),            %Close the file
+        Ret;                % and return value
+    {error,Error} -> {error,{none,file,Error}}
     end.
 
 %% read([IoDevice]) -> Sexpr.
@@ -99,25 +99,25 @@ read(Io) ->
 
 scan_and_parse(Io, Pc0, L) ->
     case io:get_line(Io, '') of
-	eof ->
-	    %% No more so must take what we have.
-	    case lfe_parse:sexpr(Pc0, {eof,L}) of
-		{ok,_,S,_} -> S;
-		{error,E,_} -> exit({error,E})
-	    end;
-	Cs ->
-	    case lfe_scan:string(Cs, L) of
-		{ok,[],_} ->
-		    %% Empty line (token free) just go on.
-		    scan_and_parse(Io, Pc0, L+1);
-		{ok,Ts,_} ->
-		    case lfe_parse:sexpr(Pc0, Ts) of
-			{ok,_,S,_} -> S;
-			{more,Pc1} -> scan_and_parse(Io, Pc1, L+1);
-			{error,E,_} -> exit({error,E})
-		    end;
-		E -> exit(E)
-	    end
+    eof ->
+        %% No more so must take what we have.
+        case lfe_parse:sexpr(Pc0, {eof,L}) of
+        {ok,_,S,_} -> S;
+        {error,E,_} -> exit({error,E})
+        end;
+    Cs ->
+        case lfe_scan:string(Cs, L) of
+        {ok,[],_} ->
+            %% Empty line (token free) just go on.
+            scan_and_parse(Io, Pc0, L+1);
+        {ok,Ts,_} ->
+            case lfe_parse:sexpr(Pc0, Ts) of
+            {ok,_,S,_} -> S;
+            {more,Pc1} -> scan_and_parse(Io, Pc1, L+1);
+            {error,E,_} -> exit({error,E})
+            end;
+        E -> exit(E)
+        end
     end.
 
 %% print([IoDevice], Sexpr) -> ok.
@@ -128,7 +128,7 @@ scan_and_parse(Io, Pc0, L) ->
 print(S) -> print(standard_io, S).
 print(Io, S) -> io:put_chars(Io, print1(S)).
 
-print1(S) -> print1(S, -1).			%All the way
+print1(S) -> print1(S, -1).            %All the way
 
 print1(_, 0) -> "...";
 print1(Symb, _) when is_atom(Symb) -> print1_symb(Symb);
@@ -142,7 +142,7 @@ print1(Vec, D) when is_tuple(Vec) ->
     ["#(",print1_list(Es, D-1),")"];
 print1(Bit, _) when is_bitstring(Bit) ->
     ["#B(",print1_bits(Bit),$)];
-print1(Other, D) ->				%Use standard Erlang for rest
+print1(Other, D) ->                %Use standard Erlang for rest
     io_lib:write(Other, D).
 
 %% print1_symb(Symbol) -> [char()].
@@ -150,8 +150,8 @@ print1(Other, D) ->				%Use standard Erlang for rest
 print1_symb(Symb) ->
     Cs = atom_to_list(Symb),
     case quote_symbol(Symb, Cs) of
-	true -> print1_string(Cs , $|);
-	false -> Cs
+    true -> print1_string(Cs , $|);
+    false -> Cs
     end.
 
 %% print1_bits(Bitstring) -> [char()]
@@ -159,14 +159,14 @@ print1_symb(Symb) ->
 %%  Print the bytes in a bitstring. Print bytes except for last which
 %%  we add size field if not 8 bits big.
 
-print1_bits(Bits) -> print1_bits(Bits, -1).	%Print them all
+print1_bits(Bits) -> print1_bits(Bits, -1).    %Print them all
 
 print1_bits(_, 0) -> "...";
-print1_bits(<<B:8>>, _) -> integer_to_list(B);	%Catch last binary byte
+print1_bits(<<B:8>>, _) -> integer_to_list(B);    %Catch last binary byte
 print1_bits(<<B:8,Bits/bitstring>>, N) ->
     [integer_to_list(B),$\s|print1_bits(Bits, N-1)];
 print1_bits(<<>>, _) -> [];
-print1_bits(Bits, _) ->				%0 < Size < 8
+print1_bits(Bits, _) ->                %0 < Size < 8
     N = bit_size(Bits),
     <<B:N>> = Bits,
     io_lib:format("(~w (size ~w))", [B,N]).
@@ -190,17 +190,17 @@ print1_tail([S|Ss], D) ->
 print1_tail(S, D) -> [" . "|print1(S, D)].
 
 %% quote_symbol(Symbol, SymbChars) -> bool().
-%% Check if symbol needs to be quoted when printed. If it can read as
-%% a number then it must be quoted.
+%%  Check if symbol needs to be quoted when printed. If it can read as
+%%  a number then it must be quoted.
 
-quote_symbol('.', _) -> true;			%Needs quoting
+quote_symbol('.', _) -> true;                   %Needs quoting
 quote_symbol(_, [C|Cs]=Cs0) ->
     case catch {ok,list_to_float(Cs0)} of
-	{ok,_} -> true;
-	_ -> case catch {ok,list_to_integer(Cs0)} of
-		 {ok,_} -> true;
-		 _ -> not (start_symb_char(C) andalso symb_chars(Cs))
-	     end
+    {ok,_} -> true;
+    _ -> case catch {ok,list_to_integer(Cs0)} of
+         {ok,_} -> true;
+         _ -> not (start_symb_char(C) andalso symb_chars(Cs))
+         end
     end;
 quote_symbol(_, []) -> true.
 
@@ -208,9 +208,9 @@ symb_chars(Cs) -> all(fun symb_char/1, Cs).
 
 start_symb_char($#) -> false;
 start_symb_char($`) -> false;
-start_symb_char($') -> false;			%'
+start_symb_char($') -> false;                   %'
 start_symb_char($,) -> false;
-start_symb_char($|) -> false;			%Symbol quote character
+start_symb_char($|) -> false;                   %Symbol quote character
 start_symb_char(C) -> symb_char(C).
 
 symb_char($() -> false;
@@ -219,7 +219,7 @@ symb_char($[) -> false;
 symb_char($]) -> false;
 symb_char(${) -> false;
 symb_char($}) -> false;
-symb_char($") -> false;				%"
+symb_char($") -> false;
 symb_char($;) -> false;
 symb_char(C) -> ((C > $\s) and (C =< $~)) orelse (C > $\240).
 
@@ -233,27 +233,23 @@ print1_string1([], Q) ->    [Q];
 print1_string1([C|Cs], Q) ->
     string_char(C, Q, print1_string1(Cs, Q)).
 
-string_char(Q, Q, Tail) -> [$\\,Q|Tail];	%Must check these first!
+string_char(Q, Q, Tail) -> [$\\,Q|Tail];        %Must check these first!
 string_char($\\, _, Tail) -> [$\\,$\\|Tail];
 string_char(C, _, Tail) when C >= $\s, C =< $~ ->
     [C|Tail];
 string_char(C, _, Tail) when C >= $\240, C =< $\377 ->
     [C|Tail];
-string_char($\n, _, Tail) -> [$\\,$n|Tail];	%\n = LF
-string_char($\r, _, Tail) -> [$\\,$r|Tail];	%\r = CR
-string_char($\t, _, Tail) -> [$\\,$t|Tail];	%\t = TAB
-string_char($\v, _, Tail) -> [$\\,$v|Tail];	%\v = VT
-string_char($\b, _, Tail) -> [$\\,$b|Tail];	%\b = BS
-string_char($\f, _, Tail) -> [$\\,$f|Tail];	%\f = FF
-string_char($\e, _, Tail) -> [$\\,$e|Tail];	%\e = ESC
-string_char($\d, _, Tail) -> [$\\,$d|Tail];	%\d = DEL
-string_char(C, _, Tail) ->			%Other control characters.
-    C1 = hex(C bsr 4),
-    C2 = hex(C band 15),
-    [$\\,$x,C1,C2,$;|Tail].
-
-hex(C) when C >= 0, C < 10 -> C + $0;
-hex(C) when C >= 10, C < 16 -> C + $a.
+string_char($\n, _, Tail) -> [$\\,$n|Tail];     %\n = LF
+string_char($\r, _, Tail) -> [$\\,$r|Tail];     %\r = CR
+string_char($\t, _, Tail) -> [$\\,$t|Tail];     %\t = TAB
+string_char($\v, _, Tail) -> [$\\,$v|Tail];     %\v = VT
+string_char($\b, _, Tail) -> [$\\,$b|Tail];     %\b = BS
+string_char($\f, _, Tail) -> [$\\,$f|Tail];     %\f = FF
+string_char($\e, _, Tail) -> [$\\,$e|Tail];     %\e = ESC
+string_char($\d, _, Tail) -> [$\\,$d|Tail];     %\d = DEL
+string_char(C, _, Tail) ->
+    %%Unicode and other control characters.
+    "\\x" ++ erlang:integer_to_list(C, 16) ++ ";" ++ Tail.
 
 %% prettyprint([IoDevice], Sexpr) -> ok.
 %% prettyprint1(Sexpr, Depth, Indentation, LineLength) -> [char()].
@@ -283,7 +279,7 @@ fwrite(Io, F, As) -> io:put_chars(Io, fwrite1(F, As)).
 
 fwrite1(F, As) ->
     case catch lfe_io_format:fwrite1(F, As) of
-	{'EXIT',_} ->				%Something went wrong
-	    erlang:error(badarg, [F,As]);	%Signal from here
-	Result -> Result
+        {'EXIT',_} ->                           %Something went wrong
+            erlang:error(badarg, [F,As]);       %Signal from here
+        Result -> Result
     end.

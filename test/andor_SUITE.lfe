@@ -28,17 +28,17 @@
 
 (defmodule andor_SUITE
   (export (all 0) (suite 0) (groups 0) (init_per_suite 1) (end_per_suite 1)
-	  (init_per_group 2) (end_per_group 2)
-	  (t_case 1) (t_and_or 1) (t_andalso 1) (t_orelse 1) (inside 1)
-	  (overlap 1) (combined 1) (in_case 1) (before_and_inside_if 1)
-	  ))
+      (init_per_group 2) (end_per_group 2)
+      (t_case 1) (t_and_or 1) (t_andalso 1) (t_orelse 1) (inside 1)
+      (overlap 1) (combined 1) (in_case 1) (before_and_inside_if 1)
+      ))
 
 (defmacro MODULE () `'andor_SUITE)
 
 (defun all ()
   ;; (: test_lib recompile (MODULE))
   (list 't_case 't_and_or 't_andalso 't_orelse
-	'inside 'overlap 'combined 'in_case 'before_and_inside_if))
+    'inside 'overlap 'combined 'in_case 'before_and_inside_if))
 
 ;;(defun suite () (list (tuple 'ct_hooks (list 'ts_install_cth))))
 (defun suite () ())
@@ -63,9 +63,9 @@
    (line (test-pat 'not_less (t-case-a 2 2)))
 
    (line (test-pat (tuple 'EXIT (tuple (tuple 'case_clause 'false) _))
-		   (catch (t-case-b #(x y z) 2))))
+           (catch (t-case-b #(x y z) 2))))
    (line (test-pat (tuple 'EXIT (tuple (tuple 'case_clause 'true) _))
-		   (catch (t-case-b 'a 'a))))
+           (catch (t-case-b 'a 'a))))
 
    (line (test-pat 'eq (t-case-c 'a 'a)))
    (line (test-pat 'ne (t-case-c 42 ())))
@@ -74,7 +74,7 @@
    (line (test-pat 'f (t-case-d 'x 'x 'false)))
    (line (test-pat 'f (t-case-d 'x 'y 'true)))
    (line (test-pat (tuple 'EXIT (tuple 'badarg _))
-		   (catch (t-case-d 'x 'y 'blurf))))
+           (catch (t-case-d 'x 'y 'blurf))))
 
    (line (test-pat 'true (catch (t-case-e #(a b) #(a b)))))
    (line (test-pat 'false (catch (t-case-e #(a b) 42))))
@@ -119,7 +119,7 @@
 
 (defun t-case-xy (x y z)
   (let* ((r0 (t-case-x x y z))
-	 (res (when (=:= res r0)) (t-case-y x y z)))
+     (res (when (=:= res r0)) (t-case-y x y z)))
     res))
 
 (defun t-case-x (x y z)
@@ -172,8 +172,8 @@
 (defun t_andalso
   ([config] (when (is_list config))
    (let* ((bs '(true false))
-	  (ps (lc ((<- x bs) (<- y bs))
-		(tuple x y))))
+      (ps (lc ((<- x bs) (<- y bs))
+        (tuple x y))))
      (: lists foreach (lambda (p) (t-andalso-1 p)) ps))
 
    (line (test-pat 'true (andalso 'true 'true)))
@@ -195,9 +195,9 @@
    (line (test-pat 'false (andalso (not (id 'true)) (not (id 'true)))))
 
    (line (test-pat (tuple 'EXIT (tuple 'badarg _))
-		   (catch (andalso (not (id 'glurf)) (id 'true)))))
+           (catch (andalso (not (id 'glurf)) (id 'true)))))
    (line (test-pat (tuple 'EXIT (tuple 'badarg _))
-		   (catch (andalso (not (id 'false)) (not (id 'glurf))))))
+           (catch (andalso (not (id 'false)) (not (id 'glurf))))))
 
    (line (test-pat 'false (andalso (id 'false) (not (id 'glurf)))))
    (line (test-pat 'false (andalso 'false (not (id 'glurf)))))
@@ -208,14 +208,14 @@
   ([(tuple x y)]
    (: lfe_io format '"(andalso ~w ~w): " (list x y))
    (let* ((v0 (andalso (echo x) (echo y)))
-	  (v1 (when (=:= v0 v1))
-	      (eif (andalso x y) 'true 'true 'false)))
+      (v1 (when (=:= v0 v1))
+          (eif (andalso x y) 'true 'true 'false)))
      (check v1 (and x y)))))
 
 (defun t_orelse
   ([config] (when (is_list config))
    (let* ((bs '(true false))
-	  (ps (lc ((<- x bs) (<- y bs)) (tuple x y))))
+      (ps (lc ((<- x bs) (<- y bs)) (tuple x y))))
      (: lists foreach (lambda (p) (t-orelse-1 p)) ps))
 
    (line (test-pat 'true (orelse 'true 'true)))
@@ -237,9 +237,9 @@
    (line (test-pat 'false (orelse (not (id 'true)) (not (id 'true)))))
 
    (line (test-pat (tuple 'EXIT (tuple 'badarg _))
-		   (catch (orelse (not (id 'glurf)) (id 'true)))))
+           (catch (orelse (not (id 'glurf)) (id 'true)))))
    (line (test-pat (tuple 'EXIT (tuple 'badarg _))
-		   (catch (orelse (not (id 'true)) (not (id 'glurf))))))
+           (catch (orelse (not (id 'true)) (not (id 'glurf))))))
 
    (line (test-pat 'true (orelse (id 'true) (not (id 'glurf)))))
    (line (test-pat 'true (orelse 'true (not (id 'glurf)))))
@@ -250,8 +250,8 @@
   ([(tuple x y)]
    (: lfe_io format '"(orelse ~w ~w): " (list x y))
    (let* ((v0 (orelse (echo x) (echo y)))
-	  (v1 (when (=:= v0 v1))
-	      (eif (orelse x y) 'true 'true 'false)))
+      (v1 (when (=:= v0 v1))
+          (eif (orelse x y) 'true 'true 'false)))
      (check v1 (or x y)))))
 
 (defun inside
@@ -271,27 +271,27 @@
 
 (defun inside (xm ym)
   (let* ((x -10.0)
-	 (y -2.0)
-	 (w 20.0)
-	 (h 4.0)
-	 (r0 (inside xm ym x y w h))
-	 (r1 (when (=:= r0 r1))
-	     (eif (andalso (=< x xm) (< xm (+ x w)) (=< y ym) (< ym (+ y h)))
-		  'true 'true 'false)))
+     (y -2.0)
+     (w 20.0)
+     (h 4.0)
+     (r0 (inside xm ym x y w h))
+     (r1 (when (=:= r0 r1))
+         (eif (andalso (=< x xm) (< xm (+ x w)) (=< y ym) (< ym (+ y h)))
+          'true 'true 'false)))
     (case (not (id r1))
       (o0
        (let ((o1 (when (=:= o0 o1))
-		 (eif (not (andalso (=< x xm) (< xm (+ x w))
-				    (=< y ym) (< ym (+ y h))))
-		      'true 'true 'false)))
-	 o1)))
+         (eif (not (andalso (=< x xm) (< xm (+ x w))
+                    (=< y ym) (< ym (+ y h))))
+              'true 'true 'false)))
+     o1)))
     (let (((tuple r2 xm2 ym2 x2 y2 w2 h2)
-	   (when (=:= r1 r2) (=:= xm xm2) (=:= ym ym2) (=:= x x2)
-		 (=:= y y2) (=:= w w2) (=:= h h2))
-	   (inside-guard xm ym x y w h)))
+       (when (=:= r1 r2) (=:= xm xm2) (=:= ym ym2) (=:= x x2)
+         (=:= y y2) (=:= w w2) (=:= h h2))
+       (inside-guard xm ym x y w h)))
       (: lfe_io fwrite
-	'"(andalso (=< ~p ~p) (< ~p ~p) (=< ~p ~p) (< ~p ~p)) ==> ~p\n"
-	(list x xm xm (+ x w) y ym ym (+ y h) r1)))
+    '"(andalso (=< ~p ~p) (< ~p ~p) (=< ~p ~p) (< ~p ~p)) ==> ~p\n"
+    (list x xm xm (+ x w) y ym ym (+ y h) r1)))
     r1))
 
 (defun inside (xm ym x y w h)
@@ -320,25 +320,25 @@
 
 (defun overlap (pos1 len1 pos2 len2)
   (let* ((r0 (case pos1
-	       (pos1 (when (orelse (andalso (=< pos2 pos1)
-					    (< pos1 (+ pos2 len2)))
-				   (andalso (=< pos1 pos2)
-					    (< pos2 (+ pos1 len1)))))
-		     'true)
-	       (pos1 'false)))
-	 (r1 (when (=:= r0 r1))
-	     (orelse (andalso (=< pos2 pos1)
-			      (< pos1 (+ pos2 len2)))
-		     (andalso (=< pos1 pos2)
-			      (< pos2 (+ pos1 len1)))))
-	 (r2 (when (=:= r2 r1))
-	     (case pos1
-	       (pos1 (when (orelse (andalso (=< pos2 pos1)
-					    (< pos1 (+ pos2 len2)))
-				   (andalso (=< pos1 pos2)
-					    (< pos2 (+ pos1 len1)))))
-		     'true)
-	       (pos1 'false))))
+           (pos1 (when (orelse (andalso (=< pos2 pos1)
+                        (< pos1 (+ pos2 len2)))
+                   (andalso (=< pos1 pos2)
+                        (< pos2 (+ pos1 len1)))))
+             'true)
+           (pos1 'false)))
+     (r1 (when (=:= r0 r1))
+         (orelse (andalso (=< pos2 pos1)
+                  (< pos1 (+ pos2 len2)))
+             (andalso (=< pos1 pos2)
+                  (< pos2 (+ pos1 len1)))))
+     (r2 (when (=:= r2 r1))
+         (case pos1
+           (pos1 (when (orelse (andalso (=< pos2 pos1)
+                        (< pos1 (+ pos2 len2)))
+                   (andalso (=< pos1 pos2)
+                        (< pos2 (+ pos1 len1)))))
+             'true)
+           (pos1 'false))))
     (id r2)))
 
 ;; -define(COMB(A,B,C), (A andalso B orelse C)).
@@ -373,7 +373,7 @@
 
    ;; This next one crashed the compiler!
    (line (test-pat (tuple 'EXIT (tuple 'if_clause _))
-		   (catch (COMB 'true 'blurf 'false))))
+           (catch (COMB 'true 'blurf 'false))))
    (line (test-pat 'false (COMB 'false 'blurf 'false)))
    (line (test-pat 'true (COMB 'false 'blurf 'true)))
    (line (test-pat 'true (COMB 'true 'true 'blurf)))
@@ -382,19 +382,19 @@
 
 (defun comb (a b c)
   (let* ((r0 (orelse (andalso a b) c))
-	 (r1 (when (=:= r0 r1))
-	     (eif (orelse (andalso a b) c) 'true 'true 'false))
-	 (n0 (eif (not (orelse (andalso a b) c)) 'true 'true 'false))
-	 (n1 (when (=:= n0 n1))
-	     (id (not r1)))
-	 (r2 (when (=:= r1 r2))
-	     (orelse (andalso a b) c))
-	 (r3 (when (=:= r2 r3))
-	     (eif (orelse (andalso a b) c) 'true 'true 'false))
-	 (n2 (when (=:= n1 n2))
-	     (id (not r3)))
-	 (r4 (when (=:= r3 r4))
-	     (eif (orelse (andalso a b) c) 'true 'true 'false)))
+     (r1 (when (=:= r0 r1))
+         (eif (orelse (andalso a b) c) 'true 'true 'false))
+     (n0 (eif (not (orelse (andalso a b) c)) 'true 'true 'false))
+     (n1 (when (=:= n0 n1))
+         (id (not r1)))
+     (r2 (when (=:= r1 r2))
+         (orelse (andalso a b) c))
+     (r3 (when (=:= r2 r3))
+         (eif (orelse (andalso a b) c) 'true 'true 'false))
+     (n2 (when (=:= n1 n2))
+         (id (not r3)))
+     (r4 (when (=:= r3 r4))
+         (eif (orelse (andalso a b) c) 'true 'true 'false)))
     (id r4)))
 
 ;; Test that a boolean expression in a case expression is properly
@@ -406,26 +406,26 @@
    (line (test-pat 'loop (in-case-1 0.5 0.9 1.1 1 4)))
 
    (line (test-pat (tuple 'EXIT (tuple 'badarith _))
-		   (catch (in-case-1 1 1 1 1 0))))
+           (catch (in-case-1 1 1 1 1 0))))
    (line (test-pat (tuple 'EXIT (tuple 'badarith _))
-		   (catch (in-case-1 1 1 1 1 'nan))))
+           (catch (in-case-1 1 1 1 1 'nan))))
    (line (test-pat (tuple 'EXIT (tuple 'badarg _))
-		   (catch (in-case-1 1 1 1 'blurf 1))))
+           (catch (in-case-1 1 1 1 'blurf 1))))
    (line (test-pat (tuple 'EXIT (tuple 'badarith _))
-		   (catch (in-case-1 '(nan) 1 1 1 1))))
+           (catch (in-case-1 '(nan) 1 1 1 1))))
 
    'ok))
 
 (defun in-case-1 (lenup lendw lenn rot count)
   (let* ((r0 (in-case-1-body lenup lendw lenn rot count))
-	 (res (when (=:= r0 res))
-	      (in-case-1-guard lenup lendw lenn rot count)))
+     (res (when (=:= r0 res))
+          (in-case-1-guard lenup lendw lenn rot count)))
     res))
 
 (defun in-case-1-body (lenup lendw lenn rot count)
   ;; This is a 'cond'.
   (case (and (and (> (/ lenup count) 0.707) (> (/ lenn count) 0.707))
-	     (> (abs rot) 0.707))
+         (> (abs rot) 0.707))
     ('true 'edge_rings)
     ('false
      (case (or (or (or (>= lenup 1) (>= lendw 1)) (=< lenn 1)) (> count 4))
@@ -434,10 +434,10 @@
 
 (defun in-case-1-guard (lenup lendw lenn rot count)
   (case (andalso (> (/ lenup count) 0.707) (> (/ lenn count) 0.707)
-		 (> (abs rot) 0.707))
+         (> (abs rot) 0.707))
     ('true 'edge_rings)
     ('false (when (orelse (>= lenup 1) (>= lendw 1) (=< lenn 1) (< count 4)))
-	    'not_loop)
+        'not_loop)
     ('false 'loop)))
 
 (defun before_and_inside_if
@@ -467,13 +467,13 @@
 ;; Used to crash beam_bool.
 (defun before-and-inside-if (XDo1 XDo2 Do3)
   (let* ((Do1 (=/= XDo1 ()))
-	 (Do2 (=/= XDo2 ())))
+     (Do2 (=/= XDo2 ())))
     (eif
      ;; This expression occurs in a try/catch (protected)
      ;; block, which cannot refer to variables outside of
      ;; the block that are boolean expressions.
      (or (=:= Do1 'true)
-	 (and (and (=:= Do1 'false) (=:= Do2 'false)) (=:= Do3 'delete)))
+     (and (and (=:= Do1 'false) (=:= Do2 'false)) (=:= Do3 'delete)))
      'no
      'true 'yes)))
 
@@ -483,24 +483,24 @@
 ;; validation by the beam_validator).
 (defun before-and-inside-if-2 (XDo1 XDo2 Do3)
   (let* ((Do1 (=/= XDo1 ()))
-	 (Do2 (=/= XDo2 ()))
-	 (CH1 (eif (or (== Do1 'true)
-		       (and (and (== Do1 'false) (== Do2 'false))
-			    (== Do3 'blah)))
-		   'ch1
-		   'true 'no))
-	 (CH2 (eif (or (== Do1 'true)
-		       (and (and (== Do1 'false) (== Do2 'false))
-			    (== Do3 'xx)))
-		   'ch2
-		   'true 'no)))
+     (Do2 (=/= XDo2 ()))
+     (CH1 (eif (or (== Do1 'true)
+               (and (and (== Do1 'false) (== Do2 'false))
+                (== Do3 'blah)))
+           'ch1
+           'true 'no))
+     (CH2 (eif (or (== Do1 'true)
+               (and (and (== Do1 'false) (== Do2 'false))
+                (== Do3 'xx)))
+           'ch2
+           'true 'no)))
     (tuple CH1 CH2)))
 
 ;; Utilities
 
 (defun check (v1 v0)
   (eif (/= v1 v0) (progn (: lfe_io fwrite '"error: ~w.\n" (list v1))
-			 (exit 'suite_failed))
+             (exit 'suite_failed))
        'true (: lfe_io fwrite '"ok: ~w.\n" (list v1))))
 
 (defun echo (x)

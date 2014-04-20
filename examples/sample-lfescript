@@ -16,7 +16,7 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-;; File    : sample-lfescript.lfe
+;; File    : sample-lfescript
 ;; Author  : Robert Virding and Duncan McGreggor
 ;; Purpose : Demonstrating usage of lfescript
 
@@ -24,17 +24,17 @@
 ;;  1) make sure that you are in your lfe working directory
 ;;  2) $ export PATH=$PATH:./bin
 ;;  3) $ export LFESCRIPT_EMULATOR="erl -pa ./ebin"
-;;  4) $ chmod 755 examples/sample-lfescript.lfe
+;;  4) $ chmod 755 examples/sample-lfescript
 ;;
 ;; At this point, you can call this script directly:
 ;;
 ;;  $ examples/sample-lfescript.lfe
-;;  usage: examples/sample-lfescript.lfe <integer>
+;;  usage: examples/sample-lfescript <integer>
 ;;
 ;; As you can see, calling the script like that displays the usage statement.
 ;; Now call the script as intended, like the usage says:
 ;;
-;;  $ examples/sample-lfescript.lfe 12
+;;  $ examples/sample-lfescript 12
 ;;  factorial 12 = 479001600
 ;;
 ;; For more information, see ./doc/lfescript.txt.

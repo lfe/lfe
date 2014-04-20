@@ -73,7 +73,7 @@
    ;; -> (tuple 'error '"Buzz/1 only accepts whole numbers > 0")
    ;;
    ;; Or if necessary you can trigger an Erlang error:
-   ;; 
+   ;;
    ;; -> (: erlang error (tuple 'error '"Buzz1/1 only accepts whole numbers > 0"))
    ;;
    ;; In this example it is enough we return the error atom.
@@ -116,5 +116,5 @@
   ;; type check that we have received a list as our second argument.
   ([acc (cons x xs)]
    ;; Place the result of our FizzBuzz at the start of the list and dive into
-   ;; the breach once more!   
+   ;; the breach once more!
    (tail-buzz (cons (get-fizz x) acc) xs)))

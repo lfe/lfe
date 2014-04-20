@@ -33,23 +33,23 @@
 
 (defmodule ms_transform_SUITE
   (export (all 0) (suite 0) (groups 0) (init_per_suite 1) (end_per_suite 1)
-	  (init_per_group 2) (end_per_group 2)
-	  (init_per_testcase 2) (end_per_testcase 2)
-	  (basic_ets 1) (basic_dbg 1) (from_shell 1) (records 1)
-	  (record_index 1) (multipass 1) (top_match 1) (old_guards 1)
-	  (autoimported 1) (semicolon 1) (bitsyntax 1)
-	  (record_defaults 1) (andalso_orelse 1)
-	  (float_1_function 1) (action_function 1) (warnings 1)
-	  ))
+      (init_per_group 2) (end_per_group 2)
+      (init_per_testcase 2) (end_per_testcase 2)
+      (basic_ets 1) (basic_dbg 1) (from_shell 1) (records 1)
+      (record_index 1) (multipass 1) (top_match 1) (old_guards 1)
+      (autoimported 1) (semicolon 1) (bitsyntax 1)
+      (record_defaults 1) (andalso_orelse 1)
+      (float_1_function 1) (action_function 1) (warnings 1)
+      ))
 
 (defmacro MODULE () `'ms_transform_SUITE)
 
 (defun all ()
   ;; (: test_lib recompile (MODULE))
   (list 'basic_ets 'basic_dbg 'from_shell 'records
-	'record_index 'multipass 'top_match 'old_guards
-	'autoimported 'semicolon 'bitsyntax 'record_defaults
-	'andalso_orelse 'float_1_function 'action_function 'warnings))
+    'record_index 'multipass 'top_match 'old_guards
+    'autoimported 'semicolon 'bitsyntax 'record_defaults
+    'andalso_orelse 'float_1_function 'action_function 'warnings))
 
 ;;(defun suite () (list (tuple 'ct_hooks (list 'ts_install_cth))))
 (defun suite () ())
@@ -79,16 +79,16 @@
    (line (setup config))
    (line (test-pat '(#(#(a b) () (true))) (match-spec ([(tuple 'a 'b)] 'true))))
    (line (test-pat '(#(#($1 foo) (#(is_list $1)) (#(#(#(hd $1) $_))))
-		     #(#($1 $1) (#(is_tuple $1)) (#(#(#(element 1 $1) $*)))))
-		   (match-spec ([(tuple x 'foo)] (when (is_list x))
-				(tuple (hd x) (object)))
-			       ([(tuple x x)] (when (is_tuple x))
-				(tuple (element 1 x) (bindings))))
-		   ))
+             #(#($1 $1) (#(is_tuple $1)) (#(#(#(element 1 $1) $*)))))
+           (match-spec ([(tuple x 'foo)] (when (is_list x))
+                (tuple (hd x) (object)))
+                   ([(tuple x x)] (when (is_tuple x))
+                (tuple (element 1 x) (bindings))))
+           ))
    (line (test-pat '(#(#($1 $2) () (#(#($2 $1)))))
-		   (match-spec ([(tuple a b)] (tuple b a)))))
+           (match-spec ([(tuple a b)] (tuple b a)))))
    (line (test-pat '(#(#($1 $2) () (($2 $1))))
-		   (match-spec ([(tuple a b)] (list b a)))))
+           (match-spec ([(tuple a b)] (list b a)))))
 
    'ok))
 
@@ -98,16 +98,16 @@
   ([config] (when (is_list config))
    (line (setup config))
    (line (test-pat '(#((a b) () (#(message banan) #(return_trace))))
-		   (match-spec ([(list 'a 'b)]
-				(message 'banan) (return_trace)))))
+           (match-spec ([(list 'a 'b)]
+                (message 'banan) (return_trace)))))
    (line (test-pat '(#(($1 $2) () (#(#($2 $1)))))
-		   (match-spec ([(list a b)] (tuple b a)))))
+           (match-spec ([(list a b)] (tuple b a)))))
    (line (test-pat '(#(($1 $2) () (($2 $1))))
-		   (match-spec ([(list a b)] (list b a)))))
+           (match-spec ([(list a b)] (list b a)))))
    (line (test-pat '(#(($1 $2) () ($*)))
-		   (match-spec ([(list a b)] (bindings)))))
+           (match-spec ([(list a b)] (bindings)))))
    (line (test-pat '(#(($1 $2) () ($_)))
-		   (match-spec ([(list a b)] (object)))))
+           (match-spec ([(list a b)] (object)))))
 
    'ok))
 
@@ -130,9 +130,9 @@
      '(#(#(t $1 $2 foo _) (#(is_list $1)) (#(#(#(hd $1) $_))))
        #(#(t _ _ _ _) (#(== #(element 2 $_) nisse)) (#(#($*)))))
      (match-spec ([(match-t t1 x t2 y t3 'foo)] (when (is_list x))
-		  (tuple (hd x) (object)))
-		 ([(match-t)] (when (== (t-t1 (object)) 'nisse))
-		  (tuple (bindings))))
+          (tuple (hd x) (object)))
+         ([(match-t)] (when (== (t-t1 (object)) 'nisse))
+          (tuple (bindings))))
      ))
    ;; [{{t,'$1','$2','_',foo},[{'==',{element,4,'$_'},7},{is_list,'$1'}],
    ;;   [{{{hd,'$1'},'$_'}}]},
@@ -143,16 +143,16 @@
    (line
     (test-pat
      '(#(#(t $1 $2 _ foo) (#(== #(element 4 $_) 7) #(is_list $1))
-	 (#(#(#(hd $1) $_))))
+     (#(#(#(hd $1) $_))))
        #($1 (#(is_record $1 t 5))
-	    (#(#(#(element 2 $1)
-		 #(#(t $1 foo undefined undefined))
-		 #(setelement 5 $1 boooo))))))
+        (#(#(#(element 2 $1)
+         #(#(t $1 foo undefined undefined))
+         #(setelement 5 $1 boooo))))))
      (match-spec ([(match-t t1 x t2 y t4 'foo)]
-		  (when (== (t-t3 (object)) 7) (is_list x))
-		  (tuple (hd x) (object)))
-		 ([a] (when (is-t a))
-		  (tuple (t-t1 a) (make-t t1 a) (set-t-t4 a 'boooo))))
+          (when (== (t-t3 (object)) 7) (is_list x))
+          (tuple (hd x) (object)))
+         ([a] (when (is-t a))
+          (tuple (t-t1 a) (make-t t1 a) (set-t-t4 a 'boooo))))
      ))
    ;; [{[{t,'$1','$2',foo,'_'}],[{is_list,'$1'}],[{{{hd,'$1'},'$_'}}]},
    ;;  {[{t,'_','_','_','_'}],[{'==',{element,2,{hd,'$_'}},nisse}],[{{'$*'}}]}]
@@ -161,9 +161,9 @@
      '(#((#(t $1 $2 foo _)) (#(is_list $1)) (#(#(#(hd $1) $_))))
        #((#(t _ _ _ _)) (#(== #(element 2 #(hd $_)) nisse)) (#(#($*)))))
      (match-spec ([(list (match-t t1 x t2 y t3 'foo))] (when (is_list x))
-		  (tuple (hd x) (object)))
-		 ([(list (match-t))] (when (== (t-t1 (hd (object))) 'nisse))
-		  (tuple (bindings))))
+          (tuple (hd x) (object)))
+         ([(list (match-t))] (when (== (t-t1 (hd (object))) 'nisse))
+          (tuple (bindings))))
      ))
 
    'ok))
@@ -175,8 +175,8 @@
   (['doc] '"Tests expansion of records in fun2ms, part 2")
   ([config] (when (is_list config))
    (line (setup config))
-   
-   
+
+
    'ok))
 
 (defun multipass
@@ -194,13 +194,13 @@
   ([config] (when (is_list config))
    (line (setup config))
    (line (test-pat '(#(#(a 3 _) () ($_)))
-		   (match-spec ([(= a (match-a a 3))] a))))
+           (match-spec ([(= a (match-a a 3))] a))))
    (line (test-pat '(#(#(a 3 _) () ($_)))
-		   (match-spec ([(= (match-a a 3) a)] a))))
+           (match-spec ([(= (match-a a 3) a)] a))))
    (line (test-pat '(#((a b) () ($_)))
-		   (match-spec ([(= a (list 'a 'b))] a))))
+           (match-spec ([(= a (list 'a 'b))] a))))
    (line (test-pat '(#((a b) () ($_)))
-		   (match-spec ([(= (list 'a 'b) a)] a))))
+           (match-spec ([(= (list 'a 'b) a)] a))))
 
    'ok))
 
@@ -231,20 +231,20 @@
   ([config] (when (is_list config))
    (line (setup config))
    (line (test-pat '(#(_ () (#b(0 27 0 27))))
- 		   (let ((a 27))
- 		     (match-spec ([_] (binary (a (size 16)) (27 (size 16))))))
-		   ))
+            (let ((a 27))
+              (match-spec ([_] (binary (a (size 16)) (27 (size 16))))))
+           ))
    (line (test-pat '(#(#(#b(15 47) $1 $2)
-		       (#(=:= $1 #b(0 27)) #(=:= $2 #b(27 28 19)))
-		       (#b(188 0 13))))
-		   (let ((a 27))
-		     (match-spec ([(tuple #b(15 47) b c)]
-				  (when (=:= b (binary (a (size 16))))
-					(=:= c (binary 27 28 19)))
-				  (binary (a (size 4)) (12 (size 4))
-					  (13 (size 16))))))
-		   ))
-   
+               (#(=:= $1 #b(0 27)) #(=:= $2 #b(27 28 19)))
+               (#b(188 0 13))))
+           (let ((a 27))
+             (match-spec ([(tuple #b(15 47) b c)]
+                  (when (=:= b (binary (a (size 16))))
+                    (=:= c (binary 27 28 19)))
+                  (binary (a (size 4)) (12 (size 4))
+                      (13 (size 16))))))
+           ))
+
 
    'ok))
 
@@ -260,7 +260,7 @@
   (['suite] ())
   (['doc] '"Tests that andalso and orelse are allowed in guards.")
   ([config] (when (is_list config))
-   
+
    'ok))
 
 (defun float_1_function
@@ -276,27 +276,27 @@
   ([config] (when (is_list config))
    (line (setup config))
    (line (test-pat '(#(($1 $2) () (#(set_seq_token label 0)
-				   #(get_seq_token)
-				   #(message $1)
-				   #(return_trace)
-				   #(exception_trace))))
-		   (match-spec ([(list x y)]
-				(set_seq_token 'label 0)
-				(get_seq_token)
-				(message x)
-				(return_trace)
-				(exception_trace)))))
+                   #(get_seq_token)
+                   #(message $1)
+                   #(return_trace)
+                   #(exception_trace))))
+           (match-spec ([(list x y)]
+                (set_seq_token 'label 0)
+                (get_seq_token)
+                (message x)
+                (return_trace)
+                (exception_trace)))))
    (line (test-pat '(#(($1 $2) () (#(process_dump)
-				   #(enable_trace send)
-				   #(enable_trace $2 send)
-				   #(disable_trace procs)
-				   #(disable_trace $2 procs))))
-		   (match-spec ([(list x y)]
-				(process_dump)
-				(enable_trace 'send)
-				(enable_trace y 'send)
-				(disable_trace 'procs)
-				(disable_trace y 'procs)))))
+                   #(enable_trace send)
+                   #(enable_trace $2 send)
+                   #(disable_trace procs)
+                   #(disable_trace $2 procs))))
+           (match-spec ([(list x y)]
+                (process_dump)
+                (enable_trace 'send)
+                (enable_trace y 'send)
+                (disable_trace 'procs)
+                (disable_trace y 'procs)))))
 
    'ok))
 
@@ -315,11 +315,11 @@
 
 (defun temp_name ()
   (let* ((conf (get 'mts_config))
-	 (c (get 'mts_tf_counter)))
+     (c (get 'mts_tf_counter)))
     (put 'mts_tf_counter (+ c 1))
     (: filename join (list (config 'priv_dir conf)
-			   (++ '"tempfile" (integer_to_list c) '".tmp")))))
+               (++ '"tempfile" (integer_to_list c) '".tmp")))))
 (defun do-eval (s)
   (let* (((tuple 'ok ts _) (: lfe_scan tokens [] s 1))
-	 ((tuple 'ok e) (: lfe_parse sexpr ts)))
+     ((tuple 'ok e) (: lfe_parse sexpr ts)))
     (: lfe_eval expr e)))
