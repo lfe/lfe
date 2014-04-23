@@ -175,14 +175,14 @@ get_bitsegs(Segs) ->
 %% get_bitseg(Bitseg, ValSpecs) -> ValSpecs.
 %% A bitseg is either an atomic value, a list of value and specs, or a string.
 
-get_bitseg([Val|Specs]=F, Vsps) ->
-    case is_posint_list(F) of                   %Is bitseg a string?
+get_bitseg([Val|Specs]=Seg, Vsps) ->
+    case is_posint_list(Seg) of                 %Is bitseg a string?
         true ->                                 %A string
             {Sz,Ty} = get_bitspecs([]),
-            foldr(fun (V, Vs) -> [{V,Sz,Ty}|Vs] end, Vsps, F);
+            foldr(fun (V, Vs) -> [{V,Sz,Ty}|Vs] end, Vsps, Seg);
         false ->                                %A value and spec
             {Sz,Ty} = get_bitspecs(Specs),
-            case is_posint_list(Val) of         %Is val a string?
+            case is_posint_list(Val) of         %Is Val a string?
                 true -> foldr(fun (V, Vs) -> [{V,Sz,Ty}|Vs] end, Vsps, Val);
                 false -> [{Val,Sz,Ty}|Vsps]     %The default
             end
