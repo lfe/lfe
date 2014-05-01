@@ -76,6 +76,11 @@ Built-in shell commands
                 removing all function and macro definitions both in
                 the slurped file and defined in the shell since then.
 
+        (run File)
+                Execute all the shell commands in File. All defined
+                variables, functions and macros will be saved in the
+                environment if there are no errors.
+
 Built-in shell variables
 
         +/++/+++
