@@ -8,7 +8,8 @@ Special syntactic rules
 
 #b #o #d #x #23r        - Based integers
 #(e e ... )             - Tuple constants
-#b(e e ... )            - Binary constant, e ... are valid literals segments
+#b(e e ... )            - Binary constants, e ... are valid literals segments
+#m(k v ... )            - Map constants, k v are keys and values
 [ ... ]                 - Allowed as alternative to ( ... )
 
 Supported Core forms
@@ -21,6 +22,7 @@ Supported Core forms
 (list e ... )
 (tuple e ... )
 (binary seg ... )
+(map key val ...) (get-map m k) (set-map m k v ...) (update-map m k v ...)
 (lambda (arg ...) ...)
 (match-lambda
   ((arg ... ) {{(when e ...)}} ...)             - Matches clauses
@@ -62,7 +64,7 @@ Supported Core forms
 
 (define-module name declaration ... )
 (extend-module declaration ... )
-	Define/extend module and declarations.
+        Define/extend module and declarations.
 
 (define-function name lambda|match-lambda)
 (define-macro name lambda|match-lambda)
@@ -532,6 +534,31 @@ Val can also be a string in which case the specifiers will be applied
 to every character in the string. As strings are just lists of
 integers these are also valid here. In a binary constant all literal
 forms are allowed on input but they will always be written as bytes.
+
+Maps
+----
+
+A map is:
+
+(map key value ... )
+
+To access maps there are the following forms:
+
+(get-map map key)
+
+        Return the value associated with key in map.
+
+(set-map map key val ... )
+
+        Set keys in map to values.
+
+(update-map map key val ... )
+
+        Update keys in map to values. Note that this form requires all
+        the keys to exist.
+
+N.B. This is an experimental syntax for processing maps and may change
+in the future!
 
 List/binary comprehensions
 --------------------------

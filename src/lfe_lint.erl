@@ -75,7 +75,7 @@ format_error({multi_var,S}) ->
     lfe_io:format1("multiple variable: ~w", [S]);
 format_error({redef_fun,F}) ->
     lfe_io:format1("redefining function: ~w", [F]);
-format_error(illegal_pat) -> "illegal pattern";
+format_error(illegal_pattern) -> "illegal pattern";
 format_error(illegal_guard) -> "illegal guard";
 format_error(illegal_bitseg) -> "illegal bit segment";
 format_error({undefined_bittype,S}) ->
@@ -810,7 +810,7 @@ pattern(Pat, Env, L, St) ->
 %%     try
 %%     pattern(Pat, [], Env, L, St)
 %%     catch
-%%     _:_ -> {[],add_error(L, illegal_pat, St)}
+%%     _:_ -> {[],add_error(L, illegal_pattern, St)}
 %%     end.
 
 pattern([quote,_], Pvs, _, _, St) -> {Pvs,St};  %Go no deeper with quote
@@ -838,7 +838,7 @@ pattern([_|_]=List, Pvs0, Env, L, St0) ->
     St1 = add_warning(L, {deprecated,"pattern"}, St0),
     pat_list(List, Pvs0, Env, L, St1);
 %% pattern([_|_], Pvs, _, L, St) ->
-%%     {Pvs,add_error(L, illegal_pat, St)};
+%%     {Pvs,add_error(L, illegal_pattern, St)};
 pattern([], Pvs, _, _, St) -> {Pvs,St};
 pattern(Symb, Pvs, _, L, St) when is_atom(Symb) ->
     pat_symb(Symb, Pvs, L, St);
@@ -848,7 +848,7 @@ pat_list([P|Ps], Pvs0, Env, L, St0) ->
     {Pvs1,St1} = pattern(P, Pvs0, Env, L, St0),
     pat_list(Ps, Pvs1, Env, L, St1);
 pat_list([], Pvs, _, _, St) -> {Pvs,St};
-pat_list(_, Pvs, _, L, St) -> {Pvs,add_error(L, illegal_pat, St)}.
+pat_list(_, Pvs, _, L, St) -> {Pvs,add_error(L, illegal_pattern, St)}.
 
 pat_symb('_', Pvs, _, St) -> {Pvs,St};          %Don't care variable
 pat_symb(Symb, Pvs, L, St) ->
