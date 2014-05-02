@@ -20,8 +20,9 @@
 
 -module(lfe_eval).
 
--export([expr/1,expr/2,gexpr/1,gexpr/2,apply/2,apply/3,
-         body/1,body/2,guard/1,guard/2,match/3,match_when/4,
+-export([expr/1,expr/2,literal/1,literal/2,body/1,body/2,
+         gexpr/1,gexpr/2,guard/1,guard/2,match/3,match_when/4,
+         apply/2,apply/3,
          make_letrec_env/2,add_lexical_func/4,add_dynamic_func/4]).
 
 %% Deprecated exports.
@@ -34,8 +35,8 @@
 -import(lists, [reverse/1,all/2,map/2,foldl/3,foldr/3]).
 -import(orddict, [find/2,fetch/2,store/3,is_key/2]).
 
--compile({no_auto_import,[apply/3]}).        %For our apply/3 function
--deprecated([eval/1,eval/2]).
+-compile({no_auto_import,[apply/3]}).           %For our apply/3 function
+-deprecated([eval/1,eval/2,eval_list/2]).
 
 %% -compile([export_all]).
 
@@ -48,7 +49,7 @@ eval(E, Env) -> expr(E, Env).
 
 %% expr(Sexpr) -> Value.
 %% expr(Sexpr, Env) -> Value.
-%% Evaluate the sexpr, first expanding all macros.
+%%  Evaluate the sexpr, first expanding all macros.
 
 expr(E) -> expr(E, lfe_env:new()).
 
@@ -57,12 +58,30 @@ expr(E, Env) ->
     %% lfe_io:fwrite("e: ~p\n", [{E,Exp,Env}]),
     eval_expr(Exp, Env).
 
+%% literal(Literal) -> Value.
+%% literal(Literal, Env) -> Value.
+%% body(Body) -> Value.
+%% body(Body, Env) -> Value.
 %% gexpr(GuardTest) -> Value.
 %% gexpr(GuardTest, Env) -> Value.
+%% guard(Guard) -> true | false.
+%% guard(Guard, Env) -> true | false.
+
+literal(L) -> literal(L, lfe_env:new()).
+
+literal(L, Env) -> eval_lit(L, Env).
+
+body(B) -> body(B, lfe_env:new()).
+
+body(B, Env) -> eval_body(B, Env).
 
 gexpr(Gt) -> gexpr(Gt, lfe_env:new()).
 
 gexpr(Gt, Env) -> eval_gexpr(Gt, Env).
+
+guard(G) -> guard(G, lfe_env:new()).
+
+guard(G, Env) -> eval_guard(G, Env).
 
 %% apply(Function, Args) -> Expr.
 %% apply(Function, Args, Env) -> Expr.
@@ -74,20 +93,7 @@ apply(F, Args) ->
     apply(F, Args, lfe_env:new()).
 
 apply(F, Args, Env) ->
-    eval_apply_expr(F, Args, Env).        %Env at function def
-
-%% body(Body) -> Value.
-%% body(Body, Env) -> Value.
-%% guard(Guard) -> true | false.
-%% guard(Guard, Env) -> true | false.
-
-body(B) -> body(B, lfe_env:new()).
-
-body(B, Env) -> eval_body(B, Env).
-
-guard(G) -> guard(G, lfe_env:new()).
-
-guard(G, Env) -> eval_guard(G, Env).
+    eval_apply_expr(F, Args, Env).              %Env at function def
 
 %% eval_expr(Sexpr, Environment) -> Value.
 %%  Evaluate a sexpr in the current environment. Try to catch core
@@ -103,6 +109,19 @@ eval_expr([cdr,E], Env) -> tl(eval_expr(E, Env));
 eval_expr([list|Es], Env) -> eval_list(Es, Env);
 eval_expr([tuple|Es], Env) -> list_to_tuple(eval_list(Es, Env));
 eval_expr([binary|Bs], Env) -> eval_binary(Bs, Env);
+eval_expr([map|As], Env) ->
+    KVs = map_pairs(As, Env),
+    maps:from_list(KVs);
+eval_expr(['get-map',Map,K], Env) ->
+    maps:get(eval_expr(K, Env), eval_expr(Map, Env));
+eval_expr(['set-map',Map|As], Env) ->
+    KVs = map_pairs(As, Env),
+    foldl(fun ({K,V}, M) -> maps:put(K, V, M) end,
+          eval_expr(Map, Env), KVs);
+eval_expr(['update-map',Map|As], Env) ->
+    KVs = map_pairs(As, Env),
+    foldl(fun ({K,V}, M) -> maps:update(K, V, M) end,
+          eval_expr(Map, Env), KVs);
 %% Handle the Core closure special forms.
 eval_expr([lambda|Body], Env) ->
     eval_lambda(Body, Env);
@@ -163,11 +182,14 @@ eval_body([E|Es], Env) ->
 eval_body([], _) -> [].                         %Empty body
 
 %% eval_binary(Bitsegs, Env) -> Binary.
-%%  Construct a binary from Bitsegs. This code is taken from eval_bits.erl.
+%%  Construct a binary from Bitsegs. This code is taken from
+%%  eval_bits.erl. Pass in an evaluator function to be used when
+%%  evaluating vale and size expression.
 
 eval_binary(Segs, Env) ->
     Vsps = get_bitsegs(Segs),
-    eval_bitsegs(Vsps, Env).
+    Eval = fun (S) -> eval_expr(S, Env) end,
+    eval_bitsegs(Vsps, Eval).
 
 get_bitsegs(Segs) ->
     foldr(fun (S, Vs) -> get_bitseg(S, Vs) end, [], Segs).
@@ -205,17 +227,19 @@ is_posint_list([I|Is]) when is_integer(I), I >= 0 ->
 is_posint_list([]) -> true;
 is_posint_list(_) -> false.
 
-%% eval_bitsegs(VSTys, Env) -> Binary.
+%% eval_bitsegs(VSTys, Evaluator) -> Binary.
+%%  The evaluator function is use to evaluate the value and size
+%%  fields.
 
-eval_bitsegs(Vsps, Env) ->
+eval_bitsegs(Vsps, Eval) ->
     foldl(fun ({Val,Sz,Ty}, Acc) ->
-                  Bin = eval_bitseg(Val, Sz, Ty, Env),
+                  Bin = eval_bitseg(Val, Sz, Ty, Eval),
                   <<Acc/bitstring,Bin/bitstring>>
           end, <<>>, Vsps).
 
-eval_bitseg(Val, Sz, Ty, Env) ->
-    V = eval_expr(Val, Env),
-    eval_exp_bitseg(V, Sz, fun (S) -> eval_expr(S, Env) end, Ty).
+eval_bitseg(Val, Sz, Ty, Eval) ->
+    V = Eval(Val),
+    eval_exp_bitseg(V, Sz, Eval, Ty).
 
 %% eval_exp_bitseg(Value, Size, EvalSize, {Type,Unit,Sign,Endian}) -> Binary.
 
@@ -265,6 +289,13 @@ eval_utf32_bitseg(Val, native) -> <<Val/utf32-native>>.
 eval_float_bitseg(Val, Sz, big) -> <<Val:Sz/float>>;
 eval_float_bitseg(Val, Sz, little) -> <<Val:Sz/float-little>>;
 eval_float_bitseg(Val, Sz, native) -> <<Val:Sz/float-native>>.
+
+%% map_pairs(Args, Env) -> [{K,V}].
+
+map_pairs([K,V|As], Env) ->
+    [{eval_expr(K, Env),eval_expr(V, Env)}|map_pairs(As, Env)];
+map_pairs([], _) -> [];
+map_pairs(_, _) -> erlang:error(badarg).
 
 %% eval_lambda(LambdaBody, Env) -> Val.
 %%  Evaluate (lambda args ...).
@@ -647,16 +678,16 @@ eval_call([M0,F0|As0], Env) ->
 
 match_when(Pat, V, B0, Env) ->
     case match(Pat, V, Env) of
-    {yes,Vbs} ->
-        case B0 of
-        [['when'|G]|B1] ->
-            case eval_guard(G, add_vbindings(Vbs, Env)) of
-            true -> {yes,B1,Vbs};
-            false -> no
+        {yes,Vbs} ->
+            case B0 of
+                [['when'|G]|B1] ->
+                    case eval_guard(G, add_vbindings(Vbs, Env)) of
+                        true -> {yes,B1,Vbs};
+                        false -> no
+                    end;
+                B1 -> {yes,B1,Vbs}
             end;
-        B1 -> {yes,B1,Vbs}
-        end;
-    no -> no
+        no -> no
     end.
 
 %% eval_guard(GuardTests, Env) -> true | false.
@@ -724,17 +755,8 @@ eval_glist(Es, Env) ->
 
 eval_gbinary(Segs, Env) ->
     Vsps = get_bitsegs(Segs),
-    eval_gbitsegs(Vsps, Env).
-
-eval_gbitsegs(Vsps, Env) ->
-    foldl(fun ({Val,Sz,Ty}, Acc) ->
-          Bin = eval_gbitseg(Val, Sz, Ty, Env),
-          <<Acc/bitstring,Bin/bitstring>>
-      end, <<>>, Vsps).
-
-eval_gbitseg(Val, Sz, Ty, Env) ->
-    V = eval_gexpr(Val, Env),
-    eval_exp_bitseg(V, Sz, fun(S) -> eval_gexpr(S, Env) end, Ty).
+    Eval = fun(S) -> eval_gexpr(S, Env) end,
+    eval_bitsegs(Vsps, Eval).
 
 %% eval_gif(IfBody, Env) -> Val.
 
@@ -759,37 +781,42 @@ match([quote,P], Val, Pbs, _) ->
     if P == Val -> {yes,Pbs};
        true -> no
     end;
-match([tuple|Ps], Val, Pbs, Env) ->
-    %% io:fwrite("~p ~p\n", [Ps,Val]),
-    case is_tuple(Val) of
-    true -> match_list(Ps, tuple_to_list(Val), Pbs, Env);
-    false -> no
-    end;
-match([binary|Fs], Val, Pbs, Env) ->
-    case is_bitstring(Val) of
-    true -> match_binary(Fs, Val, Pbs, Env);
-    false -> no
-    end;
-match(['=',P1,P2], Val, Pbs0, Env) ->        %Aliases
-    case match(P1, Val, Pbs0, Env) of
-    {yes,Pbs1} -> match(P2, Val, Pbs1, Env);
-    no -> no
-    end;
 match([cons,H,T], [V|Vs], Pbs0, Env) ->        %Explicit cons constructor
     case match(H, V, Pbs0, Env) of
-    {yes,Pbs1} -> match(T, Vs, Pbs1, Env);
-    no -> no
+        {yes,Pbs1} -> match(T, Vs, Pbs1, Env);
+        no -> no
     end;
 match([list|Ps], Val, Pbs, Env) ->        %Explicit list constructor
     match_list(Ps, Val, Pbs, Env);
+match([tuple|Ps], Val, Pbs, Env) ->
+    %% io:fwrite("~p ~p\n", [Ps,Val]),
+    case is_tuple(Val) of
+        true -> match_list(Ps, tuple_to_list(Val), Pbs, Env);
+        false -> no
+    end;
+match([binary|Ss], Val, Pbs, Env) ->
+    case is_bitstring(Val) of
+        true -> match_binary(Ss, Val, Pbs, Env);
+        false -> no
+    end;
+match([map|Ps], Val, Pbs, Env) ->
+    case is_map(Val) of
+        true -> match_map(Ps, Val, Pbs, Env);
+        false -> no
+    end;
 %% Use old no contructor list forms.
 match([P|Ps], [V|Vs], Pbs0, Env) ->
     case match(P, V, Pbs0, Env) of
-    {yes,Pbs1} -> match(Ps, Vs, Pbs1, Env);
-    no -> no
+        {yes,Pbs1} -> match(Ps, Vs, Pbs1, Env);
+        no -> no
     end;
 %% match([_|_], _, _, _) ->            %No constructor
 %%     erlang:error(illegal_pattern);
+match(['=',P1,P2], Val, Pbs0, Env) ->        %Aliases
+    case match(P1, Val, Pbs0, Env) of
+        {yes,Pbs1} -> match(P2, Val, Pbs1, Env);
+        no -> no
+    end;
 match([], [], Pbs, _) -> {yes,Pbs};
 match(Symb, Val, Pbs, Env) when is_atom(Symb) ->
     match_symb(Symb, Val, Pbs, Env);
@@ -798,18 +825,18 @@ match(_, _, _, _) -> no.
 
 match_list([P|Ps], [V|Vs], Pbs0, Env) ->
     case match(P, V, Pbs0, Env) of
-    {yes,Pbs1} -> match_list(Ps, Vs, Pbs1, Env);
-    no -> no
+        {yes,Pbs1} -> match_list(Ps, Vs, Pbs1, Env);
+        no -> no
     end;
 match_list([], [], Pbs, _) -> {yes,Pbs};
 match_list(_, _, _, _) -> no.
 
-match_symb('_', _, Pbs, _) -> {yes,Pbs};    %Don't care variable.
+match_symb('_', _, Pbs, _) -> {yes,Pbs};        %Don't care variable.
 match_symb(S, Val, Pbs, _) ->
     %% Check if Symb already bound.
     case find(S, Pbs) of
-    {ok,_} -> erlang:error({multi_var,S});    %Already bound, multiple var
-    error -> {yes,store(S, Val, Pbs)}    %Not yet bound
+        {ok,_} -> erlang:error({multi_var,S});  %Already bound, multiple var
+        error -> {yes,store(S, Val, Pbs)}       %Not yet bound
     end.
 
 %% match_binary(Bitsegs, Binary, PatBindings, Env) -> {yes,PatBindings} | no.
@@ -823,9 +850,9 @@ match_binary(Segs, Bin, Pbs0, Env) ->
 
 match_bitsegs([{Pat,Sz,Ty}|Psps], Bin0, Bbs0, Pbs0, Env) ->
     case match_bitseg(Pat, Sz, Ty, Bin0, Bbs0, Pbs0, Env) of
-    {yes,Bin1,Bbs1,Pbs1} ->
-        match_bitsegs(Psps, Bin1, Bbs1, Pbs1, Env);
-    no -> no
+        {yes,Bin1,Bbs1,Pbs1} ->
+            match_bitsegs(Psps, Bin1, Bbs1, Pbs1, Env);
+        no -> no
     end;
 match_bitsegs([], <<>>, _, Pbs, _) -> {yes,Pbs}; %Reached the end of both
 match_bitsegs([], _, _, _, _) -> no.         %More to go
@@ -833,12 +860,12 @@ match_bitsegs([], _, _, _, _) -> no.         %More to go
 match_bitseg(Pat, Size, Type, Bin0, Bbs0, Pbs0, Env) ->
     Sz = get_pat_bitsize(Size, Type, Bbs0, Pbs0, Env),
     case catch {ok,get_pat_bitseg(Bin0, Sz, Type)} of
-    {ok,{Val,Bin1}} ->
-        case match_bitexpr(Pat, Val, Bbs0, Pbs0, Env) of
-        {yes,Bbs1,Pbs1} -> {yes,Bin1,Bbs1,Pbs1};
-        no -> no
-        end;
-    _ -> no
+        {ok,{Val,Bin1}} ->
+            case match_bitexpr(Pat, Val, Bbs0, Pbs0, Env) of
+                {yes,Bbs1,Pbs1} -> {yes,Bin1,Bbs1,Pbs1};
+                no -> no
+            end;
+        _ -> no
     end.
 
 get_pat_bitsize(all, {Ty,_,_,_}, _, _, _) ->
@@ -954,3 +981,57 @@ get_float_bitseg(Bin, Sz, little) ->
 get_float_bitseg(Bin, Sz, native) ->
     <<Val:Sz/float-native,Rest/bitstring>> = Bin,
     {Val,Rest}.
+
+%% match_map(Ps, Map, PatBindings, Env) -> {yes,PatBindings} | no.
+
+match_map([K,V|Ps], Map, Pbs0, Env) ->
+    Pat = map_pat_key(K, Env),                  %Evaluate the key
+    case maps:is_key(Pat, Map) of
+        true ->
+            case match(V, maps:get(Pat, Map), Pbs0, Env) of
+                {yes,Pbs1} -> match_map(Ps, Map, Pbs1, Env);
+                no -> no
+            end;
+        false -> no
+    end;
+match_map([], _, Pbs, _) -> {yes,Pbs};
+match_map(_, _, _, _) -> erlang:error(illegal_pattern).
+
+map_pat_key(Key, _) ->
+    eval_lit(Key, lfe_env:new()).               %Empty environment
+
+%% eval_lit(Literal, Env) -> Value.
+%%  Evaluate a literal expression. Error if invalid.
+
+eval_lit([quote,K], _) -> K;
+eval_lit([cons,H,T], Env) ->
+    [eval_lit(H, Env)|eval_lit(T, Env)];
+eval_lit([list|Es], Env) ->
+    eval_lit_list(Es, Env);
+eval_lit([tuple|Es], Env) ->
+    list_to_tuple(eval_lit_list(Es, Env));
+eval_lit([binary|Bs], Env) ->
+    eval_lit_binary(Bs, Env);
+eval_lit([map|As], Env) ->
+    KVs = eval_lit_map(As, Env),
+    maps:from_list(KVs);
+eval_lit([_|_], _) ->                           %All other lists illegal
+    erlang:error(illegal_literal);
+eval_lit(Symb, Env) when is_atom(Symb) ->
+    case get_vbinding(Symb, Env) of
+        {yes,Val} -> Val;
+        no -> erlang:error({unbound_symb,Symb})
+    end;
+eval_lit(Key, _) -> Key.                        %Literal values
+
+eval_lit_list(Es, Env) ->
+    [ eval_lit(E, Env) || E <- Es ].
+
+eval_lit_binary(Segs, Env) ->
+    Vsps = get_bitsegs(Segs),
+    Eval = fun (S) -> eval_lit(S, Env) end,
+    eval_bitsegs(Vsps, Eval).
+
+eval_lit_map([K,V|As], Env) ->
+    [{eval_lit(K, Env),eval_lit(V, Env)}|eval_lit_map(As, Env)];
+eval_lit_map([], _) -> [].
