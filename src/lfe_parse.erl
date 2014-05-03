@@ -113,7 +113,7 @@ reduce(10, [_,L,_|Vs]) -> [L|Vs];               %s->[ s ]
 reduce(11, [_,L,_|Vs]) ->                       %s->#( p )
     [list_to_tuple(L)|Vs];
 reduce(12, [_,L,B|Vs]) ->                       %s->#B( p )
-    case catch lfe_eval:expr([binary|L]) of
+    case catch lfe_eval:literal([binary|L]) of
         Bin when is_bitstring(Bin) -> [Bin|Vs];
         _ -> {error,line(B),{illegal,binary}}
     end;
@@ -190,7 +190,7 @@ table(?TAIL, '#B(') -> [?EXPR,?TAIL,{reduce,16}];
 table(?TAIL, '#M(') -> [?EXPR,?TAIL,{reduce,16}];
 table(?TAIL, '.') -> ['.',?EXPR,{reduce,17}];
 table(?TAIL, ')') -> [{reduce,18}];
-table(?TAIL, ']') -> [{reduce,17}];
+table(?TAIL, ']') -> [{reduce,18}];
 
 table(?PROP, symbol) -> [?EXPR,?PROP,{reduce,19}];
 table(?PROP, number) -> [?EXPR,?PROP,{reduce,19}];
@@ -302,7 +302,8 @@ make_fun(FunStr) ->
     end.
 
 %% pair_list(List) -> [{A,B}].
-%%  Generate a list of tuple pairs from the elements.
+%%  Generate a list of tuple pairs from the elements. An error if odd
+%%  number of elements in list.
 
 pair_list([A,B|L]) -> [{A,B}|pair_list(L)];
 pair_list([]) -> [].
