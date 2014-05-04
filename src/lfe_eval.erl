@@ -113,7 +113,8 @@ eval_expr([map|As], Env) ->
     KVs = map_pairs(As, Env),
     maps:from_list(KVs);
 eval_expr(['get-map',Map,K], Env) ->
-    maps:get(eval_expr(K, Env), eval_expr(Map, Env));
+    Key = map_key(K),
+    maps:get(Key, eval_expr(Map, Env));
 eval_expr(['set-map',Map|As], Env) ->
     KVs = map_pairs(As, Env),
     foldl(fun ({K,V}, M) -> maps:put(K, V, M) end,
@@ -293,9 +294,22 @@ eval_float_bitseg(Val, Sz, native) -> <<Val:Sz/float-native>>.
 %% map_pairs(Args, Env) -> [{K,V}].
 
 map_pairs([K,V|As], Env) ->
-    [{eval_expr(K, Env),eval_expr(V, Env)}|map_pairs(As, Env)];
+    Key = map_key(K),                           %Evaluate the key
+    [{Key,eval_expr(V, Env)}|map_pairs(As, Env)];
 map_pairs([], _) -> [];
 map_pairs(_, _) -> erlang:error(badarg).
+
+%% map_key(Key) -> Value.
+%%  Map keys can only be literals.
+
+map_key([quote,E]) -> E;
+map_key([_|_]=L) ->
+    case is_posint_list(L) of
+        true -> L;                              %Literal strings
+        false -> erlang:error(illegal_mapkey)
+    end;
+map_key(E) when not is_atom(E) -> E;            %Everything else
+map_key(_) -> erlang:error(illegal_mapkey).
 
 %% eval_lambda(LambdaBody, Env) -> Val.
 %%  Evaluate (lambda args ...).
@@ -695,12 +709,12 @@ match_when(Pat, V, B0, Env) ->
 
 eval_guard(Gts, Env) ->
     try
-    eval_gbody(Gts, Env)
+        eval_gbody(Gts, Env)
     of
-    true -> true;
-    _Other -> false                %Fail guard
+        true -> true;
+        _Other -> false                         %Fail guard
     catch
-    _:_ -> false                %Fail guard
+        _:_ -> false                            %Fail guard
     end.
 
 %% eval_gbody(GuardTests, Env) -> true | false.
@@ -721,6 +735,20 @@ eval_gexpr([cdr,E], Env) -> tl(eval_gexpr(E, Env));
 eval_gexpr([list|Es], Env) -> eval_glist(Es, Env);
 eval_gexpr([tuple|Es], Env) -> list_to_tuple(eval_glist(Es, Env));
 eval_gexpr([binary|Bs], Env) -> eval_gbinary(Bs, Env);
+eval_gexpr([map|As], Env) ->
+    KVs = gmap_pairs(As, Env),
+    maps:from_list(KVs);
+eval_gexpr(['get-map',Map,K], Env) ->
+    Key = map_key(K),
+    maps:get(Key, eval_gexpr(Map, Env));
+eval_gexpr(['set-map',Map|As], Env) ->
+    KVs = gmap_pairs(As, Env),
+    foldl(fun ({K,V}, M) -> maps:put(K, V, M) end,
+          eval_gexpr(Map, Env), KVs);
+eval_gexpr(['update-map',Map|As], Env) ->
+    KVs = gmap_pairs(As, Env),
+    foldl(fun ({K,V}, M) -> maps:update(K, V, M) end,
+          eval_gexpr(Map, Env), KVs);
 %% Handle the Core closure special forms.
 %% Handle the control special forms.
 eval_gexpr(['progn'|Body], Env) -> eval_gbody(Body, Env);
@@ -758,6 +786,14 @@ eval_gbinary(Segs, Env) ->
     Eval = fun(S) -> eval_gexpr(S, Env) end,
     eval_bitsegs(Vsps, Eval).
 
+%% gmap_pairs(Args, Env) -> [{K,V}].
+
+gmap_pairs([K,V|As], Env) ->
+    Key = map_key(K),                           %Evaluate the key
+    [{Key,eval_gexpr(V, Env)}|gmap_pairs(As, Env)];
+gmap_pairs([], _) -> [];
+gmap_pairs(_, _) -> erlang:error(badarg).
+
 %% eval_gif(IfBody, Env) -> Val.
 
 eval_gif([Test,True], Env) ->
@@ -781,12 +817,17 @@ match([quote,P], Val, Pbs, _) ->
     if P == Val -> {yes,Pbs};
        true -> no
     end;
-match([cons,H,T], [V|Vs], Pbs0, Env) ->        %Explicit cons constructor
+match(['=',P1,P2], Val, Pbs0, Env) ->           %Aliases
+    case match(P1, Val, Pbs0, Env) of
+        {yes,Pbs1} -> match(P2, Val, Pbs1, Env);
+        no -> no
+    end;
+match([cons,H,T], [V|Vs], Pbs0, Env) ->         %Explicit cons constructor
     case match(H, V, Pbs0, Env) of
         {yes,Pbs1} -> match(T, Vs, Pbs1, Env);
         no -> no
     end;
-match([list|Ps], Val, Pbs, Env) ->        %Explicit list constructor
+match([list|Ps], Val, Pbs, Env) ->              %Explicit list constructor
     match_list(Ps, Val, Pbs, Env);
 match([tuple|Ps], Val, Pbs, Env) ->
     %% io:fwrite("~p ~p\n", [Ps,Val]),
@@ -810,13 +851,8 @@ match([P|Ps], [V|Vs], Pbs0, Env) ->
         {yes,Pbs1} -> match(Ps, Vs, Pbs1, Env);
         no -> no
     end;
-%% match([_|_], _, _, _) ->            %No constructor
+%% match([_|_], _, _, _) ->                        %No constructor
 %%     erlang:error(illegal_pattern);
-match(['=',P1,P2], Val, Pbs0, Env) ->        %Aliases
-    case match(P1, Val, Pbs0, Env) of
-        {yes,Pbs1} -> match(P2, Val, Pbs1, Env);
-        no -> no
-    end;
 match([], [], Pbs, _) -> {yes,Pbs};
 match(Symb, Val, Pbs, Env) when is_atom(Symb) ->
     match_symb(Symb, Val, Pbs, Env);
@@ -985,7 +1021,7 @@ get_float_bitseg(Bin, Sz, native) ->
 %% match_map(Ps, Map, PatBindings, Env) -> {yes,PatBindings} | no.
 
 match_map([K,V|Ps], Map, Pbs0, Env) ->
-    Pat = map_pat_key(K, Env),                  %Evaluate the key
+    Pat = map_key(K),                           %Evaluate the key
     case maps:is_key(Pat, Map) of
         true ->
             case match(V, maps:get(Pat, Map), Pbs0, Env) of
@@ -996,9 +1032,6 @@ match_map([K,V|Ps], Map, Pbs0, Env) ->
     end;
 match_map([], _, Pbs, _) -> {yes,Pbs};
 match_map(_, _, _, _) -> erlang:error(illegal_pattern).
-
-map_pat_key(Key, _) ->
-    eval_lit(Key, lfe_env:new()).               %Empty environment
 
 %% eval_lit(Literal, Env) -> Value.
 %%  Evaluate a literal expression. Error if invalid.
