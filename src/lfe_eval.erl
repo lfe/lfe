@@ -110,19 +110,30 @@ eval_expr([list|Es], Env) -> eval_list(Es, Env);
 eval_expr([tuple|Es], Env) -> list_to_tuple(eval_list(Es, Env));
 eval_expr([binary|Bs], Env) -> eval_binary(Bs, Env);
 eval_expr([map|As], Env) ->
-    KVs = map_pairs(As, Env),
-    maps:from_list(KVs);
+    Pairs = map_pairs(As, Env),
+    maps:from_list(Pairs);
 eval_expr(['get-map',Map,K], Env) ->
     Key = map_key(K),
     maps:get(Key, eval_expr(Map, Env));
-eval_expr(['set-map',Map|As], Env) ->
-    KVs = map_pairs(As, Env),
-    foldl(fun ({K,V}, M) -> maps:put(K, V, M) end,
-          eval_expr(Map, Env), KVs);
-eval_expr(['update-map',Map|As], Env) ->
-    KVs = map_pairs(As, Env),
-    foldl(fun ({K,V}, M) -> maps:update(K, V, M) end,
-          eval_expr(Map, Env), KVs);
+eval_expr(['set-map',M|As], Env) ->
+    Map = eval_expr(M, Env),
+    Pairs = map_pairs(As, Env),
+    foldl(fun ({K,V}, M) -> maps:put(K, V, M) end, Map, Pairs);
+eval_expr(['upd-map'|As], Env) ->
+    eval_expr(['update-map'|As], Env);
+eval_expr(['update-map',M|As], Env) ->
+    Map = eval_expr(M, Env),
+    Pairs = map_pairs(As, Env),
+    foldl(fun ({K,V}, M) -> maps:update(K, V, M) end, Map, Pairs);
+eval_expr(['mref',K,Map], Env) ->
+    Key = map_key(K),
+    maps:get(Key, eval_expr(Map, Env));
+eval_expr(['mset'|As], Env) ->
+    {Map,Pairs} = map_pairs_1(As, Env),
+    foldl(fun ({K,V}, M) -> maps:put(K, V, M) end, Map, Pairs);
+eval_expr(['mupd'|As], Env) ->
+    {Map,Pairs} = map_pairs_1(As, Env),
+    foldl(fun ({K,V}, M) -> maps:update(K, V, M) end, Map, Pairs);
 %% Handle the Core closure special forms.
 eval_expr([lambda|Body], Env) ->
     eval_lambda(Body, Env);
@@ -294,10 +305,17 @@ eval_float_bitseg(Val, Sz, native) -> <<Val:Sz/float-native>>.
 %% map_pairs(Args, Env) -> [{K,V}].
 
 map_pairs([K,V|As], Env) ->
-    Key = map_key(K),                           %Evaluate the key
-    [{Key,eval_expr(V, Env)}|map_pairs(As, Env)];
+    P = {map_key(K),eval_expr(V, Env)},
+    [P|map_pairs(As, Env)];
 map_pairs([], _) -> [];
 map_pairs(_, _) -> erlang:error(badarg).
+
+map_pairs_1([K,V|As], Env) ->
+    P = {map_key(K),eval_expr(V, Env)},
+    {Map,Pairs} = map_pairs_1(As, Env),
+    {Map,[P|Pairs]};
+map_pairs_1([M], Env) -> {eval_expr(M, Env),[]};
+map_pairs_1(_, _) -> erlang:error(badarg).
 
 %% map_key(Key) -> Value.
 %%  Map keys can only be literals.
@@ -736,19 +754,30 @@ eval_gexpr([list|Es], Env) -> eval_glist(Es, Env);
 eval_gexpr([tuple|Es], Env) -> list_to_tuple(eval_glist(Es, Env));
 eval_gexpr([binary|Bs], Env) -> eval_gbinary(Bs, Env);
 eval_gexpr([map|As], Env) ->
-    KVs = gmap_pairs(As, Env),
-    maps:from_list(KVs);
-eval_gexpr(['get-map',Map,K], Env) ->
-    Key = map_key(K),
-    maps:get(Key, eval_gexpr(Map, Env));
-eval_gexpr(['set-map',Map|As], Env) ->
-    KVs = gmap_pairs(As, Env),
-    foldl(fun ({K,V}, M) -> maps:put(K, V, M) end,
-          eval_gexpr(Map, Env), KVs);
-eval_gexpr(['update-map',Map|As], Env) ->
-    KVs = gmap_pairs(As, Env),
-    foldl(fun ({K,V}, M) -> maps:update(K, V, M) end,
-          eval_gexpr(Map, Env), KVs);
+    Pairs = gmap_pairs(As, Env),
+    maps:from_list(Pairs);
+%% eval_gexpr(['get-map',Map,K], Env) ->
+%%     Key = map_key(K),
+%%     maps:get(Key, eval_gexpr(Map, Env));
+eval_gexpr(['set-map',M|As], Env) ->
+    Map = eval_gexpr(M, Env),
+    Pairs = gmap_pairs(As, Env),
+    foldl(fun ({K,V}, M) -> maps:put(K, V, M) end, Map, Pairs);
+eval_gexpr(['upd-map'|As], Env) ->
+    eval_gexpr(['update-map'|As], Env);
+eval_gexpr(['update-map',M|As], Env) ->
+    Map = eval_gexpr(M, Env),
+    Pairs = gmap_pairs(As, Env),
+    foldl(fun ({K,V}, M) -> maps:update(K, V, M) end, Map, Pairs);
+%% eval_gexpr(['mref',K,Map], Env) ->
+%%     Key = map_key(K),
+%%     maps:get(Key, eval_gexpr(Map, Env));
+eval_gexpr(['mset'|As], Env) ->
+    {Map,Pairs} = gmap_pairs_1(As, Env),
+    foldl(fun ({K,V}, M) -> maps:put(K, V, M) end, Map, Pairs);
+eval_gexpr(['mupd'|As], Env) ->
+    {Map,Pairs} = gmap_pairs_1(As, Env),
+    foldl(fun ({K,V}, M) -> maps:update(K, V, M) end, Map, Pairs);
 %% Handle the Core closure special forms.
 %% Handle the control special forms.
 eval_gexpr(['progn'|Body], Env) -> eval_gbody(Body, Env);
@@ -789,10 +818,17 @@ eval_gbinary(Segs, Env) ->
 %% gmap_pairs(Args, Env) -> [{K,V}].
 
 gmap_pairs([K,V|As], Env) ->
-    Key = map_key(K),                           %Evaluate the key
-    [{Key,eval_gexpr(V, Env)}|gmap_pairs(As, Env)];
+    P = {map_key(K),eval_gexpr(V, Env)},
+    [P|gmap_pairs(As, Env)];
 gmap_pairs([], _) -> [];
 gmap_pairs(_, _) -> erlang:error(badarg).
+
+gmap_pairs_1([K,V|As], Env) ->
+    P = {map_key(K),eval_gexpr(V, Env)},
+    {Map,Pairs} = gmap_pairs_1(As, Env),
+    {Map,[P|Pairs]};
+gmap_pairs_1([M], Env) -> {eval_gexpr(M, Env),[]};
+gmap_pairs_1(_, _) -> erlang:error(badarg).
 
 %% eval_gif(IfBody, Env) -> Val.
 
