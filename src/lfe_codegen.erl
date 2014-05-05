@@ -223,15 +223,31 @@ comp_expr([cdr,E], Env, L, St) ->
     comp_expr([tl,E], Env, L, St);
 comp_expr([list|Es], Env, L, St) ->
     List = fun (Ces, _, _, St) ->
-           {foldr(fun (E, T) -> c_cons(E, T) end, c_nil(), Ces),St}
-       end,
+                   {foldr(fun (E, T) -> c_cons(E, T) end, c_nil(), Ces),St}
+           end,
     comp_args(Es, List, Env, L, St);
 comp_expr([tuple|As], Env, L, St) ->
     comp_args(As, fun (Args, _, _, St) -> {c_tuple(Args),St} end, Env, L, St);
-%%     {Cas,St1} = comp_args(As, Env, L, St0),
-%%     {c_tuple(Cas),St1};
 comp_expr([binary|Segs], Env, L, St) ->
     comp_binary(Segs, Env, L, St);        %And bitstring as well
+comp_expr([map|As], Env, L, St) ->
+    comp_map(As, Env, L, St);
+comp_expr(['get-map',Map,K], Env, L, St) ->
+    %% Sneaky, but no other real option for now.
+    comp_expr([call,?Q(maps),?Q(get),K,Map], Env, L, St);
+comp_expr(['set-map',Map|As], Env, L, St) ->
+    comp_set_map(Map, As, Env, L, St);
+comp_expr(['update-map',Map|As], Env, L, St) ->
+    comp_update_map(Map, As, Env, L, St);
+comp_expr(['upd-map',Map|As], Env, L, St) ->
+    comp_update_map(Map, As, Env, L, St);
+comp_expr(['mref',K,Map], Env, L, St) ->
+    %% Sneaky, but no other real option for now.
+    comp_expr([call,?Q(maps),?Q(get),K,Map], Env, L, St);
+comp_expr(['mset'|As], Env, L, St) ->
+    comp_set_map(As, Env, L, St);
+comp_expr(['mupd'|As], Env, L, St) ->
+    comp_update_map(As, Env, L, St);
 %% Handle the Core closure special forms.
 comp_expr([lambda,Args|Body], Env, L, St) ->
     comp_lambda(Args, Body, Env, L, St);
@@ -286,7 +302,7 @@ comp_expr([Fun|As], Env, L, St) when is_atom(Fun) ->
     comp_args(As, Call, Env, L, St);
 comp_expr(Symb, _, _, St) when is_atom(Symb) ->
     {c_var(Symb),St};
-%% Everything is a literal constant (nil, tuples, numbers, binaries).
+%% Everything is a literal constant (nil, tuples, numbers, binaries, maps).
 comp_expr(Const, _, _, St) ->
     {comp_lit(Const),St}.
 
@@ -368,7 +384,7 @@ comp_match_clauses(Cls, Env, L, St) ->
 
 comp_match_clause([Pats|Body], Env0, L, St0) ->
     {Cps,{Pvs,St1}} = mapfoldl(fun (P, {Psvs,Sta}) ->
-                       {Cp,Pvs,Stb} = comp_pat(P, L, Sta),
+                       {Cp,Pvs,Stb} = pattern(P, L, Sta),
                        {Cp,{union(Pvs, Psvs),Stb}}
                    end, {[],St0}, Pats),
     Env1 = add_vbindings(Pvs, Env0),
@@ -401,7 +417,7 @@ comp_let(Vbs, B, Env, L, St0) ->
         %% and compiling it directly. but then we would have to
         %% build a tuple to hold all values.
         {Cps,{Pvs,St1}} = mapfoldl(fun ([P|_], {Psvs,Sta}) ->
-                           {Cp,Pvs,Stb} = comp_pat(P, L, Sta),
+                           {Cp,Pvs,Stb} = pattern(P, L, Sta),
                            {Cp,{union(Pvs, Psvs),Stb}}
                        end, {[],St0}, Vbs),
         %% Build a sequence of guard tests.
@@ -570,7 +586,7 @@ rec_clauses([], _, _, St) ->
 %%  This is a case/receive clause where the is only one pattern.
 
 comp_clause([Pat|Body], Env0, L, St0) ->
-    {Cp,Pvs,St1} = comp_pat(Pat, L, St0),
+    {Cp,Pvs,St1} = pattern(Pat, L, St0),
     Env1 = add_vbindings(Pvs, Env0),
     {Cg,Cb,St2} = comp_clause_body(Body, Env1, L, St1),
     {#c_clause{anno=[L],pats=[Cp],guard=Cg,body=Cb},St2}.
@@ -718,15 +734,16 @@ comp_funcall_1(F, As, Env, L, St0) ->
 %% comp_binary(Segs, Env, Line, State) -> {CbinaryExpr,State}.
 %% Compile a binary.
 
-comp_binary(Fs, Env, L, St0) ->
-    Vsps = get_bitsegs(Fs),
+comp_binary(Segs, Env, L, St0) ->
+    Vsps = get_bitsegs(Segs),
     comp_bitsegs(Vsps, Env, L, St0).
 
-get_bitsegs(Fs) ->
-    foldr(fun (F, Vs) -> get_bitseg(F, Vs) end, [], Fs).
+get_bitsegs(Segs) ->
+    foldr(fun (Seg, Vs) -> get_bitseg(Seg, Vs) end, [], Segs).
 
 %% get_bitseg(Bitseg, ValSpecs) -> ValSpecs.
-%% A bitseg is either an atomic value, a list of value and specs, or a string.
+%%  A bitseg is either an atomic value, a list of value and specs, or
+%%  a string. Note that this function can prepend a list of valspecs.
 
 get_bitseg([Val|Specs]=F, Vsps) ->
     case is_integer_list(F) of          %Is bitseg a string?
@@ -785,6 +802,54 @@ comp_bitseg({Val,Sz,{Ty,Un,Si,En}}, Env, L, St0) ->
     {Cval,St1} = comp_expr(Val, Env, L, St0),
     {Csize,St2} = comp_expr(Sz, Env, L, St1),
     {Cval,Csize,c_int(Un),c_atom(Ty),c_lit([Si,En]),St2}.
+
+%% comp_map(Args, Env, Line, State) -> {Core,State}.
+%% comp_set_map(Map, Args, Line, State) -> {Core,State}.
+%% comp_update_map(Map, Args, Line, State) -> {Core,State}.
+
+comp_map(Args, Env, L, St) ->
+    Mapper = fun (Cas, _, L, St) ->
+                     Pairs = comp_mappairs(Cas, assoc, L),
+                     {#c_map{anno=[L],arg=c_lit(#{}),es=Pairs},St}
+             end,
+    comp_args(Args, Mapper, Env, L, St).
+
+comp_set_map(Map, Args, Env, L, St) ->
+    Mapper = fun ([Cmap|Cas], _, L, St) ->
+                     Pairs = comp_mappairs(Cas, assoc, L),
+                     {#c_map{anno=[L],arg=Cmap,es=Pairs},St}
+             end,
+    comp_args([Map|Args], Mapper, Env, L, St).
+
+comp_update_map(Map, Args, Env, L, St) ->
+    Mapper = fun ([Cmap|Cas], _, L, St) ->
+                     Pairs = comp_mappairs(Cas, exact, L),
+                     {#c_map{anno=[L],arg=Cmap,es=Pairs},St}
+             end,
+    comp_args([Map|Args], Mapper, Env, L, St).
+
+comp_mappairs([K,V|Ps], Op, L) ->
+    [#c_map_pair{anno=[L],op=c_lit(Op),key=K,val=V}|comp_mappairs(Ps, Op, L)];
+comp_mappairs([], _, _) -> [].
+
+comp_set_map(Args, Env, L, St) ->
+    Mapper = fun (Cas, _, L, St) ->
+                     {Cmap,Pairs} = comp_mappairs_1(Cas, assoc, L),
+                     {#c_map{anno=[L],arg=Cmap,es=Pairs},St}
+             end,
+    comp_args(Args, Mapper, Env, L, St).
+
+comp_update_map(Args, Env, L, St) ->
+    Mapper = fun (Cas, _, L, St) ->
+                     {Cmap,Pairs} = comp_mappairs_1(Cas, exact, L),
+                     {#c_map{anno=[L],arg=Cmap,es=Pairs},St}
+             end,
+    comp_args(Args, Mapper, Env, L, St).
+
+comp_mappairs_1([K,V|As], Op, L) ->
+    {Map,Pairs} = comp_mappairs_1(As, Op, L),
+    {Map,[#c_map_pair{anno=[L],op=c_lit(Op),key=K,val=V}|Pairs]};
+comp_mappairs_1([Map], _, _) -> {Map,[]}.
 
 %% comp_guard(GuardTests, Env, Line, State) -> {CoreGuard,State}.
 %% Can compile much of the guard as an expression but must wrap it all
@@ -850,11 +915,21 @@ comp_gexpr([list|Es], Env, L, St) ->
     List = fun (Ces, _, _, St) ->
            {foldr(fun (E, T) -> c_cons(E, T) end, c_nil(), Ces),St}
        end,
-    comp_args(Es, List, Env, L, St);
+    comp_gargs(Es, List, Env, L, St);
 comp_gexpr([tuple|As], Env, L, St) ->
     comp_gargs(As, fun (Args, _, _, St) -> {c_tuple(Args),St} end, Env, L, St);
 comp_gexpr([binary|Segs], Env, L, St) ->
     comp_binary(Segs, Env, L, St);        %And bitstring as well
+comp_gexpr([map|As], Env, L, St) ->
+    comp_map(As, Env, L, St);
+comp_gexpr(['set-map',Map|As], Env, L, St) ->
+    comp_set_map(Map, As, Env, L, St);
+comp_gexpr(['update-map',Map|As], Env, L, St) ->
+    comp_update_map(Map, As, Env, L, St);
+comp_gexpr(['mset'|As], Env, L, St) ->
+    comp_set_map(As, Env, L, St);
+comp_gexpr(['mupd'|As], Env, L, St) ->
+    comp_update_map(As, Env, L, St);
 %% Handle the Core closure special forms.
 %% (let-syntax ...) should never be seen here!
 %% Handle the Core control special forms.
@@ -924,51 +999,53 @@ comp_gif(Te, Tr, Fa, Env, L, St0) ->
 %%      end,
 %%     simple_seq([Cte], If, Env, L, St3).
 
-%% comp_pat(Pattern, Line, Status) -> {CorePat,PatVars,State}.
-%% Compile a pattern into a Core term. Handle quoted sexprs here
-%% especially for symbols which then become variables instead of
-%% atoms.
+%% pattern(Pattern, Line, Status) -> {CorePat,PatVars,State}.
+%%  Compile a pattern into a Core term. Handle quoted sexprs here
+%%  especially for symbols which then become variables instead of
+%%  atoms.
 
-comp_pat(Pat, L, St) -> comp_pat(Pat, L, [], St).
+pattern(Pat, L, St) -> pattern(Pat, L, [], St).
 
-comp_pat([quote,E], _, Vs, St) -> {comp_lit(E),Vs,St};
-comp_pat([binary|Segs], L, Vs, St) ->
-    pat_binary(Segs, L, Vs, St);
-comp_pat([tuple|Ps], L, Vs0, St0) ->
-    {Cps,{Vs1,St1}} = mapfoldl(fun (P, {Vsa,Sta}) ->
-                       {Cp,Vsb,Stb} = comp_pat(P, L, Vsa, Sta),
-                       {Cp,{Vsb,Stb}}
-                   end, {Vs0,St0}, Ps),
-    {c_tuple(Cps),Vs1,St1};
-comp_pat(['=',P1,P2], L, Vs0, St0) ->
+pattern([quote,E], _, Vs, St) -> {comp_lit(E),Vs,St};
+pattern(['=',P1,P2], L, Vs0, St0) ->
     %% Core can only alias against a variable so there is wotk to do!
-    {Cp1,Vs1,St1} = comp_pat(P1, L, Vs0, St0),
-    {Cp2,Vs2,St2} = comp_pat(P2, L, Vs0, St1),
+    {Cp1,Vs1,St1} = pattern(P1, L, Vs0, St0),
+    {Cp2,Vs2,St2} = pattern(P2, L, Vs0, St1),
     Cp = pat_alias(Cp1, Cp2),
     {Cp,union(Vs1, Vs2),St2};
-comp_pat([cons,H,T], L, Vs0, St0) ->
-    {Ch,Vs1,St1} = comp_pat(H, L, Vs0, St0),
-    {Ct,Vs2,St2} = comp_pat(T, L, Vs1, St1),
+pattern([cons,H,T], L, Vs0, St0) ->
+    {Ch,Vs1,St1} = pattern(H, L, Vs0, St0),
+    {Ct,Vs2,St2} = pattern(T, L, Vs1, St1),
     {c_cons(Ch, Ct),Vs2,St2};
-comp_pat([list|Ps], L, Vs, St) ->
+pattern([list|Ps], L, Vs, St) ->
     pat_list(Ps, L, Vs, St);
+pattern([tuple|Ps], L, Vs0, St0) ->
+    {Cps,{Vs1,St1}} = mapfoldl(fun (P, {Vsa,Sta}) ->
+                                       {Cp,Vsb,Stb} = pattern(P, L, Vsa, Sta),
+                                       {Cp,{Vsb,Stb}}
+                               end, {Vs0,St0}, Ps),
+    {c_tuple(Cps),Vs1,St1};
+pattern([binary|Segs], L, Vs, St) ->
+    pat_binary(Segs, L, Vs, St);
+pattern([map|As], L, Vs, St) ->
+    pat_map(As, L, Vs, St);
 %% Compile old no contructor list forms.
-comp_pat([H|T], L, Vs0, St0) ->
-    {Ch,Vs1,St1} = comp_pat(H, L, Vs0, St0),
-    {Ct,Vs2,St2} = comp_pat(T, L, Vs1, St1),
+pattern([H|T], L, Vs0, St0) ->
+    {Ch,Vs1,St1} = pattern(H, L, Vs0, St0),
+    {Ct,Vs2,St2} = pattern(T, L, Vs1, St1),
     {c_cons(Ch, Ct),Vs2,St2};
-comp_pat([], _, Vs, St) -> {c_nil(),Vs,St};
+pattern([], _, Vs, St) -> {c_nil(),Vs,St};
 %% Literals.
-comp_pat(Bin, _, Vs, St) when is_bitstring(Bin) ->
+pattern(Bin, _, Vs, St) when is_bitstring(Bin) ->
     {comp_lit(Bin),Vs,St};
-comp_pat(Tup, _, Vs, St) when is_tuple(Tup) ->
+pattern(Tup, _, Vs, St) when is_tuple(Tup) ->
     {comp_lit(Tup),Vs,St};
-comp_pat(Symb, L, Vs, St) when is_atom(Symb) ->
+pattern(Symb, L, Vs, St) when is_atom(Symb) ->
     pat_symb(Symb, L, Vs, St);            %Variable
-comp_pat(Numb, _, Vs, St) when is_number(Numb) -> {c_lit(Numb),Vs,St}.
+pattern(Numb, _, Vs, St) when is_number(Numb) -> {c_lit(Numb),Vs,St}.
 
 pat_list([P|Ps], L, Vs0, St0) ->
-    {Cp,Vs1,St1} = comp_pat(P, L, Vs0, St0),
+    {Cp,Vs1,St1} = pattern(P, L, Vs0, St0),
     {Cps,Vs2,St2} = pat_list(Ps, L, Vs1, St1),
     {c_cons(Cp, Cps),Vs2,St2};
 pat_list([], _, Vs, St) -> {c_nil(),Vs,St}.
@@ -980,7 +1057,6 @@ pat_symb(Symb, _, Vs, St) ->
     {c_var(Symb),add_element(Symb, Vs),St}.
 
 %% pat_alias(CorePat, CorePat) -> AliasPat.
-
 %%  Normalise aliases. This has been taken from v3_core.erl in the
 %%  erlang compiler. Trap bad aliases by throwing 'nomatch'.
 
@@ -1046,15 +1122,32 @@ pat_bitsegs(Segs, L, Vs0, St0) ->
 pat_bitseg({Pat,_,{Ty,_,Si,En}}, L, Vs0, St0)
   when Ty =:= utf8 ; Ty =:= utf16 ; Ty =:= utf32 ->
     %% Special case utf types.
-    {Cpat,Vs1,St1} = comp_pat(Pat, L, Vs0, St0),
+    {Cpat,Vs1,St1} = pattern(Pat, L, Vs0, St0),
     Undef = c_atom(undefined),
     {c_bitseg(Cpat,Undef,Undef,c_atom(Ty),c_lit([Si,En])),Vs1,St1};
 pat_bitseg({Pat,all,{binary,_,_,_}=Ty}, L, Vs, St) ->
     pat_bitseg({Pat,?Q(all),Ty}, L, Vs, St);
 pat_bitseg({Pat,Sz,{Ty,Un,Si,En}}, L, Vs0, St0) ->
-    {Cpat,Vs1,St1} = comp_pat(Pat, L, Vs0, St0),
+    {Cpat,Vs1,St1} = pattern(Pat, L, Vs0, St0),
     {Csize,St2} = comp_expr(Sz, noenv, L, St1),
     {c_bitseg(Cpat, Csize, c_int(Un), c_atom(Ty), c_lit([Si,En])),Vs1,St2}.
+
+%% pat_map(Args, Line, PatVars, State) -> {#c_map{},PatVars,State}.
+
+pat_map(Args, L, Vs0, St0) ->
+    {Pairs,Vs1,St1} = pat_map_pairs(Args, L, Vs0, St0),
+    {#c_map{anno=[L],arg=c_lit(#{}),es=Pairs},Vs1,St1}.
+
+pat_map_pairs([K,V|As], L, Vs0, St0) ->
+    Ck = pat_map_key(K),
+    {Cv,Vs1,St1} = pattern(V, L, Vs0, St0),
+    {Cps,Vs2,St2} = pat_map_pairs(As, L, Vs1, St1),
+    {[#c_map_pair{anno=[L],op=c_lit(exact),key=Ck,val=Cv}|Cps],
+     Vs2,St2};
+pat_map_pairs([], _, Vs, St) -> {[],Vs,St}.
+
+pat_map_key([quote,L]) -> comp_lit(L);
+pat_map_key(L) -> comp_lit(L).
 
 %% c_call(Module, Name, Args, Line) -> #c_call{}.
 %% c_try(Arg, Vars, Body, Evars, Handler, Line) -> #c_try{}.
@@ -1118,7 +1211,10 @@ comp_lit(I) when is_integer(I) -> c_int(I);
 comp_lit(F) when is_float(F) -> c_float(F);
 comp_lit(Bin) when is_bitstring(Bin) ->
     Bits = comp_lit_bitsegs(Bin),
-    #c_binary{anno=[],segments=Bits}.
+    #c_binary{anno=[],segments=Bits};
+comp_lit(Map) when is_map(Map) ->
+    Pairs = comp_lit_mappairs(maps:to_list(Map)),
+    #c_map{anno=[],arg=c_lit(#{}),es=Pairs}.
 
 comp_lit_list(Vals) -> [ comp_lit(V) || V <- Vals ].
 
@@ -1138,6 +1234,11 @@ comp_lit_bitsegs(Bits) ->                           %Size < 8
 c_byte_bitseg(B, Sz) ->
     c_bitseg(c_lit(B), c_int(Sz), c_int(1), c_atom(integer),
          c_lit([unsigned,big])).
+
+comp_lit_mappairs([{K,V}|Ps]) ->
+    [#c_map_pair{anno=[],op=c_lit(assoc),key=comp_lit(K),val=comp_lit(V)}|
+     comp_lit_mappairs(Ps)];
+comp_lit_mappairs([]) -> [].
 
 %% new_symb(State) -> {Symbol,State}.
 %% Create a hopefully new unused symbol.
