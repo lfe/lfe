@@ -48,9 +48,13 @@
 %%      {ok,Mod,Warns} | {ok,Mod,Binary,Ws} | {error,Errors,Warns} | error.
 %%  Compile the LFE file Name.
 
-file(Name) -> file(Name, [verbose,report]).    %Default options
+-define(DEFAULT_OPTS, [verbose,report]).
 
-file(Name, Opts0) ->
+file(Name) -> do_file(Name, ?DEFAULT_OPTS).
+
+file(Name, Opts) -> do_file(Name, Opts).
+
+do_file(Name, Opts0) ->
     Opts1 = lfe_comp_opts(Opts0),
     St0 = #comp{opts=Opts1},
     St1 = filenames(Name, St0),
@@ -65,9 +69,11 @@ file(Name, Opts0) ->
 %% forms(Forms, Options) -> {ok,Mod,Bin,Warnings} | {error,Errors,Warnings}.
 %%  Compile the LFE forms Forms, always return a binary.
 
-forms(Forms) -> forms(Forms, [verbose,report]).    %Default options
+forms(Forms) -> do_forms(Forms, ?DEFAULT_OPTS).
 
-forms(Fs0, Opts0) ->
+forms(Forms, Opts) -> do_forms(Forms, Opts).
+
+do_forms(Fs0, Opts0) ->
     Opts1 = lfe_comp_opts(Opts0),
     St0 = #comp{opts=[binary|Opts1]},        %Implicit binary option
     St1 = filenames("-no-file-", St0#comp{opts=Opts1}),

@@ -78,6 +78,7 @@ format_error({redef_fun,F}) ->
 format_error(illegal_pattern) -> "illegal pattern";
 format_error(illegal_guard) -> "illegal guard";
 format_error(illegal_bitseg) -> "illegal bit segment";
+format_error(illegal_mapkey) -> "illegal map key";
 format_error({undefined_bittype,S}) ->
     lfe_io:format1("bit type ~w undefined", [S]);
 format_error(bittype_unit) ->
@@ -319,6 +320,21 @@ check_expr([cdr,E], Env, L, St) -> check_expr(E, Env, L, St);
 check_expr([list|As], Env, L, St) -> check_args(As, Env, L, St);
 check_expr([tuple|As], Env, L, St) -> check_args(As, Env, L, St);
 check_expr([binary|Segs], Env, L, St) -> expr_bitsegs(Segs, Env, L, St);
+check_expr([map|As], Env, L, St) -> expr_map(As, Env, L, St);
+check_expr(['get-map',Map,K], Env, L, St) ->
+    expr_get_map(Map, K, Env, L, St);
+check_expr(['set-map',Map|As], Env, L, St) ->
+    expr_set_map(Map, As, Env, L, St);
+check_expr(['update-map',Map|As], Env, L, St) ->
+    expr_update_map(Map, As, Env, L, St);
+check_expr(['upd-map',Map|As], Env, L, St) ->
+    expr_update_map(Map, As, Env, L, St);
+check_expr(['mref',K,Map], Env, L, St) ->
+    expr_get_map(Map, K, Env, L, St);
+check_expr(['mset'|As], Env, L, St) ->
+    expr_set_map(As, Env, L, St);
+check_expr(['mupd'|As], Env, L, St) ->
+    expr_update_map(As, Env, L, St);
 %% Check the Core closure special forms.
 check_expr(['lambda'|Lambda], Env, L, St) ->
     check_lambda(Lambda, Env, L, St);
@@ -468,6 +484,63 @@ is_posint_list([I|Is]) when is_integer(I), I >= 0 ->
     is_posint_list(Is);
 is_posint_list([]) -> true;
 is_posint_list(_) -> false.
+
+%% expr_map(Pairs, Env, Line, State) -> State.
+%% expr_get_map(Map, Key, Env, Line, State) -> State.
+%% expr_set_map(Map, Pairs, Line, State) -> State.
+%% expr_update_map(Args, Pairs, Line, State) -> State.
+
+expr_map(Pairs, Env, L, St) ->
+    expr_map_pairs(Pairs, Env, L, St).
+
+expr_get_map(Map, Key, Env, L, St0) ->
+    St1 = check_expr(Map, Env, L, St0),
+    map_key(Key, Env, L, St1).
+
+expr_set_map(Map, Pairs, Env, L, St0) ->
+    St1 = check_expr(Map, Env, L, St0),
+    expr_map_pairs(Pairs, Env, L, St1).
+
+expr_update_map(Map, Pairs, Env, L, St0) ->
+    St1 = check_expr(Map, Env, L, St0),
+    expr_map_pairs(Pairs, Env, L, St1).
+
+expr_map_pairs([K,V|As], Env, L, St0) ->
+    St1 = expr_map_assoc(K, V, Env, L, St0),
+    expr_map_pairs(As, Env, L, St1);
+expr_map_pairs([],  _, _, St) -> St;
+expr_map_pairs(_, _, L, St) ->
+    bad_form_error(L, map, St).
+
+expr_map_assoc(K, V, Env, L, St0) ->
+    St1 = map_key(K, Env, L, St0),
+    check_expr(V, Env, L, St1).
+
+expr_set_map(Args, Env, L, St) ->
+    expr_map_pairs_1(Args, Env, L, St).
+
+expr_update_map(Args, Env, L, St) ->
+    expr_map_pairs_1(Args, Env, L, St).
+
+expr_map_pairs_1([K,V|As], Env, L, St0) ->
+    St1 = expr_map_assoc(K, V, Env, L, St0),
+    expr_map_pairs_1(As, Env, L, St1);
+expr_map_pairs_1([M], Env, L, St) -> check_expr(M, Env, L, St);
+expr_map_pairs_1(_, _, L, St) ->
+    bad_form_error(L, map, St).
+
+%% map_key(Key, Env, L, State) -> State.
+%%  A map key can currently only be a literal.
+
+map_key(Key, _, L, St) ->
+    case map_key(Key) of
+	true -> St;
+	false -> add_error(L, illegal_mapkey, St)
+    end.
+
+map_key([quote,_]) -> true;
+map_key([_|_]=L) -> is_posint_list(L);		%Literal strings
+map_key(E) -> not is_atom(E).
 
 %% check_lambda(LambdaBody, Env, Line, State) -> State.
 %% Check form (lambda Args ...).
@@ -737,6 +810,21 @@ check_gexpr([cdr,E], Env, L, St) -> check_gexpr(E, Env, L, St);
 check_gexpr([list|As], Env, L, St) -> check_gargs(As, Env, L, St);
 check_gexpr([tuple|As], Env, L, St) -> check_gargs(As, Env, L, St);
 check_gexpr([binary|Segs], Env, L, St) -> gexpr_bitsegs(Segs, Env, L, St);
+check_gexpr([map|As], Env, L, St) -> gexpr_map(As, Env, L, St);
+%% check_gexpr(['get-map',Map,K], Env, L, St) ->
+%%     gexpr_set_map(Map, K, Env, L, St);
+check_gexpr(['set-map',Map|As], Env, L, St) ->
+    gexpr_set_map(Map, As, Env, L, St);
+check_gexpr(['update-map',Map|As], Env, L, St) ->
+    gexpr_update_map(Map, As, Env, L, St);
+check_gexpr(['upd-map',Map|As], Env, L, St) ->
+    gexpr_update_map(Map, As, Env, L, St);
+%% check_gexpr(['mref',K,Map], Env, L, St) ->
+%%     gexpr_get_map(Map, K, Env, L, St);
+check_gexpr(['mset'|As], Env, L, St) ->
+    gexpr_set_map(As, Env, L, St);
+check_gexpr(['mupd'|As], Env, L, St) ->
+    gexpr_update_map(As, Env, L, St);
 %% Check the Core closure special forms.
 %% Check the Core control special forms.
 check_gexpr(['progn'|B], Env, L, St) -> check_gbody(B, Env, L, St);
@@ -795,6 +883,45 @@ gexpr_bitsegs(Segs, Env, L, St0) ->
     check_foreach(fun (S, St) -> bitseg(S, Env, L, St, fun check_gexpr/4) end,
           fun (St) -> bad_gform_error(L, binary, St) end, St0, Segs).
 
+%% gexpr_map(Pairs, Env, Line, State) -> State.
+%% gexpr_set_map(Map, Pairs, Line, State) -> State.
+%% gexpr_update_map(Args, Pairs, Line, State) -> State.
+
+gexpr_map(Pairs, Env, L, St) ->
+    gexpr_map_pairs(Pairs, Env, L, St).
+
+gexpr_set_map(Map, Pairs, Env, L, St0) ->
+    St1 = check_gexpr(Map, Env, L, St0),
+    gexpr_map_pairs(Pairs, Env, L, St1).
+
+gexpr_update_map(Map, Pairs, Env, L, St0) ->
+    St1 = check_gexpr(Map, Env, L, St0),
+    gexpr_map_pairs(Pairs, Env, L, St1).
+
+gexpr_map_pairs([K,V|As], Env, L, St0) ->
+    St1 = gexpr_map_assoc(K, V, Env, L, St0),
+    gexpr_map_pairs(As, Env, L, St1);
+gexpr_map_pairs([],  _, _, St) -> St;
+gexpr_map_pairs(_, _, L, St) ->
+    bad_form_error(L, map, St).
+
+gexpr_map_assoc(K, V, Env, L, St0) ->
+    St1 = map_key(K, Env, L, St0),
+    check_gexpr(V, Env, L, St1).
+
+gexpr_set_map(Args, Env, L, St) ->
+    gexpr_map_pairs_1(Args, Env, L, St).
+
+gexpr_update_map(Args, Env, L, St) ->
+    gexpr_map_pairs_1(Args, Env, L, St).
+
+gexpr_map_pairs_1([K,V|As], Env, L, St0) ->
+    St1 = gexpr_map_assoc(K, V, Env, L, St0),
+    gexpr_map_pairs_1(As, Env, L, St1);
+gexpr_map_pairs_1([M], Env, L, St) -> check_gexpr(M, Env, L, St);
+gexpr_map_pairs_1(_, _, L, St) ->
+    bad_form_error(L, map, St).
+
 %% pattern(Pattern, Env, L, State) -> {PatVars,State}.
 %% pattern(Pattern, PatVars, Env, L, State) -> {PatVars,State}.
 %%  Return the *set* of Variables in Pattern.  Patterns are
@@ -814,10 +941,6 @@ pattern(Pat, Env, L, St) ->
 %%     end.
 
 pattern([quote,_], Pvs, _, _, St) -> {Pvs,St};  %Go no deeper with quote
-pattern([tuple|Ps], Pvs, Env, L, St) ->         %Tuple elements
-    pat_list(Ps, Pvs, Env, L, St);
-pattern([binary|Segs], Pvs, Env, L, St) ->
-    pat_binary(Segs, Pvs, Env, L, St);
 pattern(['=',P1,P2], Pvs0, Env, L, St0) ->
     %% Must check patterns together as same variable can occur
     %% in both branches.
@@ -833,6 +956,12 @@ pattern([cons,H,T], Pvs0, Env, L, St0) ->       %Explicit cons constructor
     pattern(T, Pvs1, Env, L, St1);
 pattern([list|Ps], Pvs, Env, L, St) ->          %Explicit list constructor
     pat_list(Ps, Pvs, Env, L, St);
+pattern([tuple|Ps], Pvs, Env, L, St) ->         %Tuple elements
+    pat_list(Ps, Pvs, Env, L, St);
+pattern([binary|Segs], Pvs, Env, L, St) ->
+    pat_binary(Segs, Pvs, Env, L, St);
+pattern([map|As], Pvs, Env, L, St) ->
+    pat_map(As, Pvs, Env, L, St);
 %% Check old no contructor list forms.
 pattern([_|_]=List, Pvs0, Env, L, St0) ->
     St1 = add_warning(L, {deprecated,"pattern"}, St0),
@@ -972,6 +1101,19 @@ pat_bit_expr(S, Bvs, Pvs, _, L, St) when is_atom(S) ->
     end;
 pat_bit_expr(_, Bvs, _, _, L, St) ->
     {Bvs,add_error(L, illegal_bitseg, St)}.
+
+%% pat_map(Args, PatVars, Env, Line, State) -> {PatVars,State}.
+
+pat_map([K,V|As], Pvs0, Env, L, St0) ->
+    {Pvs1,St1} = pat_map_assoc(K, V, Pvs0, Env, L, St0),
+    pat_map(As, Pvs1, Env, L, St1);
+pat_map([], Pvs, _, _, St) -> {Pvs,St};
+pat_map(_, Pvs, _, L, St) ->
+    {Pvs,bad_form_error(L, map, St)}.
+
+pat_map_assoc(K, V, Pvs, Env, L, St0) ->
+    St1 = map_key(K, Env, L, St0),
+    pattern(V, Pvs, Env, L, St1).
 
 %% Functions for checking lists of forms, generate bad_form error if
 %% not proper list.
