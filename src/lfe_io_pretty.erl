@@ -246,18 +246,20 @@ print1_map_rest([KV|KVs], D, I, L) ->
     [$\n,blanks(I, []),Massoc|print1_map_rest(KVs, D-1, I, L)].
 
 print1_map_assoc({K,V}, D, I, L) ->
-    Kcs = print1(K, D-1, I, 99999),             %Print without line breaks
+    Kcs = lfe_io:print1(K, D-1),                %Print without line breaks
     Kl = flatlength(Kcs),
-    Vcs = print1(V, D-1, I, 99999),             %Print without line breaks
+    Vcs = lfe_io:print1(V, D-1),                %Print without line breaks
     Vl = flatlength(Vcs),
-    %% Test whether we can use the one line versiosn and how.
-    if I + Kl + 1 + Vl =< L -> [Kcs,$\s,Vcs];
-       (I + Kl =< L) and (I + Vl =< L) ->
-            [Kcs,$\n,blanks(I, [])|Vcs];
-       I + Kl =< L ->
-            [Kcs,$\n,blanks(I, [])|print1(V, D-1, I, L)];
-       I + Vl =< L ->
-            [print1(K, D-1, I, L),$\n,blanks(I, [])|Vcs];
-       true ->
-            [print1(K, D-1, I, L),$\n,blanks(I, [])|print1(V, D-1, I, L)]
+    %% Test whether we can use the one line versions and how.
+    if I + Kl + 1 + Vl =< L ->                  %Both on same line
+            [Kcs,$\s,Vcs];
+       true ->                                  %On separate lines
+            %% Can we use the flat versions?
+            Ks = if I + Kl =< L -> Kcs;
+                    true -> print1(K, D-1, I, L)
+                 end,
+            Vs = if I + Vl =< L -> Vcs;
+                    true -> print1(V, D-1, I, L)
+                 end,
+            [Ks,$\n,blanks(I, []),Vs]
     end.
