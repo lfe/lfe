@@ -166,7 +166,7 @@ add_shell_macros(Env0) ->
 prompt() ->
     %% Don't bother flattening the list, no need.
     case is_alive() of
-        true -> lfe_io:format("(~s)> ", [node()]);
+        true -> lfe_io:format1("(~s)> ", [node()]);
         false -> "> "
     end.
 
