@@ -352,18 +352,22 @@ check_expr(['call'|As], Env, L, St) ->
     check_args(As, Env, L, St);
 %% Finally the general cases.
 check_expr([Fun|As], Env, L, St0) when is_atom(Fun) ->
-    St1 = check_args(As, Env, L, St0),    %Check arguments first
+    St1 = check_args(As, Env, L, St0),          %Check arguments first
     %% Here we are not interested in HOW fun is associated to a
     %% function, just that it is.
     %% io:fwrite("fb: ~w ~p   ~p\n", [Fun,As,Env]),
     case is_fbound(Fun, safe_length(As), Env) of
-    true -> St1;
-    false -> add_error(L, {unbound_func,{Fun,safe_length(As)}}, St1)
+        true -> St1;
+        false -> add_error(L, {unbound_func,{Fun,safe_length(As)}}, St1)
     end;
-check_expr([_|As], Env, L, St0) ->
-    %% Function here is an expression, report error and check args.
-    St1 = bad_form_error(L, application, St0),
-    check_args(As, Env, L, St1);
+check_expr([_|As]=S, Env, L, St0) ->            %Test if literal string
+    case is_posint_list(S) of
+        true -> St0;
+        false ->
+            %% Function here is an expression, report error and check args.
+            St1 = bad_form_error(L, application, St0),
+            check_args(As, Env, L, St1)
+    end;
 check_expr([], _, _, St) -> St;            %Self evaluating []
 check_expr(Symb, Env, L, St) when is_atom(Symb) ->
     check_symb(Symb, Env, L, St);
@@ -429,22 +433,22 @@ expr_bitsegs(Segs, Env, L, St0) ->
 %% Functions for checking expression bitsegments.
 
 bitseg([Val|Specs]=Seg, Env, L, St0, Check) ->
-    case is_integer_list(Seg) of
-    true -> St0;                %This is good
-    false ->
-        St1 = bitspecs(Specs, Env, L, St0, Check),
-        case is_integer_list(Val) of
-        true -> St1;            %This is good
-        false -> Check(Val, Env, L, St1)
-        end
+    case is_posint_list(Seg) of                 %Is bitseg a string?
+        true -> St0;                            %A string
+        false ->                                %A value and spec
+            St1 = bitspecs(Specs, Env, L, St0, Check),
+            case is_posint_list(Val) of         %Is Val a string?
+                true -> St1;
+                false -> Check(Val, Env, L, St1)
+            end
     end;
 bitseg(Val, Env, L, St, Check) ->
     Check(Val, Env, L, St).
 
 bitspecs(Specs, Env, L, St, Check) ->
     case lfe_bits:get_bitspecs(Specs) of
-    {ok,Sz,Ty} -> bit_size(Sz, Ty, Env, L, St, Check);
-    {error,E} -> add_error(L, E, St)
+        {ok,Sz,Ty} -> bit_size(Sz, Ty, Env, L, St, Check);
+        {error,E} -> add_error(L, E, St)
     end.
 
 %% Catch the case where size was explicitly given as 'undefined' or
@@ -460,10 +464,10 @@ bit_size(undefined, {Ty,_,_,_}, _, L, St, _) ->
     end;
 bit_size(Sz, _, Env, L, St, Check) -> Check(Sz, Env, L, St).
 
-is_integer_list([I|Is]) when is_integer(I) ->
-    is_integer_list(Is);
-is_integer_list([]) -> true;
-is_integer_list(_) -> false.
+is_posint_list([I|Is]) when is_integer(I), I >= 0 ->
+    is_posint_list(Is);
+is_posint_list([]) -> true;
+is_posint_list(_) -> false.
 
 %% check_lambda(LambdaBody, Env, Line, State) -> State.
 %% Check form (lambda Args ...).
@@ -913,30 +917,30 @@ pat_binary(Segs, Pvs, Env, L, St) ->
 
 pat_bitsegs(Segs, Bvs0, Pvs, Env, L, St0) ->
     {Bvs1,St1} =
-    check_foldl(fun (Seg, Bvs, St) ->
-                pat_bitseg(Seg, Bvs, Pvs, Env, L, St)
-            end,
-            fun (St) -> bad_pat_error(L, binary, St) end,
-            Bvs0, St0, Segs),
+        check_foldl(fun (Seg, Bvs, St) ->
+                            pat_bitseg(Seg, Bvs, Pvs, Env, L, St)
+                    end,
+                    fun (St) -> bad_pat_error(L, binary, St) end,
+                    Bvs0, St0, Segs),
     {union(Bvs1, Pvs),St1}.             %Add bitvars to patvars
 
 pat_bitseg([Pat|Specs]=Seg, Bvs, Pvs, Env, L, St0) ->
-    case is_integer_list(Seg) of
-    true -> {Bvs,St0};                  %This is good
-    false ->
-        St1 = pat_bitspecs(Specs, Bvs, Pvs, Env, L, St0),
-        case is_integer_list(Pat) of
-        true -> {Bvs,St1};              %This is good
-        false -> pat_bit_expr(Pat, Bvs, Pvs, Env, L, St1)
-        end
+    case is_posint_list(Seg) of                 %Is bitseg a string?
+        true -> {Bvs,St0};                      %A string
+        false ->                                %A pattern and spec
+            St1 = pat_bitspecs(Specs, Bvs, Pvs, Env, L, St0),
+            case is_posint_list(Pat) of         %Is Pat a string?
+                true -> {Bvs,St1};
+                false -> pat_bit_expr(Pat, Bvs, Pvs, Env, L, St1)
+            end
     end;
 pat_bitseg(Pat, Bvs, Pvs, Env, L, St) ->
     pat_bit_expr(Pat, Bvs, Pvs, Env, L, St).
 
 pat_bitspecs(Specs, Bvs, Pvs, Env, L, St) ->
     case lfe_bits:get_bitspecs(Specs) of
-    {ok,Sz,Ty} -> pat_bit_size(Sz, Ty, Bvs, Pvs, Env, L, St);
-    {error,E} -> add_error(L, E, St)
+        {ok,Sz,Ty} -> pat_bit_size(Sz, Ty, Bvs, Pvs, Env, L, St);
+        {error,E} -> add_error(L, E, St)
     end.
 
 %% Catch the case where size was explicitly given as 'undefined' or

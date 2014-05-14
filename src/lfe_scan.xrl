@@ -62,7 +62,7 @@ Rules.
 #'{SSYM}{SYM}*/{D}+    :
             %% Strip sharpsign single-quote.
             FunStr = string:substr(TokenChars,3),
-            {token,{'fun',TokenLine,FunStr}}.
+            {token,{'#\'',TokenLine,FunStr}}.
 %% Based numbers
 #[bB]{B}+    :    base_token(string:substr(TokenChars, 3), 2, TokenLine).
 #[oO]{O}+    :    base_token(string:substr(TokenChars, 3), 8, TokenLine).

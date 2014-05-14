@@ -140,8 +140,12 @@ eval_expr([Fun|Es], Env) when is_atom(Fun) ->
         {yes,F} -> eval_apply(F, eval_list(Es, Env), Env);
         no -> erlang:error({unbound_func,{Fun,Ar}})
     end;
-eval_expr([_|_], _) ->
-    erlang:error({bad_form,application});
+eval_expr([_|_]=S, _) ->                        %Test if string literal
+    case is_posint_list(S) of
+        true -> S;                              %It an "atomic" type
+        false ->                                %It is a bad application form
+            erlang:error({bad_form,application})
+    end;
 eval_expr(Symb, Env) when is_atom(Symb) ->
     case get_vbinding(Symb, Env) of
         {yes,Val} -> Val;
@@ -171,17 +175,17 @@ get_bitsegs(Segs) ->
 %% get_bitseg(Bitseg, ValSpecs) -> ValSpecs.
 %% A bitseg is either an atomic value, a list of value and specs, or a string.
 
-get_bitseg([Val|Specs]=F, Vsps) ->
-    case is_integer_list(F) of            %Is bitseg a string?
-    true ->                    %A string
-        {Sz,Ty} = get_bitspecs([]),
-        foldr(fun (V, Vs) -> [{V,Sz,Ty}|Vs] end, Vsps, F);
-    false ->                %A value and spec
-        {Sz,Ty} = get_bitspecs(Specs),
-        case is_integer_list(Val) of    %Is val a string?
-        true -> foldr(fun (V, Vs) -> [{V,Sz,Ty}|Vs] end, Vsps, Val);
-        false -> [{Val,Sz,Ty}|Vsps]    %The default
-        end
+get_bitseg([Val|Specs]=Seg, Vsps) ->
+    case is_posint_list(Seg) of                 %Is bitseg a string?
+        true ->                                 %A string
+            {Sz,Ty} = get_bitspecs([]),
+            foldr(fun (V, Vs) -> [{V,Sz,Ty}|Vs] end, Vsps, Seg);
+        false ->                                %A value and spec
+            {Sz,Ty} = get_bitspecs(Specs),
+            case is_posint_list(Val) of         %Is Val a string?
+                true -> foldr(fun (V, Vs) -> [{V,Sz,Ty}|Vs] end, Vsps, Val);
+                false -> [{Val,Sz,Ty}|Vsps]     %The default
+            end
     end;
 get_bitseg(Val, Vsps) ->
     {Sz,Ty} = get_bitspecs([]),
@@ -192,22 +196,22 @@ get_bitseg(Val, Vsps) ->
 
 get_bitspecs(Ss) ->
     case lfe_bits:get_bitspecs(Ss) of
-    {ok,Sz,Ty} -> {Sz,Ty};
-    {error,Error} -> erlang:error(Error)
+        {ok,Sz,Ty} -> {Sz,Ty};
+        {error,Error} -> erlang:error(Error)
     end.
 
-is_integer_list([I|Is]) when is_integer(I) ->
-    is_integer_list(Is);
-is_integer_list([]) -> true;
-is_integer_list(_) -> false.
+is_posint_list([I|Is]) when is_integer(I), I >= 0 ->
+    is_posint_list(Is);
+is_posint_list([]) -> true;
+is_posint_list(_) -> false.
 
 %% eval_bitsegs(VSTys, Env) -> Binary.
 
 eval_bitsegs(Vsps, Env) ->
     foldl(fun ({Val,Sz,Ty}, Acc) ->
-          Bin = eval_bitseg(Val, Sz, Ty, Env),
-          <<Acc/bitstring,Bin/bitstring>>
-      end, <<>>, Vsps).
+                  Bin = eval_bitseg(Val, Sz, Ty, Env),
+                  <<Acc/bitstring,Bin/bitstring>>
+          end, <<>>, Vsps).
 
 eval_bitseg(Val, Sz, Ty, Env) ->
     V = eval_expr(Val, Env),
