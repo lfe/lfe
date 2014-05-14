@@ -38,7 +38,7 @@
 %%  1 sexpr -> symbol : val('$1').
 %%  2 sexpr -> number : val('$1').
 %%  3 sexpr -> string : val('$1').
-%%  4 sexpr -> fun : make_fun(val('$1')).
+%%  4 sexpr -> '#\'' : make_fun(val('$1')).
 %%  5 sexpr -> '\'' sexpr : [quote,'$2'].
 %%  6 sexpr -> '`' sexpr : [backquote,'$2'].
 %%  7 sexpr -> ',' sexpr : [unquote,'$2'].
@@ -62,16 +62,16 @@
 %% The computed First and Follow sets for the productions. This is the
 %% only really tricky bit.
 %%
-%% First(f) = {symbol number string fun ( [ ' ` , ,@ #( #B(}
-%% First(s) = {symbol number string fun ( [ ' ` , ,@ #( #B(}
-%% First(l) = {symbol number string fun ( [ ' ` , ,@ #( #B( empty}
-%% First(t) = {symbol number string fun ( [ . ' ` , ,@ #( #B( empty}
-%% First(p) = {symbol number string fun ( [ ' ` , ,@ #( #B( empty}
+%% First(f) = {symbol number string #' ( [ ' ` , ,@ #( #B(}
+%% First(s) = {symbol number string #' ( [ ' ` , ,@ #( #B(}
+%% First(l) = {symbol number string #' ( [ ' ` , ,@ #( #B( empty}
+%% First(t) = {symbol number string #' ( [ . ' ` , ,@ #( #B( empty}
+%% First(p) = {symbol number string #' ( [ ' ` , ,@ #( #B( empty}
 %% Follow(f) = empty
-%% Follow(s) = {symbol number string fun ( [ ) ] ' ` , ,@ #( #B(}
-%% Follow(l) = {symbol number string fun ( [ ) ] ' ` , ,@ #( #B(}
-%% Follow(t) = {symbol number string fun ( [ ) ] ' ` , ,@ #( #B(}
-%% Follow(p) = {symbol number string fun ( [ ) ] ' ` , ,@ #( #B(}
+%% Follow(s) = {symbol number string #' ( [ ) ] ' ` , ,@ #( #B(}
+%% Follow(l) = {symbol number string #' ( [ ) ] ' ` , ,@ #( #B(}
+%% Follow(t) = {symbol number string #' ( [ ) ] ' ` , ,@ #( #B(}
+%% Follow(p) = {symbol number string #' ( [ ) ] ' ` , ,@ #( #B(}
 
 %% The table (tedious).
 %% Top  symbol      (         )       [       ]       .       '`,,@    #(#B(
@@ -124,7 +124,7 @@ reduce(19, Vs) -> [[]|Vs].           %p->empty
 table(?FORM, symbol) -> [?EXPR];
 table(?FORM, number) -> [?EXPR];
 table(?FORM, string) -> [?EXPR];
-table(?FORM, 'fun') -> [?EXPR];
+table(?FORM, '#\'') -> [?EXPR];
 table(?FORM, '\'') -> [?EXPR];
 table(?FORM, '`') -> [?EXPR];
 table(?FORM, ',') -> [?EXPR];
@@ -137,7 +137,7 @@ table(?FORM, '#B(') -> [?EXPR];
 table(?EXPR, symbol) -> [symbol,{reduce,1}];
 table(?EXPR, number) -> [number,{reduce,2}];
 table(?EXPR, string) -> [string,{reduce,3}];
-table(?EXPR, 'fun') -> ['fun',{reduce,4}];
+table(?EXPR, '#\'') -> ['#\'',{reduce,4}];
 table(?EXPR, '\'') -> ['\'',?EXPR,{reduce,5}];
 table(?EXPR, '`') -> ['`',?EXPR,{reduce,6}];
 table(?EXPR, ',') -> [',',?EXPR,{reduce,7}];
@@ -150,7 +150,7 @@ table(?EXPR, '#B(') -> ['#B(',?PROP,')',{reduce,12}];
 table(?LIST, symbol) -> [?EXPR,?TAIL,{reduce,13}];
 table(?LIST, number) -> [?EXPR,?TAIL,{reduce,13}];
 table(?LIST, string) -> [?EXPR,?TAIL,{reduce,13}];
-table(?LIST, 'fun') -> [?EXPR,?TAIL,{reduce,13}];
+table(?LIST, '#\'') -> [?EXPR,?TAIL,{reduce,13}];
 table(?LIST, '\'') -> [?EXPR,?TAIL,{reduce,13}];
 table(?LIST, '`') -> [?EXPR,?TAIL,{reduce,13}];
 table(?LIST, ',') -> [?EXPR,?TAIL,{reduce,13}];
@@ -165,7 +165,7 @@ table(?LIST, ']') -> [{reduce,14}];
 table(?TAIL, symbol) -> [?EXPR,?TAIL,{reduce,15}];
 table(?TAIL, number) -> [?EXPR,?TAIL,{reduce,15}];
 table(?TAIL, string) -> [?EXPR,?TAIL,{reduce,15}];
-table(?TAIL, 'fun') -> [?EXPR,?TAIL,{reduce,15}];
+table(?TAIL, '#\'') -> [?EXPR,?TAIL,{reduce,15}];
 table(?TAIL, '\'') -> [?EXPR,?TAIL,{reduce,15}];
 table(?TAIL, '`') -> [?EXPR,?TAIL,{reduce,15}];
 table(?TAIL, ',') -> [?EXPR,?TAIL,{reduce,15}];
@@ -181,7 +181,7 @@ table(?TAIL, ']') -> [{reduce,17}];
 table(?PROP, symbol) -> [?EXPR,?PROP,{reduce,18}];
 table(?PROP, number) -> [?EXPR,?PROP,{reduce,18}];
 table(?PROP, string) -> [?EXPR,?PROP,{reduce,18}];
-table(?PROP, 'fun') -> [?EXPR,?PROP,{reduce,18}];
+table(?PROP, '#\'') -> [?EXPR,?PROP,{reduce,18}];
 table(?PROP, '\'') -> [?EXPR,?PROP,{reduce,18}];
 table(?PROP, '`') -> [?EXPR,?PROP,{reduce,18}];
 table(?PROP, ',') -> [?EXPR,?PROP,{reduce,18}];

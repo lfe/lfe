@@ -58,6 +58,7 @@ erlc_compile: $(addprefix $(EBINDIR)/, $(EBINS))
 install:
 	if [ "$$ERL_LIBS" != "" ]; \
 	then mkdir -p $(INSTALLDIR) ; \
+	     cp -pPR $(BINDIR) $(INSTALLDIR); \
 	     cp -pPR $(EBINDIR) $(INSTALLDIR); \
 	     cp -pPR $(EMACSDIR) $(INSTALLDIR); \
 	     cp -pPR $(INCDIR) $(INSTALLDIR); \

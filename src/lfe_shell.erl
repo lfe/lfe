@@ -152,9 +152,9 @@ add_shell_macros(Env0) ->
     Ms = [{c,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,c,?UQ_S(args)])]},
           {ec,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ec,?UQ_S(args)])]},
           {l,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,l,[list|?UQ(args)]])]},
-	  {m,['match-lambda',
-	      [[[],'$ENV'],?BQ([':',lfe_shell,m])],
-	      [[ms,'$ENV'],?BQ([':',lfe_shell,m,[list|?UQ(ms)]])]]}
+          {m,['match-lambda',
+              [[[],'$ENV'],?BQ([':',lfe_shell,m])],
+              [[ms,'$ENV'],?BQ([':',lfe_shell,m,[list|?UQ(ms)]])]]}
          ],
     %% Any errors here will crash shell startup!
     Env1 = lfe_env:add_mbindings(Ms, Env0),
@@ -166,7 +166,7 @@ add_shell_macros(Env0) ->
 prompt() ->
     %% Don't bother flattening the list, no need.
     case is_alive() of
-        true -> lfe_io:format("(~s)> ", [node()]);
+        true -> lfe_io:format1("(~s)> ", [node()]);
         false -> "> "
     end.
 
@@ -198,6 +198,9 @@ eval_form_1([slurp|Args], St0) ->               %Slurp in a file
 eval_form_1([unslurp|_], St) ->
     %% Forget everything back to before current slurp.
     unslurp(St);
+eval_form_1([run|Args], St0) ->
+    {Value,St1} = run(Args, St0),
+    {Value,St1};
 eval_form_1(['define-function',Name,Def], #state{curr=Ce0}=St) ->
     Ar = function_arity(Def),
     Ce1 = lfe_eval:add_dynamic_func(Name, Ar, Def, Ce0),
@@ -279,7 +282,7 @@ unslurp(St0) ->
     {ok,St1}.
 
 slurp([File], St0) ->
-    {ok,#state{curr=Ce0}=St1} = unslurp(St0),   %Reset teh environment
+    {ok,#state{curr=Ce0}=St1} = unslurp(St0),   %Reset the environment
     Name = lfe_eval:expr(File, Ce0),            %Get file name
     case slurp_1(Name, Ce0) of
         {ok,Mod,Ce1} ->                         %Set the new environment
@@ -365,6 +368,26 @@ collect_imp(Fun, Mod, St, Fs) ->
     Imps0 = safe_fetch(Mod, St#slurp.imps, []),
     Imps1 = foldl(Fun, Imps0, Fs),
     St#slurp{imps=store(Mod, Imps1, St#slurp.imps)}.
+
+%% run(Args, State) -> {Value,State}.
+%%  Run the shell expressions in a file. Abort on errors and only
+%%  return updated state if there are no errors. We don't save
+%%  intermediate commands and values.
+
+run([File], #state{curr=Ce}=St) ->
+    Name = lfe_eval:expr(File, Ce),             %Get file name
+    case lfe_io:read_file(Name) of              %Read the file
+        {ok,Exprs} ->
+            run_loop(Exprs, [], St);
+        {error,E} ->
+            slurp_errors(Name, [E]),
+            {error,St}
+    end.
+
+run_loop([E|Es], _, St0) ->
+    {Val,St1} = eval_form(E, St0),
+    run_loop(Es, Val, St1);
+run_loop([], Val, St) -> {Val,St}.
 
 %% safe_fetch(Key, Dict, Default) -> Value.
 
