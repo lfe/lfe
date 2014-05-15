@@ -12,22 +12,22 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-;; File    : lfunit.lfe
+;; File    : lfeunit.lfe
 ;; Author  : Duncan McGreggor
 ;; Purpose : An EUnit wrapper for Lisp Flavoured Erlang.
 
-;; This module contains utility functions for lfunit. Most of the functionality
-;; of lfunit is actually in the included macro file.
+;; This module contains utility functions for lfeunit. Most of the
+;; functionality of lfeunit is actually in the included macro file.
 ;;
 ;; Note that this code was originally copied by the author from an
 ;; independent open source project, lfeunit.
 
-(defmodule lfunit
+(defmodule lfeunit
   (export
     (check-failed-assert 2)
     (check-wrong-assert-exception 2)))
 
-(include-lib "include/lfunit.lfe")
+(include-lib "include/lfeunit.lfe")
 
 (defun check-failed-assert (data expected)
   "This function

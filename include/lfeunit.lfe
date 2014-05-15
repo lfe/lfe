@@ -12,11 +12,11 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-;; File    : lfunit.lfe
+;; File    : lfeunit.lfe
 ;; Author  : Duncan McGreggor
 ;; Purpose : An EUnit wrapper for Lisp Flavoured Erlang.
 
-;; This macro file contains the meat of the code for lfunit.
+;; This macro file contains the meat of the code for lfeunit.
 ;;
 ;; Note that this code was originally copied by the author from an
 ;; independent open source project, lfeunit.

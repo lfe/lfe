@@ -1,6 +1,6 @@
 MODULE
 
-    lfunit
+    lfeunit
 
 MODULE SUMMARY
 
@@ -182,7 +182,7 @@ Naming
     When using the (deftestgen ...) macro for writing unit tests
     with fixtures or with generated tests, you may use dashes.
     However, keep in mind that due to EUnit limitations with regard
-    to generated tests and fixtures, lfunit will convert all dashes
+    to generated tests and fixtures, lfeunit will convert all dashes
     in a (deftestgen ...) name to underscores.
 
 Running
@@ -197,7 +197,7 @@ Running
 
     At which point, tests for LFE may be run with:
 
-        $ make check
+        $ lfetool tests unit
 
 EXAMPLES
 
@@ -207,14 +207,14 @@ Defining a Test Module
     dependency, a unit test module for special-project would be
     created like so:
 
-        $ touch ./test/unit/unit-special-project-tests.lfe
+        $ touch ./test/unit/unit-my-project-tests.lfe
 
     And the content of that file would start with the following:
 
-        (defmodule unit-lfunit-tests
+        (defmodule unit-my-project-tests
           (export all))
 
-        (include-lib "deps/lfe/include/lfunit.lfe")
+        (include-lib "deps/lfe/include/lfeunit.lfe")
 
 Defining a Standard Test Case
 
@@ -292,7 +292,7 @@ Defining a Test Case with Fixtures
             (lambda ()
               (is-not-equal 'this-test 'very-silly))))
 
-    Here is an example of a foreach EUnit fixture in lfunit that
+    Here is an example of a foreach EUnit fixture in lfeunit that
     uses the functions defined above:
 
         (deftestgen foreach-setup
@@ -303,5 +303,5 @@ Defining a Test Case with Fixtures
               (lambda (x) (setup_test_case x))
               (lambda (x) (foreach_test_case x)))))
 
-    For more fixture examples, be sure to read the lfunit unit tests
+    For more fixture examples, be sure to read the lfeunit unit tests
     in ./test/unit/unit-*-tests.lfe.
