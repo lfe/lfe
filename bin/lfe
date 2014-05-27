@@ -1,5 +1,5 @@
-#! /bin/bash
-# Copyright (c) 2008-2013 Robert Virding
+#! /bin/sh
+# Copyright (c) 2008-2014 Robert Virding
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,5 +13,70 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Run LFE shell by default. Can add -pa if necessary.
-erl -user lfe_boot "$@"
+follow_symlink () {
+    if [ -h "$1" ]; then
+	follow_symlink $(readlink "$1")
+    else
+	echo "$1"
+    fi
+}
+
+SELF=$(follow_symlink "$0")
+LFE_PROGNAME=`echo $0 | sed 's/.*\///'`
+LFE_BINDIR=$(dirname "$SELF")
+LFE_ROOTDIR=$(dirname "$LFE_BINDIR")
+
+export LFE_ROOTDIR
+export LFE_BINDIR
+export LFE_PROGNAME
+
+# Collect all +flags and -flags, it the syntax is rather strict.
+# The +flag section *must* come first and *must* end with a ++.
+# The -flag section only needs to end with a -- if the last -flag can
+# have a variable number of arguments, for example -pa, but then it
+# *must always* do so.
+
+eflags=""
+flags=""
+args=""
+
+while [ -n "$1" ]; do
+    case "$1" in
+	++)
+	    eflags="$eflags $args"
+	    args="" ;;
+#	+*)
+#	    eflags="$eflags $args $1"
+#	    args="" ;;
+	--)
+	    flags="$flags $args"
+	    shift 1
+	    args="$@"
+	    break ;;
+	# No argument flags
+	-async_shell_start|-code_path_cache|-detached|-emu_args|-heart|\
+	-hidden|-instr|-make|-noinput|-noshell|-nostick|-oldshell|-version)
+	    flags="$flags $args $1"
+	    args="" ;;
+	# Single argument flags
+	-args_file|-boot|-config|-connect_all|-cookie|-eval|-id|-loader|-man|\
+	-master|-mode|-name|-remsh|-rsh|-setcookie|-sname|-smp|-user)
+	    flags="$flags $args $1 $2"
+	    shift 1
+	    args="" ;;
+	# Multi argument flags
+	-*)
+	    flags="$flags $args $1"
+	    args="" ;;
+	*)			# Add more to existing collect
+	    args="$args $1" ;;
+    esac
+    shift 1
+done
+
+lflags="-pa $LFE_ROOTDIR/ebin"	# Location of LFE files
+if [ -n "$args" ]; then
+    lflags="-noshell $lflags"	# To avoid getting a shell process
+fi
+
+erl $eflags $flags $lflags -user lfe_boot -extra $args

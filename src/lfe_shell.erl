@@ -24,7 +24,7 @@
 
 -module(lfe_shell).
 
--export([start/0,start/1,server/0,server/1]).
+-export([start/0,start/1,server/0,server/1,run_script/2,run_script/3]).
 
 %% The shell commands which generally callable.
 -export([c/1,c/2,ec/1,ec/2,i/0,i/1,l/1,m/0,m/1,pid/3,p/1,pp/1,regs/0]).
@@ -37,7 +37,7 @@
 
 -import(orddict, [store/3,find/2]).
 -import(ordsets, [add_element/2]).
--import(lists, [map/2,foreach/2,foldl/3]).
+-import(lists, [reverse/1,map/2,foreach/2,foldl/3]).
 
 %% -compile([export_all]).
 
@@ -51,24 +51,39 @@
 -record(state, {curr,save,base,             %Current, save and base env
                 slurp=false}).              %Are we slurped?
 
-start() ->
-    spawn(fun () -> server(default) end).
+run_script(File, Args) ->
+    run_script(File, Args, lfe_env:new()).
 
-start(P) ->
-    spawn(fun () -> server(P) end).
+run_script(File, Args, Env0) ->
+    Env1 = add_vbinding('Prog', File, Env0),
+    Env2 = add_vbinding('Args', Args, Env1),
+    St = new_state(Env2),
+    run([File], St).
+
+start() -> start(default).
+
+start(Env) ->
+    spawn(fun () -> server(Env) end).
 
 server() -> server(default).
 
-server(_) ->
+server(default) ->
+    server(lfe_env:new());
+server(Env) ->
     io:fwrite("LFE Shell V~s (abort with ^G)\n",
               [erlang:system_info(version)]),
     %% Create a default base env of predefined shell variables with
     %% default nil bindings and basic shell macros.
-    Base0 = add_shell_functions(lfe_env:new()),
+    St = new_state(Env),
+    server_loop(St).
+
+new_state() -> new_state(lfe_env:new()).
+
+new_state(Env) ->
+    Base0 = add_shell_functions(Env),
     Base1 = add_shell_macros(Base0),
     Base2 = add_shell_vars(Base1),
-    St = #state{curr=Base2,save=Base2,base=Base2,slurp=false},
-    server_loop(St).
+    #state{curr=Base2,save=Base2,base=Base2,slurp=false}.
 
 server_loop(St0) ->
     StX = try
@@ -376,13 +391,42 @@ collect_imp(Fun, Mod, St, Fs) ->
 
 run([File], #state{curr=Ce}=St) ->
     Name = lfe_eval:expr(File, Ce),             %Get file name
-    case lfe_io:read_file(Name) of              %Read the file
+    case run_file(Name) of			%Read the file
         {ok,Exprs} ->
             run_loop(Exprs, [], St);
         {error,E} ->
             slurp_errors(Name, [E]),
             {error,St}
     end.
+
+run_file(File) ->
+    case file:open(File, [read]) of
+	{ok,F} ->
+	    %% Check if first a script line, if so skip it.
+	    case io:get_line(F, '') of
+		"#!" ++ _ -> ok;
+		_ -> file:position(F, bof)	%Reset to start of file
+	    end,
+	    Ret = case io:request(F, {get_until,'',lfe_scan,tokens,[1]}) of
+		      {ok,Ts,_} -> run_read_file(Ts, []);
+		      {error,Error,_} -> {error,Error}
+		  end,
+	    file:close(F),			%Close the file
+	    Ret;
+	{error,Error} -> {error,{none,file,Error}}
+    end.
+
+run_read_file([_|_]=Ts0, Ss) ->
+    case lfe_parse:sexpr(Ts0) of
+	{ok,_,S,Ts1} -> run_read_file(Ts1, [S|Ss]);
+	{more,Pc1} ->
+	    %% Need more tokens but there are none, so call again to
+	    %% generate an error message.
+	    {error,E,_} = lfe_parse:sexpr(Pc1, {eof,99999}),
+	    {error,E};
+	{error,E,_} -> {error,E}
+    end;
+run_read_file([], Ss) -> {ok,reverse(Ss)}.
 
 run_loop([E|Es], _, St0) ->
     {Val,St1} = eval_form(E, St0),

@@ -19,10 +19,9 @@
 %%% This little beauty allows you to start Erlang with the LFE shell
 %%% running and still has ^G and user_drv enabled. Use it as follows:
 %%%
-%%% erl -noshell -noinput -s lfe_boot start
+%%% erl -user lfe_boot
 %%%
-%%% NOTE order of commands important, must be -noshell -noinput! Add
-%%% -pa to find modules if necessary.
+%%% Add -pa to find modules if necessary.
 %%%
 %%% Thanks to Attila Babo for showing me how to do this.
 
@@ -30,4 +29,16 @@
 
 -export([start/0]).
 
-start() -> user_drv:start(['tty_sl -c -e',{lfe_shell,start,[]}]).
+%% Start LFE running a script or the shell depending on arguments.
+
+start() ->
+    case init:get_plain_arguments() of
+	[S|As] ->				%Run a script
+	    user:start(),			%Start user for io
+	    spawn(fun () ->
+			  lfe_shell:run_script(S, As),
+			  init:stop()
+		  end);
+	[] ->					%Run a shell
+	    user_drv:start(['tty_sl -c -e',{lfe_shell,start,[]}])
+    end.
