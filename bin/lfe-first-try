@@ -30,4 +30,39 @@ export LFE_ROOTDIR
 export LFE_BINDIR
 export LFE_PROGNAME
 
-exec $LFE_BINDIR/lfeexec "$@"
+# Collect all +flags and -flags. We follow the same handling as in
+# 'erl' EXCEPT that as soon as we reach a "plain" argument all the
+# rest also become "plain" arguments and will be prefixed with -extra.
+# These arguments are then handed over as is the LFE boot to do as it
+# pleases.
+
+flags=""
+
+while [ -n "$1" ]; do
+    case "$1" in
+	-extra | --)		# We're explicitly done
+	    shift
+	    break ;;
+	-* | +*)		# Flags
+	    flags="$flags $1"
+	    shift
+	    while [ -n "$1" ]; do
+		case "$1" in
+		    -* | +*)
+			break ;;
+		    *)
+			flags="$flags $1"
+		esac
+		shift
+	    done ;;
+	*)			# Plain argument
+	    break ;;
+    esac
+done
+
+lflags="-pa $LFE_ROOTDIR/ebin"	# Location of LFE files
+if [ -n "$1" ]; then
+    lflags="-noshell $lflags"	# To avoid getting a shell process
+fi
+
+echo $flags $lflags -user lfe_init -extra "$@"
