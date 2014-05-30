@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2013 Robert Virding
+%% Copyright (c) 2008-2014 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -12,20 +12,20 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 
-%%% File    : lfe_boot.erl
+%%% File    : lfe_init.erl
 %%% Author  : Robert Virding
-%%% Purpose : Lisp Flavoured Erlang boot module.
+%%% Purpose : Lisp Flavoured Erlang init module.
 
 %%% This little beauty allows you to start Erlang with the LFE shell
 %%% running and still has ^G and user_drv enabled. Use it as follows:
 %%%
-%%% erl -user lfe_boot
+%%% erl -user lfe_init
 %%%
 %%% Add -pa to find modules if necessary.
 %%%
 %%% Thanks to Attila Babo for showing me how to do this.
 
--module(lfe_boot).
+-module(lfe_init).
 
 -export([start/0]).
 

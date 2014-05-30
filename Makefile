@@ -5,6 +5,7 @@
 BINDIR = bin
 EBINDIR = ebin
 SRCDIR = src
+CSRCDIR = c_src
 INCDIR = include
 DOCDIR = doc
 EMACSDIR = emacs
@@ -25,10 +26,16 @@ XSRCS = $(notdir $(wildcard $(SRCDIR)/*.xrl))
 YSRCS = $(notdir $(wildcard $(SRCDIR)/*.yrl))
 EBINS = $(ESRCS:.erl=.beam) $(XSRCS:.xrl=.beam) $(YSRCS:.yrl=.beam)
 
+CSRCS = $(notdir $(wildcard $(CSRCDIR)/*.c))
+BINS = $(CSRCS:.c=)
+
 ## Where we install LFE, in the ERL_LIBS directory.
 INSTALLDIR = $(ERL_LIBS)/lfe-$(shell cat VERSION)
 
 .SUFFIXES: .erl .beam
+
+$(BINDIR)/%: $(CSRCDIR)/%.c
+	cc -o $@ $<
 
 $(EBINDIR)/%.beam: $(SRCDIR)/%.erl
 	$(ERLC) -I $(INCDIR) -o $(EBINDIR) $(ERLCFLAGS) $<
@@ -53,7 +60,7 @@ compile:
 	fi
 
 ## Compile using erlc
-erlc_compile: $(addprefix $(EBINDIR)/, $(EBINS))
+erlc_compile: $(addprefix $(EBINDIR)/, $(EBINS)) $(addprefix $(BINDIR)/, $(BINS))
 
 install:
 	if [ "$$ERL_LIBS" != "" ]; \
