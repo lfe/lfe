@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Follow symlinks to actual program and set env variables.
+
 follow_symlink () {
     if [ -h "$1" ]; then
 	follow_symlink $(readlink "$1")
