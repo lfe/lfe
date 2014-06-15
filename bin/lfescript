@@ -43,18 +43,38 @@ i="$#"				# Counter
 
 while [ $i -gt 0 ]; do
     case "$1" in
-	-*)
-	    opt=`expr "$1" : '^-\(.*\)'`
-	    set -- "$@" "$opt"
+	# -*)
+	#     opt=`expr "$1" : '^-\(.*\)'`
+	#     set -- "$@" "$opt"
+	#     shift ; i=`expr $i - 1`
+	#     ;;
+	-extra | --)		# We are explicitly done
 	    shift ; i=`expr $i - 1`
-	    ;;
-	*)
+	    break ;;
+	-* | +*)		# Flags
+	    set -- "$@" "$1"
+	    shift ; i=`expr $i - 1`
+	    while [ $i -gt 0 ]; do
+		case "$1" in
+		    -* | +*)
+			break ;;
+		    *)
+			set -- "$@" "$1"
+			shift ; i=`expr $i - 1`
+		esac
+	    done ;;
+	*)			# Plain argument
 	    break ;;
     esac
 done
 
+# Get the scriptname.
 scriptname="$1"
-set -- "$@" "-extra"		# Split options and scriptname/args
+
+# Split options and scriptname/args, add the middle bits to the end
+set -- "$@" "-pa" "$LFE_ROOTDIR/ebin"
+set -- "$@" "-noshell" "-run" "lfescript" "start"
+set -- "$@" "-extra"
 
 # Step over the args section adding them to the end.
 while [ $i -gt 0 ]; do
@@ -79,4 +99,4 @@ shebangs=`expr "$line2" : '^;;! *\(.*\)'`
 if [ -z "$shebangs" ] ; then shebangs=`expr "$line3" : '^;;! *\(.*\)'` ; fi
 
 # Done, now just run the emulator.
-exec $emulator +B -boot start_clean -pa $LFE_ROOTDIR/ebin -noshell $shebangs -run lfescript start "$@"
+exec $emulator +B -boot start_clean $shebangs "$@"

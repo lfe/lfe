@@ -32,4 +32,42 @@ export LFE_ROOTDIR
 export LFE_BINDIR
 export LFE_PROGNAME
 
-exec $LFE_BINDIR/lfeexec "$@"
+i="$#"				# Counter
+
+# First step over the flag section adding them to the end.
+while [ $i -gt 0 ]; do
+    case "$1" in
+	-extra | --)		# We are explicitly done
+	    shift ; i=`expr $i - 1`
+	    break ;;
+	-* | +*)		# Flags
+	    set -- "$@" "$1"
+	    shift ; i=`expr $i - 1`
+	    while [ $i -gt 0 ]; do
+		case "$1" in
+		    -* | +*)
+			break ;;
+		    *)
+			set -- "$@" "$1"
+			shift ; i=`expr $i - 1`
+		esac
+	    done ;;
+	*)			# Plain argument
+	    break ;;
+    esac
+done
+
+# Add the middle bits to the end.
+set -- "$@" "-pa" "$LFE_ROOTDIR/ebin"
+if [ $i -gt 0 ]; then
+    set -- "$@" "-noshell"
+fi
+set -- "$@" "-user" "lfe_init" "-extra"
+
+# Step over the arg section adding them to the end.
+while [  $i -gt 0 ]; do
+    set -- "$@" "$1"
+    shift ; i=`expr $i - 1`
+done
+
+exec erl "$@"
