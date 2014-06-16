@@ -22,7 +22,7 @@ Supported Core forms
 (list e ... )
 (tuple e ... )
 (binary seg ... )
-(map key val ...) (get-map m k) (set-map m k v ...) (update-map m k v ...)
+(map key val ...) (map-get m k) (map-set m k v ...) (map-update m k v ...)
 (lambda (arg ...) ...)
 (match-lambda
   ((arg ... ) {{(when e ...)}} ...)             - Matches clauses
@@ -544,21 +544,25 @@ A map is:
 
 To access maps there are the following forms:
 
-(get-map map key)
+(map-get map key)
 
         Return the value associated with key in map.
 
-(set-map map key val ... )
+(map-set map key val ... )
 
         Set keys in map to values.
 
-(update-map map key val ... )
+(map-update map key val ... )
 
         Update keys in map to values. Note that this form requires all
         the keys to exist.
 
-N.B. This is an experimental syntax for processing maps and may change
-in the future!
+N.B. This syntax for processing maps has stablized but may change in
+the future!
+
+There is also an alternate short form map, mref, mset, mupd based on
+the maclisp array reference forms. They take the same arguments as
+there longer alternatives.
 
 List/binary comprehensions
 --------------------------
