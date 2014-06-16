@@ -102,8 +102,8 @@ scan_and_parse(Io, Pc0, L) ->
     eof ->
         %% No more so must take what we have.
         case lfe_parse:sexpr(Pc0, {eof,L}) of
-        {ok,_,S,_} -> S;
-        {error,E,_} -> exit({error,E})
+            {ok,_,S,_} -> S;
+            {error,E,_} -> erlang:error({error,E})
         end;
     Cs ->
         case lfe_scan:string(Cs, L) of
@@ -112,11 +112,11 @@ scan_and_parse(Io, Pc0, L) ->
             scan_and_parse(Io, Pc0, L+1);
         {ok,Ts,_} ->
             case lfe_parse:sexpr(Pc0, Ts) of
-            {ok,_,S,_} -> S;
-            {more,Pc1} -> scan_and_parse(Io, Pc1, L+1);
-            {error,E,_} -> exit({error,E})
+                {ok,_,S,_} -> S;
+                {more,Pc1} -> scan_and_parse(Io, Pc1, L+1);
+                {error,E,_} -> erlang:error({error,E})
             end;
-        E -> exit(E)
+        E -> erlang:error(E)
         end
     end.
 
@@ -142,6 +142,7 @@ print1(Vec, D) when is_tuple(Vec) ->
     ["#(",print1_list(Es, D-1),")"];
 print1(Bit, _) when is_bitstring(Bit) ->
     ["#B(",print1_bits(Bit),$)];
+print1(Map, D) when is_map(Map) -> print1_map(Map, D);
 print1(Other, D) ->                %Use standard Erlang for rest
     io_lib:write(Other, D).
 
@@ -184,10 +185,25 @@ print1_list([Car|Cdr], D) ->
 %% know about dotted pairs.
 
 print1_tail([], _) -> "";
-print1_tail(_, 0) -> " ...";
+print1_tail(_, 0) -> [$\s|"..."];
 print1_tail([S|Ss], D) ->
     [$\s,print1(S, D)|print1_tail(Ss, D-1)];
 print1_tail(S, D) -> [" . "|print1(S, D)].
+
+%% print1_map(Map, Depth)
+
+print1_map(Map, D) ->
+    [$#,$M,$(,print1_map_body(maps:to_list(Map), D), $)].
+
+print1_map_body([], _) -> [];
+print1_map_body(_, D) when D =:= 0; D =:= 1 -> "...";
+print1_map_body([KV], D) -> print1_map_assoc(KV, D);
+print1_map_body([KV|KVs], D) ->
+    Massoc = print1_map_assoc(KV, D),
+    [Massoc,$\s|print1_map_body(KVs, D-1)].
+
+print1_map_assoc({K,V}, D) ->
+    [print1(K, D-1),$\s,print1(V, D-1)].
 
 %% quote_symbol(Symbol, SymbChars) -> bool().
 %%  Check if symbol needs to be quoted when printed. If it can read as

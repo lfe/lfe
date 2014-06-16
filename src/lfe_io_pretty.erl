@@ -50,32 +50,34 @@ print1(['unquote-splicing',E], D, I, L) -> [",@",print1(E, D, I+2, L)];
 print1([Car|_]=List, D, I, L) ->
     %% Handle printable lists specially.
     case io_lib:printable_list(List) of
-    true -> lfe_io:print1_string(List, $");    %"
+    true -> lfe_io:print1_string(List, $");     %"
     false ->
-        case print1_list_max(List, D-1, I+2, L) of
-        {yes,Print} -> ["(",Print,")"];
-        no ->
-            %% Customise printing of lists.
-            case indent_type(Car) of
-            none ->                     %Normal lists.
-                ["(",print1_list(List, D-1, I+1, L),")"];
-            defun ->                    %Special case for defuns
-                print1_defun(List, D, I, L);
-            N when is_integer(N) ->     %Special N first elements
-                print1_type(List, D, I, L, N)
+        case print1_list_max(List, D-1, I+1, L-1) of
+            {yes,Print} -> ["(",Print,")"];
+            no ->
+                %% Customise printing of lists.
+                case indent_type(Car) of
+                    none ->                     %Normal lists.
+                        ["(",print1_list(List, D-1, I+1, L-1),")"];
+                    defun ->                    %Special case for defuns
+                        print1_defun(List, D, I, L);
+                    N when is_integer(N) ->     %Special N first elements
+                        print1_type(List, D, I, L, N)
+                end
             end
-        end
     end;
 print1([], _, _, _) -> "()";
 print1({}, _, _, _) -> "#()";
 print1(Tup, D, I, L) when is_tuple(Tup) ->
     Es = tuple_to_list(Tup),
-    case print1_list_max(Es, D-1, I+3, L) of
-    {yes,Print}  -> ["#(",Print,")"];
-    no -> ["#(",print1_list(Es, D-1, I+2, L),")"]
+    case print1_list_max(Es, D-1, I+2, L-1) of
+        {yes,Print}  -> ["#(",Print,")"];
+        no -> ["#(",print1_list(Es, D-1, I+2, L),")"]
     end;
 print1(Bit, _, _, _) when is_bitstring(Bit) ->
     ["#B(",lfe_io:print1_bits(Bit, 30),$)];     %First 30 bytes
+print1(Map, D, I, L) when is_map(Map) ->
+    print1_map(Map, D, I, L);
 print1(Other, _, _, _) ->
     lfe_io:print1(Other).                       %Use standard LFE for rest
 
@@ -84,17 +86,17 @@ print1(Other, _, _, _) ->
 
 print1_defun([Def,Name,Args|Rest], D, I, L) when
       is_atom(Name), (D > 3) or (D < 0) ->
-    Dcs = atom_to_list(Def),            %Might not actually be defun
+    Dcs = atom_to_list(Def),                    %Might not actually be defun
     Ncs = atom_to_list(Name),
     case lfe_lib:is_symb_list(Args) of
-    true ->                    %Traditional
-        Acs = print1(Args, D-2, I + length(Dcs) + length(Ncs) + 3, L),
-        Tcs = print1_tail(Rest, D-3, I+2, L),
-        ["(",Dcs," ",Ncs," ",Acs,Tcs,")"];
-    false ->                %Matching
-        Tcs = print1_tail([Args|Rest], D-2, I+2, L),
-        ["(",Dcs," ",Ncs,Tcs,")"]
-    end;
+        true ->                                 %Traditional
+            Acs = print1(Args, D-2, I + length(Dcs) + length(Ncs) + 3, L),
+            Tcs = print1_tail(Rest, D-3, I+2, L),
+            ["(",Dcs," ",Ncs," ",Acs,Tcs,")"];
+        false ->                                %Matching
+            Tcs = print1_tail([Args|Rest], D-2, I+2, L),
+            ["(",Dcs," ",Ncs,Tcs,")"]
+        end;
 print1_defun(List, D, I, L) ->
     %% Too short to get worked up about, or not a "proper" defun or
     %% not enough depth.
@@ -110,7 +112,7 @@ print1_type([Car|Cdr], D, I, L, N) when (D > 2) or (D < 0) ->
     NewI = I + length(Cs) + 2,
     {Spec,Rest} = split(N, Cdr),
     Tcs = [print1_list(Spec, D-1, NewI, L),
-       print1_tail(Rest, D-2, I+2, L)],
+           print1_tail(Rest, D-2, I+2, L)],
     ["(" ++ Cs," ",Tcs,")"];
 print1_type(List, D, I, L, _) ->
     %% Too short to get worked up about or not enough depth.
@@ -146,10 +148,10 @@ print1_tail_max(_, _, I, L, _) when I >= L -> no;    %No more room
 print1_tail_max([], _, _, _, Acc) -> {yes,reverse(Acc)};
 print1_tail_max(_, 0, _, _, Acc) -> {yes,reverse(Acc, [" ..."])};
 print1_tail_max([Car|Cdr], D, I, L, Acc) ->
-    Cs = print1(Car, D, 0, 99999),          %Never break the line
+    Cs = print1(Car, D, 0, 99999),              %Never break the line
     print1_tail_max(Cdr, D-1, I + flatlength(Cs) + 1, L, [Cs," "|Acc]);
 print1_tail_max(S, D, I, L, Acc) ->
-    Cs = print1(S, D, 0, 99999),            %Never break the line
+    Cs = print1(S, D, 0, 99999),                %Never break the line
     print1_tail_max([], D-1, I + flatlength(Cs) + 3, L, [Cs," . "|Acc]).
 
 %% print1_list(List, Depth, Indentation, LineLength)
@@ -226,3 +228,38 @@ indent_type('lc') -> 1;                %List comprehensions
 indent_type('bc') -> 1;                %Binary comprehensions
 indent_type('match-spec') -> 0;
 indent_type(_) -> none.
+
+%% print1_map(Map, Depth, Indentation, LineLength).
+%%  Print a map, one key value pair per line.
+
+print1_map(Map, D, I, L) ->
+    [$#,$M,$(,print1_map_body(maps:to_list(Map), D, I+3, L-1),$)].
+
+print1_map_body([], _, _, _) -> [];
+print1_map_body([KV|KVs], D, I, L) ->
+    [print1_map_assoc(KV, D, I, L)|print1_map_rest(KVs, D-1, I, L)].
+
+print1_map_rest([], _, _, _) -> [];
+print1_map_rest(_, 0, _, _) -> "...";
+print1_map_rest([KV|KVs], D, I, L) ->
+    Massoc = print1_map_assoc(KV, D, I, L),
+    [$\n,blanks(I, []),Massoc|print1_map_rest(KVs, D-1, I, L)].
+
+print1_map_assoc({K,V}, D, I, L) ->
+    Kcs = lfe_io:print1(K, D-1),                %Print without line breaks
+    Kl = flatlength(Kcs),
+    Vcs = lfe_io:print1(V, D-1),                %Print without line breaks
+    Vl = flatlength(Vcs),
+    %% Test whether we can use the one line versions and how.
+    if I + Kl + 1 + Vl =< L ->                  %Both on same line
+            [Kcs,$\s,Vcs];
+       true ->                                  %On separate lines
+            %% Can we use the flat versions?
+            Ks = if I + Kl =< L -> Kcs;
+                    true -> print1(K, D-1, I, L)
+                 end,
+            Vs = if I + Vl =< L -> Vcs;
+                    true -> print1(V, D-1, I, L)
+                 end,
+            [Ks,$\n,blanks(I, []),Vs]
+    end.
