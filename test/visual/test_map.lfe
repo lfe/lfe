@@ -11,32 +11,32 @@
 	 (map #b((1 (size 16)) ("åäö" utf-8)) y)))
 
 ;; (defun get (map)
-;;   (get-map map 'a))
+;;   (map-get map 'a))
 
 ;; (defun set (map v1 v2)
-;;   (set-map map 'a v1 'b (: test_map foo v2)))
+;;   (map-set map 'a v1 'b (: test_map foo v2)))
 
 ;; (defun update (map v1 v2)
-;;   (update-map map 'a v1 'b (: test_map foo v2)))
+;;   (map-update map 'a v1 'b (: test_map foo v2)))
 
 ;; (defun guard
 ;;   ([map x] (when (== (map 'a x) map)) 1)
-;;   ([map x] (when (== (set-map map 'a 1) x)) 2)
-;;   ([map x] (when (== (update-map map 'a 1) x)) 3))
+;;   ([map x] (when (== (map-set map 'a 1) x)) 2)
+;;   ([map x] (when (== (map-update map 'a 1) x)) 3))
 
 (defun get (map)
-  (mref 'a map))
+  (mref map 'a))
 
 (defun set (map v1 v2)
-  (mset 'a v1 'b (: test_map foo v2) map))
+  (mset map 'a v1 'b (: test_map foo v2)))
 
 (defun update (map v1 v2)
-  (mupd 'a v1 'b (: test_map foo v2) map))
+  (mupd map 'a v1 'b (: test_map foo v2)))
 
 (defun guard
   ([map x] (when (== (map 'a x) map)) 1)
-  ([map x] (when (== (mset 'a 1 map) x)) 2)
-  ([map x] (when (== (mupd 'a 1 map) x)) 3))
+  ([map x] (when (== (mset map 'a 1) x)) 2)
+  ([map x] (when (== (mupd map 'a 1) x)) 3))
 
 (defun match
   ([(map 'a x)] x)
