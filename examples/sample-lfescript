@@ -22,13 +22,11 @@
 
 ;; To use this script, do the following:
 ;;  1) make sure that you are in your lfe working directory
-;;  2) $ export PATH=$PATH:./bin
-;;  3) $ export LFESCRIPT_EMULATOR="erl -pa ./ebin"
-;;  4) $ chmod 755 examples/sample-lfescript
+;;  2) $ ln -s `pwd`/bin/lfescript /usr/local/bin/
 ;;
 ;; At this point, you can call this script directly:
 ;;
-;;  $ examples/sample-lfescript.lfe
+;;  $ examples/sample-lfescript
 ;;  usage: examples/sample-lfescript <integer>
 ;;
 ;; As you can see, calling the script like that displays the usage statement.
