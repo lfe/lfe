@@ -36,6 +36,13 @@
 
 -import(lists, [flatten/1,reverse/1,reverse/2,map/2,mapfoldl/3,all/2]).
 
+%% Define IS_MAP/1 macro for is_map/1 bif.
+-ifdef(HAS_MAPS).
+-define(IS_MAP(T), is_map(T)).
+-else.
+-define(IS_MAP(T), false).
+-endif.
+
 %% parse_file(FileName) -> {ok,[{Sexpr,Line}]} | {error,Error}.
 %% Parse a file returning the raw sexprs (as it should be) and line
 %% numbers of start of each sexpr. Handle errors consistently.
@@ -142,7 +149,7 @@ print1(Vec, D) when is_tuple(Vec) ->
     ["#(",print1_list(Es, D-1),")"];
 print1(Bit, _) when is_bitstring(Bit) ->
     ["#B(",print1_bits(Bit),$)];
-print1(Map, D) when is_map(Map) -> print1_map(Map, D);
+print1(Map, D) when ?IS_MAP(Map) -> print1_map(Map, D);
 print1(Other, D) ->                %Use standard Erlang for rest
     io_lib:write(Other, D).
 
