@@ -38,6 +38,13 @@
 -compile({no_auto_import,[apply/3]}).           %For our apply/3 function
 -deprecated([eval/1,eval/2,eval_list/2]).
 
+%% Define IS_MAP/1 macro for is_map/1 bif.
+-ifdef(HAS_MAPS).
+-define(IS_MAP(T), is_map(T)).
+-else.
+-define(IS_MAP(T), false).
+-endif.
+
 %% -compile([export_all]).
 
 %% eval(Sexpr) -> Value.
@@ -853,7 +860,7 @@ match([binary|Ss], Val, Pbs, Env) ->
         false -> no
     end;
 match([map|Ps], Val, Pbs, Env) ->
-    case is_map(Val) of
+    case ?IS_MAP(Val) of
         true -> match_map(Ps, Val, Pbs, Env);
         false -> no
     end;

@@ -24,6 +24,13 @@
 
 -import(lists, [reverse/1,reverse/2,flatlength/1]).
 
+%% Define IS_MAP/1 macro for is_map/1 bif.
+-ifdef(HAS_MAPS).
+-define(IS_MAP(T), is_map(T)).
+-else.
+-define(IS_MAP(T), false).
+-endif.
+
 %% print1(Sexpr) -> [char()].
 %% print1(Sexpr, Depth) -> [char()].
 %% print1(Sexpr, Depth, Indentation, LineLength) -> [char()].
@@ -76,7 +83,7 @@ print1(Tup, D, I, L) when is_tuple(Tup) ->
     end;
 print1(Bit, _, _, _) when is_bitstring(Bit) ->
     ["#B(",lfe_io:print1_bits(Bit, 30),$)];     %First 30 bytes
-print1(Map, D, I, L) when is_map(Map) ->
+print1(Map, D, I, L) when ?IS_MAP(Map) ->
     print1_map(Map, D, I, L);
 print1(Other, _, _, _) ->
     lfe_io:print1(Other).                       %Use standard LFE for rest

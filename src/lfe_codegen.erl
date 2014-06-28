@@ -34,6 +34,13 @@
 
 -include_lib("compiler/src/core_parse.hrl").
 
+%% Define IS_MAP/1 macro for is_map/1 bif.
+-ifdef(HAS_MAPS).
+-define(IS_MAP(T), is_map(T)).
+-else.
+-define(IS_MAP(T), false).
+-endif.
+
 -define(Q(E), [quote,E]).     %We do a lot of quoting!
 
 -record(cg, {opts=[],         %Options
@@ -804,6 +811,7 @@ comp_bitseg({Val,Sz,{Ty,Un,Si,En}}, Env, L, St0) ->
 %% comp_set_map(Map, Args, Line, State) -> {Core,State}.
 %% comp_update_map(Map, Args, Line, State) -> {Core,State}.
 
+-ifdef(HAS_MAPS).
 comp_map(Args, Env, L, St) ->
     Mapper = fun (Cas, _, L, St) ->
                      Pairs = comp_mappairs(Cas, assoc, L),
@@ -828,6 +836,11 @@ comp_update_map(Map, Args, Env, L, St) ->
 comp_mappairs([K,V|Ps], Op, L) ->
     [#c_map_pair{anno=[L],op=c_lit(Op),key=K,val=V}|comp_mappairs(Ps, Op, L)];
 comp_mappairs([], _, _) -> [].
+-else.
+comp_map(_, _, _, St) -> {c_lit(map),St}.
+comp_set_map(_, _, _, _, St) -> {c_lit(map),St}.
+comp_update_map(_, _, _, _, St) -> {c_lit(map),St}.
+-endif.
 
 %% comp_guard(GuardTests, Env, Line, State) -> {CoreGuard,State}.
 %%  Can compile much of the guard as an expression but must wrap it
@@ -1114,6 +1127,7 @@ pat_bitseg({Pat,Sz,{Ty,Un,Si,En}}, L, Vs0, St0) ->
     {Csize,St2} = comp_expr(Sz, noenv, L, St1),
     {c_bitseg(Cpat, Csize, c_int(Un), c_atom(Ty), c_lit([Si,En])),Vs1,St2}.
 
+-ifdef(HAS_MAPS).
 %% pat_map(Args, Line, PatVars, State) -> {#c_map{},PatVars,State}.
 
 pat_map(Args, L, Vs0, St0) ->
@@ -1130,6 +1144,9 @@ pat_map_pairs([], _, Vs, St) -> {[],Vs,St}.
 
 pat_map_key([quote,L]) -> comp_lit(L);
 pat_map_key(L) -> comp_lit(L).
+-else.
+pat_map(_, _, Vs, St) -> {c_lit(map),Vs,St}.
+-endif.
 
 %% c_call(Module, Name, Args, Line) -> #c_call{}.
 %% c_try(Arg, Vars, Body, Evars, Handler, Line) -> #c_try{}.
@@ -1194,9 +1211,8 @@ comp_lit(F) when is_float(F) -> c_float(F);
 comp_lit(Bin) when is_bitstring(Bin) ->
     Bits = comp_lit_bitsegs(Bin),
     #c_binary{anno=[],segments=Bits};
-comp_lit(Map) when is_map(Map) ->
-    Pairs = comp_lit_mappairs(maps:to_list(Map)),
-    #c_map{anno=[],arg=c_lit(#{}),es=Pairs}.
+comp_lit(Map) when ?IS_MAP(Map) ->
+    comp_lit_map(Map).
 
 comp_lit_list(Vals) -> [ comp_lit(V) || V <- Vals ].
 
@@ -1217,10 +1233,18 @@ c_byte_bitseg(B, Sz) ->
     c_bitseg(c_lit(B), c_int(Sz), c_int(1), c_atom(integer),
          c_lit([unsigned,big])).
 
+-ifdef(HAS_MAPS).
+comp_lit_map(Map) ->
+    Pairs = comp_lit_mappairs(maps:to_list(Map)),
+    #c_map{anno=[],arg=c_lit(#{}),es=Pairs}.
+
 comp_lit_mappairs([{K,V}|Ps]) ->
     [#c_map_pair{anno=[],op=c_lit(assoc),key=comp_lit(K),val=comp_lit(V)}|
      comp_lit_mappairs(Ps)];
 comp_lit_mappairs([]) -> [].
+-else.
+comp_lit_map(_) -> c_lit(map).
+-endif.
 
 %% new_symb(State) -> {Symbol,State}.
 %% Create a hopefully new unused symbol.

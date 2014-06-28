@@ -24,6 +24,13 @@
 
 -import(lists, [reverse/1,reverse/2]).
 
+%% Define IS_MAP/1 macro for is_map/1 bif.
+-ifdef(HAS_MAPS).
+-define(IS_MAP(T), is_map(T)).
+-else.
+-define(IS_MAP(T), false).
+-endif.
+
 %% We define the syntax as an LL(1) and write/generate a parser for
 %% it. We also define the grammar with the same form as for yecc even
 %% though we have no automatic generator.
@@ -119,7 +126,7 @@ reduce(12, [_,L,B|Vs]) ->                       %s->#B( p )
     end;
 reduce(13, [_,L,B|Vs]) ->                       %s->#M( p )
     case catch maps:from_list(pair_list(L)) of
-        Map when is_map(Map) -> [Map|Vs];
+        Map when ?IS_MAP(Map) -> [Map|Vs];
         _ -> {error,line(B),{illegal,map}}
     end;
 reduce(14, [T,H|Vs]) -> [[H|T]|Vs];             %l->s t

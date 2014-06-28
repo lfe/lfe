@@ -488,6 +488,7 @@ is_posint_list(_) -> false.
 %% expr_set_map(Map, Pairs, Line, State) -> State.
 %% expr_update_map(Args, Pairs, Line, State) -> State.
 
+-ifdef(HAS_MAPS).
 expr_map(Pairs, Env, L, St) ->
     expr_map_pairs(Pairs, Env, L, St).
 
@@ -526,6 +527,19 @@ map_key(Key, _, L, St) ->
 map_key([quote,_]) -> true;
 map_key([_|_]=L) -> is_posint_list(L);          %Literal strings
 map_key(E) -> not is_atom(E).
+-else.
+expr_map(Ps, _, L, St) ->
+    add_error(L, {unbound_func,{map,safe_length(Ps)}}, St).
+
+expr_get_map(_, _, _, L, St) ->
+    add_error(L, {unbound_func,{'map-get',2}}, St).
+
+expr_set_map(_, Ps, _, L, St) ->
+    add_error(L, {unbound_func,{'map-set',safe_length(Ps)+1}}, St).
+
+expr_update_map(_, Ps, _, L, St) ->
+    add_error(L, {unbound_func,{'map-update',safe_length(Ps)+1}}, St).
+-endif.
 
 %% check_lambda(LambdaBody, Env, Line, State) -> State.
 %% Check form (lambda Args ...).
@@ -870,6 +884,7 @@ gexpr_bitsegs(Segs, Env, L, St0) ->
 %% gexpr_set_map(Map, Pairs, Env, Line, State) -> State.
 %% gexpr_update_map(Map, Pairs, Env, Line, State) -> State.
 
+-ifdef(HAS_MAPS).
 gexpr_map(Pairs, Env, L, St) ->
     gexpr_map_pairs(Pairs, Env, L, St).
 
@@ -891,6 +906,16 @@ gexpr_map_pairs(_, _, L, St) ->
 gexpr_map_assoc(K, V, Env, L, St0) ->
     St1 = map_key(K, Env, L, St0),
     check_gexpr(V, Env, L, St1).
+-else.
+gexpr_map(Ps, _, L, St) ->
+    add_error(L, {unbound_func,{map,safe_length(Ps)}}, St).
+
+gexpr_set_map(_, Ps, _, L, St) ->
+    add_error(L, {unbound_func,{'map-set',safe_length(Ps)+1}}, St).
+
+gexpr_update_map(_, Ps, _, L, St) ->
+    add_error(L, {unbound_func,{'map-update',safe_length(Ps)+1}}, St).
+-endif.
 
 %% pattern(Pattern, Env, L, State) -> {PatVars,State}.
 %% pattern(Pattern, PatVars, Env, L, State) -> {PatVars,State}.
@@ -1074,6 +1099,7 @@ pat_bit_expr(_, Bvs, _, _, L, St) ->
 
 %% pat_map(Args, PatVars, Env, Line, State) -> {PatVars,State}.
 
+-ifdef(HAS_MAPS).
 pat_map([K,V|As], Pvs0, Env, L, St0) ->
     {Pvs1,St1} = pat_map_assoc(K, V, Pvs0, Env, L, St0),
     pat_map(As, Pvs1, Env, L, St1);
@@ -1084,6 +1110,10 @@ pat_map(_, Pvs, _, L, St) ->
 pat_map_assoc(K, V, Pvs, Env, L, St0) ->
     St1 = map_key(K, Env, L, St0),
     pattern(V, Pvs, Env, L, St1).
+-else.
+pat_map(_, Pvs, _, L, St) ->
+    {Pvs,add_error(L, illegal_pattern, St)}.
+-endif.
 
 %% Functions for checking lists of forms, generate bad_form error if
 %% not proper list.
