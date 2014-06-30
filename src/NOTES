@@ -19,7 +19,7 @@ Implementation Notes
 Translating LFE <-> Erlang
 --------------------------
 
-The only complecations are handling the variable scoping and
+The only complications are handling the variable scoping and
 converting between them. Some example cases:
 
 X = b(x),                   (progn
