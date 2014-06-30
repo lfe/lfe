@@ -195,7 +195,6 @@ eval_form(Form, #state{curr=Ce}=St) ->
         {ok,Eforms,Ce1,Ws} ->
             list_warnings(Ws),
             St1 = St#state{curr=Ce1},
-            %% lfe_io:format("~p\n", [Eforms]),
             foldl(fun ({F,_}, {_,S}) -> eval_form_1(F, S) end,
                   {[],St1}, Eforms);
         {error,Es,Ws} ->
@@ -204,6 +203,9 @@ eval_form(Form, #state{curr=Ce}=St) ->
             {error,St}
     end.
 
+eval_form_1([progn|Eforms], St) ->		%Top-level nested progn
+    foldl(fun (F, {_,S}) -> eval_form_1(F, S) end,
+	  {[],St}, Eforms);
 eval_form_1([set|Rest], St0) ->
     {Value,St1} = set(Rest, St0),
     {Value,St1};
