@@ -21,6 +21,18 @@ LIB=lfe
 # To run erl as bash
 FINISH=-run init stop -noshell
 
+# Scripts to be evaluated
+MAPS_MK = 'Has=erl_internal:bif(is_map,1), \
+	HasMaps=if Has -> "-DHAS_MAPS=true\n" ; true -> "\n" end, \
+	file:write_file("maps.mk", "HAS_MAPS = " ++ HasMaps)' \
+	$(FINISH)
+
+GET_VERSION = '{ok,[App]}=file:consult("src/$(LIB).app.src"), \
+	V=proplists:get_value(vsn,element(3,App)), \
+	io:format("~p~n",[V])' \
+	$(FINISH)
+
+
 ## The .erl, .xrl, .yrl and .beam files
 ESRCS = $(notdir $(wildcard $(SRCDIR)/*.erl))
 XSRCS = $(notdir $(wildcard $(SRCDIR)/*.xrl))
@@ -64,10 +76,7 @@ compile: maps.mk
 erlc_compile: $(addprefix $(EBINDIR)/, $(EBINS)) $(addprefix $(BINDIR)/, $(BINS))
 
 maps.mk:
-	erl -eval 'Has=erl_internal:bif(is_map,1), \
-		HasMaps=if Has -> "-DHAS_MAPS=true\n" ; true -> "\n" end, \
-		file:write_file("maps.mk", "HAS_MAPS = " ++ HasMaps)' \
-		$(FINISH)
+	erl -eval $(MAPS_MK)
 
 -include maps.mk
 
@@ -110,10 +119,7 @@ get-version:
 	@echo "Getting version info ..."
 	@echo
 	@echo -n app.src: ''
-	@erl -eval '{ok,[App]}=file:consult("src/$(LIB).app.src"), \
-		V=proplists:get_value(vsn,element(3,App)), \
-		io:format("~p~n",[V])' \
-		$(FINISH)
+	@erl -eval $(GET_VERSION)
 	@echo -n package.exs: ''
 	@grep version package.exs | awk '{print $$2}'| sed -e 's/,//g'
 
