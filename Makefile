@@ -31,7 +31,7 @@ CSRCS = $(notdir $(wildcard $(CSRCDIR)/*.c))
 BINS = $(CSRCS:.c=)
 
 ## Where we install links to the LFE binaries.
-DESTBINDIR = $(shell dirname `which erl` 2> /dev/null) || /usr/local/bin
+DESTBINDIR = $(PREFIX)$(shell dirname `which erl` 2> /dev/null) || /usr/local/bin
 
 .SUFFIXES: .erl .beam
 
