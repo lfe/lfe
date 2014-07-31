@@ -26,7 +26,7 @@ YSRCS = $(notdir $(wildcard $(SRCDIR)/*.yrl))
 EBINS = $(ESRCS:.erl=.beam) $(XSRCS:.xrl=.beam) $(YSRCS:.yrl=.beam)
 
 ## Where we install LFE, in the ERL_LIBS directory.
-INSTALLDIR = $(ERL_LIBS)/lfe-$(shell cat VERSION)
+INSTALLDIR = $(PREFIX)$(ERL_LIBS)/lfe-$(shell cat VERSION)
 
 .SUFFIXES: .erl .beam
 
