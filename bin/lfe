@@ -37,11 +37,17 @@ i="$#"				# Counter
 # First step over the flag section adding them to the end.
 while [ $i -gt 0 ]; do
     case "$1" in
+	-eval | -lfe_eval)	# We are going to eval
+	    break ;;		#  delay removing this
 	-extra | --)		# We are explicitly done
 	    shift ; i=`expr $i - 1`
 	    break ;;
 	-* | +*)		# Flags
-	    set -- "$@" "$1"
+	    if [ "$1" = "-erl_eval" ]; then
+		set -- "$@" "-eval"
+	    else
+		set -- "$@" "$1"
+	    fi
 	    shift ; i=`expr $i - 1`
 	    while [ $i -gt 0 ]; do
 		case "$1" in
@@ -57,17 +63,25 @@ while [ $i -gt 0 ]; do
     esac
 done
 
-# Add the middle bits to the end.
+# Add the middle bits to the end, the path and a -noshell flag if
+# there are more arguments.
 set -- "$@" "-pa" "$LFE_ROOTDIR/ebin"
 if [ $i -gt 0 ]; then
     set -- "$@" "-noshell"
 fi
 set -- "$@" "-user" "lfe_init" "-extra"
 
+# Check if we are 'eval'ing and add -lfe_eval flag
+if [ "$1" = "-eval" -o "$1" = "-lfe_eval" ]; then
+    shift ; i=`expr $i - 1`	# Now we remove it as it has -noshell'ed
+    set -- "$@" "-lfe_eval"
+fi
+
 # Step over the arg section adding them to the end.
-while [  $i -gt 0 ]; do
+while [ $i -gt 0 ]; do
     set -- "$@" "$1"
     shift ; i=`expr $i - 1`
 done
 
+# echo "$@"
 exec erl "$@"
