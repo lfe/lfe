@@ -33,12 +33,31 @@
 
 start() ->
     case init:get_plain_arguments() of
-	[S|As] ->				%Run a script
-	    user:start(),			%Start user for io
-	    spawn(fun () ->
-			  lfe_shell:run_script(S, As),
-			  init:stop()
-		  end);
-	[] ->					%Run a shell
-	    user_drv:start(['tty_sl -c -e',{lfe_shell,start,[]}])
+        ["-lfe_eval"|As] ->                     %Run a command string
+            user:start(),                       %Start user for io
+            run_string(As);
+        [S|As] ->                               %Run a script
+            user:start(),                       %Start user for io
+            spawn_link(fun () ->
+                               lfe_shell:run_script(S, As),
+                               init:stop(0)
+                       end);
+        [] ->                                   %Run a shell
+            user_drv:start(['tty_sl -c -e',{lfe_shell,start,[]}])
     end.
+
+run_string([]) -> run_string([], []);           %No command
+run_string(["--"]) -> run_string([], []);       %No command
+run_string([S,"--"|As]) -> run_string(S, As);
+run_string([S|As]) -> run_string(S, As).
+
+run_string([], _) ->                            %No command
+    io:put_chars(user, "eval: missing command\n"),
+    halt(1);
+run_string(S, []) ->
+    run_string(S, ["lfe"]);
+run_string(S, As) ->
+    spawn_link(fun () ->
+                       lfe_shell:run_string(S, As),
+                       init:stop(0)
+               end).
