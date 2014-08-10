@@ -30,7 +30,7 @@
          run_script/2,run_script/3,run_string/2,run_string/3]).
 
 %% The shell commands which generally callable.
--export([c/1,c/2,ec/1,ec/2,i/0,i/1,l/1,m/0,m/1,pid/3,p/1,pp/1,regs/0]).
+-export([c/1,c/2,ec/1,ec/2,i/0,i/1,l/1,m/0,m/1,pid/3,p/1,pp/1,regs/0,exit/0]).
 
 -import(lfe_env, [new/0,add_env/2,
                   add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
@@ -180,7 +180,8 @@ add_shell_functions(Env0) ->
           {pid,3,[lambda,[i,j,k],[':',lfe_shell,pid,i,j,k]]},
           {p,1,[lambda,[e],[':',lfe_shell,p,e]]},
           {pp,1,[lambda,[e],[':',lfe_shell,pp,e]]},
-          {regs,0,[lambda,[],[':',lfe_shell,regs]]}
+          {regs,0,[lambda,[],[':',lfe_shell,regs]]},
+          {exit,0,[lambda,[],[':',lfe_shell,exit]]}
          ],
     Add = fun ({N,Ar,Def}, E) ->
                   lfe_eval:add_dynamic_func(N, Ar, Def, E)
@@ -548,3 +549,8 @@ pid(A, B, C) -> c:pid(A, B, C).
 %% regs() -> ok.
 
 regs() -> c:regs().
+
+%% exit() -> ok.
+
+exit() -> c:q().
+
