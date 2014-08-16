@@ -51,7 +51,6 @@
 format_error({bad_mdef,D}) ->
     lfe_io:format1("bad module definition: ~w", [D]);
 format_error(bad_extends) -> "bad extends";
-format_error(missing_module) -> "missing module";
 format_error(bad_funcs) -> "bad function list";
 format_error(bad_body) -> "bad body";
 format_error(bad_clause) -> "bad clause";
@@ -202,32 +201,35 @@ check_mdef(_, L, St) -> bad_mdef_error(L, form, St).
 
 check_imports(Is, L, St) ->
     check_foreach(fun (I, S) -> check_import(I, L, S) end,
-          fun (S) -> import_error(L, S) end, St, Is).
+                  fun (S) -> import_error(L, S) end, St, Is).
 
 check_import([from,Mod|Fs], L, St) when is_atom(Mod) ->
-    check_import(fun ([F,A], Imps, S) when is_atom(F), is_integer(A) ->
-             {store({F,A}, F, Imps),S};
-             (_, Imps, S) -> {Imps,bad_mdef_error(L, from, S)}
-         end, Mod, L, St, Fs);
+    Check = fun ([F,A], Imps, S) when is_atom(F), is_integer(A) ->
+                    {store({F,A}, F, Imps),S};
+                (_, Imps, S) -> {Imps,bad_mdef_error(L, from, S)}
+            end,
+    check_import(Check, Mod, L, St, Fs);
 check_import([rename,Mod|Rs], L, St) when is_atom(Mod) ->
-    check_import(fun ([[F,A],R], Imps, S)
-             when is_atom(F), is_integer(A), is_atom(R) ->
-             {store({F,A}, R, Imps),S};
-             (_, Imps, S) -> {Imps,bad_mdef_error(L, rename, S)}
-         end, Mod, L, St, Rs);
+    Check = fun ([[F,A],R], Imps, S) when is_atom(F),
+                                          is_integer(A),
+                                          is_atom(R) ->
+                    {store({F,A}, R, Imps),S};
+                (_, Imps, S) -> {Imps,bad_mdef_error(L, rename, S)}
+            end,
+    check_import(Check, Mod, L, St, Rs);
 check_import([prefix,Mod,Pre], L, St) when is_atom(Mod), is_atom(Pre) ->
     Pstr = atom_to_list(Pre),
     case find(Pstr, St#lint.pref) of
-    {ok,_} -> bad_mdef_error(L, prefix, St);
-    error ->
-        Pref = store(Pstr, Mod, St#lint.pref),
-        St#lint{pref=Pref}
+        {ok,_} -> bad_mdef_error(L, prefix, St);
+        error ->
+            Pref = store(Pstr, Mod, St#lint.pref),
+            St#lint{pref=Pref}
     end;
 check_import(_, L, St) -> import_error(L, St).
 
-check_import(Fun, Mod, L, St0, Fs) ->
+check_import(Check, Mod, L, St0, Fs) ->
     Imps0 = safe_fetch(Mod, St0#lint.imps, []),
-    {Imps1,St1} = foldl_form(Fun, import, L, Imps0, St0, Fs),
+    {Imps1,St1} = foldl_form(Check, import, L, Imps0, St0, Fs),
     St1#lint{imps=store(Mod, Imps1, St1#lint.imps)}.
 
 import_error(L, St) -> bad_mdef_error(L, import, St).
@@ -242,7 +244,6 @@ is_flist(_, _) -> no.
 %% check_module(FuncBindings, State) -> State.
 %%  Do all the actual work checking a module.
 
-check_module([], St) -> add_error(0, missing_module, St);
 check_module(Fbs0, St0) ->
     %% Make an initial environment and set up state.
     {Predefs,Env0,St1} = init_state(St0),
