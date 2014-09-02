@@ -76,7 +76,7 @@ format1(Format, Args) -> DeepCharList
 	~x, ~X		- based integers with a prefix
 	~+, ~#		- based integers in vanilla erlang format
 	~c, ~n, ~i
-	
+
 	Currently they behave as for vanilla erlang except that ~w,
 	~W, ~p, ~P print the terms as LFE sexprs.
 
@@ -100,7 +100,7 @@ Error Information
 	following format:
 
 	{ErrorLine,Module,ErrorDescriptor}
-    
+
 	A string describing the error is obtained with the following call:
 
 	apply(Module, format_error, ErrorDescriptor)

@@ -1,0 +1,307 @@
+MODULE
+
+    lfeunit
+
+MODULE SUMMARY
+
+    Lisp Flavoured Erlang (LFE) EUnit wrapper
+
+DESCRIPTION
+
+    This module provides a set of macros that allow the developer
+    to define unit tests, generated unit tests, and even tests to
+    be skipped without having to manually type a bunch of boiler
+    plate code.
+
+    Futhermore, lfeunit provides wrappers for EUnit assert macros
+    have have Lispy names and require less typing.
+
+DATA TYPES
+
+    bool = ['true | 'false]
+
+EXPORTS
+
+(check-failed-assert data error) -> bool
+
+    This function unwraps the data held in the error result
+    returned by a failed assertion, and checks the buried failure
+    type against an expected value, asserting that they are the
+    same.
+
+(check-wrong-assert-exception data error) -> bool
+
+    This function unwraps the data held in the error result
+    returned by assert-exception when an unexpected error occurs,
+    and checks the buried failure type against an expected value,
+    asserting that they are the same.
+
+MACROS
+
+(deftest test-name body)
+
+    Generates a function of the following form, used for defining
+    unit tests:
+
+        (defun test-name_test () body)
+
+(deftestgen test-name body)
+
+    Generates a function of the following form, used for defining
+    unit tests that are generated:
+
+        (defun test_name_test_ () body)
+
+    Note the trailing underscore, and the fact that there can be
+    no dashes (all dashes are converted to underscores).
+
+(deftestskip test-name body)
+
+    Generates a function of the following form, used for defining
+    unit tests that (for whatever reason) are not deemed ready
+    for evaluation and testing by the test runner:
+
+        (defun test_name_skip () body)
+
+(is expr)
+
+    Evaluates the boolean expression expr. Unless the result is
+    true, an informative exception will be generated. If there is
+    no exception, the result of the macro expression is the atom
+    'true, and the value of expr is discarded.
+
+(is-not expr)
+
+    The logical opposite of the previous macro.
+
+(is-equal expected expr)
+
+    Evaluates the expressions expected and expr and compares the
+    results for equality. If the values are not equal, an
+    informative exception will be generated.
+
+    (is-equal ...) is more suitable than than (is-match ...) when
+    the left-hand side is a computed value rather than a simple
+    pattern, and gives more details than (is (=:= expected expr)).
+
+(is-not-equal value expr)
+
+    The logical opposite of the previous macro.
+
+(is-exception expected-class expected-term expr)
+
+    Evaluates expr, catching any exception and testing that it
+    matches the expected class pattern and term pattern. If the
+    match fails, or if no exception is thrown by expr, an
+    informative exception will be generated.
+
+(is-not-exception expected-class expected-term expr)
+
+    The logical opposite of the previous macro.
+
+(is-error error expr)
+
+    This is equivalent to using (is-exception ...) with an
+    expected-class of 'error.
+
+(is-not-error error expr)
+
+    The logical opposite of the previous macro.
+
+(is-exit expected-term expr)
+
+    This is equivalent to using (is-exception ...) with an
+    expected-class of 'exit.
+
+(is-not-exit expected-term expr)
+
+    The logical opposite of the previous macro.
+
+(is-throw expected-term expr)
+
+    This is equivalent to using (is-exception ...) with an
+    expected-class of 'throw.
+
+(is-not-throw expected-term expr)
+
+    The logical opposite of the previous macro.
+
+(is-match guard expr)
+
+    Evaluates expr and matches the result against the guard
+    pattern guard. If the match fails, an informative exception
+    will be generated. guard can be anything that you can write
+    in a guard of a (case ...) clause.
+
+    The main reason for using (is-match ...) also for simple
+    matches, instead of matching with =, is that it produces
+    more detailed error messages.
+
+BEST PRACTICES
+
+Test Types
+
+    * Separate unit, integration, and system tests. Each of these
+      have dedicated pages on Wikipedia and we recommend reading
+      up on them.
+
+    * In your unit tests, if you find yourself coming up against
+      an I/O boundary, either mock it (e.g., with meck) or move
+      the test into integration or system.
+
+Directory Structure
+
+    Each test type should have its own directory for test modules
+    of that type. Here is the recommended structure:
+
+        ./test/unit
+        ./test/integration
+        ./test/system
+
+Naming
+
+    By convention, Lisp function names use dashes, not
+    underscores. We recommend doing this for your test modules
+    and filenames. The only exception to this is when using
+    (deftestgen ...); this is due to a limiation in EUnit.
+
+    Test modules and filenames should end in -test. Files, of
+    course, need to also have the .lfe extension at the end.
+
+    Unit test module filenames should begin with unit-. Integration
+    and system tests should begin with integration- and system-,
+    respectively. This makes it possible for the test runner to
+    only run one type of test (e.g., unit) if one would prefer
+    not to run the others (e.g., integration and system) at the
+    same time.
+
+    The (deftest* ...) macros append appropriate _test* atoms to
+    the test functions, so there is no need to name your test
+    functions with 'test' in them.
+
+    When using the (deftestgen ...) macro for writing unit tests
+    with fixtures or with generated tests, you may use dashes.
+    However, keep in mind that due to EUnit limitations with regard
+    to generated tests and fixtures, lfeunit will convert all dashes
+    in a (deftestgen ...) name to underscores.
+
+Running
+
+    LFE projects may take advantage of lfetool for many things,
+    one of which is running unit, integration, and system tests
+    with colorized output and regular, clean formatting.
+    Installation is done with the following:
+
+        $ curl -o ./lfetool https://raw.github.com/lfe/lfetool/master/lfetool
+        $ bash lfetool install /usr/local/bin
+
+    At which point, tests for LFE may be run with:
+
+        $ lfetool tests unit
+
+EXAMPLES
+
+Defining a Test Module
+
+    Assuming one is using rebar for one's project and lfe is a
+    dependency, a unit test module for special-project would be
+    created like so:
+
+        $ touch ./test/unit/unit-my-project-tests.lfe
+
+    And the content of that file would start with the following:
+
+        (defmodule unit-my-project-tests
+          (export all))
+
+        (include-lib "deps/lfe/include/lfeunit.lfe")
+
+Defining a Standard Test Case
+
+    Adding a test case is as simple as this:
+
+        (deftest my-test
+          (is 'true)
+          (is-not 'false)
+          (is-equal 1 1)
+          (is-not-equal 1 2))
+
+Defining a Named Test Case
+
+    Tests can be named or tagged with comments using tuples:
+
+        (deftest my-test
+          (tuple '"This is my named test"
+            (is 'true)
+            (is-not 'false)
+            (is-equal 1 1)
+            (is-not-equal 1 2)))
+
+Defining Test Sets
+
+    One can split tests into sets by using lists:
+
+        (deftest my-test
+          (list
+            (is 'true))
+          (list
+            (is-not 'false))
+          (list
+            (is-equal 1 1)
+            (is-not-equal 1 2)))
+
+    Note that there is no functional difference between this and
+    a standard test case. Neither execution nor reporting changes
+    as a result of this superficial addition of structure.
+
+Defining a Generated Test Case
+
+    Generated tests are ones where the tests are not explicitly
+    defined, but are rather created by a function (anonymous or
+    named). This is particularly useful when one has a great
+    deal of repitition or there are 100s or 1000s of identical
+    operations that need to take place.
+
+        (deftestgen my-gen-test
+          (lambda () (is 'true)))
+
+Defining a Test Case with Fixtures
+
+    Before we show the example, let's define some functions that
+    the example will use:
+
+        (defun set-up ()
+          'ok)
+
+        (defun tear-down (set-up-result)
+          (is-equal set-up-result 'ok))
+
+        (defun setup_test_case (set-up-result)
+          "This is called the 'Instantiator' in EUnit parlance."
+          (list
+            (lambda ()
+              (is-equal set-up-result 'ok))
+            (lambda ()
+              (is-not-equal 'this-test 'very-silly))))
+
+        (defun foreach_test_case (set-up-result)
+          "This is called the 'Instantiator' in EUnit parlance."
+          (list
+            (lambda ()
+              (is-equal set-up-result 'ok))
+            (lambda ()
+              (is-not-equal 'this-test 'very-silly))))
+
+    Here is an example of a foreach EUnit fixture in lfeunit that
+    uses the functions defined above:
+
+        (deftestgen foreach-setup
+          (tuple
+            'foreach
+            (lambda () (set-up))
+            (list
+              (lambda (x) (setup_test_case x))
+              (lambda (x) (foreach_test_case x)))))
+
+    For more fixture examples, be sure to read the lfeunit unit tests
+    in ./test/unit/unit-*-tests.lfe.

@@ -5,3 +5,4 @@ maps.mk
 src/lfe_scan.erl
 erl_crash.dump
 *.elc
+bin/expm
