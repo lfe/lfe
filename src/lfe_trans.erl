@@ -85,9 +85,9 @@ from_expr({bin,_,Segs}, Vt0, St0) ->
     {Ss,Vt1,St1} = from_bitsegs(Segs, Vt0, St0),
     {[binary|Ss],Vt1,St1};
 %% Core closure special forms.
-from_expr({'fun',_,{clauses,Cls}}, Vt0, St0) ->
-    {Lcls,Vt1,St1} = from_fun_cls(Cls, Vt0, St0),
-    {['match-lambda'|Lcls],Vt1,St1};        %Don't bother using lambda
+from_expr({'fun',_,{clauses,Cls}}, Vt, St0) ->
+    {Lcls,St1} = from_fun_cls(Cls, Vt, St0),
+    {['match-lambda'|Lcls],Vt,St1};        %Don't bother using lambda
 from_expr({'fun',_,{function,F,A}}, Vt, St) ->
     {['fun',F,A],Vt,St};                    %Return macros here?
 from_expr({'fun',_,{function,M,F,A}}, Vt, St) ->
@@ -237,19 +237,24 @@ from_icrt_cl({clause,_,H,[G],B}, Vt0, St0) ->
     Leg = from_eq_tests(Eqt),
     {[Lh,['when'|Leg ++ Lg]|Lb],Vt3,St3}.
 
-%% from_fun_cls(Clauses, VarTable, State) -> {Clauses,VarTableState}.
+%% from_fun_cls(Clauses, VarTable, State) -> {Clauses,State}.
 %% from_fun_cl(Clause, VarTable, State) -> {Clause,VarTable,State}.
-%%  Function clauses.
+%%  Function clauses, all variables in the patterns are new variables
+%%  which shadow existing variables without equality tests.
 
-from_fun_cls(Cls, Vt, St) -> from_cls(fun from_fun_cl/3, Vt, St, Cls).
+from_fun_cls(Cls, Vt, St0) ->
+    {Lcls,_,St1} = from_cls(fun from_fun_cl/3, Vt, St0, Cls),
+    {Lcls,St1}.
 
 from_fun_cl({clause,_,H,[],B}, Vt0, St0) ->
-    {Lh,Eqt,Vt1,St1} = from_pat_list(H, Vt0, St0),
+    {Lh,Eqt,Vtp,St1} = from_pat_list(H, [], St0),
+    Vt1 = ordsets:union(Vtp, Vt0),              %All variables so far
     {Lb,Vt2,St2} = from_body(B, Vt1, St1),
     Leg = from_eq_tests(Eqt),
     {[Lh,['when'|Leg]|Lb],Vt2,St2};
 from_fun_cl({clause,_,H,[G],B}, Vt0, St0) ->
-    {Lh,Eqt,Vt1,St1} = from_pat_list(H, Vt0, St0),
+    {Lh,Eqt,Vtp,St1} = from_pat_list(H, [], St0),
+    Vt1 = ordsets:union(Vtp, Vt0),              %All variables so far
     {Lg,Vt2,St2} = from_body(G, Vt1, St1),
     {Lb,Vt3,St3} = from_body(B, Vt2, St2),
     Leg = from_eq_tests(Eqt),
