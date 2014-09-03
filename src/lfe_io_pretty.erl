@@ -57,20 +57,20 @@ print1(['unquote-splicing',E], D, I, L) -> [",@",print1(E, D, I+2, L)];
 print1([Car|_]=List, D, I, L) ->
     %% Handle printable lists specially.
     case io_lib:printable_list(List) of
-    true -> lfe_io:print1_string(List, $");     %"
-    false ->
-        case print1_list_max(List, D-1, I+1, L-1) of
-            {yes,Print} -> ["(",Print,")"];
-            no ->
-                %% Customise printing of lists.
-                case indent_type(Car) of
-                    none ->                     %Normal lists.
-                        ["(",print1_list(List, D-1, I+1, L-1),")"];
-                    defun ->                    %Special case for defuns
-                        print1_defun(List, D, I, L);
-                    N when is_integer(N) ->     %Special N first elements
-                        print1_type(List, D, I, L, N)
-                end
+        true -> lfe_io:print1_string(List, $"); %"
+        false ->
+            case print1_list_max(List, D-1, I+1, L-1) of
+                {yes,Print} -> ["(",Print,")"];
+                no ->
+                    %% Customise printing of lists.
+                    case indent_type(Car) of
+                        none ->                 %Normal lists.
+                            ["(",print1_list(List, D-1, I+1, L-1),")"];
+                        defun ->                %Special case for defuns
+                            print1_defun(List, D, I, L);
+                        N when is_integer(N) -> %Special N first elements
+                            print1_type(List, D, I, L, N)
+                    end
             end
     end;
 print1([], _, _, _) -> "()";
@@ -81,8 +81,8 @@ print1(Tup, D, I, L) when is_tuple(Tup) ->
         {yes,Print}  -> ["#(",Print,")"];
         no -> ["#(",print1_list(Es, D-1, I+2, L),")"]
     end;
-print1(Bit, _, _, _) when is_bitstring(Bit) ->
-    ["#B(",lfe_io:print1_bits(Bit, 30),$)];     %First 30 bytes
+print1(Bit, D, _, _) when is_bitstring(Bit) ->
+    ["#B(",lfe_io:print1_bits(Bit, D),$)];      %First D bytes
 print1(Map, D, I, L) when ?IS_MAP(Map) ->
     print1_map(Map, D, I, L);
 print1(Other, _, _, _) ->
@@ -103,7 +103,7 @@ print1_defun([Def,Name,Args|Rest], D, I, L) when
         false ->                                %Matching
             Tcs = print1_tail([Args|Rest], D-2, I+2, L),
             ["(",Dcs," ",Ncs,Tcs,")"]
-        end;
+    end;
 print1_defun(List, D, I, L) ->
     %% Too short to get worked up about, or not a "proper" defun or
     %% not enough depth.
@@ -151,7 +151,8 @@ print1_list_max([Car|Cdr], D, I, L) ->
 %%  we just quit as we know necessary "..." will have come from an
 %%  earlier print1 at same depth.
 
-print1_tail_max(_, _, I, L, _) when I >= L -> no;    %No more room
+print1_tail_max(_, _, I, L, _) when I >= L ->   %No more room
+    no;
 print1_tail_max([], _, _, _, Acc) -> {yes,reverse(Acc)};
 print1_tail_max(_, 0, _, _, Acc) -> {yes,reverse(Acc, [" ..."])};
 print1_tail_max([Car|Cdr], D, I, L, Acc) ->
@@ -162,23 +163,65 @@ print1_tail_max(S, D, I, L, Acc) ->
     print1_tail_max([], D-1, I + flatlength(Cs) + 3, L, [Cs," . "|Acc]).
 
 %% print1_list(List, Depth, Indentation, LineLength)
-%%  Print a list, one element per line. No leading/trailing ().
+%%  Print a list, one element per line but print multiple atomic
+%%  elements on one line. No leading/trailing ().
 
 print1_list([], _, _, _) -> [];
 print1_list(_, 0, _, _) -> "...";
 print1_list([Car|Cdr], D, I, L) ->
-    [print1(Car, D, I, L),print1_tail(Cdr, D-1, I, L)].
+    case print1_element(Car, I, D, I, L) of
+        {join,Ccs,Cl} ->                        %Atomic that fits
+            [Ccs|print1_tail(Cdr, I+Cl, D, I, L)];
+        {break,Ccs,_} ->                        %Atomic that does not fit
+            [Ccs|print1_tail(Cdr, L, D, I, L)];
+        {break,Ccs} ->                          %Non-atomic
+            [Ccs|print1_tail(Cdr, L, D, I, L)]
+    end.
 
 %% print1_tail(Tail, Depth, Indentation, LineLength)
+%% print1_tail(Tail, CurrentLength, Depth, Indentation, LineLength)
 %%  Print the tail of a list decreasing the depth for each element. We
-%%  know about dotted pairs.
+%%  print multiple atomic elements on one line and we know about
+%%  dotted pairs.
 
-print1_tail([], _, _, _) -> "";
-print1_tail(_, 0, _, _) -> "...";
-print1_tail([Car|Cdr], D, I, L) ->
-    ["\n",blanks(I, []),print1(Car, D, I, L),print1_tail(Cdr, D-1, I, L)];
-print1_tail(S, D, I, L) ->
-    [" .\n",blanks(I, print1(S, D, I, L))].
+print1_tail(Tail, D, I, L) ->
+    print1_tail(Tail, L, D, I, L).              %Force a break
+
+print1_tail([], _, _, _, _) -> "";
+print1_tail(_, _, 0, _, _) -> " ...";
+print1_tail([Car|Cdr], CurL, D, I, L) ->
+    case print1_element(Car, CurL+1, D, I, L) of
+        {join,Ccs,Cl} ->                        %Atomic that fits
+            [$\s,Ccs,print1_tail(Cdr, CurL+1+Cl, D-1, I, L)];
+        {break,Ccs,Cl} ->                       %Atomic that does not fit
+            [$\n,blanks(I, Ccs),print1_tail(Cdr, I+Cl, D-1, I, L)];
+        {break,Ccs} ->                          %Non-atomic
+            %% Force a break after not an atomic.
+            [$\n,blanks(I, Ccs),print1_tail(Cdr, L, D-1, I, L)]
+    end;
+print1_tail(Cdr, CurL, D, I, L) ->
+    case print1_element(Cdr, CurL+3, D, I, L) of
+        {join,Ccs,_} -> [" . "|Ccs];            %Atomic that fits
+        {break,Ccs,_} ->                        %Atomic that does not fit
+            [" .\n",blanks(I, Ccs)];
+        {break,Ccs} ->                          %Non-atomic
+            [" .\n",blanks(I, Ccs)]
+    end.
+
+print1_element(E, CurL, D, _, L) when is_number(E);
+                                      is_atom(E);
+                                      is_pid(E);
+                                      is_reference(E);
+                                      is_port(E);
+                                      is_function(E);
+                                      E =:= [] ->
+    Ecs = lfe_io:print1(E, D),
+    El = flatlength(Ecs),
+    if CurL+El =< L - 10 -> {join,Ecs,El};      %Don't make the line too wide
+       true -> {break,Ecs,El}
+    end;
+print1_element(E, _, D, I, L) ->
+    {break,print1(E, D, I, L)}.
 
 blanks(N, Tail) -> string:chars($\s, N, Tail).
 
@@ -247,7 +290,7 @@ print1_map_body([KV|KVs], D, I, L) ->
     [print1_map_assoc(KV, D, I, L)|print1_map_rest(KVs, D-1, I, L)].
 
 print1_map_rest([], _, _, _) -> [];
-print1_map_rest(_, 0, _, _) -> "...";
+print1_map_rest(_, 0, _, _) -> " ...";
 print1_map_rest([KV|KVs], D, I, L) ->
     Massoc = print1_map_assoc(KV, D, I, L),
     [$\n,blanks(I, []),Massoc|print1_map_rest(KVs, D-1, I, L)].
