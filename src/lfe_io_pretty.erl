@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2013 Robert Virding
+%% Copyright (c) 2008-2014 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -175,6 +175,7 @@ print1_list([Car|Cdr], D, I, L) ->
         {break,Ccs,_} ->                        %Atomic that does not fit
             [Ccs|print1_tail(Cdr, L, D, I, L)];
         {break,Ccs} ->                          %Non-atomic
+            %% Force a break after not an atomic.
             [Ccs|print1_tail(Cdr, L, D, I, L)]
     end.
 
@@ -194,10 +195,10 @@ print1_tail([Car|Cdr], CurL, D, I, L) ->
         {join,Ccs,Cl} ->                        %Atomic that fits
             [$\s,Ccs,print1_tail(Cdr, CurL+1+Cl, D-1, I, L)];
         {break,Ccs,Cl} ->                       %Atomic that does not fit
-            [$\n,blanks(I, Ccs),print1_tail(Cdr, I+Cl, D-1, I, L)];
+            [newline(I, Ccs),print1_tail(Cdr, I+Cl, D-1, I, L)];
         {break,Ccs} ->                          %Non-atomic
             %% Force a break after not an atomic.
-            [$\n,blanks(I, Ccs),print1_tail(Cdr, L, D-1, I, L)]
+            [newline(I, Ccs),print1_tail(Cdr, L, D-1, I, L)]
     end;
 print1_tail(Cdr, CurL, D, I, L) ->
     case print1_element(Cdr, CurL+3, D, I, L) of
@@ -224,6 +225,11 @@ print1_element(E, _, D, I, L) ->
     {break,print1(E, D, I, L)}.
 
 blanks(N, Tail) -> string:chars($\s, N, Tail).
+
+newline(N) -> newline(N, []).
+
+newline(N, Tail) ->
+    [$\n|blanks(N, Tail)].
 
 %% indent_type(Form) -> N | none.
 %%  Defines special indentation. None means default, N is number of
@@ -283,33 +289,60 @@ indent_type(_) -> none.
 %%  Print a map, one key value pair per line.
 
 print1_map(Map, D, I, L) ->
-    [$#,$M,$(,print1_map_body(maps:to_list(Map), D, I+3, L-1),$)].
+    [$#,$M,$(,print1_map_body(maps:to_list(Map), I+3, D, I+3, L-1),$)].
 
-print1_map_body([], _, _, _) -> [];
-print1_map_body([KV|KVs], D, I, L) ->
-    [print1_map_assoc(KV, D, I, L)|print1_map_rest(KVs, D-1, I, L)].
-
-print1_map_rest([], _, _, _) -> [];
-print1_map_rest(_, 0, _, _) -> " ...";
-print1_map_rest([KV|KVs], D, I, L) ->
-    Massoc = print1_map_assoc(KV, D, I, L),
-    [$\n,blanks(I, []),Massoc|print1_map_rest(KVs, D-1, I, L)].
-
-print1_map_assoc({K,V}, D, I, L) ->
-    Kcs = lfe_io:print1(K, D-1),                %Print without line breaks
-    Kl = flatlength(Kcs),
-    Vcs = lfe_io:print1(V, D-1),                %Print without line breaks
-    Vl = flatlength(Vcs),
-    %% Test whether we can use the one line versions and how.
-    if I + Kl + 1 + Vl =< L ->                  %Both on same line
-            [Kcs,$\s,Vcs];
-       true ->                                  %On separate lines
-            %% Can we use the flat versions?
-            Ks = if I + Kl =< L -> Kcs;
-                    true -> print1(K, D-1, I, L)
-                 end,
-            Vs = if I + Vl =< L -> Vcs;
-                    true -> print1(V, D-1, I, L)
-                 end,
-            [Ks,$\n,blanks(I, []),Vs]
+print1_map_body([], _, _, _, _) -> [];
+print1_map_body([{K,V}|KVs], CurL, D, I, L) ->
+    case print1_map_assoc(K, V, CurL, D, I, L) of
+        {join,KVcs,KVl} ->
+            [KVcs,print1_map_rest(KVs, CurL+KVl, D-1, I, L)];
+        {break,KVcs,KVl} ->
+            [KVcs,print1_map_rest(KVs, I+KVl, D-1, I, L)];
+        {break,KVcs} ->
+            %% Force a break after K/V split.
+            [KVcs,print1_map_rest(KVs, L, D-1, I, L)]
     end.
+
+print1_map_rest([], _, _, _, _) -> "";
+print1_map_rest(_, _, 0, _, _) -> " ...";
+print1_map_rest([{K,V}|KVs], CurL, D, I, L) ->
+    case print1_map_assoc(K, V, CurL+1, D, I, L) of
+        {join,KVcs,KVl} ->
+            [$\s,KVcs,print1_map_rest(KVs, CurL+KVl+1, D-1, I, L)];
+        {break,KVcs,KVl} ->
+            [newline(I, KVcs),print1_map_rest(KVs, I+KVl, D-1, I, L)];
+        {break,KVcs} ->
+            %% Force a break after K/V split.
+            [newline(I, KVcs),print1_map_rest(KVs, L, D-1, I, L)]
+    end.
+
+print1_map_assoc(K, V, CurL, D, I, L) ->
+    Kcs = print1(K, D, 0, 99999),               %Never break the line
+    Kl = flatlength(Kcs),
+    Vcs = print1(V, D, 0, 99999),               %Never break the line
+    Vl = flatlength(Vcs),
+    if CurL+Kl+Vl < L-10 ->                     %Both fit together here
+            {join,[Kcs,$\s,Vcs],Kl+1+Vl};
+       I+Kl+Vl < L-10 ->                        %Both fit on single line
+            {break,[Kcs,$\s,Vcs],Kl+1+Vl};
+       true ->                                  %On separate lines
+            %% Try to reuse flat prints if they fit on one line.
+            Ks = if I+Kl < L-10 -> Kcs;
+                    true -> print1(K, D, I, L)
+                 end,
+            Vs = if I+Vl < L-10 -> Vcs;
+                    true -> print1(V, D, I, L)
+                 end,
+            {break,[Ks,newline(I, Vs)]}
+    end.
+
+last_length(S) -> last_length(S, 0).
+
+last_length([H|T], L0) when is_list(H) ->
+    L1 = last_length(H, L0),                    %Must go left-to-right
+    last_length(T, L1);
+last_length([$\n|T], _) ->
+    last_length(T, 0);
+last_length([_|T], L) ->
+    last_length(T, L+1);
+last_length([], L) -> L.
