@@ -19,19 +19,19 @@
 -module(lfe_lint).
 
 -export([module/1,module/2,form/1,expr/1,expr/2,pattern/1,pattern/2,
-    format_error/1]).
+         format_error/1]).
 
 -import(lfe_env, [new/0,is_vbound/2,is_fbound/3,is_gbound/3,
-    add_vbinding/3,add_fbinding/4,add_ibinding/5]).
+                  add_vbinding/3,add_fbinding/4,add_ibinding/5]).
 
 -import(lfe_lib, [is_erl_bif/2,is_guard_bif/2,
-    is_symb_list/1,is_proper_list/1]).
+                  is_symb_list/1,is_proper_list/1]).
 
 %% -compile(export_all).
 
 -import(lists, [member/2,sort/1,all/2,foldl/3,foldr/3,foreach/2,mapfoldl/3]).
 -import(ordsets, [add_element/2,from_list/1,is_element/2,
-    union/1,union/2,intersection/2,subtract/2]).
+                  union/1,union/2,intersection/2,subtract/2]).
 -import(orddict, [store/3,find/2]).
 
 -record(lint, {module=[],            %Module name
@@ -74,6 +74,7 @@ format_error({multi_var,S}) ->
     lfe_io:format1("multiple variable: ~w", [S]);
 format_error({redef_fun,F}) ->
     lfe_io:format1("redefining function: ~w", [F]);
+format_error(illegal_literal) -> "illegal literal";
 format_error(illegal_pattern) -> "illegal pattern";
 format_error(illegal_guard) -> "illegal guard";
 format_error(illegal_bitseg) -> "illegal bit segment";
@@ -111,7 +112,7 @@ pattern(P, Env) ->
 
 form(F) ->
     module([{['define-module',dummy],1},
-        {F,2}]).
+            {F,2}]).
 
 %% module(Forms) -> {ok,[Warning]} | {error,[Error],[Warning]}.
 %% module(Forms, Options) -> {ok,[Warning]} | {error,[Error],[Warning]}.
@@ -129,8 +130,8 @@ module(Fs0, Opts) ->
 
 debug_print(Format, Args, Opts) ->
     case member(debug_print, Opts) of
-    true -> io:fwrite(Format, Args);
-    false -> ok
+        true -> io:fwrite(Format, Args);
+        false -> ok
     end.
 
 return_status(#lint{errors=[]}=St) ->
@@ -144,16 +145,16 @@ return_status(St) ->
 
 collect_form(['define-module',Mod|Mdef], L, St0) ->
     %% Check normal module or parameterised module.
-    case is_symb_list(Mod) of       %Parameterised module
-    true ->
-        {Vs,St1} = check_lambda_args(tl(Mod), L, St0),
-        %% Everything into State.
-        {[],check_mdef(Mdef, L, St1#lint{module=hd(Mod),pars=Vs})};
-    false when is_atom(Mod) ->      %Normal module
-        %% Everything into State.
-        {[],check_mdef(Mdef, L, St0#lint{module=Mod,pars=none})};
-    false ->                        %Bad module name
-        {[],bad_mdef_error(L, name, St0)}
+    case is_symb_list(Mod) of                   %Parameterised module
+        true ->
+            {Vs,St1} = check_lambda_args(tl(Mod), L, St0),
+            %% Everything into State.
+            {[],check_mdef(Mdef, L, St1#lint{module=hd(Mod),pars=Vs})};
+        false when is_atom(Mod) ->              %Normal module
+            %% Everything into State.
+            {[],check_mdef(Mdef, L, St0#lint{module=Mod,pars=none})};
+        false ->                                %Bad module name
+            {[],bad_mdef_error(L, name, St0)}
     end;
 collect_form(_, L, #lint{module=[]}=St) ->
     %% Set module name so this only triggers once.
@@ -162,39 +163,39 @@ collect_form(['extend-module'|Mdef], L, St) ->
     {[],check_mdef(Mdef, L, St)};
 collect_form(['define-function',Func,Body], L, St) ->
     case Body of
-    [lambda|_] when is_atom(Func) ->
-        {[{Func,Body,L}],St};
-    ['match-lambda'|_] when is_atom(Func) ->
-        {[{Func,Body,L}],St};
-    _ -> {[],bad_form_error(L, 'define-function', St)}
+        [lambda|_] when is_atom(Func) ->
+            {[{Func,Body,L}],St};
+        ['match-lambda'|_] when is_atom(Func) ->
+            {[{Func,Body,L}],St};
+        _ -> {[],bad_form_error(L, 'define-function', St)}
     end;
 collect_form(_, L, St) ->
     {[],add_error(L, unknown_form, St)}.
 
-check_mdef([[export,all]|Mdef], L, St) ->    %Pass 'all' along
+check_mdef([[export,all]|Mdef], L, St) ->       %Pass 'all' along
     check_mdef(Mdef, L, St#lint{exps=all});
 check_mdef([[export|Es]|Mdef], L, St) ->
     case is_flist(Es) of
-    {yes,Fs} ->
-        Exps = add_exports(St#lint.exps, Fs),
-        check_mdef(Mdef, L, St#lint{exps=Exps});
-    no ->
-        check_mdef(Mdef, L, bad_mdef_error(L, export, St))
+        {yes,Fs} ->
+            Exps = add_exports(St#lint.exps, Fs),
+            check_mdef(Mdef, L, St#lint{exps=Exps});
+        no ->
+            check_mdef(Mdef, L, bad_mdef_error(L, export, St))
     end;
 check_mdef([[import|Is]|Mdef], L, St0) ->
     St1 = check_imports(Is, L, St0),
     check_mdef(Mdef, L, St1);
 check_mdef([[extends,M]|Mdef], L, St) ->
     if is_atom(M) ->
-        check_mdef(Mdef, L, St#lint{extd=M});
+            check_mdef(Mdef, L, St#lint{extd=M});
        true ->
-        check_mdef(Mdef, L, add_error(L, bad_extends, St))
+            check_mdef(Mdef, L, add_error(L, bad_extends, St))
     end;
 check_mdef([[Name|Vals]|Mdef], L, St) ->
     %% Other attributes, must be list and have symbol name.
     case is_atom(Name) and is_proper_list(Vals) of
-    true -> check_mdef(Mdef, L, St);
-    false -> check_mdef(Mdef, L, add_error(L, {bad_attribute,Name}, St))
+        true -> check_mdef(Mdef, L, St);
+        false -> check_mdef(Mdef, L, add_error(L, {bad_attribute,Name}, St))
     end;
 check_mdef([], _, St) -> St;
 check_mdef(_, L, St) -> bad_mdef_error(L, form, St).
@@ -262,24 +263,24 @@ check_module(Fbs0, St0) ->
 init_state(St) ->
     %% Add the imports.
     Env0 = foldl(fun ({M,Fs}, Env) ->
-             foldl(fun ({{F,A},R}, E) ->
-                       add_ibinding(M, F, A, R, E)
-                   end, Env, Fs)
-         end, lfe_env:new(), St#lint.imps),
+                         foldl(fun ({{F,A},R}, E) ->
+                                       add_ibinding(M, F, A, R, E)
+                               end, Env, Fs)
+                 end, lfe_env:new(), St#lint.imps),
     %% Basic predefines
     Predefs0 = [{module_info,[lambda,[],[quote,dummy]],1},
-        {module_info,[lambda,[x],[quote,dummy]],1}],
+                {module_info,[lambda,[x],[quote,dummy]],1}],
     Exps0 = [{module_info,0},{module_info,1}],
     %% Now handle parameterised module.
     case St#lint.pars of
-    none ->                    %Normal module
-        {Predefs0,Env0,
-         St#lint{exps=add_exports(St#lint.exps, Exps0)}};
-    Ps0 ->                     %Parameterised module
-        {Ps1,Predefs1,Exps1} = para_defs(Ps0, Predefs0, Exps0, St),
-        {Predefs1,
-         add_vbindings([this|Ps1], Env0),
-         St#lint{exps=add_exports(St#lint.exps, Exps1)}}
+        none ->                                 %Normal module
+            {Predefs0,Env0,
+             St#lint{exps=add_exports(St#lint.exps, Exps0)}};
+        Ps0 ->                                  %Parameterised module
+            {Ps1,Predefs1,Exps1} = para_defs(Ps0, Predefs0, Exps0, St),
+            {Predefs1,
+             add_vbindings([this|Ps1], Env0),
+             St#lint{exps=add_exports(St#lint.exps, Exps1)}}
     end.
 
 para_defs(Ps, Predefs0, Exps0, St) ->
@@ -287,22 +288,22 @@ para_defs(Ps, Predefs0, Exps0, St) ->
     Predefs1 = [{new,[lambda,Ps,[quote,dummy]],1}|Predefs0],
     Exps1 = add_element({new,Ar}, Exps0),
     case St#lint.extd of
-    [] ->
-        {Ps,[{instance,[lambda,Ps,[quote,dummy]],1}|Predefs1],
-         add_element({instance,Ar},Exps1)};
-    _ ->
-        {[base|Ps],[{instance,[lambda,[base|Ps],[quote,dummy]],1}|Predefs1],
-         add_element({instance,Ar+1},Exps1)}
+        [] ->
+            {Ps,[{instance,[lambda,Ps,[quote,dummy]],1}|Predefs1],
+             add_element({instance,Ar},Exps1)};
+        _ ->
+            {[base|Ps],[{instance,[lambda,[base|Ps],[quote,dummy]],1}|Predefs1],
+             add_element({instance,Ar+1},Exps1)}
     end.
 
-check_exports(all, _, St) -> St;        %All is all
+check_exports(all, _, St) -> St;                %All is all
 check_exports(Exps, Fs, St) ->
     foldl(fun (E, S) ->
-          case is_element(E, Fs) of
-              true -> S;
-              false -> add_error(9999, {unbound_func,E}, S)
-          end
-      end, St, Exps).
+                  case is_element(E, Fs) of
+                      true -> S;
+                      false -> add_error(9999, {unbound_func,E}, S)
+                  end
+          end, St, Exps).
 
 %% add_exports(Old, More) -> New.
 
@@ -314,7 +315,7 @@ add_exports(Old, More) -> union(Old, More).
 %% Check an expression.
 
 %% Check the Core data special forms.
-check_expr([quote,_], _, _, St) -> St;
+check_expr([quote,Lit], Env, L, St) -> literal(Lit, Env, L, St);
 check_expr([cons|[_,_]=As], Env, L, St) -> check_args(As, Env, L, St);
 check_expr([car,E], Env, L, St) -> check_expr(E, Env, L, St);
 check_expr([cdr,E], Env, L, St) -> check_expr(E, Env, L, St);
@@ -370,7 +371,6 @@ check_expr([Fun|As], Env, L, St0) when is_atom(Fun) ->
     St1 = check_args(As, Env, L, St0),          %Check arguments first
     %% Here we are not interested in HOW fun is associated to a
     %% function, just that it is.
-    %% io:fwrite("fb: ~w ~p   ~p\n", [Fun,As,Env]),
     case is_fbound(Fun, safe_length(As), Env) of
         true -> St1;
         false -> add_error(L, {unbound_func,{Fun,safe_length(As)}}, St1)
@@ -383,21 +383,18 @@ check_expr([_|As]=S, Env, L, St0) ->            %Test if literal string
             St1 = bad_form_error(L, application, St0),
             check_args(As, Env, L, St1)
     end;
-check_expr([], _, _, St) -> St;            %Self evaluating []
 check_expr(Symb, Env, L, St) when is_atom(Symb) ->
     check_symb(Symb, Env, L, St);
-check_expr(Tup, _, _, St) when is_tuple(Tup) ->
-    %% This just builds a tuple constant.
-    St;
-check_expr(_, _, _, St) -> St.             %Everything else is atomic
+check_expr(Lit, Env, L, St) ->                  %Everything else is a literal
+    literal(Lit, Env, L, St).
 
 %% check_symb(Symbol, Env, Line, State) -> State.
 %%  Check if Symbol is bound.
 
 check_symb(Symb, Env, L, St) ->
     case is_vbound(Symb, Env) of
-    true -> St;
-    false -> add_error(L, {unbound_symb,Symb}, St)
+        true -> St;
+        false -> add_error(L, {unbound_symb,Symb}, St)
     end.
 
 %% check_body(Body, Env, Line, State) -> State.
@@ -406,14 +403,14 @@ check_symb(Symb, Env, L, St) ->
 
 check_body(Body, Env, L, St) ->
     check_foreach(fun (E, S) -> check_expr(E, Env, L, S) end,
-          fun (S) -> add_error(L, bad_body, S) end,
-          St, Body).
+                  fun (S) -> add_error(L, bad_body, S) end,
+                  St, Body).
 
 %% check_body(Body, Env, L, St) ->
 %%     %% check_body(fun check_exprs/4, Env, L, St, Body).
 %%     case is_proper_list(Body) of
-%%     true -> check_exprs(Body, Env, L, St);
-%%     false -> add_error(L, bad_body, St)
+%%         true -> check_exprs(Body, Env, L, St);
+%%         false -> add_error(L, bad_body, St)
 %%     end.
 
 %% check_args(Args, Env, Line, State) -> State.
@@ -421,13 +418,13 @@ check_body(Body, Env, L, St) ->
 
 check_args(Args, Env, L, St) ->
     check_foreach(fun (A, S) -> check_expr(A, Env, L, S) end,
-          fun (S) -> add_error(L, bad_args, S) end,
-          St, Args).
+                  fun (S) -> add_error(L, bad_args, S) end,
+                  St, Args).
 
 %% check_args(Args, Env, L, St) ->
 %%     case is_proper_list(Args) of
-%%     true -> check_exprs(Args, Env, L, St);
-%%     false -> add_error(L, bad_args, St)
+%%         true -> check_exprs(Args, Env, L, St);
+%%         false -> add_error(L, bad_args, St)
 %%     end.
 
 %% check_exprs(Exprs, Env, Line, State) -> State.
@@ -488,6 +485,8 @@ is_posint_list(_) -> false.
 %% expr_get_map(Map, Key, Env, Line, State) -> State.
 %% expr_set_map(Map, Pairs, Line, State) -> State.
 %% expr_update_map(Args, Pairs, Line, State) -> State.
+%%  Functions for checking maps, these always return errors if system
+%%  does not support maps.
 
 -ifdef(HAS_MAPS).
 expr_map(Pairs, Env, L, St) ->
@@ -520,14 +519,15 @@ expr_map_assoc(K, V, Env, L, St0) ->
 %%  A map key can currently only be a literal.
 
 map_key(Key, _, L, St) ->
-    case map_key(Key) of
+    case is_map_key(Key) of
         true -> St;
         false -> add_error(L, illegal_mapkey, St)
     end.
 
-map_key([quote,_]) -> true;
-map_key([_|_]=L) -> is_posint_list(L);          %Literal strings
-map_key(E) -> not is_atom(E).
+is_map_key([quote,Lit]) -> is_literal(Lit);
+is_map_key([_|_]=L) -> is_posint_list(L);       %Literal strings only
+is_map_key(E) when is_atom(E) -> false;
+is_map_key(Lit) -> is_literal(Lit).
 -else.
 expr_map(Ps, _, L, St) ->
     add_error(L, {unbound_func,{map,safe_length(Ps)}}, St).
@@ -555,8 +555,8 @@ check_lambda_args(Args, L, St) ->
     %% same rules as for pattern symbols.
     Check = fun (A, {As,S}) -> pat_symb(A, As, L, S) end,
     case is_symb_list(Args) of
-    true -> foldl(Check, {[],St}, Args);
-    false -> {[],bad_form_error(L, lambda, St)}
+        true -> foldl(Check, {[],St}, Args);
+        false -> {[],bad_form_error(L, lambda, St)}
     end.
 
 %% check_match_lambda(MatchBody, Env, Line, State) -> State.
@@ -565,17 +565,17 @@ check_lambda_args(Args, L, St) ->
 
 check_match_lambda([[Pat|_]|_]=Cls, Env, L, St0) ->
     St1 = case is_proper_list(Pat) of
-          true -> check_ml_arity(tl(Cls), length(Pat), L, St0);
-          false -> St0
-      end,
+              true -> check_ml_arity(tl(Cls), length(Pat), L, St0);
+              false -> St0
+          end,
     check_ml_clauses(Cls, Env, L, St1);
-check_match_lambda(_, _, L, St) ->        %Totally wrong
+check_match_lambda(_, _, L, St) ->              %Totally wrong
     bad_form_error(L, 'match-lambda', St).
 
 check_ml_arity([[Pat|_]|Cls], Ar, L, St) ->
     case is_proper_list(Pat) andalso length(Pat) == Ar of
-    true -> check_ml_arity(Cls, Ar, L, St);
-    false -> add_error(L, bad_arity, St)
+        true -> check_ml_arity(Cls, Ar, L, St);
+        false -> add_error(L, bad_arity, St)
     end;
 check_ml_arity([], _, _, St) -> St.
 
@@ -583,7 +583,7 @@ check_ml_clauses(Cls, Env, L, St) ->
     %% Sneaky! m-l args a list of patterns so wrap with list and pass
     %% in as one pattern. Have already checked a proper list.
     foreach_form(fun ([As|B], S) -> check_clause([[list|As]|B], Env, L, S) end,
-         'match-lambda', L, St, Cls).
+                 'match-lambda', L, St, Cls).
 
 %% check_ml_clauses(Cls, Env, L, St) ->
 %%     %% Sneaky! m-l args list of patterns so just pass in as one pattern.
@@ -596,13 +596,13 @@ check_ml_clauses(Cls, Env, L, St) ->
 
 check_let([Vbs|Body], Env, L, St0) ->
     Check = fun (Vb, Pvs, Sta) ->
-            {Pv,Stb} = check_let_vb(Vb, Env, L, Sta),
-            Stc = case intersection(Pv, Pvs) of
-                  [] -> Stb;
-                  Ivs -> multi_var_error(L, Ivs, Stb)
-              end,
-            {union(Pv, Pvs), Stc}
-        end,
+                    {Pv,Stb} = check_let_vb(Vb, Env, L, Sta),
+                    Stc = case intersection(Pv, Pvs) of
+                              [] -> Stb;
+                              Ivs -> multi_var_error(L, Ivs, Stb)
+                          end,
+                    {union(Pv, Pvs), Stc}
+            end,
     {Pvs,St1} = foldl_form(Check, 'let', L, [], St0, Vbs),
     check_body(Body, add_vbindings(Pvs, Env), L, St1);
 check_let(_, _, L, St) ->
@@ -614,9 +614,9 @@ check_let(_, _, L, St) ->
 check_let_vb(Vb, Env, L, St0) ->
     %% Get the environments right here!
     case pattern_guard(Vb, Env, L, St0) of
-    {[Val],Pvs,_,St1} ->            %One value expression only
-        {Pvs,check_expr(Val, Env, L, St1)};
-    {_,_,_,St1} -> {[],bad_form_error(L, 'let', St1)}
+        {[Val],Pvs,_,St1} ->                    %One value expression only
+            {Pvs,check_expr(Val, Env, L, St1)};
+        {_,_,_,St1} -> {[],bad_form_error(L, 'let', St1)}
     end.
 
 %% check_let_function(FletBody, Env, Line, State) -> {Env,State}.
@@ -643,12 +643,12 @@ check_letrec_function([Fbs0|Body], Env0, L, St0) ->
 
 collect_let_funcs(Fbs0, Type, L, St0) ->
     Check = fun ([V,['lambda'|_]=Lambda], Fbs, St) when is_atom(V) ->
-            {[{V,Lambda,L}|Fbs],St};
-        ([V,['match-lambda'|_]=Match], Fbs, St) when is_atom(V) ->
-            {[{V,Match,L}|Fbs],St};
-        (_, Fbs, St) -> {Fbs,bad_form_error(L, Type, St)}
-        end,
-    foldr_form(Check, Type, L, [], St0, Fbs0).    %Preserve order
+                    {[{V,Lambda,L}|Fbs],St};
+                ([V,['match-lambda'|_]=Match], Fbs, St) when is_atom(V) ->
+                    {[{V,Match,L}|Fbs],St};
+                (_, Fbs, St) -> {Fbs,bad_form_error(L, Type, St)}
+            end,
+    foldr_form(Check, Type, L, [], St0, Fbs0).  %Preserve order
 
 %% check_let_bindings(FuncBindings, Env, State) -> {Funcs,Env,State}.
 %%  Check the function bindings and return new environment. We only
@@ -659,10 +659,10 @@ check_let_bindings(Fbs, Env0, St0) ->
     {Fs,St1} = check_fbindings(Fbs, St0),
     %% Now check function definitions.
     St2 = foldl(fun ({_,[lambda|Lambda],L}, St) ->
-            check_lambda(Lambda, Env0, L, St);
-            ({_,['match-lambda'|Match],L}, St) ->
-            check_match_lambda(Match, Env0, L, St)
-        end, St1, Fbs),
+                        check_lambda(Lambda, Env0, L, St);
+                    ({_,['match-lambda'|Match],L}, St) ->
+                        check_match_lambda(Match, Env0, L, St)
+                end, St1, Fbs),
     %% Add to environment
     Env1 = foldl(fun ({F,A}, Env) -> add_fbinding(F, A, Env) end, Env0, Fs),
     {Fs,Env1,St2}.
@@ -678,10 +678,10 @@ check_letrec_bindings(Fbs, Env0, St0) ->
     Env1 = foldl(fun ({F,A}, Env) -> add_fbinding(F, A, Env) end, Env0, Fs),
     %% Now check function definitions.
     St2 = foldl(fun ({_,[lambda|Lambda],L}, St) ->
-            check_lambda(Lambda, Env1, L, St);
-            ({_,['match-lambda'|Match],L}, St) ->
-            check_match_lambda(Match, Env1, L, St)
-        end, St1, Fbs),
+                        check_lambda(Lambda, Env1, L, St);
+                    ({_,['match-lambda'|Match],L}, St) ->
+                        check_match_lambda(Match, Env1, L, St)
+                end, St1, Fbs),
     {Fs,Env1,St2}.
 
 %% check_fbindings(FuncBindings, State) -> {Funcs,State}.
@@ -690,23 +690,23 @@ check_letrec_bindings(Fbs, Env0, St0) ->
 
 check_fbindings(Fbs0, St0) ->
     AddFb = fun(F, Fs, L, St) ->
-            case member(F, Fs) of
-            true -> {Fs,add_error(L, {redef_fun,F}, St)};
-            false -> {add_element(F, Fs),St}
-            end
-        end,
+                    case member(F, Fs) of
+                        true -> {Fs,add_error(L, {redef_fun,F}, St)};
+                        false -> {add_element(F, Fs),St}
+                    end
+            end,
     Check = fun ({V,[lambda,Args|_],L}, {Fs,St}) ->
-            case is_symb_list(Args) of
-            true -> AddFb({V,length(Args)}, Fs, L, St);
-            false -> {Fs,bad_form_error(L, lambda, St)}
-            end;
-        ({V,['match-lambda',[Pats|_]|_],L}, {Fs,St}) ->
-            case is_proper_list(Pats) of
-            true -> AddFb({V,length(Pats)}, Fs, L, St);
-            false -> {Fs,bad_form_error(L, 'match-lambda', St)}
-            end;
-        (_, Acc) -> Acc            %Error here flagged later
-        end,
+                    case is_symb_list(Args) of
+                        true -> AddFb({V,length(Args)}, Fs, L, St);
+                        false -> {Fs,bad_form_error(L, lambda, St)}
+                    end;
+                ({V,['match-lambda',[Pats|_]|_],L}, {Fs,St}) ->
+                    case is_proper_list(Pats) of
+                        true -> AddFb({V,length(Pats)}, Fs, L, St);
+                        false -> {Fs,bad_form_error(L, 'match-lambda', St)}
+                    end;
+                (_, Acc) -> Acc                 %Error here flagged later
+            end,
     foldl(Check, {[],St0}, Fbs0).
 
 %% check_if(IfBody, Env, Line, State) -> State.
@@ -730,7 +730,7 @@ check_case(_, _, L, St) ->
 
 check_case_clauses(Cls, Env, L, St) ->
     foreach_form(fun (Cl, S) -> check_clause(Cl, Env, L, S) end,
-         'case', L, St, Cls).
+                 'case', L, St, Cls).
 
 check_rec_clauses([['after',T|B]], Env, L, St0) ->
     St1 = check_expr(T, Env, L, St0),
@@ -803,7 +803,7 @@ check_gbody(_, _, L, St) -> illegal_guard_error(L, St).
 %% Check a guard expression. This is a restricted body expression.
 
 %% Check the Core data special cases.
-check_gexpr([quote,_], _, _, St) -> St;
+check_gexpr([quote,Lit], Env, L, St) -> literal(Lit, Env, L, St);
 check_gexpr([cons|[_,_]=As], Env, L, St) -> check_gargs(As, Env, L, St);
 check_gexpr([car,E], Env, L, St) -> check_gexpr(E, Env, L, St);
 check_gexpr([cdr,E], Env, L, St) -> check_gexpr(E, Env, L, St);
@@ -817,8 +817,8 @@ check_gexpr(['mset',Map|As], Env, L, St) ->
     gexpr_set_map(Map, As, Env, L, St);
 check_gexpr(['mupd',Map|As], Env, L, St) ->
     gexpr_update_map(Map, As, Env, L, St);
-%% check_gexpr(['map-get',Map,K], Env, L, St) ->
-%%     check_gexpr(['mref',Map,K], Env, L, St);
+check_gexpr(['map-get',Map,K], Env, L, St) ->
+    check_gexpr(['mref',Map,K], Env, L, St);
 check_gexpr(['map-set',Map|As], Env, L, St) ->
     check_expr(['mset',Map|As], Env, L, St);
 check_gexpr(['map-update',Map|As], Env, L, St) ->
@@ -828,8 +828,8 @@ check_gexpr(['map-update',Map|As], Env, L, St) ->
 check_gexpr(['progn'|B], Env, L, St) -> check_gbody(B, Env, L, St);
 check_gexpr(['if'|B], Env, L, St) -> check_gif(B, Env, L, St);
 check_gexpr([call,[quote,erlang],[quote,Fun]|As], Env, L, St) ->
-    check_gexpr([Fun|As], Env, L, St);      %Pass the buck
-check_gexpr([call|_], _, L, St) ->          %Other calls not allowed
+    check_gexpr([Fun|As], Env, L, St);          %Pass the buck
+check_gexpr([call|_], _, L, St) ->              %Other calls not allowed
     illegal_guard_error(L, St);
 %% Finally the general case.
 check_gexpr([Fun|As], Env, L, St0) when is_atom(Fun) ->
@@ -837,20 +837,21 @@ check_gexpr([Fun|As], Env, L, St0) when is_atom(Fun) ->
     %% Here we are not interested in HOW fun is associated to a
     %% function, just that it is.
     case is_gbound(Fun, safe_length(As), Env) of
-    true -> St1;
-    false -> illegal_guard_error(L, St1)
+        true -> St1;
+        false -> illegal_guard_error(L, St1)
     end;
-check_gexpr([_|As], Env, L, St0) ->
-    %% Function here is an expression, report error and check args.
-    St1 = bad_gform_error(L, application, St0),
-    check_gargs(As, Env, L, St1);
-check_gexpr([], _, _, St) -> St;
+check_gexpr([_|As]=S, Env, L, St0) ->            %Test if literal string
+    case is_posint_list(S) of
+        true -> St0;
+        false ->
+            %% Function here is an expression, report error and check args.
+            St1 = bad_gform_error(L, application, St0),
+            check_gargs(As, Env, L, St1)
+    end;
 check_gexpr(Symb, Env, L, St) when is_atom(Symb) ->
     check_symb(Symb, Env, L, St);
-check_gexpr(Tup, _, _, St) when is_tuple(Tup) ->
-    %% This just builds a tuple constant.
-    St;
-check_gexpr(_, _, _, St) -> St.             %Everything else is atomic
+check_gexpr(Lit, Env, L, St) ->                 %Everything else is a literal
+    literal(Lit, Env, L, St).
 
 %% check_gargs(Args, Env, Line, State) -> State.
 %% check_gexprs(Exprs, Env, Line, State) -> State.
@@ -858,8 +859,8 @@ check_gexpr(_, _, _, St) -> St.             %Everything else is atomic
 
 check_gargs(Args, Env, L, St) ->
     case is_proper_list(Args) of
-    true -> check_gexprs(Args, Env, L, St);
-    false -> add_error(L, bad_gargs, St)
+        true -> check_gexprs(Args, Env, L, St);
+        false -> add_error(L, bad_gargs, St)
     end.
 
 check_gexprs(Es, Env, L, St) ->
@@ -873,17 +874,19 @@ check_gif([Test,True,False], Env, L, St) ->
 check_gif([Test,True], Env, L, St) ->
     check_gexprs([Test,True], Env, L, St);
 check_gif(_, _, L, St) ->
-    bad_gform_error(L, 'if', St).           %Signal as guard error.
+    bad_gform_error(L, 'if', St).               %Signal as guard error.
 
 %% gexpr_bitsegs(BitSegs, Env, Line, State) -> State.
 
 gexpr_bitsegs(Segs, Env, L, St0) ->
     check_foreach(fun (S, St) -> bitseg(S, Env, L, St, fun check_gexpr/4) end,
-          fun (St) -> bad_gform_error(L, binary, St) end, St0, Segs).
+                  fun (St) -> bad_gform_error(L, binary, St) end, St0, Segs).
 
 %% gexpr_map(Pairs, Env, Line, State) -> State.
 %% gexpr_set_map(Map, Pairs, Env, Line, State) -> State.
 %% gexpr_update_map(Map, Pairs, Env, Line, State) -> State.
+%%  Functions for checking maps, these always return errors if system
+%%  does not support maps.
 
 -ifdef(HAS_MAPS).
 gexpr_map(Pairs, Env, L, St) ->
@@ -936,16 +939,17 @@ pattern(Pat, Env, L, St) ->
 %%     _:_ -> {[],add_error(L, illegal_pattern, St)}
 %%     end.
 
-pattern([quote,_], Pvs, _, _, St) -> {Pvs,St};  %Go no deeper with quote
+pattern([quote,Lit], Pvs, Env, L, St) ->
+    {Pvs,literal(Lit, Env, L, St)};
 pattern(['=',P1,P2], Pvs0, Env, L, St0) ->
     %% Must check patterns together as same variable can occur
     %% in both branches.
     {Pvs1,St1} = pattern(P1, Pvs0, Env, L, St0),
     {Pvs2,St2} = pattern(P2, Pvs1, Env, L, St1),
     St3 = case pat_alias(P1, P2) of
-          true -> St2;        %Union of variables now visible
-          false -> add_error(L, bad_alias, St2)
-      end,
+              true -> St2;                      %Union of variables now visible
+              false -> add_error(L, bad_alias, St2)
+          end,
     {Pvs2,St3};
 pattern([cons,H,T], Pvs0, Env, L, St0) ->       %Explicit cons constructor
     {Pvs1,St1} = pattern(H, Pvs0, Env, L, St0),
@@ -967,19 +971,21 @@ pattern([_|_]=List, Pvs0, Env, L, St0) ->
 pattern([], Pvs, _, _, St) -> {Pvs,St};
 pattern(Symb, Pvs, _, L, St) when is_atom(Symb) ->
     pat_symb(Symb, Pvs, L, St);
-pattern(_, Pvs, _, _, St) -> {Pvs,St}.          %Atomic
+pattern(Lit, Pvs, Env, L, St) ->
+    {Pvs,literal(Lit, Env, L, St)}.             %Everything else is a literal
 
 pat_list([P|Ps], Pvs0, Env, L, St0) ->
     {Pvs1,St1} = pattern(P, Pvs0, Env, L, St0),
     pat_list(Ps, Pvs1, Env, L, St1);
 pat_list([], Pvs, _, _, St) -> {Pvs,St};
-pat_list(_, Pvs, _, L, St) -> {Pvs,add_error(L, illegal_pattern, St)}.
+pat_list(_, Pvs, _, L, St) ->
+    {Pvs,add_error(L, illegal_pattern, St)}.
 
 pat_symb('_', Pvs, _, St) -> {Pvs,St};          %Don't care variable
 pat_symb(Symb, Pvs, L, St) ->
     case is_element(Symb, Pvs) of
-    true -> {Pvs,multi_var_error(L, Symb, St)};
-    false -> {add_element(Symb, Pvs),St}
+        true -> {Pvs,multi_var_error(L, Symb, St)};
+        false -> {add_element(Symb, Pvs),St}
     end.
 
 %% pat_alias(Pattern, Pattern) -> true | false.
@@ -1014,9 +1020,9 @@ pat_alias([H1|T1], [cons,_,_]=P2) ->
 %% Check old against old no constructor list forms.
 pat_alias([P1|Ps1], [P2|Ps2]) ->
     pat_alias(P1, P2) andalso pat_alias(Ps1, Ps2);
-pat_alias(P1, _) when is_atom(P1) -> true;    %Variable
+pat_alias(P1, _) when is_atom(P1) -> true;      %Variable
 pat_alias(_, P2) when is_atom(P2) -> true;
-pat_alias(P1, P2) -> P1 =:= P2.               %Atomic
+pat_alias(P1, P2) -> P1 =:= P2.                 %Atomic
 
 pat_alias_list([P1|Ps1], [P2|Ps2]) ->
     pat_alias(P1, P2) andalso pat_alias_list(Ps1, Ps2);
@@ -1047,7 +1053,7 @@ pat_bitsegs(Segs, Bvs0, Pvs, Env, L, St0) ->
                     end,
                     fun (St) -> bad_pat_error(L, binary, St) end,
                     Bvs0, St0, Segs),
-    {union(Bvs1, Pvs),St1}.             %Add bitvars to patvars
+    {union(Bvs1, Pvs),St1}.                     %Add bitvars to patvars
 
 pat_bitseg([Pat|Specs]=Seg, Bvs, Pvs, Env, L, St0) ->
     case is_posint_list(Seg) of                 %Is bitseg a string?
@@ -1083,8 +1089,8 @@ pat_bit_size(N, _, _, _, _, _, St) when is_integer(N), N > 0 -> St;
 pat_bit_size(S, _, Bvs, _, Env, L, St) when is_atom(S) ->
     %% Size must be bound here or occur earlier in binary pattern.
     case is_element(S, Bvs) or is_vbound(S, Env) of
-    true -> St;
-    false -> add_error(L, {unbound_symb,S}, St)
+        true -> St;
+        false -> add_error(L, {unbound_symb,S}, St)
     end;
 pat_bit_size(_, _, _, _, _, L, St) -> add_error(L, illegal_bitsize, St).
 
@@ -1092,8 +1098,8 @@ pat_bit_expr(N, Bvs, _, _, _, St) when is_number(N) -> {Bvs,St};
 pat_bit_expr('_', Bvs, _, _, _, St) -> {Bvs,St};
 pat_bit_expr(S, Bvs, Pvs, _, L, St) when is_atom(S) ->
     case is_element(S, Bvs) or is_element(S, Pvs) of
-    true -> {Bvs,multi_var_error(L, S, St)};
-    false -> {add_element(S, Bvs),St}
+        true -> {Bvs,multi_var_error(L, S, St)};
+        false -> {add_element(S, Bvs),St}
     end;
 pat_bit_expr(_, Bvs, _, _, L, St) ->
     {Bvs,add_error(L, illegal_bitseg, St)}.
@@ -1114,6 +1120,43 @@ pat_map_assoc(K, V, Pvs, Env, L, St0) ->
 -else.
 pat_map(_, Pvs, _, L, St) ->
     {Pvs,add_error(L, illegal_pattern, St)}.
+-endif.
+
+%% is_literal(Literal) -> true | false.
+%% literal(Literal, Env, Line, State) -> State.
+%%  Check for legal literals. We have to be extra careful here as the
+%%  input can be any forms. We assume that special cases at the top
+%%  level, for example atoms as variables and lists as calls, are
+%%  handled before the call to literal/4.
+
+literal(Lit, _, L, St) ->
+    case is_literal(Lit) of
+        true -> St;
+        false -> add_error(L, illegal_literal, St)
+    end.
+
+is_literal(A) when is_atom(A) -> true;
+is_literal(N) when is_number(N) -> true;
+is_literal(B) when is_bitstring(B) -> true;
+is_literal(List) when is_list(List) ->
+    is_lit_list(List);
+is_literal(Tup) when is_tuple(Tup) ->
+    is_lit_list(tuple_to_list(Tup));
+is_literal(Map) ->                              %Handles maps and non-maps
+    is_lit_map(Map).
+
+is_lit_list([Lit|Lits]) ->
+    is_literal(Lit) andalso is_lit_list(Lits);
+is_lit_list([]) -> true;
+is_lit_list(Lit) ->
+    is_literal(Lit).
+
+-ifdef(HAS_MAPS).
+is_lit_map(Map) when is_map(Map) ->
+    is_lit_list(maps:to_list(Map));
+is_lit_map(_) -> false.
+-else.
+is_lit_map(_) -> false.
 -endif.
 
 %% Functions for checking lists of forms, generate bad_form error if
@@ -1243,6 +1286,6 @@ add_vbindings(Vs, Env) ->
 
 safe_fetch(Key, D, Def) ->
     case find(Key, D) of
-    {ok,Val} -> Val;
-    error -> Def
+        {ok,Val} -> Val;
+        error -> Def
     end.
