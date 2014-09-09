@@ -946,7 +946,7 @@ pattern(['=',P1,P2], Pvs0, Env, L, St0) ->
     %% in both branches.
     {Pvs1,St1} = pattern(P1, Pvs0, Env, L, St0),
     {Pvs2,St2} = pattern(P2, Pvs1, Env, L, St1),
-    St3 = case pat_alias(P1, P2) of
+    St3 = case is_pat_alias(P1, P2) of
               true -> St2;                      %Union of variables now visible
               false -> add_error(L, bad_alias, St2)
           end,
@@ -988,46 +988,46 @@ pat_symb(Symb, Pvs, L, St) ->
         false -> {add_element(Symb, Pvs),St}
     end.
 
-%% pat_alias(Pattern, Pattern) -> true | false.
+%% is_pat_alias(Pattern, Pattern) -> true | false.
 %%  Check if two aliases are compatible. Note that binaries can never
 %%  be aliased, this is from erlang.
 
-pat_alias([quote,P1], [quote,P2]) -> P1 =:= P2;
-pat_alias([tuple|Ps1], [tuple|Ps2]) ->
-    pat_alias_list(Ps1, Ps2);
-%% pat_alias([tuple|Ps1], P2) when is_tuple(P2) ->
-%%     pat_alias_list(Ps1, tuple_to_list(P2));
-%% pat_alias(P1, [tuple|Ps2]) when is_tuple(P1) ->
-%%     pat_alias_list(tuple_to_list(P1), Ps2);
-pat_alias([binary|_], [binary|_]) -> false;
-pat_alias([cons,H1,T1], [cons,H2,T2]) ->
-    pat_alias(H1, H2) andalso pat_alias(T1, T2);
-pat_alias([cons,H1,T1], [list,H2|T2]) ->
-    pat_alias(H1, H2) andalso pat_alias(T1, [list|T2]);
-pat_alias([list|Ps1], [list|Ps2]) ->
-    pat_alias_list(Ps1, Ps2);
-pat_alias([list,H1|T1], [cons,H2,T2]) ->
-    pat_alias(H1, H2) andalso pat_alias([list|T1], T2);
+is_pat_alias([quote,P1], [quote,P2]) -> P1 =:= P2;
+is_pat_alias([tuple|Ps1], [tuple|Ps2]) ->
+    is_pat_alias_list(Ps1, Ps2);
+%% is_pat_alias([tuple|Ps1], P2) when is_tuple(P2) ->
+%%     is_pat_alias_list(Ps1, tuple_to_list(P2));
+%% is_pat_alias(P1, [tuple|Ps2]) when is_tuple(P1) ->
+%%     is_pat_alias_list(tuple_to_list(P1), Ps2);
+is_pat_alias([binary|_], [binary|_]) -> false;
+is_pat_alias([cons,H1,T1], [cons,H2,T2]) ->
+    is_pat_alias(H1, H2) andalso is_pat_alias(T1, T2);
+is_pat_alias([cons,H1,T1], [list,H2|T2]) ->
+    is_pat_alias(H1, H2) andalso is_pat_alias(T1, [list|T2]);
+is_pat_alias([list|Ps1], [list|Ps2]) ->
+    is_pat_alias_list(Ps1, Ps2);
+is_pat_alias([list,H1|T1], [cons,H2,T2]) ->
+    is_pat_alias(H1, H2) andalso is_pat_alias([list|T1], T2);
 %% Check against old no contructor list forms.
-pat_alias([list|_]=P1, P2) when is_list(P2) ->
-    pat_alias(P1, [list|P2]);
-pat_alias([cons,_,_]=P1, [H2|T2]) ->
-    pat_alias(P1, [cons,H2,T2]);
-pat_alias(P1, [list|_]=P2) when is_list(P1) ->
-    pat_alias([list|P1], P2);
-pat_alias([H1|T1], [cons,_,_]=P2) ->
-    pat_alias([cons,H1,T1], P2);
+is_pat_alias([list|_]=P1, P2) when is_list(P2) ->
+    is_pat_alias(P1, [list|P2]);
+is_pat_alias([cons,_,_]=P1, [H2|T2]) ->
+    is_pat_alias(P1, [cons,H2,T2]);
+is_pat_alias(P1, [list|_]=P2) when is_list(P1) ->
+    is_pat_alias([list|P1], P2);
+is_pat_alias([H1|T1], [cons,_,_]=P2) ->
+    is_pat_alias([cons,H1,T1], P2);
 %% Check old against old no constructor list forms.
-pat_alias([P1|Ps1], [P2|Ps2]) ->
-    pat_alias(P1, P2) andalso pat_alias(Ps1, Ps2);
-pat_alias(P1, _) when is_atom(P1) -> true;      %Variable
-pat_alias(_, P2) when is_atom(P2) -> true;
-pat_alias(P1, P2) -> P1 =:= P2.                 %Atomic
+is_pat_alias([P1|Ps1], [P2|Ps2]) ->
+    is_pat_alias(P1, P2) andalso is_pat_alias(Ps1, Ps2);
+is_pat_alias(P1, _) when is_atom(P1) -> true;   %Variable
+is_pat_alias(_, P2) when is_atom(P2) -> true;
+is_pat_alias(P1, P2) -> P1 =:= P2.              %Atomic
 
-pat_alias_list([P1|Ps1], [P2|Ps2]) ->
-    pat_alias(P1, P2) andalso pat_alias_list(Ps1, Ps2);
-pat_alias_list([], []) -> true;
-pat_alias_list(_, _) -> false.
+is_pat_alias_list([P1|Ps1], [P2|Ps2]) ->
+    is_pat_alias(P1, P2) andalso is_pat_alias_list(Ps1, Ps2);
+is_pat_alias_list([], []) -> true;
+is_pat_alias_list(_, _) -> false.
 
 %% pat_binary(BitSegs, PatVars, Env, Line, State) -> {PatVars,State}.
 %% pat_bitsegs(BitSegs, BitVars, PatVars, Env, Line, State) ->
