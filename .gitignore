@@ -2,6 +2,7 @@
 .DS_Store
 *.beam
 maps.mk
+bin/lfeexec
 src/lfe_scan.erl
 erl_crash.dump
 *.elc
