@@ -29,6 +29,9 @@
 
 -export([start/0]).
 
+-define(OK_STATUS, 0).
+-define(ERROR_STATUS, 127).
+
 %% Start LFE running a script or the shell depending on arguments.
 
 start() ->
@@ -38,13 +41,14 @@ start() ->
             run_string(As);
         [S|As] ->                               %Run a script
             user:start(),                       %Start user for io
-            spawn_link(fun () ->
-                               lfe_shell:run_script(S, As),
-                               init:stop(0)
-                       end);
+	    run_file([S|As]);
         [] ->                                   %Run a shell
             user_drv:start(['tty_sl -c -e',{lfe_shell,start,[]}])
     end.
+
+run_file([S|As]) ->
+    Script = fun () -> lfe_shell:run_script(S, As) end,
+    spawn_link(fun () -> run_script(Script) end).
 
 run_string([]) -> run_string([], []);           %No command
 run_string(["--"]) -> run_string([], []);       %No command
@@ -57,7 +61,19 @@ run_string([], _) ->                            %No command
 run_string(S, []) ->
     run_string(S, ["lfe"]);
 run_string(S, As) ->
-    spawn_link(fun () ->
-                       lfe_shell:run_string(S, As),
-                       init:stop(0)
-               end).
+    Script = fun () -> lfe_shell:run_string(S, As) end,
+    spawn_link(fun () -> run_script(Script) end).
+
+run_script(Script) ->
+    try
+	Script(),
+	init:stop(?OK_STATUS)
+    catch
+	Class:Error ->
+	    St = erlang:get_stacktrace(),       %Need to get this first
+	    Sf = fun (_) -> false end,
+	    Ff = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
+	    Cs = lfe_lib:format_exception(Class, Error, St, Sf, Ff, 1),
+	    io:put_chars(Cs),
+	    halt(?ERROR_STATUS)
+    end.
