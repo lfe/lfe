@@ -507,9 +507,9 @@ add_dynamic_func(Name, Ar, Def, Env) ->
 %%  expanded completely in the function definition before it is
 %%  applied.
 
-eval_apply({dynamic_expr,Func}, Es, Env0) ->
-    Env1 = lfe_env:clr_vars(Env0),              %Clear all variable bindings
-    eval_apply_expr(Func, Es, Env1);
+eval_apply({dynamic_expr,Func}, Es, Env) ->
+    %% Don't clear variable bindings, even if this gives dynamic scoping.
+    eval_apply_expr(Func, Es, Env);
 eval_apply({lexical_expr,Func,Env}, Es, _) ->
     eval_apply_expr(Func, Es, Env);
 eval_apply({letrec,Body,Fbs,Env}, Es, _) ->
@@ -558,8 +558,8 @@ eval_case_clauses(V, Cls, Env) ->
 
 match_clause(V, [[Pat|B0]|Cls], Env) ->
     case match_when(Pat, V, B0, Env) of
-    {yes,_,_}=Yes -> Yes;
-    no -> match_clause(V, Cls, Env)
+        {yes,_,_}=Yes -> Yes;
+        no -> match_clause(V, Cls, Env)
     end;
 match_clause(_, [], _) -> no.
 
@@ -569,8 +569,8 @@ match_clause(_, [], _) -> no.
 eval_receive(Body, Env) ->
     {Cls,Te,Tb} = split_receive(Body, []),
     case eval_expr(Te, Env) of            %Check timeout
-    infinity -> receive_clauses(Cls, Env);
-    T -> receive_clauses(T, Tb, Cls, Env)
+        infinity -> receive_clauses(Cls, Env);
+        T -> receive_clauses(T, Tb, Cls, Env)
     end.
 
 split_receive([['after',T|B]], Rcls) ->
@@ -588,13 +588,13 @@ receive_clauses(Cls, Env) -> receive_clauses(Cls, Env, []).
 
 receive_clauses(Cls, Env, Ms) ->
     receive
-    Msg ->
-        case match_clause(Msg, Cls, Env) of
-        {yes,B,Vbs} ->
-            merge_queue(Ms),
-            eval_body(B, add_vbindings(Vbs, Env));
-        no -> receive_clauses(Cls, Env, [Msg|Ms])
-        end
+        Msg ->
+            case match_clause(Msg, Cls, Env) of
+                {yes,B,Vbs} ->
+                    merge_queue(Ms),
+                    eval_body(B, add_vbindings(Vbs, Env));
+                no -> receive_clauses(Cls, Env, [Msg|Ms])
+            end
     end.
 
 %% receive_clauses(Timeout, TimeoutBody, Clauses, Env) -> Value.
@@ -608,23 +608,23 @@ receive_clauses(T, Tb, Cls, Env) ->
 
 receive_clauses(T, Tb, Cls, Env, Ms) ->
     receive
-    Msg ->
-        case match_clause(Msg, Cls, Env) of
-        {yes,B,Vbs} ->
-            merge_queue(Ms),
-            eval_body(B, add_vbindings(Vbs, Env));
-        no ->
-            %% Check how much time left and recurse correctly.
-            {_,T1} = statistics(runtime),
-            if  T-T1 < 0 ->
-                receive_clauses(0, Tb, Cls, Env, [Msg|Ms]);
-            true ->
-                receive_clauses(T-T1, Tb, Cls, Env, [Msg|Ms])
+        Msg ->
+            case match_clause(Msg, Cls, Env) of
+                {yes,B,Vbs} ->
+                    merge_queue(Ms),
+                    eval_body(B, add_vbindings(Vbs, Env));
+                no ->
+                    %% Check how much time left and recurse correctly.
+                    {_,T1} = statistics(runtime),
+                    if  T-T1 < 0 ->
+                            receive_clauses(0, Tb, Cls, Env, [Msg|Ms]);
+                        true ->
+                            receive_clauses(T-T1, Tb, Cls, Env, [Msg|Ms])
+                    end
             end
-        end
     after T ->
-        merge_queue(Ms),
-        eval_body(Tb, Env)
+            merge_queue(Ms),
+            eval_body(Tb, Env)
     end.
 
 merge_queue(Ms) ->
@@ -632,9 +632,9 @@ merge_queue(Ms) ->
 
 recv_all(Xs) ->
     receive
-    X -> recv_all([X|Xs])
+        X -> recv_all([X|Xs])
     after 0 ->
-        reverse(Xs)
+            reverse(Xs)
     end.
 
 send_all([X|Xs], Self) ->
