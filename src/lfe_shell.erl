@@ -62,16 +62,10 @@ run_string(String, Args) ->
 
 run_string(String, [A|As], Env) ->
     St = new_state(A, As, Env),
-    case lfe_scan:string(String, 1) of
-        {ok,Ts,_} ->
-            case run_read_file(Ts, []) of
-                {ok,Exprs} ->
-                    run_loop(Exprs, [], St);
-                {error,E} ->
-                    slurp_errors("lfe", [E]),
-                    {error,St}
-            end;
-        {error,E,_} ->
+    case read_script_string(String) of
+        {ok,Forms} ->
+            run_loop(Forms, [], St);
+        {error,E} ->
             slurp_errors("lfe", [E]),
             {error,St}
     end.
@@ -98,7 +92,7 @@ server_loop(St0) ->
               %% Read the form
               Prompt = prompt(),
               io:put_chars(Prompt),
-              case lfe_io_read() of
+              case lfe_io:read() of
                   {ok,Form} ->
                       Ce1 = add_vbinding('-', Form, St0#state.curr),
                       %% Macro expand and evaluate it.
@@ -120,7 +114,7 @@ server_loop(St0) ->
                   %% Use LFE's simplified version of erlang shell's error
                   %% reporting but which LFE prettyprints data.
                   Stk = erlang:get_stacktrace(),
-                  Sf = fun ({M,_F,_A}) ->    %Pre R15
+                  Sf = fun ({M,_F,_A}) ->       %Pre R15
                                %% Don't want to see these in stacktrace.
                                (M == lfe_eval) or (M == lfe_shell)
                                    or (M == lfe_macro) or (M == lists);
@@ -210,15 +204,6 @@ prompt() ->
     case is_alive() of
         true -> lfe_io:format1("(~s)> ", [node()]);
         false -> "> "
-    end.
-
-lfe_io_read() ->
-    try
-        {ok,lfe_io:read()}
-    catch
-        %% Catch the read errors and ignore the rest.
-        error:{error,E} -> {error,E};
-        error:{error,E,_} -> {error,E}
     end.
 
 %% eval_form(Form, State) -> {Value,State}.
@@ -424,20 +409,24 @@ collect_imp(Fun, Mod, St, Fs) ->
 
 %% run(Args, State) -> {Value,State}.
 %%  Run the shell expressions in a file. Abort on errors and only
-%%  return updated state if there are no errors. We don't save
-%%  intermediate commands and values.
+%%  return updated state if there are no errors.
 
 run([File], #state{curr=Ce}=St) ->
     Name = lfe_eval:expr(File, Ce),             %Get file name
-    case run_file(Name) of                      %Read the file
-        {ok,Exprs} ->
-            run_loop(Exprs, [], St);
+    case read_script_file(Name) of              %Read the file
+        {ok,Forms} ->
+            run_loop(Forms, [], St);
         {error,E} ->
             slurp_errors(Name, [E]),
             {error,St}
     end.
 
-run_file(File) ->
+%% read_script_file(FileName) -> {ok,[Sexpr]} | {error,Error}.
+%%  Read a file returning the sexprs. Almost the same as
+%%  lfe_io:read_file except the we skip the first line if it is a
+%%  script line "#! ... ".
+
+read_script_file(File) ->
     case file:open(File, [read]) of
         {ok,F} ->
             %% Check if first a script line, if so skip it.
@@ -446,7 +435,7 @@ run_file(File) ->
                 _ -> file:position(F, bof)      %Reset to start of file
             end,
             Ret = case io:request(F, {get_until,'',lfe_scan,tokens,[1]}) of
-                      {ok,Ts,_} -> run_read_file(Ts, []);
+                      {ok,Ts,_} -> parse_tokens(Ts, []);
                       {error,Error,_} -> {error,Error}
                   end,
             file:close(F),                      %Close the file
@@ -454,9 +443,19 @@ run_file(File) ->
         {error,Error} -> {error,{none,file,Error}}
     end.
 
-run_read_file([_|_]=Ts0, Ss) ->
+%% read_script_string(FileName) -> {ok,[Sexpr]} | {error,Error}.
+%%  Read a file returning the sexprs. Almost the same as
+%%  lfe_io:read_string except parse all forms.
+
+read_script_string(String) ->
+    case lfe_scan:string(String, 1) of
+        {ok,Ts,_} -> parse_tokens(Ts, []);
+        {error,E,_} -> {error,E}
+    end.
+
+parse_tokens([_|_]=Ts0, Ss) ->
     case lfe_parse:sexpr(Ts0) of
-        {ok,_,S,Ts1} -> run_read_file(Ts1, [S|Ss]);
+        {ok,_,S,Ts1} -> parse_tokens(Ts1, [S|Ss]);
         {more,Pc1} ->
             %% Need more tokens but there are none, so call again to
             %% generate an error message.
@@ -464,12 +463,14 @@ run_read_file([_|_]=Ts0, Ss) ->
             {error,E};
         {error,E,_} -> {error,E}
     end;
-run_read_file([], Ss) -> {ok,reverse(Ss)}.
+parse_tokens([], Ss) -> {ok,reverse(Ss)}.
 
-run_loop([E|Es], _, St0) ->
-    {Val,St1} = eval_form(E, St0),
-    run_loop(Es, Val, St1);
-run_loop([], Val, St) -> {Val,St}.
+run_loop([F|Fs], _, St0) ->
+    Ce1 = add_vbinding('-', F, St0#state.curr),
+    {Value,St1} = eval_form(F, St0#state{curr=Ce1}),
+    Ce2 = update_shell_vars(F, Value, St1#state.curr),
+    run_loop(Fs, Value, St1#state{curr=Ce2});
+run_loop([], Value, St) -> {Value,St}.
 
 %% safe_fetch(Key, Dict, Default) -> Value.
 
@@ -553,4 +554,3 @@ regs() -> c:regs().
 %% exit() -> ok.
 
 exit() -> c:q().
-
