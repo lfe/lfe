@@ -34,18 +34,19 @@ Rules.
 %% Bracketed Comments using #| foo |#
 #\|[^\|]*\|+([^#\|][^\|]*\|+)*# : block_comment(string:substr(TokenChars, 3)).
 %% Separators
-#[bB]\(        :    {token,{'#B(',TokenLine}}.
-#\(        :    {token,{'#(',TokenLine}}.
-#`        :    {token,{'#`',TokenLine}}.
-#;        :    {token,{'#;',TokenLine}}.
-#,        :    {token,{'#,',TokenLine}}.
-#,@        :    {token,{'#,@',TokenLine}}.
-'        :    {token,{'\'',TokenLine}}.
-`        :    {token,{'`',TokenLine}}.
-,        :    {token,{',',TokenLine}}.
-,@        :    {token,{',@',TokenLine}}.
-\.        :    {token,{'.',TokenLine}}.
-[][()}{]    :    {token,{list_to_atom(TokenChars),TokenLine}}.
+#[bB]\(         :    {token,{'#B(',TokenLine}}.
+#[mM]\(         :    {token,{'#M(',TokenLine}}.
+#\(             :    {token,{'#(',TokenLine}}.
+#`              :    {token,{'#`',TokenLine}}.
+#;              :    {token,{'#;',TokenLine}}.
+#,              :    {token,{'#,',TokenLine}}.
+#,@             :    {token,{'#,@',TokenLine}}.
+'               :    {token,{'\'',TokenLine}}.
+`               :    {token,{'`',TokenLine}}.
+,               :    {token,{',',TokenLine}}.
+,@              :    {token,{',@',TokenLine}}.
+\.              :    {token,{'.',TokenLine}}.
+[][()}{]        :    {token,{list_to_atom(TokenChars),TokenLine}}.
 %% Characters
 #\\(x{H}+|.)    :    char_token(string:substr(TokenChars, 3), TokenLine).
 %% String

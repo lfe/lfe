@@ -911,29 +911,36 @@ exp_append(Args) ->
     end.
 
 %% exp_defun(Name, Def) -> Lambda | Match-Lambda.
-%% Educated guess whether traditional (defun name (a1 a2 ...) ...)
-%% or matching (defun name (patlist1 ...) (patlist2 ...))
+%%  Educated guess whether traditional (defun name (a1 a2 ...) ...)
+%%  or matching (defun name (patlist1 ...) (patlist2 ...))
 
-exp_defun(Name, [Args|Rest]=Def) ->
+exp_defun(Name, [Args|Body]=Def) ->
     case is_symb_list(Args) of
-    true -> [Name,exp_lambda_defun(Args, Rest)];
-    false -> [Name,exp_match_defun(Def)]
+        true -> [Name,exp_lambda_defun(Args, Body)];
+        false -> [Name,exp_match_defun(Def)]
     end.
 
-exp_lambda_defun(Args, Rest) ->
+exp_lambda_defun(Args, Body) ->
     %% Test whether first expression is a comment string.
-    ['lambda',Args|exp_drop_comment(Rest)].
+    ['lambda',Args|exp_lambda_body(Body)].
 
-exp_match_defun(Def) ->
-    %% Test whether first thing is a comment string.
-    ['match-lambda'|exp_drop_comment(Def)].
-
-exp_drop_comment([Comm|Rest]=All) ->
-    case io_lib:char_list(Comm) of
-    true -> Rest;
-    false -> All
+exp_lambda_body([Comm|Rest]=Body) ->
+    case io_lib:char_list(Comm) and (Rest =/= []) of
+        true -> Rest;
+        false -> Body
     end;
-exp_drop_comment([]) -> [].
+exp_lambda_body(Body) -> Body.
+
+exp_match_defun(Body) ->
+    %% Test whether first thing is a comment string.
+    ['match-lambda'|exp_match_clauses(Body)].
+
+exp_match_clauses([Comm|Rest]=Body) ->
+    case io_lib:char_list(Comm) of
+        true -> Rest;
+        false -> Body
+    end;
+exp_match_clauses(Body) -> Body.
 
 %% exp_defmacro(Name, Def) -> Lambda | MatchLambda.
 %%  Educated guess whether traditional (defmacro name (a1 a2 ...) ...)
@@ -944,23 +951,23 @@ exp_drop_comment([]) -> [].
 
 exp_defmacro(Name, [Args|Rest]=Def) ->
     Mcls = case is_symb_list(Args) of
-           true -> exp_lambda_defmacro(Args, Rest);
-           false ->
-           if is_atom(Args) ->
-               [[[Args,'$ENV']|exp_drop_comment(Rest)]];
-              true ->
-               exp_match_defmacro(Def)
-           end
-       end,
+               true -> exp_lambda_defmacro([list|Args], Rest);
+               false ->
+                   if is_atom(Args) ->
+                           exp_lambda_defmacro(Args, Rest);
+                      true ->
+                           exp_match_defmacro(Def)
+                   end
+           end,
     [Name,['match-lambda'|Mcls]].
 
-exp_lambda_defmacro(Args, Rest) ->
+exp_lambda_defmacro(Args, Body) ->
     %% Test whether first expression is a comment string.
-    [[[[list|Args],'$ENV']|exp_drop_comment(Rest)]].
+    [[[Args,'$ENV']|exp_lambda_body(Body)]].
 
-exp_match_defmacro(Def) ->
-    Cls = exp_drop_comment(Def),
-    map(fun ([Head|Body]) -> [[Head,'$ENV']|Body] end, Cls).
+exp_match_defmacro(Cls) ->
+    map(fun ([Head|Body]) -> [[Head,'$ENV']|Body] end,
+        exp_match_clauses(Cls)).
 
 %% exp_syntax(Name, Def) -> Lambda | MatchLambda.
 %%  N.B. New macro definition is function of 2 arguments, the whole
@@ -968,11 +975,11 @@ exp_match_defmacro(Def) ->
 
 exp_syntax(Name, Def) ->
     case Def of
-    [macro|Cls] ->
-        Mcls = map(fun ([Pat|Body]) -> [[Pat,'$ENV']|Body] end, Cls),
-        [Name,['match-lambda'|Mcls]];
-    ['syntax-rules'|Rules] ->
-        exp_rules(Name, [], Rules)
+        [macro|Cls] ->
+            Mcls = map(fun ([Pat|Body]) -> [[Pat,'$ENV']|Body] end, Cls),
+            [Name,['match-lambda'|Mcls]];
+        ['syntax-rules'|Rules] ->
+            exp_rules(Name, [], Rules)
     end.
 
 %% exp_rules(Name, Keywords, Rules) -> Lambda.
@@ -983,8 +990,8 @@ exp_syntax(Name, Def) ->
 
 exp_rules(Name, Keywords, Rules) ->
     [Name,[lambda,[args,'$ENV'],
-       [':',lfe_macro,mbe_syntax_rules_proc,
-        [quote,Name],[quote,Keywords],[quote,Rules],args]]].
+           [':',lfe_macro,mbe_syntax_rules_proc,
+            [quote,Name],[quote,Keywords],[quote,Rules],args]]].
 
 %%  By Andr� van Tonder
 %%  Unoptimized.  See Dybvig source for optimized version.

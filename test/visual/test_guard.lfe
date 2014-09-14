@@ -1,5 +1,5 @@
 (defmodule test_guard
-  (export (b 1) (c 2) (e 2) (f 2)))
+  (export (b 1) (c 2) (e 2) (f 2) (if-test 2)))
 
 (defun b (x) x)
 
@@ -9,6 +9,7 @@
   (case (b x)
     ((tuple 'ok z) (when (> z 5)) (d '|(> z 5)| z))
     ((tuple 'ok z) (when z) (d 'z z))
+    ((tuple 'ok z) (when (+ z z)) (d '|(+ z z)| z))
     ((tuple 'ok z) (when (== z 'true)) (d '|(== z true)| z))
     ((tuple 'ok z) (when (and z 'true)) (d '|(and z true)| z))
     ((tuple 'ok z) (when (and z x)) (d '|(and z x)| z))
@@ -33,3 +34,8 @@
   (case x
     ((tuple 'ok b) (when (=:= b (binary 1 2 3))) 'yes)
     (_ 'no)))
+
+(defun if-test
+  ([x y] (when (if (> (+ x y) 10) 'true
+		   'false)) 1)
+  ([x y] 2))

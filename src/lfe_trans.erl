@@ -85,9 +85,9 @@ from_expr({bin,_,Segs}, Vt0, St0) ->
     {Ss,Vt1,St1} = from_bitsegs(Segs, Vt0, St0),
     {[binary|Ss],Vt1,St1};
 %% Core closure special forms.
-from_expr({'fun',_,{clauses,Cls}}, Vt0, St0) ->
-    {Lcls,Vt1,St1} = from_fun_cls(Cls, Vt0, St0),
-    {['match-lambda'|Lcls],Vt1,St1};        %Don't bother using lambda
+from_expr({'fun',_,{clauses,Cls}}, Vt, St0) ->
+    {Lcls,St1} = from_fun_cls(Cls, Vt, St0),
+    {['match-lambda'|Lcls],Vt,St1};        %Don't bother using lambda
 from_expr({'fun',_,{function,F,A}}, Vt, St) ->
     {['fun',F,A],Vt,St};                    %Return macros here?
 from_expr({'fun',_,{function,M,F,A}}, Vt, St) ->
@@ -237,19 +237,24 @@ from_icrt_cl({clause,_,H,[G],B}, Vt0, St0) ->
     Leg = from_eq_tests(Eqt),
     {[Lh,['when'|Leg ++ Lg]|Lb],Vt3,St3}.
 
-%% from_fun_cls(Clauses, VarTable, State) -> {Clauses,VarTableState}.
+%% from_fun_cls(Clauses, VarTable, State) -> {Clauses,State}.
 %% from_fun_cl(Clause, VarTable, State) -> {Clause,VarTable,State}.
-%%  Function clauses.
+%%  Function clauses, all variables in the patterns are new variables
+%%  which shadow existing variables without equality tests.
 
-from_fun_cls(Cls, Vt, St) -> from_cls(fun from_fun_cl/3, Vt, St, Cls).
+from_fun_cls(Cls, Vt, St0) ->
+    {Lcls,_,St1} = from_cls(fun from_fun_cl/3, Vt, St0, Cls),
+    {Lcls,St1}.
 
 from_fun_cl({clause,_,H,[],B}, Vt0, St0) ->
-    {Lh,Eqt,Vt1,St1} = from_pat_list(H, Vt0, St0),
+    {Lh,Eqt,Vtp,St1} = from_pat_list(H, [], St0),
+    Vt1 = ordsets:union(Vtp, Vt0),              %All variables so far
     {Lb,Vt2,St2} = from_body(B, Vt1, St1),
     Leg = from_eq_tests(Eqt),
     {[Lh,['when'|Leg]|Lb],Vt2,St2};
 from_fun_cl({clause,_,H,[G],B}, Vt0, St0) ->
-    {Lh,Eqt,Vt1,St1} = from_pat_list(H, Vt0, St0),
+    {Lh,Eqt,Vtp,St1} = from_pat_list(H, [], St0),
+    Vt1 = ordsets:union(Vtp, Vt0),              %All variables so far
     {Lg,Vt2,St2} = from_body(G, Vt1, St1),
     {Lb,Vt3,St3} = from_body(B, Vt2, St2),
     Leg = from_eq_tests(Eqt),
@@ -331,11 +336,11 @@ new_from_var(#from{vc=C}=St) ->
 from_pat({var,_,'_'}, Vt, St) -> {'_',[],Vt,St};    %Special case _
 from_pat({var,_,V}, Vt, St0) ->                     %Unquoted atom
     case ordsets:is_element(V, Vt) of               %Is variable bound?
-    true ->
-        {V1,St1} = new_from_var(St0),               %New var for pattern
-        {V1,[{V,V1}],Vt,St1};                       %Add to guard tests
-    false ->
-        {V,[],ordsets:add_element(V, Vt),St0}
+        true ->
+            {V1,St1} = new_from_var(St0),       %New var for pattern
+            {V1,[{V,V1}],Vt,St1};               %Add to guard tests
+        false ->
+            {V,[],ordsets:add_element(V, Vt),St0}
     end;
 from_pat({nil,_}, Vt, St) -> {[],[],Vt,St};
 from_pat({integer,_,I}, Vt, St) -> {I,[],Vt,St};
@@ -437,9 +442,9 @@ to_expr([cdr,E], L, Vt, St0) ->
     {{call,L,{atom,L,tl},[Ee]},St1};
 to_expr([list|Es], L, Vt, St) ->
     Fun = fun (E, {Tail,St0}) ->
-          {Ee,St1} = to_expr(E, L, Vt, St0),
-          {{cons,L,Ee,Tail},St1}
-      end,
+                  {Ee,St1} = to_expr(E, L, Vt, St0),
+                  {{cons,L,Ee,Tail},St1}
+          end,
     foldr(Fun, {{nil,L},St}, Es);
 to_expr(['list*'|Es], L, Vt, St) ->        %Macro
     to_expr_list_s(fun to_expr/4, L, Vt, St, Es);
@@ -479,12 +484,12 @@ to_expr(['receive'|Cls0], L, Vt, St0) ->
     {Cls1,A} = splitwith(fun (['after'|_]) -> false; (_) -> true end, Cls0),
     {Ecls,St1} = to_icrt_cls(Cls1, L, Vt, St0),
     case A of
-    [['after',T|B]] ->
-        {Et,St2} = to_expr(T, L, Vt, St1),
-        {Eb,St3} = to_body(B, L, Vt, St2),
-        {{'receive',L,Ecls,Et,Eb},St3};
-    [] ->
-        {{'receive',L,Ecls},St1}
+        [['after',T|B]] ->
+            {Et,St2} = to_expr(T, L, Vt, St1),
+            {Eb,St3} = to_body(B, L, Vt, St2),
+            {{'receive',L,Ecls,Et,Eb},St3};
+        [] ->
+            {{'receive',L,Ecls},St1}
     end;
 %% Special known macros.
 %% No record stuff here as they are macros which have been expanded.
@@ -498,9 +503,9 @@ to_expr([call,?Q(erlang),?Q(F)|As], L, Vt, St0) ->
     %% (qlc_pt).
     {Eas,St1} = to_expr_list(As, L, Vt, St0),
     case is_erl_op(F, length(As)) of
-    true -> {list_to_tuple([op,L,F|Eas]),St1};
-    false ->
-        {{call,L,{remote,{atom,L,erlang},{atom,L,F}},Eas},St1}
+        true -> {list_to_tuple([op,L,F|Eas]),St1};
+        false ->
+            {{call,L,{remote,{atom,L,erlang},{atom,L,F}},Eas},St1}
     end;
 to_expr([call,M,F|As], L, Vt, St0) ->
     {Em,St1} = to_expr(M, L, Vt, St0),
@@ -510,22 +515,22 @@ to_expr([call,M,F|As], L, Vt, St0) ->
 to_expr([F|As], L, Vt, St0) when is_atom(F) ->  %General function call
     {Eas,St1} = to_expr_list(As, L, Vt, St0),
     case is_erl_op(F, length(As)) of
-    true -> {list_to_tuple([op,L,F|Eas]),St1};
-    false -> {{call,L,{atom,L,F},Eas},St1}
+        true -> {list_to_tuple([op,L,F|Eas]),St1};
+        false -> {{call,L,{atom,L,F},Eas},St1}
     end;
 to_expr(List, L, _, St) ->
     case is_integer_list(List) of
-    true -> {{string,L,List},St};
-    false ->
-        io:format("BOOM:~p\n", [List]),
-        {integer,L,4711}                        %Not right!
+        true -> {{string,L,List},St};
+        false ->
+            io:format("BOOM:~p\n", [List]),
+            {integer,L,4711}                    %Not right!
     end.
 
 to_expr_var(V, L, Vt, St) ->
     Var = case orddict:find(V, Vt) of
-          {ok,V1} -> V1;
-          error -> V
-      end,
+              {ok,V1} -> V1;
+              error -> V
+          end,
     {{var,L,Var},St}.
 
 %% is_erl_op(Op, Arity) -> bool().
@@ -566,18 +571,29 @@ to_pat_list_s(_, L, Vt, St, []) -> {{nil,L},Vt,St}.
 
 to_block(Es, L, Vt, St0) ->
     case to_expr_list(Es, L, Vt, St0) of
-    {[Ee],St1} -> {Ee,St1};             %No need to wrap
-    {Ees,St1} -> {{block,L,Ees},St1}    %Must wrap
+        {[Ee],St1} -> {Ee,St1};                 %No need to wrap
+        {Ees,St1} -> {{block,L,Ees},St1}        %Must wrap
     end.
 
 %% to_let_bindings(Bindings, LineNumber, VarTable, State) ->
 %%     {Block,VarTable,State}.
+%%  When we have a guard translate into a case but special case where
+%%  we have an empty guard.
 
 to_let_bindings(Lbs, L, Vt, St) ->
     Fun = fun ([P,E], Vt0, St0) ->
-          {Ep,Vt1,St1} = to_pat(P, L, Vt0, St0),
-          {Ee,St2} = to_expr(E, L, Vt0, St1),
-          {{match,L,Ep,Ee},Vt1,St2}
+                  {Ep,Vt1,St1} = to_pat(P, L, Vt0, St0),
+                  {Ee,St2} = to_expr(E, L, Vt0, St1),
+                  {{match,L,Ep,Ee},Vt1,St2};
+              ([P,['when'],E], Vt0, St0) ->     %Just to keep it short
+                  {Ep,Vt1,St1} = to_pat(P, L, Vt0, St0),
+                  {Ee,St2} = to_expr(E, L, Vt0, St1),
+                  {{match,L,Ep,Ee},Vt1,St2};
+              ([P,['when'|G],E], Vt0, St0) ->
+                  {Ee,St1} = to_expr(E, L, Vt0, St0),
+                  {Ep,Vt1,St2} = to_pat(P, L, Vt0, St1),
+                  {Eg,St3} = to_body(G, L, Vt1, St2),
+                  {{'case',L,Ee,[{clause,L,[Ep],Eg,[Ep]}]},Vt1,St3}
       end,
     mapfoldl2(Fun, Vt, St, Lbs).
 
@@ -643,12 +659,12 @@ to_bitsegs(Ss, L, Vt, St) ->
 
 to_bitseg([Val|Specs]=F, L, Vt, St) ->
     case is_integer_list(F) of
-    true ->
-        {Size,Type} = to_bitspecs([]),
-        to_bin_element(F, Size, Type, L, Vt, St);
-    false ->
-        {Size,Type} = to_bitspecs(Specs),
-        to_bin_element(Val, Size, Type, L, Vt, St)
+        true ->
+            {Size,Type} = to_bitspecs([]),
+            to_bin_element(F, Size, Type, L, Vt, St);
+        false ->
+            {Size,Type} = to_bitspecs(Specs),
+            to_bin_element(Val, Size, Type, L, Vt, St)
     end;
 to_bitseg(Val, L, Vt, St) ->
     {Size,Type} = to_bitspecs([]),
@@ -671,8 +687,8 @@ to_bin_unit(Unit) -> {unit,Unit}.
 
 to_bitspecs(Ss) ->
     case lfe_bits:get_bitspecs(Ss) of
-    {ok,Sz,Ty} -> {Sz,Ty};
-    {error,Error} -> erlang:error(Error)
+        {ok,Sz,Ty} -> {Sz,Ty};
+        {error,Error} -> erlang:error(Error)
     end.
 
 new_to_var(#to{vc=C}=St) ->
@@ -735,12 +751,12 @@ to_pat_bitsegs(Ss, L, Vt, St) ->
 
 to_pat_bitseg([Val|Specs]=F, L, Vt, St) ->
     case is_integer_list(F) of
-    true ->
-        {Size,Type} = to_bitspecs([]),
-        to_pat_bin_element(F, Size, Type, L, Vt, St);
-    false ->
-        {Size,Type} = to_bitspecs(Specs),
-        to_pat_bin_element(Val, Size, Type, L, Vt, St)
+        true ->
+            {Size,Type} = to_bitspecs([]),
+            to_pat_bin_element(F, Size, Type, L, Vt, St);
+        false ->
+            {Size,Type} = to_bitspecs(Specs),
+            to_pat_bin_element(Val, Size, Type, L, Vt, St)
     end;
 to_pat_bitseg(Val, L, Vt, St) ->
     {Size,Type} = to_bitspecs([]),

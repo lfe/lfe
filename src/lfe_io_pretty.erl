@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2013 Robert Virding
+%% Copyright (c) 2008-2014 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -23,6 +23,13 @@
 -compile(export_all).
 
 -import(lists, [reverse/1,reverse/2,flatlength/1]).
+
+%% Define IS_MAP/1 macro for is_map/1 bif.
+-ifdef(HAS_MAPS).
+-define(IS_MAP(T), is_map(T)).
+-else.
+-define(IS_MAP(T), false).
+-endif.
 
 %% print1(Sexpr) -> [char()].
 %% print1(Sexpr, Depth) -> [char()].
@@ -50,32 +57,34 @@ print1(['unquote-splicing',E], D, I, L) -> [",@",print1(E, D, I+2, L)];
 print1([Car|_]=List, D, I, L) ->
     %% Handle printable lists specially.
     case io_lib:printable_list(List) of
-    true -> lfe_io:print1_string(List, $");    %"
-    false ->
-        case print1_list_max(List, D-1, I+2, L) of
-        {yes,Print} -> ["(",Print,")"];
-        no ->
-            %% Customise printing of lists.
-            case indent_type(Car) of
-            none ->                     %Normal lists.
-                ["(",print1_list(List, D-1, I+1, L),")"];
-            defun ->                    %Special case for defuns
-                print1_defun(List, D, I, L);
-            N when is_integer(N) ->     %Special N first elements
-                print1_type(List, D, I, L, N)
+        true -> lfe_io:print1_string(List, $"); %"
+        false ->
+            case print1_list_max(List, D-1, I+1, L-1) of
+                {yes,Print} -> ["(",Print,")"];
+                no ->
+                    %% Customise printing of lists.
+                    case indent_type(Car) of
+                        none ->                 %Normal lists.
+                            ["(",print1_list(List, D-1, I+1, L-1),")"];
+                        defun ->                %Special case for defuns
+                            print1_defun(List, D, I, L);
+                        N when is_integer(N) -> %Special N first elements
+                            print1_type(List, D, I, L, N)
+                    end
             end
-        end
     end;
 print1([], _, _, _) -> "()";
 print1({}, _, _, _) -> "#()";
 print1(Tup, D, I, L) when is_tuple(Tup) ->
     Es = tuple_to_list(Tup),
-    case print1_list_max(Es, D-1, I+3, L) of
-    {yes,Print}  -> ["#(",Print,")"];
-    no -> ["#(",print1_list(Es, D-1, I+2, L),")"]
+    case print1_list_max(Es, D-1, I+2, L-1) of
+        {yes,Print}  -> ["#(",Print,")"];
+        no -> ["#(",print1_list(Es, D-1, I+2, L),")"]
     end;
-print1(Bit, _, _, _) when is_bitstring(Bit) ->
-    ["#B(",lfe_io:print1_bits(Bit, 30),$)];     %First 30 bytes
+print1(Bit, D, _, _) when is_bitstring(Bit) ->
+    ["#B(",lfe_io:print1_bits(Bit, D),$)];      %First D bytes
+print1(Map, D, I, L) when ?IS_MAP(Map) ->
+    print1_map(Map, D, I, L);
 print1(Other, _, _, _) ->
     lfe_io:print1(Other).                       %Use standard LFE for rest
 
@@ -84,16 +93,16 @@ print1(Other, _, _, _) ->
 
 print1_defun([Def,Name,Args|Rest], D, I, L) when
       is_atom(Name), (D > 3) or (D < 0) ->
-    Dcs = atom_to_list(Def),            %Might not actually be defun
+    Dcs = atom_to_list(Def),                    %Might not actually be defun
     Ncs = atom_to_list(Name),
     case lfe_lib:is_symb_list(Args) of
-    true ->                    %Traditional
-        Acs = print1(Args, D-2, I + length(Dcs) + length(Ncs) + 3, L),
-        Tcs = print1_tail(Rest, D-3, I+2, L),
-        ["(",Dcs," ",Ncs," ",Acs,Tcs,")"];
-    false ->                %Matching
-        Tcs = print1_tail([Args|Rest], D-2, I+2, L),
-        ["(",Dcs," ",Ncs,Tcs,")"]
+        true ->                                 %Traditional
+            Acs = print1(Args, D-2, I + length(Dcs) + length(Ncs) + 3, L),
+            Tcs = print1_tail(Rest, D-3, I+2, L),
+            ["(",Dcs," ",Ncs," ",Acs,Tcs,")"];
+        false ->                                %Matching
+            Tcs = print1_tail([Args|Rest], D-2, I+2, L),
+            ["(",Dcs," ",Ncs,Tcs,")"]
     end;
 print1_defun(List, D, I, L) ->
     %% Too short to get worked up about, or not a "proper" defun or
@@ -110,7 +119,7 @@ print1_type([Car|Cdr], D, I, L, N) when (D > 2) or (D < 0) ->
     NewI = I + length(Cs) + 2,
     {Spec,Rest} = split(N, Cdr),
     Tcs = [print1_list(Spec, D-1, NewI, L),
-       print1_tail(Rest, D-2, I+2, L)],
+           print1_tail(Rest, D-2, I+2, L)],
     ["(" ++ Cs," ",Tcs,")"];
 print1_type(List, D, I, L, _) ->
     %% Too short to get worked up about or not enough depth.
@@ -142,36 +151,85 @@ print1_list_max([Car|Cdr], D, I, L) ->
 %%  we just quit as we know necessary "..." will have come from an
 %%  earlier print1 at same depth.
 
-print1_tail_max(_, _, I, L, _) when I >= L -> no;    %No more room
+print1_tail_max(_, _, I, L, _) when I >= L ->   %No more room
+    no;
 print1_tail_max([], _, _, _, Acc) -> {yes,reverse(Acc)};
 print1_tail_max(_, 0, _, _, Acc) -> {yes,reverse(Acc, [" ..."])};
 print1_tail_max([Car|Cdr], D, I, L, Acc) ->
-    Cs = print1(Car, D, 0, 99999),          %Never break the line
+    Cs = print1(Car, D, 0, 99999),              %Never break the line
     print1_tail_max(Cdr, D-1, I + flatlength(Cs) + 1, L, [Cs," "|Acc]);
 print1_tail_max(S, D, I, L, Acc) ->
-    Cs = print1(S, D, 0, 99999),            %Never break the line
+    Cs = print1(S, D, 0, 99999),                %Never break the line
     print1_tail_max([], D-1, I + flatlength(Cs) + 3, L, [Cs," . "|Acc]).
 
 %% print1_list(List, Depth, Indentation, LineLength)
-%%  Print a list, one element per line. No leading/trailing ().
+%%  Print a list, one element per line but print multiple atomic
+%%  elements on one line. No leading/trailing ().
 
 print1_list([], _, _, _) -> [];
 print1_list(_, 0, _, _) -> "...";
 print1_list([Car|Cdr], D, I, L) ->
-    [print1(Car, D, I, L),print1_tail(Cdr, D-1, I, L)].
+    case print1_element(Car, I, D, I, L) of
+        {join,Ccs,Cl} ->                        %Atomic that fits
+            [Ccs|print1_tail(Cdr, I+Cl, D, I, L)];
+        {break,Ccs,_} ->                        %Atomic that does not fit
+            [Ccs|print1_tail(Cdr, L, D, I, L)];
+        {break,Ccs} ->                          %Non-atomic
+            %% Force a break after not an atomic.
+            [Ccs|print1_tail(Cdr, L, D, I, L)]
+    end.
 
 %% print1_tail(Tail, Depth, Indentation, LineLength)
+%% print1_tail(Tail, CurrentLength, Depth, Indentation, LineLength)
 %%  Print the tail of a list decreasing the depth for each element. We
-%%  know about dotted pairs.
+%%  print multiple atomic elements on one line and we know about
+%%  dotted pairs.
 
-print1_tail([], _, _, _) -> "";
-print1_tail(_, 0, _, _) -> "...";
-print1_tail([Car|Cdr], D, I, L) ->
-    ["\n",blanks(I, []),print1(Car, D, I, L),print1_tail(Cdr, D-1, I, L)];
-print1_tail(S, D, I, L) ->
-    [" .\n",blanks(I, print1(S, D, I, L))].
+print1_tail(Tail, D, I, L) ->
+    print1_tail(Tail, L, D, I, L).              %Force a break
+
+print1_tail([], _, _, _, _) -> "";
+print1_tail(_, _, 0, _, _) -> " ...";
+print1_tail([Car|Cdr], CurL, D, I, L) ->
+    case print1_element(Car, CurL+1, D, I, L) of
+        {join,Ccs,Cl} ->                        %Atomic that fits
+            [$\s,Ccs,print1_tail(Cdr, CurL+1+Cl, D-1, I, L)];
+        {break,Ccs,Cl} ->                       %Atomic that does not fit
+            [newline(I, Ccs),print1_tail(Cdr, I+Cl, D-1, I, L)];
+        {break,Ccs} ->                          %Non-atomic
+            %% Force a break after not an atomic.
+            [newline(I, Ccs),print1_tail(Cdr, L, D-1, I, L)]
+    end;
+print1_tail(Cdr, CurL, D, I, L) ->
+    case print1_element(Cdr, CurL+3, D, I, L) of
+        {join,Ccs,_} -> [" . "|Ccs];            %Atomic that fits
+        {break,Ccs,_} ->                        %Atomic that does not fit
+            [" .\n",blanks(I, Ccs)];
+        {break,Ccs} ->                          %Non-atomic
+            [" .\n",blanks(I, Ccs)]
+    end.
+
+print1_element(E, CurL, D, _, L) when is_number(E);
+                                      is_atom(E);
+                                      is_pid(E);
+                                      is_reference(E);
+                                      is_port(E);
+                                      is_function(E);
+                                      E =:= [] ->
+    Ecs = lfe_io:print1(E, D),
+    El = flatlength(Ecs),
+    if CurL+El =< L - 10 -> {join,Ecs,El};      %Don't make the line too wide
+       true -> {break,Ecs,El}
+    end;
+print1_element(E, _, D, I, L) ->
+    {break,print1(E, D, I, L)}.
 
 blanks(N, Tail) -> string:chars($\s, N, Tail).
+
+newline(N) -> newline(N, []).
+
+newline(N, Tail) ->
+    [$\n|blanks(N, Tail)].
 
 %% indent_type(Form) -> N | none.
 %%  Defines special indentation. None means default, N is number of
@@ -226,3 +284,65 @@ indent_type('lc') -> 1;                %List comprehensions
 indent_type('bc') -> 1;                %Binary comprehensions
 indent_type('match-spec') -> 0;
 indent_type(_) -> none.
+
+%% print1_map(Map, Depth, Indentation, LineLength).
+%%  Print a map, one key value pair per line.
+
+print1_map(Map, D, I, L) ->
+    [$#,$M,$(,print1_map_body(maps:to_list(Map), I+3, D, I+3, L-1),$)].
+
+print1_map_body([], _, _, _, _) -> [];
+print1_map_body([{K,V}|KVs], CurL, D, I, L) ->
+    case print1_map_assoc(K, V, CurL, D, I, L) of
+        {join,KVcs,KVl} ->
+            [KVcs,print1_map_rest(KVs, CurL+KVl, D-1, I, L)];
+        {break,KVcs,KVl} ->
+            [KVcs,print1_map_rest(KVs, I+KVl, D-1, I, L)];
+        {break,KVcs} ->
+            %% Force a break after K/V split.
+            [KVcs,print1_map_rest(KVs, L, D-1, I, L)]
+    end.
+
+print1_map_rest([], _, _, _, _) -> "";
+print1_map_rest(_, _, 0, _, _) -> " ...";
+print1_map_rest([{K,V}|KVs], CurL, D, I, L) ->
+    case print1_map_assoc(K, V, CurL+1, D, I, L) of
+        {join,KVcs,KVl} ->
+            [$\s,KVcs,print1_map_rest(KVs, CurL+KVl+1, D-1, I, L)];
+        {break,KVcs,KVl} ->
+            [newline(I, KVcs),print1_map_rest(KVs, I+KVl, D-1, I, L)];
+        {break,KVcs} ->
+            %% Force a break after K/V split.
+            [newline(I, KVcs),print1_map_rest(KVs, L, D-1, I, L)]
+    end.
+
+print1_map_assoc(K, V, CurL, D, I, L) ->
+    Kcs = print1(K, D, 0, 99999),               %Never break the line
+    Kl = flatlength(Kcs),
+    Vcs = print1(V, D, 0, 99999),               %Never break the line
+    Vl = flatlength(Vcs),
+    if CurL+Kl+Vl < L-10 ->                     %Both fit together here
+            {join,[Kcs,$\s,Vcs],Kl+1+Vl};
+       I+Kl+Vl < L-10 ->                        %Both fit on single line
+            {break,[Kcs,$\s,Vcs],Kl+1+Vl};
+       true ->                                  %On separate lines
+            %% Try to reuse flat prints if they fit on one line.
+            Ks = if I+Kl < L-10 -> Kcs;
+                    true -> print1(K, D, I, L)
+                 end,
+            Vs = if I+Vl < L-10 -> Vcs;
+                    true -> print1(V, D, I, L)
+                 end,
+            {break,[Ks,newline(I, Vs)]}
+    end.
+
+last_length(S) -> last_length(S, 0).
+
+last_length([H|T], L0) when is_list(H) ->
+    L1 = last_length(H, L0),                    %Must go left-to-right
+    last_length(T, L1);
+last_length([$\n|T], _) ->
+    last_length(T, 0);
+last_length([_|T], L) ->
+    last_length(T, L+1);
+last_length([], L) -> L.
