@@ -1,10 +1,10 @@
 {application,lfe,
              [{description,"Lisp Flavored Erlang (LFE)"},
-              {vsn,"0.9.0-dev"},
+              {vsn,"0.9.0"},
               {modules,[lfe_bits,lfe_codegen,lfe_comp,lfe_env,lfe_eval,
                         lfe_gen,lfe_init,lfe_io,lfe_io_format,lfe_io_pretty,
                         lfe_lib,lfe_lint,lfe_macro,lfe_macro_include,
                         lfe_macro_record,lfe_ms,lfe_parse,lfe_pmod,lfe_qlc,
                         lfe_scan,lfe_shell,lfe_trans,lfescript]},
               {registered,[]},
-              {applications,[kernel,stdlib]}]}.
+              {applications,[kernel,stdlib,compiler]}]}.
