@@ -92,6 +92,13 @@ is_core_form(cdr) -> true;
 is_core_form(list) -> true;
 is_core_form(tuple) -> true;
 is_core_form(binary) -> true;
+is_core_form(map) -> true;
+is_core_form(mref) -> true;
+is_core_form(mset) -> true;
+is_core_form(mupd) -> true;
+is_core_form('map-get') -> true;
+is_core_form('map-set') -> true;
+is_core_form('map-update') -> true;
 %% Core closure special forms.
 is_core_form(lambda) -> true;
 is_core_form('match-lambda') -> true;

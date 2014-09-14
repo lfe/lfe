@@ -1,4 +1,4 @@
-#! /usr/bin/env lfescript
+#! /usr/bin/env lfe
 ;; -*- mode: lfe -*-
 ;;! -smp enable -sname factorial -mnesia debug verbose
 ;;
@@ -18,38 +18,36 @@
 
 ;; File    : sample-lfescript
 ;; Author  : Robert Virding and Duncan McGreggor
-;; Purpose : Demonstrating usage of lfescript
+;; Purpose : Demonstrating usage of lfe
 
 ;; To use this script make sure you have run "make install" from the
 ;; lfe working directory
 ;;
 ;; At this point, you can call this script directly:
 ;;
-;;  $ examples/sample-lfescript
+;;  $ examples/sample-lfe-shellscript
 ;;  usage: examples/sample-lfescript <integer>
 ;;
 ;; As you can see, calling the script like that displays the usage statement.
 ;; Now call the script as intended, like the usage says:
 ;;
-;;  $ examples/sample-lfescript 12
+;;  $ examples/sample-lfe-shellscript 12
 ;;  factorial 12 = 479001600
-;;
-;; For more information, see ./doc/lfescript.txt.
-
-(defun main
-  ([(list string)]
-   (try
-       (let* ((n (list_to_integer string))
-              (f (fac n)))
-         (: lfe_io format '"factorial ~w = ~w\n" (list n f)))
-     (catch
-       ((tuple _ _ _) (usage)))))
-  ([_] (usage)))
 
 (defun fac
   ([0] 1)
   ([n] (* n (fac (- n 1)))))
 
 (defun usage ()
-  (let ((script-name (: escript script_name)))
-    (: lfe_io format '"usage: ~s <integer>\n" (list script-name))))
+  (: lfe_io format "usage: ~s <integer>\n" (list script-name)))
+
+;; Now do it
+(case script-args
+  ((cons string _)
+   (try
+       (let* ((n (list_to_integer string))
+              (f (fac n)))
+         (: lfe_io format '"factorial ~w = ~w\n" (list n f)))
+     (catch
+       ((tuple _ _ _) (usage)))))
+  (() (usage)))

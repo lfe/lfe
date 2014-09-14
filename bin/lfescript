@@ -1,5 +1,5 @@
 #! /bin/sh
-# Copyright (c) 2008-2013 Robert Virding
+# Copyright (c) 2008-2014 Robert Virding
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,44 +14,89 @@
 # limitations under the License.
 #
 # A primitive lfescript script.
-# All arguments that come as explicit input from the command line get
-# wrapped with '...' in the call to erlang. This makes them a bit
-# safe. Yes, I know it screws up if the argument contains a ' but I
-# feel this is less likely than a space or other shell character.
+
+# Follow symlinks to actual program and set env variables.
+
+follow_symlink () {
+    if [ -h "$1" ]; then
+	follow_symlink $(readlink "$1")
+    else
+	echo "$1"
+    fi
+}
+
+SELF=$(follow_symlink "$0")
+LFE_PROGNAME=`echo $0 | sed 's/.*\///'`
+LFE_BINDIR=$(dirname "$SELF")
+LFE_ROOTDIR=$(dirname "$LFE_BINDIR")
+
+export LFE_ROOTDIR
+export LFE_BINDIR
+export LFE_PROGNAME
 
 # Set which emulator to use, the default is erl.
 emulator=${LFESCRIPT_EMULATOR-"erl"}
 
-# Get some variables from command line args.
-# First off any script options starting with '-' upto the script name.
-scriptopts=""
-while opt=`expr "$1" : '^-\(.*\)'` ; [ -n "$opt" ]
-do scriptopts="$scriptopts '$opt'"; shift 1
+# Collect any script options starting with '-' upto the script name.
+
+i="$#"				# Counter
+
+while [ $i -gt 0 ]; do
+    case "$1" in
+	# -*)
+	#     opt=`expr "$1" : '^-\(.*\)'`
+	#     set -- "$@" "$opt"
+	#     shift ; i=`expr $i - 1`
+	#     ;;
+	-extra | --)		# We are explicitly done
+	    shift ; i=`expr $i - 1`
+	    break ;;
+	-* | +*)		# Flags
+	    set -- "$@" "$1"
+	    shift ; i=`expr $i - 1`
+	    while [ $i -gt 0 ]; do
+		case "$1" in
+		    -* | +*)
+			break ;;
+		    *)
+			set -- "$@" "$1"
+			shift ; i=`expr $i - 1`
+		esac
+	    done ;;
+	*)			# Plain argument
+	    break ;;
+    esac
 done
 
-# Get the script name and the rest are script arguments. Can't quote
-# the script name yet we are going to use it internally.
-scriptname=$1
-shift 1
-scriptargs=""
-for arg in "$@"; do scriptargs="$scriptargs '$arg'"; done
+# Get the scriptname.
+scriptname="$1"
+
+# Split options and scriptname/args, add the middle bits to the end
+set -- "$@" "-pa" "$LFE_ROOTDIR/ebin"
+set -- "$@" "-noshell" "-run" "lfescript" "start"
+set -- "$@" "-extra"
+
+# Step over the args section adding them to the end.
+while [ $i -gt 0 ]; do
+    set -- "$@" "$1"
+    shift ; i=`expr $i - 1`
+done
 
 # Try to find an explicit emulator flag option line in line 2 or 3 of
 # script file.
 
 # Read the first three lines of the script file.
-if [ -z "$scriptname" ] ; then
+if [ -z "$scriptname" ]; then
     echo "lfescript: Missing filename" ; exit 127
-elif [ -f "$scriptname" -a -r "$scriptname"  ] ; then 
+elif [ -f "$scriptname" -a -r "$scriptname"  ]; then 
     { read line1; read line2; read line3; } < $scriptname
-    scriptname="'$scriptname'"
 else
     echo "lfescript: Failed to open file: $scriptname" ; exit 127
 fi
 
 # Search for explicit emulator flag option line.
-shebangs=`expr "$line2" : '^;;!\(.*\)'`
-if [ -z "$shebangs" ] ; then shebangs=`expr "$line3" : '^;;!\(.*\)'` ; fi
+shebangs=`expr "$line2" : '^;;! *\(.*\)'`
+if [ -z "$shebangs" ] ; then shebangs=`expr "$line3" : '^;;! *\(.*\)'` ; fi
 
 # Done, now just run the emulator.
-eval $emulator +B -boot start_clean -noshell $shebangs -run lfescript start $scriptopts -extra $scriptname $scriptargs
+exec $emulator +B -boot start_clean $shebangs "$@"

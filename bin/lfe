@@ -1,5 +1,5 @@
-#! /bin/bash
-# Copyright (c) 2008-2013 Robert Virding
+#!/bin/sh
+# Copyright (c) 2008-2014 Robert Virding
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,5 +13,75 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Run LFE shell by default. Can add -pa if necessary.
-erl -user lfe_boot "$@"
+# Follow symlinks to actual program and set env variables.
+
+follow_symlink () {
+    if [ -h "$1" ]; then
+	follow_symlink $(readlink "$1")
+    else
+	echo "$1"
+    fi
+}
+
+SELF=$(follow_symlink "$0")
+LFE_PROGNAME=`echo $0 | sed 's/.*\///'`
+LFE_BINDIR=$(dirname "$SELF")
+LFE_ROOTDIR=$(dirname "$LFE_BINDIR")
+
+export LFE_ROOTDIR
+export LFE_BINDIR
+export LFE_PROGNAME
+
+i="$#"				# Counter
+
+# First step over the flag section adding them to the end.
+while [ $i -gt 0 ]; do
+    case "$1" in
+	-eval | -lfe_eval)	# We are going to eval
+	    break ;;		#  delay removing this
+	-extra | --)		# We are explicitly done
+	    shift ; i=`expr $i - 1`
+	    break ;;
+	-* | +*)		# Flags
+	    if [ "$1" = "-erl_eval" ]; then
+		set -- "$@" "-eval"
+	    else
+		set -- "$@" "$1"
+	    fi
+	    shift ; i=`expr $i - 1`
+	    while [ $i -gt 0 ]; do
+		case "$1" in
+		    -* | +*)
+			break ;;
+		    *)
+			set -- "$@" "$1"
+			shift ; i=`expr $i - 1`
+		esac
+	    done ;;
+	*)			# Plain argument
+	    break ;;
+    esac
+done
+
+# Add the middle bits to the end, the path and a -noshell flag if
+# there are more arguments.
+set -- "$@" "-pa" "$LFE_ROOTDIR/ebin"
+if [ $i -gt 0 ]; then
+    set -- "$@" "-noshell"
+fi
+set -- "$@" "-user" "lfe_init" "-extra"
+
+# Check if we are 'eval'ing and add -lfe_eval flag
+if [ "$1" = "-eval" -o "$1" = "-lfe_eval" ]; then
+    shift ; i=`expr $i - 1`	# Now we remove it as it has -noshell'ed
+    set -- "$@" "-lfe_eval"
+fi
+
+# Step over the arg section adding them to the end.
+while [ $i -gt 0 ]; do
+    set -- "$@" "$1"
+    shift ; i=`expr $i - 1`
+done
+
+# echo "$@"
+exec erl "$@"

@@ -16,18 +16,21 @@
 %% Author  : Robert Virding
 %% Purpose : A simple Lisp Flavoured Erlang shell.
 
-%% We keep two environments, the BaseEnv which contains the predefined
-%% shell variables and shell macros, and a current environment. The
-%% BaseEnv is used when we need to revert to an "empty" environment.
-%% When we slurp in a file the functions are stored in the BaseEnv and
-%% the current environment is thrown away.
+%% We keep three environments: the current environment; the saved
+%% environment which contains the environment from before a slurp; and
+%% the base environment which contains the predefined shell variables,
+%% functions and macros. The base environment is used when we need to
+%% revert to an "empty" environment. The save environment is used to
+%% store the current environment when we 'slurp' a file which we can
+%% revert back to when we do an 'unslurp'.
 
 -module(lfe_shell).
 
--export([start/0,start/1,server/0,server/1]).
+-export([start/0,start/1,server/0,server/1,
+         run_script/2,run_script/3,run_string/2,run_string/3]).
 
 %% The shell commands which generally callable.
--export([c/1,c/2,ec/1,ec/2,i/0,i/1,l/1,m/0,m/1,pid/3,p/1,pp/1,regs/0]).
+-export([c/1,c/2,ec/1,ec/2,i/0,i/1,l/1,m/0,m/1,pid/3,p/1,pp/1,regs/0,exit/0]).
 
 -import(lfe_env, [new/0,add_env/2,
                   add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
@@ -37,37 +40,51 @@
 
 -import(orddict, [store/3,find/2]).
 -import(ordsets, [add_element/2]).
--import(lists, [map/2,foreach/2,foldl/3]).
+-import(lists, [reverse/1,map/2,foreach/2,foldl/3]).
+
+-include("lfe.hrl").
 
 %% -compile([export_all]).
-
-%% We do a lot of quoting!
--define(Q(E), [quote,E]).
--define(BQ(E), [backquote,E]).
--define(UQ(E), [unquote,E]).
--define(UQ_S(E), ['unquote-splicing',E]).
 
 %% Shell state.
 -record(state, {curr,save,base,             %Current, save and base env
                 slurp=false}).              %Are we slurped?
 
-start() ->
-    spawn(fun () -> server(default) end).
+run_script(File, Args) ->
+    run_script(File, Args, lfe_env:new()).
 
-start(P) ->
-    spawn(fun () -> server(P) end).
+run_script(File, Args, Env) ->
+    St = new_state(File, Args, Env),
+    run([File], St).
+
+run_string(String, Args) ->
+    run_string(String, Args, lfe_env:new()).
+
+run_string(String, [A|As], Env) ->
+    St = new_state(A, As, Env),
+    case read_script_string(String) of
+        {ok,Forms} ->
+            run_loop(Forms, [], St);
+        {error,E} ->
+            slurp_errors("lfe", [E]),
+            {error,St}
+    end.
+
+start() -> start(default).
+
+start(Env) ->
+    spawn(fun () -> server(Env) end).
 
 server() -> server(default).
 
-server(_) ->
+server(default) ->
+    server(lfe_env:new());
+server(Env) ->
     io:fwrite("LFE Shell V~s (abort with ^G)\n",
               [erlang:system_info(version)]),
     %% Create a default base env of predefined shell variables with
     %% default nil bindings and basic shell macros.
-    Base0 = add_shell_functions(lfe_env:new()),
-    Base1 = add_shell_macros(Base0),
-    Base2 = add_shell_vars(Base1),
-    St = #state{curr=Base2,save=Base2,base=Base2,slurp=false},
+    St = new_state("lfe", [], Env),
     server_loop(St).
 
 server_loop(St0) ->
@@ -75,17 +92,21 @@ server_loop(St0) ->
               %% Read the form
               Prompt = prompt(),
               io:put_chars(Prompt),
-              Form = lfe_io:read(),
-              Ce1 = add_vbinding('-', Form, St0#state.curr),
-              %% Macro expand and evaluate it.
-              {Value,St1} = eval_form(Form, St0#state{curr=Ce1}),
-              %% Print the result, but only to depth 30.
-              VS = lfe_io:prettyprint1(Value, 30),
-              io:requests([{put_chars,VS},nl]),
-              %% Update bindings.
-              Ce2 = update_shell_vars(Form, Value, St1#state.curr),
-              %% lfe_io:prettyprint({Env1,Env2}), io:nl(),
-              St1#state{curr=Ce2}
+              case lfe_io:read() of
+                  {ok,Form} ->
+                      Ce1 = add_vbinding('-', Form, St0#state.curr),
+                      %% Macro expand and evaluate it.
+                      {Value,St1} = eval_form(Form, St0#state{curr=Ce1}),
+                      %% Print the result, but only to depth 30.
+                      VS = lfe_io:prettyprint1(Value, 30),
+                      io:requests([{put_chars,VS},nl]),
+                      %% Update bindings.
+                      Ce2 = update_shell_vars(Form, Value, St1#state.curr),
+                      St1#state{curr=Ce2};
+                  {error,E} ->
+                      list_errors([E]),
+                      St0
+              end
           catch
               %% Very naive error handling, just catch, report and
               %% ignore whole caboodle.
@@ -93,7 +114,7 @@ server_loop(St0) ->
                   %% Use LFE's simplified version of erlang shell's error
                   %% reporting but which LFE prettyprints data.
                   Stk = erlang:get_stacktrace(),
-                  Sf = fun ({M,_F,_A}) ->    %Pre R15
+                  Sf = fun ({M,_F,_A}) ->       %Pre R15
                                %% Don't want to see these in stacktrace.
                                (M == lfe_eval) or (M == lfe_shell)
                                    or (M == lfe_macro) or (M == lists);
@@ -110,6 +131,20 @@ server_loop(St0) ->
                   St0
           end,
     server_loop(StX).
+
+%% new_state(ScriptName, Args [,Env]) -> State.
+%%  Generate a new shell state with all the default functions, macros
+%%  and variables.
+
+new_state(Script, Args) -> new_state(Script, Args, lfe_env:new()).
+
+new_state(Script, Args, Env0) ->
+    Env1 = add_vbinding('script-name', Script, Env0),
+    Env2 = add_vbinding('script-args', Args, Env1),
+    Base0 = add_shell_functions(Env2),
+    Base1 = add_shell_macros(Base0),
+    Base2 = add_shell_vars(Base1),
+    #state{curr=Base2,save=Base2,base=Base2,slurp=false}.
 
 add_shell_vars(Env0) ->
     %% Add default shell expression variables.
@@ -139,7 +174,8 @@ add_shell_functions(Env0) ->
           {pid,3,[lambda,[i,j,k],[':',lfe_shell,pid,i,j,k]]},
           {p,1,[lambda,[e],[':',lfe_shell,p,e]]},
           {pp,1,[lambda,[e],[':',lfe_shell,pp,e]]},
-          {regs,0,[lambda,[],[':',lfe_shell,regs]]}
+          {regs,0,[lambda,[],[':',lfe_shell,regs]]},
+          {exit,0,[lambda,[],[':',lfe_shell,exit]]}
          ],
     Add = fun ({N,Ar,Def}, E) ->
                   lfe_eval:add_dynamic_func(N, Ar, Def, E)
@@ -180,7 +216,6 @@ eval_form(Form, #state{curr=Ce}=St) ->
         {ok,Eforms,Ce1,Ws} ->
             list_warnings(Ws),
             St1 = St#state{curr=Ce1},
-            %% lfe_io:format("~p\n", [Eforms]),
             foldl(fun ({F,_}, {_,S}) -> eval_form_1(F, S) end,
                   {[],St1}, Eforms);
         {error,Es,Ws} ->
@@ -189,6 +224,9 @@ eval_form(Form, #state{curr=Ce}=St) ->
             {error,St}
     end.
 
+eval_form_1([progn|Eforms], St) ->              %Top-level nested progn
+    foldl(fun (F, {_,S}) -> eval_form_1(F, S) end,
+          {[],St}, Eforms);
 eval_form_1([set|Rest], St0) ->
     {Value,St1} = set(Rest, St0),
     {Value,St1};
@@ -371,23 +409,68 @@ collect_imp(Fun, Mod, St, Fs) ->
 
 %% run(Args, State) -> {Value,State}.
 %%  Run the shell expressions in a file. Abort on errors and only
-%%  return updated state if there are no errors. We don't save
-%%  intermediate commands and values.
+%%  return updated state if there are no errors.
 
 run([File], #state{curr=Ce}=St) ->
     Name = lfe_eval:expr(File, Ce),             %Get file name
-    case lfe_io:read_file(Name) of              %Read the file
-        {ok,Exprs} ->
-            run_loop(Exprs, [], St);
+    case read_script_file(Name) of              %Read the file
+        {ok,Forms} ->
+            run_loop(Forms, [], St);
         {error,E} ->
             slurp_errors(Name, [E]),
             {error,St}
     end.
 
-run_loop([E|Es], _, St0) ->
-    {Val,St1} = eval_form(E, St0),
-    run_loop(Es, Val, St1);
-run_loop([], Val, St) -> {Val,St}.
+%% read_script_file(FileName) -> {ok,[Sexpr]} | {error,Error}.
+%%  Read a file returning the sexprs. Almost the same as
+%%  lfe_io:read_file except the we skip the first line if it is a
+%%  script line "#! ... ".
+
+read_script_file(File) ->
+    case file:open(File, [read]) of
+        {ok,F} ->
+            %% Check if first a script line, if so skip it.
+            case io:get_line(F, '') of
+                "#!" ++ _ -> ok;
+                _ -> file:position(F, bof)      %Reset to start of file
+            end,
+            Ret = case io:request(F, {get_until,'',lfe_scan,tokens,[1]}) of
+                      {ok,Ts,_} -> parse_tokens(Ts, []);
+                      {error,Error,_} -> {error,Error}
+                  end,
+            file:close(F),                      %Close the file
+            Ret;
+        {error,Error} -> {error,{none,file,Error}}
+    end.
+
+%% read_script_string(FileName) -> {ok,[Sexpr]} | {error,Error}.
+%%  Read a file returning the sexprs. Almost the same as
+%%  lfe_io:read_string except parse all forms.
+
+read_script_string(String) ->
+    case lfe_scan:string(String, 1) of
+        {ok,Ts,_} -> parse_tokens(Ts, []);
+        {error,E,_} -> {error,E}
+    end.
+
+parse_tokens([_|_]=Ts0, Ss) ->
+    case lfe_parse:sexpr(Ts0) of
+        {ok,_,S,Ts1} -> parse_tokens(Ts1, [S|Ss]);
+        {more,Pc1} ->
+            %% Need more tokens but there are none, so call again to
+            %% generate an error message.
+            {error,E,_} = lfe_parse:sexpr(Pc1, {eof,99999}),
+            {error,E};
+        {error,E,_} -> {error,E}
+    end;
+parse_tokens([], Ss) -> {ok,reverse(Ss)}.
+
+run_loop([F|Fs], _, St0) ->
+    Ce1 = add_vbinding('-', F, St0#state.curr),
+    {Value,St1} = eval_form(F, St0#state{curr=Ce1}),
+    Ce2 = update_shell_vars(F, Value, St1#state.curr),
+    run_loop(Fs, Value, St1#state{curr=Ce2});
+run_loop([], Value, St) -> {Value,St}.
 
 %% safe_fetch(Key, Dict, Default) -> Value.
 
@@ -467,3 +550,7 @@ pid(A, B, C) -> c:pid(A, B, C).
 %% regs() -> ok.
 
 regs() -> c:regs().
+
+%% exit() -> ok.
+
+exit() -> c:q().

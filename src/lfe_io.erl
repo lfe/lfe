@@ -23,7 +23,7 @@
 
 -module(lfe_io).
 
--export([parse_file/1,read_file/1,read/0,read/1,
+-export([parse_file/1,read_file/1,read/0,read/1,read_string/1,
      print/1,print/2,print1/1,print1/2]).
 -export([prettyprint/1,prettyprint/2,
      prettyprint1/1,prettyprint1/2,prettyprint1/3,prettyprint1/4]).
@@ -35,6 +35,13 @@
 %% -compile(export_all).
 
 -import(lists, [flatten/1,reverse/1,reverse/2,map/2,mapfoldl/3,all/2]).
+
+%% Define IS_MAP/1 macro for is_map/1 bif.
+-ifdef(HAS_MAPS).
+-define(IS_MAP(T), is_map(T)).
+-else.
+-define(IS_MAP(T), false).
+-endif.
 
 %% parse_file(FileName) -> {ok,[{Sexpr,Line}]} | {error,Error}.
 %% Parse a file returning the raw sexprs (as it should be) and line
@@ -74,21 +81,21 @@ read_file1([_|_]=Ts0, Ss) ->
 read_file1([], Ss) -> {ok,reverse(Ss)}.
 
 %% with_token_file(FileName, DoFunc)
-%% Open the file, scan all LFE tokens and apply DoFunc on them.
+%%  Open the file, scan all LFE tokens and apply DoFunc on them.
 
 with_token_file(Name, Do) ->
     case file:open(Name, [read]) of
-    {ok,F} ->
-        Ret = case io:request(F, {get_until,'',lfe_scan,tokens,[1]}) of
-              {ok,Ts,_} -> Do(Ts);
-              {error,Error,_} -> {error,Error}
-          end,
-        file:close(F),            %Close the file
-        Ret;                % and return value
-    {error,Error} -> {error,{none,file,Error}}
+        {ok,F} ->
+            Ret = case io:request(F, {get_until,'',lfe_scan,tokens,[1]}) of
+                      {ok,Ts,_} -> Do(Ts);
+                      {error,Error,_} -> {error,Error}
+                  end,
+            file:close(F),                      %Close the file
+            Ret;                                % and return value
+        {error,Error} -> {error,{none,file,Error}}
     end.
 
-%% read([IoDevice]) -> Sexpr.
+%% read([IoDevice]) -> {ok,Sexpr} | {error,Error}.
 %%  A very simple read function. Line oriented and cannot handle
 %%  tokens over line-breaks but can handle multiple lines. Anything
 %%  remaining on last line after a sexpr is lost. Signal errors.
@@ -99,25 +106,38 @@ read(Io) ->
 
 scan_and_parse(Io, Pc0, L) ->
     case io:get_line(Io, '') of
-    eof ->
-        %% No more so must take what we have.
-        case lfe_parse:sexpr(Pc0, {eof,L}) of
-        {ok,_,S,_} -> S;
-        {error,E,_} -> exit({error,E})
-        end;
-    Cs ->
-        case lfe_scan:string(Cs, L) of
-        {ok,[],_} ->
-            %% Empty line (token free) just go on.
-            scan_and_parse(Io, Pc0, L+1);
-        {ok,Ts,_} ->
-            case lfe_parse:sexpr(Pc0, Ts) of
-            {ok,_,S,_} -> S;
-            {more,Pc1} -> scan_and_parse(Io, Pc1, L+1);
-            {error,E,_} -> exit({error,E})
+        eof ->
+            %% No more so must take what we have.
+            case lfe_parse:sexpr(Pc0, {eof,L}) of
+                {ok,_,S,_} -> {ok,S};
+                {error,E,_} -> {error,E}
             end;
-        E -> exit(E)
-        end
+        Cs ->
+            case lfe_scan:string(Cs, L) of
+                {ok,[],_} ->
+                    %% Empty line (token free) just go on.
+                    scan_and_parse(Io, Pc0, L+1);
+                {ok,Ts,_} ->
+                    case lfe_parse:sexpr(Pc0, Ts) of
+                        {ok,_,S,_} -> {ok,S};
+                        {more,Pc1} -> scan_and_parse(Io, Pc1, L+1);
+                        {error,E,_} -> {error,E}
+                    end;
+                {error,E,_} -> {error,E}
+            end
+    end.
+
+%% read_string(String) -> {ok,Sexpr} | {error,Error}.
+%%  Read a string.
+
+read_string(Cs) ->
+    case lfe_scan:string(Cs, 1) of
+        {ok,Ts,L} ->
+            case lfe_parse:sexpr(Ts ++ {eof,L}) of
+                {ok,_,S,_} -> {ok,S};
+                {error,E,_} -> {error,E}
+            end;
+        {error,E,_} -> {error,E}
     end.
 
 %% print([IoDevice], Sexpr) -> ok.
@@ -128,7 +148,7 @@ scan_and_parse(Io, Pc0, L) ->
 print(S) -> print(standard_io, S).
 print(Io, S) -> io:put_chars(Io, print1(S)).
 
-print1(S) -> print1(S, -1).            %All the way
+print1(S) -> print1(S, -1).                     %All the way
 
 print1(_, 0) -> "...";
 print1(Symb, _) when is_atom(Symb) -> print1_symb(Symb);
@@ -142,7 +162,8 @@ print1(Vec, D) when is_tuple(Vec) ->
     ["#(",print1_list(Es, D-1),")"];
 print1(Bit, _) when is_bitstring(Bit) ->
     ["#B(",print1_bits(Bit),$)];
-print1(Other, D) ->                %Use standard Erlang for rest
+print1(Map, D) when ?IS_MAP(Map) -> print1_map(Map, D);
+print1(Other, D) ->                             %Use standard Erlang for rest
     io_lib:write(Other, D).
 
 %% print1_symb(Symbol) -> [char()].
@@ -159,14 +180,14 @@ print1_symb(Symb) ->
 %%  Print the bytes in a bitstring. Print bytes except for last which
 %%  we add size field if not 8 bits big.
 
-print1_bits(Bits) -> print1_bits(Bits, -1).    %Print them all
+print1_bits(Bits) -> print1_bits(Bits, -1).     %Print them all
 
 print1_bits(_, 0) -> "...";
-print1_bits(<<B:8>>, _) -> integer_to_list(B);    %Catch last binary byte
+print1_bits(<<B:8>>, _) -> integer_to_list(B);  %Catch last binary byte
 print1_bits(<<B:8,Bits/bitstring>>, N) ->
     [integer_to_list(B),$\s|print1_bits(Bits, N-1)];
 print1_bits(<<>>, _) -> [];
-print1_bits(Bits, _) ->                %0 < Size < 8
+print1_bits(Bits, _) ->                         %0 < Size < 8
     N = bit_size(Bits),
     <<B:N>> = Bits,
     io_lib:format("(~w (size ~w))", [B,N]).
@@ -184,10 +205,25 @@ print1_list([Car|Cdr], D) ->
 %% know about dotted pairs.
 
 print1_tail([], _) -> "";
-print1_tail(_, 0) -> " ...";
+print1_tail(_, 0) -> [$\s|"..."];
 print1_tail([S|Ss], D) ->
     [$\s,print1(S, D)|print1_tail(Ss, D-1)];
 print1_tail(S, D) -> [" . "|print1(S, D)].
+
+%% print1_map(Map, Depth)
+
+print1_map(Map, D) ->
+    [$#,$M,$(,print1_map_body(maps:to_list(Map), D), $)].
+
+print1_map_body([], _) -> [];
+print1_map_body(_, D) when D =:= 0; D =:= 1 -> "...";
+print1_map_body([KV], D) -> print1_map_assoc(KV, D);
+print1_map_body([KV|KVs], D) ->
+    Massoc = print1_map_assoc(KV, D),
+    [Massoc,$\s|print1_map_body(KVs, D-1)].
+
+print1_map_assoc({K,V}, D) ->
+    [print1(K, D-1),$\s,print1(V, D-1)].
 
 %% quote_symbol(Symbol, SymbChars) -> bool().
 %%  Check if symbol needs to be quoted when printed. If it can read as
