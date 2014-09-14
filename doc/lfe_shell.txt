@@ -104,12 +104,10 @@ Shell Environment
 
 Starting the LFE shell
 
-        The best way is probably to start Erlang directly running the
-        LFE shell with:
+        After installing the best way is probably to start Erlang
+        directly running the LFE shell with:
 
-        erl -noshell -noinput -s lfe_boot start
-
-        This can easily be put in a shell script.
+        lfe [flags]
 
         From a normal Erlang shell the best way to start the shell is
         by calling:
@@ -123,3 +121,22 @@ Starting the LFE shell
 
         will create a job running the LFE shell and connect to
         it. This also works when starting a remote shell.
+
+Running LFE shell scripts
+
+        The LFE shell can also be directly called to run LFE shell
+        scripts with:
+
+        lfe [flags] file [args]
+
+        This will start the shell, run a script with LFE shell
+        commands and then terminate the shell. The following built-in
+        variables are also bound:
+
+        script-name
+                The name of the script file as a string.
+
+        script-args
+                A list of the arguments to the script as strings. If
+                no arguments have been given then this will be an
+                empty list.
