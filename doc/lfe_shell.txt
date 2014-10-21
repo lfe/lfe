@@ -81,6 +81,19 @@ Built-in shell commands
                 variables, functions and macros will be saved in the
                 environment if there are no errors.
 
+Shell functions and macros
+
+        Functions and macros can be defined in the shell. These will
+        only be local to the shell and cannot be called from
+        modules. The forms are the standard forms for defining
+        functions and macros.
+
+        (defun Fun ...)
+                Define a function in the shell.
+
+        (defmacro Macro ...)
+                Define a macro in the shell.
+
 Built-in shell variables
 
         +/++/+++
@@ -99,7 +112,7 @@ Shell Environment
         accessed using the built-in shell variable $ENV. This can be
         useful when calling functions like macroexpand and
         macro-function which unless an explicit environment is given
-        will only search the defualt environment.
+        will only search the default environment.
 
 
 Starting the LFE shell

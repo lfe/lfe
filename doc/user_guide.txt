@@ -591,7 +591,7 @@ expr                     - Normal boolean test
 
 Some examples:
 
-(lc ((<- v l1) (when (> v 5))
+(lc ((<- v (when (> v 5)) l1)
      (== (rem v 2) 0))
   v)
 
