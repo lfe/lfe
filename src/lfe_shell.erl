@@ -30,7 +30,8 @@
          run_script/2,run_script/3,run_string/2,run_string/3]).
 
 %% The shell commands which generally callable.
--export([c/1,c/2,ec/1,ec/2,i/0,i/1,l/1,m/0,m/1,pid/3,p/1,pp/1,regs/0,exit/0]).
+-export([c/1,c/2,cd/1,ec/1,ec/2,help/0,i/0,i/1,l/1,ls/1,m/0,m/1,
+         pid/3,p/1,pp/1,pwd/0,q/0,regs/0,exit/0]).
 
 -import(lfe_env, [new/0,add_env/2,
                   add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
@@ -167,13 +168,16 @@ update_shell_vars(Form, Value, Env0) ->
     add_vbinding('$ENV', Env2, Env2).
 
 add_shell_functions(Env0) ->
-    Fs = [{i,0,[lambda,[],[':',lfe_shell,i]]},
+    Fs = [{help,0,[lambda,[],[':',lfe_shell,help]]},
+          {i,0,[lambda,[],[':',lfe_shell,i]]},
           {i,1,[lambda,[ps],[':',lfe_shell,i,ps]]},
           %% {m,0,[lambda,[],[':',lfe_shell,m]]},
           %% {m,1,[lambda,[ms],[':',lfe_shell,m,ms]]},
           {pid,3,[lambda,[i,j,k],[':',lfe_shell,pid,i,j,k]]},
           {p,1,[lambda,[e],[':',lfe_shell,p,e]]},
           {pp,1,[lambda,[e],[':',lfe_shell,pp,e]]},
+          {pwd,0,[lambda,[],[':',lfe_shell,pwd]]},
+          {q,0,[lambda,[],[':',lfe_shell,exit]]},
           {regs,0,[lambda,[],[':',lfe_shell,regs]]},
           {exit,0,[lambda,[],[':',lfe_shell,exit]]}
          ],
@@ -188,6 +192,7 @@ add_shell_macros(Env0) ->
     Ms = [{c,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,c,?UQ_S(args)])]},
           {ec,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ec,?UQ_S(args)])]},
           {l,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,l,[list|?UQ(args)]])]},
+          {ls,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ls,[list|?UQ(args)]])]},
           {m,['match-lambda',
               [[[],'$ENV'],?BQ([':',lfe_shell,m])],
               [[ms,'$ENV'],?BQ([':',lfe_shell,m,[list|?UQ(ms)]])]]}
@@ -488,14 +493,6 @@ safe_fetch(Key, D, Def) ->
 %% The LFE shell command functions.
 %%  These are callable from outside the shell as well.
 
-p(E) ->
-    Cs = lfe_io:print1(E),
-    io:put_chars([Cs,$\n]).
-
-pp(E) ->
-    Cs = lfe_io:prettyprint1(E),
-    io:put_chars([Cs,$\n]).
-
 %% c(File [,Args]) -> {ok,Module} | error.
 %%  Compile and load an LFE file.
 
@@ -516,12 +513,35 @@ c(F, Os0) ->
         Other -> Other
     end.
 
+%% cd(Dir) -> ok.
+
+cd(Dir) -> c:cd(Dir).
+
 %% ec(File [,Args]) -> Res.
 %%  Compile and load an Erlang file.
 
 ec(F) -> c:c(F).
 
 ec(F, Os) -> c:c(F, Os).
+
+%% help() -> ok.
+
+help() ->
+    io:put_chars(<<"(c File)    -- compile and load code in <File>\n"
+                   "(cd Dir)    -- change working directory\n"
+                   "(ec File)   -- compile and load code in erlang <File>\n"
+                   "(help)      -- help info\n"
+                   "(i)         -- information about the system\n"
+                   "(l Module)  -- load or reload module\n"
+                   "(ls)        -- list files in the current directory\n"
+                   "(ls Dir)    -- list files in directory <Dir>\n"
+                   "(m)         -- which modules are loaded\n"
+                   "(m Mod)     -- information about module <Mod>\n"
+                   "(pid X Y Z) -- convert X,Y,Z to a Pid\n"
+                   "(pwd)       -- print working directory\n"
+                   "(q)         -- quit - shorthand for init:stop()\n"
+                   "(regs)      -- information about registered processes\n"
+                 >>).
 
 %% i([Pids]) -> ok.
 
@@ -535,6 +555,10 @@ i(Pids) -> c:i(Pids).
 l(Ms) ->
     foreach(fun (M) -> c:l(M) end, Ms).
 
+%% ls(Dir) -> ok.
+
+ls(Dir) -> apply(c, ls, Dir).
+
 %% m([Modules]) -> ok.
 %%  Print module information.
 
@@ -543,9 +567,30 @@ m() -> c:m().
 m(Ms) ->
     foreach(fun (M) -> c:m(M) end, Ms).
 
+%% p(Expr) -> ok.
+%% pp(Expr) -> ok.
+%%  Print/prettyprint a value.
+
+p(E) ->
+    Cs = lfe_io:print1(E),
+    io:put_chars([Cs,$\n]).
+
+pp(E) ->
+    Cs = lfe_io:prettyprint1(E),
+    io:put_chars([Cs,$\n]).
+
 %% pid(A, B, C) -> Pid.
+%%  Build a pid from its 3 "parts".
 
 pid(A, B, C) -> c:pid(A, B, C).
+
+%% pwd() -> ok.
+
+pwd() -> c:pwd().
+
+%% q() -> ok.
+
+q() -> c:q().
 
 %% regs() -> ok.
 
