@@ -722,7 +722,7 @@ exp_predef(['fun',M,F,Ar], _, St0)
     {Vs,St1} = new_symbs(Ar, St0),
     {yes,['lambda',Vs,['call',?Q(M),?Q(F)|Vs]],St1};
 exp_predef(['defrecord'|Def], Env, St) ->
-    lfe_macro_record:defrecord(Def, Env, St);
+    lfe_macro_record:define(Def, Env, St);
 %% Include-XXX as macros for now. Move to top-level forms?
 exp_predef(['include-file'|Ibody], Env, St) ->
     lfe_macro_include:file(Ibody, Env, St);
