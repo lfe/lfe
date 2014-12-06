@@ -6,13 +6,15 @@ MAINTAINER LFE Maintainers <maintainers@lfe.io>
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    curl \
     erlang \
+    ca-certificates \
+    libcurl4-openssl-dev \
+    curl \
     git
 
-ENV REBAR_BALL https://github.com/rebar/rebar/archive/2.5.1.tar.gz
-RUN curl $REBAR_BALL | tar xvz && \
-    cd 2.5.1 && \
+ENV REBAR_REPO https://github.com/rebar/rebar.git
+RUN git clone $REBAR_REPO && cd rebar && \
+    git checkout tags/2.5.1 && \
     ./bootstrap && \
     cp rebar /usr/local/bin
 
