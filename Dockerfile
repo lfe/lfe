@@ -21,4 +21,4 @@ RUN git clone $REBAR_REPO && cd rebar && \
 ADD . /opt/erlang/lfe
 RUN cd /opt/erlang/lfe && make install
 
-CMD /usr/bin/lfe -eval "(io:format \"~p~n\" (list (+ 40 2)))"
+CMD /usr/bin/lfe -eval "(io:format \"~p~n\"  (list (* 2 (lists:foldl (lambda (n acc) (+ n acc)) 0 (lists:seq 1 6)))))"
