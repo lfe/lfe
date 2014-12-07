@@ -106,7 +106,7 @@ That last command will dump you into the ``bash`` shell on the running
 ```cl
 root@95bc1d88e581:/# lfe
 
-Erlang/OTP 17 [erts-6.2] [source] [64-bit] [smp:8:8] [async-threads:10] [kernel-poll:false]
+Erlang/OTP 17 [erts-6.2] [source] [64-bit] [smp:8:8] [async-threads:10] ...
 
 LFE Shell V6.2 (abort with ^G)
 > (* 2 (lists:foldl (lambda (n acc) (+ n acc)) 0 (lists:seq 1 6)))
