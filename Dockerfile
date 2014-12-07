@@ -5,6 +5,7 @@ FROM debian:jessie
 MAINTAINER LFE Maintainers <maintainers@lfe.io>
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    apt-utils \
     build-essential \
     erlang \
     ca-certificates \
