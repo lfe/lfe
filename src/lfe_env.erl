@@ -74,6 +74,10 @@
 %%  definition with the same name and arity. Functions are kept an
 %%  orddict with the name as key and the value is either the macro
 %%  definition or a dict of arity definition.
+%%
+%%  Rebinding a legal guard bif with a function in the module means it
+%%  is no longer a legal guard bif but must be explicitly called with
+%%  module erlang.
 
 new() -> #env{vars=orddict:new(),funs=orddict:new()}. 
 
@@ -139,7 +143,11 @@ add_ibinding(M, R, A, L, #env{funs=Fs0}=Env) ->
 
 is_fbound(N, A, #env{funs=Fs}) ->
     case orddict:find(N, Fs) of
-        {ok,{function,Fas}} -> lists:keyfind(A, 1, Fas) /= false;
+        {ok,{function,Fas}} ->
+	    case lists:keyfind(A, 1, Fas) of
+		false -> is_bif(N, A);
+		_ -> true
+	    end;
         {ok,_} -> false;                        %A macro
         error -> is_bif(N, A)
     end.
@@ -150,7 +158,7 @@ get_fbinding(N, A, #env{funs=Fs}) ->
             case lists:keyfind(A, 1, Fas) of
                 {A,M,F} -> {yes,M,F};
                 {A,V} -> {yes,V};
-                false -> no
+                false -> get_bif(N, A)
             end;
         {ok,_} -> no;                           %A macro
         error -> get_bif(N, A)
@@ -169,19 +177,31 @@ get_bif(N, A) ->
     end.
 
 is_gbound(N, A, #env{funs=Fs}) ->
-    case orddict:is_key(N, Fs) of
-        true -> false;                          %Nothing can be defined
-        false -> is_guard_bif(N, A)
+    case orddict:find(N, Fs) of
+        {ok,{function,Fas}} ->
+	    case lists:keyfind(A, 1, Fas) of
+		false -> is_guard_bif(N, A);
+		_ -> false
+	    end;
+        {ok,_} -> false;                        %A macro
+        error -> is_guard_bif(N, A)
     end.
 
 get_gbinding(N, A, #env{funs=Fs}) ->
-    case orddict:is_key(N, Fs) of
-        true -> no;                             %Nothing can be defined
-        false ->
-            case is_guard_bif(N, A) of
-                true -> {yes,erlang,N};
-                false -> no
-            end
+    case orddict:find(N, Fs) of
+        {ok,{function,Fas}} ->
+	    case lists:keyfind(A, 1, Fas) of
+		false -> get_guard_bif(N, A);
+		_ -> no
+	    end;
+        {ok,_} -> no;				%A macro
+        error -> get_guard_bif(N, A)
+    end.
+
+get_guard_bif(N, A) ->
+    case is_guard_bif(N, A) of
+	true -> {yes,erlang,N};
+	false -> no
     end.
 
 %% Macros.
