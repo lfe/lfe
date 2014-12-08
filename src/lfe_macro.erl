@@ -46,6 +46,7 @@
 -import(orddict, [find/2,store/3]).
 -import(ordsets, [add_element/2,is_element/2]).
 
+-include("lfe_comp.hrl").
 -include("lfe_macro.hrl").
 
 %% Errors
@@ -61,27 +62,27 @@ format_error({expand_macro,Call,_}) ->
 %%  or as far as it can go.
 
 expand_expr_1([Name|_]=Call, Env) when is_atom(Name) ->
-    St = #mac{expand=false,line=1},        %Default state
+    St = default_state(false),
     case exp_macro(Call, Env, St) of
-    {yes,Exp,_} -> {yes,Exp};
-    no -> no
+        {yes,Exp,_} -> {yes,Exp};
+        no -> no
     end;
 expand_expr_1(_, _) -> no.
 
 expand_expr([Name|_]=Call, Env) when is_atom(Name) ->
-    St0 = #mac{expand=false,line=1},        %Default state
+    St0 = default_state(false),
     case exp_macro(Call, Env, St0) of
-    {yes,Exp0,St1} ->
-        {Exp1,_} = expand_expr_loop(Exp0, Env, St1),
-        {yes,Exp1};
-    no -> no
+        {yes,Exp0,St1} ->
+            {Exp1,_} = expand_expr_loop(Exp0, Env, St1),
+            {yes,Exp1};
+        no -> no
     end;
 expand_expr(_, _) -> no.
 
 expand_expr_loop([Name|_]=Call, Env, St0) when is_atom(Name) ->
     case exp_macro(Call, Env, St0) of
-    {yes,Exp,St1} -> expand_expr_loop(Exp, Env, St1);
-    no -> {Call,St0}
+        {yes,Exp,St1} -> expand_expr_loop(Exp, Env, St1);
+        no -> {Call,St0}
     end;
 expand_expr_loop(E, _, St) -> {E,St}.
 
@@ -89,31 +90,46 @@ expand_expr_loop(E, _, St) -> {E,St}.
 %%  Expand all the macros in an expression.
 
 expand_expr_all(F, Env) ->
-    {Ef,_} = exp_form(F, Env, #mac{expand=true}),
+    {Ef,_} = exp_form(F, Env, default_state(true)),
     Ef.
 
 %% expand_forms(FileForms, Env) ->
+%% expand_forms(FileForms, Env, CompInfo) ->
 %%     {ok,FileForms,Env,Warnings} | {error,Errors,Warnings}.
 %%  Expand forms in "file format", {Form,LineNumber}.
 
 expand_forms(Fs, Env) ->
-    do_forms(Fs, Env, true).
+    St = default_state(true),
+    do_forms(Fs, Env, St).
+
+expand_forms(Fs, Env, #cinfo{file=F,opts=Os,ipath=Is}) ->
+    St = #mac{expand=true,file=F,opts=Os,ipath=Is},
+    do_forms(Fs, Env, St).
 
 %% macro_forms(FileForms, Env) ->
+%% macro_forms(FileForms, Env, CompInfo) ->
 %%     {ok,FileForms,Env,Warnings} | {error,Errors,Warnings}.
 %%  Collect, and remove, all macro definitions in a list of forms. All
 %%  top level macro calls are also expanded and any new macro
 %%  definitions are collected.
 
 macro_forms(Fs, Env) ->
-    do_forms(Fs, Env, false).
+    St = default_state(false),
+    do_forms(Fs, Env, St).
 
-do_forms(Fs0, Env0, Expand) ->
-    {Fs1,Env1,St} = pass(Fs0, Env0, #mac{expand=Expand}),
-    case St#mac.errors of
-    [] -> {ok,Fs1,Env1,St#mac.warnings};    %No errors
-    Es -> {error,Es,St#mac.warnings}
+macro_forms(Fs, Env, #cinfo{file=F,opts=Os,ipath=Is}) ->
+    St = #mac{expand=false,file=F,opts=Os,ipath=Is},
+    do_forms(Fs, Env, St).
+
+do_forms(Fs0, Env0, St0) ->
+    {Fs1,Env1,St1} = pass(Fs0, Env0, St0),
+    case St1#mac.errors of
+        [] -> {ok,Fs1,Env1,St1#mac.warnings};    %No errors
+        Es -> {error,Es,St1#mac.warnings}
     end.
+
+default_state(Expand) ->
+    #mac{expand=Expand,line=1,file="-nofile-",opts=[],ipath=["."]}.
 
 %% pass(FileForms, Env, State) -> {FileForms,Env,State}.
 %%  Pass over a list of fileforms, {Form,Line}, collecting and
@@ -894,20 +910,22 @@ exp_comp(As, Op, St0) ->
 
 exp_append(Args) ->
     case Args of
-    %% Cases with quoted lists.
-    [?Q([A|As])|Es] -> [cons,?Q(A),['++',?Q(As)|Es]];
-    [?Q([])|Es] -> ['++'|Es];
-    %% Cases with explicit cons/list/list*.
-    [['list*',A]|Es] -> ['++',A|Es];
-    [['list*',A|As]|Es] -> [cons,A,['++',['list*'|As]|Es]];
-    [[list,A|As]|Es] -> [cons,A,['++',[list|As]|Es]];
-    [[list]|Es] -> ['++'|Es];
-    [[cons,H,T]|Es] -> [cons,H,['++',T|Es]];
-    [[]|Es] -> ['++'|Es];
-    %% Default cases with unquoted arg.
-    [E] -> E;                %Last arg not checked
-    [E|Es] -> exp_bif('++', [E,['++'|Es]]);
-    [] -> []
+	%% Cases with quoted lists.
+	[?Q([A|As])|Es] -> [cons,?Q(A),['++',?Q(As)|Es]];
+	[?Q([])|Es] -> ['++'|Es];
+	%% Cases with explicit cons/list/list*.
+	[['list*',A]|Es] -> ['++',A|Es];
+	[['list*',A|As]|Es] -> [cons,A,['++',['list*'|As]|Es]];
+	[[list,A|As]|Es] -> [cons,A,['++',[list|As]|Es]];
+	[[list]|Es] -> ['++'|Es];
+	[[cons,H,T]|Es] -> [cons,H,['++',T|Es]];
+	[[]|Es] -> ['++'|Es];
+	%% Cases with lists of numbers (strings).
+	[[N|Ns]|Es] when is_number(N) -> [cons,N,['++',Ns|Es]];
+	%% Default cases with unquoted arg.
+	[E] -> E;                %Last arg not checked
+	[E|Es] -> exp_bif('++', [E,['++'|Es]]);
+	[] -> []
     end.
 
 %% exp_defun(Name, Def) -> Lambda | Match-Lambda.
