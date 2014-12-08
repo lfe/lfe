@@ -95,13 +95,27 @@ have Docker set up on your machine:
 
 ```bash
 $ docker pull lfex/lfe
+```
+
+Alternatively, you could build the image yourself:
+
+```bash
+$ cd lfe
+$ docker build .
+```
+
+Here are a couple of simple usage examples:
+
+```bash
 $ docker run lfex/lfe
 42
 $ docker run -t -i lfex/lfe /usr/bin/lfe
 ```
 
 That last command will dump you into the LFE REPL on a running container
-of the ``lfex/lfe`` Docker image.
+of the ``lfex/lfe`` Docker image. For more information on using Docker
+with LFE, be sure to read the
+[tutorial](http://blog.lfe.io/tutorials/2014/12/07/1837-running-lfe-in-docker/).
 
 ## Documentation
 
