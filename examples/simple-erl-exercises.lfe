@@ -79,10 +79,10 @@
 
 ;; I know lists:max/1 and lists:min/1 exist, that isn't the point.
 (defun min ([(cons x xs)]
-   (: lists foldl (fun min 2) x xs)))
+   (: lists foldl (fun erlang min 2) x xs)))
 
 (defun max ([(cons x xs)]
-   (: lists foldl (fun max 2) x xs)))
+   (: lists foldl (fun erlang max 2) x xs)))
 
 (defun min_max (col)
   ;; Flavourless min_max/1 implementation.
@@ -92,8 +92,8 @@
 (defun min_max2 (col)
   (let-function [(gief (match-lambda ([f (cons x xs)] (: lists foldl f x xs))))]
     ;; Create a tuple using our temp function above.
-    (tuple (gief (fun min 2) col)
-           (gief (fun max 2) col))))
+    (tuple (gief (fun erlang min 2) col)
+           (gief (fun erlang max 2) col))))
 
 (defun nom-date
   ;; Extract the final digits from the year
