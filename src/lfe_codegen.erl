@@ -96,7 +96,7 @@ forms(Forms, St0, Core0) ->
                  defs=Fbs1,env=Env},
     Exps = make_exports(St2#cg.exps, Fbs1),
     Atts = map(fun ({N,V,L}) ->
-%%                       Ann = [L,{file,St2#cg.file}],
+%%                       Ann = line_file_anno(L, St2),
                        Ann = [L],
                        {c_lit(N, Ann),c_lit(V, Ann)}
                end, St2#cg.atts),
@@ -302,7 +302,10 @@ comp_expr(['funcall',F|As], Env, L, St) ->
 %% An interesting thought to open up system.
 comp_expr([call,M,N|As], Env, L, St) ->
     %% Call a function in another module.
-    Call = fun ([Cm,Cn|Cas], _, Li, Sta) -> {c_call(Cm, Cn, Cas, [Li]),Sta} end,
+    Call = fun ([Cm,Cn|Cas], _, Li, Sta) ->
+                   Ann = line_file_anno(Li, Sta),
+                   {c_call(Cm, Cn, Cas, Ann),Sta}
+           end,
     comp_args([M,N|As], Call, Env, L, St);
 %%     {[Cm,Cn|Cas],St1} = comp_args([M,N|As], Env, L, St0),
 %%     {#c_call{anno=[L],module=Cm,name=Cn,args=Cas},St1};
@@ -311,12 +314,12 @@ comp_expr([Fun|As], Env, L, St) when is_atom(Fun) ->
     %% Fun is a symbol which is either a known BIF or function.
     Call = fun (Cas, En, Li, Sta) ->
                    Ar = length(Cas),
+                   Ann = line_file_anno(Li, Sta),
                    case get_fbinding(Fun, Ar, En) of
                        {yes,M,F} ->                %Import
-                           {c_call(c_atom(M), c_atom(F), Cas, [Li]),Sta};
+                           {c_call(c_atom(M), c_atom(F), Cas, Ann),Sta};
                        {yes,Name} ->
                            %% Might have been renamed, use real function name.
-                           Ann = [L,{file,Sta#cg.file}],
                            {c_apply(c_fname(Name, Ar), Cas, Ann),Sta}
                    end
            end,
@@ -365,7 +368,8 @@ simple_seq([], Then, Ses, Env, L, St) ->
 comp_lambda(Args, Body, Env, L, St0) ->
     {Cvs,Pvs,St1} = comp_lambda_args(Args, L, St0),
     {Cb,St2} = comp_body(Body, add_vbindings(Pvs, Env), L, St1),
-    {c_fun(Cvs, Cb, [L,{file,St2#cg.file}]),St2}.
+    Ann = line_file_anno(L, St2),
+    {c_fun(Cvs, Cb, Ann),St2}.
 
 comp_lambda_args(Args, L, St) ->
     foldr(fun (A, {Cvs,Pvs0,St0}) ->
@@ -385,7 +389,8 @@ comp_match_lambda(Cls, Env, L, St0) ->
     {Fvs,St3} = new_c_vars(Ar, L, St2),
     Cf = func_fail(Fvs, L, St3),
     Cb = c_case(c_values(Cvs), Ccs ++ [Cf], [L]),
-    {c_fun(Cvs, Cb, [L,{file,St3#cg.file}]),St3}.
+    Ann = line_file_anno(L, St3),
+    {c_fun(Cvs, Cb, Ann),St3}.
 
 func_fail(Fvs, L, #cg{func=F}=St) ->
     %% We need function_name anno to generate function_clause error.
@@ -570,8 +575,8 @@ if_fail(L, St) ->
 %%  Build a general failure clause. No line number in the clause, but
 %%  append the line number and file name to the annotation.
 
-fail_clause(Pats, Arg, Fann, L, #cg{file=F}) ->
-    Ann = [L,{file,F}],
+fail_clause(Pats, Arg, Fann, L, St) ->
+    Ann = line_file_anno(L, St),
     c_clause(Pats, c_atom(true),
              c_primop(c_atom(match_fail), [Arg], Fann ++ Ann),
              [compiler_generated]).             %It is compiler generated
@@ -745,7 +750,7 @@ comp_funcall(F, As, Env, L, St0) ->
 
 comp_funcall_1(F, As, Env, L, St0) ->
     App = fun ([Cf|Cas], _, L, St) ->
-                  Ann = [L,{file,St#cg.file}],
+                  Ann = line_file_anno(L, St),
                   {c_apply(Cf, Cas, Ann),St}
           end,
     comp_args([F|As], App, Env, L, St0).
@@ -892,7 +897,8 @@ comp_guard(Gts, Env, L, St0) ->
 %%         comp_gexpr(Test, Env, L, St0);
 %%     false ->
 %%         Call = fun (Cas, _, L, St) ->
-%%                {c_call(c_atom(erlang), c_atom('=:='), Cas, [L]),St}
+%%                Ann = line_file_anno(L, St),
+%%                {c_call(c_atom(erlang), c_atom('=:='), Cas, Ann),St}
 %%            end,
 %%         comp_gargs([Test,?Q(true)], Call, Env, L, St0)
 %%     end;
@@ -901,7 +907,8 @@ comp_gtest(Ts, Env, L, St0) ->            %Not a bool test or boolean
     {Cg,St1} = comp_gbody(Ts, Env, L, St0),
     True = comp_lit(true),
     Call = fun (Cas, _, L, St) ->
-                   {c_call(c_atom(erlang), c_atom('=:='), Cas, [L]),St}
+                   Ann = line_file_anno(L, St),
+                   {c_call(c_atom(erlang), c_atom('=:='), Cas, Ann),St}
            end,
     simple_seq([Cg,True], Call, Env, L, St1).
 
@@ -957,7 +964,8 @@ comp_gexpr([Fun|As], Env, L, St) ->
     Call = fun (Cas, Env, L, St) ->
                    Ar = length(Cas),
                    {yes,M,F} = get_gbinding(Fun, Ar, Env),
-                   {c_call(c_atom(M), c_atom(F), Cas, [L]),St}
+                   Ann = line_file_anno(L, St),
+                   {c_call(c_atom(M), c_atom(F), Cas, Ann),St}
            end,
     comp_gargs(As, Call, Env, L, St);
 comp_gexpr(Symb, _, _, St) when is_atom(Symb) ->
@@ -1213,6 +1221,9 @@ c_tuple(Es) -> #c_tuple{anno=[],es=Es}.
 c_var(N) -> #c_var{anno=[],name=N}.
 c_bitseg(Val, Sz, Un, Ty, Fs) ->
     #c_bitstr{anno=[],val=Val,size=Sz,unit=Un,type=Ty,flags=Fs}.
+
+line_file_anno(L, St) ->
+    [L,{file,St#cg.file}].
 
 %% comp_lit(Value) -> LitExpr.
 %%  Make a literal expression from an Erlang value. Try to make it as
