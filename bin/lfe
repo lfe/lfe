@@ -33,11 +33,13 @@ export LFE_BINDIR
 export LFE_PROGNAME
 
 i="$#"				# Counter
+e=""				# Eval flag/value
 
 # First step over the flag section adding them to the end.
 while [ $i -gt 0 ]; do
     case "$1" in
 	-eval | -lfe_eval)	# We are going to eval
+	    e="-lfe_eval"
 	    break ;;		#  delay removing this
 	-extra | --)		# We are explicitly done
 	    shift ; i=`expr $i - 1`
@@ -72,7 +74,7 @@ fi
 set -- "$@" "-user" "lfe_init" "-extra"
 
 # Check if we are 'eval'ing and add -lfe_eval flag
-if [ "$1" = "-eval" -o "$1" = "-lfe_eval" ]; then
+if [ "$e" != "" ]; then
     shift ; i=`expr $i - 1`	# Now we remove it as it has -noshell'ed
     set -- "$@" "-lfe_eval"
 fi
@@ -83,5 +85,5 @@ while [ $i -gt 0 ]; do
     shift ; i=`expr $i - 1`
 done
 
-# echo "$@"
+# echo erl "$@"
 exec erl "$@"
