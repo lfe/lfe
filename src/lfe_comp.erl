@@ -22,22 +22,25 @@
 
 %% -compile(export_all).
 
--import(lists, [member/2,keysearch/3,filter/2,foreach/2,
-        all/2,map/2,flatmap/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3]).
+-import(lists, [member/2,keyfind/3,filter/2,foreach/2,all/2,
+                map/2,flatmap/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3]).
 -import(ordsets, [add_element/2,is_element/2,from_list/1,union/2]).
 -import(orddict, [store/3,find/2]).
 
--include_lib("compiler/src/core_parse.hrl").
+-include("lfe_comp.hrl").
 
 -record(comp, {base="",             %Base name
-               odir=".",            %Output directory
+               ldir=".",            %Lisp file dir
                lfile="",            %Lisp file
+               odir=".",            %Output directory
                bfile="",            %Beam file
                cfile="",            %Core file
                opts=[],             %User options
+               ipath=[],            %Include path
                mod=[],              %Module name
                ret=file,            %What is returned [Val] | []
                code=none,           %Code after last pass.
+               cinfo=none,          %Common compiler info
                errors=[],
                warnings=[]
           }).
@@ -58,11 +61,12 @@ do_file(Name, Opts0) ->
     Opts1 = lfe_comp_opts(Opts0),
     St0 = #comp{opts=Opts1},
     St1 = filenames(Name, St0),
-    case lfe_io:parse_file(St1#comp.lfile) of
-    {ok,Fs} ->
-        %% Do the actual compilation work.
-        do_forms(St1#comp{code=Fs});
-    {error,Error} -> do_error_return(St1#comp{errors=[Error]})
+    St2 = include_path(St1),
+    case lfe_io:parse_file(St2#comp.lfile) of
+        {ok,Fs} ->
+            %% Do the actual compilation work.
+            do_forms(St2#comp{code=Fs});
+        {error,Error} -> do_error_return(St2#comp{errors=[Error]})
     end.
 
 %% forms(Forms) -> {ok,Mod,Bin,Warnings} | {error,Errors,Warnings}.
@@ -77,9 +81,10 @@ do_forms(Fs0, Opts0) ->
     Opts1 = lfe_comp_opts(Opts0),
     St0 = #comp{opts=[binary|Opts1]},        %Implicit binary option
     St1 = filenames("-no-file-", St0#comp{opts=Opts1}),
+    St2 = include_path(St1),
     %% Tag forms with a "line number", just use their index.
     {Fs1,_} = mapfoldl(fun (F, N) -> {{F,N},N+1} end, 1, Fs0),
-    do_forms(St1#comp{code=Fs1}).
+    do_forms(St2#comp{code=Fs1}).
 
 %% filenames(File, State) -> State.
 %%  The default output dir is the current directory unless an
@@ -87,20 +92,40 @@ do_forms(Fs0, Opts0) ->
 
 filenames(File, St) ->
     %% Test for explicit outdir.
-    Odir = case keysearch(outdir, 1, St#comp.opts) of
-           {value,{outdir,D}} -> D;
-           false -> "."
-       end,
+    Odir = outdir(St#comp.opts),
     Dir = filename:dirname(File),
     Base = filename:basename(File, ".lfe"),
     Lfile = filename:join(Dir, Base ++ ".lfe"),
     Bfile = Base ++ ".beam",
     Cfile = Base ++ ".core",
     St#comp{base=Base,
-        lfile=Lfile,
-        odir=Odir,
-        bfile=filename:join(Odir, Bfile),
-        cfile=filename:join(Odir, Cfile)}.
+            ldir=Dir,
+            lfile=Lfile,
+            odir=Odir,
+            bfile=filename:join(Odir, Bfile),
+            cfile=filename:join(Odir, Cfile)}.
+
+outdir([{outdir,Dir}|_]) -> Dir;
+outdir([[outdir,Dir]|_]) -> Dir;
+outdir([_|Opts]) -> outdir(Opts);
+outdir([]) -> ".".
+
+%% include_path(State) -> State.
+%%  Set the include path, we permit {i,Dir} and [i,Dir].
+
+include_path(#comp{ldir=Dir,opts=Opts}=St) ->
+    Ifun = fun ({i,I}, Is) -> [I|Is];
+               ([i,I], Is) -> [I|Is];
+               (_, Is) -> Is
+           end,
+    %% Same ordering as in the erlang compiler
+    Is = [".",Dir|foldr(Ifun, [], Opts)],       %Default entries
+    St#comp{ipath=Is}.
+
+%% compiler_info(State) -> CompInfo.
+
+compiler_info(#comp{lfile=F,opts=Os,ipath=Is}) ->
+    #cinfo{file=F,opts=Os,ipath=Is}.
 
 %% lfe_comp_opts(Opts) -> Opts.
 %%  Check options for lfe compiler.
@@ -113,10 +138,12 @@ lfe_comp_opts(Opts) ->
 %%  Run the actual LFE compiler passes.
 
 do_forms(St0) ->
+    %% Fill in the common compiler info.
+    St1 = St0#comp{cinfo=compiler_info(St0)},
     Ps = passes(),
-    case do_passes(Ps, St0) of
-    {ok,St1} -> do_ok_return(St1);
-    {error,St1} -> do_error_return(St1)
+    case do_passes(Ps, St1) of
+        {ok,St2} -> do_ok_return(St2);
+        {error,St2} -> do_error_return(St2)
     end.
 
 %% do_macro_expand(State) -> {ok,State} | {error,State}.
@@ -125,29 +152,28 @@ do_forms(St0) ->
 %% do_erl_comp(State) -> {ok,State} | {error,State}.
 %%  The actual compiler passes.
 
-do_macro_expand(St) ->
-    case lfe_macro:expand_forms(St#comp.code, lfe_env:new()) of
-    {ok,Fs,Env,Ws} ->
-        debug_print("mac: ~p\n", [{Fs,Env}], St),
-        {ok,St#comp{code=Fs,warnings=St#comp.warnings ++ Ws}};
-    {error,Es,Ws} ->
-        {error,St#comp{errors=St#comp.errors ++ Es,
-               warnings=St#comp.warnings ++ Ws}}
+do_macro_expand(#comp{cinfo=Ci,code=Code}=St) ->
+    case lfe_macro:expand_forms(Code, lfe_env:new(), Ci) of
+        {ok,Fs,Env,Ws} ->
+            debug_print("mac: ~p\n", [{Fs,Env}], St),
+            {ok,St#comp{code=Fs,warnings=St#comp.warnings ++ Ws}};
+        {error,Es,Ws} ->
+            {error,St#comp{errors=St#comp.errors ++ Es,
+                           warnings=St#comp.warnings ++ Ws}}
     end.
 
 do_lint(St) ->
-    case lfe_lint:module(St#comp.code, St#comp.opts) of
-    {ok,Ws} ->
-        {ok,St#comp{warnings=St#comp.warnings ++ Ws}};
-    {error,Es,Ws} ->
-        {error,St#comp{errors=St#comp.errors ++ Es,
-               warnings=St#comp.warnings ++ Ws}}
+    case lfe_lint:module(St#comp.code, St#comp.cinfo) of
+        {ok,Ws} ->
+            {ok,St#comp{warnings=St#comp.warnings ++ Ws}};
+        {error,Es,Ws} ->
+            {error,St#comp{errors=St#comp.errors ++ Es,
+                           warnings=St#comp.warnings ++ Ws}}
     end.
 
-do_lfe_codegen(#comp{code=Fs0}=St) ->
-    Opts = lfe_comp_opts(St#comp.opts),
-    Fs1 = lfe_pmod:module(Fs0, Opts),
-    {Mod,Core} = lfe_codegen:forms(Fs1, Opts),
+do_lfe_codegen(#comp{cinfo=Ci,code=Fs0}=St) ->
+    Fs1 = lfe_pmod:module(Fs0, Ci),
+    {Mod,Core} = lfe_codegen:module(Fs1, Ci),
     {ok,St#comp{code=Core,mod=Mod}}.
 
 do_erl_comp(St) ->
@@ -155,11 +181,11 @@ do_erl_comp(St) ->
     Es = St#comp.errors,
     Ws = St#comp.warnings,
     case compile:forms(St#comp.code, ErlOpts) of
-    {ok,_,Result,Ews} ->
-        {ok,St#comp{code=Result,warnings=Ws ++ fix_erl_errors(Ews)}};
-    {error,Ees,Ews} ->
-        {error,St#comp{errors=Es ++ fix_erl_errors(Ees),
-               warnings=Ws ++ fix_erl_errors(Ews)}}
+        {ok,_,Result,Ews} ->
+            {ok,St#comp{code=Result,warnings=Ws ++ fix_erl_errors(Ews)}};
+        {error,Ees,Ews} ->
+            {error,St#comp{errors=Es ++ fix_erl_errors(Ees),
+                           warnings=Ws ++ fix_erl_errors(Ews)}}
     end.
 
 %% erl_comp_opts(State) -> Options.
@@ -193,8 +219,9 @@ erl_comp_opts(St) ->
 %% do_passes(Passes, State) -> {ok,State} | {error,State}.
 %%  {when_flag,Flag,Cmd}
 %%  {unless_flag,Flag,Cmd}
+%%  {when_test,Test,Cmd}
+%%  {unless_test,Test,Cmd}
 %%  {do,Fun}
-%%  {pass,Fun}
 %%  {done,PrintFun,Ext}
 
 passes() ->
@@ -212,36 +239,36 @@ passes() ->
      {when_flag,to_asm,{done,fun asm_pp/2,"S"}},
      {unless_test,fun werror/1,{done,fun beam_write/2,"beam"}}]. %Should be last
 
-do_passes([{do,Fun}|Ps], St0) ->
-    case Fun(St0) of
-    {ok,St1} -> do_passes(Ps, St1);
-    {error,St1} -> {error,St1}
-    end;
 do_passes([{when_flag,Flag,Cmd}|Ps], St) ->
     case member(Flag, St#comp.opts) of
-    true -> do_passes([Cmd|Ps], St);
-    false -> do_passes(Ps, St)
+        true -> do_passes([Cmd|Ps], St);
+        false -> do_passes(Ps, St)
     end;
 do_passes([{unless_flag,Flag,Cmd}|Ps], St) ->
     case member(Flag, St#comp.opts) of
-    true -> do_passes(Ps, St);
-    false -> do_passes([Cmd|Ps], St)
+        true -> do_passes(Ps, St);
+        false -> do_passes([Cmd|Ps], St)
     end;
 do_passes([{when_test,Test,Cmd}|Ps], St) ->
     case Test(St) of
-    true -> do_passes([Cmd|Ps], St);
-    false -> do_passes(Ps, St)
+        true -> do_passes([Cmd|Ps], St);
+        false -> do_passes(Ps, St)
     end;
 do_passes([{unless_test,Test,Cmd}|Ps], St) ->
     case Test(St) of
-    true -> do_passes(Ps, St);
-    false -> do_passes([Cmd|Ps], St)
+        true -> do_passes(Ps, St);
+        false -> do_passes([Cmd|Ps], St)
+    end;
+do_passes([{do,Fun}|Ps], St0) ->
+    case Fun(St0) of
+        {ok,St1} -> do_passes(Ps, St1);
+        {error,St1} -> {error,St1}
     end;
 do_passes([{done,Fun,Ext}|_], St) ->
     %% Either return code as value or print out file.
     case member(binary, St#comp.opts) of
-    true -> {ok,St#comp{ret=[St#comp.code]}};
-    false -> do_save_file(Fun, Ext, St#comp{ret=[]})
+        true -> {ok,St#comp{ret=[St#comp.code]}};
+        false -> do_save_file(Fun, Ext, St#comp{ret=[]})
     end;
 do_passes([], St) -> {ok,St}.            %Got to the end, everything ok!
 

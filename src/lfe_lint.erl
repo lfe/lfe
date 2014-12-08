@@ -34,6 +34,8 @@
                   union/1,union/2,intersection/2,subtract/2]).
 -import(orddict, [store/3,find/2]).
 
+-include("lfe_comp.hrl").
+
 -record(lint, {module=[],            %Module name
                pars=none,            %Module parameters
                extd=[],              %Extends
@@ -42,10 +44,13 @@
                pref=[],              %Prefixes
                funcs=[],             %Defined functions
                env=[],               %Top-level environment
-               errors=[],            %Errors
-               warnings=[],          %Warnings
                line=[],              %Current line
-               func=[]}).            %Current function
+               func=[],              %Current function
+               file="nofile",        %File name
+               opts=[],              %Compiler options
+               errors=[],            %Errors
+               warnings=[]           %Warnings
+              }).
 
 %% Errors.
 format_error({bad_mdef,D}) ->
@@ -115,17 +120,18 @@ form(F) ->
             {F,2}]).
 
 %% module(Forms) -> {ok,[Warning]} | {error,[Error],[Warning]}.
-%% module(Forms, Options) -> {ok,[Warning]} | {error,[Error],[Warning]}.
+%% module(Forms, CompInfo) -> {ok,[Warning]} | {error,[Error],[Warning]}.
+%%  Lint the forms in a module.
 
-module(Fs) -> module(Fs, []).
+module(Fs) -> module(Fs, #cinfo{file="nofile",opts=[]}).
 
-module(Fs0, Opts) ->
+module(Fs0, #cinfo{file=F,opts=Os}) ->
     %% Predefined functions
-    St0 = #lint{},
+    St0 = #lint{file=F,opts=Os},
     %% Collect forms and fill in module infor in state.
     {Fs1,St1} = lfe_lib:proc_forms(fun collect_form/3, Fs0, St0),
     St2 = check_module(Fs1, St1),
-    debug_print("#lint: ~p\n", [St2], Opts),
+    debug_print("#lint: ~p\n", [St2], Os),
     return_status(St2).
 
 debug_print(Format, Args, Opts) ->
