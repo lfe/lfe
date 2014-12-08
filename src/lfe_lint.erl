@@ -833,15 +833,19 @@ check_gexpr(['map-update',Map|As], Env, L, St) ->
 %% Check the Core control special forms.
 check_gexpr(['progn'|B], Env, L, St) -> check_gbody(B, Env, L, St);
 check_gexpr(['if'|B], Env, L, St) -> check_gif(B, Env, L, St);
-check_gexpr([call,[quote,erlang],[quote,Fun]|As], Env, L, St) ->
-    check_gexpr([Fun|As], Env, L, St);          %Pass the buck
+check_gexpr([call,[quote,erlang],[quote,Fun]|As], Env, L, St0) ->
+    St1 = check_gargs(As, Env, L, St0),
+    %% It must be a legal guard bif here.
+    case is_guard_bif(Fun, safe_length(As)) of
+        true -> St1;
+        false -> illegal_guard_error(L, St1)
+    end;
 check_gexpr([call|_], _, L, St) ->              %Other calls not allowed
     illegal_guard_error(L, St);
 %% Finally the general case.
 check_gexpr([Fun|As], Env, L, St0) when is_atom(Fun) ->
     St1 = check_gargs(As, Env, L, St0),
-    %% Here we are not interested in HOW fun is associated to a
-    %% function, just that it is.
+    %% Function must be a legal guard bif AND not a defined function.
     case is_gbound(Fun, safe_length(As), Env) of
         true -> St1;
         false -> illegal_guard_error(L, St1)
