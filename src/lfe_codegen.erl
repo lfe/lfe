@@ -58,10 +58,11 @@
              atts=[],                           %Attrubutes
              defs=[],                           %Function definitions.
              env=[],                            %Environment
-             func=[],                           %Current function
              anno=[],                           %Current annotation
              opts=[],                           %Options
              file=[],                           %File name
+             func=[],                           %Current function
+             line=0,                            %Current line
              vc=0,                              %Variable counter
              fc=0                               %Function counter
             }).
@@ -207,8 +208,8 @@ collect_imp(Fun, Mod, St, Fs) ->
 
 comp_define({Name,Def,L}, Env, St) ->
     Ann = [L],
-    Cf = c_fname(Name, func_arity(Def)),        %Could be useful
-    comp_func(Name, Def, Env, L, St#cg{func=Cf,vc=0,fc=0,anno=Ann}).
+    Cf = {Name,func_arity(Def)},                %Is useful
+    comp_func(Name, Def, Env, L, St#cg{func=Cf,line=L,vc=0,fc=0,anno=Ann}).
 
 %% comp_body(BodyList, Env, Line, State) -> {CoreBody,State}.
 %% Compile a body list of expressions.
@@ -382,9 +383,14 @@ comp_match_lambda(Cls, Env, L, St0) ->
     {Cvs,St1} = new_c_vars(Ar, L, St0),
     {Ccs,St2} = comp_match_clauses(Cls, Env, L, St1),
     {Fvs,St3} = new_c_vars(Ar, L, St2),
-    Cf = fail_clause(Fvs,c_tuple([c_atom(function_clause)|Fvs]), L, St3),
+    Cf = func_fail(Fvs, L, St3),
     Cb = c_case(c_values(Cvs), Ccs ++ [Cf], [L]),
     {c_fun(Cvs, Cb, [L,{file,St3#cg.file}]),St3}.
+
+func_fail(Fvs, L, #cg{func=F}=St) ->
+    %% We need function_name anno to generate function_clause error.
+    fail_clause(Fvs, c_tuple([c_atom(function_clause)|Fvs]),
+                [{function_name,F}], L, St).
 
 %% match_lambda_arity(MatchClauses) -> int().
 
@@ -392,7 +398,7 @@ match_lambda_arity([[Pats|_]|_]) -> length(Pats).
 
 comp_match_clauses(Cls, Env, L, St) ->
     mapfoldl(fun (Cl, Sta) -> comp_match_clause(Cl, Env, L, Sta) end,
-         St, Cls).
+             St, Cls).
 
 %% comp_match_clause(Clause, Env, L, State) -> {#c_clause{},State}.
 %% (Pats [(when Guard)] . Body)
@@ -449,14 +455,15 @@ comp_let(Vbs, B, Env, L, St0) ->
         {Cg,St3} = comp_guard(Gs, Env1, L, St2),
         {Cb,St4} = comp_body(B, Env1, L, St3),
         {Cvs,St5} = new_c_vars(length(Ces), L, St4),
-        Cf = fail_clause(Cvs,
-                 c_tuple([c_atom(badmatch),c_tuple(Cvs)]),
-                 L, St5),
+        Cf = let_fail(Cvs, L, St5),
         {c_case(c_values(Ces),
                 [c_clause(Cps, Cg, Cb, [L]),Cf],
                 [L]),
          St5}
     end.
+
+let_fail(Cvs, L, St) ->
+    fail_clause(Cvs, c_tuple([c_atom(badmatch),c_tuple(Cvs)]), [], L, St).
 
 %% comp_let_function(FuncBindngs, Body, Env, Line, State) ->
 %%      {#c_letrec{},State}.
@@ -557,15 +564,17 @@ comp_if(Te, Tr, Fa, Env, L, St0) ->
 
 if_fail(L, St) ->
     Cv = c_var(omega),
-    fail_clause([Cv], c_atom(if_clause), L, St).
+    fail_clause([Cv], c_atom(if_clause), [], L, St).
 
-%% fail_clause(Pats, Arg, L, State) -> Clause.
-%% Build a general failure clause.
+%% fail_clause(Pats, Arg, FailAnno, Line, State) -> Clause.
+%%  Build a general failure clause. No line number in the clause, but
+%%  append the line number and file name to the annotation.
 
-fail_clause(Pats, Arg, L, _) ->
+fail_clause(Pats, Arg, Fann, L, #cg{file=F}) ->
+    Ann = [L,{file,F}],
     c_clause(Pats, c_atom(true),
-             c_primop(c_atom(match_fail), [Arg], [L]),
-             [L,compiler_generated]).           %It is compiler generated
+             c_primop(c_atom(match_fail), [Arg], Fann ++ Ann),
+             [compiler_generated]).             %It is compiler generated
 
 %% comp_case(Expr, Clauses, Env, Line, State) -> {#c_case{},State}.
 %% Compile a case.
@@ -582,7 +591,7 @@ case_clauses(Cls, Env, L, St) ->
 
 case_fail(L, St) ->
     Cv = c_var(omega),
-    fail_clause([Cv], c_tuple([c_atom(case_clause),Cv]), L, St).
+    fail_clause([Cv], c_tuple([c_atom(case_clause),Cv]), [], L, St).
 
 %% rec_clauses(RecClauses, Env, Line, State) -> {Clause,Timeout,After,State}.
 
@@ -670,7 +679,7 @@ try_case(Cls, Env, L, St0) ->
 
 try_case_fail(L, St) ->
     Cv = c_var(omega),
-    fail_clause([Cv], c_tuple([c_atom(try_clause),Cv]), L, St).
+    fail_clause([Cv], c_tuple([c_atom(try_clause),Cv]), [], L, St).
 
 %% try_exception(CatchClauses, Env, L, State) -> {Vars,#c_case{},State}.
 
