@@ -212,7 +212,7 @@ get_abort_message() ->
     "(abort with G^)".
 
 get_lfe_version() ->
-    {ok, [App]} = file:consult("src/lfe.app.src"),
+    {ok, [App]} = file:consult(code:where_is_file("lfe.app")),
     proplists:get_value(vsn, element(3, App)).
 
 %% new_state(ScriptName, Args [,Env]) -> State.
