@@ -89,8 +89,7 @@ server(default) ->
     server(lfe_env:new());
 server(Env) ->
     process_flag(trap_exit, true),              %Must trap exists
-    io:fwrite("LFE Shell V~s (abort with ^G)\n",
-              [erlang:system_info(version)]),
+    io:fwrite(get_banner()),
     %% Create a default base env of predefined shell variables with
     %% default nil bindings and basic shell macros.
     St = new_state("lfe", [], Env),
@@ -187,6 +186,34 @@ read_expression_1(Rdr, Eval, St) ->
             report_exception(exit, Reason, []),
             read_expression_1(Rdr, start_eval(St), St)
     end.
+
+get_banner() ->
+    [io_lib:format("         (\n" ++
+                   "     (    )  )\n" ++
+                   "      )_.(._(\n" ++
+                   "   .-(   \\\\  )-.       |   A Lisp-2+ on the Erlang VM\n" ++
+                   "  (     / \\\\    )      |   Docs: http://docs.lfe.io/ \n" ++
+                   "  |`-.._____..-';.     |   \n" ++
+                   "  |         g  (_ \\    |   Type `(help)` for usage info.\n" ++
+                   "  |        n    || |   |   \n" ++
+                   "  |       a     '/ ;   |   Source code:\n" ++
+                   "  (      l      / /    |   http://github.com/rvirding/lfe\n" ++
+                   "   \\    r      ( /     |   \n" ++
+                   "    \\  E      ,y'      |   LFE v~s\n" ++
+                   "     `-.___.-'         |   LFE Shell V~s ~s\n\n",
+            [get_lfe_version(),
+             erlang:system_info(version),
+             get_abort_message()])].
+
+get_abort_message() ->
+    %% We can update this later to check for env variable settings for
+    %% shells that require a different control character to abort, such
+    %% as jlfe.
+    "(abort with G^)".
+
+get_lfe_version() ->
+    {ok, [App]} = file:consult("src/lfe.app.src"),
+    proplists:get_value(vsn, element(3, App)).
 
 %% new_state(ScriptName, Args [,Env]) -> State.
 %%  Generate a new shell state with all the default functions, macros
