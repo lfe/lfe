@@ -43,11 +43,6 @@ i="$#"				# Counter
 
 while [ $i -gt 0 ]; do
     case "$1" in
-	# -*)
-	#     opt=`expr "$1" : '^-\(.*\)'`
-	#     set -- "$@" "$opt"
-	#     shift ; i=`expr $i - 1`
-	#     ;;
 	-extra | --)		# We are explicitly done
 	    shift ; i=`expr $i - 1`
 	    break ;;
