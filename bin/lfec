@@ -68,11 +68,18 @@
 
 ;; Parse the arguments and compile the files.
 
+(defun lfe-file? (path)
+  (if (and (filelib:is_file path)
+           (== ".lfe" (filename:extension path)))
+      'true
+      'false))
+
 (case script-args
   (() (usage))
   (as0
    (fix-code-path)
-   (let ((`#(,as1 ,opts1) (parse-opts as0 ())))
+   (let* ((`#(,as1 ,opts1) (parse-opts as0 ()))
+          (as2 (lists:filter #'lfe-file?/1 as1)))
      ;; (pp (list as1 opts1))
      (lists:map (lambda (a) (lfe_comp:file a (list* 'verbose 'report opts1)))
-                as1))))
+                as2))))
