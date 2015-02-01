@@ -60,14 +60,15 @@ add_warning(L, W, St) ->
 %%  Expand the (include-file ...) macro.  This is a VERY simple
 %%  include file macro! We just signal errors.
 
-file(Body, _, St0) ->
+file(Body, _, #mac{ipath=Path}=St0) ->
     case include_name(Body) of
-    {ok,Name} ->
-        case read_file(Name, St0) of    %Try to read file
-        {ok,Fs,St1} -> {yes,['progn'|Fs],St1};
+        {ok,Name} ->
+            case path_read_file(Path, Name, St0) of
+                {ok,Fs,St1} -> {yes,['progn'|Fs],St1};
+                {error,E} -> error(E);
+                not_found -> error(enoent)
+            end;
         {error,E} -> error(E)
-        end;
-    {error,E} -> error(E)
     end.
 
 %% lib([FileName], Env, State) -> {yes,(progn ...),State} | no.
@@ -77,29 +78,46 @@ file(Body, _, St0) ->
 
 lib(Body, _, St0) ->
     case include_name(Body) of
-    {ok,Name} ->
-        case read_file(Name, St0) of
-        {ok,Fs,St1} -> {yes,['progn'|Fs],St1};
-        {error,_} ->
-            case lib_file_name(Name) of
-            {ok,Lfile} ->
-                case read_file(Lfile, St0) of
+        {ok,Name} ->
+            case path_read_file(St0#mac.ipath, Name, St0) of
                 {ok,Fs,St1} -> {yes,['progn'|Fs],St1};
-                {error,E} -> error(E)
-                end;
-            {error,_} -> error(badarg)
-            end
-        end;
-    {error,E} -> error(E)
+                {error,E} -> error(E);          %Found contained error
+                not_found ->                    %File not found
+                    case lib_file_name(Name) of
+                        {ok,Lfile} ->
+                            case read_file(Lfile, St0) of
+                                {ok,Fs,St1} -> {yes,['progn'|Fs],St1};
+                                {error,E} -> error(E)
+                            end;
+                        {error,_} -> error(badarg)
+                    end
+            end;
+        {error,E} -> error(E)
     end.
+
+%% path_read_file(Path, Name, State) -> {ok,Forms,State} | {error,E} | error.
+%%  Step down the path trying to read the file. We first test if we
+%%  can open it, if so then this the file we use, if not we go on.
+
+path_read_file([P|Ps], Name, St) ->
+    File = filename:join(P, Name),
+    case file:open(File, [read,raw]) of         %Test if we can open the file
+        {ok,F} ->
+            file:close(F),                      %Close it again
+            read_file(File, St);
+        {error,_} ->
+            path_read_file(Ps, Name, St)
+    end;
+path_read_file([], _, _) ->                     %Couldn't find/open the file
+    not_found.
 
 %% include_name(Body) -> bool().
 %%  Gets the file name from the include-XXX body.
 
 include_name([Name]) ->
     case io_lib:char_list(Name) of
-    true -> {ok,Name};
-    false -> {error,badarg}
+        true -> {ok,Name};
+        false -> {error,badarg}
     end;
 include_name(_) -> {error,badarg}.
 
@@ -109,9 +127,9 @@ include_name(_) -> {error,badarg}.
 lib_file_name(Lpath) ->
     [Lname|Rest] = filename:split(Lpath),
     case code:lib_dir(list_to_atom(Lname)) of
-    Ldir when is_list(Ldir) ->
-        {ok,filename:join([Ldir|Rest])};
-    {error,E} -> {error,E}
+        Ldir when is_list(Ldir) ->
+            {ok,filename:join([Ldir|Rest])};
+        {error,E} -> {error,E}
     end.
 
 %% read_file(FileName, State) -> {ok,Forms,State} | {error,Error}.

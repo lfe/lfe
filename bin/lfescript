@@ -15,18 +15,21 @@
 #
 # A primitive lfescript script.
 
-# Follow symlinks to actual program and set env variables.
+# Follow symlinks to actual program and set env variables.  We have to
+# cd to each directory following symlinks to handle relative symlinks.
 
 follow_symlink () {
-    if [ -h "$1" ]; then
-	follow_symlink $(readlink "$1")
+    cd "$(dirname "$1")" > /dev/null
+    filename="$(basename "$1")"
+    if [ -h "$filename" ]; then
+	follow_symlink "$(readlink "$filename")"
     else
-	echo "$1"
+	echo "`pwd -P`/$filename"
     fi
 }
 
 SELF=$(follow_symlink "$0")
-LFE_PROGNAME=`echo $0 | sed 's/.*\///'`
+LFE_PROGNAME=`echo $0 | sed 's/.*\///'` # Basically basename
 LFE_BINDIR=$(dirname "$SELF")
 LFE_ROOTDIR=$(dirname "$LFE_BINDIR")
 
@@ -43,11 +46,6 @@ i="$#"				# Counter
 
 while [ $i -gt 0 ]; do
     case "$1" in
-	# -*)
-	#     opt=`expr "$1" : '^-\(.*\)'`
-	#     set -- "$@" "$opt"
-	#     shift ; i=`expr $i - 1`
-	#     ;;
 	-extra | --)		# We are explicitly done
 	    shift ; i=`expr $i - 1`
 	    break ;;
@@ -72,9 +70,8 @@ done
 scriptname="$1"
 
 # Split options and scriptname/args, add the middle bits to the end
-set -- "$@" "-pa" "$LFE_ROOTDIR/ebin"
-set -- "$@" "-noshell" "-run" "lfescript" "start"
-set -- "$@" "-extra"
+set -- "$@" "-noshell"
+set -- "$@" "-run" "lfescript" "start" "-extra"
 
 # Step over the args section adding them to the end.
 while [ $i -gt 0 ]; do
@@ -99,4 +96,5 @@ shebangs=`expr "$line2" : '^;;! *\(.*\)'`
 if [ -z "$shebangs" ] ; then shebangs=`expr "$line3" : '^;;! *\(.*\)'` ; fi
 
 # Done, now just run the emulator.
-exec $emulator +B -boot start_clean $shebangs "$@"
+# Note that ERL_LIBS will find *either* an ebin subdir *or* lib subdir
+ERL_LIBS="$HOME"/.lfe/lib:"$LFE_ROOTDIR":"$LFE_ROOTDIR"/lib:"$ERL_LIBS" exec $emulator +B -boot start_clean $shebangs "$@"

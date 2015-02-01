@@ -16,22 +16,30 @@
 %%% Author  : Robert Virding
 %%% Purpose : Lisp Flavoured Erlang code generator (to core Erlang).
 
+%%% We have to be very careful to generate annotations in exactly the
+%%% same way as the erlang compiler does and in the same places.
+%%% Dialyzer is very finnicky about this and seriously fails if things
+%%% are not as it expects them to be. Note that now the whole
+%%% annotation is passed into the constructor functions, not just the
+%%% line number.
+
 -module(lfe_codegen).
 
--export([forms/2]).
+-export([module/2]).
 
 %% -compile(export_all).
 
 -import(lists, [member/2,keysearch/3,reverse/1,
-        all/2,map/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3,
-        concat/1,zipwith/3]).
+                all/2,map/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3,
+                concat/1,zipwith/3]).
 -import(ordsets, [add_element/2,is_element/2,from_list/1,union/2]).
 -import(orddict, [store/3,find/2]).
 
 -import(lfe_env, [new/0,add_env/2,
-          add_vbinding/3,get_vbinding/2,add_fbinding/4,get_fbinding/3,
-          add_ibinding/5,get_gbinding/3]).
+                  add_vbinding/3,get_vbinding/2,add_fbinding/4,get_fbinding/3,
+                  add_ibinding/5,get_gbinding/3]).
 
+-include("lfe_comp.hrl").
 -include_lib("compiler/src/core_parse.hrl").
 
 %% Define IS_MAP/1 macro for is_map/1 bif.
@@ -41,24 +49,28 @@
 -define(IS_MAP(T), false).
 -endif.
 
--define(Q(E), [quote,E]).     %We do a lot of quoting!
+-define(Q(E), [quote,E]).                       %We do a lot of quoting!
 
--record(cg, {opts=[],         %Options
-         vc=0,                %Variable counter
-         fc=0,                %Function counter
-         mod=[],              %Module name
-         exps=[],             %Exports (ordsets)
-         imps=[],             %Imports (orddict)
-         pref=[],             %Prefixes
-         atts=[],             %Attrubutes
-         defs=[],             %Function definitions.
-         env=[],
-         func=[]}).
+-record(cg, {mod=[],                            %Module name
+             exps=[],                           %Exports (ordsets)
+             imps=[],                           %Imports (orddict)
+             pref=[],                           %Prefixes
+             atts=[],                           %Attrubutes
+             defs=[],                           %Function definitions.
+             env=[],                            %Environment
+             anno=[],                           %Current annotation
+             opts=[],                           %Options
+             file=[],                           %File name
+             func=[],                           %Current function
+             line=0,                            %Current line
+             vc=0,                              %Variable counter
+             fc=0                               %Function counter
+            }).
 
-%% forms(Forms, Options) -> {ModuleName,CoreModule}
+%% module(Forms, CompInfo) -> {ModuleName,CoreModule}
 
-forms(Forms, Opts) ->
-    St0 = #cg{opts=Opts},
+module(Forms, #cinfo{opts=Opts,file=File}) ->
+    St0 = #cg{opts=Opts,file=File},
     Core0 = #c_module{defs=[],exports=[],attrs=[]},
     {Core1,St1} = forms(Forms, St0, Core0),
     {St1#cg.mod,Core1}.
@@ -72,38 +84,40 @@ forms(Forms, St0, Core0) ->
     %% Add predefined functions and definitions.
     Predefs = [{module_info,0},{module_info,1}],
     Fbs1 = [{module_info,
-         [lambda,[],
-          [call,?Q(erlang),?Q(get_module_info),?Q(St1#cg.mod)]],1},
-        {module_info,
-         [lambda,[x],
-          [call,?Q(erlang),?Q(get_module_info),?Q(St1#cg.mod),x]],1}|
-        Fbs0],
+             [lambda,[],
+              [call,?Q(erlang),?Q(get_module_info),?Q(St1#cg.mod)]],1},
+            {module_info,
+             [lambda,[x],
+              [call,?Q(erlang),?Q(get_module_info),?Q(St1#cg.mod),x]],1}|
+            Fbs0],
     %% Make initial environment and set state.
     Env = forms_env(Fbs1, St1),
     St2 = St1#cg{exps=add_exports(St1#cg.exps, Predefs),
-         defs=Fbs1,env=Env},
+                 defs=Fbs1,env=Env},
     Exps = make_exports(St2#cg.exps, Fbs1),
-    Atts = map(fun ({N,V}) ->
-               {comp_lit(N),comp_lit(V)}
-           end, St2#cg.atts),
+    Atts = map(fun ({N,V,L}) ->
+%%                       Ann = line_file_anno(L, St2),
+                       Ann = [L],
+                       {c_lit(N, Ann),c_lit(V, Ann)}
+               end, St2#cg.atts),
     %% Compile the functions.
     {Cdefs,St3} = mapfoldl(fun (D, St) -> comp_define(D, Env, St) end,
-              St2, St2#cg.defs),
+                           St2, St2#cg.defs),
     %% Build the final core module structure.
     Core1 = Core0#c_module{name=c_atom(St3#cg.mod),
-               exports=Exps,
-               attrs=Atts,
-               defs=Cdefs},
+                           exports=Exps,
+                           attrs=Atts,
+                           defs=Cdefs},
     %% Maybe print lots of debug info.
     debug_print("#cg: ~p\n", [St3], St3),
     when_opt(fun () -> io:fwrite("core_lint: ~p\n",
-                 [(catch core_lint:module(Core1))])
-         end, debug_print, St3),
+                                 [(catch core_lint:module(Core1))])
+             end, debug_print, St3),
     debug_print("#core: ~p\n", [Core1], St3),
-%%     when_opt(fun () ->
-%%              Pp = (catch io:put_chars([core_pp:format(Core1),$\n])),
-%%              io:fwrite("core_pp: ~p\n", [Pp])
-%%          end, debug_print, St3),
+    %% when_opt(fun () ->
+    %%                  Pp = (catch io:put_chars([core_pp:format(Core1),$\n])),
+    %%                  io:fwrite("core_pp: ~p\n", [Pp])
+    %%          end, debug_print, St3),
     {Core1,St3}.
 
 forms_env(Fbs, St) ->
@@ -139,36 +153,36 @@ make_exports(Exps, _) ->
 %%  Collect valid forms and module data. Returns forms and put module
 %%  data into state.
 
-collect_form(['define-module',Mod|Mdef], _, St) ->
+collect_form(['define-module',Mod|Mdef], L, St) ->
     %% Everything into State
-    {[],collect_mdef(Mdef, St#cg{mod=Mod})};
-collect_form(['extend-module'|Mdef], _, St) ->
-    {[],collect_mdef(Mdef, St)};
+    {[],collect_mdef(Mdef, L, St#cg{mod=Mod,anno=[L]})};
+collect_form(['extend-module'|Mdef], L, St) ->
+    {[],collect_mdef(Mdef, L, St#cg{anno=[L]})};
 collect_form(['define-function',Name,[lambda|_]=Lambda], L, St) ->
     {[{Name,Lambda,L}],St};
 collect_form(['define-function',Name,['match-lambda'|_]=Match], L, St) ->
     {[{Name,Match,L}],St}.
 
-%% collect_props(ModDef, State) -> State.
+%% collect_props(ModDef, Line, State) -> State.
 %% Collect module definition and fill in the #cg state record.
 
-collect_mdef([[export,all]|Mdef], St) ->
-    collect_mdef(Mdef, St#cg{exps=all});
-collect_mdef([[export|Es]|Mdef], St) ->
+collect_mdef([[export,all]|Mdef], L, St) ->
+    collect_mdef(Mdef, L, St#cg{exps=all});
+collect_mdef([[export|Es]|Mdef], L, St) ->
     case St#cg.exps of
-    all -> collect_mdef(Mdef, St);        %Propagate all.
-    Exps0 ->
-        %% Add exports to export set.
-        Exps1 = foldl(fun ([F,A], E) -> add_element({F,A}, E) end,
-              Exps0, Es),
-        collect_mdef(Mdef, St#cg{exps=Exps1})
+        all -> collect_mdef(Mdef, L, St);       %Propagate all.
+        Exps0 ->
+            %% Add exports to export set.
+            Exps1 = foldl(fun ([F,A], E) -> add_element({F,A}, E) end,
+                          Exps0, Es),
+            collect_mdef(Mdef, L, St#cg{exps=Exps1})
     end;
-collect_mdef([[import|Is]|Mdef], St) ->
-    collect_mdef(Mdef, collect_imps(Is, St));
-collect_mdef([[N|Vs]|Mdef], St) ->
-    As = St#cg.atts ++ [{N,Vs}],        %Probably not many
-    collect_mdef(Mdef, St#cg{atts=As});
-collect_mdef([], St) -> St.
+collect_mdef([[import|Is]|Mdef], L, St) ->
+    collect_mdef(Mdef, L, collect_imps(Is, St));
+collect_mdef([[N|Vs]|Mdef], L, St) ->
+    As = St#cg.atts ++ [{N,Vs,L}],              %Probably not many
+    collect_mdef(Mdef, L, St#cg{atts=As});
+collect_mdef([], _, St) -> St.
 
 collect_imps(Is, St) ->
     foldl(fun (I, S) -> collect_imp(I, S) end, St, Is).
@@ -189,11 +203,13 @@ collect_imp(Fun, Mod, St, Fs) ->
     St#cg{imps=store(Mod, Imps1, St#cg.imps)}.
 
 %% comp_define(DefForm, Env, State) -> {Corefunc,State}.
-%%  Compile a top-level define. Sets current function name.
+%%  Compile a top-level define. Sets current function name. Be careful
+%%  with annotations as dialyzer then sometimes goes crazy.
 
 comp_define({Name,Def,L}, Env, St) ->
-    Cf = c_fname(Name, func_arity(Def)),    %Could be useful
-    comp_func(Name, Def, Env, L, St#cg{func=Cf,vc=0,fc=0}).
+    Ann = [L],
+    Cf = {Name,func_arity(Def)},                %Is useful
+    comp_func(Name, Def, Env, L, St#cg{func=Cf,line=L,vc=0,fc=0,anno=Ann}).
 
 %% comp_body(BodyList, Env, Line, State) -> {CoreBody,State}.
 %% Compile a body list of expressions.
@@ -222,19 +238,20 @@ append_c_seq(H, Ce, L) -> #c_seq{anno=[L],arg=H,body=Ce}.
 %% Handle the Core data special forms.
 comp_expr([quote,E], _, _, St) -> {comp_lit(E),St};
 comp_expr([cons,H,T], Env, L, St) ->
-    Cons = fun ([Ch,Ct], _, _, St) -> {c_cons(Ch, Ct),St} end,
+    Cons = fun ([Ch,Ct], _, _, Sta) -> {c_cons(Ch, Ct),Sta} end,
     comp_args([H,T], Cons, Env, L, St);
 comp_expr([car,E], Env, L, St) ->        %Provide lisp names
     comp_expr([hd,E], Env, L, St);
 comp_expr([cdr,E], Env, L, St) ->
     comp_expr([tl,E], Env, L, St);
 comp_expr([list|Es], Env, L, St) ->
-    List = fun (Ces, _, _, St) ->
-                   {foldr(fun (E, T) -> c_cons(E, T) end, c_nil(), Ces),St}
+    List = fun (Ces, _, _, Sta) ->
+                   {foldr(fun (E, T) -> c_cons(E, T) end, c_nil(), Ces),Sta}
            end,
     comp_args(Es, List, Env, L, St);
 comp_expr([tuple|As], Env, L, St) ->
-    comp_args(As, fun (Args, _, _, St) -> {c_tuple(Args),St} end, Env, L, St);
+    Args = fun (Args, _, _, Sta) -> {c_tuple(Args),Sta} end,
+    comp_args(As, Args, Env, L, St);
 comp_expr([binary|Segs], Env, L, St) ->
     comp_binary(Segs, Env, L, St);        %And bitstring as well
 comp_expr([map|As], Env, L, St) ->
@@ -285,24 +302,27 @@ comp_expr(['funcall',F|As], Env, L, St) ->
 %% An interesting thought to open up system.
 comp_expr([call,M,N|As], Env, L, St) ->
     %% Call a function in another module.
-    Call = fun ([Cm,Cn|Cas], _, L, St) -> {c_call(Cm, Cn, Cas, L),St} end,
+    Call = fun ([Cm,Cn|Cas], _, Li, Sta) ->
+                   Ann = line_file_anno(Li, Sta),
+                   {c_call(Cm, Cn, Cas, Ann),Sta}
+           end,
     comp_args([M,N|As], Call, Env, L, St);
 %%     {[Cm,Cn|Cas],St1} = comp_args([M,N|As], Env, L, St0),
 %%     {#c_call{anno=[L],module=Cm,name=Cn,args=Cas},St1};
 %% General function calls.
 comp_expr([Fun|As], Env, L, St) when is_atom(Fun) ->
     %% Fun is a symbol which is either a known BIF or function.
-    Call = fun (Cas, Env, L, St) ->
-           Ar = length(Cas),
-           case get_fbinding(Fun, Ar, Env) of
-               {yes,M,F} ->                %Import
-               {c_call(c_atom(M), c_atom(F), Cas, L),St};
-               {yes,Name} ->
-               %% Might have been renamed, use real function name.
-               {#c_apply{anno=[L],op=c_fname(Name, Ar),
-                     args=Cas},St}
-           end
-       end,
+    Call = fun (Cas, En, Li, Sta) ->
+                   Ar = length(Cas),
+                   Ann = line_file_anno(Li, Sta),
+                   case get_fbinding(Fun, Ar, En) of
+                       {yes,M,F} ->                %Import
+                           {c_call(c_atom(M), c_atom(F), Cas, Ann),Sta};
+                       {yes,Name} ->
+                           %% Might have been renamed, use real function name.
+                           {c_apply(c_fname(Name, Ar), Cas, Ann),Sta}
+                   end
+           end,
     comp_args(As, Call, Env, L, St);
 comp_expr(Symb, _, _, St) when is_atom(Symb) ->
     {c_var(Symb),St};
@@ -348,7 +368,8 @@ simple_seq([], Then, Ses, Env, L, St) ->
 comp_lambda(Args, Body, Env, L, St0) ->
     {Cvs,Pvs,St1} = comp_lambda_args(Args, L, St0),
     {Cb,St2} = comp_body(Body, add_vbindings(Pvs, Env), L, St1),
-    {c_fun(Cvs, Cb, L),St2}.
+    Ann = line_file_anno(L, St2),
+    {c_fun(Cvs, Cb, Ann),St2}.
 
 comp_lambda_args(Args, L, St) ->
     foldr(fun (A, {Cvs,Pvs0,St0}) ->
@@ -366,11 +387,15 @@ comp_match_lambda(Cls, Env, L, St0) ->
     {Cvs,St1} = new_c_vars(Ar, L, St0),
     {Ccs,St2} = comp_match_clauses(Cls, Env, L, St1),
     {Fvs,St3} = new_c_vars(Ar, L, St2),
-    Cf = fail_clause(Fvs,c_tuple([c_atom(function_clause)|Fvs]), L, St3),
-    Cb = #c_case{anno=[L],
-         arg=c_values(Cvs),
-         clauses=Ccs ++ [Cf]},
-    {c_fun(Cvs, Cb, L),St3}.
+    Cf = func_fail(Fvs, L, St3),
+    Cb = c_case(c_values(Cvs), Ccs ++ [Cf], [L]),
+    Ann = line_file_anno(L, St3),
+    {c_fun(Cvs, Cb, Ann),St3}.
+
+func_fail(Fvs, L, #cg{func=F}=St) ->
+    %% We need function_name anno to generate function_clause error.
+    fail_clause(Fvs, c_tuple([c_atom(function_clause)|Fvs]),
+                [{function_name,F}], L, St).
 
 %% match_lambda_arity(MatchClauses) -> int().
 
@@ -378,7 +403,7 @@ match_lambda_arity([[Pats|_]|_]) -> length(Pats).
 
 comp_match_clauses(Cls, Env, L, St) ->
     mapfoldl(fun (Cl, Sta) -> comp_match_clause(Cl, Env, L, Sta) end,
-         St, Cls).
+             St, Cls).
 
 %% comp_match_clause(Clause, Env, L, State) -> {#c_clause{},State}.
 %% (Pats [(when Guard)] . Body)
@@ -393,7 +418,7 @@ comp_match_clause([Pats|Body], Env0, L, St0) ->
                    end, {[],St0}, Pats),
     Env1 = add_vbindings(Pvs, Env0),
     {Cg,Cb,St2} = comp_clause_body(Body, Env1, L, St1),
-    {#c_clause{anno=[L],pats=Cps,guard=Cg,body=Cb},St2}.
+    {c_clause(Cps, Cg, Cb, [L]),St2}.
 
 %% comp_let(VarBindings, Body, Env, L, State) -> {#c_let{}|#c_case{},State}.
 %% Compile a let expr. We are a little cunning in that we specialise
@@ -435,14 +460,15 @@ comp_let(Vbs, B, Env, L, St0) ->
         {Cg,St3} = comp_guard(Gs, Env1, L, St2),
         {Cb,St4} = comp_body(B, Env1, L, St3),
         {Cvs,St5} = new_c_vars(length(Ces), L, St4),
-        Cf = fail_clause(Cvs,
-                 c_tuple([c_atom(badmatch),c_tuple(Cvs)]),
-                 L, St5),
-        {#c_case{anno=[L],
-             arg=c_values(Ces),
-             clauses=[#c_clause{anno=[L],pats=Cps,guard=Cg,body=Cb},Cf]},
+        Cf = let_fail(Cvs, L, St5),
+        {c_case(c_values(Ces),
+                [c_clause(Cps, Cg, Cb, [L]),Cf],
+                [L]),
          St5}
     end.
+
+let_fail(Cvs, L, St) ->
+    fail_clause(Cvs, c_tuple([c_atom(badmatch),c_tuple(Cvs)]), [], L, St).
 
 %% comp_let_function(FuncBindngs, Body, Env, Line, State) ->
 %%      {#c_letrec{},State}.
@@ -495,6 +521,8 @@ func_arity(['match-lambda'|Cls]) ->
     match_lambda_arity(Cls).
 
 %% comp_func(FuncName, FuncDef, Env, L, State) -> {{Fname,Cfun},State}.
+%%  NEVER annotate the Fname c-form, dialyzer goes crazy then for some
+%%  strange reason!
 
 comp_func(Name, [lambda,Args|Body], Env, L, St0) ->
     Cf = c_fname(Name, length(Args)),
@@ -519,12 +547,10 @@ comp_if(Te, Tr, Fa, Env, L, St0) ->
     {Cfa,St3} = comp_expr(Fa, Env, L, St2),    %False expression
     True = c_atom(true),
     False = c_atom(false),
-    Ctrue = #c_clause{anno=[L],pats=[True],guard=True,body=Ctr},
-    Cfalse = #c_clause{anno=[L],pats=[False],guard=True,body=Cfa},
+    Ctrue = c_clause([True], True, Ctr, [L]),
+    Cfalse = c_clause([False], True, Cfa, [L]),
     Cfail = if_fail(L, St3),
-    {#c_case{anno=[L],
-         arg=Cte,
-         clauses=[Ctrue,Cfalse,Cfail]},St3}.
+    {c_case(Cte, [Ctrue,Cfalse,Cfail], [L]),St3}.
 
 %% This produces code which is harder to optimise, strangely enough.
 %% comp_if(Te, Tr, Fa, Env, L, St0) ->
@@ -534,27 +560,26 @@ comp_if(Te, Tr, Fa, Env, L, St0) ->
 %%     If = fun ([Ctest], _, _, St) ->
 %%          True = c_atom(true),
 %%          False = c_atom(false),
-%%          Ctrue = #c_clause{anno=[L],pats=[True],guard=True,body=Ctr},
-%%          Cfalse = #c_clause{anno=[L],pats=[False],guard=True,body=Cfa},
+%%          Ctrue = c_clause([True], True, Ctr, [L]),
+%%          Cfalse = c_clause([Fail], True, Cfa, [L]),
 %%          Cfail = if_fail(L, St),
-%%          {#c_case{anno=[L],
-%%               arg=Ctest,
-%%               clauses=[Ctrue,Cfalse,Cfail]},St}
+%%          {c_case(Ctest, [Ctrue,Cfalse,Cfail], [L]),St}
 %%      end,
 %%     simple_seq([Cte], If, Env, L, St3).
 
 if_fail(L, St) ->
     Cv = c_var(omega),
-    fail_clause([Cv], c_atom(if_clause), L, St).
+    fail_clause([Cv], c_atom(if_clause), [], L, St).
 
-%% fail_clause(Pats, Arg, L, State) -> Clause.
-%% Build a general failure clause.
+%% fail_clause(Pats, Arg, FailAnno, Line, State) -> Clause.
+%%  Build a general failure clause. No line number in the clause, but
+%%  append the line number and file name to the annotation.
 
-fail_clause(Pats, Arg, L, _) ->
-    #c_clause{anno=[L,compiler_generated],    %It is compiler generated!
-          pats=Pats,
-          guard=c_atom(true),
-          body=c_primop(c_atom(match_fail), [Arg], L)}.
+fail_clause(Pats, Arg, Fann, L, St) ->
+    Ann = line_file_anno(L, St),
+    c_clause(Pats, c_atom(true),
+             c_primop(c_atom(match_fail), [Arg], Fann ++ Ann),
+             [compiler_generated]).             %It is compiler generated
 
 %% comp_case(Expr, Clauses, Env, Line, State) -> {#c_case{},State}.
 %% Compile a case.
@@ -563,7 +588,7 @@ comp_case(E, Cls, Env, L, St0) ->
     {Ce,St1} = comp_expr(E, Env, L, St0),
     {Ccs,St2} = case_clauses(Cls, Env, L, St1),
     Cf = case_fail(L, St2),
-    {#c_case{anno=[L],arg=Ce,clauses=Ccs ++ [Cf]},St2}.
+    {c_case(Ce, Ccs ++ [Cf], [L]),St2}.
 
 case_clauses(Cls, Env, L, St) ->
     mapfoldl(fun (Cl, Sta) -> comp_clause(Cl, Env, L, Sta) end,
@@ -571,7 +596,7 @@ case_clauses(Cls, Env, L, St) ->
 
 case_fail(L, St) ->
     Cv = c_var(omega),
-    fail_clause([Cv], c_tuple([c_atom(case_clause),Cv]), L, St).
+    fail_clause([Cv], c_tuple([c_atom(case_clause),Cv]), [], L, St).
 
 %% rec_clauses(RecClauses, Env, Line, State) -> {Clause,Timeout,After,State}.
 
@@ -593,7 +618,7 @@ comp_clause([Pat|Body], Env0, L, St0) ->
     {Cp,Pvs,St1} = pattern(Pat, L, St0),
     Env1 = add_vbindings(Pvs, Env0),
     {Cg,Cb,St2} = comp_clause_body(Body, Env1, L, St1),
-    {#c_clause{anno=[L],pats=[Cp],guard=Cg,body=Cb},St2}.
+    {c_clause([Cp], Cg, Cb, [L]),St2}.
 
 comp_clause_body([['when'|Guard]|Body], Env, L, St0) ->
     {Cg,St1} = comp_guard(Guard, Env, L, St0),
@@ -624,13 +649,13 @@ comp_try(E, Case, [], [], Env, L, St0) ->
     {Cv,Cc,St2} = try_case(Case, Env, L, St1),
     {[_,Val,Info]=Evs,St3} = new_c_vars(3, L, St2), %Tag, Value, Info
     After = raise_primop([Info,Val], L, St2),
-    {c_try(Ce, [Cv], Cc, Evs, After, L),St3};
+    {c_try(Ce, [Cv], Cc, Evs, After, [L]),St3};
 comp_try(E, Case, Catch, [], Env, L, St0) ->
     %% No after - (try E [(case ...)] (catch ...))
     {Ce,St1} = comp_expr(E, Env, L, St0),
     {Cv,Cc,St2} = try_case(Case, Env, L, St1),
     {Evs,Ecs,St3} = try_exception(Catch, Env, L, St2),
-    {c_try(Ce, [Cv], Cc, Evs, Ecs, L),St3};
+    {c_try(Ce, [Cv], Cc, Evs, Ecs, [L]),St3};
 comp_try(E, [], [], After, Env, L, St0) ->
     %% Just after - (try E (after ...))
     {Ce,St1} = comp_expr(E, Env, L, St0),
@@ -638,7 +663,7 @@ comp_try(E, [], [], After, Env, L, St0) ->
     {Ca,St3} = comp_body(After, Env, L, St2),
     Cb = #c_seq{anno=[L],arg=Ca,body=Cv},
     {Evs,Ecs,St4} = try_after(After, Env, L, St3),
-    {c_try(Ce, [Cv], Cb, Evs, Ecs, L),St4};
+    {c_try(Ce, [Cv], Cb, Evs, Ecs, [L]),St4};
 comp_try(E, Case, Catch, After, Env, L, St) ->
     %% Both catch and after - (try E [(case ...)] (catch ...) (after ...))
     %% The case where all options are given.
@@ -655,11 +680,11 @@ try_case(Cls, Env, L, St0) ->
     {Cv,St1} = new_c_var(L, St0),
     {Ccs,St2} = case_clauses(Cls, Env, L, St1),
     Cf = try_case_fail(L, St2),
-    {Cv,#c_case{anno=[L],arg=Cv,clauses=Ccs ++ [Cf]},St2}.
+    {Cv,c_case(Cv, Ccs ++ [Cf], [L]),St2}.
 
 try_case_fail(L, St) ->
     Cv = c_var(omega),
-    fail_clause([Cv], c_tuple([c_atom(try_clause),Cv]), L, St).
+    fail_clause([Cv], c_tuple([c_atom(try_clause),Cv]), [], L, St).
 
 %% try_exception(CatchClauses, Env, L, State) -> {Vars,#c_case{},State}.
 
@@ -669,13 +694,10 @@ try_exception(Cls, Env, L, St0) ->
     {Ccs,St2} = case_clauses(Cls, Env, L, St1),
     [_,Val,Info] = Cvs,
     Arg = c_tuple(Cvs),
-    Fc = #c_clause{anno=[L,compiler_generated],
-           pats=[Arg],
-           guard=c_atom(true),
-           body=raise_primop([Info,Val], L, St2)},
-    Excp = #c_case{anno=[L],
-           arg=Arg,
-           clauses=Ccs ++ [Fc]},
+    Fc = c_clause([Arg], c_atom(true),
+                  raise_primop([Info,Val], L, St2),
+                  [L,compiler_generated]),
+    Excp = c_case(Arg, Ccs ++ [Fc], [L]),
     {Cvs,Excp,St2}.
 
 %% try_after(AfterBody, Env, L, State) -> {Vars,After,State}.
@@ -690,7 +712,7 @@ try_after(B, Env, L, St0) ->
     {Cvs,After,St2}.
 
 raise_primop(Args, L, _) ->
-    c_primop(c_atom(raise), Args, L).
+    c_primop(c_atom(raise), Args, [L]).
 
 tag_tail([[Tag|Tail]|_], Tag) -> Tail;
 tag_tail([_|Try], Tag) -> tag_tail(Try, Tag);
@@ -728,12 +750,13 @@ comp_funcall(F, As, Env, L, St0) ->
 
 comp_funcall_1(F, As, Env, L, St0) ->
     App = fun ([Cf|Cas], _, L, St) ->
-          {#c_apply{anno=[L],op=Cf,args=Cas},St}
-      end,
+                  Ann = line_file_anno(L, St),
+                  {c_apply(Cf, Cas, Ann),St}
+          end,
     comp_args([F|As], App, Env, L, St0).
 
 %%     {[Cf|Cas],St1} = comp_args([F|As], Env, L, St0),
-%%     {#c_apply{anno=[L],op=Cf,args=Cas},St1}.
+%%     {c_apply(Cf, Cas, [L]),St1}.
 
 %% comp_binary(Segs, Env, Line, State) -> {CbinaryExpr,State}.
 %% Compile a binary.
@@ -854,7 +877,7 @@ comp_guard(Gts, Env, L, St0) ->
     Cv = c_var('Try'),
     Evs = [c_var('T'),c_var('R')],              %Why only two?
     False = c_atom(false),                      %Exception returns false
-    {c_try(Ce, [Cv], Cv, Evs, False, L),St1}.
+    {c_try(Ce, [Cv], Cv, Evs, False, [L]),St1}.
 
 %% comp_gtest(GuardTests, Env, Line, State) -> {CoreTest,State}.
 %%  Compile a guard test, making sure it returns a boolean value. We
@@ -874,7 +897,8 @@ comp_guard(Gts, Env, L, St0) ->
 %%         comp_gexpr(Test, Env, L, St0);
 %%     false ->
 %%         Call = fun (Cas, _, L, St) ->
-%%                {c_call(c_atom(erlang), c_atom('=:='), Cas, L),St}
+%%                Ann = line_file_anno(L, St),
+%%                {c_call(c_atom(erlang), c_atom('=:='), Cas, Ann),St}
 %%            end,
 %%         comp_gargs([Test,?Q(true)], Call, Env, L, St0)
 %%     end;
@@ -883,7 +907,8 @@ comp_gtest(Ts, Env, L, St0) ->            %Not a bool test or boolean
     {Cg,St1} = comp_gbody(Ts, Env, L, St0),
     True = comp_lit(true),
     Call = fun (Cas, _, L, St) ->
-                   {c_call(c_atom(erlang), c_atom('=:='), Cas, L),St}
+                   Ann = line_file_anno(L, St),
+                   {c_call(c_atom(erlang), c_atom('=:='), Cas, Ann),St}
            end,
     simple_seq([Cg,True], Call, Env, L, St1).
 
@@ -939,7 +964,8 @@ comp_gexpr([Fun|As], Env, L, St) ->
     Call = fun (Cas, Env, L, St) ->
                    Ar = length(Cas),
                    {yes,M,F} = get_gbinding(Fun, Ar, Env),
-                   {c_call(c_atom(M), c_atom(F), Cas, L),St}
+                   Ann = line_file_anno(L, St),
+                   {c_call(c_atom(M), c_atom(F), Cas, Ann),St}
            end,
     comp_gargs(As, Call, Env, L, St);
 comp_gexpr(Symb, _, _, St) when is_atom(Symb) ->
@@ -969,11 +995,10 @@ comp_gif(Te, Tr, Fa, Env, L, St0) ->
     True = c_atom(true),
     False = c_atom(false),
     Omega = c_var(omega),
-    Ctrue = #c_clause{anno=[L],pats=[True],guard=True,body=Ctr},
-    Cfalse = #c_clause{anno=[L],pats=[False],guard=True,body=Cfa},
-    Cfail = #c_clause{anno=[L,compiler_generated],
-              pats=[Omega],guard=True,body=Omega},
-    {#c_case{anno=[L],arg=Cte,clauses=[Ctrue,Cfalse,Cfail]},St3}.
+    Ctrue = c_clause([True], True, Ctr, [L]),
+    Cfalse = c_clause([False], True, Cfa, [L]),
+    Cfail = c_clause([Omega], True, Omega, [L,compiler_generated]),
+    {c_case(Cte, [Ctrue,Cfalse,Cfail], [L]),St3}.
 
 %% This produces code which is harder to optimise, strangely enough.
 %% comp_gif(Te, Tr, Fa, Env, L, St0) ->
@@ -984,13 +1009,11 @@ comp_gif(Te, Tr, Fa, Env, L, St0) ->
 %%          True = c_atom(true),
 %%          False = c_atom(false),
 %%          Omega = c_var(omega),
-%%          Ctrue = #c_clause{anno=[L],pats=[True],guard=True,body=Ctr},
-%%          Cfalse = #c_clause{anno=[L],pats=[False],guard=True,body=Cfa},
-%%          Cfail = #c_clause{anno=[L,compiler_generated],
-%%                    pats=[Omega],guard=True,body=Omega},
-%%          {#c_case{anno=[L],
-%%               arg=Ctest,
-%%               clauses=[Ctrue,Cfalse,Cfail]},St}
+%%          Ctrue = c_clause([True], True, Ctr, [L]),
+%%          Cfalse = c_clause([False], True, Cfa, [L]),
+%%          Cfail = c_clause([Omega], True, Omega,
+%%                           [L,compiler_generated]),
+%%          {c_case(Ctest, [Ctrue,Cfalse,Cfail], [L]),St}
 %%      end,
 %%     simple_seq([Cte], If, Env, L, St3).
 
@@ -1148,11 +1171,14 @@ pat_map_key(L) -> comp_lit(L).
 pat_map(_, _, Vs, St) -> {c_lit(map),Vs,St}.
 -endif.
 
-%% c_call(Module, Name, Args, Line) -> #c_call{}.
-%% c_try(Arg, Vars, Body, Evars, Handler, Line) -> #c_try{}.
-%% c_fun(Vars, Body, Line) -> #c_fun{}.
-%% c_primop(Name, Args, Line) -> #c_primop{}.
+%% c_call(Module, Name, Args, Anno) -> #c_call{}.
+%% c_try(Arg, Vars, Body, Evars, Handler, Anno) -> #c_try{}.
+%% c_fun(Vars, Body, Anno) -> #c_fun{}.
+%% c_primop(Name, Args, Anno) -> #c_primop{}.
+%% c_case(Arg, Clauses, Anno) -> #c_case{}.
+%% c_clause(Pats, Guard, Body, Anno) -> #c_clause{}.
 %% c_fname(Name, Arity) -> #c_fname{}.
+%% c_apply(Op, Args, Anno) -> #c_apply{}.
 %% c_values(Values) -> #c_values{}.
 %% c_cons(Head, Tail) -> #c_cons{}.
 %% c_tuple(Elements) -> #c_tuple{}.
@@ -1161,31 +1187,43 @@ pat_map(_, _, Vs, St) -> {c_lit(map),Vs,St}.
 %% c_float(Value) -> #c_literal{}.
 %% c_nil() -> #c_literal{}.
 %% c_lit(Value) -> #c_literal{}.
+%% c_lit(Value, Anno) -> #c_literal{}.
 %% c_var(Name) -> #c_var{}.
 %% c_bitseg(Value, Size, Unit, Type, Sign, Endian) -> #c_bitseg{}.
+%%  Constructor functions for building Core forms.
 
-c_call(M, F, As, L) ->
-    #c_call{anno=[L],module=M,name=F,args=As}.
-c_try(A, Vs, B, Evs, H, L) ->
-    #c_try{anno=[L],arg=A,vars=Vs,body=B,evars=Evs,handler=H}.
-c_fun(Vs, B, L) -> #c_fun{anno=[L],vars=Vs,body=B}.
-c_primop(N, As, L) ->
-    #c_primop{anno=[L],name=N,args=As}.
+c_call(M, F, As, Ann) ->
+    #c_call{anno=Ann,module=M,name=F,args=As}.
+c_try(A, Vs, B, Evs, H, Ann) ->
+    #c_try{anno=Ann,arg=A,vars=Vs,body=B,evars=Evs,handler=H}.
+c_fun(Vs, B, Ann) -> #c_fun{anno=Ann,vars=Vs,body=B}.
+c_primop(N, As, Ann) ->
+    #c_primop{anno=Ann,name=N,args=As}.
+c_case(A, Cs, Ann) ->
+    #c_case{anno=Ann,arg=A,clauses=Cs}.
+c_clause(Ps, G, B, Ann) ->
+    #c_clause{anno=Ann,pats=Ps,guard=G,body=B}.
 %% R12B/R13B fix, choose one of following depending on version.
 %%c_fname(N, A) -> #c_fname{anno=[],id=N,arity=A}.  %R12B
-c_fname(N, A) -> #c_var{anno=[],name={N,A}}.        %R13B
+c_fname(N, A, Ann) -> #c_var{anno=Ann,name={N,A}}.  %R13B
+c_fname(N, A) -> c_fname(N, A, []).
+c_apply(Op, As, Ann) -> #c_apply{anno=Ann,op=Op,args=As}.
 c_values([V]) -> V;                                 %An optimisation
 c_values(Vs) -> #c_values{anno=[],es=Vs}.
 c_atom(A) -> #c_literal{anno=[],val=A}.
 c_int(I) -> #c_literal{anno=[],val=I}.
 c_float(F) -> #c_literal{anno=[],val=F}.
 c_nil() -> #c_literal{anno=[],val=[]}.
-c_lit(Val) -> #c_literal{anno=[],val=Val}.          %Generic literal
+c_lit(Val, Ann) -> #c_literal{anno=Ann,val=Val}.          %Generic literal
+c_lit(Val) -> c_lit(Val, []).
 c_cons(Hd, Tl) -> #c_cons{anno=[],hd=Hd,tl=Tl}.
 c_tuple(Es) -> #c_tuple{anno=[],es=Es}.
 c_var(N) -> #c_var{anno=[],name=N}.
 c_bitseg(Val, Sz, Un, Ty, Fs) ->
     #c_bitstr{anno=[],val=Val,size=Sz,unit=Un,type=Ty,flags=Fs}.
+
+line_file_anno(L, St) ->
+    [L,{file,St#cg.file}].
 
 %% comp_lit(Value) -> LitExpr.
 %%  Make a literal expression from an Erlang value. Try to make it as
@@ -1194,9 +1232,9 @@ c_bitseg(Val, Sz, Un, Ty, Fs) ->
 
 comp_lit([H0|T0]) ->
     case {comp_lit(H0),comp_lit(T0)} of
-    {#c_literal{val=H},#c_literal{val=T}} ->
-        c_lit([H|T]);
-    {H,T} -> c_cons(H, T)
+        {#c_literal{anno=Ann,val=H},#c_literal{val=T}} ->
+            c_lit([H|T], Ann);
+        {H,T} -> c_cons(H, T)
     end;
 comp_lit([]) -> c_nil();
 comp_lit(T) when is_tuple(T) ->

@@ -232,6 +232,8 @@ eval_form(Form, #state{curr=Ce}=St) ->
 eval_form_1([progn|Eforms], St) ->              %Top-level nested progn
     foldl(fun (F, {_,S}) -> eval_form_1(F, S) end,
           {[],St}, Eforms);
+eval_form_1(['extend-module'|_], St) ->         %Maybe from macro expansion
+    {[],St};
 eval_form_1([set|Rest], St0) ->
     {Value,St1} = set(Rest, St0),
     {Value,St1};
@@ -361,7 +363,7 @@ slurp_file(Name) ->
         {ok,Fs0} ->
             case lfe_macro:expand_forms(Fs0, lfe_env:new()) of
                 {ok,Fs1,Fenv,_} ->
-                    case lfe_lint:module(Fs1, []) of
+                    case lfe_lint:module(Fs1) of
                         {ok,Ws} -> {ok,Fs1,Fenv,Ws};
                         {error,_,_}=Error -> Error
                     end;

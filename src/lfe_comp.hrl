@@ -1,5 +1,4 @@
-%% -*- erlang -*-
-%% Copyright (c) 2013 Robert Virding
+%% Copyright (c) 2014 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -13,10 +12,14 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 
-{application, lfe,
- [{description, "Lisp Flavored Erlang (LFE)"},
-  {vsn, "0.9.1"},
-  {modules, []},
-  {registered, []},
-  {applications, [kernel,stdlib,compiler]}
- ]}.
+%% File    : lfe_comp.hrl
+%% Author  : Robert Virding
+%% Purpose : Common compiler definitions.
+
+%% Common compiler information 
+
+-record(cinfo, {file=[],                        %File name
+                opts=[],                        %Compiler options
+                ipath=[],                       %Include path
+                mod=none                        %Module name
+            }).
