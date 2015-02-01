@@ -20,32 +20,59 @@
     (code:set_path p1)))
 
 (defun parse-opts
-  ([`("-o" ,odir . ,as) opts]
-   (parse-opts as (orddict:store 'outdir odir opts)))
-  ([`("-pa" ,dir . ,as) opts]
+  ([(list* "-I" idir as) opts]		;Keep these in order
+   (parse-opts as (++ opts `(#(i ,idir)))))
+  ([(list* "-o" odir as) opts]		;Last is first
+   (parse-opts as (cons `#(outdir ,odir) opts)))
+  ([(list* "-pa" dir as) opts]
    (code:add_patha dir)
    (parse-opts as opts))
-  ([`("-pa" ,dir . ,as) opts]
+  ([(list* "-pa" dir as) opts]
    (code:add_pathz dir)
    (parse-opts as opts))
-  ([`("--" . ,as) opts]
+  ([(cons "-v" as) opts]
+   (parse-opts as (cons 'verbose opts)))
+  ([(cons "-Werror" as) opts]
+   (parse-opts as (cons 'warnings_as_errors opts)))
+  ([(cons (++ "-W" _) as) opts]		;Ignore this here
+   (parse-opts as opts))
+  ([(cons "-E" as) opts]
+   (parse-opts as (cons 'to_exp opts)))
+  ([(cons "-P" as) opts]		;Ignore as no LFE counterpart
+   (parse-opts as opts))
+  ([(cons "-S" as) opts]
+   (parse-opts as (cons 'to_asm opts)))
+  ([(cons "--" as) opts]
    (tuple as opts))
+  ([(cons (++ "+" s) as) opts]
+   (let ((`#(ok ,t) (lfe_io:read_string s)))
+     (parse-opts as (cons t opts))))
   ([as opts]
    (tuple as opts)))
 
 (defun usage ()
   (let ((usage (++ "Usage: lfec [options] file ...\n"
 		   "Options:\n"
-		   "-o name        name of output directory\n"
-		   "-pa path       add path to the front of Erlang's code path\n"
-		   "-pz path       add path to the end of Erlang's code path\n")))
+		   "-I name        Name of include directory\n"
+		   "-o name        Name of output directory\n"
+		   "-pa path       Add path to the front of LFE's code path\n"
+		   "-pz path       Add path to the end of LFE's code path\n"
+		   "-v             Verbose compiler output\n"
+		   "-Werror        Make all warnings into errors\n"
+		   "-Wnumber       Set warning level (ignored)\n"
+		   "-E             Equivalent to +to_exp\n"
+		   "-S             Equivalent to +to_asm\n"
+		   "--             No more options, only file names follow\n"
+		   "+term          Term will be added to options\n" )))
     (io:put_chars usage)))
+
+;; Parse the arguments and compile the files.
 
 (case script-args
   (() (usage))
   (as0
    (fix-code-path)
-   (let* ((opts0 (list (tuple 'outdir ".")))
-	  ((tuple as1 opts1) (parse-opts as0 opts0)))
+   (let ((`#(,as1 ,opts1) (parse-opts as0 ())))
+     ;; (pp (list as1 opts1))
      (lists:map (lambda (a) (lfe_comp:file a (list* 'verbose 'report opts1)))
 		as1))))

@@ -28,7 +28,7 @@
         (add_vbinding 3) (add_vbindings 2) (get_vbinding 2)
         (add_fbinding 4) (add_fbindings 2) (get_fbinding 3)
         (add_ibinding 5) (get_gbinding 3))
-      (from lists (reverse 1) (all 2) (map 2) (foldl 3) (foldr 3))
+      (from lists (reverse 1) (foldl 3) (foldr 3))
       (from orddict (find 2) (store 3)))
   (deprecated #(eval 1) #(eval 2)))
 
@@ -145,7 +145,7 @@
      e))))                ;Atoms evaluate to themselves
 
 (defun eval-list (es env)
-  (map (lambda (e) (eval-expr e env)) es))
+  (: lists map (lambda (e) (eval-expr e env)) es))
 
 (defun eval-body (body env)
   (case body
@@ -447,16 +447,16 @@
 
 (defun eval-letrec-function (form env0)
   (let* (((cons fbs0 body) form)
-     (fbs1 (map (match-lambda
-              ([(list v (= (list* 'lambda args body) f))]
-               (when (is_atom v))
-               (tuple v (length args) f))
-              ([(list v (= (list* 'match-lambda (cons pats _) _) f))]
-               (when (is_atom v))
-               (tuple v (length pats) f))
-              ([_] (: erlang error (tuple 'bad_form 'letrec-function))))
-            fbs0))
-     (env1 (make_letrec_env fbs1 env0)))
+         (map-fun (match-lambda
+                    ([(list v (= (list* 'lambda args _) f))]
+                     (when (is_atom v))
+                     (tuple v (length args) f))
+                    ([(list v (= (list* 'match-lambda (cons pats _) _) f))]
+                     (when (is_atom v))
+                     (tuple v (length pats) f))
+                    ([_] (: erlang error (tuple 'bad_form 'letrec-function)))))
+         (fbs1 (: lists map map-fun fbs0))
+         (env1 (make_letrec_env fbs1 env0)))
     (eval-body body env1)))
 
 ;; (make_letrec_env fbs env) -> env.
@@ -472,10 +472,10 @@
 (defun init_letrec_env (env) (tuple () env))
 
 (defun make_letrec_env (fbs0 env)
-  (let ((fbs (map (lambda (fb)
-            (let (((tuple v ar body) fb))
-              (tuple v ar (tuple 'letrec body fbs0 env))))
-          fbs0)))
+  (let ((fbs (: lists map (lambda (fb)
+                            (let (((tuple v ar body) fb))
+                              (tuple v ar (tuple 'letrec body fbs0 env))))
+                fbs0)))
     (add_fbindings fbs env)))
 
 (defun extend_letrec_env (lete0 fbs0 env0)
@@ -707,7 +707,7 @@
 ;; A body is a sequence of tests which must all succeed.
 
 (defun eval-gbody (es env)
-  (all (lambda (e) (eval-gexpr e env)) es))
+  (: lists all (lambda (e) (eval-gexpr e env)) es))
 
 ;; (eval-gexpr sexpr environment) -> value.
 ;;  Evaluate a guard sexpr in the current environment.
@@ -749,7 +749,7 @@
      e))))                ;Atoms evaluate to themselves
 
 (defun eval-glist (es env)
-  (map (lambda (e) (eval-gexpr e env)) es))
+  (: lists map (lambda (e) (eval-gexpr e env)) es))
 
 ;; (eval-gbinary bitsegs env) -> binary.
 ;;   Construct a binary from bitsegs. This code is taken from eval_bits.erl.

@@ -35,12 +35,12 @@ format_error(_) -> "record error".
 %%       point-x, set-point-x, point-y, set-point-y.
 
 define([Name|Fdefs], Env, St0) ->
-    {Funs,Macs, _,St1} = define(Name, Fdefs, Env, St0),
-    {yes,[progn,['eval-when-compile'|Funs]|Macs],St1}.
+    {Funs,Forms, _,St1} = define(Name, Fdefs, Env, St0),
+    {yes,[progn,['eval-when-compile'|Funs]|Forms],St1}.
 
 define(Name, Fdefs, Env, St) ->
     %% Get field names, default values and indices.
-    Fields = map(fun ([F,_])when is_atom(F) -> F;
+    Fields = map(fun ([F,_]) when is_atom(F) -> F;
 		     (F) when is_atom(F) -> F
 		 end, Fdefs),
     Defs = map(fun ([F,D])when is_atom(F) -> ?Q(D);
@@ -62,8 +62,11 @@ define(Name, Fdefs, Env, St) ->
 	    field_macro(Name, Fields)		%fields-Name
 	    |
 	    field_macros(Name, Fields)],	%Name-F,set-Name-F
-    %% lfe_io:format("~p\n", [{Funs,Macs}]),
-    {Funs,Macs,Env,St}.
+    Type = type_information(Name, Fdefs, St),
+    %% We can always add type information here as it is stripped later.
+    Forms = [['extend-module',Type]|Macs],
+    %% lfe_io:format("~p\n", [{Funs,Forms}]),
+    {Funs,Forms,Env,St}.
 
 field_indexes(Fs) -> field_indexes(Fs, 2).
 
@@ -142,3 +145,15 @@ field_macros(Name, Fs) ->
 		    ?BQ([setelement,N,?UQ(rec),?UQ(new)])]|
 		   Fas]
 	  end, [], Fis).
+
+type_information(Name, Fdefs, #mac{line=L}) ->
+    %% Only field names which will result in default type any().
+    %% Adding types greatly complicates things. If we add defaults
+    %% then they would have to be expanded here.
+    Fs = map(fun ([F,_D]) ->
+		     %% De = lfe_trans:to_expr(D, L),
+		     {record_field,L,{atom,L,F}};
+		 (F) ->
+		     {record_field,L,{atom,L,F}}
+	     end, Fdefs),
+    [type,[{record,Name},Fs,[]]].

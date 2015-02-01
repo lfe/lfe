@@ -1,0 +1,17 @@
+%% -*- mode: erlang; indent-tabs-mode: nil -*-
+
+Conf0 = CONFIG,
+MapOpt = [{d,'HAS_MAPS',true}],
+
+case erl_internal:bif(is_map, 1) of
+    true ->                                     %Maps
+        case lists:keyfind(erl_opts, 1, Conf0) of
+            {erl_opts,Opts} ->                  %Existing erl_opts
+                NewOpts = {erl_opts,Opts ++ MapOpt},
+                lists:keyreplace(erl_opts, 1, Conf0, NewOpts);
+            false ->                            %No erl_opts
+                Conf0 ++ [{erl_opts,MapOpt}]
+        end;
+    false ->                                    %No maps
+        Conf0
+end.

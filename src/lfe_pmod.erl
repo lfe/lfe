@@ -32,6 +32,8 @@
           add_fbinding/4,add_fbindings/2,get_fbinding/3,
           add_ibinding/5,get_gbinding/3]).
 
+-include("lfe_comp.hrl").
+
 -define(Q(E), [quote,E]).           %For quoting
 
 -record(param, {mod=[],             %Module name
@@ -40,12 +42,12 @@
         this=[],                    %This match pattern
         env=[]}).                   %Environment
 
-%% module(Forms, Options) -> Forms.
+%% module(Forms, CompInfo) -> Forms.
 %%  Expand the forms to handle parameterised modules if necessary,
 %%  otherwise just pass forms straight through.
 
-module([{['define-module',[_|_]|_],_}|_]=Fs, Opts) ->
-    expand_module(Fs, Opts);
+module([{['define-module',[_|_]|_],_}|_]=Fs, Ci) ->
+    expand_module(Fs, Ci#cinfo.opts);
 module(Fs, _) -> Fs.                %Normal module, do nothing
 
 expand_module(Fs0, Opts) ->

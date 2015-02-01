@@ -84,9 +84,38 @@ that will show you how to start using LFE. However, here's a quick taste:
 ```cl
     > (* 2 (+ 1 2 3 4 5 6))
     42
-    > (: lists foldl (lambda (n acc) (+ n acc)) 0 (: lists seq 1 6))
+    > (* 2 (lists:foldl (lambda (n acc) (+ n acc)) 0 (lists:seq 1 6)))
     42
 ```
+
+## Docker Support
+
+LFE no supports Docker. To get started, simply do the following, once you
+have Docker set up on your machine:
+
+```bash
+$ docker pull lfex/lfe
+```
+
+Alternatively, you could build the image yourself:
+
+```bash
+$ cd lfe
+$ docker build .
+```
+
+Here are a couple of simple usage examples:
+
+```bash
+$ docker run lfex/lfe
+42
+$ docker run -t -i lfex/lfe /usr/bin/lfe
+```
+
+That last command will dump you into the LFE REPL on a running container
+of the ``lfex/lfe`` Docker image. For more information on using Docker
+with LFE, be sure to read the
+[tutorial](http://blog.lfe.io/tutorials/2014/12/07/1837-running-lfe-in-docker/).
 
 ## Documentation
 
