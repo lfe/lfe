@@ -1,5 +1,5 @@
 #! /bin/sh
-# Copyright (c) 2008-2014 Robert Virding
+# Copyright (c) 2008-2015 Robert Virding
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# A primitive lfescript script.
+# The lfescript script.
 
 # Follow symlinks to actual program and set env variables.  We have to
 # cd to each directory following symlinks to handle relative symlinks.
@@ -41,26 +41,17 @@ export LFE_PROGNAME
 emulator=${LFESCRIPT_EMULATOR-"erl"}
 
 # Collect any script options starting with '-' upto the script name.
+# Valid script options are only flags without arguments.
 
 i="$#"				# Counter
 
 while [ $i -gt 0 ]; do
     case "$1" in
-	-extra | --)		# We are explicitly done
+	-*)			# Flags
+	    arg=`echo $1 | sed 's/^-//'`
+	    set -- "$@" "$arg"
 	    shift ; i=`expr $i - 1`
-	    break ;;
-	-* | +*)		# Flags
-	    set -- "$@" "$1"
-	    shift ; i=`expr $i - 1`
-	    while [ $i -gt 0 ]; do
-		case "$1" in
-		    -* | +*)
-			break ;;
-		    *)
-			set -- "$@" "$1"
-			shift ; i=`expr $i - 1`
-		esac
-	    done ;;
+	    ;;
 	*)			# Plain argument
 	    break ;;
     esac
@@ -69,9 +60,8 @@ done
 # Get the scriptname.
 scriptname="$1"
 
-# Split options and scriptname/args, add the middle bits to the end
-set -- "$@" "-noshell"
-set -- "$@" "-run" "lfescript" "start" "-extra"
+# Split options and scriptname/args.
+set -- "$@" "-extra"
 
 # Step over the args section adding them to the end.
 while [ $i -gt 0 ]; do
@@ -97,4 +87,4 @@ if [ -z "$shebangs" ] ; then shebangs=`expr "$line3" : '^;;! *\(.*\)'` ; fi
 
 # Done, now just run the emulator.
 # Note that ERL_LIBS will find *either* an ebin subdir *or* lib subdir
-ERL_LIBS="$HOME"/.lfe/lib:"$LFE_ROOTDIR":"$LFE_ROOTDIR"/lib:"$ERL_LIBS" exec $emulator +B -boot start_clean $shebangs "$@"
+ERL_LIBS="$HOME"/.lfe/lib:"$LFE_ROOTDIR":"$LFE_ROOTDIR"/lib:"$ERL_LIBS" exec $emulator +B -boot start_clean $shebangs "-noshell" "-run" "lfescript" "start" "$@"
