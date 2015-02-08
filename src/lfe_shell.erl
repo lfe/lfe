@@ -255,9 +255,15 @@ eval_form_1(['define-macro',Name,Def], #state{curr=Ce0}=St) ->
     {Name,St#state{curr=Ce1}};
 eval_form_1(['reset-environment'], #state{base=Be}=St) ->
     {ok,St#state{curr=Be}};
-eval_form_1(Expr, St) ->
-    %% General case just evaluate the expression.
-    {lfe_eval:expr(Expr, St#state.curr),St}.
+eval_form_1([Func|Args]=Expr, St) ->
+    case erlang:function_exported(user_default, Func, length(Args)) of
+        true ->
+            %% Patch the expression to use the user_default module.
+            {lfe_eval:expr([':', user_default | Expr], St#state.curr),St};
+        false ->
+            %% General case just evaluate the expression.
+            {lfe_eval:expr(Expr, St#state.curr),St}
+    end.
 
 function_arity([lambda,As|_]) ->
     length(As);
