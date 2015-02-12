@@ -61,8 +61,8 @@ run_script(File, Args, Env) ->
 run_string(String, Args) ->
     run_string(String, Args, lfe_env:new()).
 
-run_string(String, [A|As], Env) ->
-    St = new_state(A, As, Env),
+run_string(String, As, Env) ->
+    St = new_state("lfe", As, Env),
     case read_script_string(String) of
         {ok,Forms} ->
             run_loop(Forms, [], St);
@@ -442,7 +442,7 @@ read_script_file(File) ->
                 _ -> file:position(F, bof)      %Reset to start of file
             end,
             Ret = case io:request(F, {get_until,'',lfe_scan,tokens,[1]}) of
-                      {ok,Ts,_} -> parse_tokens(Ts, []);
+                      {ok,Ts,Lline} -> parse_tokens(Ts, Lline, []);
                       {error,Error,_} -> {error,Error}
                   end,
             file:close(F),                      %Close the file
@@ -456,21 +456,21 @@ read_script_file(File) ->
 
 read_script_string(String) ->
     case lfe_scan:string(String, 1) of
-        {ok,Ts,_} -> parse_tokens(Ts, []);
+        {ok,Ts,Lline} -> parse_tokens(Ts, Lline, []);
         {error,E,_} -> {error,E}
     end.
 
-parse_tokens([_|_]=Ts0, Ss) ->
+parse_tokens([_|_]=Ts0, Lline, Ss) ->
     case lfe_parse:sexpr(Ts0) of
-        {ok,_,S,Ts1} -> parse_tokens(Ts1, [S|Ss]);
+        {ok,_,S,Ts1} -> parse_tokens(Ts1, Lline, [S|Ss]);
         {more,Pc1} ->
             %% Need more tokens but there are none, so call again to
             %% generate an error message.
-            {error,E,_} = lfe_parse:sexpr(Pc1, {eof,99999}),
+            {error,E,_} = lfe_parse:sexpr(Pc1, {eof,Lline}),
             {error,E};
         {error,E,_} -> {error,E}
     end;
-parse_tokens([], Ss) -> {ok,reverse(Ss)}.
+parse_tokens([], _, Ss) -> {ok,reverse(Ss)}.
 
 run_loop([F|Fs], _, St0) ->
     Ce1 = add_vbinding('-', F, St0#state.curr),

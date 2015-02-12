@@ -59,7 +59,7 @@ run_string([], _) ->                            %No command
     io:put_chars(user, "eval: missing command\n"),
     halt(?ERROR_STATUS);
 run_string(S, As) ->
-    Script = fun () -> lfe_shell:run_string(S, ["lfe"|As]) end,
+    Script = fun () -> lfe_shell:run_string(S, As) end,
     spawn_link(fun () -> run_script(Script) end).
 
 run_script(Script) ->
