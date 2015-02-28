@@ -45,6 +45,13 @@
 
 -include("lfe.hrl").
 
+%% Colours for the LFE banner
+-define(GRY(Str), "\e[1;30m" ++ Str ++ "\e[0m").
+-define(RED(Str), "\e[31m" ++ Str ++ "\e[0m").
+-define(GRN(Str), "\e[1;32m" ++ Str ++ "\e[0m").
+-define(YLW(Str), "\e[1;33m" ++ Str ++ "\e[0m").
+-define(BLU(Str), "\e[1;34m" ++ Str ++ "\e[0m").
+
 %% -compile([export_all]).
 
 %% Implement our own lists functions to get around stacktrace printing
@@ -188,18 +195,18 @@ read_expression_1(Rdr, Eval, St) ->
     end.
 
 get_banner() ->
-    [io_lib:format("         (\n" ++
-                   "     (    )  )\n" ++
-                   "      )_.(._(\n" ++
-                   "   .-(   \\\\  )-.       |   A Lisp-2+ on the Erlang VM\n" ++
-                   "  (     / \\\\    )      |   Docs: http://docs.lfe.io/ \n" ++
+    [io_lib:format("         " ++ ?GRY("(") ++ "\n" ++
+                   "     " ++ ?GRY("(    )  )") ++ "\n" ++
+                   "      " ++ ?GRY(")") ++ "_." ?GRY("(") ++ "._" ?GRY("(") ++ "\n" ++
+                   "   .-" ++ ?GRY("(") ++ "   " ++ ?YLW("\\\\") ++ "  " ++ ?GRY(")") ++ "-.       |   A Lisp-2+ on the Erlang VM\n" ++
+                   "  (     " ++ ?YLW("/ \\\\") ++ "    )      |   Docs: " ++ ?BLU("http://docs.lfe.io/") ++ " \n" ++
                    "  |`-.._____..-';.     |   \n" ++
-                   "  |         g  (_ \\    |   Type `(help)` for usage info.\n" ++
-                   "  |        n    || |   |   \n" ++
-                   "  |       a     '/ ;   |   Source code:\n" ++
-                   "  (      l      / /    |   http://github.com/rvirding/lfe\n" ++
-                   "   \\    r      ( /     |   \n" ++
-                   "    \\  E      ,y'      |   LFE v~s\n" ++
+                   "  |         " ++ ?RED("g") ++ "  (_ \\    |   Type " ++ ?GRN("(help)") ++ " for usage info.\n" ++
+                   "  |        " ++ ?RED("n") ++ "    || |   |   \n" ++
+                   "  |       " ++ ?RED("a") ++ "     '/ ;   |   Source code:\n" ++
+                   "  (      " ++ ?RED("l") ++ "      / /    |   " ++ ?BLU("http://github.com/rvirding/lfe") ++ "\n" ++
+                   "   \\    " ++ ?RED("r") ++ "      ( /     |   \n" ++
+                   "    \\  " ++ ?RED("E") ++ "      ,y'      |   LFE v~s\n" ++
                    "     `-.___.-'         |   LFE Shell V~s ~s\n\n",
             [get_lfe_version(),
              erlang:system_info(version),
