@@ -158,7 +158,7 @@ Other commands:
 (eval-and-compile
   (defconst lfe-type-tests
     '("is_atom" "is_binary" "is_bitstring" "is_boolean" "is_float"
-      "is_function" "is_integer" "is_list" "is_number" "is_pid"
+      "is_function" "is_integer" "is_list" "is_map" "is_number" "is_pid"
       "is_port" "is_record" "is_reference" "is_tuple")
     "LFE type tests")
   (defconst lfe-type-bifs
@@ -187,6 +187,8 @@ Other commands:
 	       "andalso" "cond" "do" "fun" "list*" "let*" "flet*" "macro"
 	       "orelse" "syntax-rules" "lc" "bc" "flet" "fletrec"
 	       "macrolet" "syntaxlet" "begin" "let-syntax"
+	       ;; Should the map forms be here or as type bifs?
+	       "map" "mref" "mset" "mupd" "map-get" "map-set" "map-update"
 	       "match-spec" "qlc"
 	       ":" "?" "++") t)
 	"\\>") '(1 font-lock-keyword-face))
