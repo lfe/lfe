@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2014 Robert Virding
+%% Copyright (c) 2008-2015 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -81,63 +81,100 @@ server() -> server(default).
 server(default) ->
     server(lfe_env:new());
 server(Env) ->
+    process_flag(trap_exit, true),		%Must trap exists
     io:fwrite("LFE Shell V~s (abort with ^G)\n",
               [erlang:system_info(version)]),
     %% Create a default base env of predefined shell variables with
     %% default nil bindings and basic shell macros.
     St = new_state("lfe", [], Env),
-    server_loop(St).
+    Eval = start_eval(St),
+    server_loop(Eval, St).			%Run the loop
 
-server_loop(St0) ->
-    StX = try
-              %% Read the form
-              Prompt = prompt(),
-              io:put_chars(Prompt),
-              case lfe_io:read() of
-                  {ok,Form} ->
-                      Ce1 = add_vbinding('-', Form, St0#state.curr),
-                      %% Macro expand and evaluate it.
-                      {Value,St1} = eval_form(Form, St0#state{curr=Ce1}),
-                      %% Print the result, but only to depth 30.
-                      VS = lfe_io:prettyprint1(Value, 30),
-                      io:requests([{put_chars,VS},nl]),
-                      %% Update bindings.
-                      Ce2 = update_shell_vars(Form, Value, St1#state.curr),
-                      St1#state{curr=Ce2};
-                  {error,E} ->
-                      list_errors([E]),
-                      St0
-              end
-          catch
-              %% Very naive error handling, just catch, report and
-              %% ignore whole caboodle.
-              Class:Error ->
-                  %% Use LFE's simplified version of erlang shell's error
-                  %% reporting but which LFE prettyprints data.
-                  Stk = erlang:get_stacktrace(),
-                  Sf = fun ({M,_F,_A}) ->       %Pre R15
-                               %% Don't want to see these in stacktrace.
-                               (M == lfe_eval) or (M == lfe_shell)
-                                   or (M == lfe_macro) or (M == lists);
-                           ({M,_F,_A,_L}) ->    %R15 and later
-                               %% Don't want to see these in stacktrace.
-                               (M == lfe_eval) or (M == lfe_shell)
-                                   or (M == lfe_macro) or (M == lists)
-                       end,
-                  Ff = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
-                  Cs = lfe_lib:format_exception(Class, Error, Stk, Sf, Ff, 1),
-                  io:put_chars(Cs),
-                  io:nl(),
-                  %% lfe_io:prettyprint({'EXIT',Class,Error,St}), io:nl(),
-                  St0
-          end,
-    server_loop(StX).
+server_loop(Eval0, St0) ->
+    %% Read the form
+    Prompt = prompt(),
+    {Ret,Eval1} = read_expression(Prompt, Eval0, St0),
+    case Ret of
+	{ok,Form} ->
+	    {Eval2,St1} = shell_eval(Form, Eval1, St0),
+	    server_loop(Eval2, St1);
+	{error,E} ->
+	    list_errors([E]),
+	    server_loop(Eval1, St0)
+    end.
+
+shell_eval(Form, Eval0, St0) ->
+    Eval0 ! {eval_expr,self(),Form},
+    receive
+	{eval_value,Eval0,_Value,St1} ->
+	    server_loop(Eval0, St1);
+	{eval_exit,Eval0,Class,Reason} ->
+	    receive {'EXIT',Eval0,normal} -> ok end,
+	    report_exception(Class, Reason),
+	    Eval1 = start_eval(St0),
+	    server_loop(Eval1, St0);
+	{'EXIT',Eval0,Reason} ->
+	    report_exception(error, Reason),
+	    Eval1 = start_eval(St0),
+	    server_loop(Eval1, St0)
+    end.
+
+%% prompt() -> Prompt.
+
+prompt() ->
+    %% Don't bother flattening the list, no need.
+    case is_alive() of
+        true -> lfe_io:format1("(~s)> ", [node()]);
+        false -> "> "
+    end.
+
+report_exception(Class, {Reason,Stk}) ->
+    %% Use LFE's simplified version of erlang shell's error
+    %% reporting but which LFE prettyprints data.
+    Sf = fun ({M,_F,_A}) ->			%Pre R15
+		 %% Don't want to see these in stacktrace.
+		 (M == lfe_eval) or (M == ?MODULE);
+	     ({M,_F,_A,_L}) ->			%R15 and later
+		 %% Don't want to see these in stacktrace.
+		 (M == lfe_eval) or (M == ?MODULE)
+	 end,
+    Ff = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
+    Cs = lfe_lib:format_exception(Class, Reason, Stk, Sf, Ff, 1),
+    io:put_chars(Cs),
+    io:nl().
+
+%% read_expression(Prompt, Evaluator, State) -> {Return,Evaluator}.
+%%  Start a reader process and wait for an expression. We are cunning
+%%  here and just use the exit reason to pass the expression. We must
+%%  also handle the evaluator dying and restart it.
+
+read_expression(Prompt, Eval, St) ->
+    Read = fun () ->
+		   %% Ret = lfe_io:read(Prompt),
+		   io:put_chars(Prompt),
+		   Ret = lfe_io:read(),
+		   exit(Ret)
+	   end,
+    Rdr = spawn_link(Read),
+    read_expression_1(Rdr, Eval, St).
+
+read_expression_1(Rdr, Eval, St) ->
+    receive
+	{'EXIT',Rdr,Ret} ->
+	    {Ret,Eval};
+	{'EXIT',Eval,{Reason,Stk}} ->
+	    report_exception(error, {Reason,Stk}),
+	    read_expression_1(Rdr, start_eval(St), St);
+	{'EXIT',Eval,Reason} ->
+	    report_exception(error, {Reason,[]}),
+	    read_expression_1(Rdr, start_eval(St), St)
+    end.
 
 %% new_state(ScriptName, Args [,Env]) -> State.
 %%  Generate a new shell state with all the default functions, macros
 %%  and variables.
 
-new_state(Script, Args) -> new_state(Script, Args, lfe_env:new()).
+%% new_state(Script, Args) -> new_state(Script, Args, lfe_env:new()).
 
 new_state(Script, Args, Env0) ->
     Env1 = add_vbinding('script-name', Script, Env0),
@@ -202,14 +239,62 @@ add_shell_macros(Env0) ->
     %% io:fwrite("asm: ~p\n", [Env1]),
     Env1.
 
-%% prompt() -> Prompt.
+%% start_eval(State) -> Evaluator.
+%%  Start an evaluator process.
 
-prompt() ->
-    %% Don't bother flattening the list, no need.
-    case is_alive() of
-        true -> lfe_io:format1("(~s)> ", [node()]);
-        false -> "> "
+start_eval(St) ->
+    Self = self(),
+    spawn_link(fun () -> evaluator(Self, St) end).
+
+evaluator(Shell, St) ->
+    eval_loop(Shell, St).
+
+eval_loop(Shell, St0) ->
+    receive
+	{eval_expr,Shell,Form} ->
+	    St1 = eval_form(Form, Shell, St0),
+	    eval_loop(Shell, St1)
     end.
+
+%% eval_form(Form, ShellPid, State) -> State.
+%%  Evaluate a form, print is reurn value and send updated state back
+%%  to the shell manager process. Unfortunately we can't just let it
+%%  crash as an error here causes the emulator to generate an error
+%%  report. Being cunning and building our own error return value and
+%%  doing exit on it seem to fix the problem.
+
+eval_form(Form, Shell, St0) ->
+    try
+	Ce1 = add_vbinding('-', Form, St0#state.curr),
+	%% Macro expand and evaluate it.
+	{Value,St1} = eval_form(Form, St0#state{curr=Ce1}),
+	%% Print the result, but only to depth 30.
+	VS = lfe_io:prettyprint1(Value, 30),
+	io:requests([{put_chars,VS},nl]),
+	%% Update bindings.
+	Ce2 = update_shell_vars(Form, Value, St1#state.curr),
+	St2 = St1#state{curr=Ce2},
+	%% Return value and updated state.
+	Shell ! {eval_value,self(),Value,St2},
+	St2
+    catch
+	exit:normal -> exit(normal);
+	Class:Reason ->
+	    Stk = erlang:get_stacktrace(),
+	    %% We don't want the ERROR REPORT generated by the
+	    %% emulator. Note: exit(kill) needs nothing special.
+	    %% {links,Ps} = process_info(self(), links),
+	    %% E = nocatch(Class, {Reason,Stk}),
+	    %% foreach(fun (P) -> exit(P, E) end, Ps -- [Shell]),
+	    %% Shell ! {eval_exit,self(),Class,{Reason,Stk}},
+	    %% exit(normal)
+	    E = nocatch(Class, {Reason,Stk}),
+	    exit(E)
+    end.
+
+nocatch(throw, {Term,Stack}) ->
+    {{nocatch,Term},Stack};
+nocatch(_, Reason) -> Reason.
 
 %% eval_form(Form, State) -> {Value,State}.
 %%  Macro expand the the top form then treat special case top-level
@@ -486,11 +571,6 @@ safe_fetch(Key, D, Def) ->
         {ok,Val} -> Val;
         error -> Def
     end.
-
-%% (defmacro safe_fetch (key d def)
-%%   `(case (find ,key ,d)
-%%      ((tuple 'ok val) val)
-%%      ('error ,def)))
 
 %% The LFE shell command functions.
 %%  These are callable from outside the shell as well.
