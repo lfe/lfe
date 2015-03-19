@@ -90,7 +90,7 @@ that will show you how to start using LFE. However, here's a quick taste:
 
 ## Docker Support
 
-LFE no supports Docker. To get started, simply do the following, once you
+LFE now supports Docker. To get started, simply do the following, once you
 have Docker set up on your machine:
 
 ```bash
