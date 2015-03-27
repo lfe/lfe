@@ -41,11 +41,18 @@
 
 -import(orddict, [store/3,find/2]).
 -import(ordsets, [add_element/2]).
--import(lists, [reverse/1,map/2,foreach/2,foldl/3]).
+-import(lists, [reverse/1,foreach/2]).
 
 -include("lfe.hrl").
 
 %% -compile([export_all]).
+
+%% Implement our own lists functions to get around stacktrace printing
+%% problems.
+
+foldl(F, Accu, [Hd|Tail]) ->
+    foldl(F, F(Hd, Accu), Tail);
+foldl(F, Accu, []) when is_function(F, 2) -> Accu.
 
 %% Shell state.
 -record(state, {curr,save,base,             %Current, save and base env
@@ -81,42 +88,49 @@ server() -> server(default).
 server(default) ->
     server(lfe_env:new());
 server(Env) ->
-    process_flag(trap_exit, true),		%Must trap exists
+    process_flag(trap_exit, true),              %Must trap exists
     io:fwrite("LFE Shell V~s (abort with ^G)\n",
               [erlang:system_info(version)]),
     %% Create a default base env of predefined shell variables with
     %% default nil bindings and basic shell macros.
     St = new_state("lfe", [], Env),
-    Eval = start_eval(St),
-    server_loop(Eval, St).			%Run the loop
+    Eval = start_eval(St),                      %Start an evaluator
+    server_loop(Eval, St).                      %Run the loop
 
 server_loop(Eval0, St0) ->
     %% Read the form
     Prompt = prompt(),
     {Ret,Eval1} = read_expression(Prompt, Eval0, St0),
     case Ret of
-	{ok,Form} ->
-	    {Eval2,St1} = shell_eval(Form, Eval1, St0),
-	    server_loop(Eval2, St1);
-	{error,E} ->
-	    list_errors([E]),
-	    server_loop(Eval1, St0)
+        {ok,Form} ->
+            {Eval2,St1} = shell_eval(Form, Eval1, St0),
+            server_loop(Eval2, St1);
+        {error,E} ->
+            list_errors([E]),
+            server_loop(Eval1, St0)
     end.
+
+%% shell_eval(From, Evaluator, State) -> {Evaluator,State}.
+%%  Evaluate one shell expression. The evaluator may crash in which
+%%  case we restart it and return the pid of the new evaluator.
 
 shell_eval(Form, Eval0, St0) ->
     Eval0 ! {eval_expr,self(),Form},
     receive
-	{eval_value,Eval0,_Value,St1} ->
-	    server_loop(Eval0, St1);
-	{eval_exit,Eval0,Class,Reason} ->
-	    receive {'EXIT',Eval0,normal} -> ok end,
-	    report_exception(Class, Reason),
-	    Eval1 = start_eval(St0),
-	    server_loop(Eval1, St0);
-	{'EXIT',Eval0,Reason} ->
-	    report_exception(error, Reason),
-	    Eval1 = start_eval(St0),
-	    server_loop(Eval1, St0)
+        {eval_value,Eval0,_Value,St1} ->
+            %% We actually don't use the returned value here.
+            {Eval0,St1};
+        {eval_error,Eval0,Class} ->
+            %% Eval errored out, get the exit signal.
+            receive {'EXIT',Eval0,{Reason,Stk}} -> ok end,
+            report_exception(Class, Reason, Stk),
+            Eval1 = start_eval(St0),
+            {Eval1,St0};
+        {'EXIT',Eval0,Error} ->
+            %% Eval exited or was killed
+            report_exception(error, Error, []),
+            Eval1 = start_eval(St0),
+            {Eval1,St0}
     end.
 
 %% prompt() -> Prompt.
@@ -128,16 +142,16 @@ prompt() ->
         false -> "> "
     end.
 
-report_exception(Class, {Reason,Stk}) ->
+report_exception(Class, Reason, Stk) ->
     %% Use LFE's simplified version of erlang shell's error
     %% reporting but which LFE prettyprints data.
-    Sf = fun ({M,_F,_A}) ->			%Pre R15
-		 %% Don't want to see these in stacktrace.
-		 (M == lfe_eval) or (M == ?MODULE);
-	     ({M,_F,_A,_L}) ->			%R15 and later
-		 %% Don't want to see these in stacktrace.
-		 (M == lfe_eval) or (M == ?MODULE)
-	 end,
+    Sf = fun ({M,_F,_A}) ->                     %Pre R15
+                 %% Don't want to see these in stacktrace.
+                 (M == lfe_eval) or (M == ?MODULE);
+             ({M,_F,_A,_L}) ->                  %R15 and later
+                 %% Don't want to see these in stacktrace.
+                 (M == lfe_eval) or (M == ?MODULE)
+         end,
     Ff = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
     Cs = lfe_lib:format_exception(Class, Reason, Stk, Sf, Ff, 1),
     io:put_chars(Cs),
@@ -150,24 +164,26 @@ report_exception(Class, {Reason,Stk}) ->
 
 read_expression(Prompt, Eval, St) ->
     Read = fun () ->
-		   %% Ret = lfe_io:read(Prompt),
-		   io:put_chars(Prompt),
-		   Ret = lfe_io:read(),
-		   exit(Ret)
-	   end,
+                   %% Ret = lfe_io:read(Prompt),
+                   io:put_chars(Prompt),
+                   Ret = lfe_io:read(),
+                   exit(Ret)
+           end,
     Rdr = spawn_link(Read),
     read_expression_1(Rdr, Eval, St).
 
 read_expression_1(Rdr, Eval, St) ->
+    %% Eval is not doing anything here, so exits from it can only
+    %% occur if it was terminated by a signal from another process.
     receive
-	{'EXIT',Rdr,Ret} ->
-	    {Ret,Eval};
-	{'EXIT',Eval,{Reason,Stk}} ->
-	    report_exception(error, {Reason,Stk}),
-	    read_expression_1(Rdr, start_eval(St), St);
-	{'EXIT',Eval,Reason} ->
-	    report_exception(error, {Reason,[]}),
-	    read_expression_1(Rdr, start_eval(St), St)
+        {'EXIT',Rdr,Ret} ->
+            {Ret,Eval};
+        {'EXIT',Eval,{Reason,Stk}} ->
+            report_exception(error, Reason, Stk),
+            read_expression_1(Rdr, start_eval(St), St);
+        {'EXIT',Eval,Reason} ->
+            report_exception(exit, Reason, []),
+            read_expression_1(Rdr, start_eval(St), St)
     end.
 
 %% new_state(ScriptName, Args [,Env]) -> State.
@@ -244,16 +260,16 @@ add_shell_macros(Env0) ->
 
 start_eval(St) ->
     Self = self(),
-    spawn_link(fun () -> evaluator(Self, St) end).
+    spawn_link(fun () -> eval_init(Self, St) end).
 
-evaluator(Shell, St) ->
+eval_init(Shell, St) ->
     eval_loop(Shell, St).
 
 eval_loop(Shell, St0) ->
     receive
-	{eval_expr,Shell,Form} ->
-	    St1 = eval_form(Form, Shell, St0),
-	    eval_loop(Shell, St1)
+        {eval_expr,Shell,Form} ->
+            St1 = eval_form(Form, Shell, St0),
+            eval_loop(Shell, St1)
     end.
 
 %% eval_form(Form, ShellPid, State) -> State.
@@ -265,31 +281,27 @@ eval_loop(Shell, St0) ->
 
 eval_form(Form, Shell, St0) ->
     try
-	Ce1 = add_vbinding('-', Form, St0#state.curr),
-	%% Macro expand and evaluate it.
-	{Value,St1} = eval_form(Form, St0#state{curr=Ce1}),
-	%% Print the result, but only to depth 30.
-	VS = lfe_io:prettyprint1(Value, 30),
-	io:requests([{put_chars,VS},nl]),
-	%% Update bindings.
-	Ce2 = update_shell_vars(Form, Value, St1#state.curr),
-	St2 = St1#state{curr=Ce2},
-	%% Return value and updated state.
-	Shell ! {eval_value,self(),Value,St2},
-	St2
+        Ce1 = add_vbinding('-', Form, St0#state.curr),
+        %% Macro expand and evaluate it.
+        {Value,St1} = eval_form(Form, St0#state{curr=Ce1}),
+        %% Print the result, but only to depth 30.
+        VS = lfe_io:prettyprint1(Value, 30),
+        io:requests([{put_chars,VS},nl]),
+        %% Update bindings.
+        Ce2 = update_shell_vars(Form, Value, St1#state.curr),
+        St2 = St1#state{curr=Ce2},
+        %% Return value and updated state.
+        Shell ! {eval_value,self(),Value,St2},
+        St2
     catch
-	exit:normal -> exit(normal);
-	Class:Reason ->
-	    Stk = erlang:get_stacktrace(),
-	    %% We don't want the ERROR REPORT generated by the
-	    %% emulator. Note: exit(kill) needs nothing special.
-	    %% {links,Ps} = process_info(self(), links),
-	    %% E = nocatch(Class, {Reason,Stk}),
-	    %% foreach(fun (P) -> exit(P, E) end, Ps -- [Shell]),
-	    %% Shell ! {eval_exit,self(),Class,{Reason,Stk}},
-	    %% exit(normal)
-	    E = nocatch(Class, {Reason,Stk}),
-	    exit(E)
+        exit:normal -> exit(normal);
+        Class:Reason ->
+            Stk = erlang:get_stacktrace(),
+            %% We don't want the ERROR REPORT generated by the
+            %% emulator. Note: exit(kill) needs nothing special.
+            Shell ! {eval_error,self(),Class},
+            E = nocatch(Class, {Reason,Stk}),
+            exit(E)
     end.
 
 nocatch(throw, {Term,Stack}) ->
