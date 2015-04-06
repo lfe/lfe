@@ -730,11 +730,11 @@ exp_predef(['orelse'|Obody], _, St) ->
               [] -> ?Q(false)
           end,
     {yes,Exp,St};
-exp_predef(['fun',F,Ar], _, St0) when is_atom(F), is_integer(Ar), Ar >= 0 ->
+%% The fun forms assume M, F and Ar are atoms and integer.
+exp_predef(['fun',F,Ar], _, St0) ->
     {Vs,St1} = new_symbs(Ar, St0),
     {yes,['lambda',Vs,[F|Vs]],St1};
-exp_predef(['fun',M,F,Ar], _, St0)
-  when is_atom(M), is_atom(F), is_integer(Ar), Ar >= 0 ->
+exp_predef(['fun',M,F,Ar], _, St0) ->
     {Vs,St1} = new_symbs(Ar, St0),
     {yes,['lambda',Vs,['call',?Q(M),?Q(F)|Vs]],St1};
 exp_predef(['defrecord'|Def], Env, St) ->

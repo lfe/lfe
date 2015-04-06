@@ -222,15 +222,15 @@ assoc(_, []) -> [].
 
 'assoc-if'(Pred, [[K|_]=Pair|L]) ->
     case Pred(K) of
-    true -> Pair;
-    false -> 'assoc-if'(Pred, L)
+        true -> Pair;
+        false -> 'assoc-if'(Pred, L)
     end;
 'assoc-if'(_, []) -> [].
 
 'assoc-if-not'(Pred, [[K|_]=Pair|L]) ->
     case Pred(K) of
-    false -> Pair;
-    true -> 'assoc-if-not'(Pred, L)
+        false -> Pair;
+        true -> 'assoc-if-not'(Pred, L)
     end;
 'assoc-if-not'(_, []) -> [].
 
@@ -240,15 +240,15 @@ rassoc(_, []) -> [].
 
 'rassoc-if'(Pred, [[_|V]=Pair|L]) ->
     case Pred(V) of
-    true -> Pair;
-    false -> 'rassoc-if'(Pred, L)
+        true -> Pair;
+        false -> 'rassoc-if'(Pred, L)
     end;
 'rassoc-if'(_, []) -> [].
 
 'rassoc-if-not'(Pred, [[_|V]=Pair|L]) ->
     case Pred(V) of
-    false -> Pair;
-    true -> 'rassoc-if-not'(Pred, L)
+        false -> Pair;
+        true -> 'rassoc-if-not'(Pred, L)
     end;
 'rassoc-if-not'(_, []) -> [].
 
@@ -263,39 +263,39 @@ subst(_, _, Tree) -> Tree.
 
 'subst-if'(New, Test, Tree) ->
     case Test(Tree) of
-    true -> New;
-    false ->
-        case Tree of
-        [H|T] ->
-            ['subst-if'(New, Test, H)|'subst-if'(New, Test, T)];
-        _ -> Tree
-        end
+        true -> New;
+        false ->
+            case Tree of
+                [H|T] ->
+                    ['subst-if'(New, Test, H)|'subst-if'(New, Test, T)];
+                _ -> Tree
+            end
     end.
 
 %% subst-if-not(New, Test, Tree) -> Tree.
 
 'subst-if-not'(New, Test, Tree) ->
     case Test(Tree) of
-    false -> New;
-    true ->
-        case Tree of
-        [H|T] ->
-            ['subst-if-not'(New, Test, H)|'subst-if-not'(New, Test, T)];
-        _ -> Tree
-        end
+        false -> New;
+        true ->
+            case Tree of
+                [H|T] ->
+                    ['subst-if-not'(New, Test, H)|'subst-if-not'(New, Test, T)];
+                _ -> Tree
+            end
     end.
 
 %% sublis(AList, Tree) -> Tree.
 
 sublis(Alist, Tree) ->
     case assoc(Tree, Alist) of
-    [_|New] -> New;                         %Found it
-    [] ->                                   %Not there
-        case Tree of
-        [H|T] ->
-            [sublis(Alist, H)|sublis(Alist, T)];
-        _ -> Tree
-        end
+        [_|New] -> New;                         %Found it
+        [] ->                                   %Not there
+            case Tree of
+                [H|T] ->
+                    [sublis(Alist, H)|sublis(Alist, T)];
+                _ -> Tree
+            end
     end.
 
 eval(Sexpr) -> eval(Sexpr, lfe_env:new()).  %Empty environment.
@@ -334,15 +334,19 @@ macroexpand(Form, Env) ->
 %%  exception; SkipFun is used to trim the end of stack; FormatFun is
 %%  used to format terms; and Indentation is the current column.
 
-format_exception(Cl, Error, St, Sf, Ff, I) ->
+format_exception(Cl, Error0, St0, Sf, Ff, I) ->
     Cs = case Cl of                         %Class type as string
-         throw -> "throw";
-         exit -> "exit";
-         error -> "error"
-     end,
+             throw -> "throw";
+             exit -> "exit";
+             error -> "error"
+         end,
+    {Error1,St1} = case is_stacktrace(St0) of
+                       true -> {Error0,St0};
+                       false -> {{Error0,St0},[]}
+                   end,
     P = "exception " ++ Cs ++ ": ",         %Class description string
-    [P,lfe_io:prettyprint1(Error, 10, length(P)+I-1),"\n",
-     format_stacktrace(St, Sf, Ff)].
+    [P,lfe_io:prettyprint1(Error1, 10, length(P)+I-1),"\n",
+     format_stacktrace(St1, Sf, Ff)].
 
 %% format_stacktrace(Stacktrace, SkipFun, FormatFun) -> DeepCharList.
 %%  Format a stacktrace. SkipFun is used to trim the end of stack;
@@ -350,12 +354,33 @@ format_exception(Cl, Error, St, Sf, Ff, I) ->
 
 format_stacktrace(St0, Skip, Format) ->
     St1 = reverse(dropwhile(Skip, reverse(St0))),
-    Print = fun ({M,F,A}) when is_integer(A) ->    %Pre R15
-            lfe_io:format1("  in (~w ~w ~w)\n", [M,F,A]);
-        ({M,F,A}) -> ["  in ",Format([':',M,F|A], 5),"\n"];
-        %% R15 and later.
-        ({M,F,A,_}) when is_integer(A) ->
-            lfe_io:format1("  in (~w ~w ~w)\n", [M,F,A]);
-        ({M,F,A,_}) -> ["  in ",Format([':',M,F|A], 5),"\n"]
-    end,
+    Print = fun (F) -> format_stackcall(F, Format) end,
     map(Print, St1).
+
+format_stackcall({M,F,A}, _) when is_integer(A) ->    %Pre R15
+    lfe_io:format1("  in ~w:~w/~w\n", [M,F,A]);
+format_stackcall({M,F,A}, Format) ->
+    ["  in ",Format([':',M,F|A], 5),"\n"];
+format_stackcall({M,F,A,Loc},_) when is_integer(A) -> %R15 and later.
+    lfe_io:format1("  in ~w:~w/~w ~s\n", [M,F,A,location(Loc)]);
+format_stackcall({M,F,A,_}, Format) ->
+    ["  in ",Format([':',M,F|A], 5),"\n"].
+
+location(Loc) ->
+    File = proplists:get_value(file, Loc),
+    Line = proplists:get_value(line, Loc),
+    if File =/= undefined, Line =/= undefined ->
+            lfe_io:format1("(~s, line ~w)", [File,Line]);
+       true -> ""
+    end.
+
+is_stacktrace([{M,F,A}|Fs])                     %Pre R15
+  when is_atom(M), is_atom(F), is_integer(A) -> is_stacktrace(Fs);
+is_stacktrace([{M,F,As}|Fs])
+  when is_atom(M), is_atom(F), length(As) >= 0 -> is_stacktrace(Fs);
+is_stacktrace([{M,F,A,I}|Fs])                   %R15 and later
+  when is_atom(M), is_atom(F), is_integer(A), is_list(I) -> is_stacktrace(Fs);
+is_stacktrace([{M,F,As,I}|Fs])
+  when is_atom(M), is_atom(F), length(As) >= 0, is_list(I) -> is_stacktrace(Fs);
+is_stacktrace([]) -> true;
+is_stacktrace(_) -> false.
