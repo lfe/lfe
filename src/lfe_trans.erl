@@ -31,9 +31,9 @@
 
 -import(lists, [map/2,foldl/3,mapfoldl/3,foldr/3,splitwith/2]).
 
--define(Q(E), [quote,E]).           %We do a lot of quoting
+-define(Q(E), [quote,E]).                       %We do a lot of quoting
 
--record(from, {vc=0                 %Variable counter
+-record(from, {vc=0                             %Variable counter
           }).
 
 %% from_expr(AST) -> Sexpr.
@@ -87,11 +87,15 @@ from_expr({bin,_,Segs}, Vt0, St0) ->
 %% Core closure special forms.
 from_expr({'fun',_,{clauses,Cls}}, Vt, St0) ->
     {Lcls,St1} = from_fun_cls(Cls, Vt, St0),
-    {['match-lambda'|Lcls],Vt,St1};        %Don't bother using lambda
-from_expr({'fun',_,{function,F,A}}, Vt, St) ->
-    {['fun',F,A],Vt,St};                    %Return macros here?
-from_expr({'fun',_,{function,M,F,A}}, Vt, St) ->
-    {['fun',M,F,A],Vt,St};
+    {['match-lambda'|Lcls],Vt,St1};             %Don't bother using lambda
+from_expr({'fun',_,{function,F,A}}, Vt, St0) ->
+    %% Build a lambda.
+    {Vs,St1} = new_from_vars(A, St0),
+    {[lambda,Vs,[F|Vs]],Vt,St1};
+from_expr({'fun',_,{function,M,F,A}}, Vt0, St0) ->
+    %% Translate to call to erlang:make_fun/3.
+    {Las,Vt1,St1} = from_expr_list([M,F,A], Vt0, St0),
+    {[call,?Q(erlang),?Q(make_fun)|Las],Vt1,St1};
 %% Core control special forms.
 from_expr({block,_,Es}, Vt0, St0) ->
     {Les,Vt1,St1} = from_body(Es, Vt0, St0),
@@ -149,16 +153,16 @@ from_expr({'try',_,Es,Scs,Ccs,As}, Vt, St0) ->
     {Les,_,St1} = from_body(Es, Vt, St0),
     %% These maybe empty.
     {Lscs,_,St2} = if Scs =:= [] -> {[],[],St1};
-              true -> from_icrt_cls(Scs, Vt, St1)
-           end,
+                      true -> from_icrt_cls(Scs, Vt, St1)
+                   end,
     {Lccs,_,St3} = if Ccs =:= [] -> {[],[],St2};
-              true -> from_icrt_cls(Ccs, Vt, St2)
-           end,
+                      true -> from_icrt_cls(Ccs, Vt, St2)
+                   end,
     {Las,_,St4} = from_body(As, Vt, St3),
     {['try',[progn|Les]|
       from_maybe('case', Lscs) ++
-      from_maybe('catch', Lccs) ++
-      from_maybe('after', Las)],Vt,St4};
+          from_maybe('catch', Lccs) ++
+          from_maybe('after', Las)],Vt,St4};
 from_expr({'catch',_,E}, Vt0, St0) ->
     {Le,Vt1,St1} = from_expr(E, Vt0, St0),
     {['catch',Le],Vt1,St1};
@@ -332,6 +336,13 @@ from_bitseg_type(Ts) ->
 new_from_var(#from{vc=C}=St) ->
     V = list_to_atom(lists:concat(["---",C,"---"])),
     {V,St#from{vc=C+1}}.
+
+new_from_vars(N, St) -> new_from_vars(N, St, []).
+
+new_from_vars(N, St0, Vs) when N > 0 ->
+    {V,St1} = new_from_var(St0),
+    new_from_vars(N-1, St1, [V|Vs]);
+new_from_vars(0, St, Vs) -> {Vs,St}.
 
 from_pat({var,_,'_'}, Vt, St) -> {'_',[],Vt,St};    %Special case _
 from_pat({var,_,V}, Vt, St0) ->                     %Unquoted atom
@@ -712,9 +723,9 @@ to_pat([cons,H,T], L, Vt0, St0) ->
     {{cons,L,Eh,Et},Vt1,St1};
 to_pat([list|Es], L, Vt, St) ->
     Fun = fun (E, {Tail,Vt0,St0}) ->
-          {Ee,Vt1,St1} = to_pat(E, L, Vt0, St0),
-          {{cons,L,Ee,Tail},Vt1,St1}
-      end,
+                  {Ee,Vt1,St1} = to_pat(E, L, Vt0, St0),
+                  {{cons,L,Ee,Tail},Vt1,St1}
+          end,
     foldr(Fun, {{nil,L},Vt,St}, Es);
 to_pat(['list*'|Es], L, Vt, St) ->
     to_pat_list_s(fun to_pat/4, L, Vt, St, Es);
@@ -735,11 +746,11 @@ to_pat_list(Ps, L, Vt, St) ->
 
 to_pat_var(V, L, Vt, St0) ->
     case orddict:is_key(V, Vt) of
-    true ->
-        {V1,St1} = new_to_var(St0),
-        {{var,L,V1},orddict:store(V, V1, Vt),St1};
-    false ->
-        {{var,L,V},orddict:store(V, V, Vt),St0}
+        true ->
+            {V1,St1} = new_to_var(St0),
+            {{var,L,V1},orddict:store(V, V1, Vt),St1};
+        false ->
+            {{var,L,V},orddict:store(V, V, Vt),St0}
     end.
 
 %% to_pat_bitsegs(Segs, LineNumber, VarTable, State) -> {Segs,State}.
