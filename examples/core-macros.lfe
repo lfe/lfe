@@ -125,21 +125,21 @@
         ((list 'unquote x) (when (> n 0))
          (bq-cons 'unquote (bq-expand x (- n 1))))
         ((list 'unquote x) (when (=:= n 0)) x)
-        ((list 'unquote-splicing . x) (when (> n 0))
+        ((cons 'unquote-splicing x) (when (> n 0))
          (bq-cons (list 'quote 'unquote-splicing) (bq-expand x (- n 1))))
         ;; The next two cases handle splicing into a list.
-        (((list 'unquote . x) . y) (when (=:= n 0))
+        ((cons (cons 'unquote x) y) (when (=:= n 0))
          (bq-app (cons 'list x) (bq-expand y 0)))
-        (((list 'unquote-splicing . x) . y) (when (=:= n 0))
+        ((cons (cons 'unquote-splicing x) y) (when (=:= n 0))
          (bq-app (cons '++ x) (bq-expand y 0)))
         ((cons x y)                     ;The general list case
          (bq-cons (bq-expand x n) (bq-expand y n)))
-        (_ (when (is_tuple exp))
+        (x (when (is_tuple x))
            ;; Tuples need some smartness for efficient code to handle
            ;; when no splicing so as to avoid list_to_tuple.
-           (case (bq-expand (tuple_to_list exp) n)
-             (('list . es) (cons tuple es))
-             ((= ('cons . _) e) (list 'list_to_tuple e))))
-        (_ (when (is_atom exp)) (list 'quote exp))
-        (_ exp))                        ;Self quoting
+           (case (bq-expand (tuple_to_list x) n)
+             ((cons 'list es) (cons 'tuple es))
+             ((= (cons 'cons _) e) (list 'list_to_tuple e))))
+        (x (when (is_atom x)) (list 'quote x))
+        (x x))                          ;Self quoting
       )))
