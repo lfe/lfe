@@ -921,7 +921,7 @@ exp_append(Args) ->
 	[[cons,H,T]|Es] -> [cons,H,['++',T|Es]];
 	[[]|Es] -> ['++'|Es];
 	%% Cases with lists of numbers (strings).
-	[[N|Ns]|Es] when is_number(N) -> [cons,N,['++',Ns|Es]];
+	%% [[N|Ns]|Es] when is_number(N) -> [cons,N,['++',Ns|Es]];
 	%% Default cases with unquoted arg.
 	[E] -> E;                %Last arg not checked
 	[E|Es] -> exp_bif('++', [E,['++'|Es]]);
