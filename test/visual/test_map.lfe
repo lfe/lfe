@@ -6,9 +6,9 @@
 
 (defun make (x y z)
   (tuple (map 'a x 'b y 'c (tuple 'ok (: test_map foo z)))
-	 (map 'b y 'c (tuple 'ok (: test_map foo z)) 'a x)
-	 (map #b(1 2 3) x)
-	 (map #b((1 (size 16)) ("åäö" utf-8)) y)))
+         (map 'b y 'c (tuple 'ok (: test_map foo z)) 'a x)
+         (map #b(1 2 3) x)
+         (map #b((1 (size 16)) ("åäö" utf-8)) y)))
 
 ;; (defun get (map)
 ;;   (map-get map 'a))

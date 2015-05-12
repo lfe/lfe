@@ -68,7 +68,7 @@
 (defmacro let*
   ((cons (cons vb vbs) b) `(let (,vb) (let* ,vbs . ,b)))
   ((cons () b) `(progn . ,b))
-  ((cons vb b) `(let ,vb . b)))        ;Pass error to let
+  ((cons vb b) `(let ,vb . b)))         ;Pass error to let
 
 (defmacro flet*
   ((cons (cons fb fbs) b) `(flet (,fb) (flet* ,fbs . ,b)))

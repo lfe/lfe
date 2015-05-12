@@ -4,13 +4,13 @@
 
 -module(test_bin_e).
 
--export([a/0,a/1,af/2,afp/2,a/3]).        %Constructors
--export([p1/1,p2/1,p2p/1,p3/1,p4/0]).        %Patterns
--export([b/1,b/2,bb1/2,bb2/2]).            %Binaries/bitstrings
--export([u/1,u/2]).                %Unicode types
--export([vs1/2,vs2/2,vs3/2]).            %Value and size expressions
--export([d1/0,d2/0,d3/0]).            %Binary constants
--export([sl1/0,sl1/1]).                %String literals
+-export([a/0,a/1,af/2,afp/2,a/3]).              %Constructors
+-export([p1/1,p2/1,p2p/1,p3/1,p4/0]).           %Patterns
+-export([b/1,b/2,bb1/2,bb2/2]).                 %Binaries/bitstrings
+-export([u/1,u/2]).                             %Unicode types
+-export([vs1/2,vs2/2,vs3/2]).                   %Value and size expressions
+-export([d1/0,d2/0,d3/0]).                      %Binary constants
+-export([sl1/0,sl1/1]).                         %String literals
 
 %% Binary constructors.
 
@@ -20,7 +20,7 @@ a(X) -> <<X:24>>.
 
 af(X, Y) -> <<X:32/float,Y:64/float>>.
 
-afp(X, Y) -> <<X:32/float,Y:40/float>>.        %This will cause an error!
+afp(X, Y) -> <<X:32/float,Y:40/float>>.         %This will cause an error!
 
 a(X, Y, Z) -> <<X/unsigned,Y:16/big,Z:3/little>>.
 
@@ -28,23 +28,23 @@ a(X, Y, Z) -> <<X/unsigned,Y:16/big,Z:3/little>>.
 
 p1(B) ->
     case B of
-    <<X:24,ZZ/binary>> -> [X,ZZ]
+        <<X:24,ZZ/binary>> -> [X,ZZ]
     end.
 
 p2(B) ->
     case B of
-    <<X:32/float,Y:64/float,ZZ/bitstring>> -> [X,Y,ZZ]
+        <<X:32/float,Y:64/float,ZZ/bitstring>> -> [X,Y,ZZ]
     end.
 
 p2p(B) ->
-    case B of                    %This will cause an error!
-    <<X:32/float,Y:40/float,ZZ/bitstring>> -> [X,Y,ZZ]
+    case B of                                   %This will cause an error!
+        <<X:32/float,Y:40/float,ZZ/bitstring>> -> [X,Y,ZZ]
     end.
 
 p3(B) ->
     case B of
-    <<X/unsigned,Y:16/big,Z:3/little,ZZ/bitstring>> ->
-        [X,Y,Z,ZZ]
+        <<X/unsigned,Y:16/big,Z:3/little,ZZ/bitstring>> ->
+            [X,Y,Z,ZZ]
     end.
 
 p4() ->
@@ -73,8 +73,8 @@ bb1(B, N) ->
 
 bb2(B, N) ->
     case B of
-    <<B1:N/bitstring,B2:3/bitstring-signed,B3/bitstring>> ->
-        [B1,B2,B3]
+        <<B1:N/bitstring,B2:3/bitstring-signed,B3/bitstring>> ->
+            [B1,B2,B3]
     end.
 
 %% Unicode types.
@@ -92,15 +92,15 @@ vs1(X, Y) ->
     {<<X:Y,Y:Y1>>,<<X:Y,Y:(Y+1)>>}.
 
 vs2(X, Y) ->
-    {<<(2*X):Y>>,                %Just value expr
-     <<X:(Y+8)>>,                %Just size expr
-     <<(2*X):(Y+8)>>                %Both value and size expr
+    {<<(2*X):Y>>,                               %Just value expr
+     <<X:(Y+8)>>,                               %Just size expr
+     <<(2*X):(Y+8)>>                            %Both value and size expr
     }.
 
 vs3(X, Y) ->
-    <<(2*X):Y,                    %Just value expr
-     X:(Y+8),                    %Just size expr
-     (2*X):(Y+8)>>.                %Both value and size expr
+    <<(2*X):Y,                                  %Just value expr
+      X:(Y+8),                                  %Just size expr
+      (2*X):(Y+8)>>.                            %Both value and size expr
 
 %% Binary constants
 
