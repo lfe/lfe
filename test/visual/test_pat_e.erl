@@ -1,6 +1,6 @@
 -module(test_pat_e).
 
--export([a/2,b/2,e/2,g/2]).
+-export([a/2,b/2,c/1,e/2,g/2]).
 
 a(1,_) ->
     F = fun ([1,_]) -> 1;
@@ -17,6 +17,12 @@ a(X, Y) ->
 b(a, 4) -> {1,a,4};
 b(a, _) -> {2,a,anything};
 b(_, _) -> {3,anything}.
+
+c(X) ->
+    case X of
+        "1234" -> string;
+        _ -> other
+    end.
 
 e(X, Y) ->
     case [X|Y] of
