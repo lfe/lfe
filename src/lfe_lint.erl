@@ -973,9 +973,14 @@ pattern([binary|Segs], Pvs, Env, L, St) ->
 pattern([map|As], Pvs, Env, L, St) ->
     pat_map(As, Pvs, Env, L, St);
 %% Check old no contructor list forms.
-pattern([_|_]=List, Pvs0, Env, L, St0) ->
-    St1 = add_warning(L, {deprecated,"pattern"}, St0),
-    pat_list(List, Pvs0, Env, L, St1);
+pattern([H|T]=List, Pvs0, Env, L, St0) ->
+    case is_posint_list(List) of
+        true -> {Pvs0,St0};                     %A string
+        false ->                                %Illegal pattern
+            St1 = add_warning(L, {deprecated,"pattern"}, St0),
+            {Pvs1,St2} = pattern(H, Pvs0, Env, L, St1),
+            pattern(T, Pvs1, Env, L, St2)
+    end;
 %% pattern([_|_], Pvs, _, L, St) ->
 %%     {Pvs,add_error(L, illegal_pattern, St)};
 pattern([], Pvs, _, _, St) -> {Pvs,St};
