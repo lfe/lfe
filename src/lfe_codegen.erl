@@ -27,7 +27,7 @@
 
 -export([module/2]).
 
-%% -compile(export_all).
+-compile(export_all).
 
 -import(lists, [member/2,keysearch/3,reverse/1,
                 all/2,map/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3,
@@ -40,7 +40,6 @@
                   add_ibinding/5,get_gbinding/3]).
 
 -include("lfe_comp.hrl").
--include_lib("compiler/src/core_parse.hrl").
 
 %% Define IS_MAP/1 macro for is_map/1 bif.
 -ifdef(HAS_MAPS).
@@ -71,7 +70,7 @@
 
 module(Forms, #cinfo{opts=Opts,file=File}) ->
     St0 = #cg{opts=Opts,file=File},
-    Core0 = #c_module{name=c_atom(none),exports=[],attrs=[],defs=[]},
+    Core0 = c_module(c_atom(none), [], []),
     {Core1,St1} = forms(Forms, St0, Core0),
     {St1#cg.mod,Core1}.
 
@@ -104,8 +103,7 @@ forms(Forms, St0, Core0) ->
     {Cdefs,St3} = mapfoldl(fun (D, St) -> comp_define(D, Env, St) end,
                            St2, St2#cg.defs),
     %% Build the final core module structure.
-    Core1 = Core0#c_module{name=c_atom(St3#cg.mod),exports=Exps,
-                           attrs=Atts,defs=Cdefs},
+    Core1 = update_c_module(Core0, c_atom(St3#cg.mod), Exps, Atts, Cdefs),
     %% Maybe print lots of debug info.
     debug_print("#cg: ~p\n", [St3], St3),
     when_opt(fun () -> io:fwrite("core_lint: ~p\n",
@@ -218,10 +216,11 @@ comp_body([E|Es], Env, L, St0) ->
     {append_c_seq(Ce, Cb, L),St2};        %Flatten nested sequences
 comp_body([], _, _, St) -> {c_nil(),St}.  %Empty body returns []
 
-append_c_seq(#c_seq{body=B}=Cseq, Cb, L) ->
-    Cseq#c_seq{body=append_c_seq(B, Cb, L)};
-append_c_seq(H, Cb, L) ->
-    c_seq([L], H, Cb).
+append_c_seq(Ce, Cb, L) ->
+    case is_c_seq(Ce) of
+        true -> update_c_seq(Ce, seq_arg(Ce), seq_body(Ce));
+        false -> ann_c_seq([L], Ce, Cb)
+    end.
 
 %% comp_expr(Expr, Env, Line, State) -> {CoreExpr,State}.
 %% Compile an expression.
@@ -281,10 +280,10 @@ comp_expr(['case',Expr|Cls], Env, L, St) ->
     comp_case(Expr, Cls, Env, L, St);
 comp_expr(['receive'|Cls], Env, L, St0) ->
     {Ccs,Ct,Ca,St1} = rec_clauses(Cls, Env, L, St0),
-    {#c_receive{anno=[L],clauses=Ccs,timeout=Ct,action=Ca},St1};
+    {ann_c_receive([L], Ccs, Ct, Ca),St1};
 comp_expr(['catch'|Body], Env, L, St0) ->
     {Cb,St1} = comp_body(Body, Env, L, St0),
-    {#c_catch{anno=[L],body=Cb},St1};
+    {ann_c_catch([L], Cb),St1};
 comp_expr(['try'|B], Env, L, St) ->
     comp_try(B, Env, L, St);
 comp_expr(['funcall',F|As], Env, L, St) ->
@@ -295,7 +294,7 @@ comp_expr([call,M,N|As], Env, L, St) ->
     %% Call a function in another module.
     Call = fun ([Cm,Cn|Cas], _, Li, Sta) ->
                    Ann = line_file_anno(Li, Sta),
-                   {c_call(Ann, Cm, Cn, Cas),Sta}
+                   {ann_c_call(Ann, Cm, Cn, Cas),Sta}
            end,
     comp_args([M,N|As], Call, Env, L, St);
 %% General function calls.
@@ -306,10 +305,10 @@ comp_expr([Fun|As], Env, L, St) when is_atom(Fun) ->
                    Ann = line_file_anno(Li, Sta),
                    case get_fbinding(Fun, Ar, En) of
                        {yes,M,F} ->             %Import
-                           {c_call(Ann, c_atom(M), c_atom(F), Cas),Sta};
+                           {ann_c_call(Ann, c_atom(M), c_atom(F), Cas),Sta};
                        {yes,Name} ->
                            %% Might have been renamed, use real function name.
-                           {c_apply(Ann, c_fname(Name, Ar), Cas),Sta}
+                           {ann_c_apply(Ann, c_fname(Name, Ar), Cas),Sta}
                    end
            end,
     comp_args(As, Call, Env, L, St);
@@ -343,19 +342,19 @@ simple_seq([Ce|Ces], Then, Ses, Env, L, St0) ->
         false ->
             {Cv,St1} = new_c_var(L, St0),
             {Rest,St2} = simple_seq(Ces, Then, [Cv|Ses], Env, L, St1),
-            {c_let([L], [Cv], Ce, Rest),St2}
+            {ann_c_let([L], [Cv], Ce, Rest),St2}
     end;
 simple_seq([], Then, Ses, Env, L, St) ->
     Then(reverse(Ses), Env, L, St).
 
-%% comp_lambda(Args, Body, Env, Line, State) -> {#c_fun{},State}.
+%% comp_lambda(Args, Body, Env, Line, State) -> {c_fun(),State}.
 %% Compile a (lambda (...) ...).
 
 comp_lambda(Args, Body, Env, L, St0) ->
     {Cvs,Pvs,St1} = comp_lambda_args(Args, L, St0),
     {Cb,St2} = comp_body(Body, add_vbindings(Pvs, Env), L, St1),
     Ann = line_file_anno(L, St2),
-    {c_fun(Ann, Cvs, Cb),St2}.
+    {ann_c_fun(Ann, Cvs, Cb),St2}.
 
 comp_lambda_args(Args, L, St) ->
     foldr(fun (A, {Cvs,Pvs0,St0}) ->
@@ -365,7 +364,7 @@ comp_lambda_args(Args, L, St) ->
 
 %% lambda_arity([Args|_]) -> length(Args).
 
-%% comp_match_lambda(Clauses, Env, Line, State) -> {#c_fun{},State}.
+%% comp_match_lambda(Clauses, Env, Line, State) -> {c_fun(),State}.
 %% (match-lambda (Pat ...) ...).
 
 comp_match_lambda(Cls, Env, L, St0) ->
@@ -374,9 +373,9 @@ comp_match_lambda(Cls, Env, L, St0) ->
     {Ccs,St2} = comp_match_clauses(Cls, Env, L, St1),
     {Fvs,St3} = new_c_vars(Ar, L, St2),
     Cf = func_fail(Fvs, L, St3),
-    Cb = c_case([L], c_values(Cvs), Ccs ++ [Cf]),
+    Cb = ann_c_case([L], ann_c_values(Cvs), Ccs ++ [Cf]),
     Ann = line_file_anno(L, St3),
-    {c_fun(Ann, Cvs, Cb),St3}.
+    {ann_c_fun(Ann, Cvs, Cb),St3}.
 
 func_fail(Fvs, L, #cg{func=F}=St) ->
     %% We need function_name anno to generate function_clause error.
@@ -391,7 +390,7 @@ comp_match_clauses(Cls, Env, L, St) ->
     mapfoldl(fun (Cl, Sta) -> comp_match_clause(Cl, Env, L, Sta) end,
              St, Cls).
 
-%% comp_match_clause(Clause, Env, L, State) -> {#c_clause{},State}.
+%% comp_match_clause(Clause, Env, L, State) -> {c_clause(),State}.
 %% (Pats [(when Guard)] . Body)
 %% Pats is here a list of patterns which are the function clause
 %% arguments. This must be compiled to a list of patterns not a
@@ -405,9 +404,9 @@ comp_match_clause([Pats|Body], Env0, L, St0) ->
     {Cps,{Pvs,St1}} = mapfoldl(Pfun, {[],St0}, Pats),
     Env1 = add_vbindings(Pvs, Env0),
     {Cg,Cb,St2} = comp_clause_body(Body, Env1, L, St1),
-    {c_clause([L], Cps, Cg, Cb),St2}.
+    {ann_c_clause([L], Cps, Cg, Cb),St2}.
 
-%% comp_let(VarBindings, Body, Env, L, State) -> {#c_let{}|#c_case{},State}.
+%% comp_let(VarBindings, Body, Env, L, State) -> {c_let()|c_case(),State}.
 %% Compile a let expr. We are a little cunning in that we specialise
 %% the the case where all the patterns are variables and there are no
 %% guards, the simple case.
@@ -424,7 +423,7 @@ comp_let(Vbs, B, Env, L, St0) ->
             Efun = fun ([_,E], St) -> comp_expr(E, Env, L, St) end,
             {Ces,St2} = mapfoldl(Efun, St1, Vbs),
             {Cb,St3} = comp_body(B, add_vbindings(Pvs, Env), L, St2),
-            {c_let([L], Cvs, c_values(Ces), Cb),St3};
+            {ann_c_let([L], Cvs, ann_c_values(Ces), Cb),St3};
         false ->
             %% This would be much easier to do by building a clause
             %% and compiling it directly, but then we would have to
@@ -448,7 +447,8 @@ comp_let(Vbs, B, Env, L, St0) ->
             {Cb,St4} = comp_body(B, Env1, L, St3),
             {Cvs,St5} = new_c_vars(length(Ces), L, St4),
             Cf = let_fail(Cvs, L, St5),
-            {c_case([L], c_values(Ces), [c_clause([L], Cps, Cg, Cb),Cf]),
+            {ann_c_case([L], ann_c_values(Ces),
+                        [ann_c_clause([L], Cps, Cg, Cb),Cf]),
              St5}
     end.
 
@@ -456,7 +456,7 @@ let_fail(Cvs, L, St) ->
     fail_clause(Cvs, c_tuple([c_atom(badmatch),c_tuple(Cvs)]), [], L, St).
 
 %% comp_let_function(FuncBindngs, Body, Env, Line, State) ->
-%%      {#c_letrec{},State}.
+%%      {c_letrec(),State}.
 %%  Compile an flet. This is complicated by the fact that Core only
 %%  has letrec so we have to some name munging of the functions to
 %%  avoid recursive definitions.
@@ -478,10 +478,10 @@ comp_let_function(Fbs0, B, Env0, L, St0) ->
            end,
     Env1 = foldl(Efun, Env0, Nfbs),
     {Cb,St3} = comp_body(B, Env1, L, St2),
-    {c_letrec([L], Cfs, Cb),St3}.
+    {ann_c_letrec([L], Cfs, Cb),St3}.
 
 %% comp_letrec_function(FuncBindngs, Body, Env, Line, State) ->
-%%      {#c_letrec{},State}.
+%%      {c_letrec(),State}.
 
 comp_letrec_function(Fbs, B, Env0, L, St0) ->
     %% Add local functions Env.
@@ -493,7 +493,7 @@ comp_letrec_function(Fbs, B, Env0, L, St0) ->
     Ffun = fun ([Name,Def], St) -> comp_func(Name, Def, Env1, L, St) end,
     {Cfs,St1} = mapfoldl(Ffun, St0, Fbs),
     {Cb,St2} = comp_body(B, Env1, L, St1),
-    {c_letrec([L], Cfs, Cb),St2}.
+    {ann_c_letrec([L], Cfs, Cb),St2}.
 
 %% func_arity(FuncDef) -> Arity.
 %%  Return the arity of a function definition.
@@ -515,7 +515,7 @@ comp_func(Name, ['match-lambda'|Cls], Env, L, St0) ->
     {Cfun,St1} = comp_match_lambda(Cls, Env, L, St0),
     {{Cf,Cfun},St1}.
 
-%% comp_if(IfBody, Env, Line, State) -> {#c_case{},State}.
+%% comp_if(IfBody, Env, Line, State) -> {c_case(),State}.
 %%  Compile in if form to a case testing the Test expression.
 
 comp_if([Test,True], Env, L, St) ->
@@ -524,28 +524,28 @@ comp_if([Test,True,False], Env, L, St) ->
     comp_if(Test, True, False, Env, L, St).
 
 comp_if(Te, Tr, Fa, Env, L, St0) ->
-    {Cte,St1} = comp_expr(Te, Env, L, St0),    %Test expression
-    {Ctr,St2} = comp_expr(Tr, Env, L, St1),    %True expression
-    {Cfa,St3} = comp_expr(Fa, Env, L, St2),    %False expression
+    {Cte,St1} = comp_expr(Te, Env, L, St0),     %Test expression
+    {Ctr,St2} = comp_expr(Tr, Env, L, St1),     %True expression
+    {Cfa,St3} = comp_expr(Fa, Env, L, St2),     %False expression
     True = c_atom(true),
     False = c_atom(false),
-    Ctrue = c_clause([L], [True], Ctr),
-    Cfalse = c_clause([L], [False], Cfa),
+    Ctrue = ann_c_clause([L], [True], Ctr),
+    Cfalse = ann_c_clause([L], [False], Cfa),
     Cfail = if_fail(L, St3),
-    {c_case([L], Cte, [Ctrue,Cfalse,Cfail]),St3}.
+    {ann_c_case([L], Cte, [Ctrue,Cfalse,Cfail]),St3}.
 
 %% This produces code which is harder to optimise, strangely enough.
 %% comp_if(Te, Tr, Fa, Env, L, St0) ->
-%%     {Cte,St1} = comp_expr(Te, Env, L, St0),    %Test expression
-%%     {Ctr,St2} = comp_expr(Tr, Env, L, St1),    %True expression
-%%     {Cfa,St3} = comp_expr(Fa, Env, L, St2),    %False expression
+%%     {Cte,St1} = comp_expr(Te, Env, L, St0),     %Test expression
+%%     {Ctr,St2} = comp_expr(Tr, Env, L, St1),     %True expression
+%%     {Cfa,St3} = comp_expr(Fa, Env, L, St2),     %False expression
 %%     If = fun ([Ctest], _, _, St) ->
 %%          True = c_atom(true),
 %%          False = c_atom(false),
-%%          Ctrue = c_clause([L], [True], Ctr),
-%%          Cfalse = c_clause([L], [Fail], Cfa),
+%%          Ctrue = ann_c_clause([L], [True], Ctr),
+%%          Cfalse = ann_c_clause([L], [Fail], Cfa),
 %%          Cfail = if_fail(L, St),
-%%          {c_case([L], Ctest, [Ctrue,Cfalse,Cfail]),St}
+%%          {ann_c_case([L], Ctest, [Ctrue,Cfalse,Cfail]),St}
 %%      end,
 %%     simple_seq([Cte], If, Env, L, St3).
 
@@ -559,17 +559,17 @@ if_fail(L, St) ->
 
 fail_clause(Pats, Arg, Fann, L, St) ->
     Ann = line_file_anno(L, St),
-    c_clause([L,compiler_generated],            %It is compiler generated
-             Pats, c_primop(Fann ++ Ann, c_atom(match_fail), [Arg])).
+    ann_c_clause([L,compiler_generated],        %It is compiler generated
+                 Pats, ann_c_primop(Fann ++ Ann, c_atom(match_fail), [Arg])).
 
-%% comp_case(Expr, Clauses, Env, Line, State) -> {#c_case{},State}.
+%% comp_case(Expr, Clauses, Env, Line, State) -> {c_case(),State}.
 %% Compile a case.
 
 comp_case(E, Cls, Env, L, St0) ->
     {Ce,St1} = comp_expr(E, Env, L, St0),
     {Ccs,St2} = case_clauses(Cls, Env, L, St1),
     Cf = case_fail(L, St2),
-    {c_case([L], Ce, Ccs ++ [Cf]),St2}.
+    {ann_c_case([L], Ce, Ccs ++ [Cf]),St2}.
 
 case_clauses(Cls, Env, L, St) ->
     mapfoldl(fun (Cl, Sta) -> comp_clause(Cl, Env, L, Sta) end,
@@ -592,14 +592,14 @@ rec_clauses([Cl|Cls], Env, L, St0) ->
 rec_clauses([], _, _, St) ->
     {[],c_atom(infinity),c_atom(true),St}.
 
-%% comp_clause(Clause, Env, Line, State) -> {#c_clause{},State}.
+%% comp_clause(Clause, Env, Line, State) -> {c_clause(),State}.
 %%  This is a case/receive clause where the is only one pattern.
 
 comp_clause([Pat|Body], Env0, L, St0) ->
     {Cp,Pvs,St1} = pattern(Pat, L, St0),
     Env1 = add_vbindings(Pvs, Env0),
     {Cg,Cb,St2} = comp_clause_body(Body, Env1, L, St1),
-    {c_clause([L], [Cp], Cg, Cb),St2}.
+    {ann_c_clause([L], [Cp], Cg, Cb),St2}.
 
 comp_clause_body([['when'|Guard]|Body], Env, L, St0) ->
     {Cg,St1} = comp_guard(Guard, Env, L, St0),
@@ -609,7 +609,7 @@ comp_clause_body(Body, Env, L, St0) ->
     {Cb,St1} = comp_body(Body, Env, L, St0),
     {c_atom(true),Cb,St1}.
 
-%% comp_try(Body, Env, Line, State) -> {#c_try{},State}.
+%% comp_try(Body, Env, Line, State) -> {c_try(),State}.
 %% Compile a try. We know that case is optional but must have at least
 %% one of catch or after. Complicated by the behaviour of the after
 %% which means we split try with all parts into two try's.
@@ -621,7 +621,7 @@ comp_try([E|Body], Env, L, St) ->
     After = tag_tail(Body, 'after'),
     comp_try(E, Case, Catch, After, Env, L, St). %Now build the bugger
 
-%% comp_try(Exp, Case, Catch, After, Env, L, St) -> {#c_try{},State}.
+%% comp_try(Exp, Case, Catch, After, Env, L, St) -> {c_try(),State}.
 
 comp_try(E, Case, [], [], Env, L, St0) ->
     %% No catch or after - (try E [(case ...)])
@@ -630,54 +630,54 @@ comp_try(E, Case, [], [], Env, L, St0) ->
     {Cv,Cc,St2} = try_case(Case, Env, L, St1),
     {[_,Val,Info]=Evs,St3} = new_c_vars(3, L, St2), %Tag, Value, Info
     After = raise_primop([Info,Val], L, St2),
-    {c_try([L], Ce, [Cv], Cc, Evs, After),St3};
+    {ann_c_try([L], Ce, [Cv], Cc, Evs, After),St3};
 comp_try(E, Case, Catch, [], Env, L, St0) ->
     %% No after - (try E [(case ...)] (catch ...))
     {Ce,St1} = comp_expr(E, Env, L, St0),
     {Cv,Cc,St2} = try_case(Case, Env, L, St1),
     {Evs,Ecs,St3} = try_exception(Catch, Env, L, St2),
-    {c_try([L], Ce, [Cv], Cc, Evs, Ecs),St3};
+    {ann_c_try([L], Ce, [Cv], Cc, Evs, Ecs),St3};
 comp_try(E, [], [], After, Env, L, St0) ->
     %% Just after - (try E (after ...))
     {Ce,St1} = comp_expr(E, Env, L, St0),
     {Cv,St2} = new_c_var(L, St1),
     {Ca,St3} = comp_body(After, Env, L, St2),
-    Cb = c_seq([L], Ca, Cv),
+    Cb = ann_c_seq([L], Ca, Cv),
     {Evs,Ecs,St4} = try_after(After, Env, L, St3),
-    {c_try([L], Ce, [Cv], Cb, Evs, Ecs),St4};
+    {ann_c_try([L], Ce, [Cv], Cb, Evs, Ecs),St4};
 comp_try(E, Case, Catch, After, Env, L, St) ->
     %% Both catch and after - (try E [(case ...)] (catch ...) (after ...))
     %% The case where all options are given.
     Try = ['try',E,['case'|Case],['catch'|Catch]],
     comp_try(Try, [], [], After, Env, L, St).
 
-%% try_case(CaseClauses, Env, Line, State) -> {Var,#c_case{}|#c_var{},State}.
+%% try_case(CaseClauses, Env, Line, State) -> {Var,c_case()|c_var(),State}.
 %% Case is optional, no case just returns value.
 
-try_case([], _, L, St0) ->            %No case, just return value
+try_case([], _, L, St0) ->                      %No case, just return value
     {Cv,St1} = new_c_var(L, St0),
     {Cv,Cv,St1};
 try_case(Cls, Env, L, St0) ->
     {Cv,St1} = new_c_var(L, St0),
     {Ccs,St2} = case_clauses(Cls, Env, L, St1),
     Cf = try_case_fail(L, St2),
-    {Cv,c_case([L], Cv, Ccs ++ [Cf]),St2}.
+    {Cv,ann_c_case([L], Cv, Ccs ++ [Cf]),St2}.
 
 try_case_fail(L, St) ->
     Cv = c_var(omega),
     fail_clause([Cv], c_tuple([c_atom(try_clause),Cv]), [], L, St).
 
-%% try_exception(CatchClauses, Env, L, State) -> {Vars,#c_case{},State}.
+%% try_exception(CatchClauses, Env, L, State) -> {Vars,c_case(),State}.
 
 try_exception(Cls, Env, L, St0) ->
     %% Note that Tag is not needed for rethrow - it is already in Info.
-    {Cvs,St1} = new_c_vars(3, L, St0),        %Tag, Value, Info
+    {Cvs,St1} = new_c_vars(3, L, St0),          %Tag, Value, Info
     {Ccs,St2} = case_clauses(Cls, Env, L, St1),
     [_,Val,Info] = Cvs,
     Arg = c_tuple(Cvs),
-    Fc = c_clause([L,compiler_generated],       %It is compiler generated
-                  [Arg], raise_primop([Info,Val], L, St2)),
-    Excp = c_case([L], Arg, Ccs ++ [Fc]),
+    Fc = ann_c_clause([L,compiler_generated],   %It is compiler generated
+                      [Arg], raise_primop([Info,Val], L, St2)),
+    Excp = ann_c_case([L], Arg, Ccs ++ [Fc]),
     {Cvs,Excp,St2}.
 
 %% try_after(AfterBody, Env, L, State) -> {Vars,After,State}.
@@ -686,11 +686,11 @@ try_after(B, Env, L, St0) ->
     %% Note that Tag is not needed for rethrow - it is already in Info.
     {[_,Val,Info]=Cvs,St1} = new_c_vars(3, L, St0), %Tag, Value, Info
     {Cb,St2} = comp_body(B, Env, L, St1),
-    After = c_seq([L], Cb, raise_primop([Info,Val], L, St2)),
+    After = ann_c_seq([L], Cb, raise_primop([Info,Val], L, St2)),
     {Cvs,After,St2}.
 
 raise_primop(Args, L, _) ->
-    c_primop([L], c_atom(raise), Args).
+    ann_c_primop([L], c_atom(raise), Args).
 
 tag_tail([[Tag|Tail]|_], Tag) -> Tail;
 tag_tail([_|Try], Tag) -> tag_tail(Try, Tag);
@@ -714,10 +714,11 @@ comp_funcall(['match-lambda'|Cls]=F, As, Env, L, St0) ->
         true ->
             %% Expand comp_let as we need to special case body.
             {Cf,St1} = comp_match_lambda(Cls, Env, L, St0),
-            #c_fun{vars=Cvs,body=Cb} = Cf,
+            Cvs = fun_vars(Cf),
+            Cb = fun_body(Cf),
             Efun = fun (E, St) -> comp_expr(E, Env, L, St) end,
             {Ces,St2} = mapfoldl(Efun, St1, As),
-            {c_let([L], Cvs, c_values(Ces), Cb),St2};
+            {ann_c_let([L], Cvs, ann_c_values(Ces), Cb),St2};
         false ->                %Catch arg mismatch at runtime
             comp_funcall_1(F, As, Env, L, St0)
     end;
@@ -727,7 +728,7 @@ comp_funcall(F, As, Env, L, St0) ->
 comp_funcall_1(F, As, Env, L, St0) ->
     App = fun ([Cf|Cas], _, Li, St) ->
                   Ann = line_file_anno(Li, St),
-                  {c_apply(Ann, Cf, Cas),St}
+                  {ann_c_apply(Ann, Cf, Cas),St}
           end,
     comp_args([F|As], App, Env, L, St0).
 
@@ -780,12 +781,12 @@ comp_bitsegs([Vsp|Segs], Csegs, Env, L, St0) ->
     {Cval,Csize,Un,Ty,Fs,St1} = comp_bitseg(Vsp, Env, L, St0),
     %% Sequentialise Val and Size if necessary, then do rest
     Next = fun ([Cv,Csz], En, Li, St) ->
-                   Cs = c_bitseg(Cv, Csz, Un, Ty, Fs),
+                   Cs = c_bitstr(Cv, Csz, Un, Ty, Fs),
                    comp_bitsegs(Segs, [Cs|Csegs], En, Li, St)
            end,
     simple_seq([Cval,Csize], Next, Env, L, St1);
 comp_bitsegs([], Csegs, _, L, St) ->
-    {c_binary([L], reverse(Csegs)),St}.
+    {ann_c_binary([L], reverse(Csegs)),St}.
 
 %% comp_bitseg(ValSpec, Env, Line, State) -> {Cval,Csize,Unit,Type,Fs,State}.
 %% Need to handle some special cases.
@@ -811,26 +812,26 @@ comp_bitseg({Val,Sz,{Ty,Un,Si,En}}, Env, L, St0) ->
 comp_map(Args, Env, L, St) ->
     Mapper = fun (Cas, _, L, St) ->
                      Pairs = comp_mappairs(Cas, assoc, L),
-                     {#c_map{anno=[L],arg=c_lit(#{}),es=Pairs},St}
+                     {ann_c_map([L], c_lit(#{}), Pairs),St}
              end,
     comp_args(Args, Mapper, Env, L, St).
 
 comp_set_map(Map, Args, Env, L, St) ->
     Mapper = fun ([Cmap|Cas], _, L, St) ->
                      Pairs = comp_mappairs(Cas, assoc, L),
-                     {#c_map{anno=[L],arg=Cmap,es=Pairs},St}
+                     {ann_c_map([L], Cmap, Pairs),St}
              end,
     comp_args([Map|Args], Mapper, Env, L, St).
 
 comp_update_map(Map, Args, Env, L, St) ->
     Mapper = fun ([Cmap|Cas], _, L, St) ->
                      Pairs = comp_mappairs(Cas, exact, L),
-                     {#c_map{anno=[L],arg=Cmap,es=Pairs},St}
+                     {ann_c_map([L], Cmap, Pairs),St}
              end,
     comp_args([Map|Args], Mapper, Env, L, St).
 
 comp_mappairs([K,V|Ps], Op, L) ->
-    [#c_map_pair{anno=[L],op=c_lit(Op),key=K,val=V}|comp_mappairs(Ps, Op, L)];
+    [ann_c_map_pair([L], c_lit(Op), K, V)|comp_mappairs(Ps, Op, L)];
 comp_mappairs([], _, _) -> [].
 -else.
 comp_map(_, _, _, St) -> {c_lit(map),St}.
@@ -850,7 +851,7 @@ comp_guard(Gts, Env, L, St0) ->
     Cv = c_var('Try'),
     Evs = [c_var('T'),c_var('R')],              %Why only two?
     False = c_atom(false),                      %Exception returns false
-    {c_try([L], Ce, [Cv], Cv, Evs, False),St1}.
+    {ann_c_try([L], Ce, [Cv], Cv, Evs, False),St1}.
 
 %% comp_gtest(GuardTests, Env, Line, State) -> {CoreTest,State}.
 %%  Compile a guard test, making sure it returns a boolean value. We
@@ -871,7 +872,7 @@ comp_guard(Gts, Env, L, St0) ->
 %%     false ->
 %%         Call = fun (Cas, _, L, St) ->
 %%                Ann = line_file_anno(L, St),
-%%                {c_call(Ann, c_atom(erlang), c_atom('=:='), Cas),St}
+%%                {ann_c_call(Ann, c_atom(erlang), c_atom('=:='), Cas),St}
 %%            end,
 %%         comp_gargs([Test,?Q(true)], Call, Env, L, St0)
 %%     end;
@@ -881,7 +882,7 @@ comp_gtest(Ts, Env, L, St0) ->            %Not a bool test or boolean
     True = comp_lit(true),
     Call = fun (Cas, _, Li, St) ->
                    Ann = line_file_anno(Li, St),
-                   {c_call(Ann, c_atom(erlang), c_atom('=:='), Cas),St}
+                   {ann_c_call(Ann, c_atom(erlang), c_atom('=:='), Cas),St}
            end,
     simple_seq([Cg,True], Call, Env, L, St1).
 
@@ -938,7 +939,7 @@ comp_gexpr([Fun|As], Env, L, St) ->
                    Ar = length(Cas),
                    {yes,M,F} = get_gbinding(Fun, Ar, En),
                    Ann = line_file_anno(Li, Sta),
-                   {c_call(Ann, c_atom(M), c_atom(F), Cas),Sta}
+                   {ann_c_call(Ann, c_atom(M), c_atom(F), Cas),Sta}
            end,
     comp_gargs(As, Call, Env, L, St);
 comp_gexpr(Symb, _, _, St) when is_atom(Symb) ->
@@ -953,7 +954,7 @@ comp_gargs(As, Call, Env, L, St0) ->
     {Cas,St1} = mapfoldl(fun (A, St) -> comp_gexpr(A, Env, L, St) end, St0, As),
     simple_seq(Cas, Call, Env, L, St1).
 
-%% comp_gif(IfBody, Env, Line, State) -> {#c_case{},State}.
+%% comp_gif(IfBody, Env, Line, State) -> {c_case(),State}.
 %%  Compile in if form to a case testing the Test expression.
 
 comp_gif([Test,True], Env, L, St) ->
@@ -968,10 +969,10 @@ comp_gif(Te, Tr, Fa, Env, L, St0) ->
     True = c_atom(true),
     False = c_atom(false),
     Omega = c_var(omega),
-    Ctrue = c_clause([L], [True], Ctr),
-    Cfalse = c_clause([L], [False], Cfa),
-    Cfail = c_clause([L,compiler_generated], [Omega], Omega),
-    {c_case([L], Cte, [Ctrue,Cfalse,Cfail]),St3}.
+    Ctrue = ann_c_clause([L], [True], Ctr),
+    Cfalse = ann_c_clause([L], [False], Cfa),
+    Cfail = ann_c_clause([L,compiler_generated], [Omega], Omega),
+    {ann_c_case([L], Cte, [Ctrue,Cfalse,Cfail]),St3}.
 
 %% This produces code which is harder to optimise, strangely enough.
 %% comp_gif(Te, Tr, Fa, Env, L, St0) ->
@@ -982,10 +983,10 @@ comp_gif(Te, Tr, Fa, Env, L, St0) ->
 %%          True = c_atom(true),
 %%          False = c_atom(false),
 %%          Omega = c_var(omega),
-%%          Ctrue = c_clause([L], [True], Ctr),
-%%          Cfalse = c_clause([L], [False], Cfa),
-%%          Cfail = c_clause([L,compiler_generated], [Omega], Omega),
-%%          {c_case([L], Ctest, [Ctrue,Cfalse,Cfail]),St}
+%%          Ctrue = ann_c_clause([L], [True], Ctr),
+%%          Cfalse = ann_c_clause([L], [False], Cfa),
+%%          Cfail = ann_c_clause([L,compiler_generated], [Omega], Omega),
+%%          {ann_c_case([L], Ctest, [Ctrue,Cfalse,Cfail]),St}
 %%      end,
 %%     simple_seq([Cte], If, Env, L, St3).
 
@@ -1031,7 +1032,7 @@ pattern(Bin, _, Vs, St) when is_bitstring(Bin) ->
 pattern(Tup, _, Vs, St) when is_tuple(Tup) ->
     {comp_lit(Tup),Vs,St};
 pattern(Symb, L, Vs, St) when is_atom(Symb) ->
-    pat_symb(Symb, L, Vs, St);            %Variable
+    pat_symb(Symb, L, Vs, St);                  %Variable
 pattern(Numb, _, Vs, St) when is_number(Numb) -> {c_lit(Numb),Vs,St}.
 
 pat_list([P|Ps], L, Vs0, St0) ->
@@ -1048,49 +1049,63 @@ pat_symb(Symb, _, Vs, St) ->
 
 %% pat_alias(CorePat, CorePat) -> AliasPat.
 %%  Normalise aliases. This has been taken from v3_core.erl in the
-%%  erlang compiler. Trap bad aliases by throwing 'nomatch'.
+%%  erlang compiler. This is more complicated in core as we can
+%%  sometimes get structures as "literal". Trap bad aliases by
+%%  throwing 'nomatch' as these should have been caught in lfe_lint.
 
-pat_alias(#c_var{name=V1}, P2) -> #c_alias{var=#c_var{name=V1},pat=P2};
-pat_alias(P1, #c_var{name=V2}) -> #c_alias{var=#c_var{name=V2},pat=P1};
-pat_alias(#c_cons{}=Cons, #c_literal{anno=A,val=[H|T]}=S) ->
-    pat_alias(Cons, #c_cons{anno=A,hd=#c_literal{anno=A,val=H},
-                tl=S#c_literal{val=T}});
-pat_alias(#c_literal{anno=A,val=[H|T]}=S, #c_cons{}=Cons) ->
-    pat_alias(#c_cons{anno=A,hd=#c_literal{anno=A,val=H},
-              tl=S#c_literal{val=T}}, Cons);
-pat_alias(#c_cons{anno=A,hd=H1,tl=T1}, #c_cons{hd=H2,tl=T2}) ->
-    #c_cons{anno=A,hd=pat_alias(H1, H2),tl=pat_alias(T1, T2)};
-pat_alias(#c_tuple{es=Es1}, #c_tuple{es=Es2}) ->
-    #c_tuple{es=pat_alias_list(Es1, Es2)};
-pat_alias(#c_binary{segments=Segs1}=Bin, #c_binary{segments=Segs2}) ->
-    Bin#c_binary{segments=pat_alias_list(Segs1, Segs2)};
-pat_alias(#c_bitstr{val=P1,size=Sz,unit=U,type=T,flags=F}=Bitstr,
-      #c_bitstr{val=P2,size=Sz,unit=U,type=T,flags=F}) ->
-    Bitstr#c_bitstr{val=pat_alias(P1, P2)};
-pat_alias(#c_alias{var=V1,pat=P1}, #c_alias{var=V2,pat=P2}) ->
-    if V1 =:= V2 -> pat_alias(P1, P2);
-       true -> #c_alias{var=V1,pat=#c_alias{var=V2,pat=pat_alias(P1, P2)}}
-    end;
-pat_alias(#c_alias{var=V1,pat=P1}, P2) ->
-    #c_alias{var=V1,pat=pat_alias(P1, P2)};
-pat_alias(P1, #c_alias{var=V2,pat=P2}) ->
-    #c_alias{var=V2,pat=pat_alias(P1, P2)};
-pat_alias(P1, P2) ->
-    case {core_lib:set_anno(P1, []),core_lib:set_anno(P2, [])} of
-    {P,P} -> P;                %Same pattern.
-    _ -> throw(nomatch)
+pat_alias(Cp1, Cp2) ->
+    %% io:format("pa: ~p\n", [{Cp1,Cp2}]),
+    case {cerl:type(Cp1),cerl:type(Cp2)} of
+        {var,_} -> c_alias(Cp1, Cp2);
+        {_,var} -> c_alias(Cp2, Cp1);
+        {cons,literal} ->
+            pat_alias_cons(Cp1, Cp2);
+        {literal,cons} ->
+            pat_alias_cons(Cp2, Cp1);
+        {cons,cons} ->
+            c_cons(pat_alias(cons_hd(Cp1), cons_hd(Cp2)),
+                   pat_alias(cons_tl(Cp1), cons_tl(Cp2)));
+        {tuple,literal} ->
+            pat_alias_tuple(Cp1, Cp2);
+        {literal,tuple} ->
+            pat_alias_tuple(Cp2, Cp1);
+        {tuple,tuple} ->
+            c_tuple(pat_alias_list(tuple_es(Cp1), tuple_es(Cp2)));
+        {alias,alias} ->
+            Cv1 = alias_var(Cp1),
+            Cv2 = alias_var(Cp2),
+            if Cv1 =:= Cv2 ->
+                    pat_alias(alias_pat(Cp1), alias_pat(Cp2));
+               true ->
+                    c_alias(Cv1, c_alias(Cv2, pat_alias(alias_pat(Cp1),
+                                                        alias_pat(Cp2))))
+            end;
+        {alias,_} ->
+            c_alias(alias_var(Cp1), pat_alias(alias_pat(Cp1), Cp2));
+        {_,alias} ->
+            c_alias(alias_var(Cp2), pat_alias(Cp1, alias_pat(Cp2)));
+        _ ->
+            %% Check that they are the same except for annotation.
+            case {set_ann(Cp1, []),set_ann(Cp2, [])} of
+                {P,P} -> Cp1;
+                _ -> throw({nomatch,Cp1,Cp2})
+            end
     end.
 
-%% pat_alias(Lp0, Rp0) ->
-%%     case {cerl:type(Lp0),cerl:type(Rp0)} of
-%%         {var,_} -> cerl:c_alias(Lp0, Rp0);
-%%         {_,var} -> cerl:c_alias(Rp0, Lp0);
-%%         {cons,literal} ->
-%%             Ann = cerl:get_ann(Rp0),
-%%             [H|T] = cerl:concrete(Rp0),
-%%             pat_alias(Lp0, cerl:ann_c_cons(Ann, cerl:ann_abstract(Ann, H),
-%%                                            cerl:ann_abstract(Ann, T)));
-%%         {literal,cons}
+pat_alias_cons(Cc, Cl) ->
+    case lit_val(Cl) of
+        [H|T] ->
+            %% Must be sure to build a #c_cons{} here
+            pat_alias(Cc, c_cons_skel(c_lit(H), c_lit(T)));
+        _ -> throw(nomatch)
+    end.
+
+pat_alias_tuple(Ct, Cl) ->
+    case lit_val(Cl) of
+        Tup when is_tuple(Tup) ->
+            update_c_tuple(Ct, pat_alias_list(tuple_es(Ct), data_es(Cl)));
+        _ -> throw(nomatch)
+    end.
 
 %% pat_alias_list([A1], [A2]) -> [A].
 
@@ -1099,12 +1114,12 @@ pat_alias_list([A1|A1s], [A2|A2s]) ->
 pat_alias_list([], []) -> [];
 pat_alias_list(_, _) -> throw(nomatch).
 
-%% pat_binary(Segs, Line, PatVars, State) -> {#c_binary{},PatVars,State}.
+%% pat_binary(Segs, Line, PatVars, State) -> {c_binary(),PatVars,State}.
 
 pat_binary(Segs, L, Vs0, St0) ->
     Vsps = get_bitsegs(Segs),
     {Csegs,Vs1,St1} = pat_bitsegs(Vsps, L, Vs0, St0),
-    {c_binary([L], Csegs),Vs1,St1}.
+    {ann_c_binary([L], Csegs),Vs1,St1}.
 
 %% pat_bitsegs(Segs, Line, PatVars, State) -> {CBitsegs,PatVars,State}.
 
@@ -1116,7 +1131,7 @@ pat_bitsegs(Segs, L, Vs0, St0) ->
          end, {Vs0,St0}, Segs),
     {Csegs,Vs1,St1}.
 
-%% pat_bitseg(Seg, Line, PatVars, State) -> {#c_bitstr{},PatVars,State}.
+%% pat_bitseg(Seg, Line, PatVars, State) -> {c_bitstr(),PatVars,State}.
 %%  ??? Should noenv be lfe_env:new() instead ???
 %%  ??? We know its correct so why worry? ???
 
@@ -1125,26 +1140,26 @@ pat_bitseg({Pat,_,{Ty,_,Si,En}}, L, Vs0, St0)
     %% Special case utf types.
     {Cpat,Vs1,St1} = pattern(Pat, L, Vs0, St0),
     Undef = c_atom(undefined),
-    {c_bitseg(Cpat,Undef,Undef,c_atom(Ty),c_lit([Si,En])),Vs1,St1};
+    {c_bitstr(Cpat,Undef,Undef,c_atom(Ty),c_lit([Si,En])),Vs1,St1};
 pat_bitseg({Pat,all,{binary,_,_,_}=Ty}, L, Vs, St) ->
     pat_bitseg({Pat,?Q(all),Ty}, L, Vs, St);
 pat_bitseg({Pat,Sz,{Ty,Un,Si,En}}, L, Vs0, St0) ->
     {Cpat,Vs1,St1} = pattern(Pat, L, Vs0, St0),
     {Csize,St2} = comp_expr(Sz, noenv, L, St1),
-    {c_bitseg(Cpat, Csize, c_int(Un), c_atom(Ty), c_lit([Si,En])),Vs1,St2}.
+    {c_bitstr(Cpat, Csize, c_int(Un), c_atom(Ty), c_lit([Si,En])),Vs1,St2}.
 
 -ifdef(HAS_MAPS).
-%% pat_map(Args, Line, PatVars, State) -> {#c_map{},PatVars,State}.
+%% pat_map(Args, Line, PatVars, State) -> {c_map(),PatVars,State}.
 
 pat_map(Args, L, Vs0, St0) ->
     {Pairs,Vs1,St1} = pat_map_pairs(Args, L, Vs0, St0),
-    {#c_map{anno=[L],arg=c_lit(#{}),es=Pairs},Vs1,St1}.
+    {ann_c_map([L], c_lit(#{}), Pairs),Vs1,St1}.
 
 pat_map_pairs([K,V|As], L, Vs0, St0) ->
     Ck = pat_map_key(K),
     {Cv,Vs1,St1} = pattern(V, L, Vs0, St0),
     {Cps,Vs2,St2} = pat_map_pairs(As, L, Vs1, St1),
-    {[#c_map_pair{anno=[L],op=c_lit(exact),key=Ck,val=Cv}|Cps],
+    {[ann_c_map_pair([L], c_lit(exact), Ck, Cv)|Cps],
      Vs2,St2};
 pat_map_pairs([], _, Vs, St) -> {[],Vs,St}.
 
@@ -1154,86 +1169,6 @@ pat_map_key(L) -> comp_lit(L).
 pat_map(_, _, Vs, St) -> {c_lit(map),Vs,St}.
 -endif.
 
-%% c_call(Anno, Module, Name, Args) -> #c_call{}.
-%% c_try(Anno, Arg, Vars, Body, Evars, Handler) -> #c_try{}.
-%% c_fun(Anno, Vars, Body) -> #c_fun{}.
-%% c_primop(Anno, Name, Args) -> #c_primop{}.
-%% c_let(Anno, Vars, Arg, Body) -> #c_let{}.
-%% c_letrec(Anno, Defs, Body) -> #c_letrec{}.
-%% c_case(Anno, Arg, Clauses) -> #c_case{}.
-%% c_clause(Anno, Pats, Body) -> #c_clause{}.
-%% c_clause(Anno, Pats, Guard, Body) -> #c_clause{}.
-%% c_seq(Anno, Arg, Body) -> #c_seq{}.
-%% c_fname(Name, Arity) -> #c_fname{}.
-%% c_fname(Anno, Name, Arity) -> #c_fname{}.
-%% c_apply(Anno, Op, Args) -> #c_apply{}.
-
-%% c_cons(Head, Tail) -> #c_cons{}.
-%% c_tuple(Elements) -> #c_tuple{}.
-%% c_atom(Value) -> #c_literal{}.
-%% c_int(Value) -> #c_literal{}.
-%% c_float(Value) -> #c_literal{}.
-%% c_nil() -> #c_literal{}.
-%% c_lit(Value) -> #c_literal{}.
-%% c_lit(Anno, Value) -> #c_literal{}.
-%% c_var(Name) -> #c_var{}.
-%% c_binary(Anno, Segs) -> #c_binary{}.
-%% c_bitseg(Value, Size, Unit, Type, Sign, Endian) -> #c_bitseg{}.
-%%  Constructor functions for building Core forms.
-
-c_call(Ann, M, F, As) ->
-    #c_call{anno=Ann,module=M,name=F,args=As}.
-
-c_try(Ann, E, Vs, B, Evs, H) ->
-    #c_try{anno=Ann,arg=E,vars=Vs,body=B,evars=Evs,handler=H}.
-
-c_fun(Ann, Vs, B) ->
-    #c_fun{anno=Ann,vars=Vs,body=B}.
-
-c_primop(Ann, N, As) ->
-    #c_primop{anno=Ann,name=N,args=As}.
-
-c_let(Ann, Vs, A, B) ->
-    #c_let{anno=Ann,vars=Vs,arg=A,body=B}.
-
-c_letrec(Ann, Defs, B) ->
-    #c_letrec{anno=Ann,defs=Defs,body=B}.
-
-c_case(Ann, A, Cs) ->
-    #c_case{anno=Ann,arg=A,clauses=Cs}.
-
-c_clause(Ann, Ps, B) ->                         %Default true guard
-    c_clause(Ann, Ps, c_atom(true), B).
-
-c_clause(Ann, Ps, G, B) ->
-    #c_clause{anno=Ann,pats=Ps,guard=G,body=B}.
-
-c_seq(Ann, A, B) ->
-    #c_seq{anno=Ann,arg=A,body=B}.
-
-c_fname(Ann, N, A) -> #c_var{anno=Ann,name={N,A}}.
-c_fname(N, A) -> c_fname([], N, A).
-
-c_apply(Ann, Op, As) -> #c_apply{anno=Ann,op=Op,args=As}.
-
-c_values([V]) -> V;                                 %An optimisation
-c_values(Vs) -> #c_values{anno=[],es=Vs}.
-
-c_atom(A) -> #c_literal{anno=[],val=A}.
-c_int(I) -> #c_literal{anno=[],val=I}.
-c_float(F) -> #c_literal{anno=[],val=F}.
-c_nil() -> #c_literal{anno=[],val=[]}.
-c_lit(Ann, Val) -> #c_literal{anno=Ann,val=Val}.          %Generic literal
-c_lit(Val) -> c_lit([], Val).
-c_cons(Hd, Tl) -> #c_cons{anno=[],hd=Hd,tl=Tl}.
-c_tuple(Es) -> #c_tuple{anno=[],es=Es}.
-c_var(N) -> #c_var{anno=[],name=N}.
-
-c_binary(Ann, Segs) ->
-    #c_binary{anno=Ann,segments=Segs}.
-c_bitseg(Val, Sz, Un, Ty, Fs) ->
-    #c_bitstr{anno=[],val=Val,size=Sz,unit=Un,type=Ty,flags=Fs}.
-
 line_file_anno(L, St) ->
     [L,{file,St#cg.file}].
 
@@ -1242,34 +1177,28 @@ line_file_anno(L, St) ->
 %%  literal as possible. This function will fail if the value is not
 %%  expressable as a literal (for instance, a pid).
 
-comp_lit([H0|T0]) ->
-    case {comp_lit(H0),comp_lit(T0)} of
-        {#c_literal{anno=Ann,val=H},#c_literal{val=T}} ->
-            c_lit(Ann, [H|T]);
-        {H,T} -> c_cons(H, T)
-    end;
+comp_lit([H|T]) ->
+    Ch = comp_lit(H),
+    Ct = comp_lit(T),
+    %% c_cons is smart and can handle head and tail both literals.
+    c_cons(Ch, Ct);
 comp_lit([]) -> c_nil();
 comp_lit(T) when is_tuple(T) ->
     Es = comp_lit_list(tuple_to_list(T)),
-    case is_lit_list(Es) of
-        true -> c_lit(list_to_tuple(concrete_list(Es)));
-        false -> c_tuple(Es)
-    end;
+    %% c_tuple is smart and can handle a list of literals.
+    c_tuple(Es);
 comp_lit(A) when is_atom(A) -> c_atom(A);
 comp_lit(I) when is_integer(I) -> c_int(I);
 comp_lit(F) when is_float(F) -> c_float(F);
 comp_lit(Bin) when is_bitstring(Bin) ->
     Bits = comp_lit_bitsegs(Bin),
-    c_binary([], Bits);
+    ann_c_binary([], Bits);
 comp_lit(Map) when ?IS_MAP(Map) ->
     comp_lit_map(Map).
 
 comp_lit_list(Vals) -> [ comp_lit(V) || V <- Vals ].
 
-is_lit_list(Es) -> all(fun (E) -> is_record(E, c_literal) end, Es).
-
-concrete_list([#c_literal{val=V}|T]) -> [V|concrete_list(T)];
-concrete_list([]) -> [].
+is_lit_list(Es) -> all(fun (E) -> is_literal(E) end, Es).
 
 comp_lit_bitsegs(<<B:8,Bits/bitstring>>) ->         %Next byte
     [c_byte_bitseg(B, 8)|comp_lit_bitsegs(Bits)];
@@ -1280,16 +1209,16 @@ comp_lit_bitsegs(Bits) ->                           %Size < 8
     [c_byte_bitseg(B, N)].
 
 c_byte_bitseg(B, Sz) ->
-    c_bitseg(c_lit(B), c_int(Sz), c_int(1), c_atom(integer),
-         c_lit([unsigned,big])).
+    c_bitstr(c_lit(B), c_int(Sz), c_int(1), c_atom(integer),
+             c_lit([unsigned,big])).
 
 -ifdef(HAS_MAPS).
 comp_lit_map(Map) ->
     Pairs = comp_lit_mappairs(maps:to_list(Map)),
-    #c_map{anno=[],arg=c_lit(#{}),es=Pairs}.
+    ann_c_map([], c_lit(#{}), Pairs).
 
 comp_lit_mappairs([{K,V}|Ps]) ->
-    [#c_map_pair{anno=[],op=c_lit(assoc),key=comp_lit(K),val=comp_lit(V)}|
+    [ann_c_map_pair([], c_lit(assoc), comp_lit(K), comp_lit(V))|
      comp_lit_mappairs(Ps)];
 comp_lit_mappairs([]) -> [].
 -else.
@@ -1307,7 +1236,7 @@ new_fun_name(Pre, St) ->
     C = St#cg.fc,
     {list_to_atom("'" ++ Pre ++ "~" ++ integer_to_list(C)),St#cg{fc=C+1}}.
 
-%% new_c_var(Line, State) -> {#c_var{},State}.
+%% new_c_var(Line, State) -> {c_var(),State}.
 %% Create a hopefully new core variable.
 
 new_c_var(_, St) ->
@@ -1336,17 +1265,138 @@ safe_fetch(Key, D, Def) ->
 %% is_simple(CoreExp) -> bool().
 %%  Test if CoreExp is simple, i.e. just constructs terms.
 
-is_simple(#c_var{}) -> true;
-is_simple(#c_literal{}) -> true;
-is_simple(#c_cons{hd=H,tl=T}) ->
-    is_simple(H) andalso is_simple(T);
-is_simple(#c_tuple{es=Es}) -> is_simple_list(Es);
-is_simple(#c_binary{segments=Es}) -> is_simple_bin(Es);
-is_simple(_) -> false.
+is_simple(Ce) ->
+    case cerl:type(Ce) of
+        var -> true;
+        literal -> true;
+        cons ->
+            is_simple(cons_hd(Ce)) andalso is_simple(cons_tl(Ce));
+        tuple ->
+            is_simple_list(tuple_es(Ce));
+        binary ->
+            is_simple_bin(binary_segments(Ce));
+        _ -> false
+    end.
 
 is_simple_list(Es) -> all(fun is_simple/1, Es).
 
 is_simple_bin(Ss) ->
-    all(fun (#c_bitstr{val=E,size=S}) ->
-                is_simple(E) andalso is_simple(S)
+    all(fun (Seg) ->
+                is_simple(bitstr_val(Seg)) andalso is_simple(bitstr_size(Seg))
         end, Ss).
+
+%%  Constructor functions for building Core forms. These now just call
+%%  functions in cerl.
+
+c_module(Name, Exp, Defs) ->
+    cerl:c_module(Name, Exp, Defs).
+
+update_c_module(Mod, Name, Exp, Atts, Defs) ->
+    cerl:update_c_module(Mod, Name, Exp, Atts, Defs).
+
+ann_c_call(Ann, M, F, As) ->
+    cerl:ann_c_call(Ann, M, F, As).
+
+ann_c_try(Ann, E, Vs, B, Evs, H) ->
+    cerl:ann_c_try(Ann, E, Vs, B, Evs, H).
+
+ann_c_fun(Ann, Vs, B) ->
+    cerl:ann_c_fun(Ann, Vs, B).
+
+fun_vars(Fun) -> cerl:fun_vars(Fun).
+fun_body(Fun) -> cerl:fun_body(Fun).
+
+ann_c_primop(Ann, N, As) ->
+    cerl:ann_c_primop(Ann, N, As).
+
+ann_c_let(Ann, Vs, A, B) ->
+    cerl:ann_c_let(Ann, Vs, A, B).
+
+ann_c_letrec(Ann, Defs, B) ->
+    cerl:ann_c_letrec(Ann, Defs, B).
+
+ann_c_catch(Ann, Body) ->
+    cerl:ann_c_catch(Ann, Body).
+
+ann_c_receive(Ann, Cs, To, A) ->
+    cerl:ann_c_receive(Ann, Cs, To, A).
+
+ann_c_case(Ann, E, Cs) ->
+    cerl:ann_c_case(Ann, E, Cs).
+
+ann_c_clause(Ann, Ps, B) ->                         %Default true guard
+    cerl:ann_c_clause(Ann, Ps, B).
+
+ann_c_clause(Ann, Ps, G, B) ->
+    cerl:ann_c_clause(Ann, Ps, G, B).
+
+ann_c_seq(Ann, A, B) ->
+    cerl:ann_c_seq(Ann, A, B).
+
+update_c_seq(Node, A, B) ->
+    cerl:update_c_seq(Node, A, B).
+
+is_c_seq(Node) -> cerl:is_c_seq(Node).
+
+seq_arg(Seq) -> cerl:seq_arg(Seq).
+seq_body(Seq) -> cerl:seq_body(Seq).
+
+c_fname(N, A) -> cerl:c_fname(N, A).
+
+ann_c_apply(Ann, Op, As) ->
+    cerl:ann_c_apply(Ann, Op, As).
+
+ann_c_values(Vs) ->
+    cerl:ann_c_values([], Vs).
+
+get_ann(Node) -> cerl:get_ann(Node).
+set_ann(Node, Ann) -> cerl:set_ann(Node, Ann).
+
+c_alias(Var, Pat) -> cerl:c_alias(Var, Pat).
+alias_var(Alias) -> cerl:alias_var(Alias).
+alias_pat(Alias) -> cerl:alias_pat(Alias).
+
+c_atom(A) -> cerl:c_atom(A).
+c_int(I) -> cerl:c_int(I).
+c_float(F) -> cerl:c_float(F).
+c_nil() -> cerl:c_nil().
+
+c_lit(Ann, Val) -> cerl:ann_abstract(Ann, Val). %Generic literal
+c_lit(Val) -> cerl:abstract(Val).
+is_literal(Node) -> cerl:is_literal(Node).
+lit_val(Lit) -> cerl:concrete(Lit).
+
+c_cons(Hd, Tl) -> cerl:c_cons(Hd, Tl).
+c_cons_skel(Hd, Tl) -> cerl:c_cons_skel(Hd, Tl).
+cons_hd(Cons) -> cerl:cons_hd(Cons).
+cons_tl(Cons) -> cerl:cons_tl(Cons).
+
+c_tuple(Es) -> cerl:c_tuple(Es).
+update_c_tuple(Tup, Es) ->
+    cerl:update_c_tuple(Tup, Es).
+tuple_es(Tup) -> cerl:tuple_es(Tup).
+
+c_var(N) -> cerl:c_var(N).
+
+ann_c_binary(Ann, Segs) -> cerl:ann_c_binary(Ann, Segs).
+update_c_binary(Bin, Segs) ->
+    cerl:update_c_binary(Bin, Segs).
+binary_segments(Bin) -> cerl:binary_segments(Bin).
+
+c_bitstr(Val, Sz, Un, Ty, Fs) ->
+    cerl:c_bitstr(Val, Sz, Un, Ty, Fs).
+update_c_bitstr(Bit, Val, Sz, Un, Ty, Fs) ->
+    cerl:update_c_bitstr(Bit, Val, Sz, Un, Ty, Fs).
+bitstr_val(Bit) -> cerl:bitstr_val(Bit).
+bitstr_size(Bit) -> cerl:bitstr_size(Bit).
+bitstr_unit(Bit) -> cerl:bitstr_unit(Bit).
+bitstr_type(Bit) -> cerl:bitstr_type(Bit).
+bitstr_flags(Bit) -> cerl:bitstr_flags(Bit).
+
+ann_c_map(Ann, Arg, Ps) ->
+    cerl:ann_c_map(Ann, Arg, Ps).
+
+ann_c_map_pair(Ann, Op, Key, Val) ->
+    cerl:ann_c_map_pair(Ann, Op, Key, Val).
+
+data_es(Data) -> cerl:data_es(Data).
