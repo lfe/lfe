@@ -94,6 +94,8 @@ server(Env) ->
     %% Create a default base env of predefined shell variables with
     %% default nil bindings and basic shell macros.
     St = new_state("lfe", [], Env),
+    %% Set shell io to use LFE expand in edlin, ignore error.
+    io:setopts([{expand_fun,fun (B) -> lfe_edlin_expand:expand(B) end}]),
     Eval = start_eval(St),                      %Start an evaluator
     server_loop(Eval, St).                      %Run the loop
 
