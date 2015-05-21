@@ -53,9 +53,37 @@
 
 -define(DEFAULT_OPTS, [verbose,report]).
 
-file(Name) -> do_file(Name, ?DEFAULT_OPTS).
+file(Name) -> file(Name, ?DEFAULT_OPTS).
 
-file(Name, Opts) -> do_file(Name, Opts).
+file(Name, Opts) -> do_compile({file,Name}, Opts).
+
+%% forms(Forms) -> {ok,Mod,Bin,Warnings} | {error,Errors,Warnings}.
+%% forms(Forms, Options) -> {ok,Mod,Bin,Warnings} | {error,Errors,Warnings}.
+%%  Compile the LFE forms Forms, always return a binary.
+
+forms(Forms) -> forms(Forms, ?DEFAULT_OPTS).
+
+forms(Forms, Opts) -> do_compile({forms,Forms}, Opts).
+
+do_compile(Input, Opts) ->
+    Ifun = fun () ->
+		   Ret = try
+			     internal(Input, Opts)
+			 catch
+			     error:Reason ->
+				 {error,Reason}
+			 end,
+		   exit(Ret)
+	   end,
+    {Pid,Ref} = spawn_monitor(Ifun),
+    receive
+	{'DOWN',Ref,_,Pid,Res} -> Res
+    end.
+
+%% internal(Input, Options) -> Result.
+
+internal({file,Name}, Opts) -> do_file(Name, Opts);
+internal({forms,Forms}, Opts) -> do_forms(Forms, Opts).
 
 do_file(Name, Opts0) ->
     Opts1 = lfe_comp_opts(Opts0),
@@ -68,14 +96,6 @@ do_file(Name, Opts0) ->
             do_forms(St2#comp{code=Fs});
         {error,Error} -> do_error_return(St2#comp{errors=[Error]})
     end.
-
-%% forms(Forms) -> {ok,Mod,Bin,Warnings} | {error,Errors,Warnings}.
-%% forms(Forms, Options) -> {ok,Mod,Bin,Warnings} | {error,Errors,Warnings}.
-%%  Compile the LFE forms Forms, always return a binary.
-
-forms(Forms) -> do_forms(Forms, ?DEFAULT_OPTS).
-
-forms(Forms, Opts) -> do_forms(Forms, Opts).
 
 do_forms(Fs0, Opts0) ->
     Opts1 = lfe_comp_opts(Opts0),
@@ -114,11 +134,11 @@ outdir([]) -> ".".
 %%  Set the include path, we permit {i,Dir} and [i,Dir].
 
 include_path(#comp{ldir=Dir,opts=Opts}=St) ->
-    Ifun = fun ({i,I}, Is) -> [I|Is];
-               ([i,I], Is) -> [I|Is];
+    Ifun = fun ({i,I}, Is) -> [I|Is];		%Erlang wat
+               ([i,I], Is) -> [I|Is];		%LFE way
                (_, Is) -> Is
            end,
-    %% Same ordering as in the erlang compiler
+    %% Same ordering as in the erlang compiler.
     Is = [".",Dir|foldr(Ifun, [], Opts)],       %Default entries
     St#comp{ipath=Is}.
 
