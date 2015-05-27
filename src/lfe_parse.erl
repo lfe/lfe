@@ -242,11 +242,11 @@ parse1(#lp{l=none}=Lp, [T|_]=Ts) ->         %Guarantee a start line
     parse1(Lp#lp{l=line(T)}, Ts);
 parse1(#lp{l=L,st=St0,vs=Vs0}, Ts) ->
     case parse2(Ts, St0, Vs0) of
-    {done,Rest,[],[V]} -> {ok,L,V,Rest};
-    {more,[],St1,Vs1} -> {more,#lp{l=L,st=St1,vs=Vs1}};
-    {error,Line,Error,Rest,_,_} ->
-        %% Can't really continue from errors here.
-        {error,{Line,?MODULE,Error},Rest}
+        {done,Rest,[],[V]} -> {ok,L,V,Rest};
+        {more,[],St1,Vs1} -> {more,#lp{l=L,st=St1,vs=Vs1}};
+        {error,Line,Error,Rest,_,_} ->
+            %% Can't really continue from errors here.
+            {error,{Line,?MODULE,Error},Rest}
     end.
 
 %% parse2(Tokens, StateStack, ValueStack) ->
@@ -263,25 +263,25 @@ parse2(Ts, [{reduce,R}|St], Vs0) ->
     %% io:fwrite("p: ~p\n", [{R,Vs}]),
     %% Try to reduce values and push value on value stack.
     case reduce(R, Vs0) of
-    {error,L,E} -> {error,L,E,Ts,St,Vs0};
-    Vs1 -> parse2(Ts, St, Vs1)
+        {error,L,E} -> {error,L,E,Ts,St,Vs0};
+        Vs1 -> parse2(Ts, St, Vs1)
     end;
 parse2(Ts, [], Vs) -> {done,Ts,[],Vs};          %All done
 parse2([T|Ts]=Ts0, [S|St]=St0, Vs) ->
     %% io:fwrite("p: ~p\n", [{St0,Ts0}]),
     %% Try to match token type against state on stack.
     case type(T) of
-    S -> parse2(Ts, St, [T|Vs]);                %Match
-    Type ->                                     %Try to predict
-        case table(S, Type) of
-        error -> {error,line(T),{illegal,Type},Ts0,St0,Vs};
-        Top -> parse2(Ts0, Top ++ St, Vs)
-        end
+        S -> parse2(Ts, St, [T|Vs]);                %Match
+        Type ->                                     %Try to predict
+            case table(S, Type) of
+                error -> {error,line(T),{illegal,Type},Ts0,St0,Vs};
+                Top -> parse2(Ts0, Top ++ St, Vs)
+            end
     end;
 parse2([], St, Vs) ->                           %Need more tokens
     {more,[],St,Vs};
 parse2({eof,L}=Ts, St, Vs) ->                   %No more tokens
-    {error,L,{missing,token},Ts,St,Vs}.
+    {error,L,missing_token,Ts,St,Vs}.
 
 %% Access the fields of a token.
 type(T) -> element(1, T).
@@ -299,13 +299,13 @@ make_fun(FunStr) ->
     J = string:rchr(FunStr, $/),
     A = list_to_integer(string:substr(FunStr, J + 1)),
     case string:chr(FunStr, $:) of
-    0 ->
-        F = list_to_atom(string:substr(FunStr, 1, J - 1)),
-        ['fun', F, A];
-    I ->
-        F = list_to_atom(string:substr(FunStr, I + 1, J - I - 1)),
-        M = list_to_atom(string:substr(FunStr, 1, I - 1)),
-        ['fun', M, F, A]
+        0 ->
+            F = list_to_atom(string:substr(FunStr, 1, J - 1)),
+            ['fun', F, A];
+        I ->
+            F = list_to_atom(string:substr(FunStr, I + 1, J - I - 1)),
+            M = list_to_atom(string:substr(FunStr, 1, I - 1)),
+            ['fun', M, F, A]
     end.
 
 %% pair_list(List) -> [{A,B}].
@@ -318,7 +318,12 @@ pair_list([]) -> [].
 %% format_error(Error) -> String.
 %%  Format errors to printable string.
 
-format_error({missing,Tok}) ->
-    io_lib:fwrite("missing ~p", [Tok]);
+format_error(missing_token) -> "missing token";
 format_error({illegal,What}) ->
-    io_lib:fwrite("illegal ~p", [What]).
+    lfe_io:fwrite1("illegal ~p", [What]);
+format_error(Error) ->
+    %% A useful catch all.
+    case io_lib:deep_char_list(Error) of
+        true -> Error;
+        false -> lfe_io:print1(Error)
+    end.
