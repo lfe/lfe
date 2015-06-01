@@ -178,8 +178,8 @@ print1(Other, D) ->                             %Use standard Erlang for rest
 print1_symb(Symb) ->
     Cs = atom_to_list(Symb),
     case quote_symbol(Symb, Cs) of
-    true -> print1_string(Cs , $|);
-    false -> Cs
+        true -> print1_string(Cs , $|);
+        false -> Cs
     end.
 
 %% print1_bits(Bitstring) -> [char()]
@@ -239,32 +239,16 @@ print1_map_assoc({K,V}, D) ->
 quote_symbol('.', _) -> true;                   %Needs quoting
 quote_symbol(_, [C|Cs]=Cs0) ->
     case catch {ok,list_to_float(Cs0)} of
-    {ok,_} -> true;
-    _ -> case catch {ok,list_to_integer(Cs0)} of
-         {ok,_} -> true;
-         _ -> not (start_symb_char(C) andalso symb_chars(Cs))
-         end
+        {ok,_} -> true;
+        _ -> case catch {ok,list_to_integer(Cs0)} of
+                 {ok,_} -> true;
+                 _ -> not (lfe_scan:start_symbol_char(C) andalso
+                           symbol_chars(Cs))
+             end
     end;
 quote_symbol(_, []) -> true.
 
-symb_chars(Cs) -> all(fun symb_char/1, Cs).
-
-start_symb_char($#) -> false;
-start_symb_char($`) -> false;
-start_symb_char($') -> false;                   %'
-start_symb_char($,) -> false;
-start_symb_char($|) -> false;                   %Symbol quote character
-start_symb_char(C) -> symb_char(C).
-
-symb_char($() -> false;
-symb_char($)) -> false;
-symb_char($[) -> false;
-symb_char($]) -> false;
-symb_char(${) -> false;
-symb_char($}) -> false;
-symb_char($") -> false;
-symb_char($;) -> false;
-symb_char(C) -> ((C > $\s) and (C =< $~)) orelse (C > $\240).
+symbol_chars(Cs) -> all(fun lfe_scan:symbol_char/1, Cs).
 
 %% print1_string([Char], QuoteChar) -> [Char]
 %%  Generate the list of characters needed to print a string.
