@@ -21,14 +21,14 @@ B    = [01]
 O    = [0-7]
 D    = [0-9]
 H    = [0-9a-fA-F]
-B36    = [0-9a-zA-Z]
+B36  = [0-9a-zA-Z]
 U    = [A-Z]
 L    = [a-z]
 A    = ({U}|{L})
-DEL    = [][()}{";\000-\s]
-SYM    = [^][()}{";\000-\s]
-SSYM    = [^][()}{|";#`',\000-\s]
-WS    = ([\000-\s]|;[^\n]*)
+DEL  = [][()}{";\000-\s]
+SYM  = [^][()}{";\000-\s\177-\237]
+SSYM = [^][()}{"|;#`',\000-\s\177-\237]
+WS   = ([\000-\s]|;[^\n]*)
 
 Rules.
 %% Bracketed Comments using #| foo |#
@@ -50,12 +50,12 @@ Rules.
 %% Characters
 #\\(x{H}+|.)    :    char_token(string:substr(TokenChars, 3), TokenLine).
 %% String
-"(\\x{H}+;|\\.|[^"])*" :
+"(\\x{H}+;|\\.|[^"\\])*" :
             %% Strip quotes.
             S = string:substr(TokenChars, 2, TokenLen - 2),
             {token,{string,TokenLine,chars(S)}}.
 %% Symbols
-\|(\\x{H}+;|\\.|[^|])*\| :
+\|(\\x{H}+;|\\.|[^|\\])*\| :
             %% Strip quotes.
             S = string:substr(TokenChars, 2, TokenLen - 2),
             symbol_token(chars(S), TokenLine).
@@ -108,7 +108,30 @@ Erlang code.
 %% Author  : Robert Virding
 %% Purpose : Token definitions for Lisp Flavoured Erlang.
 
+-export([start_symbol_char/1,symbol_char/1]).
+
 -import(string, [substr/2,substr/3]).
+
+%% start_symbol_char(Char) -> true | false.
+%% symbol_char(Char) -> true | false.
+%%  Define start symbol chars and symbol chars.
+
+start_symbol_char($#) -> false;
+start_symbol_char($`) -> false;
+start_symbol_char($') -> false;                 %'
+start_symbol_char($,) -> false;
+start_symbol_char($|) -> false;                 %Symbol quote character
+start_symbol_char(C) -> symbol_char(C).
+
+symbol_char($() -> false;
+symbol_char($)) -> false;
+symbol_char($[) -> false;
+symbol_char($]) -> false;
+symbol_char(${) -> false;
+symbol_char($}) -> false;
+symbol_char($") -> false;
+symbol_char($;) -> false;
+symbol_char(C) -> ((C > $\s) and (C =< $~)) orelse (C > $\240).
 
 %% symbol_token(Chars, Line) -> {token,{symbol,Line,Symbol}} | {error,E}.
 %% Build a symbol from list of legal characters, else error.
