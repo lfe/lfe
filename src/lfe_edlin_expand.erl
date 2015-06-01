@@ -28,22 +28,38 @@
 -import(lists, [reverse/1, nthtail/2, prefix/2]).
 
 %% expand(CurrentBefore) ->
-%%     {yes, Expansion, Matches} | {no, Matches}
-%%  Try to expand the word before as either a module name or a function
-%%  name. We can handle white space around the seperating ':' but the
-%%  function name must be on the same line. CurrentBefore is reversed
-%%  and over_word/3 reverses the characters it finds. In certain cases
-%%  possible expansions are printed.
+%%     {yes, Expansion, Matches} | {no, Expansion, Matches}
+%%  Try to expand the word before as either a module name or a
+%%  function name. CurrentBefore is reversed and over_word/3 reverses
+%%  the characters it finds. In certain cases possible expansions are
+%%  printed.
+
 expand(Bef0) ->
-    {Bef1,Word,_} = edlin:over_word(Bef0, [], 0),
-    case over_white(Bef1, [], 0) of
-        {[$:|Bef2],_White,_Nwh} ->
-            {Bef3,_White1,_Nwh1} = over_white(Bef2, [], 0),
-            {_,Mod,_Nm} = edlin:over_word(Bef3, [], 0),
-            expand_function_name(Mod, Word);
-        {_,_,_} ->
-            expand_module_name(Word)
+    {Bef1,S1,_} = over_symbol(Bef0, [], 0),
+    case Bef1 of
+        [$:|Bef2] ->                            %After a ':'
+            {Bef3,S2,_} = over_symbol(Bef2, [], 0),
+            need_lparen(Bef3, fun () -> expand_function_name(S2, S1) end);
+        Bef2 ->
+            need_lparen(Bef2, fun () -> expand_module_name(S1) end)
     end.
+
+need_lparen(Bef, Do) ->
+    case over_white(Bef, [], 0) of
+        {[$(|_],_,_} -> Do();
+        {_,_,_} -> {no,[],[]}
+    end.
+
+%% expand(Bef0) ->
+%%     {Bef1,Word,_} = edlin:over_word(Bef0, [], 0),
+%%     case over_white(Bef1, [], 0) of
+%%         {[$:|Bef2],_White,_Nwh} ->
+%%             {Bef3,_White1,_Nwh1} = over_white(Bef2, [], 0),
+%%             {_,Mod,_Nm} = edlin:over_word(Bef3, [], 0),
+%%             expand_function_name(Mod, Word);
+%%         {_,_,_} ->
+%%             expand_module_name(Word)
+%%     end.
 
 expand_module_name(Prefix) ->
     match(Prefix, code:all_loaded(), ":").
@@ -70,7 +86,7 @@ expand_function_name(ModStr, FuncPrefix) ->
 %% If it's a quoted symbol, atom_to_list/1 will do the wrong thing.
 to_symbol(Str) ->
     case lfe_scan:string(Str) of
-        {ok, [{symbol,_,A}], _} -> {ok,A};
+        {ok,[{symbol,_,A}],_} -> {ok,A};
         _ -> error
     end.
 
@@ -176,6 +192,49 @@ all_tails([], L)         -> L.
 all_nil([]) -> true;
 all_nil([[] | Rest]) -> all_nil(Rest);
 all_nil(_) -> false.
+
+%% over_symbol(Chars, InitialStack, InitialCount) ->
+%%      {RemainingChars,CharStack,Count}
+%% over_non_symbol(Chars, InitialStack, InitialCount) ->
+%%      {RemainingChars,CharStack,Count}
+%%  Step over symbol/non-symbol characters pushing the stepped over
+%%  ones on the stack.
+
+over_symbol(Cs, Stack, N) ->
+    L = length([1 || $| <- Cs]),
+    case L rem 2 of
+        0 -> over_symbol1(Cs, Stack, N);
+        1 -> until_quote(Cs, Stack, N)
+    end.
+
+until_quote([$||Cs], Stack, N) ->
+    {Cs, [$||Stack], N+1};
+until_quote([C|Cs], Stack, N) ->
+    until_quote(Cs, [C|Stack], N+1).
+
+over_symbol1([$||Cs], Stack, N) ->
+    until_quote(Cs, [$||Stack], N+1);
+over_symbol1(Cs, Stack, N) ->
+    over_symbol2(Cs, Stack, N).
+
+over_symbol2([C|Cs], Stack, N) ->
+    case symbol_char(C) of
+        true -> over_symbol2(Cs, [C|Stack], N+1);
+        false -> {[C|Cs],Stack,N}
+    end;
+over_symbol2([], Stack, N) when is_integer(N) ->
+    {[],Stack,N}.
+
+over_non_symbol([C|Cs], Stack, N) ->
+    case symbol_char(C) of
+        true -> {[C|Cs],Stack,N};
+        false -> over_non_symbol(Cs, [C|Stack], N+1)
+    end;
+over_non_symbol([], Stack, N) ->
+    {[],Stack,N}.
+
+symbol_char($:) -> false;                       %We want to separate on this
+symbol_char(C) -> lfe_scan:symbol_char(C).
 
 %% over_white(Chars, InitialStack, InitialCount) ->
 %%    {RemainingChars,CharStack,Count}.
