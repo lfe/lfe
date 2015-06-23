@@ -1207,16 +1207,12 @@ pat_bitseg({Pat,Sz,{Ty,Un,Si,En}}, L, Vs0, St0) ->
 
 -ifdef(HAS_MAPS).
 %% pat_map(Args, Line, PatVars, State) -> {c_map(),PatVars,State}.
-%%  This is a little tricky as ann_c_map will create a literal if the
-%%  map pattern is a literal and this is NOT what the compiler wants.
-%%  So we have to KNOW exactly how ann_c_map works. This sucks!
 
 pat_map(Args, L, Vs0, St0) ->
     {Pairs,Vs1,St1} = pat_map_pairs(Args, L, Vs0, St0),
     %% Build #c_map{} then fill it in.
-    Map0 = ann_c_map([L], dummy, Pairs),
-    Map1 = update_c_map(Map0, c_lit(#{}), Pairs),
-    {Map1,Vs1,St1}.
+    Map = ann_c_map_pattern([L], Pairs),        %Must us this for a pattern
+    {Map,Vs1,St1}.
 
 pat_map_pairs([K,V|As], L, Vs0, St0) ->
     Ck = pat_map_key(K),
@@ -1426,6 +1422,8 @@ c_lit(Val) -> cerl:abstract(Val).
 is_literal(Node) -> cerl:is_literal(Node).
 lit_val(Lit) -> cerl:concrete(Lit).
 
+data_es(Data) -> cerl:data_es(Data).
+
 c_cons(Hd, Tl) -> cerl:c_cons(Hd, Tl).
 c_cons_skel(Hd, Tl) -> cerl:c_cons_skel(Hd, Tl).
 cons_hd(Cons) -> cerl:cons_hd(Cons).
@@ -1453,13 +1451,27 @@ bitstr_unit(Bit) -> cerl:bitstr_unit(Bit).
 bitstr_type(Bit) -> cerl:bitstr_type(Bit).
 bitstr_flags(Bit) -> cerl:bitstr_flags(Bit).
 
+-ifdef(HAS_MAPS).
 ann_c_map(Ann, Arg, Ps) ->
     cerl:ann_c_map(Ann, Arg, Ps).
+
+%% ann_c_map_pattern(Ann, Pairs) -> Map
+%%  This function will come first in 18. Until then this is a little
+%%  tricky as ann_c_map will create a literal if the map pattern is a
+%%  literal and this is NOT what the compiler wants.
+
+ann_c_map_pattern(Ann, Ps) ->
+    case erlang:function_exported(cerl, ann_c_map_pattern, 2) of
+        true ->
+            cerl:ann_c_map_pattern(Ann, Ps);
+        false ->
+            Map0 = ann_c_map(Ann, dummy, Ps),
+            update_c_map(Map0, c_lit(#{}), Ps)
+    end.
 
 update_c_map(Map, Arg, Ps) ->
     cerl:update_c_map(Map, Arg, Ps).
 
 ann_c_map_pair(Ann, Op, Key, Val) ->
     cerl:ann_c_map_pair(Ann, Op, Key, Val).
-
-data_es(Data) -> cerl:data_es(Data).
+-endif.
