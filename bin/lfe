@@ -39,7 +39,7 @@ i="$#"				# Counter
 e=""				# Eval flag/value
 
 # First step over the flag section adding them to the end.
-while [ $i -gt 0 ]; do
+while [ "$i" -gt 0 ]; do
     case "$1" in
 	-eval | -lfe_eval)	# We are going to eval
 	    e="-lfe_eval"
@@ -70,7 +70,7 @@ done
 
 # Add the middle bit to the end, a -noshell flag if there are
 # more arguments.
-if [ $i -gt 0 ]; then
+if [ "$i" -gt 0 ]; then
     set -- "$@" "-noshell"
 fi
 set -- "$@" "-user" "lfe_init" "-extra"
@@ -82,7 +82,7 @@ if [ "$e" != "" ]; then
 fi
 
 # Step over the arg section adding them to the end.
-while [ $i -gt 0 ]; do
+while [ "$i" -gt 0 ]; do
     set -- "$@" "$1"
     shift ; i=`expr $i - 1`
 done

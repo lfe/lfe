@@ -45,7 +45,7 @@ emulator=${LFESCRIPT_EMULATOR-"erl"}
 
 i="$#"				# Counter
 
-while [ $i -gt 0 ]; do
+while [ "$i" -gt 0 ]; do
     case "$1" in
 	-*)			# Flags
 	    arg=`echo $1 | sed 's/^-//'`
@@ -64,7 +64,7 @@ scriptname="$1"
 set -- "$@" "-extra"
 
 # Step over the args section adding them to the end.
-while [ $i -gt 0 ]; do
+while [ "$i" -gt 0 ]; do
     set -- "$@" "$1"
     shift ; i=`expr $i - 1`
 done
@@ -75,8 +75,8 @@ done
 # Read the first three lines of the script file.
 if [ -z "$scriptname" ]; then
     echo "lfescript: Missing filename" ; exit 127
-elif [ -f "$scriptname" -a -r "$scriptname"  ]; then 
-    { read line1; read line2; read line3; } < $scriptname
+elif [ -f "$scriptname" -a -r "$scriptname"  ]; then
+    { read line1; read line2; read line3; } < "$scriptname"
 else
     echo "lfescript: Failed to open file: $scriptname" ; exit 127
 fi

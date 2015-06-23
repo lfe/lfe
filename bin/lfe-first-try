@@ -65,4 +65,4 @@ if [ -n "$1" ]; then
     lflags="-noshell $lflags"	# To avoid getting a shell process
 fi
 
-echo $flags $lflags -user lfe_init -extra "$@"
+echo "$flags" "$lflags" -user lfe_init -extra "$@"
