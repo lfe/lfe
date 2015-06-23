@@ -15,7 +15,7 @@
 
 follow_symlink () {
     if [ -h "$1" ]; then
-	follow_symlink $(readlink "$1")
+        follow_symlink "$(readlink "$1")"
     else
         echo "$1"
     fi
