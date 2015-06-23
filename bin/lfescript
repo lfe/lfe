@@ -28,6 +28,13 @@ follow_symlink () {
     fi
 }
 
+show_help () {
+    echo "Usage: `basename $0` [flags] file [args]
+
+    -h | --help       Print this help and exit
+    -flag             Passes configuration flags to be used on startup" >&2
+}
+
 SELF=$(follow_symlink "$0")
 LFE_PROGNAME=$(echo "$0" | sed 's/.*\///') # Basically basename
 LFE_BINDIR=$(dirname "$SELF")
@@ -47,13 +54,16 @@ i="$#"				# Counter
 
 while [ "$i" -gt 0 ]; do
     case "$1" in
-	-*)			# Flags
-	    arg=`echo $1 | sed 's/^-//'`
-	    set -- "$@" "$arg"
-	    shift ; i=`expr $i - 1`
-	    ;;
-	*)			# Plain argument
-	    break ;;
+        -h | --help) # Help
+            $(show_help)
+            exit 1 ;;
+        -*)          # Flags
+            arg=`echo $1 | sed 's/^-//'`
+            set -- "$@" "$arg"
+            shift ; i=`expr $i - 1`
+            ;;
+        *)	# Plain argument
+            break ;;
     esac
 done
 
