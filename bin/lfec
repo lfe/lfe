@@ -16,7 +16,7 @@
 
 (defun fix-code-path ()
   (let* ((p0 (code:get_path))
-	 (p1 (lists:delete "." p0)))
+         (p1 (lists:delete "." p0)))
     (code:set_path p1)))
 
 (defun parse-opts
@@ -25,7 +25,7 @@
    (tuple as opts))
   ([(list* "-I" idir as) opts]      ;Keep these in order
    (parse-opts as (++ opts `(#(i ,idir)))))
-  ([(list* "-o" odir as) opts]		;Last is first
+  ([(list* "-o" odir as) opts]      ;Last is first
    (parse-opts as (cons `#(outdir ,odir) opts)))
   ([(list* "-pa" dir as) opts]
    (code:add_patha dir)
@@ -39,11 +39,11 @@
    (parse-opts as (cons 'debug_print opts)))
   ([(cons "-Werror" as) opts]
    (parse-opts as (cons 'warnings_as_errors opts)))
-  ([(cons (++ "-W" _) as) opts]		;Ignore this here
+  ([(cons (++ "-W" _) as) opts]     ;Ignore this here
    (parse-opts as opts))
   ([(cons "-E" as) opts]
    (parse-opts as (cons 'to_exp opts)))
-  ([(cons "-P" as) opts]		;Ignore as no LFE counterpart
+  ([(cons "-P" as) opts]            ;Ignore as no LFE counterpart
    (parse-opts as opts))
   ([(cons "-L" as) opts]
    (parse-opts as (cons 'to_lint opts)))
@@ -88,4 +88,4 @@
    (let ((`#(,as1 ,opts1) (parse-opts as0 ())))
      ;; (pp (list as1 opts1))
      (lists:map (lambda (a) (lfe_comp:file a (list* 'verbose 'report opts1)))
-		as1))))
+                as1))))
