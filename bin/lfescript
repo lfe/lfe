@@ -87,4 +87,4 @@ if [ -z "$shebangs" ] ; then shebangs=$(expr "$line3" : '^;;! *\(.*\)') ; fi
 
 # Done, now just run the emulator.
 # Note that ERL_LIBS will find *either* an ebin subdir *or* lib subdir
-ERL_LIBS="$HOME"/.lfe/lib:"$LFE_ROOTDIR":"$LFE_ROOTDIR"/lib:"$ERL_LIBS" exec $emulator +B -boot start_clean $shebangs "-noshell" "-run" "lfescript" "start" "$@"
+ERL_LIBS="$HOME"/.lfe/lib:"$LFE_ROOTDIR":"$LFE_ROOTDIR"/lib:"$ERL_LIBS" exec "$emulator" +B -boot start_clean "$shebangs" "-noshell" "-run" "lfescript" "start" "$@"
