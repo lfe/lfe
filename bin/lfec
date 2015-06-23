@@ -35,6 +35,8 @@
    (parse-opts as opts))
   ([(cons "-v" as) opts]
    (parse-opts as (cons 'verbose opts)))
+  ([(cons "-D" as) opts]
+   (parse-opts as (cons 'debug_print opts)))
   ([(cons "-Werror" as) opts]
    (parse-opts as (cons 'warnings_as_errors opts)))
   ([(cons (++ "-W" _) as) opts]		;Ignore this here
@@ -43,6 +45,8 @@
    (parse-opts as (cons 'to_exp opts)))
   ([(cons "-P" as) opts]		;Ignore as no LFE counterpart
    (parse-opts as opts))
+  ([(cons "-L" as) opts]
+   (parse-opts as (cons 'to_lint opts)))
   ([(cons "-S" as) opts]
    (parse-opts as (cons 'to_asm opts)))
   ([(cons "--" as) opts]
