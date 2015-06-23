@@ -49,14 +49,14 @@
   ([map x] (when (== (mupd map 'a 1) x)) 3))
 
 (defun match
-  ([(map 'a x)] x)
   ([(map 'a 1 'b y)] y)
+  ([(map 'a x)] x)
   ([(map 'c (tuple x y))] (tuple x y))
   ([(map #(d e) z)] z))
 
 (defun lit-match
-  ([(map 'a 1)] 1)
-  ([(map 'a 1 'b 2)] 2)
+  ([(map 'a 1 'b 2)] 1)
+  ([(map 'a 1)] 2)
   ([(map 'a #(1 2))] 3)
   ([(map #(1 2) 'z)] 4)
   ([(map)] 5))				;Catch-all

@@ -30,13 +30,13 @@ guard(Map, X) when #{a=>X} == Map -> 1;
 guard(Map, X) when Map#{a=>1} == X -> 2;
 guard(Map, X) when Map#{a:=1} == X -> 3.
 
-match(#{a := X}) -> X;
 match(#{a := 1, b := Y}) -> Y;
+match(#{a := X}) -> X;
 match(#{c := {X,Y}}) -> {X,Y};
 match(#{{d,e} := Z}) -> Z.
 
-lit_match(#{a := 1}) -> 1;
-lit_match(#{a := 1, b := 2}) -> 2;
+lit_match(#{a := 1, b := 2}) -> 1;
+lit_match(#{a := 1}) -> 2;
 lit_match(#{a := {1,2}}) -> 3;
 lit_match(#{{1,2} := z}) -> 4;
 lit_match(#{}) -> 5.				%Catch-all
