@@ -22,7 +22,7 @@ follow_symlink () {
     if [ -h "$filename" ]; then
 	follow_symlink "$(readlink "$filename")"
     else
-	echo "`pwd -P`/$filename"
+        echo "$(pwd -P)/$filename"
     fi
 }
 
