@@ -27,7 +27,7 @@ follow_symlink () {
 }
 
 SELF=$(follow_symlink "$0")
-LFE_PROGNAME=`echo $0 | sed 's/.*\///'` # Basically basename
+LFE_PROGNAME=$(echo "$0" | sed 's/.*\///') # Basically basename
 LFE_BINDIR=$(dirname "$SELF")
 LFE_ROOTDIR=$(dirname "$LFE_BINDIR")
 
