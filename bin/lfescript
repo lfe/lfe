@@ -24,12 +24,12 @@ follow_symlink () {
     if [ -h "$filename" ]; then
 	follow_symlink "$(readlink "$filename")"
     else
-	echo "`pwd -P`/$filename"
+	echo "$(pwd -P)/$filename"
     fi
 }
 
 SELF=$(follow_symlink "$0")
-LFE_PROGNAME=`echo $0 | sed 's/.*\///'` # Basically basename
+LFE_PROGNAME=$(echo "$0" | sed 's/.*\///') # Basically basename
 LFE_BINDIR=$(dirname "$SELF")
 LFE_ROOTDIR=$(dirname "$LFE_BINDIR")
 
@@ -82,8 +82,8 @@ else
 fi
 
 # Search for explicit emulator flag option line.
-shebangs=`expr "$line2" : '^;;! *\(.*\)'`
-if [ -z "$shebangs" ] ; then shebangs=`expr "$line3" : '^;;! *\(.*\)'` ; fi
+shebangs=$(expr "$line2" : '^;;! *\(.*\)')
+if [ -z "$shebangs" ] ; then shebangs=$(expr "$line3" : '^;;! *\(.*\)') ; fi
 
 # Done, now just run the emulator.
 # Note that ERL_LIBS will find *either* an ebin subdir *or* lib subdir
