@@ -71,7 +71,8 @@ do_compile(Input, Opts) ->
 			     internal(Input, Opts)
 			 catch
 			     error:Reason ->
-				 {error,Reason}
+				 St = erlang:get_stacktrace(),
+				 {error,{Reason,St}}
 			 end,
 		   exit(Ret)
 	   end,
