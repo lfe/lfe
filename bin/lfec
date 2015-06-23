@@ -30,7 +30,7 @@
   ([(list* "-pa" dir as) opts]
    (code:add_patha dir)
    (parse-opts as opts))
-  ([(list* "-pa" dir as) opts]
+  ([(list* "-pz" dir as) opts]
    (code:add_pathz dir)
    (parse-opts as opts))
   ([(cons "-v" as) opts]
