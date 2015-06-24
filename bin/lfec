@@ -16,13 +16,13 @@
 
 (defun fix-code-path ()
   (let* ((p0 (code:get_path))
-	 (p1 (lists:delete "." p0)))
+         (p1 (lists:delete "." p0)))
     (code:set_path p1)))
 
 (defun parse-opts
-  ([(list* "-I" idir as) opts]		;Keep these in order
+  ([(list* "-I" idir as) opts]                ;Keep these in order
    (parse-opts as (++ opts `(#(i ,idir)))))
-  ([(list* "-o" odir as) opts]		;Last is first
+  ([(list* "-o" odir as) opts]                ;Last is first
    (parse-opts as (cons `#(outdir ,odir) opts)))
   ([(list* "-pa" dir as) opts]
    (code:add_patha dir)
@@ -34,11 +34,11 @@
    (parse-opts as (cons 'verbose opts)))
   ([(cons "-Werror" as) opts]
    (parse-opts as (cons 'warnings_as_errors opts)))
-  ([(cons (++ "-W" _) as) opts]		;Ignore this here
+  ([(cons (++ "-W" _) as) opts]               ;Ignore this here
    (parse-opts as opts))
   ([(cons "-E" as) opts]
    (parse-opts as (cons 'to_exp opts)))
-  ([(cons "-P" as) opts]		;Ignore as no LFE counterpart
+  ([(cons "-P" as) opts]                      ;Ignore as no LFE counterpart
    (parse-opts as opts))
   ([(cons "-S" as) opts]
    (parse-opts as (cons 'to_asm opts)))
@@ -52,27 +52,34 @@
 
 (defun usage ()
   (let ((usage (++ "Usage: lfec [options] file ...\n"
-		   "Options:\n"
-		   "-I name        Name of include directory\n"
-		   "-o name        Name of output directory\n"
-		   "-pa path       Add path to the front of LFE's code path\n"
-		   "-pz path       Add path to the end of LFE's code path\n"
-		   "-v             Verbose compiler output\n"
-		   "-Werror        Make all warnings into errors\n"
-		   "-Wnumber       Set warning level (ignored)\n"
-		   "-E             Equivalent to +to_exp\n"
-		   "-S             Equivalent to +to_asm\n"
-		   "--             No more options, only file names follow\n"
-		   "+term          Term will be added to options\n" )))
+                   "Options:\n"
+                   "-I name        Name of include directory\n"
+                   "-o name        Name of output directory\n"
+                   "-pa path       Add path to the front of LFE's code path\n"
+                   "-pz path       Add path to the end of LFE's code path\n"
+                   "-v             Verbose compiler output\n"
+                   "-Werror        Make all warnings into errors\n"
+                   "-Wnumber       Set warning level (ignored)\n"
+                   "-E             Equivalent to +to_exp\n"
+                   "-S             Equivalent to +to_asm\n"
+                   "--             No more options, only file names follow\n"
+                   "+term          Term will be added to options\n" )))
     (io:put_chars usage)))
 
 ;; Parse the arguments and compile the files.
+
+(defun lfe-file? (path)
+  (if (and (filelib:is_file path)
+           (== ".lfe" (filename:extension path)))
+      'true
+      'false))
 
 (case script-args
   (() (usage))
   (as0
    (fix-code-path)
-   (let ((`#(,as1 ,opts1) (parse-opts as0 ())))
+   (let* ((`#(,as1 ,opts1) (parse-opts as0 ()))
+          (as2 (lists:filter #'lfe-file?/1 as1)))
      ;; (pp (list as1 opts1))
      (lists:map (lambda (a) (lfe_comp:file a (list* 'verbose 'report opts1)))
-		as1))))
+                as2))))
