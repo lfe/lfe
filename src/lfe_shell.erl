@@ -226,8 +226,6 @@ add_shell_functions(Env0) ->
     Fs = [{help,0,[lambda,[],[':',lfe_shell,help]]},
           {i,0,[lambda,[],[':',lfe_shell,i]]},
           {i,1,[lambda,[ps],[':',lfe_shell,i,ps]]},
-          %% {m,0,[lambda,[],[':',lfe_shell,m]]},
-          %% {m,1,[lambda,[ms],[':',lfe_shell,m,ms]]},
           {clear,0,[lambda,[],[':',lfe_shell,clear]]},
           {pid,3,[lambda,[i,j,k],[':',lfe_shell,pid,i,j,k]]},
           {p,1,[lambda,[e],[':',lfe_shell,p,e]]},
