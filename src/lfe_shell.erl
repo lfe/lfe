@@ -30,8 +30,8 @@
          run_script/2,run_script/3,run_string/2,run_string/3]).
 
 %% The shell commands which generally callable.
--export([c/1,c/2,cd/1,ec/1,ec/2,help/0,i/0,i/1,l/1,ls/1,m/0,m/1,
-         pid/3,p/1,pp/1,pwd/0,q/0,regs/0,exit/0]).
+-export([c/1,c/2,cd/1,ec/1,ec/2,help/0,i/0,i/1,l/1,ls/1,clear/0,m/0,m/1,
+         pid/3,p/1,pp/1,pwd/0,q/0,flush/0,regs/0,exit/0]).
 
 -import(lfe_env, [new/0,add_env/2,
                   add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
@@ -228,11 +228,13 @@ add_shell_functions(Env0) ->
           {i,1,[lambda,[ps],[':',lfe_shell,i,ps]]},
           %% {m,0,[lambda,[],[':',lfe_shell,m]]},
           %% {m,1,[lambda,[ms],[':',lfe_shell,m,ms]]},
+          {clear,0,[lambda,[],[':',lfe_shell,clear]]},
           {pid,3,[lambda,[i,j,k],[':',lfe_shell,pid,i,j,k]]},
           {p,1,[lambda,[e],[':',lfe_shell,p,e]]},
           {pp,1,[lambda,[e],[':',lfe_shell,pp,e]]},
           {pwd,0,[lambda,[],[':',lfe_shell,pwd]]},
           {q,0,[lambda,[],[':',lfe_shell,exit]]},
+          {flush,0,[lambda,[],[':',lfe_shell,flush]]},
           {regs,0,[lambda,[],[':',lfe_shell,regs]]},
           {exit,0,[lambda,[],[':',lfe_shell,exit]]}
          ],
@@ -655,6 +657,10 @@ l(Ms) ->
 
 ls(Dir) -> apply(c, ls, Dir).
 
+%% clear() -> ok.
+
+clear() -> io:format("\e[H\e[J").
+
 %% m([Modules]) -> ok.
 %%  Print module information.
 
@@ -687,6 +693,10 @@ pwd() -> c:pwd().
 %% q() -> ok.
 
 q() -> c:q().
+
+%% flush() -> ok.
+
+flush() -> c:flush().
 
 %% regs() -> ok.
 
