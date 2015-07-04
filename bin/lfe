@@ -20,14 +20,24 @@ follow_symlink () {
     cd "$(dirname "$1")" > /dev/null
     filename="$(basename "$1")"
     if [ -h "$filename" ]; then
-	follow_symlink "$(readlink "$filename")"
+        follow_symlink "$(readlink "$filename")"
     else
-	echo "`pwd -P`/$filename"
+        echo "$(pwd -P)/$filename"
     fi
 }
 
+show_help () {
+    echo "Usage: `basename $0` [flags] file [args]
+
+    -h | --help              Print this help and exit
+    -e | -eval \"sexp\"        Evaluates the given sexpr
+    -- | -extra \"switches\"   Send misc configuration switches to the Erlang VM
+    -flag | +flag            Enables/disables configuration flags to be
+                             used by the Erlang VM" >&2
+}
+
 SELF=$(follow_symlink "$0")
-LFE_PROGNAME=`echo $0 | sed 's/.*\///'` # Basically basename
+LFE_PROGNAME=$(echo "$0" | sed 's/.*\///') # Basically basename
 LFE_BINDIR=$(dirname "$SELF")
 LFE_ROOTDIR=$(dirname "$LFE_BINDIR")
 
@@ -39,40 +49,46 @@ i="$#"				# Counter
 e=""				# Eval flag/value
 
 # First step over the flag section adding them to the end.
-while [ $i -gt 0 ]; do
+while [ "$i" -gt 0 ]; do
     case "$1" in
-	-eval | -lfe_eval)	# We are going to eval
-	    e="-lfe_eval"
-	    break ;;		#  delay removing this
-	-extra | --)		# We are explicitly done
-	    shift ; i=`expr $i - 1`
-	    break ;;
-	-* | +*)		# Flags
-	    if [ "$1" = "-erl_eval" ]; then
-		set -- "$@" "-eval"
-	    else
-		set -- "$@" "$1"
-	    fi
-	    shift ; i=`expr $i - 1`
-	    while [ $i -gt 0 ]; do
-		case "$1" in
-		    -* | +*)
-			break ;;
-		    *)
-			set -- "$@" "$1"
-			shift ; i=`expr $i - 1`
-		esac
-	    done ;;
-	*)			# Plain argument
-	    break ;;
+        -e | -eval)         # We are going to eval
+            e="-lfe_eval"
+            break ;;        # delay removing this
+        -h | --help)
+            $(show_help)    # Show help
+            exit 1 ;;
+        -extra | --)        # We are explicitly done
+            shift ; i=`expr $i - 1`
+            break ;;
+        -* | +*)  # Flags
+	        if [ "$1" = "-erl_eval" ]; then
+		        set -- "$@" "-eval"
+	        else
+		        set -- "$@" "$1"
+	        fi
+
+            shift ; i=`expr $i - 1`
+
+            while [ "$i" -gt 0 ]; do
+                case "$1" in
+                    -* | +*)
+                        break ;;
+                    *)
+                        set -- "$@" "$1"
+                        shift ; i=`expr $i - 1`
+                esac
+            done ;;
+	    *)	# Plain argument
+            break ;;
     esac
 done
 
 # Add the middle bit to the end, a -noshell flag if there are
 # more arguments.
-if [ $i -gt 0 ]; then
+if [ "$i" -gt 0 ]; then
     set -- "$@" "-noshell"
 fi
+
 set -- "$@" "-user" "lfe_init" "-extra"
 
 # Check if we are 'eval'ing and add -lfe_eval flag
@@ -82,7 +98,7 @@ if [ "$e" != "" ]; then
 fi
 
 # Step over the arg section adding them to the end.
-while [ $i -gt 0 ]; do
+while [ "$i" -gt 0 ]; do
     set -- "$@" "$1"
     shift ; i=`expr $i - 1`
 done

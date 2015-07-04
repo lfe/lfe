@@ -2,9 +2,11 @@
 .DS_Store
 *.beam
 maps.mk
-bin/lfeexec
-src/lfe_scan.erl
 erl_crash.dump
 *.elc
 *.o
 *.rebar
+/_build/
+/c_src/*.d
+/priv/
+/src/lfe_scan.erl
