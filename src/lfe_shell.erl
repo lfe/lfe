@@ -30,8 +30,8 @@
          run_script/2,run_script/3,run_string/2,run_string/3]).
 
 %% The shell commands which generally callable.
--export([c/1,c/2,cd/1,ec/1,ec/2,help/0,i/0,i/1,l/1,ls/1,m/0,m/1,
-         pid/3,p/1,pp/1,pwd/0,q/0,regs/0,exit/0]).
+-export([c/1,c/2,cd/1,ec/1,ec/2,help/0,i/0,i/1,l/1,ls/1,clear/0,m/0,m/1,
+         pid/3,p/1,pp/1,pwd/0,q/0,flush/0,regs/0,exit/0]).
 
 -import(lfe_env, [new/0,add_env/2,
                   add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
@@ -226,13 +226,13 @@ add_shell_functions(Env0) ->
     Fs = [{help,0,[lambda,[],[':',lfe_shell,help]]},
           {i,0,[lambda,[],[':',lfe_shell,i]]},
           {i,1,[lambda,[ps],[':',lfe_shell,i,ps]]},
-          %% {m,0,[lambda,[],[':',lfe_shell,m]]},
-          %% {m,1,[lambda,[ms],[':',lfe_shell,m,ms]]},
+          {clear,0,[lambda,[],[':',lfe_shell,clear]]},
           {pid,3,[lambda,[i,j,k],[':',lfe_shell,pid,i,j,k]]},
           {p,1,[lambda,[e],[':',lfe_shell,p,e]]},
           {pp,1,[lambda,[e],[':',lfe_shell,pp,e]]},
           {pwd,0,[lambda,[],[':',lfe_shell,pwd]]},
           {q,0,[lambda,[],[':',lfe_shell,exit]]},
+          {flush,0,[lambda,[],[':',lfe_shell,flush]]},
           {regs,0,[lambda,[],[':',lfe_shell,regs]]},
           {exit,0,[lambda,[],[':',lfe_shell,exit]]}
          ],
@@ -623,20 +623,35 @@ ec(F, Os) -> c:c(F, Os).
 %% help() -> ok.
 
 help() ->
-    io:put_chars(<<"(c File)    -- compile and load code in <File>\n"
-                   "(cd Dir)    -- change working directory\n"
-                   "(ec File)   -- compile and load code in erlang <File>\n"
+    io:put_chars(<<"\nLFE shell built-in functions\n\n"
+                   "(c file)    -- compile and load code in <file>\n"
+                   "(cd dir)    -- change working directory to <dir>\n"
+                   "(ec file)   -- compile and load code in erlang <file>\n"
                    "(help)      -- help info\n"
                    "(i)         -- information about the system\n"
-                   "(l Module)  -- load or reload module\n"
+                   "(l module)  -- load or reload <module>\n"
                    "(ls)        -- list files in the current directory\n"
-                   "(ls Dir)    -- list files in directory <Dir>\n"
+                   "(clear)     -- clear the the REPL output\n"
+                   "(ls dir)    -- list files in directory <dir>\n"
                    "(m)         -- which modules are loaded\n"
-                   "(m Mod)     -- information about module <Mod>\n"
-                   "(pid X Y Z) -- convert X,Y,Z to a Pid\n"
+                   "(m mod)     -- information about module <mod>\n"
+                   "(pid x y z) -- convert <x>, <y> and <z> to a pid\n"
                    "(pwd)       -- print working directory\n"
-                   "(q)         -- quit - shorthand for init:stop()\n"
-                   "(regs)      -- information about registered processes\n"
+                   "(q)         -- quit - shorthand for init:stop/0\n"
+                   "(flush)     -- flushes all messages sent to the shell\n"
+                   "(regs)      -- information about registered processes\n\n"
+                   "LFE shell built-in commands\n\n"
+                   "(reset-environment)             -- resets the environment to its initial state\n"
+                   "(set pattern expr)\n"
+                   "(set pattern (when guard) expr) -- evaluate <expr> and match the result with pattern binding\n"
+                   "(slurp file)                    -- slurp in a LFE source <file> and makes everything available in the shell\n"
+                   "(unslurp)                       -- revert back to the state before the last slurp\n"
+                   "(run file)                      -- execute all the shell commands in a <file>\n\n"
+                   "LFE shell built-in variables\n\n"
+                   "+/++/+++      -- the tree previous expressions\n"
+                   "*/**/***      -- the values of the previous expressions\n"
+                   "-             -- the current expression output\n"
+                   "$ENV          -- the current LFE environment\n\n"
                  >>).
 
 %% i([Pids]) -> ok.
@@ -654,6 +669,10 @@ l(Ms) ->
 %% ls(Dir) -> ok.
 
 ls(Dir) -> apply(c, ls, Dir).
+
+%% clear() -> ok.
+
+clear() -> io:format("\e[H\e[J").
 
 %% m([Modules]) -> ok.
 %%  Print module information.
@@ -687,6 +706,10 @@ pwd() -> c:pwd().
 %% q() -> ok.
 
 q() -> c:q().
+
+%% flush() -> ok.
+
+flush() -> c:flush().
 
 %% regs() -> ok.
 
