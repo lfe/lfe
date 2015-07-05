@@ -59,7 +59,7 @@
   ([(map 'a 1)] 2)
   ([(map 'a #(1 2))] 3)
   ([(map #(1 2) 'z)] 4)
-  ([(map)] 5))				;Catch-all
+  ([(map)] 5))                          ;Catch-all
 
 (defun foo (x)
   (list x x))

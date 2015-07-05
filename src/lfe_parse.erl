@@ -36,8 +36,8 @@
 %% though we have no automatic generator.
 %%
 %% Terminals
-%%    symbol number string fun '(' ')' '[' ']' '.' '\'' ',' '@' ',@' '`' '#('
-%%       '#B(' '#M(' '#\''.
+%%    symbol number string binary fun '(' ')' '[' ']' '.' '\'' ',' '@' ',@' '`'
+%%       '#(' '#B(' '#M(' '#\''.
 %%
 %% Nonterminals form sexpr list list_tail proper_list .
 %%
@@ -45,6 +45,7 @@
 %%  1 sexpr -> symbol : val('$1').
 %%  2 sexpr -> number : val('$1').
 %%  3 sexpr -> string : val('$1').
+%% 21 sexpr -> binary : val('$1').
 %%  4 sexpr -> '#\'' : make_fun(val('$1')).
 %%  5 sexpr -> '\'' sexpr : [quote,'$2'].
 %%  6 sexpr -> '`' sexpr : [backquote,'$2'].
@@ -108,6 +109,7 @@ reduce(0, Vs) -> Vs;                            %f->s
 reduce(1, [T|Vs]) -> [val(T)|Vs];               %s->symbol
 reduce(2, [T|Vs]) -> [val(T)|Vs];               %s->number
 reduce(3, [T|Vs]) -> [val(T)|Vs];               %s->string
+reduce(21, [T|Vs]) -> [val(T)|Vs];              %s->binary
 reduce(4, [T|Vs]) ->                            %s->fun
     [make_fun(val(T))|Vs];
 reduce(5, [S,_|Vs]) -> [[quote,S]|Vs];          %s->' s
@@ -141,6 +143,7 @@ reduce(20, Vs) -> [[]|Vs].                      %p->empty
 table(?FORM, symbol) -> [?EXPR];
 table(?FORM, number) -> [?EXPR];
 table(?FORM, string) -> [?EXPR];
+table(?FORM, binary) -> [?EXPR];
 table(?FORM, '#\'') -> [?EXPR];
 table(?FORM, '\'') -> [?EXPR];
 table(?FORM, '`') -> [?EXPR];
@@ -155,6 +158,7 @@ table(?FORM, '#M(') -> [?EXPR];
 table(?EXPR, symbol) -> [symbol,{reduce,1}];
 table(?EXPR, number) -> [number,{reduce,2}];
 table(?EXPR, string) -> [string,{reduce,3}];
+table(?EXPR, binary) -> [binary,{reduce,21}];
 table(?EXPR, '#\'') -> ['#\'',{reduce,4}];
 table(?EXPR, '\'') -> ['\'',?EXPR,{reduce,5}];
 table(?EXPR, '`') -> ['`',?EXPR,{reduce,6}];
@@ -169,6 +173,7 @@ table(?EXPR, '#M(') -> ['#M(',?PROP,')',{reduce,13}];
 table(?LIST, symbol) -> [?EXPR,?TAIL,{reduce,14}];
 table(?LIST, number) -> [?EXPR,?TAIL,{reduce,14}];
 table(?LIST, string) -> [?EXPR,?TAIL,{reduce,14}];
+table(?LIST, binary) -> [?EXPR,?TAIL,{reduce,14}];
 table(?LIST, '#\'') -> [?EXPR,?TAIL,{reduce,14}];
 table(?LIST, '\'') -> [?EXPR,?TAIL,{reduce,14}];
 table(?LIST, '`') -> [?EXPR,?TAIL,{reduce,14}];
@@ -185,6 +190,7 @@ table(?LIST, ']') -> [{reduce,15}];
 table(?TAIL, symbol) -> [?EXPR,?TAIL,{reduce,16}];
 table(?TAIL, number) -> [?EXPR,?TAIL,{reduce,16}];
 table(?TAIL, string) -> [?EXPR,?TAIL,{reduce,16}];
+table(?TAIL, binary) -> [?EXPR,?TAIL,{reduce,16}];
 table(?TAIL, '#\'') -> [?EXPR,?TAIL,{reduce,16}];
 table(?TAIL, '\'') -> [?EXPR,?TAIL,{reduce,16}];
 table(?TAIL, '`') -> [?EXPR,?TAIL,{reduce,16}];
@@ -202,6 +208,7 @@ table(?TAIL, ']') -> [{reduce,18}];
 table(?PROP, symbol) -> [?EXPR,?PROP,{reduce,19}];
 table(?PROP, number) -> [?EXPR,?PROP,{reduce,19}];
 table(?PROP, string) -> [?EXPR,?PROP,{reduce,19}];
+table(?PROP, binary) -> [?EXPR,?PROP,{reduce,19}];
 table(?PROP, '#\'') -> [?EXPR,?PROP,{reduce,19}];
 table(?PROP, '\'') -> [?EXPR,?PROP,{reduce,19}];
 table(?PROP, '`') -> [?EXPR,?PROP,{reduce,19}];
