@@ -39,7 +39,7 @@ lit_match(#{a := 1, b := 2}) -> 1;
 lit_match(#{a := 1}) -> 2;
 lit_match(#{a := {1,2}}) -> 3;
 lit_match(#{{1,2} := z}) -> 4;
-lit_match(#{}) -> 5.				%Catch-all
+lit_match(#{}) -> 5.                            %Catch-all
 
 foo(X) ->
     [X,X].

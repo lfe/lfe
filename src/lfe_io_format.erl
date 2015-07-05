@@ -161,9 +161,9 @@ collect_cc([$i|Fmt], [A|Args]) -> {$i,[A],Fmt,Args}.
 %%  Field widths and precisions have already been calculated.
 
 control($w, [A], F, Adj, P, Pad, _) ->
-    term(lfe_io:print1(A, -1), F, Adj, P, Pad);
+    write(lfe_io:print1(A, -1), F, Adj, P, Pad);
 control($W, [A,Depth], F, Adj, P, Pad, _I) when is_integer(Depth) ->
-    term(lfe_io:print1(A, Depth), F, Adj, P, Pad);
+    write(lfe_io:print1(A, Depth), F, Adj, P, Pad);
 control($p, [A], F, Adj, P, Pad, I) ->
     print(A, -1, F, Adj, P, Pad, I);
 control($P, [A,Depth], F, Adj, P, Pad, I) when is_integer(Depth) ->
@@ -218,34 +218,34 @@ control($i, [_], _, _, _, _, _) -> [].
 base(none) -> 10;
 base(B) when is_integer(B) -> B.
 
-%% term(TermList, Field, Adjust, Precision, PadChar)
-%%  Output the characters in a term. Use Precision to trim length of
+%% write(CharList, Field, Adjust, Precision, PadChar)
+%%  Write the characters of a term. Use Precision to trim length of
 %%  output.  Adjust the characters within the field if length less
 %%  than Max padding with PadChar.
 
-term(T, none, _, none, _) -> T;
-term(T, F, Adj, P, Pad) ->
+write(T, none, _, none, _) -> T;
+write(T, F, Adj, P, Pad) ->
     N = lists:flatlength(T),
-    if P =:= none -> term1(T, F, Adj, N, Pad);
-       P >= N -> term1(T, F, Adj, N, Pad);
-       true -> term1(flat_trunc(T, P), F, Adj, P, Pad)
+    if P =:= none -> write1(T, F, Adj, N, Pad);
+       P >= N -> write1(T, F, Adj, N, Pad);
+       true -> write1(flat_trunc(T, P), F, Adj, P, Pad)
     end.
 
-term1(T, none, _, _, _) -> T;
-term1(T, F, Adj, N, Pad) ->
+write1(T, none, _, _, _) -> T;
+write1(T, F, Adj, N, Pad) ->
     if F < N -> chars($*, F);
        F == N -> T;
        true -> adjust(T, chars(Pad, F-N), Adj)
     end.
 
-%% print(Term, Depth, Field, Adjust, Precision, PadChar, Indentation)
-%%  Pretty print a term, field width is maximum line length and
-%%  precision is initial indentation.
+%% print(CharList, Depth, Field, Adjust, Precision, PadChar, Indentation)
+%%  Pretty print the characters of a term, field width is maximum line
+%%  length and precision is initial indentation.
 
 print(T, D, none, Adj, P, Pad, I) -> print(T, D, 80, Adj, P, Pad, I);
 print(T, D, F, Adj, none, Pad, I) -> print(T, D, F, Adj, I, Pad, I);
 print(T, D, F, right, P, _, _) ->
-    lfe_io_pretty:print1(T, D, P, F).
+    lfe_io_pretty:term(T, D, P, F).
 
 %% fwrite_e(Float, Field, Adjust, Precision, PadChar)
 
@@ -256,7 +256,7 @@ fwrite_e(Fl, none, _Adj, P, _Pad) when P >= 2 ->
 fwrite_e(Fl, F, Adj, none, Pad) ->
     fwrite_e(Fl, F, Adj, 6, Pad);
 fwrite_e(Fl, F, Adj, P, Pad) when P >= 2 ->
-    term(float_e(Fl, float_data(Fl), P), F, Adj, F, Pad).
+    write(float_e(Fl, float_data(Fl), P), F, Adj, F, Pad).
 
 float_e(Fl, Fd, P) when Fl < 0.0 ->        %Negative numbers
     [$-|float_e(-Fl, Fd, P)];
@@ -310,7 +310,7 @@ fwrite_f(Fl, none, _Adj, P, _Pad) when P >= 1 ->
 fwrite_f(Fl, F, Adj, none, Pad) ->
     fwrite_f(Fl, F, Adj, 6, Pad);
 fwrite_f(Fl, F, Adj, P, Pad) when P >= 1 ->
-    term(float_f(Fl, float_data(Fl), P), F, Adj, F, Pad).
+    write(float_f(Fl, float_data(Fl), P), F, Adj, F, Pad).
 
 float_f(Fl, Fd, P) when Fl < 0.0 ->
     [$-|float_f(-Fl, Fd, P)];
@@ -343,20 +343,20 @@ fwrite_g(Fl, F, Adj, none, Pad) ->
 fwrite_g(Fl, F, Adj, P, Pad) when P >= 1 ->
     A = abs(Fl),
     E = if A < 1.0e-1 -> -2;
-       A < 1.0e0  -> -1;
-       A < 1.0e1  -> 0;
-       A < 1.0e2  -> 1;
-       A < 1.0e3  -> 2;
-       A < 1.0e4  -> 3;
-       true       -> fwrite_f
-    end,
+           A < 1.0e0  -> -1;
+           A < 1.0e1  -> 0;
+           A < 1.0e2  -> 1;
+           A < 1.0e3  -> 2;
+           A < 1.0e4  -> 3;
+           true       -> fwrite_f
+        end,
     if  P =< 1, E =:= -1;
-    P-1 > E, E >= -1 ->
-        fwrite_f(Fl, F, Adj, P-1-E, Pad);
-    P =< 1 ->
-        fwrite_e(Fl, F, Adj, 2, Pad);
-    true ->
-        fwrite_e(Fl, F, Adj, P, Pad)
+        P-1 > E, E >= -1 ->
+            fwrite_f(Fl, F, Adj, P-1-E, Pad);
+        P =< 1 ->
+            fwrite_e(Fl, F, Adj, 2, Pad);
+        true ->
+            fwrite_e(Fl, F, Adj, P, Pad)
     end.
 
 %% string(StringList, Field, Adjust, Precision, PadChar)
@@ -383,11 +383,11 @@ string1(S, F, Adj, N, Pad) ->
 unprefixed_integer(Int, F, Adj, Base, Pad, Lowercase)
   when Base >= 2, Base =< 1+$Z-$A+10 ->
     if Int < 0 ->
-        S = cond_lowercase(erlang:integer_to_list(-Int, Base), Lowercase),
-        term([$-|S], F, Adj, none, Pad);
+            S = cond_lowercase(erlang:integer_to_list(-Int, Base), Lowercase),
+            write([$-|S], F, Adj, none, Pad);
        true ->
-        S = cond_lowercase(erlang:integer_to_list(Int, Base), Lowercase),
-        term(S, F, Adj, none, Pad)
+            S = cond_lowercase(erlang:integer_to_list(Int, Base), Lowercase),
+            write(S, F, Adj, none, Pad)
     end.
 
 %% prefixed_integer(Int, Field, Adjust, Base, PadChar, Prefix, Lowercase) ->
@@ -396,11 +396,11 @@ unprefixed_integer(Int, F, Adj, Base, Pad, Lowercase)
 prefixed_integer(Int, F, Adj, Base, Pad, Prefix, Lowercase)
   when Base >= 2, Base =< 1+$Z-$A+10 ->
     if Int < 0 ->
-        S = cond_lowercase(erlang:integer_to_list(-Int, Base), Lowercase),
-        term([$-,Prefix|S], F, Adj, none, Pad);
+            S = cond_lowercase(erlang:integer_to_list(-Int, Base), Lowercase),
+            write([$-,Prefix|S], F, Adj, none, Pad);
        true ->
-        S = cond_lowercase(erlang:integer_to_list(Int, Base), Lowercase),
-        term([Prefix|S], F, Adj, none, Pad)
+            S = cond_lowercase(erlang:integer_to_list(Int, Base), Lowercase),
+            write([Prefix|S], F, Adj, none, Pad)
     end.
 
 %% base_prefix(Base, Lowercase) -> [Char].

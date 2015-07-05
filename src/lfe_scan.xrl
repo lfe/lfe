@@ -54,6 +54,12 @@ Rules.
             %% Strip quotes.
             S = string:substr(TokenChars, 2, TokenLen - 2),
             {token,{string,TokenLine,chars(S)}}.
+%% Binary string
+#"(\\x{H}+;|\\.|[^"\\])*" :
+            %% Strip quotes.
+            S = string:substr(TokenChars, 3, TokenLen - 3),
+            Bin = unicode:characters_to_binary(chars(S), utf8, utf8),
+            {token,{binary,TokenLine,Bin}}.
 %% Symbols
 \|(\\x{H}+;|\\.|[^|\\])*\| :
             %% Strip quotes.

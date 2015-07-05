@@ -288,7 +288,7 @@ eval_form(Form, Shell, St0) ->
         {Value,St1} = eval_form(Form, St0#state{curr=Ce1}),
         %% Print the result, but only to depth 30.
         VS = lfe_io:prettyprint1(Value, 30),
-        io:requests([{put_chars,VS},nl]),
+        io:requests([{put_chars,unicode,VS},nl]),
         %% Update bindings.
         Ce2 = update_shell_vars(Form, Value, St1#state.curr),
         St2 = St1#state{curr=Ce2},
