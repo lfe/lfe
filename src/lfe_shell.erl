@@ -223,7 +223,8 @@ update_shell_vars(Form, Value, Env0) ->
     add_vbinding('$ENV', Env2, Env2).
 
 add_shell_functions(Env0) ->
-    Fs = [{help,0,[lambda,[],[':',lfe_shell,help]]},
+    Fs = [{cd,1,[lambda,[d],[':',lfe_shell,cd,d]]},
+          {help,0,[lambda,[],[':',lfe_shell,help]]},
           {i,0,[lambda,[],[':',lfe_shell,i]]},
           {i,1,[lambda,[ps],[':',lfe_shell,i,ps]]},
           {clear,0,[lambda,[],[':',lfe_shell,clear]]},
