@@ -32,22 +32,29 @@
 -export([format_error/1]).
 
 -export([mbe_syntax_rules_proc/4,mbe_syntax_rules_proc/5,
-     mbe_match_pat/3,mbe_get_bindings/3,mbe_expand_pattern/3]).
+         mbe_match_pat/3,mbe_get_bindings/3,mbe_expand_pattern/3]).
 
 %% -compile([export_all]).
 
 -import(lfe_env, [new/0,add_fbinding/4,is_fbound/3,
-          add_mbinding/3,is_mbound/2,get_mbinding/2]).
+                  add_mbinding/3,is_mbound/2,get_mbinding/2]).
 
 -import(lfe_lib, [is_symb_list/1,is_proper_list/1]).
 
 -import(lists, [any/2,all/2,map/2,foldl/3,foldr/3,mapfoldl/3,
-        reverse/1,reverse/2,member/2,concat/1]).
+                reverse/1,reverse/2,member/2,concat/1]).
 -import(orddict, [find/2,store/3]).
 -import(ordsets, [add_element/2,is_element/2]).
 
 -include("lfe_comp.hrl").
 -include("lfe_macro.hrl").
+
+%% Define IS_MAP/1 macro for is_map/1 bif.
+-ifdef(HAS_MAPS).
+-define(IS_MAP(T), is_map(T)).
+-else.
+-define(IS_MAP(T), false).
+-endif.
 
 %% Errors
 format_error({bad_form,Type}) ->
@@ -466,17 +473,17 @@ exp_letrec_function(Fbs0, B0, Env, St0) ->
 do_exp_let_function(Fbs0, B0, Env0, St0) ->
     %% Only very limited syntax checking here (see above).
     Env1 = foldl(fun ([V,['lambda',Args|_]], Env) when is_atom(V) ->
-             case is_proper_list(Args) of
-                 true -> add_fbinding(V, length(Args), dummy, Env);
-                 false -> Env
-             end;
-             ([V,['match-lambda',[Pats|_]|_]], Env) when is_atom(V) ->
-             case is_proper_list(Pats) of
-                 true -> add_fbinding(V, length(Pats), dummy, Env);
-                 false -> Env
-             end;
-             (_, Env) -> Env
-         end, Env0, Fbs0),
+                         case is_proper_list(Args) of
+                             true -> add_fbinding(V, length(Args), dummy, Env);
+                             false -> Env
+                         end;
+                     ([V,['match-lambda',[Pats|_]|_]], Env) when is_atom(V) ->
+                         case is_proper_list(Pats) of
+                             true -> add_fbinding(V, length(Pats), dummy, Env);
+                             false -> Env
+                         end;
+                     (_, Env) -> Env
+                 end, Env0, Fbs0),
     {Fbs1,St1} = exp_clauses(Fbs0, Env1, St0),
     {B1,St2} = exp_tail(B0, Env1, St1),
     {Fbs1,B1,St2}.
@@ -488,27 +495,27 @@ do_exp_let_function(Fbs0, B0, Env0, St0) ->
 exp_let_macro(Mbs, B0, Env0, St0) ->
     %% Add the macro defs from expansion and return body in a progn.
     Env1 = foldl(fun ([Name,['lambda'|_]=Def], Env) when is_atom(Name) ->
-             add_mbinding(Name, Def, Env);
-             ([Name,['match-lambda'|_]=Def], Env) when is_atom(Name) ->
-             add_mbinding(Name, Def, Env);
-             (_, Env) -> Env        %Ignore mistakes
-         end, Env0, Mbs),
+                         add_mbinding(Name, Def, Env);
+                     ([Name,['match-lambda'|_]=Def], Env) when is_atom(Name) ->
+                         add_mbinding(Name, Def, Env);
+                     (_, Env) -> Env        %Ignore mistakes
+                 end, Env0, Mbs),
     {B1,St1} = exp_tail(B0, Env1, St0),    %Expand the body
     {['progn'|B1],St1}.
 
 exp_try(E0, B0, Env, St0) ->
     {E1,St1} = exp_form(E0, Env, St0),
     {B1,St2} = exp_tail(fun (['case'|Cls0], E, Sta) ->
-                   {Cls1,Stb} = exp_clauses(Cls0, E, Sta),
-                   {['case'|Cls1],Stb};
-                   (['catch'|Cls0], E, Sta) ->
-                   {Cls1,Stb} = exp_clauses(Cls0, E, Sta),
-                   {['catch'|Cls1],Stb};
-                   (['after'|A0], E, Sta) ->
-                   {A1,Stb} = exp_tail(A0, E, Sta),
-                   {['after'|A1],Stb};
-                   (Other, _, St) -> {Other,St}
-               end, B0, Env, St1),
+                                {Cls1,Stb} = exp_clauses(Cls0, E, Sta),
+                                {['case'|Cls1],Stb};
+                            (['catch'|Cls0], E, Sta) ->
+                                {Cls1,Stb} = exp_clauses(Cls0, E, Sta),
+                                {['catch'|Cls1],Stb};
+                            (['after'|A0], E, Sta) ->
+                                {A1,Stb} = exp_tail(A0, E, Sta),
+                                {['after'|A1],Stb};
+                            (Other, _, St) -> {Other,St}
+                        end, B0, Env, St1),
     {['try',E1|B1],St2}.
 
 %% exp_macro(Call, Env, State) -> {yes,Exp,State} | no.
@@ -516,16 +523,16 @@ exp_try(E0, B0, Env, St0) ->
 
 exp_macro([Name|_]=Call, Env, St) ->
     case lfe_lib:is_core_form(Name) of
-    true -> no;                %Never expand core forms
-    false ->
-        case get_mbinding(Name, Env) of
-        {yes,Def} ->
-            %% User macro bindings.
-            exp_userdef_macro(Call, Def, Env, St);
-        no ->
-            %% Default macro bindings.
-            exp_predef_macro(Call, Env, St)
-        end
+        true -> no;                             %Never expand core forms
+        false ->
+            case get_mbinding(Name, Env) of
+                {yes,Def} ->
+                    %% User macro bindings.
+                    exp_userdef_macro(Call, Def, Env, St);
+                no ->
+                    %% Default macro bindings.
+                    exp_predef_macro(Call, Env, St)
+            end
     end.
 
 %% exp_userdef_macro(Call, Def, Env, State) -> {yes,Exp,State}.
@@ -537,13 +544,13 @@ exp_userdef_macro([Mac|Args], Def0, Env, St0) ->
     %%lfe_io:format("udef: ~p\n", [[Mac|Args]]),
     %%lfe_io:format("macro: ~p\n", [Def0]),
     try
-    {Def1,St1} = exp_form(Def0, Env, St0),    %Expand definition
-    Exp = lfe_eval:apply(Def1, [Args,Env], Env),
-    {yes,Exp,St1}
+        {Def1,St1} = exp_form(Def0, Env, St0),  %Expand definition
+        Exp = lfe_eval:apply(Def1, [Args,Env], Env),
+        {yes,Exp,St1}
     catch
-    error:Error ->
-        Stack = erlang:get_stacktrace(),
-        erlang:error({expand_macro,[Mac|Args],{Error,Stack}})
+        error:Error ->
+            Stack = erlang:get_stacktrace(),
+            erlang:error({expand_macro,[Mac|Args],{Error,Stack}})
     end.
 
 %% exp_predef_macro(Call, Env, State) -> {yes,Exp,State} | no.
@@ -823,7 +830,12 @@ exp_predef(['LINE'], _, St) ->
 exp_predef([Fun|As], _, St) when is_atom(Fun) ->
     case string:tokens(atom_to_list(Fun), ":") of
         [M,F] ->
-            {yes,[call,?Q(list_to_atom(M)),?Q(list_to_atom(F))|As],St};
+            %% Can we make symbols of them?
+            case {lfe_scan:string(M),lfe_scan:string(F)} of
+                {{ok,[{symbol,_,Mn}],_},{ok,[{symbol,_,Fn}],_}} ->
+                    {yes,[call,?Q(Mn),?Q(Fn)|As],St};
+                _ -> no
+            end;
         _ -> no                                 %This will also catch a:b:c
     end;
 %% This was not a call to a predefined macro.
@@ -840,17 +852,19 @@ exp_qlc([lc,Qs|Es], Opts, Env, St0) ->
     %% structure.
     {Eqs,St1} = exp_qlc_quals(Qs, Env, St0),
     {Ees,St2} = exp_list(Es, Env, St1),
-    %%lfe_io:format("Q0 = ~p\n", [[lc,Eqs|Ees]]),
+    lfe_io:format("Q0 = ~p\n", [[lc,Eqs|Ees]]),
     %% Now translate to vanilla AST, call qlc expand and then convert
     %% back to LFE.  lfe_qlc:expand/2 wants a list of conversions not
     %% a conversion of a list.
     Vlc = lfe_trans:to_expr([lc,Eqs|Ees], 42),
     Vos = map(fun (O) -> lfe_trans:to_expr(O, 42) end, Opts),
-    %% io:put_chars([erl_pp:expr(Vlc),"\n"]),
+    io:put_chars(["E0 = ",erl_pp:expr(Vlc, 5, []),"\n"]),
     {ok,Vexp} = lfe_qlc:expand(Vlc, Vos),
-    %%io:put_chars([erl_pp:expr(Vexp),"\n"]),
+    io:put_chars(["E1a = ",erl_pp:expr(Vexp, 6, []),"\n"]),
+    {ok,Vexp1} = lfe_q:expand(Vlc, Vos),
+    io:put_chars(["E1b = ",erl_pp:expr(Vexp1, 6, []),"\n"]),
     Exp = lfe_trans:from_expr(Vexp),
-    %%lfe_io:format("Q1 = ~p\n", [Exp]),
+    %% lfe_io:format("Q1 = ~p\n", [Exp]),
     {yes,Exp,St2}.
 
 exp_qlc_quals(Qs, Env, St) ->
@@ -910,22 +924,22 @@ exp_comp(As, Op, St0) ->
 
 exp_append(Args) ->
     case Args of
-	%% Cases with quoted lists.
-	[?Q([A|As])|Es] -> [cons,?Q(A),['++',?Q(As)|Es]];
-	[?Q([])|Es] -> ['++'|Es];
-	%% Cases with explicit cons/list/list*.
-	[['list*',A]|Es] -> ['++',A|Es];
-	[['list*',A|As]|Es] -> [cons,A,['++',['list*'|As]|Es]];
-	[[list,A|As]|Es] -> [cons,A,['++',[list|As]|Es]];
-	[[list]|Es] -> ['++'|Es];
-	[[cons,H,T]|Es] -> [cons,H,['++',T|Es]];
-	[[]|Es] -> ['++'|Es];
-	%% Cases with lists of numbers (strings).
-	%% [[N|Ns]|Es] when is_number(N) -> [cons,N,['++',Ns|Es]];
-	%% Default cases with unquoted arg.
-	[E] -> E;                %Last arg not checked
-	[E|Es] -> exp_bif('++', [E,['++'|Es]]);
-	[] -> []
+        %% Cases with quoted lists.
+        [?Q([A|As])|Es] -> [cons,?Q(A),['++',?Q(As)|Es]];
+        [?Q([])|Es] -> ['++'|Es];
+        %% Cases with explicit cons/list/list*.
+        [['list*',A]|Es] -> ['++',A|Es];
+        [['list*',A|As]|Es] -> [cons,A,['++',['list*'|As]|Es]];
+        [[list,A|As]|Es] -> [cons,A,['++',[list|As]|Es]];
+        [[list]|Es] -> ['++'|Es];
+        [[cons,H,T]|Es] -> [cons,H,['++',T|Es]];
+        [[]|Es] -> ['++'|Es];
+        %% Cases with lists of numbers (strings).
+        %% [[N|Ns]|Es] when is_number(N) -> [cons,N,['++',Ns|Es]];
+        %% Default cases with unquoted arg.
+        [E] -> E;                %Last arg not checked
+        [E|Es] -> exp_bif('++', [E,['++'|Es]]);
+        [] -> []
     end.
 
 %% exp_defun(Name, Def) -> Lambda | Match-Lambda.
@@ -1066,19 +1080,25 @@ exp_backquote([[unquote|X]|Y], 0) ->
     exp_bq_append([list|X], exp_backquote(Y, 0));
 exp_backquote([['unquote-splicing'|X]|Y], 0) ->
     exp_bq_append(['++'|X], exp_backquote(Y, 0));
-exp_backquote([X|Y], N) ->            %The general list case
+exp_backquote([X|Y], N) ->                      %The general list case
     exp_bq_cons(exp_backquote(X, N), exp_backquote(Y, N));
 exp_backquote(X, N) when is_tuple(X) ->
-    %% Straight [list_to_tuple,exp_backquote(tuple_to_list(X), N)] inefficient
-    %% and [tuple|tl(exp_backquote(tuple_to_list(X), N))] can't handle splicing!
+    %% Straight [list_to_tuple,exp_backquote(tuple_to_list(X), N)]
+    %% inefficient and [tuple|tl(exp_backquote(tuple_to_list(X), N))]
+    %% can't handle splicing!
     case exp_backquote(tuple_to_list(X), N) of
-    [list|Es] -> [tuple|Es];        %No splicing
-    [cons|_]=E -> [list_to_tuple,E]        %Have splicing
+        [list|Es] -> [tuple|Es];                %No splicing
+        [cons|_]=E -> [list_to_tuple,E]         %Have splicing
     end;
+exp_backquote(X, N) when ?IS_MAP(X) ->
+    %% Splicing at top-level meaningless here, with [list|...] we have
+    %% no splicing, while with [cons|...] we have splicing
+    [list|KVs] = exp_bq_map_pairs(maps:to_list(X), N),
+    [map|KVs];
 exp_backquote(X, _) when is_atom(X) -> [quote,X];
-exp_backquote(X, _) -> X.            %Self quoting
+exp_backquote(X, _) -> X.                       %Self quoting
 
-exp_bq_append(['++',L], R) ->            %Catch single unquote-splice
+exp_bq_append(['++',L], R) ->                   %Catch single unquote-splice
     exp_bq_append(L, R);
 exp_bq_append([], R) -> R;
 exp_bq_append(L, []) -> L;
@@ -1093,6 +1113,14 @@ exp_bq_cons([quote,L], [quote,R]) -> [quote,[L|R]];
 exp_bq_cons(L, [list|R]) -> [list,L|R];
 exp_bq_cons(L, []) -> [list,L];
 exp_bq_cons(L, R) -> [cons,L,R].
+
+-ifdef(HAS_MAPS).
+exp_bq_map_pairs(Ps, N) ->
+    KVs = foldr(fun ({K,V}, Acc) -> [K,V|Acc] end, [], Ps),
+    exp_backquote(KVs, N).
+-else.
+exp_bq_map_pairs(_, _) -> map.
+-endif.
 
 new_symb(St) ->
     C = St#mac.vc,
