@@ -830,12 +830,7 @@ exp_predef(['LINE'], _, St) ->
 exp_predef([Fun|As], _, St) when is_atom(Fun) ->
     case string:tokens(atom_to_list(Fun), ":") of
         [M,F] ->
-            %% Can we make symbols of them?
-            case {lfe_scan:string(M),lfe_scan:string(F)} of
-                {{ok,[{symbol,_,Mn}],_},{ok,[{symbol,_,Fn}],_}} ->
-                    {yes,[call,?Q(Mn),?Q(Fn)|As],St};
-                _ -> no
-            end;
+            {yes,[call,?Q(list_to_atom(M)),?Q(list_to_atom(F))|As],St};
         _ -> no                                 %This will also catch a:b:c
     end;
 %% This was not a call to a predefined macro.
@@ -852,17 +847,15 @@ exp_qlc([lc,Qs|Es], Opts, Env, St0) ->
     %% structure.
     {Eqs,St1} = exp_qlc_quals(Qs, Env, St0),
     {Ees,St2} = exp_list(Es, Env, St1),
-    lfe_io:format("Q0 = ~p\n", [[lc,Eqs|Ees]]),
+    %% lfe_io:format("Q0 = ~p\n", [[lc,Eqs|Ees]]),
     %% Now translate to vanilla AST, call qlc expand and then convert
     %% back to LFE.  lfe_qlc:expand/2 wants a list of conversions not
     %% a conversion of a list.
     Vlc = lfe_trans:to_expr([lc,Eqs|Ees], 42),
     Vos = map(fun (O) -> lfe_trans:to_expr(O, 42) end, Opts),
-    io:put_chars(["E0 = ",erl_pp:expr(Vlc, 5, []),"\n"]),
+    %% io:put_chars(["E0 = ",erl_pp:expr(Vlc, 5, []),"\n"]),
     {ok,Vexp} = lfe_qlc:expand(Vlc, Vos),
-    io:put_chars(["E1a = ",erl_pp:expr(Vexp, 6, []),"\n"]),
-    {ok,Vexp1} = lfe_q:expand(Vlc, Vos),
-    io:put_chars(["E1b = ",erl_pp:expr(Vexp1, 6, []),"\n"]),
+    %% io:put_chars([erl_pp:expr(Vexp),"\n"]),
     Exp = lfe_trans:from_expr(Vexp),
     %% lfe_io:format("Q1 = ~p\n", [Exp]),
     {yes,Exp,St2}.
