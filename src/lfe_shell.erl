@@ -223,7 +223,8 @@ update_shell_vars(Form, Value, Env0) ->
     add_vbinding('$ENV', Env2, Env2).
 
 add_shell_functions(Env0) ->
-    Fs = [{help,0,[lambda,[],[':',lfe_shell,help]]},
+    Fs = [{cd,1,[lambda,[d],[':',lfe_shell,cd,d]]},
+          {help,0,[lambda,[],[':',lfe_shell,help]]},
           {i,0,[lambda,[],[':',lfe_shell,i]]},
           {i,1,[lambda,[ps],[':',lfe_shell,i,ps]]},
           {clear,0,[lambda,[],[':',lfe_shell,clear]]},
@@ -627,6 +628,7 @@ help() ->
                    "(c file)    -- compile and load code in <file>\n"
                    "(cd dir)    -- change working directory to <dir>\n"
                    "(ec file)   -- compile and load code in erlang <file>\n"
+                   "(exit)      -- quit - an alias for (q)\n"
                    "(help)      -- help info\n"
                    "(i)         -- information about the system\n"
                    "(l module)  -- load or reload <module>\n"
@@ -643,9 +645,12 @@ help() ->
                    "LFE shell built-in commands\n\n"
                    "(reset-environment)             -- resets the environment to its initial state\n"
                    "(set pattern expr)\n"
-                   "(set pattern (when guard) expr) -- evaluate <expr> and match the result with pattern binding\n"
-                   "(slurp file)                    -- slurp in a LFE source <file> and makes everything available in the shell\n"
-                   "(unslurp)                       -- revert back to the state before the last slurp\n"
+                   "(set pattern (when guard) expr) -- evaluate <expr> and match the result with\n"
+                   "                                   pattern binding\n"
+                   "(slurp file)                    -- slurp in a LFE source <file> and makes\n"
+                   "                                   everything available in the shell\n"
+                   "(unslurp)                       -- revert back to the state before the last\n"
+                   "                                   slurp\n"
                    "(run file)                      -- execute all the shell commands in a <file>\n\n"
                    "LFE shell built-in variables\n\n"
                    "+/++/+++      -- the tree previous expressions\n"
