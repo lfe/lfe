@@ -101,7 +101,7 @@ do_file(Name, Opts0) ->
 do_forms(Fs0, Opts0) ->
     Opts1 = lfe_comp_opts(Opts0),
     St0 = #comp{opts=[binary|Opts1]},        %Implicit binary option
-    St1 = filenames("-no-file-", St0#comp{opts=Opts1}),
+    St1 = filenames("-no-file-", St0),
     St2 = include_path(St1),
     %% Tag forms with a "line number", just use their index.
     {Fs1,_} = mapfoldl(fun (F, N) -> {{F,N},N+1} end, 1, Fs0),
