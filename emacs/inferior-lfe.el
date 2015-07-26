@@ -1,3 +1,5 @@
+;;; inferior-lfe.el --- Inferior Lisp Flavoured Erlang mode
+
 ;; Copyright (c) 2012-2013 Robert Virding
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,10 +14,10 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-;;; inferior-lfe.el --- Inferior Lisp Flavoured Erlang mode
 ;;; Author Robert Virding
-;;;
-;;; Copied from inf-lisp and modified for LFE.
+
+;;; Commentary:
+;; Copied from inf-lisp and modified for LFE.
 
 ;;; Code:
 
@@ -143,7 +145,7 @@ Prefix argument means switch to the LFE buffer afterwards."
 
 (defun switch-to-lfe (eob-p)
   "Switch to the inferior Lisp process buffer.
-With argument, positions cursor at end of buffer."
+When `EOB-P' is given, position cursor at end of buffer."
   (interactive "P")
   (if (get-buffer-process inferior-lfe-buffer)
       (let ((pop-up-frames
@@ -158,6 +160,7 @@ With argument, positions cursor at end of buffer."
     (goto-char (point-max))))
 
 (defun inferior-lfe-proc ()
+  "Get the LFE subprocess."
   (let ((proc (get-buffer-process (if (eq major-mode 'inferior-lfe-mode)
                                       (current-buffer)
                                     inferior-lfe-buffer))))
@@ -171,3 +174,4 @@ With argument, positions cursor at end of buffer."
   "*Functions to run when Erlang mode is loaded.")
 
 (run-hooks 'inferior-lfe-load-hook)
+;;; inferior-lfe.el ends here
