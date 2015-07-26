@@ -79,6 +79,7 @@ Customization: Entry to this mode runs the hooks on `comint-mode-hook' and
   (lfe-mode-variables)
   (use-local-map inferior-lfe-mode-map)
   (setq comint-prompt-regexp inferior-lfe-prompt)
+  (setq comint-prompt-read-only t)
   (setq comint-input-filter (function lfe-input-filter))
   (setq comint-get-old-input (function lfe-get-old-input))
   (setq comint-process-echoes t)
