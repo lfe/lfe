@@ -37,7 +37,7 @@
 ;;   (set-keymap-parent inferior-lfe-mode-map lisp-mode-shared-map)
 ;;   (define-key inferior-lfe-mode-map "\C-x\C-e" 'lfe-eval-last-sexp))
 
-(define-key lfe-mode-map "\C-x\C-e" 'lfe-eval-last-sexp) ;Gnu convention
+(define-key lfe-mode-map "\C-x\C-e" 'lfe-eval-last-sexp) ; GNU convention
 (define-key lfe-mode-map "\C-c\C-r" 'lfe-eval-region)
 (define-key lfe-mode-map "\C-c\C-z" 'switch-to-lfe)
 
