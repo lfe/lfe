@@ -68,8 +68,7 @@ Defaults to a regexp ignoring all inputs of 0, 1, or 2 letters.")
 \\{inferior-lfe-mode-map}
 
 Customization: Entry to this mode runs the hooks on `comint-mode-hook' and
-`inferior-lfe-mode-hook' (in that order).
-"
+`inferior-lfe-mode-hook' (in that order)."
   (interactive)
   (delay-mode-hooks (comint-mode))
   (setq major-mode 'inferior-lfe-mode)
