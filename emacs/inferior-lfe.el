@@ -179,7 +179,7 @@ When `EOB-P' is given, position cursor at end of buffer."
 (provide 'inferior-lfe)
 
 (defvar inferior-lfe-load-hook nil
-  "*Functions to run when Erlang mode is loaded.")
+  "*Functions to run when Inferior LFE mode is loaded.")
 
 (run-hooks 'inferior-lfe-load-hook)
 ;;; inferior-lfe.el ends here
