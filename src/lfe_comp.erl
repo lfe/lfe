@@ -89,7 +89,7 @@ internal({forms,Forms}, Opts) -> do_forms(Forms, Opts).
 do_file(Name, Opts0) ->
     Opts1 = lfe_comp_opts(Opts0),
     St0 = #comp{opts=Opts1},
-    St1 = filenames(Name, St0),
+    St1 = filenames(Name, ".lfe", St0),
     St2 = include_path(St1),
     case lfe_io:parse_file(St2#comp.lfile) of
         {ok,Fs} ->
@@ -99,24 +99,25 @@ do_file(Name, Opts0) ->
     end.
 
 do_forms(Fs0, Opts0) ->
+    Source = proplists:get_value(source, Opts0, "-no-file-"),
     Opts1 = lfe_comp_opts(Opts0),
     St0 = #comp{opts=[binary|Opts1]},        %Implicit binary option
-    St1 = filenames("-no-file-", St0),
+    St1 = filenames(Source, ".lfe", St0),
     St2 = include_path(St1),
     %% Tag forms with a "line number", just use their index.
     {Fs1,_} = mapfoldl(fun (F, N) -> {{F,N},N+1} end, 1, Fs0),
     do_forms(St2#comp{code=Fs1}).
 
-%% filenames(File, State) -> State.
+%% filenames(File, Suffix, State) -> State.
 %%  The default output dir is the current directory unless an
 %%  explicit one has been given in the options.
 
-filenames(File, St) ->
+filenames(File, Suffix, St) ->
     %% Test for explicit outdir.
     Odir = outdir(St#comp.opts),
     Dir = filename:dirname(File),
-    Base = filename:basename(File, ".lfe"),
-    Lfile = filename:join(Dir, Base ++ ".lfe"),
+    Base = filename:basename(File, Suffix),
+    Lfile = filename:join(Dir, Base ++ Suffix),
     Bfile = Base ++ ".beam",
     Cfile = Base ++ ".core",
     St#comp{base=Base,
@@ -224,7 +225,8 @@ erl_comp_opts(St) ->
                  ('P') -> false;
                  (dcore) -> false;
                  (to_core0) -> false;
-                 (warnings_as_errors) -> false; %We handle this ourselves
+                 (warnings_as_errors) -> false; %We handle these ourselves
+                 ({source,_}) -> false;
                  (_) -> true                    %Everything else
              end,
     Os1 = filter(Filter, Os0),
