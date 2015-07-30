@@ -1,4 +1,4 @@
-;; Copyright (c) 2013 Duncan McGreggor <oubiwann@cogitat.io>
+;; Copyright (c) 2013 Duncan McGreggor <oubiwann@gmail.com>
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -22,41 +22,40 @@
 ;;
 ;; To use the code below in LFE, do the following:
 ;;
-;;  $ cd examples
-;;  $ ../bin/lfe -pa ../ebin
+;;  $ ./bin/lfe -pa ./ebin
 ;;
-;; > (slurp '"internal-state.lfe")
+;; > (slurp "examples/internal-state.lfe")
 ;; #(ok internal-state)
-;; > (set account (new-account '"Alice" 100.00 0.06))
+;; > (set acct (new-account "Alice" 100.00 0.06))
 ;; #Fun<lfe_eval.10.53503600>
-;; > (name account)
+;; > (send acct 'name)
 ;; "Alice"
-;; > (balance account)
+;; > (send acct 'balance)
 ;; 100.0
-;; > (set account (interest account))
+;; > (set acct (send acct 'apply-interest))
 ;; #Fun<lfe_eval.10.53503600>
-;; > (balance account)
+;; > (send acct 'balance)
 ;; 106.0
-;; > (set account (withdraw account 54.90))
+;; > (set acct (send acct 'withdraw 54.90))
 ;; #Fun<lfe_eval.10.53503600>
-;; > (set account (withdraw account 54.90))
+;; > (set acct (send acct 'withdraw 54.90))
 ;; exception error: insufficient-funds
 ;;
-;; > (balance account)
+;; > (send acct 'balance)
 ;; 51.1
-;; > (set account (deposit account 1000))
+;; > (set acct (send acct 'deposit 1000))
 ;; #Fun<lfe_eval.10.53503600>
-;; > (set account (withdraw account 54.90))
+;; > (set acct (send acct 'withdraw 54.90))
 ;; #Fun<lfe_eval.10.53503600>
-;; > (set account (withdraw account 54.90))
+;; > (set acct (send acct 'withdraw 54.90))
 ;; #Fun<lfe_eval.10.53503600>
-;; > (set account (withdraw account 54.90))
+;; > (set acct (send acct 'withdraw 54.90))
 ;; #Fun<lfe_eval.10.53503600>
-;; > (balance account)
+;; > (send acct 'balance)
 ;; 886.4
-;; > (set account (interest account))
+;; > (set acct (send acct 'apply-interest))
 ;; #Fun<lfe_eval.10.53503600>
-;; > (balance account)
+;; > (send acct 'balance)
 ;; 939.584
 
 (defmodule internal-state
@@ -68,38 +67,22 @@
       ('withdraw (lambda (amt)
                     (if (=< amt balance)
                         (new-account name (- balance amt) interest-rate)
-                        (: erlang error 'insufficient-funds))))
+                        (error 'insufficient-funds))))
       ('deposit (lambda (amt) (new-account name (+ balance amt) interest-rate)))
       ('balance (lambda () balance))
       ('name (lambda () name))
-      ('interest (lambda ()
+      ('apply-interest (lambda ()
                     (new-account
                       name
                       (+ balance (* balance interest-rate))
                       interest-rate))))))
 
-(defun get-method (object command)
-  (funcall object command))
+(defun send (object method-name)
+  "This is a generic function, used to call into the given object (class
+  instance)."
+  (funcall (funcall object method-name)))
 
-(defun send (object command arg)
-  (funcall (get-method object command) arg))
-
-(defun withdraw (object amt)
-  "Returns an updated account object."
-  (funcall (get-method object 'withdraw) amt))
-
-(defun deposit (object amt)
-  "Returns an updated account object."
-  (funcall (get-method object 'deposit) amt))
-
-(defun balance (object)
-  "Returns a float representing the balance."
-  (funcall (get-method object 'balance)))
-
-(defun name (object)
-  "Returns a string represnting the account holder."
-  (funcall (get-method object 'name)))
-
-(defun interest (object)
-  "Returns an updated account object."
-  (funcall (get-method object 'interest)))
+(defun send (object method-name arg)
+  "This is a generic function, used to call into the given object (class
+  instance)."
+  (funcall (funcall object method-name) arg))
