@@ -1,7 +1,7 @@
 # Base image
 #
-# VERSION 0.1
-FROM debian:jessie
+# VERSION 0.2
+FROM debian:latest
 MAINTAINER LFE Maintainers <maintainers@lfe.io>
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -23,4 +23,4 @@ ADD . /opt/erlang/lfe
 RUN cd /opt/erlang/lfe && make install
 
 ENV ERL_LIBS=$ERL_LIBS:/opt/erlang/lfe
-CMD /usr/bin/lfe -eval "(io:format \"~p~n\"  (list (* 2 (lists:foldl (lambda (n acc) (+ n acc)) 0 (lists:seq 1 6)))))"
+CMD /usr/bin/lfe -eval "(io:format \"~p~n\"  (list (* 2 (lists:foldl #'+/2 0 (lists:seq 1 6)))))"

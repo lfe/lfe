@@ -61,7 +61,7 @@ $(EBINDIR)/%.beam: $(SRCDIR)/%.erl
 
 all: compile docs
 
-.PHONY: compile erlc_compile install docs clean
+.PHONY: compile erlc_compile install docs clean dockerfile
 
 ## Compile using rebar if it exists else using make
 compile: maps.mk
@@ -128,3 +128,6 @@ upload: get-deps get-version
 	@echo "Continue with upload? "
 	@read
 	$(EXPM) publish
+
+dockerfile: compile
+	docker build -t lfex/lfe .
