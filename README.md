@@ -109,10 +109,11 @@ Here are a couple of simple usage examples:
 ```bash
 $ docker run lfex/lfe
 42
-$ docker run -i -t lfex/lfe lfe
-Erlang/OTP 17 [erts-6.2] [source] [64-bit] [smp:8:8] ...
 
-LFE Shell V6.2 (abort with ^G)
+$ docker run -i -t lfex/lfe lfe
+Erlang/OTP 18 [erts-7.0] [source-4d83b58] [64-bit] [smp:8:8] ...
+
+LFE Shell V7.0 (abort with ^G)
 >
 ```
 
