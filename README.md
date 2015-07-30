@@ -84,7 +84,7 @@ that will show you how to start using LFE. However, here's a quick taste:
 ```cl
     > (* 2 (+ 1 2 3 4 5 6))
     42
-    > (* 2 (lists:foldl (lambda (n acc) (+ n acc)) 0 (lists:seq 1 6)))
+    > (* 2 (lists:foldl #'+/2 0 (lists:seq 1 6)))
     42
 ```
 
@@ -109,7 +109,11 @@ Here are a couple of simple usage examples:
 ```bash
 $ docker run lfex/lfe
 42
-$ docker run -t -i lfex/lfe /usr/bin/lfe
+$ docker run -i -t lfex/lfe lfe
+Erlang/OTP 17 [erts-6.2] [source] [64-bit] [smp:8:8] ...
+
+LFE Shell V6.2 (abort with ^G)
+>
 ```
 
 That last command will dump you into the LFE REPL on a running container
