@@ -15,7 +15,6 @@ VPATH = $(SRCDIR)
 ERLCFLAGS = -W1
 ERLC = erlc
 
-EXPM=$(BINDIR)/expm
 LIB=lfe
 
 # To run erl as bash
@@ -103,11 +102,7 @@ echo:
 	@ echo $(YSRCS)
 	@ echo $(EBINS)
 
-$(EXPM): $(BINDIR)
-	curl -o $(EXPM) http://expm.co/__download__/expm
-	chmod +x $(EXPM)
-
-get-deps: $(EXPM)
+get-deps:
 	if which rebar.cmd > /dev/null; \
 	then rebar.cmd get-deps; \
 	elif which rebar > /dev/null; \
@@ -120,11 +115,3 @@ get-version:
 	@echo
 	@echo -n app.src: ''
 	@erl -eval $(GET_VERSION)
-	@echo -n package.exs: ''
-	@grep version package.exs | awk '{print $$2}'| sed -e 's/,//g'
-
-upload: get-deps get-version
-	@echo
-	@echo "Continue with upload? "
-	@read
-	$(EXPM) publish
