@@ -1,4 +1,4 @@
-;; Copyright (c) 2013 Duncan McGreggor <oubiwann@gmail.com>
+;; Copyright (c) 2013, 2015 Duncan McGreggor <oubiwann@gmail.com>
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -86,3 +86,66 @@
   "This is a generic function, used to call into the given object (class
   instance)."
   (funcall (funcall object method-name) arg))
+
+;; It is also possible to create functionally equivalent code using LFE
+;; processes. The code below would then be used in the following manner:
+;;
+;; > (set acct (init-account "Alice" 1000 0.1))
+;; <0.37.0>
+;; > (snd acct 'name)
+;; "Alice"
+;; > (snd acct 'balance)
+;; 1000
+;; > (snd acct 'apply-interest)
+;; 1.1e3
+;; > (snd acct 'deposit 1000)
+;; 2.1e3
+;; > (snd acct 'balance)
+;; 2.1e3
+;; > (snd acct 'withdraw 2000)
+;; 100.0
+;; > (snd acct 'withdraw 101)
+;; #(error insufficient-funds)
+
+(defun account-class (name balance interest-rate)
+  (receive
+    (`#(,method name ())
+     (! method `#(ok ,name))
+     (account-class name balance interest-rate))
+    (`#(,method balance ())
+     (! method `#(ok ,balance))
+     (account-class name balance interest-rate))
+    (`#(,method deposit (,amt))
+     (let ((new-balance (+ balance amt)))
+       (! method `#(ok ,new-balance))
+       (account-class name new-balance interest-rate)))
+    (`#(,method apply-interest ())
+     (let ((new-balance (+ balance (* balance interest-rate))))
+       (! method `#(ok ,new-balance))
+       (account-class name new-balance interest-rate)))
+    (`#(,method withdraw (,amt))
+     (let ((new-balance (- balance amt)))
+       (cond ((< new-balance 0)
+              (! method #(error insufficient-funds))
+              (account-class name balance interest-rate))
+             ('true
+              (! method `#(ok ,new-balance))
+              (account-class name new-balance interest-rate)))))))
+
+(defun init-account (name balance interest-rate)
+  (spawn (lambda ()
+           (account-class name balance interest-rate))))
+
+(defun snd (object method-name)
+  (snd object method-name '()))
+
+(defun snd
+  ((object method-name arg) (when (not (is_list arg)))
+   (snd object method-name `(,arg)))
+  ((object method-name args)
+   (! object `#(,(self) ,method-name ,args))
+   (receive
+     (`#(ok ,result)
+      result)
+     (error
+      error))))
