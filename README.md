@@ -5,15 +5,9 @@ compiler. Code produced with it is compatible with "normal" Erlang
 code. An LFE evaluator and shell is also included.
 
 
-## Installation
+## Building
 
-LFE can be installed in different ways depending on how it is intended
-to be used:
-
-* use [lfetool](https://github.com/lfe/lfetool) to create projects (which will
-  automatically have LFE as a dependency when it creates skeleton libraries,
-  OTP apps, etc.; or
-* use LFE directly in a working dir, e.g.:
+To compile LFE, simple clone it and compile:
 
 ```shell
     $ git clone https://github.com/rvirding/lfe.git
@@ -21,9 +15,14 @@ to be used:
     $ make compile
 ```
 
-The second alternative compiles all the files. After this has been
-done programs for starting the REPL and compiling LFE files can be
-installed with:
+LFE requires Erlang be installed on the system and that the ``erl`` binary is
+in ``$PATH``.
+
+
+## Installation
+
+Should you wish to have LFE available system-wide, you can run
+the following ``make`` target:
 
 ```shell
     $ make install
@@ -42,23 +41,18 @@ will put the programs in ``/Users/rv/bin``.
 
 ## REPL
 
-If you have used ``lfetool`` to set up your project, you can simply do this to
-start a REPL:
+If you're running LFE from a git clone working dir, you can start the REPL
+like so after compiling:
 
 ```shell
-    $ make shell
+    $ ./bin/lfe
     Erlang 17 (erts-6.0) [source] [64-bit] [smp:8:8] ...
 
-    LFE Shell 6.0 (abort with ^G)
+    LFE Shell V6.0 (abort with ^G)
     >
 ```
 
-Note that this will recompile all the deps (often useful for projects with
-changing dependencies). If you would prefer to only recompile code for the
-project itself, you can use ``make shell-no-deps`` instead.
-
-If you're running LFE from a git clone working dir, you can start the REPL
-like so:
+If you have installed LFE, then you may start the REPL from any location:
 
 ```shell
     $ lfe
@@ -68,7 +62,14 @@ like so:
     >
 ```
 
-and run an LFE shell script in the same style as shell scripts with:
+Likewise, you may run an LFE shell script in the same style as shell scripts
+with:
+
+```shell
+    $ ./bin/lfe script-name script-arg-1 ...
+```
+
+or
 
 ```shell
     $ lfe script-name script-arg-1 ...
