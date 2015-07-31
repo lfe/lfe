@@ -80,12 +80,15 @@
     (io:put_chars usage)))
 
 ;; Parse the arguments and compile the files.
-
 (case script-args
   (() (usage))
   (as0
    (fix-code-path)
    (let ((`#(,as1 ,opts1) (parse-opts as0 ())))
      ;; (pp (list as1 opts1))
-     (lists:map (lambda (a) (lfe_comp:file a (list* 'verbose 'report opts1)))
-                as1))))
+     (case (lists:map (lambda (a)
+                        (lfe_comp:file a (list* 'verbose 'report opts1)))
+                      as1)
+       ('(error) (halt 1))
+       (_ 'ok)))))
+
