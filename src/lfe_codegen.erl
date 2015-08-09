@@ -82,13 +82,14 @@ forms(Forms, St0, Core0) ->
     {Fbs0,St1} = lfe_lib:proc_forms(fun collect_form/3, Forms, St0),
     %% Add predefined functions and definitions.
     Predefs = [{module_info,0},{module_info,1}],
-    Fbs1 = [{module_info,
+    Mibs = [{module_info,
              [lambda,[],
               [call,?Q(erlang),?Q(get_module_info),?Q(St1#cg.mod)]],1},
             {module_info,
              [lambda,[x],
-              [call,?Q(erlang),?Q(get_module_info),?Q(St1#cg.mod),x]],1}|
-            Fbs0],
+              [call,?Q(erlang),?Q(get_module_info),?Q(St1#cg.mod),x]],1}],
+    %% The sum of all functions.
+    Fbs1 = Fbs0 ++ Mibs,
     %% Make initial environment and set state.
     Env = forms_env(Fbs1, St1),
     St2 = St1#cg{exps=add_exports(St1#cg.exps, Predefs),
@@ -97,7 +98,7 @@ forms(Forms, St0, Core0) ->
     Atts = map(fun ({N,V,L}) ->
 %%                       Ann = line_file_anno(L, St2),
                        Ann = [L],
-                       {c_lit(Ann, N),c_lit(Ann, V)}
+                       {ann_c_lit(Ann, N),ann_c_lit(Ann, V)}
                end, St2#cg.atts),
     %% Compile the functions.
     {Cdefs,St3} = mapfoldl(fun (D, St) -> comp_define(D, Env, St) end,
@@ -252,7 +253,7 @@ comp_expr(['mref',Map,K], Env, L, St) ->
 comp_expr(['mset',Map|As], Env, L, St) ->
     comp_set_map(Map, As, Env, L, St);
 comp_expr(['mupd',Map|As], Env, L, St) ->
-    comp_update_map(Map, As, Env, L, St);
+    comp_upd_map(Map, As, Env, L, St);
 comp_expr(['map-get',Map,K], Env, L, St) ->
     comp_expr(['mref',Map,K], Env, L, St);
 comp_expr(['map-set',Map|As], Env, L, St) ->
@@ -308,7 +309,10 @@ comp_expr([Fun|As], Env, L, St) when is_atom(Fun) ->
                            {ann_c_call(Ann, c_atom(M), c_atom(F), Cas),Sta};
                        {yes,Name} ->
                            %% Might have been renamed, use real function name.
-                           {ann_c_apply(Ann, c_fname(Name, Ar), Cas),Sta}
+                           {ann_c_apply(Ann, c_fname(Name, Ar), Cas),Sta};
+                       no ->
+                           io:format("ce: ~p\n", [{{Fun,Ar},En}]),
+                           error(foo)
                    end
            end,
     comp_args(As, Call, Env, L, St);
@@ -373,7 +377,7 @@ comp_match_lambda(Cls, Env, L, St0) ->
     {Ccs,St2} = comp_match_clauses(Cls, Env, L, St1),
     {Fvs,St3} = new_c_vars(Ar, L, St2),
     Cf = func_fail(Fvs, L, St3),
-    Cb = ann_c_case([L], ann_c_values(Cvs), Ccs ++ [Cf]),
+    Cb = ann_c_case([L], c_values(Cvs), Ccs ++ [Cf]),
     Ann = line_file_anno(L, St3),
     {ann_c_fun(Ann, Cvs, Cb),St3}.
 
@@ -423,7 +427,7 @@ comp_let(Vbs, B, Env, L, St0) ->
             Efun = fun ([_,E], St) -> comp_expr(E, Env, L, St) end,
             {Ces,St2} = mapfoldl(Efun, St1, Vbs),
             {Cb,St3} = comp_body(B, add_vbindings(Pvs, Env), L, St2),
-            {ann_c_let([L], Cvs, ann_c_values(Ces), Cb),St3};
+            {ann_c_let([L], Cvs, c_values(Ces), Cb),St3};
         false ->
             %% This would be much easier to do by building a clause
             %% and compiling it directly, but then we would have to
@@ -447,7 +451,7 @@ comp_let(Vbs, B, Env, L, St0) ->
             {Cb,St4} = comp_body(B, Env1, L, St3),
             {Cvs,St5} = new_c_vars(length(Ces), L, St4),
             Cf = let_fail(Cvs, L, St5),
-            {ann_c_case([L], ann_c_values(Ces),
+            {ann_c_case([L], c_values(Ces),
                         [ann_c_clause([L], Cps, Cg, Cb),Cf]),
              St5}
     end.
@@ -718,7 +722,7 @@ comp_funcall(['match-lambda'|Cls]=F, As, Env, L, St0) ->
             Cb = fun_body(Cf),
             Efun = fun (E, St) -> comp_expr(E, Env, L, St) end,
             {Ces,St2} = mapfoldl(Efun, St1, As),
-            {ann_c_let([L], Cvs, ann_c_values(Ces), Cb),St2};
+            {ann_c_let([L], Cvs, c_values(Ces), Cb),St2};
         false ->                %Catch arg mismatch at runtime
             comp_funcall_1(F, As, Env, L, St0)
     end;
@@ -806,37 +810,62 @@ comp_bitseg({Val,Sz,{Ty,Un,Si,En}}, Env, L, St0) ->
 
 %% comp_map(Args, Env, Line, State) -> {Core,State}.
 %% comp_set_map(Map, Args, Line, State) -> {Core,State}.
-%% comp_update_map(Map, Args, Line, State) -> {Core,State}.
+%% comp_upd_map(Map, Args, Line, State) -> {Core,State}.
 
 -ifdef(HAS_MAPS).
-comp_map(Args, Env, L, St) ->
+
+%% There is no need to check for HAS_FULL_KEYS here as the linter will
+%% catch the limited code.  The setting/updating maps operations need
+%% to be wrapped with an 'if' which does an explicit test that the map
+%% argument is a map.  This does not have exactly the same structure
+%% and annotations as a "normal" 'if'.
+
+comp_map(Args, Env, Line, St) ->
     Mapper = fun (Cas, _, L, St) ->
-                     Pairs = comp_mappairs(Cas, assoc, L),
-                     {ann_c_map([L], c_lit(#{}), Pairs),St}
+                     Cpairs = comp_map_pairs(Cas, assoc, L),
+                     {ann_c_map([L], c_lit(#{}), Cpairs),St}
              end,
-    comp_args(Args, Mapper, Env, L, St).
+    comp_args(Args, Mapper, Env, Line, St).
 
-comp_set_map(Map, Args, Env, L, St) ->
-    Mapper = fun ([Cmap|Cas], _, L, St) ->
-                     Pairs = comp_mappairs(Cas, assoc, L),
-                     {ann_c_map([L], Cmap, Pairs),St}
+comp_set_map(Map, Args, Env, Line, St) ->
+    comp_modify_map(Map, Args, assoc, Env, Line, St).
+
+comp_upd_map(Map, Args, Env, Line, St) ->
+    comp_modify_map(Map, Args, exact, Env, Line, St).
+
+comp_modify_map(Map, Args, Key, Env, Line, St0) ->
+    %% Evaluate map, keys and values and build modify form.
+    Mapper = fun ([Cm|Cas], E, L, St) ->
+                     Cpairs = comp_map_pairs(Cas, Key, L),
+                     comp_map_test(Cm, Cpairs, E, L, St)
              end,
-    comp_args([Map|Args], Mapper, Env, L, St).
+    comp_args([Map|Args], Mapper, Env, Line, St0).
 
-comp_update_map(Map, Args, Env, L, St) ->
-    Mapper = fun ([Cmap|Cas], _, L, St) ->
-                     Pairs = comp_mappairs(Cas, exact, L),
-                     {ann_c_map([L], Cmap, Pairs),St}
-             end,
-    comp_args([Map|Args], Mapper, Env, L, St).
+comp_map_test(Cm, Cpairs, _, L, St) ->
+    %% Build map type tester.
+    Ann = line_file_anno(L, St),
+    Cmap = ann_c_clause([compiler_generated|Ann], [],
+                        ann_c_call(Ann, ann_c_atom(Ann, erlang),
+                                   ann_c_atom(Ann, is_map), [Cm]),
+                        ann_c_map(Ann, Cm, Cpairs)),
+    Cfail = map_fail(Cm, L, St),
+    {ann_c_case(Ann, c_values([]), [Cmap,Cfail]),St}.
 
-comp_mappairs([K,V|Ps], Op, L) ->
-    [ann_c_map_pair([L], c_lit(Op), K, V)|comp_mappairs(Ps, Op, L)];
-comp_mappairs([], _, _) -> [].
+map_fail(Map, L, St) ->
+    Fann = [{eval_failure,badmap}],
+    fail_clause([], c_atom(badmap), Fann, L, St).
+%%    fail_clause([], c_tuple([c_atom(badmap),Map]), Fann, L, St).
+
+comp_map_pairs([K,V|Ps], Op, L) ->
+    [ann_c_map_pair([L], c_lit(Op), K, V)|comp_map_pairs(Ps, Op, L)];
+comp_map_pairs([], _, _) -> [].
 -else.
+%% These are just dummy functions which will never be called as
+%% lfe_lint will catch these forms.
+
 comp_map(_, _, _, St) -> {c_lit(map),St}.
 comp_set_map(_, _, _, _, St) -> {c_lit(map),St}.
-comp_update_map(_, _, _, _, St) -> {c_lit(map),St}.
+comp_upd_map(_, _, _, _, St) -> {c_lit(map),St}.
 -endif.
 
 %% comp_guard(GuardTests, Env, Line, State) -> {CoreGuard,State}.
@@ -919,7 +948,7 @@ comp_gexpr([map|As], Env, L, St) ->
 comp_gexpr(['mset',Map|As], Env, L, St) ->
     comp_set_map(Map, As, Env, L, St);
 comp_gexpr(['mupd',Map|As], Env, L, St) ->
-    comp_update_map(Map, As, Env, L, St);
+    comp_upd_map(Map, As, Env, L, St);
 comp_gexpr(['map-set',Map|As], Env, L, St) ->
     comp_gexpr(['mset',Map|As], Env, L, St);
 comp_gexpr(['map-update',Map|As], Env, L, St) ->
@@ -1032,13 +1061,13 @@ c_byte_bitseg(B, Sz) ->
 
 -ifdef(HAS_MAPS).
 comp_lit_map(Map) ->
-    Pairs = comp_lit_mappairs(maps:to_list(Map)),
+    Pairs = comp_lit_map_pairs(maps:to_list(Map)),
     ann_c_map([], c_lit(#{}), Pairs).
 
-comp_lit_mappairs([{K,V}|Ps]) ->
+comp_lit_map_pairs([{K,V}|Ps]) ->
     [ann_c_map_pair([], c_lit(assoc), comp_lit(K), comp_lit(V))|
-     comp_lit_mappairs(Ps)];
-comp_lit_mappairs([]) -> [].
+     comp_lit_map_pairs(Ps)];
+comp_lit_map_pairs([]) -> [].
 -else.
 comp_lit_map(_) -> c_lit(map).
 -endif.
@@ -1264,13 +1293,13 @@ pat_lit_bitsegs(Bits) ->                           %Size < 8
 
 -ifdef(HAS_MAPS).
 pat_lit_map(Map) ->
-    Pairs = pat_lit_mappairs(maps:to_list(Map)),
+    Pairs = pat_lit_map_pairs(maps:to_list(Map)),
     ann_c_map([], c_lit(#{}), Pairs).
 
-pat_lit_mappairs([{K,V}|Ps]) ->
+pat_lit_map_pairs([{K,V}|Ps]) ->
     [ann_c_map_pair([], c_lit(assoc), pat_lit(K), pat_lit(V))|
-     pat_lit_mappairs(Ps)];
-pat_lit_mappairs([]) -> [].
+     pat_lit_map_pairs(Ps)];
+pat_lit_map_pairs([]) -> [].
 -else.
 pat_lit_map(_) -> c_lit(map).
 -endif.
@@ -1402,8 +1431,8 @@ c_fname(N, A) -> cerl:c_fname(N, A).
 ann_c_apply(Ann, Op, As) ->
     cerl:ann_c_apply(Ann, Op, As).
 
-ann_c_values(Vs) ->
-    cerl:ann_c_values([], Vs).
+c_values(Vs) ->
+    cerl:c_values(Vs).
 
 get_ann(Node) -> cerl:get_ann(Node).
 set_ann(Node, Ann) -> cerl:set_ann(Node, Ann).
@@ -1413,11 +1442,12 @@ alias_var(Alias) -> cerl:alias_var(Alias).
 alias_pat(Alias) -> cerl:alias_pat(Alias).
 
 c_atom(A) -> cerl:c_atom(A).
+ann_c_atom(Ann, A) -> cerl:ann_c_atom(Ann, A).
 c_int(I) -> cerl:c_int(I).
 c_float(F) -> cerl:c_float(F).
 c_nil() -> cerl:c_nil().
 
-c_lit(Ann, Val) -> cerl:ann_abstract(Ann, Val). %Generic literal
+ann_c_lit(Ann, Val) -> cerl:ann_abstract(Ann, Val). %Generic literal
 c_lit(Val) -> cerl:abstract(Val).
 is_literal(Node) -> cerl:is_literal(Node).
 lit_val(Lit) -> cerl:concrete(Lit).

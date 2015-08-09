@@ -120,7 +120,7 @@ eval_expr([map|As], Env) ->
     Pairs = map_pairs(As, Env),
     maps:from_list(Pairs);
 eval_expr(['mref',Map,K], Env) ->
-    Key = map_key(K),
+    Key = map_key(K, Env),
     maps:get(Key, eval_expr(Map, Env));
 eval_expr(['mset',M|As], Env) ->
     Map = eval_expr(M, Env),
@@ -307,22 +307,27 @@ eval_float_bitseg(Val, Sz, native) -> <<Val:Sz/float-native>>.
 %% map_pairs(Args, Env) -> [{K,V}].
 
 map_pairs([K,V|As], Env) ->
-    P = {map_key(K),eval_expr(V, Env)},
+    P = {map_key(K, Env),eval_expr(V, Env)},
     [P|map_pairs(As, Env)];
 map_pairs([], _) -> [];
 map_pairs(_, _) -> eval_error(badarg).
 
-%% map_key(Key) -> Value.
-%%  Map keys can only be literals.
+%% map_key(Key, Env) -> Value.
+%%  A map key can only be a literal in 17 but can be anything in 18..
 
-map_key([quote,E]) -> E;
-map_key([_|_]=L) ->
+-ifdef(HAS_FULL_KEYS).
+map_key(Key, Env) ->
+    eval_expr(Key, Env).
+-else.
+map_key([quote,E], _) -> E;
+map_key([_|_]=L, _) ->
     case is_posint_list(L) of
-        true -> L;                              %Literal strings
+        true -> L;                              %Literal strings only
         false -> eval_error(illegal_mapkey)
     end;
-map_key(E) when not is_atom(E) -> E;            %Everything else
-map_key(_) -> eval_error(illegal_mapkey).
+map_key(E, _) when not is_atom(E) -> E;         %Everything else
+map_key(_, _) -> eval_error(illegal_mapkey).
+-endif.
 
 %% eval_lambda(LambdaBody, Env) -> Val.
 %%  Evaluate (lambda args ...).
@@ -752,7 +757,7 @@ eval_gexpr([map|As], Env) ->
     Pairs = gmap_pairs(As, Env),
     maps:from_list(Pairs);
 %% eval_gexpr(['mref',K,Map], Env) ->
-%%     Key = map_key(K),
+%%     Key = map_key(K, Env),
 %%     maps:get(Key, eval_gexpr(Map, Env));
 eval_gexpr(['mset',M|As], Env) ->
     Map = eval_gexpr(M, Env),
@@ -808,10 +813,27 @@ eval_gbinary(Segs, Env) ->
 %% gmap_pairs(Args, Env) -> [{K,V}].
 
 gmap_pairs([K,V|As], Env) ->
-    P = {map_key(K),eval_gexpr(V, Env)},
+    P = {gmap_key(K, Env),eval_gexpr(V, Env)},
     [P|gmap_pairs(As, Env)];
 gmap_pairs([], _) -> [];
 gmap_pairs(_, _) -> eval_error(badarg).
+
+%% gmap_key(Key, Env) -> Value.
+%%  A map key can only be a literal in 17 but can be anything in 18..
+
+-ifdef(HAS_FULL_KEYS).
+gmap_key(Key, Env) ->
+    eval_gexpr(Key, Env).
+-else.
+gmap_key([quote,E], _) -> E;
+gmap_key([_|_]=L, _) ->
+    case is_posint_list(L) of
+        true -> L;                              %Literal strings only
+        false -> eval_error(illegal_mapkey)
+    end;
+gmap_key(E, _) when not is_atom(E) -> E;        %Everything else
+gmap_key(_, _) -> eval_error(illegal_mapkey).
+-endif.
 
 %% eval_gif(IfBody, Env) -> Val.
 
@@ -1037,10 +1059,10 @@ get_float_bitseg(Bin, Sz, native) ->
     <<Val:Sz/float-native,Rest/bitstring>> = Bin,
     {Val,Rest}.
 
-%% match_map(Ps, Map, PatBindings, Env) -> {yes,PatBindings} | no.
+%% match_map(Pairs, Map, PatBindings, Env) -> {yes,PatBindings} | no.
 
 match_map([K,V|Ps], Map, Pbs0, Env) ->
-    Pat = map_key(K),                           %Evaluate the key
+    Pat = pat_map_key(K),                       %Evaluate the key
     case maps:is_key(Pat, Map) of
         true ->
             case match(V, maps:get(Pat, Map), Pbs0, Env) of
@@ -1051,6 +1073,15 @@ match_map([K,V|Ps], Map, Pbs0, Env) ->
     end;
 match_map([], _, Pbs, _) -> {yes,Pbs};
 match_map(_, _, _, _) -> eval_error(illegal_pattern).
+
+pat_map_key([quote,E]) -> E;
+pat_map_key([_|_]=L) ->
+    case is_posint_list(L) of
+        true -> L;                              %Literal strings only
+        false -> eval_error(illegal_mapkey)
+    end;
+pat_map_key(E) when not is_atom(E) -> E;        %Everything else
+pat_map_key(_) -> eval_error(illegal_mapkey).
 
 %% eval_lit(Literal, Env) -> Value.
 %%  Evaluate a literal expression. Error if invalid.
