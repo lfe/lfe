@@ -522,8 +522,12 @@ expr_map_assoc(K, V, Env, L, St0) ->
     check_expr(V, Env, L, St1).
 
 %% map_key(Key, Env, L, State) -> State.
-%%  A map key can currently only be a literal.
+%%  A map key can only be a literal in 17 but can be anything in 18.
 
+-ifdef(HAS_FULL_KEYS).
+map_key(Key, Env, L, St) ->
+    check_expr(Key, Env, L, St).
+-else.
 map_key(Key, _, L, St) ->
     case is_map_key(Key) of
         true -> St;
@@ -534,6 +538,8 @@ is_map_key([quote,Lit]) -> is_literal(Lit);
 is_map_key([_|_]=L) -> is_posint_list(L);       %Literal strings only
 is_map_key(E) when is_atom(E) -> false;
 is_map_key(Lit) -> is_literal(Lit).
+-endif.
+
 -else.
 expr_map(Ps, _, L, St) ->
     add_error(L, {unbound_func,{map,safe_length(Ps)}}, St).
@@ -918,8 +924,28 @@ gexpr_map_pairs(_, _, L, St) ->
     bad_form_error(L, map, St).
 
 gexpr_map_assoc(K, V, Env, L, St0) ->
-    St1 = map_key(K, Env, L, St0),
+    St1 = gmap_key(K, Env, L, St0),
     check_gexpr(V, Env, L, St1).
+
+%% gmap_key(Key, Env, L, State) -> State.
+%%  A map key can only be a literal in 17 but can be anything in 18.
+
+-ifdef(HAS_FULL_KEYS).
+gmap_key(Key, Env, L, St) ->
+    check_gexpr(Key, Env, L, St).
+-else.
+gmap_key(Key, _, L, St) ->
+    case is_gmap_key(Key) of
+        true -> St;
+        false -> add_error(L, illegal_mapkey, St)
+    end.
+
+is_gmap_key([quote,Lit]) -> is_literal(Lit);
+is_gmap_key([_|_]=L) -> is_posint_list(L);       %Literal strings only
+is_gmap_key(E) when is_atom(E) -> false;
+is_gmap_key(Lit) -> is_literal(Lit).
+-endif.
+
 -else.
 gexpr_map(Ps, _, L, St) ->
     add_error(L, {unbound_func,{map,safe_length(Ps)}}, St).
@@ -1130,8 +1156,22 @@ pat_map(_, Pvs, _, L, St) ->
     {Pvs,bad_form_error(L, map, St)}.
 
 pat_map_assoc(K, V, Pvs, Env, L, St0) ->
-    St1 = map_key(K, Env, L, St0),
+    St1 = pat_map_key(K, Env, L, St0),
     pattern(V, Pvs, Env, L, St1).
+
+%% pat_map_key(Key, Env, L, State) -> State.
+%%  A pattern map key can currently only be a literal.
+
+pat_map_key(Key, _, L, St) ->
+    case is_pat_map_key(Key) of
+        true -> St;
+        false -> add_error(L, illegal_mapkey, St)
+    end.
+
+is_pat_map_key([quote,Lit]) -> is_literal(Lit);
+is_pat_map_key([_|_]=L) -> is_posint_list(L);   %Literal strings only
+is_pat_map_key(E) when is_atom(E) -> false;
+is_pat_map_key(Lit) -> is_literal(Lit).
 -else.
 pat_map(_, Pvs, _, L, St) ->
     {Pvs,add_error(L, illegal_pattern, St)}.
