@@ -1,17 +1,28 @@
 %% -*- mode: erlang; indent-tabs-mode: nil -*-
 
 Conf0 = CONFIG,
-MapOpt = [{d,'HAS_MAPS',true}],
+MapString = "#{X => 1}.",
+HasOpt = {d,'HAS_MAPS',true},
+FullOpt = {d,'HAS_FULL_KEYS',true},
 
-case erl_internal:bif(is_map, 1) of
-    true ->                                     %Maps
-        case lists:keyfind(erl_opts, 1, Conf0) of
-            {erl_opts,Opts} ->                  %Existing erl_opts
-                NewOpts = {erl_opts,Opts ++ MapOpt},
-                lists:keyreplace(erl_opts, 1, Conf0, NewOpts);
-            false ->                            %No erl_opts
-                Conf0 ++ [{erl_opts,MapOpt}]
-        end;
-    false ->                                    %No maps
-        Conf0
+MapsOpts = case erl_scan:string(MapString) of
+              {ok,Ts,_} ->
+                  case erl_parse:parse_exprs(Ts) of
+                      {ok,Es} ->                %We have maps!
+                          Binds = [{'X',49}],   %We need to bind X
+                          case erl_lint:exprs(Es, Binds) of
+                              {ok,_} -> [HasOpt,FullOpt];
+                           {error,_,_} -> [HasOpt]
+                       end;
+                   {error,_} -> []
+               end;
+           {error,_,_} -> []
+       end,
+
+case lists:keyfind(erl_opts, 1, Conf0) of
+    {erl_opts,Opts} ->                          %Existing erl_opts
+        NewOpts = {erl_opts,Opts ++ MapsOpts},
+        lists:keyreplace(erl_opts, 1, Conf0, NewOpts);
+    false ->                                    %No erl_opts
+        Conf0 ++ [{erl_opts,MapsOpts}]
 end.

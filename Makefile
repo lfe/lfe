@@ -21,10 +21,6 @@ LIB=lfe
 FINISH=-run init stop -noshell
 
 # Scripts to be evaluated
-MAPS_MK = 'Has=erl_internal:bif(is_map,1), \
-	HasMaps=if Has -> "-DHAS_MAPS=true\n" ; true -> "\n" end, \
-	file:write_file("maps.mk", "HAS_MAPS = " ++ HasMaps)' \
-	$(FINISH)
 
 GET_VERSION = '{ok,[App]}=file:consult("src/$(LIB).app.src"), \
 	V=proplists:get_value(vsn,element(3,App)), \
@@ -50,7 +46,7 @@ $(BINDIR)/%: $(CSRCDIR)/%.c
 	cc -o $@ $<
 
 $(EBINDIR)/%.beam: $(SRCDIR)/%.erl
-	$(ERLC) -I $(INCDIR) -o $(EBINDIR) $(HAS_MAPS) $(ERLCFLAGS) $<
+	$(ERLC) -I $(INCDIR) -o $(EBINDIR) $(MAPS_OPTS) $(ERLCFLAGS) $<
 
 %.erl: %.xrl
 	$(ERLC) -o $(SRCDIR) $<
@@ -63,7 +59,7 @@ all: compile docs
 .PHONY: compile erlc_compile install docs clean dockerfile
 
 ## Compile using rebar if it exists else using make
-compile: maps.mk
+compile: maps_opts.mk
 	if which rebar.cmd > /dev/null; \
 	then rebar.cmd compile; \
 	elif which rebar > /dev/null; \
@@ -74,10 +70,10 @@ compile: maps.mk
 ## Compile using erlc
 erlc_compile: $(addprefix $(EBINDIR)/, $(EBINS)) $(addprefix $(BINDIR)/, $(BINS))
 
-maps.mk:
-	erl -eval $(MAPS_MK)
+maps_opts.mk:
+	escript get_maps_opts.escript
 
--include maps.mk
+-include maps_opts.mk
 
 install:
 	ln -s `pwd`/bin/lfe $(DESTBINDIR)
@@ -93,7 +89,7 @@ clean:
 	then rebar clean; \
 	else rm -rf $(EBINDIR)/*.beam; \
 	fi
-	rm maps.mk
+	rm maps_opts.mk
 	rm -rf erl_crash.dump
 
 echo:
