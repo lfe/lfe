@@ -80,14 +80,14 @@ module(Forms, #cinfo{opts=Opts,file=File}) ->
 forms(Forms, St0, Core0) ->
     %% Collect the module definition and functions definitions.
     {Fbs0,St1} = lfe_lib:proc_forms(fun collect_form/3, Forms, St0),
-    %% Add predefined functions and definitions.
+    %% Add predefined functions and definitions, these are in line 0.
     Predefs = [{module_info,0},{module_info,1}],
     Mibs = [{module_info,
              [lambda,[],
-              [call,?Q(erlang),?Q(get_module_info),?Q(St1#cg.mod)]],1},
+              [call,?Q(erlang),?Q(get_module_info),?Q(St1#cg.mod)]],0},
             {module_info,
              [lambda,[x],
-              [call,?Q(erlang),?Q(get_module_info),?Q(St1#cg.mod),x]],1}],
+              [call,?Q(erlang),?Q(get_module_info),?Q(St1#cg.mod),x]],0}],
     %% The sum of all functions.
     Fbs1 = Fbs0 ++ Mibs,
     %% Make initial environment and set state.
@@ -96,7 +96,6 @@ forms(Forms, St0, Core0) ->
                  defs=Fbs1,env=Env},
     Exps = make_exports(St2#cg.exps, Fbs1),
     Atts = map(fun ({N,V,L}) ->
-%%                       Ann = line_file_anno(L, St2),
                        Ann = [L],
                        {ann_c_lit(Ann, N),ann_c_lit(Ann, V)}
                end, St2#cg.atts),
@@ -377,8 +376,8 @@ comp_match_lambda(Cls, Env, L, St0) ->
     {Ccs,St2} = comp_match_clauses(Cls, Env, L, St1),
     {Fvs,St3} = new_c_vars(Ar, L, St2),
     Cf = func_fail(Fvs, L, St3),
-    Cb = ann_c_case([L], c_values(Cvs), Ccs ++ [Cf]),
     Ann = line_file_anno(L, St3),
+    Cb = ann_c_case(Ann, c_values(Cvs), Ccs ++ [Cf]),
     {ann_c_fun(Ann, Cvs, Cb),St3}.
 
 func_fail(Fvs, L, #cg{func=F}=St) ->
@@ -408,7 +407,8 @@ comp_match_clause([Pats|Body], Env0, L, St0) ->
     {Cps,{Pvs,St1}} = mapfoldl(Pfun, {[],St0}, Pats),
     Env1 = add_vbindings(Pvs, Env0),
     {Cg,Cb,St2} = comp_clause_body(Body, Env1, L, St1),
-    {ann_c_clause([L], Cps, Cg, Cb),St2}.
+    Ann = line_file_anno(L, St2),
+    {ann_c_clause(Ann, Cps, Cg, Cb),St2}.
 
 %% comp_let(VarBindings, Body, Env, L, State) -> {c_let()|c_case(),State}.
 %% Compile a let expr. We are a little cunning in that we specialise
@@ -875,53 +875,59 @@ comp_upd_map(_, _, _, _, St) -> {c_lit(map),St}.
 
 comp_guard([], _, _, St) -> {c_atom(true),St};  %The empty guard
 comp_guard(Gts, Env, L, St0) ->
-    {Ce,St1} = comp_gtest(Gts, Env, L, St0),    %Guard expression
+    {Ce,St1} = comp_guard_tests(Gts, Env, L, St0),    %Guard expression
     %% Can hard code the rest!
     Cv = c_var('Try'),
     Evs = [c_var('T'),c_var('R')],              %Why only two?
     False = c_atom(false),                      %Exception returns false
     {ann_c_try([L], Ce, [Cv], Cv, Evs, False),St1}.
 
-%% comp_gtest(GuardTests, Env, Line, State) -> {CoreTest,State}.
+%% comp_guard_tests(GuardTests, Env, Line, State) -> {CoreTest,State}.
 %%  Compile a guard test, making sure it returns a boolean value. We
 %%  do this in a naive way by always explicitly comparing the result
 %%  to 'true' and letting the optimiser clean this up. Ignore errors.
 
-%% comp_gtest([[quote,Bool]=Test], _, _, St) when is_boolean(Bool) ->
-%%     io:format("We hit it: ~p\n", [Test]),
-%%     {c_atom(Bool),St};
-%% comp_gtest([[Op|As]=Test], Env, L, St0) ->
-%%     Ar = length(As),
-%%     case erl_internal:bool_op(Op, Ar) orelse
-%%     erl_internal:comp_op(Op, Ar) orelse
-%%     erl_internal:type_test(Op, Ar) of
-%%     true ->
-%%         io:format("We hit it: ~p\n", [Test]),
-%%         comp_gexpr(Test, Env, L, St0);
-%%     false ->
-%%         Call = fun (Cas, _, L, St) ->
-%%                Ann = line_file_anno(L, St),
-%%                {ann_c_call(Ann, c_atom(erlang), c_atom('=:='), Cas),St}
-%%            end,
-%%         comp_gargs([Test,?Q(true)], Call, Env, L, St0)
-%%     end;
-comp_gtest(Ts, Env, L, St0) ->            %Not a bool test or boolean
-    %% Generate an explicit comparison with 'true' to give boolean.
-    {Cg,St1} = comp_gbody(Ts, Env, L, St0),
-    True = comp_lit(true),
-    Call = fun (Cas, _, Li, St) ->
-                   Ann = line_file_anno(Li, St),
-                   {ann_c_call(Ann, c_atom(erlang), c_atom('=:='), Cas),St}
-           end,
-    simple_seq([Cg,True], Call, Env, L, St1).
+comp_guard_tests(Gts, Env, Line, St0) ->
+    {Gas,St1} = mapfoldl(fun (Gt, St) -> comp_guard_test(Gt, Env, Line, St) end,
+                         St0, Gts),
+    Ands = fun guard_ands/4,
+    simple_seq(Gas, Ands, Env, Line, St1).
 
-%% comp_gbody(Body, Env, Line, State) -> {CoreBody,State}.
-%% Compile a guard body into a sequence of logical and tests.
+guard_ands([Ga], _, _, St) -> {Ga,St};
+guard_ands([G1,G2], _, Line, St) ->
+    {ann_c_call([Line], c_atom(erlang), c_atom('and') , [G1,G2]), St};
+guard_ands([G1,G2|Gas], Env, Line, St0) ->
+    {Cv,St1} = new_c_var(Line, St0),
+    {Gr,St2} = guard_ands([Cv|Gas], Env, Line, St1),
+    And = ann_c_call([Line], c_atom(erlang), c_atom('and'), [G1,G2]),
+    {ann_c_let([Line], [Cv], And, Gr),St2}.
 
-comp_gbody([], _, _, St) -> {c_atom(true),St};
-comp_gbody([T], Env, L, St) -> comp_gexpr(T, Env, L, St);
-comp_gbody([T|Ts], Env, L, St) ->
-    comp_gif(T, [progn|Ts], ?Q(false), Env, L, St).
+%% comp_guard_test(Test, Env, Line, State) -> {CoreTest,State}.
+%%  Compile one test. We try to avoid generating an unnecessary true
+%%  test by checking the test and only adding one when we know the
+%%  test won't automatically return a boolean value.
+
+comp_guard_test([call,[quote,erlang],[quote,Op]|Args]=Test, Env, L, St) ->
+    comp_guard_test_1(Test, Op, Args, Env, L, St);
+comp_guard_test([Op|Args]=Test, Env, L, St) ->
+    comp_guard_test_1(Test, Op, Args, Env, L, St).
+
+comp_guard_test_1(Test, Op, Args, Env, L, St0) ->
+    Ar = length(Args),
+    %% Check if this is a boolean test, else add a boolean test.
+    case erl_internal:bool_op(Op, Ar) orelse
+        erl_internal:comp_op(Op, Ar) orelse
+        erl_internal:type_test(Op, Ar) of
+        true ->                                 %It's already boolean
+            comp_gexpr(Test, Env, L, St0);
+        false ->                                %No it's not, then make it one
+            Call = fun (Cas, _, Li, St) ->
+                           Ann = [Li,compiler_generated],
+                           {ann_c_call(Ann, c_atom(erlang), c_atom('=:='), Cas),
+                            St}
+                   end,
+            comp_gargs([Test,?Q(true)], Call, Env, L, St0)
+    end.
 
 %% comp_gexpr(Expr, Env, Line, State) -> {CoreExpr,State}.
 
@@ -957,7 +963,7 @@ comp_gexpr(['map-update',Map|As], Env, L, St) ->
 %% (let-syntax ...) should never be seen here!
 %% Handle the Core control special forms.
 comp_gexpr(['progn'|Body], Env, L, St) ->
-    comp_gbody(Body, Env, L, St);
+    comp_guard_tests(Body, Env, L, St);
 comp_gexpr(['if'|Body], Env, L, St) ->
     comp_gif(Body, Env, L, St);
 comp_gexpr([call,[quote,erlang],[quote,Fun]|As], Env, L, St) ->
