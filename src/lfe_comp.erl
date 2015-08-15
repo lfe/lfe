@@ -29,18 +29,18 @@
 
 -include("lfe_comp.hrl").
 
--record(comp, {base="",             %Base name
-               ldir=".",            %Lisp file dir
-               lfile="",            %Lisp file
-               odir=".",            %Output directory
-               bfile="",            %Beam file
-               cfile="",            %Core file
-               opts=[],             %User options
-               ipath=[],            %Include path
-               mod=[],              %Module name
-               ret=file,            %What is returned [Val] | []
-               code=none,           %Code after last pass.
-               cinfo=none,          %Common compiler info
+-record(comp, {base="",                         %Base name
+               ldir=".",                        %Lisp file dir
+               lfile="",                        %Lisp file
+               odir=".",                        %Output directory
+               bfile="",                        %Beam file
+               cfile="",                        %Core file
+               opts=[],                         %User options
+               ipath=[],                        %Include path
+               mod=[],                          %Module name
+               ret=file,                        %What is returned [Val] | []
+               code=none,                       %Code after last pass.
+               cinfo=none,                      %Common compiler info
                errors=[],
                warnings=[]
           }).
@@ -67,18 +67,18 @@ forms(Forms, Opts) -> do_compile({forms,Forms}, Opts).
 
 do_compile(Input, Opts) ->
     Ifun = fun () ->
-		   Ret = try
-			     internal(Input, Opts)
-			 catch
-			     error:Reason ->
-				 St = erlang:get_stacktrace(),
-				 {error,{Reason,St}}
-			 end,
-		   exit(Ret)
-	   end,
+                   Ret = try
+                             internal(Input, Opts)
+                         catch
+                             error:Reason ->
+                                 St = erlang:get_stacktrace(),
+                                 {error,{Reason,St}}
+                         end,
+                   exit(Ret)
+           end,
     {Pid,Ref} = spawn_monitor(Ifun),
     receive
-	{'DOWN',Ref,_,Pid,Res} -> Res
+        {'DOWN',Ref,_,Pid,Res} -> Res
     end.
 
 %% internal(Input, Options) -> Result.
@@ -101,7 +101,7 @@ do_file(Name, Opts0) ->
 do_forms(Fs0, Opts0) ->
     Source = proplists:get_value(source, Opts0, "-no-file-"),
     Opts1 = lfe_comp_opts(Opts0),
-    St0 = #comp{opts=[binary|Opts1]},        %Implicit binary option
+    St0 = #comp{opts=[binary|Opts1]},           %Implicit binary option
     St1 = filenames(Source, ".lfe", St0),
     St2 = include_path(St1),
     %% Tag forms with a "line number", just use their index.
@@ -136,8 +136,8 @@ outdir([]) -> ".".
 %%  Set the include path, we permit {i,Dir} and [i,Dir].
 
 include_path(#comp{ldir=Dir,opts=Opts}=St) ->
-    Ifun = fun ({i,I}, Is) -> [I|Is];		%Erlang wat
-               ([i,I], Is) -> [I|Is];		%LFE way
+    Ifun = fun ({i,I}, Is) -> [I|Is];           %Erlang way
+               ([i,I], Is) -> [I|Is];           %LFE way
                (_, Is) -> Is
            end,
     %% Same ordering as in the erlang compiler.
@@ -331,8 +331,8 @@ werror(#comp{opts=Opts,warnings=Ws}) ->
 
 %% do_ok_return(State) -> {ok,Mod,...}.
 %% do_error_return(State) -> {error,...} | error.
-%% Note that this handling of 'warnings_as_errors' is the same in the
-%% vanilla erlang compiler 'compile'.
+%%  Note that this handling of 'warnings_as_errors' is the same in the
+%%  vanilla erlang compiler 'compile'.
 
 do_ok_return(#comp{lfile=Lfile,opts=Opts,ret=Ret0,warnings=Ws}=St) ->
     case werror(St) of

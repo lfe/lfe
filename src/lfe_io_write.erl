@@ -49,7 +49,7 @@ term(Vec, D) when is_tuple(Vec) ->
 term(Bit, _) when is_bitstring(Bit) ->
     bitstring(Bit);
 term(Map, D) when ?IS_MAP(Map) -> map(Map, D);
-term(Other, D) ->                             %Use standard Erlang for rest
+term(Other, D) ->                               %Use standard Erlang for rest
     io_lib:write(Other, D).
 
 %% symbol(Symbol) -> [char()].

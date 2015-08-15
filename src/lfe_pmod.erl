@@ -23,24 +23,23 @@
 %% -compile(export_all).
 
 -import(lists, [member/2,keysearch/3,
-        all/2,map/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3,
-        concat/1]).
+                all/2,map/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3, concat/1]).
 -import(ordsets, [add_element/2,is_element/2,from_list/1,union/2]).
 -import(orddict, [store/3,find/2]).
 
 -import(lfe_env, [new/0,add_vbinding/3,add_vbindings/2,get_vbinding/2,
-          add_fbinding/4,add_fbindings/2,get_fbinding/3,
-          add_ibinding/5,get_gbinding/3]).
+                  add_fbinding/4,add_fbindings/2,get_fbinding/3,
+                  add_ibinding/5,get_gbinding/3]).
 
 -include("lfe_comp.hrl").
 
--define(Q(E), [quote,E]).           %For quoting
+-define(Q(E), [quote,E]).                       %For quoting
 
--record(param, {mod=[],             %Module name
-        pars=[],                    %Module parameters
-        extd=[],                    %Extends
-        this=[],                    %This match pattern
-        env=[]}).                   %Environment
+-record(param, {mod=[],                         %Module name
+        pars=[],                                %Module parameters
+        extd=[],                                %Extends
+        this=[],                                %This match pattern
+        env=[]}).                               %Environment
 
 %% module(Forms, CompInfo) -> Forms.
 %%  Expand the forms to handle parameterised modules if necessary,
@@ -48,7 +47,7 @@
 
 module([{['define-module',[_|_]|_],_}|_]=Fs, Ci) ->
     expand_module(Fs, Ci#cinfo.opts);
-module(Fs, _) -> Fs.                %Normal module, do nothing
+module(Fs, _) -> Fs.                            %Normal module, do nothing
 
 expand_module(Fs0, Opts) ->
     St0 = #param{env=lfe_env:new()},
@@ -62,20 +61,20 @@ exp_form(['define-module',[Mod|Ps]|Mdef0], L, St0) ->
     St1 = St0#param{mod=Mod,pars=Ps},
     {Mdef1,St2} = exp_mdef(Mdef0, St1),
     {Nl,Il} = case St2#param.extd of
-          [] ->
-              {[lambda,Ps,[instance|Ps]],
-               [lambda,Ps,[tuple,?Q(Mod)|Ps]]};
-          Ex ->
-              {[lambda,Ps,[instance,[call,?Q(Ex),?Q(new)|Ps]|Ps]],
-               [lambda,[base|Ps],[tuple,?Q(Mod),base|Ps]]}
-          end,
+                  [] ->
+                      {[lambda,Ps,[instance|Ps]],
+                       [lambda,Ps,[tuple,?Q(Mod)|Ps]]};
+                  Ex ->
+                      {[lambda,Ps,[instance,[call,?Q(Ex),?Q(new)|Ps]|Ps]],
+                       [lambda,[base|Ps],[tuple,?Q(Mod),base|Ps]]}
+              end,
     New = ['define-function',new,Nl],
     Inst = ['define-function',instance,Il],
     %% Fix this match pattern depending on extends.
     St3 = case St2#param.extd of
-          [] -> St2#param{this=['=',this,[tuple,'_'|Ps]]};
-          _ -> St2#param{this=['=',this,[tuple,'_',base|Ps]]}
-      end,
+              [] -> St2#param{this=['=',this,[tuple,'_'|Ps]]};
+              _ -> St2#param{this=['=',this,[tuple,'_',base|Ps]]}
+          end,
     {[{['define-module',Mod|Mdef1],L},
       {New,L},{Inst,L}],St3};
 exp_form(['define-function',F,Def0], L, St) ->
@@ -86,46 +85,46 @@ exp_form(F, L, St) ->
 
 debug_print(Format, Args, Opts) ->
     case member(debug_print, Opts) of
-    true -> lfe_io:format(Format, Args);
-    false -> ok
+        true -> lfe_io:format(Format, Args);
+        false -> ok
     end.
 
 exp_mdef(Mdef0, St0) ->
     %% Pre-scan to pick up 'extends'.
     St1 = foldl(fun ([extends,M], S) -> S#param{extd=M};
-            (_, S) -> S
-        end, St0, Mdef0),
+                    (_, S) -> S
+                end, St0, Mdef0),
     %% Now do "real" processing.
     {Mdef1,St2} = mapfoldl(fun ([export,all], S) -> {[export,all],S};
-                   ([export|Es0], S) ->
-                   %% Add 1 for this to each export.
-                   Es1 = map(fun ([F,A]) -> [F,A+1] end, Es0),
-                   {[export|Es1],S};
-                   ([import|Is], S0) ->
-                   S1 = collect_imps(Is, S0),
-                   {[import|Is],S1};
-                   (Md, S) -> {Md,S}
-               end, St1, Mdef0 ++ [[abstract,true]]),
+                               ([export|Es0], S) ->
+                                   %% Add 1 for this to each export.
+                                   Es1 = map(fun ([F,A]) -> [F,A+1] end, Es0),
+                                   {[export|Es1],S};
+                               ([import|Is], S0) ->
+                                   S1 = collect_imps(Is, S0),
+                                   {[import|Is],S1};
+                               (Md, S) -> {Md,S}
+                           end, St1, Mdef0 ++ [[abstract,true]]),
     %% Add export for new/N and instance/N.
     Ar = length(St2#param.pars),
     Iar = case St2#param.extd of
-          [] -> Ar;
-          _ -> Ar+1
-      end,
+              [] -> Ar;
+              _ -> Ar+1
+          end,
     {[[export,[new,Ar],[instance,Iar]]|Mdef1],St2}.
 
 collect_imps(Is, St) ->
     foldl(fun (['from',M|Fs], S) ->
-          Env = foldl(fun ([F,Ar], E) ->
-                      add_ibinding(M, F, Ar, F, E) end,
-                  S#param.env, Fs),
-          S#param{env=Env};
-          (['rename',M|Fs], S) ->
-          Env = foldl(fun ([[F,Ar],R], E) ->
-                      add_ibinding(M, F, Ar, R, E) end,
-                  S#param.env, Fs),
-          S#param{env=Env}
-      end, St, Is).
+                  Env = foldl(fun ([F,Ar], E) ->
+                                      add_ibinding(M, F, Ar, F, E) end,
+                              S#param.env, Fs),
+                  S#param{env=Env};
+              (['rename',M|Fs], S) ->
+                  Env = foldl(fun ([[F,Ar],R], E) ->
+                                      add_ibinding(M, F, Ar, R, E) end,
+                              S#param.env, Fs),
+                  S#param{env=Env}
+          end, St, Is).
     
 %% exp_function(Lambda, State) -> Lambda.
 %%  The resultant code matches the arguments in two steps: first the
@@ -195,12 +194,12 @@ exp_expr([call|Body], Env) ->
 exp_expr([Fun|Es], Env) when is_atom(Fun) ->
     Ar = length(Es),
     case get_fbinding(Fun, Ar, Env) of
-    {yes,_,_} -> [Fun|exp_list(Es, Env)];   %Imported or Bif
-    {yes,local} -> [Fun|exp_list(Es, Env)]; %Local function
-    _ -> [Fun|exp_list(Es, Env) ++ [this]]
+        {yes,_,_} -> [Fun|exp_list(Es, Env)];   %Imported or Bif
+        {yes,local} -> [Fun|exp_list(Es, Env)]; %Local function
+        _ -> [Fun|exp_list(Es, Env) ++ [this]]
     end;
 exp_expr(E, _) when is_atom(E) -> E;
-exp_expr(E, _) -> E.                        %Atoms expand to themselves.
+exp_expr(E, _) -> E.                            %Atoms expand to themselves.
 
 exp_list(Es, Env) ->
     map(fun (E) -> exp_expr(E, Env) end, Es).
@@ -214,8 +213,8 @@ exp_binary(Segs, Env) ->
 exp_bitseg([N|Specs0], Env) ->
     %% The only bitspec that needs expanding is size.
     Specs1 = map(fun ([size,S]) -> [size,exp_expr(S, Env)];
-             (S) -> S
-         end, Specs0),
+                     (S) -> S
+                 end, Specs0),
     [exp_expr(N, Env)|Specs1];
 exp_bitseg(N, Env) -> exp_expr(N, Env).
 
@@ -233,8 +232,8 @@ exp_clause([P|Body], Env) -> [P|exp_body(Body, Env)].
 
 exp_let([Vbs|Body], Env) ->
     Evbs = map(fun ([P,E]) -> [P,exp_expr(E, Env)];
-           ([P,G,E]) -> [P,G,exp_expr(E, Env)]
-           end, Vbs),
+                   ([P,G,E]) -> [P,G,exp_expr(E, Env)]
+               end, Vbs),
     [Evbs|exp_body(Body, Env)].
 
 %% exp_let_function(FletBody, Env) -> FletBody.
@@ -244,14 +243,14 @@ exp_let([Vbs|Body], Env) ->
 exp_let_function([Fbs|Body], Env0) ->
     Efbs = map(fun ([F,Def]) -> [F,exp_expr(Def, Env0)] end, Fbs),
     Env1 = foldl(fun ([F,Def], E) ->
-             add_fbinding(F,lambda_arity(Def),local,E)
-         end, Env0, Fbs),
+                         add_fbinding(F,lambda_arity(Def),local,E)
+                 end, Env0, Fbs),
     [Efbs|exp_body(Body, Env1)].
 
 exp_letrec_function([Fbs|Body], Env0) ->
     Env1 = foldl(fun ([F,Def], E) ->
-             add_fbinding(F,lambda_arity(Def),local,E)
-         end, Env0, Fbs),
+                         add_fbinding(F,lambda_arity(Def),local,E)
+                 end, Env0, Fbs),
     Efbs = map(fun ([F,Def]) -> [F,exp_expr(Def, Env1)] end, Fbs),
     [Efbs|exp_body(Body, Env1)].
 
@@ -273,9 +272,9 @@ exp_rec_clause(Cl, Env) -> exp_clause(Cl, Env).
 exp_try([E|Body], Env) ->
     [exp_expr(E, Env)|
      map(fun (['case'|Cls]) -> ['case'|exp_clauses(Cls, Env)];
-         (['catch'|Cls]) -> ['catch'|exp_clauses(Cls, Env)];
-         (['after'|B]) -> ['after'|exp_body(B, Env)]
-     end, Body)].
+             (['catch'|Cls]) -> ['catch'|exp_clauses(Cls, Env)];
+             (['after'|B]) -> ['after'|exp_body(B, Env)]
+         end, Body)].
 
 exp_call([M,F|As], Env) ->
     [exp_expr(M, Env),exp_expr(F, Env)|exp_list(As, Env)].
