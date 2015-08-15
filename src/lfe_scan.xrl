@@ -140,22 +140,22 @@ symbol_char($;) -> false;
 symbol_char(C) -> ((C > $\s) and (C =< $~)) orelse (C > $\240).
 
 %% symbol_token(Chars, Line) -> {token,{symbol,Line,Symbol}} | {error,E}.
-%% Build a symbol from list of legal characters, else error.
+%%  Build a symbol from list of legal characters, else error.
 
 symbol_token(Cs, L) ->
     case catch {ok,list_to_atom(Cs)} of
-    {ok,S} -> {token,{symbol,L,S}};
-    _ -> {error,"illegal symbol"}
+        {ok,S} -> {token,{symbol,L,S}};
+        _ -> {error,"illegal symbol"}
     end.
 
 %% base_token(Chars, Base, Line) -> Integer.
-%% Convert a string of Base characters into a number. We know that
-%% the strings only contain the correct character.
+%%  Convert a string of Base characters into a number. We know that
+%%  the strings only contain the correct character.
 
 base_token(Cs, B, L) ->
     case base1(Cs, B, 0) of
-    {N,[]} -> {token,{number,L,N}};
-    {_,_} -> {error,"illegal based number"}
+        {N,[]} -> {token,{number,L,N}};
+        {_,_} -> {error,"illegal based number"}
     end.
 
 base1([C|Cs], Base, SoFar) when C >= $0, C =< $9, C < Base + $0 ->
@@ -172,44 +172,45 @@ base1([C|Cs], _Base, SoFar) -> {SoFar,[C|Cs]};
 base1([], _Base, N) -> {N,[]}.
 
 %% char_token(InputChars, Line) -> {token,{number,L,N}} | {error,E}.
-%% Convert an input string into the corresponding character. We know
-%% that the input string is correct.
+%%  Convert an input string into the corresponding character. We know
+%%  that the input string is correct.
 
 char_token([$x,C|Cs], L) ->
     case base1([C|Cs], 16, 0) of
-    {N,[]} -> {token,{number,L,N}};
-    _ -> {error,"illegal character"}
+        {N,[]} -> {token,{number,L,N}};
+        _ -> {error,"illegal character"}
     end;
 char_token([C], L) -> {token,{number,L,C}}.
 
 %% chars(InputChars) -> Chars.
-%% Convert an input string into the corresponding string
-%% characters. We know that the input string is correct.
+%%  Convert an input string into the corresponding string characters.
+%%  We know that the input string is correct.
 
 chars([$\\,$x,C|Cs0]) ->
     case hex_char(C) of
-    true ->
-        case base1([C|Cs0], 16, 0) of
-        {N,[$;|Cs1]} -> [N|chars(Cs1)];
-        _Other -> [escape_char($x)|chars([C|Cs0])]
-        end;
-    false -> [escape_char($x)|chars([C|Cs0])]
+        true ->
+            case base1([C|Cs0], 16, 0) of
+                {N,[$;|Cs1]} -> [N|chars(Cs1)];
+                _Other -> [escape_char($x)|chars([C|Cs0])]
+            end;
+        false -> [escape_char($x)|chars([C|Cs0])]
     end;
 chars([$\\,C|Cs]) -> [escape_char(C)|chars(Cs)];
 chars([C|Cs]) -> [C|chars(Cs)];
 chars([]) -> [].
 
 %% Block Comment:
-%% Provide a sensible error when people attempt to include nested
-%% comments because currently the parser cannot process them without
-%% a rebuild. But simply exploding on a '#|' is not going to be
-%% that helpful.
+%%  Provide a sensible error when people attempt to include nested
+%%  comments because currently the parser cannot process them without
+%%  a rebuild. But simply exploding on a '#|' is not going to be that
+%%  helpful.
+
 block_comment(TokenChars) ->
-  %% Check we're not opening another comment block.
-  case string:str(TokenChars, "#|") of
-    0 -> skip_token; %% No nesting found
-    _ -> {error, "illegal nested block comment"}
-  end.
+    %% Check we're not opening another comment block.
+    case string:str(TokenChars, "#|") of
+        0 -> skip_token; %% No nesting found
+        _ -> {error, "illegal nested block comment"}
+    end.
 
 hex_char(C) when C >= $0, C =< $9 -> true;
 hex_char(C) when C >= $a, C =< $f -> true;

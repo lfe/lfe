@@ -43,8 +43,8 @@
 -endif.
 
 %% parse_file(FileName) -> {ok,[{Sexpr,Line}]} | {error,Error}.
-%% Parse a file returning the raw sexprs (as it should be) and line
-%% numbers of start of each sexpr. Handle errors consistently.
+%%  Parse a file returning the raw sexprs (as it should be) and line
+%%  numbers of start of each sexpr. Handle errors consistently.
 
 parse_file(Name) ->
     with_token_file(Name, fun (Ts) -> parse_file1(Ts, [], []) end).
@@ -62,20 +62,20 @@ parse_file1([_|_]=Ts0, Pc0, Ss) ->
 parse_file1([], _, Ss) -> {ok,reverse(Ss)}.
 
 %% read_file(FileName) -> {ok,[Sexpr]} | {error,Error}.
-%% Read a file returning the raw sexprs (as it should be).
+%%  Read a file returning the raw sexprs (as it should be).
 
 read_file(Name) ->
     with_token_file(Name, fun (Ts) -> read_file1(Ts, []) end).
 
 read_file1([_|_]=Ts0, Ss) ->
     case lfe_parse:sexpr(Ts0) of
-    {ok,_,S,Ts1} -> read_file1(Ts1, [S|Ss]);
-    {more,Pc1} ->
-        %% Need more tokens but there are none, so call again to
-        %% generate an error message.
-        {error,E,_} = lfe_parse:sexpr(Pc1, {eof,99999}),
-        {error,E};
-    {error,E,_} -> {error,E}
+        {ok,_,S,Ts1} -> read_file1(Ts1, [S|Ss]);
+        {more,Pc1} ->
+            %% Need more tokens but there are none, so call again to
+            %% generate an error message.
+            {error,E,_} = lfe_parse:sexpr(Pc1, {eof,99999}),
+            {error,E};
+        {error,E,_} -> {error,E}
     end;
 read_file1([], Ss) -> {ok,reverse(Ss)}.
 

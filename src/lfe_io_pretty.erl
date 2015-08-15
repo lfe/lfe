@@ -99,8 +99,7 @@ bitstring(Bit, D) ->
 %% defun(List, Depth, Indentation, LineLength) -> [char()].
 %%  Print a defun depending on whether it is traditional or matching.
 
-defun([Def,Name,Args|Rest], D, I, L) when
-      is_atom(Name), (D > 3) or (D < 0) ->
+defun([Def,Name,Args|Rest], D, I, L) when is_atom(Name), (D > 3) or (D < 0) ->
     Dcs = atom_to_list(Def),                    %Might not actually be defun
     Ncs = atom_to_list(Name),
     case lfe_lib:is_symb_list(Args) of
@@ -279,7 +278,7 @@ indent_type('define-macro') -> 1;
 indent_type('eval-when-compile') -> 0;
 %% Core macros.
 indent_type(':') -> 2;
-indent_type('cond') -> 999;            %All following forms
+indent_type('cond') -> 999;                     %All following forms
 indent_type('let*') -> 1;
 indent_type('flet') -> 1;
 indent_type('flet*') -> 1;
@@ -287,8 +286,8 @@ indent_type('fletrec') -> 1;
 indent_type(macrolet) -> 1;
 indent_type(syntaxlet) -> 1;
 indent_type('do') -> 2;
-indent_type('lc') -> 1;                %List comprehensions
-indent_type('bc') -> 1;                %Binary comprehensions
+indent_type('lc') -> 1;                         %List comprehensions
+indent_type('bc') -> 1;                         %Binary comprehensions
 indent_type('match-spec') -> 0;
 indent_type(_) -> none.
 

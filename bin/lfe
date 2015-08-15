@@ -45,8 +45,8 @@ export LFE_ROOTDIR
 export LFE_BINDIR
 export LFE_PROGNAME
 
-i="$#"				# Counter
-e=""				# Eval flag/value
+i="$#"                          # Counter
+e=""                            # Eval flag/value
 
 # First step over the flag section adding them to the end.
 while [ "$i" -gt 0 ]; do
@@ -61,11 +61,11 @@ while [ "$i" -gt 0 ]; do
             shift ; i=`expr $i - 1`
             break ;;
         -* | +*)  # Flags
-	        if [ "$1" = "-erl_eval" ]; then
-		        set -- "$@" "-eval"
-	        else
-		        set -- "$@" "$1"
-	        fi
+                if [ "$1" = "-erl_eval" ]; then
+                        set -- "$@" "-eval"
+                else
+                        set -- "$@" "$1"
+                fi
 
             shift ; i=`expr $i - 1`
 
@@ -78,7 +78,7 @@ while [ "$i" -gt 0 ]; do
                         shift ; i=`expr $i - 1`
                 esac
             done ;;
-	    *)	# Plain argument
+            *)  # Plain argument
             break ;;
     esac
 done
@@ -93,7 +93,7 @@ set -- "$@" "-user" "lfe_init" "-extra"
 
 # Check if we are 'eval'ing and add -lfe_eval flag
 if [ "$e" != "" ]; then
-    shift ; i=`expr $i - 1`	# Now we remove it as it has -noshell'ed
+    shift ; i=`expr $i - 1`     # Now we remove it as it has -noshell'ed
     set -- "$@" "-lfe_eval"
 fi
 

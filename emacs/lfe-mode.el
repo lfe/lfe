@@ -113,7 +113,7 @@ Other commands:
   ;; after either a non-backslash or the line beginning.
   (setq comment-start-skip "\\(\\(^\\|[^\\\\\n]\\)\\(\\\\\\\\\\)*\\);+ *")
   (make-local-variable 'comment-add)
-  (setq comment-add 1)			;default to `;;' in comment-region
+  (setq comment-add 1)                  ;default to `;;' in comment-region
   (make-local-variable 'comment-column)
   (setq comment-column 40)
   (make-local-variable 'comment-indent-function)
@@ -128,10 +128,10 @@ Other commands:
   (setq multibyte-syntax-as-symbol t)
   (make-local-variable 'font-lock-defaults)
   (setq font-lock-defaults
-	'((lfe-font-lock-keywords
-	   lfe-font-lock-keywords-1 lfe-font-lock-keywords-2)
-	  nil nil (("+-*/.<>=!?$%_&~^:@" . "w")) beginning-of-defun
-	  (font-lock-mark-block-function . mark-defun)))
+        '((lfe-font-lock-keywords
+           lfe-font-lock-keywords-1 lfe-font-lock-keywords-2)
+          nil nil (("+-*/.<>=!?$%_&~^:@" . "w")) beginning-of-defun
+          (font-lock-mark-block-function . mark-defun)))
   (setq-local prettify-symbols-alist lfe--prettify-symbols-alist))
 
 ;;; Font locking
@@ -140,24 +140,24 @@ Other commands:
   (eval-when-compile
     (list
      (list (concat "(\\(def\\("
-		   ;; Base forms and old style names.
-		   "\\(ine\\(-module\\|-function\\|-macro\\|"
-		   "-syntax\\|-record\\)?\\)\\|"
-		   ;; New model function names
-		   "\\(un\\|macro\\|syntax\\|test\\)\\|"
-		   ;; New model other names
-		   "\\(module\\)\\|"
-		   "\\(record\\)"
-		   "\\)\\)\\>"
-		   ;; Any whitespace and declared object.
-		   "[ \t]*(?"
-		   "\\(\\sw+\\)?")
-	   '(1 font-lock-keyword-face)
-	   '(8 (cond ((match-beginning 3) font-lock-function-name-face)
-		     ((match-beginning 5) font-lock-function-name-face)
-		     ((match-beginning 6) font-lock-variable-name-face)
-		     (t font-lock-type-face))
-	       nil t))
+                   ;; Base forms and old style names.
+                   "\\(ine\\(-module\\|-function\\|-macro\\|"
+                   "-syntax\\|-record\\)?\\)\\|"
+                   ;; New model function names
+                   "\\(un\\|macro\\|syntax\\|test\\)\\|"
+                   ;; New model other names
+                   "\\(module\\)\\|"
+                   "\\(record\\)"
+                   "\\)\\)\\>"
+                   ;; Any whitespace and declared object.
+                   "[ \t]*(?"
+                   "\\(\\sw+\\)?")
+           '(1 font-lock-keyword-face)
+           '(8 (cond ((match-beginning 3) font-lock-function-name-face)
+                     ((match-beginning 5) font-lock-function-name-face)
+                     ((match-beginning 6) font-lock-variable-name-face)
+                     (t font-lock-type-face))
+               nil t))
      ))
   "Subdued expressions to highlight in LFE modes.")
 
@@ -233,7 +233,7 @@ but with gets of lfe-indent-{function,hook}."
               (progn (goto-char calculate-lisp-indent-last-sexp)
                      (beginning-of-line)
                      (parse-partial-sexp (point)
-					 calculate-lisp-indent-last-sexp 0 t)))
+                                         calculate-lisp-indent-last-sexp 0 t)))
           ;; Indent under the list or under the first sexp on the same
           ;; line as calculate-lisp-indent-last-sexp.  Note that first
           ;; thing on that line has to be complete sexp since we are
@@ -241,19 +241,19 @@ but with gets of lfe-indent-{function,hook}."
           (backward-prefix-chars)
           (current-column))
       (let ((function (buffer-substring (point)
-					(progn (forward-sexp 1) (point))))
-	    method)
-	(setq method (or (get (intern-soft function) 'lfe-indent-function)
-			 (get (intern-soft function) 'lfe-indent-hook)))
-	(cond ((or (eq method 'defun)
-		   (and (null method)
-			(> (length function) 3)
-			(string-match "\\`def" function)))
-	       (lisp-indent-defform state indent-point))
-	      ((integerp method)
-	       (lisp-indent-specform method state
-				     indent-point normal-indent))
-	      (method
+                                        (progn (forward-sexp 1) (point))))
+            method)
+        (setq method (or (get (intern-soft function) 'lfe-indent-function)
+                         (get (intern-soft function) 'lfe-indent-hook)))
+        (cond ((or (eq method 'defun)
+                   (and (null method)
+                        (> (length function) 3)
+                        (string-match "\\`def" function)))
+               (lisp-indent-defform state indent-point))
+              ((integerp method)
+               (lisp-indent-specform method state
+                                     indent-point normal-indent))
+              (method
                (funcall method state indent-point normal-indent)))))))
 
 ;;; Indentation rule helpers

@@ -144,10 +144,10 @@ add_ibinding(M, R, A, L, #env{funs=Fs0}=Env) ->
 is_fbound(N, A, #env{funs=Fs}) ->
     case orddict:find(N, Fs) of
         {ok,{function,Fas}} ->
-	    case lists:keyfind(A, 1, Fas) of
-		false -> is_bif(N, A);
-		_ -> true
-	    end;
+            case lists:keyfind(A, 1, Fas) of
+                false -> is_bif(N, A);
+                _ -> true
+            end;
         {ok,_} -> false;                        %A macro
         error -> is_bif(N, A)
     end.
@@ -179,10 +179,10 @@ get_bif(N, A) ->
 is_gbound(N, A, #env{funs=Fs}) ->
     case orddict:find(N, Fs) of
         {ok,{function,Fas}} ->
-	    case lists:keyfind(A, 1, Fas) of
-		false -> is_guard_bif(N, A);
-		_ -> false
-	    end;
+            case lists:keyfind(A, 1, Fas) of
+                false -> is_guard_bif(N, A);
+                _ -> false
+            end;
         {ok,_} -> false;                        %A macro
         error -> is_guard_bif(N, A)
     end.
@@ -190,18 +190,18 @@ is_gbound(N, A, #env{funs=Fs}) ->
 get_gbinding(N, A, #env{funs=Fs}) ->
     case orddict:find(N, Fs) of
         {ok,{function,Fas}} ->
-	    case lists:keyfind(A, 1, Fas) of
-		false -> get_guard_bif(N, A);
-		_ -> no
-	    end;
-        {ok,_} -> no;				%A macro
+            case lists:keyfind(A, 1, Fas) of
+                false -> get_guard_bif(N, A);
+                _ -> no
+            end;
+        {ok,_} -> no;                           %A macro
         error -> get_guard_bif(N, A)
     end.
 
 get_guard_bif(N, A) ->
     case is_guard_bif(N, A) of
-	true -> {yes,erlang,N};
-	false -> no
+        true -> {yes,erlang,N};
+        false -> no
     end.
 
 %% Macros.

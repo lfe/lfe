@@ -229,23 +229,23 @@ table(_, _) -> error.
 %% sexpr(Continuation, Tokens) ->
 %%      {ok,Line,Sexpr,Rest} | {more,Continuation} | {error,Error,Rest}.
 
-sexpr(Ts) -> sexpr([], Ts).            %Start with empty state
+sexpr(Ts) -> sexpr([], Ts).                     %Start with empty state
 
 sexpr(Cont, Ts) -> parse1(Cont, Ts).
 
--record(lp, {l=none,st=[],vs=[]}).     %Line, States, Values
+-record(lp, {l=none,st=[],vs=[]}).              %Line, States, Values
 
 %% parse1(Tokens) ->
 %%      {ok,Line,Sexpr,Rest} | {more,Continuation} | {error,Error,Rest}.
 %% parse1(Continuation, Tokens) ->
 %%      {ok,Line,Sexpr,Rest} | {more,Continuation} | {error,Error,Rest}.
-%% This is the opt-level of the LL engine. It
-%% initialises/packs/unpacks the continuation information.
+%%  This is the opt-level of the LL engine. It
+%%  initialises/packs/unpacks the continuation information.
 
-parse1([], Ts) ->                           %First call
-    Start = start(),                        %The start state.
+parse1([], Ts) ->                               %First call
+    Start = start(),                            %The start state.
     parse1(#lp{l=none,st=[Start],vs=[]}, Ts);
-parse1(#lp{l=none}=Lp, [T|_]=Ts) ->         %Guarantee a start line
+parse1(#lp{l=none}=Lp, [T|_]=Ts) ->             %Guarantee a start line
     parse1(Lp#lp{l=line(T)}, Ts);
 parse1(#lp{l=L,st=St0,vs=Vs0}, Ts) ->
     case parse2(Ts, St0, Vs0) of
@@ -259,12 +259,12 @@ parse1(#lp{l=L,st=St0,vs=Vs0}, Ts) ->
 %% parse2(Tokens, StateStack, ValueStack) ->
 %%     {done,Ts,Sstack,Vstack} | {more,Ts,Sstack,Vstack} |
 %%     {error,Line,Error,Ts,Sstack,Vstack}.
-%% Main loop of the parser engine. Handle any reductions on the top of
-%% the StateStack, then try to match type of next token with top
-%% state. If we have a match, it is a terminal, then push token onto
-%% value stack, else try to find new state(s) from table using current
-%% state and token type and push them onto state stack. Continue until
-%% no states left.
+%%  Main loop of the parser engine. Handle any reductions on the top
+%%  of the StateStack, then try to match type of next token with top
+%%  state. If we have a match, it is a terminal, then push token onto
+%%  value stack, else try to find new state(s) from table using
+%%  current state and token type and push them onto state
+%%  stack. Continue until no states left.
 
 parse2(Ts, [{reduce,R}|St], Vs0) ->
     %% io:fwrite("p: ~p\n", [{R,Vs}]),
@@ -278,8 +278,8 @@ parse2([T|Ts]=Ts0, [S|St]=St0, Vs) ->
     %% io:fwrite("p: ~p\n", [{St0,Ts0}]),
     %% Try to match token type against state on stack.
     case type(T) of
-        S -> parse2(Ts, St, [T|Vs]);                %Match
-        Type ->                                     %Try to predict
+        S -> parse2(Ts, St, [T|Vs]);            %Match
+        Type ->                                 %Try to predict
             case table(S, Type) of
                 error -> {error,line(T),{illegal,Type},Ts0,St0,Vs};
                 Top -> parse2(Ts0, Top ++ St, Vs)

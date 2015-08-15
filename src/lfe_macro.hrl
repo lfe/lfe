@@ -23,14 +23,14 @@
 -define(UQ_S(E), ['unquote-splicing',E]).
 
 %% Macro expander state.
--record(mac, {expand=true,          %Expand everything
-              module='-no-module',  %Current module
-              line=1,               %Line no of current form
-              vc=0,                 %Variable counter
-              fc=0,                 %Function counter
-              file=[],              %File name
-              opts=[],              %Compiler options
-              ipath=[],             %Include path
-              errors=[],            %Errors
-              warnings=[]           %Warnings
+-record(mac, {expand=true,                      %Expand everything
+              module='-no-module',              %Current module
+              line=1,                           %Line no of current form
+              vc=0,                             %Variable counter
+              fc=0,                             %Function counter
+              file=[],                          %File name
+              opts=[],                          %Compiler options
+              ipath=[],                         %Include path
+              errors=[],                        %Errors
+              warnings=[]                       %Warnings
               }).

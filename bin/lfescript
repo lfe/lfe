@@ -22,9 +22,9 @@ follow_symlink () {
     cd "$(dirname "$1")" > /dev/null
     filename="$(basename "$1")"
     if [ -h "$filename" ]; then
-	follow_symlink "$(readlink "$filename")"
+        follow_symlink "$(readlink "$filename")"
     else
-	echo "$(pwd -P)/$filename"
+        echo "$(pwd -P)/$filename"
     fi
 }
 
@@ -50,7 +50,7 @@ emulator=${LFESCRIPT_EMULATOR-"erl"}
 # Collect any script options starting with '-' upto the script name.
 # Valid script options are only flags without arguments.
 
-i="$#"				# Counter
+i="$#"                          # Counter
 
 while [ "$i" -gt 0 ]; do
     case "$1" in
@@ -62,7 +62,7 @@ while [ "$i" -gt 0 ]; do
             set -- "$@" "$arg"
             shift ; i=`expr $i - 1`
             ;;
-        *)	# Plain argument
+        *)      # Plain argument
             break ;;
     esac
 done

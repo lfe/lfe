@@ -36,20 +36,20 @@
 
 -include("lfe_comp.hrl").
 
--record(lint, {module=[],            %Module name
-               pars=none,            %Module parameters
-               extd=[],              %Extends
-               exps=[],              %Exports
-               imps=[],              %Imports
-               pref=[],              %Prefixes
-               funcs=[],             %Defined functions
-               env=[],               %Top-level environment
-               line=[],              %Current line
-               func=[],              %Current function
-               file="nofile",        %File name
-               opts=[],              %Compiler options
-               errors=[],            %Errors
-               warnings=[]           %Warnings
+-record(lint, {module=[],                       %Module name
+               pars=none,                       %Module parameters
+               extd=[],                         %Extends
+               exps=[],                         %Exports
+               imps=[],                         %Imports
+               pref=[],                         %Prefixes
+               funcs=[],                        %Defined functions
+               env=[],                          %Top-level environment
+               line=[],                         %Current line
+               func=[],                         %Current function
+               file="nofile",                   %File name
+               opts=[],                         %Compiler options
+               errors=[],                       %Errors
+               warnings=[]                      %Warnings
               }).
 
 %% Errors.
@@ -621,7 +621,8 @@ check_let(_, _, L, St) ->
     bad_form_error(L, 'let', St).
 
 %% check_let_vb(VarBind, Env, Line, State) -> {Env,State}.
-%% Check a variable binding of form [Pat,[when,Guard],Val] or [Pat,Val].
+%%  Check a variable binding of form [Pat,[when,Guard],Val] or
+%%  [Pat,Val].
 
 check_let_vb(Vb, Env, L, St0) ->
     %% Get the environments right here!
@@ -732,7 +733,7 @@ check_if(_, _, L, St) ->
     bad_form_error(L, 'if', St).
 
 %% check_case(CaseBody, Env, Line, State) -> State.
-%% Check form (case Expr Clause ...), must be at least one clause.
+%%  Check form (case Expr Clause ...), must be at least one clause.
 
 check_case([E|[_|_]=Cls], Env, L, St0) ->
     St1 = check_expr(E, Env, L, St0),
@@ -761,9 +762,9 @@ check_clause([_|_]=Cl, Env0, L, St0) ->
 check_clause(_, _, L, St) -> bad_form_error(L, clause, St).
 
 %% check_try(TryBody, Env, Line, State) -> State.
-%% Check a (try ...) form making sure that the right combination of
-%% options are present. Case is optional, but we must have at least
-%% one of catch and after.
+%%  Check a (try ...) form making sure that the right combination of
+%%  options are present. Case is optional, but we must have at least
+%%  one of catch and after.
 
 check_try([E,['case'|Cls]|Catch], Env, L, St0) ->
     St1 = check_expr(E, Env, L, St0),
@@ -803,7 +804,7 @@ pattern_guard([Pat|Body], Env0, L, St0) ->
 check_guard(G, Env, L, St) -> check_gbody(G, Env, L, St).
 
 %% check_gbody(Body, Env, Line, State) -> State.
-%% Check guard expressions in a body
+%%  Check guard expressions in a body
 
 check_gbody([E|Es], Env, L, St0) ->
     St1 = check_gexpr(E, Env, L, St0),
@@ -812,7 +813,7 @@ check_gbody([], _, _, St) -> St;
 check_gbody(_, _, L, St) -> illegal_guard_error(L, St).
 
 %% check_gexpr(Call, Env, Line, State) -> State.
-%% Check a guard expression. This is a restricted body expression.
+%%  Check a guard expression. This is a restricted body expression.
 
 %% Check the Core data special cases.
 check_gexpr([quote,Lit], Env, L, St) -> literal(Lit, Env, L, St);
@@ -871,7 +872,7 @@ check_gexpr(Lit, Env, L, St) ->                 %Everything else is a literal
 
 %% check_gargs(Args, Env, Line, State) -> State.
 %% check_gexprs(Exprs, Env, Line, State) -> State.
-%% The guard counter parts. Check_gexprs assumes a proper list.
+%%  The guard counter parts. Check_gexprs assumes a proper list.
 
 check_gargs(Args, Env, L, St) ->
     case is_proper_list(Args) of
@@ -883,7 +884,7 @@ check_gexprs(Es, Env, L, St) ->
     foldl(fun (E, S) -> check_gexpr(E, Env, L, S) end, St, Es).
 
 %% check_gif(IfBody, Env, Line, State) -> State.
-%% Check guard form (if Test True [False]).
+%%  Check guard form (if Test True [False]).
 
 check_gif([Test,True,False], Env, L, St) ->
     check_gexprs([Test,True,False], Env, L, St);

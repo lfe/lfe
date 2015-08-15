@@ -81,7 +81,7 @@ field_value(Fmt, Args) ->
 
 field_value([C|Fmt], Args, F) when is_integer(C), C >= $0, C =< $9 ->
     field_value(Fmt, Args, 10*F + (C - $0));
-field_value(Fmt, Args, F) ->        %Default case
+field_value(Fmt, Args, F) ->                    %Default case
     {F,Fmt,Args}.
 
 pad_char([$.,$*|Fmt], [Pad|Args]) -> {Pad,Fmt,Args};
@@ -93,9 +93,9 @@ pad_char(Fmt, Args) -> {$\s,Fmt,Args}.
 
 pcount(Cs) ->
     foldl(fun ({$p,_,_,_,_,_}, Acc) -> Acc+1;
-          ({$P,_,_,_,_,_}, Acc) -> Acc+1;
-          (_, Acc) -> Acc
-      end, 0, Cs).
+              ({$P,_,_,_,_,_}, Acc) -> Acc+1;
+              (_, Acc) -> Acc
+          end, 0, Cs).
 
 %% build([Control], Pc, Indentation) -> [Char].
 %%  Interpret the control structures. Count the number of print
@@ -106,8 +106,8 @@ build([{C,As,F,Ad,P,Pad}|Cs], Pc0, I) ->
     S = control(C, As, F, Ad, P, Pad, I),
     Pc1 = decr_pc(C, Pc0),
     if
-    Pc1 > 0 -> [S|build(Cs, Pc1, indentation(S, I))];
-    true -> [S|build(Cs, Pc1, I)]
+        Pc1 > 0 -> [S|build(Cs, Pc1, indentation(S, I))];
+        true -> [S|build(Cs, Pc1, I)]
     end;
 build([$\n|Cs], Pc, _I) -> [$\n|build(Cs, Pc, 0)];
 build([$\t|Cs], Pc, I) -> [$\t|build(Cs, Pc, ((I + 8) div 8) * 8)];
@@ -187,13 +187,13 @@ control($b, [A], F, Adj, P, Pad, _) when is_integer(A) ->
 control($B, [A], F, Adj, P, Pad, _) when is_integer(A) ->
     unprefixed_integer(A, F, Adj, base(P), Pad, false);
 control($x, [A,Prefix], F, Adj, P, Pad, _) when is_integer(A),
-                        is_atom(Prefix) ->
+                                                is_atom(Prefix) ->
     prefixed_integer(A, F, Adj, base(P), Pad, atom_to_list(Prefix), true);
 control($x, [A,Prefix], F, Adj, P, Pad, _) when is_integer(A) ->
     true = io_lib:deep_char_list(Prefix), %Check if Prefix a character list
     prefixed_integer(A, F, Adj, base(P), Pad, Prefix, true);
 control($X, [A,Prefix], F, Adj, P, Pad, _) when is_integer(A),
-                                                 is_atom(Prefix) ->
+                                                is_atom(Prefix) ->
     prefixed_integer(A, F, Adj, base(P), Pad, atom_to_list(Prefix), false);
 control($X, [A,Prefix], F, Adj, P, Pad, _) when is_integer(A) ->
     true = io_lib:deep_char_list(Prefix), %Check if Prefix a character list
@@ -249,7 +249,7 @@ print(T, D, F, right, P, _, _) ->
 
 %% fwrite_e(Float, Field, Adjust, Precision, PadChar)
 
-fwrite_e(Fl, none, Adj, none, Pad) ->        %Default values
+fwrite_e(Fl, none, Adj, none, Pad) ->           %Default values
     fwrite_e(Fl, none, Adj, 6, Pad);
 fwrite_e(Fl, none, _Adj, P, _Pad) when P >= 2 ->
     float_e(Fl, float_data(Fl), P);
@@ -258,12 +258,12 @@ fwrite_e(Fl, F, Adj, none, Pad) ->
 fwrite_e(Fl, F, Adj, P, Pad) when P >= 2 ->
     write(float_e(Fl, float_data(Fl), P), F, Adj, F, Pad).
 
-float_e(Fl, Fd, P) when Fl < 0.0 ->        %Negative numbers
+float_e(Fl, Fd, P) when Fl < 0.0 ->             %Negative numbers
     [$-|float_e(-Fl, Fd, P)];
 float_e(_Fl, {Ds,E}, P) ->
     case float_man(Ds, 1, P-1) of
-    {[$0|Fs],true} -> [[$1|Fs]|float_exp(E)];
-    {Fs,false} -> [Fs|float_exp(E-1)]
+        {[$0|Fs],true} -> [[$1|Fs]|float_exp(E)];
+        {Fs,false} -> [Fs|float_exp(E-1)]
     end.
 
 %% float_man([Digit], Icount, Dcount) -> {[Chars],CarryFlag}.
@@ -276,22 +276,22 @@ float_man(Ds, 0, Dc) ->
     {[$.|Cs],C};
 float_man([D|Ds], I, Dc) ->
     case float_man(Ds, I-1, Dc) of
-    {Cs,true} when D =:= $9 -> {[$0|Cs],true};
-    {Cs,true} -> {[D+1|Cs],false};
-    {Cs,false} -> {[D|Cs],false}
+        {Cs,true} when D =:= $9 -> {[$0|Cs],true};
+        {Cs,true} -> {[D+1|Cs],false};
+        {Cs,false} -> {[D|Cs],false}
     end;
-float_man([], I, Dc) ->                             %Pad with 0's
+float_man([], I, Dc) ->                         %Pad with 0's
     {string:chars($0, I, [$.|string:chars($0, Dc)]),false}.
 
 float_man([D|_], 0) when D >= $5 -> {[],true};
 float_man([_|_], 0) -> {[],false};
 float_man([D|Ds], Dc) ->
     case float_man(Ds, Dc-1) of
-    {Cs,true} when D =:= $9 -> {[$0|Cs],true};
-    {Cs,true} -> {[D+1|Cs],false};
-    {Cs,false} -> {[D|Cs],false}
+        {Cs,true} when D =:= $9 -> {[$0|Cs],true};
+        {Cs,true} -> {[D+1|Cs],false};
+        {Cs,false} -> {[D|Cs],false}
     end;
-float_man([], Dc) -> {string:chars($0, Dc),false}.  %Pad with 0's
+float_man([], Dc) -> {string:chars($0, Dc),false}. %Pad with 0's
 
 %% float_exp(Exponent) -> [Char].
 %%  Generate the exponent of a floating point number. Always include sign.
@@ -303,7 +303,7 @@ float_exp(E) ->
 
 %% fwrite_f(FloatData, Field, Adjust, Precision, PadChar)
 
-fwrite_f(Fl, none, Adj, none, Pad) ->               %Default values
+fwrite_f(Fl, none, Adj, none, Pad) ->           %Default values
     fwrite_f(Fl, none, Adj, 6, Pad);
 fwrite_f(Fl, none, _Adj, P, _Pad) when P >= 1 ->
     float_f(Fl, float_data(Fl), P);
@@ -318,8 +318,8 @@ float_f(Fl, {Ds,E}, P) when E =< 0 ->
     float_f(Fl, {string:chars($0, -E+1, Ds),1}, P); %Prepend enough 0's
 float_f(_Fl, {Ds,E}, P) ->
     case float_man(Ds, E, P) of
-    {Fs,true} -> "1" ++ Fs;                         %Handle carry
-    {Fs,false} -> Fs
+        {Fs,true} -> "1" ++ Fs;                 %Handle carry
+        {Fs,false} -> Fs
     end.
 
 %% float_data([FloatChar]) -> {[Digit],Exponent}
