@@ -116,11 +116,19 @@ pattern(P, Env) ->
 %% form(Form) -> {ok,[Warning]} | {error,[Error],[Warning]}.
 
 form(F) ->
-    module([{['define-module',dummy],1},
-            {F,2}]).
+    case module([{['define-module',dummy],1},{F,2}]) of
+	{ok,_,Ws} -> {ok,Ws};
+	Error -> Error
+    end.
 
-%% module(Forms) -> {ok,[Warning]} | {error,[Error],[Warning]}.
-%% module(Forms, CompInfo) -> {ok,[Warning]} | {error,[Error],[Warning]}.
+return_status(#lint{errors=[]}=St) ->
+    {ok,St#lint.warnings};
+return_status(St) ->
+    {error,St#lint.errors,St#lint.warnings}.
+
+%% module(Forms) -> {ok,Module,[Warning]} | {error,[Error],[Warning]}.
+%% module(Forms, CompInfo) ->
+%%     {ok,Module,[Warning]} | {error,[Error],[Warning]}.
 %%  Lint the forms in a module.
 
 module(Fs) -> module(Fs, #cinfo{file="nofile",opts=[]}).
@@ -132,7 +140,7 @@ module(Fs0, #cinfo{file=F,opts=Os}) ->
     {Fs1,St1} = lfe_lib:proc_forms(fun collect_form/3, Fs0, St0),
     St2 = check_module(Fs1, St1),
     debug_print("#lint: ~p\n", [St2], Os),
-    return_status(St2).
+    return_module_status(St2).
 
 debug_print(Format, Args, Opts) ->
     case member(debug_print, Opts) of
@@ -140,9 +148,9 @@ debug_print(Format, Args, Opts) ->
         false -> ok
     end.
 
-return_status(#lint{errors=[]}=St) ->
-    {ok,St#lint.warnings};
-return_status(St) ->
+return_module_status(#lint{errors=[]}=St) ->
+    {ok,St#lint.module,St#lint.warnings};
+return_module_status(St) ->
     {error,St#lint.errors,St#lint.warnings}.
 
 %% collect_form(Form, Line, State) -> {[Ret],State}.
