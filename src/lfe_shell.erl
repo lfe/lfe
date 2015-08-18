@@ -593,22 +593,27 @@ safe_fetch(Key, D, Def) ->
 %% c(File [,Args]) -> {ok,Module} | error.
 %%  Compile and load an LFE file.
 
-c(F) -> c(F, []).
+c(File) -> c(File, []).
 
-c(F, Os0) ->
-    Os1 = [report,verbose|Os0],                 %Always report verbosely
-    Loadm = fun ([]) -> {module,[]};
-                (Mod) ->
-                    Base = filename:basename(F, ".lfe"),
-                    code:purge(Mod),
-                    R = code:load_abs(Base),
-                    R
-            end,
-    case lfe_comp:file(F, Os1) of
-        {ok,Mod,_} -> Loadm(Mod);
-        {ok,Mod} -> Loadm(Mod);
-        Other -> Other
+c(File, Opts0) ->
+    Opts1 = [report,verbose|Opts0],	        %Always report verbosely
+    case lfe_comp:file(File, Opts1) of
+        {ok,Mod,_} -> load_file(Mod, File, Opts1);
+        {ok,Mod} -> load_file(Mod, File, Opts1);
+        Other -> Other				%Catches errors and binary
     end.
+
+load_file([], _, _) -> ok;
+load_file(Mod, _, Opts) ->
+    Dir = outdir(Opts),
+    Bfile = filename:join(Dir, atom_to_list(Mod)),
+    code:purge(Mod),
+    code:load_abs(Bfile).
+
+outdir([{outdir,Dir}|_]) -> Dir;		%Erlang way
+outdir([[outdir,Dir]|_]) -> Dir;		%LFE way
+outdir([_|Opts]) -> outdir(Opts);
+outdir([]) -> ".".
 
 %% cd(Dir) -> ok.
 

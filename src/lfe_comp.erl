@@ -33,12 +33,10 @@
                ldir=".",                        %Lisp file dir
                lfile="",                        %Lisp file
                odir=".",                        %Output directory
-               bfile="",                        %Beam file
-               cfile="",                        %Core file
                opts=[],                         %User options
                ipath=[],                        %Include path
-               mod=[],                          %Module name
-               ret=file,                        %What is returned [Val] | []
+               module=[],                       %Module name
+               return=file,                     %What is returned [Val] | []
                code=none,                       %Code after last pass.
                cinfo=none,                      %Common compiler info
                errors=[],
@@ -115,33 +113,30 @@ do_forms(Fs0, Opts0) ->
 filenames(File, Suffix, St) ->
     %% Test for explicit outdir.
     Odir = outdir(St#comp.opts),
-    Dir = filename:dirname(File),
+    Ldir = filename:dirname(File),
     Base = filename:basename(File, Suffix),
-    Lfile = filename:join(Dir, Base ++ Suffix),
-    Bfile = Base ++ ".beam",
-    Cfile = Base ++ ".core",
+    Lfile = filename:join(Ldir, Base ++ Suffix),
     St#comp{base=Base,
-            ldir=Dir,
+            ldir=Ldir,
             lfile=Lfile,
-            odir=Odir,
-            bfile=filename:join(Odir, Bfile),
-            cfile=filename:join(Odir, Cfile)}.
+            odir=Odir
+	   }.
 
-outdir([{outdir,Dir}|_]) -> Dir;
-outdir([[outdir,Dir]|_]) -> Dir;
+outdir([{outdir,Dir}|_]) -> Dir;		%Erlang way
+outdir([[outdir,Dir]|_]) -> Dir;		%LFE way
 outdir([_|Opts]) -> outdir(Opts);
 outdir([]) -> ".".
 
 %% include_path(State) -> State.
 %%  Set the include path, we permit {i,Dir} and [i,Dir].
 
-include_path(#comp{ldir=Dir,opts=Opts}=St) ->
+include_path(#comp{ldir=Ldir,opts=Opts}=St) ->
     Ifun = fun ({i,I}, Is) -> [I|Is];           %Erlang way
                ([i,I], Is) -> [I|Is];           %LFE way
                (_, Is) -> Is
            end,
     %% Same ordering as in the erlang compiler.
-    Is = [".",Dir|foldr(Ifun, [], Opts)],       %Default entries
+    Is = [".",Ldir|foldr(Ifun, [], Opts)],       %Default entries
     St#comp{ipath=Is}.
 
 %% compiler_info(State) -> CompInfo.
@@ -186,8 +181,9 @@ do_macro_expand(#comp{cinfo=Ci,code=Code}=St) ->
 
 do_lint(St) ->
     case lfe_lint:module(St#comp.code, St#comp.cinfo) of
-        {ok,Ws} ->
-            {ok,St#comp{warnings=St#comp.warnings ++ Ws}};
+        {ok,Mod,Ws} ->
+            {ok,St#comp{module=Mod,
+                        warnings=St#comp.warnings ++ Ws}};
         {error,Es,Ws} ->
             {error,St#comp{errors=St#comp.errors ++ Es,
                            warnings=St#comp.warnings ++ Ws}}
@@ -196,7 +192,7 @@ do_lint(St) ->
 do_lfe_codegen(#comp{cinfo=Ci,code=Fs0}=St) ->
     Fs1 = lfe_pmod:module(Fs0, Ci),
     {Mod,Core} = lfe_codegen:module(Fs1, Ci),
-    {ok,St#comp{code=Core,mod=Mod}}.
+    {ok,St#comp{code=Core,module=Mod}}.
 
 do_erl_comp(St) ->
     ErlOpts = erl_comp_opts(St),                %Options to erlang compiler
@@ -240,27 +236,33 @@ erl_comp_opts(St) ->
 
 %% passes() -> [Pass].
 %% do_passes(Passes, State) -> {ok,State} | {error,State}.
-%%  {when_flag,Flag,Cmd}
-%%  {unless_flag,Flag,Cmd}
-%%  {when_test,Test,Cmd}
-%%  {unless_test,Test,Cmd}
-%%  {do,Fun}
-%%  {done,PrintFun,Ext}
+%%
+%%  {when_flag,Flag,Cmd}    Do Cmd if Flag is or is not in the
+%%  {unless_flag,Flag,Cmd}  option list.
+%%
+%%  {when_test,Test,Cmd}    Do Cmd if the Test function returns 'true'
+%%  {unless_test,Test,Cmd}  or 'false'.
+%%
+%%  {do,Fun}                Call Fun and then continue.
+%%
+%%  {done,PrintFun}         End compilation calling PrintFun to output
+%%                          file, unless 'binary' is specified in which
+%%                          current code will be returned.
 
 passes() ->
     [{do,fun do_macro_expand/1},
-     {when_flag,to_exp,{done,fun sexpr_pp/2,"expand"}},
+     {when_flag,to_exp,{done,fun sexpr_pp/1}},
      {do,fun do_lint/1},
-     {when_flag,to_lint,{done,fun sexpr_pp/2,"lint"}},
+     {when_flag,to_lint,{done,fun sexpr_pp/1}},
      {do,fun do_lfe_codegen/1},
-     {when_flag,to_core0,{done,fun core_pp/2,"core"}},
+     {when_flag,to_core0,{done,fun core_pp/1}},
      {do,fun do_erl_comp/1},
      %% These options will have made erl compiler return internal form
      %% after pass.
-     {when_flag,to_core,{done,fun core_pp/2,"core"}},
-     {when_flag,to_kernel,{done,fun kernel_pp/2,"kernel"}},
-     {when_flag,to_asm,{done,fun asm_pp/2,"S"}},
-     {unless_test,fun werror/1,{done,fun beam_write/2,"beam"}}]. %Should be last
+     {when_flag,to_core,{done,fun core_pp/1}},
+     {when_flag,to_kernel,{done,fun kernel_pp/1}},
+     {when_flag,to_asm,{done,fun asm_pp/1}},
+     {unless_test,fun werror/1,{done,fun beam_write/1}}]. %Should be last
 
 do_passes([{when_flag,Flag,Cmd}|Ps], St) ->
     case member(Flag, St#comp.opts) of
@@ -287,40 +289,63 @@ do_passes([{do,Fun}|Ps], St0) ->
         {ok,St1} -> do_passes(Ps, St1);
         {error,St1} -> {error,St1}
     end;
-do_passes([{done,Fun,Ext}|_], St) ->
+do_passes([{done,Fun}|_], St) ->
     %% Either return code as value or print out file.
     case member(binary, St#comp.opts) of
-        true -> {ok,St#comp{ret=[St#comp.code]}};
-        false -> do_save_file(Fun, Ext, St#comp{ret=[]})
+        true -> {ok,St#comp{return=[St#comp.code]}};
+        false -> Fun(St#comp{return=[]})
     end;
 do_passes([], St) -> {ok,St}.                   %Got to the end, everything ok!
 
-do_save_file(Fun, Ext, St) ->
+%% sexpr_pp(State) -> {ok,State} | {error,State}.
+%% core_pp(State) -> {ok,State} | {error,State}.
+%% kernel_pp(State) -> {ok,State} | {error,State}.
+%% asm_pp(State) -> {ok,State} | {error,State}.
+%% beam_write(State) -> {ok,State} | {error,State}.
+%%  Output the various file types. The XXX_pp functions output with
+%%  the same name as the input file while beam_write outputs to the
+%%  module name.
+
+sexpr_pp(St) ->
+    Save = fun (File, Code) -> lfe_io:prettyprint(File, Code),io:nl(File) end,
+    do_save_file(Save, "expand", St).
+
+core_pp(St) ->
+    Save = fun (File, Core) ->
+		   io:put_chars(File, [core_pp:format(Core),$\n]) end,
+    do_save_file(Save, "core", St).
+
+kernel_pp(St) ->
+    Save = fun (File, Kern) ->
+		   io:put_chars(File, [v3_kernel_pp:format(Kern),$\n]) end,
+    do_save_file(Save, "kernel", St).
+
+asm_pp(St) ->
+    Save = fun (File, Asm) -> beam_listing:module(File, Asm) end,
+    do_save_file(Save, "S", St).
+
+do_save_file(Save, Ext, St) ->
     Name = filename:join(St#comp.odir, St#comp.base ++ ["."|Ext]),
     %% delayed_write useful here but plays havoc with erjang.
     case file:open(Name, [write]) of
         {ok,File} ->
-            Fun(File, St#comp.code),
-            ok = file:close(File),
-            {ok,St};
+	    Ret = Save(File, St#comp.code),
+	    ok = file:close(File),
+	    case Ret of
+		ok -> {ok,St};
+		{error,E} -> {error,St#comp{errors=[{file,E}]}}
+	    end;
         {error,E} -> {error,St#comp{errors=[{file,E}]}}
     end.
 
-%% sexpr_pp(File, Sexprs) -> ok.
-%% core_pp(File, Sexprs) -> ok.
-%% kernel_pp(File, Sexprs) -> ok.
-%% asm_pp(File, Sexprs) -> ok.
-%% beam_write(File, Beamcode) -> ok.
-
-sexpr_pp(File, Code) -> lfe_io:prettyprint(File, Code),io:nl(File).
-
-core_pp(File, Core) -> io:put_chars(File, [core_pp:format(Core),$\n]).
-
-kernel_pp(File, Kern) -> io:put_chars(File, [v3_kernel_pp:format(Kern),$\n]).
-
-asm_pp(File, Asm) -> beam_listing:module(File, Asm).
-
-beam_write(File, Beam) -> file:write(File, Beam).
+beam_write(St) ->
+    Name = filename:join(St#comp.odir, lists:concat([St#comp.module,".beam"])),
+    Beam = St#comp.code,
+    case file:write_file(Name, Beam) of
+	ok -> {ok,St};
+	{error,E} ->
+	    {error,St#comp{errors=[{file,E}]}}
+    end.
 
 %% fix_erl_errors([{File,Errors}]) -> Errors.
 
@@ -334,7 +359,7 @@ werror(#comp{opts=Opts,warnings=Ws}) ->
 %%  Note that this handling of 'warnings_as_errors' is the same in the
 %%  vanilla erlang compiler 'compile'.
 
-do_ok_return(#comp{lfile=Lfile,opts=Opts,ret=Ret0,warnings=Ws}=St) ->
+do_ok_return(#comp{lfile=Lfile,opts=Opts,return=Ret0,warnings=Ws}=St) ->
     case werror(St) of
         true -> do_error_return(St);            %Warnings are errors!
         false ->
@@ -344,7 +369,7 @@ do_ok_return(#comp{lfile=Lfile,opts=Opts,ret=Ret0,warnings=Ws}=St) ->
                        true -> Ret0 ++ [return_errors(Lfile, Ws)];
                        false -> Ret0
                    end,
-            list_to_tuple([ok,St#comp.mod|Ret1])
+            list_to_tuple([ok,St#comp.module|Ret1])
     end.
 
 do_error_return(#comp{lfile=Lfile,opts=Opts,errors=Es,warnings=Ws}) ->
