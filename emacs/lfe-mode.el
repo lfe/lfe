@@ -139,25 +139,23 @@ Other commands:
 (defconst lfe-font-lock-keywords-1
   (eval-when-compile
     (list
-     (list (concat "(\\(def\\("
-                   ;; Base forms and old style names.
-                   "\\(ine\\(-module\\|-function\\|-macro\\|"
-                   "-syntax\\|-record\\)?\\)\\|"
-                   ;; New model function names
-                   "\\(un\\|macro\\|syntax\\|test\\)\\|"
-                   ;; New model other names
-                   "\\(module\\)\\|"
-                   "\\(record\\)"
-                   "\\)\\)\\>"
-                   ;; Any whitespace and declared object.
-                   "[ \t]*(?"
-                   "\\(\\sw+\\)?")
-           '(1 font-lock-keyword-face)
-           '(8 (cond ((match-beginning 3) font-lock-function-name-face)
-                     ((match-beginning 5) font-lock-function-name-face)
-                     ((match-beginning 6) font-lock-variable-name-face)
-                     (t font-lock-type-face))
-               nil t))
+     (list (concat
+	    "(\\(def\\("
+	    ;; Define functions, old style and base forms.
+	    "\\(ine\\(-function\\|-macro\\|-syntax\\)?\\)\\|"
+	    "\\(un\\|macro\\|syntax\\|test\\|method\\)\\|"
+	    ;; Define types, old style and base forms.
+	    "\\(ine-\\(module\\|record\\)\\)\\|"
+	    "\\(module\\|flavor\\|record\\)"
+	    "\\)\\)\\>"
+	    ;; Any whitespace and declared object.
+	    "[ \t]*(?"
+	    "\\(\\sw+\\)?")
+	   '(1 font-lock-keyword-face)
+	   '(9 (cond ((match-beginning 3) font-lock-function-name-face)
+		     ((match-beginning 5) font-lock-function-name-face)
+		     (t font-lock-type-face)) ;6 & 8
+	       nil t))
      ))
   "Subdued expressions to highlight in LFE modes.")
 
@@ -170,8 +168,13 @@ Other commands:
   (defconst lfe-type-bifs
     '("abs" "bit_size" "byte_size" "element" "float"
       "hd" "iolist_size" "length" "make_ref" "setelement" ;"size"
-      "round" "tl" "trunc" "tuple_size")
-    "LFE builtin functions (BIFs)"))
+      "round" "tl" "trunc" "tuple_size"
+      "car" "cdr" "caar" "cadr" "cdar" "cddr"
+      ;; Just for the fun of it.
+      "caaar" "caadr" "cadar" "caddr" "cdaar" "cddar" "cdadr" "cdddr" 
+      "list" "list*" "tuple" "binary"
+      "map" "mref" "mset" "mupd" "map-get" "map-set" "map-update")
+    "LFE builtin functions (BIFs) and some type macros"))
 
 (defconst lfe-font-lock-keywords-2
   (append
@@ -183,21 +186,15 @@ Other commands:
        (concat
         "(" (regexp-opt
              '(;; Core forms.
-               "cons" "car" "cdr" "list" "tuple" "binary"
-               "after" "call" "case" "catch"
-               "if" "lambda" "let" "let-function" "letrec-function"
-               "let-macro" "match-lambda"
-               "receive" "try" "funcall" "when" "progn"
-               "eval-when-compile"
-               ;; Default macros
-               "caar" "cadr" "cdar" "cddr"
-               "andalso" "cond" "do" "fun" "list*" "let*" "flet*" "macro"
-               "orelse" "syntax-rules" "lc" "bc" "flet" "fletrec"
-               "macrolet" "syntaxlet" "begin" "let-syntax"
-               ;; Should the map forms be here or as type bifs?
-               "map" "mref" "mset" "mupd" "map-get" "map-set" "map-update"
-               "match-spec" "qlc"
-               ":" "?" "++") t)
+	       "after" "call" "case" "catch" ;"define-function" "define-macro"
+	       "funcall" "if" "lambda"
+	       "let" "let-function" "letrec-function" "let-macro"
+	       "match-lambda" "progn" "receive" "try" "when"
+	       "eval-when-compile"
+	       ;; Base macro forms.
+	       "andalso" "bc" "cond" "do" "flet" "fletrec" "fun" "lc"
+	       "let*" "flet*" "match-spec" "macrolet" "orelse" "qlc"
+	       ":" "?" "++") t)
         "\\>") '(1 font-lock-keyword-face))
       ;; Type tests.
       (cons
