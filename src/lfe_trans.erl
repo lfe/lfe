@@ -370,7 +370,7 @@ from_pat({bin,_,Segs}, Vt0, St0) ->
     {[binary|Ss],Eqt,Vt1,St1};
 from_pat({record,_,R,Fs}, Vt0, St0) ->          %Match a record
     MR = list_to_atom("match-" ++ atom_to_list(R)),
-    {Sfs,Eqt,Vt1,St1} = from_rec_fields(Fs, Vt0, St0),
+    {Sfs,Eqt,Vt1,St1} = from_pat_rec_fields(Fs, Vt0, St0),
     {[MR|Sfs],Eqt,Vt1,St1};
 from_pat({match,_,P1,P2}, Vt0, St0) ->          %Aliases
     {Lp1,Eqt1,Vt1,St1} = from_pat(P1, Vt0, St0),
@@ -387,6 +387,20 @@ from_pat_list([P|Ps], Vt0, St0) ->
     {Lps,Eqts,Vt2,St2} = from_pat_list(Ps, Vt1, St1),
     {[Lp|Lps],Eqt++Eqts,Vt2,St2};
 from_pat_list([], Vt, St) -> {[],[],Vt,St}.
+
+%% from_pat_rec_fields(Recfields, VarTable, State) ->
+%%     {Recfields,EqTable,VarTable,State}.
+
+from_pat_rec_fields([{record_field,_,{atom,_,F},P}|Fs], Vt0, St0) ->
+    {Lp,Eqt,Vt1,St1} = from_pat(P, Vt0, St0),
+    {Lfs,Eqts,Vt2,St2} = from_pat_rec_fields(Fs, Vt1, St1),
+    {[F,Lp|Lfs],Eqt++Eqts,Vt2,St2};
+from_pat_rec_fields([{record_field,_,{var,_,F},P}|Fs], Vt0, St0) ->
+    %% Special case!!
+    {Lp,Eqt,Vt1,St1} = from_pat(P, Vt0, St0),
+    {Lfs,Eqts,Vt2,St2} = from_pat_rec_fields(Fs, Vt1, St1),
+    {[F,Lp|Lfs],Eqt++Eqts,Vt2,St2};
+from_pat_rec_fields([], Vt, St) -> {[],[],Vt,St}.
 
 %% from_pat_bitsegs(Segs, VarTable, State) -> {Segs,EqTable,VarTable,State}.
 
