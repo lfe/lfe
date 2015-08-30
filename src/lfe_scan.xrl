@@ -217,12 +217,12 @@ hex_char(C) when C >= $a, C =< $f -> true;
 hex_char(C) when C >= $A, C =< $F -> true;
 hex_char(_) -> false.
 
-escape_char($n) -> $\n;                %\n = LF
-escape_char($r) -> $\r;                %\r = CR
-escape_char($t) -> $\t;                %\t = TAB
-escape_char($v) -> $\v;                %\v = VT
 escape_char($b) -> $\b;                %\b = BS
+escape_char($t) -> $\t;                %\t = TAB
+escape_char($n) -> $\n;                %\n = LF
+escape_char($v) -> $\v;                %\v = VT
 escape_char($f) -> $\f;                %\f = FF
+escape_char($r) -> $\r;                %\r = CR
 escape_char($e) -> $\e;                %\e = ESC
 escape_char($s) -> $\s;                %\s = SPC
 escape_char($d) -> $\d;                %\d = DEL

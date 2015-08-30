@@ -54,7 +54,7 @@ term([unquote,E], D, I, L) -> [",",term(E, D, I+1, L)];
 term(['unquote-splicing',E], D, I, L) -> [",@",term(E, D, I+2, L)];
 term([Car|_]=List, D, I, L) ->
     %% Handle printable lists specially.
-    case io_lib:printable_list(List) of
+    case io_lib:printable_unicode_list(List) of
         true -> lfe_io_write:string(List, $");  %"
         false ->
             case list_max(List, D-1, I+1, L-1) of
@@ -91,9 +91,13 @@ term(Other, _, _, _) ->
 %%  we add size field if not 8 bits big.
 
 bitstring(Bit, D) ->
-    case unicode:characters_to_list(Bit) of
-        List when is_list(List) -> ["#\"",List,$\"];
-        _ -> lfe_io_write:bitstring(Bit, D)
+    try
+	Chars = unicode:characters_to_list(Bit, utf8),
+	true = io_lib:printable_unicode_list(Chars),
+	[$#|lfe_io_write:string(Chars, $")]
+    catch
+	_:_ ->
+	    lfe_io_write:bitstring(Bit, D)
     end.
 
 %% defun(List, Depth, Indentation, LineLength) -> [char()].
