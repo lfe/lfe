@@ -144,18 +144,12 @@ string_chars([C|Cs], Q) ->
 
 string_char(Q, Q, Tail) -> [$\\,Q|Tail];        %Must check these first!
 string_char($\\, _, Tail) -> [$\\,$\\|Tail];
-string_char(C, _, Tail) when C >= $\s, C =< $~ ->
-    [C|Tail];
-string_char(C, _, Tail) when C >= $\240, C =< $\377 ->
-    [C|Tail];
-string_char($\n, _, Tail) -> [$\\,$n|Tail];     %\n = LF
-string_char($\r, _, Tail) -> [$\\,$r|Tail];     %\r = CR
-string_char($\t, _, Tail) -> [$\\,$t|Tail];     %\t = TAB
-string_char($\v, _, Tail) -> [$\\,$v|Tail];     %\v = VT
 string_char($\b, _, Tail) -> [$\\,$b|Tail];     %\b = BS
+string_char($\t, _, Tail) -> [$\\,$t|Tail];     %\t = TAB
+string_char($\n, _, Tail) -> [$\\,$n|Tail];     %\n = LF
+string_char($\v, _, Tail) -> [$\\,$v|Tail];     %\v = VT
 string_char($\f, _, Tail) -> [$\\,$f|Tail];     %\f = FF
+string_char($\r, _, Tail) -> [$\\,$r|Tail];     %\r = CR
 string_char($\e, _, Tail) -> [$\\,$e|Tail];     %\e = ESC
 string_char($\d, _, Tail) -> [$\\,$d|Tail];     %\d = DEL
-string_char(C, _, Tail) ->
-    %%Unicode and other control characters.
-    "\\x" ++ erlang:integer_to_list(C, 16) ++ ";" ++ Tail.
+string_char(C, _, Tail) -> [C|Tail].
