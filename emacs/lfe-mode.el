@@ -174,7 +174,20 @@ Other commands:
       "caaar" "caadr" "cadar" "caddr" "cdaar" "cddar" "cdadr" "cdddr" 
       "list" "list*" "tuple" "binary"
       "map" "mref" "mset" "mupd" "map-get" "map-set" "map-update")
-    "LFE builtin functions (BIFs) and some type macros"))
+    "LFE builtin functions (BIFs) and some type macros")
+  (defconst lfe-basic-forms
+    '(
+      ;; Core forms.
+      "after" "call" "case" "catch"  ;"define-function" "define-macro"
+      "funcall" "if" "lambda"
+      "let" "let-function" "letrec-function" "let-macro"
+      "match-lambda" "progn" "receive" "try" "when"
+      "eval-when-compile"
+      ;; Base macro forms.
+      "andalso" "bc" "cond" "do" "flet" "fletrec" "fun" "lc"
+      "let*" "flet*" "match-spec" "macrolet" "orelse" "qlc"
+      ":" "?" "++")
+    "LFE basic forms"))
 
 (defconst lfe-font-lock-keywords-2
   (append
@@ -184,18 +197,8 @@ Other commands:
       ;; Control structures.
       (cons
        (concat
-        "(" (regexp-opt
-             '(;; Core forms.
-	       "after" "call" "case" "catch" ;"define-function" "define-macro"
-	       "funcall" "if" "lambda"
-	       "let" "let-function" "letrec-function" "let-macro"
-	       "match-lambda" "progn" "receive" "try" "when"
-	       "eval-when-compile"
-	       ;; Base macro forms.
-	       "andalso" "bc" "cond" "do" "flet" "fletrec" "fun" "lc"
-	       "let*" "flet*" "match-spec" "macrolet" "orelse" "qlc"
-	       ":" "?" "++") t)
-        "\\>") '(1 font-lock-keyword-face))
+        "(" (regexp-opt lfe-basic-forms t) "\\>")
+       '(1 font-lock-keyword-face))
       ;; Type tests.
       (cons
        (concat
