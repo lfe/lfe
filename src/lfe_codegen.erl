@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2013 Robert Virding
+%% Copyright (c) 2008-2015 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@
 
 -define(Q(E), [quote,E]).                       %We do a lot of quoting!
 
--record(cg, {mod=[],                            %Module name
+-record(cg, {module=[],                         %Module name
              exps=[],                           %Exports (ordsets)
              imps=[],                           %Imports (orddict)
              pref=[],                           %Prefixes
@@ -66,99 +66,44 @@
              fc=0                               %Function counter
             }).
 
-%% module(Forms, CompInfo) -> {ModuleName,CoreModule}
+%% module(ModuleForms, CompInfo) -> {ModuleName,CoreModule}
 
-module(Forms, #cinfo{opts=Opts,file=File}) ->
+module(Mfs, #cinfo{opts=Opts,file=File}) ->
     St0 = #cg{opts=Opts,file=File},
-    Core0 = c_module(c_atom(none), [], []),
-    {Core1,St1} = forms(Forms, St0, Core0),
-    {St1#cg.mod,Core1}.
+    {Core,St1} = compile_module(Mfs, St0),
+    {St1#cg.module,Core}.
 
-%% forms(Forms, State, CoreModule) -> {CoreModule,State}.
-%%  Compile the forms from the file as stored in the state record.
+%% compile_module(ModuleForms, State) -> {CoreModule,State}.
 
-forms(Forms, St0, Core0) ->
-    %% Collect the module definition and functions definitions.
-    {Fbs0,St1} = lfe_lib:proc_forms(fun collect_form/3, Forms, St0),
-    %% Add predefined functions and definitions, these are in line 0.
-    Predefs = [{module_info,0},{module_info,1}],
-    Mibs = [{module_info,
-             [lambda,[],
-              [call,?Q(erlang),?Q(get_module_info),?Q(St1#cg.mod)]],0},
-            {module_info,
-             [lambda,[x],
-              [call,?Q(erlang),?Q(get_module_info),?Q(St1#cg.mod),x]],0}],
-    %% The sum of all functions.
-    Fbs1 = Fbs0 ++ Mibs,
-    %% Make initial environment and set state.
-    Env = forms_env(Fbs1, St1),
-    St2 = St1#cg{exps=add_exports(St1#cg.exps, Predefs),
-                 defs=Fbs1,env=Env},
-    Exps = make_exports(St2#cg.exps, Fbs1),
-    Atts = map(fun ({N,V,L}) ->
-                       Ann = [L],
-                       {ann_c_lit(Ann, N),ann_c_lit(Ann, V)}
-               end, St2#cg.atts),
-    %% Compile the functions.
-    {Cdefs,St3} = mapfoldl(fun (D, St) -> comp_define(D, Env, St) end,
-                           St2, St2#cg.defs),
-    %% Build the final core module structure.
-    Core1 = update_c_module(Core0, c_atom(St3#cg.mod), Exps, Atts, Cdefs),
-    %% Maybe print lots of debug info.
-    debug_print("#cg: ~p\n", [St3], St3),
-    when_opt(fun () -> io:fwrite("core_lint: ~p\n",
-                                 [(catch core_lint:module(Core1))])
-             end, debug_print, St3),
-    debug_print("#core: ~p\n", [Core1], St3),
-    %% when_opt(fun () ->
-    %%                  Pp = (catch io:put_chars([core_pp:format(Core1),$\n])),
-    %%                  io:fwrite("core_pp: ~p\n", [Pp])
-    %%          end, debug_print, St3),
-    {Core1,St3}.
+compile_module(Mfs, St0) ->
+    {Fbs,St1} = collect_module(Mfs, St0),
+    Core = c_module(c_atom(none), [], []),
+    compile_forms(Fbs, St1, Core).
 
-forms_env(Fbs, St) ->
-    %% Make initial environment with imports and local functions.
-    Env = foldl(fun ({M,Fs}, Env) ->
-                        foldl(fun ({{F,A},R}, E) ->
-                                      add_ibinding(M, F, A, R, E)
-                              end, Env, Fs)
-                end, lfe_env:new(), St#cg.imps),
-    foldl(fun ({Name,Def,_}, E) ->
-                  add_fbinding(Name, func_arity(Def), Name, E)
-          end, Env, Fbs).
+%% collect_module(ModuleForms, State) -> {Fbs,State}.
+%%  Collect forms and module data. Returns function bindings and puts
+%%  module data into state.
 
-debug_print(Format, Args, St) ->
-    when_opt(fun () -> io:fwrite(Format, Args) end, debug_print, St).
-
-when_opt(Fun, Opt, St) ->
-    case member(Opt, St#cg.opts) of
-        true -> Fun();
-        false -> ok
-    end.
-
-add_exports(all, _) -> all;
-add_exports(Old, More) -> union(Old, More).
-
-make_exports(all, Fbs) ->
-    map(fun ({F,Def,_}) -> c_fname(F, func_arity(Def)) end, Fbs);
-make_exports(Exps, _) ->
-    map(fun ({F,A}) -> c_fname(F, A) end, Exps).
+collect_module(Mfs, St0) ->
+    {Acc,St1} = lists:foldl(fun collect_form/2, {[],St0}, Mfs),
+    {lists:reverse(Acc),St1}.
 
 %% collect_form(Form, Line, State} -> {[Ret],State}.
 %%  Collect valid forms and module data. Returns forms and put module
 %%  data into state.
 
-collect_form(['define-module',Mod|Mdef], L, St) ->
-    %% Everything into State
-    {[],collect_mdef(Mdef, L, St#cg{mod=Mod,anno=[L]})};
-collect_form(['extend-module'|Mdef], L, St) ->
-    {[],collect_mdef(Mdef, L, St#cg{anno=[L]})};
-collect_form(['define-function',Name,[lambda|_]=Lambda], L, St) ->
-    {[{Name,Lambda,L}],St};
-collect_form(['define-function',Name,['match-lambda'|_]=Match], L, St) ->
-    {[{Name,Match,L}],St}.
+collect_form({['define-module',Mod|Mdef],L}, {Acc,St}) ->
+    %% Everything into State.
+    {Acc,collect_mdef(Mdef, L, St#cg{module=Mod,anno=[L]})};
+collect_form({['extend-module'|Mdef],L}, {Acc,St}) ->
+    %% Everything into State.
+    {Acc,collect_mdef(Mdef, L, St#cg{anno=[L]})};
+collect_form({['define-function',Name,[lambda|_]=Lambda],L}, {Acc,St}) ->
+    {[{Name,Lambda,L}|Acc],St};
+collect_form({['define-function',Name,['match-lambda'|_]=Match],L}, {Acc,St}) ->
+    {[{Name,Match,L}|Acc],St}.
 
-%% collect_props(ModDef, Line, State) -> State.
+%% collect_mdef(ModDef, Line, State) -> State.
 %%  Collect module definition and fill in the #cg state record.
 
 collect_mdef([[export,all]|Mdef], L, St) ->
@@ -196,6 +141,74 @@ collect_imp(Fun, Mod, St, Fs) ->
     Imps0 = safe_fetch(Mod, St#cg.imps, []),
     Imps1 = foldl(Fun, Imps0, Fs),
     St#cg{imps=store(Mod, Imps1, St#cg.imps)}.
+
+%% compile_forms(Forms, State, CoreModule) -> {CoreModule,State}.
+%%  Compile the forms from the file as stored in the state record.
+
+compile_forms(Fbs0, St0, Core0) ->
+    %% Add predefined functions and definitions, these are in line 0.
+    Predefs = [{module_info,0},{module_info,1}],
+    Mibs = [{module_info,
+             [lambda,[],
+              [call,?Q(erlang),?Q(get_module_info),?Q(St0#cg.module)]],0},
+            {module_info,
+             [lambda,[x],
+              [call,?Q(erlang),?Q(get_module_info),?Q(St0#cg.module),x]],0}],
+    %% The sum of all functions.
+    Fbs1 = Fbs0 ++ Mibs,
+    %% Make initial environment and set state.
+    Env = forms_env(Fbs1, St0),
+    St1 = St0#cg{exps=add_exports(St0#cg.exps, Predefs),
+                 defs=Fbs1,env=Env},
+    Exps = make_exports(St1#cg.exps, Fbs1),
+    Atts = map(fun ({N,V,L}) ->
+                       Ann = [L],
+                       {ann_c_lit(Ann, N),ann_c_lit(Ann, V)}
+               end, St1#cg.atts),
+    %% Compile the functions.
+    {Cdefs,St2} = mapfoldl(fun (D, St) -> comp_define(D, Env, St) end,
+                           St1, St1#cg.defs),
+    %% Build the final core module structure.
+    Core1 = update_c_module(Core0, c_atom(St2#cg.module), Exps, Atts, Cdefs),
+    %% Maybe print lots of debug info.
+    debug_print("#cg: ~p\n", [St2], St2),
+    when_opt(fun () -> io:fwrite("core_lint: ~p\n",
+                                 [(catch core_lint:module(Core1))])
+             end, debug_print, St2),
+    debug_print("#core: ~p\n", [Core1], St2),
+    %% when_opt(fun () ->
+    %%                  Pp = (catch io:put_chars([core_pp:format(Core1),$\n])),
+    %%                  io:fwrite("core_pp: ~p\n", [Pp])
+    %%          end, debug_print, St2),
+    {Core1,St2}.
+
+forms_env(Fbs, St) ->
+    %% Make initial environment with imports and local functions.
+    Env = foldl(fun ({M,Fs}, Env) ->
+                        foldl(fun ({{F,A},R}, E) ->
+                                      add_ibinding(M, F, A, R, E)
+                              end, Env, Fs)
+                end, lfe_env:new(), St#cg.imps),
+    foldl(fun ({Name,Def,_}, E) ->
+                  add_fbinding(Name, func_arity(Def), Name, E)
+          end, Env, Fbs).
+
+debug_print(Format, Args, St) ->
+    when_opt(fun () -> io:fwrite(Format, Args) end, debug_print, St).
+
+when_opt(Fun, Opt, St) ->
+    case member(Opt, St#cg.opts) of
+        true -> Fun();
+        false -> ok
+    end.
+
+add_exports(all, _) -> all;
+add_exports(Old, More) -> union(Old, More).
+
+make_exports(all, Fbs) ->
+    map(fun ({F,Def,_}) -> c_fname(F, func_arity(Def)) end, Fbs);
+make_exports(Exps, _) ->
+    map(fun ({F,A}) -> c_fname(F, A) end, Exps).
 
 %% comp_define(DefForm, Env, State) -> {Corefunc,State}.
 %%  Compile a top-level define. Sets current function name. Be careful
