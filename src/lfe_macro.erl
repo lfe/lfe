@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2013 Robert Virding
+%% Copyright (c) 2008-2015 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -287,6 +287,18 @@ pass_expand_expr([_|_]=E0, Env, St0, Expand) ->
     end;
 pass_expand_expr(E, _, St, _) -> {no,E,St}.
 
+%% pass_define_macro([Name,Def], Line, Env, State) ->
+%%     {yes,Env,State} | {no,State}.
+%%  Add the macro definition to the environment. We do a small format
+%%  check.
+
+pass_define_macro([Name,Def], Env, St) ->
+    case Def of
+        ['lambda'|_] -> {yes,add_mbinding(Name, Def, Env),St};
+        ['match-lambda'|_] -> {yes,add_mbinding(Name, Def, Env),St};
+        _ -> {no,add_error({bad_form,macro}, St)}
+    end.
+
 %% add_error(Error, State) -> State.
 %% add_error(Line, Error, State) -> State.
 %% add_warning(Warning, State) -> State.
@@ -300,18 +312,6 @@ add_error(L, E, St) ->
 %% add_warning(W, St) -> add_warning(St#mac.line, W, St).
 %% add_warning(L, W, St) ->
 %%     St#mac{warnings=St#mac.warnings ++ [{L,?MODULE,W}]}.
-
-%% pass_define_macro([Name,Def], Line, Env, State) ->
-%%     {yes,Env,State} | {no,State}.
-%%  Add the macro definition to the environment. We do a small format
-%%  check.
-
-pass_define_macro([Name,Def], Env, St) ->
-    case Def of
-        ['lambda'|_] -> {yes,add_mbinding(Name, Def, Env),St};
-        ['match-lambda'|_] -> {yes,add_mbinding(Name, Def, Env),St};
-        _ -> {no,add_error({bad_form,macro}, St)}
-    end.
 
 %% exp_form(Form, Env, State) -> {Form,State}.
 %%  Completely expand a form using expansions in Env and pre-defined
