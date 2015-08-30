@@ -381,7 +381,7 @@ set([Pat|Rest], #state{curr=Ce}=St) ->
     Epat = lfe_macro:expand_expr_all(Pat, Ce),  %Expand macros in pattern
     %% Special case to lint pattern.
     case lfe_lint:pattern(Epat, Ce) of
-        {ok,Ws} -> list_warnings(Ws);
+        {ok,_,Ws} -> list_warnings(Ws);
         {error,Es,Ws} ->
             list_errors(Es),
             list_warnings(Ws)
@@ -463,9 +463,13 @@ slurp_file(Name) ->
         {ok,Fs0} ->
             case lfe_macro:expand_forms(Fs0, lfe_env:new()) of
                 {ok,Fs1,Fenv,_} ->
-                    case lfe_lint:module(Fs1) of
-                        {ok,Ws} -> {ok,Fs1,Fenv,Ws};
-                        {error,_,_}=Error -> Error
+                    case lfe_comp:group_modules(Fs1) of
+                        [{ok,_,Fs2,_}] ->       %Only single module
+                            case lfe_lint:module(Fs2) of
+                                {ok,_,Ws} -> {ok,Fs2,Fenv,Ws};
+                                {error,_,_}=Error -> Error
+                            end;
+                        _ -> {error,[{0,lfe_lint,{bad_mdef,multi}}],[]}
                     end;
                 {error,_,_}=Error -> Error
             end;
@@ -596,22 +600,29 @@ safe_fetch(Key, D, Def) ->
 c(File) -> c(File, []).
 
 c(File, Opts0) ->
-    Opts1 = [report,verbose|Opts0],	        %Always report verbosely
+    Opts1 = [report,verbose|Opts0],             %Always report verbosely
     case lfe_comp:file(File, Opts1) of
-        {ok,Mod,_} -> load_file(Mod, File, Opts1);
-        {ok,Mod} -> load_file(Mod, File, Opts1);
-        Other -> Other				%Catches errors and binary
+        Ok when element(1, Ok) =:= ok ->        %Compilation successful
+            Return = lists:member(return, Opts1),
+            Binary = lists:member(binary, Opts1),
+            OutDir = outdir(Opts1),
+            load_files(Ok, Return, Binary, OutDir);
+        Error -> Error
     end.
 
-load_file([], _, _) -> ok;
-load_file(Mod, _, Opts) ->
-    Dir = outdir(Opts),
-    Bfile = filename:join(Dir, atom_to_list(Mod)),
-    code:purge(Mod),
-    code:load_abs(Bfile).
+load_files(Ok, _, true, _) -> Ok;               %Binary output
+load_files(Ok, Ret, _, Out) ->                  %Beam files created.
+    Mods = element(2, Ok),
+    lists:map(fun (M) -> load_file(M, Ret, Out) end, Mods).
 
-outdir([{outdir,Dir}|_]) -> Dir;		%Erlang way
-outdir([[outdir,Dir]|_]) -> Dir;		%LFE way
+load_file(Ok, _, Out) ->
+    Mod = element(2, Ok),
+    Bfile = filename:join(Out, atom_to_list(Mod)),
+    code:purge(Mod),
+    code:load_abs(Bfile, Mod).                  %Undocumented
+
+outdir([{outdir,Dir}|_]) -> Dir;                %Erlang way
+outdir([[outdir,Dir]|_]) -> Dir;                %LFE way
 outdir([_|Opts]) -> outdir(Opts);
 outdir([]) -> ".".
 
