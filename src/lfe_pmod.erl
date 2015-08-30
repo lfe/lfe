@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2013 Robert Virding
+%% Copyright (c) 2008-2015 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -36,27 +36,31 @@
 -define(Q(E), [quote,E]).                       %For quoting
 
 -record(param, {mod=[],                         %Module name
-        pars=[],                                %Module parameters
-        extd=[],                                %Extends
-        this=[],                                %This match pattern
-        env=[]}).                               %Environment
+                pars=[],                        %Module parameters
+                extd=[],                        %Extends
+                this=[],                        %This match pattern
+                env=[]}).                       %Environment
 
-%% module(Forms, CompInfo) -> Forms.
+%% module(ModuleForms, CompInfo) -> {ModuleName,ModuleForms}.
 %%  Expand the forms to handle parameterised modules if necessary,
 %%  otherwise just pass forms straight through.
 
-module([{['define-module',[_|_]|_],_}|_]=Fs, Ci) ->
-    expand_module(Fs, Ci#cinfo.opts);
-module(Fs, _) -> Fs.                            %Normal module, do nothing
+module([{['define-module',[Mod|_]|_],_}|_]=Fs, Ci) ->
+    {Mod,expand_module(Fs, Ci#cinfo.opts)};
+module([{['define-module',Mod|_],_}|_]=Fs, _) ->
+    %% Normal module, do nothing.
+    {Mod,Fs};
+module(Fs, _) -> {[],Fs}.                       %Not a module, do nothing
 
 expand_module(Fs0, Opts) ->
     St0 = #param{env=lfe_env:new()},
-    {Fs1,St1} = lfe_lib:proc_forms(fun exp_form/3, Fs0, St0),
+    {Acc,St1} = lists:foldl(fun exp_form/2, {[],St0}, Fs0),
+    Fs1 = lists:reverse(Acc),
     debug_print("#param: ~p\n", [{Fs1,St1}], Opts),
     %% {ok,_} = lfe_lint:module(Fs1, Opts),
     Fs1.
 
-exp_form(['define-module',[Mod|Ps]|Mdef0], L, St0) ->
+exp_form({['define-module',[Mod|Ps]|Mdef0],L}, {Acc,St0}) ->
     %% Save the good bits and define new/N and instance/N.
     St1 = St0#param{mod=Mod,pars=Ps},
     {Mdef1,St2} = exp_mdef(Mdef0, St1),
@@ -75,13 +79,12 @@ exp_form(['define-module',[Mod|Ps]|Mdef0], L, St0) ->
               [] -> St2#param{this=['=',this,[tuple,'_'|Ps]]};
               _ -> St2#param{this=['=',this,[tuple,'_',base|Ps]]}
           end,
-    {[{['define-module',Mod|Mdef1],L},
-      {New,L},{Inst,L}],St3};
-exp_form(['define-function',F,Def0], L, St) ->
+    {[{{New,L},{Inst,L},['define-module',Mod|Mdef1],L}|Acc],St3};
+exp_form({['define-function',F,Def0],L}, {Acc,St}) ->
     Def1 = exp_function(Def0, St),
-    {[{['define-function',F,Def1],L}],St};
-exp_form(F, L, St) ->
-    {[{F,L}],St}.
+    {[{['define-function',F,Def1],L}|Acc],St};
+exp_form({F,L}, {Acc,St}) ->
+    {[{F,L}|Acc],St}.
 
 debug_print(Format, Args, Opts) ->
     case member(debug_print, Opts) of

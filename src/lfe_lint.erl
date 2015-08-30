@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2013 Robert Virding
+%% Copyright (c) 2008-2015 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@
 
 -module(lfe_lint).
 
--export([module/1,module/2,form/1,expr/1,expr/2,pattern/1,pattern/2,
-         format_error/1]).
+-export([module/1,module/2,form/1,expr/1,expr/2,
+         pattern/1,pattern/2,format_error/1]).
 
 -import(lfe_env, [new/0,is_vbound/2,is_fbound/3,is_gbound/3,
                   add_vbinding/3,add_fbinding/4,add_ibinding/5]).
@@ -37,8 +37,6 @@
 -include("lfe_comp.hrl").
 
 -record(lint, {module=[],                       %Module name
-               pars=none,                       %Module parameters
-               extd=[],                         %Extends
                exps=[],                         %Exports
                imps=[],                         %Imports
                pref=[],                         %Prefixes
@@ -114,33 +112,24 @@ pattern(P, Env) ->
     return_status(St1).
 
 %% form(Form) -> {ok,[Warning]} | {error,[Error],[Warning]}.
+%%  Create a dummy module then test the form a function.
 
 form(F) ->
-    case module([{['define-module',dummy],1},{F,2}]) of
-	{ok,_,Ws} -> {ok,Ws};
-	Error -> Error
-    end.
+    module([{['define-module',dummy],1},{F,2}]).
 
-return_status(#lint{errors=[]}=St) ->
-    {ok,St#lint.warnings};
-return_status(St) ->
-    {error,St#lint.errors,St#lint.warnings}.
+%% module(ModuleForms) ->
+%%     {ok,ModuleName,[Warning]} | {error,[Error],[Warning]}.
+%% module(ModuleForms, CompInfo) ->
+%%     {ok,ModuleName,[Warning]} | {error,[Error],[Warning]}.
+%%  Lint the forms in one module file.
 
-%% module(Forms) -> {ok,Module,[Warning]} | {error,[Error],[Warning]}.
-%% module(Forms, CompInfo) ->
-%%     {ok,Module,[Warning]} | {error,[Error],[Warning]}.
-%%  Lint the forms in a module.
+module(Ms) -> module(Ms, #cinfo{file="nofile",opts=[]}).
 
-module(Fs) -> module(Fs, #cinfo{file="nofile",opts=[]}).
-
-module(Fs0, #cinfo{file=F,opts=Os}) ->
-    %% Predefined functions
-    St0 = #lint{file=F,opts=Os},
-    %% Collect forms and fill in module infor in state.
-    {Fs1,St1} = lfe_lib:proc_forms(fun collect_form/3, Fs0, St0),
-    St2 = check_module(Fs1, St1),
-    debug_print("#lint: ~p\n", [St2], Os),
-    return_module_status(St2).
+module(Ms, #cinfo{file=F,opts=Os}) ->
+    St0 = #lint{file=F,opts=Os},                %Initialise the lint record
+    St1 = check_module(Ms, St0),
+    debug_print("#lint: ~p\n", [St1], Os),
+    return_status(St1).
 
 debug_print(Format, Args, Opts) ->
     case member(debug_print, Opts) of
@@ -148,43 +137,56 @@ debug_print(Format, Args, Opts) ->
         false -> ok
     end.
 
-return_module_status(#lint{errors=[]}=St) ->
-    {ok,St#lint.module,St#lint.warnings};
-return_module_status(St) ->
+return_status(#lint{module=M,errors=[]}=St) ->
+    {ok,M,St#lint.warnings};
+return_status(St) ->
     {error,St#lint.errors,St#lint.warnings}.
 
-%% collect_form(Form, Line, State) -> {[Ret],State}.
-%%  Collect valid forms and module data. Returns forms and put module
-%%  data into state. Flag unknown forms and define-module not first.
+%% check_module(ModuleForms, State) -> State.
+%%  Do all the actual work checking a module.
 
-collect_form(['define-module',Mod|Mdef], L, St0) ->
-    %% Check normal module or parameterised module.
-    case is_symb_list(Mod) of                   %Parameterised module
-        true ->
-            {Vs,St1} = check_lambda_args(tl(Mod), L, St0),
+check_module(Mfs, St0) ->
+    {Fbs0,St1} = collect_module(Mfs, St0),
+    %% Make an initial environment and set up state.
+    {Predefs,Env0,St2} = init_state(St1),
+    Fbs1 = Predefs ++ Fbs0,
+    %% Now check definitions.
+    {Fs,Env1,St3} = check_letrec_bindings(Fbs1, Env0, St2),
+    %% Save functions and environment and test exports.
+    St4 = St3#lint{funcs=Fs,env=Env1},
+    check_exports(St4#lint.exps, Fs, St4).
+
+%% collect_module(ModuleForms, State) -> {Fbs,State}.
+%%  Collect valid forms and module data. Returns function bindings and
+%%  puts module data into state. Flag unknown forms and define-module
+%%  not first.
+
+collect_module(Mfs, St0) ->
+    {Acc,St1} = lists:foldl(fun collect_form/2, {[],St0}, Mfs),
+    {lists:reverse(Acc),St1}.
+
+collect_form({['define-module',Mod|Mdef],L}, {Acc,St0}) ->
+    if is_atom(Mod) ->                  %Normal module
             %% Everything into State.
-            {[],check_mdef(Mdef, L, St1#lint{module=hd(Mod),pars=Vs})};
-        false when is_atom(Mod) ->              %Normal module
-            %% Everything into State.
-            {[],check_mdef(Mdef, L, St0#lint{module=Mod,pars=none})};
-        false ->                                %Bad module name
-            {[],bad_mdef_error(L, name, St0)}
+            {Acc,check_mdef(Mdef, L, St0#lint{module=Mod})};
+       true ->                          %Bad module name
+            {Acc,bad_mdef_error(L, name, St0)}
     end;
-collect_form(_, L, #lint{module=[]}=St) ->
+collect_form({_,L}, {Acc,#lint{module=[]}=St}) ->
     %% Set module name so this only triggers once.
-    {[],bad_mdef_error(L, name, St#lint{module='-no-module-'})};
-collect_form(['extend-module'|Mdef], L, St) ->
-    {[],check_mdef(Mdef, L, St)};
-collect_form(['define-function',Func,Body], L, St) ->
+    {Acc,bad_mdef_error(L, name, St#lint{module='-no-module-'})};
+collect_form({['extend-module'|Mdef],L}, {Acc,St}) ->
+    {Acc,check_mdef(Mdef, L, St)};
+collect_form({['define-function',Func,Body],L}, {Acc,St}) ->
     case Body of
         [lambda|_] when is_atom(Func) ->
-            {[{Func,Body,L}],St};
+            {[{Func,Body,L}|Acc],St};
         ['match-lambda'|_] when is_atom(Func) ->
-            {[{Func,Body,L}],St};
-        _ -> {[],bad_form_error(L, 'define-function', St)}
+            {[{Func,Body,L}|Acc],St};
+        _ -> {Acc,bad_form_error(L, 'define-function', St)}
     end;
-collect_form(_, L, St) ->
-    {[],add_error(L, unknown_form, St)}.
+collect_form({_,L}, {Acc,St}) ->
+    {Acc,add_error(L, unknown_form, St)}.
 
 check_mdef([[export,all]|Mdef], L, St) ->       %Pass 'all' along
     check_mdef(Mdef, L, St#lint{exps=all});
@@ -199,12 +201,6 @@ check_mdef([[export|Es]|Mdef], L, St) ->
 check_mdef([[import|Is]|Mdef], L, St0) ->
     St1 = check_imports(Is, L, St0),
     check_mdef(Mdef, L, St1);
-check_mdef([[extends,M]|Mdef], L, St) ->
-    if is_atom(M) ->
-            check_mdef(Mdef, L, St#lint{extd=M});
-       true ->
-            check_mdef(Mdef, L, add_error(L, bad_extends, St))
-    end;
 check_mdef([[Name|Vals]|Mdef], L, St) ->
     %% Other attributes, must be list and have symbol name.
     case is_atom(Name) and is_proper_list(Vals) of
@@ -256,19 +252,6 @@ is_flist([[F,Ar]|Fs], Funcs) when is_atom(F), is_integer(Ar), Ar >= 0 ->
 is_flist([], Funcs) -> {yes,Funcs};
 is_flist(_, _) -> no.
 
-%% check_module(FuncBindings, State) -> State.
-%%  Do all the actual work checking a module.
-
-check_module(Fbs0, St0) ->
-    %% Make an initial environment and set up state.
-    {Predefs,Env0,St1} = init_state(St0),
-    Fbs1 = Predefs ++ Fbs0,
-    %% Now check definitions.
-    {Fs,Env1,St2} = check_letrec_bindings(Fbs1, Env0, St1),
-    %% Save functions and environment and test exports.
-    St3 = St2#lint{funcs=Fs,env=Env1},
-    check_exports(St3#lint.exps, Fs, St3).
-
 %% init_state(State) -> {Predefs,Env,State}.
 %%  Setup the initial predefines and state. Build dummies for
 %%  predefined module_info and parameteried module functions, which
@@ -285,30 +268,7 @@ init_state(St) ->
     Predefs0 = [{module_info,[lambda,[],[quote,dummy]],1},
                 {module_info,[lambda,[x],[quote,dummy]],1}],
     Exps0 = [{module_info,0},{module_info,1}],
-    %% Now handle parameterised module.
-    case St#lint.pars of
-        none ->                                 %Normal module
-            {Predefs0,Env0,
-             St#lint{exps=add_exports(St#lint.exps, Exps0)}};
-        Ps0 ->                                  %Parameterised module
-            {Ps1,Predefs1,Exps1} = para_defs(Ps0, Predefs0, Exps0, St),
-            {Predefs1,
-             add_vbindings([this|Ps1], Env0),
-             St#lint{exps=add_exports(St#lint.exps, Exps1)}}
-    end.
-
-para_defs(Ps, Predefs0, Exps0, St) ->
-    Ar = length(Ps),
-    Predefs1 = [{new,[lambda,Ps,[quote,dummy]],1}|Predefs0],
-    Exps1 = add_element({new,Ar}, Exps0),
-    case St#lint.extd of
-        [] ->
-            {Ps,[{instance,[lambda,Ps,[quote,dummy]],1}|Predefs1],
-             add_element({instance,Ar},Exps1)};
-        _ ->
-            {[base|Ps],[{instance,[lambda,[base|Ps],[quote,dummy]],1}|Predefs1],
-             add_element({instance,Ar+1},Exps1)}
-    end.
+    {Predefs0,Env0,St#lint{exps=add_exports(St#lint.exps, Exps0)}}.
 
 check_exports(all, _, St) -> St;                %All is all
 check_exports(Exps, Fs, St) ->
