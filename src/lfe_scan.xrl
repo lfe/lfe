@@ -32,68 +32,76 @@ WS   = ([\000-\s]|;[^\n]*)
 
 Rules.
 %% Bracketed Comments using #| foo |#
-#\|[^\|]*\|+([^#\|][^\|]*\|+)*# : block_comment(string:substr(TokenChars, 3)).
+#{D}*\|[^\|]*\|+([^#\|][^\|]*\|+)*# :
+        block_comment(string:substr(TokenChars, 3)).
+
 %% Separators
-#[bB]\(         :    {token,{'#B(',TokenLine}}.
-#[mM]\(         :    {token,{'#M(',TokenLine}}.
-#\(             :    {token,{'#(',TokenLine}}.
-#`              :    {token,{'#`',TokenLine}}.
-#;              :    {token,{'#;',TokenLine}}.
-#,              :    {token,{'#,',TokenLine}}.
-#,@             :    {token,{'#,@',TokenLine}}.
 '               :    {token,{'\'',TokenLine}}.
 `               :    {token,{'`',TokenLine}}.
 ,               :    {token,{',',TokenLine}}.
 ,@              :    {token,{',@',TokenLine}}.
 \.              :    {token,{'.',TokenLine}}.
 [][()}{]        :    {token,{list_to_atom(TokenChars),TokenLine}}.
+
+#{D}*[bB]\(     :    {token,{'#B(',TokenLine}}.
+#{D}*[mM]\(     :    {token,{'#M(',TokenLine}}.
+#{D}*\(         :    {token,{'#(',TokenLine}}.
+#{D}*\.         :    {token,{'#.',TokenLine}}.
+
+#{D}*`          :    {token,{'#`',TokenLine}}.
+#{D}*;          :    {token,{'#;',TokenLine}}.
+#{D}*,          :    {token,{'#,',TokenLine}}.
+#{D}*,@         :    {token,{'#,@',TokenLine}}.
+
 %% Characters
-#\\(x{H}+|.)    :    char_token(string:substr(TokenChars, 3), TokenLine).
+#{D}*\\(x{H}+|.) :   char_token(skip_past(TokenChars, $\\, $\\), TokenLine).
+
+%% Based numbers
+#{D}*\*{SYM}+   :    base_token(skip_past(TokenChars, $*, $*), 2, TokenLine).
+#{D}*[bB]{SYM}+ :    base_token(skip_past(TokenChars, $b, $B), 2, TokenLine).
+#{D}*[oO]{SYM}+ :    base_token(skip_past(TokenChars, $o, $O), 8, TokenLine).
+#{D}*[dD]{SYM}+ :    base_token(skip_past(TokenChars, $d, $D), 10, TokenLine).
+#{D}*[xX]{SYM}+ :    base_token(skip_past(TokenChars, $x, $X), 16, TokenLine).
+#{D}*[rR]{SYM}+ :
+        %% Scan over digit chars to get base.
+        {Base,[_|Ds]} = base1(tl(TokenChars), 10, 0),
+        base_token(Ds, Base, TokenLine).
+
 %% String
 "(\\x{H}+;|\\.|[^"\\])*" :
-            %% Strip quotes.
-            S = string:substr(TokenChars, 2, TokenLen - 2),
-            {token,{string,TokenLine,chars(S)}}.
+        %% Strip quotes.
+        S = string:substr(TokenChars, 2, TokenLen - 2),
+        {token,{string,TokenLine,chars(S)}}.
 %% Binary string
 #"(\\x{H}+;|\\.|[^"\\])*" :
-            %% Strip quotes.
-            S = string:substr(TokenChars, 3, TokenLen - 3),
-            Bin = unicode:characters_to_binary(chars(S), utf8, utf8),
-            {token,{binary,TokenLine,Bin}}.
+        %% Strip quotes.
+        S = string:substr(TokenChars, 3, TokenLen - 3),
+        Bin = unicode:characters_to_binary(chars(S), utf8, utf8),
+        {token,{binary,TokenLine,Bin}}.
 %% Symbols
 \|(\\x{H}+;|\\.|[^|\\])*\| :
-            %% Strip quotes.
-            S = string:substr(TokenChars, 2, TokenLen - 2),
-            symbol_token(chars(S), TokenLine).
+        %% Strip quotes.
+        S = string:substr(TokenChars, 2, TokenLen - 2),
+        symbol_token(chars(S), TokenLine).
 %% Funs
-#'{SSYM}{SYM}*/{D}+    :
-            %% Strip sharpsign single-quote.
-            FunStr = string:substr(TokenChars,3),
-            {token,{'#\'',TokenLine,FunStr}}.
-%% Based numbers
-#[bB]{B}+    :    base_token(string:substr(TokenChars, 3), 2, TokenLine).
-#[oO]{O}+    :    base_token(string:substr(TokenChars, 3), 8, TokenLine).
-#[dD]{D}+    :    base_token(string:substr(TokenChars, 3), 10, TokenLine).
-#[xX]{H}+    :    base_token(string:substr(TokenChars, 3), 16, TokenLine).
-#([0]?[2-9]|[12][0-9]|3[0-6])[rR]{B36}+ :
-    %% Have to scan all possible digit chars and fail if wrong.
-    {Base,[_|Ds]} = base1(string:substr(TokenChars, 2), 10, 0),
-    base_token(Ds, Base, TokenLine).
-
+#'{SSYM}{SYM}*/{D}+ :
+        %% Strip sharpsign single-quote.
+        FunStr = string:substr(TokenChars,3),
+        {token,{'#\'',TokenLine,FunStr}}.
 %% Atoms
-[+-]?{D}+        :
-    case catch {ok,list_to_integer(TokenChars)} of
-        {ok,I} -> {token,{number,TokenLine,I}};
-        _ -> {error,"illegal integer"}
-    end.
+[+-]?{D}+       :
+        case catch {ok,list_to_integer(TokenChars)} of
+            {ok,I} -> {token,{number,TokenLine,I}};
+            _ -> {error,"illegal integer"}
+        end.
 [+-]?{D}+\.{D}+([eE][+-]?{D}+)? :
-    case catch {ok,list_to_float(TokenChars)} of
-        {ok,F} -> {token,{number,TokenLine,F}};
-        _ -> {error,"illegal float"}
-    end.
+        case catch {ok,list_to_float(TokenChars)} of
+            {ok,F} -> {token,{number,TokenLine,F}};
+            _ -> {error,"illegal float"}
+        end.
 {SSYM}{SYM}*    :
-    symbol_token(TokenChars, TokenLine).
-{WS}+        :    skip_token.
+        symbol_token(TokenChars, TokenLine).
+{WS}+           :    skip_token.
 
 Erlang code.
 %% Copyright (c) 2008-2013 Robert Virding
@@ -164,7 +172,6 @@ base1([C|Cs], Base, SoFar) when C >= $0, C =< $9, C < Base + $0 ->
 base1([C|Cs], Base, SoFar) when C >= $a, C =< $z, C < Base + $a - 10 ->
     Next = SoFar * Base + (C - $a + 10),
     base1(Cs, Base, Next);
-
 base1([C|Cs], Base, SoFar) when C >= $A, C =< $Z, C < Base + $A - 10 ->
     Next = SoFar * Base + (C - $A + 10),
     base1(Cs, Base, Next);
@@ -199,19 +206,6 @@ chars([$\\,C|Cs]) -> [escape_char(C)|chars(Cs)];
 chars([C|Cs]) -> [C|chars(Cs)];
 chars([]) -> [].
 
-%% Block Comment:
-%%  Provide a sensible error when people attempt to include nested
-%%  comments because currently the parser cannot process them without
-%%  a rebuild. But simply exploding on a '#|' is not going to be that
-%%  helpful.
-
-block_comment(TokenChars) ->
-    %% Check we're not opening another comment block.
-    case string:str(TokenChars, "#|") of
-        0 -> skip_token; %% No nesting found
-        _ -> {error, "illegal nested block comment"}
-    end.
-
 hex_char(C) when C >= $0, C =< $9 -> true;
 hex_char(C) when C >= $a, C =< $f -> true;
 hex_char(C) when C >= $A, C =< $F -> true;
@@ -227,3 +221,27 @@ escape_char($e) -> $\e;                %\e = ESC
 escape_char($s) -> $\s;                %\s = SPC
 escape_char($d) -> $\d;                %\d = DEL
 escape_char(C) -> C.
+
+%% Block Comment:
+%%  Provide a sensible error when people attempt to include nested
+%%  comments because currently the parser cannot process them without
+%%  a rebuild. But simply exploding on a '#|' is not going to be that
+%%  helpful.
+
+block_comment(TokenChars) ->
+    %% Check we're not opening another comment block.
+    case string:str(TokenChars, "#|") of
+        0 -> skip_token; %% No nesting found
+        _ -> {error, "illegal nested block comment"}
+    end.
+
+%% skip_until(String, Char1, Char2) -> String.
+%% skip_past(String, Char1, Char2) -> String.
+
+%% skip_until([C|_]=Cs, C1, C2) when C =:= C1 ; C =:= C2 -> Cs;
+%% skip_until([_|Cs], C1, C2) -> skip_until(Cs, C1, C2);
+%% skip_until([], _, _) -> [].
+
+skip_past([C|Cs], C1, C2) when C =:= C1 ; C =:= C2 -> Cs;
+skip_past([_|Cs], C1, C2) -> skip_past(Cs, C1, C2);
+skip_past([], _, _) -> [].
