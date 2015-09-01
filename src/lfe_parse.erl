@@ -31,13 +31,15 @@
 -define(IS_MAP(T), false).
 -endif.
 
+-define(CATCH(E, Error), try E catch _:_ -> Error end).
+
 %% We define the syntax as an LL(1) and write/generate a parser for
 %% it. We also define the grammar with the same form as for yecc even
 %% though we have no automatic generator.
 %%
 %% Terminals
 %%    symbol number string binary fun '(' ')' '[' ']' '.' '\'' ',' '@' ',@' '`'
-%%       '#(' '#B(' '#M(' '#\''.
+%%       '#(' '#B(' '#M(' '#.' '#\''.
 %%
 %% Nonterminals form sexpr list list_tail proper_list .
 %%
@@ -47,6 +49,7 @@
 %%  3 sexpr -> string : val('$1').
 %% 21 sexpr -> binary : val('$1').
 %%  4 sexpr -> '#\'' : make_fun(val('$1')).
+%% 22 sexpr -> '#.' sexpr : eval_expr(line('$1'), val('$2')).
 %%  5 sexpr -> '\'' sexpr : [quote,'$2'].
 %%  6 sexpr -> '`' sexpr : [backquote,'$2'].
 %%  7 sexpr -> ',' sexpr : [unquote,'$2'].
@@ -54,16 +57,8 @@
 %%  9 sexpr -> ( list ) : '$2'.
 %% 10 sexpr -> [ list ] : '$2'.
 %% 11 sexpr -> '#(' proper_list ')' : list_to_tuple('$2').
-%% 12 sexpr -> '#B(' proper_list ')' :
-%%        case catch lfe_eval:expr([binary|'$2']) of
-%%            Bin when is_bitstring(Bin) -> Bin;
-%%            _ -> return_error(line('$1'))
-%%        end
-%% 13 sexpr -> '#M(' proper_list ')' :
-%%        case catch maps:from_list(pair_list('$2')) of
-%%            Map when is_map(Map) -> Map;
-%%            _ -> return_error(line('$1'))
-%%        end
+%% 12 sexpr -> '#B(' proper_list ')' : make_bin(line('$1'), '$2').
+%% 13 sexpr -> '#M(' proper_list ')' : make_map(line('$1'), '$2').
 %% 14 list -> sexpr list_tail : ['$1'|'$2].
 %% 15 list -> empty : [].
 %% 16 list_tail -> sexpr list_tail : ['$1'|'$2'].
@@ -112,6 +107,8 @@ reduce(3, [T|Vs]) -> [val(T)|Vs];               %s->string
 reduce(21, [T|Vs]) -> [val(T)|Vs];              %s->binary
 reduce(4, [T|Vs]) ->                            %s->fun
     [make_fun(val(T))|Vs];
+reduce(22, [S,D|Vs]) ->                         %s->#. s
+    [eval_expr(line(D), S)|Vs];
 reduce(5, [S,_|Vs]) -> [[quote,S]|Vs];          %s->' s
 reduce(6, [S,_|Vs]) -> [[backquote,S]|Vs];      %s->` s
 reduce(7, [S,_|Vs]) -> [[unquote,S]|Vs];        %s->, s
@@ -122,15 +119,9 @@ reduce(10, [_,L,_|Vs]) -> [L|Vs];               %s->[ s ]
 reduce(11, [_,L,_|Vs]) ->                       %s->#( p )
     [list_to_tuple(L)|Vs];
 reduce(12, [_,L,B|Vs]) ->                       %s->#B( p )
-    case catch lfe_eval:literal([binary|L]) of
-        Bin when is_bitstring(Bin) -> [Bin|Vs];
-        _ -> {error,line(B),{illegal,binary}}
-    end;
-reduce(13, [_,L,B|Vs]) ->                       %s->#M( p )
-    case catch maps:from_list(pair_list(L)) of
-        Map when ?IS_MAP(Map) -> [Map|Vs];
-        _ -> {error,line(B),{illegal,map}}
-    end;
+    [make_bin(line(B), L)|Vs];
+reduce(13, [_,L,M|Vs]) ->                       %s->#M( p )
+    [make_map(line(M), L)|Vs];
 reduce(14, [T,H|Vs]) -> [[H|T]|Vs];             %l->s t
 reduce(15, Vs) -> [[]|Vs];                      %l->empty
 reduce(16, [T,H|Vs]) -> [[H|T]|Vs];             %t->s t
@@ -145,6 +136,7 @@ table(?FORM, number) -> [?EXPR];
 table(?FORM, string) -> [?EXPR];
 table(?FORM, binary) -> [?EXPR];
 table(?FORM, '#\'') -> [?EXPR];
+table(?FORM, '#.') -> [?EXPR];
 table(?FORM, '\'') -> [?EXPR];
 table(?FORM, '`') -> [?EXPR];
 table(?FORM, ',') -> [?EXPR];
@@ -160,6 +152,7 @@ table(?EXPR, number) -> [number,{reduce,2}];
 table(?EXPR, string) -> [string,{reduce,3}];
 table(?EXPR, binary) -> [binary,{reduce,21}];
 table(?EXPR, '#\'') -> ['#\'',{reduce,4}];
+table(?EXPR, '#.') -> ['#.',?EXPR,{reduce,22}];
 table(?EXPR, '\'') -> ['\'',?EXPR,{reduce,5}];
 table(?EXPR, '`') -> ['`',?EXPR,{reduce,6}];
 table(?EXPR, ',') -> [',',?EXPR,{reduce,7}];
@@ -175,6 +168,7 @@ table(?LIST, number) -> [?EXPR,?TAIL,{reduce,14}];
 table(?LIST, string) -> [?EXPR,?TAIL,{reduce,14}];
 table(?LIST, binary) -> [?EXPR,?TAIL,{reduce,14}];
 table(?LIST, '#\'') -> [?EXPR,?TAIL,{reduce,14}];
+table(?LIST, '#.') -> [?EXPR,?TAIL,{reduce,14}];
 table(?LIST, '\'') -> [?EXPR,?TAIL,{reduce,14}];
 table(?LIST, '`') -> [?EXPR,?TAIL,{reduce,14}];
 table(?LIST, ',') -> [?EXPR,?TAIL,{reduce,14}];
@@ -192,6 +186,7 @@ table(?TAIL, number) -> [?EXPR,?TAIL,{reduce,16}];
 table(?TAIL, string) -> [?EXPR,?TAIL,{reduce,16}];
 table(?TAIL, binary) -> [?EXPR,?TAIL,{reduce,16}];
 table(?TAIL, '#\'') -> [?EXPR,?TAIL,{reduce,16}];
+table(?TAIL, '#.') -> [?EXPR,?TAIL,{reduce,16}];
 table(?TAIL, '\'') -> [?EXPR,?TAIL,{reduce,16}];
 table(?TAIL, '`') -> [?EXPR,?TAIL,{reduce,16}];
 table(?TAIL, ',') -> [?EXPR,?TAIL,{reduce,16}];
@@ -210,6 +205,7 @@ table(?PROP, number) -> [?EXPR,?PROP,{reduce,19}];
 table(?PROP, string) -> [?EXPR,?PROP,{reduce,19}];
 table(?PROP, binary) -> [?EXPR,?PROP,{reduce,19}];
 table(?PROP, '#\'') -> [?EXPR,?PROP,{reduce,19}];
+table(?PROP, '#.') -> [?EXPR,?PROP,{reduce,19}];
 table(?PROP, '\'') -> [?EXPR,?PROP,{reduce,19}];
 table(?PROP, '`') -> [?EXPR,?PROP,{reduce,19}];
 table(?PROP, ',') -> [?EXPR,?PROP,{reduce,19}];
@@ -248,12 +244,16 @@ parse1([], Ts) ->                               %First call
 parse1(#lp{l=none}=Lp, [T|_]=Ts) ->             %Guarantee a start line
     parse1(Lp#lp{l=line(T)}, Ts);
 parse1(#lp{l=L,st=St0,vs=Vs0}, Ts) ->
-    case parse2(Ts, St0, Vs0) of
+    try
+        parse2(Ts, St0, Vs0) of
         {done,Rest,[],[V]} -> {ok,L,V,Rest};
         {more,[],St1,Vs1} -> {more,#lp{l=L,st=St1,vs=Vs1}};
         {error,Line,Error,Rest,_,_} ->
             %% Can't really continue from errors here.
             {error,{Line,?MODULE,Error},Rest}
+    catch
+        throw:{user_error,Error} ->
+            {error,Error,[]}
     end.
 
 %% parse2(Tokens, StateStack, ValueStack) ->
@@ -315,12 +315,33 @@ make_fun(FunStr) ->
             ['fun', M, F, A]
     end.
 
+%% make_bin(Line, Segments) -> Binary.
+%%  Make a binary from the segments.
+
+make_bin(Line, Segs) ->
+    ?CATCH(lfe_eval:expr([binary|Segs]),
+           return_error(Line, "bad binary")).
+
+%% make_map(Line, Elements) -> Map.
+%%  Make a map from the key/value elements.
+
+make_map(Line, Es) ->
+    ?CATCH(maps:from_list(pair_list(Es)),
+           return_error(Line, "bad map")).
+
 %% pair_list(List) -> [{A,B}].
 %%  Generate a list of tuple pairs from the elements. An error if odd
 %%  number of elements in list.
 
 pair_list([A,B|L]) -> [{A,B}|pair_list(L)];
 pair_list([]) -> [].
+
+%% eval_expr(Line, Expr) -> Val.
+%%  Evaluate #. expression.
+
+eval_expr(Line, Expr) ->
+    ?CATCH(lfe_eval:expr(Expr),
+           return_error(Line, "bad #. expression")).
 
 %% format_error(Error) -> String.
 %%  Format errors to printable string.
@@ -334,3 +355,13 @@ format_error(Error) ->
         true -> Error;
         false -> lfe_io:print1(Error)
     end.
+
+%% return_error(Error).
+%%  To be used in grammar files to throw an error message to the
+%%  parser toplevel.
+
+-compile({nowarn_unused_function, return_error/2}).
+-spec return_error(integer(), any()) -> no_return().
+
+return_error(Line, Message) ->
+    throw({user_error, {Line, ?MODULE, Message}}).
