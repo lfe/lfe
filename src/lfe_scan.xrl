@@ -157,12 +157,18 @@ symbol_token(Cs, L) ->
     end.
 
 %% base_token(Chars, Base, Line) -> Integer.
-%%  Convert a string of Base characters into a number. We know that
-%%  the strings only contain the correct character.
+%%  Convert a string of Base characters into a number. We only allow
+%%  base betqeen 2 and 36, and an optional sign character first.
 
-base_token(Cs, B, L) ->
+base_token(_, B, _) when B < 2; B > 36 ->
+    {error,"illegal number base"};
+base_token([$+|Cs], B, L) -> base_token(Cs, B, +1, L);
+base_token([$-|Cs], B, L) -> base_token(Cs, B, -1, L);
+base_token(Cs, B, L) -> base_token(Cs, B, +1, L).
+
+base_token(Cs, B, S, L) ->
     case base1(Cs, B, 0) of
-        {N,[]} -> {token,{number,L,N}};
+        {N,[]} -> {token,{number,L,S*N}};
         {_,_} -> {error,"illegal based number"}
     end.
 
