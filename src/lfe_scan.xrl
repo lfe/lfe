@@ -184,13 +184,16 @@ base1([C|Cs], Base, SoFar) when C >= $A, C =< $Z, C < Base + $A - 10 ->
 base1([C|Cs], _Base, SoFar) -> {SoFar,[C|Cs]};
 base1([], _Base, N) -> {N,[]}.
 
+-define(IS_UNICODE(C), ((C >= 0) and (C =< 16#10FFFF))).
+
 %% char_token(InputChars, Line) -> {token,{number,L,N}} | {error,E}.
-%%  Convert an input string into the corresponding character. We know
-%%  that the input string is correct.
+%%  Convert an input string into the corresponding character. For a
+%%  sequence of hex characters we check resultant is code is in the
+%%  unicode range.
 
 char_token([$x,C|Cs], L) ->
     case base1([C|Cs], 16, 0) of
-        {N,[]} -> {token,{number,L,N}};
+        {N,[]} when ?IS_UNICODE(N) -> {token,{number,L,N}};
         _ -> {error,"illegal character"}
     end;
 char_token([C], L) -> {token,{number,L,C}}.
