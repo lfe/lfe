@@ -136,27 +136,80 @@ Other commands:
 
 ;;; Font locking
 
-(defconst lfe-font-lock-keywords-1
+(defconst lfe-font-lock-old-type-keywords
   (eval-when-compile
     (list
-     (list (concat
-	    "(\\(def\\("
-	    ;; Define functions, old style and base forms.
-	    "\\(ine\\(-function\\|-macro\\|-syntax\\)?\\)\\|"
-	    "\\(un\\|macro\\|syntax\\|test\\|method\\)\\|"
-	    ;; Define types, old style and base forms.
-	    "\\(ine-\\(module\\|record\\)\\)\\|"
-	    "\\(module\\|flavor\\|record\\)"
-	    "\\)\\)\\>"
-	    ;; Any whitespace and declared object.
-	    "[ \t]*(?"
-	    "\\(\\sw+\\)?")
-	   '(1 font-lock-keyword-face)
-	   '(9 (cond ((match-beginning 3) font-lock-function-name-face)
-		     ((match-beginning 5) font-lock-function-name-face)
-		     (t font-lock-type-face)) ;6 & 8
-	       nil t))
-     ))
+     (concat
+      "(\\(define-\\(module\\|record\\)\\)\\>"
+      ;; Any whitespace and declared object.
+      "[ \t]*(?"
+      "\\(\\sw+\\)?")
+     '(1 font-lock-keyword-face)
+     '(3 font-lock-type-face nil t))
+    )
+  "LFE old style type expressions")
+
+(defconst lfe-font-lock-old-function-keywords
+  (eval-when-compile
+    (list
+     (concat
+      "(\\(define\\(-function\\|-macro\\|-syntax\\)?\\)\\>"
+      ;; Any whitespace and declared object.
+      "[ \t]*(?"
+      "\\(\\sw+\\)?")
+     '(1 font-lock-keyword-face)
+     '(3 font-lock-function-name-face nil t))
+    )
+  "LFE old style function expressions")
+
+(defconst lfe-font-lock-new-type-keywords
+  (eval-when-compile
+    (list
+     (concat
+      "(\\(def\\(module\\|record\\)\\)\\>"
+      ;; Any whitespace and declared object.
+      "[ \t]*(?"
+      "\\(\\sw+\\)?")
+     '(1 font-lock-keyword-face)
+     '(3 font-lock-type-face nil t))
+    )
+  "LFE new style type expressions")
+
+(defconst lfe-font-lock-new-function-keywords
+  (eval-when-compile
+    (list
+     (concat
+      ;; No method here!
+      "(\\(def\\(un\\|macro\\|syntax\\|test\\)\\)\\>"
+      ;; Any whitespace and declared object.
+      "[ \t]*(?"
+      "\\(\\sw+\\)?")
+     '(1 font-lock-keyword-face)
+     '(3 font-lock-function-name-face nil t))
+    )
+  "LFE new style function expressions")
+
+(defconst lfe-font-lock-flavor-keywords
+  (eval-when-compile
+    (list
+     (concat
+      "(\\(defflavor\\|defmethod\\|endflavor\\)\\>"
+      ;; Any whitespace and declared object.
+      "[ \t]*(?"
+      "\\(\\sw+\\)?")
+     '(1 font-lock-keyword-face)
+     '(2 font-lock-type-face nil t))
+    )
+  "LFE flavor expressions")
+
+(defconst lfe-font-lock-keywords-1
+  (eval-when-compile
+    (list lfe-font-lock-new-type-keywords
+	  lfe-font-lock-new-function-keywords
+	  lfe-font-lock-old-type-keywords
+	  lfe-font-lock-old-function-keywords
+	  lfe-font-lock-flavor-keywords
+	  ))
   "Subdued expressions to highlight in LFE modes.")
 
 (eval-and-compile
