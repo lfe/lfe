@@ -3,14 +3,229 @@
 
 Note {{ ... }} is use to denote optional syntax.
 
-Special syntactic rules
------------------------
+Literals and Special Syntactic Rules
+====================================
 
-#b #o #d #x #23r        - Based integers
-#(e e ... )             - Tuple constants
-#b(e e ... )            - Binary constants, e ... are valid literals segments
-#m(k v ... )            - Map constants, k v are keys and values
-[ ... ]                 - Allowed as alternative to ( ... )
+Integers
+~~~~~~~~
+
+Integers can be written in various forms and number bases:
+
+
+Regular decimal notation:
+  1234 -123 0
+Binary notation:
+  #b0 #b10101 #b-1100
+Binary notation (alternative form):
+  #*0 #b*10101 #*-1100
+Octal notation:
+  #o377 #o-111
+Explicitly decimal notation:
+  #d1234 #d-123 #d0
+Hexadecimal notation:
+  #xc0ffe 0x-01
+Notation with explicit base (up to 36):
+  #2r1010 #8r377 #36rhelloworld
+Character notation (the value is the Unicode code point of the character
+  #\a #\$ #\ä #\🐭
+Character notation with the value in hexadecimal:
+  #\x1f42d;
+
+In all these forms, the case of the indicating letter is not
+significant, i.e. #b1010 and #B1010 are identical as are #16rf00 and
+#16Rf00.
+
+Similarly, the case is not significant for digits beyond 9 (i.e. 'a',
+'b', 'c', … for number bases larger than 10), e.g. #xabcd is the same as
+#xABCD and can even be mixed in the same number, e.g. #36rHelloWorld is
+valid and the same number as #36Rhelloworld and #36rHELLOWORLD.
+
+The character notation using hexadecimal code representation (#\x....;)
+is basically the same thing as the regular hexadecimal notation
+#x.... except that it conveys to the reader that a character is intended
+and that it does a sanity check on the value (e.g. negative numbers and
+value outside the Unicode range are not permitted).
+
+
+Floating point numbers
+~~~~~~~~~~~~~~~~~~~~~~
+
+There is only one type of floating point numbers and the literals are
+written in the usual way, e.g. these are all valid floating point
+numbers:
+  1.0 +1.0 -1.0 1.0e10 1.111e-10
+
+The one thing to watch out for is that you cannot omit the the part
+before or after the decimal point if it is zero.  E.g. the following are
+not valid forms: 100. or .125.
+
+
+Strings
+~~~~~~~
+
+There are two forms of strings: list strings and binary strings.
+
+
+List Strings
+............
+
+List strings are just lists of integers (where the values have to be
+from a certain set of numbers that are considered valid characters) but
+they have their own syntax for literals (which will also be used for
+integer lists as an output representation if the list contents looks
+like it is meant to be a string): "any text between double quotes where
+\" and other special characters like \n can be escaped".
+
+As a special case you can also write out the character number in the
+form \xHHH; (where "HHH" is an integer in hexadecimal notation),
+e.g. "\x61;\x62;\x63;" is a complicated way of writing "abc".  This can
+be convenient when writing Unicode letters not easily typeable or
+viewable with regular fonts.  E.g. "Cat: \x1f639;" might be easier to
+type (and view on output devices without a Unicode font) than "Cat: 😹".
+
+
+Binary Strings
+..............
+
+Binary strings are just like list strings but they are represented
+differently in the virtual machine.  The simple syntax is #"...",
+e.g. #"This is a binary string \n with some \"escaped\" and quoted
+(\x1f639;) characters"
+
+You can also use the general format for creating binaries (#B(...),
+described below), e.g. #B("a"), #"a", and #B(97) are all the same binary
+string.
+
+
+Character Escaping
+..................
+
+Certain control characters can be more readably included by using their
+escaped name:
+  | Escaped name | Character       |
+  |--------------+-----------------|
+  | \b           | Backspace       |
+  | \t           | Tab             |
+  | \n           | Newline         |
+  | \v           | Vertical tab    |
+  | \f           | Form Feed       |
+  | \r           | Carriage Return |
+  | \e           | Escape          |
+  | \s           | Space           |
+  | \d           | Delete          |
+
+Alternatively you can also use the hexadecimal character encoding,
+e.g. "a\nb" and "a\x0a;b" are the same string.
+
+
+Binaries
+~~~~~~~~
+
+We have already seen binary strings, but the #B(...) syntax can be used
+to create binaries with any contents.  Unless the contents is a simple
+integer you need to annotate it with a type and/or size.
+
+Example invocations are that show the various annotations:
+  #B(42 (42 (size 16)) (42 (size 32))) ⇨ #B(42 0 42 0 0 0 42)
+  #B(-42 111  (-42 (size 16)) 111  (-42 (size 32))) ⇨
+      #B(-42 111  (-42 (size 16)) 111  (-42 (size 32)))
+  #B((42 (size 32) big-endian) (42 (size 32) little-endian)) ⇨
+      #B(0 0 0 42 42 0 0 0)
+  #B((1.23 float) (1.23 (size 32) float) (1.23 (size 64) float)) ⇨
+      #B(63 243 174 20 122 225 71 174 63 157 112 164 63 243 174 20 122
+         225 71 174)
+  #B((#"a" binary) (#"b" binary)) ⇨ #"ab"
+  #B("Cat:" #\ (128569 utf-8)) ⇨ #"Cat: 😹"
+
+Learn more about "segments" of binary data e.g. in "Learn You Some
+Erlang"
+(http://learnyousomeerlang.com/starting-out-for-real#bit-syntax).
+
+
+Lists
+~~~~~
+
+Lists are formed either as ( ... ) or [ ... ] where the optional
+elements of the list are separated by some form or whitespace.
+
+E.g. () (the empty list), (foo bar baz), or
+  (foo
+  bar
+  baz)
+
+
+Tuples
+~~~~~~
+
+Tuples are written as #(value1 value2 ...).  The empty tuple #() is also
+valid.
+
+
+Maps
+~~~~
+
+Maps are written as #M(key1 value1 key2 value2 ...) (again, the empty
+map is also valid and written as #M().
+
+
+Symbols
+~~~~~~~
+
+Things that cannot be parsed as any of the above are usually considered
+as a symbol.
+
+Simple examples are foo, Foo, foo-bar, :foo.  But also somewhat
+surprisingly 123foo and 1.23e4extra (but note that illegal digits don't
+make a number a symbol when using the explicit number base notation,
+e.g. #b10foo gives an error).
+
+Symbol names can contain a surprising breadth or characters:
+
+!, #, $, %, &, ', *, +, ,, -, ., /, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, :, <,
+=, >, ?, @, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T,
+U, V, W, X, Y, Z, \, ^, _, , a, b, c, d, e, f, g, h, i, j, k, l, m, n,
+o, p, q, r, s, t, u, v, w, x, y, z, |, ~, \  , ¡, ¢, £, ¤, ¥, ¦, §, ¨,
+©, ª, «, ¬, \­, ®, ¯, °, ±, ², ³, ´, µ, ¶, ·, ¸, ¹, º, », ¼, ½, ¾, ¿, À,
+Á, Â, Ã, Ä, Å, Æ, Ç, È, É, Ê, Ë, Ì, Í, Î, Ï, Ð, Ñ, Ò, Ó, Ô, Õ, Ö, ×, Ø,
+Ù, Ú, Û, Ü, Ý, Þ, ß, à, á, â, ã, ä, å, æ, ç, è, é, ê, ë, ì, í, î, ï, ð,
+ñ, ò, ó, ô, õ, ö, ÷, ø, ù, ú, û, ü, ý, þ, ÿ
+
+(This is basically all of the latin-1 character set without control
+character, whitespace, the various brackets, double quotes and
+semicolon).
+
+Of these, only |, \', ', ,, and # may not be the first character of the
+symbol's name (but they *are* allowed as subsequent letters).
+
+I.e. these are all legal symbols: foo, foo,, µ#, ±1, 451°F.
+
+Symbols can be explicitly constructed by wrapping their name in vertical
+bars, e.g. |foo|, |symbol name with spaces|.  In this case the name can
+contain any character of in the range from 0 to 255 (or even none,
+i.e. || is a valid symbol).  The vertical bar in the symbol name needs
+to be escaped: |symbol with a vertical bar \| in its name| (similarly
+you will obviously have to escape the escape character as well).
+
+
+Comments
+~~~~~~~~
+
+Comments come in two forms: line comments and block comments.
+
+Line comments start with a semicolon (;) and finish with the end of the
+line.
+
+Block comments are written as #| comment text |# where the comment text
+may span multiple lines but my not contain another block comment,
+i.e. it may not contain the character sequence #|.
+
+
+Evaluation While Reading
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+#.(... some expression ...).  E.g. '#.(+ 1 1) will evaluate the (+ 1 1)
+while it reads the expression and then be effectively '2.
+
 
 Supported Core forms
 --------------------
