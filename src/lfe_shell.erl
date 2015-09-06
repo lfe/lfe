@@ -616,10 +616,13 @@ load_files(Ok, Ret, _, Out) ->                  %Beam files created.
     lists:map(fun (M) -> load_file(M, Ret, Out) end, Mods).
 
 load_file(Ok, _, Out) ->
-    Mod = element(2, Ok),
-    Bfile = filename:join(Out, atom_to_list(Mod)),
-    code:purge(Mod),
-    code:load_abs(Bfile, Mod).                  %Undocumented
+    case element(2, Ok) of
+        [] -> Ok;                               %No module file to load
+        Mod ->                                  %We have a module name
+            Bfile = filename:join(Out, atom_to_list(Mod)),
+            code:purge(Mod),
+            code:load_abs(Bfile, Mod)           %Undocumented
+    end.
 
 outdir([{outdir,Dir}|_]) -> Dir;                %Erlang way
 outdir([[outdir,Dir]|_]) -> Dir;                %LFE way

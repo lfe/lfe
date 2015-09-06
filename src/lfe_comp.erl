@@ -250,12 +250,6 @@ do_passes([done|_], St) -> {ok,St};             %Just end now
 do_passes([{done,Fun}|_], St) ->
     %% Print unless binary, in which case end.
     do_passes([{unless_flag,binary,{listing,Fun}}], St);
-
-    %% %% Either return code as value or print out file.
-    %% case member(binary, St#comp.opts) of
-    %%     true -> {ok,St#comp{return=[St#comp.code]}};
-    %%     false -> Fun(St#comp{return=[]})
-    %% end;
 do_passes([], St) -> {ok,St}.                   %Got to the end, everything ok!
 
 %% do_macro_expand(State) -> {ok,State} | {error,State}.
@@ -273,7 +267,8 @@ do_macro_expand(#comp{cinfo=Ci,code=Code}=St) ->
             Mods = [{ok,[],Fs,[]}],             %Pseudo group
             {ok,St#comp{code=Mods,warnings=St#comp.warnings ++ Ws}};
         {error,Es,Ws} ->
-            {error,St#comp{errors=St#comp.errors ++ Es,
+            {error,St#comp{code=[],             %Pseudo module list.
+                           errors=St#comp.errors ++ Es,
                            warnings=St#comp.warnings ++ Ws}}
     end.
 
