@@ -22,8 +22,6 @@
 
 -export([sexpr/1,sexpr/2,format_error/1]).
 
--import(lists, [reverse/1,reverse/2]).
-
 %% Define IS_MAP/1 macro for is_map/1 bif.
 -ifdef(HAS_MAPS).
 -define(IS_MAP(T), is_map(T)).
@@ -231,8 +229,6 @@ sexpr(Cont, Ts) -> parse1(Cont, Ts).
 
 -record(lp, {l=none,st=[],vs=[]}).              %Line, States, Values
 
-%% parse1(Tokens) ->
-%%      {ok,Line,Sexpr,Rest} | {more,Continuation} | {error,Error,Rest}.
 %% parse1(Continuation, Tokens) ->
 %%      {ok,Line,Sexpr,Rest} | {more,Continuation} | {error,Error,Rest}.
 %%  This is the opt-level of the LL engine. It
