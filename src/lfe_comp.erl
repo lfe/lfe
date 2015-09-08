@@ -49,7 +49,7 @@
                ipath=[],                        %Include path
                cinfo=none,                      %Common compiler info
                module=[],                       %Module name
-               code=none,                       %Code after last pass.
+               code=[],                         %Code after last pass.
                return=[],                       %What is returned [Val] | []
                errors=[],
                warnings=[]
@@ -103,7 +103,7 @@ internal({forms,Forms}, Opts) -> do_forms(Forms, Opts).
 
 do_file(Name, Opts0) ->
     Opts1 = lfe_comp_opts(Opts0),
-    St0 = #comp{opts=Opts1},
+    St0 = #comp{opts=Opts1,code=[]},            %Code must be list!
     St1 = filenames(Name, ".lfe", St0),
     St2 = include_path(St1),
     case lfe_io:parse_file(St2#comp.lfile) of
@@ -380,12 +380,14 @@ pmod_pp(St) -> sexpr_pp(St, "pmod").
 lint_pp(St) -> sexpr_pp(St, "lint").
 
 sexpr_pp(St, Ext) ->
-    Save = fun (File, Code) -> lfe_io:prettyprint(File, Code), io:nl(File) end,
-    do_save_file(Save, Ext, St).
+    Save = fun (File, {ok,_,Code,_}) ->
+                   lfe_io:prettyprint(File, Code), io:nl(File)
+           end,
+    do_list_save_file(Save, Ext, St).
 
 %% These print a list of module structures.
 core_pp(St) ->
-    Save = fun (File, {_,Core}) ->
+    Save = fun (File, {ok,_,Core,_}) ->
                    io:put_chars(File, [core_pp:format(Core),$\n])
            end,
     do_list_save_file(Save, "core", St).
