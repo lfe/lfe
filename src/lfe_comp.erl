@@ -380,12 +380,14 @@ pmod_pp(St) -> sexpr_pp(St, "pmod").
 lint_pp(St) -> sexpr_pp(St, "lint").
 
 sexpr_pp(St, Ext) ->
-    Save = fun (File, Code) -> lfe_io:prettyprint(File, Code), io:nl(File) end,
-    do_save_file(Save, Ext, St).
+    Save = fun (File, {ok,_,Code,_}) ->
+		   lfe_io:prettyprint(File, Code), io:nl(File)
+	   end,
+    do_list_save_file(Save, Ext, St).
 
 %% These print a list of module structures.
 core_pp(St) ->
-    Save = fun (File, {_,Core}) ->
+    Save = fun (File, {ok,_,Core,_}) ->
                    io:put_chars(File, [core_pp:format(Core),$\n])
            end,
     do_list_save_file(Save, "core", St).
