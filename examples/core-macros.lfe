@@ -1,4 +1,4 @@
-;; Copyright (c) 2008-2013 Robert Virding
+;; Copyright (c) 2008-2015 Robert Virding
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -107,7 +107,7 @@
     ;; Note that we cannot *use* backquote or any macros using
     ;; backquote in here! It will cause us to loop.
     (fletrec ((bq-app                           ;Optimise append
-               ([(list '++ l) r] (bq-app l r))  ;Catch single unquote-splice
+               ([(list '++ l) r] (bq-app l r))  ;Catch single comma-at
                ([() r] r)
                ([l ()] l)
                ([(list 'list l) (cons 'list r)] (cons 'list (cons l r)))
@@ -122,15 +122,15 @@
         ((list 'backquote x)
          ;; `(list 'backquote ,(bq-expand x (+ n 1)))
          (list 'list (list 'quote 'backquote) (bq-expand x (+ n 1))))
-        ((list 'unquote x) (when (> n 0))
-         (bq-cons 'unquote (bq-expand x (- n 1))))
-        ((list 'unquote x) (when (=:= n 0)) x)
-        ((cons 'unquote-splicing x) (when (> n 0))
-         (bq-cons (list 'quote 'unquote-splicing) (bq-expand x (- n 1))))
+        ((list 'comma x) (when (> n 0))
+         (bq-cons (list 'quote 'comma) (bq-expand x (- n 1))))
+        ((list 'comma x) (when (=:= n 0)) x)
+        ((cons 'comma-at x) (when (> n 0))
+         (bq-cons (list 'quote 'comma-at) (bq-expand x (- n 1))))
         ;; The next two cases handle splicing into a list.
-        ((cons (cons 'unquote x) y) (when (=:= n 0))
+        ((cons (cons 'comma x) y) (when (=:= n 0))
          (bq-app (cons 'list x) (bq-expand y 0)))
-        ((cons (cons 'unquote-splicing x) y) (when (=:= n 0))
+        ((cons (cons 'comma-at x) y) (when (=:= n 0))
          (bq-app (cons '++ x) (bq-expand y 0)))
         ((cons x y)                     ;The general list case
          (bq-cons (bq-expand x n) (bq-expand y n)))

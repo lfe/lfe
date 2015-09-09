@@ -1055,23 +1055,23 @@ exp_rules(Name, Keywords, Rules) ->
 
 %% exp_backquote(Exp) -> Exp.
 %%  Not very efficient quasiquote expander, but very compact code.  Is
-%%  R6RS compliant and can handle unquote and unquote-splicing with
-%%  more than one argument properly.  Actually with simple cons/append
-%%  optimisers code now quite good.
+%%  R6RS compliant and can handle comma (unquote) and comma-at
+%%  (unquote-splicing) with more than one argument properly.  Actually
+%%  with simple cons/append optimisers code now quite good.
 
 exp_backquote(Exp) -> exp_backquote(Exp, 0).
 
 exp_backquote([backquote,X], N) ->
     [list,[quote,backquote],exp_backquote(X, N+1)];
-exp_backquote([unquote|X], N) when N > 0 ->
-    exp_bq_cons([quote,unquote], exp_backquote(X, N-1));
-exp_backquote([unquote,X], 0) -> X;
-exp_backquote(['unquote-splicing'|X], N) when N > 0 ->
-    exp_bq_cons([quote,'unquote-splicing'], exp_backquote(X, N-1));
+exp_backquote([comma|X], N) when N > 0 ->
+    exp_bq_cons([quote,comma], exp_backquote(X, N-1));
+exp_backquote([comma,X], 0) -> X;
+exp_backquote(['comma-at'|X], N) when N > 0 ->
+    exp_bq_cons([quote,'comma-at'], exp_backquote(X, N-1));
 %% Next 2 handle case of splicing into a list.
-exp_backquote([[unquote|X]|Y], 0) ->
+exp_backquote([[comma|X]|Y], 0) ->
     exp_bq_append([list|X], exp_backquote(Y, 0));
-exp_backquote([['unquote-splicing'|X]|Y], 0) ->
+exp_backquote([['comma-at'|X]|Y], 0) ->
     exp_bq_append(['++'|X], exp_backquote(Y, 0));
 exp_backquote([X|Y], N) ->                      %The general list case
     exp_bq_cons(exp_backquote(X, N), exp_backquote(Y, N));
@@ -1091,7 +1091,7 @@ exp_backquote(X, N) when ?IS_MAP(X) ->
 exp_backquote(X, _) when is_atom(X) -> [quote,X];
 exp_backquote(X, _) -> X.                       %Self quoting
 
-exp_bq_append(['++',L], R) ->                   %Catch single unquote-splice
+exp_bq_append(['++',L], R) ->                   %Catch single comma-at
     exp_bq_append(L, R);
 exp_bq_append([], R) -> R;
 exp_bq_append(L, []) -> L;

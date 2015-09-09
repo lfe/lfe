@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2014 Robert Virding
+%% Copyright (c) 2008-2015 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -50,8 +50,8 @@ term(Numb, _, _, _) when is_float(Numb) -> io_lib_format:fwrite_g(Numb);
 %% don't increase depth as they really should.
 term([quote,E], D, I, L) -> ["'",term(E, D, I+1, L)];
 term([backquote,E], D, I, L) -> ["`",term(E, D, I+1, L)];
-term([unquote,E], D, I, L) -> [",",term(E, D, I+1, L)];
-term(['unquote-splicing',E], D, I, L) -> [",@",term(E, D, I+2, L)];
+term([comma,E], D, I, L) -> [",",term(E, D, I+1, L)];
+term(['comma-at',E], D, I, L) -> [",@",term(E, D, I+2, L)];
 term([Car|_]=List, D, I, L) ->
     %% Handle printable lists specially.
     case io_lib:printable_unicode_list(List) of

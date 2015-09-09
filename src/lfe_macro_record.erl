@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2013 Robert Virding
+%% Copyright (c) 2008-2015 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -96,18 +96,18 @@ make_macro(Name, Defs, Fu) ->
     Make = list_to_atom(concat(['make','-',Name])),
     ['defmacro',Make,fds,
      ['let',[[def,[list|Defs]]],
-      ?BQ([tuple,?Q(Name),?UQ_S([Fu,fds,def])])]].
+      ?BQ([tuple,?Q(Name),?C_A([Fu,fds,def])])]].
 
 match_macro(Name, Fs, Fu) ->
     Match = list_to_atom(concat(['match','-',Name])),
     ['defmacro',Match,fds,
      ['let',[[def,[list|lists:duplicate(length(Fs),?Q('_'))]]],
-      ?BQ([tuple,?Q(Name),?UQ_S([Fu,fds,def])])]].
+      ?BQ([tuple,?Q(Name),?C_A([Fu,fds,def])])]].
 
 test_macro(Name, Fs) ->
     Test = list_to_atom(concat(['is','-',Name])),
     ['defmacro',Test,[rec],
-     ?BQ(['is_record',?UQ(rec),?Q(Name),length(Fs)+1])].
+     ?BQ(['is_record',?C(rec),?Q(Name),length(Fs)+1])].
 
 set_macro(Name, Fi) ->
     Set = list_to_atom(concat(['set','-',Name])),
@@ -127,7 +127,7 @@ emp_macro(Name, Fs, Fu) ->
     EMP = list_to_atom(concat(['emp','-',Name])),
     ['defmacro',EMP,fds,
      ['let',[[def,[list|lists:duplicate(length(Fs),?Q(?Q('_')))]]],
-      ?BQ([tuple,?Q(Name),?UQ_S([Fu,fds,def])])]].
+      ?BQ([tuple,?Q(Name),?C_A([Fu,fds,def])])]].
 
 field_macro(Name, Fs) ->
     Recfields = list_to_atom(concat(['fields','-',Name])),
@@ -140,9 +140,9 @@ field_macros(Name, Fs) ->
                   Set = list_to_atom(concat(['set-',Name,'-',F])),
                   [[defmacro,Get,
                     [[],N],
-                    [[list,rec],?BQ([element,N,?UQ(rec)])]],
+                    [[list,rec],?BQ([element,N,?C(rec)])]],
                    [defmacro,Set,[rec,new],
-                    ?BQ([setelement,N,?UQ(rec),?UQ(new)])]|
+                    ?BQ([setelement,N,?C(rec),?C(new)])]|
                    Fas]
           end, [], Fis).
 
