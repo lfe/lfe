@@ -111,3 +111,9 @@ get-version:
 	@echo
 	@echo -n app.src: ''
 	@erl -eval $(GET_VERSION)
+
+# Target to regenerate the src/lfe_parse.erl file from its original
+# src/lfe_parse.spell1 definition.  You will need to have spell1
+# installed somewhere in your $ERL_LIBS path.
+regenerate-parser:
+	erl -noshell -eval 'spell1:file("src/lfe_parse", [report,verbose,{outdir,"./src/"},{includefile,code:lib_dir(spell1,include) ++ "/spell1inc.hrl"}]), init:stop().'
