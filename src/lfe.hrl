@@ -1,4 +1,4 @@
-%% Copyright (c) 2014 Robert Virding
+%% Copyright (c) 2014-2015 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -19,5 +19,5 @@
 %% We do a lot of quoting!
 -define(Q(E), [quote,E]).
 -define(BQ(E), [backquote,E]).
--define(UQ(E), [unquote,E]).
--define(UQ_S(E), ['unquote-splicing',E]).
+-define(C(E), [comma,E]).
+-define(C_A(E), ['comma-at',E]).

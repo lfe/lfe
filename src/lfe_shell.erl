@@ -245,13 +245,13 @@ add_shell_functions(Env0) ->
 
 add_shell_macros(Env0) ->
     %% We write macros in LFE and expand them with macro package.
-    Ms = [{c,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,c,?UQ_S(args)])]},
-          {ec,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ec,?UQ_S(args)])]},
-          {l,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,l,[list|?UQ(args)]])]},
-          {ls,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ls,[list|?UQ(args)]])]},
+    Ms = [{c,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,c,?C_A(args)])]},
+          {ec,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ec,?C_A(args)])]},
+          {l,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,l,[list|?C(args)]])]},
+          {ls,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ls,[list|?C(args)]])]},
           {m,['match-lambda',
               [[[],'$ENV'],?BQ([':',lfe_shell,m])],
-              [[ms,'$ENV'],?BQ([':',lfe_shell,m,[list|?UQ(ms)]])]]}
+              [[ms,'$ENV'],?BQ([':',lfe_shell,m,[list|?C(ms)]])]]}
          ],
     %% Any errors here will crash shell startup!
     Env1 = lfe_env:add_mbindings(Ms, Env0),

@@ -1,4 +1,4 @@
-%% Copyright (c) 2013 Robert Virding
+%% Copyright (c) 2013-2015 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -287,8 +287,8 @@ trans_macro_body(As, Ts0) ->
     Ts1 = trans_qm(Ts0),
     {ok,[E]} = erl_parse:parse_exprs(Ts1 ++ [{dot,0}]),
     Le0 = lfe_trans:from_expr(E),
-    %% Wrap variables in arg list with an (unquote ...) call.
-    Alist = [ [A|[unquote,A]] || A <- As ],
+    %% Wrap variables in arg list with an (comma ...) call.
+    Alist = [ [A|[comma,A]] || A <- As ],
     Le1 = lfe_lib:sublis(Alist, Le0),
     %% Le1 = unquote_vars(Alist, Le0),
     [?BQ(Le1)].
