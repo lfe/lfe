@@ -27,7 +27,9 @@
 -module(lfe_shell).
 
 -export([start/0,start/1,server/0,server/1,
-         run_script/2,run_script/3,run_string/2,run_string/3]).
+         run_script/2,run_script/3,run_string/2,run_string/3,
+         %% These are needed for the shell gen_server:
+         new_state/3,eval_form/3,eval_form/4]).
 
 %% The shell commands which generally callable.
 -export([c/1,c/2,cd/1,ec/1,ec/2,help/0,i/0,i/1,l/1,ls/1,clear/0,m/0,m/1,
@@ -308,15 +310,22 @@ eval_loop(Shell, St0) ->
 %%  crash as an error here causes the emulator to generate an error
 %%  report. Being cunning and building our own error return value and
 %%  doing exit on it seem to fix the problem.
-
 eval_form(Form, Shell, St0) ->
+    eval_form(Form, Shell, St0, {stdio, true}).
+
+eval_form(Form, Shell, St0, {stdio, UseStdIo}) ->
     try
         Ce1 = add_vbinding('-', Form, St0#state.curr),
         %% Macro expand and evaluate it.
         {Value,St1} = eval_form(Form, St0#state{curr=Ce1}),
-        %% Print the result, but only to depth 30.
-        VS = lfe_io:prettyprint1(Value, 30),
-        io:requests([{put_chars,unicode,VS},nl]),
+        case UseStdIo of
+            true ->
+                %% Print the result, but only to depth 30.
+                VS = lfe_io:prettyprint1(Value, 30),
+                io:requests([{put_chars,unicode,VS},nl]);
+            false ->
+                ok
+        end,
         %% Update bindings.
         Ce2 = update_shell_vars(Form, Value, St1#state.curr),
         St2 = St1#state{curr=Ce2},

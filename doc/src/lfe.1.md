@@ -206,6 +206,44 @@ no arguments have been given then this will be an
 empty list.
 
 
+# RUNNING A HEADLESS SHELL
+
+LFE comes with a ``gen_server`` shell in the ``lfe_server`` module.
+This allows the developer to start an LFE server which solely
+supports a programmatic interface, not an interactive one (it
+does not write to stdout, including not displaying a start-up
+banner). All input is sent to the server via the ``send/1``
+function defined for the server's API.
+
+When calling ``send/1``, the developer passes a quoted LFE
+expression which is then handled by ``lfe_server:handle_call/3``.
+A successfull call results in a returned evaluation of the
+quoted expression that was called. An error currently causes
+the process server to die, thus losing REPL state.
+
+Usage looks like the following:
+
+```
+> (lfe_server:start)
+#(ok <0.35.0>)
+> (lfe_server:send '(defun adder (a b) (+ a b)))
+adder
+> (lfe_server:send '(adder 10 20))
+30
+> (lfe_server:send '(set val (adder 10 20)))
+30
+> (lfe_server:send 'val)
+30
+```
+
+The ``lfe_server`` server process may be easily added to a
+supervision tree, and in fact this is encouraged for any
+serious use of a headless LFE shell server. It goes without
+saying that any number of servers may be started in a
+supervision tree, each with their own dedciated LFE
+environment.
+
+
 # SEE ALSO
 
 **lfescript(1)**, **lfe_guide(7)**
