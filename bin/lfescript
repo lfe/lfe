@@ -96,5 +96,24 @@ shebangs=$(expr "$line2" : '^;;! *\(.*\)')
 if [ -z "$shebangs" ] ; then shebangs=$(expr "$line3" : '^;;! *\(.*\)') ; fi
 
 # Done, now just run the emulator.
+# The order of precedence for LFE libraries is as follows:
+# 1) The LFE_ROOTDIR for the current bin/lfe being executed is unusurpable;
+#    allowing anything else would leave LFE open to instabilities where it
+#    could be executed with libraries of a different release.
+# 2) A user/developer should be allowed to override anything else by updating
+#    ERL_LIBS as they see fit.
+# 3) A project's libraries (current directory) should be loaded automatically,
+#    if they exist, but not override the previous two.
+# 4) If a default library is installed in ~/.lfe/libs, then that will be added
+#    last, in the event that the sought library is not picked up in any of the
+#    other locations.
+#
 # Note that ERL_LIBS will find *either* an ebin subdir *or* lib subdir
-ERL_LIBS="$HOME"/.lfe/lib:"$LFE_ROOTDIR":"$LFE_ROOTDIR"/lib:"$ERL_LIBS" exec "$emulator" +B -boot start_clean "$shebangs" "-noshell" "-run" "lfescript" "start" "$@"
+#
+# The following works for rebar and erl.mk
+PROJ_LIBS=$(find ./deps -maxdepth 1 -mindepth 1 -exec printf "%s:" {} \;)
+# The following works for rebar3
+R3_PROJ_LIBS=$(find ./_build/default/deps -maxdepth 1 -mindepth 1 -exec printf "%s:" {} \;)
+LFE_HOME_LIBS=$(find "$HOME"/.lfe/libs -maxdepth 1 -mindepth 1 -exec printf "%s:" {} \;)
+ALL_LIBS="$LFE_ROOTDIR":"$ERL_LIBS":"$PROJ_LIBS":"$R3_PROJ_LIBS":"$LFE_HOME_LIBS"
+ERL_LIBS="$ALL_LIBS" exec "$emulator" +B -boot start_clean "$shebangs" "-noshell" "-run" "lfescript" "start" "$@"
