@@ -90,5 +90,6 @@
                         (lfe_comp:file a (list* 'verbose 'report opts1)))
                       as1)
        ('(error) (halt 1))
+       ('(error es ws) (halt 1))
        (_ 'ok)))))
 
