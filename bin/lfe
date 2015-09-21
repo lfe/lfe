@@ -116,11 +116,19 @@ done
 #    other locations.
 #
 # Note that ERL_LIBS will find *either* an ebin subdir *or* lib subdir
-#
+
+# Find application ebin directories in lib if lib exists.
+
+find_libs () {
+    if [ -d "$1" ]; then
+	echo $(find "$1" -maxdepth 1 -mindepth 1 -exec printf "%s:" {} \;)
+    fi
+}
+
 # The following works for rebar and erl.mk
-PROJ_LIBS=$(find ./deps -maxdepth 1 -mindepth 1 -exec printf "%s:" {} \;)
+PROJ_LIBS=$(find_libs "./deps")
 # The following works for rebar3
-R3_PROJ_LIBS=$(find ./_build/default/deps -maxdepth 1 -mindepth 1 -exec printf "%s:" {} \;)
-LFE_HOME_LIBS=$(find "$HOME"/.lfe/libs -maxdepth 1 -mindepth 1 -exec printf "%s:" {} \;)
-ALL_LIBS="$LFE_ROOTDIR":"$ERL_LIBS":"$PROJ_LIBS":"$R3_PROJ_LIBS":"$LFE_HOME_LIBS"
+R3_PROJ_LIBS=$(find_libs "./_build/default/deps")
+LFE_HOME_LIBS=$(find_libs "$HOME"/.lfe/libs)
+ALL_LIBS="$LFE_ROOTDIR":"$ERL_LIBS":"$PROJ_LIBS""$R3_PROJ_LIBS""$LFE_HOME_LIBS"
 ERL_LIBS="$ALL_LIBS" exec erl "$@"
