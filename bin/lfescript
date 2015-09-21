@@ -111,9 +111,9 @@ if [ -z "$shebangs" ] ; then shebangs=$(expr "$line3" : '^;;! *\(.*\)') ; fi
 # Note that ERL_LIBS will find *either* an ebin subdir *or* lib subdir
 #
 # The following works for rebar and erl.mk
-PROJ_LIBS=$(find ./deps -maxdepth 1 -mindepth 1 -exec printf "%s:" {} \;)
+PROJ_LIBS=$(find ./deps -maxdepth 1 -mindepth 1 -exec printf "%s:" {} \; 2> /dev/null)
 # The following works for rebar3
-R3_PROJ_LIBS=$(find ./_build/default/deps -maxdepth 1 -mindepth 1 -exec printf "%s:" {} \;)
-LFE_HOME_LIBS=$(find "$HOME"/.lfe/libs -maxdepth 1 -mindepth 1 -exec printf "%s:" {} \;)
+R3_PROJ_LIBS=$(find ./_build/default/deps -maxdepth 1 -mindepth 1 -exec printf "%s:" {} \; 2> /dev/null)
+LFE_HOME_LIBS=$(find "$HOME"/.lfe/libs -maxdepth 1 -mindepth 1 -exec printf "%s:" {} \; 2> /dev/null)
 ALL_LIBS="$LFE_ROOTDIR":"$ERL_LIBS":"$PROJ_LIBS":"$R3_PROJ_LIBS":"$LFE_HOME_LIBS"
 ERL_LIBS="$ALL_LIBS" exec "$emulator" +B -boot start_clean "$shebangs" "-noshell" "-run" "lfescript" "start" "$@"
