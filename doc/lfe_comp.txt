@@ -9,8 +9,9 @@ MODULE SUMMARY
 DESCRIPTION
 
         This module provides an interface to the standard LFE
-        compiler. It can generate either a new file which contains the
-        object code, or return a binary which can be loaded directly.
+        compiler. The compiler can handle files which contain multiple
+        modules. It can generate either new files which contain the
+        object code, or return binaries which can be loaded directly.
 
 EXPORTS
 
@@ -22,12 +23,15 @@ file(FileName, Options) -> CompRet
 
         where
           CompRet = ModRet | BinRet | ErrRet
-          ModRet = {ok,ModuleName} | {ok,ModuleName,Warnings}
-          BinRet = {ok,ModuleName,Binary} | {ok,ModuleName,Binary,Warnings}
-          ErrRet = error | {error,Errors,Warnings}
+          ModRet = {ok,[ModOk]} | {ok,[ModOk],Warnings}
+          ModOk  = {ok,ModuleName} | {ok,ModuleName,Warnings}
+          BinRet = {ok,[ModBin]} | {ok,[ModBin],Warnings}
+          ModBin = {ok,ModuleName,Binary} | {ok,ModuleName,Binary,Warnings}
+          ErrRet = error | {error,[ModErr],Errors,Warnings}
+          ModErr = {error,Errors,Warnings}
 
-        Compile an LFE file, either writing the generated module to a
-        file or returning it as a binary. The generated module is
+        Compile an LFE file, either writing the generated modules to
+        files or returning them as binaries. The generated modules are
         ready to be loaded into Erlang.
 
         The currently recognised options are:
@@ -43,29 +47,35 @@ file(FileName, Options) -> CompRet
 
         to_lint
                 Print a listing of the macro expanded and linted LFE
-                code in the file <File>.lint. No object file is
+                code in the files <Module>.lint. No object files are
                 produced. Mainly useful for debugging and interest.
 
         to_core0
         to_core
                 Print a listing of the Core Erlang code before/after
-                being optimised in the file <File>.core. No object
-                file is produced. Mainly useful for debugging and
+                being optimised in the files <Module>.core. No object
+                files are produced. Mainly useful for debugging and
                 interest.
 
         to_kernel
-                Print a listing of the Kernel Erlang code in the file
-                <File>.kernel. No object file is produced. Mainly
+                Print a listing of the Kernel Erlang code in the files
+                <Module>.kernel. No object files are produced. Mainly
                 useful for debugging and interest.
 
         to_asm
-                Print a listing of the Beam code in the file
-                <File>.S. No object file is produced. Mainly
+                Print a listing of the Beam code in the files
+                <Module>.S. No object files are produced. Mainly
                 useful for debugging and interest.
 
         {outdir,Dir}
+        [outdir,Dir]
                 Save the generated files in directory Dir instead of
                 the current directory.
+
+        {i,Dir}
+        [i,Dir]
+                Add dir to the list of directories to be searched when
+                including a file.
 
         report
                 Print the errors and warnings as they occur.
@@ -79,9 +89,12 @@ file(FileName, Options) -> CompRet
                 Causes the compiler to print a lot of debug
                 information.
 
-        If the binary option is given then options that produce a
-        listing file will cause the internal format for that compiler
-        pass to be returned.
+        warnings_as_errors
+                Causes warnings to be treated as errors.
+
+        If the binary option is given then options that produce
+        listing files will cause the internal formats for that
+        compiler pass to be returned.
 
         Both Warnings and Errors have the following format:
 
@@ -102,8 +115,10 @@ forms(Forms, Options) -> CompRet
         where
           Forms = [sexpr()]
           CompRet = BinRet | ErrRet
-          BinRet = {ok,ModuleName,Binary} | {ok,ModuleName,Binary,Warnings}
-          ErrRet = error | {error,Errors,Warnings}
+          BinRet = {ok,[ModBin]} | {ok,[ModBin],Warnings}
+          ModBin = {ok,ModuleName,Binary} | {ok,ModuleName,Binary,Warnings}
+          ErrRet = error | {error,[ModErr],Errors,Warnings}
+          ModErr = {error,Errors,Warnings}
 
         Compile the forms as an LFE module returning a binary. This
         function takes the same options as lfe_comp:file/1/2. When
@@ -127,4 +142,4 @@ Error Information
     
         A string describing the error is obtained with the following call:
 
-        apply(Module, format_error, ErrorDescriptor)
+        Module:format_error(ErrorDescriptor)
