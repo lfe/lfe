@@ -313,7 +313,9 @@ Supported macro forms
 (fun func arity)                        - fun func/arity
 (fun mod func arity)                    - fun mod:func/arity
 (lc (qual ...) ...)                     - [ expr || qual ... ]
+(list-comp (qual ...) ...)
 (bc (qual ...) ...)                     - << expr || qual ... >>
+(binary-comp (qual ...) ...)
 (match-spec ...)                        - ets:fun2ms(fun ( ) -> end)
 
 Common Lisp inspired macros
@@ -394,7 +396,7 @@ removed, but later passes of the compiler can't handle this yet.
 Guards
 ------
 
-Wherever a pattern occurs (let, case, receive, lc, etc.) it can be
+Wherever a pattern occurs (in let, case, receive, lc, etc.) it can be
 followed by an optional guard which has the form (when test ...).
 Guard tests are the same as in vanilla Erlang and can contain the
 following guard expressions:
@@ -439,8 +441,9 @@ flet and fletrec:
 
 (defun foo (x y)
   "The max function."
-  (flet ((m (a b) "Local comment."
-            (if (>= a b) a b)))
+  (flet ((m (a b)
+           "Local comment."
+           (if (>= a b) a b)))
     (m x y)))
 
 Bindings and Scoping
@@ -631,8 +634,9 @@ macrolet:
 
 (defun foo (x y)
   "The max function."
-  (macrolet ((m (a b) "Poor macro definition."
-                `(if (>= ,a ,b) ,a ,b)))
+  (macrolet ((m (a b)
+               "Poor macro definition."
+               `(if (>= ,a ,b) ,a ,b)))
     (m x y)))
 
 Extended cond
@@ -786,12 +790,14 @@ List/binary comprehensions are supported as macros. The syntax for
 list comprehensions is:
 
 (lc (qual  ...) expr ... )
+(list-comp (qual  ...) expr ... )
 
 where the final expr is used to generate the elements of the list.
 
 The syntax for binary comprehensions is:
 
 (bc (qual  ...) expr ... )
+(binary-comp (qual  ...) expr ... )
 
 where the final expr is a bitseg expr and is used to generate the
 elements of the binary.
