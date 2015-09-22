@@ -923,6 +923,9 @@ The following more or less standard lisp functions are predefined:
 (sublis alist tree)
         The standard substituition functions.
 
+(butlast list)
+        Aliased to lists:droplast
+
 (macroexpand-1 expr {{environment}})
         If Expr is a macro call, does one round of expansion,
         otherwise returns Expr.
