@@ -14,6 +14,7 @@ VPATH = $(SRCDIR)
 
 ERLCFLAGS = -W1
 ERLC = erlc
+LFEC = bin/lfec
 
 LIB=lfe
 
@@ -32,7 +33,9 @@ GET_VERSION = '{ok,[App]}=file:consult("src/$(LIB).app.src"), \
 ESRCS = $(notdir $(wildcard $(SRCDIR)/*.erl))
 XSRCS = $(notdir $(wildcard $(SRCDIR)/*.xrl))
 YSRCS = $(notdir $(wildcard $(SRCDIR)/*.yrl))
+LSRCS = $(notdir $(wildcard $(SRCDIR)/*.lfe))
 EBINS = $(ESRCS:.erl=.beam) $(XSRCS:.xrl=.beam) $(YSRCS:.yrl=.beam)
+LBINS = $(LSRCS:.lfe=.beam)
 
 CSRCS = $(notdir $(wildcard $(CSRCDIR)/*.c))
 BINS = $(CSRCS:.c=)
@@ -54,6 +57,9 @@ $(EBINDIR)/%.beam: $(SRCDIR)/%.erl
 %.erl: %.yrl
 	$(ERLC) -o $(SRCDIR) $<
 
+$(EBINDIR)/%.beam: $(SRCDIR)/%.lfe
+	$(LFEC) -I $(INCDIR) -o $(EBINDIR) $<
+
 all: compile docs
 
 .PHONY: compile erlc-compile install docs clean dockerfile
@@ -64,11 +70,16 @@ compile: maps_opts.mk
 	then ERL_LIBS=.:$$ERL_LIBS rebar.cmd compile; \
 	elif which rebar > /dev/null; \
 	then ERL_LIBS=.:$$ERL_LIBS rebar compile; \
-	else $(MAKE) $(MFLAGS) erlc-compile; \
+	else \
+	$(MAKE) $(MFLAGS) erlc-compile && \
+	$(MAKE) $(MFLAGS) lfec-compile; \
 	fi
 
 ## Compile using erlc
 erlc-compile: $(addprefix $(EBINDIR)/, $(EBINS)) $(addprefix $(BINDIR)/, $(BINS))
+
+## Compile using lfec
+lfec-compile: $(addprefix $(EBINDIR)/, $(LBINS)) $(addprefix $(BINDIR)/, $(BINS))
 
 maps_opts.mk:
 	escript get_maps_opts.escript
