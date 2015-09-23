@@ -923,30 +923,6 @@ The following more or less standard lisp functions are predefined:
 (sublis alist tree)
         The standard substituition functions.
 
-(cl:butlast list)
-        Aliased to lists:droplast.
-
-(cl:nthcdr list)
-        Aliased to lists:nthtail.
-
-(cl:mapcar func list)
-        Aliased to lists:map.
-
-(cl:remove-duplicates list)
-        Aliased to lists:usort.
-
-(cl:remove-if-not func list)
-        Aliased to lists:filter.
-
-(cl:reduce func list)
-(cl:reduce func list 'initial-value x)
-        Aliased to lists:foldl. In cl:reduce/2, the initial value is
-        set to the default of '().
-
-(cl:reduce func list 'from-end 'true)
-(cl:reduce func list 'initial-value x 'from-end 'true)
-        Aliased to lists:foldr.
-
 (macroexpand-1 expr {{environment}})
         If Expr is a macro call, does one round of expansion,
         otherwise returns Expr.
@@ -977,6 +953,62 @@ The following more or less standard lisp functions are predefined:
         needs to access then we could evaluate it by calling:
 
         (eval `(let ((foo ,foo)) ,expr))
+
+Supplemental Common Lisp Functions
+----------------------------------
+
+LFE provides the following functions which closely mirror functions
+defined in the Common Lisp Hyperspec.
+
+(cl:butlast list)
+        Aliased to lists:droplast.
+
+(cl:nthcdr list)
+        Aliased to lists:nthtail.
+
+(cl:mapcar func list)
+        Aliased to lists:map.
+
+(cl:remove-duplicates list)
+        Aliased to lists:usort.
+
+(cl:remove-if-not func list)
+        Aliased to lists:filter.
+
+(cl:reduce func list)
+(cl:reduce func list 'initial-value x)
+        Aliased to lists:foldl. In cl:reduce/2, the initial value is
+        set to the default of '().
+
+(cl:reduce func list 'from-end 'true)
+(cl:reduce func list 'initial-value x 'from-end 'true)
+        Aliased to lists:foldr.
+
+Furthmore, there is an include file which developers may which to utilize in
+their LFE programs: (include-lib "lfe/include/cl.lfe"). Currently this offers
+Common Lisp predicates, but may include other useful macros and functions in
+the future. The provided predicate macros wrap the various is_* Erlang
+functions; since these are expanded at compile time, they are usable in guards.
+The include the following:
+
+(alivep x)
+(atomp x)
+(binaryp x)
+(bitstringp x)
+(boolp x) and (booleanp x)
+(builtinp x)
+(floatp x)
+(funcp x) and (functionp x)
+(intp x) and (integerp x)
+(listp x)
+(mapp x)
+(numberp x)
+(pidp x)
+(process-alive-p x)
+(recordp x tag)
+(recordp x tag size)
+(refp x) and (referencep x)
+(tuplep x)
 
 Notes
 -----
