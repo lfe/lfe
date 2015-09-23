@@ -923,8 +923,29 @@ The following more or less standard lisp functions are predefined:
 (sublis alist tree)
         The standard substituition functions.
 
-(butlast list)
-        Aliased to lists:droplast
+(cl:butlast list)
+        Aliased to lists:droplast.
+
+(cl:nthcdr list)
+        Aliased to lists:nthtail.
+
+(cl:mapcar func list)
+        Aliased to lists:map.
+
+(cl:remove-duplicates list)
+        Aliased to lists:usort.
+
+(cl:remove-if-not func list)
+        Aliased to lists:filter.
+
+(cl:reduce func list)
+(cl:reduce func list 'initial-value x)
+        Aliased to lists:foldl. In cl:reduce/2, the initial value is
+        set to the default of '().
+
+(cl:reduce func list 'from-end 'true)
+(cl:reduce func list 'initial-value x 'from-end 'true)
+        Aliased to lists:foldr.
 
 (macroexpand-1 expr {{environment}})
         If Expr is a macro call, does one round of expansion,
