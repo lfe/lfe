@@ -58,7 +58,7 @@ $(EBINDIR)/%.beam: $(SRCDIR)/%.erl
 	$(ERLC) -o $(SRCDIR) $<
 
 $(EBINDIR)/%.beam: $(SRCDIR)/%.lfe
-	$(LFEC) -I $(INCDIR) -o $(EBINDIR) $<
+	$(LFEC) -I $(INCDIR) -o $(EBINDIR) -pa ../lfe $<
 
 all: compile docs
 
