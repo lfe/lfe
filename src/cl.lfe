@@ -7,11 +7,17 @@
   ((xs)
    (lists:nth 1 xs)))
 
+(defun first (xs)
+  (cl:car xs))
+
 (defun cdr
   (('())
    '())
   ((xs)
    (lists:nthtail 1 xs)))
+
+(defun rest (xs)
+  (cl:cdr xs))
 
 (defun nth
   ((n xs) (when (or (< n 1) (> n (length xs))))
