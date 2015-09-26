@@ -20,13 +20,13 @@
   (cl:cdr xs))
 
 (defun nth
-  ((n xs) (when (or (< n 1) (> n (length xs))))
+  ((n xs) (when (or (< n 0) (>= n (length xs))))
    '())
   ((n xs)
-   (lists:nth n xs)))
+   (lists:nth (+ n 1) xs)))
 
 (defun position (x xs)
-  (position x 1 xs))
+  (position x 0 xs))
 
 (defun position
   ((x _ '()) 'undefined)
@@ -39,7 +39,7 @@
   (lists:droplast xs))
 
 (defun nthcdr (n xs)
-  (lists:nthtail n xs))
+  (lists:nthtail (+ n 1) xs))
 
 (defun mapcar (func xs)
   (lists:map func xs))
