@@ -41,6 +41,18 @@
 (defun nthcdr (n xs)
   (lists:nthtail (+ n 1) xs))
 
+(defun every (pred xs)
+  (lists:all pred xs))
+
+(defun some (pred xs)
+  (lists:any pred xs))
+
+(defun notevery (pred sx)
+  (not (lists:all pred xs))
+
+(defun notany (pred xs)
+  (not (lists:all pred xs)))
+
 (defun mapcar (func xs)
   (lists:map func xs))
 
