@@ -30,8 +30,8 @@
          run_script/2,run_script/3,run_string/2,run_string/3]).
 
 %% The shell commands which generally callable.
--export([c/1,c/2,cd/1,ec/1,ec/2,help/0,i/0,i/1,l/1,ls/1,m/0,m/1,
-         pid/3,p/1,pp/1,pwd/0,q/0,regs/0,exit/0]).
+-export([c/1,c/2,cd/1,ec/1,ec/2,help/0,i/0,i/1,l/1,ls/1,clear/0,m/0,m/1,
+         pid/3,p/1,pp/1,pwd/0,q/0,flush/0,regs/0,exit/0]).
 
 -import(lfe_env, [new/0,add_env/2,
                   add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
@@ -94,6 +94,8 @@ server(Env) ->
     %% Create a default base env of predefined shell variables with
     %% default nil bindings and basic shell macros.
     St = new_state("lfe", [], Env),
+    %% Set shell io to use LFE expand in edlin, ignore error.
+    io:setopts([{expand_fun,fun (B) -> lfe_edlin_expand:expand(B) end}]),
     Eval = start_eval(St),                      %Start an evaluator
     server_loop(Eval, St).                      %Run the loop
 
@@ -221,16 +223,17 @@ update_shell_vars(Form, Value, Env0) ->
     add_vbinding('$ENV', Env2, Env2).
 
 add_shell_functions(Env0) ->
-    Fs = [{help,0,[lambda,[],[':',lfe_shell,help]]},
+    Fs = [{cd,1,[lambda,[d],[':',lfe_shell,cd,d]]},
+          {help,0,[lambda,[],[':',lfe_shell,help]]},
           {i,0,[lambda,[],[':',lfe_shell,i]]},
           {i,1,[lambda,[ps],[':',lfe_shell,i,ps]]},
-          %% {m,0,[lambda,[],[':',lfe_shell,m]]},
-          %% {m,1,[lambda,[ms],[':',lfe_shell,m,ms]]},
+          {clear,0,[lambda,[],[':',lfe_shell,clear]]},
           {pid,3,[lambda,[i,j,k],[':',lfe_shell,pid,i,j,k]]},
           {p,1,[lambda,[e],[':',lfe_shell,p,e]]},
           {pp,1,[lambda,[e],[':',lfe_shell,pp,e]]},
           {pwd,0,[lambda,[],[':',lfe_shell,pwd]]},
           {q,0,[lambda,[],[':',lfe_shell,exit]]},
+          {flush,0,[lambda,[],[':',lfe_shell,flush]]},
           {regs,0,[lambda,[],[':',lfe_shell,regs]]},
           {exit,0,[lambda,[],[':',lfe_shell,exit]]}
          ],
@@ -242,13 +245,13 @@ add_shell_functions(Env0) ->
 
 add_shell_macros(Env0) ->
     %% We write macros in LFE and expand them with macro package.
-    Ms = [{c,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,c,?UQ_S(args)])]},
-          {ec,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ec,?UQ_S(args)])]},
-          {l,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,l,[list|?UQ(args)]])]},
-          {ls,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ls,[list|?UQ(args)]])]},
+    Ms = [{c,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,c,?C_A(args)])]},
+          {ec,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ec,?C_A(args)])]},
+          {l,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,l,[list|?C(args)]])]},
+          {ls,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ls,[list|?C(args)]])]},
           {m,['match-lambda',
               [[[],'$ENV'],?BQ([':',lfe_shell,m])],
-              [[ms,'$ENV'],?BQ([':',lfe_shell,m,[list|?UQ(ms)]])]]}
+              [[ms,'$ENV'],?BQ([':',lfe_shell,m,[list|?C(ms)]])]]}
          ],
     %% Any errors here will crash shell startup!
     Env1 = lfe_env:add_mbindings(Ms, Env0),
@@ -286,7 +289,7 @@ eval_form(Form, Shell, St0) ->
         {Value,St1} = eval_form(Form, St0#state{curr=Ce1}),
         %% Print the result, but only to depth 30.
         VS = lfe_io:prettyprint1(Value, 30),
-        io:requests([{put_chars,VS},nl]),
+        io:requests([{put_chars,unicode,VS},nl]),
         %% Update bindings.
         Ce2 = update_shell_vars(Form, Value, St1#state.curr),
         St2 = St1#state{curr=Ce2},
@@ -378,7 +381,7 @@ set([Pat|Rest], #state{curr=Ce}=St) ->
     Epat = lfe_macro:expand_expr_all(Pat, Ce),  %Expand macros in pattern
     %% Special case to lint pattern.
     case lfe_lint:pattern(Epat, Ce) of
-        {ok,Ws} -> list_warnings(Ws);
+        {ok,_,Ws} -> list_warnings(Ws);
         {error,Es,Ws} ->
             list_errors(Es),
             list_warnings(Ws)
@@ -460,9 +463,13 @@ slurp_file(Name) ->
         {ok,Fs0} ->
             case lfe_macro:expand_forms(Fs0, lfe_env:new()) of
                 {ok,Fs1,Fenv,_} ->
-                    case lfe_lint:module(Fs1) of
-                        {ok,Ws} -> {ok,Fs1,Fenv,Ws};
-                        {error,_,_}=Error -> Error
+                    case lfe_comp:group_modules(Fs1) of
+                        [{ok,_,Fs2,_}] ->       %Only single module
+                            case lfe_lint:module(Fs2) of
+                                {ok,_,Ws} -> {ok,Fs2,Fenv,Ws};
+                                {error,_,_}=Error -> Error
+                            end;
+                        _ -> {error,[{0,lfe_lint,{bad_mdef,multi}}],[]}
                     end;
                 {error,_,_}=Error -> Error
             end;
@@ -590,22 +597,37 @@ safe_fetch(Key, D, Def) ->
 %% c(File [,Args]) -> {ok,Module} | error.
 %%  Compile and load an LFE file.
 
-c(F) -> c(F, []).
+c(File) -> c(File, []).
 
-c(F, Os0) ->
-    Os1 = [report,verbose|Os0],                 %Always report verbosely
-    Loadm = fun ([]) -> {module,[]};
-                (Mod) ->
-                    Base = filename:basename(F, ".lfe"),
-                    code:purge(Mod),
-                    R = code:load_abs(Base),
-                    R
-            end,
-    case lfe_comp:file(F, Os1) of
-        {ok,Mod,_} -> Loadm(Mod);
-        {ok,Mod} -> Loadm(Mod);
-        Other -> Other
+c(File, Opts0) ->
+    Opts1 = [report,verbose|Opts0],             %Always report verbosely
+    case lfe_comp:file(File, Opts1) of
+        Ok when element(1, Ok) =:= ok ->        %Compilation successful
+            Return = lists:member(return, Opts1),
+            Binary = lists:member(binary, Opts1),
+            OutDir = outdir(Opts1),
+            load_files(Ok, Return, Binary, OutDir);
+        Error -> Error
     end.
+
+load_files(Ok, _, true, _) -> Ok;               %Binary output
+load_files(Ok, Ret, _, Out) ->                  %Beam files created.
+    Mods = element(2, Ok),
+    lists:map(fun (M) -> load_file(M, Ret, Out) end, Mods).
+
+load_file(Ok, _, Out) ->
+    case element(2, Ok) of
+        [] -> Ok;                               %No module file to load
+        Mod ->                                  %We have a module name
+            Bfile = filename:join(Out, atom_to_list(Mod)),
+            code:purge(Mod),
+            code:load_abs(Bfile, Mod)           %Undocumented
+    end.
+
+outdir([{outdir,Dir}|_]) -> Dir;                %Erlang way
+outdir([[outdir,Dir]|_]) -> Dir;                %LFE way
+outdir([_|Opts]) -> outdir(Opts);
+outdir([]) -> ".".
 
 %% cd(Dir) -> ok.
 
@@ -621,20 +643,39 @@ ec(F, Os) -> c:c(F, Os).
 %% help() -> ok.
 
 help() ->
-    io:put_chars(<<"(c File)    -- compile and load code in <File>\n"
-                   "(cd Dir)    -- change working directory\n"
-                   "(ec File)   -- compile and load code in erlang <File>\n"
+    io:put_chars(<<"\nLFE shell built-in functions\n\n"
+                   "(c file)    -- compile and load code in <file>\n"
+                   "(cd dir)    -- change working directory to <dir>\n"
+                   "(ec file)   -- compile and load code in erlang <file>\n"
+                   "(exit)      -- quit - an alias for (q)\n"
                    "(help)      -- help info\n"
                    "(i)         -- information about the system\n"
-                   "(l Module)  -- load or reload module\n"
+                   "(l module)  -- load or reload <module>\n"
                    "(ls)        -- list files in the current directory\n"
-                   "(ls Dir)    -- list files in directory <Dir>\n"
+                   "(clear)     -- clear the the REPL output\n"
+                   "(ls dir)    -- list files in directory <dir>\n"
                    "(m)         -- which modules are loaded\n"
-                   "(m Mod)     -- information about module <Mod>\n"
-                   "(pid X Y Z) -- convert X,Y,Z to a Pid\n"
+                   "(m mod)     -- information about module <mod>\n"
+                   "(pid x y z) -- convert <x>, <y> and <z> to a pid\n"
                    "(pwd)       -- print working directory\n"
-                   "(q)         -- quit - shorthand for init:stop()\n"
-                   "(regs)      -- information about registered processes\n"
+                   "(q)         -- quit - shorthand for init:stop/0\n"
+                   "(flush)     -- flushes all messages sent to the shell\n"
+                   "(regs)      -- information about registered processes\n\n"
+                   "LFE shell built-in commands\n\n"
+                   "(reset-environment)             -- resets the environment to its initial state\n"
+                   "(set pattern expr)\n"
+                   "(set pattern (when guard) expr) -- evaluate <expr> and match the result with\n"
+                   "                                   pattern binding\n"
+                   "(slurp file)                    -- slurp in a LFE source <file> and makes\n"
+                   "                                   everything available in the shell\n"
+                   "(unslurp)                       -- revert back to the state before the last\n"
+                   "                                   slurp\n"
+                   "(run file)                      -- execute all the shell commands in a <file>\n\n"
+                   "LFE shell built-in variables\n\n"
+                   "+/++/+++      -- the tree previous expressions\n"
+                   "*/**/***      -- the values of the previous expressions\n"
+                   "-             -- the current expression output\n"
+                   "$ENV          -- the current LFE environment\n\n"
                  >>).
 
 %% i([Pids]) -> ok.
@@ -652,6 +693,10 @@ l(Ms) ->
 %% ls(Dir) -> ok.
 
 ls(Dir) -> apply(c, ls, Dir).
+
+%% clear() -> ok.
+
+clear() -> io:format("\e[H\e[J").
 
 %% m([Modules]) -> ok.
 %%  Print module information.
@@ -685,6 +730,10 @@ pwd() -> c:pwd().
 %% q() -> ok.
 
 q() -> c:q().
+
+%% flush() -> ok.
+
+flush() -> c:flush().
 
 %% regs() -> ok.
 

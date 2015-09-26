@@ -4,8 +4,8 @@
 )
 
 (defmacro let@
-  (((vb . vbs) . b) `(let (,vb) (let@ ,vbs . ,b)))
-  ((() . b) `(begin . ,b)))
+  ((cons (cons vb vbs) b) `(let (,vb) (let@ ,vbs . ,b)))
+  ((cons () b) `(begin . ,b)))
 
 (defsyntax let&
   ([(vb . vbs) . b] [let (vb) (let& vbs . b)])
@@ -37,8 +37,8 @@
 
 (defun ab (x y)
   (let@ ((o (e x))
-     (p (e-1 y)))
-    (tuple o p)))
+         (p (e-1 y)))
+        (tuple o p)))
 
 (defun ac (x y)
   (and-also (e x) (e-1 y) (aa x y))
@@ -50,17 +50,17 @@
 
 (defun ae (x y)
   (c-ond ((p-1 x) (e-1 y) (list x y))
-     ((?= (p . ps) (e-1 x))        ;Match (p . ps) or fail
+     ((?= (cons p ps) (e-1 x))          ;Match (p . ps) or fail
       (list p ps))
      ((p-2 x) (e y) (tuple x y))
      (else (e y))))
 
 (defun af (x y)
   (cond ((p-1 x) (e-1 y) (list x y))
-    ((?= (p . ps) (e-1 x))        ;Match (p . ps) or fail
-     (list p ps))
-    ((p-2 x) (e y) (tuple x y))
-    (else (e y))))
+        ((?= (p . ps) (e-1 x))          ;Match (p . ps) or fail
+         (list p ps))
+        ((p-2 x) (e y) (tuple x y))
+        (else (e y))))
 
 (defun e (x) (list 'e x))
 
@@ -85,7 +85,7 @@
     (fletrec ((e (a) (aa a a)))
       (e x))))
 
-(define-syntax tmac            ;Old style still valid
+(define-syntax tmac                     ;Old style still valid
   (macro
     ((e) `(tuple 'ok ,e))
     ((e . es) `(tuple 'ok (tuple ,e . ,es)))))
@@ -93,7 +93,7 @@
 (defun t1 (x y)
   (list (tmac x) (tmac x 1 y 2)))
 
-(define-syntax d-o            ;Old style still valid
+(define-syntax d-o                      ;Old style still valid
   (syntax-rules
     ([((v i c) ...) (t r) b ...]
      (fletrec ((f (v ...)

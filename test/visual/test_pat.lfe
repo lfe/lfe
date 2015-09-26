@@ -3,7 +3,7 @@
 ;;; Purpose : Test patterns.
 
 (defmodule test_pat
-  (export (a 2) (b 2) (c 2) (d 2) (f 2) (g 2)))
+  (export (a 2) (b 2) (c 1) (c 2) (d 2) (f 2) (g 2)))
 
 (defsyntax make-foo
   (fs (tuple 'sune . fs)))
@@ -35,6 +35,10 @@
   (('a _) (tuple 2 'a 'anything))
   ((_ _) (tuple 3 'anything)))
 
+(defun c
+  (("1234") 'string)
+  ((_) 'other))
+
 ;; Macro expansion in patterns.
 (defun c (x y)
   (let ((foo (make-foo x y)))
@@ -58,11 +62,11 @@
     ((list 'a m) (tuple 1 'new 'a m))
     ((m . n) (tuple 2 'old m n))
     ((cons m n) (tuple 2 'new m n))
-    ((m n . o) (tuple 3 'old m n o))
-    ((cons m (cons n o))        ;(list* m n o)
+    ;((m n . o) (tuple 3 'old m n o))
+    ((cons m (cons n o))                ;(list* m n o)
      (tuple 3 'new m n o))
     ;; cons/list become "reserved words" like tuple/binary.
-    ((m cons n o) (tuple 4 'old m n o))    ;(cons m (cons n o))
+    ((m cons n o) (tuple 4 'old m n o)) ;(cons m (cons n o))
     ((m list n o) (tuple 5 'old m n o)) ;(cons m (list n o))
     ))
 

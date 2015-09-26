@@ -15,17 +15,12 @@ VPATH = $(SRCDIR)
 ERLCFLAGS = -W1
 ERLC = erlc
 
-EXPM=$(BINDIR)/expm
 LIB=lfe
 
 # To run erl as bash
 FINISH=-run init stop -noshell
 
 # Scripts to be evaluated
-MAPS_MK = 'Has=erl_internal:bif(is_map,1), \
-	HasMaps=if Has -> "-DHAS_MAPS=true\n" ; true -> "\n" end, \
-	file:write_file("maps.mk", "HAS_MAPS = " ++ HasMaps)' \
-	$(FINISH)
 
 GET_VERSION = '{ok,[App]}=file:consult("src/$(LIB).app.src"), \
 	V=proplists:get_value(vsn,element(3,App)), \
@@ -51,7 +46,7 @@ $(BINDIR)/%: $(CSRCDIR)/%.c
 	cc -o $@ $<
 
 $(EBINDIR)/%.beam: $(SRCDIR)/%.erl
-	$(ERLC) -I $(INCDIR) -o $(EBINDIR) $(HAS_MAPS) $(ERLCFLAGS) $<
+	$(ERLC) -I $(INCDIR) -o $(EBINDIR) $(MAPS_OPTS) $(ERLCFLAGS) $<
 
 %.erl: %.xrl
 	$(ERLC) -o $(SRCDIR) $<
@@ -61,24 +56,24 @@ $(EBINDIR)/%.beam: $(SRCDIR)/%.erl
 
 all: compile docs
 
-.PHONY: compile erlc_compile install docs clean
+.PHONY: compile erlc-compile install docs clean dockerfile
 
 ## Compile using rebar if it exists else using make
-compile: maps.mk
+compile: maps_opts.mk
 	if which rebar.cmd > /dev/null; \
-	then rebar.cmd compile; \
+	then ERL_LIBS=.:$$ERL_LIBS rebar.cmd compile; \
 	elif which rebar > /dev/null; \
-	then rebar compile; \
-	else $(MAKE) $(MFLAGS) erlc_compile; \
+	then ERL_LIBS=.:$$ERL_LIBS rebar compile; \
+	else $(MAKE) $(MFLAGS) erlc-compile; \
 	fi
 
 ## Compile using erlc
-erlc_compile: $(addprefix $(EBINDIR)/, $(EBINS)) $(addprefix $(BINDIR)/, $(BINS))
+erlc-compile: $(addprefix $(EBINDIR)/, $(EBINS)) $(addprefix $(BINDIR)/, $(BINS))
 
-maps.mk:
-	erl -eval $(MAPS_MK)
+maps_opts.mk:
+	escript get_maps_opts.escript
 
--include maps.mk
+-include maps_opts.mk
 
 install:
 	ln -s `pwd`/bin/lfe $(DESTBINDIR)
@@ -94,7 +89,7 @@ clean:
 	then rebar clean; \
 	else rm -rf $(EBINDIR)/*.beam; \
 	fi
-	rm maps.mk
+	rm maps_opts.mk
 	rm -rf erl_crash.dump
 
 echo:
@@ -103,11 +98,7 @@ echo:
 	@ echo $(YSRCS)
 	@ echo $(EBINS)
 
-$(EXPM): $(BINDIR)
-	curl -o $(EXPM) http://expm.co/__download__/expm
-	chmod +x $(EXPM)
-
-get-deps: $(EXPM)
+get-deps:
 	if which rebar.cmd > /dev/null; \
 	then rebar.cmd get-deps; \
 	elif which rebar > /dev/null; \
@@ -120,11 +111,9 @@ get-version:
 	@echo
 	@echo -n app.src: ''
 	@erl -eval $(GET_VERSION)
-	@echo -n package.exs: ''
-	@grep version package.exs | awk '{print $$2}'| sed -e 's/,//g'
 
-upload: get-deps get-version
-	@echo
-	@echo "Continue with upload? "
-	@read
-	$(EXPM) publish
+# Target to regenerate the src/lfe_parse.erl file from its original
+# src/lfe_parse.spell1 definition.  You will need to have spell1
+# installed somewhere in your $ERL_LIBS path.
+regenerate-parser:
+	erl -noshell -eval 'spell1:file("src/lfe_parse", [report,verbose,{outdir,"./src/"},{includefile,code:lib_dir(spell1,include) ++ "/spell1inc.hrl"}]), init:stop().'
