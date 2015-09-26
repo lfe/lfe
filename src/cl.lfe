@@ -1,6 +1,8 @@
 (defmodule cl
   (export all))
 
+;;; Lists
+
 (defun car
   (('())
    '())
@@ -20,7 +22,7 @@
   (cl:cdr xs))
 
 (defun ncons (x)
-  (cons x '())
+  (cons x '()))
 
 (defun xcons (x y)
   (cons y x))
@@ -53,8 +55,8 @@
 (defun some (pred xs)
   (lists:any pred xs))
 
-(defun notevery (pred sx)
-  (not (lists:all pred xs))
+(defun notevery (pred xs)
+  (not (lists:all pred xs)))
 
 (defun notany (pred xs)
   (not (lists:all pred xs)))
@@ -88,3 +90,10 @@
   ((func xs 'initial-value x 'from-end 'true)
    (lists:foldr func x xs)))
 
+;;; Tuples
+
+
+;;; System
+
+(defun posix-argv ()
+  (init:get_arguments))
