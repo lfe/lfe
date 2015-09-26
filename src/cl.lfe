@@ -90,8 +90,37 @@
   ((func xs 'initial-value x 'from-end 'true)
    (lists:foldr func x xs)))
 
-;;; Tuples
+;;; Types
 
+(defun type-of
+  ((x) (when (is_boolean x))
+   'boolean)
+  ((x) (when (is_atom x))
+   'atom)
+  ((x) (when (is_tuple x))
+   'tuple)
+  ((x) (when (is_integer x))
+   'integer)
+  ((x) (when (is_float x))
+   'float)
+  ((x) (when (is_list x))
+   (cond ((io_lib:printable_latin1_list x) 'string)
+         ((io_lib:printable_unicode_list x) 'unicode)
+         ('true 'list)))
+  ((x) (when (is_map x))
+   'map)
+  ((x) (when (is_function x))
+   'function)
+  ((x) (when (is_binary x))
+   'binary)
+  ((x) (when (is_bitstring x))
+   'bitstring)
+  ((x) (when (is_pid x))
+   'pid)
+  ((x) (when (is_port x))
+   'port)
+  ((x) (when (is_reference x))
+   'reference))
 
 ;;; System
 
