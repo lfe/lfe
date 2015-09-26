@@ -97,26 +97,26 @@ Customization: Entry to this mode runs the hooks on `comint-mode-hook' and
 (defun inferior-lfe (cmd)
   "Run an inferior LFE process, input and output via a buffer `*inferior-lfe*'."
 ;;   (interactive (list (if current-prefix-arg
-;; 			 (read-string "Run LFE: " inferior-lfe-program)
-;; 		       inferior-lfe-program)))
+;;                       (read-string "Run LFE: " inferior-lfe-program)
+;;                     inferior-lfe-program)))
 ;;   (if (not (comint-check-proc "*inferior-lfe*"))
 ;;       (let ((cmdlist (split-string cmd)))
-;; 	(set-buffer (apply (function make-comint)
-;; 			   "inferior-lfe" (car cmdlist) nil (cdr cmdlist)))
-;; 	(inferior-lfe-mode)))
+;;      (set-buffer (apply (function make-comint)
+;;                         "inferior-lfe" (car cmdlist) nil (cdr cmdlist)))
+;;      (inferior-lfe-mode)))
   (interactive (list (if current-prefix-arg
-			 (read-string "Run LFE: ")
-		       ())))
+                         (read-string "Run LFE: ")
+                       ())))
   (let (prog opts)
     (if cmd
-	(setq prog "sh"
-	      opts (list "-i" "-c" cmd))
+        (setq prog "sh"
+              opts (list "-i" "-c" cmd))
       (setq prog inferior-lfe-program
-	    opts (append inferior-lfe-program-options
-			 '("-env" "TERM" "vt100"))))
+            opts (append inferior-lfe-program-options
+                         '("-env" "TERM" "vt100"))))
     (when (not (comint-check-proc "*inferior-lfe*"))
       (set-buffer (apply (function make-comint)
-			 "inferior-lfe" prog nil opts))
+                         "inferior-lfe" prog nil opts))
       (inferior-lfe-mode))
     (setq inferior-lfe-buffer "*inferior-lfe*")
     (pop-to-buffer "*inferior-lfe*")))
@@ -148,22 +148,22 @@ With argument, positions cursor at end of buffer."
   (interactive "P")
   (if (get-buffer-process inferior-lfe-buffer)
       (let ((pop-up-frames
-	     ;; Be willing to use another frame
-	     ;; that already has the window in it.
-	     (or pop-up-frames
-		 (get-buffer-window inferior-lfe-buffer t))))
-	(pop-to-buffer inferior-lfe-buffer))
+             ;; Be willing to use another frame
+             ;; that already has the window in it.
+             (or pop-up-frames
+                 (get-buffer-window inferior-lfe-buffer t))))
+        (pop-to-buffer inferior-lfe-buffer))
       (run-lfe inferior-lfe-program))
   (when eob-p
-	 (push-mark)
+         (push-mark)
     (goto-char (point-max))))
 
 (defun inferior-lfe-proc ()
   (let ((proc (get-buffer-process (if (eq major-mode 'inferior-lfe-mode)
-				      (current-buffer)
-				    inferior-lfe-buffer))))
+                                      (current-buffer)
+                                    inferior-lfe-buffer))))
     (or proc
-	(error "No LFE subprocess; see variable `inferior-lfe-buffer'"))))
+        (error "No LFE subprocess; see variable `inferior-lfe-buffer'"))))
 
 ;; The end.
 (provide 'inferior-lfe)

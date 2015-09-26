@@ -47,7 +47,8 @@ static char* possibly_quote(char *arg);
 
 int main(int argc, char **argv) {
   char *emu;			/* Emulator */
-  char pa[1024];		/* Path */
+  char *rootdir;		/* $LFE_ROOTDIR */
+  char *pa;			/* Path */
   char *arg;
   int i;
   int eval = 0;			/* Are 'eval'ing? */
@@ -55,10 +56,15 @@ int main(int argc, char **argv) {
   /* The erl program and the ebin directory */
   emu = DEFAULT_PROGNAME;
 
-  sprintf(pa, "%s/ebin", getenv("LFE_ROOTDIR"));
+  rootdir = getenv("LFE_ROOTDIR");
+  if (rootdir == NULL) {
+      error("LFE_ROOTDIR envionment variable is not set");
+  }
+  pa = emalloc(strlen(rootdir) + 6);
+  sprintf(pa, "%s/ebin", rootdir);
 
   /* Allocate and initialise the erl argument array. */
-  Eargv = malloc(sizeof(*argv) * (argc + 16));
+  Eargv = emalloc(sizeof(*argv) * (argc + 16));
   Eargc = 0;
   PUSH(emu);			/* The program we are going to run */
 

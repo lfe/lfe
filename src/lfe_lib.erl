@@ -47,7 +47,7 @@
 %% is_bif(Name, Arity) -> bool().
 %% is_erl_bif(Name, Arity) -> bool().
 %% is_guard_bif(Name, Arity) -> bool().
-%% Collected tests for valid BIFs in guards and expressions.
+%%  Collected tests for valid BIFs in guards and expressions.
 
 is_bif(Name, Ar) ->
     is_lfe_bif(Name, Ar) orelse is_erl_bif(Name, Ar).
@@ -75,7 +75,7 @@ is_symb(S) -> is_atom(S).
 is_symb_list([S|Ss]) when is_atom(S) ->
     is_symb_list(Ss);
 is_symb_list([]) -> true;
-is_symb_list(_) -> false.            %Might not be a proper list
+is_symb_list(_) -> false.                       %Might not be a proper list
 
 is_proper_list([_|Ss]) -> is_proper_list(Ss);
 is_proper_list([]) -> true;
@@ -298,7 +298,7 @@ sublis(Alist, Tree) ->
             end
     end.
 
-eval(Sexpr) -> eval(Sexpr, lfe_env:new()).  %Empty environment.
+eval(Sexpr) -> eval(Sexpr, lfe_env:new()).      %Empty environment.
 eval(Sexpr, Env) -> lfe_eval:expr(Sexpr, Env).
 
 'macro-function'(Symb) -> 'macro-function'(Symb, lfe_env:new()).
@@ -335,7 +335,7 @@ macroexpand(Form, Env) ->
 %%  used to format terms; and Indentation is the current column.
 
 format_exception(Cl, Error0, St0, Sf, Ff, I) ->
-    Cs = case Cl of                         %Class type as string
+    Cs = case Cl of                             %Class type as string
              throw -> "throw";
              exit -> "exit";
              error -> "error"
@@ -344,7 +344,7 @@ format_exception(Cl, Error0, St0, Sf, Ff, I) ->
                        true -> {Error0,St0};
                        false -> {{Error0,St0},[]}
                    end,
-    P = "exception " ++ Cs ++ ": ",         %Class description string
+    P = "exception " ++ Cs ++ ": ",             %Class description string
     [P,lfe_io:prettyprint1(Error1, 10, length(P)+I-1),"\n",
      format_stacktrace(St1, Sf, Ff)].
 

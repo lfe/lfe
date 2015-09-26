@@ -42,32 +42,23 @@ print([IoDevice,] Sexpr) -> ok
 
         Print the s-expr Sexpr to the standard output (IoDevice).
 
-prettyprint([IoDevice,] Sexpr) -> ok
-
-        Pretty print the s-expr Sexpr to the standard output
-        (IoDevice). Assume we start with no indentation.
-
 print1(Sexpr) -> DeepCharList
 
         Return the list of characters which represent the s-expr Sexpr.
 
-prettyprint1(Sexpr, CurrentIndentation) -> DeepCharList
+prettyprint1(Sexpr) -> DeepCharList
+prettyprint1(Sexpr, Depth) -> DeepCharList
+prettyprint1(Sexpr, Depth, Indentation) -> DeepCharList
+prettyprint1(Sexpr, Depth, Indentation, LineLength) -> DeepCharList
 
         Return the lost of characters which represents the
         prettyprinted s-expr Sexpr. Assume we start at indentation
-        CurrentIndentation.
-
-print1_symb(Symbol) -> DeepCharList.
-
-        Return the list of characters needed to print the symbol Symbol.
-
-print1_string(String) -> DeepCharList.
-
-        Return the list of characters needed to print the string
-        String as a string.
+        Indentation or 0.
 
 format([IoDevice,] Format, Args) -> ok
+fwrite([IoDevice,] Format, Args) -> ok
 format1(Format, Args) -> DeepCharList
+fwrite1(Format, Args) -> DeepCharList
 
         Print formatted output. The following commands are valid in
         the format string:

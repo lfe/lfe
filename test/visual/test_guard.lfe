@@ -3,7 +3,7 @@
 
 (defun b (x) x)
 
-(define (b) '"a string")        ;Old style
+(define (b) '"a string")                ;Old style
 
 (defun c (x y)
   (case (b x)
@@ -26,8 +26,8 @@
   (case (b x)
     (#(ok z) (d '|#(ok z)| 'z))
     ((tuple 'ok z) (when (andalso (> (+ z 1) 5)
-                  (orelse x (> (+ z 1) 3))
-                  (/= z 7)))
+                                  (orelse x (> (+ z 1) 3))
+                                  (/= z 7)))
      (d 'andalso z))))
 
 (defun f (x y)
@@ -37,5 +37,5 @@
 
 (defun if-test
   ([x y] (when (if (> (+ x y) 10) 'true
-		   'false)) 1)
+                   'false)) 1)
   ([x y] 2))

@@ -1,4 +1,4 @@
-%% Copyright (c) 2014 Robert Virding
+%% Copyright (c) 2014-2015 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -23,3 +23,8 @@
                 ipath=[],                       %Include path
                 mod=none                        %Module name
             }).
+
+-record(module, {name=[],                       %Module name
+                 code,                          %Module code
+                 warnings=[]                    %Module warnings
+                }).

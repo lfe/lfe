@@ -120,7 +120,7 @@ eval_expr([map|As], Env) ->
     Pairs = map_pairs(As, Env),
     maps:from_list(Pairs);
 eval_expr(['mref',Map,K], Env) ->
-    Key = map_key(K),
+    Key = map_key(K, Env),
     maps:get(Key, eval_expr(Map, Env));
 eval_expr(['mset',M|As], Env) ->
     Map = eval_expr(M, Env),
@@ -209,7 +209,8 @@ get_bitsegs(Segs) ->
     foldr(fun (S, Vs) -> get_bitseg(S, Vs) end, [], Segs).
 
 %% get_bitseg(Bitseg, ValSpecs) -> ValSpecs.
-%% A bitseg is either an atomic value, a list of value and specs, or a string.
+%%  A bitseg is either an atomic value, a list of value and specs, or
+%%  a string.
 
 get_bitseg([Val|Specs]=Seg, Vsps) ->
     case is_posint_list(Seg) of                 %Is bitseg a string?
@@ -259,30 +260,30 @@ eval_bitseg(Val, Sz, Ty, Eval) ->
 
 eval_exp_bitseg(Val, Size, Eval, Type) ->
     case Type of
-    %% Integer types.
-    {integer,Un,Si,En} ->
-        Sz = Eval(Size),
-        eval_int_bitseg(Val, Sz*Un, Si, En);
-    %% Unicode types, ignore unused fields.
-    {utf8,_,_,_} -> <<Val/utf8>>;
-    {utf16,_,_,En} -> eval_utf16_bitseg(Val, En);
-    {utf32,_,_,En} -> eval_utf32_bitseg(Val, En);
-    %% Float types.
-    {float,Un,_,En} ->
-        Sz = Eval(Size),
-        eval_float_bitseg(Val, Sz*Un, En);
-    %% Binary types.
-    {binary,Unit,_,_} ->
-        if Size == all ->
-            case bit_size(Val) of
-            Sz when Sz rem Unit =:= 0 ->
-                <<Val:Sz/bitstring>>;
-            _ -> eval_error(badarg)
-            end;
-           true ->
+        %% Integer types.
+        {integer,Un,Si,En} ->
             Sz = Eval(Size),
-            <<Val:(Sz*Unit)/bitstring>>
-        end
+            eval_int_bitseg(Val, Sz*Un, Si, En);
+        %% Unicode types, ignore unused fields.
+        {utf8,_,_,_} -> <<Val/utf8>>;
+        {utf16,_,_,En} -> eval_utf16_bitseg(Val, En);
+        {utf32,_,_,En} -> eval_utf32_bitseg(Val, En);
+        %% Float types.
+        {float,Un,_,En} ->
+            Sz = Eval(Size),
+            eval_float_bitseg(Val, Sz*Un, En);
+        %% Binary types.
+        {binary,Unit,_,_} ->
+            if Size == all ->
+                    case bit_size(Val) of
+                        Sz when Sz rem Unit =:= 0 ->
+                            <<Val:Sz/bitstring>>;
+                        _ -> eval_error(badarg)
+                    end;
+               true ->
+                    Sz = Eval(Size),
+                    <<Val:(Sz*Unit)/bitstring>>
+            end
     end.
 
 eval_int_bitseg(Val, Sz, signed, big) -> <<Val:Sz/signed>>;
@@ -307,22 +308,27 @@ eval_float_bitseg(Val, Sz, native) -> <<Val:Sz/float-native>>.
 %% map_pairs(Args, Env) -> [{K,V}].
 
 map_pairs([K,V|As], Env) ->
-    P = {map_key(K),eval_expr(V, Env)},
+    P = {map_key(K, Env),eval_expr(V, Env)},
     [P|map_pairs(As, Env)];
 map_pairs([], _) -> [];
 map_pairs(_, _) -> eval_error(badarg).
 
-%% map_key(Key) -> Value.
-%%  Map keys can only be literals.
+%% map_key(Key, Env) -> Value.
+%%  A map key can only be a literal in 17 but can be anything in 18..
 
-map_key([quote,E]) -> E;
-map_key([_|_]=L) ->
+-ifdef(HAS_FULL_KEYS).
+map_key(Key, Env) ->
+    eval_expr(Key, Env).
+-else.
+map_key([quote,E], _) -> E;
+map_key([_|_]=L, _) ->
     case is_posint_list(L) of
-        true -> L;                              %Literal strings
+        true -> L;                              %Literal strings only
         false -> eval_error(illegal_mapkey)
     end;
-map_key(E) when not is_atom(E) -> E;            %Everything else
-map_key(_) -> eval_error(illegal_mapkey).
+map_key(E, _) when not is_atom(E) -> E;         %Everything else
+map_key(_, _) -> eval_error(illegal_mapkey).
+-endif.
 
 %% eval_lambda(LambdaBody, Env) -> Val.
 %%  Evaluate (lambda args ...).
@@ -330,39 +336,44 @@ map_key(_) -> eval_error(illegal_mapkey).
 eval_lambda([Args|Body], Env) ->
     %% This is a really ugly hack! But it's the same hack as in erl_eval.
     case length(Args) of
-    0 -> fun () -> apply_lambda([], Body, [], Env) end;
-    1 -> fun (A) -> apply_lambda(Args, Body, [A], Env) end;
-    2 -> fun (A,B) -> apply_lambda(Args, Body, [A,B], Env) end;
-    3 -> fun (A,B,C) -> apply_lambda(Args, Body, [A,B,C], Env) end;
-    4 -> fun (A,B,C,D) -> apply_lambda(Args, Body, [A,B,C,D], Env) end;
-    5 -> fun (A,B,C,D,E) -> apply_lambda(Args, Body, [A,B,C,D,E], Env) end;
-    6 -> fun (A,B,C,D,E,F) ->
-        apply_lambda(Args, Body, [A,B,C,D,E,F], Env) end;
-    7 -> fun (A,B,C,D,E,F,G) ->
-        apply_lambda(Args, Body, [A,B,C,D,E,F,G], Env) end;
-    8 -> fun (A,B,C,D,E,F,G,H) ->
-        apply_lambda(Args, Body, [A,B,C,D,E,F,G,H], Env) end;
-    9 -> fun (A,B,C,D,E,F,G,H,I) ->
-        apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I], Env) end;
-    10 -> fun (A,B,C,D,E,F,G,H,I,J) ->
-        apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I,J], Env) end;
-    11 -> fun (A,B,C,D,E,F,G,H,I,J,K) ->
-        apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I,J,K], Env) end;
-    12 -> fun (A,B,C,D,E,F,G,H,I,J,K,L) ->
-        apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I,J,K,L], Env) end;
-    13 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M) ->
-        apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I,J,K,L,M], Env) end;
-    14 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N) ->
-        apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I,J,K,L,M,N], Env) end;
-    15 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O) ->
-        apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I,J,K,L,M,N,O], Env) end
+        0 -> fun () -> apply_lambda([], Body, [], Env) end;
+        1 -> fun (A) -> apply_lambda(Args, Body, [A], Env) end;
+        2 -> fun (A,B) -> apply_lambda(Args, Body, [A,B], Env) end;
+        3 -> fun (A,B,C) -> apply_lambda(Args, Body, [A,B,C], Env) end;
+        4 -> fun (A,B,C,D) -> apply_lambda(Args, Body, [A,B,C,D], Env) end;
+        5 -> fun (A,B,C,D,E) -> apply_lambda(Args, Body, [A,B,C,D,E], Env) end;
+        6 -> fun (A,B,C,D,E,F) ->
+                     apply_lambda(Args, Body, [A,B,C,D,E,F], Env) end;
+        7 -> fun (A,B,C,D,E,F,G) ->
+                     apply_lambda(Args, Body, [A,B,C,D,E,F,G], Env) end;
+        8 -> fun (A,B,C,D,E,F,G,H) ->
+                     apply_lambda(Args, Body, [A,B,C,D,E,F,G,H], Env) end;
+        9 -> fun (A,B,C,D,E,F,G,H,I) ->
+                     apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I], Env) end;
+        10 -> fun (A,B,C,D,E,F,G,H,I,J) ->
+                      apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I,J], Env) end;
+        11 -> fun (A,B,C,D,E,F,G,H,I,J,K) ->
+                      apply_lambda(Args, Body,
+                                   [A,B,C,D,E,F,G,H,I,J,K], Env) end;
+        12 -> fun (A,B,C,D,E,F,G,H,I,J,K,L) ->
+                      apply_lambda(Args, Body,
+                                   [A,B,C,D,E,F,G,H,I,J,K,L], Env) end;
+        13 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M) ->
+                      apply_lambda(Args, Body,
+                                   [A,B,C,D,E,F,G,H,I,J,K,L,M], Env) end;
+        14 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N) ->
+                      apply_lambda(Args, Body,
+                                   [A,B,C,D,E,F,G,H,I,J,K,L,M,N], Env) end;
+        15 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O) ->
+                      apply_lambda(Args, Body,
+                                   [A,B,C,D,E,F,G,H,I,J,K,L,M,N,O], Env) end
     end.
 
 apply_lambda(Args, Body, Vals, Env0) ->
     Env1 = bind_args(Args, Vals, Env0),
     eval_body(Body, Env1).
 
-bind_args(['_'|As], [_|Es], Env) ->        %Ignore don't care variables
+bind_args(['_'|As], [_|Es], Env) ->             %Ignore don't care variables
     bind_args(As, Es, Env);
 bind_args([A|As], [E|Es], Env) when is_atom(A) ->
     bind_args(As, Es, add_vbinding(A, E, Env));
@@ -374,32 +385,39 @@ bind_args([], [], Env) -> Env.
 eval_match_lambda(Cls, Env) ->
     %% This is a really ugly hack! But it's the same hack as in erl_eval.
     case match_lambda_arity(Cls) of
-    0 -> fun () -> apply_match_lambda(Cls, [], Env) end;
-    1 -> fun (A) -> apply_match_lambda(Cls, [A], Env) end;
-    2 -> fun (A,B) -> apply_match_lambda(Cls, [A,B], Env) end;
-    3 -> fun (A,B,C) -> apply_match_lambda(Cls, [A,B,C], Env) end;
-    4 -> fun (A,B,C,D) -> apply_match_lambda(Cls, [A,B,C,D], Env) end;
-    5 -> fun (A,B,C,D,E) -> apply_match_lambda(Cls, [A,B,C,D,E], Env) end;
-    6 -> fun (A,B,C,D,E,F) ->
-        apply_match_lambda(Cls, [A,B,C,D,E,F], Env) end;
-    7 -> fun (A,B,C,D,E,F,G) ->
-        apply_match_lambda(Cls, [A,B,C,D,E,F,G], Env) end;
-    8 -> fun (A,B,C,D,E,F,G,H) ->
-        apply_match_lambda(Cls, [A,B,C,D,E,F,G,H], Env) end;
-    9 -> fun (A,B,C,D,E,F,G,H,I) ->
-        apply_match_lambda(Cls, [A,B,C,D,E,F,G,H,I], Env) end;
-    10 -> fun (A,B,C,D,E,F,G,H,I,J) ->
-        apply_match_lambda(Cls, [A,B,C,D,E,F,G,H,I,J], Env) end;
-    11 -> fun (A,B,C,D,E,F,G,H,I,J,K) ->
-        apply_match_lambda(Cls, [A,B,C,D,E,F,G,H,I,J,K], Env) end;
-    12 -> fun (A,B,C,D,E,F,G,H,I,J,K,L) ->
-        apply_match_lambda(Cls, [A,B,C,D,E,F,G,H,I,J,K,L], Env) end;
-    13 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M) ->
-        apply_match_lambda(Cls, [A,B,C,D,E,F,G,H,I,J,K,L,M], Env) end;
-    14 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N) ->
-        apply_match_lambda(Cls, [A,B,C,D,E,F,G,H,I,J,K,L,M,N], Env) end;
-    15 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O) ->
-        apply_match_lambda(Cls, [A,B,C,D,E,F,G,H,I,J,K,L,M,N,O], Env) end
+        0 -> fun () -> apply_match_lambda(Cls, [], Env) end;
+        1 -> fun (A) -> apply_match_lambda(Cls, [A], Env) end;
+        2 -> fun (A,B) -> apply_match_lambda(Cls, [A,B], Env) end;
+        3 -> fun (A,B,C) -> apply_match_lambda(Cls, [A,B,C], Env) end;
+        4 -> fun (A,B,C,D) -> apply_match_lambda(Cls, [A,B,C,D], Env) end;
+        5 -> fun (A,B,C,D,E) -> apply_match_lambda(Cls, [A,B,C,D,E], Env) end;
+        6 -> fun (A,B,C,D,E,F) ->
+                     apply_match_lambda(Cls, [A,B,C,D,E,F], Env) end;
+        7 -> fun (A,B,C,D,E,F,G) ->
+                     apply_match_lambda(Cls, [A,B,C,D,E,F,G], Env) end;
+        8 -> fun (A,B,C,D,E,F,G,H) ->
+                     apply_match_lambda(Cls, [A,B,C,D,E,F,G,H], Env) end;
+        9 -> fun (A,B,C,D,E,F,G,H,I) ->
+                     apply_match_lambda(Cls, [A,B,C,D,E,F,G,H,I], Env) end;
+        10 -> fun (A,B,C,D,E,F,G,H,I,J) ->
+                      apply_match_lambda(Cls, [A,B,C,D,E,F,G,H,I,J], Env) end;
+        11 -> fun (A,B,C,D,E,F,G,H,I,J,K) ->
+                      apply_match_lambda(Cls,
+                                         [A,B,C,D,E,F,G,H,I,J,K], Env) end;
+        12 -> fun (A,B,C,D,E,F,G,H,I,J,K,L) ->
+                      apply_match_lambda(Cls,
+                                         [A,B,C,D,E,F,G,H,I,J,K,L], Env) end;
+        13 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M) ->
+                      apply_match_lambda(Cls,
+                                         [A,B,C,D,E,F,G,H,I,J,K,L,M], Env) end;
+        14 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N) ->
+                      apply_match_lambda(Cls,
+                                         [A,B,C,D,E,F,G,H,I,J,K,L,M,N],
+                                         Env) end;
+        15 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O) ->
+                      apply_match_lambda(Cls,
+                                         [A,B,C,D,E,F,G,H,I,J,K,L,M,N,O],
+                                         Env) end
     end.
 
 match_lambda_arity([[Pats|_]|_]) -> length(Pats).
@@ -660,35 +678,35 @@ eval_try_catch([['after'|B]], E, Case, Env) ->
 %% We do it all in one, not so efficient but easier.
 eval_try(E, Case, Catch, After, Env) ->
     try
-    eval_expr(E, Env)
+        eval_expr(E, Env)
     of
-    Ret ->
-        case Case of
-        {yes,Cls} -> eval_case_clauses(Ret, Cls, Env);
-        no -> Ret
-        end
+        Ret ->
+            case Case of
+                {yes,Cls} -> eval_case_clauses(Ret, Cls, Env);
+                no -> Ret
+            end
     catch
-    Class:Error ->
-        %% Try does return the stacktrace here but we can't hit it
-        %% so we have to explicitly get it.
-        Stack = erlang:get_stacktrace(),
-        case Catch of
-        {yes,Cls} ->
-            eval_catch_clauses({Class,Error,Stack}, Cls, Env);
-        no ->
-            erlang:raise(Class, Error, Stack)
-        end
+        Class:Error ->
+            %% Try does return the stacktrace here but we can't hit it
+            %% so we have to explicitly get it.
+            Stack = erlang:get_stacktrace(),
+            case Catch of
+                {yes,Cls} ->
+                    eval_catch_clauses({Class,Error,Stack}, Cls, Env);
+                no ->
+                    erlang:raise(Class, Error, Stack)
+            end
     after
-    case After of
-        {yes,B} -> eval_body(B, Env);
-        no -> []
-    end
+        case After of
+            {yes,B} -> eval_body(B, Env);
+            no -> []
+        end
     end.
 
 eval_catch_clauses(V, [[Pat|B0]|Cls], Env) ->
     case match_when(Pat, V, B0, Env) of
-    {yes,B1,Vbs} -> eval_body(B1, add_vbindings(Vbs, Env));
-    no -> eval_catch_clauses(V, Cls, Env)
+        {yes,B1,Vbs} -> eval_body(B1, add_vbindings(Vbs, Env));
+        no -> eval_catch_clauses(V, Cls, Env)
     end;
 eval_catch_clauses({Class,Error,Stack}, [], _) ->
     erlang:raise(Class, Error, Stack).
@@ -743,7 +761,7 @@ eval_gbody(Gts, Env) ->
 eval_gexpr([quote,E], _) -> E;
 eval_gexpr([cons,H,T], Env) ->
     [eval_gexpr(H, Env)|eval_gexpr(T, Env)];
-eval_gexpr([car,E], Env) -> hd(eval_gexpr(E, Env));    %Provide lisp names
+eval_gexpr([car,E], Env) -> hd(eval_gexpr(E, Env)); %Provide lisp names
 eval_gexpr([cdr,E], Env) -> tl(eval_gexpr(E, Env));
 eval_gexpr([list|Es], Env) -> eval_glist(Es, Env);
 eval_gexpr([tuple|Es], Env) -> list_to_tuple(eval_glist(Es, Env));
@@ -752,7 +770,7 @@ eval_gexpr([map|As], Env) ->
     Pairs = gmap_pairs(As, Env),
     maps:from_list(Pairs);
 %% eval_gexpr(['mref',K,Map], Env) ->
-%%     Key = map_key(K),
+%%     Key = map_key(K, Env),
 %%     maps:get(Key, eval_gexpr(Map, Env));
 eval_gexpr(['mset',M|As], Env) ->
     Map = eval_gexpr(M, Env),
@@ -776,21 +794,21 @@ eval_gexpr([call,[quote,erlang],F0|As], Env) ->
     Ar = length(As),
     F1 = eval_gexpr(F0, Env),
     case get_gbinding(F1, Ar, Env) of
-    {yes,M,F} -> erlang:apply(M, F, eval_glist(As, Env));
-    _ -> eval_error({unbound_func,{F1,Ar}})
+        {yes,M,F} -> erlang:apply(M, F, eval_glist(As, Env));
+        _ -> eval_error({unbound_func,{F1,Ar}})
     end;
 eval_gexpr([Fun|Es], Env) when is_atom(Fun) ->
     Ar = length(Es),
     case get_gbinding(Fun, Ar, Env) of
-    {yes,M,F} -> erlang:apply(M, F, eval_glist(Es, Env));
-    _ -> eval_error({unbound_func,Fun})
+        {yes,M,F} -> erlang:apply(M, F, eval_glist(Es, Env));
+        _ -> eval_error({unbound_func,Fun})
     end;
 eval_gexpr([_|_], _) ->
     eval_error(illegal_guard);
 eval_gexpr(Symb, Env) when is_atom(Symb) ->
     case get_vbinding(Symb, Env) of
-    {yes,Val} -> Val;
-    no -> eval_error({unbound_symb,Symb})
+        {yes,Val} -> Val;
+        no -> eval_error({unbound_symb,Symb})
     end;
 eval_gexpr(E, _) -> E.                %Atoms evaluate to themselves.
 
@@ -808,10 +826,27 @@ eval_gbinary(Segs, Env) ->
 %% gmap_pairs(Args, Env) -> [{K,V}].
 
 gmap_pairs([K,V|As], Env) ->
-    P = {map_key(K),eval_gexpr(V, Env)},
+    P = {gmap_key(K, Env),eval_gexpr(V, Env)},
     [P|gmap_pairs(As, Env)];
 gmap_pairs([], _) -> [];
 gmap_pairs(_, _) -> eval_error(badarg).
+
+%% gmap_key(Key, Env) -> Value.
+%%  A map key can only be a literal in 17 but can be anything in 18..
+
+-ifdef(HAS_FULL_KEYS).
+gmap_key(Key, Env) ->
+    eval_gexpr(Key, Env).
+-else.
+gmap_key([quote,E], _) -> E;
+gmap_key([_|_]=L, _) ->
+    case is_posint_list(L) of
+        true -> L;                              %Literal strings only
+        false -> eval_error(illegal_mapkey)
+    end;
+gmap_key(E, _) when not is_atom(E) -> E;        %Everything else
+gmap_key(_, _) -> eval_error(illegal_mapkey).
+-endif.
 
 %% eval_gif(IfBody, Env) -> Val.
 
@@ -822,8 +857,8 @@ eval_gif([Test,True,False], Env) ->
 
 eval_gif(Test, True, False, Env) ->
     case eval_gexpr(Test, Env) of
-    true -> eval_gexpr(True, Env);
-    false -> eval_gexpr(False, Env)
+        true -> eval_gexpr(True, Env);
+        false -> eval_gexpr(False, Env)
     end.
 
 %% match(Pattern, Value, Env) -> {yes,PatBindings} | no.
@@ -870,7 +905,7 @@ match([P|Ps], [V|Vs], Pbs0, Env) ->
         {yes,Pbs1} -> match(Ps, Vs, Pbs1, Env);
         no -> no
     end;
-%% match([_|_], _, _, _) ->                        %No constructor
+%% match([_|_], _, _, _) ->                     %No constructor
 %%     eval_error(illegal_pattern);
 match([], [], Pbs, _) -> {yes,Pbs};
 match(Symb, Val, Pbs, Env) when is_atom(Symb) ->
@@ -890,7 +925,7 @@ match_symb('_', _, Pbs, _) -> {yes,Pbs};        %Don't care variable.
 match_symb(S, Val, Pbs, _) ->
     %% Check if Symb already bound.
     case find(S, Pbs) of
-        {ok,_} -> eval_error({multi_var,S});  %Already bound, multiple var
+        {ok,_} -> eval_error({multi_var,S});    %Already bound, multiple var
         error -> {yes,store(S, Val, Pbs)}       %Not yet bound
     end.
 
@@ -910,7 +945,7 @@ match_bitsegs([{Pat,Sz,Ty}|Psps], Bin0, Bbs0, Pbs0, Env) ->
         no -> no
     end;
 match_bitsegs([], <<>>, _, Pbs, _) -> {yes,Pbs}; %Reached the end of both
-match_bitsegs([], _, _, _, _) -> no.         %More to go
+match_bitsegs([], _, _, _, _) -> no.            %More to go
 
 match_bitseg(Pat, Size, Type, Bin0, Bbs0, Pbs0, Env) ->
     Sz = get_pat_bitsize(Size, Type, Bbs0, Pbs0, Env),
@@ -935,12 +970,12 @@ get_pat_bitsize(S, _, _, _, _) when is_integer(S) -> S;
 get_pat_bitsize(S, _, Bbs, _, Env) when is_atom(S) ->
     %% Variable either in environment or bound in binary.
     case get_vbinding(S, Env) of
-    {yes,V} -> V;
-    no ->
-        case find(S, Bbs) of
-        {ok,V} -> V;
-        error -> eval_error({unbound_symb,S})
-        end
+        {yes,V} -> V;
+        no ->
+            case find(S, Bbs) of
+                {ok,V} -> V;
+                error -> eval_error({unbound_symb,S})
+            end
     end.
 
 match_bitexpr(N, Val, Bbs, Pbs, _) when is_number(N) ->
@@ -951,9 +986,9 @@ match_bitexpr('_', _, Bbs, Pbs, _) -> {yes,Bbs,Pbs};
 match_bitexpr(S, Val, Bbs, Pbs, _) when is_atom(S) ->
     %% Don't need value, just check if symbol is set.
     case is_key(S, Bbs) or is_key(S, Pbs) of
-    true -> eval_error({multi_var,S});
-    false ->
-        {yes,store(S, Val, Bbs),store(S, Val, Pbs)}
+        true -> eval_error({multi_var,S});
+        false ->
+            {yes,store(S, Val, Bbs),store(S, Val, Pbs)}
     end;
 match_bitexpr(_, _, _, _, _) -> eval_error(illegal_bitseg).
 
@@ -963,25 +998,25 @@ match_bitexpr(_, _, _, _, _) -> eval_error(illegal_bitseg).
 
 get_pat_bitseg(Bin, Size, Type) ->
     case Type of
-    %% Integer types.
-    {integer,Un,Si,En} ->
-        get_int_bitseg(Bin, Size*Un, Si, En);
-    %% Unicode types, ignore unused bitsegs.
-    {utf8,_,_,_} -> get_utf8_bitseg(Bin);
-    {utf16,_,_,En} -> get_utf16_bitseg(Bin, En);
-    {utf32,_,_,En} -> get_utf32_bitseg(Bin, En);
-    %% Float types.
-    {float,Un,_,En} -> get_float_bitseg(Bin, Size*Un, En);
-    %% Binary types.
-    {binary,Un,_,_} ->
-        if Size == all ->
-            0 = (bit_size(Bin) rem Un),
-            {Bin,<<>>};
-           true ->
-            TotSize = Size * Un,
-            <<Val:TotSize/bitstring,Rest/bitstring>> = Bin,
-            {Val,Rest}
-        end
+        %% Integer types.
+        {integer,Un,Si,En} ->
+            get_int_bitseg(Bin, Size*Un, Si, En);
+        %% Unicode types, ignore unused bitsegs.
+        {utf8,_,_,_} -> get_utf8_bitseg(Bin);
+        {utf16,_,_,En} -> get_utf16_bitseg(Bin, En);
+        {utf32,_,_,En} -> get_utf32_bitseg(Bin, En);
+        %% Float types.
+        {float,Un,_,En} -> get_float_bitseg(Bin, Size*Un, En);
+        %% Binary types.
+        {binary,Un,_,_} ->
+            if Size == all ->
+                    0 = (bit_size(Bin) rem Un),
+                    {Bin,<<>>};
+               true ->
+                    TotSize = Size * Un,
+                    <<Val:TotSize/bitstring,Rest/bitstring>> = Bin,
+                    {Val,Rest}
+            end
     end.
 
 get_int_bitseg(Bin, Sz, signed, big) ->
@@ -1037,10 +1072,10 @@ get_float_bitseg(Bin, Sz, native) ->
     <<Val:Sz/float-native,Rest/bitstring>> = Bin,
     {Val,Rest}.
 
-%% match_map(Ps, Map, PatBindings, Env) -> {yes,PatBindings} | no.
+%% match_map(Pairs, Map, PatBindings, Env) -> {yes,PatBindings} | no.
 
 match_map([K,V|Ps], Map, Pbs0, Env) ->
-    Pat = map_key(K),                           %Evaluate the key
+    Pat = pat_map_key(K),                       %Evaluate the key
     case maps:is_key(Pat, Map) of
         true ->
             case match(V, maps:get(Pat, Map), Pbs0, Env) of
@@ -1051,6 +1086,15 @@ match_map([K,V|Ps], Map, Pbs0, Env) ->
     end;
 match_map([], _, Pbs, _) -> {yes,Pbs};
 match_map(_, _, _, _) -> eval_error(illegal_pattern).
+
+pat_map_key([quote,E]) -> E;
+pat_map_key([_|_]=L) ->
+    case is_posint_list(L) of
+        true -> L;                              %Literal strings only
+        false -> eval_error(illegal_mapkey)
+    end;
+pat_map_key(E) when not is_atom(E) -> E;        %Everything else
+pat_map_key(_) -> eval_error(illegal_mapkey).
 
 %% eval_lit(Literal, Env) -> Value.
 %%  Evaluate a literal expression. Error if invalid.

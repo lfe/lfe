@@ -27,14 +27,14 @@
 -module(lfe_trans).
 
 -export([from_expr/1,from_expr/2,from_body/1,from_body/2,from_lit/1,
-     to_expr/2,to_lit/2]).
+         to_expr/2,to_lit/2]).
 
 -import(lists, [map/2,foldl/3,mapfoldl/3,foldr/3,splitwith/2]).
 
 -define(Q(E), [quote,E]).                       %We do a lot of quoting
 
 -record(from, {vc=0                             %Variable counter
-          }).
+              }).
 
 %% from_expr(AST) -> Sexpr.
 %% from_expr(AST, Variables) -> {Sexpr,Variables}.
@@ -52,7 +52,7 @@ from_expr(E) ->
     S.
 
 from_expr(E, Vs0) ->
-    Vt0 = ordsets:from_list(Vs0),                   %We are clean
+    Vt0 = ordsets:from_list(Vs0),               %We are clean
     {S,Vt1,_} = from_expr(E, Vt0, #from{}),
     {S,ordsets:to_list(Vt1)}.
 
@@ -61,18 +61,18 @@ from_body(Es) ->
     [progn|Les].
 
 from_body(Es, Vs0) ->
-    Vt0 = ordsets:from_list(Vs0),                   %We are clean
+    Vt0 = ordsets:from_list(Vs0),               %We are clean
     {Les,Vt1,_} = from_body(Es, Vt0, #from{}),
     {[progn|Les],ordsets:to_list(Vt1)}.
 
 %% from_expr(AST, VarTable, State) -> {Sexpr,VarTable,State}.
 
-from_expr({var,_,V}, Vt, St) -> {V,Vt,St};          %Unquoted atom
+from_expr({var,_,V}, Vt, St) -> {V,Vt,St};      %Unquoted atom
 from_expr({nil,_}, Vt, St) -> {[],Vt,St};
 from_expr({integer,_,I}, Vt, St) -> {I,Vt,St};
 from_expr({float,_,F}, Vt, St) -> {F,Vt,St};
-from_expr({atom,_,A}, Vt, St) -> {?Q(A),Vt,St};     %Quoted atom
-from_expr({string,_,S}, Vt, St) -> {?Q(S),Vt,St};   %Quoted string
+from_expr({atom,_,A}, Vt, St) -> {?Q(A),Vt,St}; %Quoted atom
+from_expr({string,_,S}, Vt, St) -> {?Q(S),Vt,St}; %Quoted string
 from_expr({cons,_,H,T}, Vt0, St0) ->
     {Car,Vt1,St1} = from_expr(H, Vt0, St0),
     {Cdr,Vt2,St2} = from_expr(T, Vt1, St1),
@@ -120,11 +120,11 @@ from_expr({lc,_,E,Qs}, Vt0, St0) ->
     {Lqs,Vt1,St1} = from_lc_quals(Qs, Vt0, St0),
     {Le,Vt2,St2} = from_expr(E, Vt1, St1),
     {[lc,Lqs,Le],Vt2,St2};
-from_expr({record,_,R,Fs}, Vt0, St0) ->             %Create a record
+from_expr({record,_,R,Fs}, Vt0, St0) ->         %Create a record
     MR = list_to_atom("make-" ++ atom_to_list(R)),
     {Lfs,Vt1,St1} = from_rec_fields(Fs, Vt0, St0),
     {[MR|Lfs],Vt1,St1};
-from_expr({record,_,E,R,Fs}, Vt0, St0) ->           %Set fields in record
+from_expr({record,_,E,R,Fs}, Vt0, St0) ->       %Set fields in record
     SR = list_to_atom("set-" ++ atom_to_list(R)),
     {Le,Vt1,St1} = from_expr(E, Vt0, St0),
     {Lfs,Vt2,St2} = from_rec_fields(Fs, Vt1, St1),
@@ -133,18 +133,18 @@ from_expr({record_field,_,E,R,{atom,_,F}}, Vt0, St0) -> %We KNOW!
     RF = list_to_atom(atom_to_list(R) ++ "-" ++ atom_to_list(F)),
     {Le,Vt1,St1} = from_expr(E, Vt0, St0),
     {[RF,Le],Vt1,St1};
-from_expr({record_field,_,_,_}=M, Vt, St) ->        %Pre R16 packages
+from_expr({record_field,_,_,_}=M, Vt, St) ->    %Pre R16 packages
     from_package_module(M, Vt, St);
 %% Function calls.
-from_expr({call,_,{remote,_,M,F},As}, Vt0, St0) ->  %Remote function call
+from_expr({call,_,{remote,_,M,F},As}, Vt0, St0) -> %Remote function call
     {Lm,Vt1,St1} = from_expr(M, Vt0, St0),
     {Lf,Vt2,St2} = from_expr(F, Vt1, St1),
     {Las,Vt3,St3} = from_expr_list(As, Vt2, St2),
     {[call,Lm,Lf|Las],Vt3,St3};
-from_expr({call,_,{atom,_,F},As}, Vt0, St0) ->      %Local function call
+from_expr({call,_,{atom,_,F},As}, Vt0, St0) ->  %Local function call
     {Las,Vt1,St1} = from_expr_list(As, Vt0, St0),
     {[F|Las],Vt1,St1};
-from_expr({call,_,F,As}, Vt0, St0) ->               %F not an atom or remote
+from_expr({call,_,F,As}, Vt0, St0) ->           %F not an atom or remote
     {Lf,Vt1,St1} = from_expr(F, Vt0, St0),
     {Las,Vt2,St2} = from_expr_list(As, Vt1, St1),
     {[funcall,Lf|Las],Vt2,St2};
@@ -368,11 +368,11 @@ from_pat({tuple,_,Es}, Vt0, St0) ->
 from_pat({bin,_,Segs}, Vt0, St0) ->
     {Ss,Eqt,Vt1,St1} = from_pat_bitsegs(Segs, Vt0, St0),
     {[binary|Ss],Eqt,Vt1,St1};
-from_pat({record,_,R,Fs}, Vt0, St0) ->        %Match a record
+from_pat({record,_,R,Fs}, Vt0, St0) ->          %Match a record
     MR = list_to_atom("match-" ++ atom_to_list(R)),
-    {Sfs,Eqt,Vt1,St1} = from_rec_fields(Fs, Vt0, St0),
+    {Sfs,Eqt,Vt1,St1} = from_pat_rec_fields(Fs, Vt0, St0),
     {[MR|Sfs],Eqt,Vt1,St1};
-from_pat({match,_,P1,P2}, Vt0, St0) ->        %Aliases
+from_pat({match,_,P1,P2}, Vt0, St0) ->          %Aliases
     {Lp1,Eqt1,Vt1,St1} = from_pat(P1, Vt0, St0),
     {Lp2,Eqt2,Vt2,St2} = from_pat(P2, Vt1, St1),
     {['=',Lp1,Lp2],Eqt1++Eqt2,Vt2,St2};
@@ -387,6 +387,20 @@ from_pat_list([P|Ps], Vt0, St0) ->
     {Lps,Eqts,Vt2,St2} = from_pat_list(Ps, Vt1, St1),
     {[Lp|Lps],Eqt++Eqts,Vt2,St2};
 from_pat_list([], Vt, St) -> {[],[],Vt,St}.
+
+%% from_pat_rec_fields(Recfields, VarTable, State) ->
+%%     {Recfields,EqTable,VarTable,State}.
+
+from_pat_rec_fields([{record_field,_,{atom,_,F},P}|Fs], Vt0, St0) ->
+    {Lp,Eqt,Vt1,St1} = from_pat(P, Vt0, St0),
+    {Lfs,Eqts,Vt2,St2} = from_pat_rec_fields(Fs, Vt1, St1),
+    {[F,Lp|Lfs],Eqt++Eqts,Vt2,St2};
+from_pat_rec_fields([{record_field,_,{var,_,F},P}|Fs], Vt0, St0) ->
+    %% Special case!!
+    {Lp,Eqt,Vt1,St1} = from_pat(P, Vt0, St0),
+    {Lfs,Eqts,Vt2,St2} = from_pat_rec_fields(Fs, Vt1, St1),
+    {[F,Lp|Lfs],Eqt++Eqts,Vt2,St2};
+from_pat_rec_fields([], Vt, St) -> {[],[],Vt,St}.
 
 %% from_pat_bitsegs(Segs, VarTable, State) -> {Segs,EqTable,VarTable,State}.
 
@@ -457,7 +471,7 @@ to_expr([list|Es], L, Vt, St) ->
                   {{cons,L,Ee,Tail},St1}
           end,
     foldr(Fun, {{nil,L},St}, Es);
-to_expr(['list*'|Es], L, Vt, St) ->        %Macro
+to_expr(['list*'|Es], L, Vt, St) ->             %Macro
     to_expr_list_s(fun to_expr/4, L, Vt, St, Es);
 to_expr([tuple|Es], L, Vt, St0) ->
     {Ees,St1} = to_expr_list(Es, L, Vt, St0),
@@ -605,7 +619,7 @@ to_let_bindings(Lbs, L, Vt, St) ->
                   {Ep,Vt1,St2} = to_pat(P, L, Vt0, St1),
                   {Eg,St3} = to_body(G, L, Vt1, St2),
                   {{'case',L,Ee,[{clause,L,[Ep],Eg,[Ep]}]},Vt1,St3}
-      end,
+          end,
     mapfoldl2(Fun, Vt, St, Lbs).
 
 %% to_icrt_cls(Clauses, LineNumber, VarTable, State) -> {Clauses,State}.
