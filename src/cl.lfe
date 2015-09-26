@@ -19,6 +19,12 @@
 (defun rest (xs)
   (cl:cdr xs))
 
+(defun ncons (x)
+  (cons x '())
+
+(defun xcons (x y)
+  (cons y x))
+
 (defun nth
   ((n xs) (when (or (< n 0) (>= n (length xs))))
    '())
@@ -52,6 +58,11 @@
 
 (defun notany (pred xs)
   (not (lists:all pred xs)))
+
+(defun adjoin (a xs)
+  (case (lists:member a xs)
+    ('true xs)
+    ('false (cons a xs))))
 
 (defun mapcar (func xs)
   (lists:map func xs))
