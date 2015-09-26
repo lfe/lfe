@@ -61,9 +61,9 @@ all: compile docs
 ## Compile using rebar if it exists else using make
 compile: maps_opts.mk
 	if which rebar.cmd > /dev/null; \
-	then ERL_LIBS=. rebar.cmd compile; \
+	then ERL_LIBS=.:$$ERL_LIBS rebar.cmd compile; \
 	elif which rebar > /dev/null; \
-	then ERL_LIBS=. rebar compile; \
+	then ERL_LIBS=.:$$ERL_LIBS rebar compile; \
 	else $(MAKE) $(MFLAGS) erlc-compile; \
 	fi
 
