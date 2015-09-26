@@ -15,7 +15,7 @@
 
 {application, lfe,
  [{description, "Lisp Flavored Erlang (LFE)"},
-  {vsn, "0.10.0-dev"},
+  {vsn, "0.11.0-dev"},
   {modules, []},
   {registered, []},
   {applications, [kernel,stdlib,compiler]}
