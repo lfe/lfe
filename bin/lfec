@@ -41,17 +41,19 @@
    (parse-opts as (cons 'warnings_as_errors opts)))
   ([(cons (++ "-W" _) as) opts]         ;Ignore this here
    (parse-opts as opts))
+  ([(cons "-D" as) opts]
+   (parse-opts as (cons 'debug_print opts)))
   ([(cons "-E" as) opts]
    (parse-opts as (cons 'to_exp opts)))
-  ([(cons "-P" as) opts]                ;Ignore as no LFE counterpart
-   (parse-opts as opts))
   ([(cons "-L" as) opts]
    (parse-opts as (cons 'to_lint opts)))
   ([(cons "-S" as) opts]
    (parse-opts as (cons 'to_asm opts)))
+  ([(cons "-P" as) opts]                ;Ignore as no LFE counterpart
+   (parse-opts as opts))
   ([(cons "--" as) opts]
    (tuple as opts))
-  ([(cons (++ "+" s) as) opts]
+  ([(cons (cons #\+ s) as) opts]
    (let ((`#(ok ,t) (lfe_io:read_string s)))
      (parse-opts as (cons t opts))))
   ([as opts]
@@ -79,17 +81,26 @@
                    "+{outdir, Dir}, +report, +return, +debug_print\n")))
     (io:put_chars usage)))
 
+(defun compile-file (file opts)
+  (case (lfe_comp:file file opts)       ;Catch all the return values
+    (`#(ok ,_) 'ok)                     ;Just as long as it worked
+    (`#(ok ,_ ,_) 'ok)
+    ('error 'error)                     ;Or any error
+    (`#(error ,_ ,_ ,_) 'error)))
+
+(defun compile-files
+  ([(cons file files) opts]
+   (case (compile-file file opts)
+     ('ok (compile-files files opts))
+     (_ 'error)))
+  ([() _] 'ok))
+
 ;; Parse the arguments and compile the files.
 (case script-args
   (() (usage))
   (as0
    (fix-code-path)
-   (let ((`#(,as1 ,opts1) (parse-opts as0 ())))
-     ;; (pp (list as1 opts1))
-     (case (lists:map (lambda (a)
-                        (lfe_comp:file a (list* 'verbose 'report opts1)))
-                      as1)
-       ('(error) (halt 1))
-       ('(error es ws) (halt 1))
-       (_ 'ok)))))
-
+   (let ((`#(,files ,opts1) (parse-opts as0 ())))
+     (case (compile-files files (list* 'verbose 'report opts1))
+       ('error (halt 1))
+       ('ok 'ok)))))
