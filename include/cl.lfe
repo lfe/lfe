@@ -1,3 +1,5 @@
+;;; Predicates
+
 (defmacro alivep (x)
   `(is_alive))
 
@@ -72,3 +74,11 @@
 
 (defmacro tuplep (x)
   `(is_tuple ,x))
+
+(defmacro vectorp (x)
+  `(is_tuple ,x))
+
+;;; Constructors
+
+(defmacro vector args
+  `(tuple ,@args))
