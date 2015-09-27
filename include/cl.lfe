@@ -87,3 +87,13 @@
 
 (defmacro vector args
   `(tuple ,@args))
+
+;;; List macros
+
+(defmacro dolist body
+  (let ((var (caar body))
+        (items (cadar body))
+        (body (cdr body)))
+   `(lists:foreach
+      (lambda (,var) (progn ,@body))
+      ,items)))
