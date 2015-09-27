@@ -42,6 +42,11 @@
 (defun aref (array i j)
   (elt j (elt i array)))
 
+(defun getf (plist key)
+  (case (lists:keyfind key 1 plist)
+   ('false 'undefined)
+   (`#(,k ,v) v)))
+
 (defun position (x xs)
   (position x 0 xs))
 
