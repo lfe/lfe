@@ -106,6 +106,7 @@
   ((x) (when (is_list x))
    (cond ((io_lib:printable_latin1_list x) 'string)
          ((io_lib:printable_unicode_list x) 'unicode)
+         ((?= `(,a . ,b) (when (not (is_list b))) x) 'cons)
          ('true 'list)))
   ((x) (when (is_map x))
    'map)
