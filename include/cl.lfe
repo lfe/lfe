@@ -78,6 +78,11 @@
 (defmacro vectorp (x)
   `(is_tuple ,x))
 
+(defun consp
+  ((`(,a . ,b)) (when (not (is_list b)))
+   'true)
+  ((_) 'false))
+
 ;;; Constructors
 
 (defmacro vector args
