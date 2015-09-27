@@ -33,6 +33,15 @@
   ((n xs)
    (lists:nth (+ n 1) xs)))
 
+(defun elt
+  ((n xs) (when (is_list xs))
+   (nth n xs))
+  ((n xs) (when (is_tuple xs))
+   (element (+ n 1) xs)))
+
+(defun aref (array i j)
+  (elt j (elt i array)))
+
 (defun position (x xs)
   (position x 0 xs))
 
