@@ -73,7 +73,7 @@
   (not (lists:all pred xs)))
 
 (defun notany (pred xs)
-  (not (lists:all pred xs)))
+  (not (lists:any pred xs)))
 
 (defun adjoin (a xs)
   (case (lists:member a xs)
@@ -82,6 +82,18 @@
 
 (defun mapcar (func xs)
   (lists:map func xs))
+
+;; XXX maplist flattens everything; the results need to remain grouped by
+;; sublist to maintain parity with CL usage/results.
+
+;;(defun maplist (func xs)
+;;  (maplist func (mapcar func xs) xs))
+
+;;(defun maplist
+;;  ((_ acc '())
+;;   acc)
+;;  ((func acc `(,_ . ,xs))
+;;   (maplist func (++ acc (mapcar func xs)) xs)))
 
 (defun remove-duplicates (xs)
   (lists:usort xs))
