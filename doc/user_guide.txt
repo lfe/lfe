@@ -957,14 +957,65 @@ The following more or less standard lisp functions are predefined:
 Supplemental Common Lisp Functions
 ----------------------------------
 
-LFE provides the following functions which closely mirror functions
-defined in the Common Lisp Hyperspec.
+LFE provides the following functions which closely mirror functions defined in
+the Common Lisp Hyperspec. Note that the following functions use zero-based
+indices, like Common Lisp.
+
+(cl:car list)
+(cl:first list)
+(cl:cdr list)
+(cl:rest list)
+        If passed an empty list, doesn't err; instead returns an empty list.
+
+(cl:ncons term)
+        conses term with an empty list.
+
+(cl:xcons term term)
+        conses terms in reverse order.
+
+(cl:nth index list)
+        Like lists:nth, but returns empty list when passed an index that's out
+        of bounds.
+
+(cl:elt index list)
+(cl:elt index tuple)
+        Like (cl:nth), but works for tuples and lists, not just lists.
+
+(cl:aref list index index)
+        Gets the value of a 2-dimensional array (list of lists or tuple of
+        tuples) with the first index being the inner-most data and the second
+        being for the outer-most.
+
+(cl:getf plist key)
+        Get the value for a given key in a property list. Does not have to be
+        an Erlang-proper property list (i.e., keys don't have to be atoms). If
+        a key is not in the property list, returns 'undefined.
+
+(cl:position term list)
+        Returns the index where term first occurs. If not present, returns
+        'undefined.
 
 (cl:butlast list)
         Aliased to lists:droplast.
 
 (cl:nthcdr list)
         Aliased to lists:nthtail.
+
+(cl:every list)
+        Aliased to lists:all.
+
+(cl:some list)
+        Aliased to lists:any.
+
+(cl:notevery list)
+        Logical complement of cl:every.
+
+(cl:notany list)
+        Logical complement of cl:some.
+
+(cl:adjoin term list)
+        It term is not in the list, it is consed to it. Otherwise the list is
+        returned as-is.
 
 (cl:mapcar func list)
         Aliased to lists:map.
