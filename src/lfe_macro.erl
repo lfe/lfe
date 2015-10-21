@@ -37,7 +37,8 @@
 %% -compile([export_all]).
 
 -import(lfe_env, [new/0,add_fbinding/4,is_fbound/3,
-                  add_mbinding/3,is_mbound/2,get_mbinding/2]).
+                  add_mbinding/3,is_mbound/2,get_mbinding/2,
+		  add_vbinding/3]).
 
 -import(lfe_lib, [is_symb_list/1,is_proper_list/1]).
 
@@ -164,15 +165,15 @@ pass_form(['progn'|Pfs0], Env0, St0) ->
     {Pfs1,Env1,St1} = pass_forms(Pfs0, Env0, St0),
     {['progn'|Pfs1],Env1,St1};
 pass_form(['eval-when-compile'|Ewcs0], Env0, St0) ->
-    {Ecws1,Env1,St1} = pass_ewc(Ewcs0, Env0, St0),
-    {['progn'|Ecws1],Env1,St1};
-pass_form(['define-macro'|Def]=F, Env0, St0) ->
+    {Env1,St1} = pass_ewc(Ewcs0, Env0, St0),
+    {['progn'],Env1,St1};			%Must return a valid form
+pass_form(['define-macro'|Def], Env0, St0) ->
     case pass_define_macro(Def, Env0, St0) of
         {yes,Env1,St1} ->
             {['progn'],Env1,St1};               %Must return a valid form
-        {no,St1} ->
-            %% Ignore it and pass it on to generate error later.
-            {F,Env0,St1}
+        no ->
+	    St1 = add_error({bad_form,macro}, St0),
+            {['progn'],Env0,St1}		%Must return a valid form
     end;
 pass_form(F, Env, St0) ->
     %% First expand enough to test top form, if so process again.
@@ -183,68 +184,101 @@ pass_form(F, Env, St0) ->
             {F1,Env,St1}
     end.
 
-%% pass_ewc(Forms, Env, State) -> {Forms,Env,State}.
-%%  Pass over a list of forms collecting and removing all function
-%%  defintions. All forms must be expanded at top-level to check
-%%  form. Nesting of forms by progn is preserved. All functions are
-%%  put into one letrec structure in environment so they are mutally
-%%  recursive, while unrecognised forms are returned. They can call
-%%  functions in previously defined eval-when-compile's.
+%% pass_ewc(Forms, Env, State) -> {Env,State}.
+%%  Pass over the list of forms which evaluate at compile
+%%  time. Function and macro definitions are collected in the
+%%  environment and other experssions are evaluated. The shell set
+%%  forms are also specially recognised and the variables are bound
+%%  and kept in the environment as well. The functions and macrso
+%%  behave as in the shell.
 
-pass_ewc(Fs0, Env0, St0) ->
-    {Fs1,Fbs,Env1,St1} = pass_ewc(Fs0, [], Env0, St0),
-    Env2 = lfe_eval:make_letrec_env(Fbs, Env1),
-    {Fs1,Env2,St1}.
+pass_ewc(Fs, Env, St) ->
+    foldl(fun (F, {E,S}) -> pass_ewc_form(F, E, S) end, {Env,St}, Fs).
 
-pass_ewc([['progn'|Pfs0]|Fs0], Fbs0, Env0, St0) ->
-    {Pfs1,Fbs1,Env1,St1} = pass_ewc(Pfs0, Fbs0, Env0, St0),
-    {Fs1,Fbs2,Env2,St2} = pass_ewc(Fs0, Fbs1, Env1, St1),
-    {[['progn'|Pfs1]|Fs1],Fbs2,Env2,St2};
-pass_ewc([['eval-when-compile'|Ewcs0]|Fs0], Fbs0, Env0, St0) ->
-    {Ecws1,Fbs1,Env1,St1} = pass_ewc(Ewcs0, Fbs0, Env0, St0),
-    {Fs1,Fbs2,Env2,St2} = pass_ewc(Fs0, Fbs1, Env1, St1),
-    {[['progn'|Ecws1]|Fs1],Fbs2,Env2,St2};
-%% Do we want macros here???
-%% pass_ewc([['define-macro'|Def]=F|Fs0], Fbs0, Env0, St0) ->
-%%     case pass_define_macro(Def, Env0, St0) of
-%%     {yes,Env1,St1} -> pass_ewc(Fs0, Fbs0, Env1, St1);
-%%     {no,St1} ->
-%%         %% Ignore it and pass it on to generate error later.
-%%         {Fs1,Fbs1,Env1,St2} = pass_ewc(Fs0, Fbs0, Env0, St1),
-%%         {[F|Fs1],Fbs1,Env1,St2}
-%%     end;
-pass_ewc([['define-function',Name,Def]|Fs0], Fbs0, Env0, St0) ->
-    case func_arity(Def) of
+pass_ewc_form(['progn'|Pfs0], Env0, St0) ->
+    pass_ewc(Pfs0, Env0, St0);
+pass_ewc_form(['eval-when-compile'|Ewcs0], Env0, St0) ->
+    pass_ewc(Ewcs0, Env0, St0);
+pass_ewc_form(['define-macro'|Def], Env0, St0) ->
+    case pass_define_macro(Def, Env0, St0) of
+        {yes,Env1,St1} -> {Env1,St1};
+        no ->
+	    St1 = add_error({bad_env_form,macro}, St0),
+	    {Env0,St1}
+    end;
+pass_ewc_form(['define-function',Name,Def], Env0, St0) ->
+    case function_arity(Def) of
         {yes,Ar} ->                             %Definition not too bad
-            Fb = {Name,Ar,Def},
-            %% Env1 = lfe_eval:add_expr_func(Name, Ar, Def, Env0),
-            pass_ewc(Fs0, [Fb|Fbs0], Env0, St0);
+            Env1 = lfe_eval:add_dynamic_func(Name, Ar, Def, Env0),
+            {Env1,St0};
         no ->                                   %Definition really bad
             St1 = add_error({bad_env_form,function}, St0),
-            pass_ewc(Fs0, Fbs0, Env0, St1)
+            {Env0,St1}
     end;
-pass_ewc([F|Fs0], Fbs0, Env0, St0) ->
+pass_ewc_form([set,Pattern|Es], Env, St) ->
+    pass_eval_set(Pattern, Es, Env, St);
+pass_ewc_form(F, Env0, St0) ->
     %% First expand enough to test top form, if so process again.
     case pass_expand_expr(F, Env0, St0, false) of
         {yes,Exp,St1} ->                        %Top form expanded
-            pass_ewc([Exp|Fs0], Fbs0, Env0, St1);
+            pass_ewc_form(Exp, Env0, St1);
         {no,F1,St1} ->                          %Not expanded
-            {Fs1,Fbs1,Env1,St2} = pass_ewc(Fs0, Fbs0, Env0, St1),
-            {[F1|Fs1],Fbs1,Env1,St2}
-    end;
-pass_ewc([], Fbs, Env, St) -> {[],Fbs,Env,St}.
+	    case pass_eval_expr(F1, Env0, St1) of
+		{error,E} ->
+		    {Env0,add_error({bad_env_form,{expression,E}}, St1)};
+		_ -> {Env0,St1}			%Ignore value
+	    end
+    end.
 
-func_arity([lambda,Args|_]) ->
+function_arity([lambda,Args|_]) ->
     case is_symb_list(Args) of
         true -> {yes,length(Args)};
         false -> no
     end;
-func_arity(['match-lambda',[Pat|_]|_]) ->
+function_arity(['match-lambda',[Pat|_]|_]) ->
     case is_proper_list(Pat) of
         true -> {yes,length(Pat)};
         false -> no
     end;
-func_arity(_) -> no.
+function_arity(_) -> no.
+
+%% pass_eval_expr(Expr, Env, State) -> {ok,Value} | {error,Reason}.
+%%  Evaluate Expr inside Env and catch and return errors.
+
+pass_eval_expr(E, Env, _) ->
+    try
+	{ok,lfe_eval:expr(E, Env)}
+    catch
+	error:Error -> {error,Error};
+	exit:Exit -> {error,{exit,Exit}};
+	throw:_ -> {error,nocatch}
+    end.
+
+%% pass_eval_set(Pattern, Body, Env, State) -> {Env,State}.
+%%  Evaluate the set form.
+
+pass_eval_set(P0, B0, Env0, St0) ->
+    Match = case exp_form(['let',P0|B0], Env0, St0) of
+		{['let',P1,E],St1} ->
+		    pass_eval_set_1(P1, [], E, Env0, St1);
+		{['let',P1,G,E],St1} ->
+		    pass_eval_set_1(P1, [G], E, Env0, St1);
+		_ -> St1 = St0, error
+	    end,
+    case Match of
+	{yes,_,Bs} ->
+	    Env1 = foldl(fun ({N,V}, E) -> add_vbinding(N, V, E) end, Env0, Bs),
+	    {Env1,St1};
+	_ ->					%No match or error
+	    {Env0,add_error({bad_env_form,'set'}, St1)}
+    end.
+
+pass_eval_set_1(P, B, E, Env, St) ->
+    case pass_eval_expr(E, Env, St) of
+	{ok,Val} ->
+	    lfe_eval:match_when(P, Val, B, Env);
+	{error,_}=Error -> Error
+    end.
 
 %% pass_expand_expr(Expr, Env, State, ExpandFlag) ->
 %%     {yes,Exp,State} | {no,State}.
@@ -266,7 +300,7 @@ pass_expand_expr([_|_]=E0, Env, St0, Expand) ->
 pass_expand_expr(E, _, St, _) -> {no,E,St}.
 
 %% pass_define_macro([Name,Def], Line, Env, State) ->
-%%     {yes,Env,State} | {no,State}.
+%%     {yes,Env,State} | no.
 %%  Add the macro definition to the environment. We do a small format
 %%  check.
 
@@ -274,7 +308,7 @@ pass_define_macro([Name,Def], Env, St) ->
     case Def of
         ['lambda'|_] -> {yes,add_mbinding(Name, Def, Env),St};
         ['match-lambda'|_] -> {yes,add_mbinding(Name, Def, Env),St};
-        _ -> {no,add_error({bad_form,macro}, St)}
+        _ -> no
     end.
 
 %% add_error(Error, State) -> State.
