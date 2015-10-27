@@ -103,14 +103,14 @@ Return nil if `STR` matches `inferior-lfe-filter-regexp', otherwise t."
   "Run an inferior LFE process, input and output via a buffer `*inferior-lfe*'.
 If `CMD' is given, use it to start the shell, otherwise:
 `inferior-lfe-program' `inferior-lfe-program-options' -env TERM vt100."
-;;   (interactive (list (if current-prefix-arg
-;;                       (read-string "Run LFE: " inferior-lfe-program)
-;;                     inferior-lfe-program)))
-;;   (if (not (comint-check-proc "*inferior-lfe*"))
-;;       (let ((cmdlist (split-string cmd)))
-;;      (set-buffer (apply (function make-comint)
-;;                         "inferior-lfe" (car cmdlist) nil (cdr cmdlist)))
-;;      (inferior-lfe-mode)))
+  ;; (interactive (list (if current-prefix-arg
+  ;;                        (read-string "Run LFE: " inferior-lfe-program)
+  ;;                      inferior-lfe-program)))
+  ;; (if (not (comint-check-proc "*inferior-lfe*"))
+  ;;     (let ((cmdlist (split-string cmd)))
+  ;;       (set-buffer (apply (function make-comint)
+  ;;                          "inferior-lfe" (car cmdlist) nil (cdr cmdlist)))
+  ;;       (inferior-lfe-mode)))
   (interactive (list (if current-prefix-arg
                          (read-string "Run LFE: ")
                        ())))
