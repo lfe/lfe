@@ -160,9 +160,9 @@ When `EOB-P' is given, position cursor at end of buffer."
              (or pop-up-frames
                  (get-buffer-window inferior-lfe-buffer t))))
         (pop-to-buffer inferior-lfe-buffer))
-      (run-lfe inferior-lfe-program))
+    (run-lfe inferior-lfe-program))
   (when eob-p
-         (push-mark)
+    (push-mark)
     (goto-char (point-max))))
 
 (defun inferior-lfe-clear-buffer ()
