@@ -62,7 +62,7 @@ $(EBINDIR)/%.beam: $(SRCDIR)/%.lfe
 
 all: compile docs
 
-.PHONY: compile erlc-compile lfec-compile erlc-lfec install docs clean dockerfile
+.PHONY: compile erlc-compile lfec-compile erlc-lfec install reinstall uninstall docs clean dockerfile
 
 ## Compile using rebar if it exists else using make
 compile: maps_opts.mk
@@ -91,6 +91,13 @@ install:
 	ln -s `pwd`/bin/lfe $(DESTBINDIR)
 	ln -s `pwd`/bin/lfec $(DESTBINDIR)
 	ln -s `pwd`/bin/lfescript $(DESTBINDIR)
+
+reinstall: uninstall install
+
+uninstall:
+	rm -f $(DESTBINDIR)/lfe
+	rm -f $(DESTBINDIR)/lfec
+	rm -f $(DESTBINDIR)/lfescript
 
 docs:
 
