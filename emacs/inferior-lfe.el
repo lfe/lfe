@@ -121,7 +121,7 @@ If `CMD' is given, use it to start the shell, otherwise:
       (setq prog inferior-lfe-program
             opts (append inferior-lfe-program-options
                          '("-env" "TERM" "vt100"))))
-    (when (not (comint-check-proc "*inferior-lfe*"))
+    (unless (comint-check-proc "*inferior-lfe*")
       (set-buffer (apply (function make-comint)
                          "inferior-lfe" prog nil opts))
       (inferior-lfe-mode))
