@@ -87,6 +87,8 @@ Customization: Entry to this mode runs the hooks on `comint-mode-hook' and
   (run-mode-hooks 'inferior-lfe-mode-hook))
 
 (defun lfe-input-filter (str)
+  "Predicate for filtering additions to input history.
+Return nil if `STR` matches `inferior-lfe-filter-regexp', otherwise t."
   (not (string-match inferior-lfe-filter-regexp str)))
 
 (defun lfe-get-old-input ()
@@ -98,7 +100,9 @@ Customization: Entry to this mode runs the hooks on `comint-mode-hook' and
 
 ;;;###autoload
 (defun inferior-lfe (cmd)
-  "Run an inferior LFE process, input and output via a buffer `*inferior-lfe*'."
+  "Run an inferior LFE process, input and output via a buffer `*inferior-lfe*'.
+If `CMD' is given, use it to start the shell, otherwise:
+`inferior-lfe-program' `inferior-lfe-program-options' -env TERM vt100."
 ;;   (interactive (list (if current-prefix-arg
 ;;                       (read-string "Run LFE: " inferior-lfe-program)
 ;;                     inferior-lfe-program)))
@@ -132,8 +136,8 @@ Customization: Entry to this mode runs the hooks on `comint-mode-hook' and
 (defalias 'run-lfe 'inferior-lfe)
 
 (defun lfe-eval-region (start end &optional and-go)
-  "Send the current region to the inferior LFE process.
-Prefix argument means switch to the LFE buffer afterwards."
+  "Send the current region (from `START' to `END') to the inferior LFE process.
+`AND-GO' means switch to the LFE buffer afterwards."
   (interactive "r\nP")
   (comint-send-region (inferior-lfe-proc) start end)
   (comint-send-string (inferior-lfe-proc) "\n")
@@ -141,7 +145,7 @@ Prefix argument means switch to the LFE buffer afterwards."
 
 (defun lfe-eval-last-sexp (&optional and-go)
   "Send the previous sexp to the inferior LFE process.
-Prefix argument means switch to the LFE buffer afterwards."
+`AND-GO' means switch to the LFE buffer afterwards."
   (interactive "P")
   (lfe-eval-region (save-excursion (backward-sexp) (point)) (point) and-go))
 
