@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
   sprintf(pa, "%s/ebin", rootdir);
 
   /* Allocate and initialise the erl argument array. */
-  Eargv = emalloc(sizeof(*argv) * (argc + 16));
+  Eargv = (char **)emalloc(sizeof(*argv) * (argc + 16));
   Eargc = 0;
   PUSH(emu);			/* The program we are going to run */
 
