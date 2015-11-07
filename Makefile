@@ -88,9 +88,9 @@ maps_opts.mk:
 -include maps_opts.mk
 
 install:
-	ln -s `pwd`/bin/lfe $(DESTBINDIR)
-	ln -s `pwd`/bin/lfec $(DESTBINDIR)
-	ln -s `pwd`/bin/lfescript $(DESTBINDIR)
+	ln -sf `pwd`/bin/lfe $(DESTBINDIR)
+	ln -sf `pwd`/bin/lfec $(DESTBINDIR)
+	ln -sf `pwd`/bin/lfescript $(DESTBINDIR)
 
 docs:
 
