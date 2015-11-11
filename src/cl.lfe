@@ -21,8 +21,12 @@
    ;; Boolean conversion functions.
    (make-lfe-bool 1) (make-cl-bool 1)
    ;; Sequences.
-   (find 2) (find-if 2) (find-if-not 2) (position 2) (position-if 2)
-   (position-if-not 2) (count 2) (count-if 2) (count-if-not 2)
+   (elt 2) (length 1) (reverse 1) (some 2) (every 2) (notany 2) (notevery 2)
+   (reduce 2) (reduce 4) (reduce 6)
+   (remove 2) (remove-if 2) (remove-if-not 2) (remove-duplicates 1)
+   (find 2) (find-if 2) (find-if-not 2)
+   (position 2) (position-if 2) (position-if-not 2)
+   (count 2) (count-if 2) (count-if-not 2)
    ;; Substitution of expressions.
    (subst 3) (subst-if 3) (subst-if-not 3) (sublis 2)
    ;; Lists as sets.
@@ -99,16 +103,108 @@
 	       ([n xs] (nth-loop (- n 1) (cdr xs)))))
      (nth-loop n xs))))
 
-(defun elt
-  ((n xs) (when (is_list xs))
-   (nth n xs))
-  ((n xs) (when (is_tuple xs))
-   (element (+ n 1) xs)))
-
 (defun aref (array i j)
   (elt j (elt i array)))
 
 ;; Sequences.
+;; Simple sequence functions.
+
+(defun elt
+  ((n seq) (when (is_list seq))
+   (nth n seq))
+  ((n seq) (when (is_tuple seq))
+   (element (+ n 1) seq)))
+
+(defun length
+  ([seq] (when (is_list seq))
+   (length seq))
+  ([seq] (when (is_tuple seq))
+   (tuple_size seq)))
+
+(defun reverse
+  ([seq] (when (is_list seq))
+   (lists:reverse seq))
+  ([seq] (when (is_tuple seq))
+   (list_to_tuple (lists:reverse (tuple_to_list seq)))))
+
+;; Concatanation, mapping and reducing sequences.
+
+(defun some
+  ([pred seq] (when (is_list seq))
+   (lists:any pred seq))
+  ([pred seq] (when (is_tuple seq))
+   (fletrec ((some-loop
+	      ([i n] (when (>= i n)) 'false)
+	      ([i n]
+	       (if (funcall pred (element i seq))
+		 'true
+		 (some-loop (+ i 1) n)))))
+     (some-loop 1 (tuple_size seq)))))
+
+(defun every
+  ([pred seq] (when (is_list seq))
+   (lists:all pred seq))
+  ([pred seq] (when (is_tuple seq))
+   (fletrec ((every-loop
+	      ([i n] (when (>= i n)) 'false)
+	      ([i n]
+	       (if (funcall pred (element i seq))
+		 'false
+		 (every-loop (+ i 1) n)))))
+     (every-loop 1 (tuple_size seq)))))
+
+(defun notany (pred seq)
+  (every (lambda (x) (not (funcall pred x))) seq))
+
+(defun notevery (pred seq)
+  (some (lambda (x) (not (funcall pred x))) seq))
+
+(defun reduce (func seq)
+  (lists:foldl func '() seq))
+
+(defun reduce
+  ((func seq 'initial-value x)
+   (lists:foldl func x seq))
+  ((func seq 'from-end 'true)
+   (lists:foldr func '() seq)))
+
+(defun reduce
+  ((func seq 'from-end 'true 'initial-value x)
+   (lists:foldr func x seq))
+  ((func seq 'initial-value x 'from-end 'true)
+   (lists:foldr func x seq)))
+
+;; Modifying sequences.
+
+(defun remove
+  ([item seq] (when (is_list seq))
+   (lc ((<- x seq) (=/= x item)) x))
+  ([item seq] (when (is_tuple seq))
+   (list_to_tuple (remove item (tuple_to_list seq)))))
+
+(defun remove-if
+  ([pred seq] (when (is_list seq))
+   (lc ((<- x seq) (not (funcall pred x))) x))
+  ([pred seq] (when (is_tuple seq))
+   (list_to_tuple (remove-if pred (tuple_to_list seq)))))
+
+(defun remove-if-not
+  ([pred seq] (when (is_list seq))
+   (lc ((<- x seq) (funcall pred x)) x))
+  ([pred seq] (when (is_tuple seq))
+   (list_to_tuple (remove-if-not pred (tuple_to_list seq)))))
+
+(defun remove-duplicates 
+  ([seq] (when (is_list seq))
+   (fletrec ((rm-loop
+	      ([(cons x rest)]
+	       (if (lists:member x rest)
+		 (rm-loop rest)
+		 (cons x (rm-loop rest))))
+	      ([()] ())))
+     (rm-loop seq)))
+  ([seq] (when (is_tuple seq))
+   (list_to_tuple (remove-duplicates (tuple_to_list seq)))))
 
 (defun find (x xs)
   (fletrec ((find-loop
@@ -142,7 +238,7 @@
   (fletrec ((pos-if-loop
 	      ([pred n (cons x xs)]
 	       (if (funcall pred x)
-		   n (pos-if-loop pred (+ n 1) xs)))
+		 n (pos-if-loop pred (+ n 1) xs)))
 	      ([pred n ()] ())))
     (pos-if-loop pred 0 xs)))
 
@@ -150,7 +246,7 @@
   (fletrec ((pos-if-not-loop
 	      ([pred n (cons x xs)]
 	       (if (funcall pred x)
-		   (pos-if-not-loop pred (+ n 1) xs) n))
+		 (pos-if-not-loop pred (+ n 1) xs) n))
 	      ([pred n ()] ())))
     (pos-if-not-loop pred 0 xs)))
 
@@ -184,18 +280,6 @@
 (defun nthcdr (n xs)
   (lists:nthtail (+ n 1) xs))
 
-(defun every (pred xs)
-  (lists:all pred xs))
-
-(defun some (pred xs)
-  (lists:any pred xs))
-
-(defun notevery (pred xs)
-  (not (lists:all pred xs)))
-
-(defun notany (pred xs)
-  (not (lists:any pred xs)))
-
 (defun mapcar (func xs)
   (lists:map func xs))
 
@@ -211,27 +295,6 @@
 ;;  ((func acc `(,_ . ,xs))
 ;;   (maplist func (++ acc (mapcar func xs)) xs)))
 
-(defun remove-duplicates (xs)
-  (lists:usort xs))
-
-(defun remove-if-not (func xs)
-  (lists:filter func xs))
-
-(defun reduce (func xs)
-  (lists:foldl func '() xs))
-
-(defun reduce
-  ((func xs 'initial-value x)
-   (lists:foldl func x xs))
-  ((func xs 'from-end 'true)
-   (lists:foldr func '() xs)))
-
-(defun reduce
-  ((func xs 'from-end 'true 'initial-value x)
-   (lists:foldr func x xs))
-  ((func xs 'initial-value x 'from-end 'true)
-   (lists:foldr func x xs)))
-
 ;; Substitution of expressions
 
 (defun subst
@@ -241,14 +304,14 @@
   ([new old tree] tree))
 
 (defun subst-if (new test tree)
-  (if (funcall test tree) new		;cl:if?
+  (if (funcall test tree) new
       (case tree
 	((cons e rest)
 	 (cons (subst-if new test e) (subst-if new test rest)))
 	(_ tree))))
 
 (defun subst-if-not (new test tree)
-  (if (funcall test tree)		;cl:if?
+  (if (funcall test tree)
       (case tree
 	((cons e rest)
 	 (cons (subst-if-not new test e) (subst-if-not new test rest)))
@@ -271,14 +334,14 @@
 
 (defun member-if
   ([pred (cons e list)]
-   (if (funcall pred e)			;cl:if?
+   (if (funcall pred e)
        'true
        (member-if pred list)))
   ([pred ()] ()))
 
 (defun member-if-not
   ([pred (cons e list)]
-   (if (funcall pred e)			;cl:if?
+   (if (funcall pred e)
        (member-if-not pred list)
        'true))
   ([pred ()] ()))
@@ -331,13 +394,13 @@
 
 (defun assoc-if
   ([pred (cons (= (cons k _) pair) alist)]
-   (if (funcall pred k) pair		;cl:if?
+   (if (funcall pred k) pair
        (assoc-if pred alist)))
   ([pred ()] ()))
 
 (defun assoc-if-not
   ([pred (cons (= (cons k _) pair) alist)]
-   (if (funcall pred k)			;cl:if?
+   (if (funcall pred k)
        (assoc-if-not pred alist)
        pair))
   ([pred ()] ()))
@@ -349,15 +412,15 @@
 
 (defun rassoc-if
   ([pred (cons (= (cons _ v) pair) alist)]
-   (if (funcall pred v)			;cl:if
+   (if (funcall pred v)                 
        pair
        (rassoc-if pred alist)))
   ([pred ()] ()))
 
 (defun rassoc-if-not
   ([pred (cons (= (cons _ v) pair) alist)]
-   (if (funcall pred v)			;cl:if?
-       (rassoc-if-not pred alist)
+   (if (funcall pred v)
+     (rassoc-if-not pred alist)
        pair))
   ([pred ()] ()))
 
