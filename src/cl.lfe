@@ -20,6 +20,13 @@
   (export
    ;; Boolean conversion functions.
    (make-lfe-bool 1) (make-cl-bool 1)
+   ;; Control structure.
+   (mapcar 2) (maplist 2) (mapc 2) (mapl 2)
+   ;; Symbol functions.
+   (symbol-plist 1) (symbol-name 1)
+   (get 2) (get 3) (getl 2) (putprop 3) (remprop 2)
+   ;; Property list functions.
+   (getf 2) (getf 3) (putf 3) (remf 2) (get-properties 2)
    ;; Sequences.
    (elt 2) (length 1) (reverse 1) (some 2) (every 2) (notany 2) (notevery 2)
    (reduce 2) (reduce 4) (reduce 6)
@@ -27,6 +34,9 @@
    (find 2) (find-if 2) (find-if-not 2)
    (position 2) (position-if 2) (position-if-not 2)
    (count 2) (count-if 2) (count-if-not 2)
+   ;; Lists.
+   (car 1) (cdr 1) (first 1) (rest 1) (ncons 1) (xcons 2) (nth 2)
+   (nthcdr 2) (last 1) (butlast 1)
    ;; Substitution of expressions.
    (subst 3) (subst-if 3) (subst-if-not 3) (sublis 2)
    ;; Lists as sets.
@@ -35,13 +45,10 @@
    ;; Association list functions.
    (acons 3) (pairlis 2) (pairlis 3) (assoc 2) (assoc-if 2) (assoc-if-not 2)
    (rassoc 2) (rassoc-if 2) (rassoc-if-not 2)
-   ;; Symbols
-   (symbol-plist 1)
-   (get 2) (get 3) (getl 3) (putprop 3) (remprop 3)
-   ;; Property list functions.
-   (getf 2) (getf 3) (putf 3) (remf 2) (get-properties 2)
-   )
-  (export all))
+   ;; Types.
+   (type-of 1) (coerce 2)
+   ))
+  ;;(export all))
 
 ;; Test defining CL if and cond.
 
@@ -72,39 +79,125 @@
   (['false] ())
   (['true] 'true))
 
-;;; Lists
+;; Control structure.
 
-(defun car
-  ([()] ())
-  ([xs] (car xs)))
+(defun mapcar (func list)
+  (lists:map func list))
 
-(defun first (xs)
-  (cl:car xs))
+(defun maplist
+  ([func (= (cons _ rest) list)]
+   (cons (funcall func list) (maplist func rest)))
+  ([func ()] ()))
 
-(defun cdr
-  ([()] ())
-  ([xs] (cdr xs)))
+(defun mapc (func list)
+  (lists:foreach func list)
+  list)
 
-(defun rest (xs)
-  (cl:cdr xs))
+(defun mapl (func list)
+  (fletrec ((mapl-loop 
+	     ([(= (cons _ rest) list)]
+	      (funcall func list)
+	      (mapl-loop rest))
+	     ([()] ())))
+    (mapl-loop list)
+    list))
 
-(defun ncons (x)
-  (cons x '()))
+;; Symbol function functions.
+;;  get, getl, putprop and remprop should really only work on a
+;;  symbols plist not just a plist. This is coming. Hence including
+;;  getf, putf and remf.
 
-(defun xcons (x y)
-  (cons y x))
+(defun ensure-plist-table ()
+  (case (ets:info 'lfe-symbol-plist 'type)
+    ('undefined
+     (let ((init-pid (erlang:whereis 'init)))
+       (ets:new 'lfe-symbol-plist
+		(list 'set 'public 'named_table (tuple 'heir init-pid ())))))
+    (_ 'ok)))
 
-(defun nth
-  ([n xs] (when (< n 0)) ())
-  ([n xs]
-   (fletrec ((nth-loop
-	       ([n ()] ())		;End of the list
-	       ([0 xs] (car xs))	;Found the one
-	       ([n xs] (nth-loop (- n 1) (cdr xs)))))
-     (nth-loop n xs))))
+(defun symbol-plist (symbol)
+  (ensure-plist-table)
+  (case (ets:lookup 'lfe-symbol-plist symbol)
+    (`(#(,_ ,plist)) plist)
+    (() ())))
 
-(defun aref (array i j)
-  (elt j (elt i array)))
+(defun symbol-name (symb)
+  (atom_to_list symb))
+
+(defun get (symbol pname)
+  (get symbol pname ()))
+
+;;(defun get (plist pname def) (getf plist pname def))
+
+(defun get (symbol pname def)
+  (ensure-plist-table)
+  (let ((plist (symbol-plist symbol)))
+    (getf plist pname def)))
+
+(defun getl (symbol pnames)
+  (ensure-plist-table)
+  (let ((plist (symbol-plist symbol)))
+    (fletrec ((getl-loop
+		  ([(= (list* p v plist-rest) plist) pnames]
+		   (if (member p pnames)
+		     plist
+		     (getl-loop plist-rest pnames)))
+		  ([() pnames] ())))
+      (getl-loop plist pnames))))
+
+;; (defun putprop (plist val pname) (putf plist val pname))
+
+(defun putprop (symbol val pname)
+  (ensure-plist-table)
+  (let* ((plist (symbol-plist symbol))
+	 (plist (putf plist val pname)))
+    (ets:insert 'lfe-symbol-plist (tuple symbol plist))))
+
+;; (defun getprop (plist pname) (remf plist pname))
+
+(defun remprop (symbol pname)
+  (ensure-plist-table)
+  (let* ((plist (symbol-plist symbol))
+	 (plist (remf plist pname)))
+    ;; Delete element if plist empty
+    (if (=:= plist ())
+      (ets:delete 'lfe-symbol-plist symbol)
+      (ets:insert 'lfe-symbol-plist (tuple symbol plist)))))
+
+;; Property list functions.
+
+(defun getf (plist pname)
+  (getf plist pname ()))
+
+(defun getf
+  ([(list* p v plist) pname def] (when (=:= p pname)) v)
+  ([(list* _ _ plist) pname def] (getf plist pname def))
+  ([() pname def] def))
+
+(defun putf				;This doesn't exist in CL
+  ([(list* p _ plist) val pname] (when (=:= p pname))
+   (list* pname val plist))
+  ([(list* p v plist) val pname]
+   (list* p v (putf plist val pname)))
+  ([() val pname] (list pname val)))
+
+(defun remf
+  ([(list* p _ plist) pname] (when (=:= p pname)) plist)
+  ([(list* p v plist) pname]
+   (list* p v (remf plist pname)))
+  ([() pname] ()))
+
+(defun get-properties
+  ([(= (list* p v plist-rest) plist) pnames]
+   (if (member p pnames)
+       (tuple p v plist)
+       (get-properties plist-rest pnames)))
+  ([() pnames] (tuple () () ())))
+
+;; Arrays.
+
+;; (defun aref (array i j)
+;;   (elt j (elt i array)))
 
 ;; Sequences.
 ;; Simple sequence functions.
@@ -206,41 +299,43 @@
   ([seq] (when (is_tuple seq))
    (list_to_tuple (remove-duplicates (tuple_to_list seq)))))
 
-(defun find (x xs)
+;; Searching sequences.
+
+(defun find (item seq)
   (fletrec ((find-loop
 	      ([x (cons x1 xs)] (when (=:= x x1)) x)
 	      ([x (cons x1 xs)] (find-loop x xs))
 	      ([x ()] ())))
-    (find-loop x xs)))
+    (find-loop item seq)))
 
-(defun find-if (pred xs)
+(defun find-if (pred seq)
   (fletrec ((find-if-loop
 	      ([pred (cons x xs)]
 	       (if (funcall pred x) x (find-if-loop pred xs)))
 	      ([pred ()] ())))
-    (find-if-loop pred xs)))
+    (find-if-loop pred seq)))
 
-(defun find-if-not (pred xs)
+(defun find-if-not (pred seq)
   (fletrec ((find-if-not-loop
 	      ([pred (cons x xs)]
 	       (if (funcall pred x) (find-if-not-loop pred xs) x))
 	      ([pred ()] ())))
-    (find-if-not-loop pred xs)))
+    (find-if-not-loop pred seq)))
 
-(defun position (x xs)
+(defun position (item seq)
   (fletrec ((pos-loop
 	      ([x n (cons x1 xs)] (when (=:= x x1)) n)
 	      ([x n (cons x1 xs)] (pos-loop x (+ n 1) xs))
 	      ([x n ()] ())))
-    (pos-loop x 0 xs)))
+    (pos-loop item 0 seq)))
 
-(defun position-if (pred xs)
+(defun position-if (pred seq)
   (fletrec ((pos-if-loop
 	      ([pred n (cons x xs)]
 	       (if (funcall pred x)
 		 n (pos-if-loop pred (+ n 1) xs)))
 	      ([pred n ()] ())))
-    (pos-if-loop pred 0 xs)))
+    (pos-if-loop pred 0 seq)))
 
 (defun position-if-not (pred xs)
   (fletrec ((pos-if-not-loop
@@ -250,50 +345,69 @@
 	      ([pred n ()] ())))
     (pos-if-not-loop pred 0 xs)))
 
-(defun count (x xs)
+(defun count (item seq)
   (fletrec ((count-loop
 	      ([x n (cons x1 xs)]
 	       (let ((n1 (if (=:= x x1) (+ n 1) n)))
 		 (count-loop x n1 xs)))
 	      ([x n ()] n)))
-    (count-loop x 0 xs)))
+    (count-loop item 0 seq)))
 
-(defun count-if (pred xs)
+(defun count-if (pred seq)
   (fletrec ((count-if-loop
 	      ([pred n (cons x xs)]
 	       (let ((n1 (if (funcall pred x) (+ n 1) n)))
 		 (count-if-loop pred n1 xs)))
 	      ([pred n ()] n)))
-    (count-if-loop pred 0 xs)))
+    (count-if-loop pred 0 seq)))
 
-(defun count-if-not (pred xs)
+(defun count-if-not (pred seq)
   (fletrec ((count-if-not-loop
 	      ([pred n (cons x xs)]
 	       (let ((n1 (if (funcall pred x) n (+ n 1))))
 		 (count-if-not-loop pred n1 xs)))
 	      ([pred n ()] n)))
-    (count-if-not-loop pred 0 xs)))
+    (count-if-not-loop pred 0 seq)))
 
-(defun butlast (xs)
-  (lists:droplast xs))
+;;; Lists
+
+(defun car
+  ([()] ())
+  ([xs] (car xs)))
+
+(defun first (xs)
+  (cl:car xs))
+
+(defun cdr
+  ([()] ())
+  ([xs] (cdr xs)))
+
+(defun rest (xs)
+  (cl:cdr xs))
+
+(defun ncons (x)
+  (cons x '()))
+
+(defun xcons (x y)
+  (cons y x))
+
+(defun nth
+  ([n xs] (when (< n 0)) ())
+  ([n xs]
+   (fletrec ((nth-loop
+	       ([n ()] ())		;End of the list
+	       ([0 xs] (car xs))	;Found the one
+	       ([n xs] (nth-loop (- n 1) (cdr xs)))))
+     (nth-loop n xs))))
 
 (defun nthcdr (n xs)
   (lists:nthtail (+ n 1) xs))
 
-(defun mapcar (func xs)
-  (lists:map func xs))
+(defun last (list)
+  (lists:last list))
 
-;; XXX maplist flattens everything; the results need to remain grouped by
-;; sublist to maintain parity with CL usage/results.
-
-;;(defun maplist (func xs)
-;;  (maplist func (mapcar func xs) xs))
-
-;;(defun maplist
-;;  ((_ acc '())
-;;   acc)
-;;  ((func acc `(,_ . ,xs))
-;;   (maplist func (++ acc (mapcar func xs)) xs)))
+(defun butlast (list)
+  (lists:droplast list))
 
 ;; Substitution of expressions
 
@@ -420,99 +534,9 @@
 (defun rassoc-if-not
   ([pred (cons (= (cons _ v) pair) alist)]
    (if (funcall pred v)
-     (rassoc-if-not pred alist)
+       (rassoc-if-not pred alist)
        pair))
   ([pred ()] ()))
-
-;; Property list functions.
-;;  get, getl, putprop and remprop should really only work on a
-;;  symbols plist not just a plist. This is coming. Hence including
-;;  getf, putf and remf.
-
-(defun ensure-plist-table ()
-  (case (ets:info 'lfe-symbol-plist 'type)
-    ('undefined
-     (let ((init-pid (erlang:whereis 'init)))
-       (ets:new 'lfe-symbol-plist
-		(list 'set 'public 'named_table (tuple 'heir init-pid ())))))
-    (_ 'ok)))
-
-(defun symbol-plist (symbol)
-  (case (ets:lookup 'lfe-symbol-plist symbol)
-    (`(#(,_ ,plist)) plist)
-    (() ())))
-
-(defun get (symbol pname)
-  (get symbol pname ()))
-
-;;(defun get (plist pname def) (getf plist pname def))
-
-(defun get (symbol pname def)
-  (ensure-plist-table)
-  (let ((plist (symbol-plist symbol)))
-    (getf plist pname def)))
-
-;; (defun getl
-;;   ([(= (list* p v plist-rest) plist) pnames]
-;;    (if (member p pnames)
-;;        plist
-;;        (getl plist-rest pnames)))
-;;   ([() pnames] ()))
-
-(defun getl (symbol pnames)
-  (ensure-plist-table)
-  (let ((plist (symbol-plist symbol)))
-    (fletrec ((getl-loop
-		  ([(= (list* p v plist-rest) plist) pnames]
-		   (if (member p pnames)
-		       plist
-		       (getl-loop plist-rest pnames)))
-		  ([() pnames] ())))
-      (getl-loop plist pnames))))
-
-;; (defun putprop (plist val pname) (putf plist val pname))
-
-(defun putprop (symbol val pname)
-  (ensure-plist-table)
-  (let* ((plist (symbol-plist symbol))
-	 (plist (putf plist val pname)))
-    (ets:insert 'lfe-symbol-plist (tuple symbol plist))))
-
-;; (defun getprop (plist pname) (remf plist pname))
-
-(defun remprop (symbol pname)
-  (ensure-plist-table)
-  (let* ((plist (symbol-plist symbol))
-	 (plist (remf plist pname)))
-    (ets:insert 'lfe-symbol-plist (tuple symbol plist))))
-
-(defun getf (plist pname)
-  (getf plist pname ()))
-
-(defun getf
-  ([(list* p v plist) pname def] (when (=:= p pname)) v)
-  ([(list* _ _ plist) pname def] (getf plist pname def))
-  ([() pname def] def))
-
-(defun putf				;This doesn't exist in CL
-  ([(list* p _ plist) val pname] (when (=:= p pname))
-   (list* pname val plist))
-  ([(list* p v plist) val pname]
-   (list* p v (putf plist val pname)))
-  ([() val pname] (list pname val)))
-
-(defun remf
-  ([(list* p _ plist) pname] (when (=:= p pname)) plist)
-  ([(list* p v plist) pname]
-   (list* p v (remf plist pname)))
-  ([() pname] ()))
-
-(defun get-properties
-  ([(= (list* p v plist-rest) plist) pnames]
-   (if (member p pnames)
-       (tuple p v plist)
-       (get-properties plist-rest pnames)))
-  ([() pnames] (tuple () () ())))
 
 ;;; Types
 
