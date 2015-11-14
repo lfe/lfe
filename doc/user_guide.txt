@@ -1020,8 +1020,6 @@ cl:car  list
 cl:first  list
 cl:cdr  list
 cl:rest  list
-cl:ncons  term
-cl:xcons  term  term
 cl:nth  index  list
 cl:nthcdr  index  list
 cl:last  list
