@@ -68,32 +68,34 @@
      (line (test-pat f14-64 (eval `(binary (,f14-64 binary)))))
      (line (test-pat f14-64 (eval `(binary (,f14-64 binary (size all))))))
      (line (test-pat (tuple 17 47)
-             (eval `(let (((binary (b1 bits (size 17)) (b2 bits)) ,f14-64))
-                  (tuple (bit_size b1) (bit_size b2))))))
+                     (eval `(let (((binary (b1 bits (size 17)) (b2 bits))
+                                   ,f14-64))
+                              (tuple (bit_size b1) (bit_size b2))))))
      )
    ;; Matching out values to use as size.
    (line (test-pat (tuple 2 #b("AB") #b("CD"))
-           (eval `(let (((binary s (b binary (size s)) (rest binary))
-                 #b(2 "AB" "CD")))
-                (tuple s b rest)))))
+                   (eval `(let (((binary s (b binary (size s)) (rest binary))
+                                 #b(2 "AB" "CD")))
+                            (tuple s b rest)))))
    (line (test-pat (tuple 2 #b("AB") #b("CD"))
-           (eval '(flet ((a ([(binary s
-                          (b binary (size s))
-                          (rest binary))]
-                     (tuple s b rest))))
-                (a #b(2 "AB" "CD"))))))
-
+                   (eval '(flet ((a ([(binary s
+                                              (b binary (size s))
+                                              (rest binary))]
+                                     (tuple s b rest))))
+                            (a #b(2 "AB" "CD"))))))
    'ok))
 
 (defun binding_1
   (['suite] ())
   (['doc] '"Test function bindings.")
   ([config] (when (is_list config))
-    (let (((1 2)
-           (funcall (: lfe_eval expr
-             '(lambda () (foo 1 2))
-             ;; We evaluate the above lambda form in a new environment that
-             ;; contains a binding for the function foo/2.
-             (: lfe_eval add_expr_func 'foo 2 (lambda (a b) (list a b))
-               (: lfe_lib new_env))))))
-      'ok)))
+   (let (((1 2)
+          (funcall (: lfe_eval expr
+                     '(lambda () (foo 1 2))
+                     ;; We evaluate the above lambda form in a new
+                     ;; environment that contains a binding for the
+                     ;; function foo/2.
+                     (: lfe_eval add_lexical_func
+                       'foo 2 (lambda (a b) (list a b))
+                       (: lfe_env new))))))
+     'ok)))
