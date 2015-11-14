@@ -121,14 +121,14 @@ done
 
 find_libs () {
     if [ -d "$1" ]; then
-	echo $(find "$1" -maxdepth 1 -mindepth 1 -exec printf "%s:" {} \;)
+        echo $(find "$1" -maxdepth 1 -mindepth 1 -exec printf "%s:" {} \;)
     fi
 }
 
 # The following works for rebar and erl.mk
 PROJ_LIBS=$(find_libs "./deps")
 # The following works for rebar3
-R3_PROJ_LIBS=$(find_libs "./_build/default/deps")
+R3_PROJ_LIBS=$(find_libs "./_build/default/deps"):$(find_libs "./_build/default/lib")
 LFE_HOME_LIBS=$(find_libs "$HOME"/.lfe/lib)
 ALL_LIBS="$LFE_ROOTDIR":"$ERL_LIBS":"$PROJ_LIBS""$R3_PROJ_LIBS""$LFE_HOME_LIBS"
 ERL_LIBS="$ALL_LIBS" exec erl "$@"
