@@ -1,6 +1,6 @@
 ;;; lfe-mode.el --- Lisp Flavoured Erlang mode
 
-;; Copyright (c) 2012-2013 Robert Virding
+;; Copyright (c) 2012-2015 Robert Virding
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -17,11 +17,18 @@
 ;;; Author Robert Virding
 
 ;;; Commentary:
-;; Copied from `lisp-mode' and `scheme-mode' and modified for LFE.
+;; Copied from `lisp-mode' and modified for LFE.
 
 ;;; Code:
 
 (require 'lisp-mode)
+
+(defgroup lfe nil
+  "LFE support."
+  :group 'lisp
+  :group 'languages)
+
+(defvar prettify-symbols-alist ())
 
 (defconst lfe--prettify-symbols-alist '(("lambda"  . ?λ))
   "Prettfy symbols alist user in Lisp Flavoured Erlang mode.")
@@ -34,20 +41,12 @@
     table)
   "Syntax table in use in Lisp Flavoured Erlang mode buffers.")
 
-;; (setq lfe-mode-syntax-table ())
-;; (unless lfe-mode-syntax-table
-;;   (setq lfe-mode-syntax-table (copy-syntax-table lisp-mode-syntax-table)))
-
 (defvar lfe-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map lisp-mode-shared-map)
     (define-key map "\e[" 'lfe-insert-brackets)
     map)
   "Keymap for Lisp Flavoured Erlang mode.")
-
-;; (unless lfe-mode-map
-;;   (setq lfe-mode-map (copy-keymap lisp-mode-map))
-;;   (define-key lfe-mode-map "\e[" 'lfe-insert-brackets))
 
 (defvar lfe-mode-abbrev-table ()
   "Abbrev table used in Lisp Flavoured Erlang mode.")
@@ -120,6 +119,7 @@ Other commands:
   (setq comment-indent-function 'lisp-comment-indent)
   (make-local-variable 'parse-sexp-ignore-comments)
   (setq parse-sexp-ignore-comments t)
+  ;; Make lisp-indent-line call lfe-indent-line.
   (make-local-variable 'lisp-indent-function)
   (set lisp-indent-function 'lfe-indent-function)
   (make-local-variable 'imenu-generic-expression)
@@ -131,8 +131,12 @@ Other commands:
         '((lfe-font-lock-keywords
            lfe-font-lock-keywords-1 lfe-font-lock-keywords-2)
           nil nil (("+-*/.<>=!?$%_&~^:@" . "w")) beginning-of-defun
-          (font-lock-mark-block-function . mark-defun)))
-  (setq-local prettify-symbols-alist lfe--prettify-symbols-alist))
+          (font-lock-mark-block-function . mark-defun)
+	  (font-lock-syntactic-face-function
+	   . lisp-font-lock-syntactic-face-function)))
+  ;; Don't use seq-local here for backwards compatibility.
+  (make-local-variable 'prettify-symbols-alist)
+  (setq prettify-symbols-alist lfe--prettify-symbols-alist))
 
 ;;; Font locking
 
@@ -231,14 +235,15 @@ Other commands:
   (defconst lfe-basic-forms
     '(
       ;; Core forms.
-      "after" "call" "case" "catch"  ;"define-function" "define-macro"
+      "after" "call" "case" "catch" "define-function" "define-macro"
       "funcall" "if" "lambda"
       "let" "let-function" "letrec-function" "let-macro"
       "match-lambda" "progn" "receive" "try" "when"
       "eval-when-compile"
       ;; Base macro forms.
-      "andalso" "bc" "cond" "do" "flet" "fletrec" "fun" "lc"
-      "let*" "flet*" "match-spec" "macrolet" "orelse" "qlc"
+      "andalso" "bc" "binary-comp" "cond" "do" "flet" "flet*" "fletrec"
+      "fun" "lc" "list-comp"
+      "let*" "match-spec" "macrolet" "orelse" "qlc"
       ":" "?" "++")
     "LFE basic forms"))
 
@@ -263,111 +268,6 @@ Other commands:
 (defvar lfe-font-lock-keywords lfe-font-lock-keywords-1
   "Default expressions to highlight in LFE modes.")
 
-;;; Lisp indent
-
-(defvar calculate-lisp-indent-last-sexp)
-
-(defun lfe-indent-function (indent-point state)
-  "`INDENT-POINT' is the position where the user typed TAB, or equivalent.
-Point is located at the point to indent under;
-`STATE' is the `parse-partial-sexp' state for that position.
-
-Copied from function `lisp-indent-function',
-but with gets of lfe-indent-{function,hook}."
-  (let ((normal-indent (current-column)))
-    (goto-char (1+ (elt state 1)))
-    (parse-partial-sexp (point) calculate-lisp-indent-last-sexp 0 t)
-    (if (and (elt state 2)
-             (not (looking-at "\\sw\\|\\s_")))
-        ;; car of form doesn't seem to be a symbol
-        (progn
-          (if (not (> (save-excursion (forward-line 1) (point))
-                      calculate-lisp-indent-last-sexp))
-              (progn (goto-char calculate-lisp-indent-last-sexp)
-                     (beginning-of-line)
-                     (parse-partial-sexp (point)
-                                         calculate-lisp-indent-last-sexp 0 t)))
-          ;; Indent under the list or under the first sexp on the same
-          ;; line as calculate-lisp-indent-last-sexp.  Note that first
-          ;; thing on that line has to be complete sexp since we are
-          ;; inside the innermost containing sexp.
-          (backward-prefix-chars)
-          (current-column))
-      (let ((function (buffer-substring (point)
-                                        (progn (forward-sexp 1) (point))))
-            method)
-        (setq method (or (get (intern-soft function) 'lfe-indent-function)
-                         (get (intern-soft function) 'lfe-indent-hook)))
-        (cond ((or (eq method 'defun)
-                   (and (null method)
-                        (> (length function) 3)
-                        (string-match "\\`def" function)))
-               (lisp-indent-defform state indent-point))
-              ((integerp method)
-               (lisp-indent-specform method state
-                                     indent-point normal-indent))
-              (method
-               (funcall method state indent-point normal-indent)))))))
-
-;;; Indentation rule helpers
-;; Modified from `clojure-mode'.
-
-(defun put-lfe-indent (sym indent)
-  "Instruct `lfe-indent-function' to indent the body of `SYM' by `INDENT'."
-  (put sym 'lfe-indent-function indent))
-
-(defmacro define-lfe-indent (&rest kvs)
-  "Call `put-lfe-indent' on a series, `KVS'."
-  `(progn
-     ,@(mapcar (lambda (x)
-                 `(put-lfe-indent (quote ,(car x)) ,(cadr x)))
-               kvs)))
-
-;;; Special indentation rules
-;; "def" anything is already fixed!
-
-;; (define-lfe-indent (begin 0)), say, causes begin to be indented
-;; like defun if the first form is placed on the next line, otherwise
-;; it is indented like any other form (i.e. forms line up under first).
-
-(define-lfe-indent
-  ;; Old style forms.
-  (begin 0)
-  (let-syntax 1)
-  (syntax-rules 0)
-  (macro 0)
-
-  ;; New style forms.
-  ;; Core forms.
-  (progn 0)
-  (lambda 1)
-  (match-lambda 0)
-  (let 1)
-  (let-function 1)
-  (letrec-function 1)
-  (let-macro 1)
-  (if 1)
-  (case 1)
-  (receive 0)
-  (catch 0)
-  (try 1)
-  (after 1)
-  (call 2)
-  (when 0)
-  (eval-when-compile 0)
-
-  ;; Core macros.
-  (: 2)
-  (let* 1)
-  (flet 1)
-  (flet* 1)
-  (fletrec 1)
-  (macrolet 1)
-  (syntaxlet 1)
-  (do 2)
-  (lc 1)
-  (bc 1)
-  (match-spec 0))
 
 ;;;###autoload
 ;; Associate ".lfe{s,sh}?" with LFE mode.

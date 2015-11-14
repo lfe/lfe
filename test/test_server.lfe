@@ -16,7 +16,7 @@
 (defmacro eif
   (args
    (fletrec ((r ([(t v . as)] `((_ (when ,t) ,v) . ,(r as)))
-        ([()] ())))
+                ([()] ())))
      `(case 1 . ,(r args)))))
 
 (defmacro test-pat (pat expr)

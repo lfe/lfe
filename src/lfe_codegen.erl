@@ -390,7 +390,7 @@ comp_match_lambda(Cls, Env, L, St0) ->
     {Fvs,St3} = new_c_vars(Ar, L, St2),
     Cf = func_fail(Fvs, L, St3),
     Ann = line_file_anno(L, St3),
-    Cb = ann_c_case(Ann, c_values(Cvs), Ccs ++ [Cf]),
+    Cb = ann_c_case(Ann, ann_c_values(Ann, Cvs), Ccs ++ [Cf]),
     {ann_c_fun(Ann, Cvs, Cb),St3}.
 
 func_fail(Fvs, L, #cg{func=F}=St) ->
@@ -440,7 +440,7 @@ comp_let(Vbs, B, Env, L, St0) ->
             Efun = fun ([_,E], St) -> comp_expr(E, Env, L, St) end,
             {Ces,St2} = mapfoldl(Efun, St1, Vbs),
             {Cb,St3} = comp_body(B, add_vbindings(Pvs, Env), L, St2),
-            {ann_c_let([L], Cvs, c_values(Ces), Cb),St3};
+            {ann_c_let([L], Cvs, ann_c_values([L], Ces), Cb),St3};
         false ->
             %% This would be much easier to do by building a clause
             %% and compiling it directly, but then we would have to
@@ -464,7 +464,7 @@ comp_let(Vbs, B, Env, L, St0) ->
             {Cb,St4} = comp_body(B, Env1, L, St3),
             {Cvs,St5} = new_c_vars(length(Ces), L, St4),
             Cf = let_fail(Cvs, L, St5),
-            {ann_c_case([L], c_values(Ces),
+            {ann_c_case([L], ann_c_values([L], Ces),
                         [ann_c_clause([L], Cps, Cg, Cb),Cf]),
              St5}
     end.
@@ -576,7 +576,7 @@ if_fail(L, St) ->
 
 fail_clause(Pats, Arg, Fann, L, St) ->
     Ann = line_file_anno(L, St),
-    ann_c_clause([L,compiler_generated],        %It is compiler generated
+    ann_c_clause(comp_gen_anno(L, St),          %It is compiler generated
                  Pats, ann_c_primop(Fann ++ Ann, c_atom(match_fail), [Arg])).
 
 %% comp_case(Expr, Clauses, Env, Line, State) -> {c_case(),State}.
@@ -647,13 +647,15 @@ comp_try(E, Case, [], [], Env, L, St0) ->
     {Cv,Cc,St2} = try_case(Case, Env, L, St1),
     {[_,Val,Info]=Evs,St3} = new_c_vars(3, L, St2), %Tag, Value, Info
     After = raise_primop([Info,Val], L, St2),
-    {ann_c_try([L], Ce, [Cv], Cc, Evs, After),St3};
+    Ann = line_file_anno(L, St3),
+    {ann_c_try(Ann, Ce, [Cv], Cc, Evs, After),St3};
 comp_try(E, Case, Catch, [], Env, L, St0) ->
     %% No after - (try E [(case ...)] (catch ...))
     {Ce,St1} = comp_expr(E, Env, L, St0),
     {Cv,Cc,St2} = try_case(Case, Env, L, St1),
     {Evs,Ecs,St3} = try_exception(Catch, Env, L, St2),
-    {ann_c_try([L], Ce, [Cv], Cc, Evs, Ecs),St3};
+    Ann = line_file_anno(L, St3),
+    {ann_c_try(Ann, Ce, [Cv], Cc, Evs, Ecs),St3};
 comp_try(E, [], [], After, Env, L, St0) ->
     %% Just after - (try E (after ...))
     {Ce,St1} = comp_expr(E, Env, L, St0),
@@ -661,7 +663,8 @@ comp_try(E, [], [], After, Env, L, St0) ->
     {Ca,St3} = comp_body(After, Env, L, St2),
     Cb = ann_c_seq([L], Ca, Cv),
     {Evs,Ecs,St4} = try_after(After, Env, L, St3),
-    {ann_c_try([L], Ce, [Cv], Cb, Evs, Ecs),St4};
+    Ann = line_file_anno(L, St4),
+    {ann_c_try(Ann, Ce, [Cv], Cb, Evs, Ecs),St4};
 comp_try(E, Case, Catch, After, Env, L, St) ->
     %% Both catch and after - (try E [(case ...)] (catch ...) (after ...))
     %% The case where all options are given.
@@ -692,7 +695,7 @@ try_exception(Cls, Env, L, St0) ->
     {Ccs,St2} = case_clauses(Cls, Env, L, St1),
     [_,Val,Info] = Cvs,
     Arg = c_tuple(Cvs),
-    Fc = ann_c_clause([L,compiler_generated],   %It is compiler generated
+    Fc = ann_c_clause(comp_gen_anno(L, St2),    %It is compiler generated
                       [Arg], raise_primop([Info,Val], L, St2)),
     Excp = ann_c_case([L], Arg, Ccs ++ [Fc]),
     {Cvs,Excp,St2}.
@@ -735,7 +738,7 @@ comp_funcall(['match-lambda'|Cls]=F, As, Env, L, St0) ->
             Cb = fun_body(Cf),
             Efun = fun (E, St) -> comp_expr(E, Env, L, St) end,
             {Ces,St2} = mapfoldl(Efun, St1, As),
-            {ann_c_let([L], Cvs, c_values(Ces), Cb),St2};
+            {ann_c_let([L], Cvs, ann_c_values([L], Ces), Cb),St2};
         false ->                %Catch arg mismatch at runtime
             comp_funcall_1(F, As, Env, L, St0)
     end;
@@ -862,7 +865,7 @@ comp_map_test(Cm, Cpairs, _, L, St) ->
                                    ann_c_atom(Ann, is_map), [Cm]),
                         ann_c_map(Ann, Cm, Cpairs)),
     Cfail = map_fail(Cm, L, St),
-    {ann_c_case(Ann, c_values([]), [Cmap,Cfail]),St}.
+    {ann_c_case(Ann, ann_c_values(Ann, []), [Cmap,Cfail]),St}.
 
 map_fail(Map, L, St) ->
     Fann = [{eval_failure,badmap}],
@@ -893,7 +896,8 @@ comp_guard(Gts, Env, L, St0) ->
     Cv = c_var('Try'),
     Evs = [c_var('T'),c_var('R')],              %Why only two?
     False = c_atom(false),                      %Exception returns false
-    {ann_c_try([L], Ce, [Cv], Cv, Evs, False),St1}.
+    Ann = line_file_anno(L, St1),
+    {ann_c_try(Ann, Ce, [Cv], Cv, Evs, False),St1}.
 
 %% comp_guard_tests(GuardTests, Env, Line, State) -> {CoreTest,State}.
 %%  Compile a guard test, making sure it returns a boolean value. We
@@ -920,10 +924,19 @@ guard_ands([G1,G2|Gas], Env, Line, St0) ->
 %%  test by checking the test and only adding one when we know the
 %%  test won't automatically return a boolean value.
 
+comp_guard_test([quote,Bool], _, _, St) when is_boolean(Bool) ->
+    {c_atom(Bool),St};                          %A small optimisation
 comp_guard_test([call,[quote,erlang],[quote,Op]|Args]=Test, Env, L, St) ->
     comp_guard_test_1(Test, Op, Args, Env, L, St);
 comp_guard_test([Op|Args]=Test, Env, L, St) ->
-    comp_guard_test_1(Test, Op, Args, Env, L, St).
+    comp_guard_test_1(Test, Op, Args, Env, L, St);
+comp_guard_test(Symb, _, L, St) when is_atom(Symb) ->
+    Ann = comp_gen_anno(L, St),
+    {ann_c_call(Ann, c_atom(erlang), c_atom('=:='), [c_var(Symb),c_atom(true)]),
+     St};
+comp_guard_test(_, _, _, St) ->
+    %% Everything else always will always fail.
+    {c_atom(false),St}.
 
 comp_guard_test_1(Test, Op, Args, Env, L, St0) ->
     Ar = length(Args),
@@ -935,7 +948,7 @@ comp_guard_test_1(Test, Op, Args, Env, L, St0) ->
             comp_gexpr(Test, Env, L, St0);
         false ->                                %No it's not, then make it one
             Call = fun (Cas, _, Li, St) ->
-                           Ann = [Li,compiler_generated],
+                           Ann = comp_gen_anno(Li, St),
                            {ann_c_call(Ann, c_atom(erlang), c_atom('=:='), Cas),
                             St}
                    end,
@@ -1019,7 +1032,7 @@ comp_gif(Te, Tr, Fa, Env, L, St0) ->
     Omega = c_var(omega),
     Ctrue = ann_c_clause([L], [True], Ctr),
     Cfalse = ann_c_clause([L], [False], Cfa),
-    Cfail = ann_c_clause([L,compiler_generated], [Omega], Omega),
+    Cfail = ann_c_clause(comp_gen_anno(L, St3), [Omega], Omega),
     {ann_c_case([L], Cte, [Ctrue,Cfalse,Cfail]),St3}.
 
 %% This produces code which is harder to optimise, strangely enough.
@@ -1033,7 +1046,7 @@ comp_gif(Te, Tr, Fa, Env, L, St0) ->
 %%                  Omega = c_var(omega),
 %%                  Ctrue = ann_c_clause([L], [True], Ctr),
 %%                  Cfalse = ann_c_clause([L], [False], Cfa),
-%%                  Cfail = ann_c_clause([L,compiler_generated], [Omega], Omega),
+%%                  Cfail = ann_c_clause(comp_gen_anno(L, St3), [Omega], Omega),
 %%                  {ann_c_case([L], Ctest, [Ctrue,Cfalse,Cfail]),St}
 %%          end,
 %%     simple_seq([Cte], If, Env, L, St3).
@@ -1324,10 +1337,16 @@ pat_lit_map(_) -> c_lit(map).
 -endif.
 
 %% line_file_anno(Line, State) -> Anno.
-%%  Make annotation witj line number and file.
+%%  Make annotation with line number and file.
 
 line_file_anno(L, St) ->
     [L,{file,St#cg.file}].
+
+%% comp_gen_anno(Line, State) -> Anno.
+%%  Make annotation with line number and compiler_generated.
+
+comp_gen_anno(L, _) ->
+    [L,compiler_generated].
 
 %% new_symb(State) -> {Symbol,State}.
 %% Create a hopefully new unused symbol.
@@ -1450,8 +1469,7 @@ c_fname(N, A) -> cerl:c_fname(N, A).
 ann_c_apply(Ann, Op, As) ->
     cerl:ann_c_apply(Ann, Op, As).
 
-c_values(Vs) ->
-    cerl:c_values(Vs).
+ann_c_values(Ann, Vs) -> cerl:ann_c_values(Ann, Vs).
 
 get_ann(Node) -> cerl:get_ann(Node).
 set_ann(Node, Ann) -> cerl:set_ann(Node, Ann).

@@ -43,8 +43,6 @@
 
 -import(lists, [any/2,all/2,map/2,foldl/3,foldr/3,mapfoldl/3,
                 reverse/1,reverse/2,member/2,concat/1]).
--import(orddict, [find/2,store/3]).
--import(ordsets, [add_element/2,is_element/2]).
 
 -include("lfe_comp.hrl").
 -include("lfe_macro.hrl").
@@ -59,6 +57,8 @@
 %% Errors
 format_error({bad_form,Type}) ->
     lfe_io:format1("bad form: ~w", [Type]);
+format_error({bad_env_form,Type}) ->
+    lfe_io:format1("bad environment form: ~w", [Type]);
 format_error({expand_macro,Call,_}) ->
     %% Can be very big so only print limited depth.
     lfe_io:format1("error expanding ~P", [Call,10]).
@@ -129,7 +129,7 @@ macro_forms(Fs, Env, #cinfo{file=F,opts=Os,ipath=Is}) ->
     do_forms(Fs, Env, St).
 
 do_forms(Fs0, Env0, St0) ->
-    {Fs1,Env1,St1} = pass(Fs0, Env0, St0),
+    {Fs1,Env1,St1} = pass_fileforms(Fs0, Env0, St0),
     case St1#mac.errors of
         [] -> {ok,Fs1,Env1,St1#mac.warnings};    %No errors
         Es -> {error,Es,St1#mac.warnings}
@@ -138,71 +138,50 @@ do_forms(Fs0, Env0, St0) ->
 default_state(Expand) ->
     #mac{expand=Expand,line=1,file="-nofile-",opts=[],ipath=["."]}.
 
-%% pass(FileForms, Env, State) -> {FileForms,Env,State}.
-%%  Pass over a list of fileforms, {Form,Line}, collecting and
-%%  removing all macro defintions. All forms must be expanded at
-%%  top-level to check form, but all can be expanded to full depth.
-%%  Nesting of forms by progn is preserved.
-
-pass([{['progn'|Pfs0],L}|Fs0], Env0, St0) ->
-    {Pfs1,Env1,St1} = pass_progn(Pfs0, Env0, St0#mac{line=L}),
-    {Fs1,Env2,St2} = pass(Fs0, Env1, St1),
-    {[{['progn'|Pfs1],L}|Fs1],Env2,St2};
-pass([{['eval-when-compile'|Ewcs0],L}|Fs0], Env0, St0) ->
-    {Ecws1,Env1,St1} = pass_ewc(Ewcs0, Env0, St0#mac{line=L}),
-    {Fs1,Env2,St2} = pass(Fs0, Env1, St1),
-    {[{['progn'|Ecws1],L}|Fs1],Env2,St2};
-pass([{['define-macro'|Def]=F,L}|Fs0], Env0, St0) ->
-    case pass_define_macro(Def, Env0, St0#mac{line=L}) of
-        {yes,Env1,St1} -> pass(Fs0, Env1, St1);
-        {no,St1} ->
-            %% Ignore it and pass it on to generate error later.
-            {Fs1,Env1,St2} = pass(Fs0, Env0, St1),
-            {[{F,L}|Fs1],Env1,St2}
-    end;
-pass([{F,L}|Fs0], Env0, St0) ->
-    %% First expand enough to test top form, else maybe expand all.
-    case pass_expand_expr(F, Env0, St0#mac{line=L}, St0#mac.expand) of
-        {yes,Exp,St1} ->            %Top form expanded
-            pass([{Exp,L}|Fs0], Env0, St1);
-        {no,F1,St1} ->                 %Expanded all if flag set
-            {Fs1,Env1,St2} = pass(Fs0, Env0, St1),
-            {[{F1,L}|Fs1],Env1,St2}
-    end;
-pass([], Env, St) -> {[],Env,St}.
-
-%% pass_progn(Forms, Env, State) -> {Forms,Env,State}.
-%%  Pass over a list of forms collecting and removing all macro
+%% pass_fileforms(FileForms, Env, State) -> {FileForms,Env,State}.
+%% pass_forms(Forms, Env, State) -> {Forms,Env,State}.
+%%  Pass over a list of fileforms/forms collecting and removing all macro
 %%  defintions. All forms must be expanded at top-level to check form,
 %%  but all can be expanded to full depth. Nesting of forms by progn
 %%  is preserved.
 
-pass_progn([['progn'|Pfs0]|Fs0], Env0, St0) ->
-    {Pfs1,Env1,St1} = pass_progn(Pfs0, Env0, St0),
-    {Fs1,Env2,St2} = pass_progn(Fs0, Env1, St1),
-    {[['progn'|Pfs1]|Fs1],Env2,St2};
-pass_progn([['eval-when-compile'|Ewcs0]|Fs0], Env0, St0) ->
+pass_fileforms(Ffs, Env, St) ->
+    mapfoldl2(fun ({F0,L}, E0, S0) ->
+                      {F1,E1,S1} = pass_form(F0, E0, S0#mac{line=L}),
+                      %%io:format("p: ~p\n" ,[{F0,F1,L}]),
+                      {{F1,L},E1,S1}
+              end, Env, St, Ffs).
+
+pass_forms(Fs, Env, St) ->
+    mapfoldl2(fun (F0, E0, S0) -> pass_form(F0, E0, S0) end, Env, St, Fs).
+
+%% pass_form(Form, Env, State) -> {Form,Env,State}.
+%%  Do a form collecting and removing all macro defintions. The form
+%%  must be expanded at top-level to check it, but it can be expanded
+%%  to full depth. Nesting of forms by progn is preserved.
+
+pass_form(['progn'|Pfs0], Env0, St0) ->
+    {Pfs1,Env1,St1} = pass_forms(Pfs0, Env0, St0),
+    {['progn'|Pfs1],Env1,St1};
+pass_form(['eval-when-compile'|Ewcs0], Env0, St0) ->
     {Ecws1,Env1,St1} = pass_ewc(Ewcs0, Env0, St0),
-    {Fs1,Env2,St2} = pass_progn(Fs0, Env1, St1),
-    {[['progn'|Ecws1]|Fs1],Env2,St2};
-pass_progn([['define-macro'|Def]=F|Fs0], Env0, St0) ->
+    {['progn'|Ecws1],Env1,St1};
+pass_form(['define-macro'|Def]=F, Env0, St0) ->
     case pass_define_macro(Def, Env0, St0) of
-        {yes,Env1,St1} -> pass_progn(Fs0, Env1, St1);
+        {yes,Env1,St1} ->
+            {['progn'],Env1,St1};               %Must return a valid form
         {no,St1} ->
             %% Ignore it and pass it on to generate error later.
-            {Fs1,Env1,St2} = pass_progn(Fs0, Env0, St1),
-            {[F|Fs1],Env1,St2}
+            {F,Env0,St1}
     end;
-pass_progn([F|Fs0], Env0, St0) ->
+pass_form(F, Env, St0) ->
     %% First expand enough to test top form, if so process again.
-    case pass_expand_expr(F, Env0, St0, St0#mac.expand) of
+    case pass_expand_expr(F, Env, St0, St0#mac.expand) of
         {yes,Exp,St1} ->                        %Top form expanded
-            pass_progn([Exp|Fs0], Env0, St1);
+            pass_form(Exp, Env, St1);
         {no,F1,St1} ->                          %Expanded all if flag set
-            {Fs1,Env1,St2} = pass_progn(Fs0, Env0, St1),
-            {[F1|Fs1],Env1,St2}
-    end;
-pass_progn([], Env, St) -> {[],Env,St}.
+            {F1,Env,St1}
+    end.
 
 %% pass_ewc(Forms, Env, State) -> {Forms,Env,State}.
 %%  Pass over a list of forms collecting and removing all function
@@ -234,16 +213,15 @@ pass_ewc([['eval-when-compile'|Ewcs0]|Fs0], Fbs0, Env0, St0) ->
 %%         {Fs1,Fbs1,Env1,St2} = pass_ewc(Fs0, Fbs0, Env0, St1),
 %%         {[F|Fs1],Fbs1,Env1,St2}
 %%     end;
-pass_ewc([['define-function',Name,Def]=F|Fs0], Fbs0, Env0, St0) ->
+pass_ewc([['define-function',Name,Def]|Fs0], Fbs0, Env0, St0) ->
     case func_arity(Def) of
         {yes,Ar} ->                             %Definition not too bad
             Fb = {Name,Ar,Def},
             %% Env1 = lfe_eval:add_expr_func(Name, Ar, Def, Env0),
             pass_ewc(Fs0, [Fb|Fbs0], Env0, St0);
         no ->                                   %Definition really bad
-            %% Ignore it and pass it on to generate error later.
-            {Fs1,Fbs1,Env1,St1} = pass_ewc(Fs0, Fbs0, Env0, St0),
-            {[F|Fs1],Fbs1,Env1,St1}
+            St1 = add_error({bad_env_form,function}, St0),
+            pass_ewc(Fs0, Fbs0, Env0, St1)
     end;
 pass_ewc([F|Fs0], Fbs0, Env0, St0) ->
     %% First expand enough to test top form, if so process again.
@@ -805,13 +783,16 @@ exp_predef([syntaxlet,Defs|Body], _, St) ->
     Mdefs = map(fun ([Name|Rules]) -> exp_rules(Name, [], Rules) end, Defs),
     {yes,['let-macro',Mdefs|Body],St};
 exp_predef([prog1|Body], _, St0) ->
+    %% We do a simple optimisation here.
+    case Body of                                %Catch bad form here
+        [Expr] -> {yes,Expr,St0};
+        [First|Rest] ->
+            {V,St1} = new_symb(St0),
+            {yes,['let',[[V,First]]|Rest ++ [V]],St1}
+    end;
+exp_predef([prog2|Body], _, St) ->
     [First|Rest] = Body,                        %Catch bad form here
-    {V,St1} = new_symb(St0),
-    {yes,['let',[[V,First]]|Rest ++ [V]],St1};
-exp_predef([prog2|Body], _, St0) ->
-    [First,Second|Rest] = Body,                 %Catch bad form here
-    {V,St1} = new_symb(St0),
-    {yes,['let',[[V,[progn,First,Second]]]|Rest ++ [V]],St1};
+    {yes,[progn,First,[prog1|Rest]],St};
 %% This has to go here for the time being so as to be able to macro
 %% expand body.
 exp_predef(['match-spec'|Body], Env, St0) ->
@@ -1414,3 +1395,12 @@ c_b_tq(Exp, P, G, Gen, Qs, End, St0) ->
 %%        [[[binary,P,Brest]],Rest],                %Matches pattern
 %%        [[[binary,Brest]],End]]]],                %No match
 %%       [H,Gen]],St3};
+
+%% mapfoldl2(Fun, Acc1, Acc2, List) -> {List,Acc1,Acc2}.
+%%  Like normal mapfoldl but with 2 accumulators.
+
+mapfoldl2(Fun, A0, B0, [E0|Es0]) ->
+    {E1,A1,B1} = Fun(E0, A0, B0),
+    {Es1,A2,B2} = mapfoldl2(Fun, A1, B1, Es0),
+    {[E1|Es1],A2,B2};
+mapfoldl2(_, A, B, []) -> {[],A,B}.
