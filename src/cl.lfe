@@ -35,7 +35,7 @@
    (position 2) (position-if 2) (position-if-not 2)
    (count 2) (count-if 2) (count-if-not 2)
    ;; Lists.
-   (car 1) (cdr 1) (first 1) (rest 1) (ncons 1) (xcons 2) (nth 2)
+   (car 1) (cdr 1) (first 1) (rest 1) (nth 2)
    (nthcdr 2) (last 1) (butlast 1)
    ;; Substitution of expressions.
    (subst 3) (subst-if 3) (subst-if-not 3) (sublis 2)
@@ -384,12 +384,6 @@
 
 (defun rest (xs)
   (cl:cdr xs))
-
-(defun ncons (x)
-  (cons x '()))
-
-(defun xcons (x y)
-  (cons y x))
 
 (defun nth
   ([n xs] (when (< n 0)) ())
