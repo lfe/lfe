@@ -32,5 +32,6 @@
               opts=[],                          %Compiler options
               ipath=[],                         %Include path
               errors=[],                        %Errors
-              warnings=[]                       %Warnings
-              }).
+              warnings=[],                      %Warnings
+              unloadable=[]                     %Macro modules we can't load
+	     }).

@@ -689,8 +689,6 @@ exp_predef(['++'|Abody], _, St) ->
 exp_predef(['++*'|Abody], _, St) ->
     Exp = exp_prefix(Abody),
     {yes,Exp,St};
-exp_predef([':',M,F|As], _, St) ->
-    {yes,['call',?Q(M),?Q(F)|As], St};
 exp_predef(['?'|As], _, St) ->
     Exp = case As of
               [To,Def] -> ['receive',['omega','omega'],['after',To,Def]];
@@ -865,14 +863,56 @@ exp_predef(['MODULE'], _, St) ->
     {yes,?Q(St#mac.module),St};
 exp_predef(['LINE'], _, St) ->
     {yes,?Q(St#mac.line),St};
+exp_predef([':',M,F|As], Env, St0) when is_atom(M), is_atom(F) ->
+    case exp_comp_macro(M, F, As, Env, St0) of
+	{yes,_,_}=Yes -> Yes;			%{yes,Exp,St}
+	{no,St1} -> {yes,['call',?Q(M),?Q(F)|As], St1}
+    end;
+exp_predef([':',M,F|As], _, St) ->
+    %% Catch the other junk here.
+    {yes,['call',?Q(M),?Q(F)|As], St};
 exp_predef([Fun|As], _, St) when is_atom(Fun) ->
     case string:tokens(atom_to_list(Fun), ":") of
         [M,F] ->
-            {yes,[call,?Q(list_to_atom(M)),?Q(list_to_atom(F))|As],St};
+            {yes,[':',list_to_atom(M),list_to_atom(F)|As],St};
         _ -> no                                 %This will also catch a:b:c
     end;
 %% This was not a call to a predefined macro.
 exp_predef(_, _, _) -> no.
+
+%% exp_comp_macro(Module, Name, Args, Env, State) ->
+%%     {yes,From,State} | {no,State}.
+%%  Expand macro in Module if it exists. Try to be smart and avoid
+%%  loading a module, and trying to load a module, unneccessarily.
+
+exp_comp_macro(M, F, As, Env, St) ->
+    case erlang:function_exported(M, 'LFE-EXPAND-USER-MACRO', 2) of
+	true ->
+	    case M:'LFE-EXPAND-USER-MACRO'([F|As], Env) of
+		{yes,Exp} -> {yes,Exp,St};
+		no -> {no,St}
+	    end;
+	false ->
+	    %% Slightly faster code:ensure_loaded/1.
+	    case erlang:module_loaded(M) of
+		true -> {no,St};	        %Module loaded but no macros
+		false ->
+		    Unl = St#mac.unloadable,
+		    case lists:member(M, Unl) of
+			true -> {no,St};	%Can't load this module
+			false ->
+			    %% Try loading file and try again.
+			    case code:load_file(M) of
+				{module,_} -> exp_comp_macro(M, F, As, Env, St);
+				{error,_} ->
+				    %% Echo modules we couldn't load
+				    lfe_io:format("ecp: ~p\n", [{M,Unl}]),
+				    St1 = St#mac{unloadable=[M|Unl]},
+				    {no,St1}
+			    end
+		    end
+	    end
+    end.
 
 %% exp_qlc(LC, Opts, Env, State) -> {yes,Expansion,State}.
 %% Expand a Query List Comprehension returning a call to qlc:q/2. We
