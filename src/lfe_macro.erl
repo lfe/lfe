@@ -36,9 +36,9 @@
 
 %% -compile([export_all]).
 
--import(lfe_env, [new/0,add_fbinding/4,is_fbound/3,
-                  add_mbinding/3,is_mbound/2,get_mbinding/2,
-		  add_vbinding/3]).
+-import(lfe_env, [new/0,add_vbinding/3,is_vbound/2,
+                  add_fbinding/4,is_fbound/3,
+                  add_mbinding/3,is_mbound/2,get_mbinding/2]).
 
 -import(lfe_lib, [is_symb_list/1,is_proper_list/1]).
 
@@ -166,14 +166,14 @@ pass_form(['progn'|Pfs0], Env0, St0) ->
     {['progn'|Pfs1],Env1,St1};
 pass_form(['eval-when-compile'|Ewcs0], Env0, St0) ->
     {Env1,St1} = pass_ewc(Ewcs0, Env0, St0),
-    {['progn'],Env1,St1};			%Must return a valid form
+    {['progn'],Env1,St1};                       %Must return a valid form
 pass_form(['define-macro'|Def], Env0, St0) ->
     case pass_define_macro(Def, Env0, St0) of
         {yes,Env1,St1} ->
             {['progn'],Env1,St1};               %Must return a valid form
         no ->
-	    St1 = add_error({bad_form,macro}, St0),
-            {['progn'],Env0,St1}		%Must return a valid form
+            St1 = add_error({bad_form,macro}, St0),
+            {['progn'],Env0,St1}                %Must return a valid form
     end;
 pass_form(F, Env, St0) ->
     %% First expand enough to test top form, if so process again.
@@ -203,8 +203,8 @@ pass_ewc_form(['define-macro'|Def], Env0, St0) ->
     case pass_define_macro(Def, Env0, St0) of
         {yes,Env1,St1} -> {Env1,St1};
         no ->
-	    St1 = add_error({bad_env_form,macro}, St0),
-	    {Env0,St1}
+            St1 = add_error({bad_env_form,macro}, St0),
+            {Env0,St1}
     end;
 pass_ewc_form(['define-function',Name,Def], Env0, St0) ->
     case function_arity(Def) of
@@ -215,19 +215,21 @@ pass_ewc_form(['define-function',Name,Def], Env0, St0) ->
             St1 = add_error({bad_env_form,function}, St0),
             {Env0,St1}
     end;
-pass_ewc_form([set,Pattern|Es], Env, St) ->
-    pass_eval_set(Pattern, Es, Env, St);
-pass_ewc_form(F, Env0, St0) ->
+pass_ewc_form([set|Args], Env, St) ->
+    pass_eval_set(Args, Env, St);
+pass_ewc_form(F0, Env, St0) ->
     %% First expand enough to test top form, if so process again.
-    case pass_expand_expr(F, Env0, St0, false) of
-        {yes,Exp,St1} ->                        %Top form expanded
-            pass_ewc_form(Exp, Env0, St1);
+    case pass_expand_expr(F0, Env, St0, false) of
+        {yes,F1,St1} ->                         %Top form expanded
+            pass_ewc_form(F1, Env, St1);
         {no,F1,St1} ->                          %Not expanded
-	    case pass_eval_expr(F1, Env0, St1) of
-		{error,E} ->
-		    {Env0,add_error({bad_env_form,{expression,E}}, St1)};
-		_ -> {Env0,St1}			%Ignore value
-	    end
+            try
+                lfe_eval:expr(F1, Env),
+                {Env,St1}
+            catch
+                _:_ ->
+                    {Env,add_error({bad_env_form,expression}, St1)}
+            end
     end.
 
 function_arity([lambda,Args|_]) ->
@@ -242,43 +244,30 @@ function_arity(['match-lambda',[Pat|_]|_]) ->
     end;
 function_arity(_) -> no.
 
-%% pass_eval_expr(Expr, Env, State) -> {ok,Value} | {error,Reason}.
-%%  Evaluate Expr inside Env and catch and return errors.
-
-pass_eval_expr(E, Env, _) ->
-    try
-	{ok,lfe_eval:expr(E, Env)}
-    catch
-	error:Error -> {error,Error};
-	exit:Exit -> {error,{exit,Exit}};
-	throw:_ -> {error,nocatch}
-    end.
-
-%% pass_eval_set(Pattern, Body, Env, State) -> {Env,State}.
+%% pass_eval_set(Args, Env, State) -> {Env,State}.
 %%  Evaluate the set form.
 
-pass_eval_set(P0, B0, Env0, St0) ->
-    Match = case exp_form(['let',P0|B0], Env0, St0) of
-		{['let',P1,E],St1} ->
-		    pass_eval_set_1(P1, [], E, Env0, St1);
-		{['let',P1,G,E],St1} ->
-		    pass_eval_set_1(P1, [G], E, Env0, St1);
-		_ -> St1 = St0, error
-	    end,
-    case Match of
-	{yes,_,Bs} ->
-	    Env1 = foldl(fun ({N,V}, E) -> add_vbinding(N, V, E) end, Env0, Bs),
-	    {Env1,St1};
-	_ ->					%No match or error
-	    {Env0,add_error({bad_env_form,'set'}, St1)}
+pass_eval_set(Args, Env, St) ->
+    try
+        pass_eval_set_1(Args, Env, St)
+    catch
+        _:_ ->                                  %Catch everything
+            {Env,add_error({bad_env_form,'set'}, St)}
     end.
 
-pass_eval_set_1(P, B, E, Env, St) ->
-    case pass_eval_expr(E, Env, St) of
-	{ok,Val} ->
-	    lfe_eval:match_when(P, Val, B, Env);
-	{error,_}=Error -> Error
-    end.
+pass_eval_set_1(Args, Env, St0) ->
+    case exp_form(['let'|Args], Env, St0) of
+        {['let',Pat,G,Exp],St1} ->
+            pass_eval_set_1(Pat, [G], Exp, Env, St1);
+        {['let',Pat,Exp],St1} ->
+            pass_eval_set_1(Pat, [], Exp, Env, St1)
+    end.                                        %Just crash here
+
+pass_eval_set_1(Pat, Guard, Exp, Env0, St) ->
+    Val = lfe_eval:expr(Exp, Env0),
+    {ok,_,Bs} = lfe_eval:match_when(Pat, Val, Guard, Env0),
+    Env1 = foldl(fun ({N,V}, E) -> add_vbinding(N, V, E) end, Env0, Bs),
+    {Env1,St}.
 
 %% pass_expand_expr(Expr, Env, State, ExpandFlag) ->
 %%     {yes,Exp,State} | {no,State}.
@@ -667,18 +656,19 @@ exp_predef(['/'|Es], _, St0) ->
             {Exp,St1} = exp_arith(Es, '/', St0),
             {yes,Exp,St1}
     end;
-exp_predef([Op|Es], _, St0)                     %Logical operators
+%% Comparison operators.
+exp_predef(['!='|Es], _, St) -> {yes,['/='|Es],St};
+exp_predef(['==='|Es], _, St) -> {yes,['=:='|Es],St};
+exp_predef(['!=='|Es], _, St) -> {yes,['=/='|Es],St};
+exp_predef([Op|Es], _, St0) when Op == '/=' ; Op == '=/=' ->
+    {Exp,St1} = exp_nequal(Es, Op, St0),
+    {yes,Exp,St1};
+exp_predef([Op|Es], _, St0)
   when Op == '>'; Op == '>='; Op == '<'; Op == '=<';
-       Op == '=='; Op == '/='; Op == '!='; Op == '=:='; Op == '==='; Op == '=/='; Op == '!==' ->
-    case Op of
-        '!=' -> EOp = '/=';
-        '===' -> EOp = '=:=';
-        '!==' -> EOp = '=/=';
-        _ -> EOp = Op
-    end,
+       Op == '=='; Op == '=:=' ->
     case Es of
         [_|_] ->
-            {Exp,St1} = exp_comp(Es, EOp, St0),
+            {Exp,St1} = exp_comp(Es, Op, St0),
             {yes,Exp,St1}
     end;
 exp_predef([backquote,Bq], _, St) ->            %We do this here.
@@ -864,9 +854,9 @@ exp_predef(['MODULE'], _, St) ->
 exp_predef(['LINE'], _, St) ->
     {yes,?Q(St#mac.line),St};
 exp_predef([':',M,F|As], Env, St0) when is_atom(M), is_atom(F) ->
-    case exp_comp_macro(M, F, As, Env, St0) of
-	{yes,_,_}=Yes -> Yes;			%{yes,Exp,St}
-	{no,St1} -> {yes,['call',?Q(M),?Q(F)|As], St1}
+    case exp_call_macro(M, F, As, Env, St0) of
+        {yes,_,_}=Yes -> Yes;                   %{yes,Exp,St}
+        {no,St1} -> {yes,['call',?Q(M),?Q(F)|As], St1}
     end;
 exp_predef([':',M,F|As], _, St) ->
     %% Catch the other junk here.
@@ -880,38 +870,38 @@ exp_predef([Fun|As], _, St) when is_atom(Fun) ->
 %% This was not a call to a predefined macro.
 exp_predef(_, _, _) -> no.
 
-%% exp_comp_macro(Module, Name, Args, Env, State) ->
+%% exp_call_macro(Module, Name, Args, Env, State) ->
 %%     {yes,From,State} | {no,State}.
 %%  Expand macro in Module if it exists. Try to be smart and avoid
 %%  loading a module, and trying to load a module, unneccessarily.
 
-exp_comp_macro(M, F, As, Env, St) ->
+exp_call_macro(M, F, As, Env, St) ->
     case erlang:function_exported(M, 'LFE-EXPAND-USER-MACRO', 2) of
-	true ->
-	    case M:'LFE-EXPAND-USER-MACRO'([F|As], Env) of
-		{yes,Exp} -> {yes,Exp,St};
-		no -> {no,St}
-	    end;
-	false ->
-	    %% Slightly faster code:ensure_loaded/1.
-	    case erlang:module_loaded(M) of
-		true -> {no,St};	        %Module loaded but no macros
-		false ->
-		    Unl = St#mac.unloadable,
-		    case lists:member(M, Unl) of
-			true -> {no,St};	%Can't load this module
-			false ->
-			    %% Try loading file and try again.
-			    case code:load_file(M) of
-				{module,_} -> exp_comp_macro(M, F, As, Env, St);
-				{error,_} ->
-				    %% Echo modules we couldn't load
-				    lfe_io:format("ecp: ~p\n", [{M,Unl}]),
-				    St1 = St#mac{unloadable=[M|Unl]},
-				    {no,St1}
-			    end
-		    end
-	    end
+        true ->
+            case M:'LFE-EXPAND-USER-MACRO'([F|As], Env) of
+                {yes,Exp} -> {yes,Exp,St};
+                no -> {no,St}
+            end;
+        false ->
+            %% Slightly faster code:ensure_loaded/1.
+            case erlang:module_loaded(M) of
+                true -> {no,St};                %Module loaded but no macros
+                false ->
+                    Unl = St#mac.unloadable,
+                    case lists:member(M, Unl) of
+                        true -> {no,St};        %Can't load this module
+                        false ->
+                            %% Try loading file and try again.
+                            case code:load_file(M) of
+                                {module,_} -> exp_call_macro(M, F, As, Env, St);
+                                {error,_} ->
+                                    %% Echo modules we couldn't load
+                                    lfe_io:format("ecp: ~p\n", [{M,Unl}]),
+                                    St1 = St#mac{unloadable=[M|Unl]},
+                                    {no,St1}
+                            end
+                    end
+            end
     end.
 
 %% exp_qlc(LC, Opts, Env, State) -> {yes,Expansion,State}.
@@ -957,16 +947,16 @@ exp_qlc_qual(T, Env, St) -> exp_form(T, Env, St).
 exp_bif(B, As) -> [call,?Q(erlang),?Q(B)|As].
 
 %% exp_args(Args, State) -> {LetBinds,State}.
-%% Expand Args into a list of let bindings suitable for a let* or
-%% nested lets to force sequential left-to-right evaluation.
+%%  Expand Args into a list of let bindings suitable for a let* or
+%%  nested lets to force sequential left-to-right evaluation.
 
 exp_args(As, St) ->
     mapfoldl(fun (A, St0) -> {V,St1} = new_symb(St0), {[V,A],St1} end, St, As).
 
 %% exp_arith(Args, Op, State) -> {Exp,State}.
-%% Expand arithmetic call strictly forcing evaluation of all
-%% arguments.  Note that single argument version may need special
-%% casing.
+%%  Expand arithmetic call strictly forcing evaluation of all
+%%  arguments.  Note that single argument version may need special
+%%  casing.
 
 exp_arith([A], Op, St) -> {exp_bif(Op, [A]),St};
 exp_arith([A,B], Op, St) -> {exp_bif(Op, [A,B]),St};
@@ -976,18 +966,37 @@ exp_arith(As, Op, St0) ->
     {['let*',Ls,B],St1}.
 
 %% exp_comp(Args, Op, State) -> {Exp,State}.
-%% Expand comparison test strictly forcing evaluation of all
-%% arguments. Note that single argument version may need special
-%% casing.
+%%  Expand comparison test strictly forcing evaluation of all
+%%  arguments. Note that single argument version may need special
+%%  casing.
 
 exp_comp([A], _, St) ->            %Force evaluation
-    {['let',[['_',A]],?Q(true)],St};
+    {[progn,A,?Q(true)],St};
 exp_comp([A,B], Op, St) -> {exp_bif(Op, [A,B]),St};
 exp_comp(As, Op, St0) ->
     {Ls,St1} = exp_args(As, St0),
-    {Ts,_} = mapfoldl(fun ([V,_], Acc) -> {exp_bif(Op, [Acc,V]),V} end,
-                      hd(hd(Ls)), tl(Ls)),
+    Ts = op_pairs(Ls, Op),
     {['let*',Ls,['andalso'|Ts]],St1}.
+
+op_pairs([[V,_]|Ls], Op) ->
+    element(1, mapfoldl(fun ([V,_], Acc) -> {exp_bif(Op, [Acc,V]),V} end,
+			V, Ls)).
+
+%% exp_nequal(Args, Op, State) -> {Exp,State}.
+%%  Expand not equal test strictly forcing evaluation of all
+%%  arguments. We need to compare all the arguments with each other.
+
+exp_nequal([A], _, St) ->            %Force evaluation
+    {[progn,A,?Q(true)],St};
+exp_nequal([A,B], Op, St) -> {exp_bif(Op, [A,B]),St};
+exp_nequal(As, Op, St0) ->
+    {Ls,St1} = exp_args(As, St0),
+    Ts = op_all_pairs(Ls, Op),
+    {['let*',Ls,['andalso'|Ts]],St1}.
+
+op_all_pairs([], _) -> [];
+op_all_pairs([[V,_]|Ls], Op) ->
+    [ exp_bif(Op, [V,V1]) || [V1,_] <- Ls] ++ op_all_pairs(Ls, Op).
 
 %% exp_append(Args) -> Expansion.
 %%  Expand ++ in such a way as to allow its use in patterns. There are
