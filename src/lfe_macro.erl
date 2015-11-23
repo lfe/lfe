@@ -165,12 +165,12 @@ pass_form(['progn'|Pfs0], Env0, St0) ->
     {Pfs1,Env1,St1} = pass_forms(Pfs0, Env0, St0),
     {['progn'|Pfs1],Env1,St1};
 pass_form(['eval-when-compile'|Ewcs0], Env0, St0) ->
-    {Env1,St1} = pass_ewc(Ewcs0, Env0, St0),
-    {['progn'],Env1,St1};                       %Must return a valid form
-pass_form(['define-macro'|Def], Env0, St0) ->
+    {Ewcs1,Env1,St1} = pass_ewc(Ewcs0, Env0, St0),
+    {['eval-when-compile'|Ewcs1],Env1,St1};
+pass_form(['define-macro'|Def]=M, Env0, St0) ->
     case pass_define_macro(Def, Env0, St0) of
         {yes,Env1,St1} ->
-            {['progn'],Env1,St1};               %Must return a valid form
+            {['eval-when-compile',M],Env1,St1};
         no ->
             St1 = add_error({bad_form,macro}, St0),
             {['progn'],Env0,St1}                %Must return a valid form
@@ -193,27 +193,30 @@ pass_form(F, Env, St0) ->
 %%  behave as in the shell.
 
 pass_ewc(Fs, Env, St) ->
-    foldl(fun (F, {E,S}) -> pass_ewc_form(F, E, S) end, {Env,St}, Fs).
+    mapfoldl2(fun (F, E, S) -> pass_ewc_form(F, E, S) end, Env, St, Fs).
 
 pass_ewc_form(['progn'|Pfs0], Env0, St0) ->
-    pass_ewc(Pfs0, Env0, St0);
+    {Pfs1,Env1,St1} = pass_ewc(Pfs0, Env0, St0),
+    {['progn'|Pfs1],Env1,St1};
 pass_ewc_form(['eval-when-compile'|Ewcs0], Env0, St0) ->
-    pass_ewc(Ewcs0, Env0, St0);
-pass_ewc_form(['define-macro'|Def], Env0, St0) ->
+    {Ewcs1,Env1,St1} = pass_ewc(Ewcs0, Env0, St0),
+    {['progn'|Ewcs1],Env1,St1};
+pass_ewc_form(['define-macro'|Def]=M, Env0, St0) ->
     case pass_define_macro(Def, Env0, St0) of
-        {yes,Env1,St1} -> {Env1,St1};
+        {yes,Env1,St1} ->
+            {M,Env1,St1};                       %Don't macro expand now
         no ->
             St1 = add_error({bad_env_form,macro}, St0),
-            {Env0,St1}
+            {M,Env0,St1}
     end;
-pass_ewc_form(['define-function',Name,Def], Env0, St0) ->
+pass_ewc_form(['define-function',Name,Def]=F, Env0, St0) ->
     case function_arity(Def) of
         {yes,Ar} ->                             %Definition not too bad
             Env1 = lfe_eval:add_dynamic_func(Name, Ar, Def, Env0),
-            {Env1,St0};
+            {F,Env1,St0};                       %Don't macro expand now
         no ->                                   %Definition really bad
             St1 = add_error({bad_env_form,function}, St0),
-            {Env0,St1}
+            {F,Env0,St1}                        %Just pass it on
     end;
 pass_ewc_form([set|Args], Env, St) ->
     pass_eval_set(Args, Env, St);
@@ -225,10 +228,10 @@ pass_ewc_form(F0, Env, St0) ->
         {no,F1,St1} ->                          %Not expanded
             try
                 lfe_eval:expr(F1, Env),
-                {Env,St1}
+                {['progn'],Env,St1}             %Ignore the value
             catch
                 _:_ ->
-                    {Env,add_error({bad_env_form,expression}, St1)}
+                    {['progn'],Env,add_error({bad_env_form,expression}, St1)}
             end
     end.
 
@@ -244,7 +247,7 @@ function_arity(['match-lambda',[Pat|_]|_]) ->
     end;
 function_arity(_) -> no.
 
-%% pass_eval_set(Args, Env, State) -> {Env,State}.
+%% pass_eval_set(Args, Env, State) -> {Set,Env,State}.
 %%  Evaluate the set form.
 
 pass_eval_set(Args, Env, St) ->
@@ -265,9 +268,10 @@ pass_eval_set_1(Args, Env, St0) ->
 
 pass_eval_set_1(Pat, Guard, Exp, Env0, St) ->
     Val = lfe_eval:expr(Exp, Env0),
-    {ok,_,Bs} = lfe_eval:match_when(Pat, Val, Guard, Env0),
+    {yes,_,Bs} = lfe_eval:match_when(Pat, Val, Guard, Env0),
     Env1 = foldl(fun ({N,V}, E) -> add_vbinding(N, V, E) end, Env0, Bs),
-    {Env1,St}.
+    Sets = [ [set,N,V] || {N,V} <- Bs ],
+    {['progn'|Sets],Env1,St}.
 
 %% pass_expand_expr(Expr, Env, State, ExpandFlag) ->
 %%     {yes,Exp,State} | {no,State}.
@@ -980,7 +984,7 @@ exp_comp(As, Op, St0) ->
 
 op_pairs([[V,_]|Ls], Op) ->
     element(1, mapfoldl(fun ([V,_], Acc) -> {exp_bif(Op, [Acc,V]),V} end,
-			V, Ls)).
+                        V, Ls)).
 
 %% exp_nequal(Args, Op, State) -> {Exp,State}.
 %%  Expand not equal test strictly forcing evaluation of all
@@ -1213,7 +1217,7 @@ exp_bq_map_pairs(Ps, N) ->
     KVs = foldr(fun ({K,V}, Acc) -> [K,V|Acc] end, [], Ps),
     exp_backquote(KVs, N).
 -else.
-exp_bq_map_pairs(_, _) -> map.
+exp_bq_map_pairs(_, _) -> [list].
 -endif.
 
 new_symb(St) ->
