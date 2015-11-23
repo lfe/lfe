@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2013 Robert Virding
+%% Copyright (c) 2008-2015 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 
 -export([is_symb/1,is_symb_list/1,is_proper_list/1,is_core_form/1]).
 
--export([proc_forms/3]).
+-export([proc_forms/3,proc_forms/4]).
 
 %% Standard lisp library.
 -export([is_lfe_bif/2,
@@ -122,46 +122,51 @@ is_core_form(call) -> true;
 is_core_form(_) -> false.
 
 %% proc_forms(FormFun, Forms, State) -> {Forms,State}.
+%% proc_forms(FormFun, Forms, Line, State) -> {Forms,State}.
 %%  Process a (progn ... ) nested list of forms where top level list
 %%  has elements {Form,LineNumber}. Return a flat list of results and
 %%  passes through State. All the elements are processed left to
 %%  right. The accumulator is in reverse order!
 
-proc_forms(Fun, Fs, St) -> proc_forms(Fun, Fs, [], St).
+proc_forms(Fun, Fs, St) -> proc_top_forms(Fun, Fs, [], St).
 
-proc_forms(Fun, [{['progn'|Bs],L}|Fs], Rs0, St0) ->
-    {Rs1,St1} = proc_forms_progn(Fun, Bs, L, Rs0, St0),
-    proc_forms(Fun, Fs, Rs1, St1);
-proc_forms(Fun, [{F,L}|Fs], Rs, St0) ->
+proc_forms(Fun, Fs, L, St0) ->
+    {Rs,St1} = proc_progn_forms(Fun, Fs, L, [], St0),
+    {reverse(Rs),St1}.
+
+proc_top_forms(Fun, [{['progn'|Bs],L}|Fs], Rs0, St0) ->
+    {Rs1,St1} = proc_progn_forms(Fun, Bs, L, Rs0, St0),
+    proc_top_forms(Fun, Fs, Rs1, St1);
+proc_top_forms(Fun, [{F,L}|Fs], Rs, St0) ->
     {Frs,St1} = Fun(F, L, St0),
-    proc_forms(Fun, Fs, reverse(Frs, Rs), St1);
-proc_forms(_, [], Rs, St) -> {reverse(Rs),St}.
+    proc_top_forms(Fun, Fs, reverse(Frs, Rs), St1);
+proc_top_forms(_, [], Rs, St) -> {reverse(Rs),St}.
 
-proc_forms_progn(Fun, [['progn'|Bbs]|Bs], L, Rs0, St0) ->
-    {Rs1,St1} = proc_forms_progn(Fun, Bbs, L, Rs0, St0),
-    proc_forms_progn(Fun, Bs, L, Rs1, St1);
-proc_forms_progn(Fun, [B|Bs], L, Rs, St0) ->
+proc_progn_forms(Fun, [['progn'|Bbs]|Bs], L, Rs0, St0) ->
+    {Rs1,St1} = proc_progn_forms(Fun, Bbs, L, Rs0, St0),
+    proc_progn_forms(Fun, Bs, L, Rs1, St1);
+proc_progn_forms(Fun, [B|Bs], L, Rs, St0) ->
     {Frs,St1} = Fun(B, L, St0),
-    proc_forms_progn(Fun, Bs, L, reverse(Frs, Rs), St1);
-proc_forms_progn(_, [], _, Rs, St) ->
+    proc_progn_forms(Fun, Bs, L, reverse(Frs, Rs), St1);
+proc_progn_forms(_, [], _, Rs, St) ->
     {Rs,St}.
 
-%% proc_forms(Fun, [{['progn'|Bs],L}|Fs], Rs, St) ->
-%%     proc_forms_progn(Fun, Bs, L, [], Fs, Rs, St);
-%% proc_forms(Fun, [{F,L}|Fs], Rs, St0) ->
+%% proc_top_forms(Fun, [{['progn'|Bs],L}|Fs], Rs, St) ->
+%%     proc_progn_forms(Fun, Bs, L, [], Fs, Rs, St);
+%% proc_top_forms(Fun, [{F,L}|Fs], Rs, St0) ->
 %%     {Frs,St1} = Fun(F, L, St0),
-%%     proc_forms(Fun, Fs, reverse(Frs, Rs), St1);
-%% proc_forms(_, [], Rs, St) -> {reverse(Rs),St}.
+%%     proc_top_forms(Fun, Fs, reverse(Frs, Rs), St1);
+%% proc_top_forms(_, [], Rs, St) -> {reverse(Rs),St}.
 
-%% proc_forms_progn(Fun, [['progn'|Bs1]|Bs], L, Bss, Fs, Rs, St) ->
-%%     proc_forms_progn(Fun, Bs1, L, [Bs|Bss], Fs, Rs, St);
-%% proc_forms_progn(Fun, [B|Bs], L, Bss, Fs, Rs, St0) ->
+%% proc_progn_forms(Fun, [['progn'|Bs1]|Bs], L, Bss, Fs, Rs, St) ->
+%%     proc_progn_forms(Fun, Bs1, L, [Bs|Bss], Fs, Rs, St);
+%% proc_progn_forms(Fun, [B|Bs], L, Bss, Fs, Rs, St0) ->
 %%     {Frs,St1} = Fun(B, L, St0),
-%%     proc_forms_progn(Fun, Bs, L, Bss, Fs, reverse(Frs, Rs), St1);
-%% proc_forms_progn(Fun, [], L, [Bs|Bss], Fs, Rs, St) ->
-%%     proc_forms_progn(Fun, Bs, L, Bss, Fs, Rs, St);
-%% proc_forms_progn(Fun, [], _, [], Fs, Rs, St) ->
-%%     proc_forms(Fun, Fs, Rs, St).
+%%     proc_progn_forms(Fun, Bs, L, Bss, Fs, reverse(Frs, Rs), St1);
+%% proc_progn_forms(Fun, [], L, [Bs|Bss], Fs, Rs, St) ->
+%%     proc_progn_forms(Fun, Bs, L, Bss, Fs, Rs, St);
+%% proc_progn_forms(Fun, [], _, [], Fs, Rs, St) ->
+%%     proc_top_forms(Fun, Fs, Rs, St).
 
 %% Standard lisp library functions.
 %% is_lfe_bif(Name, Arity) -> bool().
