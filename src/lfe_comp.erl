@@ -32,7 +32,7 @@
 
 %% -compile(export_all).
 
--import(lists, [member/2,keyfind/3,filter/2,foreach/2,all/2,
+-import(lists, [member/2,keyfind/3,filter/2,foreach/2,all/2,any/2,
                 map/2,flatmap/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3]).
 -import(ordsets, [add_element/2,is_element/2,from_list/1,union/2]).
 -import(orddict, [store/3,find/2]).
@@ -162,10 +162,25 @@ compiler_info(#comp{lfile=F,opts=Os,ipath=Is}) ->
     #cinfo{file=F,opts=Os,ipath=Is}.
 
 %% lfe_comp_opts(Opts) -> Opts.
-%%  Check options for lfe compiler.
+%%  Translate from LFE to erlang standard options for lfe compiler.
 
 lfe_comp_opts(Opts) ->
-    filter(fun (_) -> true end, Opts).
+    Fun = fun ('to-exp') -> to_exp;
+              ('to-group') -> to_group;
+              ('to-umac') -> to_umac;
+              ('to-pmod') -> to_pmod;
+              ('to-lint') -> to_lint;
+              ('to-core0') -> to_core0;
+              ('to-core') -> to_core;
+              ('to-kernel') -> to_kernel;
+              ('to-asm') -> to_asm;
+              ('warnings-as-errors') -> warnings_as_errors;
+              ('report-warnings') -> report_warnings;
+              ('report-errors') -> report_errors;
+              ('debug-print') -> debug_print;
+              (O) -> O
+          end,
+    map(Fun, Opts).
 
 %% do_forms(State) ->
 %%      {ok,Mod,[Core],[Warnings]} | {error,Errors,Warnings} | error.
@@ -205,6 +220,8 @@ passes() ->
      {when_flag,to_exp,{done,fun expand_pp/1}},
      {do,fun do_group_modules/1},               %Now we group modules
      {when_flag,to_group,{done,fun group_pp/1}},
+     {do,fun do_user_macros/1},
+     {when_flag,to_umac,{done,fun macro_pp/1}},
      {do,fun do_lfe_pmod/1},
      {when_flag,to_pmod,{done,fun pmod_pp/1}},
      {do,fun do_lfe_lint/1},
@@ -219,8 +236,8 @@ passes() ->
      {when_flag,to_asm,{done,fun erl_asm_pp/1}},
      {unless_test,fun werror/1,{done,fun beam_write/1}}]. %Should be last
 
-do_passes([{when_flag,Flag,Cmd}|Ps], St) ->
-    case member(Flag, St#comp.opts) of
+do_passes([{when_flag,Flag,Cmd}|Ps], #comp{opts=Opts}=St) ->
+    case member(Flag, Opts)  of
         true -> do_passes([Cmd|Ps], St);
         false -> do_passes(Ps, St)
     end;
@@ -255,6 +272,7 @@ do_passes([], St) -> {ok,St}.                   %Got to the end, everything ok!
 %% do_macro_expand(State) -> {ok,State} | {error,State}.
 %% do_group_modules(State) -> {ok,State} | {error,State}.
 %% do_lfe_pmod(State) -> {ok,State} | {error,State}.
+%% do_user_macros(State) -> {ok,State} | {error,State}.
 %% do_lint(State) -> {ok,State} | {error,State}.
 %% do_lfe_codegen(State) -> {ok,State} | {error,State}.
 %% do_erl_comp(State) -> {ok,State} | {error,State}.
@@ -275,6 +293,14 @@ do_macro_expand(#comp{cinfo=Ci,code=Code}=St) ->
 do_group_modules(#comp{code=[{ok,_,Fs,_}]}=St) ->
     Ms = group_modules(Fs),
     {ok,St#comp{code=Ms}}.
+
+do_user_macros(#comp{cinfo=Ci,code=Ms0}=St) ->
+    Umac = fun ({ok,_,Mfs0,Ws}) ->
+                   {Name,Mfs1} = lfe_user_macros:module(Mfs0, Ci),
+                   {ok,Name,Mfs1,Ws}
+           end,
+    Ms1 = lists:map(Umac, Ms0),
+    {ok,St#comp{code=Ms1}}.
 
 do_lfe_pmod(#comp{cinfo=Ci,code=Ms0}=St) ->
     Pmod = fun ({ok,_,Mfs0,Ws}) ->
@@ -377,6 +403,7 @@ erl_comp_opts(St) ->
 expand_pp(St) -> sexpr_pp(St, "expand").
 group_pp(St) -> sexpr_pp(St, "group").
 pmod_pp(St) -> sexpr_pp(St, "pmod").
+macro_pp(St) -> sexpr_pp(St, "macro").
 lint_pp(St) -> sexpr_pp(St, "lint").
 
 sexpr_pp(St, Ext) ->
@@ -560,6 +587,10 @@ group_modules(Fs) ->
 
 collect_form(['define-module'|_]=Mdef, L, Mfs) ->
     {return_module(Mfs),[{Mdef,L}]};
+collect_form(['eval-when-compile'|Ewcs0], L, Mfs) ->
+    {Ewcs1,nul} = lfe_lib:proc_forms(fun (F, _, S) -> {[F],S} end,
+                                     Ewcs0, L, nul),
+    {[],[{['eval-when-compile'|Ewcs1],L}|Mfs]};
 collect_form(F, L, Mfs) -> {[],[{F,L}|Mfs]}.
 
 return_module([]) -> [];
