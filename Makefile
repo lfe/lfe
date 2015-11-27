@@ -11,6 +11,7 @@ INCDIR = include
 DOCDIR = doc
 EMACSDIR = emacs
 
+PATH = $(PATH):$(BINDIR)
 VPATH = $(SRCDIR)
 
 ERLCFLAGS = -W1
@@ -54,7 +55,8 @@ DESTBINDIR = $(PREFIX)$(shell dirname `which erl` 2> /dev/null || echo "/usr/loc
 $(BINDIR)/%: $(CSRCDIR)/%.c
 	cc -o $@ $<
 
-$(EBINDIR)/%.beam: $(SRCDIR)/%.erl
+$(EBINDIR)/%.beam: $(EBINDIR) $(SRCDIR)/%.erl
+	@mkdir -p $(EBINDIR)
 	$(ERLC) -I $(INCDIR) -o $(EBINDIR) $(MAPS_OPTS) $(ERLCFLAGS) $<
 
 %.erl: %.xrl
@@ -68,7 +70,9 @@ $(EBINDIR)/%.beam: $(LSRCDIR)/%.lfe
 
 all: compile docs
 
-.PHONY: compile erlc-compile lfec-compile erlc-lfec emacs install docs clean dockerfile
+.PHONY: compile erlc-compile lfec-compile erlc-lfec emacs install docs clean docker-build docker-push docker
+
+
 
 ## Compile using rebar if it exists else using make
 compile: maps_opts.mk
@@ -139,3 +143,14 @@ get-version:
 # installed somewhere in your $ERL_LIBS path.
 regenerate-parser:
 	erl -noshell -eval 'spell1:file("src/lfe_parse", [report,verbose,{outdir,"./src/"},{includefile,code:lib_dir(spell1,include) ++ "/spell1inc.hrl"}]), init:stop().'
+
+docker-build:
+	docker build -t lfex/lfe:latest .
+
+docker-run:
+	docker run -i -t lfex/lfe:latest lfe
+
+docker-push:
+	docker push lfex/lfe:latest
+
+docker: docker-build docker-push
