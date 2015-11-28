@@ -15,9 +15,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git
 
 ENV ERLANG_DEB1 erlang-solutions_1.0_all.deb
-ENV ERLANG_DEB2 esl-erlang_18.0-1~debian~jessie_amd64.deb
-ENV ERLANG_HOST http://packages.erlang-solutions.com
-ENV ERLANG_PATH site/esl/esl-erlang/FLAVOUR_3_general
+ENV ERLANG_DEB2 esl-erlang_18.1-1~debian~jessie_amd64.deb
+ENV ERLANG_HOST https://packages.erlang-solutions.com
+ENV ERLANG_PATH erlang/esl-erlang/FLAVOUR_1_general
 RUN curl -L -O $ERLANG_HOST/$ERLANG_DEB1
 RUN dpkg -i $ERLANG_DEB1 && rm $ERLANG_DEB1
 RUN apt-get update
