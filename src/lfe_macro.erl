@@ -684,44 +684,24 @@ exp_predef(['++*'|Abody], _, St) ->
     Exp = exp_prefix(Abody),
     {yes,Exp,St};
 exp_predef(['?'|As], _, St) ->
+    Omega = [omega,omega],
     Exp = case As of
-              [To,Def] -> ['receive',['omega','omega'],['after',To,Def]];
-              [To] -> ['?',To,[exit,?Q(timeout)]];
-              [] -> ['receive',['omega','omega']]
+              [To,Def] -> ['receive',Omega,['after',To,Def]];
+              [To] -> ['receive',Omega,['after',To,[exit,?Q(timeout)]]];
+              [] -> ['receive',Omega]
           end,
     {yes,Exp, St};
 exp_predef(['list*'|As], _, St) ->
-    Exp = case As of
-              [E] -> E;
-              [E|Es] -> [cons,E,['list*'|Es]];
-              [] -> []
-          end,
+    Exp = exp_list_star(As),
     {yes,Exp,St};
 exp_predef(['let*'|Lbody], _, St) ->
-    Exp = case Lbody of
-              [[Vb|Vbs]|B] -> ['let',[Vb],['let*',Vbs|B]];
-              [[]|B] -> ['progn'|B];
-              [Vb|B] -> ['let',Vb|B]            %Pass error to let for lint.
-          end,
+    Exp = exp_let_star(Lbody),
     {yes,Exp,St};
 exp_predef(['flet*'|Lbody], _, St) ->
-    Exp = case Lbody of
-              [[Fb|Fbs]|B] -> ['flet',[Fb],['flet*',Fbs|B]];
-              [[]|B] -> ['progn'|B];
-              [Fb|B] -> ['flet',Fb|B]           %Pass error to flet for lint.
-          end,
+    Exp = exp_flet_star(Lbody),
     {yes,Exp,St};
 exp_predef(['cond'|Cbody], _, St) ->
-    Exp = case Cbody of
-              [['else'|B]] -> ['progn'|B];
-              [[['?=',P,E]|B]|Cond] ->
-                  ['case',E,[P|B],['_',['cond'|Cond]]];
-              [[['?=',P,['when'|_]=G,E]|B]|Cond] ->
-                  ['case',E,[P,G|B],['_',['cond'|Cond]]];
-              [[Test|B]|Cond] ->
-                  ['if',Test,['progn'|B],['cond'|Cond]];
-              [] -> ?Q(false)
-          end,
+    Exp = exp_cond(Cbody),
     {yes,Exp,St};
 exp_predef(['do'|Dbody], _, St0) ->
     %% (do ((v i c) ...) (test val) . body) but of limited use as it
@@ -742,27 +722,25 @@ exp_predef([lc|Lbody], _, St0) ->
     {Exp,St1} = lc_te(Es, Qs, St0),
     {yes,Exp,St1};
 %% Add an alias for lc.
-exp_predef(['list-comp'|Lbody], _, St) -> {yes,[lc|Lbody],St};
+exp_predef(['list-comp'|Lbody], _, St0) ->
+    [Qs|Es] = Lbody,
+    {Exp,St1} = lc_te(Es, Qs, St0),
+    {yes,Exp,St1};
 exp_predef([bc|Bbody], _, St0) ->
     %% (bc (qual ...) e ...)
     [Qs|Es] = Bbody,
     {Exp,St1} = bc_te(Es, Qs, St0),
     {yes,Exp,St1};
 %% Add an alias for bc.
-exp_predef(['binary-comp'|Lbody], _, St) -> {yes,[bc|Lbody],St};
+exp_predef(['binary-comp'|Bbody], _, St0) ->
+    [Qs|Es] = Bbody,
+    {Exp,St1} = bc_te(Es, Qs, St0),
+    {yes,Exp,St1};
 exp_predef(['andalso'|Abody], _, St) ->
-    Exp = case Abody of
-              [E] -> E;                         %Let user check last call
-              [E|Es] -> ['if',E,['andalso'|Es],?Q(false)];
-              [] -> ?Q(true)
-          end,
+    Exp = exp_andalso(Abody),
     {yes,Exp,St};
 exp_predef(['orelse'|Obody], _, St) ->
-    Exp = case Obody of
-              [E] -> E;                         %Let user check last call
-              [E|Es] -> ['if',E,?Q(true),['orelse'|Es]];
-              [] -> ?Q(false)
-          end,
+    Exp = exp_orelse(Obody),
     {yes,Exp,St};
 %% The fun forms assume M, F and Ar are atoms and integer.
 exp_predef(['fun',F,Ar], _, St0) ->
@@ -967,7 +945,7 @@ exp_arith([A,B], Op, St) -> {exp_bif(Op, [A,B]),St};
 exp_arith(As, Op, St0) ->
     {Ls,St1} = exp_args(As, St0),
     B = foldl(fun ([V,_], Acc) -> exp_bif(Op, [Acc,V]) end, hd(hd(Ls)), tl(Ls)),
-    {['let*',Ls,B],St1}.
+    {exp_let_star([Ls,B]),St1}.
 
 %% exp_comp(Args, Op, State) -> {Exp,State}.
 %%  Expand comparison test strictly forcing evaluation of all
@@ -980,7 +958,7 @@ exp_comp([A,B], Op, St) -> {exp_bif(Op, [A,B]),St};
 exp_comp(As, Op, St0) ->
     {Ls,St1} = exp_args(As, St0),
     Ts = op_pairs(Ls, Op),
-    {['let*',Ls,['andalso'|Ts]],St1}.
+    {exp_let_star([Ls,exp_andalso(Ts)]),St1}.
 
 op_pairs([[V,_]|Ls], Op) ->
     element(1, mapfoldl(fun ([V,_], Acc) -> {exp_bif(Op, [Acc,V]),V} end,
@@ -996,7 +974,7 @@ exp_nequal([A,B], Op, St) -> {exp_bif(Op, [A,B]),St};
 exp_nequal(As, Op, St0) ->
     {Ls,St1} = exp_args(As, St0),
     Ts = op_all_pairs(Ls, Op),
-    {['let*',Ls,['andalso'|Ts]],St1}.
+    {exp_let_star([Ls,exp_andalso(Ts)]),St1}.
 
 op_all_pairs([], _) -> [];
 op_all_pairs([[V,_]|Ls], Op) ->
@@ -1009,20 +987,20 @@ op_all_pairs([[V,_]|Ls], Op) ->
 exp_append(Args) ->
     case Args of
         %% Cases with quoted lists.
-        [?Q([A|As])|Es] -> [cons,?Q(A),['++',?Q(As)|Es]];
-        [?Q([])|Es] -> ['++'|Es];
+        [?Q([A|As])|Es] -> [cons,?Q(A),exp_append([?Q(As)|Es])];
+        [?Q([])|Es] -> exp_append(Es);
         %% Cases with explicit cons/list/list*.
-        [['list*',A]|Es] -> ['++',A|Es];
-        [['list*',A|As]|Es] -> [cons,A,['++',['list*'|As]|Es]];
-        [[list,A|As]|Es] -> [cons,A,['++',[list|As]|Es]];
-        [[list]|Es] -> ['++'|Es];
-        [[cons,H,T]|Es] -> [cons,H,['++',T|Es]];
-        [[]|Es] -> ['++'|Es];
+        [['list*',A]|Es] -> exp_append([A|Es]);
+        [['list*',A|As]|Es] -> [cons,A,exp_append([['list*'|As]|Es])];
+        [[list,A|As]|Es] -> [cons,A,exp_append([[list|As]|Es])];
+        [[list]|Es] -> exp_append(Es);
+        [[cons,H,T]|Es] -> [cons,H,exp_append([T|Es])];
+        [[]|Es] -> exp_append(Es);
         %% Cases with lists of numbers (strings).
-        %% [[N|Ns]|Es] when is_number(N) -> [cons,N,['++',Ns|Es]];
+        %% [[N|Ns]|Es] when is_number(N) -> [cons,N,exp_append([Ns|Es])];
         %% Default cases with unquoted arg.
         [E] -> E;                %Last arg not checked
-        [E|Es] -> exp_bif('++', [E,['++'|Es]]);
+        [E|Es] -> exp_bif('++', [E,exp_append(Es)]);
         [] -> []
     end.
 
@@ -1034,6 +1012,53 @@ exp_append(Args) ->
 exp_prefix([[N|Ns]|Es]) when is_number(N) -> [cons,N,['++*',Ns|Es]];
 exp_prefix([[]|Es]) -> ['++*'|Es];
 exp_prefix(Args) -> exp_append(Args).
+
+%% exp_list_star(ListBody) -> Cons.
+
+exp_list_star([E]) -> E;
+exp_list_star([E|Es]) ->
+    [cons,E,exp_list_star(Es)];
+exp_list_star([]) -> [].
+
+%% exp_let_star(FletBody) -> Flets.
+
+exp_let_star([[Vb|Vbs]|B]) ->
+    ['let',[Vb],exp_let_star([Vbs|B])];
+exp_let_star([[]|B]) -> [progn|B];
+exp_let_star([Vb|B]) -> ['let',Vb|B].           %Pass error to let for lint.
+
+%% exp_flet_star(FletBody) -> Flets.
+
+exp_flet_star([[Fb|Fbs]|B]) ->
+    [flet,[Fb],exp_flet_star([Fbs|B])];
+exp_flet_star([[]|B]) -> [progn|B];
+exp_flet_star([Fb|B]) -> [flet,Fb|B].           %Pass error to flet for lint
+
+%% exp_cond(CondBody) -> Tests.
+%%  Expand a cond body to a sequence of if/case tests.
+
+exp_cond([['else'|B]]) -> [progn|B];
+exp_cond([[['?=',P,E]|B]|Cond]) ->
+    ['case',E,[P|B],['_',exp_cond(Cond)]];
+exp_cond([[['?=',P,['when'|_]=G,E]|B]|Cond]) ->
+    ['case',E,[P,G|B],['_',exp_cond(Cond)]];
+exp_cond([[Test|B]|Cond]) ->                    %Test and body
+    ['if',Test,[progn|B],exp_cond(Cond)];
+exp_cond([Test|Cond]) ->                        %Naked test
+    ['if',Test,?Q(true),exp_cond(Cond)];
+exp_cond([]) -> ?Q(false).
+
+%% exp_andalso(AndAlsoBody) -> Ifs.
+%% exp_orelse(OrElseBody) -> Ifs.
+
+exp_andalso([E]) -> E;                          %Let user check last call
+exp_andalso([E|Es]) ->
+    ['if',E,exp_andalso(Es),?Q(false)];
+exp_andalso([]) -> ?Q(true).
+
+exp_orelse([E]) -> E;                           %Let user check last call
+exp_orelse([E|Es]) -> ['if',E,?Q(true),exp_orelse(Es)];
+exp_orelse([]) -> ?Q(false).
 
 %% exp_defun(Name, Def) -> Lambda | Match-Lambda.
 %%  Educated guess whether traditional (defun name (a1 a2 ...) ...)
