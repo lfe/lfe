@@ -31,6 +31,17 @@
 %% defining module. This might be easy if we accept exporting all
 %% macros not just specific ones.
 
+%% (defun LFE-EXPAND-USER-MACRO (call $ENV)
+%%   (let ((var-1 val-1)                   ;Eval-when-compile variables
+%%         ...)
+%%     (fletrec ((fun-1 ...)               ;Eval-when-compile functions
+%%               ...)
+%%       (case call                        ;Macro call without module
+%%         (`(mac-1 ...) ...)              ;Already exported local macros
+%%         (`(mac-2 ...) ...)
+%%         ...
+%%         (_ 'no)))))
+
 -module(lfe_user_macros).
 
 -compile(export_all).
@@ -51,12 +62,13 @@
 %%  Expand the forms to handle parameterised modules if necessary,
 %%  otherwise just pass forms straight through.
 
-module([{['define-module',Name|Mdef],L}=Md|Fs0], _Ci) ->
+module([{['define-module',Name|Mdef],L}|Fs0], _Ci) ->
     St0 = collect_mdef(Mdef, #umac{mline=L}),
     {Ffs,Ewcs,St1} = extract_ewcs(Fs0, St0),
     Umac = build_user_macro(Ewcs, St1),
+    Md1 = {['define-module',Name,[export,['LFE-EXPAND-USER-MACRO',2]]|Mdef],L},
     %% lfe_io:format("~p\n", [{['eval-when-compile'|Ewcs],{Umac,L},St1}]),
-    {Name,[Md,{Umac,L}|Ffs]};
+    {Name,[Md1,{Umac,L}|Ffs]};
 module(Fs, _) -> {[],Fs}.                       %Not a module, do nothing
 
 %% collect_mdef(ModuleDef, State) -> State.
