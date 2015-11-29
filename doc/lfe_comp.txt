@@ -41,28 +41,34 @@ file(FileName, Options) -> CompRet
                 a file.
 
         to_exp
+        to-exp
                 Print a listing of the macro expanded LFE code in the
                 file <File>.expand. No object file is produced. Mainly
                 useful for debugging and interest.
 
         to_lint
+        to-lint
                 Print a listing of the macro expanded and linted LFE
                 code in the files <Module>.lint. No object files are
                 produced. Mainly useful for debugging and interest.
 
         to_core0
+        to-core0
         to_core
+        to-core
                 Print a listing of the Core Erlang code before/after
                 being optimised in the files <Module>.core. No object
                 files are produced. Mainly useful for debugging and
                 interest.
 
         to_kernel
+        to-kernel
                 Print a listing of the Kernel Erlang code in the files
                 <Module>.kernel. No object files are produced. Mainly
                 useful for debugging and interest.
 
         to_asm
+        to-asm
                 Print a listing of the Beam code in the files
                 <Module>.S. No object files are produced. Mainly
                 useful for debugging and interest.
@@ -86,10 +92,12 @@ file(FileName, Options) -> CompRet
                 {error,Errors,Warnings} when there are errors.
 
         debug_print
+        debug-print
                 Causes the compiler to print a lot of debug
                 information.
 
         warnings_as_errors
+        warnings-as-errors
                 Causes warnings to be treated as errors.
 
         If the binary option is given then options that produce
