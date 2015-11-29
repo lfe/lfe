@@ -48,23 +48,25 @@
    ;; Types.
    (type-of 1) (coerce 2)
    (LFE-EXPAND-USER-MACRO 2)
-   ))
+   )
+  (export-macro cl:if cl:cond)
+  )
   ;;(export all))
 
-(defun LFE-EXPAND-USER-MACRO (call env)
-  (fletrec ()
-    (case call
-      (`(symbol-name ,symb)
-       `#(yes (atom_to_list ,symb)))
-      (`(car ,list)
-       `#(yes (case ,list
-		((cons car _) car)
-		(() ()))))
-      (`(cdr ,list)
-       `#(yes (case ,list
-		((cons _ cdr) cdr)
-		(() ()))))
-      (_ 'no))))
+;; (defun LFE-EXPAND-USER-MACRO (call env)
+;;   (fletrec ()
+;;     (case call
+;;       (`(symbol-name ,symb)
+;;        `#(yes (atom_to_list ,symb)))
+;;       (`(car ,list)
+;;        `#(yes (case ,list
+;; 		((cons car _) car)
+;; 		(() ()))))
+;;       (`(cdr ,list)
+;;        `#(yes (case ,list
+;; 		((cons _ cdr) cdr)
+;; 		(() ()))))
+;;       (_ 'no))))
 
 ;; Test defining CL if and cond.
 
