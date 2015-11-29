@@ -428,17 +428,18 @@ unslurp(St0) ->
 slurp([File], St0) ->
     {ok,#state{curr=Ce0}=St1} = unslurp(St0),   %Reset the environment
     Name = lfe_eval:expr(File, Ce0),            %Get file name
-    case slurp_1(Name, Ce0) of
+    case slurp_file(Name, Ce0) of
         {ok,Mod,Ce1} ->                         %Set the new environment
             {{ok,Mod},St1#state{save=Ce0,curr=Ce1,slurp=true}};
         error ->
             {error,St1}
     end.
 
-slurp_1(Name, Ce0) ->
-    case slurp_file(Name) of
-	{ok,Mod,Fs,Ws} ->
-	    slurp_warnings(Name, Ws),
+slurp_file(Name, Ce0) ->
+    case lfe_comp:file(Name, [binary,to_lint,return]) of
+	{ok,[{ok,Mod,Fs,Mws}|_],Ws} ->		%Only do first module
+	    slurp_warnings(Ws),
+	    slurp_warnings(Mws),
 	    Sl0 = #slurp{mod=Mod,imps=[]},
 	    {Fbs,Sl1} = lfe_lib:proc_forms(fun collect_form/3, Fs, Sl0),
             %% Add imports to environment.
@@ -452,19 +453,22 @@ slurp_1(Name, Ce0) ->
 				lfe_eval:add_dynamic_func(N, Ar, Def, Env)
 			end, Ce1, Fbs),
 	    {ok,Mod,Ce2};
-        {error,Es,Ws} ->
-            slurp_errors(Name, Es),
-            slurp_warnings(Name, Ws),
+        {error,Mews,Es,Ws} ->
+            slurp_errors(Es),
+            slurp_warnings(Ws),
+	    %% Now the errors and warnings for each module.
+	    foreach(fun ({error,Mes,Mws}) ->
+			    slurp_errors(Mes),
+			    slurp_warnings(Mws)
+		    end, Mews),
             error
     end.
 
-slurp_file(Name) ->
-    case lfe_comp:file(Name, [binary,to_lint,return]) of
-	{ok,[{ok,Mod,Fs,Mws}|_],Ws} ->		%Only do first module
-	    {ok,Mod,Fs,Ws ++ Mws};
-	{error,_,_}=Error ->
-	    Error
-    end.
+slurp_errors(Errors) ->
+    foreach(fun ({File,Es}) -> slurp_errors(File, Es) end, Errors).
+
+slurp_warnings(Warnings) ->
+    foreach(fun ({File,Ws}) -> slurp_warnings(File, Ws) end, Warnings).
 
 slurp_errors(File, Es) -> slurp_ews(File, "~s:~w: ~s\n", Es).
 
