@@ -11,7 +11,6 @@ INCDIR = include
 DOCDIR = doc
 EMACSDIR = emacs
 
-PATH = $(PATH):$(BINDIR)
 VPATH = $(SRCDIR)
 
 ERLCFLAGS = -W1
