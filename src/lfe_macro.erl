@@ -526,9 +526,17 @@ exp_userdef_macro([Mac|Args], Def0, Env, St0) ->
         Exp = lfe_eval:apply(Def1, [Args,Env], Env),
         {yes,Exp,St1}
     catch
+        %% error:no_Error -> boom
+        %% error:Error ->
+        %%     Stack = erlang:get_stacktrace(),
+        %%     erlang:error({expand_macro,[Mac|Args],{Error,Stack}})
         error:Error ->
             Stack = erlang:get_stacktrace(),
-            erlang:error({expand_macro,[Mac|Args],{Error,Stack}})
+            erlang:raise(error, {expand_macro,[Mac|Args],Error}, Stack)
+        %% error:Error ->
+        %%     Stack0 = erlang:get_stacktrace(),
+        %%     Stack1 = trim_stacktrace(Stack0),
+        %%     erlang:error({expand_macro,[Mac|Args],{Error,Stack1}})
     end.
 
 %% exp_predef_macro(Call, Env, State) -> {yes,Exp,State} | no.
@@ -539,10 +547,22 @@ exp_predef_macro(Call, Env, St) ->
     try
         exp_predef(Call, Env, St)
     catch
+        %% error:Error ->
+        %%     Stack = erlang:get_stacktrace(),
+        %%     erlang:raise({expand_macro,Call,{Error,Stack}})
         error:Error ->
             Stack = erlang:get_stacktrace(),
-            erlang:error({expand_macro,Call,{Error,Stack}})
+            erlang:raise(error, {expand_macro,Call,Error}, Stack)
+        %% error:Error ->
+        %%     Stack0 = erlang:get_stacktrace(),
+        %%     Stack1 = trim_stacktrace(Stack0),
+        %%     erlang:error({expand_macro,Call,{Error,Stack1}})
     end.
+
+trim_stacktrace([{lfe_macro,_,_,_}=S|_]) -> [S];    %R15 and later
+trim_stacktrace([{lfe_macro,_,_}|_]=S) -> [S];	    %Pre R15
+trim_stacktrace([S|Stk]) -> [S|trim_stacktrace(Stk)];
+trim_stacktrace([]) -> [].
 
 %% exp_predef(Form, Env, State) -> {yes,Form,State} | no.
 %%  Handle the builtin predefined macros but only one at top-level and
@@ -1062,13 +1082,18 @@ exp_backquote(X, N) when is_tuple(X) ->
     %% can't handle splicing!
     case exp_backquote(tuple_to_list(X), N) of
         [list|Es] -> [tuple|Es];                %No splicing
-        [cons|_]=E -> [list_to_tuple,E]         %Have splicing
+        [cons|_]=E -> [list_to_tuple,E];        %Have splicing
+        [] -> [tuple]                           %The empty tuple
     end;
 exp_backquote(X, N) when ?IS_MAP(X) ->
-    %% Splicing at top-level meaningless here, with [list|...] we have
-    %% no splicing, while with [cons|...] we have splicing
-    [list|KVs] = exp_bq_map_pairs(maps:to_list(X), N),
-    [map|KVs];
+    %% Splicing at top-level almost meaningless here, with [list|...]
+    %% we have no splicing, while with [cons|...] we have splicing
+    case exp_bq_map_pairs(maps:to_list(X), N) of
+        [list|KVs] -> [map|KVs];                %No splicing
+        %% [cons|_]=E ->                        %Have splicing
+        %%      [call,?Q(maps),?Q(from_list)|E];
+        [] -> [map]                             %The empty map
+    end;
 exp_backquote(X, _) when is_atom(X) -> [quote,X];
 exp_backquote(X, _) -> X.                       %Self quoting
 
