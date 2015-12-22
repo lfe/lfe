@@ -333,7 +333,8 @@
   (fletrec ((pos-if-loop
 	      ([pred n (cons x xs)]
 	       (if (funcall pred x)
-		 n (pos-if-loop pred (+ n 1) xs)))
+		 n
+		 (pos-if-loop pred (+ n 1) xs)))
 	      ([pred n ()] ())))
     (pos-if-loop pred 0 seq)))
 
@@ -341,7 +342,8 @@
   (fletrec ((pos-if-not-loop
 	      ([pred n (cons x xs)]
 	       (if (funcall pred x)
-		 (pos-if-not-loop pred (+ n 1) xs) n))
+		 (pos-if-not-loop pred (+ n 1) xs)
+		 n))
 	      ([pred n ()] ())))
     (pos-if-not-loop pred 0 xs)))
 
@@ -445,14 +447,14 @@
    (if (funcall pred e)
        'true
        (member-if pred list)))
-  ([pred ()] ()))
+  ([pred ()] 'false))
 
 (defun member-if-not
   ([pred (cons e list)]
    (if (funcall pred e)
        (member-if-not pred list)
        'true))
-  ([pred ()] ()))
+  ([pred ()] 'false))
 
 (defun adjoin (item list)
   (if (member item list)
