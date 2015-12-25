@@ -54,7 +54,7 @@ DESTBINDIR = $(PREFIX)$(shell dirname `which erl` 2> /dev/null || echo "/usr/loc
 $(BINDIR)/%: $(CSRCDIR)/%.c
 	cc -o $@ $<
 
-$(EBINDIR)/%.beam: $(EBINDIR) $(SRCDIR)/%.erl
+$(EBINDIR)/%.beam: $(SRCDIR)/%.erl
 	@mkdir -p $(EBINDIR)
 	$(ERLC) -I $(INCDIR) -o $(EBINDIR) $(MAPS_OPTS) $(ERLCFLAGS) $<
 
