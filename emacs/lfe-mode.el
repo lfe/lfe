@@ -140,7 +140,7 @@ Other commands:
 
 ;;; Font locking
 
-(defconst lfe-font-lock-old-type-keywords
+(defconst lfe-font-lock-basic-type-keywords
   (eval-when-compile
     (list
      (concat
@@ -151,9 +151,9 @@ Other commands:
      '(1 font-lock-keyword-face)
      '(3 font-lock-type-face nil t))
     )
-  "LFE old style type expressions")
+  "LFE basic type definition expressions")
 
-(defconst lfe-font-lock-old-function-keywords
+(defconst lfe-font-lock-basic-function-keywords
   (eval-when-compile
     (list
      (concat
@@ -164,7 +164,7 @@ Other commands:
      '(1 font-lock-keyword-face)
      '(3 font-lock-function-name-face nil t))
     )
-  "LFE old style function expressions")
+  "LFE basic function definition expressions")
 
 (defconst lfe-font-lock-new-type-keywords
   (eval-when-compile
@@ -210,8 +210,8 @@ Other commands:
   (eval-when-compile
     (list lfe-font-lock-new-type-keywords
 	  lfe-font-lock-new-function-keywords
-	  lfe-font-lock-old-type-keywords
-	  lfe-font-lock-old-function-keywords
+	  lfe-font-lock-basic-type-keywords
+	  lfe-font-lock-basic-function-keywords
 	  lfe-font-lock-flavor-keywords
 	  ))
   "Subdued expressions to highlight in LFE modes.")
@@ -239,7 +239,7 @@ Other commands:
       "funcall" "if" "lambda"
       "let" "let-function" "letrec-function" "let-macro"
       "match-lambda" "progn" "receive" "try" "when"
-      "eval-when-compile"
+      "eval-when-compile" "extend-module"
       ;; Base macro forms.
       "andalso" "bc" "binary-comp" "cond" "do" "flet" "flet*" "fletrec"
       "fun" "lc" "list-comp"
