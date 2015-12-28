@@ -945,6 +945,7 @@ exp_append(Args) ->
 %%  default to exp_append/1.
 
 exp_prefix([[N|Ns]|Es]) when is_number(N) -> [cons,N,['++*',Ns|Es]];
+exp_prefix([[]|Es]) -> ['++*'|Es];
 exp_prefix(Args) -> exp_append(Args).
 
 %% exp_defun(Name, Def) -> Lambda | Match-Lambda.
