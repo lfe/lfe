@@ -1009,8 +1009,13 @@ exp_append(Args) ->
 %%  Handle lists of numbers (strings) explicitly, otherwise
 %%  default to exp_append/1.
 
-exp_prefix([[N|Ns]|Es]) when is_number(N) -> [cons,N,['++*',Ns|Es]];
-exp_prefix([[]|Es]) -> ['++*'|Es];
+exp_prefix([['list*',A]|Es]) -> exp_prefix([A|Es]);
+exp_prefix([['list*',A|As]|Es]) -> [cons,A,exp_prefix([['list*'|As]|Es])];
+exp_prefix([[list,A|As]|Es]) -> [cons,A,exp_prefix([[list|As]|Es])];
+exp_prefix([[list]|Es]) -> exp_prefix(Es);
+exp_prefix([[cons,H,T]|Es]) -> [cons,H,exp_prefix([T|Es])];
+exp_prefix([[N|Ns]|Es]) when is_number(N) -> [cons,N,exp_prefix([Ns|Es])];
+exp_prefix([[]|Es]) -> exp_prefix(Es);
 exp_prefix(Args) -> exp_append(Args).
 
 %% exp_list_star(ListBody) -> Cons.
