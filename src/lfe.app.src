@@ -18,5 +18,10 @@
   {vsn, "0.11.0-dev"},
   {modules, []},
   {registered, []},
-  {applications, [kernel,stdlib,compiler]}
+  {applications, [kernel,stdlib,compiler]},
+  {maintainers, ["Robert Virding"]},
+  {licenses, ["Apache"]},
+  {links, [{"Github", "https://github.com/rvirding/lfe"},
+           {"Main site", "http://lfe.io/"},
+           {"Documentation", "http://docs.lfe.io/"}]}
  ]}.
