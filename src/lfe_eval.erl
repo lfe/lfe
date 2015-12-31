@@ -137,10 +137,10 @@ eval_expr(['map-set',M|As], Env) ->
 eval_expr(['map-update',M|As], Env) ->
     eval_expr([mupd,M|As], Env);
 %% Handle the Core closure special forms.
-eval_expr([lambda|Body], Env) ->
-    eval_lambda(Body, Env);
-eval_expr(['match-lambda'|Cls], Env) ->
-    eval_match_lambda(Cls, Env);
+eval_expr([lambda|_]=Sexpr, Env) ->
+    eval_lambda_expr(Sexpr, Env);
+eval_expr(['match-lambda'|_]=Sexpr, Env) ->
+    eval_lambda_expr(Sexpr, Env);
 eval_expr(['let'|Body], Env) ->
     eval_let(Body, Env);
 eval_expr(['let-function'|Body], Env) ->
@@ -330,43 +330,43 @@ map_key(E, _) when not is_atom(E) -> E;         %Everything else
 map_key(_, _) -> eval_error(illegal_mapkey).
 -endif.
 
-%% eval_lambda(LambdaBody, Env) -> Val.
+%% eval_lambda_expr([lambda|LambdaBody], Env) -> Val.
 %%  Evaluate (lambda args ...).
+%% eval_lambda_expr(['match-lambda'|MatchClauses], Env) -> Val.
+%%  Evaluate (match-lambda cls ...).
 
-eval_lambda([Args|Body], Env) ->
+eval_lambda_expr(Sexp, Env) ->
+    {Arity,Apply} =
+        case Sexp of
+            [lambda,Args|Body] ->
+                { length(Args)
+                , fun (Vals) -> apply_lambda(Args, Body, Vals, Env) end };
+            ['match-lambda'|Cls] ->
+                { match_lambda_arity(Cls)
+                , fun(Vals) -> apply_match_lambda(Cls, Vals, Env) end }
+        end,
     %% This is a really ugly hack! But it's the same hack as in erl_eval.
-    case length(Args) of
-        0 -> fun () -> apply_lambda([], Body, [], Env) end;
-        1 -> fun (A) -> apply_lambda(Args, Body, [A], Env) end;
-        2 -> fun (A,B) -> apply_lambda(Args, Body, [A,B], Env) end;
-        3 -> fun (A,B,C) -> apply_lambda(Args, Body, [A,B,C], Env) end;
-        4 -> fun (A,B,C,D) -> apply_lambda(Args, Body, [A,B,C,D], Env) end;
-        5 -> fun (A,B,C,D,E) -> apply_lambda(Args, Body, [A,B,C,D,E], Env) end;
-        6 -> fun (A,B,C,D,E,F) ->
-                     apply_lambda(Args, Body, [A,B,C,D,E,F], Env) end;
-        7 -> fun (A,B,C,D,E,F,G) ->
-                     apply_lambda(Args, Body, [A,B,C,D,E,F,G], Env) end;
-        8 -> fun (A,B,C,D,E,F,G,H) ->
-                     apply_lambda(Args, Body, [A,B,C,D,E,F,G,H], Env) end;
-        9 -> fun (A,B,C,D,E,F,G,H,I) ->
-                     apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I], Env) end;
-        10 -> fun (A,B,C,D,E,F,G,H,I,J) ->
-                      apply_lambda(Args, Body, [A,B,C,D,E,F,G,H,I,J], Env) end;
-        11 -> fun (A,B,C,D,E,F,G,H,I,J,K) ->
-                      apply_lambda(Args, Body,
-                                   [A,B,C,D,E,F,G,H,I,J,K], Env) end;
+    case Arity of
+        0  -> fun () -> Apply([]) end;
+        1  -> fun (A) -> Apply([A]) end;
+        2  -> fun (A,B) -> Apply([A,B]) end;
+        3  -> fun (A,B,C) -> Apply([A,B,C]) end;
+        4  -> fun (A,B,C,D) -> Apply([A,B,C,D]) end;
+        5  -> fun (A,B,C,D,E) -> Apply([A,B,C,D,E]) end;
+        6  -> fun (A,B,C,D,E,F) -> Apply([A,B,C,D,E,F]) end;
+        7  -> fun (A,B,C,D,E,F,G) -> Apply([A,B,C,D,E,F,G]) end;
+        8  -> fun (A,B,C,D,E,F,G,H) -> Apply([A,B,C,D,E,F,G,H]) end;
+        9  -> fun (A,B,C,D,E,F,G,H,I) -> Apply([A,B,C,D,E,F,G,H,I]) end;
+        10 -> fun (A,B,C,D,E,F,G,H,I,J) -> Apply([A,B,C,D,E,F,G,H,I,J]) end;
+        11 -> fun (A,B,C,D,E,F,G,H,I,J,K) -> Apply([A,B,C,D,E,F,G,H,I,J,K]) end;
         12 -> fun (A,B,C,D,E,F,G,H,I,J,K,L) ->
-                      apply_lambda(Args, Body,
-                                   [A,B,C,D,E,F,G,H,I,J,K,L], Env) end;
+                      Apply([A,B,C,D,E,F,G,H,I,J,K,L]) end;
         13 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M) ->
-                      apply_lambda(Args, Body,
-                                   [A,B,C,D,E,F,G,H,I,J,K,L,M], Env) end;
+                      Apply([A,B,C,D,E,F,G,H,I,J,K,L,M]) end;
         14 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N) ->
-                      apply_lambda(Args, Body,
-                                   [A,B,C,D,E,F,G,H,I,J,K,L,M,N], Env) end;
+                      Apply([A,B,C,D,E,F,G,H,I,J,K,L,M,N]) end;
         15 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O) ->
-                      apply_lambda(Args, Body,
-                                   [A,B,C,D,E,F,G,H,I,J,K,L,M,N,O], Env) end
+                      Apply([A,B,C,D,E,F,G,H,I,J,K,L,M,N,O]) end
     end.
 
 apply_lambda(Args, Body, Vals, Env0) ->
@@ -378,47 +378,6 @@ bind_args(['_'|As], [_|Es], Env) ->             %Ignore don't care variables
 bind_args([A|As], [E|Es], Env) when is_atom(A) ->
     bind_args(As, Es, add_vbinding(A, E, Env));
 bind_args([], [], Env) -> Env.
-
-%% eval_match_lambda(MatchClauses, Env) -> Val.
-%%  Evaluate (match-lambda cls ...).
-
-eval_match_lambda(Cls, Env) ->
-    %% This is a really ugly hack! But it's the same hack as in erl_eval.
-    case match_lambda_arity(Cls) of
-        0 -> fun () -> apply_match_lambda(Cls, [], Env) end;
-        1 -> fun (A) -> apply_match_lambda(Cls, [A], Env) end;
-        2 -> fun (A,B) -> apply_match_lambda(Cls, [A,B], Env) end;
-        3 -> fun (A,B,C) -> apply_match_lambda(Cls, [A,B,C], Env) end;
-        4 -> fun (A,B,C,D) -> apply_match_lambda(Cls, [A,B,C,D], Env) end;
-        5 -> fun (A,B,C,D,E) -> apply_match_lambda(Cls, [A,B,C,D,E], Env) end;
-        6 -> fun (A,B,C,D,E,F) ->
-                     apply_match_lambda(Cls, [A,B,C,D,E,F], Env) end;
-        7 -> fun (A,B,C,D,E,F,G) ->
-                     apply_match_lambda(Cls, [A,B,C,D,E,F,G], Env) end;
-        8 -> fun (A,B,C,D,E,F,G,H) ->
-                     apply_match_lambda(Cls, [A,B,C,D,E,F,G,H], Env) end;
-        9 -> fun (A,B,C,D,E,F,G,H,I) ->
-                     apply_match_lambda(Cls, [A,B,C,D,E,F,G,H,I], Env) end;
-        10 -> fun (A,B,C,D,E,F,G,H,I,J) ->
-                      apply_match_lambda(Cls, [A,B,C,D,E,F,G,H,I,J], Env) end;
-        11 -> fun (A,B,C,D,E,F,G,H,I,J,K) ->
-                      apply_match_lambda(Cls,
-                                         [A,B,C,D,E,F,G,H,I,J,K], Env) end;
-        12 -> fun (A,B,C,D,E,F,G,H,I,J,K,L) ->
-                      apply_match_lambda(Cls,
-                                         [A,B,C,D,E,F,G,H,I,J,K,L], Env) end;
-        13 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M) ->
-                      apply_match_lambda(Cls,
-                                         [A,B,C,D,E,F,G,H,I,J,K,L,M], Env) end;
-        14 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N) ->
-                      apply_match_lambda(Cls,
-                                         [A,B,C,D,E,F,G,H,I,J,K,L,M,N],
-                                         Env) end;
-        15 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O) ->
-                      apply_match_lambda(Cls,
-                                         [A,B,C,D,E,F,G,H,I,J,K,L,M,N,O],
-                                         Env) end
-    end.
 
 match_lambda_arity([[Pats|_]|_]) -> length(Pats).
 
