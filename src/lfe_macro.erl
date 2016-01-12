@@ -139,6 +139,19 @@ do_forms(Fs0, Env0, St0) ->
 default_state(Expand) ->
     #mac{expand=Expand,line=1,file="-nofile-",opts=[],ipath=["."]}.
 
+expand_form_init() ->
+    default_state(true).
+
+expand_form_init(#cinfo{file=F,opts=Os,ipath=Is}) ->
+    #mac{expand=true,file=F,opts=Os,ipath=Is}.
+
+expand_form(F0, L, E0, St0) ->
+    pass_form(F0, E0, St0#mac{line=L}).
+
+expand_fileform({F0,L}, E0, St0) ->
+    {F1,E1,St1} = pass_form(F0, E0, St0#mac{line=L}),
+    {{F1,L},E1,St1}.
+
 %% pass_fileforms(FileForms, Env, State) -> {FileForms,Env,State}.
 %% pass_forms(Forms, Env, State) -> {Forms,Env,State}.
 %%  Pass over a list of fileforms/forms collecting and removing all macro
@@ -164,13 +177,13 @@ pass_forms(Fs, Env, St) ->
 pass_form(['progn'|Pfs0], Env0, St0) ->
     {Pfs1,Env1,St1} = pass_forms(Pfs0, Env0, St0),
     {['progn'|Pfs1],Env1,St1};
-pass_form(['eval-when-compile'|Ewcs0], Env0, St0) ->
-    {Ewcs1,Env1,St1} = pass_ewc(Ewcs0, Env0, St0),
-    {['eval-when-compile'|Ewcs1],Env1,St1};
+pass_form(['eval-when-compile'|Efs0], Env0, St0) ->
+    {Efs1,Env1,St1} = pass_ewc(Efs0, Env0, St0),
+    {['progn'|Efs1],Env1,St1};
 pass_form(['define-macro'|Def]=M, Env0, St0) ->
     case pass_define_macro(Def, Env0, St0) of
         {yes,Env1,St1} ->
-            {['eval-when-compile',M],Env1,St1};
+            {['progn'],Env1,St1};               %Must return a valid form
         no ->
             St1 = add_error({bad_form,macro}, St0),
             {['progn'],Env0,St1}                %Must return a valid form
@@ -198,25 +211,25 @@ pass_ewc(Fs, Env, St) ->
 pass_ewc_form(['progn'|Pfs0], Env0, St0) ->
     {Pfs1,Env1,St1} = pass_ewc(Pfs0, Env0, St0),
     {['progn'|Pfs1],Env1,St1};
-pass_ewc_form(['eval-when-compile'|Ewcs0], Env0, St0) ->
-    {Ewcs1,Env1,St1} = pass_ewc(Ewcs0, Env0, St0),
-    {['progn'|Ewcs1],Env1,St1};
-pass_ewc_form(['define-macro'|Def]=M, Env0, St0) ->
-    case pass_define_macro(Def, Env0, St0) of
-        {yes,Env1,St1} ->
-            {M,Env1,St1};                       %Don't macro expand now
-        no ->
-            St1 = add_error({bad_env_form,macro}, St0),
-            {M,Env0,St1}
-    end;
+pass_ewc_form(['eval-when-compile'|Efs0], Env0, St0) ->
+    {Efs1,Env1,St1} = pass_ewc(Efs0, Env0, St0),
+    {['progn'|Efs1],Env1,St1};
+%% pass_ewc_form(['define-macro'|Def]=M, Env0, St0) ->
+%%     case pass_define_macro(Def, Env0, St0) of
+%%         {yes,Env1,St1} ->
+%%             {M,Env1,St1};                       %Don't macro expand now
+%%         no ->
+%%             St1 = add_error({bad_env_form,macro}, St0),
+%%             {M,Env0,St1}
+%%     end;
 pass_ewc_form(['define-function',Name,Def]=F, Env0, St0) ->
     case function_arity(Def) of
         {yes,Ar} ->                             %Definition not too bad
             Env1 = lfe_eval:add_dynamic_func(Name, Ar, Def, Env0),
-            {F,Env1,St0};                       %Don't macro expand now
+            {[progn],Env1,St0};                 %Don't macro expand now
         no ->                                   %Definition really bad
             St1 = add_error({bad_env_form,function}, St0),
-            {F,Env0,St1}                        %Just pass it on
+            {[progn],Env0,St1}                  %Just pass it on
     end;
 pass_ewc_form([set|Args], Env, St) ->
     pass_eval_set(Args, Env, St);
@@ -270,8 +283,8 @@ pass_eval_set_1(Pat, Guard, Exp, Env0, St) ->
     Val = lfe_eval:expr(Exp, Env0),
     {yes,_,Bs} = lfe_eval:match_when(Pat, Val, Guard, Env0),
     Env1 = foldl(fun ({N,V}, E) -> add_vbinding(N, V, E) end, Env0, Bs),
-    Sets = [ [set,N,V] || {N,V} <- Bs ],
-    {['progn'|Sets],Env1,St}.
+    %%Sets = [ [set,N,V] || {N,V} <- Bs ],
+    {['progn'],Env1,St}.
 
 %% pass_expand_expr(Expr, Env, State, ExpandFlag) ->
 %%     {yes,Exp,State} | {no,State}.
@@ -587,7 +600,7 @@ exp_predef_macro(Call, Env, St) ->
     end.
 
 trim_stacktrace([{lfe_macro,_,_,_}=S|_]) -> [S];    %R15 and later
-trim_stacktrace([{lfe_macro,_,_}|_]=S) -> [S];	    %Pre R15
+trim_stacktrace([{lfe_macro,_,_}|_]=S) -> [S];      %Pre R15
 trim_stacktrace([S|Stk]) -> [S|trim_stacktrace(Stk)];
 trim_stacktrace([]) -> [].
 
@@ -838,7 +851,8 @@ exp_predef(['LINE'], _, St) ->
 exp_predef([':',M,F|As], Env, St0) when is_atom(M), is_atom(F) ->
     case exp_call_macro(M, F, As, Env, St0) of
         {yes,_,_}=Yes -> Yes;                   %{yes,Exp,St}
-        {no,St1} -> {yes,['call',?Q(M),?Q(F)|As], St1}
+        {no,St1} ->                             %Use the default expansion
+            {yes,['call',?Q(M),?Q(F)|As], St1}
     end;
 exp_predef([':',M,F|As], _, St) ->
     %% Catch the other junk here.
@@ -858,9 +872,9 @@ exp_predef(_, _, _) -> no.
 %%  loading a module, and trying to load a module, unneccessarily.
 
 exp_call_macro(M, F, As, Env, St) ->
-    case erlang:function_exported(M, 'LFE-EXPAND-USER-MACRO', 2) of
+    case erlang:function_exported(M, 'LFE-EXPAND-USER-MACRO', 3) of
         true ->
-            case M:'LFE-EXPAND-USER-MACRO'([F|As], Env) of
+            case M:'LFE-EXPAND-USER-MACRO'(F, As, Env) of
                 {yes,Exp} -> {yes,Exp,St};
                 no -> {no,St}
             end;

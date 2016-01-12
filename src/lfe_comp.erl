@@ -218,10 +218,10 @@ do_forms(St0) ->
 passes() ->
     [{do,fun do_macro_expand/1},
      {when_flag,to_exp,{done,fun expand_pp/1}},
-     {do,fun do_group_modules/1},               %Now we group modules
-     {when_flag,to_group,{done,fun group_pp/1}},
-     {do,fun do_user_macros/1},
-     {when_flag,to_umac,{done,fun macro_pp/1}},
+%%     {do,fun do_group_modules/1},               %Now we group modules
+%%     {when_flag,to_group,{done,fun group_pp/1}},
+%%     {do,fun do_user_macros/1},
+%%     {when_flag,to_umac,{done,fun umac_pp/1}},
      {do,fun do_lfe_pmod/1},
      {when_flag,to_pmod,{done,fun pmod_pp/1}},
      {do,fun do_lfe_lint/1},
@@ -270,37 +270,96 @@ do_passes([{done,Fun}|_], St) ->
 do_passes([], St) -> {ok,St}.                   %Got to the end, everything ok!
 
 %% do_macro_expand(State) -> {ok,State} | {error,State}.
-%% do_group_modules(State) -> {ok,State} | {error,State}.
-%% do_lfe_pmod(State) -> {ok,State} | {error,State}.
-%% do_user_macros(State) -> {ok,State} | {error,State}.
-%% do_lint(State) -> {ok,State} | {error,State}.
-%% do_lfe_codegen(State) -> {ok,State} | {error,State}.
-%% do_erl_comp(State) -> {ok,State} | {error,State}.
-%%  The actual compiler passes.
+%%  Expand macros in a file. We know about separate modules in the
+%%  file. Everything defined before the first module is available in
+%%  every module, after that things are local to the module in which
+%%  they are defined. This is not really complex but we need to do it
+%%  on one go as we need to pass on information.
 
 do_macro_expand(#comp{cinfo=Ci,code=Code}=St) ->
-    case lfe_macro:expand_forms(Code, lfe_env:new(), Ci) of
-        {ok,Fs,Env,Ws} ->
-            debug_print("mac: ~p\n", [{Fs,Env}], St),
-            Mods = [{ok,[],Fs,[]}],             %Pseudo group
-            {ok,St#comp{code=Mods,warnings=St#comp.warnings ++ Ws}};
-        {error,Es,Ws} ->
+    case expand_pre_forms(Code, Ci) of		%Expand pre module forms
+	{Pfs,Fs,Env0,Pws,Mst0} ->
+	    %% Expand the modules using the pre forms and environment.
+	    case expand_modules(Fs, Pfs, Env0, Mst0) of
+		{Ms,_Mst1} ->
+		    %%Pm = {ok,[],Pfs,Pws},
+		    {ok,St#comp{code=Ms,
+				warnings=St#comp.warnings ++ Pws}};
+		{error,Es,Ws} ->
+		    {error,St#comp{code=[],     %Pseudo module list.
+				   errors=St#comp.errors ++ Es,
+				   warnings=St#comp.warnings ++ Ws}}
+	    end;
+	{error,Es,Ws} ->
             {error,St#comp{code=[],             %Pseudo module list.
                            errors=St#comp.errors ++ Es,
                            warnings=St#comp.warnings ++ Ws}}
     end.
 
-do_group_modules(#comp{code=[{ok,_,Fs,_}]}=St) ->
-    Ms = group_modules(Fs),
-    {ok,St#comp{code=Ms}}.
+%% expand_pre_forms(Forms, State) ->
+%% expand_mod_forms(Forms, Acc, Env, State) ->
+%%     {Modforms,RestForms,Env,Warnings,State}.
+%%  Expand and collect forms upto the next define-module or end. We
+%%  also flatten nested progn code at the top.
 
-do_user_macros(#comp{cinfo=Ci,code=Ms0}=St) ->
-    Umac = fun ({ok,_,Mfs0,Ws}) ->
-                   {Name,Mfs1} = lfe_user_macros:module(Mfs0, Ci),
-                   {ok,Name,Mfs1,Ws}
-           end,
-    Ms1 = lists:map(Umac, Ms0),
-    {ok,St#comp{code=Ms1}}.
+expand_pre_forms(Fs, Ci) ->
+    St0 = lfe_macro:expand_form_init(Ci),
+    Env0 = lfe_env:new(),
+    expand_mod_forms(Fs, [], Env0, St0).
+
+expand_mod_forms([F0|Fs0], Acc, Env0, St0) ->
+    case lfe_macro:expand_fileform(F0, Env0, St0) of
+	{{['define-module'|_],_}=F1,Env1,St1} ->
+	    Mfs = lists:reverse(Acc),
+	    {Mfs,[F1|Fs0],Env1,[],St1};
+	{{['progn'|Pfs],L},Env1,St1} ->		%Flatten progn's
+	    Fs1 = [ {F,L} || F <- Pfs ] ++ Fs0,
+	    expand_mod_forms(Fs1, Acc, Env1, St1);
+	{F1,Env1,St1} ->
+	    expand_mod_forms(Fs0, [F1|Acc], Env1, St1)
+    end;
+expand_mod_forms([], Acc, Env, St) ->
+    Mfs = lists:reverse(Acc),
+    {Mfs,[],Env,[],St}.
+
+%% expand_modules(Forms, PreForms, PreEnv, State) ->
+%%     {Modules,State}.
+%%  Collect and expand modules upto the end. Each module initially has
+%%  the pre environment and all pre forms are appended to it.
+
+expand_modules(Fs, PreFs, PreEnv, St) ->
+    expand_modules(Fs, [], PreFs, PreEnv, St).
+
+expand_modules([{['define-module',Name|_],_}=Mdef|Fs0], Ms, PreFs, PreEnv, St0) ->
+    %% Expand and collect all forms upto next define-module or end.
+    {Mfs,Fs1,_Env,Mws,St1} = expand_mod_forms(Fs0, [], PreEnv, St0),
+    M = {ok,Name,[Mdef|Mfs ++ PreFs],Mws},
+    expand_modules(Fs1, [M|Ms], PreFs, PreEnv, St1);
+expand_modules([], Ms, _PreFs, _PreEnv, St) ->
+    {lists:reverse(Ms),St}.
+
+%% do_group_modules(State) -> {ok,State} | {error,State}.
+%% do_user_macros(State) -> {ok,State} | {error,State}.
+%% do_lfe_pmod(State) -> {ok,State} | {error,State}.
+%% do_lint(State) -> {ok,State} | {error,State}.
+%% do_lfe_codegen(State) -> {ok,State} | {error,State}.
+%% do_erl_comp(State) -> {ok,State} | {error,State}.
+%%  The actual compiler passes.
+
+%% do_group_modules(#comp{code=[{ok,_,Fs,_}]}=St) ->
+%%     Ms1 = case group_modules(Fs) of
+%% 	      [{ok,[],[{['define-module'|_],_}|_],[]}|_]=Ms0 -> Ms0;
+%% 	      [{ok,[],_,[]}|Ms0] -> Ms0
+%% 	  end,
+%%     {ok,St#comp{code=Ms1}}.
+
+%% do_user_macros(#comp{cinfo=Ci,code=Ms0}=St) ->
+%%     Umac = fun ({ok,_,Mfs0,Ws}) ->
+%%                    {Name,Mfs1} = lfe_user_macros:module(Mfs0, Ci),
+%%                    {ok,Name,Mfs1,Ws}
+%%            end,
+%%     Ms1 = lists:map(Umac, Ms0),
+%%     {ok,St#comp{code=Ms1}}.
 
 do_lfe_pmod(#comp{cinfo=Ci,code=Ms0}=St) ->
     Pmod = fun ({ok,_,Mfs0,Ws}) ->
@@ -387,6 +446,7 @@ erl_comp_opts(St) ->
 
 %% expand_pp(State) -> {ok,State} | {error,State}.
 %% group_pp(State) -> {ok,State} | {error,State}.
+%% umac_pp(State) -> {ok,State} | {error,State}.
 %% pmod_pp(State) -> {ok,State} | {error,State}.
 %% lint_pp(State) -> {ok,State} | {error,State}.
 %% sexpr_pp(State) -> {ok,State} | {error,State}.
@@ -401,9 +461,9 @@ erl_comp_opts(St) ->
 
 %% This just print the whole file structure.
 expand_pp(St) -> sexpr_pp(St, "expand").
-group_pp(St) -> sexpr_pp(St, "group").
+%%umac_pp(St) -> sexpr_pp(St, "umac").
+%%group_pp(St) -> sexpr_pp(St, "group").
 pmod_pp(St) -> sexpr_pp(St, "pmod").
-macro_pp(St) -> sexpr_pp(St, "macro").
 lint_pp(St) -> sexpr_pp(St, "lint").
 
 sexpr_pp(St, Ext) ->
