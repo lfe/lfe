@@ -47,45 +47,10 @@
    (rassoc 2) (rassoc-if 2) (rassoc-if-not 2)
    ;; Types.
    (type-of 1) (coerce 2)
-   (LFE-EXPAND-USER-MACRO 2)
    )
-  (export-macro cl:if cl:cond)
+  ;; Export CL-style if and cond, which we don't use internally.
+  (export-macro if cond)
   )
-  ;;(export all))
-
-;; (defun LFE-EXPAND-USER-MACRO (call env)
-;;   (fletrec ()
-;;     (case call
-;;       (`(symbol-name ,symb)
-;;        `#(yes (atom_to_list ,symb)))
-;;       (`(car ,list)
-;;        `#(yes (case ,list
-;; 		((cons car _) car)
-;; 		(() ()))))
-;;       (`(cdr ,list)
-;;        `#(yes (case ,list
-;; 		((cons _ cdr) cdr)
-;; 		(() ()))))
-;;       (_ 'no))))
-
-;; Test defining CL if and cond.
-
-(defmacro cl:if
-  ((list test if-true) `(cl:if ,test ,if-true ()))
-  ((list test if-true if-false)
-   `(case ,test
-      (() ,if-false)
-      (_ ,if-true))))
-
-(defmacro cl:cond args
-  (fletrec ((exp-cond
-	      ([(cons (list test) cond)]
-	       `(let ((|\|-cond-test-\|| ,test))
-		  (cl:if |\|-cond-test-\|| |\|-cond-test-\|| ,(exp-cond cond))))
-	      ([(cons (cons test body) cond)]
-	       `(cl:if ,test (progn . ,body) ,(exp-cond cond)))
-	      ([()] ())))
-    (exp-cond args)))
 
 ;;; Boolean conversion functions.
 
@@ -619,3 +584,23 @@
 
 (defun posix-argv ()
   (init:get_arguments))
+
+;; Test defining CL if and cond. We need to put these last so they
+;; won't be used inside this module.
+
+(defmacro if
+  ((list test if-true) `(if ,test ,if-true ()))
+  ((list test if-true if-false)
+   `(case ,test
+      (() ,if-false)
+      (_ ,if-true))))
+
+(defmacro cond args
+  (fletrec ((exp-cond
+	      ([(cons (list test) cond)]
+	       `(let ((|\|-cond-test-\|| ,test))
+		  (if |\|-cond-test-\|| |\|-cond-test-\|| ,(exp-cond cond))))
+	      ([(cons (cons test body) cond)]
+	       `(if ,test (progn . ,body) ,(exp-cond cond)))
+	      ([()] ())))
+    (exp-cond args)))
