@@ -112,7 +112,7 @@ server_loop(Eval0, St0) ->
             server_loop(Eval1, St0)
     end.
 
-%% shell_eval(From, Evaluator, State) -> {Evaluator,State}.
+%% shell_eval(Form, Evaluator, State) -> {Evaluator,State}.
 %%  Evaluate one shell expression. The evaluator may crash in which
 %%  case we restart it and return the pid of the new evaluator.
 
