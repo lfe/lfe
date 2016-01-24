@@ -30,23 +30,34 @@
 %% but then it becomes difficult to access all the macros within the
 %% defining module. This might be easy if we accept exporting all
 %% macros not just specific ones.
+%%
+%% The matching is done in two steps: first we test whether the call
+%% name is one of our known macros; if so we test whether the
+%% arguments match against the argument patterns in the macro
+%% definition. Doing it like this gives us the same failure handling
+%% as when expanding local calls to macros.
 
-%% (defun LFE-EXPAND-USER-MACRO (call $ENV)
+%% (defun LFE-EXPAND-USER-MACRO (name args $ENV)
 %%   (let ((var-1 val-1)                   ;Eval-when-compile variables
 %%         ...)
 %%     (fletrec ((fun-1 ...)               ;Eval-when-compile functions
 %%               ...)
-%%       (case call                        ;Macro call without module
-%%         (`(mac-1 ...) ...)              ;Already exported local macros
-%%         (`(mac-2 ...) ...)
+%%       (case name                        ;Macro name without module
+%%         ('mac-1 ...)                    ;Already exported local macros
+%%          (case args                     ;Match against args
+%%           (arg-pat ...)
+%%           ...))
+%%         ('mac-2 ...)
 %%         ...
 %%         (_ 'no)))))
 
 -module(lfe_user_macros).
 
--compile(export_all).
+%%-compile(export_all).
 
 -include("lfe_comp.hrl").
+
+-export([module/4]).
 
 -import(lists, [reverse/1,reverse/2,member/2,filter/2]).
 
@@ -58,18 +69,18 @@
 
 -record(umac, {mline=[],expm=[]}).
 
-%% module(ModuleForms, CompInfo) -> {ModuleName,ModuleForms}.
-%%  Expand the forms to handle parameterised modules if necessary,
-%%  otherwise just pass forms straight through.
+%% We need these variables to have a funny name.
+-define(NAMEVAR, '|- MACRO NAME -|').
+-define(ARGSVAR, '|- CALL ARGS -|').
 
-module([{['define-module',Name|Mdef],L}|Fs0], _Ci) ->
+%% module(ModuleDef, ModuleForms, Env, FileState) -> {ModuleForms,FileState}.
+
+module({['define-module',Name|Mdef],L}, Fs, Env, Fst0) ->
     St0 = collect_mdef(Mdef, #umac{mline=L}),
-    {Ffs,Ewcs,St1} = extract_ewcs(Fs0, St0),
-    Umac = build_user_macro(Ewcs, St1),
-    Md1 = {['define-module',Name,[export,['LFE-EXPAND-USER-MACRO',2]]|Mdef],L},
-    %% lfe_io:format("~p\n", [{['eval-when-compile'|Ewcs],{Umac,L},St1}]),
-    {Name,[Md1,{Umac,L}|Ffs]};
-module(Fs, _) -> {[],Fs}.                       %Not a module, do nothing
+    {Umac,Fst1} = build_user_macro(Env, St0, Fst0),
+    %% We need to export the expansion function but leave the rest.
+    Md1 = {['define-module',Name,[export,['LFE-EXPAND-USER-MACRO',3]]|Mdef],L},
+    {[Md1,{Umac,L}|Fs],Fst1}.
 
 %% collect_mdef(ModuleDef, State) -> State.
 %%  We are only interested in which macros are exported.
@@ -81,8 +92,10 @@ collect_mdef([_|Mdef], St) -> collect_mdef(Mdef, St);
 collect_mdef([], St) -> St.
 
 %% add_exports(Old, More) -> New.
+%% exported_macro(Name, State) -> true | false.
 
 add_exports(all, _) -> all;
+add_exports(_, all) -> all;
 add_exports(Old, More) ->
     ordsets:union(Old, lists:usort(More)).
 
@@ -90,78 +103,63 @@ exported_macro(_, #umac{expm=all}) -> true;     %All are exported
 exported_macro(Name, #umac{expm=Expm}) ->
     member(Name, Expm).
 
-%% extract_ewcs(ModuleForms, State) -> {FunctionForms,EwcForms,State).
-%%  Extract out the EvalWhenCompile forms from the module.
-
-extract_ewcs(Fs, St) ->
-    extract_ewcs(Fs, [], [], St).
-
-extract_ewcs([{['eval-when-compile'|Es],_}|Fs], Ffs, Ewcs, St) ->
-    extract_ewcs(Fs, Ffs, reverse(Es, Ewcs), St);
-extract_ewcs([F|Fs], Ffs, Ewcs, St) ->          %Everything else
-    extract_ewcs(Fs, [F|Ffs], Ewcs, St);
-extract_ewcs([], Ffs, Ewcs, St) ->
-    {reverse(Ffs),reverse(Ewcs),St}.
-
-%% build_user_macro(EvalWhenComps, State) -> UserMacFunc.
+%% build_user_macro(Env, State) -> {UserMacFunc,State}.
 %%  Take the forms in the eval-when-compile and build the
 %%  LFE-EXPAND-USER-MACRO function. In this version we expand the
 %%  macros are compile time.
 
-build_user_macro(_, #umac{expm=[]}) ->          %Nothing to export
-    ['define-function','LFE-EXPAND-USER-MACRO',[lambda,[call,'$ENV'],?Q(no)]];
-build_user_macro(Ewcs, St) ->
-    %% Extract the intersting bits.
-    Funs = [ {Name,function_arity(Def),Def} ||
-               ['define-function',Name,Def] <- Ewcs ],
-    Macs = [ {Name,Def} || ['define-macro',Name,Def] <- Ewcs ],
-    Sets = [ {Pat,Val} || [set,Pat,Val] <- Ewcs ],
-    %% Build an environment to expand local macros.
-    Env0 = lfe_env:new(),
-    Env1 = lfe_env:add_vbindings(Sets, Env0),
-    Env2 = lfe_env:add_fbindings(Funs, Env1),
-    Env3 = lfe_env:add_mbindings(Macs, Env2),
-    %% Expand the macros and functions.
-    Efuns = [ [Name,lfe_macro:expand_expr_all(Def, Env3)] ||
-                {Name,_,Def} <- Funs ],
-    Emacs = [ [Name,lfe_macro:expand_expr_all(Def, Env3)] ||
-                {Name,Def} <- Macs ],
-    Esets = [ [Name,Val] || {Name,Val} <- Sets ],
-    %% Build the macro case, function fletrec and variable let.
-    Ccs = [ macro_clause(Name, Arg, B) ||
-              [Name,Def] <- Emacs,
-              exported_macro(Name, St),
-              {Arg,B} <- get_macro_cls(Def) ],
-    CallVar = '|- call -|',                     %Give this a funny name
-    Case = ['case',CallVar|Ccs ++ [['_',?Q(no)]]],
-    Flr = ['letrec-function',Efuns,Case],
-    Fl = ['let',Esets,Flr],
-    %% Now put it all together.
-    ['define-function','LFE-EXPAND-USER-MACRO',[lambda,[CallVar,'$ENV'],Fl]].
+build_user_macro(_, #umac{expm=[]},Fst) ->      %No macros to export
+    {empty_leum(),Fst};
+build_user_macro(Env, St, Fst) ->
+    Vfun = fun (N, V, Acc) -> [[N,V]|Acc] end,
+    Sets = lfe_env:fold_vars(Vfun, [], Env),
+    %% Collect the local functions.
+    Ffun = fun (N, _, {dynamic_expr,Def}, Acc) ->
+                   [[N,lfe_macro:expand_expr_all(Def, Env)]|Acc]
+           end,
+    Funs = lfe_env:fold_funs(Ffun, [], Env),
+    %% Collect the local macros.
+    Mfun = fun (N, Def0, Acc) ->
+                   case exported_macro(N, St) of
+                       true ->
+                           Def1 = lfe_macro:expand_expr_all(Def0, Env),
+                           [macro_case_clause(N, Def1)|Acc];
+                       false -> Acc
+                   end
+           end,
+    %% Get the macros to export as case clauses.
+    case lfe_env:fold_macros(Mfun, [], Env) of
+        [] -> {empty_leum(),Fst};               %No macros to export
+        Macs ->
+            %% Build case, flet and let.
+            Case = ['case',?NAMEVAR|Macs ++ [['_',?Q(no)]]],
+            Flr = ['letrec-function',Funs,Case],
+            Fl = ['let',Sets,Flr],
+            {['define-function','LFE-EXPAND-USER-MACRO',
+              [lambda,[?NAMEVAR,?ARGSVAR,'$ENV'],Fl]],Fst}
+    end.
 
-function_arity([lambda,As|_]) -> length(As);
-function_arity(['match-lambda',[Pats|_]|_]) ->
-    length(Pats).
+empty_leum() ->
+    ['define-function','LFE-EXPAND-USER-MACRO',[lambda,['_','_','_'],?Q(no)]].
+
+%% macro_case_clause(Name, Def) -> CaseClause.
+%%  Build a case clause for expanding macr Name.
+
+macro_case_clause(Name, Def) ->
+    Cls = get_macro_cls(Def),
+    Ccls = [ macro_clause(Args, B) || {Args,B} <- Cls ],
+    [?Q(Name),['case',?ARGSVAR|Ccls]].          %Don't catch errors
 
 %% get_macro_cls(MacroDef) -> [{ArgPat,Body}].
 %%  Build a list of arg pattern and body for each clause. In the
-%%  arguments the first arg is valid here, the second is the
-%%  environment variable $ENV. Be nice.
+%%  definition arguments the first is the argument pattern, the second
+%%  is the environment variable $ENV. Be nice.
 
 get_macro_cls(['lambda',[Arg|_]|B]) ->
-    [{Arg,B}];                                  %Only one here
+    [{Arg,B}];                                  %Only one clause here
 get_macro_cls(['match-lambda'|Cls]) ->
     [ {Arg,B} || [[Arg|_]|B] <- Cls ];
 get_macro_cls(_) -> [].                         %Ignore bad formed macros
 
-%% macro_args(Name, ArgsPat) -> CallPat.
-%%  Build a pattern which matches against a call the macro. The call includes
-
-macro_args(Name, []) -> [cons,Name,[]];
-macro_args(Name, [list|List]) -> [list,Name|List];
-macro_args(Name, [cons,H,T]) -> [cons,Name,[cons,H,T]];
-macro_args(Name, Arg) -> [cons,Name,Arg].
-
-macro_clause(Name, Arg, Body) ->
-    B = [tuple,?Q(yes),[progn|Body]],
-    [macro_args(?Q(Name), Arg),B].
+macro_clause(Args, Body) ->
+    [Args,[tuple,?Q(yes),[progn|Body]]].
