@@ -110,8 +110,8 @@ expand_forms(Fs, Env) ->
     St = default_state(true),
     do_forms(Fs, Env, St).
 
-expand_forms(Fs, Env, #cinfo{file=F,opts=Os,ipath=Is}) ->
-    St = #mac{expand=true,file=F,opts=Os,ipath=Is},
+expand_forms(Fs, Env, Ci) ->
+    St = default_state(Ci, true),
     do_forms(Fs, Env, St).
 
 %% macro_forms(FileForms, Env) ->
@@ -125,8 +125,8 @@ macro_forms(Fs, Env) ->
     St = default_state(false),
     do_forms(Fs, Env, St).
 
-macro_forms(Fs, Env, #cinfo{file=F,opts=Os,ipath=Is}) ->
-    St = #mac{expand=false,file=F,opts=Os,ipath=Is},
+macro_forms(Fs, Env, Ci) ->
+    St = default_state(Ci, false),
     do_forms(Fs, Env, St).
 
 do_forms(Fs0, Env0, St0) ->
@@ -139,11 +139,14 @@ do_forms(Fs0, Env0, St0) ->
 default_state(Expand) ->
     #mac{expand=Expand,line=1,file="-nofile-",opts=[],ipath=["."]}.
 
+default_state(#cinfo{file=File,opts=Os,ipath=Is}, Expand) ->
+    #mac{expand=Expand,line=1,file=File,opts=Os,ipath=Is}.
+
 expand_form_init() ->
     default_state(true).
 
-expand_form_init(#cinfo{file=F,opts=Os,ipath=Is}) ->
-    #mac{expand=true,file=F,opts=Os,ipath=Is}.
+expand_form_init(Ci) ->
+    default_state(Ci, true).
 
 expand_form(F0, L, E0, St0) ->
     pass_form(F0, E0, St0#mac{line=L}).
@@ -605,10 +608,10 @@ trim_stacktrace([S|Stk]) -> [S|trim_stacktrace(Stk)];
 trim_stacktrace([]) -> [].
 
 %% exp_predef(Form, Env, State) -> {yes,Form,State} | no.
-%%  Handle the builtin predefined macros but only one at top-level and
-%%  only once.  Expand must be called on result to fully expand
-%%  macro. This is basically doing exactly the same as if they were
-%%  user defined.
+%%  Expand the built-in predefined macros completely at top-level
+%%  without returning a new predefined top-level macro. This make the
+%%  macros "safe" even if they have been redefined as it is this
+%%  definition which is used.
 
 %% Builtin default macro expansions.
 exp_predef([caar,E], _, St) -> {yes,[car,[car,E]],St};
@@ -674,9 +677,9 @@ exp_predef(['/'|Es], _, St0) ->
             {yes,Exp,St1}
     end;
 %% Comparison operators.
-exp_predef(['!='|Es], _, St) -> {yes,['/='|Es],St};
-exp_predef(['==='|Es], _, St) -> {yes,['=:='|Es],St};
-exp_predef(['!=='|Es], _, St) -> {yes,['=/='|Es],St};
+exp_predef(['!='|Es], Env, St) -> exp_predef(['/='|Es], Env, St);
+exp_predef(['==='|Es], Env, St) -> exp_predef(['=:='|Es], Env, St);
+exp_predef(['!=='|Es], Env, St) -> exp_predef(['=/='|Es], Env, St);
 exp_predef([Op|Es], _, St0) when Op == '/=' ; Op == '=/=' ->
     {Exp,St1} = exp_nequal(Es, Op, St0),
     {yes,Exp,St1};

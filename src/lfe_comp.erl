@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2015 Robert Virding
+%% Copyright (c) 2008-2016 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -297,15 +297,34 @@ do_macro_expand(#comp{cinfo=Ci,code=Code}=St) ->
     end.
 
 %% expand_pre_forms(Forms, State) ->
-%% expand_mod_forms(Forms, Acc, Env, State) ->
-%%     {Modforms,RestForms,Env,Warnings,State}.
-%%  Expand and collect forms upto the next define-module or end. We
-%%  also flatten nested progn code at the top.
+%%     {PreForms,RestForms,Env,Warnings,State}.
 
 expand_pre_forms(Fs, Ci) ->
     St0 = lfe_macro:expand_form_init(Ci),
     Env0 = lfe_env:new(),
     expand_mod_forms(Fs, [], Env0, St0).
+
+%% expand_modules(Forms, PreForms, PreEnv, State) ->
+%%     {Modules,State}.
+%%  Collect and expand modules upto the end. Each module initially has
+%%  the pre environment and all pre forms are appended to it.
+
+expand_modules(Fs, PreFs, PreEnv, St) ->
+    expand_modules(Fs, [], PreFs, PreEnv, St).
+
+expand_modules([{['define-module',Name|_],_}=Mdef|Fs0], Ms, PreFs, PreEnv, St0) ->
+    %% Expand and collect all forms upto next define-module or end.
+    {Mfs0,Fs1,Env,Mws,St1} = expand_mod_forms(Fs0, [], PreEnv, St0),
+    {Mfs1,St2} = lfe_user_macros:module(Mdef, Mfs0 ++ PreFs, Env, St1),
+    M = {ok,Name,Mfs1,Mws},
+    expand_modules(Fs1, [M|Ms], PreFs, PreEnv, St2);
+expand_modules([], Ms, _PreFs, _PreEnv, St) ->
+    {lists:reverse(Ms),St}.
+
+%% expand_mod_forms(Forms, Acc, Env, State) ->
+%%     {Modforms,RestForms,Env,Warnings,State}.
+%%  Expand and collect forms upto the next define-module or end. We
+%%  also flatten top-level nested progn code.
 
 expand_mod_forms([F0|Fs0], Acc, Env0, St0) ->
     case lfe_macro:expand_fileform(F0, Env0, St0) of
@@ -321,22 +340,6 @@ expand_mod_forms([F0|Fs0], Acc, Env0, St0) ->
 expand_mod_forms([], Acc, Env, St) ->
     Mfs = lists:reverse(Acc),
     {Mfs,[],Env,[],St}.
-
-%% expand_modules(Forms, PreForms, PreEnv, State) ->
-%%     {Modules,State}.
-%%  Collect and expand modules upto the end. Each module initially has
-%%  the pre environment and all pre forms are appended to it.
-
-expand_modules(Fs, PreFs, PreEnv, St) ->
-    expand_modules(Fs, [], PreFs, PreEnv, St).
-
-expand_modules([{['define-module',Name|_],_}=Mdef|Fs0], Ms, PreFs, PreEnv, St0) ->
-    %% Expand and collect all forms upto next define-module or end.
-    {Mfs,Fs1,_Env,Mws,St1} = expand_mod_forms(Fs0, [], PreEnv, St0),
-    M = {ok,Name,[Mdef|Mfs ++ PreFs],Mws},
-    expand_modules(Fs1, [M|Ms], PreFs, PreEnv, St1);
-expand_modules([], Ms, _PreFs, _PreEnv, St) ->
-    {lists:reverse(Ms),St}.
 
 %% do_group_modules(State) -> {ok,State} | {error,State}.
 %% do_user_macros(State) -> {ok,State} | {error,State}.
