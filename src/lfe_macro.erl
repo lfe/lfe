@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2015 Robert Virding
+%% Copyright (c) 2008-2016 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -21,13 +21,15 @@
 
 -module(lfe_macro).
 
--compile(export_all).
+%% -compile(export_all).
 
 %% These work on individual expressions.
 -export([expand_expr/2,expand_expr_1/2,expand_expr_all/2]).
 
 %% These work on list of forms in "file format".
--export([expand_forms/2,macro_forms/2]).
+-export([expand_forms/2,expand_forms/3,macro_forms/2,macro_forms/3]).
+-export([macro_form_init/1,macro_form/4,macro_fileform/3]).
+-export([expand_form_init/1,expand_form/4,expand_fileform/3]).
 
 -export([format_error/1]).
 
@@ -47,6 +49,12 @@
 
 -include("lfe_comp.hrl").
 -include("lfe_macro.hrl").
+
+%% Bloody useful
+-define(IF(Test,True,False), case Test of
+                                 true -> True;
+                                 false -> False
+                             end).
 
 %% Define IS_MAP/1 macro for is_map/1 bif.
 -ifdef(HAS_MAPS).
@@ -70,7 +78,7 @@ format_error({expand_macro,Call,_}) ->
 %%  or as far as it can go.
 
 expand_expr_1([Name|_]=Call, Env) when is_atom(Name) ->
-    St = default_state(false),
+    St = default_state(false, false),
     case exp_macro(Call, Env, St) of
         {yes,Exp,_} -> {yes,Exp};
         no -> no
@@ -78,7 +86,7 @@ expand_expr_1([Name|_]=Call, Env) when is_atom(Name) ->
 expand_expr_1(_, _) -> no.
 
 expand_expr([Name|_]=Call, Env) when is_atom(Name) ->
-    St0 = default_state(false),
+    St0 = default_state(false, false),
     case exp_macro(Call, Env, St0) of
         {yes,Exp0,St1} ->
             {Exp1,_} = expand_expr_loop(Exp0, Env, St1),
@@ -98,35 +106,35 @@ expand_expr_loop(E, _, St) -> {E,St}.
 %%  Expand all the macros in an expression.
 
 expand_expr_all(F, Env) ->
-    {Ef,_} = exp_form(F, Env, default_state(true)),
+    {Ef,_} = exp_form(F, Env, default_state(true, false)),
     Ef.
 
 %% expand_forms(FileForms, Env) ->
 %% expand_forms(FileForms, Env, CompInfo) ->
 %%     {ok,FileForms,Env,Warnings} | {error,Errors,Warnings}.
-%%  Expand forms in "file format", {Form,LineNumber}.
+%%  Collect macro definitions in file forms, completely expand all
+%%  macros and only keep all functions.
 
 expand_forms(Fs, Env) ->
-    St = default_state(true),
+    St = default_state(true, false),
     do_forms(Fs, Env, St).
 
 expand_forms(Fs, Env, Ci) ->
-    St = default_state(Ci, true),
+    St = default_state(Ci, true, false),
     do_forms(Fs, Env, St).
 
 %% macro_forms(FileForms, Env) ->
 %% macro_forms(FileForms, Env, CompInfo) ->
 %%     {ok,FileForms,Env,Warnings} | {error,Errors,Warnings}.
-%%  Collect, and remove, all macro definitions in a list of forms. All
-%%  top level macro calls are also expanded and any new macro
-%%  definitions are collected.
+%%  Collect macro definitions in file forms, expand top-level macros
+%%  and keep all forms.
 
 macro_forms(Fs, Env) ->
-    St = default_state(false),
+    St = default_state(false, true),
     do_forms(Fs, Env, St).
 
 macro_forms(Fs, Env, Ci) ->
-    St = default_state(Ci, false),
+    St = default_state(Ci, false, true),
     do_forms(Fs, Env, St).
 
 do_forms(Fs0, Env0, St0) ->
@@ -136,22 +144,41 @@ do_forms(Fs0, Env0, St0) ->
         Es -> {error,Es,St1#mac.warnings}
     end.
 
-default_state(Expand) ->
-    #mac{expand=Expand,line=1,file="-nofile-",opts=[],ipath=["."]}.
+default_state(Expand, Keep) ->
+    #mac{expand=Expand,keep=Keep,line=1,file="-nofile-",opts=[],ipath=["."]}.
 
-default_state(#cinfo{file=File,opts=Os,ipath=Is}, Expand) ->
-    #mac{expand=Expand,line=1,file=File,opts=Os,ipath=Is}.
+default_state(#cinfo{file=File,opts=Os,ipath=Is}, Expand, Keep) ->
+    #mac{expand=Expand,keep=Keep,line=1,file=File,opts=Os,ipath=Is}.
 
-expand_form_init() ->
-    default_state(true).
+%% expand_form_init(CompInfo) -> State.
+%% expand_form(Form, Line, Env, State) -> {Form,Env,State}.
+%% expand_fileform(Form, Env, State) -> {Form,Env,State}.
+%%  Collect macro definitions in a (file)form, completely expand all
+%%  macros and only keep all functions.
 
 expand_form_init(Ci) ->
-    default_state(Ci, true).
+    default_state(Ci, true, false).
 
 expand_form(F0, L, E0, St0) ->
     pass_form(F0, E0, St0#mac{line=L}).
 
 expand_fileform({F0,L}, E0, St0) ->
+    {F1,E1,St1} = pass_form(F0, E0, St0#mac{line=L}),
+    {{F1,L},E1,St1}.
+
+%% macro_form_init(CompInfo) -> State.
+%% macro_form(Form, Line, Env, State) -> {Form,Env,State}.
+%% macro_fileform(Form, Env, State) -> {FileForm,Env,State}.
+%%  Collect macro definitions in a (file)form, expand top-level macros
+%%  and keep all forms.
+
+macro_form_init(Ci) ->
+    default_state(Ci, false, true).
+
+macro_form(F0, L, E0, St0) ->
+    pass_form(F0, E0, St0#mac{line=L}).
+
+macro_fileform({F0,L}, E0, St0) ->
     {F1,E1,St1} = pass_form(F0, E0, St0#mac{line=L}),
     {{F1,L},E1,St1}.
 
@@ -165,7 +192,6 @@ expand_fileform({F0,L}, E0, St0) ->
 pass_fileforms(Ffs, Env, St) ->
     mapfoldl2(fun ({F0,L}, E0, S0) ->
                       {F1,E1,S1} = pass_form(F0, E0, S0#mac{line=L}),
-                      %%io:format("p: ~p\n" ,[{F0,F1,L}]),
                       {{F1,L},E1,S1}
               end, Env, St, Ffs).
 
@@ -182,11 +208,12 @@ pass_form(['progn'|Pfs0], Env0, St0) ->
     {['progn'|Pfs1],Env1,St1};
 pass_form(['eval-when-compile'|Efs0], Env0, St0) ->
     {Efs1,Env1,St1} = pass_ewc(Efs0, Env0, St0),
-    {['progn'|Efs1],Env1,St1};
+    {['eval-when-compile'|Efs1],Env1,St1};
 pass_form(['define-macro'|Def]=M, Env0, St0) ->
     case pass_define_macro(Def, Env0, St0) of
         {yes,Env1,St1} ->
-            {['progn'],Env1,St1};               %Must return a valid form
+            Ret = ?IF(St1#mac.keep, M, [progn]),
+            {Ret,Env1,St1};                     %Must return a valid form
         no ->
             St1 = add_error({bad_form,macro}, St0),
             {['progn'],Env0,St1}                %Must return a valid form
@@ -229,7 +256,8 @@ pass_ewc_form(['define-function',Name,Def]=F, Env0, St0) ->
     case function_arity(Def) of
         {yes,Ar} ->                             %Definition not too bad
             Env1 = lfe_eval:add_dynamic_func(Name, Ar, Def, Env0),
-            {[progn],Env1,St0};                 %Don't macro expand now
+            Ret = ?IF(St0#mac.keep, F, [progn]),
+            {Ret,Env1,St0};                     %Don't macro expand now
         no ->                                   %Definition really bad
             St1 = add_error({bad_env_form,function}, St0),
             {[progn],Env0,St1}                  %Just pass it on
@@ -252,10 +280,7 @@ pass_ewc_form(F0, Env, St0) ->
     end.
 
 function_arity([lambda,Args|_]) ->
-    case is_symb_list(Args) of
-        true -> {yes,length(Args)};
-        false -> no
-    end;
+    ?IF(is_symb_list(Args), {yes,length(Args)}, no);
 function_arity(['match-lambda',[Pat|_]|_]) ->
     case is_proper_list(Pat) of
         true -> {yes,length(Pat)};
@@ -271,7 +296,7 @@ pass_eval_set(Args, Env, St) ->
         pass_eval_set_1(Args, Env, St)
     catch
         _:_ ->                                  %Catch everything
-            {Env,add_error({bad_env_form,'set'}, St)}
+            {[progn],Env,add_error({bad_env_form,'set'}, St)}
     end.
 
 pass_eval_set_1(Args, Env, St0) ->
@@ -286,8 +311,12 @@ pass_eval_set_1(Pat, Guard, Exp, Env0, St) ->
     Val = lfe_eval:expr(Exp, Env0),
     {yes,_,Bs} = lfe_eval:match_when(Pat, Val, Guard, Env0),
     Env1 = foldl(fun ({N,V}, E) -> add_vbinding(N, V, E) end, Env0, Bs),
-    %%Sets = [ [set,N,V] || {N,V} <- Bs ],
-    {['progn'],Env1,St}.
+    Sets = ?IF(St#mac.keep, [ [set,N,V] || {N,V} <- Bs ], []),
+    %% Sets = case St#mac.keep of
+    %%            true -> [ [set,N,V] || {N,V} <- Bs ];
+    %%            false -> []
+    %%        end,
+    {['progn'|Sets],Env1,St}.
 
 %% pass_expand_expr(Expr, Env, State, ExpandFlag) ->
 %%     {yes,Exp,State} | {no,State}.
