@@ -248,8 +248,6 @@ newline(N, Tail) ->
 
 %% Old style forms.
 indent_type('define') -> 1;
-indent_type('define-module') -> 1;
-indent_type('extend-module') -> 0;
 indent_type('define-syntax') -> 1;
 indent_type('define-record') -> 1;
 indent_type('begin') -> 0;
@@ -262,6 +260,7 @@ indent_type('defun') -> defun;
 indent_type('defmacro') -> defun;
 indent_type('defsyntax') -> 1;
 indent_type('defrecord') -> 1;
+indent_type('deftest') -> 1;
 %% Core forms.
 indent_type('progn') -> 0;
 indent_type('lambda') -> 1;
@@ -277,9 +276,11 @@ indent_type('catch') -> 0;
 indent_type('try') -> 1;
 indent_type('funcall') -> 1;
 indent_type('call') -> 2;
+indent_type('eval-when-compile') -> 0;
 indent_type('define-function') -> 1;
 indent_type('define-macro') -> 1;
-indent_type('eval-when-compile') -> 0;
+indent_type('define-module') -> 1;
+indent_type('extend-module') -> 0;
 %% Core macros.
 indent_type(':') -> 2;
 indent_type('cond') -> 999;                     %All following forms
@@ -291,7 +292,9 @@ indent_type(macrolet) -> 1;
 indent_type(syntaxlet) -> 1;
 indent_type('do') -> 2;
 indent_type('lc') -> 1;                         %List comprehensions
+indent_type('list-comp') -> 1;
 indent_type('bc') -> 1;                         %Binary comprehensions
+indent_type('binary-comp') -> 1;
 indent_type('match-spec') -> 0;
 indent_type(_) -> none.
 

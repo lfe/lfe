@@ -364,12 +364,14 @@ add_error(L, E, St) ->
 %%     St#mac{warnings=St#mac.warnings ++ [{L,?MODULE,W}]}.
 
 %% exp_form(Form, Env, State) -> {Form,State}.
+
 %%  Completely expand a form using expansions in Env and pre-defined
 %%  macros.  N.B. builtin core forms cannot be overidden and are
-%%  handled here first. The core forms also are particular about how
-%%  their bodies are to be expanded.
+%%  handled here first. Some core forms also are particular about how
+%%  their bodies are to be expanded and we handle these specially
+%%  here. The rest we just expand the tail at the end.
 
-%% Known Core forms which cannot be overidden.
+%% Known Core forms which need special handling.
 exp_form([quote,_]=Q, _, St) -> {Q,St};
 exp_form([cons,H0,T0], Env, St0) ->
     {H1,St1} = exp_form(H0, Env, St0),
@@ -381,39 +383,45 @@ exp_form([car,E0], Env, St0) ->                 %Catch these to prevent
 exp_form([cdr,E0], Env, St0) ->
     {E1,St1} = exp_form(E0, Env, St0),
     {[cdr,E1],St1};
-exp_form([list|As0], Env, St0) ->
-    {As1,St1} = exp_tail(As0, Env, St0),
-    {[list|As1],St1};
-exp_form([tuple|As0], Env, St0) ->
-    {As1,St1} = exp_tail(As0, Env, St0),
-    {[tuple|As1],St1};
-exp_form([binary|As0], Env, St0) ->
-    {As1,St1} = exp_tail(As0, Env, St0),
-    {[binary|As1],St1};
-exp_form(['lambda',Head|B0], Env, St0) ->
-    {B1,St1} = exp_tail(B0, Env, St0),
-    {['lambda',Head|B1],St1};
+exp_form([list|As], Env, St) ->
+    exp_normal_core(list, As, Env, St);
+exp_form([tuple|As], Env, St) ->
+    exp_normal_core(tuple, As, Env, St);
+exp_form([binary|As], Env, St) ->
+    exp_normal_core(binary, As, Env, St);
+exp_form([map|As], Env, St) ->
+    exp_normal_core(map, As, Env, St);
+exp_form([mref|As], Env, St) ->
+    exp_normal_core(mref, As, Env, St);
+exp_form([mset|As], Env, St) ->
+    exp_normal_core(mset, As, Env, St);
+exp_form([mupd|As], Env, St) ->
+    exp_normal_core(mupd, As, Env, St);
+exp_form(['map-get'|As], Env, St) ->
+    exp_normal_core('map-get', As, Env, St);
+exp_form(['map-set'|As], Env, St) ->
+    exp_normal_core('map-set', As, Env, St);
+exp_form(['map-update'|As], Env, St) ->
+    exp_normal_core('map-update', As, Env, St);
+%% Core closure special forms.
+exp_form([lambda,Head|B], Env, St) ->
+    exp_head_tail(lambda, Head, B, Env, St);
 exp_form(['match-lambda'|B0], Env, St0) ->
     {B1,St1} = exp_ml_clauses(B0, Env, St0),
     {['match-lambda'|B1],St1};
-exp_form(['let',Vbs0|B0], Env, St0) ->
-    %% We don't really have to syntax check very strongly here so we
-    %% can use normal clause expansion. Lint will catch errors.
-    {Vbs1,St1} = exp_clauses(Vbs0, Env, St0),
-    {B1,St2} = exp_tail(B0, Env, St1),
-    {['let',Vbs1|B1],St2};
+exp_form(['let',Vbs|B], Env, St) ->
+    exp_let(Vbs, B, Env, St);
 exp_form(['let-function',Fbs|B], Env, St) ->
     exp_let_function(Fbs, B, Env, St);
 exp_form(['letrec-function',Fbs|B], Env, St) ->
     exp_letrec_function(Fbs, B, Env, St);
 exp_form(['let-macro',Mbs|B], Env, St) ->
     exp_let_macro(Mbs, B, Env, St);
-exp_form(['progn'|B0], Env, St0)->
-    {B1,St1} = exp_tail(B0, Env, St0),
-    {['progn'|B1],St1};
-exp_form(['if'|B0], Env, St0) ->
-    {B1,St1} = exp_tail(B0, Env, St0),
-    {['if'|B1],St1};
+%% Core control special forms.
+exp_form([progn|As], Env, St) ->
+    exp_normal_core(progn, As, Env, St);
+exp_form(['if'|As], Env, St) ->
+    exp_normal_core('if', As, Env, St);
 exp_form(['case',E0|Cls0], Env, St0) ->
     {E1,St1} = exp_form(E0, Env, St0),
     {Cls1,St2} = exp_clauses(Cls0, Env, St1),
@@ -426,29 +434,42 @@ exp_form(['catch'|B0], Env, St0) ->
     {['catch'|B1],St1};
 exp_form(['try',E|B], Env, St) ->
     exp_try(E, B, Env, St);
-exp_form(['funcall'|As0], Env, St0) ->
-    {As1,St1} = exp_tail(As0, Env, St0),
-    {['funcall'|As1],St1};
-exp_form(['call'|As0], Env, St0) ->
-    {As1,St1} = exp_tail(As0, Env, St0),
-    {['call'|As1],St1};
-exp_form(['define-function',Head|B0], Env, St0) ->
-    %% Needs to be handled specially to protect Head.
-    {B1,St1} = exp_tail(B0, Env, St0),
-    {['define-function',Head|B1],St1};
+exp_form([funcall|As], Env, St) ->
+    exp_normal_core(funcall, As, Env, St);
+exp_form([call|As], Env, St) ->
+    exp_normal_core(call, As, Env, St);
+%% Core definition special forms.
+exp_form(['eval-when-compile'|B], Env, St) ->
+    exp_normal_core('eval-when-compile', B, Env, St);
+exp_form(['define-function',Head|B], Env, St) ->
+    exp_head_tail('define-function', Head, B, Env, St);
+exp_form(['define-macro',Head|B], Env, St) ->
+    exp_head_tail('define-macro', Head, B, Env, St);
+exp_form(['define-module',Head|B], Env, St) ->
+    exp_head_tail('define-module', Head, B, Env, St);
+exp_form(['extend-module'|B], Env, St) ->
+    exp_normal_core('extend-module', B, Env, St);
 %% Now the case where we can have macros.
 exp_form([Fun|_]=Call, Env, St0) when is_atom(Fun) ->
     %% Expand top macro as much as possible.
     case exp_macro(Call, Env, St0) of
-        {yes,Exp,St1} -> exp_form(Exp, Env, St1);
-        no -> exp_tail(Call, Env, St0)
+	{yes,Exp,St1} -> exp_form(Exp, Env, St1);
+	no -> exp_tail(Call, Env, St0)
     end;
-exp_form([_|_]=Call, Env, St) -> exp_tail(Call, Env, St);
+exp_form([_|_]=Form, Env, St) -> exp_tail(Form, Env, St);
 exp_form(Tup, _, St) when is_tuple(Tup) ->
     %% Should we expand this? We assume implicit quote here.
     {Tup,St};
 %% Everything else is atomic.
 exp_form(F, _, St) -> {F,St}.                   %Atomic
+
+exp_normal_core(Name, As0, Env, St0) ->
+    {As1,St1} = exp_tail(As0, Env, St0),
+    {[Name|As1],St1}.
+
+exp_head_tail(Name, Head, B0, Env, St0) ->
+    {B1,St1} = exp_tail(B0, Env, St0),
+    {[Name,Head|B1],St1}.
 
 %% exp_list(Exprs, Env, State) -> {Exps,State}.
 %%  Expand a proper list of exprs.
@@ -504,6 +525,14 @@ exp_ml_clause([Ps0|B0], Env, St0) ->
     {B1,St2} = exp_tail(B0, Env, St1),
     {[Ps1|B1],St2};
 exp_ml_clause(Other, Env, St) -> exp_form(Other, Env, St).
+
+%% exp_let(VarBindings, Body, Env, State) -> {Expansion,State}.
+%%  We only do limited syntax checking here.
+
+exp_let(Vbs0, B0, Env, St0) ->
+    {Vbs1,St1} = exp_clauses(Vbs0, Env, St0),
+    {B1,St2} = exp_tail(B0, Env, St1),
+    {['let',Vbs1|B1],St2}.
 
 %% exp_let_function(FuncBindings, Body, Env, State) -> {Expansion,State}.
 %% exp_letrec_function(FuncBindings, Body, Env, State) -> {Expansion,State}.

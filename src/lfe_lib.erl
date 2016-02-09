@@ -106,9 +106,6 @@ is_core_form('let') -> true;
 is_core_form('let-function') -> true;
 is_core_form('letrec-function') -> true;
 is_core_form('let-macro') -> true;
-is_core_form('eval-when-compile') -> true;
-is_core_form('define-function') -> true;
-is_core_form('define-macro') -> true;
 %% Core control special forms.
 is_core_form('progn') -> true;
 is_core_form('if') -> true;
@@ -118,7 +115,13 @@ is_core_form('catch') -> true;
 is_core_form('try') -> true;
 is_core_form('funcall') -> true;
 is_core_form(call) -> true;
-%% Everything else is not special.
+%% Core definition special forms.
+is_core_form('eval-when-compile') -> true;
+is_core_form('define-function') -> true;
+is_core_form('define-macro') -> true;
+is_core_form('define-module') -> true;
+is_core_form('extend-module') -> true;
+%% Everything else is not a core form.
 is_core_form(_) -> false.
 
 %% proc_forms(FormFun, Forms, State) -> {Forms,State}.
