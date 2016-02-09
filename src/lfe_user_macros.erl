@@ -1,4 +1,4 @@
-%% Copyright (c) 2015 Robert Virding
+%% Copyright (c) 2016 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@
 
 -include("lfe_comp.hrl").
 
--export([module/4]).
+-export([module/2]).
 
 -import(lists, [reverse/1,reverse/2,member/2,filter/2]).
 
@@ -67,29 +67,61 @@
 -define(C(E), [comma,E]).
 -define(C_A(E), ['comma-at',E]).
 
--record(umac, {mline=[],expm=[]}).
+-record(umac, {mline=[],expm=[],env=[]}).
 
 %% We need these variables to have a funny name.
 -define(NAMEVAR, '|- MACRO NAME -|').
 -define(ARGSVAR, '|- CALL ARGS -|').
 
-%% module(ModuleDef, ModuleForms, Env, FileState) -> {ModuleForms,FileState}.
+%% module(ModuleForms, CompState) -> {ModuleForms,CompState}.
+%% module(ModuleDef, ModuleForms, UmacState, CompState) ->
+%%     {ModuleForms,CompState}.
 
-module({['define-module',Name|Mdef],L}, Fs, Env, Fst0) ->
-    St0 = collect_mdef(Mdef, #umac{mline=L}),
-    {Umac,Fst1} = build_user_macro(Env, St0, Fst0),
+module([Mdef|Fs], Cst) ->
+    Mst = collect_macros(Fs, #umac{env=lfe_env:new()}),
+    %% io:format("m: ~p\n", [Umac]),
+    module(Mdef, Fs, Mst, Cst).
+
+module({['define-module',Name|Mdef],L}, Fs, Mst0, Cst) ->
+    Mst1 = collect_mdef(Mdef, Mst0#umac{mline=L}),
+    Umac = build_user_macro(Mst1),
     %% We need to export the expansion function but leave the rest.
     Md1 = {['define-module',Name,[export,['LFE-EXPAND-USER-MACRO',3]]|Mdef],L},
-    {[Md1,{Umac,L}|Fs],Fst1}.
+    {[Md1|Fs ++ [{Umac,L}]],Cst}.
 
-%% collect_mdef(ModuleDef, State) -> State.
+collect_macros(Fs, Mst) ->
+    lists:foldl(fun collect_macro/2, Mst, Fs).
+
+collect_macro({['define-macro',Name,Def],_}, #umac{env=Env0}=Mst) ->
+    Env1 = lfe_env:add_mbinding(Name, Def, Env0),
+    Mst#umac{env=Env1};
+collect_macro({['eval-when-compile'|Fs],_}, Mst) ->
+    lists:foldl(fun collect_ewc_macro/2, Mst, Fs);
+collect_macro({['extend-module'|Mdef],_}, Mst) ->
+    collect_mdef(Mdef, Mst);
+collect_macro(_, Mst) -> Mst.
+
+collect_ewc_macro([set,Name,Val], #umac{env=Env0}=Mst) ->
+    Env1 = lfe_env:add_vbinding(Name, Val, Env0),
+    Mst#umac{env=Env1};
+collect_ewc_macro(['define-function',Name,Def], #umac{env=Env0}=Mst) ->
+    Ar = function_arity(Def),
+    Env1 = lfe_env:add_fbinding(Name, Ar, Def, Env0),
+    Mst#umac{env=Env1};
+collect_ewc_macro([progn|Fs], Mst) ->
+    lists:foldl(fun collect_ewc_macro/2, Mst, Fs).
+
+function_arity([lambda,As|_]) -> length(As);
+function_arity(['match-lambda',[Pats|_]|_]) -> length(Pats).
+
+%% collect_mdef(ModuleDef, MacroState) -> MacroState.
 %%  We are only interested in which macros are exported.
 
-collect_mdef([['export-macro'|Ms]|Mdef], #umac{expm=Expm0}=St) ->
+collect_mdef([['export-macro'|Ms]|Mdef], #umac{expm=Expm0}=Mst) ->
     Expm1 = add_exports(Expm0, Ms),
-    collect_mdef(Mdef, St#umac{expm=Expm1});
-collect_mdef([_|Mdef], St) -> collect_mdef(Mdef, St);
-collect_mdef([], St) -> St.
+    collect_mdef(Mdef, Mst#umac{expm=Expm1});
+collect_mdef([_|Mdef], Mst) -> collect_mdef(Mdef, Mst);
+collect_mdef([], Mst) -> Mst.
 
 %% add_exports(Old, More) -> New.
 %% exported_macro(Name, State) -> true | false.
@@ -103,40 +135,41 @@ exported_macro(_, #umac{expm=all}) -> true;     %All are exported
 exported_macro(Name, #umac{expm=Expm}) ->
     member(Name, Expm).
 
-%% build_user_macro(Env, State) -> {UserMacFunc,State}.
+%% build_user_macro(MacroState) -> UserMacFunc.
 %%  Take the forms in the eval-when-compile and build the
 %%  LFE-EXPAND-USER-MACRO function. In this version we expand the
 %%  macros are compile time.
 
-build_user_macro(_, #umac{expm=[]},Fst) ->      %No macros to export
-    {empty_leum(),Fst};
-build_user_macro(Env, St, Fst) ->
+build_user_macro(#umac{expm=[]}) ->             %No macros to export
+    empty_leum();
+build_user_macro(#umac{env=Env}=Mst) ->
     Vfun = fun (N, V, Acc) -> [[N,V]|Acc] end,
     Sets = lfe_env:fold_vars(Vfun, [], Env),
     %% Collect the local functions.
-    Ffun = fun (N, _, {dynamic_expr,Def}, Acc) ->
-                   [[N,lfe_macro:expand_expr_all(Def, Env)]|Acc]
+    Ffun = fun (N, _, Def, Acc) ->
+                   %% [[N,lfe_macro:expand_expr_all(Def, Env)]|Acc]
+                   [[N,Def]|Acc]
            end,
     Funs = lfe_env:fold_funs(Ffun, [], Env),
     %% Collect the local macros.
     Mfun = fun (N, Def0, Acc) ->
-                   case exported_macro(N, St) of
+                   case exported_macro(N, Mst) of
                        true ->
-                           Def1 = lfe_macro:expand_expr_all(Def0, Env),
-                           [macro_case_clause(N, Def1)|Acc];
+                           %% Def1 = lfe_macro:expand_expr_all(Def0, Env),
+                           [macro_case_clause(N, Def0)|Acc];
                        false -> Acc
                    end
            end,
     %% Get the macros to export as case clauses.
     case lfe_env:fold_macros(Mfun, [], Env) of
-        [] -> {empty_leum(),Fst};               %No macros to export
+        [] -> empty_leum();                     %No macros to export
         Macs ->
             %% Build case, flet and let.
             Case = ['case',?NAMEVAR|Macs ++ [['_',?Q(no)]]],
             Flr = ['letrec-function',Funs,Case],
             Fl = ['let',Sets,Flr],
-            {['define-function','LFE-EXPAND-USER-MACRO',
-              [lambda,[?NAMEVAR,?ARGSVAR,'$ENV'],Fl]],Fst}
+            ['define-function','LFE-EXPAND-USER-MACRO',
+	     [lambda,[?NAMEVAR,?ARGSVAR,'$ENV'],Fl]]
     end.
 
 empty_leum() ->
