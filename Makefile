@@ -17,7 +17,7 @@ ERLCFLAGS = -W1
 ERLC = erlc
 
 LFECFLAGS = -pa ../lfe
-LFEC = bin/lfec
+LFEC = $(BINDIR)/lfe $(BINDIR)/lfec
 
 LIB=lfe
 
