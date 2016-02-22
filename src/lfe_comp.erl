@@ -280,19 +280,19 @@ do_passes([], St) -> {ok,St}.                   %Got to the end, everything ok!
 %%  each module (with define-module form).
 
 do_split_file(#comp{cinfo=Ci,code=Code}=St) ->
-    case collect_forms(Code, Ci) of		%Expand pre module forms
-	{Pfs,Fs,Env0,Mst0} ->
-	    %% Expand the modules using the pre forms and environment.
-	    case collect_modules(Fs, Pfs, Env0, Mst0) of
-		{Ms,_Mst1} ->
-		    {ok,St#comp{code=Ms,
-				warnings=St#comp.warnings}};
-		{error,Es,Ws} ->
-		    {error,St#comp{code=[],     %Pseudo module list.
-				   errors=St#comp.errors ++ Es,
-				   warnings=St#comp.warnings ++ Ws}}
-	    end;
-	{error,Es,Ws} ->
+    case collect_forms(Code, Ci) of             %Expand pre module forms
+        {Pfs,Fs,Env0,Mst0} ->
+            %% Expand the modules using the pre forms and environment.
+            case collect_modules(Fs, Pfs, Env0, Mst0) of
+                {ok,Ms,_Mst1} ->
+                    {ok,St#comp{code=Ms,
+                                warnings=St#comp.warnings}};
+                {error,Es,Ws} ->
+                    {error,St#comp{code=[],     %Pseudo module list.
+                                   errors=St#comp.errors ++ Es,
+                                   warnings=St#comp.warnings ++ Ws}}
+            end;
+        {error,Es,Ws} ->
             {error,St#comp{code=[],             %Pseudo module list.
                            errors=St#comp.errors ++ Es,
                            warnings=St#comp.warnings ++ Ws}}
@@ -302,9 +302,9 @@ do_split_file(#comp{cinfo=Ci,code=Code}=St) ->
 %%     {PreForms,RestForms,Env,State}.
 
 collect_forms(Fs, Ci) ->
-    St0 = lfe_macro:macro_form_init(Ci),
-    Env0 = lfe_env:new(),
-    collect_mod_forms(Fs, Env0, St0).
+    Env = lfe_env:new(),
+    St = lfe_macro:macro_form_init(Ci),
+    collect_mod_forms(Fs, Env, St).
 
 %% collect_modules(Forms, PreForms, PreEnv, State) ->
 %%     {Modules,State}.
@@ -316,11 +316,14 @@ collect_modules(Fs, PreFs, PreEnv, St) ->
 
 collect_modules([{['define-module',Name|_],_}=Mdef|Fs0], Ms, PreFs, PreEnv, St0) ->
     %% Expand and collect all forms upto next define-module or end.
-    {Mfs0,Fs1,_,St1} = collect_mod_forms(Fs0, PreEnv, St0),
-    M = {ok,Name,[Mdef] ++ PreFs ++ Mfs0,[]},
-    collect_modules(Fs1, [M|Ms], PreFs, PreEnv, St1);
+    case collect_mod_forms(Fs0, PreEnv, St0) of
+        {Mfs0,Fs1,_,St1} ->
+            M = {ok,Name,[Mdef] ++ PreFs ++ Mfs0,[]},
+            collect_modules(Fs1, [M|Ms], PreFs, PreEnv, St1);
+        Error -> Error
+    end;
 collect_modules([], Ms, _PreFs, _PreEnv, St) ->
-    {lists:reverse(Ms),St}.
+    {ok,lists:reverse(Ms),St}.
 
 %% collect_mod_forms(Forms, Env, State) ->
 %% collect_mod_forms(Forms, Acc, Env, State) ->
@@ -329,18 +332,22 @@ collect_modules([], Ms, _PreFs, _PreEnv, St) ->
 %%  also flatten top-level nested progn code.
 
 collect_mod_forms(Fs, Env0, St0) ->
-    {Acc,Rest,Env1,St1} = collect_mod_forms(Fs, [], Env0, St0),
-    {lists:reverse(Acc),Rest,Env1,St1}.
+    case collect_mod_forms(Fs, [], Env0, St0) of
+        {Acc,Rest,Env1,St1} ->
+            {lists:reverse(Acc),Rest,Env1,St1};
+        {error,_,_}=Error -> Error
+    end.
 
 collect_mod_forms([F0|Fs0], Acc, Env0, St0) ->
     case lfe_macro:macro_fileform(F0, Env0, St0) of
-	{{['define-module'|_],_}=F1,Env1,St1} ->
-	    {Acc,[F1|Fs0],Env1,St1};
-	{{['progn'|Pfs],L},Env1,St1} ->		%Flatten progn's
-	    Fs1 = [ {F,L} || F <- Pfs ] ++ Fs0,
-	    collect_mod_forms(Fs1, Acc, Env1, St1);
-	{F1,Env1,St1} ->
-	    collect_mod_forms(Fs0, [F1|Acc], Env1, St1)
+        {ok,{['define-module'|_],_}=F1,Env1,St1} ->
+            {Acc,[F1|Fs0],Env1,St1};
+        {ok,{['progn'|Pfs],L},Env1,St1} ->      %Flatten progn's
+            Fs1 = [ {F,L} || F <- Pfs ] ++ Fs0,
+            collect_mod_forms(Fs1, Acc, Env1, St1);
+        {ok,F1,Env1,St1} ->
+            collect_mod_forms(Fs0, [F1|Acc], Env1, St1);
+        {error,Es,Ws,_} -> {error,Es,Ws}
     end;
 collect_mod_forms([], Acc, Env, St) -> {Acc,[],Env,St}.
 
@@ -358,25 +365,47 @@ do_user_macros(#comp{cinfo=Ci,code=Ms0}=St) ->
     Ms1 = lists:map(Umac, Ms0),
     {ok,St#comp{code=Ms1}}.
 
-do_expand_macros(#comp{cinfo=Ci,code=Ms0}=St) ->
+do_expand_macros(#comp{cinfo=Ci,code=Ms0}=St0) ->
     Emac = fun ({ok,Name,Fs0,Ws}) ->
-		   Env0 = lfe_env:new(),
-		   St0 = lfe_macro:expand_form_init(Ci),
-		   {Fs1,_} = lfe_lib:proc_forms(fun expand_form/3,
-						Fs0, {Env0,St0}),
-		   {ok,Name,Fs1,Ws}
-	   end,
+                   Env = lfe_env:new(),
+                   Mst = lfe_macro:expand_form_init(Ci),
+                   case process_forms(fun expand_form/3, Fs0, {Env,Mst}) of
+                       {Fs1,_} -> {ok,Name,Fs1,Ws};
+                       {error,_,_}=Error -> Error
+                   end
+           end,
     Ms1 = lists:map(Emac, Ms0),
-    {ok,St#comp{code=Ms1}}.
+    St1 = St0#comp{code=Ms1},
+    case all_ok(Ms1) of
+        true -> {ok,St1};
+        false -> {error,St1}
+    end.
 
 expand_form(F0, L, {Env0,St0}) ->
     case lfe_macro:expand_form(F0, L, Env0, St0) of
-	{[progn|Pfs],Env1,St1} ->
-	    lfe_lib:proc_forms(fun expand_form/3, Pfs, L, {Env1,St1});
-	{['eval-when-compile'|_],Env1,St1} ->
-	    {[],{Env1,St1}};
-	{F1,Env1,St1} ->
-	    {[{F1,L}],{Env1,St1}}
+        {ok,[progn|Pfs],Env1,St1} ->
+            process_forms(fun expand_form/3, Pfs, L, {Env1,St1});
+        {ok,['eval-when-compile'|_],Env1,St1} ->
+            {[],{Env1,St1}};
+        {ok,F1,Env1,St1} ->
+            {[{F1,L}],{Env1,St1}};
+        {error,Es,Ws,_} -> throw({expand_form,{error,Es,Ws}})
+    end.
+
+%% process_forms(Fun, Forms, State) -> {Forms,State} | Error.
+%% process_forms(Fun, Forms, Line, State) -> {Forms,State} | Error.
+%%  Wrappers around lfe_lib:proc_forms which catch thrown errors.
+
+process_forms(Fun, Fs, St) ->
+    try lfe_lib:proc_forms(Fun, Fs, St)
+    catch
+        throw:{expand_form,Error} -> Error
+    end.
+
+process_forms(Fun, Fs, L, St) ->
+    try lfe_lib:proc_forms(Fun, Fs, L, St)
+    catch
+        throw:{expand_form,Error} -> Error
     end.
 
 %% do_lfe_pmod(State) -> {ok,State} | {error,State}.
