@@ -160,11 +160,12 @@ expand_form_init(Ci) ->
     default_state(Ci, true, false).
 
 expand_form(F0, L, E0, St0) ->
-    pass_form(F0, E0, St0#mac{line=L}).
+    {F1,E1,St1} = pass_form(F0, E0, St0#mac{line=L}),
+    return_status(F1, E1, St1).
 
 expand_fileform({F0,L}, E0, St0) ->
     {F1,E1,St1} = pass_form(F0, E0, St0#mac{line=L}),
-    {{F1,L},E1,St1}.
+    return_status({F1,L}, E1, St1).
 
 %% macro_form_init(CompInfo) -> State.
 %% macro_form(Form, Line, Env, State) -> {Form,Env,State}.
@@ -176,11 +177,17 @@ macro_form_init(Ci) ->
     default_state(Ci, false, true).
 
 macro_form(F0, L, E0, St0) ->
-    pass_form(F0, E0, St0#mac{line=L}).
+    {F1,E1,St1} = pass_form(F0, E0, St0#mac{line=L}),
+    return_status(F1, E1, St1).
 
 macro_fileform({F0,L}, E0, St0) ->
     {F1,E1,St1} = pass_form(F0, E0, St0#mac{line=L}),
-    {{F1,L},E1,St1}.
+    return_status({F1,L}, E1, St1).
+
+return_status(Ret, Env, #mac{errors=[]}=St) ->
+    {ok,Ret,Env,St};
+return_status(_, _, #mac{errors=Es,warnings=Ws}=St) ->
+    {error,Es,Ws,St}.
 
 %% pass_fileforms(FileForms, Env, State) -> {FileForms,Env,State}.
 %% pass_forms(Forms, Env, State) -> {Forms,Env,State}.
@@ -244,14 +251,16 @@ pass_ewc_form(['progn'|Pfs0], Env0, St0) ->
 pass_ewc_form(['eval-when-compile'|Efs0], Env0, St0) ->
     {Efs1,Env1,St1} = pass_ewc(Efs0, Env0, St0),
     {['progn'|Efs1],Env1,St1};
-%% pass_ewc_form(['define-macro'|Def]=M, Env0, St0) ->
-%%     case pass_define_macro(Def, Env0, St0) of
-%%         {yes,Env1,St1} ->
-%%             {M,Env1,St1};                       %Don't macro expand now
-%%         no ->
-%%             St1 = add_error({bad_env_form,macro}, St0),
-%%             {M,Env0,St1}
-%%     end;
+pass_ewc_form(['define-macro'|Def]=M, Env0, St0) ->
+    %% Do we really want this? It behaves as a top-level macro def.
+    case pass_define_macro(Def, Env0, St0) of
+        {yes,Env1,St1} ->
+            Ret = ?IF(St1#mac.keep, M, [progn]),
+            {Ret,Env1,St1};                     %Don't macro expand now
+        no ->
+            St1 = add_error({bad_env_form,macro}, St0),
+            {[progn],Env0,St1}                  %Just throw it away
+    end;
 pass_ewc_form(['define-function',Name,Def]=F, Env0, St0) ->
     case function_arity(Def) of
         {yes,Ar} ->                             %Definition not too bad
@@ -260,7 +269,7 @@ pass_ewc_form(['define-function',Name,Def]=F, Env0, St0) ->
             {Ret,Env1,St0};                     %Don't macro expand now
         no ->                                   %Definition really bad
             St1 = add_error({bad_env_form,function}, St0),
-            {[progn],Env0,St1}                  %Just pass it on
+            {[progn],Env0,St1}                  %Just throw it away
     end;
 pass_ewc_form([set|Args], Env, St) ->
     pass_eval_set(Args, Env, St);
@@ -453,8 +462,8 @@ exp_form(['extend-module'|B], Env, St) ->
 exp_form([Fun|_]=Call, Env, St0) when is_atom(Fun) ->
     %% Expand top macro as much as possible.
     case exp_macro(Call, Env, St0) of
-	{yes,Exp,St1} -> exp_form(Exp, Env, St1);
-	no -> exp_tail(Call, Env, St0)
+        {yes,Exp,St1} -> exp_form(Exp, Env, St1);
+        no -> exp_tail(Call, Env, St0)
     end;
 exp_form([_|_]=Form, Env, St) -> exp_tail(Form, Env, St);
 exp_form(Tup, _, St) when is_tuple(Tup) ->
@@ -536,36 +545,33 @@ exp_let(Vbs0, B0, Env, St0) ->
 
 %% exp_let_function(FuncBindings, Body, Env, State) -> {Expansion,State}.
 %% exp_letrec_function(FuncBindings, Body, Env, State) -> {Expansion,State}.
-%%  Expand a let/letrec-function. Here we are only interested in
-%%  marking functions as bound in the env and not what they are bound
-%%  to, we will not be calling them. We only want to shadow macros of
-%%  the same name.
+%%  Expand a let/letrec-function. We do add them to the environment as
+%%  they might be used when expanding macros.
 
 exp_let_function(Fbs0, B0, Env, St0) ->
-    {Fbs1,B1,St1} = do_exp_let_function(Fbs0, B0, Env, St0),
+    {Fbs1,B1,St1} = do_exp_let_function('let-function', Fbs0, B0, Env, St0),
     {['let-function',Fbs1|B1],St1}.
 
 exp_letrec_function(Fbs0, B0, Env, St0) ->
-    {Fbs1,B1,St1} = do_exp_let_function(Fbs0, B0, Env, St0),
+    {Fbs1,B1,St1} = do_exp_let_function('letrec-function', Fbs0, B0, Env, St0),
     {['letrec-function',Fbs1|B1],St1}.
 
-do_exp_let_function(Fbs0, B0, Env0, St0) ->
+do_exp_let_function(Type, Fbs0, B0, Env0, St0) ->
     %% Only very limited syntax checking here (see above).
-    Env1 = foldl(fun ([V,['lambda',Args|_]], Env) when is_atom(V) ->
-                         case is_proper_list(Args) of
-                             true -> add_fbinding(V, length(Args), dummy, Env);
-                             false -> Env
-                         end;
-                     ([V,['match-lambda',[Pats|_]|_]], Env) when is_atom(V) ->
-                         case is_proper_list(Pats) of
-                             true -> add_fbinding(V, length(Pats), dummy, Env);
-                             false -> Env
-                         end;
-                     (_, Env) -> Env
-                 end, Env0, Fbs0),
-    {Fbs1,St1} = exp_clauses(Fbs0, Env1, St0),
-    {B1,St2} = exp_tail(B0, Env1, St1),
-    {Fbs1,B1,St2}.
+    Efun = fun ([V,Def], {Env,St}) when is_atom(V) ->
+                   case function_arity(Def) of
+                       {yes,Ar} ->
+                           {lfe_eval:add_dynamic_func(V, Ar, Def, Env),St};
+                       no ->
+                           {Env,add_error(St#mac.line, {bad_form,Type}, St)}
+                   end;
+               (_, {Env,St}) ->
+                   {Env,add_error(St#mac.line, {bad_form,Type}, St)}
+           end,
+    {Env1,St1} = foldl(Efun, {Env0,St0}, Fbs0),
+    {Fbs1,St2} = exp_clauses(Fbs0, Env1, St1),
+    {B1,St3} = exp_tail(B0, Env1, St2),
+    {Fbs1,B1,St3}.
 
 %% exp_let_macro(MacroBindings, Body, Env, State) -> {Expansion,State}.
 %%  Expand a let_syntax. We add the actual macro binding to the env as
