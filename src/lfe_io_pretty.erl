@@ -52,6 +52,9 @@ term([quote,E], D, I, L) -> ["'",term(E, D, I+1, L)];
 term([backquote,E], D, I, L) -> ["`",term(E, D, I+1, L)];
 term([comma,E], D, I, L) -> [",",term(E, D, I+1, L)];
 term(['comma-at',E], D, I, L) -> [",@",term(E, D, I+2, L)];
+term([map|MapBody], D, I, L) ->
+    F = fun F([K,V|KVs]) -> [{K,V}|F(KVs)]; F(_) -> [] end,
+    map(F, MapBody, "(map ", D, I, L);
 term([Car|_]=List, D, I, L) ->
     %% Handle printable lists specially.
     case io_lib:printable_unicode_list(List) of
@@ -299,10 +302,23 @@ indent_type('match-spec') -> 0;
 indent_type(_) -> none.
 
 %% map(Map, Depth, Indentation, LineLength).
-%%  Print a map, one key value pair per line.
+%%  Print a map, attempting to keep key value pairs on the same line.
 
 map(Map, D, I, L) ->
-    [$#,$M,$(,map_body(maps:to_list(Map), I+3, D, I+3, L-1),$)].
+    map(fun maps:to_list/1, Map, "#M(", D, I, L).
+
+%% map(Fun, Map, Prefix, Depth, Indentation, LineLength).
+%%  Print a map, attempting to keep key value pairs on the same line.
+%%  Fun must return a list of {Key, Value}, e.g. maps:to_list/1.
+%%  Prefix is a iolist, namely "#M(" or "(map ".
+
+map(F, Map, P, D, I, L) ->
+    PLen = length(P),
+    Body = map_body(F(Map), I+PLen, D, I+PLen, L-1),
+    case is_list(Map) andalso length(Map) rem 2 =:=1 of
+      true  -> [P,Body,$\s,term(lists:last(Map), D, 0, 99999),$)];
+      false -> [P,Body,$)]
+    end.
 
 map_body([], _, _, _, _) -> [];
 map_body([{K,V}|KVs], CurL, D, I, L) ->
