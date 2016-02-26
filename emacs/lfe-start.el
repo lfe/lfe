@@ -1,3 +1,5 @@
+;;; lfe-start.el --- Initialise the LFE mode package
+
 ;; Copyright (c) 2012-2013 Robert Virding
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,8 +14,11 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-;;; lfe-start.el - Initialise the LFE mode package.
 ;;; Author: Robert Virding
+
+;;; Commentary:
+
+;;; Code:
 
 ;; Declare autoload functions in lfe-mode.el and inferior-lfe.el.
 (autoload 'lfe-mode "lfe-mode" "Major mode for editing LFE code." t)
@@ -32,3 +37,4 @@
   (add-to-list 'completion-ignored-extensions lfe-ext))
 
 (provide 'lfe-start)
+;;; lfe-start.el ends here
