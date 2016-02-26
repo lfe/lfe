@@ -29,7 +29,9 @@
 (defvar calculate-lisp-indent-last-sexp)
 
 (defun lfe-indent-function (indent-point state)
-  "If this function is the value of `lisp-indent-function' then
+  "This function is the normal value of the variable `lfe-indent-function'.
+
+If this function is the value of the variable `lisp-indent-function' then
 `calculate-lisp-indent' will call it to determine if the
 arguments of a LFE function call should be indented specially.
 
@@ -194,5 +196,7 @@ lfe-indent-{function,hook} and it uses `lfe-body-indent'."
   (begin 0)
   (let-syntax 1)
   (syntax-rules 0)
-  (macro 0)
-  )
+  (macro 0))
+
+(provide 'lfe-indent)
+;;; lfe-indent.el ends here
