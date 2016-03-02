@@ -89,8 +89,15 @@ server(default) ->
     server(lfe_env:new());
 server(Env) ->
     process_flag(trap_exit, true),              %Must trap exists
-    io:fwrite("LFE Shell V~s (abort with ^G)\n",
-              [erlang:system_info(version)]),
+    Abrtmsg = fun () ->
+        Env = os:getenv("LFE_ABORT_MSG"),
+        case Env of
+        false -> "(abort with ^G)";
+        _ -> Env
+        end
+    end,
+    io:fwrite("LFE Shell V~s ~s\n",
+          [erlang:system_info(version),Abrtmsg()]),
     %% Create a default base env of predefined shell variables with
     %% default nil bindings and basic shell macros.
     St = new_state("lfe", [], Env),
