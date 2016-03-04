@@ -38,14 +38,15 @@
 -define(IS_KEY(K, D), maps:is_key(K, D)).
 -define(GET(K, D), maps:get(K, D)).
 -define(FIND(K, D), maps:find(K, D)).
--define(PUT(K, V, D), (D)#{K => V}).
+-define(PUT(K, V, D), maps:put(K, V, D)).
 -define(ERASE(K, D), maps:remove(K, D)).
 -define(FOLD(F, A, D), maps:fold(F, A, D)).
 -define(UPDATE(K, UPD, DEF, D),                 %This is slightly complex
-        case maps:find(K, D) of
-            {ok,___V} -> D#{K := UPD(___V)};
-            error -> D#{K => DEF}
-        end).
+	begin (fun (___K, {ok,___V}) ->
+		       maps:put(___K, UPD(___V), D);
+		   (___K, error) ->
+		       maps:put(___K, DEF, D)
+	       end)(K, maps:find(K, D)) end).
 -else.
 -define(NEW(), orddict:new()).
 -define(IS_KEY(K, D), orddict:is_key(K, D)).

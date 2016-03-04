@@ -535,8 +535,6 @@
          ((io_lib:printable_unicode_list x) 'unicode)
          ((?= `(,a . ,b) (when (not (is_list b))) x) 'cons)
          ('true 'list)))
-  ((x) (when (is_map x))
-   'map)
   ((x) (when (is_function x))
    'function)
   ((x) (when (is_binary x))
@@ -548,7 +546,9 @@
   ((x) (when (is_port x))
    'port)
   ((x) (when (is_reference x))
-   'reference))
+   'reference)
+  ((x)
+   (andalso (call 'erlang 'is_map x) 'map)))
 
 (defun coerce
   ((x 'vector) (when (is_list x))
