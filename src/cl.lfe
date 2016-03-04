@@ -77,7 +77,7 @@
   list)
 
 (defun mapl (func list)
-  (fletrec ((mapl-loop 
+  (fletrec ((mapl-loop
 	     ([(= (cons _ rest) list)]
 	      (funcall func list)
 	      (mapl-loop rest))
@@ -270,7 +270,7 @@
   ([pred seq] (when (is_tuple seq))
    (list_to_tuple (remove-if-not pred (tuple_to_list seq)))))
 
-(defun remove-duplicates 
+(defun remove-duplicates
   ([seq] (when (is_list seq))
    (fletrec ((rm-loop
 	      ([(cons x rest)]
@@ -505,7 +505,7 @@
 
 (defun rassoc-if
   ([pred (cons (= (cons _ v) pair) alist)]
-   (if (funcall pred v)                 
+   (if (funcall pred v)
        pair
        (rassoc-if pred alist)))
   ([pred ()] ()))
@@ -535,8 +535,11 @@
          ((io_lib:printable_unicode_list x) 'unicode)
          ((?= `(,a . ,b) (when (not (is_list b))) x) 'cons)
          ('true 'list)))
-  ((x) (when (is_map x))
-   'map)
+  ;; XXX When versions less than 17 are no longer supported, we can uncomment
+  ;; this, or if we think of a nice way to provide the functionality
+  ;; conditionally.
+  ;;((x) (when (is_map x))
+  ;; 'map)
   ((x) (when (is_function x))
    'function)
   ((x) (when (is_binary x))
