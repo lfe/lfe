@@ -46,7 +46,6 @@
 -include("lfe.hrl").
 
 %% Colours for the LFE banner
--define(GRY(Str), "\e[1;30m" ++ Str ++ "\e[0m").
 -define(RED(Str), "\e[31m" ++ Str ++ "\e[0m").
 -define(GRN(Str), "\e[1;32m" ++ Str ++ "\e[0m").
 -define(YLW(Str), "\e[1;33m" ++ Str ++ "\e[0m").
@@ -195,15 +194,16 @@ read_expression_1(Rdr, Eval, St) ->
     end.
 
 get_banner() ->
-    [io_lib:format("   ..-~~" ++ ?YLW(".~~_") ++ "~~--.." ++ "\n" ++
-                   "  (      " ++ ?YLW("\\\\") ++ "    )     |   A Lisp-2+ on the Erlang VM\n" ++
-                   "  |`-.._" ++ ?YLW("/") ++ "_" ++ ?YLW("\\\\") ++ "_.-';    |   Type " ++ ?GRN("(help)") ++ " for usage info.\n" ++
-                   "  |         " ++ ?RED("g") ++  " (_ \\   |   \n" ++
-                   "  |        " ++ ?RED("n") ++   "    | |  |   Docs: " ++ ?BLU("http://docs.lfe.io/") ++ " \n" ++
-                   "  (       " ++ ?RED("a") ++   "    / /   |   Source: " ++ ?BLU("http://github.com/rvirding/lfe") ++ "\n" ++
-                   "   \\     " ++ ?RED("l") ++  "    (_/    |   \n" ++
-                   "    \\   " ++ ?RED("r") ++  "     /      |   LFE v~s ~s\n" ++
-                   "     `-" ++ ?RED("E") ++   "___.-'\n\n", [get_lfe_version(), get_abort_message()])].
+    [io_lib:format(
+       ?GRN("   ..-~~") ++ ?YLW(".~~_") ++ ?GRN("~~--..") ++ "\n" ++
+       ?GRN("  (      ") ++ ?YLW("\\\\") ++ ?GRN("    )") ++ "     |   A Lisp-2+ on the Erlang VM\n" ++
+       ?GRN("  |`-.._") ++ ?YLW("/") ++ ?GRN("_") ++ ?YLW("\\\\") ++ ?GRN("_.-';") ++ "    |   Type " ++ ?GRN("(help)") ++ " for usage info.\n" ++
+       ?GRN("  |         ") ++ ?RED("g") ++ ?GRN(" (_ \\") ++  "   |   \n" ++
+       ?GRN("  |        ") ++ ?RED("n") ++ ?GRN("    | |") ++   "  |   Docs: " ++ ?BLU("http://docs.lfe.io/") ++ " \n" ++
+       ?GRN("  (       ") ++ ?RED("a") ++ ?GRN("    / /") ++   "   |   Source: " ++ ?BLU("http://github.com/rvirding/lfe") ++ "\n" ++
+       ?GRN("   \\     ") ++ ?RED("l") ++ ?GRN("    (_/") ++  "    |   \n" ++
+       ?GRN("    \\   ") ++ ?RED("r") ++ ?GRN("     /") ++  "      |   LFE v~s ~s\n" ++
+       ?GRN("     `-") ++ ?RED("E") ++ ?GRN("___.-'") ++ "\n\n", [get_lfe_version(), get_abort_message()])].
 
 get_abort_message() ->
     %% We can update this later to check for env variable settings for
