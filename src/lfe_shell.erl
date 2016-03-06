@@ -195,8 +195,8 @@ read_expression_1(Rdr, Eval, St) ->
 
 get_banner() ->
     [io_lib:format(
-       ?GRN("   ..-~~") ++ ?YLW(".~~_") ++ ?GRN("~~--..") ++ "\n" ++
-       ?GRN("  (      ") ++ ?YLW("\\\\") ++ ?GRN("    )") ++ "     |   A Lisp-2+ on the Erlang VM\n" ++
+       ?GRN("   ..-~~") ++ ?YLW(".~~_") ++ ?GRN("~~---..") ++ "\n" ++
+       ?GRN("  (      ") ++ ?YLW("\\\\") ++ ?GRN("     )") ++ "    |   A Lisp-2+ on the Erlang VM\n" ++
        ?GRN("  |`-.._") ++ ?YLW("/") ++ ?GRN("_") ++ ?YLW("\\\\") ++ ?GRN("_.-';") ++ "    |   Type " ++ ?GRN("(help)") ++ " for usage info.\n" ++
        ?GRN("  |         ") ++ ?RED("g") ++ ?GRN(" (_ \\") ++  "   |   \n" ++
        ?GRN("  |        ") ++ ?RED("n") ++ ?GRN("    | |") ++   "  |   Docs: " ++ ?BLU("http://docs.lfe.io/") ++ " \n" ++
@@ -209,7 +209,7 @@ get_abort_message() ->
     %% We can update this later to check for env variable settings for
     %% shells that require a different control character to abort, such
     %% as jlfe.
-    "(abort with G^)".
+    "(abort with ^G)".
 
 get_lfe_version() ->
     {ok, [App]} = file:consult(code:where_is_file("lfe.app")),
