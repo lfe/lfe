@@ -164,7 +164,7 @@ compiler_info(#comp{lfile=F,opts=Os,ipath=Is}) ->
 
 lfe_comp_opts(Opts) ->
     Fun = fun ('to-split') -> to_split;
-              ('to-umac') -> to_umac;
+              ('to-emac') -> to_emac;
               ('to-exp') -> to_exp;
               ('to-pmod') -> to_pmod;
               ('to-lint') -> to_lint;
@@ -219,8 +219,8 @@ passes() ->
      {do,fun do_split_file/1},
      {when_flag,to_split,{done,fun split_pp/1}},
      %% Do per-module macro processing.
-     {do,fun do_user_macros/1},
-     {when_flag,to_umac,{done,fun umac_pp/1}},
+     {do,fun do_export_macros/1},
+     {when_flag,to_emac,{done,fun expmac_pp/1}},
      %% Now we expand and trim remaining macros.
      {do,fun do_expand_macros/1},
      {when_flag,to_exp,{done,fun expand_pp/1}},
@@ -351,15 +351,15 @@ collect_mod_forms([F0|Fs0], Acc, Env0, St0) ->
     end;
 collect_mod_forms([], Acc, Env, St) -> {Acc,[],Env,St}.
 
-%% do_user_macros(State) -> {ok,State} | {error,State}.
+%% do_export_macros(State) -> {ok,State} | {error,State}.
 %% do_expand_macros(State) -> {ok,State} | {error,State}.
 %%  Process the macros in each module. Do_expand_macros is the last
 %%  pass which fully expands all remaining macros and flattens the
 %%  output.
 
-do_user_macros(#comp{cinfo=Ci,code=Ms0}=St) ->
+do_export_macros(#comp{cinfo=Ci,code=Ms0}=St) ->
     Umac = fun ({ok,Name,Mfs0,Ws}) ->
-                   {Mfs1,_} = lfe_user_macros:module(Mfs0, Ci),
+                   {Mfs1,_} = lfe_macro_export:module(Mfs0, Ci),
                    {ok,Name,Mfs1,Ws}
            end,
     Ms1 = lists:map(Umac, Ms0),
@@ -498,7 +498,7 @@ erl_comp_opts(St) ->
      no_bopt|Os1].
 
 %% split_pp(State) -> {ok,State} | {error,State}.
-%% umac_pp(State) -> {ok,State} | {error,State}.
+%% expmac_pp(State) -> {ok,State} | {error,State}.
 %% expand_pp(State) -> {ok,State} | {error,State}.
 %% pmod_pp(State) -> {ok,State} | {error,State}.
 %% lint_pp(State) -> {ok,State} | {error,State}.
@@ -514,7 +514,7 @@ erl_comp_opts(St) ->
 
 %% This just print the whole file structure.
 split_pp(St) -> sexpr_pp(St, "split").
-umac_pp(St) -> sexpr_pp(St, "umac").
+expmac_pp(St) -> sexpr_pp(St, "expmac").
 expand_pp(St) -> sexpr_pp(St, "expand").
 pmod_pp(St) -> sexpr_pp(St, "pmod").
 lint_pp(St) -> sexpr_pp(St, "lint").
