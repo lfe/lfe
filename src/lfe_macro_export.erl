@@ -12,9 +12,9 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 
-%% File    : lfe_user_macros.erl
+%% File    : lfe_macro_export.erl
 %% Author  : Robert Virding
-%% Purpose : Lisp Flavoured Erlang user macro function builder.
+%% Purpose : Lisp Flavoured Erlang macro export function builder.
 
 %% Build the LFE-EXPAND-USER-MACRO function which exports macros so
 %% they can be found by the macro expander without needing to inlcude
@@ -51,7 +51,7 @@
 %%         ...
 %%         (_ 'no)))))
 
--module(lfe_user_macros).
+-module(lfe_macro_export).
 
 %%-compile(export_all).
 
@@ -82,12 +82,14 @@ module([Mdef|Fs], Cst) ->
     %% io:format("m: ~p\n", [Umac]),
     module(Mdef, Fs, Mst, Cst).
 
-module({['define-module',Name|Mdef],L}, Fs, Mst0, Cst) ->
+module({['define-module',Name|Mdef],L}, Fs0, Mst0, Cst) ->
     Mst1 = collect_mdef(Mdef, Mst0#umac{mline=L}),
+    Fs1 = add_huf(L, Fs0),
     Umac = build_user_macro(Mst1),
     %% We need to export the expansion function but leave the rest.
-    Md1 = {['define-module',Name,[export,['LFE-EXPAND-USER-MACRO',3]]|Mdef],L},
-    {[Md1|Fs ++ [{Umac,L}]],Cst}.
+    Exp = [export,['LFE-EXPAND-USER-MACRO',3],['$handle_undefined_function',2]],
+    Md1 = {['define-module',Name,Exp|Mdef],L},
+    {[Md1|Fs1 ++ [{Umac,L}]],Cst}.
 
 collect_macros(Fs, Mst) ->
     lists:foldl(fun collect_macro/2, Mst, Fs).
@@ -174,6 +176,32 @@ build_user_macro(#umac{env=Env}=Mst) ->
 
 empty_leum() ->
     ['define-function','LFE-EXPAND-USER-MACRO',[lambda,['_','_','_'],?Q(no)]].
+
+%% add_huf(ModLine, Forms) -> Forms.
+%%  Add the $handle_undefined_function/2 function to catch run-time
+%%  macro calls. Scan through forms to check if there is an
+%%  $handle_undefined_function/2 function already defined. If so use
+%%  that as default when not a macro, otherwise just generate the
+%%  standard undef error.
+
+add_huf(L, [{['define-function','$handle_undefined_function',Def],Lf}=F|Fs]) ->
+    case function_arity(Def) of
+	2 -> [{make_huf(Def),Lf}|Fs];		%Found the right $huf
+	_ -> [F|add_huf(L, Fs)]
+    end;
+add_huf(L, [F|Fs]) ->
+    [F|add_huf(L, Fs)];
+add_huf(L, []) ->				%So $huf, so make one.
+    %% Use the default undef exception handler.
+    Excep = [lambda,[a,b],
+	     [':',error_handler,raise_undef_exception,['MODULE'],a,b]],
+    [{make_huf(Excep),L}].
+
+make_huf(Huf) ->
+    [defun,'$handle_undefined_function',[f,as],
+     ['case',['LFE-EXPAND-USER-MACRO',f,as,[':',lfe_env,new]],
+      [[tuple,?Q(yes),exp],[':',lfe_eval,expr,exp]],
+      [?Q(no),[funcall,Huf,f,as]]]].
 
 %% macro_case_clause(Name, Def) -> CaseClause.
 %%  Build a case clause for expanding macr Name.
