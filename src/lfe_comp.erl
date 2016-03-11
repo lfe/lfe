@@ -50,7 +50,8 @@
                code=[],                         %Code after last pass.
                return=[],                       %What is returned [Val] | []
                errors=[],
-               warnings=[]
+               warnings=[],
+               docs=[]
           }).
 
 %% default_options() -> Options.
@@ -174,6 +175,7 @@ lfe_comp_opts(Opts) ->
               ('to-kernel') -> to_kernel;
               ('to-asm') -> to_asm;
               ('no-export-macros') -> no_export_macros;
+              ('no-docs') -> no_docs;
               ('warnings-as-errors') -> warnings_as_errors;
               ('report-warnings') -> report_warnings;
               ('report-errors') -> report_errors;
@@ -223,6 +225,8 @@ passes() ->
      %% Do per-module macro processing.
      {unless_flag,no_export_macros,{do,fun do_export_macros/1}},
      {when_flag,to_expmac,{done,fun expmac_pp/1}},
+     %% Parse docstrings while we can.
+     %% {unless_flag,no_docs,{do,fun do_docs/1}},
      %% Now we expand and trim remaining macros.
      {do,fun do_expand_macros/1},
      {when_flag,to_expand,{done,fun expand_pp/1}},
@@ -579,7 +583,7 @@ beam_write(St0) ->
     Res = lists:map(fun (M) -> beam_write_module(M, St0) end, St0#comp.code),
     St1 = St0#comp{code=Res},
     %% Check return status.
-    case lists:all(fun ({ok,_,_,_}) -> true; ({error,_,_}) -> false end, Res) of
+    case all_ok(Res) of
         true -> {ok,St1};
         false -> {error,St1}
     end.
@@ -591,6 +595,27 @@ beam_write_module({ok,M,Beam,_}=Mod, St) ->
         {error,E} ->
             {error,St#comp{errors=[{file,E}]}}
     end.
+
+%% Modified from elixir_module
+add_docs_chunk(Bin, #comp{docs=Docs}=_St, _Line) ->
+    ChunkData = term_to_binary({lfe_docs_v1, [
+      {docs, Docs} %,
+      %% {moduledoc, get_moduledoc(Line, Data)},
+      %% {callback_docs, get_callback_docs(Data)},
+      %% {type_docs, get_type_docs(Data)}
+    ]}),
+    add_beam_chunk(Bin, "LDoc", ChunkData);
+
+add_docs_chunk(Bin, _, _) -> Bin.
+
+%% Fom elixir_module: Adds custom chunk to a .beam binary
+add_beam_chunk(Bin, Id, ChunkData)
+        when is_binary(Bin), is_list(Id), is_binary(ChunkData) ->
+    {ok, _, Chunks0} = beam_lib:all_chunks(Bin),
+    NewChunk = {Id, ChunkData},
+    Chunks = [NewChunk|Chunks0],
+    {ok, NewBin} = beam_lib:build_module(Chunks),
+    NewBin.
 
 %% fix_erl_errors([{File,Errors}]) -> Errors.
 

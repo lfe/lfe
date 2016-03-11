@@ -16,15 +16,31 @@
 %% Author  : Robert Virding
 %% Purpose : Common compiler definitions.
 
-%% Common compiler information 
+%% Common compiler information
 
 -record(cinfo, {file=[],                        %File name
                 opts=[],                        %Compiler options
                 ipath=[],                       %Include path
                 mod=none                        %Module name
-            }).
+               }).
 
 -record(module, {name=[],                       %Module name
                  code,                          %Module code
-                 warnings=[]                    %Module warnings
+                 warnings=[],                   %Module warnings
+                 docs=[]                        %Module docs
                 }).
+
+%% TODO: Actually define this.
+-type pattern() :: [atom() | term()].
+
+%% de{fun,macro} docs.
+-record(doc, {type     = error(missing_type)  :: function | macro,
+              exported = false                :: boolean(),
+              name     = error(missing_name)  :: atom(),
+              arity    = error(missing_arity) :: non_neg_integer(),
+              %% TODO: Parse and store patterns as in Lodox.
+              patterns = [[]]                 :: [pattern()],
+              doc      = ""                   :: string()
+             }).
+
+-type doc() :: #doc{}.
