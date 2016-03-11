@@ -300,10 +300,7 @@ pass_ewc_form(F0, Env, St0) ->
 function_arity([lambda,Args|_]) ->
     ?IF(is_symb_list(Args), {yes,length(Args)}, no);
 function_arity(['match-lambda',[Pat|_]|_]) ->
-    case is_proper_list(Pat) of
-        true -> {yes,length(Pat)};
-        false -> no
-    end;
+    ?IF(is_proper_list(Pat), {yes,length(Pat)}, no);
 function_arity(_) -> no.
 
 %% pass_eval_set(Args, Env, State) -> {Set,Env,State}.
@@ -1178,7 +1175,7 @@ exp_orelse([]) -> ?Q(false).
 
 exp_defun([Args|Body]=Rest) ->
     case is_symb_list(Args) of
-        true -> exp_lambda_defun(Args, Body);
+        true  -> exp_lambda_defun(Args, Body);
         false -> exp_match_defun(Rest)
     end.
 
@@ -1188,10 +1185,7 @@ exp_lambda_defun(Args, Body) ->
 
 exp_lambda_body([Doc|Rest]=Body) ->
     %% Test whether first expression is a comment string.
-    case io_lib:char_list(Doc) and (Rest =/= []) of
-        true -> {Rest,Doc};
-        false -> {Body,""}
-    end;
+    ?IF(io_lib:char_list(Doc) and (Rest =/= []), {Rest,Doc}, {Body,""});
 exp_lambda_body(Body) -> {Body,""}.
 
 exp_match_defun(Rest) ->
@@ -1200,10 +1194,7 @@ exp_match_defun(Rest) ->
 
 exp_match_clauses([Doc|Cls]=Rest) ->
     %% Test whether first thing is a comment string.
-    case io_lib:char_list(Doc) of
-        true -> {Cls,Doc};
-        false -> {Rest,""}
-    end;
+    ?IF(io_lib:char_list(Doc), {Cls,Doc}, {Rest,""});
 exp_match_clauses(Cls) -> {Cls,""}.
 
 %% exp_defmacro(Rest) -> {MatchLambda,DocString}.
