@@ -10,3 +10,6 @@ erl_crash.dump
 /priv/
 /src/lfe_scan.erl
 .rebar/*
+bin/lfeexec
+maps_opts.mk
+ebin/*
