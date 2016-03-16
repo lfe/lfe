@@ -25,14 +25,14 @@
          'macroexpand-1'/1,'macroexpand-1'/2,
          'macroexpand-all'/1,'macroexpand-all'/2]).
 
--export(['LFE-EXPAND-USER-MACRO'/3]).
+-export(['LFE-EXPAND-EXPORTED-MACRO'/3]).
 
-%% 'LFE-EXPAND-USER-MACRO'(Name, Args, Env) -> {yes,Expansion} | no.
+%% 'LFE-EXPAND-EXPORTED-MACRO'(Name, Args, Env) -> {yes,Expansion} | no.
 %%  A smart implementation of this where we call the lfe_macro module
 %%  to expand and check for us. Using an empty environment ensures
 %%  only predefined macros are used.
 
-'LFE-EXPAND-USER-MACRO'(Name, Args, _) ->
+'LFE-EXPAND-EXPORTED-MACRO'(Name, Args, _) ->
     lfe_macro:expand_expr([Name|Args], lfe_env:new()).
 
 %% Standard lisp library functions.
