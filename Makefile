@@ -132,3 +132,8 @@ docker-push:
 	docker push lfex/lfe:latest
 
 docker: docker-build docker-push
+
+travis:
+	@echo "Building for Travis CI ..."
+	@make
+
