@@ -939,9 +939,9 @@ exp_predef(_, _, _) -> no.
 %%  loading a module, and trying to load a module, unneccessarily.
 
 exp_call_macro(M, F, As, Env, St) ->
-    case erlang:function_exported(M, 'LFE-EXPAND-USER-MACRO', 3) of
+    case erlang:function_exported(M, 'LFE-EXPAND-EXPORTED-MACRO', 3) of
         true ->
-            case M:'LFE-EXPAND-USER-MACRO'(F, As, Env) of
+            case M:'LFE-EXPAND-EXPORTED-MACRO'(F, As, Env) of
                 {yes,Exp} -> {yes,Exp,St};
                 no -> {no,St}
             end;

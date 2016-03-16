@@ -361,7 +361,7 @@ eval_form_1([progn|Eforms], St) ->              %Top-level nested progn
           {[],St}, Eforms);
 eval_form_1(['extend-module'|_], St) ->         %Maybe from macro expansion
     {[],St};
-eval_form_1(['eval-when-compile'|_], St) ->	%Maybe from macro expansion
+eval_form_1(['eval-when-compile'|_], St) ->     %Maybe from macro expansion
     %% We can happily ignore this.
     {[],St};
 eval_form_1([set|Rest], St0) ->
@@ -439,7 +439,7 @@ set_1(Pat, Guard, Exp, #state{curr=Ce0}=St) ->
 %%  Load in a file making all functions available. We call the
 %%  compiler directly and only add defined functions, macros are
 %%  lost. Any exported macros will be available in the
-%%  LFE-EXPAND-USER-MACRO/2 function.
+%%  LFE-EXPAND-EXPORTED-MACRO/3 function.
 
 -record(slurp, {mod,imps=[]}).                  %For slurping
 
@@ -464,30 +464,30 @@ slurp([File], St0) ->
 
 slurp_file(Name, Ce0) ->
     case lfe_comp:file(Name, [binary,to_lint,return]) of
-	{ok,[{ok,Mod,Fs,Mws}|_],Ws} ->		%Only do first module
-	    slurp_warnings(Ws),
-	    slurp_warnings(Mws),
-	    Sl0 = #slurp{mod=Mod,imps=[]},
-	    {Fbs,Sl1} = lfe_lib:proc_forms(fun collect_form/3, Fs, Sl0),
+        {ok,[{ok,Mod,Fs,Mws}|_],Ws} ->          %Only do first module
+            slurp_warnings(Ws),
+            slurp_warnings(Mws),
+            Sl0 = #slurp{mod=Mod,imps=[]},
+            {Fbs,Sl1} = lfe_lib:proc_forms(fun collect_form/3, Fs, Sl0),
             %% Add imports to environment.
             Ce1 = foldl(fun ({M,Is}, Env) ->
-				foldl(fun ({{F,A},R}, E) ->
-					      add_ibinding(M, F, A, R, E)
-				      end, Env, Is)
-			end, Ce0, Sl1#slurp.imps),
-	    %% Add functions to environment.
-	    Ce2 = foldl(fun ({N,Ar,Def}, Env) ->
-				lfe_eval:add_dynamic_func(N, Ar, Def, Env)
-			end, Ce1, Fbs),
-	    {ok,Mod,Ce2};
+                                foldl(fun ({{F,A},R}, E) ->
+                                              add_ibinding(M, F, A, R, E)
+                                      end, Env, Is)
+                        end, Ce0, Sl1#slurp.imps),
+            %% Add functions to environment.
+            Ce2 = foldl(fun ({N,Ar,Def}, Env) ->
+                                lfe_eval:add_dynamic_func(N, Ar, Def, Env)
+                        end, Ce1, Fbs),
+            {ok,Mod,Ce2};
         {error,Mews,Es,Ws} ->
             slurp_errors(Es),
             slurp_warnings(Ws),
-	    %% Now the errors and warnings for each module.
-	    foreach(fun ({error,Mes,Mws}) ->
-			    slurp_errors(Mes),
-			    slurp_warnings(Mws)
-		    end, Mews),
+            %% Now the errors and warnings for each module.
+            foreach(fun ({error,Mes,Mws}) ->
+                            slurp_errors(Mes),
+                            slurp_warnings(Mws)
+                    end, Mews),
             error
     end.
 
