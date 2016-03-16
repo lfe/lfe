@@ -1,6 +1,4 @@
 # Makefile for LFE
-# This simple Makefile uses rebar (in Unix) or rebar.cmd (in Windows)
-# to compile/clean if it exists, else does it explicitly.
 
 BINDIR = bin
 EBINDIR = ebin
@@ -18,6 +16,7 @@ ERLC = erlc
 
 LFECFLAGS = -pa ../lfe
 LFEC = $(BINDIR)/lfe $(BINDIR)/lfec
+APP_SRC = lfe.app
 
 LIB=lfe
 
@@ -71,17 +70,8 @@ all: compile docs
 
 .PHONY: compile erlc-compile lfec-compile erlc-lfec emacs install docs clean docker-build docker-push docker
 
-
-
-## Compile using rebar if it exists else using make
 compile: maps_opts.mk
-	if which rebar.cmd > /dev/null; \
-	then ERL_LIBS=.:$$ERL_LIBS rebar.cmd compile; \
-	elif which rebar > /dev/null; \
-	then ERL_LIBS=.:$$ERL_LIBS rebar compile; \
-	else \
-	$(MAKE) $(MFLAGS) erlc-lfec; \
-	fi
+	$(MAKE) $(MFLAGS) erlc-lfec
 
 ## Compile using erlc
 erlc-compile: $(addprefix $(EBINDIR)/, $(EBINS)) $(addprefix $(BINDIR)/, $(BINS))
@@ -89,7 +79,10 @@ erlc-compile: $(addprefix $(EBINDIR)/, $(EBINS)) $(addprefix $(BINDIR)/, $(BINS)
 ## Compile using lfec
 lfec-compile: $(addprefix $(EBINDIR)/, $(LBINS))
 
-erlc-lfec: erlc-compile lfec-compile
+$(APP_SRC):
+	cp src/$(APP_SRC).src $(EBINDIR)/$(APP_SRC)
+
+erlc-lfec: erlc-compile lfec-compile $(APP_SRC)
 
 emacs:
 	cd $(EMACSDIR) ; \
@@ -108,27 +101,13 @@ install:
 docs:
 
 clean:
-	if which rebar.cmd > /dev/null; \
-	then rebar.cmd clean; \
-	elif which rebar > /dev/null; \
-	then rebar clean; \
-	else rm -rf $(EBINDIR)/*.beam; \
-	fi
-	rm maps_opts.mk
-	rm -rf erl_crash.dump
+	rm -rf $(EBINDIR)/*.beam erl_crash.dump maps_opts.mk
 
 echo:
 	@ echo $(ESRCS)
 	@ echo $(XSRCS)
 	@ echo $(YSRCS)
 	@ echo $(EBINS)
-
-get-deps:
-	if which rebar.cmd > /dev/null; \
-	then rebar.cmd get-deps; \
-	elif which rebar > /dev/null; \
-	then rebar get-deps; \
-	fi
 
 get-version:
 	@echo
