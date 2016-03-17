@@ -150,7 +150,7 @@ expand_macros(Fs0, File, _, _) ->
 check_code(Fs, File, _, _) ->
     Module = [{['define-module',dummy,[export,[main,1]]],1}|Fs],
     case lfe_lint:module(Module) of
-        {ok,Ws} ->
+        {ok,dummy,Ws} ->
             list_warnings(File, Ws);
         {error,Es,Ws} -> error_exit(File, Es, Ws)
     end.

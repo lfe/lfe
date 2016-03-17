@@ -24,6 +24,7 @@
 
 %% Macro expander state.
 -record(mac, {expand=true,                      %Expand everything
+              keep=true,                        %Keep all forms
               module='-no-module',              %Current module
               line=1,                           %Line no of current form
               vc=0,                             %Variable counter
@@ -32,5 +33,6 @@
               opts=[],                          %Compiler options
               ipath=[],                         %Include path
               errors=[],                        %Errors
-              warnings=[]                       %Warnings
-              }).
+              warnings=[],                      %Warnings
+              unloadable=[]                     %Macro modules we can't load
+             }).

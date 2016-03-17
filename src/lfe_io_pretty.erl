@@ -52,6 +52,9 @@ term([quote,E], D, I, L) -> ["'",term(E, D, I+1, L)];
 term([backquote,E], D, I, L) -> ["`",term(E, D, I+1, L)];
 term([comma,E], D, I, L) -> [",",term(E, D, I+1, L)];
 term(['comma-at',E], D, I, L) -> [",@",term(E, D, I+2, L)];
+term([map|MapBody], D, I, L) ->
+    Mcs = map_body(MapBody, D, I+5, L),
+    ["(map ",Mcs,$)];
 term([Car|_]=List, D, I, L) ->
     %% Handle printable lists specially.
     case io_lib:printable_unicode_list(List) of
@@ -82,7 +85,9 @@ term(Tup, D, I, L) when is_tuple(Tup) ->
 term(Bit, D, _, _) when is_bitstring(Bit) ->
     bitstring(Bit, D);                          %First D bytes
 term(Map, D, I, L) when ?IS_MAP(Map) ->
-    map(Map, D, I, L);
+    Fun = fun (K, V, Acc) -> [K,V|Acc] end,
+    Mcs = map_body(maps:fold(Fun, [], Map), D, I+3, L),
+    ["#M(",Mcs,$)];
 term(Other, _, _, _) ->
     lfe_io_write:term(Other).                   %Use standard LFE for rest
 
@@ -248,8 +253,6 @@ newline(N, Tail) ->
 
 %% Old style forms.
 indent_type('define') -> 1;
-indent_type('define-module') -> 1;
-indent_type('extend-module') -> 0;
 indent_type('define-syntax') -> 1;
 indent_type('define-record') -> 1;
 indent_type('begin') -> 0;
@@ -262,6 +265,7 @@ indent_type('defun') -> defun;
 indent_type('defmacro') -> defun;
 indent_type('defsyntax') -> 1;
 indent_type('defrecord') -> 1;
+indent_type('deftest') -> 1;
 %% Core forms.
 indent_type('progn') -> 0;
 indent_type('lambda') -> 1;
@@ -277,9 +281,11 @@ indent_type('catch') -> 0;
 indent_type('try') -> 1;
 indent_type('funcall') -> 1;
 indent_type('call') -> 2;
+indent_type('eval-when-compile') -> 0;
 indent_type('define-function') -> 1;
 indent_type('define-macro') -> 1;
-indent_type('eval-when-compile') -> 0;
+indent_type('define-module') -> 1;
+indent_type('extend-module') -> 0;
 %% Core macros.
 indent_type(':') -> 2;
 indent_type('cond') -> 999;                     %All following forms
@@ -291,40 +297,54 @@ indent_type(macrolet) -> 1;
 indent_type(syntaxlet) -> 1;
 indent_type('do') -> 2;
 indent_type('lc') -> 1;                         %List comprehensions
+indent_type('list-comp') -> 1;
 indent_type('bc') -> 1;                         %Binary comprehensions
+indent_type('binary-comp') -> 1;
 indent_type('match-spec') -> 0;
 indent_type(_) -> none.
 
-%% map(Map, Depth, Indentation, LineLength).
-%%  Print a map, one key value pair per line.
+%% map(KVs, Depth, Indentation, LineLength).
+%% map_body(KVs, CurrentLineIndent, Depth, Indentation, LineLength)
 
-map(Map, D, I, L) ->
-    [$#,$M,$(,map_body(maps:to_list(Map), I+3, D, I+3, L-1),$)].
+map_body(KVs, D, I, L) ->
+    map_body(KVs, I, D, I, L-1).
 
-map_body([], _, _, _, _) -> [];
-map_body([{K,V}|KVs], CurL, D, I, L) ->
+map_body([K,V|KVs], CurL, D, I, L) ->
     case map_assoc(K, V, CurL, D, I, L) of
-        {join,KVcs,KVl} ->
+        {both_fit,KVcs,KVl} ->			%Both fit on this line
             [KVcs,map_rest(KVs, CurL+KVl, D-1, I, L)];
-        {break,KVcs,KVl} ->
+        {both_line,KVcs,KVl} ->			%Both fit on single line
             [KVcs,map_rest(KVs, I+KVl, D-1, I, L)];
-        {break,KVcs} ->
+        {break,KVcs} ->		                %On separate lines
             %% Force a break after K/V split.
             [KVcs,map_rest(KVs, L, D-1, I, L)]
-    end.
+    end;
+map_body(E, CurL, D, I, L) ->
+    map_last(E, CurL, D, I, L).
+
+%% map_rest(KVs, Depth, Indentation, LineLength)
+%% map_rest(KVs, CurrentLineIndent, Depth, Indentation, LineLength)
+
+map_rest(KVs, D, I, L) ->
+    map_rest(KVs, I, D, I, L-1).
 
 map_rest([], _, _, _, _) -> "";
 map_rest(_, _, 0, _, _) -> " ...";
-map_rest([{K,V}|KVs], CurL, D, I, L) ->
+map_rest([K,V|KVs], CurL, D, I, L) ->
     case map_assoc(K, V, CurL+1, D, I, L) of
-        {join,KVcs,KVl} ->
+        {both_fit,KVcs,KVl} ->			%Both fit on this line
             [$\s,KVcs,map_rest(KVs, CurL+KVl+1, D-1, I, L)];
-        {break,KVcs,KVl} ->
+        {both_line,KVcs,KVl} ->		        %Both fit on single line
             [newline(I, KVcs),map_rest(KVs, I+KVl, D-1, I, L)];
-        {break,KVcs} ->
+        {break,KVcs} ->				%On separate lines
             %% Force a break after K/V split.
             [newline(I, KVcs),map_rest(KVs, L, D-1, I, L)]
-    end.
+    end;
+map_rest(E, CurL, D, I, L) ->
+    map_last(E, CurL, D, I, L).
+
+map_last(Tail, CurL, D, I, L) ->
+    list_tail(Tail, CurL, D, I, L).
 
 map_assoc(K, V, CurL, D, I, L) ->
     Kcs = term(K, D, 0, 99999),                 %Never break the line
@@ -332,9 +352,9 @@ map_assoc(K, V, CurL, D, I, L) ->
     Vcs = term(V, D, 0, 99999),                 %Never break the line
     Vl = flatlength(Vcs),
     if CurL+Kl+Vl < L-10 ->                     %Both fit together here
-            {join,[Kcs,$\s,Vcs],Kl+1+Vl};
+            {both_fit,[Kcs,$\s,Vcs],Kl+1+Vl};
        I+Kl+Vl < L-10 ->                        %Both fit on single line
-            {break,[Kcs,$\s,Vcs],Kl+1+Vl};
+            {both_line,[Kcs,$\s,Vcs],Kl+1+Vl};
        true ->                                  %On separate lines
             %% Try to reuse flat prints if they fit on one line.
             Ks = if I+Kl < L-10 -> Kcs;
@@ -345,6 +365,10 @@ map_assoc(K, V, CurL, D, I, L) ->
                  end,
             {break,[Ks,newline(I, Vs)]}
     end.
+
+%% last_length(Chars) -> Length.
+%% last_length(Chars, CurrentLine) -> Length.
+%%  Return the length of the last line in the text.
 
 last_length(S) -> last_length(S, 0).
 
