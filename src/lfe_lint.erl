@@ -282,7 +282,6 @@ check_exports(Exps, Fs, St) ->
 %% add_exports(Old, More) -> New.
 
 add_exports(all, _) -> all;
-add_exports(_, all) -> all;
 add_exports(Old, More) -> union(Old, More).
 
 %% check_expr(Expr, Env, Line, State) -> State.

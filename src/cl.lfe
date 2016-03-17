@@ -47,27 +47,10 @@
    (rassoc 2) (rassoc-if 2) (rassoc-if-not 2)
    ;; Types.
    (type-of 1) (coerce 2)
-   ))
-  ;;(export all))
-
-;; Test defining CL if and cond.
-
-(defmacro cl:if
-  ((list test if-true) `(cl:if ,test ,if-true ()))
-  ((list test if-true if-false)
-   `(case ,test
-      (() ,if-false)
-      (_ ,if-true))))
-
-(defmacro cl:cond args
-  (fletrec ((exp-cond
-	      ([(cons (list test) cond)]
-	       `(let ((|\|-cond-test-\|| ,test))
-		  (cl:if |\|-cond-test-\|| |\|-cond-test-\|| ,(exp-cond cond))))
-	      ([(cons (cons test body) cond)]
-	       `(cl:if ,test (progn . ,body) ,(exp-cond cond)))
-	      ([()] ())))
-    (exp-cond args)))
+   )
+  ;; Export CL-style if and cond, which we don't use internally.
+  (export-macro if cond)
+  )
 
 ;;; Boolean conversion functions.
 
@@ -333,7 +316,8 @@
   (fletrec ((pos-if-loop
 	      ([pred n (cons x xs)]
 	       (if (funcall pred x)
-		 n (pos-if-loop pred (+ n 1) xs)))
+		 n
+		 (pos-if-loop pred (+ n 1) xs)))
 	      ([pred n ()] ())))
     (pos-if-loop pred 0 seq)))
 
@@ -341,7 +325,8 @@
   (fletrec ((pos-if-not-loop
 	      ([pred n (cons x xs)]
 	       (if (funcall pred x)
-		 (pos-if-not-loop pred (+ n 1) xs) n))
+		 (pos-if-not-loop pred (+ n 1) xs)
+		 n))
 	      ([pred n ()] ())))
     (pos-if-not-loop pred 0 xs)))
 
@@ -445,14 +430,14 @@
    (if (funcall pred e)
        'true
        (member-if pred list)))
-  ([pred ()] ()))
+  ([pred ()] 'false))
 
 (defun member-if-not
   ([pred (cons e list)]
    (if (funcall pred e)
        (member-if-not pred list)
        'true))
-  ([pred ()] ()))
+  ([pred ()] 'false))
 
 (defun adjoin (item list)
   (if (member item list)
@@ -550,8 +535,6 @@
          ((io_lib:printable_unicode_list x) 'unicode)
          ((?= `(,a . ,b) (when (not (is_list b))) x) 'cons)
          ('true 'list)))
-  ((x) (when (is_map x))
-   'map)
   ((x) (when (is_function x))
    'function)
   ((x) (when (is_binary x))
@@ -563,7 +546,9 @@
   ((x) (when (is_port x))
    'port)
   ((x) (when (is_reference x))
-   'reference))
+   'reference)
+  ((x)
+   (andalso (call 'erlang 'is_map x) 'map)))
 
 (defun coerce
   ((x 'vector) (when (is_list x))
@@ -599,3 +584,23 @@
 
 (defun posix-argv ()
   (init:get_arguments))
+
+;; Test defining CL if and cond. We need to put these last so they
+;; won't be used inside this module.
+
+(defmacro if
+  ((list test if-true) `(if ,test ,if-true ()))
+  ((list test if-true if-false)
+   `(case ,test
+      (() ,if-false)
+      (_ ,if-true))))
+
+(defmacro cond args
+  (fletrec ((exp-cond
+	      ([(cons (list test) cond)]
+	       `(let ((|\|-cond-test-\|| ,test))
+		  (if |\|-cond-test-\|| |\|-cond-test-\|| ,(exp-cond cond))))
+	      ([(cons (cons test body) cond)]
+	       `(if ,test (progn . ,body) ,(exp-cond cond)))
+	      ([()] ())))
+    (exp-cond args)))

@@ -5,8 +5,11 @@ maps.mk
 erl_crash.dump
 *.elc
 *.o
-*.rebar
 /_build/
 /c_src/*.d
 /priv/
 /src/lfe_scan.erl
+.rebar/*
+bin/lfeexec
+maps_opts.mk
+ebin/*

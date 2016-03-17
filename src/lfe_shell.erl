@@ -36,7 +36,7 @@
 -import(lfe_env, [new/0,add_env/2,
                   add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
                   fetch_vbinding/2,del_vbinding/2,
-                  add_fbinding/4,add_fbindings/3,get_fbinding/3,add_ibinding/5,
+                  add_fbinding/4,add_fbindings/2,get_fbinding/3,add_ibinding/5,
                   get_gbinding/3,add_mbinding/3]).
 
 -import(orddict, [store/3,find/2]).
@@ -44,6 +44,12 @@
 -import(lists, [reverse/1,foreach/2]).
 
 -include("lfe.hrl").
+
+%% Colours for the LFE banner
+-define(RED(Str), "\e[31m" ++ Str ++ "\e[0m").
+-define(GRN(Str), "\e[1;32m" ++ Str ++ "\e[0m").
+-define(YLW(Str), "\e[1;33m" ++ Str ++ "\e[0m").
+-define(BLU(Str), "\e[1;34m" ++ Str ++ "\e[0m").
 
 %% -compile([export_all]).
 
@@ -89,8 +95,7 @@ server(default) ->
     server(lfe_env:new());
 server(Env) ->
     process_flag(trap_exit, true),              %Must trap exists
-    io:fwrite("LFE Shell V~s (abort with ^G)\n",
-              [erlang:system_info(version)]),
+    io:fwrite(get_banner()),
     %% Create a default base env of predefined shell variables with
     %% default nil bindings and basic shell macros.
     St = new_state("lfe", [], Env),
@@ -187,6 +192,28 @@ read_expression_1(Rdr, Eval, St) ->
             report_exception(exit, Reason, []),
             read_expression_1(Rdr, start_eval(St), St)
     end.
+
+get_banner() ->
+    [io_lib:format(
+       ?GRN("   ..-~~") ++ ?YLW(".~~_") ++ ?GRN("~~---..") ++ "\n" ++
+       ?GRN("  (      ") ++ ?YLW("\\\\") ++ ?GRN("     )") ++ "    |   A Lisp-2+ on the Erlang VM\n" ++
+       ?GRN("  |`-.._") ++ ?YLW("/") ++ ?GRN("_") ++ ?YLW("\\\\") ++ ?GRN("_.-';") ++ "    |   Type " ++ ?GRN("(help)") ++ " for usage info.\n" ++
+       ?GRN("  |         ") ++ ?RED("g") ++ ?GRN(" (_ \\") ++  "   |   \n" ++
+       ?GRN("  |        ") ++ ?RED("n") ++ ?GRN("    | |") ++   "  |   Docs: " ++ ?BLU("http://docs.lfe.io/") ++ " \n" ++
+       ?GRN("  (       ") ++ ?RED("a") ++ ?GRN("    / /") ++   "   |   Source: " ++ ?BLU("http://github.com/rvirding/lfe") ++ "\n" ++
+       ?GRN("   \\     ") ++ ?RED("l") ++ ?GRN("    (_/") ++  "    |   \n" ++
+       ?GRN("    \\   ") ++ ?RED("r") ++ ?GRN("     /") ++  "      |   LFE v~s ~s\n" ++
+       ?GRN("     `-") ++ ?RED("E") ++ ?GRN("___.-'") ++ "\n\n", [get_lfe_version(), get_abort_message()])].
+
+get_abort_message() ->
+    %% We can update this later to check for env variable settings for
+    %% shells that require a different control character to abort, such
+    %% as jlfe.
+    "(abort with ^G)".
+
+get_lfe_version() ->
+    {ok, [App]} = file:consult(code:where_is_file("lfe.app")),
+    proplists:get_value(vsn, element(3, App)).
 
 %% new_state(ScriptName, Args [,Env]) -> State.
 %%  Generate a new shell state with all the default functions, macros
@@ -334,6 +361,9 @@ eval_form_1([progn|Eforms], St) ->              %Top-level nested progn
           {[],St}, Eforms);
 eval_form_1(['extend-module'|_], St) ->         %Maybe from macro expansion
     {[],St};
+eval_form_1(['eval-when-compile'|_], St) ->     %Maybe from macro expansion
+    %% We can happily ignore this.
+    {[],St};
 eval_form_1([set|Rest], St0) ->
     {Value,St1} = set(Rest, St0),
     {Value,St1};
@@ -386,34 +416,30 @@ set([Pat|Rest], #state{curr=Ce}=St) ->
             list_errors(Es),
             list_warnings(Ws)
     end,
-    set_1([Epat|Rest], St).
+    set_1(Epat, Rest, St).
 
-set_1([Pat,['when'|_]=G,Exp], #state{curr=Ce0}=St) ->
+set_1(Pat, [['when'|_]=G,Exp], St) ->
+    set_1(Pat, [G], Exp, St);                   %Just the guard
+set_1(Pat, [Exp], St) ->
+    set_1(Pat, [], Exp, St);                    %Empty body
+set_1(_, _, _) -> erlang:error({bad_form,'set'}).
+
+set_1(Pat, Guard, Exp, #state{curr=Ce0}=St) ->
     Val = lfe_eval:expr(Exp, Ce0),              %Evaluate expression
-    case lfe_eval:match_when(Pat, Val, [G], Ce0) of
+    case lfe_eval:match_when(Pat, Val, Guard, Ce0) of
         {yes,_,Bs} ->
             Ce1 = foldl(fun ({N,V}, E) -> add_vbinding(N, V, E) end,
                         Ce0, Bs),
             {Val,St#state{curr=Ce1}};
         no -> erlang:error({badmatch,Val})
-    end;
-set_1([Pat,Exp], #state{curr=Ce0}=St) ->
-    Val = lfe_eval:expr(Exp, Ce0),              %Evaluate expression
-    case lfe_eval:match(Pat, Val, Ce0) of
-        {yes,Bs} ->
-            Ce1 = foldl(fun ({N,V}, E) -> add_vbinding(N, V, E) end,
-                        Ce0, Bs),
-            {Val,St#state{curr=Ce1}};
-        no -> erlang:error({badmatch,Val})
-    end;
-set_1(_, _) -> erlang:error({bad_form,'set'}).
+    end.
 
 %% unslurp(State) -> {ok,State}.
 %% slurp(File, State) -> {{ok,Mod},State}.
-%%  Load in a file making all functions available. The module is
-%%  loaded in an empty environment and that environment is finally
-%%  added to the standard current environment. We could not use the
-%%  compiler here as we need the macro environment.
+%%  Load in a file making all functions available. We call the
+%%  compiler directly and only add defined functions, macros are
+%%  lost. Any exported macros will be available in the
+%%  LFE-EXPAND-EXPORTED-MACRO/3 function.
 
 -record(slurp, {mod,imps=[]}).                  %For slurping
 
@@ -429,52 +455,47 @@ unslurp(St0) ->
 slurp([File], St0) ->
     {ok,#state{curr=Ce0}=St1} = unslurp(St0),   %Reset the environment
     Name = lfe_eval:expr(File, Ce0),            %Get file name
-    case slurp_1(Name, Ce0) of
+    case slurp_file(Name, Ce0) of
         {ok,Mod,Ce1} ->                         %Set the new environment
             {{ok,Mod},St1#state{save=Ce0,curr=Ce1,slurp=true}};
         error ->
             {error,St1}
     end.
 
-slurp_1(Name, Ce) ->
-    case slurp_file(Name) of                    %Parse, expand and lint file
-        {ok,Fs,Fenv0,Ws} ->
-            slurp_warnings(Name, Ws),
-            Sl0 = #slurp{mod='-no-mod-',imps=[]},
+slurp_file(Name, Ce0) ->
+    case lfe_comp:file(Name, [binary,to_lint,return]) of
+        {ok,[{ok,Mod,Fs,Mws}|_],Ws} ->          %Only do first module
+            slurp_warnings(Ws),
+            slurp_warnings(Mws),
+            Sl0 = #slurp{mod=Mod,imps=[]},
             {Fbs,Sl1} = lfe_lib:proc_forms(fun collect_form/3, Fs, Sl0),
             %% Add imports to environment.
-            Fenv1 = foldl(fun ({M,Is}, Env) ->
-                                  foldl(fun ({{F,A},R}, E) ->
-                                                add_ibinding(M, F, A, R, E)
-                                        end, Env, Is)
-                          end, Fenv0, Sl1#slurp.imps),
-            %% Get a new environment with all functions defined.
-            Fenv2 = lfe_eval:make_letrec_env(Fbs, Fenv1),
-            {ok,Sl1#slurp.mod,add_env(Fenv2, Ce)};
-        {error,Es,Ws} ->
-            slurp_errors(Name, Es),
-            slurp_warnings(Name, Ws),
+            Ce1 = foldl(fun ({M,Is}, Env) ->
+                                foldl(fun ({{F,A},R}, E) ->
+                                              add_ibinding(M, F, A, R, E)
+                                      end, Env, Is)
+                        end, Ce0, Sl1#slurp.imps),
+            %% Add functions to environment.
+            Ce2 = foldl(fun ({N,Ar,Def}, Env) ->
+                                lfe_eval:add_dynamic_func(N, Ar, Def, Env)
+                        end, Ce1, Fbs),
+            {ok,Mod,Ce2};
+        {error,Mews,Es,Ws} ->
+            slurp_errors(Es),
+            slurp_warnings(Ws),
+            %% Now the errors and warnings for each module.
+            foreach(fun ({error,Mes,Mws}) ->
+                            slurp_errors(Mes),
+                            slurp_warnings(Mws)
+                    end, Mews),
             error
     end.
 
-slurp_file(Name) ->
-    %% Parse, expand macros and lint file.
-    case lfe_io:parse_file(Name) of
-        {ok,Fs0} ->
-            case lfe_macro:expand_forms(Fs0, lfe_env:new()) of
-                {ok,Fs1,Fenv,_} ->
-                    case lfe_comp:group_modules(Fs1) of
-                        [{ok,_,Fs2,_}] ->       %Only single module
-                            case lfe_lint:module(Fs2) of
-                                {ok,_,Ws} -> {ok,Fs2,Fenv,Ws};
-                                {error,_,_}=Error -> Error
-                            end;
-                        _ -> {error,[{0,lfe_lint,{bad_mdef,multi}}],[]}
-                    end;
-                {error,_,_}=Error -> Error
-            end;
-        {error,E} -> {error,[E],[]}
-    end.
+slurp_errors(Errors) ->
+    foreach(fun ({File,Es}) -> slurp_errors(File, Es) end, Errors).
+
+slurp_warnings(Warnings) ->
+    foreach(fun ({File,Ws}) -> slurp_warnings(File, Ws) end, Warnings).
 
 slurp_errors(File, Es) -> slurp_ews(File, "~s:~w: ~s\n", Es).
 
@@ -492,6 +513,9 @@ collect_form(['define-module',Mod|Mdef], _, St0) ->
 collect_form(['extend-module'|Mdef], _, St0) ->
     St1 = collect_mdef(Mdef, St0),
     {[],St1};
+collect_form(['eval-when-compile'|_], _, St) ->
+    %% Can safely ignore this, everything already in environment.
+    {[],St};
 collect_form(['define-function',F,Def], _, St) ->
     Ar = function_arity(Def),
     {[{F,Ar,Def}],St}.

@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2015 Robert Virding
+%% Copyright (c) 2008-2016 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -28,11 +28,9 @@
 
 -export([file/1,file/2,forms/1,forms/2,default_options/0]).
 
--export([group_modules/1]).
-
 %% -compile(export_all).
 
--import(lists, [member/2,keyfind/3,filter/2,foreach/2,all/2,
+-import(lists, [member/2,keyfind/3,filter/2,foreach/2,all/2,any/2,
                 map/2,flatmap/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3]).
 -import(ordsets, [add_element/2,is_element/2,from_list/1,union/2]).
 -import(orddict, [store/3,find/2]).
@@ -162,10 +160,25 @@ compiler_info(#comp{lfile=F,opts=Os,ipath=Is}) ->
     #cinfo{file=F,opts=Os,ipath=Is}.
 
 %% lfe_comp_opts(Opts) -> Opts.
-%%  Check options for lfe compiler.
+%%  Translate from LFE to erlang standard options for lfe compiler.
 
 lfe_comp_opts(Opts) ->
-    filter(fun (_) -> true end, Opts).
+    Fun = fun ('to-split') -> to_split;
+              ('to-emac') -> to_emac;
+              ('to-exp') -> to_exp;
+              ('to-pmod') -> to_pmod;
+              ('to-lint') -> to_lint;
+              ('to-core0') -> to_core0;
+              ('to-core') -> to_core;
+              ('to-kernel') -> to_kernel;
+              ('to-asm') -> to_asm;
+              ('warnings-as-errors') -> warnings_as_errors;
+              ('report-warnings') -> report_warnings;
+              ('report-errors') -> report_errors;
+              ('debug-print') -> debug_print;
+              (O) -> O
+          end,
+    map(Fun, Opts).
 
 %% do_forms(State) ->
 %%      {ok,Mod,[Core],[Warnings]} | {error,Errors,Warnings} | error.
@@ -201,10 +214,16 @@ do_forms(St0) ->
 %%                          current code will be returned.
 
 passes() ->
-    [{do,fun do_macro_expand/1},
+    [
+     %% Split input file into separate modules.
+     {do,fun do_split_file/1},
+     {when_flag,to_split,{done,fun split_pp/1}},
+     %% Do per-module macro processing.
+     {do,fun do_export_macros/1},
+     {when_flag,to_emac,{done,fun expmac_pp/1}},
+     %% Now we expand and trim remaining macros.
+     {do,fun do_expand_macros/1},
      {when_flag,to_exp,{done,fun expand_pp/1}},
-     {do,fun do_group_modules/1},               %Now we group modules
-     {when_flag,to_group,{done,fun group_pp/1}},
      {do,fun do_lfe_pmod/1},
      {when_flag,to_pmod,{done,fun pmod_pp/1}},
      {do,fun do_lfe_lint/1},
@@ -217,10 +236,11 @@ passes() ->
      {when_flag,to_core,{done,fun erl_core_pp/1}},
      {when_flag,to_kernel,{done,fun erl_kernel_pp/1}},
      {when_flag,to_asm,{done,fun erl_asm_pp/1}},
-     {unless_test,fun werror/1,{done,fun beam_write/1}}]. %Should be last
+     {unless_test,fun werror/1,{done,fun beam_write/1}} %Should be last
+    ].
 
-do_passes([{when_flag,Flag,Cmd}|Ps], St) ->
-    case member(Flag, St#comp.opts) of
+do_passes([{when_flag,Flag,Cmd}|Ps], #comp{opts=Opts}=St) ->
+    case member(Flag, Opts)  of
         true -> do_passes([Cmd|Ps], St);
         false -> do_passes(Ps, St)
     end;
@@ -252,29 +272,147 @@ do_passes([{done,Fun}|_], St) ->
     do_passes([{unless_flag,binary,{listing,Fun}}], St);
 do_passes([], St) -> {ok,St}.                   %Got to the end, everything ok!
 
-%% do_macro_expand(State) -> {ok,State} | {error,State}.
-%% do_group_modules(State) -> {ok,State} | {error,State}.
-%% do_lfe_pmod(State) -> {ok,State} | {error,State}.
-%% do_lint(State) -> {ok,State} | {error,State}.
-%% do_lfe_codegen(State) -> {ok,State} | {error,State}.
-%% do_erl_comp(State) -> {ok,State} | {error,State}.
-%%  The actual compiler passes.
+%% do_split_file(State) -> {ok,State} | {error,State}.
+%%  Split a file into separate modules.  Everything defined before the
+%%  first module is available in every module, after that things are
+%%  local to the module in which they are defined. We need to expand
+%%  top-level macros in forms so we can safelt detect the start of
+%%  each module (with define-module form).
 
-do_macro_expand(#comp{cinfo=Ci,code=Code}=St) ->
-    case lfe_macro:expand_forms(Code, lfe_env:new(), Ci) of
-        {ok,Fs,Env,Ws} ->
-            debug_print("mac: ~p\n", [{Fs,Env}], St),
-            Mods = [{ok,[],Fs,[]}],             %Pseudo group
-            {ok,St#comp{code=Mods,warnings=St#comp.warnings ++ Ws}};
+do_split_file(#comp{cinfo=Ci,code=Code}=St) ->
+    case collect_forms(Code, Ci) of             %Expand pre module forms
+        {Pfs,Fs,Env0,Mst0} ->
+            %% Expand the modules using the pre forms and environment.
+            case collect_modules(Fs, Pfs, Env0, Mst0) of
+                {ok,Ms,_Mst1} ->
+                    {ok,St#comp{code=Ms,
+                                warnings=St#comp.warnings}};
+                {error,Es,Ws} ->
+                    {error,St#comp{code=[],     %Pseudo module list.
+                                   errors=St#comp.errors ++ Es,
+                                   warnings=St#comp.warnings ++ Ws}}
+            end;
         {error,Es,Ws} ->
             {error,St#comp{code=[],             %Pseudo module list.
                            errors=St#comp.errors ++ Es,
                            warnings=St#comp.warnings ++ Ws}}
     end.
 
-do_group_modules(#comp{code=[{ok,_,Fs,_}]}=St) ->
-    Ms = group_modules(Fs),
-    {ok,St#comp{code=Ms}}.
+%% collect_forms(Forms, State) ->
+%%     {PreForms,RestForms,Env,State}.
+
+collect_forms(Fs, Ci) ->
+    Env = lfe_env:new(),
+    St = lfe_macro:macro_form_init(Ci),
+    collect_mod_forms(Fs, Env, St).
+
+%% collect_modules(Forms, PreForms, PreEnv, State) ->
+%%     {Modules,State}.
+%%  Collect and expand modules upto the end. Each module initially has
+%%  the pre environment and all pre forms are appended to it.
+
+collect_modules(Fs, PreFs, PreEnv, St) ->
+    collect_modules(Fs, [], PreFs, PreEnv, St).
+
+collect_modules([{['define-module',Name|_],_}=Mdef|Fs0], Ms, PreFs, PreEnv, St0) ->
+    %% Expand and collect all forms upto next define-module or end.
+    case collect_mod_forms(Fs0, PreEnv, St0) of
+        {Mfs0,Fs1,_,St1} ->
+            M = {ok,Name,[Mdef] ++ PreFs ++ Mfs0,[]},
+            collect_modules(Fs1, [M|Ms], PreFs, PreEnv, St1);
+        Error -> Error
+    end;
+collect_modules([], Ms, _PreFs, _PreEnv, St) ->
+    {ok,lists:reverse(Ms),St}.
+
+%% collect_mod_forms(Forms, Env, State) ->
+%% collect_mod_forms(Forms, Acc, Env, State) ->
+%%     {Modforms,RestForms,Env,State}.
+%%  Expand and collect forms upto the next define-module or end. We
+%%  also flatten top-level nested progn code.
+
+collect_mod_forms(Fs, Env0, St0) ->
+    case collect_mod_forms(Fs, [], Env0, St0) of
+        {Acc,Rest,Env1,St1} ->
+            {lists:reverse(Acc),Rest,Env1,St1};
+        {error,_,_}=Error -> Error
+    end.
+
+collect_mod_forms([F0|Fs0], Acc, Env0, St0) ->
+    case lfe_macro:macro_fileform(F0, Env0, St0) of
+        {ok,{['define-module'|_],_}=F1,Env1,St1} ->
+            {Acc,[F1|Fs0],Env1,St1};
+        {ok,{['progn'|Pfs],L},Env1,St1} ->      %Flatten progn's
+            Fs1 = [ {F,L} || F <- Pfs ] ++ Fs0,
+            collect_mod_forms(Fs1, Acc, Env1, St1);
+        {ok,F1,Env1,St1} ->
+            collect_mod_forms(Fs0, [F1|Acc], Env1, St1);
+        {error,Es,Ws,_} -> {error,Es,Ws}
+    end;
+collect_mod_forms([], Acc, Env, St) -> {Acc,[],Env,St}.
+
+%% do_export_macros(State) -> {ok,State} | {error,State}.
+%% do_expand_macros(State) -> {ok,State} | {error,State}.
+%%  Process the macros in each module. Do_expand_macros is the last
+%%  pass which fully expands all remaining macros and flattens the
+%%  output.
+
+do_export_macros(#comp{cinfo=Ci,code=Ms0}=St) ->
+    Umac = fun ({ok,Name,Mfs0,Ws}) ->
+                   {Mfs1,_} = lfe_macro_export:module(Mfs0, Ci),
+                   {ok,Name,Mfs1,Ws}
+           end,
+    Ms1 = lists:map(Umac, Ms0),
+    {ok,St#comp{code=Ms1}}.
+
+do_expand_macros(#comp{cinfo=Ci,code=Ms0}=St0) ->
+    Emac = fun ({ok,Name,Fs0,Ws}) ->
+                   Env = lfe_env:new(),
+                   Mst = lfe_macro:expand_form_init(Ci),
+                   case process_forms(fun expand_form/3, Fs0, {Env,Mst}) of
+                       {Fs1,_} -> {ok,Name,Fs1,Ws};
+                       {error,_,_}=Error -> Error
+                   end
+           end,
+    Ms1 = lists:map(Emac, Ms0),
+    St1 = St0#comp{code=Ms1},
+    case all_ok(Ms1) of
+        true -> {ok,St1};
+        false -> {error,St1}
+    end.
+
+expand_form(F0, L, {Env0,St0}) ->
+    case lfe_macro:expand_form(F0, L, Env0, St0) of
+        {ok,[progn|Pfs],Env1,St1} ->
+            process_forms(fun expand_form/3, Pfs, L, {Env1,St1});
+        {ok,['eval-when-compile'|_],Env1,St1} ->
+            {[],{Env1,St1}};
+        {ok,F1,Env1,St1} ->
+            {[{F1,L}],{Env1,St1}};
+        {error,Es,Ws,_} -> throw({expand_form,{error,Es,Ws}})
+    end.
+
+%% process_forms(Fun, Forms, State) -> {Forms,State} | Error.
+%% process_forms(Fun, Forms, Line, State) -> {Forms,State} | Error.
+%%  Wrappers around lfe_lib:proc_forms which catch thrown errors.
+
+process_forms(Fun, Fs, St) ->
+    try lfe_lib:proc_forms(Fun, Fs, St)
+    catch
+        throw:{expand_form,Error} -> Error
+    end.
+
+process_forms(Fun, Fs, L, St) ->
+    try lfe_lib:proc_forms(Fun, Fs, L, St)
+    catch
+        throw:{expand_form,Error} -> Error
+    end.
+
+%% do_lfe_pmod(State) -> {ok,State} | {error,State}.
+%% do_lint(State) -> {ok,State} | {error,State}.
+%% do_lfe_codegen(State) -> {ok,State} | {error,State}.
+%% do_erl_comp(State) -> {ok,State} | {error,State}.
+%%  The actual compiler passes.
 
 do_lfe_pmod(#comp{cinfo=Ci,code=Ms0}=St) ->
     Pmod = fun ({ok,_,Mfs0,Ws}) ->
@@ -359,8 +497,9 @@ erl_comp_opts(St) ->
      binary,                                    %We want a binary
      no_bopt|Os1].
 
+%% split_pp(State) -> {ok,State} | {error,State}.
+%% expmac_pp(State) -> {ok,State} | {error,State}.
 %% expand_pp(State) -> {ok,State} | {error,State}.
-%% group_pp(State) -> {ok,State} | {error,State}.
 %% pmod_pp(State) -> {ok,State} | {error,State}.
 %% lint_pp(State) -> {ok,State} | {error,State}.
 %% sexpr_pp(State) -> {ok,State} | {error,State}.
@@ -374,8 +513,9 @@ erl_comp_opts(St) ->
 %%  module name.
 
 %% This just print the whole file structure.
+split_pp(St) -> sexpr_pp(St, "split").
+expmac_pp(St) -> sexpr_pp(St, "expmac").
 expand_pp(St) -> sexpr_pp(St, "expand").
-group_pp(St) -> sexpr_pp(St, "group").
 pmod_pp(St) -> sexpr_pp(St, "pmod").
 lint_pp(St) -> sexpr_pp(St, "lint").
 
@@ -547,20 +687,3 @@ when_opt(Opt, Opts, Fun) ->
 %%         true -> ok;
 %%         false ->  Fun()
 %%     end.
-
-%% group_modules(Forms) -> Modules.
-%%  Flatten all the forms and then group then as separate modules.
-%%  This is done after all "external" transformation of the code.
-
-group_modules(Fs) ->
-    {Ms,Last} = lfe_lib:proc_forms(fun collect_form/3, Fs, []),
-    Ms ++ return_module(Last).
-
-%% collect_form(Form, Line, State) -> {Forms,State}.
-
-collect_form(['define-module'|_]=Mdef, L, Mfs) ->
-    {return_module(Mfs),[{Mdef,L}]};
-collect_form(F, L, Mfs) -> {[],[{F,L}|Mfs]}.
-
-return_module([]) -> [];
-return_module(Fs) -> [{ok,[],lists:reverse(Fs),[]}].
