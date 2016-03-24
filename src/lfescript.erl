@@ -23,6 +23,7 @@
 
 %% Internal API.
 -export([start/0,start/1]).
+-export([run/1,run/2]).
 
 script_name() ->
     [Sname|_] = init:get_plain_arguments(),
@@ -35,21 +36,23 @@ script_name() ->
 
 %% start() -> no_return().
 %% start(Options) -> no_return().
+%% run(CmdLine) -> no_return().
+%% run(CmdLine, Options) -> no_return().
 %%  Evaluate the LFE script. All errors which are caught here are
-%%  internal errors.
+%%  internal errors. Start gets its arguments from the command line
+%%  while run gets them as an argument.
 
 start() -> start([]).
 
 start(Lopts) ->
+    run(init:get_plain_arguments(), Lopts).
+
+run(CmdLine) -> run(CmdLine, []).
+
+run([File|Args], Lopts) ->
     try
         process_flag(trap_exit, false),
-        case init:get_plain_arguments() of
-            [File|Args] ->
-                parse_check_run(File, Args, Lopts);
-            [] ->
-                lfe_io:format("lfescript: Missing filename\n", []),
-                halt(?ERROR_STATUS)
-        end
+        parse_check_run(File, Args, Lopts)
     catch
         %% Catch program errors.
         throw:Str ->
@@ -60,7 +63,10 @@ start(Lopts) ->
             lfe_io:format("lfescript: Internal error: ~p\n", [Reason]),
             lfe_io:format("~p\n", [Stack]),
             halt(?ERROR_STATUS)
-    end.
+    end;
+run([], _) ->
+    lfe_io:format("lfescript: Missing filename\n", []),
+    halt(?ERROR_STATUS).
 
 %% parse_check_run(FileName, Args, Options) -> no_return().
 %%  Parse the script file, check the code, build a function
