@@ -16,7 +16,7 @@ ERLC = erlc
 
 LFECFLAGS = -pa ../lfe
 LFEC = $(BINDIR)/lfe $(BINDIR)/lfec
-APP_SRC = lfe.app
+APP_DEF = lfe.app
 
 LIB=lfe
 
@@ -79,10 +79,10 @@ erlc-compile: $(addprefix $(EBINDIR)/, $(EBINS)) $(addprefix $(BINDIR)/, $(BINS)
 ## Compile using lfec
 lfec-compile: $(addprefix $(EBINDIR)/, $(LBINS))
 
-$(APP_SRC):
-	cp src/$(APP_SRC).src $(EBINDIR)/$(APP_SRC)
+$(EBINDIR)/$(APP_DEF): $(SRCDIR)/$(APP_DEF).src
+	cp $(SRCDIR)/$(APP_DEF).src $(EBINDIR)/$(APP_DEF)
 
-erlc-lfec: erlc-compile lfec-compile $(APP_SRC)
+erlc-lfec: erlc-compile lfec-compile $(EBINDIR)/$(APP_DEF)
 
 emacs:
 	cd $(EMACSDIR) ; \
