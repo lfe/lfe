@@ -28,8 +28,9 @@
 
 %% These work on list of forms in "file format".
 -export([expand_forms/2,expand_forms/3,macro_forms/2,macro_forms/3]).
--export([macro_form_init/1,macro_form/4,macro_fileform/3]).
--export([expand_form_init/1,expand_form/4,expand_fileform/3]).
+-export([macro_form_init/0,macro_form_init/1,macro_form/4,macro_fileform/3]).
+-export([expand_form_init/0,expand_form_init/1,
+         expand_form/4,expand_fileform/3]).
 
 -export([format_error/1]).
 
@@ -150,11 +151,15 @@ default_state(Expand, Keep) ->
 default_state(#cinfo{file=File,opts=Os,ipath=Is}, Expand, Keep) ->
     #mac{expand=Expand,keep=Keep,line=1,file=File,opts=Os,ipath=Is}.
 
+%% expand_form_init() -> State.
 %% expand_form_init(CompInfo) -> State.
 %% expand_form(Form, Line, Env, State) -> {Form,Env,State}.
 %% expand_fileform(Form, Env, State) -> {Form,Env,State}.
 %%  Collect macro definitions in a (file)form, completely expand all
 %%  macros and only keep all functions.
+
+expand_form_init() ->
+    default_state(true, false).
 
 expand_form_init(Ci) ->
     default_state(Ci, true, false).
@@ -167,11 +172,15 @@ expand_fileform({F0,L}, E0, St0) ->
     {F1,E1,St1} = pass_form(F0, E0, St0#mac{line=L}),
     return_status({F1,L}, E1, St1).
 
+%% macro_form_init() -> State.
 %% macro_form_init(CompInfo) -> State.
 %% macro_form(Form, Line, Env, State) -> {Form,Env,State}.
 %% macro_fileform(Form, Env, State) -> {FileForm,Env,State}.
 %%  Collect macro definitions in a (file)form, expand top-level macros
 %%  and keep all forms.
+
+macro_form_init() ->
+    default_state(false, true).
 
 macro_form_init(Ci) ->
     default_state(Ci, false, true).

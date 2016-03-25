@@ -1,11 +1,32 @@
-{application,lfe,
-             [{description,"Lisp Flavored Erlang (LFE)"},
-              {vsn,"0.10.1"},
-              {modules,[cl,lfe_bits,lfe_codegen,lfe_comp,lfe_edlin_expand,
-                        lfe_env,lfe_eval,lfe_gen,lfe_init,lfe_io,
-                        lfe_io_format,lfe_io_pretty,lfe_io_write,lfe_lib,
-                        lfe_lint,lfe_macro,lfe_macro_include,lfe_macro_record,
-                        lfe_ms,lfe_parse,lfe_pmod,lfe_qlc,lfe_scan,lfe_shell,
-                        lfe_trans,lfescript,sune]},
-              {registered,[]},
-              {applications,[kernel,stdlib,compiler]}]}.
+%% -*- erlang -*-
+%% Copyright (c) 2013-2016 Robert Virding
+%%
+%% Licensed under the Apache License, Version 2.0 (the "License");
+%% you may not use this file except in compliance with the License.
+%% You may obtain a copy of the License at
+%%
+%%     http://www.apache.org/licenses/LICENSE-2.0
+%%
+%% Unless required by applicable law or agreed to in writing, software
+%% distributed under the License is distributed on an "AS IS" BASIS,
+%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%% See the License for the specific language governing permissions and
+%% limitations under the License.
+
+{application, lfe,
+ [{description, "Lisp Flavored Erlang (LFE)"},
+  {vsn, "1.0.1"},
+  {modules,[cl,lfe,lfe_bits,lfe_codegen,lfe_comp,lfe_edlin_expand,
+            lfe_env,lfe_eval,lfe_gen,lfe_init,lfe_io,
+            lfe_io_format,lfe_io_pretty,lfe_io_write,lfe_lib,
+            lfe_lint,lfe_macro,lfe_macro_export,lfe_macro_include,
+            lfe_macro_record,lfe_ms,lfe_parse,lfe_pmod,lfe_qlc,
+            lfe_scan,lfe_shell,lfe_trans,lfescript]},
+  {registered, []},
+  {applications, [kernel,stdlib,compiler]},
+  {maintainers, ["Robert Virding"]},
+  {licenses, ["Apache"]},
+  {links, [{"Github", "https://github.com/rvirding/lfe"},
+           {"Main site", "http://lfe.io/"},
+           {"Documentation", "http://docs.lfe.io/"}]}
+ ]}.

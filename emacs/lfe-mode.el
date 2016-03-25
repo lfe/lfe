@@ -83,7 +83,7 @@ Other commands:
   (set-syntax-table lfe-mode-syntax-table)
   (setq local-abbrev-table lfe-mode-abbrev-table)
   (make-local-variable 'paragraph-start)
-  (setq paragraph-start (concat page-delimiter "\\|$" ))
+  (setq paragraph-start (concat page-delimiter "\\|$"))
   (make-local-variable 'paragraph-separate)
   (setq paragraph-separate paragraph-start)
   (make-local-variable 'paragraph-ignore-fill-prefix)
@@ -149,9 +149,8 @@ Other commands:
       "[ \t]*(?"
       "\\(\\sw+\\)?")
      '(1 font-lock-keyword-face)
-     '(3 font-lock-type-face nil t))
-    )
-  "LFE basic type definition expressions")
+     '(3 font-lock-type-face nil t)))
+  "LFE basic type definition expressions.")
 
 (defconst lfe-font-lock-basic-function-keywords
   (eval-when-compile
@@ -162,9 +161,8 @@ Other commands:
       "[ \t]*(?"
       "\\(\\sw+\\)?")
      '(1 font-lock-keyword-face)
-     '(3 font-lock-function-name-face nil t))
-    )
-  "LFE basic function definition expressions")
+     '(3 font-lock-function-name-face nil t)))
+  "LFE basic function definition expressions.")
 
 (defconst lfe-font-lock-new-type-keywords
   (eval-when-compile
@@ -175,9 +173,8 @@ Other commands:
       "[ \t]*(?"
       "\\(\\sw+\\)?")
      '(1 font-lock-keyword-face)
-     '(3 font-lock-type-face nil t))
-    )
-  "LFE new style type expressions")
+     '(3 font-lock-type-face nil t)))
+  "LFE new style type expressions.")
 
 (defconst lfe-font-lock-new-function-keywords
   (eval-when-compile
@@ -189,9 +186,8 @@ Other commands:
       "[ \t]*(?"
       "\\(\\sw+\\)?")
      '(1 font-lock-keyword-face)
-     '(3 font-lock-function-name-face nil t))
-    )
-  "LFE new style function expressions")
+     '(3 font-lock-function-name-face nil t)))
+  "LFE new style function expressions.")
 
 (defconst lfe-font-lock-flavor-keywords
   (eval-when-compile
@@ -202,18 +198,16 @@ Other commands:
       "[ \t]*(?"
       "\\(\\sw+\\)?")
      '(1 font-lock-keyword-face)
-     '(2 font-lock-type-face nil t))
-    )
-  "LFE flavor expressions")
+     '(2 font-lock-type-face nil t)))
+  "LFE flavor expressions.")
 
 (defconst lfe-font-lock-keywords-1
   (eval-when-compile
     (list lfe-font-lock-new-type-keywords
-	  lfe-font-lock-new-function-keywords
-	  lfe-font-lock-basic-type-keywords
-	  lfe-font-lock-basic-function-keywords
-	  lfe-font-lock-flavor-keywords
-	  ))
+          lfe-font-lock-new-function-keywords
+          lfe-font-lock-basic-type-keywords
+          lfe-font-lock-basic-function-keywords
+          lfe-font-lock-flavor-keywords))
   "Subdued expressions to highlight in LFE modes.")
 
 (eval-and-compile
@@ -228,7 +222,7 @@ Other commands:
       "round" "tl" "trunc" "tuple_size"
       "car" "cdr" "caar" "cadr" "cdar" "cddr"
       ;; Just for the fun of it.
-      "caaar" "caadr" "cadar" "caddr" "cdaar" "cddar" "cdadr" "cdddr" 
+      "caaar" "caadr" "cadar" "caddr" "cdaar" "cddar" "cdadr" "cdddr"
       "list" "list*" "tuple" "binary"
       "map" "mref" "mset" "mupd" "map-get" "map-set" "map-update")
     "LFE builtin functions (BIFs) and some type macros")
@@ -261,8 +255,7 @@ Other commands:
       (cons
        (concat
         "(" (regexp-opt (append lfe-type-tests lfe-type-bifs) t) "\\>")
-       '(1 font-lock-builtin-face))
-      )))
+       '(1 font-lock-builtin-face)))))
   "Gaudy expressions to highlight in LFE modes.")
 
 (defvar lfe-font-lock-keywords lfe-font-lock-keywords-1
