@@ -1,0 +1,1988 @@
+.TH "" "" "" "" ""
+.PP
+% lfe_user_guide(7)
+.PD 0
+.P
+.PD
+% Robert Virding
+.PD 0
+.P
+.PD
+% 2008\-2016
+.SH NAME
+.PP
+lfe_user_guide \- Lisp Flavoured Erlang User Guide
+.SH SYNPOSIS
+.PP
+Note: {{ ...
+}} is use to denote optional syntax.
+.SH LITERALS AND SPECIAL SYNTACTIC RULES
+.SS Integers
+.PP
+Integers can be written in various forms and number bases:
+.IP \[bu] 2
+Regular decimal notation:
+.IP
+.nf
+\f[C]
+\ \ 1234\ \-123\ 0
+\f[]
+.fi
+.IP \[bu] 2
+Binary notation:
+.IP
+.nf
+\f[C]
+\ \ #b0\ #b10101\ #b\-1100
+\f[]
+.fi
+.IP \[bu] 2
+Binary notation (alternative form):
+.IP
+.nf
+\f[C]
+\ \ #*0\ #b*10101\ #*\-1100
+\f[]
+.fi
+.IP \[bu] 2
+Octal notation:
+.IP
+.nf
+\f[C]
+\ \ #o377\ #o\-111
+\f[]
+.fi
+.IP \[bu] 2
+Explicitly decimal notation:
+.IP
+.nf
+\f[C]
+\ \ #d1234\ #d\-123\ #d0
+\f[]
+.fi
+.IP \[bu] 2
+Hexadecimal notation:
+.IP
+.nf
+\f[C]
+\ \ #xc0ffe\ 0x\-01
+\f[]
+.fi
+.IP \[bu] 2
+Notation with explicit base (up to 36):
+.IP
+.nf
+\f[C]
+\ \ #2r1010\ #8r377\ #36rhelloworld
+\f[]
+.fi
+.IP \[bu] 2
+Character notation (the value is the Unicode code point of the
+character):
+.IP
+.nf
+\f[C]
+\ \ #\\a\ #\\$\ #\\ä\ #\\🐭
+\f[]
+.fi
+.IP \[bu] 2
+Character notation with the value in hexadecimal:
+.IP
+.nf
+\f[C]
+\ \ #\\x1f42d;
+\f[]
+.fi
+.PP
+In all these forms, the case of the indicating letter is not
+.PD 0
+.P
+.PD
+significant, i.e.
+\f[C]#b1010\f[] and \f[C]#B1010\f[] are identical as are
+\f[C]#16rf00\f[] and
+.PD 0
+.P
+.PD
+\f[C]#16Rf00\f[].
+.PP
+Similarly, the case is not significant for digits beyond 9 (i.e.
+\[aq]a\[aq],
+.PD 0
+.P
+.PD
+\[aq]b\[aq], \[aq]c\[aq], \&... for number bases larger than 10), e.g.
+\f[C]#xabcd\f[] is the same as
+.PD 0
+.P
+.PD
+\f[C]#xABCD\f[] and can even be mixed in the same number, e.g.
+\f[C]#36rHelloWorld\f[] is
+.PD 0
+.P
+.PD
+valid and the same number as \f[C]#36Rhelloworld\f[] and
+\f[C]#36rHELLOWORLD\f[].
+.PP
+The character notation using hexadecimal code representation
+(\f[C]#\\x....;\f[])
+.PD 0
+.P
+.PD
+is basically the same thing as the regular hexadecimal notation
+.PD 0
+.P
+.PD
+\f[C]#x...\f[] except that it conveys to the reader that a character is
+intended
+.PD 0
+.P
+.PD
+and that it does a sanity check on the value (e.g.
+negative numbers and
+.PD 0
+.P
+.PD
+value outside the Unicode range are not permitted).
+.SS Floating point numbers
+.PP
+There is only one type of floating point numbers and the literals are
+.PD 0
+.P
+.PD
+written in the usual way, e.g.
+these are all valid floating point
+.PD 0
+.P
+.PD
+numbers:
+.IP
+.nf
+\f[C]
+1.0\ +1.0\ \-1.0\ 1.0e10\ 1.111e\-10
+\f[]
+.fi
+.PP
+The one thing to watch out for is that you cannot omit the the part
+.PD 0
+.P
+.PD
+before or after the decimal point if it is zero.
+E.g.
+the following are
+.PD 0
+.P
+.PD
+not valid forms: \f[C]100.\f[] or \f[C]\&.125\f[].
+.SS Strings
+.PP
+There are two forms of strings: list strings and binary strings.
+.SS List Strings
+.PP
+List strings are just lists of integers (where the values have to be
+.PD 0
+.P
+.PD
+from a certain set of numbers that are considered valid characters) but
+.PD 0
+.P
+.PD
+they have their own syntax for literals (which will also be used for
+.PD 0
+.P
+.PD
+integer lists as an output representation if the list contents looks
+.PD 0
+.P
+.PD
+like it is meant to be a string): "any text between double quotes where
+.PD 0
+.P
+.PD
+" and other special characters like \f[C]\\n\f[] can be escaped".
+.PP
+As a special case you can also write out the character number in the
+.PD 0
+.P
+.PD
+form \f[C]\\xHHH;\f[] (where "HHH" is an integer in hexadecimal
+notation),
+.PD 0
+.P
+.PD
+e.g.
+"\\x61;\\x62;\\x63;" is a complicated way of writing "abc".
+This can
+.PD 0
+.P
+.PD
+be convenient when writing Unicode letters not easily typeable or
+.PD 0
+.P
+.PD
+viewable with regular fonts.
+E.g.
+"Cat: \\x1f639;" might be easier to
+.PD 0
+.P
+.PD
+type (and view on output devices without a Unicode font) than "Cat: 😹".
+.SS Binary Strings
+.PP
+Binary strings are just like list strings but they are represented
+.PD 0
+.P
+.PD
+differently in the virtual machine.
+The simple syntax is \f[C]#"..."\f[],
+.PD 0
+.P
+.PD
+e.g.
+.PD 0
+.P
+.PD
+\f[C]#"This\ is\ a\ binary\ string\ \\n\ with\ some\ \\"escaped\\"\ and\ quoted\ (\\x1f639;)\ characters"\f[]
+.PP
+You can also use the general format for creating binaries
+(\f[C]#B(...)\f[],
+.PD 0
+.P
+.PD
+described below), e.g.
+\f[C]#B("a")\f[], \f[C]#"a"\f[], and \f[C]#B(97)\f[] are all the same
+binary
+.PD 0
+.P
+.PD
+string.
+.SS Character Escaping
+.PP
+Certain control characters can be more readably included by using their
+.PD 0
+.P
+.PD
+escaped name:
+.IP
+.nf
+\f[C]
+\ \ |\ Escaped\ name\ |\ Character\ \ \ \ \ \ \ |
+\ \ |\-\-\-\-\-\-\-\-\-\-\-\-\-\-+\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-|
+\ \ |\ \\b\ \ \ \ \ \ \ \ \ \ \ |\ Backspace\ \ \ \ \ \ \ |
+\ \ |\ \\t\ \ \ \ \ \ \ \ \ \ \ |\ Tab\ \ \ \ \ \ \ \ \ \ \ \ \ |
+\ \ |\ \\n\ \ \ \ \ \ \ \ \ \ \ |\ Newline\ \ \ \ \ \ \ \ \ |
+\ \ |\ \\v\ \ \ \ \ \ \ \ \ \ \ |\ Vertical\ tab\ \ \ \ |
+\ \ |\ \\f\ \ \ \ \ \ \ \ \ \ \ |\ Form\ Feed\ \ \ \ \ \ \ |
+\ \ |\ \\r\ \ \ \ \ \ \ \ \ \ \ |\ Carriage\ Return\ |
+\ \ |\ \\e\ \ \ \ \ \ \ \ \ \ \ |\ Escape\ \ \ \ \ \ \ \ \ \ |
+\ \ |\ \\s\ \ \ \ \ \ \ \ \ \ \ |\ Space\ \ \ \ \ \ \ \ \ \ \ |
+\ \ |\ \\d\ \ \ \ \ \ \ \ \ \ \ |\ Delete\ \ \ \ \ \ \ \ \ \ |
+\f[]
+.fi
+.PP
+Alternatively you can also use the hexadecimal character encoding,
+.PD 0
+.P
+.PD
+e.g.
+"a\\nb" and "a\\x0a;b" are the same string.
+.SS Binaries
+.PP
+We have already seen binary strings, but the \f[C]#B(...)\f[] syntax can
+be used
+.PD 0
+.P
+.PD
+to create binaries with any contents.
+Unless the contents is a simple
+.PD 0
+.P
+.PD
+integer you need to annotate it with a type and/or size.
+.PP
+Example invocations are that show the various annotations:
+.IP
+.nf
+\f[C]
+>\ #B(42\ (42\ (size\ 16))\ (42\ (size\ 32)))
+#B(42\ 0\ 42\ 0\ 0\ 0\ 42)
+>\ #B(\-42\ 111\ (\-42\ (size\ 16))\ 111\ (\-42\ (size\ 32)))
+#B(\-42\ 111\ (\-42\ (size\ 16))\ 111\ (\-42\ (size\ 32)))
+>\ #B((42\ (size\ 32)\ big\-endian)\ (42\ (size\ 32)\ little\-endian))
+#B(0\ 0\ 0\ 42\ 42\ 0\ 0\ 0)
+>\ #B((1.23\ float)\ (1.23\ (size\ 32)\ float)\ (1.23\ (size\ 64)\ float))
+#B(63\ 243\ 174\ 20\ 122\ 225\ 71\ 174\ 63\ 157\ 112\ 164\ 63\ 243\ 174\ 20\ 122\ 225\ 71\ 174)
+>\ #B((#"a"\ binary)\ (#"b"\ binary))\ ⇨\ #"ab"
+#B("Cat:"\ #\\\ (128569\ utf\-8))\ ⇨\ #"Cat:\ 😹"
+\f[]
+.fi
+.PP
+Learn more about "segments" of binary data e.g.
+in
+.PD 0
+.P
+.PD
+"Learn You Some
+Erlang (http://learnyousomeerlang.com/starting-out-for-real#bit-syntax)"
+.PD 0
+.P
+.PD
+<http://learnyousomeerlang.com/starting-out-for-real#bit-syntax> (http://learnyousomeerlang.com/starting-out-for-real#bit-syntax).
+.SS Lists
+.PP
+Lists are formed either as \f[C](\ ...\ )\f[] or \f[C][\ ...\ ]\f[]
+where the optional
+.PD 0
+.P
+.PD
+elements of the list are separated by some form or whitespace.
+For example:
+.IP
+.nf
+\f[C]
+()
+(the\ empty\ list)
+(foo\ bar\ baz)
+(foo
+\ bar
+\ baz)
+\f[]
+.fi
+.SS Tuples
+.PP
+Tuples are written as \f[C]#(value1\ value2\ ...)\f[].
+The empty tuple \f[C]#()\f[] is also
+.PD 0
+.P
+.PD
+valid.
+.SS Maps
+.PP
+Maps are written as \f[C]#M(key1\ value1\ key2\ value2\ ...)\f[] The
+empty
+.PD 0
+.P
+.PD
+map is also valid and written as \f[C]#M()\f[].
+.SS Symbols
+.PP
+Things that cannot be parsed as any of the above are usually considered
+.PD 0
+.P
+.PD
+as a symbol.
+.PP
+Simple examples are \f[C]foo\f[], \f[C]Foo\f[], \f[C]foo\-bar\f[],
+\f[C]:foo\f[].
+But also
+.PD 0
+.P
+.PD
+somewhat surprisingly \f[C]123foo\f[] and \f[C]1.23e4extra\f[] (but note
+that illegal
+.PD 0
+.P
+.PD
+digits don\[aq]t make a number a symbol when using the explicit number
+base
+.PD 0
+.P
+.PD
+notation, e.g.
+\f[C]#b10foo\f[] gives an error).
+.PP
+Symbol names can contain a surprising breadth or characters:
+.IP
+.nf
+\f[C]
+!,\ #,\ $,\ %,\ &,\ \[aq],\ *,\ +,\ ,,\ \-,\ .,\ /,\ 0,\ 1,\ 2,\ 3,\ 4,\ 5,\ 6,\ 7,\ 8,\ 9,\ :,\ <,
+=,\ >,\ ?,\ \@,\ A,\ B,\ C,\ D,\ E,\ F,\ G,\ H,\ I,\ J,\ K,\ L,\ M,\ N,\ O,\ P,\ Q,\ R,\ S,\ T,
+U,\ V,\ W,\ X,\ Y,\ Z,\ \\,\ ^,\ _,\ ,\ a,\ b,\ c,\ d,\ e,\ f,\ g,\ h,\ i,\ j,\ k,\ l,\ m,\ n,
+o,\ p,\ q,\ r,\ s,\ t,\ u,\ v,\ w,\ x,\ y,\ z,\ |,\ ~,\ \\\ \ ,\ ¡,\ ¢,\ £,\ ¤,\ ¥,\ ¦,\ §,\ ¨,
+©,\ ª,\ «,\ ¬,\ \\­,\ ®,\ ¯,\ °,\ ±,\ ²,\ ³,\ ´,\ µ,\ ¶,\ ·,\ ¸,\ ¹,\ º,\ »,\ ¼,\ ½,\ ¾,\ ¿,\ À,
+Á,\ Â,\ Ã,\ Ä,\ Å,\ Æ,\ Ç,\ È,\ É,\ Ê,\ Ë,\ Ì,\ Í,\ Î,\ Ï,\ Ð,\ Ñ,\ Ò,\ Ó,\ Ô,\ Õ,\ Ö,\ ×,\ Ø,
+Ù,\ Ú,\ Û,\ Ü,\ Ý,\ Þ,\ ß,\ à,\ á,\ â,\ ã,\ ä,\ å,\ æ,\ ç,\ è,\ é,\ ê,\ ë,\ ì,\ í,\ î,\ ï,\ ð,
+ñ,\ ò,\ ó,\ ô,\ õ,\ ö,\ ÷,\ ø,\ ù,\ ú,\ û,\ ü,\ ý,\ þ,\ ÿ
+\f[]
+.fi
+.PP
+(This is basically all of the latin\-1 character set without control
+.PD 0
+.P
+.PD
+character, whitespace, the various brackets, double quotes and
+.PD 0
+.P
+.PD
+semicolon).
+.PP
+Of these, only \f[C]|\f[], \f[C]\\\[aq]\f[], \f[C]\[aq]\f[], \f[C],\f[],
+and \f[C]#\f[] may not be the
+.PD 0
+.P
+.PD
+first character of the symbol\[aq]s name (but they \f[I]are\f[] allowed
+as
+.PD 0
+.P
+.PD
+subsequent letters).
+.PP
+I.e.
+these are all legal symbols: \f[C]foo\f[], \f[C]foo\f[], \f[C]µ#\f[],
+\f[C]±1\f[],
+.PD 0
+.P
+.PD
+\f[C]451°F\f[].
+.PP
+Symbols can be explicitly constructed by wrapping their name in vertical
+.PD 0
+.P
+.PD
+bars, e.g.
+\f[C]|foo|\f[], \f[C]|symbol\ name\ with\ spaces|\f[].
+In this case the name can
+.PD 0
+.P
+.PD
+contain any character of in the range from 0 to 255 (or even none,
+.PD 0
+.P
+.PD
+i.e.
+\f[C]||\f[] is a valid symbol).
+The vertical bar in the symbol name needs
+.PD 0
+.P
+.PD
+to be escaped:
+\f[C]|symbol\ with\ a\ vertical\ bar\ \\|\ in\ its\ name|\f[] (similarly
+.PD 0
+.P
+.PD
+you will obviously have to escape the escape character as well).
+.SS Comments
+.PP
+Comments come in two forms: line comments and block comments.
+.PP
+Line comments start with a semicolon (\f[C];\f[]) and finish with the
+end of the
+.PD 0
+.P
+.PD
+line.
+.PP
+Block comments are written as \f[C]#|\ comment\ text\ |#\f[] where the
+comment text
+.PD 0
+.P
+.PD
+may span multiple lines but my not contain another block comment,
+.PD 0
+.P
+.PD
+i.e.
+it may not contain the character sequence \f[C]#|\f[].
+.SS Evaluation While Reading
+.PP
+\f[C]#.(...\ some\ expression\ ...)\f[].
+E.g.
+\f[C]#.(+\ 1\ 1)\f[] will evaluate the \f[C](+\ 1\ 1)\f[]
+.PD 0
+.P
+.PD
+while it reads the expression and then be effectively \f[C]2\f[].
+.SH Supported Core forms
+.IP
+.nf
+\f[C]
+(quote\ e)
+(cons\ head\ tail)
+(car\ e)
+(cdr\ e)
+(list\ e\ ...\ )
+(tuple\ e\ ...\ )
+(binary\ seg\ ...\ )
+(map\ key\ val\ ...)\ (map\-get\ m\ k)\ (map\-set\ m\ k\ v\ ...)\ (map\-update\ m\ k\ v\ ...)
+(lambda\ (arg\ ...)\ ...)
+(match\-lambda
+\ \ ((arg\ ...\ )\ {{(when\ e\ ...)}}\ ...)\ \ \ \ \ \ \ \ \ \ \ \ \ \-\ Matches\ clauses
+\ \ ...\ )
+(let\ ((pat\ {{(when\ e\ ...)}}\ e)
+\ \ \ \ \ \ ...)
+\ \ ...\ )
+(let\-function\ ((name\ lambda|match\-lambda)\ \ \ \ \ \ \ \-\ Only\ define\ local\ functions
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ...\ )
+\ \ ...\ )
+(letrec\-function\ ((name\ lambda|match\-lambda)\ \ \ \ \-\ Only\ define\ local\ functions
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ...\ )
+\ \ ...\ )
+(let\-macro\ ((name\ lambda\-match\-lambda)\ \ \ \ \ \ \ \ \ \ \-\ Only\ define\ local\ macros
+\ \ \ \ \ \ \ \ \ \ \ \ ...)
+\ \ ...)
+(progn\ ...\ )
+(if\ test\ true\-expr\ {{false\-expr}})
+(case\ e
+\ \ (pat\ {{(when\ e\ ...)}}\ ...)
+\ \ \ ...\ ))
+(receive
+\ \ (pat\ {{(when\ e\ ...)}}\ ...\ )
+\ \ ...
+\ \ (after\ timeout\ ...\ ))
+(catch\ ...\ )
+(try
+\ \ e
+\ \ {{(case\ ((pat\ {{(when\ e\ ...)}}\ ...\ )
+\ \ \ \ \ \ \ \ \ \ ...\ ))}}
+\ \ {{(catch
+\ \ \ \ \ (((tuple\ type\ value\ ignore)\ {{(when\ e\ ...)}}
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\ Must\ be\ tuple\ of\ length\ 3\ here!
+\ \ \ \ \ \ ...\ )
+\ \ \ \ \ ...\ )}}
+\ \ {{(after\ ...\ )}})
+(funcall\ func\ arg\ ...\ )
+(call\ mod\ func\ arg\ ...\ )\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\ Call\ to\ Mod:Func(Arg,\ ...\ )
+
+(define\-module\ name\ declaration\ ...\ )
+(extend\-module\ declaration\ ...\ )
+\ \ \ \ \ \ \ \ Define/extend\ module\ and\ declarations.
+
+(define\-function\ name\ lambda|match\-lambda)
+(define\-macro\ name\ lambda|match\-lambda)
+\ \ \ \ \ \ \ \ Define\ functions/macros\ at\ top\-level.
+\f[]
+.fi
+.SH Supported macro forms
+.IP
+.nf
+\f[C]
+(:\ mod\ func\ arg\ ...\ )\ =>
+\ \ \ \ \ \ \ \ (call\ \[aq]mod\ \[aq]func\ arg\ ...\ )
+(mod:func\ arg\ ...\ )\ =>
+\ \ \ \ \ \ \ \ (call\ \[aq]mod\ \[aq]func\ arg\ ...\ )
+(?\ {{timeout\ {{default}}\ }})\ \ \ \ \ \ \ \ \ \ \ \ \-\ Receive\ next\ message,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ optional\ timeout\ and\ default\ value
+(++\ ...\ )
+(list*\ ...)
+(let*\ (...)\ ...\ )\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\ Sequential\ let\[aq]s
+(flet\ ((name\ (arg\ ...)\ ...)
+\ \ \ \ \ \ \ ...)
+\ \ ...)
+(flet*\ (...)\ ...\ )\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\ Sequential\ flet\[aq]s
+(fletrec\ ((name\ (arg\ ...)\ ...)
+\ \ \ \ \ \ \ \ \ \ ...)
+\ \ ...)
+\ \ \ \ \ \ \ \ Define\ local\ functions,\ this\ will\ expand\ to\ lambda\ or
+\ \ \ \ \ \ \ \ match\-lambda\ depending\ on\ structure\ as\ with\ defun.
+(cond\ ...\ )\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\ The\ normal\ cond,\ with\ (?=\ pat\ expr)
+(andalso\ ...\ )
+(orelse\ ...\ )
+(fun\ func\ arity)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\ fun\ func/arity
+(fun\ mod\ func\ arity)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\ fun\ mod:func/arity
+(lc\ (qual\ ...)\ ...)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\ [\ expr\ ||\ qual\ ...\ ]
+(list\-comp\ (qual\ ...)\ ...)
+(bc\ (qual\ ...)\ ...)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\ <<\ expr\ ||\ qual\ ...\ >>
+(binary\-comp\ (qual\ ...)\ ...)
+(match\-spec\ ...)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\ ets:fun2ms(fun\ (\ )\ \->\ end)
+\f[]
+.fi
+.SH Common Lisp inspired macros
+.IP
+.nf
+\f[C]
+(defun\ name\ (arg\ ...)\ ...)
+(defun\ name
+\ \ ((argpat\ ...)\ ...)
+\ \ ...)
+\ \ \ \ \ \ \ \ Define\ a\ toplevel\ function,\ this\ will\ expand\ to\ lambda\ or
+\ \ \ \ \ \ \ \ match\-lambda\ depending\ on\ structure.
+(defmacro\ name\ (arg\ ...)\ ...)
+(defmacro\ name\ arg\ ...)
+(defmacro\ name
+\ \ ((argpat\ ...)\ ...)
+\ \ ...)
+\ \ \ \ \ \ \ \ Define\ a\ top\-level\ macro,\ this\ will\ expand\ to\ lambda\ or
+\ \ \ \ \ \ \ \ match\-lambda\ depending\ on\ structure.
+(defsyntax\ name
+\ \ (pat\ exp)
+\ \ ...)
+\ \ \ \ \ \ \ \ Define\ a\ top\-level\ macro\ using\ Scheme\ inspired\ syntax\-rules
+\ \ \ \ \ \ \ \ format.
+(macrolet\ ((name\ (arg\ ...)\ ...)
+\ \ \ \ \ \ \ \ \ \ \ ...)
+\ \ ...)
+(syntaxlet\ ((name\ (pat\ exp)\ ...)
+\ \ \ \ \ \ \ \ \ \ \ \ ...)
+\ \ ...)
+\ \ \ \ \ \ \ \ Define\ local\ macros\ in\ macro\ or\ syntax\-rule\ format.
+(prog1\ ...)
+(prog2\ ...)
+\ \ \ \ \ \ \ \ Like\ their\ CL\ counterparts.
+(defmodule\ name\ ...)
+(defrecord\ name\ ...)
+\f[]
+.fi
+.SH Older Scheme inspired macros
+.IP
+.nf
+\f[C]
+(define\ (name\ arg\ ...)\ ...)
+(define\ name\ lambda|match\-lambda)
+(define\-syntax\ name
+\ \ (syntax\-rules\ (pat\ exp)\ ...)|(macro\ (pat\ body)\ ...))
+(let\-syntax\ ((name\ ...)
+\ \ \ \ \ \ \ \ \ \ \ \ \ ...)
+\ \ ...)
+(begin\ ...)
+(define\-record\ name\ ...)
+\f[]
+.fi
+.SH Patterns
+.PP
+Written as normal data expressions where symbols are variables and use
+.PD 0
+.P
+.PD
+quote to match explicit values.
+Binaries and tuples have special syntax.
+.IP
+.nf
+\f[C]
+{ok,X}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \->\ (tuple\ \[aq]ok\ x)
+error\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \->\ \[aq]error
+{yes,[X|Xs]}\ \ \ \ \ \ \ \ \ \ \ \ \->\ (tuple\ \[aq]yes\ (cons\ x\ xs))
+<<34,F/float>>\ \ \ \ \ \ \ \ \ \ \->\ (binary\ 34\ (f\ float))
+[P|Ps]=All\ \ \ \ \ \ \ \ \ \ \ \ \ \ \->\ (=\ (cons\ p\ ps)\ all)
+\f[]
+.fi
+.PP
+Repeated variables are \f[I]NOT\f[] supported in patterns, there is no
+.PD 0
+.P
+.PD
+automatic comparison of values.
+It must explicitly be done in a
+.PD 0
+.P
+.PD
+guard.
+.PP
+\f[C]_\f[] as the "don\[aq]t care" variable is supported.
+This means that the
+.PD 0
+.P
+.PD
+symbol \f[C]_\f[], which is a perfectly valid symbol, can never be bound
+.PD 0
+.P
+.PD
+through pattern matching.
+.PP
+Aliases are defined with the \f[C](=\ pattern1\ pattern2)\f[] pattern.
+As in
+.PD 0
+.P
+.PD
+Erlang patterns they can be used anywhere in a pattern.
+.PP
+\f[I]CAVEAT\f[] The lint pass of the compiler checks for aliases and if
+they
+.PD 0
+.P
+.PD
+are possible to match.
+If not an error is flagged.
+This is not the
+.PD 0
+.P
+.PD
+best way.
+Instead there should be a warning and the offending clause
+.PD 0
+.P
+.PD
+removed, but later passes of the compiler can\[aq]t handle this yet.
+.SH Guards
+.PP
+Wherever a pattern occurs (in let, case, receive, lc, etc.) it can be
+.PD 0
+.P
+.PD
+followed by an optional guard which has the form (when test ...).
+.PD 0
+.P
+.PD
+Guard tests are the same as in vanilla Erlang and can contain the
+.PD 0
+.P
+.PD
+following guard expressions:
+.IP
+.nf
+\f[C]
+(quote\ e)
+(cons\ gexpr\ gexpr)
+(car\ gexpr)
+(cdr\ gexpr)
+(list\ gexpr\ ...)
+(tuple\ gexpr\ ...)
+(binary\ ...)
+(progn\ gtest\ ...)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\ Sequence\ of\ guard\ tests
+(if\ gexpr\ gexpr\ gexpr)
+(type\-test\ e)
+(guard\-bif\ ...)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\ Guard\ BIFs,\ arithmetic,
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ boolean\ and\ comparison\ operators
+\f[]
+.fi
+.PP
+An empty guard, \f[C](when)\f[], always succeeds as there is no test
+which
+.PD 0
+.P
+.PD
+fails.
+This simplifies writing macros which handle guards.
+.SH Comments in Function Definitions
+.PP
+Inside functions defined with defun LFE permits optional comment
+.PD 0
+.P
+.PD
+strings in the Common Lisp style after the argument list.
+So we can
+.PD 0
+.P
+.PD
+have:
+.IP
+.nf
+\f[C]
+(defun\ max\ (x\ y)
+\ \ "The\ max\ function."
+\ \ (if\ (>=\ x\ y)\ x\ y))
+\f[]
+.fi
+.PP
+Optional comments are also allowed in match style functions after the
+.PD 0
+.P
+.PD
+function name and before the clauses:
+.IP
+.nf
+\f[C]
+(defun\ max
+\ \ "The\ max\ function."
+\ \ ((x\ y)\ (when\ (>=\ x\ y))\ x)
+\ \ ((x\ y)\ y))
+\f[]
+.fi
+.PP
+This is also possible in a similar style in local functions defined by
+.PD 0
+.P
+.PD
+flet and fletrec:
+.IP
+.nf
+\f[C]
+(defun\ foo\ (x\ y)
+\ \ "The\ max\ function."
+\ \ (flet\ ((m\ (a\ b)
+\ \ \ \ \ \ \ \ \ \ \ "Local\ comment."
+\ \ \ \ \ \ \ \ \ \ \ (if\ (>=\ a\ b)\ a\ b)))
+\ \ \ \ (m\ x\ y)))
+\f[]
+.fi
+.SH Bindings and Scoping
+.PP
+LFE is a Lisp\-2 and has separate namespaces for variables and
+.PD 0
+.P
+.PD
+functions/macros.
+Both variables and functions/macros are lexically
+.PD 0
+.P
+.PD
+scoped.
+Variables are bound by lambda, match\-lambda and let, functions
+.PD 0
+.P
+.PD
+are bound by top\-level defun, flet and fletrec, macros are bound by
+.PD 0
+.P
+.PD
+top\-level defmacro/defsyntax and by macrolet/syntaxlet.
+.PP
+When searching for function both name and arity are used, a macro is
+.PD 0
+.P
+.PD
+considered to have any arity and will match all functions with that
+.PD 0
+.P
+.PD
+name.
+While this is not consistent with either Scheme (or CL) it is
+.PD 0
+.P
+.PD
+simple, usually easy to understand, and fits Erlang quite well.
+It
+.PD 0
+.P
+.PD
+does, however, require using \f[C](funcall\ func\ arg\ ...\ )\f[] like
+CL to call
+.PD 0
+.P
+.PD
+\f[C]lambdas\f[]/\f[C]match\-lambdas\f[] (funs) bound to variables.
+.PP
+Core solves this by having separate bindings and special to
+.PD 0
+.P
+.PD
+have only one apply:
+.IP
+.nf
+\f[C]
+\ \ \ \ apply\ _F\ (...)\ and\ apply\ _F/3\ (\ a1,\ a2,\ a3\ ).
+\f[]
+.fi
+.SH Function shadowing
+.PP
+Unqualified functions shadow as stated above which results in the
+.PD 0
+.P
+.PD
+following order within a module, outermost to innermost:
+.IP \[bu] 2
+Predefined BIFs (same as in vanilla Erlang)
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+Predefined LFE BIFs
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+Imports
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+Top\-level defines
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+Flet/fletrec
+.PP
+This means that it is perfectly legal to shadow BIFs by imports,
+.PD 0
+.P
+.PD
+BIFs/imports by top\-level functions and BIFs/imports/top\-level by
+.PD 0
+.P
+.PD
+\f[C]fletrec\f[]s.
+In this respect there is nothing special about BIfs, they
+.PD 0
+.P
+.PD
+just behave as prefined imported functions, a whopping big
+\f[C](import\ (from\ erlang\ ...))\f[].
+EXCEPT that we know about guard BIFs and
+.PD 0
+.P
+.PD
+expression BIFs.
+If you want a private version of \f[C]spawn\f[] then define
+.PD 0
+.P
+.PD
+it, there will be no warnings.
+.PP
+\f[I]CAVEAT\f[] This does not hold for the supported core forms.
+These can be
+.PD 0
+.P
+.PD
+shadowed by imports or redefined but the compiler will \f[I]always\f[]
+use
+.PD 0
+.P
+.PD
+the core meaning and never an alternative.
+Silently!
+.SH Module definition
+.IP
+.nf
+\f[C]
+(defmodule\ name
+\ \ (export\ (f\ 2)\ (g\ 1)\ ...\ )
+\ \ (export\ all)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ;Export\ all\ functions
+\ \ (import\ (from\ mod\ (f1\ 2)\ (f2\ 1)\ ...\ )
+\ \ \ \ \ \ \ \ \ \ (rename\ mod\ ((f1\ 2)\ sune)\ ((f2\ 1)\ kurt)\ ...\ ))
+\ \ (import\ (prefix\ mod\ mod\-prefix))\ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\ NYI
+\ \ (attr\-1\ value\-1\ value\-2)
+\ \ ...\ )
+\f[]
+.fi
+.PP
+Can have multiple export and import declarations within module
+.PD 0
+.P
+.PD
+declaration.
+The \f[C](export\ all)\f[] declaration is allowed together with
+.PD 0
+.P
+.PD
+other export declarations and overrides them.
+Other attributes which
+.PD 0
+.P
+.PD
+are not recognised by the compiler are allowed and are simply passed
+.PD 0
+.P
+.PD
+on to the module and can be accessed through \f[C]module_info/0\-1\f[].
+.SH Parameterized modules
+.IP
+.nf
+\f[C]
+(defmodule\ (name\ par1\ par2\ ...\ )
+\ \ ...\ )
+\f[]
+.fi
+.PP
+Define a parameterized module which behaves the same way as in vanilla
+.PD 0
+.P
+.PD
+Erlang.
+For now avoid defining functions \[aq]new\[aq] and \[aq]instance\[aq].
+.SH Macros
+.PP
+Macro calls are expanded in both body and patterns.
+This can be very
+.PD 0
+.P
+.PD
+useful to have both make and match macros, but be careful with names.
+.PP
+A macro is function of two argument which is a called with a list of
+.PD 0
+.P
+.PD
+the arguments to the macro call and the current macro environment.
+It
+.PD 0
+.P
+.PD
+can be either a lambda or a match\-lambda.
+The basic forms for defining
+.PD 0
+.P
+.PD
+macros are:
+.IP
+.nf
+\f[C]
+(define\-macro\ name\ lambda|match\-lambda)
+(let\-macro\ ((name\ lambda|match\-lambda)
+\ \ ...)
+\f[]
+.fi
+.PP
+Macros are definitely NOT hygienic in any form.
+.PP
+To simplify writing macros there are a number of predefined macros:
+.IP
+.nf
+\f[C]
+(defmacro\ name\ (arg\ ...)\ ...)
+(defmacro\ name\ arg\ ...)
+(defmacro\ name\ ((argpat\ ...)\ body)\ ...)
+\f[]
+.fi
+.PP
+Defmacro can be used for defining simple macros or sequences of
+.PD 0
+.P
+.PD
+matches depending on whether the arguments are a simple list of
+.PD 0
+.P
+.PD
+symbols or can be interpreted as a list of pattern/body pairs.
+In the
+.PD 0
+.P
+.PD
+second case when the argument is just a symbol it will be bound to the
+.PD 0
+.P
+.PD
+whole argument list.
+For example:
+.IP
+.nf
+\f[C]
+(defmacro\ double\ (a)\ `(+\ ,a\ ,a))
+(defmacro\ my\-list\ args\ `(list\ ,\@args))
+(defmacro\ andalso
+\ \ ((list\ e)\ `,e)
+\ \ ((cons\ e\ es)\ `(if\ ,e\ (andalso\ ,\@es)\ \[aq]false))
+\ \ (()\ `\[aq]true))
+\f[]
+.fi
+.PP
+The macro definitions in a macrolet obey the same rules as defmacro.
+.PP
+The macro functions created by defmacro and macrolet automatically add
+.PD 0
+.P
+.PD
+the second argument with the current macro environment with the name
+.PD 0
+.P
+.PD
+$ENV.
+This allows explicit expansion of macros inside the macro and
+.PD 0
+.P
+.PD
+also manipulation of the macro environment.
+No changes to the
+.PD 0
+.P
+.PD
+environment are exported outside the macro.
+.PP
+User defined macros shadow the predefined macros so it is possible to
+.PD 0
+.P
+.PD
+redefine the built\-in macro definitions.
+However, see the caveat
+.PD 0
+.P
+.PD
+below!
+.PP
+Yes, we have the backquote.
+It is implemented as a macro so it is
+.PD 0
+.P
+.PD
+expanded at macro expansion time.
+.PP
+Local functions that are only available at compile time and can be
+.PD 0
+.P
+.PD
+called by macros are defined using eval\-when\-compile:
+.IP
+.nf
+\f[C]
+(defmacro\ foo\ (x)
+\ \ ...
+\ \ (foo\-helper\ m\ n)
+\ \ ...)
+
+(eval\-when\-compile
+\ \ (defun\ foo\-helper\ (a\ b)
+\ \ \ \ ...)
+
+\ \ )
+\f[]
+.fi
+.PP
+There can be many eval\-when\-compile forms.
+Functions defined within an
+.PD 0
+.P
+.PD
+\f[C]eval\-when\-compile\f[] are mutually recursive but they can only
+call other
+.PD 0
+.P
+.PD
+local functions defined in an earlier \f[C]eval\-when\-compile\f[] and
+macros
+.PD 0
+.P
+.PD
+defined earlier in the file.
+Functions defined in \f[C]eval\-when\-compile\f[]
+.PD 0
+.P
+.PD
+which are called by macros can defined after the macro but must be
+.PD 0
+.P
+.PD
+defined before the macro is used.
+.PP
+Scheme\[aq]s syntax rules are an easy way to define macros where the
+body
+.PD 0
+.P
+.PD
+is just a simple expansion.
+These are supported with \f[C]defsyntax\f[] and
+.PD 0
+.P
+.PD
+\f[C]syntaxlet\f[].
+Note that the patterns are only the arguments to the macro
+.PD 0
+.P
+.PD
+call and do not contain the macro name.
+So using them we would get:
+.IP
+.nf
+\f[C]
+(defsyntax\ andalso
+\ \ (()\ \[aq]true)
+\ \ ((e)\ e)
+\ \ ((e\ .\ es)\ (case\ e\ (\[aq]true\ (andalso\ .\ es))\ (\[aq]false\ \[aq]false))))
+\f[]
+.fi
+.PP
+N.B.
+These are definitely NOT hygienic.
+.PP
+\f[I]CAVEAT\f[] While it is perfectly legal to define a Core form as a
+macro
+.PD 0
+.P
+.PD
+these will silently be ignored by the compiler.
+.SH Comments in Macro Definitions
+.PP
+Inside macros defined with defmacro LFE permits optional comment
+.PD 0
+.P
+.PD
+strings in the Common Lisp style after the argument list.
+So we can
+.PD 0
+.P
+.PD
+have:
+.IP
+.nf
+\f[C]
+(defmacro\ double\ (a)
+\ \ "Double\ macro."
+\ \ `(+\ ,a\ ,a))
+\f[]
+.fi
+.PP
+Optional comments are also allowed in match style macros after the
+.PD 0
+.P
+.PD
+macro name and before the clauses:
+.IP
+.nf
+\f[C]
+(defmacro\ my\-list\ args
+\ \ "List\ of\ arguments."
+\ \ `(list\ ,\@args))
+
+(defmacro\ andalso
+\ \ "The\ andalso\ form."
+\ \ ((list\ e)\ `,e)
+\ \ ((cons\ e\ es)\ `(if\ ,e\ (andalso\ ,\@es)\ \[aq]false))
+\ \ (()\ `\[aq]true))
+\f[]
+.fi
+.PP
+This is also possible in a similar style in local functions defined by
+.PD 0
+.P
+.PD
+macrolet:
+.IP
+.nf
+\f[C]
+(defun\ foo\ (x\ y)
+\ \ "The\ max\ function."
+\ \ (macrolet\ ((m\ (a\ b)
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "Poor\ macro\ definition."
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ `(if\ (>=\ ,a\ ,b)\ ,a\ ,b)))
+\ \ \ \ (m\ x\ y)))
+\f[]
+.fi
+.SH Extended cond
+.PP
+Cond has been extended with the extra test (?= pat expr) which tests
+.PD 0
+.P
+.PD
+if the result of expr matches pat.
+If so it binds the variables in pat
+.PD 0
+.P
+.PD
+which can be used in the cond.
+A optional guard is allowed here.
+An
+.PD 0
+.P
+.PD
+example:
+.IP
+.nf
+\f[C]
+(cond\ ((foo\ x)\ ...)
+\ \ \ \ \ \ ((?=\ (cons\ x\ xs)\ (when\ (is_atom\ x))\ (bar\ y))
+\ \ \ \ \ \ \ (fubar\ xs\ (baz\ x)))
+\ \ \ \ \ \ ((?=\ (tuple\ \[aq]ok\ x)\ (baz\ y))
+\ \ \ \ \ \ \ (zipit\ x))
+\ \ \ \ \ \ ...\ )
+\f[]
+.fi
+.SH Records
+.PP
+Records are tuples with the record name as first element and the rest
+.PD 0
+.P
+.PD
+of the fields in order exactly like "normal" Erlang records.
+As with
+.PD 0
+.P
+.PD
+Erlang records the default default value is \[aq]undefined\[aq].
+.IP
+.nf
+\f[C]
+(defrecord\ name
+\ \ field
+\ \ (field\ default\-value)
+\ \ ...\ )
+\f[]
+.fi
+.PP
+Will create access functions/macros for creation and accessing
+.PD 0
+.P
+.PD
+fields.
+The \f[C]make\-\f[], \f[C]match\-\f[] and \f[C]set\-\f[] forms takes
+optional
+.PD 0
+.P
+.PD
+argument pairs field\-name value to get non\-default values.
+E.g.
+for
+.IP
+.nf
+\f[C]
+(defrecord\ person
+\ \ (name\ \[aq]"")
+\ \ (address\ \[aq]"")
+\ \ age)
+\f[]
+.fi
+.PP
+the following will be generated:
+.IP
+.nf
+\f[C]
+(make\-person\ {{field\ value}}\ ...\ )
+\ (match\-person\ {{field\ value}}\ ...\ )
+\ (is\-person\ r)
+\ (fields\-person)
+\ (emp\-person\ {{field\ value}}\ ...\ )
+\ (set\-person\ r\ {{field\ value}}\ ...\ )
+\ (person\-name\ r)
+\ (person\-name)
+\ (set\-person\-name\ r\ name)
+\ (person\-age\ r)
+\ (person\-age)
+\ (set\-person\-age\ r\ age)
+\ (person\-address\ r)
+\ (set\-person\-address\ r\ address)
+\f[]
+.fi
+.IP \[bu] 2
+\f[C](make\-person\ name\ \[aq]"Robert"\ age\ 54)\f[] \-
+.PD 0
+.P
+.PD
+Will create a new person record with the name field set to
+.PD 0
+.P
+.PD
+"Robert", the age field set to 54 and the address field set to
+.PD 0
+.P
+.PD
+the default "".
+.IP \[bu] 2
+\f[C](match\-person\ name\ name\ age\ 55)\f[] \-
+.PD 0
+.P
+.PD
+Will match a person with age 55 and bind the variable name to
+.PD 0
+.P
+.PD
+the name field of the record.
+Can use any variable name here.
+.IP \[bu] 2
+\f[C](is\-person\ john)\f[] \-
+.PD 0
+.P
+.PD
+Test if john is a person record.
+.IP \[bu] 2
+\f[C](emp\-person\ age\ \[aq]$1)\f[] \-
+.PD 0
+.P
+.PD
+Create an Ets Match Pattern for record person where the age
+.PD 0
+.P
+.PD
+field is set to $1 and all other fields are set to \[aq]_.
+.IP \[bu] 2
+\f[C](person\-address\ john)\f[] \-
+.PD 0
+.P
+.PD
+Return the address field of the person record john.
+.IP \[bu] 2
+\f[C](person\-address)\f[] \-
+.PD 0
+.P
+.PD
+Return the index of the address field of a person record.
+.IP \[bu] 2
+\f[C](set\-person\-address\ john\ \[aq]"back\ street")\f[] \-
+.PD 0
+.P
+.PD
+Sets the address field of the person record john to
+.PD 0
+.P
+.PD
+"back street".
+.IP \[bu] 2
+\f[C](set\-person\ john\ age\ 35\ address\ \[aq]"front\ street")\f[] \-
+.PD 0
+.P
+.PD
+In the person record john set the age field to 35 and the
+.PD 0
+.P
+.PD
+address field to "front street".
+.IP \[bu] 2
+\f[C](fields\-person)\f[] \-
+.PD 0
+.P
+.PD
+Returns a list of fields for the record.
+This is useful for when
+.PD 0
+.P
+.PD
+using LFE with Mnesia, as the record field names don\[aq]t have to be
+.PD 0
+.P
+.PD
+provided manually in the create_table call.
+.SH Binaries/bitstrings
+.PP
+A binary is
+.IP
+.nf
+\f[C]
+(binary\ seg\ ...\ )
+\f[]
+.fi
+.PP
+where \f[C]seg\f[] is
+.IP
+.nf
+\f[C]
+\ \ \ \ \ \ \ \ byte
+\ \ \ \ \ \ \ \ string
+\ \ \ \ \ \ \ \ (val\ integer|float|binary|bitstring|bytes|bits
+\ \ \ \ \ \ \ \ \ \ \ \ \ (size\ n)\ (unit\ n)
+\ \ \ \ \ \ \ \ \ \ \ \ \ big\-endian|little\-endian|native\-endian|little|native|big
+\ \ \ \ \ \ \ \ \ \ \ \ \ signed|unsigned)
+\f[]
+.fi
+.PP
+\f[C]val\f[] can also be a string in which case the specifiers will be
+applied
+.PD 0
+.P
+.PD
+to every character in the string.
+As strings are just lists of
+.PD 0
+.P
+.PD
+integers these are also valid here.
+In a binary constant all literal
+.PD 0
+.P
+.PD
+forms are allowed on input but they will always be written as bytes.
+.SH Maps
+.PP
+A map is:
+.IP
+.nf
+\f[C]
+(map\ key\ value\ ...\ )
+\f[]
+.fi
+.PP
+To access maps there are the following forms:
+.IP \[bu] 2
+\f[C](map\-get\ map\ key)\f[] \-
+.PD 0
+.P
+.PD
+Return the value associated with key in map.
+.IP \[bu] 2
+\f[C](map\-set\ map\ key\ val\ ...\ )\f[] \-
+.PD 0
+.P
+.PD
+Set keys in map to values.
+.IP \[bu] 2
+\f[C](map\-update\ map\ key\ val\ ...\ )\f[] \-
+.PD 0
+.P
+.PD
+Update keys in map to values.
+Note that this form requires all
+.PD 0
+.P
+.PD
+the keys to exist.
+.PP
+N.B.
+This syntax for processing maps has stablized but may change in
+.PD 0
+.P
+.PD
+the future!
+.PP
+There is also an alternate short form \f[C]map\f[], \f[C]mref\f[],
+\f[C]mset\f[],
+.PD 0
+.P
+.PD
+\f[C]mupd\f[] based on the Maclisp array reference forms.
+They take the
+.PD 0
+.P
+.PD
+same arguments as their longer alternatives.
+.SH List/binary comprehensions
+.PP
+List/binary comprehensions are supported as macros.
+The syntax for
+.PD 0
+.P
+.PD
+list comprehensions is:
+.IP
+.nf
+\f[C]
+(lc\ (qual\ \ ...)\ expr\ ...\ )
+(list\-comp\ (qual\ \ ...)\ expr\ ...\ )
+\f[]
+.fi
+.PP
+where the final expr is used to generate the elements of the list.
+.PP
+The syntax for binary comprehensions is:
+.IP
+.nf
+\f[C]
+(bc\ (qual\ \ ...)\ expr\ ...\ )
+(binary\-comp\ (qual\ \ ...)\ expr\ ...\ )
+\f[]
+.fi
+.PP
+where the final expr is a bitseg expr and is used to generate the
+.PD 0
+.P
+.PD
+elements of the binary.
+.PP
+The supported qualifiers, in both list/binary comprehensions are:
+.IP
+.nf
+\f[C]
+(<\-\ pat\ {{guard}}\ list\-expr)\ \ \ \ \ \ \ \ \-\ Extract\ elements\ from\ a\ list\ expression
+(<=\ bin\-pat\ {{guard}}\ binary\-expr)\ \ \-\ Extract\ elements\ from\ a\ binary/bits
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ expression
+(?=\ pat\ {{guard}}\ expr)\ \ \-\ Match\ test\ and\ bind\ variables\ in\ pat
+expr\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \-\ Normal\ boolean\ test
+\f[]
+.fi
+.PP
+Some examples:
+.IP
+.nf
+\f[C]
+(lc\ ((<\-\ v\ (when\ (>\ v\ 5))\ l1)
+\ \ \ \ \ (==\ (rem\ v\ 2)\ 0))
+\ \ v)
+\f[]
+.fi
+.PP
+returns a list of all the even elements of the list \f[C]l1\f[] which
+are
+.PD 0
+.P
+.PD
+greater than 5.
+.IP
+.nf
+\f[C]
+(bc\ ((<=\ (f\ float\ (size\ 32))\ b1)\ \ \ \ \ \ \ \ ;No\ wrapping,\ only\ bitseg\ needed
+\ \ \ \ \ (>\ f\ 10.0))
+\ \ (:\ io\ fwrite\ \[aq]"~p\\n"\ (list\ f))
+\ \ (f\ float\ (size\ 64)))\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ;No\ wrapping,\ only\ bitseg\ needed
+\f[]
+.fi
+.PP
+returns a binary of floats of size 64 of floats which are larger than
+.PD 0
+.P
+.PD
+10.0 from the binary b1 and of size 32.
+The returned numbers are first
+.PD 0
+.P
+.PD
+printed.
+.PP
+N.B.
+A word of warning when using guards when extracting elements from
+.PD 0
+.P
+.PD
+a binary.
+When a match/guard fails for a binary no more attempts will
+.PD 0
+.P
+.PD
+be made to extract data from the binary.
+This means that even if a
+.PD 0
+.P
+.PD
+value could be extracted from the binary if the guard fails this value
+.PD 0
+.P
+.PD
+will be lost and extraction will cease.
+This is \f[I]NOT\f[] the same as
+.PD 0
+.P
+.PD
+having following boolean test which may remove an element but will not
+.PD 0
+.P
+.PD
+stop extraction.
+Using a guard is probably not what you want!
+.PP
+Normal vanilla Erlang does the same thing but does not allow guards.
+.SS ETS and Mnesia
+.PP
+Apart from \f[C](emp\-record\ ...)\f[] macros for ETS Match Patterns,
+which are
+.PD 0
+.P
+.PD
+also valid in Mnesia, LFE also supports match specifications and Query
+.PD 0
+.P
+.PD
+List Comprehensions.
+The syntax for a match specification is the same
+.PD 0
+.P
+.PD
+as for match\-lambdas:
+.IP
+.nf
+\f[C]
+(match\-spec
+\ \ ((arg\ ...\ )\ {{(when\ e\ ...)}}\ ...)\ \ \ \ \ \ \ \ \ \ \ \ \ \-\ Matches\ clauses
+\ \ ...\ )
+\f[]
+.fi
+.PP
+For example:
+.IP
+.nf
+\f[C]
+(ets:select\ db\ (match\-spec
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ([(tuple\ _\ a\ b)]\ (when\ (>\ a\ 3))\ (tuple\ \[aq]ok\ b))))
+\f[]
+.fi
+.PP
+It is a macro which creates the match specification structure which is
+.PD 0
+.P
+.PD
+used in \f[C]ets:select\f[] and \f[C]mnesia:select\f[].
+The same \f[C]match\-spec\f[]
+.PD 0
+.P
+.PD
+macro can also be used with the dbg module.
+The same restrictions as to
+.PD 0
+.P
+.PD
+what can be done apply as for vanilla match specifications:
+.IP \[bu] 2
+There is only a limited number of BIFs which are allowed
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+There are some special functions only for use with dbg
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+For ets/mnesia it takes a single parameter which must a tuple or a
+.PD 0
+.P
+.PD
+variable
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+For dbg it takes a single parameter which must a list or a variable
+.PP
+N.B.
+the current macro neither knows nor cares whether it is being
+.PD 0
+.P
+.PD
+used in ets/mnesia or in dbg.
+It is up to the user to get this right.
+.PP
+Macros, especially record macros, can freely be used inside match
+.PD 0
+.P
+.PD
+specs.
+.PP
+\f[I]CAVEAT\f[] Some things which are known not to work in the current
+.PD 0
+.P
+.PD
+version are andalso, orelse and record updates.
+.SH Query List Comprehensions
+.PP
+LFE supports QLCs for mnesia through the qlc macro.
+It has the same
+.PD 0
+.P
+.PD
+structure as a list comprehension and generates a Query Handle in the
+.PD 0
+.P
+.PD
+same way as with \f[C]qlc:q([...])\f[].
+The handle can be used together with
+.PD 0
+.P
+.PD
+all the combination functions in the module qlc.
+.PP
+For example:
+.IP
+.nf
+\f[C]
+(qlc\ (lc\ ((<\-\ (tuple\ k\ v)\ (:\ ets\ table\ e2))\ (==\ k\ i))\ v)\ {{Option}})
+\f[]
+.fi
+.PP
+Macros, especially record macros, can freely be used inside query list
+.PD 0
+.P
+.PD
+comprehensions.
+.PP
+\f[I]CAVEAT\f[] Some things which are known not to work in the current
+.PD 0
+.P
+.PD
+version are nested QLCs and let/case/recieve which shadow variables.
+.SH Predefined LFE functions
+.PP
+The following more or less standard lisp functions are predefined:
+.IP
+.nf
+\f[C]
+(<arith_op>\ expr\ ...)
+(<comp_op>\ expr\ ...)
+\ \ \ \ \ \ \ \ The\ standard\ arithmentic\ operators,\ +\ \-\ *\ /,\ and\ comparison
+\ \ \ \ \ \ \ \ operators,\ >\ >=\ <\ =<\ ==\ /=\ =:=\ =/=\ ,\ can\ take\ multiple
+\ \ \ \ \ \ \ \ arguments\ the\ same\ as\ their\ standard\ lisp\ counterparts.\ This
+\ \ \ \ \ \ \ \ is\ still\ experimental\ and\ implemented\ using\ macros.\ They\ do,
+\ \ \ \ \ \ \ \ however,\ behave\ like\ normal\ functions\ and\ evaluate\ ALL\ their
+\ \ \ \ \ \ \ \ arguments\ before\ doing\ the\ arithmetic/comparisons\ operations.
+
+(acons\ key\ value\ list)
+(pairlis\ keys\ values\ {{list}})
+(assoc\ key\ list)
+(assoc\-if\ test\ list)
+(assoc\-if\-not\ test\ list)
+(rassoc\ value\ list)
+(rassoc\-if\ test\ list)
+(rassoc\-if\-not\ test\ list)
+\ \ \ \ \ \ \ \ The\ standard\ association\ list\ functions.
+
+(subst\ new\ old\ tree)
+(subst\-if\ new\ test\ tree)
+(subst\-if\-not\ new\ test\ tree)
+(sublis\ alist\ tree)
+\ \ \ \ \ \ \ \ The\ standard\ substituition\ functions.
+
+(macroexpand\-1\ expr\ {{environment}})
+\ \ \ \ \ \ \ \ If\ Expr\ is\ a\ macro\ call,\ does\ one\ round\ of\ expansion,
+\ \ \ \ \ \ \ \ otherwise\ returns\ Expr.
+
+(macroexpand\ expr\ {{environment}})
+\ \ \ \ \ \ \ \ Returns\ the\ expansion\ returned\ by\ calling\ macroexpand\-1
+\ \ \ \ \ \ \ \ repeatedly,\ starting\ with\ Expr,\ until\ the\ result\ is\ no\ longer
+\ \ \ \ \ \ \ \ a\ macro\ call.
+
+(macroexpand\-all\ expr\ {{environment}})
+\ \ \ \ \ \ \ \ Returns\ the\ expansion\ from\ the\ expression\ where\ all\ macro
+\ \ \ \ \ \ \ \ calls\ have\ been\ expanded\ with\ macroexpand.
+
+\ \ \ \ \ \ \ \ NOTE\ that\ when\ no\ explicit\ environment\ is\ given\ the
+\ \ \ \ \ \ \ \ macroexpand\ functions\ then\ only\ the\ default\ built\-in\ macros
+\ \ \ \ \ \ \ \ will\ be\ expanded.\ Inside\ macros\ and\ in\ the\ shell\ the\ variable
+\ \ \ \ \ \ \ \ $ENV\ is\ bound\ to\ the\ current\ macro\ environment.
+
+(eval\ expr\ {{environment}})
+\ \ \ \ \ \ \ \ Evaluate\ the\ expression\ expr.\ Note\ that\ only\ the\ pre\-defined
+\ \ \ \ \ \ \ \ lisp\ functions,\ erlang\ BIFs\ and\ exported\ functions\ can\ be
+\ \ \ \ \ \ \ \ called.\ Also\ no\ local\ variables\ can\ be\ accessed.\ To\ access
+\ \ \ \ \ \ \ \ local\ variables\ the\ expr\ to\ be\ evaluated\ can\ be\ wrapped\ in\ a
+\ \ \ \ \ \ \ \ let\ defining\ these.
+
+\ \ \ \ \ \ \ \ For\ example\ if\ the\ data\ we\ wish\ to\ evaluate\ is\ in\ the\ variable
+\ \ \ \ \ \ \ \ expr\ and\ it\ assumes\ there\ is\ a\ local\ variable\ "foo"\ which\ it
+\ \ \ \ \ \ \ \ needs\ to\ access\ then\ we\ could\ evaluate\ it\ by\ calling:
+
+\ \ \ \ \ \ \ \ (eval\ `(let\ ((foo\ ,foo))\ ,expr))
+\f[]
+.fi
+.SS Supplemental Common Lisp Functions
+.PP
+LFE provides the module cl which contains the following functions
+.PD 0
+.P
+.PD
+which closely mirror functions defined in the Common Lisp
+.PD 0
+.P
+.PD
+Hyperspec.
+Note that the following functions use zero\-based indices,
+.PD 0
+.P
+.PD
+like Common Lisp.
+A major difference is that the boolean values are
+.PD 0
+.P
+.PD
+the LFE \[aq]true and \[aq]false.
+Otherwise the definitions closely follow the
+.PD 0
+.P
+.PD
+CL definitions and won\[aq]t be documented here.
+.IP
+.nf
+\f[C]
+cl:make\-lfe\-bool\ cl\-value
+cl:make\-cl\-bool\ lfe\-bool
+
+cl:mapcar\ \ function\ \ list
+cl:maplist\ \ function\ \ list
+cl:mapc\ \ function\ \ list
+cl:mapl\ \ function\ \ list
+
+cl:symbol\-plist\ \ symbol
+cl:symbol\-name\ \ symbol
+cl:get\ \ symbol\ \ pname
+cl:get\ \ symbol\ \ pname\ \ default
+cl:getl\ \ symbol\ \ pname\-list
+cl:putprop\ \ symbol\ \ value\ \ pname
+cl:remprop\ \ symbol\ \ pname
+
+cl:getf\ \ plist\ \ pname
+cl:getf\ \ plist\ \ pname\ \ default
+cl:putf\ \ plist\ \ value\ \ pname\ \ \ \ \ \ \ \ \ \ \ \ This\ does\ not\ exist\ in\ CL
+cl:remf\ \ plist\ \ pname
+cl:get\-properties\ \ plist\ \ pname\-list
+
+cl:elt\ \ index\ \ sequence
+cl:length\ \ sequence
+cl:reverse\ \ sequence
+cl:some\ \ predicate\ \ sequence
+cl:every\ \ predicate\ \ sequence
+cl:notany\ \ predicate\ \ sequence
+cl:notevery\ \ predicate\ \ sequence
+cl:reduce\ \ function\ \ sequence
+cl:reduce\ \ function\ \ sequence\ \ \[aq]initial\-value\ \ x
+cl:reduce\ \ function\ \ sequence\ \ \[aq]from\-end\ \ \[aq]true
+cl:reduce\ \ function\ \ sequence\ \ \[aq]initial\-value\ \ x\ \ \[aq]from\-end\ \ \[aq]true
+
+cl:remove\ \ item\ \ sequence
+cl:remove\-if\ \ predicate\ \ sequence
+cl:remove\-if\-not\ \ predicate\ \ sequence
+cl:remove\-duplicates\ \ sequence
+
+cl:find\ \ item\ \ sequence
+cl:find\-if\ \ predicate\ \ sequence
+cl:find\-if\-not\ \ predicate\ \ sequence
+cl:find\-duplicates\ \ sequence
+cl:position\ \ item\ \ sequence
+cl:position\-if\ \ predicate\ \ sequence
+cl:position\-if\-not\ \ predicate\ \ sequence
+cl:position\-duplicates\ \ sequence
+cl:count\ \ item\ \ sequence
+cl:count\-if\ \ predicate\ \ sequence
+cl:count\-if\-not\ \ predicate\ \ sequence
+cl:count\-duplicates\ \ sequence
+
+cl:car\ \ list
+cl:first\ \ list
+cl:cdr\ \ list
+cl:rest\ \ list
+cl:nth\ \ index\ \ list
+cl:nthcdr\ \ index\ \ list
+cl:last\ \ list
+cl:butlast\ \ list
+
+cl:subst\ \ new\ \ old\ \ tree
+cl:subst\-if\ \ new\ \ test\ \ tree
+cl:subst\-if\-not\ \ new\ \ test\ \ tree
+cl:sublis\ \ alist\ \ tree
+
+cl:member\ \ item\ \ list
+cl:member\-if\ \ predicate\ \ list
+cl:member\-if\-not\ \ predicate\ \ list
+cl:adjoin\ \ item\ \ list
+cl:union\ \ list\ \ list
+cl:intersection\ \ list\ \ list
+cl:set\-difference\ \ list\ \ list
+cl:set\-exclusive\-or\ \ list\ \ list
+cl:subsetp\ \ list\ \ list
+
+cl:acons\ \ key\ \ data\ \ alist
+cl:pairlis\ \ list\ \ list
+cl:pairlis\ \ list\ \ list\ \ alist
+cl:assoc\ \ key\ \ alist
+cl:assoc\-if\ \ predicate\ \ alost
+cl:assoc\-if\-not\ \ predicate\ \ alost
+cl:rassoc\ \ key\ \ alist
+cl:rassoc\-if\ \ predicate\ \ alost
+cl:rassoc\-if\-not\ \ predicate\ \ alost
+
+cl:type\-of\ \ object
+cl:coerce\ \ object\ \ type
+\f[]
+.fi
+.PP
+Furthmore, there is an include file which developers may which to
+utilize in
+.PD 0
+.P
+.PD
+their LFE programs: \f[C](include\-lib\ "lfe/include/cl.lfe")\f[].
+Currently this offers
+.PD 0
+.P
+.PD
+Common Lisp predicates, but may include other useful macros and
+functions in
+.PD 0
+.P
+.PD
+the future.
+The provided predicate macros wrap the various \f[C]is_*\f[] Erlang
+.PD 0
+.P
+.PD
+functions; since these are expanded at compile time, they are usable in
+guards.
+.PD 0
+.P
+.PD
+The include the following:
+.IP
+.nf
+\f[C]
+(alivep\ x)
+(atomp\ x)
+(binaryp\ x)
+(bitstringp\ x)
+(boolp\ x)\ and\ (booleanp\ x)
+(builtinp\ x)
+(floatp\ x)
+(funcp\ x)\ and\ (functionp\ x)
+(intp\ x)\ and\ (integerp\ x)
+(listp\ x)
+(mapp\ x)
+(numberp\ x)
+(pidp\ x)
+(process\-alive\-p\ x)
+(recordp\ x\ tag)
+(recordp\ x\ tag\ size)
+(refp\ x)\ and\ (referencep\ x)
+(tuplep\ x)
+\f[]
+.fi
+.SH Notes
+.IP \[bu] 2
+NYI \- Not Yet Implemented
+.PD 0
+.P
+.PD
+.IP \[bu] 2
+N.B.
+\- Nota bene (note well)
+.SH SEE ALSO
+.PP
+\f[B]lfe_shell(1)\f[], \f[B]lfescript(1)\f[]
