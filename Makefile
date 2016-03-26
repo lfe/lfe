@@ -6,7 +6,6 @@ SRCDIR = src
 CSRCDIR = c_src
 LSRCDIR = src
 INCDIR = include
-DOCDIR = doc
 EMACSDIR = emacs
 
 VPATH = $(SRCDIR)
@@ -93,12 +92,10 @@ maps_opts.mk:
 
 -include maps_opts.mk
 
-install:
+install: install-man
 	ln -sf `pwd`/bin/lfe $(DESTBINDIR)
 	ln -sf `pwd`/bin/lfec $(DESTBINDIR)
 	ln -sf `pwd`/bin/lfescript $(DESTBINDIR)
-
-docs:
 
 clean:
 	rm -rf $(EBINDIR)/*.beam erl_crash.dump maps_opts.mk
@@ -122,6 +119,84 @@ get-version:
 regenerate-parser:
 	erl -noshell -eval 'spell1:file("src/lfe_parse", [report,verbose,{outdir,"./src/"},{includefile,code:lib_dir(spell1,include) ++ "/spell1inc.hrl"}]), init:stop().'
 
+# Targets for generating docs and man pages
+DOCDIR = doc
+DOCSRC = $(DOCDIR)/source
+MANDIR = $(DOCDIR)/man
+PDFDIR = $(DOCDIR)/pdf
+EPUBDIR = $(DOCDIR)/epub
+MANINST = /usr/local/share/man
+
+MAN1_SRCS = $(notdir $(wildcard $(DOCSRC)/*1.md))
+MAN1S = $(MAN1_SRCS:.1.md=.1)
+TXT1S = $(MAN1_SRCS:.1.md=.txt)
+PDF1S = $(MAN1_SRCS:.1.md=.pdf)
+EPUB1S = $(MAN1_SRCS:.1.md=.epub)
+MAN3_SRCS = $(notdir $(wildcard $(DOCSRC)/*3.md))
+MAN3S = $(MAN3_SRCS:.3.md=.3)
+TXT3S = $(MAN3_SRCS:.3.md=.txt)
+PDF3S = $(MAN3_SRCS:.3.md=.pdf)
+EPUB3S = $(MAN3_SRCS:.3.md=.epub)
+
+# Just generate the docs that are tracked in git
+docs: docs-txt
+
+# Generate all docs, even those not tracked in git
+all-docs: docs docs-epub docs-pdf
+
+docs-man: $(addprefix $(MANDIR)/, $(MAN1S)) $(addprefix $(MANDIR)/, $(MAN3S))
+	pandoc -f markdown_github -s -t man \
+	-o $(MANDIR)/lfe_user_guide.7 $(DOCSRC)/lfe_user_guide.7.md
+
+$(MANDIR)/%.1: $(DOCSRC)/%.1.md
+	pandoc -f markdown_github -s -t man -o $@ $<
+
+$(MANDIR)/%.3: $(DOCSRC)/%.3.md
+	pandoc -f markdown_github -s -t man -o $@ $<
+
+docs-txt: docs-man $(addprefix $(DOCDIR)/, $(TXT1S)) $(addprefix $(DOCDIR)/, $(TXT3S))
+	groff -t -e -mandoc -Tutf8 $(MANDIR)/lfe_user_guide.7 | \
+	col -bx > $(DOCDIR)/user_guide.txt
+
+$(DOCDIR)/%.txt: $(MANDIR)/%.1
+	groff -t -e -mandoc -Tutf8 $< | col -bx > $@
+
+$(DOCDIR)/%.txt: $(MANDIR)/%.3
+	groff -t -e -mandoc -Tutf8 $< | col -bx > $@
+
+$(PDFDIR):
+	@mkdir -p $(PDFDIR)
+
+docs-pdf: $(PDFDIR) docs-man $(addprefix $(PDFDIR)/, $(PDF1S)) $(addprefix $(PDFDIR)/, $(PDF3S))
+	#pandoc -f markdown_github \
+	#-o $(PDFDIR)/user_guide.pdf $(DOCSRC)/lfe_user_guide.7.md
+
+$(PDFDIR)/%.pdf: $(DOCSRC)/%.1.md
+	pandoc -f markdown_github -o $@ $<
+
+$(PDFDIR)/%.pdf: $(DOCSRC)/%.3.md
+	pandoc -f markdown_github -o $@ $<
+
+$(EPUBDIR):
+	@mkdir -p $(EPUBDIR)
+
+docs-epub: $(EPUBDIR) docs-man $(addprefix $(EPUBDIR)/, $(EPUB1S)) $(addprefix $(EPUBDIR)/, $(EPUB3S))
+	pandoc -f markdown_github -t epub \
+	-o $(EPUBDIR)/user_guide.epub $(DOCSRC)/lfe_user_guide.7.md
+
+$(EPUBDIR)/%.epub: $(DOCSRC)/%.1.md
+	pandoc -f markdown_github -t epub -o $@ $<
+
+$(EPUBDIR)/%.epub: $(DOCSRC)/%.3.md
+	pandoc -f markdown_github -t epub -o $@ $<
+
+install-man: docs-man
+	mkdir -p $(MANINST)/man1 $(MANINST)/man3 $(MANINST)/man7
+	cp $(MANDIR)/*.1 $(MANINST)/man1/
+	cp $(MANDIR)/*.3 $(MANINST)/man3/
+	cp $(MANDIR)/*.7 $(MANINST)/man7/
+
+# Targets for working with Docker
 docker-build:
 	docker build -t lfex/lfe:latest .
 
