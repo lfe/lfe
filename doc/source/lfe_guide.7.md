@@ -1,11 +1,11 @@
-% lfe_user_guide(7)
+% lfe_guide(7)
 % Robert Virding
 % 2008-2016
 
 
 # NAME
 
-lfe_user_guide - Lisp Flavoured Erlang User Guide
+lfe_guide - Lisp Flavoured Erlang User Guide
 
 
 # SYNPOSIS

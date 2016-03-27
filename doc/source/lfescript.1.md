@@ -8,7 +8,7 @@
 lfescript - Lisp Flavoured Erlang (LFE) scripting support
 
 
-# DESCRIPTION
+# SYNOPSIS
 
 lfescript provides support for running short LFE programs
 without having to compile them first and an easy way to
