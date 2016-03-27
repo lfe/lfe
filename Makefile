@@ -167,7 +167,7 @@ $(MANDIR)/%.7: $(DOCSRC)/%.7.md
 clean-docs:
 	rm -f $(DOCDIR)/*.txt $(MANDIR)/*.[0-9] $(PDFDIR)/*.pdf $(EPUBDIR)/*.epub
 
-docs-txt: clean-docs docs-man \
+docs-txt: docs-man \
 	$(addprefix $(DOCDIR)/, $(TXT1S)) \
 	$(addprefix $(DOCDIR)/, $(TXT3S)) \
 	$(addprefix $(DOCDIR)/, $(TXT7S))
