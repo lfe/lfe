@@ -13,3 +13,5 @@ erl_crash.dump
 bin/lfeexec
 maps_opts.mk
 ebin/*
+doc/pdf/*
+doc/epub/*
