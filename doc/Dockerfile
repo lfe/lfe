@@ -11,6 +11,7 @@ RUN apt-get install -y pandoc groff groff-base bsdmainutils
 RUN apt-get install -y locales
 RUN locale-gen en_US.UTF-8 UTF-8
 RUN sh -c "echo -e 'en_US.UTF-8 UTF-8' >> /etc/locale.gen"
+RUN dpkg-reconfigure locales
 
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US.UTF-8
