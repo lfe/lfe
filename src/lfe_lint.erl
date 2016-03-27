@@ -177,11 +177,12 @@ collect_form({_,L}, {Acc,#lint{module=[]}=St}) ->
     {Acc,bad_mdef_error(L, name, St#lint{module='-no-module-'})};
 collect_form({['extend-module'|Mdef],L}, {Acc,St}) ->
     {Acc,check_mdef(Mdef, L, St)};
-collect_form({['define-function',Func,Body],L}, {Acc,St}) ->
+collect_form({['define-function',Func,Body,Doc],L}, {Acc,St}) ->
+    Type = is_atom(Func) and (io_lib:char_list(Doc) or is_binary(Doc)),
     case Body of
-        [lambda|_] when is_atom(Func) ->
+        [lambda|_] when Type ->
             {[{Func,Body,L}|Acc],St};
-        ['match-lambda'|_] when is_atom(Func) ->
+        ['match-lambda'|_] when Type ->
             {[{Func,Body,L}|Acc],St};
         _ -> {Acc,bad_form_error(L, 'define-function', St)}
     end;

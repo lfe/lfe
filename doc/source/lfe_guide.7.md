@@ -330,8 +330,8 @@ while it reads the expression and then be effectively ``2``.
 (extend-module declaration ... )
         Define/extend module and declarations.
 
-(define-function name lambda|match-lambda)
-(define-macro name lambda|match-lambda)
+(define-function name lambda|match-lambda doc-string)
+(define-macro name lambda|match-lambda doc-string)
         Define functions/macros at top-level.
 ```
 
@@ -596,7 +596,7 @@ can be either a lambda or a match-lambda. The basic forms for defining
 macros are:
 
 ```
-(define-macro name lambda|match-lambda)
+(define-macro name lambda|match-lambda doc-string)
 (let-macro ((name lambda|match-lambda)
   ...)
 ```

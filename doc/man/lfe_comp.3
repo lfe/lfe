@@ -39,7 +39,7 @@ The currently recognised options are:
 \f[C]binary\f[] \- Return the binary of the module and do not save it in
 a file.
 .IP \[bu] 2
-\f[C]to_exp\f[], \f[C]to\-exp\f[] \- Print a listing of the macro
+\f[C]to_expand\f[], \f[C]to\-expand\f[] \- Print a listing of the macro
 expanded LFE code in the file .expand.
 No object file is produced.
 Mainly useful for debugging and interest.
@@ -82,6 +82,9 @@ print a lot of debug information.
 .IP \[bu] 2
 \f[C]warnings_as_errors\f[], \f[C]warnings\-as\-errors\f[] \- Causes
 warnings to be treated as errors.
+.IP \[bu] 2
+\f[C]no_export_macros\f[], \f[C]no\-export\-macros\f[] \- Do not export
+macros from modules.
 .PP
 If the binary option is given then options that produce listing files
 will cause the internal formats for that compiler pass to be returned.

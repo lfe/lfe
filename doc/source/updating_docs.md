@@ -77,12 +77,14 @@ directory for building LFE docs from source without having to install Pandoc,
 Haskell, etc., on your own system. This does, of course, require that you have
 ``docker`` installed and running on your system.
 
-The LFE docs ``Dockerfile`` has been used to generate an LFE Docker image for
-building docs. This is available on Docker Hub. If you have a good internet
-connection, there is no need to create the Docker image; it will simply be
-downloaded for you by Docker when you run the ``make`` command below.
+You will need to use the LFE docs ``Dockerfile`` to generate an LFE Docker
+image for that has the latest LFE docs in it:
 
-To generate the LFE docs using the Docker image:
+```
+$ make docker-build
+```
+
+Then, to generate the LFE docs using the Docker image:
 
 ```
 $ make docker-docs
