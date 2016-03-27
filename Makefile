@@ -165,7 +165,7 @@ $(MANDIR)/%.7: $(DOCSRC)/%.7.md
 	pandoc -f markdown -s -t man -o $@ $<
 
 clean-docs:
-	rm -f $(DOCDIR)/*.txt $(MANDIR)/* $(PDFDIR)/* $(EPUBDIR)/*
+	rm -f $(DOCDIR)/*.txt $(MANDIR)/*.[0-9] $(PDFDIR)/*.pdf $(EPUBDIR)/*.epub
 
 docs-txt: clean-docs docs-man \
 	$(addprefix $(DOCDIR)/, $(TXT1S)) \
