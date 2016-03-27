@@ -65,7 +65,7 @@ $(EBINDIR)/%.beam: $(SRCDIR)/%.erl
 $(EBINDIR)/%.beam: $(LSRCDIR)/%.lfe
 	$(LFEC) -I $(INCDIR) -o $(EBINDIR) $(LFECFLAGS) $<
 
-all: compile docs
+all: compile
 
 .PHONY: compile erlc-compile lfec-compile erlc-lfec emacs install docs clean docker-build docker-push docker
 
@@ -137,61 +137,87 @@ MAN3S = $(MAN3_SRCS:.3.md=.3)
 TXT3S = $(MAN3_SRCS:.3.md=.txt)
 PDF3S = $(MAN3_SRCS:.3.md=.pdf)
 EPUB3S = $(MAN3_SRCS:.3.md=.epub)
+MAN7_SRCS = $(notdir $(wildcard $(DOCSRC)/*7.md))
+MAN7S = $(MAN7_SRCS:.7.md=.7)
+TXT7S = $(MAN7_SRCS:.7.md=.txt)
+PDF7S = $(MAN7_SRCS:.7.md=.pdf)
+EPUB7S = $(MAN7_SRCS:.7.md=.epub)
 
 # Just generate the docs that are tracked in git
 docs: docs-txt
 
 # Generate all docs, even those not tracked in git
-all-docs: docs docs-epub docs-pdf
+docs-all: docs docs-epub docs-pdf
 
-docs-man: $(addprefix $(MANDIR)/, $(MAN1S)) $(addprefix $(MANDIR)/, $(MAN3S))
-	pandoc -f markdown_github -s -t man \
-	-o $(MANDIR)/lfe_user_guide.7 $(DOCSRC)/lfe_user_guide.7.md
+docs-man: \
+	$(addprefix $(MANDIR)/, $(MAN1S)) \
+	$(addprefix $(MANDIR)/, $(MAN3S)) \
+	$(addprefix $(MANDIR)/, $(MAN7S))
+
 
 $(MANDIR)/%.1: $(DOCSRC)/%.1.md
-	pandoc -f markdown_github -s -t man -o $@ $<
+	pandoc -f markdown -s -t man -o $@ $<
 
 $(MANDIR)/%.3: $(DOCSRC)/%.3.md
-	pandoc -f markdown_github -s -t man -o $@ $<
+	pandoc -f markdown -s -t man -o $@ $<
 
-docs-txt: docs-man $(addprefix $(DOCDIR)/, $(TXT1S)) $(addprefix $(DOCDIR)/, $(TXT3S))
-	groff -t -e -mandoc -Tutf8 $(MANDIR)/lfe_user_guide.7 | \
-	col -bx > $(DOCDIR)/user_guide.txt
+$(MANDIR)/%.7: $(DOCSRC)/%.7.md
+	pandoc -f markdown -s -t man -o $@ $<
+
+clean-docs:
+	rm -f $(DOCDIR)/*.txt $(MANDIR)/* $(PDFDIR)/* $(EPUBDIR)/*
+
+docs-txt: clean-docs docs-man \
+	$(addprefix $(DOCDIR)/, $(TXT1S)) \
+	$(addprefix $(DOCDIR)/, $(TXT3S)) \
+	$(addprefix $(DOCDIR)/, $(TXT7S))
+	@mv $(DOCDIR)/lfe_guide.txt $(DOCDIR)/user_guide.txt
 
 $(DOCDIR)/%.txt: $(MANDIR)/%.1
-	groff -t -e -mandoc -Tutf8 $< | col -bx > $@
+	groff -t -e -mandoc -T utf8 $< | col -bx > $@
 
 $(DOCDIR)/%.txt: $(MANDIR)/%.3
-	groff -t -e -mandoc -Tutf8 $< | col -bx > $@
+	groff -t -e -mandoc -T utf8 $< | col -bx > $@
+
+$(DOCDIR)/%.txt: $(MANDIR)/%.7
+	groff -t -e -mandoc -T utf8 $< | col -bx > $@
 
 $(PDFDIR):
 	@mkdir -p $(PDFDIR)
 
-docs-pdf: $(PDFDIR) docs-man $(addprefix $(PDFDIR)/, $(PDF1S)) $(addprefix $(PDFDIR)/, $(PDF3S))
-	#pandoc -f markdown_github \
-	#-o $(PDFDIR)/user_guide.pdf $(DOCSRC)/lfe_user_guide.7.md
+docs-pdf: $(PDFDIR) \
+	$(addprefix $(PDFDIR)/, $(PDF1S)) \
+	$(addprefix $(PDFDIR)/, $(PDF3S)) \
+	$(addprefix $(PDFDIR)/, $(PDF7S))
 
 $(PDFDIR)/%.pdf: $(DOCSRC)/%.1.md
-	pandoc -f markdown_github -o $@ $<
+	pandoc -f markdown -o $@ $<
 
 $(PDFDIR)/%.pdf: $(DOCSRC)/%.3.md
-	pandoc -f markdown_github -o $@ $<
+	pandoc -f markdown -o $@ $<
+
+$(PDFDIR)/%.pdf: $(DOCSRC)/%.7.md
+	pandoc -f markdown -o $@ $<
 
 $(EPUBDIR):
 	@mkdir -p $(EPUBDIR)
 
-docs-epub: $(EPUBDIR) docs-man $(addprefix $(EPUBDIR)/, $(EPUB1S)) $(addprefix $(EPUBDIR)/, $(EPUB3S))
-	pandoc -f markdown_github -t epub \
-	-o $(EPUBDIR)/user_guide.epub $(DOCSRC)/lfe_user_guide.7.md
+docs-epub: $(EPUBDIR) \
+	$(addprefix $(EPUBDIR)/, $(EPUB1S)) \
+	$(addprefix $(EPUBDIR)/, $(EPUB3S)) \
+	$(addprefix $(EPUBDIR)/, $(EPUB7S))
 
 $(EPUBDIR)/%.epub: $(DOCSRC)/%.1.md
-	pandoc -f markdown_github -t epub -o $@ $<
+	pandoc -f markdown -t epub -o $@ $<
 
 $(EPUBDIR)/%.epub: $(DOCSRC)/%.3.md
-	pandoc -f markdown_github -t epub -o $@ $<
+	pandoc -f markdown -t epub -o $@ $<
+
+$(EPUBDIR)/%.epub: $(DOCSRC)/%.7.md
+	pandoc -f markdown -t epub -o $@ $<
 
 install-man: docs-man
-	mkdir -p $(MANINST)/man1 $(MANINST)/man3 $(MANINST)/man7
+	@mkdir -p $(MANINST)/man1 $(MANINST)/man3 $(MANINST)/man7
 	cp $(MANDIR)/*.1 $(MANINST)/man1/
 	cp $(MANDIR)/*.3 $(MANINST)/man3/
 	cp $(MANDIR)/*.7 $(MANINST)/man7/
@@ -199,14 +225,23 @@ install-man: docs-man
 # Targets for working with Docker
 docker-build:
 	docker build -t lfex/lfe:latest .
+	docker build -t lfex/lfe-docs:latest ./doc
+
+docker-push:
+	docker push lfex/lfe:latest
+	docker push lfex/lfe-docs:latest
+
+docker: docker-build docker-push
 
 docker-run:
 	docker run -i -t lfex/lfe:latest lfe
 
-docker-push:
-	docker push lfex/lfe:latest
+docker-docs:
+	docker run -v `pwd`/doc:/docs -t lfex/lfe-docs:latest
+	sudo chown -R $(USER):$(USER) doc/*
 
-docker: docker-build docker-push
+docker-docs-bash:
+	docker run -i -v `pwd`/doc:/docs -t lfex/lfe-docs:latest bash
 
 travis:
 	@echo "Building for Travis CI ..."
