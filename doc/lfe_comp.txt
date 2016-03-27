@@ -40,8 +40,8 @@ file(FileName, Options) -> CompRet
                 Return the binary of the module and do not save it in
                 a file.
 
-        to_exp
-        to-exp
+        to_expand
+        to-expand
                 Print a listing of the macro expanded LFE code in the
                 file <File>.expand. No object file is produced. Mainly
                 useful for debugging and interest.

@@ -376,11 +376,11 @@ eval_form_1([unslurp|_], St) ->
 eval_form_1([run|Args], St0) ->
     {Value,St1} = run(Args, St0),
     {Value,St1};
-eval_form_1(['define-function',Name,Def], #state{curr=Ce0}=St) ->
+eval_form_1(['define-function',Name,Def,_], #state{curr=Ce0}=St) ->
     Ar = function_arity(Def),
     Ce1 = lfe_eval:add_dynamic_func(Name, Ar, Def, Ce0),
     {Name,St#state{curr=Ce1}};
-eval_form_1(['define-macro',Name,Def], #state{curr=Ce0}=St) ->
+eval_form_1(['define-macro',Name,Def,_], #state{curr=Ce0}=St) ->
     Ce1 = add_mbinding(Name, Def, Ce0),
     {Name,St#state{curr=Ce1}};
 eval_form_1(['reset-environment'], #state{base=Be}=St) ->
@@ -520,7 +520,7 @@ collect_module({['define-module',Mod|Mdef],_}, Sl0) ->
     Sl1#slurp{mod=Mod};
 collect_module({['extend-module'|Mdef],_}, Sl) ->
     collect_mdef(Mdef, Sl);
-collect_module({['define-function',F,Def],_}, #slurp{funs=Fs}=Sl) ->
+collect_module({['define-function',F,Def,_],_}, #slurp{funs=Fs}=Sl) ->
     Ar = function_arity(Def),
     Sl#slurp{funs=[{F,Ar,Def}|Fs]}.
 

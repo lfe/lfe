@@ -164,8 +164,9 @@ compiler_info(#comp{lfile=F,opts=Os,ipath=Is}) ->
 
 lfe_comp_opts(Opts) ->
     Fun = fun ('to-split') -> to_split;
-              ('to-emac') -> to_emac;
-              ('to-exp') -> to_exp;
+              ('to-expmac') -> to_expmac;
+              ('to-expand') -> to_expand;
+              ('to-exp') -> to_exp;             %Backwards compatibility
               ('to-pmod') -> to_pmod;
               ('to-lint') -> to_lint;
               ('to-core0') -> to_core0;
@@ -221,10 +222,11 @@ passes() ->
      {when_flag,to_split,{done,fun split_pp/1}},
      %% Do per-module macro processing.
      {unless_flag,no_export_macros,{do,fun do_export_macros/1}},
-     {when_flag,to_emac,{done,fun expmac_pp/1}},
+     {when_flag,to_expmac,{done,fun expmac_pp/1}},
      %% Now we expand and trim remaining macros.
      {do,fun do_expand_macros/1},
-     {when_flag,to_exp,{done,fun expand_pp/1}},
+     {when_flag,to_expand,{done,fun expand_pp/1}},
+     {when_flag,to_exp,{done,fun expand_pp/1}}, %Backwards compatibility
      {do,fun do_lfe_pmod/1},
      {when_flag,to_pmod,{done,fun pmod_pp/1}},
      {do,fun do_lfe_lint/1},
