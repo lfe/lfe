@@ -28,6 +28,7 @@
 
 (defvar calculate-lisp-indent-last-sexp)
 
+;;;###autoload
 (defun lfe-indent-function (indent-point state)
   "This function is the normal value of the variable `lfe-indent-function'.
 

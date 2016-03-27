@@ -95,7 +95,7 @@ module({['define-module',Name|Mdef],L}, Fs0, Mst0, Cst) ->
 collect_macros(Fs, Mst) ->
     lists:foldl(fun collect_macro/2, Mst, Fs).
 
-collect_macro({['define-macro',Name,Def],_}, #umac{env=Env0}=Mst) ->
+collect_macro({['define-macro',Name,Def,_],_}, #umac{env=Env0}=Mst) ->
     Env1 = lfe_env:add_mbinding(Name, Def, Env0),
     Mst#umac{env=Env1};
 collect_macro({['eval-when-compile'|Fs],_}, Mst) ->
@@ -107,7 +107,7 @@ collect_macro(_, Mst) -> Mst.
 collect_ewc_macro([set,Name,Val], #umac{env=Env0}=Mst) ->
     Env1 = lfe_env:add_vbinding(Name, Val, Env0),
     Mst#umac{env=Env1};
-collect_ewc_macro(['define-function',Name,Def], #umac{env=Env0}=Mst) ->
+collect_ewc_macro(['define-function',Name,Def,_], #umac{env=Env0}=Mst) ->
     Ar = function_arity(Def),
     Env1 = lfe_env:add_fbinding(Name, Ar, Def, Env0),
     Mst#umac{env=Env1};
@@ -172,12 +172,12 @@ build_user_macro(#umac{env=Env}=Mst) ->
             Flr = ['letrec-function',Funs,Case],
             Fl = ['let',Sets,Flr],
             ['define-function','LFE-EXPAND-EXPORTED-MACRO',
-             [lambda,[?NAMEVAR,?ARGSVAR,'$ENV'],Fl]]
+             [lambda,[?NAMEVAR,?ARGSVAR,'$ENV'],Fl],[]]
     end.
 
 empty_leum() ->
     ['define-function','LFE-EXPAND-EXPORTED-MACRO',
-     [lambda,['_','_','_'],?Q(no)]].
+     [lambda,['_','_','_'],?Q(no)],[]].
 
 %% add_huf(ModLine, Forms) -> Forms.
 %%  Add the $handle_undefined_function/2 function to catch run-time
@@ -186,9 +186,9 @@ empty_leum() ->
 %%  that as default when not a macro, otherwise just generate the
 %%  standard undef error.
 
-add_huf(L, [{['define-function','$handle_undefined_function',Def],Lf}=F|Fs]) ->
+add_huf(L, [{['define-function','$handle_undefined_function',Def,Doc],Lf}=F|Fs]) ->
     case function_arity(Def) of
-        2 -> [{make_huf(Def),Lf}|Fs];           %Found the right $huf
+        2 -> [{make_huf(Def, Doc),Lf}|Fs];      %Found the right $huf
         _ -> [F|add_huf(L, Fs)]
     end;
 add_huf(L, [F|Fs]) ->
@@ -197,10 +197,10 @@ add_huf(L, []) ->                               %No $huf, so make one.
     %% Use the default undef exception handler.
     Excep = [lambda,[a,b],
              [':',error_handler,raise_undef_exception,['MODULE'],a,b]],
-    [{make_huf(Excep),L}].
+    [{make_huf(Excep, []),L}].
 
-make_huf(Huf) ->
-    [defun,'$handle_undefined_function',[f,as],
+make_huf(Huf, Doc) ->
+    [defun,'$handle_undefined_function',[f,as],Doc,
      ['case',['LFE-EXPAND-EXPORTED-MACRO',f,as,[':',lfe_env,new]],
       [[tuple,?Q(yes),exp],[':',lfe_eval,expr,exp]],
       [?Q(no),[funcall,Huf,f,as]]]].

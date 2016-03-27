@@ -347,8 +347,8 @@ the expression and then be effectively \f[C]2\f[].
 (extend\-module\ declaration\ ...\ )
 \ \ \ \ \ \ \ \ Define/extend\ module\ and\ declarations.
 
-(define\-function\ name\ lambda|match\-lambda)
-(define\-macro\ name\ lambda|match\-lambda)
+(define\-function\ name\ lambda|match\-lambda\ doc\-string)
+(define\-macro\ name\ lambda|match\-lambda\ doc\-string)
 \ \ \ \ \ \ \ \ Define\ functions/macros\ at\ top\-level.
 \f[]
 .fi
@@ -638,7 +638,7 @@ The basic forms for defining macros are:
 .IP
 .nf
 \f[C]
-(define\-macro\ name\ lambda|match\-lambda)
+(define\-macro\ name\ lambda|match\-lambda\ doc\-string)
 (let\-macro\ ((name\ lambda|match\-lambda)
 \ \ ...)
 \f[]

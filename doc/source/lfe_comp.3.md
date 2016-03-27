@@ -45,8 +45,8 @@ The currently recognised options are:
 * ``binary`` - Return the binary of the module and do not save it in
   a file.
 
-* ``to_exp``, ``to-exp`` -  Print a listing of the macro expanded LFE
-  code in the file <File>.expand. No object file is produced. Mainly
+* ``to_expand``, ``to-expand`` -  Print a listing of the macro expanded
+  LFE code in the file <File>.expand. No object file is produced. Mainly
   useful for debugging and interest.
 
 * ``to_lint``, ``to-lint`` - Print a listing of the macro expanded and
@@ -83,6 +83,8 @@ The currently recognised options are:
 
 * ``warnings_as_errors``, ``warnings-as-errors`` - Causes warnings to be
   treated as errors.
+
+* ``no_export_macros``, ``no-export-macros`` - Do not export macros from modules.
 
 If the binary option is given then options that produce listing files will
 cause the internal formats for that compiler pass to be returned.

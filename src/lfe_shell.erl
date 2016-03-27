@@ -376,11 +376,11 @@ eval_form_1([unslurp|_], St) ->
 eval_form_1([run|Args], St0) ->
     {Value,St1} = run(Args, St0),
     {Value,St1};
-eval_form_1(['define-function',Name,Def], #state{curr=Ce0}=St) ->
+eval_form_1(['define-function',Name,Def,_], #state{curr=Ce0}=St) ->
     Ar = function_arity(Def),
     Ce1 = lfe_eval:add_dynamic_func(Name, Ar, Def, Ce0),
     {Name,St#state{curr=Ce1}};
-eval_form_1(['define-macro',Name,Def], #state{curr=Ce0}=St) ->
+eval_form_1(['define-macro',Name,Def,_], #state{curr=Ce0}=St) ->
     Ce1 = add_mbinding(Name, Def, Ce0),
     {Name,St#state{curr=Ce1}};
 eval_form_1(['reset-environment'], #state{base=Be}=St) ->
@@ -436,12 +436,12 @@ set_1(Pat, Guard, Exp, #state{curr=Ce0}=St) ->
 
 %% unslurp(State) -> {ok,State}.
 %% slurp(File, State) -> {{ok,Mod},State}.
-%%  Load in a file making all functions available. We call the
-%%  compiler directly and only add defined functions, macros are
-%%  lost. Any exported macros will be available in the
-%%  LFE-EXPAND-EXPORTED-MACRO/3 function.
+%%  Load in a file making all the functions and macros available.
+%%  There is a bit of trickery to get hold of the compile environment
+%%  to get hold of the macros. We call the compiler directly but don't
+%%  make the LFE-EXPAND-EXPORTED-MACRO/3 function.
 
--record(slurp, {mod,imps=[]}).                  %For slurping
+-record(slurp, {mod,funs=[],imps=[]}).          %For slurping
 
 unslurp(St0) ->
     St1 = case St0#state.slurp of
@@ -455,31 +455,31 @@ unslurp(St0) ->
 slurp([File], St0) ->
     {ok,#state{curr=Ce0}=St1} = unslurp(St0),   %Reset the environment
     Name = lfe_eval:expr(File, Ce0),            %Get file name
-    case slurp_file(Name, Ce0) of
+    case slurp_1(Name, Ce0) of
         {ok,Mod,Ce1} ->                         %Set the new environment
             {{ok,Mod},St1#state{save=Ce0,curr=Ce1,slurp=true}};
         error ->
             {error,St1}
     end.
 
-slurp_file(Name, Ce0) ->
-    case lfe_comp:file(Name, [binary,to_lint,return]) of
-        {ok,[{ok,Mod,Fs,Mws}|_],Ws} ->          %Only do first module
+slurp_1(Name, Ce) ->
+    case slurp_file(Name) of
+        {ok,Mod,Fs,Env0,Ws} ->
             slurp_warnings(Ws),
-            slurp_warnings(Mws),
-            Sl0 = #slurp{mod=Mod,imps=[]},
-            {Fbs,Sl1} = lfe_lib:proc_forms(fun collect_form/3, Fs, Sl0),
+	    %% Collect functions and imports.
+            Sl0 = #slurp{mod=Mod,funs=[],imps=[]},
+            Sl1 = lists:foldl(fun collect_module/2, Sl0, Fs),
             %% Add imports to environment.
-            Ce1 = foldl(fun ({M,Is}, Env) ->
-                                foldl(fun ({{F,A},R}, E) ->
-                                              add_ibinding(M, F, A, R, E)
-                                      end, Env, Is)
-                        end, Ce0, Sl1#slurp.imps),
+            Env1 = foldl(fun ({M,Is}, Env) ->
+                                 foldl(fun ({{F,A},R}, E) ->
+                                               add_ibinding(M, F, A, R, E)
+                                       end, Env, Is)
+                         end, Env0, Sl1#slurp.imps),
             %% Add functions to environment.
-            Ce2 = foldl(fun ({N,Ar,Def}, Env) ->
-                                lfe_eval:add_dynamic_func(N, Ar, Def, Env)
-                        end, Ce1, Fbs),
-            {ok,Mod,Ce2};
+            Env2 = foldl(fun ({N,Ar,Def}, Env) ->
+                                 lfe_eval:add_dynamic_func(N, Ar, Def, Env)
+                         end, Env1, Sl1#slurp.funs),
+            {ok,Mod,add_env(Env2, Ce)};
         {error,Mews,Es,Ws} ->
             slurp_errors(Es),
             slurp_warnings(Ws),
@@ -491,34 +491,38 @@ slurp_file(Name, Ce0) ->
             error
     end.
 
-slurp_errors(Errors) ->
-    foreach(fun ({File,Es}) -> slurp_errors(File, Es) end, Errors).
+slurp_file(Name) ->
+    case lfe_comp:file(Name, [binary,to_split,return]) of
+        {ok,[{ok,Mod,Fs0,_}|_],Ws} ->           %Only do first module
+            case lfe_macro:expand_forms(Fs0, lfe_env:new()) of
+                {ok,Fs1,Env,_} ->
+                    %% Flatten and trim away any eval-when-compile.
+                    {Fs2,42} = lfe_lib:proc_forms(fun slurp_form/3, Fs1, 42),
+                    case lfe_lint:module(Fs2) of
+                        {ok,_,Lws} -> {ok,Mod,Fs2,Env,Ws ++ Lws};
+                        {error,Les,Lws} ->
+                            slurp_error_ret(Name, Les, Ws ++ Lws)
+                    end;
+                {error,Ees,Ews} ->
+                    slurp_error_ret(Name, Ees, Ws ++ Ews)
+            end;
+        Error -> Error
+    end.
 
-slurp_warnings(Warnings) ->
-    foreach(fun ({File,Ws}) -> slurp_warnings(File, Ws) end, Warnings).
+slurp_error_ret(Name, Es, Ws) ->
+    {error,[],[{Name,Es}],[{Name,Ws}]}.
 
-slurp_errors(File, Es) -> slurp_ews(File, "~s:~w: ~s\n", Es).
+slurp_form(['eval-when-compile'|_], _, D) -> {[],D};
+slurp_form(F, L, D) -> {[{F,L}],D}.
 
-slurp_warnings(File, Es) -> slurp_ews(File, "~s:~w: Warning: ~s\n", Es).
-
-slurp_ews(File, Format, Ews) ->
-    foreach(fun ({Line,Mod,Error}) ->
-                    Cs = Mod:format_error(Error),
-                    lfe_io:format(Format, [File,Line,Cs])
-            end, Ews).
-
-collect_form(['define-module',Mod|Mdef], _, St0) ->
-    St1 = collect_mdef(Mdef, St0),
-    {[],St1#slurp{mod=Mod}};
-collect_form(['extend-module'|Mdef], _, St0) ->
-    St1 = collect_mdef(Mdef, St0),
-    {[],St1};
-collect_form(['eval-when-compile'|_], _, St) ->
-    %% Can safely ignore this, everything already in environment.
-    {[],St};
-collect_form(['define-function',F,Def], _, St) ->
+collect_module({['define-module',Mod|Mdef],_}, Sl0) ->
+    Sl1 = collect_mdef(Mdef, Sl0),
+    Sl1#slurp{mod=Mod};
+collect_module({['extend-module'|Mdef],_}, Sl) ->
+    collect_mdef(Mdef, Sl);
+collect_module({['define-function',F,Def,_],_}, #slurp{funs=Fs}=Sl) ->
     Ar = function_arity(Def),
-    {[{F,Ar,Def}],St}.
+    Sl#slurp{funs=[{F,Ar,Def}|Fs]}.
 
 collect_mdef([[import|Is]|Mdef], St) ->
     collect_mdef(Mdef, collect_imps(Is, St));
@@ -541,6 +545,26 @@ collect_imp(Fun, Mod, St, Fs) ->
     Imps0 = safe_fetch(Mod, St#slurp.imps, []),
     Imps1 = foldl(Fun, Imps0, Fs),
     St#slurp{imps=store(Mod, Imps1, St#slurp.imps)}.
+
+%% slurp_errors([File, ]Errors) -> ok.
+%% slurp_warnings([File, ]Warnings) -> ok.
+%%  Print errors and warnings.
+
+slurp_errors(Errors) ->
+    foreach(fun ({File,Es}) -> slurp_errors(File, Es) end, Errors).
+
+slurp_errors(File, Es) -> slurp_ews(File, "~s:~w: ~s\n", Es).
+
+slurp_warnings(Warnings) ->
+    foreach(fun ({File,Ws}) -> slurp_warnings(File, Ws) end, Warnings).
+
+slurp_warnings(File, Es) -> slurp_ews(File, "~s:~w: Warning: ~s\n", Es).
+
+slurp_ews(File, Format, Ews) ->
+    foreach(fun ({Line,Mod,Error}) ->
+                    Cs = Mod:format_error(Error),
+                    lfe_io:format(Format, [File,Line,Cs])
+            end, Ews).
 
 %% run(Args, State) -> {Value,State}.
 %%  Run the shell expressions in a file. Abort on errors and only

@@ -164,14 +164,16 @@ compiler_info(#comp{lfile=F,opts=Os,ipath=Is}) ->
 
 lfe_comp_opts(Opts) ->
     Fun = fun ('to-split') -> to_split;
-              ('to-emac') -> to_emac;
-              ('to-exp') -> to_exp;
+              ('to-expmac') -> to_expmac;
+              ('to-expand') -> to_expand;
+              ('to-exp') -> to_exp;             %Backwards compatibility
               ('to-pmod') -> to_pmod;
               ('to-lint') -> to_lint;
               ('to-core0') -> to_core0;
               ('to-core') -> to_core;
               ('to-kernel') -> to_kernel;
               ('to-asm') -> to_asm;
+              ('no-export-macros') -> no_export_macros;
               ('warnings-as-errors') -> warnings_as_errors;
               ('report-warnings') -> report_warnings;
               ('report-errors') -> report_errors;
@@ -219,11 +221,12 @@ passes() ->
      {do,fun do_split_file/1},
      {when_flag,to_split,{done,fun split_pp/1}},
      %% Do per-module macro processing.
-     {do,fun do_export_macros/1},
-     {when_flag,to_emac,{done,fun expmac_pp/1}},
+     {unless_flag,no_export_macros,{do,fun do_export_macros/1}},
+     {when_flag,to_expmac,{done,fun expmac_pp/1}},
      %% Now we expand and trim remaining macros.
      {do,fun do_expand_macros/1},
-     {when_flag,to_exp,{done,fun expand_pp/1}},
+     {when_flag,to_expand,{done,fun expand_pp/1}},
+     {when_flag,to_exp,{done,fun expand_pp/1}}, %Backwards compatibility
      {do,fun do_lfe_pmod/1},
      {when_flag,to_pmod,{done,fun pmod_pp/1}},
      {do,fun do_lfe_lint/1},
@@ -231,8 +234,8 @@ passes() ->
      {do,fun do_lfe_codegen/1},
      {when_flag,to_core0,{done,fun core_pp/1}},
      {do,fun do_erl_comp/1},
-     %% These options will have made erl compiler return internal form
-     %% after pass.
+     %% These options will have made erlang compiler return internal
+     %% form after pass.
      {when_flag,to_core,{done,fun erl_core_pp/1}},
      {when_flag,to_kernel,{done,fun erl_kernel_pp/1}},
      {when_flag,to_asm,{done,fun erl_asm_pp/1}},
@@ -280,7 +283,7 @@ do_passes([], St) -> {ok,St}.                   %Got to the end, everything ok!
 %%  each module (with define-module form).
 
 do_split_file(#comp{cinfo=Ci,code=Code}=St) ->
-    case collect_forms(Code, Ci) of             %Expand pre module forms
+    case collect_pre_forms(Code, Ci) of         %Expand pre module forms
         {Pfs,Fs,Env0,Mst0} ->
             %% Expand the modules using the pre forms and environment.
             case collect_modules(Fs, Pfs, Env0, Mst0) of
@@ -298,10 +301,10 @@ do_split_file(#comp{cinfo=Ci,code=Code}=St) ->
                            warnings=St#comp.warnings ++ Ws}}
     end.
 
-%% collect_forms(Forms, State) ->
+%% collect_pre_forms(Forms, CompInfo) ->
 %%     {PreForms,RestForms,Env,State}.
 
-collect_forms(Fs, Ci) ->
+collect_pre_forms(Fs, Ci) ->
     Env = lfe_env:new(),
     St = lfe_macro:macro_form_init(Ci),
     collect_mod_forms(Fs, Env, St).
