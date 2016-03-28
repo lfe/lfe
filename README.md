@@ -39,6 +39,10 @@ desired directory. So:
 
 will put the programs in ``/Users/rv/bin``.
 
+Note that the installation target will also install the LFE man pages
+in the appropriate ``/usr/local/man/man*`` directories.
+
+
 ## REPL
 
 If you're running LFE from a git clone working dir, you can start the REPL
@@ -123,16 +127,12 @@ of the ``lfex/lfe`` Docker image. For more information on using Docker
 with LFE, be sure to read the
 [tutorial](http://blog.lfe.io/tutorials/2014/12/07/1837-running-lfe-in-docker/).
 
+
 ## Documentation
 
-* [Quick Start](http://lfe.github.io/quick-start/1.html)
-* [User Guide](http://lfe.github.io/user-guide/intro/1.html)
-
-
-### Classic Docs
-
-* "classic" [user guide](doc/user_guide.txt)
-* [version history](doc/version_history.md)
+* [Quick Start](https://lfe.gitbooks.io/quick-start/content/)
+* LFE [user guide](doc/user_guide.txt)
+* [version history](doc/source/version_history.md)
 
 Files with more technical details:
 
@@ -144,3 +144,8 @@ Files with more technical details:
 * [lfe_gen.txt](doc/lfe_gen.txt)
 * [lfe_comp.txt](doc/lfe_comp.txt)
 * [lfe_bits.txt](doc/lfe_bits.txt)
+
+If you would like to make changes to the LFE documentation and then regenerate
+the docs, you'll want to read the instructions here:
+
+* [Updating LFE Documentation](doc/source/updating_docs.md)
