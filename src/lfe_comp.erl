@@ -226,7 +226,7 @@ passes() ->
      {unless_flag,no_export_macros,{do,fun do_export_macros/1}},
      {when_flag,to_expmac,{done,fun expmac_pp/1}},
      %% Parse docstrings while we can.
-     %% {unless_flag,no_docs,{do,fun do_docs/1}},
+     {unless_flag,no_docs,{do,fun do_docs/1}},
      %% Now we expand and trim remaining macros.
      {do,fun do_expand_macros/1},
      {when_flag,to_expand,{done,fun expand_pp/1}},
@@ -243,6 +243,8 @@ passes() ->
      {when_flag,to_core,{done,fun erl_core_pp/1}},
      {when_flag,to_kernel,{done,fun erl_kernel_pp/1}},
      {when_flag,to_asm,{done,fun erl_asm_pp/1}},
+     %% Write docs beam chunks.
+     {unless_flag,no_docs,{do,fun add_docs/1}},
      %% Now we just write the beam file unless warnings-as-errors is
      %% set and we have warnings.
      {when_test,fun is_werror/1,error},
@@ -376,12 +378,16 @@ do_export_macros(#comp{cinfo=Ci,code=Ms0}=St) ->
     Ms1 = lists:map(Umac, Ms0),
     {ok,St#comp{code=Ms1}}.
 
+do_docs(St) ->
+    Code = lists:map(fun lfe_doc:module/1, St#comp.code),
+    {ok,St#comp{code=Code}}.
+
 do_expand_macros(#comp{cinfo=Ci,code=Ms0}=St0) ->
-    Emac = fun ({ok,Name,Fs0,Ws}) ->
+    Emac = fun ({ok,Name,Fs0,Ws,Docs}) ->
                    Env = lfe_env:new(),
                    Mst = lfe_macro:expand_form_init(Ci),
                    case process_forms(fun expand_form/3, Fs0, {Env,Mst}) of
-                       {Fs1,_} -> {ok,Name,Fs1,Ws};
+                       {Fs1,_} -> {ok,Name,Fs1,Ws,Docs};
                        {error,_,_}=Error -> Error
                    end
            end,
@@ -426,17 +432,17 @@ process_forms(Fun, Fs, L, St) ->
 %%  The actual compiler passes.
 
 do_lfe_pmod(#comp{cinfo=Ci,code=Ms0}=St) ->
-    Pmod = fun ({ok,_,Mfs0,Ws}) ->
+    Pmod = fun ({ok,_,Mfs0,Ws,Docs}) ->
                    {Name,Mfs1} = lfe_pmod:module(Mfs0, Ci),
-                   {ok,Name,Mfs1,Ws}
+                   {ok,Name,Mfs1,Ws,Docs}
            end,
     Ms1 = lists:map(Pmod, Ms0),
     {ok,St#comp{code=Ms1}}.
 
 do_lfe_lint(#comp{cinfo=Ci,code=Ms0}=St0) ->
-    Lint = fun ({ok,_,Mfs,Ws}) ->
+    Lint = fun ({ok,_,Mfs,Ws,Docs}) ->
                    case lfe_lint:module(Mfs, Ci) of
-                       {ok,Name,Lws} -> {ok,Name,Mfs,Ws ++ Lws};
+                       {ok,Name,Lws} -> {ok,Name,Mfs,Ws ++ Lws,Docs};
                        {error,Les,Lws} -> {error,Les,Ws ++ Lws}
                    end
            end,
@@ -449,9 +455,9 @@ do_lfe_lint(#comp{cinfo=Ci,code=Ms0}=St0) ->
     end.
 
 do_lfe_codegen(#comp{cinfo=Ci,code=Ms0}=St) ->
-    Code = fun ({ok,Name,Mfs,Ws}) ->            %Name consistency check!
+    Code = fun ({ok,Name,Mfs,Ws,Docs}) ->       %Name consistency check!
                    {Name,Core} = lfe_codegen:module(Mfs, Ci),
-                   {ok,Name,Core,Ws}
+                   {ok,Name,Core,Ws,Docs}
            end,
     Ms1 = lists:map(Code, Ms0),
     {ok,St#comp{code=Ms1}}.
@@ -466,18 +472,19 @@ do_erl_comp(#comp{code=Ms0}=St0) ->
         false -> {error,St1}
     end.
 
-do_erl_comp_mod({ok,Name,Core,Ws}, ErlOpts) ->
+do_erl_comp_mod({ok,Name,Core,Ws,Docs}, ErlOpts) ->
     %% lfe_io:format("~p\n", [Core]),
     case compile:forms(Core, ErlOpts) of
         {ok,_,Result,Ews} ->
-            {ok,Name,Result,Ws ++ fix_erl_errors(Ews)};
+            {ok,Name,Result,Ws ++ fix_erl_errors(Ews),Docs};
         {error,Ees,Ews} ->
             {error,fix_erl_errors(Ees),fix_erl_errors(Ews)}
     end.
 
 all_ok(Res) ->
-    lists:all(fun ({ok,_,_,_}) -> true;
-                  ({error,_,_}) -> false
+    lists:all(fun ({ok,_,_,_})   -> true;
+                  ({ok,_,_,_,_}) -> true;
+                  ({error,_,_})  -> false
               end, Res).
 
 %% erl_comp_opts(State) -> Options.
@@ -579,6 +586,20 @@ do_save_file(Save, Ext, St) ->
         {error,E} -> {error,St#comp{errors=[{file,E}]}}
     end.
 
+add_docs(St0) ->
+    Res = lists:map(fun (M) -> add_docs_module(M, St0) end, St0#comp.code),
+    St1 = St0#comp{code=Res},
+    {ok,St1}.
+
+add_docs_module({ok,Mod,Beam,Warns,Docs0}, St0) ->
+    {ok,{Mod,[{exports,Expt}]}} = beam_lib:chunks(Beam, [exports]),
+    F = fun (#doc{name=F,arity=A}=Doc0, Acc) ->
+                [Doc0#doc{exported=lists:member({F,A}, Expt)}|Acc]
+        end,
+    Docs1 = lists:foldl(F, [], Docs0),
+    St1 = St0#comp{docs=Docs1},
+    {ok,Mod,add_docs_chunk(Beam, St1),Warns}.
+
 beam_write(St0) ->
     Res = lists:map(fun (M) -> beam_write_module(M, St0) end, St0#comp.code),
     St1 = St0#comp{code=Res},
@@ -597,7 +618,7 @@ beam_write_module({ok,M,Beam,_}=Mod, St) ->
     end.
 
 %% Modified from elixir_module
-add_docs_chunk(Bin, #comp{docs=Docs}=_St, _Line) ->
+add_docs_chunk(Bin, #comp{docs=Docs}) ->
     ChunkData = term_to_binary({lfe_docs_v1, [
       {docs, Docs} %,
       %% {moduledoc, get_moduledoc(Line, Data)},
@@ -606,7 +627,7 @@ add_docs_chunk(Bin, #comp{docs=Docs}=_St, _Line) ->
     ]}),
     add_beam_chunk(Bin, "LDoc", ChunkData);
 
-add_docs_chunk(Bin, _, _) -> Bin.
+add_docs_chunk(Bin, _) -> Bin.
 
 %% Fom elixir_module: Adds custom chunk to a .beam binary
 add_beam_chunk(Bin, Id, ChunkData)
