@@ -54,10 +54,10 @@ EXAMPLE
 
        The  header  of  the  LFE script is different from a normal LFE module.
        The first line is an interpreter line which invokes  lfescript  if  the
-       script  is  run  as  in  the first command line above.  If lfescript is
-       explicitly invoked in the second command line above  then  this  header
-       line  will  be  ignored.  On the second or third line it is possible to
-       give arguments to the emulator with the syntax:
+       script  is run as in the first command line above.  If lfescript is ex‐
+       plicitly invoked in the second command line above then this header line
+       will  be  ignored.   On the second or third line it is possible to give
+       arguments to the emulator with the syntax:
 
               ;;! -smp enable -sname factorial -mnesia debug verbose
 
@@ -71,8 +71,8 @@ EXAMPLE
        source code.
 
        The source code is checked and warnings and errors will be printed.  If
-       there are errors the script will not run and  it  will  terminate  with
-       exit status 127.  Otherwise the code will be interpreted.  If the func‐
+       there are errors the script will not run and it will terminate with ex‐
+       it  status  127.  Otherwise the code will be interpreted.  If the func‐
        tion main/1 returns successfully then the exit status  for  the  script
        will be 0 but if an exception is raised then exit status will be 127.
 
@@ -97,7 +97,7 @@ ENVIRONMENT VARIABLES
        will add the directory sune to the code path.
 
 SEE ALSO
-       lfe_shell(1), lfe_user_guide(7)
+       lfe_shell(1), lfe_guide(7)
 
 AUTHORS
        Robert Virding.

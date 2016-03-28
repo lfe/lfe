@@ -1,19 +1,20 @@
-% lfe_shell(1)
+% lfe(1)
 % Robert Virding
 % 2008-2016
 
 
 # NAME
 
-lfe_shell - Lisp Flavoured Erlang (LFE) shell
-
+lfe - Lisp Flavoured Erlang (LFE) shell
 
 # SYNOPSIS
 
-There is now a simple LFE shell in which you can enter sexprs
-which are evaluated and the value printed. You can define
-functions and macros as well as set variables.
+``lfe`` is a simple LFE repl (read-eval-print loop) in which you can
+enter sexprs which then are evaluated and the value printed. You can
+also define local functions and macros as well as set variables. It
+can read commands either from the standard input or from a file.
 
+The LFE repl is implemented in the module ``lfe_shell``.
 
 # BUILT-IN SHELL FUNCTIONS
 
@@ -25,9 +26,17 @@ They can also be explicitly called (: lfe_shell ...).
 
 Compile and load an LFE file. Assumes default extension ``.lfe``.
 
+**(cd Dir)**
+
+Change the working directory.
+
 **(ec File [Options])**
 
 Compile and load an Erlang file.
+
+**(flush)**
+
+Flush any messages sent to the shell.
 
 **(i)**
 
@@ -52,9 +61,13 @@ Create a pid from x, y, z.
 
 Print/prettyprint a value to full depth.
 
+**(pwd)**
+
+Print the current working directory.
+
 **(regs)**
 
-Print information about the currently running processes in the system.
+Print information about the registered processes in the system.
 
 **(: c Command Arg ...)**
 
@@ -70,7 +83,8 @@ top-level in shell input. The cannot be redefined.
 
 **(reset-environment)**
 
-Resets the environment to its initial state.
+Resets the environment to its initial state. This will clear all
+variables, functions an macros that have been set.
 
 **(set Pattern Expr)**
 
@@ -118,15 +132,15 @@ Define a macro in the shell.
 
 # BUILT-IN SHELL VARIABLES
 
-``+``, ``++``, ``+++``
+**``+``, ``++``, ``+++``**
 
 The three previous expressions input.
 
-``*``, ``**``, ``***``
+**``*``, ``**``, ``***``**
 
 The values of the previous 3 expressions.
 
-``-``
+**``-``**
 
 The current expression input.
 
@@ -194,4 +208,4 @@ empty list.
 
 # SEE ALSO
 
-**lfescript(1)**, **lfe_user_guide(7)**
+**lfescript(1)**, **lfe_guide(7)**
