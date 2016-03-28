@@ -124,4 +124,4 @@ will add the directory sune to the code path.
 
 # SEE ALSO
 
-**lfe_shell(1)**, **lfe_user_guide(7)**
+**lfe_shell(1)**, **lfe_guide(7)**

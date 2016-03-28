@@ -1,27 +1,38 @@
-lfe_shell(1)                                                      lfe_shell(1)
+lfe(1)                                                                  lfe(1)
 
 
 
 NAME
-       lfe_shell - Lisp Flavoured Erlang (LFE) shell
+       lfe - Lisp Flavoured Erlang (LFE) shell
 
 SYNOPSIS
-       There is now a simple LFE shell in which you can enter sexprs which are
-       evaluated and the value printed.  You can define functions  and  macros
-       as well as set variables.
+       lfe  is a simple LFE repl (read-eval-print loop) in which you can enter
+       sexprs which then are evaluated and the value printed.   You  can  also
+       define  local  functions  and  macros as well as set variables.  It can
+       read commands either from the standard input or from a file.
+
+       The LFE repl is implemented in the module lfe_shell.
 
 BUILT-IN SHELL FUNCTIONS
        These are defined as normal functions and macros and can be called from
-       anywhere in the shell.  They can even be redefined.  They can  also  be
+       anywhere  in  the shell.  They can even be redefined.  They can also be
        explicitly called (: lfe_shell ...).
 
        (c File [Options])
 
        Compile and load an LFE file.  Assumes default extension .lfe.
 
+       (cd Dir)
+
+       Change the working directory.
+
        (ec File [Options])
 
        Compile and load an Erlang file.
+
+       (flush)
+
+       Flush any messages sent to the shell.
 
        (i)
 
@@ -46,24 +57,29 @@ BUILT-IN SHELL FUNCTIONS
 
        Print/prettyprint a value to full depth.
 
+       (pwd)
+
+       Print the current working directory.
+
        (regs)
 
-       Print information about the currently running processes in the system.
+       Print information about the registered processes in the system.
 
        (: c Command Arg ...)
 
        (c:Command Arg ...)
 
-       All the commands in the standard Erlang shell can be  reached  in  this
+       All  the  commands  in the standard Erlang shell can be reached in this
        way.
 
 BUILT-IN SHELL COMMANDS
-       These  are  special forms which are only recognised at the top-level in
+       These are special forms which are only recognised at the  top-level  in
        shell input.  The cannot be redefined.
 
        (reset-environment)
 
-       Resets the environment to its initial state.
+       Resets the environment to its initial state.  This will clear all vari‐
+       ables, functions an macros that have been set.
 
        (set Pattern Expr)
 
@@ -88,8 +104,8 @@ BUILT-IN SHELL COMMANDS
        (run File)
 
        Execute all the shell commands in File.  All defined  variables,  func‐
-       tions  and  macros  will  be  saved  in the environment if there are no
-       errors.
+       tions  and  macros will be saved in the environment if there are no er‐
+       rors.
 
 SHELL FUNCTIONS AND MACROS
        Functions and macros can be defined in the shell.  These will  only  be
@@ -163,11 +179,11 @@ RUNNING LFE SHELL SCRIPTS
        been given then this will be an empty list.
 
 SEE ALSO
-       lfescript(1), lfe_user_guide(7)
+       lfescript(1), lfe_guide(7)
 
 AUTHORS
        Robert Virding.
 
 
 
-                                   2008-2016                      lfe_shell(1)
+                                   2008-2016                            lfe(1)
