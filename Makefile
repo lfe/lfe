@@ -173,14 +173,16 @@ docs-txt: docs-man \
 	$(addprefix $(DOCDIR)/, $(TXT7S))
 	@mv $(DOCDIR)/lfe_guide.txt $(DOCDIR)/user_guide.txt
 
+$(DOCDIR)/%.txt: export GROFF_NO_SGR=1
+
 $(DOCDIR)/%.txt: $(MANDIR)/%.1
-	groff -t -e -mandoc -T utf8 $< | col -bx > $@
+	groff -t -e -mandoc -Tutf8 -Kutf8 $< | col -bx > $@
 
 $(DOCDIR)/%.txt: $(MANDIR)/%.3
-	groff -t -e -mandoc -T utf8 $< | col -bx > $@
+	groff -t -e -mandoc -Tutf8 -Kutf8 $< | col -bx > $@
 
 $(DOCDIR)/%.txt: $(MANDIR)/%.7
-	groff -t -e -mandoc -T utf8 $< | col -bx > $@
+	groff -t -e -mandoc -Tutf8 -Kutf8 $< | col -bx > $@
 
 $(PDFDIR):
 	@mkdir -p $(PDFDIR)
