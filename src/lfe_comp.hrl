@@ -25,7 +25,7 @@
                }).
 
 -record(module, {name=[],                       %Module name
-                 code,                          %Module code
+                 code=none,                     %Module code
                  warnings=[],                   %Module warnings
                  docs=[]                        %Module docs
                 }).
@@ -40,13 +40,10 @@
               arity    = error(missing_arity) :: non_neg_integer(),
               %% TODO: Parse and store patterns as in Lodox.
               patterns = [[]]                 :: [pattern()],
-              doc      = ""                   :: string()
+              doc      = <<"">>               :: binary()
              }).
 
 -type doc() :: #doc{}.
 
 %% Bloody useful
--define(IF(Test,True,False), case Test of
-                                 true -> True;
-                                 false -> False
-                             end).
+-define(IF(Test,True,False), case Test of true -> True; false -> False end).
