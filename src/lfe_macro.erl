@@ -51,12 +51,6 @@
 -include("lfe_comp.hrl").
 -include("lfe_macro.hrl").
 
-%% Bloody useful
--define(IF(Test,True,False), case Test of
-                                 true -> True;
-                                 false -> False
-                             end).
-
 %% Define IS_MAP/1 macro for is_map/1 bif.
 -ifdef(HAS_MAPS).
 -define(IS_MAP(T), is_map(T)).

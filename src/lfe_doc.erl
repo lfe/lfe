@@ -29,12 +29,6 @@
 
 -include("lfe_comp.hrl").
 
-%% Bloody useful
--define(IF(Test,True,False), case Test of
-                                 true -> True;
-                                 false -> False
-                             end).
-
 %% Errors
 %% format_error({bad_form,Type}) ->
 %%     lfe_io:format1("bad form: ~w", [Type]);
