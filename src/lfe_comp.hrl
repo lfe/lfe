@@ -45,5 +45,11 @@
 
 -type doc() :: #doc{}.
 
+-record(lfe_docs_v1, {docs=[] :: [doc()]        %Function/macro docs
+                      %% moduledoc=ModuleDoc         %Module doc
+                      %% callback_docs=CallbackDocs, %Callback docs
+                      %% type_docs=TypeDocs          %Type docs
+                     }).
+
 %% Bloody useful
 -define(IF(Test,True,False), case Test of true -> True; false -> False end).

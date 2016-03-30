@@ -38,8 +38,12 @@
 %%     %% Can be very big so only print limited depth.
 %%     lfe_io:format1("error expanding ~P", [Call,10]).
 
-module({ok,Mod,[],Warns})   -> {ok,Mod,[],Warns,[]};
-module({ok,Mod,Defs,Warns}) -> {ok,Mod,Defs,Warns,do_module([], Defs)}.
+-spec module(#module{code::Defs}) -> #module{docs::Docs} when
+      Defs :: list(Form),
+      Form :: list(),
+      Docs :: list(doc()).
+module(#module{code=[]}=Mod)   -> Mod#module{docs=[]};
+module(#module{code=Defs}=Mod) -> Mod#module{docs=do_module([], Defs)}.
 
 do_module(Docs, []) -> Docs;
 do_module(Docs, [{['define-function',Name,Body,DocStr],_Line}|Defs]) ->
