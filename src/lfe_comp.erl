@@ -52,7 +52,7 @@
                errors=[],
                warnings=[],
                docs=[]
-          }).
+              }).
 
 %% default_options() -> Options.
 %%  Return the default compiler options.
@@ -319,7 +319,7 @@ collect_modules([{['define-module',Name|_],_}=Mdef|Fs0], Ms, PreFs, PreEnv, St0)
     %% Expand and collect all forms upto next define-module or end.
     case collect_mod_forms(Fs0, PreEnv, St0) of
         {Mfs0,Fs1,_,St1} ->
-            M = {ok,Name,[Mdef] ++ PreFs ++ Mfs0,[]},
+            M = #module{name=Name,code=[Mdef] ++ PreFs ++ Mfs0},
             collect_modules(Fs1, [M|Ms], PreFs, PreEnv, St1);
         Error -> Error
     end;
@@ -359,29 +359,33 @@ collect_mod_forms([], Acc, Env, St) -> {Acc,[],Env,St}.
 %%  output.
 
 do_export_macros(#comp{cinfo=Ci,code=Ms0}=St) ->
-    Umac = fun ({ok,Name,Mfs0,Ws}) ->
+    Umac = fun (#module{code=Mfs0}=Mod) ->
                    {Mfs1,_} = lfe_macro_export:module(Mfs0, Ci),
-                   {ok,Name,Mfs1,Ws}
+                   Mod#module{code=Mfs1}
            end,
     Ms1 = lists:map(Umac, Ms0),
     {ok,St#comp{code=Ms1}}.
 
+%% do_docs(State) -> {ok,State}.
+%% Process function and macro docstrings and store them in #module.doc.
+
 do_docs(St) ->
+    %% TODO: error checking?
     Code = lists:map(fun lfe_doc:module/1, St#comp.code),
     {ok,St#comp{code=Code}}.
 
 do_expand_macros(#comp{cinfo=Ci,code=Ms0}=St0) ->
-    Emac = fun ({ok,Name,Fs0,Ws,Docs}) ->
+    Emac = fun (#module{code=Fs0}=Mod) ->
                    Env = lfe_env:new(),
                    Mst = lfe_macro:expand_form_init(Ci),
                    case process_forms(fun expand_form/3, Fs0, {Env,Mst}) of
-                       {Fs1,_} -> {ok,Name,Fs1,Ws,Docs};
+                       {Fs1,_} -> Mod#module{code=Fs1};
                        {error,_,_}=Error -> Error
                    end
            end,
     Ms1 = lists:map(Emac, Ms0),
     St1 = St0#comp{code=Ms1},
-    ?IF(all_ok(Ms1), {ok,St1}, {error,St1}).
+    ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
 
 expand_form(F0, L, {Env0,St0}) ->
     case lfe_macro:expand_form(F0, L, Env0, St0) of
@@ -417,29 +421,30 @@ process_forms(Fun, Fs, L, St) ->
 %%  The actual compiler passes.
 
 do_lfe_pmod(#comp{cinfo=Ci,code=Ms0}=St) ->
-    Pmod = fun ({ok,_,Mfs0,Ws,Docs}) ->
+    Pmod = fun (#module{code=Mfs0}=Mod) ->
                    {Name,Mfs1} = lfe_pmod:module(Mfs0, Ci),
-                   {ok,Name,Mfs1,Ws,Docs}
+                   Mod#module{name=Name,code=Mfs1}
            end,
     Ms1 = lists:map(Pmod, Ms0),
     {ok,St#comp{code=Ms1}}.
 
 do_lfe_lint(#comp{cinfo=Ci,code=Ms0}=St0) ->
-    Lint = fun ({ok,_,Mfs,Ws,Docs}) ->
+    Lint = fun (#module{code=Mfs,warnings=Ws}=Mod) ->
                    case lfe_lint:module(Mfs, Ci) of
-                       {ok,Name,Lws} -> {ok,Name,Mfs,Ws ++ Lws,Docs};
-                       {error,Les,Lws} -> {error,Les,Ws ++ Lws}
+                       {ok,Name,Lws} -> Mod#module{name=Name,warnings=Ws++Lws};
+                       {error,Les,Lws} -> {error,Les,Ws++Lws}
                    end
            end,
     %% Lint the modules, then check if all are ok.
     Ms1 = lists:map(Lint, Ms0),
     St1 = St0#comp{code=Ms1},
-    ?IF(all_ok(Ms1), {ok,St1}, {error,St1}).
+    ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
 
 do_lfe_codegen(#comp{cinfo=Ci,code=Ms0}=St) ->
-    Code = fun ({ok,Name,Mfs,Ws,Docs}) ->       %Name consistency check!
+    Code = fun (#module{name=Name,code=Mfs}=Mod) ->
+                   %% Name consistency check!
                    {Name,Core} = lfe_codegen:module(Mfs, Ci),
-                   {ok,Name,Core,Ws,Docs}
+                   Mod#module{code=Core}
            end,
     Ms1 = lists:map(Code, Ms0),
     {ok,St#comp{code=Ms1}}.
@@ -449,22 +454,24 @@ do_erl_comp(#comp{code=Ms0}=St0) ->
     %% Compile all the modules, then if all are ok.
     Ms1 = lists:map(fun (M) -> do_erl_comp_mod(M, ErlOpts) end, Ms0),
     St1 = St0#comp{code=Ms1},
-    ?IF(all_ok(Ms1), {ok,St1}, {error,St1}).
+    ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
 
-do_erl_comp_mod({ok,Name,Core,Ws,Docs}, ErlOpts) ->
+do_erl_comp_mod(#module{code=Core,warnings=Ws}=Mod, ErlOpts) ->
     %% lfe_io:format("~p\n", [Core]),
     case compile:forms(Core, ErlOpts) of
         {ok,_,Result,Ews} ->
-            {ok,Name,Result,Ws ++ fix_erl_errors(Ews),Docs};
+            Mod#module{code=Result,warnings=Ws ++ fix_erl_errors(Ews)};
         {error,Ees,Ews} ->
             {error,fix_erl_errors(Ees),fix_erl_errors(Ews)}
     end.
 
-all_ok(Res) ->
-    lists:all(fun ({ok,_,_,_})   -> true;
-                  ({ok,_,_,_,_}) -> true;
-                  ({error,_,_})  -> false
-              end, Res).
+%% all_ok(Res) ->
+%%     lists:all(fun ({ok,_,_,_})   -> true;
+%%                   ({ok,_,_,_,_}) -> true;
+%%                   ({error,_,_})  -> false
+%%               end, Res).
+
+all_module(Res) -> lists:all(fun (X) -> is_record(X, module) end, Res).
 
 %% erl_comp_opts(State) -> Options.
 %%  Strip out report options and make sure erlang compiler returns
@@ -532,7 +539,7 @@ core_pp(St) ->
 erl_core_pp(St) ->
     Save = fun (File, {ok,_,Core,_}) ->
                    io:put_chars(File, [core_pp:format(Core),$\n])
-          end,
+           end,
     do_list_save_file(Save, "core", St).
 
 erl_kernel_pp(St) ->
@@ -566,26 +573,25 @@ do_save_file(Save, Ext, St) ->
     end.
 
 add_docs(St0) ->
-    Res = lists:map(fun (M) -> add_docs_module(M, St0) end, St0#comp.code),
-    St1 = St0#comp{code=Res},
-    {ok,St1}.
+    Ms1 = lists:map(fun add_docs_module/1, St0#comp.code),
+    St1 = St0#comp{code=Ms1},
+    ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
 
-add_docs_module({ok,Mod,Beam,Warns,Docs0}, St0) ->
-    {ok,{Mod,[{exports,Expt}]}} = beam_lib:chunks(Beam, [exports]),
+add_docs_module(#module{name=Name,code=Beam,docs=Docs0}=Mod) ->
+    {ok,{Name,[{exports,Expt}]}} = beam_lib:chunks(Beam, [exports]),
     F = fun (#doc{name=F,arity=A}=Doc0, Acc) ->
                 [Doc0#doc{exported=lists:member({F,A}, Expt)}|Acc]
         end,
     Docs1 = lists:foldl(F, [], Docs0),
-    St1 = St0#comp{docs=Docs1},
-    {ok,Mod,add_docs_chunk(Beam, St1),Warns}.
+    add_docs_chunk(Mod#module{docs=Docs1}).
 
 beam_write(St0) ->
     Ms1 = lists:map(fun (M) -> beam_write_module(M, St0) end, St0#comp.code),
     St1 = St0#comp{code=Ms1},
     %% Check return status.
-    ?IF(all_ok(Ms1), {ok,St1}, {error,St1}).
+    ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
 
-beam_write_module({ok,M,Beam,_}=Mod, St) ->
+beam_write_module(#module{name=M,code=Beam}=Mod, St) ->
     Name = filename:join(St#comp.odir, lists:concat([M,".beam"])),
     case file:write_file(Name, Beam) of
         ok -> Mod;
@@ -594,20 +600,19 @@ beam_write_module({ok,M,Beam,_}=Mod, St) ->
     end.
 
 %% Modified from elixir_module
-add_docs_chunk(Bin, #comp{docs=Docs}) ->
-    ChunkData = term_to_binary({lfe_docs_v1, [
-      {docs, Docs} %,
-      %% {moduledoc, get_moduledoc(Line, Data)},
-      %% {callback_docs, get_callback_docs(Data)},
-      %% {type_docs, get_type_docs(Data)}
-    ]}),
-    add_beam_chunk(Bin, "LDoc", ChunkData);
-
-add_docs_chunk(Bin, _) -> Bin.
+add_docs_chunk(#module{code=Bin,docs=Docs}=Mod) ->
+    ChunkData = term_to_binary(#lfe_docs_v1{
+                                  docs=Docs
+                                  %% moduledoc=ModuleDoc,
+                                  %% callback_docs=CallbackDocs,
+                                  %% type_docs=TypeDocs
+                                 }),
+    Mod#module{code=add_beam_chunk(Bin, "LDoc", ChunkData)};
+add_docs_chunk(_) -> error.
 
 %% Fom elixir_module: Adds custom chunk to a .beam binary
 add_beam_chunk(Bin, Id, ChunkData)
-        when is_binary(Bin), is_list(Id), is_binary(ChunkData) ->
+  when is_binary(Bin), is_list(Id), is_binary(ChunkData) ->
     {ok, _, Chunks0} = beam_lib:all_chunks(Bin),
     NewChunk = {Id, ChunkData},
     Chunks = [NewChunk|Chunks0],
@@ -647,7 +652,7 @@ do_ok_return(#comp{code=Code,lfile=Lfile,opts=Opts,warnings=Ws}) ->
            end,
     list_to_tuple([ok|Ret1]).                   %And build the ok tuple
 
-ok_return_mod({ok,Name,Mods,Ws}, Report, Return, Binary, Lfile) ->
+ok_return_mod(#module{name=Name,code=Mods,warnings=Ws}, Report, Return, Binary, Lfile) ->
     Report andalso list_warnings(Lfile, Ws),
     Ret0 = if Return -> [return_ews(Lfile, Ws)];
               true -> []
