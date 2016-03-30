@@ -592,13 +592,14 @@ check_let(_, _, L, St) ->
 %%  Check a variable binding of form [Pat,[when,Guard],Val] or
 %%  [Pat,Val].
 
-check_let_vb(Vb, Env, L, St0) ->
+check_let_vb([_|_]=Vb, Env, L, St0) ->
     %% Get the environments right here!
     case pattern_guard(Vb, Env, L, St0) of
         {[Val],Pvs,_,St1} ->                    %One value expression only
             {Pvs,check_expr(Val, Env, L, St1)};
         {_,_,_,St1} -> {[],bad_form_error(L, 'let', St1)}
-    end.
+    end;
+check_let_vb(_, _, L, St) -> {[],bad_form_error(L, 'let', St)}.
 
 %% check_let_function(FletBody, Env, Line, State) -> {Env,State}.
 %%  Check a let-function form (let-function FuncBindings ... ).
