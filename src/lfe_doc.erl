@@ -38,19 +38,6 @@
 %%     %% Can be very big so only print limited depth.
 %%     lfe_io:format1("error expanding ~P", [Call,10]).
 
--spec make_doc(Type, Name, Arity, Patterns, Doc) -> doc() when
-      Type     :: 'function' | 'macro',
-      Name     :: atom(),
-      Arity    :: non_neg_integer(),
-      Patterns :: [],
-      Doc      :: string().
-make_doc(Type, Name, Arity, Patterns, Doc0) when is_list(Doc0) ->
-    Doc1 = unicode:characters_to_binary(Doc0, utf8, utf8),
-    make_doc(Type, Name, Arity, Patterns, Doc1);
-make_doc(Type, Name, Arity, Patterns, Doc) when is_binary(Doc) ->
-    #doc{type=Type,name=Name,arity=Arity,patterns=Patterns,doc=Doc}.
-
-
 module({ok,Mod,[],Warns})   -> {ok,Mod,[],Warns,[]};
 module({ok,Mod,Defs,Warns}) -> {ok,Mod,Defs,Warns,do_module([], Defs)}.
 
@@ -65,6 +52,10 @@ do_module(Docs, [{['define-macro',Name,Body,DocStr],_Line}|Defs]) ->
     do_module([Doc|Docs], Defs);
 do_module(Docs, [_|Defs]) -> do_module(Docs, Defs).
 
+-spec patterns(LambdaForm) -> 'no' | {'yes',Arity,Patterns} when
+      LambdaForm :: nonempty_list(),
+      Arity      :: non_neg_integer(),
+      Patterns   :: nonempty_list(pattern()).
 patterns([lambda,Args|_]) ->
     ?IF(is_symb_list(Args), {yes,length(Args),[Args]}, no);
 patterns(['match-lambda',[[[list|Pat],'$ENV'],['when'|_]=Guard|_]|Cls]) ->
@@ -113,3 +104,15 @@ do_patterns(N, Acc, [[Pat|_]|Cls]) ->
         no);
 do_patterns(N, Acc, []) -> {yes,N,reverse(Acc)};
 do_patterns(_, _, _) -> no.
+
+-spec make_doc(Type, Name, Arity, Patterns, Doc) -> doc() when
+      Type     :: 'function' | 'macro',
+      Name     :: atom(),
+      Arity    :: non_neg_integer(),
+      Patterns :: [[]],
+      Doc      :: binary().
+make_doc(Type, Name, Arity, Patterns, Doc0) when is_list(Doc0) ->
+    Doc1 = unicode:characters_to_binary(Doc0, utf8, utf8),
+    make_doc(Type, Name, Arity, Patterns, Doc1);
+make_doc(Type, Name, Arity, Patterns, Doc) when is_binary(Doc) ->
+    #doc{type=Type,name=Name,arity=Arity,patterns=Patterns,doc=Doc}.
