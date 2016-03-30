@@ -239,7 +239,10 @@ passes() ->
      {when_flag,to_core,{done,fun erl_core_pp/1}},
      {when_flag,to_kernel,{done,fun erl_kernel_pp/1}},
      {when_flag,to_asm,{done,fun erl_asm_pp/1}},
-     {unless_test,fun werror/1,{done,fun beam_write/1}} %Should be last
+     %% Now we just write the beam file unless warnings-as-errors is
+     %% set and we have warnings.
+     {when_test,fun is_werror/1,error},
+     {done,fun beam_write/1}                    %Should be last
     ].
 
 do_passes([{when_flag,Flag,Cmd}|Ps], #comp{opts=Opts}=St) ->
@@ -270,6 +273,7 @@ do_passes([{do,Fun}|Ps], St0) ->
 do_passes([{listing,PrintFun}|_], St) ->
     PrintFun(St);
 do_passes([done|_], St) -> {ok,St};             %Just end now
+do_passes([error|_], St) -> {error,St};
 do_passes([{done,Fun}|_], St) ->
     %% Print unless binary, in which case end.
     do_passes([{unless_flag,binary,{listing,Fun}}], St);
@@ -592,32 +596,34 @@ beam_write_module({ok,M,Beam,_}=Mod, St) ->
 
 fix_erl_errors(Fes) -> flatmap(fun ({_,Es}) -> Es end, Fes).
 
-werror(#comp{opts=Opts,warnings=Ws}) ->
-    Ws =/= [] andalso member(warnings_as_errors, Opts).
+%% is_werror(State) -> true | false.
+%%  Check if warnings_as_errors is set and we have warnings.
+
+is_werror(#comp{code=Code,opts=Opts,warnings=Ws}) ->
+    case member(warnings_as_errors, Opts) of
+        true ->
+            (Ws =/= []) orelse
+                any(fun ({ok,_,_,Mws}) -> Mws =/= [] end, Code);
+        false -> false
+    end.
 
 %% do_ok_return(State) -> {ok,Mod,...}.
 %% do_error_return(State) -> {error,...} | error.
-%%  Note that this handling of 'warnings_as_errors' is the same in the
-%%  vanilla erlang compiler 'compile'.
+%%  Note that this handling of 'warnings_as_errors' differs from the
+%%  vanilla erlang compiler 'compile'. We explicitly check for it.
 
-do_ok_return(#comp{code=Code,lfile=Lfile,opts=Opts,warnings=Ws}=St) ->
-    case werror(St) of
-        true -> do_error_return(St);            %Warnings are errors!
-        false ->
-            when_opt(report, Opts, fun () -> list_warnings(Lfile, Ws) end),
-            %% Fix right return.
-            Report = member(report, Opts),
-            Return = member(return, Opts),
-            Binary = member(binary, Opts),
-            RetMod = fun (M) ->
-                             ok_return_mod(M, Report, Return, Binary, Lfile)
-                     end,
-            Ret0 = lists:map(RetMod, Code),
-            Ret1 = if Return -> [Ret0,return_ews(Lfile, Ws)];
-                      true -> [Ret0]
-                   end,
-            list_to_tuple([ok|Ret1])            %And build the ok tuple
-    end.
+do_ok_return(#comp{code=Code,lfile=Lfile,opts=Opts,warnings=Ws}) ->
+    when_opt(report, Opts, fun () -> list_warnings(Lfile, Ws) end),
+    %% Fix right return.
+    Report = member(report, Opts),
+    Return = member(return, Opts),
+    Binary = member(binary, Opts),
+    RetMod = fun (M) -> ok_return_mod(M, Report, Return, Binary, Lfile) end,
+    Ret0 = lists:map(RetMod, Code),
+    Ret1 = if Return -> [Ret0,return_ews(Lfile, Ws)];
+              true -> [Ret0]
+           end,
+    list_to_tuple([ok|Ret1]).                   %And build the ok tuple
 
 ok_return_mod({ok,Name,Mods,Ws}, Report, Return, Binary, Lfile) ->
     Report andalso list_warnings(Lfile, Ws),
@@ -634,8 +640,8 @@ do_error_return(#comp{code=Code,lfile=Lfile,opts=Opts,errors=Es,warnings=Ws}) ->
     when_opt(report, Opts, fun () -> list_warnings(Lfile, Ws) end),
     Report = lists:member(report, Opts),
     Return = lists:member(return, Opts),
-    Err = lists:map(fun (M) -> error_return_mod(M, Report, Return, Lfile) end,
-                    Code),
+    RetMod = fun (M) -> error_return_mod(M, Report, Return, Lfile) end,
+    Err = lists:map(RetMod, Code),
     %% Fix right return.
     case Return of
         true -> {error,Err,return_ews(Lfile, Es),return_ews(Lfile, Ws)};
@@ -644,7 +650,7 @@ do_error_return(#comp{code=Code,lfile=Lfile,opts=Opts,errors=Es,warnings=Ws}) ->
 
 error_return_mod({ok,_,_,Ws}, Rep, _, Lfile) ->
     Rep andalso list_warnings(Lfile, Ws),
-    {error,[],return_ews(Lfile, Ws)};
+    {error,[],return_ews(Lfile, Ws)};           %No errors, only warnings
 error_return_mod({error,Es,Ws}, Rep, _, Lfile) ->
     Rep andalso list_errors(Lfile, Es),
     Rep andalso list_warnings(Lfile, Ws),
