@@ -252,25 +252,13 @@ passes() ->
     ].
 
 do_passes([{when_flag,Flag,Cmd}|Ps], #comp{opts=Opts}=St) ->
-    case member(Flag, Opts)  of
-        true -> do_passes([Cmd|Ps], St);
-        false -> do_passes(Ps, St)
-    end;
-do_passes([{unless_flag,Flag,Cmd}|Ps], St) ->
-    case member(Flag, St#comp.opts) of
-        true -> do_passes(Ps, St);
-        false -> do_passes([Cmd|Ps], St)
-    end;
+    do_passes(?IF(member(Flag, Opts), [Cmd|Ps], Ps), St);
+do_passes([{unless_flag,Flag,Cmd}|Ps], #comp{opts=Opts}=St) ->
+    do_passes(?IF(member(Flag, Opts), Ps, [Cmd|Ps]), St);
 do_passes([{when_test,Test,Cmd}|Ps], St) ->
-    case Test(St) of
-        true -> do_passes([Cmd|Ps], St);
-        false -> do_passes(Ps, St)
-    end;
+    do_passes(?IF(Test(St), [Cmd|Ps], Ps), St);
 do_passes([{unless_test,Test,Cmd}|Ps], St) ->
-    case Test(St) of
-        true -> do_passes(Ps, St);
-        false -> do_passes([Cmd|Ps], St)
-    end;
+    do_passes(?IF(Test(St), Ps, [Cmd|Ps]), St);
 do_passes([{do,Fun}|Ps], St0) ->
     case Fun(St0) of
         {ok,St1} -> do_passes(Ps, St1);
@@ -393,10 +381,7 @@ do_expand_macros(#comp{cinfo=Ci,code=Ms0}=St0) ->
            end,
     Ms1 = lists:map(Emac, Ms0),
     St1 = St0#comp{code=Ms1},
-    case all_ok(Ms1) of
-        true -> {ok,St1};
-        false -> {error,St1}
-    end.
+    ?IF(all_ok(Ms1), {ok,St1}, {error,St1}).
 
 expand_form(F0, L, {Env0,St0}) ->
     case lfe_macro:expand_form(F0, L, Env0, St0) of
@@ -449,10 +434,7 @@ do_lfe_lint(#comp{cinfo=Ci,code=Ms0}=St0) ->
     %% Lint the modules, then check if all are ok.
     Ms1 = lists:map(Lint, Ms0),
     St1 = St0#comp{code=Ms1},
-    case all_ok(Ms1) of
-        true -> {ok,St1};
-        false -> {error,St1}
-    end.
+    ?IF(all_ok(Ms1), {ok,St1}, {error,St1}).
 
 do_lfe_codegen(#comp{cinfo=Ci,code=Ms0}=St) ->
     Code = fun ({ok,Name,Mfs,Ws,Docs}) ->       %Name consistency check!
@@ -467,10 +449,7 @@ do_erl_comp(#comp{code=Ms0}=St0) ->
     %% Compile all the modules, then if all are ok.
     Ms1 = lists:map(fun (M) -> do_erl_comp_mod(M, ErlOpts) end, Ms0),
     St1 = St0#comp{code=Ms1},
-    case all_ok(Ms1) of
-        true -> {ok,St1};
-        false -> {error,St1}
-    end.
+    ?IF(all_ok(Ms1), {ok,St1}, {error,St1}).
 
 do_erl_comp_mod({ok,Name,Core,Ws,Docs}, ErlOpts) ->
     %% lfe_io:format("~p\n", [Core]),
@@ -601,13 +580,10 @@ add_docs_module({ok,Mod,Beam,Warns,Docs0}, St0) ->
     {ok,Mod,add_docs_chunk(Beam, St1),Warns}.
 
 beam_write(St0) ->
-    Res = lists:map(fun (M) -> beam_write_module(M, St0) end, St0#comp.code),
-    St1 = St0#comp{code=Res},
+    Ms1 = lists:map(fun (M) -> beam_write_module(M, St0) end, St0#comp.code),
+    St1 = St0#comp{code=Ms1},
     %% Check return status.
-    case all_ok(Res) of
-        true -> {ok,St1};
-        false -> {error,St1}
-    end.
+    ?IF(all_ok(Ms1), {ok,St1}, {error,St1}).
 
 beam_write_module({ok,M,Beam,_}=Mod, St) ->
     Name = filename:join(St#comp.odir, lists:concat([M,".beam"])),
@@ -689,10 +665,7 @@ do_error_return(#comp{code=Code,lfile=Lfile,opts=Opts,errors=Es,warnings=Ws}) ->
     RetMod = fun (M) -> error_return_mod(M, Report, Return, Lfile) end,
     Err = lists:map(RetMod, Code),
     %% Fix right return.
-    case Return of
-        true -> {error,Err,return_ews(Lfile, Es),return_ews(Lfile, Ws)};
-        false -> error
-    end.
+    ?IF(Return, {error,Err,return_ews(Lfile, Es),return_ews(Lfile, Ws)}, error).
 
 error_return_mod({ok,_,_,Ws}, Rep, _, Lfile) ->
     Rep andalso list_warnings(Lfile, Ws),
@@ -731,14 +704,6 @@ debug_print(Format, Args, St) ->
 %% unless_opt(Option, Options, Fun) -> ok.
 %%  Call Fun when Option is/is not a member of Options.
 
-when_opt(Opt, Opts, Fun) ->
-    case member(Opt, Opts) of
-        true -> Fun();
-        false -> ok
-    end.
+when_opt(Opt, Opts, Fun) -> ?IF(member(Opt, Opts), Fun(), ok).
 
-%% unless_opt(Opt, Opts, Fun) ->
-%%     case member(Opt, Opts) of
-%%         true -> ok;
-%%         false ->  Fun()
-%%     end.
+%% unless_opt(Opt, Opts, Fun) -> ?IF(member(Opt, Opts), ok, Fun()).
