@@ -466,12 +466,6 @@ do_erl_comp_mod(#module{code=Core,warnings=Ws}=Mod, ErlOpts) ->
             {error,fix_erl_errors(Ees),fix_erl_errors(Ews)}
     end.
 
-%% all_ok(Res) ->
-%%     lists:all(fun ({ok,_,_,_})   -> true;
-%%                   ({ok,_,_,_,_}) -> true;
-%%                   ({error,_,_})  -> false
-%%               end, Res).
-
 all_module(Res) -> lists:all(fun (X) -> is_record(X, module) end, Res).
 
 %% erl_comp_opts(State) -> Options.
@@ -578,13 +572,7 @@ add_docs(St0) ->
     St1 = St0#comp{code=Ms1},
     ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
 
-add_docs_module(#module{name=Name,code=Beam,docs=Docs0}=Mod) ->
-    {ok,{Name,[{exports,Expt}]}} = beam_lib:chunks(Beam, [exports]),
-    F = fun (#doc{name=F,arity=A}=Doc0, Acc) ->
-                [Doc0#doc{exported=lists:member({F,A}, Expt)}|Acc]
-        end,
-    Docs1 = lists:foldl(F, [], Docs0),
-    add_docs_chunk(Mod#module{docs=Docs1}).
+add_docs_module(Mod) -> add_docs_chunk(lfe_doc:exports(Mod)).
 
 beam_write(St0) ->
     Ms1 = lists:map(fun (M) -> beam_write_module(M, St0) end, St0#comp.code),

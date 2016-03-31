@@ -21,10 +21,13 @@
 
 -module(lfe_doc).
 
--export([module/1,patterns/1]).
+-export([module/1,exports/1,patterns/1]).
 
+-import(beam_lib, [chunks/2]).
 -import(lfe_lib, [is_symb_list/1,is_proper_list/1]).
--import(lists, [reverse/1]).
+-import(lists, [reverse/1,foldl/3]).
+-import(ordsets, [is_element/2]).
+-import(proplists, [get_value/3]).
 
 -include("lfe_comp.hrl").
 -include("lfe_doc.hrl").
@@ -57,6 +60,32 @@ do_module(Docs, [{['define-macro',Name,Body,DocStr],_Line}|Defs]) ->
     do_module([Doc|Docs], Defs);
 do_module(Docs, [_|Defs]) -> do_module(Docs, Defs);
 do_module(Docs, []) -> Docs.
+
+%% exports(Mod) -> Mod.
+%%  Iterate over Mod's 'docs' and set their 'exported' values appropriately.
+
+-spec exports(Mod) -> Mod when
+      Mod :: #module{}.
+exports(#module{name=Name,code=Beam,docs=Docs0}=Mod) ->
+    ChunkRefs = [exports,attributes],
+    {ok,{Name,[{exports,Expt},{attributes,Attr}]}} = chunks(Beam, ChunkRefs),
+    Expm  = get_value('export-macro', Attr, []),
+    Docs1 = foldl(do_exports(Expt, Expm), [], Docs0),
+    Mod#module{docs=Docs1}.
+
+%% do_exports(Expt, Expm) -> Fun.
+%%  Close over Expt and Expm then return the folding function for exports/1.
+
+-spec do_exports(Expt, Expm) -> Fun when
+      Expt :: [{atom(),non_neg_integer()}],
+      Expm :: [atom()],
+      Fun  :: fun((doc(), [doc()]) -> [doc()]).
+do_exports(Expt, Expm) ->
+    fun (#doc{type=function,name=F,arity=A}=Doc, Docs) ->
+            [Doc#doc{exported=is_element({F,A}, Expt)}|Docs];
+        (#doc{type=macro,name=M}=Doc, Docs) ->
+            [Doc#doc{exported=is_element(M, Expm)}|Docs]
+    end.
 
 %% patterns(LambdaForm) -> no | {yes,Arity,Patterns}.
 %%  Given a {match-,}lambda form, attempt to return its patterns (or arglist).
