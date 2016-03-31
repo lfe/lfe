@@ -25,11 +25,11 @@
 
 -export([module/1,patterns/1,add_docs_module/1]).
 
--import(beam_lib, [chunks/2]).
--import(lfe_lib, [is_symb_list/1,is_proper_list/1]).
--import(lists, [reverse/1,foldl/3]).
+-import(beam_lib, [all_chunks/1,build_module/1,chunks/2]).
+-import(lfe_lib, [is_proper_list/1,is_symb_list/1]).
+-import(lists, [filter/2,foldl/3,reverse/1]).
 -import(ordsets, [is_element/2]).
--import(proplists, [get_value/3]).
+-import(proplists, [delete/2,get_value/3]).
 
 -include("lfe_comp.hrl").
 -include("lfe_doc.hrl").
@@ -61,7 +61,7 @@ format_error({bad_lambda,Name,Lambda}) ->
 module(#module{code=[]}=Mod)   -> Mod#module{docs=[]};
 module(#module{code=Defs}=Mod) ->
     Docs = do_module([], Defs),
-    Errors = lists:filter(fun (#doc{}) -> false; (_) -> true end, Docs),
+    Errors = filter(fun (#doc{}) -> false; (_) -> true end, Docs),
     ?IF([] =:= Errors,
         Mod#module{docs=Docs},
         {error,Errors,[]}).
@@ -172,23 +172,19 @@ add_docs_module(#module{}=Mod0) ->
     Mod1#module{code=add_beam_chunk(Bin, "LDoc", LDoc)};
 add_docs_module(_) -> error.
 
-%% exports_attributes(Mod) -> Mod.
+%% exports_attributes(Mod) -> {ModDoc,Mod}.
 %%  Iterate over Mod's 'docs' and set their 'exported' values appropriately.
+%%  ModDoc is a given module's 'doc' or <<"">>.
 
 -spec exports_attributes(Mod) -> Mod when
       Mod :: #module{}.
-exports_attributes(#module{name=Name,code=Beam0,docs=Docs0}=Mod) ->
+exports_attributes(#module{name=Name,code=Beam,docs=Docs0}=Mod) ->
     ChunkRefs = [exports,attributes],
-    {ok,{Name,[{exports,Expt},{attributes,Attr0}]}} = chunks(Beam0, ChunkRefs),
-    Expm = get_value('export-macro', Attr0, []),
-    {ModDoc,Attr1} = moduledoc(Attr0),
-    Beam1 = add_beam_chunk(Beam0, "Attr", term_to_binary(Attr1)),
+    {ok,{Name,[{exports,Expt},{attributes,Attr}]}} = chunks(Beam, ChunkRefs),
+    Expm  = get_value('export-macro', Attr, []),
+    MDoc  = iolist_to_binary(get_value(doc, Attr, "")),
     Docs1 = foldl(do_exports(Expt, Expm), [], Docs0),
-    {ModDoc,Mod#module{docs=Docs1,code=Beam1}}.
-
-moduledoc(Attr0) ->
-    ModDoc = iolist_to_binary(get_value(doc, Attr0, "")),
-    {ModDoc,proplists:delete(doc, Attr0)}.
+    {MDoc,Mod#module{docs=Docs1}}.
 
 %% do_exports(Expt, Expm) -> Fun.
 %%  Close over Expt and Expm then return the folding function for exports/1.
@@ -204,11 +200,9 @@ do_exports(Expt, Expm) ->
             [Doc#doc{exported=is_element(M, Expm)}|Docs]
     end.
 
-%% Modified from elixir_module: Upserts a custom chunk into a beam module.
+%% Modified from elixir_module: Adds custom chunk to a .beam binary
 add_beam_chunk(Bin, Id, ChunkData)
   when is_binary(Bin), is_list(Id), is_binary(ChunkData) ->
-    {ok, _, Chunks0} = beam_lib:all_chunks(Bin),
-    NewChunk = {Id, ChunkData},
-    Chunks = [NewChunk|proplists:delete(Id, Chunks0)],
-    {ok, NewBin} = beam_lib:build_module(Chunks),
+    {ok,_,Chunks} = all_chunks(Bin),
+    {ok,NewBin}   = build_module([{Id,ChunkData}|Chunks]),
     NewBin.
