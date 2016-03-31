@@ -30,26 +30,5 @@
                  docs=[]                        %Module docs
                 }).
 
-%% TODO: Actually define this.
--type pattern() :: [atom() | term()].
-
-%% de{fun,macro} docs.
--record(doc, {type     = error(missing_type)  :: function | macro,
-              exported = false                :: boolean(),
-              name     = error(missing_name)  :: atom(),
-              arity    = error(missing_arity) :: non_neg_integer(),
-              %% TODO: Parse and store patterns as in Lodox.
-              patterns = [[]]                 :: [pattern()],
-              doc      = <<"">>               :: binary()
-             }).
-
--type doc() :: #doc{}.
-
--record(lfe_docs_v1, {docs=[] :: [doc()]        %Function/macro docs
-                      %% moduledoc=ModuleDoc         %Module doc
-                      %% callback_docs=CallbackDocs, %Callback docs
-                      %% type_docs=TypeDocs          %Type docs
-                     }).
-
 %% Bloody useful
 -define(IF(Test,True,False), case Test of true -> True; false -> False end).

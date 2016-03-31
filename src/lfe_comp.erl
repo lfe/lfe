@@ -36,6 +36,7 @@
 -import(orddict, [store/3,find/2]).
 
 -include("lfe_comp.hrl").
+-include("lfe_doc.hrl").
 
 %% The main compiler state.
 
