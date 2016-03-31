@@ -28,6 +28,7 @@
 -import(lists, [reverse/1]).
 
 -include("lfe_comp.hrl").
+-include("lfe_doc.hrl").
 
 %% Errors
 %% format_error({bad_form,Type}) ->
