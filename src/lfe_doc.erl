@@ -21,7 +21,9 @@
 
 -module(lfe_doc).
 
--export([module/1,exports/1,patterns/1]).
+-export([format_error/1]).
+
+-export([module/1,patterns/1,add_docs_module/1]).
 
 -import(beam_lib, [chunks/2]).
 -import(lfe_lib, [is_symb_list/1,is_proper_list/1]).
@@ -32,60 +34,59 @@
 -include("lfe_comp.hrl").
 -include("lfe_doc.hrl").
 
+%% Skip if exclude/1 is true, otherwise check for bad patterns.
+-define(DO_MOD(Docs,Type,Name,Body,DocStr,Line,Defs),
+        ?IF(exclude(Name), do_module(Docs, Defs),
+            case patterns(Body) of
+                no ->
+                    Error = {Line,?MODULE,{bad_lambda,Name,Body}},
+                    do_module([Error|Docs], Defs);
+                {yes,Arity,Patterns} ->
+                    ?IF(exclude({Name,Arity}), do_module(Docs, Defs),
+                        begin
+                            Doc = make_doc(Type, Name, Arity, Patterns, DocStr),
+                            do_module([Doc|Docs], Defs)
+                        end)
+            end)).
+
 %% Errors
-%% format_error({bad_form,Type}) ->
-%%     lfe_io:format1("bad form: ~w", [Type]);
-%% format_error({bad_env_form,Type}) ->
-%%     lfe_io:format1("bad environment form: ~w", [Type]);
-%% format_error({expand_macro,Call,_}) ->
-%%     %% Can be very big so only print limited depth.
-%%     lfe_io:format1("error expanding ~P", [Call,10]).
+format_error({bad_lambda,Name,Lambda}) ->
+    lfe_io:format1("bad lambda: ~p\n    ~P", [Name,Lambda,10]).
 
--spec module(#module{code::Defs}) -> #module{docs::Docs} when
-      Defs :: [[_]],
-      Docs :: [doc()].
+-spec module(#module{code::Defs}) -> #module{docs::Docs} | {error,Reason} when
+      Defs   :: [{[_],Line}],
+      Line   :: non_neg_integer(),
+      Docs   :: [doc()],
+      Reason :: term().
 module(#module{code=[]}=Mod)   -> Mod#module{docs=[]};
-module(#module{code=Defs}=Mod) -> Mod#module{docs=do_module([], Defs)}.
+module(#module{code=Defs}=Mod) ->
+    Docs = do_module([], Defs),
+    Errors = lists:filter(fun (#doc{}) -> false; (_) -> true end, Docs),
+    ?IF([] =:= Errors,
+        Mod#module{docs=Docs},
+        {error,Errors,[]}).
 
--spec do_module(Docs, Defs) -> Docs when
+-spec do_module(Docs, Defs) -> Docs | {error,Line,Error} when
       Docs :: [doc()],
-      Defs :: [[_]].
-do_module(Docs, [{['define-function',Name,Body,DocStr],_Line}|Defs]) ->
-    {yes,Arity,Patterns} = patterns(Body),
-    Doc = make_doc(function, Name, Arity, Patterns, DocStr),
-    do_module([Doc|Docs], Defs);
-do_module(Docs, [{['define-macro',Name,Body,DocStr],_Line}|Defs]) ->
-    {yes,Arity,Patterns} = patterns(Body),
-    Doc = make_doc(macro, Name, Arity, Patterns, DocStr),
-    do_module([Doc|Docs], Defs);
+      Defs :: [{[_],Line}],
+      Line :: non_neg_integer(),
+      Error :: {bad_lambda,[_]}.
+do_module(Docs, [{['define-function',Name,Body,DocStr],Line}|Defs]) ->
+    ?DO_MOD(Docs,function,Name,Body,DocStr,Line,Defs);
+do_module(Docs, [{['define-macro',Name,Body,DocStr],Line}|Defs]) ->
+    ?DO_MOD(Docs,macro,Name,Body,DocStr,Line,Defs);
 do_module(Docs, [_|Defs]) -> do_module(Docs, Defs);
-do_module(Docs, []) -> Docs.
+do_module(Docs, [])       -> Docs.
 
-%% exports(Mod) -> Mod.
-%%  Iterate over Mod's 'docs' and set their 'exported' values appropriately.
+%% exclude(Name | {Name,Arity}) -> boolean().
+%%  Return true if a function should be excluded from the docs chunk.
 
--spec exports(Mod) -> Mod when
-      Mod :: #module{}.
-exports(#module{name=Name,code=Beam,docs=Docs0}=Mod) ->
-    ChunkRefs = [exports,attributes],
-    {ok,{Name,[{exports,Expt},{attributes,Attr}]}} = chunks(Beam, ChunkRefs),
-    Expm  = get_value('export-macro', Attr, []),
-    Docs1 = foldl(do_exports(Expt, Expm), [], Docs0),
-    Mod#module{docs=Docs1}.
-
-%% do_exports(Expt, Expm) -> Fun.
-%%  Close over Expt and Expm then return the folding function for exports/1.
-
--spec do_exports(Expt, Expm) -> Fun when
-      Expt :: [{atom(),non_neg_integer()}],
-      Expm :: [atom()],
-      Fun  :: fun((doc(), [doc()]) -> [doc()]).
-do_exports(Expt, Expm) ->
-    fun (#doc{type=function,name=F,arity=A}=Doc, Docs) ->
-            [Doc#doc{exported=is_element({F,A}, Expt)}|Docs];
-        (#doc{type=macro,name=M}=Doc, Docs) ->
-            [Doc#doc{exported=is_element(M, Expm)}|Docs]
-    end.
+-spec exclude(Name | {Name,Arity}) -> boolean() when
+      Name  :: atom(),
+      Arity :: non_neg_integer().
+exclude({'LFE-EXPAND-EXPORTED-MACRO',3}) -> true;
+exclude('MODULE')                        -> true;
+exclude(_)                               -> false.
 
 %% patterns(LambdaForm) -> no | {yes,Arity,Patterns}.
 %%  Given a {match-,}lambda form, attempt to return its patterns (or arglist).
@@ -158,3 +159,56 @@ make_doc(Type, Name, Arity, Patterns, Doc0) when is_list(Doc0) ->
     make_doc(Type, Name, Arity, Patterns, Doc1);
 make_doc(Type, Name, Arity, Patterns, Doc) when is_binary(Doc) ->
     #doc{type=Type,name=Name,arity=Arity,patterns=Patterns,doc=Doc}.
+
+add_docs_module(#module{}=Mod0) ->
+    {ModDoc,#module{code=Bin,docs=Docs}=Mod1} = exports_attributes(Mod0),
+    %% Modified from elixir_module
+    LDoc = term_to_binary(#lfe_docs_v1{
+                             docs=Docs,
+                             moduledoc=ModDoc
+                             %% callback_docs=CallbackDocs,
+                             %% type_docs=TypeDocs
+                            }),
+    Mod1#module{code=add_beam_chunk(Bin, "LDoc", LDoc)};
+add_docs_module(_) -> error.
+
+%% exports_attributes(Mod) -> Mod.
+%%  Iterate over Mod's 'docs' and set their 'exported' values appropriately.
+
+-spec exports_attributes(Mod) -> Mod when
+      Mod :: #module{}.
+exports_attributes(#module{name=Name,code=Beam0,docs=Docs0}=Mod) ->
+    ChunkRefs = [exports,attributes],
+    {ok,{Name,[{exports,Expt},{attributes,Attr0}]}} = chunks(Beam0, ChunkRefs),
+    Expm = get_value('export-macro', Attr0, []),
+    {ModDoc,Attr1} = moduledoc(Attr0),
+    Beam1 = add_beam_chunk(Beam0, "Attr", term_to_binary(Attr1)),
+    Docs1 = foldl(do_exports(Expt, Expm), [], Docs0),
+    {ModDoc,Mod#module{docs=Docs1,code=Beam1}}.
+
+moduledoc(Attr0) ->
+    ModDoc = iolist_to_binary(get_value(doc, Attr0, "")),
+    {ModDoc,proplists:delete(doc, Attr0)}.
+
+%% do_exports(Expt, Expm) -> Fun.
+%%  Close over Expt and Expm then return the folding function for exports/1.
+
+-spec do_exports(Expt, Expm) -> Fun when
+      Expt :: [{atom(),non_neg_integer()}],
+      Expm :: [atom()],
+      Fun  :: fun((doc(), [doc()]) -> [doc()]).
+do_exports(Expt, Expm) ->
+    fun (#doc{type=function,name=F,arity=A}=Doc, Docs) ->
+            [Doc#doc{exported=is_element({F,A}, Expt)}|Docs];
+        (#doc{type=macro,name=M}=Doc, Docs) ->
+            [Doc#doc{exported=is_element(M, Expm)}|Docs]
+    end.
+
+%% Modified from elixir_module: Upserts a custom chunk into a beam module.
+add_beam_chunk(Bin, Id, ChunkData)
+  when is_binary(Bin), is_list(Id), is_binary(ChunkData) ->
+    {ok, _, Chunks0} = beam_lib:all_chunks(Bin),
+    NewChunk = {Id, ChunkData},
+    Chunks = [NewChunk|proplists:delete(Id, Chunks0)],
+    {ok, NewBin} = beam_lib:build_module(Chunks),
+    NewBin.

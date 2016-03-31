@@ -370,10 +370,11 @@ do_export_macros(#comp{cinfo=Ci,code=Ms0}=St) ->
 %% do_docs(State) -> {ok,State}.
 %% Process function and macro docstrings and store them in #module.doc.
 
-do_docs(St) ->
+do_docs(#comp{code=Ms0}=St0) ->
     %% TODO: error checking?
-    Code = lists:map(fun lfe_doc:module/1, St#comp.code),
-    {ok,St#comp{code=Code}}.
+    Ms1 = lists:map(fun lfe_doc:module/1, Ms0),
+    St1 = St0#comp{code=Ms1},
+    ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
 
 do_expand_macros(#comp{cinfo=Ci,code=Ms0}=St0) ->
     Emac = fun (#module{code=Fs0}=Mod) ->
@@ -568,11 +569,9 @@ do_save_file(Save, Ext, St) ->
     end.
 
 add_docs(St0) ->
-    Ms1 = lists:map(fun add_docs_module/1, St0#comp.code),
+    Ms1 = lists:map(fun lfe_doc:add_docs_module/1, St0#comp.code),
     St1 = St0#comp{code=Ms1},
     ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
-
-add_docs_module(Mod) -> add_docs_chunk(lfe_doc:exports(Mod)).
 
 beam_write(St0) ->
     Ms1 = lists:map(fun (M) -> beam_write_module(M, St0) end, St0#comp.code),
@@ -587,26 +586,6 @@ beam_write_module(#module{name=M,code=Beam}=Mod, St) ->
         {error,E} ->
             {error,St#comp{errors=[{file,E}]}}
     end.
-
-%% Modified from elixir_module
-add_docs_chunk(#module{code=Bin,docs=Docs}=Mod) ->
-    ChunkData = term_to_binary(#lfe_docs_v1{
-                                  docs=Docs
-                                  %% moduledoc=ModuleDoc,
-                                  %% callback_docs=CallbackDocs,
-                                  %% type_docs=TypeDocs
-                                 }),
-    Mod#module{code=add_beam_chunk(Bin, "LDoc", ChunkData)};
-add_docs_chunk(_) -> error.
-
-%% Fom elixir_module: Adds custom chunk to a .beam binary
-add_beam_chunk(Bin, Id, ChunkData)
-  when is_binary(Bin), is_list(Id), is_binary(ChunkData) ->
-    {ok, _, Chunks0} = beam_lib:all_chunks(Bin),
-    NewChunk = {Id, ChunkData},
-    Chunks = [NewChunk|Chunks0],
-    {ok, NewBin} = beam_lib:build_module(Chunks),
-    NewBin.
 
 %% fix_erl_errors([{File,Errors}]) -> Errors.
 
