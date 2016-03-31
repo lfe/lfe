@@ -14,17 +14,16 @@
 
 %% File    : lfe_doc.erl
 %% Author  : Eric Bailey
-%% Purpose : Lisp Flavoured Erlang docstring parser.
+%% Purpose : Lisp Flavoured Erlang documentation parser.
 
-%% TODO: write explanation.
-
+%% The functions herein are used internally by the compiler.
+%% There is no guarantee the API will not change dramatically in future.
 
 -module(lfe_doc).
 
 -export([module/1,patterns/1]).
 
 -import(lfe_lib, [is_symb_list/1,is_proper_list/1]).
-
 -import(lists, [reverse/1]).
 
 -include("lfe_comp.hrl").
@@ -40,13 +39,14 @@
 %%     lfe_io:format1("error expanding ~P", [Call,10]).
 
 -spec module(#module{code::Defs}) -> #module{docs::Docs} when
-      Defs :: list(Form),
-      Form :: list(),
-      Docs :: list(doc()).
+      Defs :: [[_]],
+      Docs :: [doc()].
 module(#module{code=[]}=Mod)   -> Mod#module{docs=[]};
 module(#module{code=Defs}=Mod) -> Mod#module{docs=do_module([], Defs)}.
 
-do_module(Docs, []) -> Docs;
+-spec do_module(Docs, Defs) -> Docs when
+      Docs :: [doc()],
+      Defs :: [[_]].
 do_module(Docs, [{['define-function',Name,Body,DocStr],_Line}|Defs]) ->
     {yes,Arity,Patterns} = patterns(Body),
     Doc = make_doc(function, Name, Arity, Patterns, DocStr),
@@ -55,7 +55,12 @@ do_module(Docs, [{['define-macro',Name,Body,DocStr],_Line}|Defs]) ->
     {yes,Arity,Patterns} = patterns(Body),
     Doc = make_doc(macro, Name, Arity, Patterns, DocStr),
     do_module([Doc|Docs], Defs);
-do_module(Docs, [_|Defs]) -> do_module(Docs, Defs).
+do_module(Docs, [_|Defs]) -> do_module(Docs, Defs);
+do_module(Docs, []) -> Docs.
+
+%% patterns(LambdaForm) -> no | {yes,Arity,Patterns}.
+%%  Given a {match-,}lambda form, attempt to return its patterns (or arglist).
+%%  N.B. Guards are appended to patterns and Patterns is always a list of lists.
 
 -spec patterns(LambdaForm) -> 'no' | {'yes',Arity,Patterns} when
       LambdaForm :: nonempty_list(),
@@ -109,6 +114,9 @@ do_patterns(N, Acc, [[Pat|_]|Cls]) ->
         no);
 do_patterns(N, Acc, []) -> {yes,N,reverse(Acc)};
 do_patterns(_, _, _) -> no.
+
+%% make_doc(Type, Name, Arity, Patterns, Doc) -> doc().
+%%  Convenience constructor for #doc{}, which is defined in src/lfe_doc.hrl.
 
 -spec make_doc(Type, Name, Arity, Patterns, Doc) -> doc() when
       Type     :: 'function' | 'macro',
