@@ -224,5 +224,7 @@ get_macro_cls(['match-lambda'|Cls]) ->
     [ {Arg,B} || [[Arg|_]|B] <- Cls ];
 get_macro_cls(_) -> [].                         %Ignore bad formed macros
 
+macro_clause(Args, [['when'|_]=W|Body]) ->
+    [Args,W,[tuple,?Q(yes),[progn|Body]]];
 macro_clause(Args, Body) ->
     [Args,[tuple,?Q(yes),[progn|Body]]].
