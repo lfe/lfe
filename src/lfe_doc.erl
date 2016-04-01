@@ -146,7 +146,7 @@ do_patterns(N, Acc, [[Pat|_]|Cls]) ->
 do_patterns(N, Acc, []) -> {yes,N,reverse(Acc)};
 do_patterns(_, _, _) -> no.
 
-%% make_doc(Type, Name, Arity, Patterns, Doc) -> doc().
+%% make_doc(Type, Name, Arity, Patterns, Doc, Line) -> doc().
 %%  Convenience constructor for #doc{}, which is defined in src/lfe_doc.hrl.
 
 -spec make_doc(Type, Name, Arity, Patterns, Doc, Line) -> doc() when
@@ -156,11 +156,12 @@ do_patterns(_, _, _) -> no.
       Patterns :: [[]],
       Doc      :: binary() | string(),
       Line     :: pos_integer().
-make_doc(Type, Name, Arity, Patterns, Doc0, Line) when is_list(Doc0) ->
-    Doc1 = unicode:characters_to_binary(Doc0, utf8, utf8),
-    make_doc(Type, Name, Arity, Patterns, Doc1, Line);
+make_doc(Type, Name, Arity, Patterns, Doc, Line) when is_list(Doc) ->
+    make_doc(Type, Name, Arity, Patterns, string_to_binary(Doc), Line);
 make_doc(Type, Name, Arity, Patterns, Doc, Line) when is_binary(Doc) ->
     #doc{type=Type,name=Name,arity=Arity,patterns=Patterns,doc=Doc,line=Line}.
+
+string_to_binary(Str) -> unicode:characters_to_binary(Str, utf8, utf8).
 
 add_docs_module(#module{}=Mod0) ->
     {ModDoc,#module{code=Bin,docs=Docs}=Mod1} = exports_attributes(Mod0),
