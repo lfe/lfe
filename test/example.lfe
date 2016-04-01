@@ -1,7 +1,7 @@
 (defmodule example
   (doc "This is an example module.")
   (export all)
-  (export-macro add varargs))
+  (export-macro add varargs forty-two?))
 
 (defmacro add (x y)
   "Add `x` and `y`."

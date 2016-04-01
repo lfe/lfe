@@ -20,12 +20,13 @@
 -type pattern() :: [atom() | term()].
 
 %% de{fun,macro} docs.
--record(doc, {type     = error(missing_type)  :: function | macro,
-              exported = false                :: boolean(),
-              name     = error(missing_name)  :: atom(),
-              arity    = error(missing_arity) :: non_neg_integer(),
-              patterns = [[]]                 :: [pattern()],
-              doc      = <<"">>               :: binary()
+-record(doc, {type     = error(missing_type)     :: function | macro,
+              exported = false                   :: boolean(),
+              name     = error(missing_name)     :: atom(),
+              arity    = error(missing_arity)    :: non_neg_integer(),
+              patterns = error(missing_patterns) :: [pattern()],
+              doc      = <<"">>                  :: binary(),
+              line     = error(missing_line)     :: pos_integer()
              }).
 
 -type doc() :: #doc{}.

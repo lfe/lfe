@@ -44,7 +44,8 @@
                 {yes,Arity,Patterns} ->
                     ?IF(exclude({Name,Arity}), do_module(Docs, Defs),
                         begin
-                            Doc = make_doc(Type, Name, Arity, Patterns, DocStr),
+                            Doc = make_doc(Type, Name, Arity,
+                                           Patterns, DocStr, Line),
                             do_module([Doc|Docs], Defs)
                         end)
             end)).
@@ -148,17 +149,18 @@ do_patterns(_, _, _) -> no.
 %% make_doc(Type, Name, Arity, Patterns, Doc) -> doc().
 %%  Convenience constructor for #doc{}, which is defined in src/lfe_doc.hrl.
 
--spec make_doc(Type, Name, Arity, Patterns, Doc) -> doc() when
+-spec make_doc(Type, Name, Arity, Patterns, Doc, Line) -> doc() when
       Type     :: 'function' | 'macro',
       Name     :: atom(),
       Arity    :: non_neg_integer(),
       Patterns :: [[]],
-      Doc      :: binary().
-make_doc(Type, Name, Arity, Patterns, Doc0) when is_list(Doc0) ->
+      Doc      :: binary() | string(),
+      Line     :: pos_integer().
+make_doc(Type, Name, Arity, Patterns, Doc0, Line) when is_list(Doc0) ->
     Doc1 = unicode:characters_to_binary(Doc0, utf8, utf8),
-    make_doc(Type, Name, Arity, Patterns, Doc1);
-make_doc(Type, Name, Arity, Patterns, Doc) when is_binary(Doc) ->
-    #doc{type=Type,name=Name,arity=Arity,patterns=Patterns,doc=Doc}.
+    make_doc(Type, Name, Arity, Patterns, Doc1, Line);
+make_doc(Type, Name, Arity, Patterns, Doc, Line) when is_binary(Doc) ->
+    #doc{type=Type,name=Name,arity=Arity,patterns=Patterns,doc=Doc,line=Line}.
 
 add_docs_module(#module{}=Mod0) ->
     {ModDoc,#module{code=Bin,docs=Docs}=Mod1} = exports_attributes(Mod0),
