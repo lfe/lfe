@@ -15,3 +15,4 @@ maps_opts.mk
 ebin/*
 doc/pdf/*
 doc/epub/*
+.rebar3

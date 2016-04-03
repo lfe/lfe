@@ -35,8 +35,13 @@
 -include("lfe_doc.hrl").
 
 -ifdef(TEST).
--include_lib("proper/include/proper.hrl").
+%% used by prop_lfe_doc:do_validate/2
+-export([string_to_binary/1]).
+
 -include_lib("eunit/include/eunit.hrl").
+
+-define(QC_OPTS, [{on_output,fun pprint/2},{numtests,1000},{max_size,10}]).
+-define(QC(T,P), {timeout,30,{T,?_assert(proper:quickcheck(P, ?QC_OPTS))}}).
 -endif.
 
 %% Skip if exclude/1 is true, otherwise check for bad patterns.
@@ -56,6 +61,7 @@
             end)).
 
 %% Errors
+-spec format_error({bad_lambda,Name::atom(),Lambda::list()}) -> string().
 format_error({bad_lambda,Name,Lambda}) ->
     lfe_io:format1("bad lambda: ~p\n    ~P", [Name,Lambda,10]).
 
@@ -124,6 +130,10 @@ patterns(['match-lambda',[Pat|_]|Cls]) ->
     ?IF(is_proper_list(Pat), do_patterns(length(Pat), [Pat], Cls), no);
 patterns(_) -> no.
 
+-spec do_patterns(Arity, Patterns, Forms) -> 'no' | {'yes',Arity,Patterns} when
+      Arity    :: non_neg_integer(),
+      Patterns :: nonempty_list(pattern()),
+      Forms    :: list().
 do_patterns(N, Acc, [[[[list|Pat],'$ENV'],['when'|_]=Guard|_]|Cls]) ->
     ?IF(is_proper_list(Pat),
         do_patterns(?IF(N =:= length(Pat), N, 255), [Pat++[Guard]|Acc], Cls),
@@ -166,8 +176,11 @@ make_doc(Type, Name, Arity, Patterns, Doc, Line) when is_list(Doc) ->
 make_doc(Type, Name, Arity, Patterns, Doc, Line) when is_binary(Doc) ->
     #doc{type=Type,name=Name,arity=Arity,patterns=Patterns,doc=Doc,line=Line}.
 
+-spec string_to_binary(string()) -> binary().
 string_to_binary(Str) -> unicode:characters_to_binary(Str, utf8, utf8).
 
+-spec add_docs_module(Mod) -> Mod when
+      Mod :: #module{code :: binary(), docs :: [doc()]}.
 add_docs_module(#module{}=Mod0) ->
     {ModDoc,#module{code=Bin,docs=Docs}=Mod1} = exports_attributes(Mod0),
     %% Modified from elixir_module
@@ -208,7 +221,13 @@ do_exports(Expt, Expm) ->
             [Doc#doc{exported=is_element(M, Expm)}|Docs]
     end.
 
-%% Modified from elixir_module: Adds custom chunk to a .beam binary
+%% add_beam_chunk(Bin, Id, ChunkData) -> Bin.
+%%  Add a custom chunk to a .beam binary. Modified from elixir_module.
+
+-spec add_beam_chunk(Bin, Id, ChunkData) -> Bin when
+      Bin       :: binary(),
+      Id        :: string(),
+      ChunkData :: binary().
 add_beam_chunk(Bin, Id, ChunkData)
   when is_binary(Bin), is_list(Id), is_binary(ChunkData) ->
     {ok,_,Chunks} = all_chunks(Bin),
@@ -217,145 +236,16 @@ add_beam_chunk(Bin, Id, ChunkData)
 
 
 %%%===================================================================
-%%% Property-based tests
-%%%===================================================================
-
--ifdef(TEST).
--define(QC_OPTS, [{on_output,fun pprint/2},{numtests,1000},{max_size,10}]).
--define(QC(T,P), {timeout,30,{T,?_assert(proper:quickcheck(P, ?QC_OPTS))}}).
-
-
-%%%===================================================================
 %%% EUnit tests
 %%%===================================================================
 
+-ifdef(TEST).
 parse_test_() ->
     [ ?QC(<<"A lambda definition is parsed correctly.">>,
-          prop_define_lambda())
+          prop_lfe_doc:prop_define_lambda())
     , ?QC(<<"A match-lambda definition is parsed correctly.">>,
-          prop_define_match())
+          prop_lfe_doc:prop_define_match())
     ].
 
-%%%===================================================================
-%%% Properties
-%%%===================================================================
-
-prop_define_lambda() -> ?FORALL(Def, define_lambda(), validate(Def)).
-
-prop_define_match() -> ?FORALL(Def, define_match(), validate(Def)).
-
-validate({[_,_,[lambda,Args|_],_],_}=Def) -> do_validate(length(Args), Def);
-validate({[_,_,['match-lambda',[Patt|_]|_],_],_}=Def) ->
-    do_validate(length(Patt), Def).
-
-do_validate(Arity,{[Define,Name,_,DocStr],Line}=Def) ->
-    Type  = define_to_type(Define),
-    Mod   = #module{code=[Def]},
-    #module{docs=[#doc{type=Type,
-                       exported=false,
-                       name=Name,
-                       arity=Arity,
-                       %% patterns=_,
-                       doc=Doc,
-                       line=Line
-                      }]} = module(Mod),
-    string_to_binary(DocStr) =:= Doc.
-
-define_to_type('define-function') -> function;
-define_to_type('define-macro')    -> macro.
-
-
-%%%===================================================================
-%%% Definition shapes
-%%%===================================================================
-
-define_lambda() -> {[define(),atom1(),lambda(),docstring()],line()}.
-
-define_match()  -> {[define(),atom1(),'match-lambda'(),docstring()],line()}.
-
-
-%%%===================================================================
-%%% Custom types
-%%%===================================================================
-
-%%% Definitions
-
-define() -> oneof(['define-function','define-macro']).
-
-lambda() -> [lambda,arglist_simple()|body()].
-
-'match-lambda'() -> ['match-lambda'|non_empty(list(pattern_clause()))].
-
-arglist_simple() -> list(atom1()).
-
-atom1() -> oneof([a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,'']).
-
-body() -> non_empty(list(form())).
-
-form() -> union([form_elem(),[atom1()|list(form_elem())]]).
-
-form_elem() -> union([non_string_term(),printable_string(),atom1()]).
-
-docstring() -> printable_string().
-
-line() -> pos_integer().
-
-
-%%% Patterns
-
-pattern() -> union([non_string_term(),printable_string(),pattern_form()]).
-
-pattern_form() ->
-    [oneof(['=','++*',[],
-            backquote,quote,
-            binary,cons,list,map,tuple,
-            match_fun()])
-     | body()].
-
-%% Don't waste atoms, since we're already running out.
-%% match_fun() -> ?LET(F, printable_string(), list_to_atom("match-" ++ F)).
-match_fun() -> 'match-record'.
-
-pattern_clause() -> pattern_clause(random:uniform(10)).
-
-pattern_clause(Arity) ->
-    [arglist_patterns(Arity)|[oneof([guard(),form()])|body()]].
-
-arglist_patterns(Arity) -> vector(Arity, pattern()).
-
-guard() -> ['when'|non_empty(list(union([logical_clause(),comparison()])))].
-
-
-%%% Logical clauses
-
-logical_clause() ->
-    X = union([atom1(),comparison()]),
-    [logical_operator(),X|non_empty(list(X))].
-
-logical_operator() -> oneof(['and','andalso','or','orelse']).
-
-
-%%% Comparisons
-
-comparison() -> [comparison_operator(),atom1()|list(atom1())].
-
-comparison_operator() -> oneof(['==','=:=','=/=','<','>','=<','>=']).
-
-
-%%% Strings and non-strings
-
-non_string_term() ->
-    union([atom1(),number(),[],bitstring(),binary(),boolean(),tuple()]).
-
-printable_char() -> union([integer(32, 126),integer(160, 255)]).
-
-printable_string() -> list(printable_char()).
-
-
-%%%===================================================================
-%%% Internal functions
-%%%===================================================================
-
 pprint(Format, Data) -> lfe_io:format(user, Format, Data).
-
 -endif.
