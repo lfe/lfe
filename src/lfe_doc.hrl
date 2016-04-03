@@ -12,7 +12,7 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 
-%% File    : lfe_doc.erl
+%% File    : lfe_doc.hrl
 %% Author  : Eric Bailey
 %% Purpose : Common documentation-related definitions.
 

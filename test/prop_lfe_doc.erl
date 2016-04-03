@@ -14,7 +14,7 @@
 
 %% File    : prop_lfe_doc.erl
 %% Author  : Eric Bailey
-%% Purpose : PropEr test for the lfe_doc module.
+%% Purpose : PropEr tests for the lfe_doc module.
 
 -module(prop_lfe_doc).
 

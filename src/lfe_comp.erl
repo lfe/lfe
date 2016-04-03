@@ -165,6 +165,7 @@ compiler_info(#comp{lfile=F,opts=Os,ipath=Is}) ->
 lfe_comp_opts(Opts) ->
     Fun = fun ('to-split') -> to_split;
               ('to-expmac') -> to_expmac;
+              ('no-docs') -> no_docs;
               ('to-expand') -> to_expand;
               ('to-exp') -> to_exp;             %Backwards compatibility
               ('to-pmod') -> to_pmod;
@@ -174,7 +175,6 @@ lfe_comp_opts(Opts) ->
               ('to-kernel') -> to_kernel;
               ('to-asm') -> to_asm;
               ('no-export-macros') -> no_export_macros;
-              ('no-docs') -> no_docs;
               ('warnings-as-errors') -> warnings_as_errors;
               ('report-warnings') -> report_warnings;
               ('report-errors') -> report_errors;
