@@ -56,7 +56,7 @@ expand_module(Fs0, Opts) ->
     St0 = #param{env=lfe_env:new()},
     {Acc,St1} = lists:foldl(fun exp_form/2, {[],St0}, Fs0),
     Fs1 = lists:reverse(Acc),
-    debug_print("#param: ~p\n", [{Fs1,St1}], Opts),
+    ?DEBUG("#param: ~p\n", [{Fs1,St1}], Opts),
     %% {ok,_} = lfe_lint:module(Fs1, Opts),
     Fs1.
 
@@ -85,12 +85,6 @@ exp_form({['define-function',F,Def0,Doc],L}, {Acc,St}) ->
     {[{['define-function',F,Def1,Doc],L}|Acc],St};
 exp_form({F,L}, {Acc,St}) ->
     {[{F,L}|Acc],St}.
-
-debug_print(Format, Args, Opts) ->
-    case member(debug_print, Opts) of
-        true -> lfe_io:format(Format, Args);
-        false -> ok
-    end.
 
 exp_mdef(Mdef0, St0) ->
     %% Pre-scan to pick up 'extends'.

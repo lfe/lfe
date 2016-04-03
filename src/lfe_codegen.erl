@@ -171,15 +171,11 @@ compile_forms(Fbs0, St0, Core0) ->
     %% Build the final core module structure.
     Core1 = update_c_module(Core0, c_atom(St2#cg.module), Exps, Atts, Cdefs),
     %% Maybe print lots of debug info.
-    debug_print("#cg: ~p\n", [St2], St2),
-    when_opt(fun () -> io:fwrite("core_lint: ~p\n",
-                                 [(catch core_lint:module(Core1))])
-             end, debug_print, St2),
-    debug_print("#core: ~p\n", [Core1], St2),
-    %% when_opt(fun () ->
-    %%                  Pp = (catch io:put_chars([core_pp:format(Core1),$\n])),
-    %%                  io:fwrite("core_pp: ~p\n", [Pp])
-    %%          end, debug_print, St2),
+    ?DEBUG("#cg: ~p\n", [St2], St2#cg.opts),
+    ?DEBUG("core_lint: ~p\n", [(catch core_lint:module(Core1))], St2#cg.opts),
+    ?DEBUG("#core: ~p\n", [Core1], St2#cg.opts),
+    %% ?DEBUG("core_pp: ~p\n",
+    %%        [(catch io:put_chars([core_pp:format(Core1),$\n]))], St2#cg.opts),
     {Core1,St2}.
 
 forms_env(Fbs, St) ->
@@ -192,15 +188,6 @@ forms_env(Fbs, St) ->
     foldl(fun ({Name,Def,_}, E) ->
                   add_fbinding(Name, func_arity(Def), Name, E)
           end, Env, Fbs).
-
-debug_print(Format, Args, St) ->
-    when_opt(fun () -> io:fwrite(Format, Args) end, debug_print, St).
-
-when_opt(Fun, Opt, St) ->
-    case member(Opt, St#cg.opts) of
-        true -> Fun();
-        false -> ok
-    end.
 
 add_exports(all, _) -> all;
 add_exports(Old, More) -> union(Old, More).

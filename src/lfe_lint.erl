@@ -128,14 +128,8 @@ module(Ms) -> module(Ms, #cinfo{file="nofile",opts=[]}).
 module(Ms, #cinfo{file=F,opts=Os}) ->
     St0 = #lint{file=F,opts=Os},                %Initialise the lint record
     St1 = check_module(Ms, St0),
-    debug_print("#lint: ~p\n", [St1], Os),
+    ?DEBUG("#lint: ~s\n", [io_lib:format("~p",[St1])], Os),
     return_status(St1).
-
-debug_print(Format, Args, Opts) ->
-    case member(debug_print, Opts) of
-        true -> io:fwrite(Format, Args);
-        false -> ok
-    end.
 
 return_status(#lint{module=M,errors=[]}=St) ->
     {ok,M,St#lint.warnings};

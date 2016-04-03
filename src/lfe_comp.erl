@@ -606,7 +606,7 @@ is_werror(#comp{code=Code,opts=Opts,warnings=Ws}) ->
 %%  vanilla erlang compiler 'compile'. We explicitly check for it.
 
 do_ok_return(#comp{code=Code,lfile=Lfile,opts=Opts,warnings=Ws}) ->
-    when_opt(report, Opts, fun () -> list_warnings(Lfile, Ws) end),
+    ?WHEN_OPT(report, Opts, fun () -> list_warnings(Lfile, Ws) end),
     %% Fix right return.
     Report = member(report, Opts),
     Return = member(return, Opts),
@@ -629,8 +629,8 @@ ok_return_mod(#module{name=Name,code=Mods,warnings=Ws}, Report, Return, Binary, 
     list_to_tuple([ok,Name|Ret1]).              %And build the ok tuple
 
 do_error_return(#comp{code=Code,lfile=Lfile,opts=Opts,errors=Es,warnings=Ws}) ->
-    when_opt(report, Opts, fun () -> list_errors(Lfile, Es) end),
-    when_opt(report, Opts, fun () -> list_warnings(Lfile, Ws) end),
+    ?WHEN_OPT(report, Opts, fun () -> list_errors(Lfile, Es) end),
+    ?WHEN_OPT(report, Opts, fun () -> list_warnings(Lfile, Ws) end),
     Report = lists:member(report, Opts),
     Return = lists:member(return, Opts),
     RetMod = fun (M) -> error_return_mod(M, Report, Return, Lfile) end,
@@ -666,15 +666,3 @@ list_errors(F, Es) ->
                     Cs = Mod:format_error(Error),
                     lfe_io:format("~s: ~s\n", [F,Cs])
             end, Es).
-
-debug_print(Format, Args, St) ->
-    when_opt(debug_print, St#comp.opts,
-             fun () -> lfe_io:format(Format, Args) end).
-
-%% when_opt(Option, Options, Fun) -> ok.
-%% unless_opt(Option, Options, Fun) -> ok.
-%%  Call Fun when Option is/is not a member of Options.
-
-when_opt(Opt, Opts, Fun) -> ?IF(member(Opt, Opts), Fun(), ok).
-
-%% unless_opt(Opt, Opts, Fun) -> ?IF(member(Opt, Opts), ok, Fun()).
