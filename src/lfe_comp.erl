@@ -36,7 +36,6 @@
 -import(orddict, [store/3,find/2]).
 
 -include("lfe_comp.hrl").
--include("lfe_doc.hrl").
 
 %% The main compiler state.
 
@@ -51,8 +50,7 @@
                code=[],                         %Code after last pass.
                return=[],                       %What is returned [Val] | []
                errors=[],
-               warnings=[],
-               docs=[]
+               warnings=[]
               }).
 
 %% default_options() -> Options.
@@ -520,31 +518,31 @@ pmod_pp(St) -> sexpr_pp(St, "pmod").
 lint_pp(St) -> sexpr_pp(St, "lint").
 
 sexpr_pp(St, Ext) ->
-    Save = fun (File, {ok,_,Code,_}) ->
+    Save = fun (File, #module{code=Code}) ->
                    lfe_io:prettyprint(File, Code), io:nl(File)
            end,
     do_list_save_file(Save, Ext, St).
 
 %% These print a list of module structures.
 core_pp(St) ->
-    Save = fun (File, {ok,_,Core,_}) ->
+    Save = fun (File, #module{code=Core}) ->
                    io:put_chars(File, [core_pp:format(Core),$\n])
            end,
     do_list_save_file(Save, "core", St).
 
 erl_core_pp(St) ->
-    Save = fun (File, {ok,_,Core,_}) ->
+    Save = fun (File, #module{code=Core}) ->
                    io:put_chars(File, [core_pp:format(Core),$\n])
            end,
     do_list_save_file(Save, "core", St).
 
 erl_kernel_pp(St) ->
-    Save = fun (File, {ok,_,Kern,_}) ->
+    Save = fun (File, #module{code=Kern}) ->
                    io:put_chars(File, [v3_kernel_pp:format(Kern),$\n]) end,
     do_list_save_file(Save, "kernel", St).
 
 erl_asm_pp(St) ->
-    Save = fun (File, {ok,_,Asm,_}) ->
+    Save = fun (File, #module{code=Asm}) ->
                    beam_listing:module(File, Asm), io:nl(File) end,
     do_list_save_file(Save, "S", St).
 
@@ -598,7 +596,7 @@ is_werror(#comp{code=Code,opts=Opts,warnings=Ws}) ->
     case member(warnings_as_errors, Opts) of
         true ->
             (Ws =/= []) orelse
-                any(fun ({ok,_,_,Mws}) -> Mws =/= [] end, Code);
+                any(fun (#module{warnings=Mws}) -> Mws =/= [] end, Code);
         false -> false
     end.
 
@@ -640,7 +638,7 @@ do_error_return(#comp{code=Code,lfile=Lfile,opts=Opts,errors=Es,warnings=Ws}) ->
     %% Fix right return.
     ?IF(Return, {error,Err,return_ews(Lfile, Es),return_ews(Lfile, Ws)}, error).
 
-error_return_mod({ok,_,_,Ws}, Rep, _, Lfile) ->
+error_return_mod(#module{warnings=Ws}, Rep, _, Lfile) ->
     Rep andalso list_warnings(Lfile, Ws),
     {error,[],return_ews(Lfile, Ws)};           %No errors, only warnings
 error_return_mod({error,Es,Ws}, Rep, _, Lfile) ->
