@@ -1,0 +1,63 @@
+#!/usr/bin/env lfe
+;;; -*- lfe -*-
+
+(defun docs (file)
+  "Equivalent to [[docs/2]] with ``[]`` as `opts`."
+  (docs file []))
+
+(defun docs (file opts)
+  "Return the `\"LDoc\"` chunk of the beam compiled from `file` with `opts`.
+
+If `opts` is all atoms, call [[ldoc-chunk/1]] on the result of [[file->beam/2]].
+Otherwise, call [[lists->atoms/1]] on `opts` and [[docs/2]] on the result."
+  (if (lists:all #'is_atom/1 opts)
+    (ldoc-chunk (file->beam file opts))
+    (docs file (lists->atoms opts))))
+
+(defun usage ()
+  "Print usage instructions."
+  (let ((format (++ "Usage: docs {{file}}\n"
+                    "       docs {{file}} {{compiler options}}\n")))
+    (lfe_io:format format [])))
+
+(defun beam->chunks (beam)
+  "Return the chunks of a given `beam` module."
+  (let ((`#(ok ,_ ,chunks) (beam_lib:all_chunks beam)))
+    chunks))
+
+(defun file->beam (file opts)
+  "Call [[lfe_comp:file/2]] and return the first resultant beam module."
+  (let* ((`[ok [,res . ,_] . ,_]
+          (tuple_to_list (lfe_comp:file file (ensure-binary opts))))
+         (`[ok ,_ ,beam . ,_] (tuple_to_list res)))
+    beam))
+
+(defun ensure-binary (opts)
+  "Ensure `` 'binary `` is the  first element of `opts`."
+  `[binary . ,opts])
+
+(defun ldoc-chunk (beam)
+  "Return a given `beam` module's `\"LDoc\"` chunk as a term.
+
+If the chunk is missing, return `#\"Missing \"LDoc\" chunk.\"`."
+  (case (beam_lib:chunks beam '["LDoc"])
+    (`#(ok             #(,_ [#("LDoc" ,chunk)])) (binary_to_term chunk))
+    (`#(error beam_lib #(missing_chunk ,_ ,_))   #"Missing \"LDoc\" chunk.")))
+
+(defun lists->atoms (lst)
+  "Map `list_to_atom/1` over `lst`."
+  (lists:map #'list_to_atom/1 lst))
+
+(defun main ()
+  "Print the result of applying [[docs/2]] to the given `` `[,file . ,opts] ``.
+
+If no arguments are given, i.e. `script-args` is `[]`, print `(`[[usage/0]]`)`."
+  (case script-args
+    ([]               (usage))
+    (`[,file . ,opts] (lfe_io:format "~p\n" `[,(docs file opts)]))))
+
+(main)
+
+;; $ cd /path/to/lfe
+;; $ make
+;; $ ./test/lfedoc test/example.lfe
