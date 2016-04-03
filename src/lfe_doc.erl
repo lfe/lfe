@@ -14,7 +14,7 @@
 
 %% File    : lfe_doc.erl
 %% Author  : Eric Bailey
-%% Purpose : Lisp Flavoured Erlang documentation parser.
+%% Purpose : Lisp Flavoured Erlang (LFE) documentation parser.
 
 %% The functions herein are used internally by the compiler.
 %% There is no guarantee the API will not change dramatically in future.
@@ -65,11 +65,18 @@
 format_error({bad_lambda,Name,Lambda}) ->
     lfe_io:format1("bad lambda: ~p\n    ~P", [Name,Lambda,10]).
 
--spec module(#module{code::Defs}) -> #module{docs::Docs} | {error,Reason} when
-      Defs   :: [{[_],Line}],
+%% module(Mod) -> Mod | {error,Errors,[]}.
+%%  Parse a module's docstrings and populate Mod#module.docs.
+
+-spec module(Mod0) -> Mod1 | {error,Errors,[]} when
+      Mod0   :: #module{code::Defs},
+      Defs   :: [{Form,Line}],
+      Form   :: [_],
+      Mod1   :: #module{docs::Docs},
       Line   :: non_neg_integer(),
       Docs   :: [doc()],
-      Reason :: term().
+      Errors :: nonempty_list({error,Line,Error}),
+      Error  :: {bad_lambda,Form}.
 module(#module{code=[]}=Mod)   -> Mod#module{docs=[]};
 module(#module{code=Defs}=Mod) ->
     Docs = do_module([], Defs),
@@ -102,7 +109,7 @@ exclude(_)                               -> false.
 
 %% patterns(LambdaForm) -> no | {yes,Arity,Patterns}.
 %%  Given a {match-,}lambda form, attempt to return its patterns (or arglist).
-%%  N.B. Guards are appended to patterns and Patterns is always a list of lists.
+%%  N.B. A guard is appended to its pattern and Patterns is a list of lists.
 
 -spec patterns(LambdaForm) -> 'no' | {'yes',Arity,Patterns} when
       LambdaForm :: nonempty_list(),
@@ -179,6 +186,9 @@ make_doc(Type, Name, Arity, Patterns, Doc, Line) when is_binary(Doc) ->
 -spec string_to_binary(string()) -> binary().
 string_to_binary(Str) -> unicode:characters_to_binary(Str, utf8, utf8).
 
+%% add_docs_module(Mod) -> Mod.
+%%  Add the "LDoc" chunk to a module's .beam binary.
+
 -spec add_docs_module(Mod) -> Mod when
       Mod :: #module{code :: binary(), docs :: [doc()]}.
 add_docs_module(#module{}=Mod0) ->
@@ -195,10 +205,11 @@ add_docs_module(_) -> error.
 
 %% exports_attributes(Mod) -> {ModDoc,Mod}.
 %%  Iterate over Mod's 'docs' and set their 'exported' values appropriately.
-%%  ModDoc is a given module's 'doc' or <<"">>.
+%%  ModDoc is a given module's 'doc' or <<>>.
 
--spec exports_attributes(Mod) -> Mod when
-      Mod :: #module{}.
+-spec exports_attributes(Mod) -> {ModDoc,Mod} when
+      Mod    :: #module{},
+      ModDoc :: binary().
 exports_attributes(#module{name=Name,code=Beam,docs=Docs0}=Mod) ->
     ChunkRefs = [exports,attributes],
     {ok,{Name,[{exports,Expt},{attributes,Attr}]}} = chunks(Beam, ChunkRefs),
