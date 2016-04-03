@@ -45,6 +45,9 @@ The currently recognised options are:
 * ``binary`` - Return the binary of the module and do not save it in
   a file.
 
+* ``no_docs``, ``no-docs`` -  Do not parse docstrings and write the
+  ``"LDoc"`` chunk in the binary of the module.
+
 * ``to_expand``, ``to-expand`` -  Print a listing of the macro expanded
   LFE code in the file <File>.expand. No object file is produced. Mainly
   useful for debugging and interest.
