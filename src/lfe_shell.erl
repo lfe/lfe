@@ -95,7 +95,9 @@ server(default) ->
     server(lfe_env:new());
 server(Env) ->
     process_flag(trap_exit, true),              %Must trap exists
-    io:fwrite(get_banner()),
+    %% silencing the banner: https://github.com/rvirding/lfe/issues/215
+    %% io:fwrite(get_banner()),
+    
     %% Create a default base env of predefined shell variables with
     %% default nil bindings and basic shell macros.
     St = new_state("lfe", [], Env),
