@@ -40,9 +40,9 @@ Otherwise, call [[lists->atoms/1]] on `opts` and [[docs/2]] on the result."
   "Return a given `beam` module's `\"LDoc\"` chunk as a term.
 
 If the chunk is missing, return `#\"Missing \"LDoc\" chunk.\"`."
-  (case (beam_lib:chunks beam '["LDoc"])
-    (`#(ok             #(,_ [#("LDoc" ,chunk)])) (binary_to_term chunk))
-    (`#(error beam_lib #(missing_chunk ,_ ,_))   #"Missing \"LDoc\" chunk.")))
+  (case (beam_lib:chunks beam '["LDoc"] '[allow_missing_chunks])
+    (`#(ok #(,_ [#("LDoc" missing_chunk)])) #"Missing \"LDoc\" chunk.")
+    (`#(ok #(,_ [#("LDoc" ,chunk)]))        (binary_to_term chunk))))
 
 (defun lists->atoms (lst)
   "Map `list_to_atom/1` over `lst`."
