@@ -95,7 +95,7 @@ server(default) ->
     server(lfe_env:new());
 server(Env) ->
     process_flag(trap_exit, true),              %Must trap exists
-    io:fwrite(get_banner()),
+    io:fwrite(make_banner()),
     %% Create a default base env of predefined shell variables with
     %% default nil bindings and basic shell macros.
     St = new_state("lfe", [], Env),
@@ -193,15 +193,15 @@ read_expression_1(Rdr, Eval, St) ->
             read_expression_1(Rdr, start_eval(St), St)
     end.
 
-get_banner() ->
+make_banner() ->
     [io_lib:format(
        ?GRN("   ..-~~") ++ ?YLW(".~~_") ++ ?GRN("~~---..") ++ "\n" ++
        ?GRN("  (      ") ++ ?YLW("\\\\") ++ ?GRN("     )") ++ "    |   A Lisp-2+ on the Erlang VM\n" ++
        ?GRN("  |`-.._") ++ ?YLW("/") ++ ?GRN("_") ++ ?YLW("\\\\") ++ ?GRN("_.-';") ++ "    |   Type " ++ ?GRN("(help)") ++ " for usage info.\n" ++
-       ?GRN("  |         ") ++ ?RED("g") ++ ?GRN(" (_ \\") ++  "   |   \n" ++
+       ?GRN("  |         ") ++ ?RED("g") ++ ?GRN(" |_ \\") ++  "   |   \n" ++
        ?GRN("  |        ") ++ ?RED("n") ++ ?GRN("    | |") ++   "  |   Docs: " ++ ?BLU("http://docs.lfe.io/") ++ " \n" ++
-       ?GRN("  (       ") ++ ?RED("a") ++ ?GRN("    / /") ++   "   |   Source: " ++ ?BLU("http://github.com/rvirding/lfe") ++ "\n" ++
-       ?GRN("   \\     ") ++ ?RED("l") ++ ?GRN("    (_/") ++  "    |   \n" ++
+       ?GRN("  |       ") ++ ?RED("a") ++ ?GRN("    / /") ++   "   |   Source: " ++ ?BLU("http://github.com/rvirding/lfe") ++ "\n" ++
+       ?GRN("   \\     ") ++ ?RED("l") ++ ?GRN("    |_/") ++  "    |   \n" ++
        ?GRN("    \\   ") ++ ?RED("r") ++ ?GRN("     /") ++  "      |   LFE v~s ~s\n" ++
        ?GRN("     `-") ++ ?RED("E") ++ ?GRN("___.-'") ++ "\n\n", [get_lfe_version(), get_abort_message()])].
 
