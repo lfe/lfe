@@ -1,0 +1,91 @@
+% lfe_macro(3)
+% Robert Virding
+% 2008-2016
+
+
+# NAME
+
+lfe_macro - Lisp Flavoured Erlang (LFE) macro expander
+
+
+# SYNOPSIS
+
+This module provides an interface to the LFE macro expander.
+The expander is used by the LFE compile and in the shell but
+can also be used by applications explicitly wanting to handle
+a file.
+
+
+# DATA TYPES
+
+**sexpr()**
+
+An LFE s-expression, a list structure.
+
+**filesexpr() = {Sexpr,Line}**
+
+This is the format returned by ``lfe_io:parse_file/1`` and
+is used by the compiler to give better error information.
+
+**env()**
+
+This is an macro and evaluation environment as created
+by ``lfe_lib:new_env()``.
+
+
+# EXPORTS
+
+**expand_forms([FileSexpr], Env) -> ExpRet**
+
+where
+
+```
+  FileSexpr = filesexpr()
+  Env = env()
+  ExpRet = {yes,[FileSexpr],Env,Warnings} | {error,Errors,Warnings}
+```
+
+**macro_forms([FileSexpr], Env) -> {[FileSexpr],Env}.**
+
+where
+
+```
+FileSexpr = filesexpr()
+Env = env()
+```
+
+**expand_expr_all(Sexpr, Env) -> Sexpr.**
+
+where
+
+```
+Sexpr = sexpr()
+Env = env()
+```
+
+Expand all macros in Sexpr either using the definitions in Env
+or just the default macros. Note that any eventual new macro
+definitions will be lost.
+
+**expand_expr(Sexpr, Env) -> {yes,Exp} | no.**
+
+**expand_expr_1(Sexpr, Env) -> {yes,Exp} | no.**
+
+where
+
+```
+Sexpr = Exp = sexpr()
+Env = env()
+```
+
+Test if the top s-expression here is a macro call, if so
+expand it and return {yes,Expansion}, if not then return no.
+``expand_expr/2`` will expand the top s-expression as much as
+possible while ``expand_expr_1/2`` will only try it once. These
+functions use the macro definitions in the environment and the
+standard pre-defined macros.
+
+
+# SEE ALSO
+
+**lfe_comp(3)**, **lfe_gen(3)**

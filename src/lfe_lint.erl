@@ -177,11 +177,12 @@ collect_form({_,L}, {Acc,#lint{module=[]}=St}) ->
     {Acc,bad_mdef_error(L, name, St#lint{module='-no-module-'})};
 collect_form({['extend-module'|Mdef],L}, {Acc,St}) ->
     {Acc,check_mdef(Mdef, L, St)};
-collect_form({['define-function',Func,Body],L}, {Acc,St}) ->
+collect_form({['define-function',Func,Body,Doc],L}, {Acc,St}) ->
+    Type = is_atom(Func) and (io_lib:char_list(Doc) or is_binary(Doc)),
     case Body of
-        [lambda|_] when is_atom(Func) ->
+        [lambda|_] when Type ->
             {[{Func,Body,L}|Acc],St};
-        ['match-lambda'|_] when is_atom(Func) ->
+        ['match-lambda'|_] when Type ->
             {[{Func,Body,L}|Acc],St};
         _ -> {Acc,bad_form_error(L, 'define-function', St)}
     end;
@@ -591,13 +592,14 @@ check_let(_, _, L, St) ->
 %%  Check a variable binding of form [Pat,[when,Guard],Val] or
 %%  [Pat,Val].
 
-check_let_vb(Vb, Env, L, St0) ->
+check_let_vb([_|_]=Vb, Env, L, St0) ->
     %% Get the environments right here!
     case pattern_guard(Vb, Env, L, St0) of
         {[Val],Pvs,_,St1} ->                    %One value expression only
             {Pvs,check_expr(Val, Env, L, St1)};
         {_,_,_,St1} -> {[],bad_form_error(L, 'let', St1)}
-    end.
+    end;
+check_let_vb(_, _, L, St) -> {[],bad_form_error(L, 'let', St)}.
 
 %% check_let_function(FletBody, Env, Line, State) -> {Env,State}.
 %%  Check a let-function form (let-function FuncBindings ... ).

@@ -72,17 +72,17 @@ exp_form({['define-module',[Mod|Ps]|Mdef0],L}, {Acc,St0}) ->
                       {[lambda,Ps,[instance,[call,?Q(Ex),?Q(new)|Ps]|Ps]],
                        [lambda,[base|Ps],[tuple,?Q(Mod),base|Ps]]}
               end,
-    New = ['define-function',new,Nl],
-    Inst = ['define-function',instance,Il],
+    New = ['define-function',new,Nl,[]],
+    Inst = ['define-function',instance,Il,[]],
     %% Fix this match pattern depending on extends.
     St3 = case St2#param.extd of
               [] -> St2#param{this=['=',this,[tuple,'_'|Ps]]};
               _ -> St2#param{this=['=',this,[tuple,'_',base|Ps]]}
           end,
     {[{{New,L},{Inst,L},['define-module',Mod|Mdef1],L}|Acc],St3};
-exp_form({['define-function',F,Def0],L}, {Acc,St}) ->
+exp_form({['define-function',F,Def0,Doc],L}, {Acc,St}) ->
     Def1 = exp_function(Def0, St),
-    {[{['define-function',F,Def1],L}|Acc],St};
+    {[{['define-function',F,Def1,Doc],L}|Acc],St};
 exp_form({F,L}, {Acc,St}) ->
     {[{F,L}|Acc],St}.
 

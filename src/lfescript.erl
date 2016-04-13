@@ -167,9 +167,9 @@ make_env(Fs, Fenv, _, _, _) ->
     {Fbs,null} = lfe_lib:proc_forms(fun collect_form/3, Fs, null),
     lfe_eval:make_letrec_env(Fbs, Fenv).
 
-collect_form(['define-function',F,[lambda,As|_]=Lambda], _, St) ->
+collect_form(['define-function',F,[lambda,As|_]=Lambda,_], _, St) ->
     {[{F,length(As),Lambda}],St};
-collect_form(['define-function',F,['match-lambda',[Pats|_]|_]=Match], _, St) ->
+collect_form(['define-function',F,['match-lambda',[Pats|_]|_]=Match,_], _, St) ->
     {[{F,length(Pats),Match}],St}.
 
 %% eval_code(Fenv, File, Args, Lopts) -> Res.

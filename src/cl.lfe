@@ -505,7 +505,7 @@
 
 (defun rassoc-if
   ([pred (cons (= (cons _ v) pair) alist)]
-   (if (funcall pred v)                 
+   (if (funcall pred v)
        pair
        (rassoc-if pred alist)))
   ([pred ()] ()))
