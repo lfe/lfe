@@ -7,9 +7,7 @@
 
 lfe_guide - Lisp Flavoured Erlang User Guide
 
-
 # SYNPOSIS
-
 
 Note: {{ ... }} is use to denote optional syntax.
 
@@ -67,7 +65,7 @@ Integers can be written in various forms and number bases:
 * Character notation (the value is the Unicode code point of the character):
 
 ```
-  #\a #\$ #\ä #\🐭
+  #\a #\$ #\ä
 ```
 
 * Character notation with the value in hexadecimal:
@@ -123,10 +121,11 @@ like it is meant to be a string): "any text between double quotes where
 
 As a special case you can also write out the character number in the
 form ``\xHHH;`` (where "HHH" is an integer in hexadecimal notation),
-e.g. "\x61;\x62;\x63;" is a complicated way of writing "abc".  This can
+e.g. ``"\x61;\x62;\x63;"`` is a complicated way of writing ``"abc"``.  This can
 be convenient when writing Unicode letters not easily typeable or
-viewable with regular fonts.  E.g. "Cat: \x1f639;" might be easier to
-type (and view on output devices without a Unicode font) than "Cat: 😹".
+viewable with regular fonts.  E.g. ``"Cat: \\x1f639;"`` might be easier to
+type (and view on output devices without a Unicode font) then typing the
+actual unicode letter.
 
 
 ### Binary Strings
@@ -134,7 +133,7 @@ type (and view on output devices without a Unicode font) than "Cat: 😹".
 Binary strings are just like list strings but they are represented
 differently in the virtual machine.  The simple syntax is ``#"..."``,
 e.g.
-``#"This is a binary string \n with some \"escaped\" and quoted (\x1f639;) characters"``
+``#"This is a binary string \n with some \"escaped\" and quoted (\\x1f639;) characters"``
 
 You can also use the general format for creating binaries (``#B(...)``,
 described below), e.g. ``#B("a")``, ``#"a"``, and ``#B(97)`` are all the same binary
@@ -161,7 +160,7 @@ escaped name:
 ```
 
 Alternatively you can also use the hexadecimal character encoding,
-e.g. "a\nb" and "a\x0a;b" are the same string.
+e.g. ``"a\nb"`` and ``"a\x0a;b"`` are the same string.
 
 
 ## Binaries
@@ -180,9 +179,10 @@ Example invocations are that show the various annotations:
 > #B((42 (size 32) big-endian) (42 (size 32) little-endian))
 #B(0 0 0 42 42 0 0 0)
 > #B((1.23 float) (1.23 (size 32) float) (1.23 (size 64) float))
-#B(63 243 174 20 122 225 71 174 63 157 112 164 63 243 174 20 122 225 71 174)
-> #B((#"a" binary) (#"b" binary)) ⇨ #"ab"
-#B("Cat:" #\ (128569 utf-8)) ⇨ #"Cat: 😹"
+#B(63 243 174 20 122 225 71 174 63 157 112 164 63 243 174 20
+   122 225 71 174)
+> #B((#"a" binary) (#"b" binary))
+#"ab"
 ```
 
 Learn more about "segments" of binary data e.g. in
@@ -226,6 +226,7 @@ somewhat surprisingly ``123foo`` and ``1.23e4extra`` (but note that illegal
 digits don't make a number a symbol when using the explicit number base
 notation, e.g. ``#b10foo`` gives an error).
 
+<!-- 
 Symbol names can contain a surprising breadth or characters:
 
 ```
@@ -242,6 +243,11 @@ o, p, q, r, s, t, u, v, w, x, y, z, |, ~, \  , ¡, ¢, £, ¤, ¥, ¦, §, ¨,
 (This is basically all of the latin-1 character set without control
 character, whitespace, the various brackets, double quotes and
 semicolon).
+-->
+
+Symbol names can contain a surprising breadth or characters, basically
+all of the latin-1 character set without control character,
+whitespace, the various brackets, double quotes and semicolon.
 
 Of these, only ``|``, ``\'``, ``'``, ``,``, and ``#`` may not be the
 first character of the symbol's name (but they *are* allowed as
@@ -276,7 +282,8 @@ i.e. it may not contain the character sequence ``#|``.
 while it reads the expression and then be effectively ``2``.
 
 
-# Supported Core forms
+# Supported forms
+## Core forms
 
 ```
 (quote e)
@@ -286,28 +293,29 @@ while it reads the expression and then be effectively ``2``.
 (list e ... )
 (tuple e ... )
 (binary seg ... )
-(map key val ...) (map-get m k) (map-set m k v ...) (map-update m k v ...)
+(map key val ...)
+(map-get m k) (map-set m k v ...) (map-update m k v ...)
 (lambda (arg ...) ...)
 (match-lambda
-  ((arg ... ) {{(when e ...)}} ...)             - Matches clauses
+  ((arg ... ) {{(when e ...)}} ...)           - Matches clauses
   ... )
 (let ((pat {{(when e ...)}} e)
       ...)
   ... )
-(let-function ((name lambda|match-lambda)       - Only define local functions
+(let-function ((name lambda|match-lambda)     - Local functions
                ... )
   ... )
-(letrec-function ((name lambda|match-lambda)    - Only define local functions
+(letrec-function ((name lambda|match-lambda)  - Local functions
                   ... )
   ... )
-(let-macro ((name lambda-match-lambda)          - Only define local macros
+(let-macro ((name lambda-match-lambda)        - Local macros
             ...)
   ...)
 (progn ... )
 (if test true-expr {{false-expr}})
 (case e
   (pat {{(when e ...)}} ...)
-   ... ))
+  ... ))
 (receive
   (pat {{(when e ...)}} ... )
   ...
@@ -319,91 +327,80 @@ while it reads the expression and then be effectively ``2``.
           ... ))}}
   {{(catch
      (((tuple type value ignore) {{(when e ...)}}
-                                        - Must be tuple of length 3 here!
+                                - Must be tuple of length 3!
       ... )
      ... )}}
   {{(after ... )}})
 (funcall func arg ... )
-(call mod func arg ... )                - Call to Mod:Func(Arg, ... )
+(call mod func arg ... )        - Call to Mod:Func(Arg, ... )
 
 (define-module name declaration ... )
 (extend-module declaration ... )
-        Define/extend module and declarations.
 
 (define-function name lambda|match-lambda doc-string)
 (define-macro name lambda|match-lambda doc-string)
-        Define functions/macros at top-level.
 ```
 
-# Supported macro forms
+## Basic macro forms
 
 ```
 (: mod func arg ... ) =>
         (call 'mod 'func arg ... )
 (mod:func arg ... ) =>
         (call 'mod 'func arg ... )
-(? {{timeout {{default}} }})            - Receive next message,
-                                          optional timeout and default value
+(? {{timeout {{default}} }})
 (++ ... )
 (list* ...)
-(let* (...) ... )                       - Sequential let's
+(let* (...) ... )
 (flet ((name (arg ...) ...)
        ...)
   ...)
-(flet* (...) ... )                      - Sequential flet's
+(flet* (...) ... )
 (fletrec ((name (arg ...) ...)
           ...)
   ...)
-        Define local functions, this will expand to lambda or
-        match-lambda depending on structure as with defun.
-(cond ... )                             - The normal cond, with (?= pat expr)
+(cond ...
+      {{(?= pat expr)}}
+      ... )
 (andalso ... )
 (orelse ... )
-(fun func arity)                        - fun func/arity
-(fun mod func arity)                    - fun mod:func/arity
-(lc (qual ...) ...)                     - [ expr || qual ... ]
+(fun func arity)
+(fun mod func arity)
+(lc (qual ...) ...)
 (list-comp (qual ...) ...)
-(bc (qual ...) ...)                     - << expr || qual ... >>
+(bc (qual ...) ...)
 (binary-comp (qual ...) ...)
-(match-spec ...)                        - ets:fun2ms(fun ( ) -> end)
+(match-spec ...)
 ```
 
-# Common Lisp inspired macros
+## Common Lisp inspired macros
 
 ```
 (defun name (arg ...) ...)
 (defun name
   ((argpat ...) ...)
   ...)
-        Define a toplevel function, this will expand to lambda or
-        match-lambda depending on structure.
 (defmacro name (arg ...) ...)
 (defmacro name arg ...)
 (defmacro name
   ((argpat ...) ...)
   ...)
-        Define a top-level macro, this will expand to lambda or
-        match-lambda depending on structure.
 (defsyntax name
   (pat exp)
   ...)
-        Define a top-level macro using Scheme inspired syntax-rules
-        format.
 (macrolet ((name (arg ...) ...)
            ...)
   ...)
 (syntaxlet ((name (pat exp) ...)
             ...)
   ...)
-        Define local macros in macro or syntax-rule format.
 (prog1 ...)
 (prog2 ...)
-        Like their CL counterparts.
 (defmodule name ...)
 (defrecord name ...)
 ```
 
-# Older Scheme inspired macros
+## Older Scheme inspired macros
 
 ```
 (define (name arg ...) ...)
@@ -462,11 +459,11 @@ following guard expressions:
 (list gexpr ...)
 (tuple gexpr ...)
 (binary ...)
-(progn gtest ...)               - Sequence of guard tests
+(progn gtest ...)           - Sequence of guard tests
 (if gexpr gexpr gexpr)
 (type-test e)
-(guard-bif ...)                 - Guard BIFs, arithmetic,
-                                  boolean and comparison operators
+(guard-bif ...)             - Guard BIFs, arithmetic,
+                              boolean and comparison operators
 ```
 
 An empty guard, ``(when)``, always succeeds as there is no test which
@@ -559,10 +556,10 @@ the core meaning and never an alternative. Silently!
 ```
 (defmodule name
   (export (f 2) (g 1) ... )
-  (export all)                                  ;Export all functions
+  (export all)                          ;Export all functions
   (import (from mod (f1 2) (f2 1) ... )
           (rename mod ((f1 2) sune) ((f2 1) kurt) ... ))
-  (import (prefix mod mod-prefix))              - NYI
+  (import (prefix mod mod-prefix))      - NYI
   (attr-1 value-1 value-2)
   ... )
 ```
@@ -758,8 +755,8 @@ argument pairs field-name value to get non-default values. E.g. for
 
 ```
 (defrecord person
-  (name '"")
-  (address '"")
+  (name "")
+  (address "")
   age)
 ```
 
@@ -782,7 +779,7 @@ the following will be generated:
  (set-person-address r address)
 ```
 
-* ``(make-person name '"Robert" age 54)`` -
+* ``(make-person name "Robert" age 54)`` -
   Will create a new person record with the name field set to
   "Robert", the age field set to 54 and the address field set to
   the default "".
@@ -804,11 +801,11 @@ the following will be generated:
 * ``(person-address)`` -
   Return the index of the address field of a person record.
 
-* ``(set-person-address john '"back street")`` -
+* ``(set-person-address john "back street")`` -
   Sets the address field of the person record john to
   "back street".
 
-* ``(set-person john age 35 address '"front street")`` -
+* ``(set-person john age 35 address "front street")`` -
   In the person record john set the age field to 35 and the
   address field to "front street".
 
@@ -832,7 +829,8 @@ where ``seg`` is
         string
         (val integer|float|binary|bitstring|bytes|bits
              (size n) (unit n)
-             big-endian|little-endian|native-endian|little|native|big
+             big-endian|little-endian|native-endian
+             big|little|native
              signed|unsigned)
 ```
 
@@ -895,9 +893,8 @@ elements of the binary.
 The supported qualifiers, in both list/binary comprehensions are:
 
 ```
-(<- pat {{guard}} list-expr)        - Extract elements from a list expression
-(<= bin-pat {{guard}} binary-expr)  - Extract elements from a binary/bits
-                                      expression
+(<- pat {{guard}} list-expr)        - Extract elements from list
+(<= bin-pat {{guard}} binary-expr)  - Extract elements from binary
 (?= pat {{guard}} expr)  - Match test and bind variables in pat
 expr                     - Normal boolean test
 ```
@@ -914,10 +911,10 @@ returns a list of all the even elements of the list ``l1`` which are
 greater than 5.
 
 ```
-(bc ((<= (f float (size 32)) b1)        ;No wrapping, only bitseg needed
+(bc ((<= (f float (size 32)) b1)        ;Only bitseg needed
      (> f 10.0))
-  (: io fwrite '"~p\n" (list f))
-  (f float (size 64)))                  ;No wrapping, only bitseg needed
+  (: io fwrite "~p\n" (list f))
+  (f float (size 64)))                  ;Only bitseg needed
 ```
 
 returns a binary of floats of size 64 of floats which are larger than
@@ -952,7 +949,7 @@ For example:
 
 ```
 (ets:select db (match-spec
-                   ([(tuple _ a b)] (when (> a 3)) (tuple 'ok b))))
+                 ([(tuple _ a b)] (when (> a 3)) (tuple 'ok b))))
 ```
 
 It is a macro which creates the match specification structure which is
@@ -986,7 +983,8 @@ all the combination functions in the module qlc.
 For example:
 
 ```
-(qlc (lc ((<- (tuple k v) (: ets table e2)) (== k i)) v) {{Option}})
+(qlc (lc ((<- (tuple k v) (: ets table e2)) (== k i)) v)
+     {{Option}})
 ```
 
 Macros, especially record macros, can freely be used inside query list
@@ -1003,13 +1001,17 @@ The following more or less standard lisp functions are predefined:
 ```
 (<arith_op> expr ...)
 (<comp_op> expr ...)
-        The standard arithmentic operators, + - * /, and comparison
-        operators, > >= < =< == /= =:= =/= , can take multiple
-        arguments the same as their standard lisp counterparts. This
-        is still experimental and implemented using macros. They do,
-        however, behave like normal functions and evaluate ALL their
-        arguments before doing the arithmetic/comparisons operations.
+```
 
+The standard arithmentic operators, + - * /, and
+comparison operators, > >= < =< == /= =:= =/= , can take
+multiple arguments the same as their standard lisp
+counterparts. This is still experimental and implemented
+using macros. They do, however, behave like normal
+functions and evaluate ALL their arguments before doing
+the arithmetic/comparisons operations.
+
+```
 (acons key value list)
 (pairlis keys values {{list}})
 (assoc key list)
@@ -1018,44 +1020,61 @@ The following more or less standard lisp functions are predefined:
 (rassoc value list)
 (rassoc-if test list)
 (rassoc-if-not test list)
-        The standard association list functions.
+```
 
+The standard association list functions.
+
+```
 (subst new old tree)
 (subst-if new test tree)
 (subst-if-not new test tree)
 (sublis alist tree)
-        The standard substituition functions.
+```
+The standard substituition functions.
 
+```
 (macroexpand-1 expr {{environment}})
-        If Expr is a macro call, does one round of expansion,
-        otherwise returns Expr.
+```
 
+If Expr is a macro call, does one round of expansion,
+otherwise returns Expr.
+
+```
 (macroexpand expr {{environment}})
-        Returns the expansion returned by calling macroexpand-1
-        repeatedly, starting with Expr, until the result is no longer
-        a macro call.
+```
 
+Returns the expansion returned by calling macroexpand-1
+repeatedly, starting with Expr, until the result is no
+longer a macro call.
+
+```
 (macroexpand-all expr {{environment}})
-        Returns the expansion from the expression where all macro
-        calls have been expanded with macroexpand.
+```
 
-        NOTE that when no explicit environment is given the
-        macroexpand functions then only the default built-in macros
-        will be expanded. Inside macros and in the shell the variable
-        $ENV is bound to the current macro environment.
+Returns the expansion from the expression where all macro
+calls have been expanded with macroexpand.
 
+NOTE that when no explicit environment is given the
+macroexpand functions then only the default built-in
+macros will be expanded. Inside macros and in the shell
+the variable $ENV is bound to the current macro environment.
+
+```
 (eval expr {{environment}})
-        Evaluate the expression expr. Note that only the pre-defined
-        lisp functions, erlang BIFs and exported functions can be
-        called. Also no local variables can be accessed. To access
-        local variables the expr to be evaluated can be wrapped in a
-        let defining these.
+```
 
-        For example if the data we wish to evaluate is in the variable
-        expr and it assumes there is a local variable "foo" which it
-        needs to access then we could evaluate it by calling:
+Evaluate the expression expr. Note that only the pre-defined
+lisp functions, erlang BIFs and exported functions can be
+called. Also no local variables can be accessed. To access
+local variables the expr to be evaluated can be wrapped in a
+let defining these.
 
-        (eval `(let ((foo ,foo)) ,expr))
+For example if the data we wish to evaluate is in the variable
+expr and it assumes there is a local variable "foo" which it
+needs to access then we could evaluate it by calling:
+
+```
+(eval `(let ((foo ,foo)) ,expr))
 ```
 
 ## Supplemental Common Lisp Functions
@@ -1194,4 +1213,4 @@ The include the following:
 
 # SEE ALSO
 
-**lfe_shell(1)**, **lfescript(1)**
+**lfe(1)**, **lfescript(1)**
