@@ -100,8 +100,8 @@ EXAMPLE
                   (f (: erlang error (tuple 'unknown_feature '<param1> f)))))
               ...
 
-       The following code builds and compiles  a  module  from  the  parameter
-       data:
+       The following code builds and compiles a module from the parameter  da‐
+       ta:
 
               make_module(Name, Params) ->
                   Mod0 = lfe_gen:new_module(Name),

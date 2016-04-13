@@ -6,9 +6,9 @@ NAME
        lfe_macro - Lisp Flavoured Erlang (LFE) macro expander
 
 SYNOPSIS
-       This  module  provides  an  interface  to  the LFE macro expander.  The
-       expander is used by the LFE compile and in the shell but  can  also  be
-       used by applications explicitly wanting to handle a file.
+       This  module  provides an interface to the LFE macro expander.  The ex‐
+       pander is used by the LFE compile and in the shell but can also be used
+       by applications explicitly wanting to handle a file.
 
 DATA TYPES
        sexpr()
@@ -62,8 +62,8 @@ EXPORTS
               Env = env()
 
        Test  if the top s-expression here is a macro call, if so expand it and
-       return {yes,Expansion}, if not  then  return  no.   expand_expr/2  will
-       expand  the  top s-expression as much as possible while expand_expr_1/2
+       return {yes,Expansion}, if not then return no.  expand_expr/2 will  ex‐
+       pand  the  top  s-expression  as much as possible while expand_expr_1/2
        will only try it once.  These functions use the  macro  definitions  in
        the environment and the standard pre-defined macros.
 

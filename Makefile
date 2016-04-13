@@ -121,7 +121,7 @@ regenerate-parser:
 
 # Targets for generating docs and man pages
 DOCDIR = doc
-DOCSRC = $(DOCDIR)/source
+DOCSRC = $(DOCDIR)/src
 MANDIR = $(DOCDIR)/man
 PDFDIR = $(DOCDIR)/pdf
 EPUBDIR = $(DOCDIR)/epub
@@ -171,7 +171,9 @@ docs-txt: docs-man \
 	$(addprefix $(DOCDIR)/, $(TXT1S)) \
 	$(addprefix $(DOCDIR)/, $(TXT3S)) \
 	$(addprefix $(DOCDIR)/, $(TXT7S))
-	@mv $(DOCDIR)/lfe_guide.txt $(DOCDIR)/user_guide.txt
+	@if [ -f $(DOCDIR)/lfe_guide.txt ]; then \
+		cp $(DOCDIR)/lfe_guide.txt $(DOCDIR)/user_guide.txt ; \
+	fi
 
 $(DOCDIR)/%.txt: export GROFF_NO_SGR=1
 
@@ -193,13 +195,13 @@ docs-pdf: $(PDFDIR) \
 	$(addprefix $(PDFDIR)/, $(PDF7S))
 
 $(PDFDIR)/%.pdf: $(DOCSRC)/%.1.md
-	pandoc -f markdown -o $@ $<
+	pandoc -f markdown --latex-engine=xelatex -o $@ $<
 
 $(PDFDIR)/%.pdf: $(DOCSRC)/%.3.md
-	pandoc -f markdown -o $@ $<
+	pandoc -f markdown --latex-engine=xelatex -o $@ $<
 
 $(PDFDIR)/%.pdf: $(DOCSRC)/%.7.md
-	pandoc -f markdown -o $@ $<
+	pandoc -f markdown --latex-engine=xelatex -o $@ $<
 
 $(EPUBDIR):
 	@mkdir -p $(EPUBDIR)

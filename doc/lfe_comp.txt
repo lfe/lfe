@@ -46,8 +46,8 @@ EXPORTS
          useful for debugging and interest.
 
        · to_core0,  to-core0,  to_core,  to-core - Print a listing of the Core
-         Erlang code before/after being optimised  in  the  files  .core.   No
-         object files are produced.  Mainly useful for debugging and interest.
+         Erlang code before/after being optimised in the files .core.  No  ob‐
+         ject files are produced.  Mainly useful for debugging and interest.
 
        · to_kernel,  to-kernel  - Print a listing of the Kernel Erlang code in
          the files .kernel.  No object files are produced.  Mainly useful  for
@@ -69,11 +69,11 @@ EXPORTS
          or the errors and warnings in {error,Errors,Warnings} when there  are
          errors.
 
-       · debug_print,  debug-print  -  Causes  the  compiler to print a lot of
-         debug information.
+       · debug_print,  debug-print - Causes the compiler to print a lot of de‐
+         bug information.
 
-       · warnings_as_errors,  warnings-as-errors  -  Causes  warnings  to   be
-         treated as errors.
+       · warnings_as_errors, warnings-as-errors - Causes warnings to be treat‐
+         ed as errors.
 
        · no_export_macros,  no-export-macros  - Do not export macros from mod‐
          ules.
@@ -86,10 +86,10 @@ EXPORTS
               [{FileName,[ErrorInfo]}]
 
        ErrorInfo  is described below.  When generating Errors and Warnings the
-       line number is the line of the start of the form  in  which  the  error
-       occurred.   The  file name has been included here to be compatible with
-       the Erlang compiler.  As  yet  there  is  no  extra  information  about
-       included files.
+       line number is the line of the start of the form in which the error oc‐
+       curred.  The file name has been included here to be compatible with the
+       Erlang compiler.  As yet there is no extra information  about  included
+       files.
 
        forms(Forms) -> CompRet
 
@@ -113,9 +113,9 @@ EXPORTS
 
        format_error(Error) -> Chars
 
-       Uses an ErrorDescriptor and returns a deep  list  of  characters  which
-       describes  the  error.  This function is usually called implicitly when
-       an ErrorInfo structure is processed.  See below.
+       Uses an ErrorDescriptor and returns a deep list of characters which de‐
+       scribes  the error.  This function is usually called implicitly when an
+       ErrorInfo structure is processed.  See below.
 
 ERROR INFORMATION
        The ErrorInfo mentioned above is the standard ErrorInfo structure which
