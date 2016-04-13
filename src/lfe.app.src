@@ -15,7 +15,7 @@
 
 {application, lfe,
  [{description, "Lisp Flavored Erlang (LFE)"},
-  {vsn, "1.0.1"},
+  {vsn, "1.0.2"},
   {modules,[cl,lfe,lfe_bits,lfe_codegen,lfe_comp,lfe_edlin_expand,
             lfe_env,lfe_eval,lfe_gen,lfe_init,lfe_io,
             lfe_io_format,lfe_io_pretty,lfe_io_write,lfe_lib,

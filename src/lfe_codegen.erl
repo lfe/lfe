@@ -98,9 +98,9 @@ collect_form({['define-module',Mod|Mdef],L}, {Acc,St}) ->
 collect_form({['extend-module'|Mdef],L}, {Acc,St}) ->
     %% Everything into State.
     {Acc,collect_mdef(Mdef, L, St#cg{anno=[L]})};
-collect_form({['define-function',Name,[lambda|_]=Lambda],L}, {Acc,St}) ->
+collect_form({['define-function',Name,[lambda|_]=Lambda,_],L}, {Acc,St}) ->
     {[{Name,Lambda,L}|Acc],St};
-collect_form({['define-function',Name,['match-lambda'|_]=Match],L}, {Acc,St}) ->
+collect_form({['define-function',Name,['match-lambda'|_]=Match,_],L}, {Acc,St}) ->
     {[{Name,Match,L}|Acc],St}.
 
 %% collect_mdef(ModDef, Line, State) -> State.
