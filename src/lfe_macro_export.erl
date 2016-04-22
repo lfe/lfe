@@ -16,20 +16,22 @@
 %% Author  : Robert Virding
 %% Purpose : Lisp Flavoured Erlang macro export function builder.
 
-%% Build the LFE-EXPAND-EXPORTED-MACRO function which exports macros
-%% so they can be found by the macro expander without needing to
-%% inlcude them. If the module foo exports macro bar then it can be
-%% called by doing (foo:bar ...).
+%% Build the LFE-EXPAND-EXPORTED-MACRO (L-E-E-M) function which
+%% exports macros so they can be found by the macro expander without
+%% needing to inlcude them. If the module foo exports macro bar then
+%% it can be called by doing (foo:bar ...).
 %%
-%% This version expands the macros when the defining module is
-%% compiled so they are expanded in the context when that module is
-%% compiled, not when they are called. This is easy and makes it easy
-%% to access all macros in the defining module.
+%% This version does not actually expand any macros but just collects
+%% them. Macros that are to be exported are entered into the L-E-E-M
+%% function so they can be exported and called from the outside. We
+%% also enter all the functions and variables defined inside ewc so
+%% they can be reached from these macros when the L-E-E-M function is
+%% compiled. We do NOT need to save the ewc macros as they will
+%% accessible when he module is compiled.
 %%
-%% An alternative would be to expand the macros when they are called
-%% but then it becomes difficult to access all the macros within the
-%% defining module. This might be easy if we accept exporting all
-%% macros not just specific ones.
+%% The macros will be expanded in the context of the module when it is
+%% later compiled and not in the context of the calling module. This
+%% is more consistent and is easier.
 %%
 %% The matching is done in two steps: first we test whether the call
 %% name is one of our known macros; if so we test whether the
@@ -102,7 +104,7 @@ collect_macro({['eval-when-compile'|Fs],_}, Mst) ->
     lists:foldl(fun collect_ewc_macro/2, Mst, Fs);
 collect_macro({['extend-module'|Mdef],_}, Mst) ->
     collect_mdef(Mdef, Mst);
-collect_macro(_, Mst) -> Mst.
+collect_macro(_, Mst) -> Mst.                   %Ignore functions here.
 
 collect_ewc_macro([set,Name,Val], #umac{env=Env0}=Mst) ->
     Env1 = lfe_env:add_vbinding(Name, Val, Env0),
@@ -111,6 +113,9 @@ collect_ewc_macro(['define-function',Name,Def,_], #umac{env=Env0}=Mst) ->
     Ar = function_arity(Def),
     Env1 = lfe_env:add_fbinding(Name, Ar, Def, Env0),
     Mst#umac{env=Env1};
+collect_ewc_macro(['define-macro'|_], Mst) ->
+    %% We ignore ewc macros here as they are not exportable.
+    Mst;
 collect_ewc_macro([progn|Fs], Mst) ->
     lists:foldl(fun collect_ewc_macro/2, Mst, Fs).
 
