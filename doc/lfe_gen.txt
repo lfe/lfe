@@ -15,36 +15,19 @@ DATA TYPES
        An LFE s-expression, a list structure.
 
 EXPORTS
-       compile_forms(Forms) -> CompRet
-
-       where
-
-              Forms = [sexpr()]
-              CompRet = BinRet | ErrRet
-              BinRet = {ok,ModuleName,Binary,Warnings}
-              ErrRet = {error,Errors,Warnings}
-
-       Compile a list of LFE forms which comprise an LFE module.  For example:
-
-              lfe_gen:compile_forms([[defmodule,foo,[export,[a,0]]],
-                                     [defun,a,[],[quote,yes]]])
-
-       Both WarningList and ErrorList have the following format:
-
-              [{FileName,[ErrorInfo]}]
-
-       ErrorInfo is described below.  When generating Errors and Warnings  the
-       "line number" is the index of the form in which the error occured.
-
        new_module(Name) -> ModDef.
 
-       add_exports([{Name,Arity}], ModDef) -> ModDef.
+       add_exports([[Name,Arity]], ModDef) -> ModDef.
 
-       add_imports({from,Module,[{Name,Arity}]}, ModDef) -> ModDef.
+       add_imports([from,Module|Functions], ModDef) -> ModDef.
+
+       add_imports([rename,Module|Renames], ModDef) -> ModDef.
+
+       add_attribute(Attribute, ModDef) -> ModDef.
 
        add_form(Form, ModDef) -> ModDef.
 
-       print_mod(ModDef) -> iolist().
+       build_mod(ModDef) -> Forms.
 
        compile_mod(Mod) -> CompRet
 
@@ -54,12 +37,13 @@ EXPORTS
               BinRet = {ok,ModuleName,Binary,Warnings}
               ErrRet = {error,Errors,Warnings}
 
-       These  functions are used to incrementally create a module which can at
-       the end be compiled by compile_mod/1.  The same example as above  could
-       be written:
+       These functions are used to incrementally create a module which can  at
+       the  end be compiled by compile_mod/1.  The various components have the
+       same formats as they do when defining a module in  a  file.   A  simple
+       module which defines one function a/0 could be defined with:
 
               M0 = lfe_gen:new_module(foo),
-              M1 = lfe_gen:add_exports([{a,0}], M0),
+              M1 = lfe_gen:add_exports([[a,0]], M0),
               M2 = lfe_gen:add_form([defun,a,[],[quote,yes]], M1),
               lfe_gen:compile_mod(M2)
 
@@ -105,7 +89,7 @@ EXAMPLE
 
               make_module(Name, Params) ->
                   Mod0 = lfe_gen:new_module(Name),
-                  Exps = map(fun ({F,_}) -> {F,1} end, Params),
+                  Exps = lists:map(fun ({Param,_}) -> [Param,1] end, Params),
                   Mod1 = lfe_gen:add_exports(Exps, Mod0),
                   Mod2 = make_funcs(Params, Mod1),
                   lfe_gen:compile_mod(Mod2).
@@ -115,13 +99,23 @@ EXAMPLE
                   CatchAll = [f,[':',erlang,error,
                                  [tuple,unknown_feature,[quote,Param],f]]],
                   %% Build case clauses
-                  Cls = foldr(fun ({Feature,Value}, Cls) ->
-                                      [[[quote,Feature],[quote,Value]]|Cls]
-                              end, [CatchAll], Params),
+                  Fold = fun ({Feature,Value}, Cls) ->
+                                 [[[quote,Feature],[quote,Value]]|Cls]
+                         end
+                  Cls = lists:foldr(Fold, [CatchAll], Params),
                   %% Build function.
                   Func = [defun,Param,[f],['case',f,Cls]],
                   make_funcs(Ps, lfe_gen:add_form(Func, Mod));
               make_funcs([], Mod) -> Mod.                     %All done
+
+       This  module  could  be generated and then be loaded into the system by
+       doing:
+
+              {ok,ModuleName,Binary,Warnings} = make_module(Name, Params),
+              code:load_binary(ModuleName, "nofile", Binary)
+
+       The second argument to code:load_binary/3, here "nofile", is irrelevant
+       in this case.
 
 ERROR INFORMATION
        The ErrorInfo mentioned above is the standard ErrorInfo structure which
