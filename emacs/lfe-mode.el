@@ -132,15 +132,15 @@ Other commands:
            lfe-font-lock-keywords-1 lfe-font-lock-keywords-2)
           nil nil (("+-*/.<>=!?$%_&~^:@" . "w")) beginning-of-defun
           (font-lock-mark-block-function . mark-defun)
-	  (font-lock-syntactic-face-function
-	   . lisp-font-lock-syntactic-face-function)))
+          (font-lock-syntactic-face-function
+           . lisp-font-lock-syntactic-face-function)))
   ;; Don't use seq-local here for backwards compatibility.
   (make-local-variable 'prettify-symbols-alist)
   (setq prettify-symbols-alist lfe--prettify-symbols-alist))
 
 ;;; Font locking
 
-(defconst lfe-font-lock-basic-type-keywords
+(defconst lfe-font-lock-old-type-keywords
   (eval-when-compile
     (list
      (concat
@@ -150,9 +150,9 @@ Other commands:
       "\\(\\sw+\\)?")
      '(1 font-lock-keyword-face)
      '(3 font-lock-type-face nil t)))
-  "LFE basic type definition expressions.")
+  "LFE old type definition forms.")
 
-(defconst lfe-font-lock-basic-function-keywords
+(defconst lfe-font-lock-old-function-keywords
   (eval-when-compile
     (list
      (concat
@@ -162,9 +162,9 @@ Other commands:
       "\\(\\sw+\\)?")
      '(1 font-lock-keyword-face)
      '(3 font-lock-function-name-face nil t)))
-  "LFE basic function definition expressions.")
+  "LFE old function definition forms.")
 
-(defconst lfe-font-lock-new-type-keywords
+(defconst lfe-font-lock-type-keywords
   (eval-when-compile
     (list
      (concat
@@ -174,40 +174,54 @@ Other commands:
       "\\(\\sw+\\)?")
      '(1 font-lock-keyword-face)
      '(3 font-lock-type-face nil t)))
-  "LFE new style type expressions.")
+  "LFE type definition forms.")
 
-(defconst lfe-font-lock-new-function-keywords
+(defconst lfe-font-lock-function-keywords
   (eval-when-compile
     (list
      (concat
-      ;; No method here!
-      "(\\(def\\(un\\|macro\\|syntax\\|test\\)\\)\\>"
+      "(\\(def\\(un\\|macro\\|syntax\\|method\\)\\)\\>"
       ;; Any whitespace and declared object.
       "[ \t]*(?"
       "\\(\\sw+\\)?")
      '(1 font-lock-keyword-face)
      '(3 font-lock-function-name-face nil t)))
-  "LFE new style function expressions.")
+  "LFE function definition forms.")
+
+(defconst lfe-font-lock-test-keywords
+  (eval-when-compile
+    (list
+     (concat
+      ;; No method here!
+      "(\\(def\\(\\(test\\(gen\\|skip\\|case\\|cases\\)?\\)\\|\\(setup\\|teardown\\)\\)\\)\\>"
+      ;; Any whitespace and declared object.
+      "[ \t]*(?"
+      "\\(\\sw+\\)?")
+     '(1 font-lock-keyword-face)
+     '(6 font-lock-function-name-face nil t)))
+  "LFE test definition forms.")
 
 (defconst lfe-font-lock-flavor-keywords
   (eval-when-compile
     (list
      (concat
-      "(\\(defflavor\\|defmethod\\|endflavor\\)\\>"
+      ;; No method here!
+      "(\\(defflavor\\|endflavor\\)\\>"
       ;; Any whitespace and declared object.
       "[ \t]*(?"
       "\\(\\sw+\\)?")
      '(1 font-lock-keyword-face)
      '(2 font-lock-type-face nil t)))
-  "LFE flavor expressions.")
+  "LFE flavor definition forms.")
 
 (defconst lfe-font-lock-keywords-1
   (eval-when-compile
-    (list lfe-font-lock-new-type-keywords
-          lfe-font-lock-new-function-keywords
-          lfe-font-lock-basic-type-keywords
-          lfe-font-lock-basic-function-keywords
-          lfe-font-lock-flavor-keywords))
+    (list lfe-font-lock-type-keywords
+          lfe-font-lock-function-keywords
+          lfe-font-lock-test-keywords
+          lfe-font-lock-flavor-keywords
+          lfe-font-lock-old-type-keywords
+          lfe-font-lock-old-function-keywords))
   "Subdued expressions to highlight in LFE modes.")
 
 (eval-and-compile
@@ -216,7 +230,7 @@ Other commands:
       "is_function" "is_integer" "is_list" "is_map" "is_number" "is_pid"
       "is_port" "is_record" "is_reference" "is_tuple")
     "LFE type tests")
-  (defconst lfe-type-bifs
+  (defconst lfe-type-forms
     '("abs" "bit_size" "byte_size" "element" "float"
       "hd" "iolist_size" "length" "make_ref" "setelement" ;"size"
       "round" "tl" "trunc" "tuple_size"
@@ -226,7 +240,7 @@ Other commands:
       "list" "list*" "tuple" "binary"
       "map" "mref" "mset" "mupd" "map-get" "map-set" "map-update")
     "LFE builtin functions (BIFs) and some type macros")
-  (defconst lfe-basic-forms
+  (defconst lfe-core-forms
     '(
       ;; Core forms.
       "after" "call" "case" "catch" "define-function" "define-macro"
@@ -234,7 +248,7 @@ Other commands:
       "let" "let-function" "letrec-function" "let-macro"
       "match-lambda" "progn" "receive" "try" "when"
       "eval-when-compile" "extend-module"
-      ;; Base macro forms.
+      ;; Core macro forms.
       "andalso" "bc" "binary-comp" "cond" "do" "flet" "flet*" "fletrec"
       "fun" "lc" "list-comp"
       "let*" "match-spec" "macrolet" "orelse" "qlc"
@@ -249,12 +263,12 @@ Other commands:
       ;; Control structures.
       (cons
        (concat
-        "(" (regexp-opt lfe-basic-forms t) "\\>")
+        "(" (regexp-opt lfe-core-forms t) "\\>")
        '(1 font-lock-keyword-face))
       ;; Type tests.
       (cons
        (concat
-        "(" (regexp-opt (append lfe-type-tests lfe-type-bifs) t) "\\>")
+        "(" (regexp-opt (append lfe-type-tests lfe-type-forms) t) "\\>")
        '(1 font-lock-builtin-face)))))
   "Gaudy expressions to highlight in LFE modes.")
 
