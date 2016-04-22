@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2015 Robert Virding
+%% Copyright (c) 2008-2016 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -344,7 +344,8 @@ nocatch(_, Reason) -> Reason.
 
 eval_form(Form, #state{curr=Ce}=St) ->
     %% Flatten progn nested forms.
-    case lfe_macro:macro_forms([{Form,1}], Ce) of
+    %% Don't deep expand, keep everything.
+    case lfe_macro:expand_forms([{Form,1}], Ce, false, true) of
         {ok,Eforms,Ce1,Ws} ->
             list_warnings(Ws),
             St1 = St#state{curr=Ce1},
@@ -494,7 +495,8 @@ slurp_1(Name, Ce) ->
 slurp_file(Name) ->
     case lfe_comp:file(Name, [binary,to_split,return]) of
         {ok,[{ok,Mod,Fs0,_}|_],Ws} ->           %Only do first module
-            case lfe_macro:expand_forms(Fs0, lfe_env:new()) of
+	    %% Deep expand, don't keep everything.
+            case lfe_macro:expand_forms(Fs0, lfe_env:new(), true, false) of
                 {ok,Fs1,Env,_} ->
                     %% Flatten and trim away any eval-when-compile.
                     {Fs2,42} = lfe_lib:proc_forms(fun slurp_form/3, Fs1, 42),

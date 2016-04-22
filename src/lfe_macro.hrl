@@ -1,4 +1,4 @@
-%% Copyright (c) 2013-2015 Robert Virding
+%% Copyright (c) 2013-2016 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 -define(C_A(E), ['comma-at',E]).
 
 %% Macro expander state.
--record(mac, {expand=true,                      %Expand everything
+-record(mac, {deep=true,                        %Deep expand everything
               keep=true,                        %Keep all forms
               module='-no-module',              %Current module
               line=1,                           %Line no of current form
