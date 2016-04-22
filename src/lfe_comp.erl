@@ -303,7 +303,8 @@ do_split_file(#comp{cinfo=Ci,code=Code}=St) ->
 
 collect_pre_forms(Fs, Ci) ->
     Env = lfe_env:new(),
-    St = lfe_macro:macro_form_init(Ci),
+    %% Don't deep expand, keep everything.
+    St = lfe_macro:expand_form_init(Ci, false, true),
     collect_mod_forms(Fs, Env, St).
 
 %% collect_modules(Forms, PreForms, PreEnv, State) ->
@@ -339,7 +340,7 @@ collect_mod_forms(Fs, Env0, St0) ->
     end.
 
 collect_mod_forms([F0|Fs0], Acc, Env0, St0) ->
-    case lfe_macro:macro_fileform(F0, Env0, St0) of
+    case lfe_macro:expand_fileform(F0, Env0, St0) of
         {ok,{['define-module'|_],_}=F1,Env1,St1} ->
             {Acc,[F1|Fs0],Env1,St1};
         {ok,{['progn'|Pfs],L},Env1,St1} ->      %Flatten progn's
@@ -377,7 +378,8 @@ do_docs(#comp{code=Ms0}=St0) ->
 do_expand_macros(#comp{cinfo=Ci,code=Ms0}=St0) ->
     Emac = fun (#module{code=Fs0}=Mod) ->
                    Env = lfe_env:new(),
-                   Mst = lfe_macro:expand_form_init(Ci),
+                   %% Deep expand, don't keep everything.
+                   Mst = lfe_macro:expand_form_init(Ci, true, false),
                    case process_forms(fun expand_form/3, Fs0, {Env,Mst}) of
                        {Fs1,_} -> Mod#module{code=Fs1};
                        {error,_,_}=Error -> Error
