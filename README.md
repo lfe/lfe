@@ -1,5 +1,10 @@
 # LFE
 
+[![Hex.pm version](https://img.shields.io/hexpm/v/lfe.svg)](https://hex.pm/packages/lfe)
+[![Hex.pm downloads](https://img.shields.io/hexpm/dt/lfe.svg)](https://hex.pm/packages/lfe)
+[![Hex.pm weekly downloads](https://img.shields.io/hexpm/dw/lfe.svg)](https://hex.pm/packages/lfe)
+[![Hex.pm daily downloads](https://img.shields.io/hexpm/dd/lfe.svg)](https://hex.pm/packages/lfe)
+
 LFE, Lisp Flavoured Erlang, is a lisp syntax front-end to the Erlang
 compiler. Code produced with it is compatible with "normal" Erlang
 code. An LFE evaluator and shell is also included.
