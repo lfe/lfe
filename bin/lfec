@@ -77,7 +77,7 @@
                    "--             No more options, only file names follow\n"
                    "+term          Term will be added to options\n\n"
                    "Terms include:\n\n"
-                   "+binary, +to_exp, +to_lint, +to_core0, +to_core, +to_kernel, +to_asm\n"
+                   "+binary, +no_docs, +to_exp, +to_lint, +to_core0, +to_core, +to_kernel, +to_asm\n"
                    "+{outdir, Dir}, +report, +return, +debug_print\n")))
     (io:put_chars usage)))
 
