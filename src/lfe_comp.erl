@@ -32,8 +32,6 @@
 
 -import(lists, [member/2,keyfind/3,filter/2,foreach/2,all/2,any/2,
                 map/2,flatmap/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3]).
--import(ordsets, [add_element/2,is_element/2,from_list/1,union/2]).
--import(orddict, [store/3,find/2]).
 
 -include("lfe_comp.hrl").
 
@@ -165,11 +163,11 @@ compiler_info(#comp{lfile=F,opts=Os,ipath=Is}) ->
 lfe_comp_opts(Opts) ->
     Fun = fun ('to-split') -> to_split;
               ('to-expmac') -> to_expmac;
-              ('no-docs') -> no_docs;
               ('to-expand') -> to_expand;
               ('to-exp') -> to_exp;             %Backwards compatibility
               ('to-pmod') -> to_pmod;
               ('to-lint') -> to_lint;
+              ('no-docs') -> no_docs;
               ('to-core0') -> to_core0;
               ('to-core') -> to_core;
               ('to-kernel') -> to_kernel;
@@ -224,8 +222,6 @@ passes() ->
      %% Do per-module macro processing.
      {unless_flag,no_export_macros,{do,fun do_export_macros/1}},
      {when_flag,to_expmac,{done,fun expmac_pp/1}},
-     %% Parse docstrings while we can.
-     {unless_flag,no_docs,{do,fun do_docs/1}},
      %% Now we expand and trim remaining macros.
      {do,fun do_expand_macros/1},
      {when_flag,to_expand,{done,fun expand_pp/1}},
@@ -234,6 +230,7 @@ passes() ->
      {when_flag,to_pmod,{done,fun pmod_pp/1}},
      {do,fun do_lfe_lint/1},
      {when_flag,to_lint,{done,fun lint_pp/1}},
+     {unless_flag,no_docs,{do,fun do_docs/1}},
      {do,fun do_lfe_codegen/1},
      {when_flag,to_core0,{done,fun core_pp/1}},
      {do,fun do_erl_comp/1},
@@ -366,20 +363,11 @@ do_export_macros(#comp{cinfo=Ci,code=Ms0}=St) ->
     Ms1 = lists:map(Umac, Ms0),
     {ok,St#comp{code=Ms1}}.
 
-%% do_docs(State) -> {ok,State}.
-%% Process function and macro docstrings and store them in #module.doc.
-
-do_docs(#comp{code=Ms0}=St0) ->
-    %% TODO: error checking?
-    Ms1 = lists:map(fun lfe_doc:module/1, Ms0),
-    St1 = St0#comp{code=Ms1},
-    ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
-
 do_expand_macros(#comp{cinfo=Ci,code=Ms0}=St0) ->
     Emac = fun (#module{code=Fs0}=Mod) ->
                    Env = lfe_env:new(),
-                   %% Deep expand, don't keep everything.
-                   Mst = lfe_macro:expand_form_init(Ci, true, false),
+                   %% Deep expand, keep everything.
+                   Mst = lfe_macro:expand_form_init(Ci, true, true),
                    case process_forms(fun expand_form/3, Fs0, {Env,Mst}) of
                        {Fs1,_} -> Mod#module{code=Fs1};
                        {error,_,_}=Error -> Error
@@ -393,8 +381,8 @@ expand_form(F0, L, {Env0,St0}) ->
     case lfe_macro:expand_form(F0, L, Env0, St0) of
         {ok,[progn|Pfs],Env1,St1} ->
             process_forms(fun expand_form/3, Pfs, L, {Env1,St1});
-        {ok,['eval-when-compile'|_],Env1,St1} ->
-            {[],{Env1,St1}};
+        %%{ok,['eval-when-compile'|_],Env1,St1} ->
+        %%    {[],{Env1,St1}};
         {ok,F1,Env1,St1} ->
             {[{F1,L}],{Env1,St1}};
         {error,Es,Ws,_} -> throw({expand_form,{error,Es,Ws}})
@@ -419,6 +407,7 @@ process_forms(Fun, Fs, L, St) ->
 %% do_lfe_pmod(State) -> {ok,State} | {error,State}.
 %% do_lint(State) -> {ok,State} | {error,State}.
 %% do_lfe_codegen(State) -> {ok,State} | {error,State}.
+%% do_docs(State) -> {ok,State} | {error,State}.
 %% do_erl_comp(State) -> {ok,State} | {error,State}.
 %%  The actual compiler passes.
 
@@ -439,6 +428,11 @@ do_lfe_lint(#comp{cinfo=Ci,code=Ms0}=St0) ->
            end,
     %% Lint the modules, then check if all are ok.
     Ms1 = lists:map(Lint, Ms0),
+    St1 = St0#comp{code=Ms1},
+    ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
+
+do_docs(#comp{code=Ms0}=St0) ->
+    Ms1 = lists:map(fun lfe_doc:module/1, Ms0),
     St1 = St0#comp{code=Ms1},
     ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
 

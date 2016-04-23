@@ -101,7 +101,10 @@ collect_form({['extend-module'|Mdef],L}, {Acc,St}) ->
 collect_form({['define-function',Name,[lambda|_]=Lambda,_],L}, {Acc,St}) ->
     {[{Name,Lambda,L}|Acc],St};
 collect_form({['define-function',Name,['match-lambda'|_]=Match,_],L}, {Acc,St}) ->
-    {[{Name,Match,L}|Acc],St}.
+    {[{Name,Match,L}|Acc],St};
+%% Ignore macro definitions and eval-when-compile forms.
+collect_form({['define-macro'|_],_}, {Acc,St}) -> {Acc,St};
+collect_form({['eval-when-compile'|_],_}, {Acc,St}) -> {Acc,St}.
 
 %% collect_mdef(ModDef, Line, State) -> State.
 %%  Collect module definition and fill in the #cg state record.
