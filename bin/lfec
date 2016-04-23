@@ -36,19 +36,19 @@
   ([(cons "-v" as) opts]
    (parse-opts as (cons 'verbose opts)))
   ([(cons "-D" as) opts]
-   (parse-opts as (cons 'debug_print opts)))
+   (parse-opts as (cons 'debug-print opts)))
   ([(cons "-Werror" as) opts]
-   (parse-opts as (cons 'warnings_as_errors opts)))
+   (parse-opts as (cons 'warnings-as-errors opts)))
   ([(cons (++ "-W" _) as) opts]         ;Ignore this here
    (parse-opts as opts))
   ([(cons "-D" as) opts]
-   (parse-opts as (cons 'debug_print opts)))
+   (parse-opts as (cons 'debug-print opts)))
   ([(cons "-E" as) opts]
-   (parse-opts as (cons 'to_exp opts)))
+   (parse-opts as (cons 'to-exp opts)))
   ([(cons "-L" as) opts]
-   (parse-opts as (cons 'to_lint opts)))
+   (parse-opts as (cons 'to-lint opts)))
   ([(cons "-S" as) opts]
-   (parse-opts as (cons 'to_asm opts)))
+   (parse-opts as (cons 'to-asm opts)))
   ([(cons "-P" as) opts]                ;Ignore as no LFE counterpart
    (parse-opts as opts))
   ([(cons "--" as) opts]
@@ -70,15 +70,15 @@
                    "-v             Verbose compiler output\n"
                    "-Werror        Make all warnings into errors\n"
                    "-Wnumber       Set warning level (ignored)\n"
-                   "-D             Equivalent to +debug_print\n"
-                   "-L             Equivalent to +to_lint\n"
-                   "-E             Equivalent to +to_exp\n"
-                   "-S             Equivalent to +to_asm\n"
+                   "-D             Equivalent to +debug-print\n"
+                   "-L             Equivalent to +to-lint\n"
+                   "-E             Equivalent to +to-exp\n"
+                   "-S             Equivalent to +to-asm\n"
                    "--             No more options, only file names follow\n"
                    "+term          Term will be added to options\n\n"
                    "Terms include:\n\n"
-                   "+binary, +no_docs, +to_exp, +to_lint, +to_core0, +to_core, +to_kernel, +to_asm\n"
-                   "+{outdir, Dir}, +report, +return, +debug_print\n")))
+                   "+binary, +no-docs, +to-exp, +to-lint, +to-core0, +to-core, +to-kernel, +to-asm\n"
+                   "+{outdir, Dir}, +report, +return, +debug-print\n")))
     (io:put_chars usage)))
 
 (defun compile-file (file opts)
