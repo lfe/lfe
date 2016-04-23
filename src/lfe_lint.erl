@@ -180,6 +180,9 @@ collect_form({['define-function',Func,Body,Doc],L}, {Acc,St}) ->
             {[{Func,Body,L}|Acc],St};
         _ -> {Acc,bad_form_error(L, 'define-function', St)}
     end;
+%% Ignore macro definitions and eval-when-compile forms.
+collect_form({['define-macro'|_],_}, {Acc,St}) -> {Acc,St};
+collect_form({['eval-when-compile'|_],_}, {Acc,St}) -> {Acc,St};
 collect_form({_,L}, {Acc,St}) ->
     {Acc,add_error(L, unknown_form, St)}.
 
