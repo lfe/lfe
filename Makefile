@@ -45,7 +45,7 @@ EMACSRCS = $(notdir $(wildcard $(EMACSDIR)/*.el))
 ELCS = $(EMACSRCS:.el=.elc)
 
 ## Where we install links to the LFE binaries.
-DESTBINDIR = $(PREFIX)$(shell dirname `which erl` 2> /dev/null || echo "/usr/local/bin" )
+DESTBINDIR ?= $(PREFIX)$(shell dirname `which erl` 2> /dev/null || echo "/usr/local/bin" )
 
 .SUFFIXES: .erl .beam
 
