@@ -137,7 +137,7 @@ with LFE, be sure to read the
 
 * [Quick Start](https://lfe.gitbooks.io/quick-start/content/)
 * LFE [user guide](doc/user_guide.txt)
-* [version history](doc/source/version_history.md)
+* [version history](doc/src/version_history.md)
 
 Files with more technical details:
 
@@ -153,4 +153,4 @@ Files with more technical details:
 If you would like to make changes to the LFE documentation and then regenerate
 the docs, you'll want to read the instructions here:
 
-* [Updating LFE Documentation](doc/source/updating_docs.md)
+* [Updating LFE Documentation](doc/src/updating_docs.md)

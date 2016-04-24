@@ -6,7 +6,7 @@ In order to support multiple format document generation as well as inclusion
 in a LFE static documentation site generator, the LFE docs moved from ``.txt``
 files to ``.md`` files. The old ``.txt`` files are still provided in their
 original locations (though their formatting has changed a little), however
-these files are now generated from the Markdown source files in ``doc/source``.
+these files are now generated from the Markdown source files in ``doc/src``.
 
 In addition to generating the "classic" LFE text file documentation, LFE man
 pages are now also generated and provided in the LFE git repo. There are
@@ -16,7 +16,7 @@ LFE docs, but these are not maintained in the git repo.
 The layout of the LFE documentation files tracked by the LFE git repository is
 as follows:
 
-* ``doc/source/*.md`` - Canonical LFE documentation
+* ``doc/src/*.md`` - Canonical LFE documentation
 * ``doc/*.txt`` - Auto-generated LFE documentation in plain-text format
 * ``doc/man/*.[1-7]`` - Auto-generated LFE documentation in man-page format
 
