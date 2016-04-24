@@ -249,6 +249,4 @@ docker-docs-bash:
 	docker run -i -v `pwd`/doc:/docs -t lfex/lfe-docs:latest bash
 
 travis:
-	@echo "Building for Travis CI ..."
-	@make
-
+	@rebar3 do proper, ct
