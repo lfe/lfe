@@ -13,9 +13,9 @@
 
 (defmacro forty-two?
   "Return `'true` iff `x` is 42."
-  ([x] (when (=:= x 42)) `'yes)
-  ([x] (when (< x 42))   `'small)
-  ([x] (when (> x 42))   `'big))
+  (`(,x) (when (=:= x 42)) `'yes)
+  (`(,x) (when (< x 42))   `'small)
+  (`(,x) (when (> x 42))   `'big))
 
 (defmacro tricky
   "This is a tricky varargs macro."
@@ -33,3 +33,11 @@
   ([x y z] (when (> x y) (> y z))     'gt)
   ([x y z] (when (=:= x y) (=:= y z)) 'eq)
   ([_ _ _]                            'idk))
+
+(defmodule another-example
+  ;; Deliberately no doc here.
+  (export all))
+
+(defun divmod (n d)
+  ;; Deliberately no docstring here.
+  (tuple (div n d) (rem n d)))
