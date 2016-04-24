@@ -95,6 +95,7 @@ maps_opts.mk:
 install: install-man
 	ln -sf `pwd`/bin/lfe $(DESTBINDIR)
 	ln -sf `pwd`/bin/lfec $(DESTBINDIR)
+	ln -sf `pwd`/bin/lfedoc $(DESTBINDIR)
 	ln -sf `pwd`/bin/lfescript $(DESTBINDIR)
 
 clean:
