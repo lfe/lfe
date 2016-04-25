@@ -23,12 +23,11 @@
 
 -export([format_error/1]).
 
--export([module/1,patterns/1,add_docs_module/1]).
+-export([module/1,function_patterns/1,macro_patterns/1,add_docs_module/1]).
 
 -import(beam_lib, [all_chunks/1,build_module/1,chunks/2]).
 -import(lfe_lib, [is_proper_list/1,is_symb_list/1]).
--import(lists, [filter/2,foldl/3,reverse/1]).
--import(ordsets, [is_element/2]).
+-import(lists, [member/2,filter/2,foldl/3,reverse/1]).
 -import(proplists, [delete/2,get_value/3]).
 
 -include("lfe_comp.hrl").
@@ -43,22 +42,6 @@
 -define(QC_OPTS, [{on_output,fun pprint/2},{numtests,1000},{max_size,10}]).
 -define(QC(T,P), {timeout,30,{T,?_assert(proper:quickcheck(P, ?QC_OPTS))}}).
 -endif.
-
-%% Skip if exclude/1 is true, otherwise check for bad patterns.
--define(DO_MOD(Docs,Type,Name,Body,DocStr,Line,Defs),
-        ?IF(exclude(Name), do_module(Docs, Defs),
-            case patterns(Body) of
-                no ->
-                    Error = {Line,?MODULE,{bad_lambda,Name,Body}},
-                    do_module([Error|Docs], Defs);
-                {yes,Arity,Patterns} ->
-                    ?IF(exclude({Name,Arity}), do_module(Docs, Defs),
-                        begin
-                            Doc = make_doc(Type, Name, Arity,
-                                           Patterns, DocStr, Line),
-                            do_module([Doc|Docs], Defs)
-                        end)
-            end)).
 
 %% Errors
 -spec format_error({bad_lambda,Name::atom(),Lambda::list()}) -> string().
@@ -91,82 +74,105 @@ module(#module{code=Defs}=Mod) ->
       Line :: non_neg_integer(),
       Error :: {bad_lambda,[_]}.
 do_module(Docs, [{['define-function',Name,Body,DocStr],Line}|Defs]) ->
-    ?DO_MOD(Docs,function,Name,Body,DocStr,Line,Defs);
+    do_function(Docs, Name, Body, DocStr, Line, Defs);
 do_module(Docs, [{['define-macro',Name,Body,DocStr],Line}|Defs]) ->
-    ?DO_MOD(Docs,macro,Name,Body,DocStr,Line,Defs);
+    do_macro(Docs, Name, Body, DocStr, Line, Defs);
 do_module(Docs, [_|Defs]) -> do_module(Docs, Defs);
 do_module(Docs, [])       -> Docs.
 
-%% exclude(Name | {Name,Arity}) -> boolean().
+do_function(Docs, Name, Body, DocStr, Line, Defs) ->
+    %% Must get patterns and arity before we can check if excluded.
+    case function_patterns(Body) of
+	no ->
+	    Error = {Line,?MODULE,{bad_lambda,Name,Body}},
+	    do_module([Error|Docs], Defs);
+	{yes,Arity,Patterns} ->
+	    ?IF(exclude(Name, Arity, DocStr),
+		do_module(Docs, Defs),
+		begin
+		    Doc = make_doc(function, Name, Arity,
+				   Patterns, DocStr, Line),
+		    do_module([Doc|Docs], Defs)
+		end)
+    end.
+
+do_macro(Docs, Name, Body, DocStr, Line, Defs) ->
+    %% We only need the name to check for exclusion.
+    ?IF(exclude(Name, DocStr),
+	do_module(Docs, Defs),
+	case macro_patterns(Body) of
+	    no ->
+		Error = {Line,?MODULE,{bad_lambda,Name,Body}},
+		do_module([Error|Docs], Defs);
+	    {yes,Patterns} ->
+		Doc = make_doc(macro, Name, 0,
+			       Patterns, DocStr, Line),
+		do_module([Doc|Docs], Defs)
+	end).
+
+%% exclude(Name, Arity, DocStr) -> boolean().
+%% exclude(Name, DocStr) -> boolean().
 %%  Return true if a function should be excluded from the docs chunk.
+%%  $handle_undefined_function/2 needs special handling as it is
+%%  automatically generated but can also be defined by the user. So we
+%%  only include it is it has user documentation.
 
--spec exclude(Name | {Name,Arity}) -> boolean() when
+-spec exclude(Name, Arity, DocStr) -> boolean() when
       Name  :: atom(),
-      Arity :: non_neg_integer().
-exclude({'LFE-EXPAND-EXPORTED-MACRO',3}) -> true;
-exclude('MODULE')                        -> true;
-exclude(_)                               -> false.
+      Arity :: non_neg_integer(),
+      DocStr :: binary() | string().
+-spec exclude(Name, DocStr) -> boolean() when
+      Name  :: atom(),
+      DocStr :: binary() | string().
 
-%% patterns(LambdaForm) -> no | {yes,Arity,Patterns}.
-%%  Given a {match-,}lambda form, attempt to return its patterns (or arglist).
-%%  N.B. A guard is appended to its pattern and Patterns is a list of lists.
+exclude('LFE-EXPAND-EXPORTED-MACRO', 3, _) -> true;
+exclude('$handle_undefined_function', 2, DS) ->
+    (DS == []) or (DS == <<"">>);
+exclude(_, _, _) -> false.
 
--spec patterns(LambdaForm) -> 'no' | {'yes',Arity,Patterns} when
+exclude('MODULE', _)                        -> true;
+exclude(_, _)                               -> false.
+
+%% macro_patterns(LambdaForm) -> no | {yes,Patterns}.
+%% function_patterns(LambdaForm) -> no | {yes,Arity,Patterns}.
+%%  Given a {match-,}lambda form, attempt to return its patterns (or
+%%  arglist).  N.B. A guard is appended to its pattern and Patterns is
+%%  a list of lists.  A macro definition must have 2 args, the pattern
+%%  and the environment.
+
+-spec function_patterns(LambdaForm) -> 'no' | {'yes',Arity,Patterns} when
       LambdaForm :: nonempty_list(),
       Arity      :: non_neg_integer(),
       Patterns   :: nonempty_list(pattern()).
-patterns([lambda,Args|_]) ->
-    ?IF(is_symb_list(Args), {yes,length(Args),[Args]}, no);
-patterns(['match-lambda',[[[list|Pat],'$ENV'],['when'|_]=Guard|_]|Cls]) ->
-    ?IF(is_proper_list(Pat),
-        do_patterns(length(Pat), [Pat++[Guard]], Cls),
-        do_patterns(255, [Pat], Cls));
-patterns(['match-lambda',[[Pat,'$ENV'],['when'|_]=Guard|_]|Cls]) ->
-    ?IF(is_proper_list(Pat),
-        do_patterns(length(Pat), [Pat++[Guard]], Cls),
-        do_patterns(255, [Pat], Cls));
-patterns(['match-lambda',[[[list|Pat],'$ENV']|_]|Cls]) ->
-    ?IF(is_proper_list(Pat), do_patterns(length(Pat), [Pat], Cls), no);
-patterns(['match-lambda',[[Pat,'$ENV']|_]|Cls]) ->
-    ?IF(is_proper_list(Pat),
-        do_patterns(length(Pat), [Pat], Cls),
-        do_patterns(255, [Pat], Cls));
-patterns(['match-lambda',[Pat,['when'|_]=Guard|_]|Cls]) ->
-    ?IF(is_proper_list(Pat), do_patterns(length(Pat), [Pat++[Guard]], Cls), no);
-patterns(['match-lambda',[Pat|_]|Cls]) ->
-    ?IF(is_proper_list(Pat), do_patterns(length(Pat), [Pat], Cls), no);
-patterns(_) -> no.
 
--spec do_patterns(Arity, Patterns, Forms) -> 'no' | {'yes',Arity,Patterns} when
-      Arity    :: non_neg_integer(),
-      Patterns :: nonempty_list(pattern()),
-      Forms    :: list().
-do_patterns(N, Acc, [[[[list|Pat],'$ENV'],['when'|_]=Guard|_]|Cls]) ->
-    ?IF(is_proper_list(Pat),
-        do_patterns(?IF(N =:= length(Pat), N, 255), [Pat++[Guard]|Acc], Cls),
-        do_patterns(255, [Pat++[Guard]|Acc], Cls));
-do_patterns(N, Acc, [[[Pat,'$ENV'],['when'|_]=Guard|_]|Cls]) ->
-    ?IF(is_proper_list(Pat),
-        do_patterns(?IF(N =:= length(Pat), N, 255), [Pat++[Guard]|Acc], Cls),
-        do_patterns(255, [Pat++[Guard]|Acc], Cls));
-do_patterns(N, Acc, [[[[list|Pat],'$ENV']|_]|Cls]) ->
-    ?IF(is_proper_list(Pat),
-        do_patterns(?IF(N =:= length(Pat), N, 255), [Pat|Acc], Cls),
-        do_patterns(255, [Pat|Acc], Cls));
-do_patterns(N, Acc, [[[Pat,'$ENV']|_]|Cls]) ->
-    ?IF(is_proper_list(Pat),
-        do_patterns(?IF(N =:= length(Pat), N, 255), [Pat|Acc], Cls),
-        do_patterns(255, [Pat|Acc], Cls));
-do_patterns(N, Acc, [[Pat,['when'|_]=Guard|_]|Cls]) ->
-    ?IF(is_proper_list(Pat),
-        do_patterns(?IF(N =:= length(Pat), N, 255), [Pat++[Guard]|Acc], Cls),
-        no);
-do_patterns(N, Acc, [[Pat|_]|Cls]) ->
-    ?IF(is_proper_list(Pat),
-        do_patterns(?IF(N =:= length(Pat), N, 255), [Pat|Acc], Cls),
-        no);
-do_patterns(N, Acc, []) -> {yes,N,reverse(Acc)};
-do_patterns(_, _, _) -> no.
+function_patterns([lambda,Args|_]) ->
+    ?IF(is_symb_list(Args), {yes,length(Args),[Args]}, no);
+function_patterns(['match-lambda',[Pat|_]=Cl|Cls]) ->
+    do_function_patterns(length(Pat), [], [Cl|Cls]);
+function_patterns(_) -> no.
+
+do_function_patterns(N, Acc, [[Pat,['when'|_]=Guard|_]|Cls]) ->
+    do_function_patterns(N, [Pat++[Guard]|Acc], Cls);
+do_function_patterns(N, Acc, [[Pat|_]|Cls]) ->
+    do_function_patterns(N, [Pat|Acc], Cls);
+do_function_patterns(N, Acc, []) -> {yes,N,reverse(Acc)}.
+
+-spec macro_patterns(LambdaForm) -> 'no' | {'yes',Patterns} when
+      LambdaForm :: nonempty_list(),
+      Patterns   :: nonempty_list(pattern()).
+
+macro_patterns([lambda,[Args,_Env]|_]) ->
+    {yes,[Args]};
+macro_patterns(['match-lambda'|Cls]) ->
+    do_macro_patterns([], Cls);
+macro_patterns(_) -> no.
+
+do_macro_patterns(Acc, [[[Pat,_Env],['when'|_]=Guard|_]|Cls]) ->
+    do_macro_patterns([Pat++[Guard]|Acc], Cls);
+do_macro_patterns(Acc, [[[Pat,_Env]|_]|Cls]) ->
+    do_macro_patterns([Pat|Acc], Cls);
+do_macro_patterns(Acc, []) -> {yes,reverse(Acc)};
+do_macro_patterns(_, _) -> no.
 
 %% make_doc(Type, Name, Arity, Patterns, Doc, Line) -> doc().
 %%  Convenience constructor for #doc{}, which is defined in src/lfe_doc.hrl.
@@ -212,24 +218,30 @@ add_docs_module(_) -> error.
       ModDoc :: binary().
 exports_attributes(#module{name=Name,code=Beam,docs=Docs0}=Mod) ->
     ChunkRefs = [exports,attributes],
-    {ok,{Name,[{exports,Expt},{attributes,Attr}]}} = chunks(Beam, ChunkRefs),
+    {ok,{Name,[{exports,Expf},{attributes,Attr}]}} = chunks(Beam, ChunkRefs),
     Expm  = get_value('export-macro', Attr, []),
     MDoc  = iolist_to_binary(get_value(doc, Attr, "")),
-    Docs1 = foldl(do_exports(Expt, Expm), [], Docs0),
+    Docs1 = foldl(do_exports(Expf, Expm), [], Docs0),
     {MDoc,Mod#module{docs=Docs1}}.
 
-%% do_exports(Expt, Expm) -> Fun.
-%%  Close over Expt and Expm then return the folding function for exports/1.
-
--spec do_exports(Expt, Expm) -> Fun when
-      Expt :: [{atom(),non_neg_integer()}],
+%% do_exports(Expf, Expm) -> Fun.
+%%  Close over Expf and Expm then return the folding function for
+%%  exports/1.  We only included exported functions and macros.  The
+%%  export-macro attribute is not necessarily sorted.
+-spec do_exports(Expf, Expm) -> Fun when
+      Expf :: [{atom(),non_neg_integer()}],
       Expm :: [atom()],
       Fun  :: fun((doc(), [doc()]) -> [doc()]).
-do_exports(Expt, Expm) ->
+
+do_exports(Expf, Expm) ->
     fun (#doc{type=function,name=F,arity=A}=Doc, Docs) ->
-            [Doc#doc{exported=is_element({F,A}, Expt)}|Docs];
+            ?IF(member({F,A}, Expf),
+                [Doc#doc{exported=true}|Docs],
+                Docs);
         (#doc{type=macro,name=M}=Doc, Docs) ->
-            [Doc#doc{exported=is_element(M, Expm)}|Docs]
+            ?IF(member(M, Expm),
+                [Doc#doc{exported=true}|Docs],
+                Docs)
     end.
 
 %% add_beam_chunk(Bin, Id, ChunkData) -> Bin.
