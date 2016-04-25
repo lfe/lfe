@@ -26,16 +26,14 @@
 -export([module/1,function_patterns/1,macro_patterns/1,add_docs_module/1]).
 
 -import(beam_lib, [all_chunks/1,build_module/1,chunks/2]).
--import(lfe_lib, [is_proper_list/1,is_symb_list/1]).
 -import(lists, [member/2,filter/2,foldl/3,reverse/1]).
 -import(proplists, [delete/2,get_value/3]).
 
 -include("lfe_comp.hrl").
 -include("lfe_doc.hrl").
 
--ifdef(TEST).
-%% used by prop_lfe_doc:do_validate/2
--export([string_to_binary/1]).
+-ifdef(EUNIT).
+-export([string_to_binary/1, pprint/2]).        %Used by prop_lfe_doc
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -60,6 +58,7 @@ format_error({bad_lambda,Name,Lambda}) ->
       Docs   :: [doc()],
       Errors :: nonempty_list({error,Line,Error}),
       Error  :: {bad_lambda,Form}.
+
 module(#module{code=[]}=Mod)   -> Mod#module{docs=[]};
 module(#module{code=Defs}=Mod) ->
     Docs = do_module([], Defs),
@@ -68,11 +67,6 @@ module(#module{code=Defs}=Mod) ->
         Mod#module{docs=Docs},
         {error,Errors,[]}).
 
--spec do_module(Docs, Defs) -> Docs | {error,Line,Error} when
-      Docs :: [doc()],
-      Defs :: [{[_],Line}],
-      Line :: non_neg_integer(),
-      Error :: {bad_lambda,[_]}.
 do_module(Docs, [{['define-function',Name,Body,DocStr],Line}|Defs]) ->
     do_function(Docs, Name, Body, DocStr, Line, Defs);
 do_module(Docs, [{['define-macro',Name,Body,DocStr],Line}|Defs]) ->
@@ -90,7 +84,7 @@ do_function(Docs, Name, Body, DocStr, Line, Defs) ->
 	    ?IF(exclude(Name, Arity, DocStr),
 		do_module(Docs, Defs),
 		begin
-		    Doc = make_doc(function, Name, Arity,
+		    Doc = make_doc(function, {Name,Arity},
 				   Patterns, DocStr, Line),
 		    do_module([Doc|Docs], Defs)
 		end)
@@ -105,8 +99,7 @@ do_macro(Docs, Name, Body, DocStr, Line, Defs) ->
 		Error = {Line,?MODULE,{bad_lambda,Name,Body}},
 		do_module([Error|Docs], Defs);
 	    {yes,Patterns} ->
-		Doc = make_doc(macro, Name, 0,
-			       Patterns, DocStr, Line),
+		Doc = make_doc(macro, Name, Patterns, DocStr, Line),
 		do_module([Doc|Docs], Defs)
 	end).
 
@@ -133,8 +126,8 @@ exclude(_, _, _) -> false.
 exclude('MODULE', _)                        -> true;
 exclude(_, _)                               -> false.
 
-%% macro_patterns(LambdaForm) -> no | {yes,Patterns}.
 %% function_patterns(LambdaForm) -> no | {yes,Arity,Patterns}.
+%% macro_patterns(LambdaForm) -> no | {yes,Patterns}.
 %%  Given a {match-,}lambda form, attempt to return its patterns (or
 %%  arglist).  N.B. A guard is appended to its pattern and Patterns is
 %%  a list of lists.  A macro definition must have 2 args, the pattern
@@ -144,9 +137,12 @@ exclude(_, _)                               -> false.
       LambdaForm :: nonempty_list(),
       Arity      :: non_neg_integer(),
       Patterns   :: nonempty_list(pattern()).
+-spec macro_patterns(LambdaForm) -> 'no' | {'yes',Patterns} when
+      LambdaForm :: nonempty_list(),
+      Patterns   :: nonempty_list(pattern()).
 
 function_patterns([lambda,Args|_]) ->
-    ?IF(is_symb_list(Args), {yes,length(Args),[Args]}, no);
+    {yes,length(Args),[Args]};
 function_patterns(['match-lambda',[Pat|_]=Cl|Cls]) ->
     do_function_patterns(length(Pat), [], [Cl|Cls]);
 function_patterns(_) -> no.
@@ -157,39 +153,34 @@ do_function_patterns(N, Acc, [[Pat|_]|Cls]) ->
     do_function_patterns(N, [Pat|Acc], Cls);
 do_function_patterns(N, Acc, []) -> {yes,N,reverse(Acc)}.
 
--spec macro_patterns(LambdaForm) -> 'no' | {'yes',Patterns} when
-      LambdaForm :: nonempty_list(),
-      Patterns   :: nonempty_list(pattern()).
-
-macro_patterns([lambda,[Args,_Env]|_]) ->
-    {yes,[Args]};
-macro_patterns(['match-lambda'|Cls]) ->
-    do_macro_patterns([], Cls);
-macro_patterns(_) -> no.
+macro_patterns([lambda,[Args,_Env]|_]) -> {yes,[Args]};
+macro_patterns(['match-lambda'|Cls])   -> do_macro_patterns([], Cls);
+macro_patterns(_)                      -> no.
 
 do_macro_patterns(Acc, [[[Pat,_Env],['when'|_]=Guard|_]|Cls]) ->
     do_macro_patterns([Pat++[Guard]|Acc], Cls);
 do_macro_patterns(Acc, [[[Pat,_Env]|_]|Cls]) ->
     do_macro_patterns([Pat|Acc], Cls);
 do_macro_patterns(Acc, []) -> {yes,reverse(Acc)};
-do_macro_patterns(_, _) -> no.
+do_macro_patterns(_, _)    -> no.
 
 %% make_doc(Type, Name, Arity, Patterns, Doc, Line) -> doc().
 %%  Convenience constructor for #doc{}, which is defined in src/lfe_doc.hrl.
 
--spec make_doc(Type, Name, Arity, Patterns, Doc, Line) -> doc() when
+-spec make_doc(Type, Name, Patterns, Doc, Line) -> doc() when
       Type     :: 'function' | 'macro',
-      Name     :: atom(),
-      Arity    :: non_neg_integer(),
+      Name     :: name(),
       Patterns :: [[]],
       Doc      :: binary() | string(),
       Line     :: pos_integer().
-make_doc(Type, Name, Arity, Patterns, Doc, Line) when is_list(Doc) ->
-    make_doc(Type, Name, Arity, Patterns, string_to_binary(Doc), Line);
-make_doc(Type, Name, Arity, Patterns, Doc, Line) when is_binary(Doc) ->
-    #doc{type=Type,name=Name,arity=Arity,patterns=Patterns,doc=Doc,line=Line}.
 
--spec string_to_binary(string()) -> binary().
+make_doc(function, NameArity, Patterns, Doc, Line) when is_list(Doc) ->
+    make_doc(function, NameArity, Patterns, string_to_binary(Doc), Line);
+make_doc(macro, Name, Patterns, Doc, Line) when is_list(Doc) ->
+    make_doc(macro, Name, Patterns, string_to_binary(Doc), Line);
+make_doc(Type, Name, Patterns, Doc, Line) when is_binary(Doc) ->
+    #doc{type=Type,name=Name,patterns=Patterns,doc=Doc,line=Line}.
+
 string_to_binary(Str) -> unicode:characters_to_binary(Str, utf8, utf8).
 
 %% add_docs_module(Mod) -> Mod.
@@ -197,6 +188,7 @@ string_to_binary(Str) -> unicode:characters_to_binary(Str, utf8, utf8).
 
 -spec add_docs_module(Mod) -> Mod when
       Mod :: #module{code :: binary(), docs :: [doc()]}.
+
 add_docs_module(#module{}=Mod0) ->
     {ModDoc,#module{code=Bin,docs=Docs}=Mod1} = exports_attributes(Mod0),
     %% Modified from elixir_module
@@ -216,6 +208,7 @@ add_docs_module(_) -> error.
 -spec exports_attributes(Mod) -> {ModDoc,Mod} when
       Mod    :: #module{},
       ModDoc :: binary().
+
 exports_attributes(#module{name=Name,code=Beam,docs=Docs0}=Mod) ->
     ChunkRefs = [exports,attributes],
     {ok,{Name,[{exports,Expf},{attributes,Attr}]}} = chunks(Beam, ChunkRefs),
@@ -228,14 +221,15 @@ exports_attributes(#module{name=Name,code=Beam,docs=Docs0}=Mod) ->
 %%  Close over Expf and Expm then return the folding function for
 %%  exports/1.  We only included exported functions and macros.  The
 %%  export-macro attribute is not necessarily sorted.
+
 -spec do_exports(Expf, Expm) -> Fun when
       Expf :: [{atom(),non_neg_integer()}],
       Expm :: [atom()],
       Fun  :: fun((doc(), [doc()]) -> [doc()]).
 
 do_exports(Expf, Expm) ->
-    fun (#doc{type=function,name=F,arity=A}=Doc, Docs) ->
-            ?IF(member({F,A}, Expf),
+    fun (#doc{type=function,name=FA}=Doc, Docs) ->
+            ?IF(member(FA, Expf),
                 [Doc#doc{exported=true}|Docs],
                 Docs);
         (#doc{type=macro,name=M}=Doc, Docs) ->
@@ -251,6 +245,7 @@ do_exports(Expf, Expm) ->
       Bin       :: binary(),
       Id        :: string(),
       ChunkData :: binary().
+
 add_beam_chunk(Bin, Id, ChunkData)
   when is_binary(Bin), is_list(Id), is_binary(ChunkData) ->
     {ok,_,Chunks} = all_chunks(Bin),
@@ -262,7 +257,7 @@ add_beam_chunk(Bin, Id, ChunkData)
 %%% EUnit tests
 %%%===================================================================
 
--ifdef(TEST).
+-ifdef(EUNIT).
 parse_test_() ->
     [ ?QC(<<"A lambda definition is parsed correctly.">>,
           prop_lfe_doc:prop_define_lambda())
@@ -270,5 +265,6 @@ parse_test_() ->
           prop_lfe_doc:prop_define_match())
     ].
 
+pprint(Format, [{Def,_Line}]) -> lfe_io:format(user, "~p\n", [Def]);
 pprint(Format, Data) -> lfe_io:format(user, Format, Data).
 -endif.

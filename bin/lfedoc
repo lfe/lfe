@@ -91,13 +91,19 @@
     (`#(ok #(,_ [#("LDoc" ,chunk)]))        `#(ok ,(binary_to_term chunk)))))
 
 (defun print-doc
-  ([(match-doc name name arity arity patterns patterns doc doc)]
+  ([(match-doc name `#(,name ,arity) patterns patterns doc doc)]
    (let* ((format    "~p/~p\n ~s~s\n\n")
           (patterns* (if (=:= 0 arity)
                        #""
                        (list (lfe_io_pretty:term patterns -1 1) #"\n")))
           (doc*      (if (=:= #"" doc) #"" (list #" " doc "\n")))
           (data      (list name arity patterns* doc*)))
+     (lfe_io:format format data)))
+  ([(match-doc name name patterns patterns doc doc)]
+   (let* ((format    "~p\n ~s~s\n\n")
+          (patterns* (list (lfe_io_pretty:term patterns -1 1) #"\n"))
+          (doc*      (if (=:= #"" doc) #"" (list #" " doc "\n")))
+          (data      (list name patterns* doc*)))
      (lfe_io:format format data))))
 
 (defun print-ldocs

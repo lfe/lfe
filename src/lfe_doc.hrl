@@ -19,11 +19,12 @@
 %% TODO: Actually define this, if possible.
 -type pattern() :: [atom() | term()].
 
+-type name() :: atom() | {atom(),non_neg_integer()}.
+
 %% de{fun,macro} docs.
 -record(doc, {type     = error(missing_type)     :: function | macro,
               exported = false                   :: boolean(),
-              name     = error(missing_name)     :: atom(),
-              arity    = error(missing_arity)    :: non_neg_integer(),
+              name     = error(missing_name)     :: name(),
               patterns = error(missing_patterns) :: [pattern()],
               doc      = <<"">>                  :: binary(),
               line     = error(missing_line)     :: pos_integer()

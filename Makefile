@@ -249,4 +249,4 @@ docker-docs-bash:
 	docker run -i -v `pwd`/doc:/docs -t lfex/lfe-docs:latest bash
 
 travis:
-	@rebar3 do proper, ct
+	@rebar3 do eunit, ct
