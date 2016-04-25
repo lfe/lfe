@@ -34,22 +34,21 @@ prop_define_lambda() -> ?FORALL(Def, define_lambda(), validate(Def)).
 
 prop_define_match() -> ?FORALL(Def, define_match(), validate(Def)).
 
-validate({[_,_,[lambda,Args|_],_],_}=Def) -> do_validate(length(Args), Def);
-validate({[_,_,['match-lambda',[Patt|_]|_],_],_}=Def) ->
-    do_validate(length(Patt), Def).
+validate({['define-function',Name,[lambda,Args|_],_],_}=Def) ->
+    do_validate({Name,arity([Args])}, Def);
+validate({['define-function',Name,['match-lambda',[Pat|_]|_],_],_}=Def) ->
+    do_validate({Name,arity([Pat])}, Def);
+validate({['define-macro',Name,['match-lambda'|_],_],_}=Def) ->
+    do_validate(Name, Def).
 
-do_validate(Arity,{[Define,Name,_,DocStr],Line}=Def) ->
+do_validate(Name,{[Define,_,_,DocStr],Line}=Def) ->
     Type  = define_to_type(Define),
-    Mod   = #module{code=[Def]},
-    #module{docs=[#doc{type=Type,
-                       exported=false,
-                       name=Name,
-                       arity=Arity,
-                       %% patterns=_,
-                       doc=Doc,
-                       line=Line
-                      }]} = module(Mod),
-    string_to_binary(DocStr) =:= Doc.
+    case module(#module{code=[Def]}) of
+        #module{docs=[#doc{type=Type,name=Name,doc=Doc,line=Line}]} ->
+            string_to_binary(DocStr) =:= Doc;
+        _ ->
+            false
+    end.
 
 define_to_type('define-function') -> function;
 define_to_type('define-macro')    -> macro.
@@ -59,9 +58,10 @@ define_to_type('define-macro')    -> macro.
 %%% Definition shapes
 %%%===================================================================
 
-define_lambda() -> {[define(),atom1(),lambda(),docstring()],line()}.
+define_lambda() -> {['define-function',atom1(),lambda(),docstring()],line()}.
 
-define_match()  -> {[define(),atom1(),'match-lambda'(),docstring()],line()}.
+define_match() ->
+    ?LET(D, define(), {[D,atom1(),'match-lambda'(D),docstring()],line()}).
 
 
 %%%===================================================================
@@ -74,7 +74,10 @@ define() -> oneof(['define-function','define-macro']).
 
 lambda() -> [lambda,arglist_simple()|body()].
 
-'match-lambda'() -> ['match-lambda'|non_empty(list(pattern_clause()))].
+'match-lambda'('define-function') ->
+    ['match-lambda'|non_empty(list(function_pattern_clause()))];
+'match-lambda'('define-macro') ->
+    ['match-lambda'|non_empty(list(macro_pattern_clause()))].
 
 arglist_simple() -> list(atom1()).
 
@@ -102,16 +105,17 @@ pattern_form() ->
             match_fun()])
      | body()].
 
-%% Don't waste atoms, since we're already running out.
-%% match_fun() -> ?LET(F, printable_string(), list_to_atom("match-" ++ F)).
 match_fun() -> 'match-record'.
 
-pattern_clause() -> pattern_clause(random:uniform(10)).
+macro_pattern_clause() -> pattern_clause(random:uniform(10), true).
 
-pattern_clause(Arity) ->
-    [arglist_patterns(Arity)|[oneof([guard(),form()])|body()]].
+function_pattern_clause() -> pattern_clause(random:uniform(10), false).
 
-arglist_patterns(Arity) -> vector(Arity, pattern()).
+pattern_clause(Arity, Macro) ->
+    [arglist_patterns(Arity, Macro)|[oneof([guard(),form()])|body()]].
+
+arglist_patterns(Arity, false) -> vector(Arity, pattern());
+arglist_patterns(Arity, true)  -> [vector(Arity, pattern()),'$ENV'].
 
 guard() -> ['when'|non_empty(list(union([logical_clause(),comparison()])))].
 
@@ -140,3 +144,15 @@ non_string_term() ->
 printable_char() -> union([integer(32, 126),integer(160, 255)]).
 
 printable_string() -> list(printable_char()).
+
+
+%%% Helper functions
+
+-spec arity([pattern()]) -> non_neg_integer().
+arity([[_|Args]|_])      -> do_arity(1, Args);
+arity([[]|_])            -> 0.
+
+-spec do_arity(non_neg_integer(), [pattern()]) -> non_neg_integer().
+do_arity(N, [['when'|_]]) -> N;
+do_arity(N, [_|Args])     -> do_arity(N+1, Args);
+do_arity(N, [])           -> N.
