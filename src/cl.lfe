@@ -586,21 +586,27 @@
   (init:get_arguments))
 
 ;; Test defining CL if and cond. We need to put these last so they
-;; won't be used inside this module.
+;; won't be used inside this module, but of course the if can't.
 
-(defmacro if
-  ((list test if-true) `(if ,test ,if-true ()))
-  ((list test if-true if-false)
-   `(case ,test
-      (() ,if-false)
-      (_ ,if-true))))
+(defmacro if args
+  (flet ((exp-if (test if-true if-false)
+	   `(case ,test
+	      (() ,if-false)
+	      (_ ,if-true))))
+    (case args
+      ((list test if-true) (exp-if test if-true ()))
+      ((list test if-true if-false)
+       (exp-if test if-true if-false)))))
 
 (defmacro cond args
   (fletrec ((exp-cond
 	      ([(cons (list test) cond)]
-	       `(let ((|\|-cond-test-\|| ,test))
-		  (if |\|-cond-test-\|| |\|-cond-test-\|| ,(exp-cond cond))))
+	       `(case ,test
+		  (() ,(exp-cond cond))
+		  (|\|-cond-test-\|| |\|-cond-test-\||)))
 	      ([(cons (cons test body) cond)]
-	       `(if ,test (progn . ,body) ,(exp-cond cond)))
+	       `(case ,test
+		  (() ,(exp-cond cond))
+		  (_ (progn . ,body))))
 	      ([()] ())))
     (exp-cond args)))
