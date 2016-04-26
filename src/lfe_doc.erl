@@ -23,7 +23,7 @@
 
 -export([format_error/1]).
 
--export([module/1,function_patterns/1,macro_patterns/1,add_docs_module/1]).
+-export([module/2,function_patterns/1,macro_patterns/1,add_docs_module/2]).
 
 -import(beam_lib, [all_chunks/1,build_module/1,chunks/2]).
 -import(lists, [member/2,filter/2,foldl/3,reverse/1]).
@@ -46,25 +46,24 @@
 format_error({bad_lambda,Name,Lambda}) ->
     lfe_io:format1("bad lambda: ~p\n    ~P", [Name,Lambda,10]).
 
-%% module(Mod) -> Mod | {error,Errors,[]}.
-%%  Parse a module's docstrings and populate Mod#module.docs.
+%% module(Defs, CompInfo) -> {ok,Docs} | {error,Errors,[]}.
+%%  Parse a module's docstrings and return the docs.
 
--spec module(Mod0) -> Mod1 | {error,Errors,[]} when
-      Mod0   :: #module{code::Defs},
+-spec module(Defs, Cinfo) -> {ok,Docs} | {error,Errors,[]} when
       Defs   :: [{Form,Line}],
       Form   :: [_],
-      Mod1   :: #module{docs::Docs},
       Line   :: non_neg_integer(),
+      Cinfo  :: #cinfo{},
       Docs   :: [doc()],
       Errors :: nonempty_list({error,Line,Error}),
       Error  :: {bad_lambda,Form}.
 
-module(#module{code=[]}=Mod)   -> Mod#module{docs=[]};
-module(#module{code=Defs}=Mod) ->
+module([], _Ci)   -> {ok,[]};
+module(Defs, _Ci) ->
     Docs = do_module([], Defs),
     Errors = filter(fun (#doc{}) -> false; (_) -> true end, Docs),
     ?IF([] =:= Errors,
-        Mod#module{docs=Docs},
+        {ok,Docs},
         {error,Errors,[]}).
 
 do_module(Docs, [{['define-function',Name,Body,DocStr],Line}|Defs]) ->
@@ -77,31 +76,31 @@ do_module(Docs, [])       -> Docs.
 do_function(Docs, Name, Body, DocStr, Line, Defs) ->
     %% Must get patterns and arity before we can check if excluded.
     case function_patterns(Body) of
-	no ->
-	    Error = {Line,?MODULE,{bad_lambda,Name,Body}},
-	    do_module([Error|Docs], Defs);
-	{yes,Arity,Patterns} ->
-	    ?IF(exclude(Name, Arity, DocStr),
-		do_module(Docs, Defs),
-		begin
-		    Doc = make_doc(function, {Name,Arity},
-				   Patterns, DocStr, Line),
-		    do_module([Doc|Docs], Defs)
-		end)
+        no ->
+            Error = {Line,?MODULE,{bad_lambda,Name,Body}},
+            do_module([Error|Docs], Defs);
+        {yes,Arity,Patterns} ->
+            ?IF(exclude(Name, Arity, DocStr),
+                do_module(Docs, Defs),
+                begin
+                    Doc = make_doc(function, {Name,Arity},
+                                   Patterns, DocStr, Line),
+                    do_module([Doc|Docs], Defs)
+                end)
     end.
 
 do_macro(Docs, Name, Body, DocStr, Line, Defs) ->
     %% We only need the name to check for exclusion.
     ?IF(exclude(Name, DocStr),
-	do_module(Docs, Defs),
-	case macro_patterns(Body) of
-	    no ->
-		Error = {Line,?MODULE,{bad_lambda,Name,Body}},
-		do_module([Error|Docs], Defs);
-	    {yes,Patterns} ->
-		Doc = make_doc(macro, Name, Patterns, DocStr, Line),
-		do_module([Doc|Docs], Defs)
-	end).
+        do_module(Docs, Defs),
+        case macro_patterns(Body) of
+            no ->
+                Error = {Line,?MODULE,{bad_lambda,Name,Body}},
+                do_module([Error|Docs], Defs);
+            {yes,Patterns} ->
+                Doc = make_doc(macro, Name, Patterns, DocStr, Line),
+                do_module([Doc|Docs], Defs)
+        end).
 
 %% exclude(Name, Arity, DocStr) -> boolean().
 %% exclude(Name, DocStr) -> boolean().
@@ -183,13 +182,14 @@ make_doc(Type, Name, Patterns, Doc, Line) when is_binary(Doc) ->
 
 string_to_binary(Str) -> unicode:characters_to_binary(Str, utf8, utf8).
 
-%% add_docs_module(Mod) -> Mod.
+%% add_docs_module(Mod, CompInfo) -> Mod.
 %%  Add the "LDoc" chunk to a module's .beam binary.
 
--spec add_docs_module(Mod) -> Mod when
-      Mod :: #module{code :: binary(), docs :: [doc()]}.
+-spec add_docs_module(Mod, Cinfo) -> Mod when
+      Mod   :: #module{code :: binary(), docs :: [doc()]},
+      Cinfo :: #cinfo{}.
 
-add_docs_module(#module{}=Mod0) ->
+add_docs_module(#module{}=Mod0, _Ci) ->
     {ModDoc,#module{code=Bin,docs=Docs}=Mod1} = exports_attributes(Mod0),
     %% Modified from elixir_module
     LDoc = term_to_binary(#lfe_docs_v1{
@@ -199,7 +199,7 @@ add_docs_module(#module{}=Mod0) ->
                              %% type_docs=TypeDocs
                             }),
     Mod1#module{code=add_beam_chunk(Bin, "LDoc", LDoc)};
-add_docs_module(_) -> error.
+add_docs_module(_, _) -> error.
 
 %% exports_attributes(Mod) -> {ModDoc,Mod}.
 %%  Iterate over Mod's 'docs' and set their 'exported' values appropriately.

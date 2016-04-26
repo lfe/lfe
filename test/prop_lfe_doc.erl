@@ -20,7 +20,7 @@
 
 -export([prop_define_lambda/0,prop_define_match/0]).
 
--import(lfe_doc, [module/1,string_to_binary/1]).
+-import(lfe_doc, [module/2,string_to_binary/1]).
 
 -include_lib("lfe/src/lfe_comp.hrl").
 -include_lib("lfe/src/lfe_doc.hrl").
@@ -43,8 +43,8 @@ validate({['define-macro',Name,['match-lambda'|_],_],_}=Def) ->
 
 do_validate(Name,{[Define,_,_,DocStr],Line}=Def) ->
     Type  = define_to_type(Define),
-    case module(#module{code=[Def]}) of
-        #module{docs=[#doc{type=Type,name=Name,doc=Doc,line=Line}]} ->
+    case module([Def], #cinfo{}) of
+        {ok,[#doc{type=Type,name=Name,doc=Doc,line=Line}]} ->
             string_to_binary(DocStr) =:= Doc;
         _ ->
             false
