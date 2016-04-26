@@ -230,7 +230,7 @@ passes() ->
      {when_flag,to_pmod,{done,fun pmod_pp/1}},
      {do,fun do_lfe_lint/1},
      {when_flag,to_lint,{done,fun lint_pp/1}},
-     {unless_flag,no_docs,{do,fun do_docs/1}},
+     {unless_flag,no_docs,{do,fun do_get_docs/1}},
      {do,fun do_lfe_codegen/1},
      {when_flag,to_core0,{done,fun core_pp/1}},
      {do,fun do_erl_comp/1},
@@ -240,7 +240,7 @@ passes() ->
      {when_flag,to_kernel,{done,fun erl_kernel_pp/1}},
      {when_flag,to_asm,{done,fun erl_asm_pp/1}},
      %% Write docs beam chunks.
-     {unless_flag,no_docs,{do,fun add_docs/1}},
+     {unless_flag,no_docs,{do,fun do_add_docs/1}},
      %% Now we just write the beam file unless warnings-as-errors is
      %% set and we have warnings.
      {when_test,fun is_werror/1,error},
@@ -407,7 +407,7 @@ process_forms(Fun, Fs, L, St) ->
 %% do_lfe_pmod(State) -> {ok,State} | {error,State}.
 %% do_lint(State) -> {ok,State} | {error,State}.
 %% do_lfe_codegen(State) -> {ok,State} | {error,State}.
-%% do_docs(State) -> {ok,State} | {error,State}.
+%% do_get_docs(State) -> {ok,State} | {error,State}.
 %% do_erl_comp(State) -> {ok,State} | {error,State}.
 %%  The actual compiler passes.
 
@@ -431,8 +431,14 @@ do_lfe_lint(#comp{cinfo=Ci,code=Ms0}=St0) ->
     St1 = St0#comp{code=Ms1},
     ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
 
-do_docs(#comp{code=Ms0}=St0) ->
-    Ms1 = lists:map(fun lfe_doc:module/1, Ms0),
+do_get_docs(#comp{cinfo=Ci,code=Ms0}=St0) ->
+    Doc = fun (#module{code=Mfs,warnings=Ws}=Mod) ->
+                  case lfe_doc:module(Mfs, Ci) of
+                      {ok,Docs} -> Mod#module{docs=Docs};
+                      {error,Des,Dws} -> {error,Des,Ws ++ Dws}
+                  end
+          end,
+    Ms1 = lists:map(Doc, Ms0),
     St1 = St0#comp{code=Ms1},
     ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
 
@@ -562,8 +568,9 @@ do_save_file(Save, Ext, St) ->
         {error,E} -> {error,St#comp{errors=[{file,E}]}}
     end.
 
-add_docs(St0) ->
-    Ms1 = lists:map(fun lfe_doc:add_docs_module/1, St0#comp.code),
+do_add_docs(#comp{cinfo=Ci,code=Ms0}=St0) ->
+    Add = fun (Mod) -> lfe_doc:add_docs_module(Mod, Ci) end,
+    Ms1 = lists:map(Add, Ms0),
     St1 = St0#comp{code=Ms1},
     ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
 
