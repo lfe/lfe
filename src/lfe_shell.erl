@@ -30,7 +30,7 @@
          run_script/2,run_script/3,run_string/2,run_string/3]).
 
 %% The shell commands which generally callable.
--export([c/1,c/2,cd/1,doc/1,ec/1,ec/2,help/0,i/0,i/1,l/1,
+-export([c/1,c/2,cd/1,doc/1,docs/1,ec/1,ec/2,help/0,i/0,i/1,l/1,
          ls/1,clear/0,m/0,m/1,pid/3,p/1,pp/1,pwd/0,q/0,
          flush/0,regs/0,exit/0]).
 
@@ -253,7 +253,6 @@ update_shell_vars(Form, Value, Env0) ->
 
 add_shell_functions(Env0) ->
     Fs = [{cd,1,[lambda,[d],[':',lfe_shell,cd,d]]},
-          {doc,1,[lambda,[f],[':',lfe_shell,doc,f]]},
           {help,0,[lambda,[],[':',lfe_shell,help]]},
           {i,0,[lambda,[],[':',lfe_shell,i]]},
           {i,1,[lambda,[ps],[':',lfe_shell,i,ps]]},
@@ -276,6 +275,7 @@ add_shell_functions(Env0) ->
 add_shell_macros(Env0) ->
     %% We write macros in LFE and expand them with macro package.
     Ms = [{c,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,c,?C_A(args)])]},
+          {doc,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,docs,?Q(?C(args))])]},
           {ec,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ec,?C_A(args)])]},
           {l,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,l,[list|?C(args)]])]},
           {ls,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ls,[list|?C(args)]])]},
@@ -797,12 +797,17 @@ regs() -> c:regs().
 exit() -> c:q().
 
 %% doc(Fun) -> ok.
+%% docs(Funs) -> ok.
 %%  Print out documentation of a module/macro/function. Always try to
 %%  find the file and use it as this is the only way to get hold of
 %%  the chunks. This may get a later version than is loaded.
 
+docs(Fs) ->
+    lists:foreach(fun doc/1, Fs).
+
 doc(What) ->
     [Mod|F] = lfe_lib:split_name(What),
+    io:format(?RED("~*c")++"\n", [60,$_]),      %Print a red line
     case get_doc_chunk(Mod) of
         {ok,#lfe_docs_v1{moduledoc=Mdoc,docs=Docs}} ->
             case F of
@@ -813,7 +818,7 @@ doc(What) ->
                 [Fun,Ar] ->                     %Function
                     print_function_doc(Fun, Ar, Docs)
             end;
-        error -> lfe_io:format("~s\n", [<<"No module documentation">>])
+        error -> lfe_io:format("~s\n\n", [<<"No module documentation">>])
     end.
 
 get_doc_chunk(Mod) ->
@@ -830,20 +835,20 @@ get_doc_chunk(Mod) ->
     end.
 
 print_module_doc(Mod, Mdoc) ->
-    lfe_io:format(?BLU("~p")++"\n\n~s\n", [Mod,Mdoc]).
+    lfe_io:format(?BLU("~p")++"\n\n~s\n\n", [Mod,Mdoc]).
 
 print_macro_doc(Mac, Docs) ->
     case lists:keyfind(Mac, #doc.name, Docs) of
         #doc{patterns=Pats,doc=Doc} ->
-            lfe_io:format(?BLU("~p")++"\n  ~p\n\n~s\n", [Mac,Pats,Doc]);
+            lfe_io:format(?BLU("~p")++"\n  ~p\n\n~s\n\n", [Mac,Pats,Doc]);
         false ->
-            lfe_io:format("~s\n", [<<"No macro defined">>])
+            lfe_io:format("~s\n\n", [<<"No macro defined">>])
     end.
 
 print_function_doc(Fun, Ar, Docs) ->
     case lists:keyfind({Fun,Ar}, #doc.name, Docs) of
         #doc{patterns=Pats,doc=Doc} ->
-            lfe_io:format(?BLU("~p/~p")++"\n  ~p\n\n~s\n", [Fun,Ar,Pats,Doc]);
+            lfe_io:format(?BLU("~p/~p")++"\n  ~p\n\n~s\n\n", [Fun,Ar,Pats,Doc]);
         false ->
-            lfe_io:format("~s\n", [<<"No function defined">>])
+            lfe_io:format("~s\n\n", [<<"No function defined">>])
     end.
