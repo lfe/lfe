@@ -17,6 +17,7 @@
 ;; Purpose : LFE Common Lisp interface library.
 
 (defmodule cl
+  (doc "LFE Common Lisp interface library.")
   (export
    ;; Boolean conversion functions.
    (make-lfe-bool 1) (make-cl-bool 1)
@@ -55,10 +56,12 @@
 ;;; Boolean conversion functions.
 
 (defun make-lfe-bool		        ;Make an LFE bool from a CL value
+  "Make an LFE bool from a CL value."
   ([()] 'false)
   ([_] 'true))				;Everything else is true
 
 (defun make-cl-bool			;Make a CL bool from an LFE value
+  "Make a CL bool from an LFE value."
   (['false] ())
   (['true] 'true))
 
@@ -589,6 +592,7 @@
 ;; won't be used inside this module, but of course the if can't.
 
 (defmacro if args
+  "CL compatible if macro."
   (flet ((exp-if (test if-true if-false)
 	   `(case ,test
 	      (() ,if-false)
@@ -599,6 +603,7 @@
        (exp-if test if-true if-false)))))
 
 (defmacro cond args
+  "CL compatible cond macro."
   (fletrec ((exp-cond
 	      ([(cons (list test) cond)]
 	       `(case ,test

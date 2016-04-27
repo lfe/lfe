@@ -797,7 +797,9 @@ regs() -> c:regs().
 exit() -> c:q().
 
 %% doc(Fun) -> ok.
-%%  Print out documentation of a module/macro/function.
+%%  Print out documentation of a module/macro/function. Always try to
+%%  find the file and use it as this is the only way to get hold of
+%%  the chunks. This may get a later version than is loaded.
 
 doc(What) ->
     [Mod|F] = lfe_lib:split_name(What),
@@ -815,10 +817,16 @@ doc(What) ->
     end.
 
 get_doc_chunk(Mod) ->
-    case beam_lib:chunks(Mod, ["LDoc"], []) of
-        {ok,{_,[{"LDoc",Chunk}]}} ->
-            {ok,binary_to_term(Chunk)};
-        _ -> error
+    case code:get_object_code(Mod) of
+        {Mod,Bin,_} ->
+            case beam_lib:chunks(Bin, ["LDoc"], []) of
+                {ok,{_,[{"LDoc",Chunk}]}} ->
+                    {ok,binary_to_term(Chunk)};
+                _ ->                            %Could not find the chunk
+                    error
+            end;
+        false ->
+            error
     end.
 
 print_module_doc(Mod, Mdoc) ->
