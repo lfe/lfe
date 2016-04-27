@@ -30,8 +30,9 @@
          run_script/2,run_script/3,run_string/2,run_string/3]).
 
 %% The shell commands which generally callable.
--export([c/1,c/2,cd/1,ec/1,ec/2,help/0,i/0,i/1,l/1,ls/1,clear/0,m/0,m/1,
-         pid/3,p/1,pp/1,pwd/0,q/0,flush/0,regs/0,exit/0]).
+-export([c/1,c/2,cd/1,doc/1,ec/1,ec/2,help/0,i/0,i/1,l/1,
+         ls/1,clear/0,m/0,m/1,pid/3,p/1,pp/1,pwd/0,q/0,
+         flush/0,regs/0,exit/0]).
 
 -import(lfe_env, [new/0,add_env/2,
                   add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
@@ -44,6 +45,7 @@
 -import(lists, [reverse/1,foreach/2]).
 
 -include("lfe.hrl").
+-include("lfe_doc.hrl").
 
 %% Colours for the LFE banner
 -define(RED(Str), "\e[31m" ++ Str ++ "\e[0m").
@@ -251,6 +253,7 @@ update_shell_vars(Form, Value, Env0) ->
 
 add_shell_functions(Env0) ->
     Fs = [{cd,1,[lambda,[d],[':',lfe_shell,cd,d]]},
+          {doc,1,[lambda,[f],[':',lfe_shell,doc,f]]},
           {help,0,[lambda,[],[':',lfe_shell,help]]},
           {i,0,[lambda,[],[':',lfe_shell,i]]},
           {i,1,[lambda,[ps],[':',lfe_shell,i,ps]]},
@@ -467,7 +470,7 @@ slurp_1(Name, Ce) ->
     case slurp_file(Name) of
         {ok,Mod,Fs,Env0,Ws} ->
             slurp_warnings(Ws),
-	    %% Collect functions and imports.
+            %% Collect functions and imports.
             Sl0 = #slurp{mod=Mod,funs=[],imps=[]},
             Sl1 = lists:foldl(fun collect_module/2, Sl0, Fs),
             %% Add imports to environment.
@@ -495,7 +498,7 @@ slurp_1(Name, Ce) ->
 slurp_file(Name) ->
     case lfe_comp:file(Name, [binary,to_split,return]) of
         {ok,[{ok,Mod,Fs0,_}|_],Ws} ->           %Only do first module
-	    %% Deep expand, don't keep everything.
+            %% Deep expand, don't keep everything.
             case lfe_macro:expand_forms(Fs0, lfe_env:new(), true, false) of
                 {ok,Fs1,Env,_} ->
                     %% Flatten and trim away any eval-when-compile.
@@ -792,3 +795,47 @@ regs() -> c:regs().
 %% exit() -> ok.
 
 exit() -> c:q().
+
+%% doc(Fun) -> ok.
+%%  Print out documentation of a module/macro/function.
+
+doc(What) ->
+    [Mod|F] = lfe_lib:split_name(What),
+    case get_doc_chunk(Mod) of
+        {ok,#lfe_docs_v1{moduledoc=Mdoc,docs=Docs}} ->
+            case F of
+                [] ->                           %Only module name
+                    print_module_doc(Mod, Mdoc);
+                [Mac] ->                        %Macro
+                    print_macro_doc(Mac, Docs);
+                [Fun,Ar] ->                     %Function
+                    print_function_doc(Fun, Ar, Docs)
+            end;
+        error -> lfe_io:format("~s\n", [<<"No module documentation">>])
+    end.
+
+get_doc_chunk(Mod) ->
+    case beam_lib:chunks(Mod, ["LDoc"], []) of
+        {ok,{_,[{"LDoc",Chunk}]}} ->
+            {ok,binary_to_term(Chunk)};
+        _ -> error
+    end.
+
+print_module_doc(Mod, Mdoc) ->
+    lfe_io:format(?BLU("~p")++"\n\n~s\n", [Mod,Mdoc]).
+
+print_macro_doc(Mac, Docs) ->
+    case lists:keyfind(Mac, #doc.name, Docs) of
+        #doc{patterns=Pats,doc=Doc} ->
+            lfe_io:format(?BLU("~p")++"\n  ~p\n\n~s\n", [Mac,Pats,Doc]);
+        false ->
+            lfe_io:format("~s\n", [<<"No macro defined">>])
+    end.
+
+print_function_doc(Fun, Ar, Docs) ->
+    case lists:keyfind({Fun,Ar}, #doc.name, Docs) of
+        #doc{patterns=Pats,doc=Doc} ->
+            lfe_io:format(?BLU("~p/~p")++"\n  ~p\n\n~s\n", [Fun,Ar,Pats,Doc]);
+        false ->
+            lfe_io:format("~s\n", [<<"No function defined">>])
+    end.

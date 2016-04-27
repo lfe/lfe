@@ -40,6 +40,8 @@
 %% Miscellaneous useful LFE functions.
 -export([format_exception/6,format_stacktrace/3]).
 
+-export([split_name/1]).
+
 -import(lists, [reverse/1,reverse/2,map/2,foldl/3,dropwhile/2]).
 
 %% -compile([export_all]).
@@ -335,6 +337,26 @@ macroexpand(Form, Env) ->
 'macroexpand-all'(Form, Env) -> lfe_macro:expand_expr_all(Form, Env).
 
 %% Miscellaneous useful LFE functions.
+
+%% split_name(Name) -> [Mod] | [Mod,Func] | [Mod,Func,Arity].
+%%  Split a name into its parts. Don't handle the case where there is
+%%  no module.
+
+split_name('=:=/2') -> ['=:=',2];
+split_name(Name) ->
+    Str = atom_to_list(Name),
+    case string:chr(Str, $:) of
+        0 -> [Name];                            %Only module
+        C when C > 1 ->                         %Don't allow empty module name
+            Mod = list_to_atom(string:substr(Str, 1, C-1)),
+            Rest = string:substr(Str, C+1),
+            case string:rchr(Rest, $/) of
+                0 -> [Mod,list_to_atom(Rest)];  %Module and function
+                S ->                            %Module, function and arity
+                    [Mod,list_to_atom(string:substr(Rest, 1, S-1)),
+                     list_to_integer(string:substr(Rest, S+1))]
+            end
+    end.
 
 %% format_exception(Class, Error, Stacktrace, SkipFun, FormatFun, Indentation)
 %%      -> DeepCharList.
