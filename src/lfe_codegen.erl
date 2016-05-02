@@ -109,23 +109,25 @@ collect_form({['eval-when-compile'|_],_}, {Acc,St}) -> {Acc,St}.
 %% collect_mdef(ModDef, Line, State) -> State.
 %%  Collect module definition and fill in the #cg state record.
 
-collect_mdef([[export,all]|Mdef], L, St) ->
-    collect_mdef(Mdef, L, St#cg{exps=all});
 collect_mdef([[export|Es]|Mdef], L, St) ->
-    case St#cg.exps of
-        all -> collect_mdef(Mdef, L, St);       %Propagate all.
-        Exps0 ->
-            %% Add exports to export set.
-            Exps1 = foldl(fun ([F,A], E) -> add_element({F,A}, E) end,
-                          Exps0, Es),
-            collect_mdef(Mdef, L, St#cg{exps=Exps1})
-    end;
+    collect_mdef(Mdef, L, collect_exps(Es, St));
 collect_mdef([[import|Is]|Mdef], L, St) ->
     collect_mdef(Mdef, L, collect_imps(Is, St));
 collect_mdef([[N|Vs]|Mdef], L, St) ->
-    As = St#cg.atts ++ [{N,Vs,L}],              %Probably not many
-    collect_mdef(Mdef, L, St#cg{atts=As});
+    collect_mdef(Mdef, L, collect_atts(N, Vs, L, St));
 collect_mdef([], _, St) -> St.
+
+collect_exps([all], St) -> St#cg{exps=all};     %Propagate all
+collect_exps(_, #cg{exps=all}=St) -> St;
+collect_exps(Es, #cg{exps=Exps0}=St) ->
+    %% Add exports to export set.
+    Exps1 = foldl(fun ([F,A], E) -> add_element({F,A}, E) end,
+                  Exps0, Es),
+    St#cg{exps=Exps1}.
+
+collect_atts(doc, _, _, St) -> St;              %Don't save doc attribute!
+collect_atts(N, Vs, L, #cg{atts=As}=St) ->
+    St#cg{atts=As ++ [{N,Vs,L}]}.               %Probably not many
 
 collect_imps(Is, St) ->
     foldl(fun (I, S) -> collect_imp(I, S) end, St, Is).
@@ -857,7 +859,7 @@ comp_map_test(Cm, Cpairs, _, L, St) ->
     Cfail = map_fail(Cm, L, St),
     {ann_c_case(Ann, ann_c_values(Ann, []), [Cmap,Cfail]),St}.
 
-map_fail(Map, L, St) ->
+map_fail(_Map, L, St) ->
     Fann = [{eval_failure,badmap}],
     fail_clause([], c_atom(badmap), Fann, L, St).
 %%    fail_clause([], c_tuple([c_atom(badmap),Map]), Fann, L, St).
