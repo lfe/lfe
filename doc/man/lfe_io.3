@@ -28,9 +28,20 @@ This is the format returned by \f[C]lfe_io:parse_file/1\f[] and is used
 by the compiler to give better error information.
 .SH EXPORTS
 .PP
-\f[B]read([IoDevice]) \-> {ok,Sexpr} | {error,ErrorInfo}\f[]
+\f[B]read([[IoDevice,] Prompt]) \-> {ok,Sexpr} | {error,ErrorInfo}\f[]
 .PP
-Read an s\-expr from the standard input (IoDevice).
+Read an s\-expr from the standard input (IoDevice) with a prompt
+(Prompt).
+Note that this is not line\-oriented in that it stops as soon as it has
+consumed enough characters.
+.PP
+\f[B]read_line([[IoDevice,] Prompt]) \-> {ok,Sexpr} |
+{error,ErrorInfo}\f[]
+.PP
+Read an s\-expr from the standard input (IoDevice) with a prompt
+(Prompt).
+Note that this is line\-oriented in that it reads whole lines discarding
+left\-over characters in the last line.
 .PP
 \f[B]read_string(String) \-> {ok,Sexpr} | {error,ErrorInfo}\f[]
 .PP
@@ -68,21 +79,21 @@ Assume we start at indentation Indentation or 0.
 Print formatted output.
 The following commands are valid in the format string:
 .IP \[bu] 2
-\f[B]~w\f[B], \f[]~W\f[] \- print LFE terms
+\f[B]~w, ~W\f[] \- print LFE terms
 .IP \[bu] 2
-\f[B]~p\f[B], \f[]~P\f[] \- prettyprint LFE terms
+\f[B]~p, ~P\f[] \- prettyprint LFE terms
 .IP \[bu] 2
 \f[B]~s\f[] \- print a string
 .IP \[bu] 2
-\f[B]~e\f[B], \f[]~f\f[], \f[B]~g\f[] \- print floats
+\f[B]~e, ~f, ~g\f[] \- print floats
 .IP \[bu] 2
-\f[B]~b\f[B], \f[]~B\f[] \- based integers
+\f[B]~b, ~B\f[] \- based integers
 .IP \[bu] 2
-\f[B]~x\f[B], \f[]~X\f[] \- based integers with a prefix
+\f[B]~x, ~X\f[] \- based integers with a prefix
 .IP \[bu] 2
-\f[B]~+\f[B], \f[]~#\f[] \- based integers in vanilla erlang format
+\f[B]~+, ~#\f[] \- based integers in vanilla erlang format
 .IP \[bu] 2
-\f[B]~c\f[B], \f[]~n\f[], \f[B]~i\f[]
+\f[B]~c, ~n, ~i\f[]
 .PP
 Currently they behave as for vanilla erlang except that \f[C]~w\f[],
 \f[C]~W\f[], \f[C]~p\f[], \f[C]~P\f[] print the terms as LFE sexprs.
@@ -103,6 +114,24 @@ FileSexpr\ =\ filesexpr()
 .PP
 Read the file Filename returning a list of pairs containing s\-expr and
 line number of the start of the s\-expr.
+.PP
+\f[B]scan_sexpr(Cont, Chars [,Line]) \->
+{done,Ret,RestChars}|{more,Cont1}\f[]
+.PP
+This is a re\-entrant call which scans tokens from the input and returns
+a parsed sepxr.
+If there are enough characters to parse a sexpr or it detects and error
+then it returns \f[C]{done,...}\f[] otherwise it returns
+\f[C]{more,Cont}\f[] where \f[C]Cont\f[] is used in the next call to
+\f[C]scan_sexpr\f[] with more characters to try and parse a sexpr.
+This is continued until a sexpr has been parsed.
+\f[C]Cont\f[] is initially \f[C][]\f[].
+.PP
+It is not designed to be called directly by an application but used
+through the i/o system where it can typically be called in an
+application by:
+.PP
+\f[C]io:request(In,\ {get_until,unicode,Prompt,Module,scan_sexpr,[Line]})\f[]
 .SH ERROR INFORMATION
 .PP
 The \f[C]ErrorInfo\f[] mentioned above is the standard

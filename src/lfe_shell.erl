@@ -171,9 +171,9 @@ report_exception(Class, Reason, Stk) ->
 
 read_expression(Prompt, Eval, St) ->
     Read = fun () ->
-                   %% Ret = lfe_io:read(Prompt),
-                   io:put_chars(Prompt),
-                   Ret = lfe_io:read(),
+                   %% io:put_chars(Prompt),
+                   %% Ret = lfe_io:read_line(),
+                   Ret = lfe_io:read_line(Prompt),
                    exit(Ret)
            end,
     Rdr = spawn_link(Read),
