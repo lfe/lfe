@@ -827,11 +827,9 @@ get_doc_chunk(Mod) ->
             case beam_lib:chunks(Bin, ["LDoc"], []) of
                 {ok,{_,[{"LDoc",Chunk}]}} ->
                     {ok,binary_to_term(Chunk)};
-                _ ->                            %Could not find the chunk
-                    error
+                _ -> error                      %Could not find the chunk
             end;
-        false ->
-            error
+        error -> error                          %Could not find the module
     end.
 
 print_module_doc(Mod, Mdoc) ->
