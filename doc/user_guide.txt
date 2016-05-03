@@ -255,11 +255,11 @@ Supported forms
               (funcall func arg ... )
               (call mod func arg ... )        - Call to Mod:Func(Arg, ... )
 
-              (define-module name declaration ... )
-              (extend-module declaration ... )
+              (define-module name doc-string declaration ... )
+              (extend-module doc-string declaration ... )
 
-              (define-function name lambda|match-lambda doc-string)
-              (define-macro name lambda|match-lambda doc-string)
+              (define-function name doc-string lambda|match-lambda)
+              (define-macro name doc-string lambda|match-lambda)
 
    Basic macro forms
               (: mod func arg ... ) =>
@@ -270,11 +270,11 @@ Supported forms
               (++ ... )
               (list* ...)
               (let* (...) ... )
-              (flet ((name (arg ...) ...)
+              (flet ((name (arg ...) {{doc-string}} ...)
                      ...)
                 ...)
               (flet* (...) ... )
-              (fletrec ((name (arg ...) ...)
+              (fletrec ((name (arg ...) {{doc-string}} ...)
                         ...)
                 ...)
               (cond ...
@@ -291,19 +291,21 @@ Supported forms
               (match-spec ...)
 
    Common Lisp inspired macros
-              (defun name (arg ...) ...)
+              (defun name (arg ...) {{doc-string}} ...)
               (defun name
+                {{doc-string}}
                 ((argpat ...) ...)
                 ...)
-              (defmacro name (arg ...) ...)
-              (defmacro name arg ...)
+              (defmacro name (arg ...) {{doc-string}} ...)
+              (defmacro name arg {{doc-string}} ...)
               (defmacro name
+                {{doc-string}}
                 ((argpat ...) ...)
                 ...)
               (defsyntax name
                 (pat exp)
                 ...)
-              (macrolet ((name (arg ...) ...)
+              (macrolet ((name (arg ...) {{doc-string}} ...)
                          ...)
                 ...)
               (syntaxlet ((name (pat exp) ...)

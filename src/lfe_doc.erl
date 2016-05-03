@@ -60,46 +60,56 @@ format_error({bad_lambda,Name,Lambda}) ->
 
 module([], _Ci)   -> {ok,[]};
 module(Defs, _Ci) ->
-    Docs = do_module([], Defs),
-    Errors = filter(fun (#doc{}) -> false; (_) -> true end, Docs),
+    {Mdoc,Docs} = do_module([], [], Defs),
+    Errors = filter(fun (#doc{}) -> false;
+                        (_) -> true
+                    end, Docs),
     ?IF([] =:= Errors,
-        {ok,Docs},
+        {ok,{Mdoc,Docs}},
         {error,Errors,[]}).
 
-do_module(Docs, [{['define-function',Name,Body,DocStr],Line}|Defs]) ->
-    do_function(Docs, Name, Body, DocStr, Line, Defs);
-do_module(Docs, [{['define-macro',Name,Body,DocStr],Line}|Defs]) ->
-    do_macro(Docs, Name, Body, DocStr, Line, Defs);
-do_module(Docs, [_|Defs]) -> do_module(Docs, Defs);
-do_module(Docs, [])       -> Docs.
+do_module(Mdoc0, Docs, [{['define-module',_,DocStr|_],_}|Defs]) ->
+    Mdoc1 = Mdoc0 ++ [string_to_binary(DocStr)],
+    do_module(Mdoc1, Docs, Defs);
+do_module(Mdoc0, Docs, [{['extend-module',DocStr|_],_}|Defs]) ->
+    Mdoc1 = Mdoc0 ++ [string_to_binary(DocStr)],
+    do_module(Mdoc1, Docs, Defs);
+do_module(Mdoc, Docs0, [{['define-function',Name,DocStr,Body],Line}|Defs]) ->
+    Docs1 = do_function(Docs0, Name, Body, DocStr, Line),
+    do_module(Mdoc, Docs1, Defs);
+do_module(Mdoc, Docs0, [{['define-macro',Name,DocStr,Body],Line}|Defs]) ->
+    Docs1 = do_macro(Docs0, Name, Body, DocStr, Line),
+    do_module(Mdoc, Docs1, Defs);
+do_module(Mdoc, Docs, [_|Defs]) -> do_module(Mdoc, Docs, Defs);
+do_module(Mdoc, Docs, [])       -> {Mdoc,Docs}.
 
-do_function(Docs, Name, Body, DocStr, Line, Defs) ->
+do_function(Docs, Name, Body, DocStr, Line) ->
     %% Must get patterns and arity before we can check if excluded.
     case function_patterns(Body) of
         no ->
             Error = {Line,?MODULE,{bad_lambda,Name,Body}},
-            do_module([Error|Docs], Defs);
+            [Error|Docs];
         {yes,Arity,Patterns} ->
             ?IF(exclude(Name, Arity, DocStr),
-                do_module(Docs, Defs),
+                Docs,
                 begin
                     Doc = make_doc(function, {Name,Arity},
                                    Patterns, DocStr, Line),
-                    do_module([Doc|Docs], Defs)
+                    [Doc|Docs]
                 end)
     end.
 
-do_macro(Docs, Name, Body, DocStr, Line, Defs) ->
+do_macro(Docs, Name, Body, DocStr, Line) ->
     %% We only need the name to check for exclusion.
     ?IF(exclude(Name, DocStr),
-        do_module(Docs, Defs),
+        Docs,
         case macro_patterns(Body) of
             no ->
                 Error = {Line,?MODULE,{bad_lambda,Name,Body}},
-                do_module([Error|Docs], Defs);
+                [Error|Docs];
             {yes,Patterns} ->
                 Doc = make_doc(macro, Name, Patterns, DocStr, Line),
-                do_module([Doc|Docs], Defs)
+                [Doc|Docs]
         end).
 
 %% exclude(Name, Arity, DocStr) -> boolean().
@@ -167,55 +177,55 @@ do_macro_patterns(_, _)    -> no.
 %%  Convenience constructor for #doc{}, which is defined in src/lfe_doc.hrl.
 
 -spec make_doc(Type, Name, Patterns, Doc, Line) -> doc() when
-      Type     :: 'function' | 'macro',
+      Type     :: function | macro,
       Name     :: name(),
       Patterns :: [[]],
       Doc      :: binary() | string(),
       Line     :: pos_integer().
 
-make_doc(function, NameArity, Patterns, Doc, Line) when is_list(Doc) ->
-    make_doc(function, NameArity, Patterns, string_to_binary(Doc), Line);
-make_doc(macro, Name, Patterns, Doc, Line) when is_list(Doc) ->
-    make_doc(macro, Name, Patterns, string_to_binary(Doc), Line);
-make_doc(Type, Name, Patterns, Doc, Line) when is_binary(Doc) ->
-    #doc{type=Type,name=Name,patterns=Patterns,doc=Doc,line=Line}.
+make_doc(Type, Name, Patterns, Doc, Line) ->
+    Bdoc = string_to_binary(Doc),
+    #doc{type=Type,name=Name,patterns=Patterns,doc=Bdoc,line=Line}.
 
-string_to_binary(Str) -> unicode:characters_to_binary(Str, utf8, utf8).
+string_to_binary(Str) when is_list(Str) ->
+    unicode:characters_to_binary(Str, utf8, utf8);
+string_to_binary(Bin) -> Bin.
 
 %% add_docs_module(Mod, CompInfo) -> Mod.
 %%  Add the "LDoc" chunk to a module's .beam binary.
 
--spec add_docs_module(Mod, Cinfo) -> Mod when
+-spec add_docs_module(Mod, Cinfo) -> Mod | error when
       Mod   :: #module{code :: binary(), docs :: [doc()]},
       Cinfo :: #cinfo{}.
 
-add_docs_module(#module{}=Mod0, _Ci) ->
-    {ModDoc,#module{code=Bin,docs=Docs}=Mod1} = exports_attributes(Mod0),
+add_docs_module(#module{code=Beam,docs={Mdoc0,Fdocs0}}=Mod, _Ci) ->
+    Mdoc1 = [ D || D <- Mdoc0, D =/= <<>> ],
+    Fdocs1 = exports_attributes(Beam, Fdocs0),
     %% Modified from elixir_module
     LDoc = term_to_binary(#lfe_docs_v1{
-                             docs=Docs,
-                             moduledoc=ModDoc
+                             docs=Fdocs1,
+                             moduledoc=Mdoc1
                              %% callback_docs=CallbackDocs,
                              %% type_docs=TypeDocs
                             }),
-    Mod1#module{code=add_beam_chunk(Bin, "LDoc", LDoc)};
+    Mod#module{code=add_beam_chunk(Beam, "LDoc", LDoc),docs={Mdoc1,Fdocs1}};
 add_docs_module(_, _) -> error.
 
 %% exports_attributes(Mod) -> {ModDoc,Mod}.
 %%  Iterate over Mod's 'docs' and set their 'exported' values appropriately.
 %%  ModDoc is a given module's 'doc' or <<>>.
 
--spec exports_attributes(Mod) -> {ModDoc,Mod} when
-      Mod    :: #module{},
-      ModDoc :: binary().
+-spec exports_attributes(Beam, Fdocs) -> {ModDoc,Mod} when
+      Beam   :: binary(),
+      Fdocs  :: [doc()],
+      ModDoc :: [binary()],
+      Mod    :: [doc()].
 
-exports_attributes(#module{name=Name,code=Beam,docs=Docs0}=Mod) ->
+exports_attributes(Beam, Fdocs) ->
     ChunkRefs = [exports,attributes],
-    {ok,{Name,[{exports,Expf},{attributes,Attr}]}} = chunks(Beam, ChunkRefs),
-    Expm  = get_value('export-macro', Attr, []),
-    MDoc  = iolist_to_binary(get_value(doc, Attr, "")),
-    Docs1 = foldl(do_exports(Expf, Expm), [], Docs0),
-    {MDoc,Mod#module{docs=Docs1}}.
+    {ok,{_,[{exports,Expf},{attributes,Atts}]}} = chunks(Beam, ChunkRefs),
+    Expm  = get_value('export-macro', Atts, []),
+    foldl(do_exports(Expf, Expm), [], Fdocs).
 
 %% do_exports(Expf, Expm) -> Fun.
 %%  Close over Expf and Expm then return the folding function for

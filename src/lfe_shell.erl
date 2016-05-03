@@ -380,11 +380,11 @@ eval_form_1([unslurp|_], St) ->
 eval_form_1([run|Args], St0) ->
     {Value,St1} = run(Args, St0),
     {Value,St1};
-eval_form_1(['define-function',Name,Def,_], #state{curr=Ce0}=St) ->
+eval_form_1(['define-function',Name,_Doc,Def], #state{curr=Ce0}=St) ->
     Ar = function_arity(Def),
     Ce1 = lfe_eval:add_dynamic_func(Name, Ar, Def, Ce0),
     {Name,St#state{curr=Ce1}};
-eval_form_1(['define-macro',Name,Def,_], #state{curr=Ce0}=St) ->
+eval_form_1(['define-macro',Name,_Doc,Def], #state{curr=Ce0}=St) ->
     Ce1 = add_mbinding(Name, Def, Ce0),
     {Name,St#state{curr=Ce1}};
 eval_form_1(['reset-environment'], #state{base=Be}=St) ->
@@ -520,12 +520,12 @@ slurp_error_ret(Name, Es, Ws) ->
 slurp_form(['eval-when-compile'|_], _, D) -> {[],D};
 slurp_form(F, L, D) -> {[{F,L}],D}.
 
-collect_module({['define-module',Mod|Mdef],_}, Sl0) ->
+collect_module({['define-module',Mod,_Doc|Mdef],_}, Sl0) ->
     Sl1 = collect_mdef(Mdef, Sl0),
     Sl1#slurp{mod=Mod};
-collect_module({['extend-module'|Mdef],_}, Sl) ->
+collect_module({['extend-module',_Doc|Mdef],_}, Sl) ->
     collect_mdef(Mdef, Sl);
-collect_module({['define-function',F,Def,_],_}, #slurp{funs=Fs}=Sl) ->
+collect_module({['define-function',F,_Doc,Def],_}, #slurp{funs=Fs}=Sl) ->
     Ar = function_arity(Def),
     Sl#slurp{funs=[{F,Ar,Def}|Fs]}.
 
@@ -833,12 +833,14 @@ get_doc_chunk(Mod) ->
     end.
 
 print_module_doc(Mod, Mdoc) ->
-    lfe_io:format(?BLU("~p")++"\n\n~s\n\n", [Mod,Mdoc]).
+    lfe_io:format(?BLU("~p")++"\n", [Mod]),
+    print_docs(Mdoc).
 
 print_macro_doc(Mac, Docs) ->
     case lists:keyfind(Mac, #doc.name, Docs) of
         #doc{patterns=Pats,doc=Doc} ->
-            lfe_io:format(?BLU("~p")++"\n  ~p\n\n~s\n\n", [Mac,Pats,Doc]);
+            lfe_io:format(?BLU("~p")++"\n  ~p\n", [Mac,Pats]),
+            print_docs([Doc]);
         false ->
             lfe_io:format("~s\n\n", [<<"No macro defined">>])
     end.
@@ -846,7 +848,13 @@ print_macro_doc(Mac, Docs) ->
 print_function_doc(Fun, Ar, Docs) ->
     case lists:keyfind({Fun,Ar}, #doc.name, Docs) of
         #doc{patterns=Pats,doc=Doc} ->
-            lfe_io:format(?BLU("~p/~p")++"\n  ~p\n\n~s\n\n", [Fun,Ar,Pats,Doc]);
+            lfe_io:format(?BLU("~p/~p")++"\n  ~p\n", [Fun,Ar,Pats]),
+            print_docs([Doc]);
         false ->
             lfe_io:format("~s\n\n", [<<"No function defined">>])
     end.
+
+print_docs(Ds) ->
+    Fun = fun (D) -> (D =/= <<>>) andalso lfe_io:format("\n~s\n", [D]) end,
+    foreach(Fun, Ds),
+    io:nl().

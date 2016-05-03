@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2015 Robert Virding
+%% Copyright (c) 2008-2016 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -64,7 +64,7 @@ define(Name, Fdefs, Env, St) ->
             field_macros(Name, Fields)],        %Name-F,set-Name-F
     Type = type_information(Name, Fdefs, St),
     %% We can always add type information here as it is stripped later.
-    Forms = [['extend-module',Type]|Macs],
+    Forms = [['extend-module',[],Type]|Macs],
     %% lfe_io:format("~p\n", [{Funs,Forms}]),
     {Funs,Forms,Env,St}.
 

@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2015 Robert Virding
+%% Copyright (c) 2008-2016 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -92,16 +92,14 @@ collect_module(Mfs, St0) ->
 %%  Collect valid forms and module data. Returns forms and put module
 %%  data into state.
 
-collect_form({['define-module',Mod|Mdef],L}, {Acc,St}) ->
+collect_form({['define-module',Mod,_Doc|Mdef],L}, {Acc,St}) ->
     %% Everything into State.
     {Acc,collect_mdef(Mdef, L, St#cg{module=Mod,anno=[L]})};
-collect_form({['extend-module'|Mdef],L}, {Acc,St}) ->
+collect_form({['extend-module',_Doc|Mdef],L}, {Acc,St}) ->
     %% Everything into State.
     {Acc,collect_mdef(Mdef, L, St#cg{anno=[L]})};
-collect_form({['define-function',Name,[lambda|_]=Lambda,_],L}, {Acc,St}) ->
-    {[{Name,Lambda,L}|Acc],St};
-collect_form({['define-function',Name,['match-lambda'|_]=Match,_],L}, {Acc,St}) ->
-    {[{Name,Match,L}|Acc],St};
+collect_form({['define-function',Name,_Doc,Def],L}, {Acc,St}) ->
+    {[{Name,Def,L}|Acc],St};
 %% Ignore macro definitions and eval-when-compile forms.
 collect_form({['define-macro'|_],_}, {Acc,St}) -> {Acc,St};
 collect_form({['eval-when-compile'|_],_}, {Acc,St}) -> {Acc,St}.
@@ -315,7 +313,7 @@ comp_expr([Fun|As], Env, L, St) when is_atom(Fun) ->
                            %% Might have been renamed, use real function name.
                            {ann_c_apply(Ann, c_fname(Name, Ar), Cas),Sta};
                        no ->
-                           io:format("ce: ~p\n", [{{Fun,Ar},En}]),
+                           %%io:format("ce: ~p\n", [{{Fun,Ar},En}]),
                            error(foo)
                    end
            end,
