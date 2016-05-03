@@ -1,4 +1,4 @@
-;; Copyright (c) 2015 Robert Virding
+;; Copyright (c) 2015-2016 Robert Virding
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 ;; Purpose : LFE Common Lisp interface library.
 
 (defmodule cl
-  (doc "LFE Common Lisp interface library.")
+  "LFE Common Lisp interface library."
   (export
    ;; Boolean conversion functions.
    (make-lfe-bool 1) (make-cl-bool 1)

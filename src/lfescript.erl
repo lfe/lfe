@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2013 Robert Virding
+%% Copyright (c) 2008-2016 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -142,7 +142,7 @@ parse_file1([], _, Ss) -> {ok,lists:reverse(Ss)}.
 %% expand_macros(Forms, File, Args, Lopts) -> {Forms,Fenv}.
 
 expand_macros(Fs0, File, _, _) ->
-    case lfe_macro:expand_forms(Fs0, lfe_env:new()) of
+    case lfe_macro:expand_forms(Fs0, lfe_env:new(), true, false) of
         {ok,Fs1,Fenv,Ws} ->
             list_warnings(File, Ws),
             {Fs1,Fenv};

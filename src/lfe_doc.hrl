@@ -33,8 +33,8 @@
 -type doc() :: #doc{}.
 
 %% For the BEAM beam chunk, "LDoc".
--record(lfe_docs_v1, {docs      = []          :: [doc()], %Function/macro docs
-                      moduledoc = <<"">>      :: binary() %Module doc
+-record(lfe_docs_v1, {docs      = []  :: [doc()],    %Function/macro docs
+                      moduledoc = []  :: [binary()]  %Module doc
                       %% callback_docs=CallbackDocs, %Callback docs
                       %% type_docs=TypeDocs          %Type docs
                      }).

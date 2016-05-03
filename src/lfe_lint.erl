@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2015 Robert Virding
+%% Copyright (c) 2008-2016 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -112,10 +112,10 @@ pattern(P, Env) ->
     return_status(St1).
 
 %% form(Form) -> {ok,[Warning]} | {error,[Error],[Warning]}.
-%%  Create a dummy module then test the form a function.
+%%  Create a dummy module then test the form, a function.
 
 form(F) ->
-    module([{['define-module',dummy],1},{F,2}]).
+    module([{['define-module',dummy,[]],1},{F,2}]).
 
 %% module(ModuleForms) ->
 %%     {ok,ModuleName,[Warning]} | {error,[Error],[Warning]}.
@@ -159,7 +159,7 @@ collect_module(Mfs, St0) ->
     {Acc,St1} = lists:foldl(fun collect_form/2, {[],St0}, Mfs),
     {lists:reverse(Acc),St1}.
 
-collect_form({['define-module',Mod|Mdef],L}, {Acc,St0}) ->
+collect_form({['define-module',Mod,_|Mdef],L}, {Acc,St0}) ->
     if is_atom(Mod) ->                  %Normal module
             %% Everything into State.
             {Acc,check_mdef(Mdef, L, St0#lint{module=Mod})};
@@ -169,9 +169,9 @@ collect_form({['define-module',Mod|Mdef],L}, {Acc,St0}) ->
 collect_form({_,L}, {Acc,#lint{module=[]}=St}) ->
     %% Set module name so this only triggers once.
     {Acc,bad_mdef_error(L, name, St#lint{module='-no-module-'})};
-collect_form({['extend-module'|Mdef],L}, {Acc,St}) ->
+collect_form({['extend-module',_|Mdef],L}, {Acc,St}) ->
     {Acc,check_mdef(Mdef, L, St)};
-collect_form({['define-function',Func,Body,Doc],L}, {Acc,St}) ->
+collect_form({['define-function',Func,Doc,Body],L}, {Acc,St}) ->
     Type = is_atom(Func) and (io_lib:char_list(Doc) or is_binary(Doc)),
     case Body of
         [lambda|_] when Type ->

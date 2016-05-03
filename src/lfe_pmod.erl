@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2015 Robert Virding
+%% Copyright (c) 2008-2016 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ expand_module(Fs0, Opts) ->
     %% {ok,_} = lfe_lint:module(Fs1, Opts),
     Fs1.
 
-exp_form({['define-module',[Mod|Ps]|Mdef0],L}, {Acc,St0}) ->
+exp_form({['define-module',[Mod|Ps],Doc|Mdef0],L}, {Acc,St0}) ->
     %% Save the good bits and define new/N and instance/N.
     St1 = St0#param{mod=Mod,pars=Ps},
     {Mdef1,St2} = exp_mdef(Mdef0, St1),
@@ -72,17 +72,17 @@ exp_form({['define-module',[Mod|Ps]|Mdef0],L}, {Acc,St0}) ->
                       {[lambda,Ps,[instance,[call,?Q(Ex),?Q(new)|Ps]|Ps]],
                        [lambda,[base|Ps],[tuple,?Q(Mod),base|Ps]]}
               end,
-    New = ['define-function',new,Nl,[]],
-    Inst = ['define-function',instance,Il,[]],
+    New = ['define-function',new,[],Nl],
+    Inst = ['define-function',instance,[],Il],
     %% Fix this match pattern depending on extends.
     St3 = case St2#param.extd of
               [] -> St2#param{this=['=',this,[tuple,'_'|Ps]]};
               _ -> St2#param{this=['=',this,[tuple,'_',base|Ps]]}
           end,
-    {[{{New,L},{Inst,L},['define-module',Mod|Mdef1],L}|Acc],St3};
-exp_form({['define-function',F,Def0,Doc],L}, {Acc,St}) ->
+    {[{{New,L},{Inst,L},['define-module',Mod,Doc|Mdef1],L}|Acc],St3};
+exp_form({['define-function',F,Doc,Def0],L}, {Acc,St}) ->
     Def1 = exp_function(Def0, St),
-    {[{['define-function',F,Def1,Doc],L}|Acc],St};
+    {[{['define-function',F,Doc,Def1],L}|Acc],St};
 exp_form({F,L}, {Acc,St}) ->
     {[{F,L}|Acc],St}.
 
