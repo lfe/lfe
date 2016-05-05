@@ -172,17 +172,22 @@ STARTING THE LFE SHELL
        · -e or -eval - evaluates a given sexpr
 
        · -prompt  - users may supply a value here to override the default lfe>
-         prompt; note that -prompt empty will set the prompt to  the  original
-         >.
+         prompt; note that -prompt empty will set the prompt to the original >
+         and  -prompt with no associated value will cause no prompt to be dis‐
+         played at all.  These also work when node names  are  provided  (with
+         either -sname or -name).  Furthermore, users may override the default
+         formatting of node names in prompts by providing a prompt value  con‐
+         taining  the  string ~node (which will be substituted with the actual
+         name of the node).
 
 RUNNING LFE SHELL SCRIPTS
-       The  LFE  shell  can  also  be directly called to run LFE shell scripts
+       The LFE shell can also be directly called  to  run  LFE  shell  scripts
        with:
 
               lfe [flags] file [args]
 
-       This will start the shell, run a script with  LFE  shell  commands  and
-       then  terminate  the  shell.  The following built-in variables are also
+       This  will  start  the  shell, run a script with LFE shell commands and
+       then terminate the shell.  The following built-in  variables  are  also
        bound:
 
        script-name
