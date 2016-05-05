@@ -147,7 +147,17 @@ prompt() ->
     %% Don't bother flattening the list, no need.
     case is_alive() of
         true -> lfe_io:format1("(~s)> ", [node()]);
-        false -> "> "
+        false -> user_prompt()
+    end.
+
+user_prompt () ->
+    %% Allow users to set a prompt with the -prompt flag; note that
+    %% without the flag the default is "lfe> " and to obtain the
+    %% old-style LFE prompt, use -prompt empty.
+    case init:get_argument(prompt) of
+        {ok,[["empty"]]} -> "> ";
+        {ok,[[P]]} -> [P,"> "];
+        _ -> "lfe> "
     end.
 
 report_exception(Class, Reason, Stk) ->
