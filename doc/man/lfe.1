@@ -188,7 +188,13 @@ Flags that LFE recognizes include the following:
 .IP \[bu] 2
 \f[C]\-prompt\f[] \- users may supply a value here to override the
 default \f[C]lfe>\f[] prompt; note that \f[C]\-prompt\ empty\f[] will
-set the prompt to the original \f[C]>\f[].
+set the prompt to the original \f[C]>\f[] and \f[C]\-prompt\f[] with no
+associated value will cause no prompt to be displayed at all.
+These also work when node names are provided (with either
+\f[C]\-sname\f[] or \f[C]\-name\f[]).
+Furthermore, users may override the default formatting of node names in
+prompts by providing a prompt value containing the string \f[C]~node\f[]
+(which will be substituted with the actual name of the node).
 .SH RUNNING LFE SHELL SCRIPTS
 .PP
 The LFE shell can also be directly called to run LFE shell scripts with:

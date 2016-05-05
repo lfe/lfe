@@ -193,7 +193,13 @@ Flags that LFE recognizes include the following:
 * ``-e`` or ``-eval`` - evaluates a given sexpr
 * ``-prompt`` - users may supply a value here to override the
   default ``lfe>`` prompt; note that ``-prompt empty`` will set
-  the prompt to the original ``>``.
+  the prompt to the original ``>`` and ``-prompt`` with no
+  associated value will cause no prompt to be displayed at all.
+  These also work when node names are provided (with either
+  ``-sname`` or ``-name``). Furthermore, users may override the
+  default formatting of node names in prompts by providing a
+  prompt value containing the string ``~node`` (which will be
+  substituted with the actual name of the node).
 
 
 # RUNNING LFE SHELL SCRIPTS
