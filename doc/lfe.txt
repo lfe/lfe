@@ -110,8 +110,8 @@ BUILT-IN SHELL COMMANDS
        (run File)
 
        Execute all the shell commands in File.  All defined  variables,  func‐
-       tions  and  macros will be saved in the environment if there are no er‐
-       rors.
+       tions  and  macros  will  be  saved  in the environment if there are no
+       errors.
 
 SHELL FUNCTIONS AND MACROS
        Functions and macros can be defined in the shell.  These will  only  be
@@ -164,6 +164,12 @@ STARTING THE LFE SHELL
 
        will create a job running the LFE shell and connect to it.   This  also
        works when starting a remote shell.
+
+       Flags that LFE uses include the following:
+
+       · -prompt  - users may supply a value here to override the default lfe>
+         prompt; note that -prompt empty will set the prompt to  the  original
+         >.
 
 RUNNING LFE SHELL SCRIPTS
        The  LFE  shell  can  also  be directly called to run LFE shell scripts

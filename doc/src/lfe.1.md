@@ -187,6 +187,12 @@ Giving the user switch commands:
 will create a job running the LFE shell and connect to
 it. This also works when starting a remote shell.
 
+Flags that LFE recognizes include the following:
+
+* ``-prompt`` - users may supply a value here to override the
+  default ``lfe>`` prompt; note that ``-prompt empty`` will set
+  the prompt to the original ``>``.
+
 
 # RUNNING LFE SHELL SCRIPTS
 
