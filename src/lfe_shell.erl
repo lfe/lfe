@@ -146,8 +146,17 @@ shell_eval(Form, Eval0, St0) ->
 prompt() ->
     %% Don't bother flattening the list, no need.
     case is_alive() of
-        true -> lfe_io:format1("(~s)> ", [node()]);
-        false -> user_prompt()
+        true -> lfe_io:format1("~s~s~s", node_prompt());
+        false -> lfe_io:format1("~s", user_prompt())
+    end.
+
+node_prompt () ->
+    Prompt = user_prompt(),
+    case re:run(Prompt, "~node") of
+        nomatch -> ["(", node(), [")", Prompt]];
+        _ -> ["", re:replace(Prompt,
+                             "~node", atom_to_list(node()),
+                             [{return, list}]), ""]
     end.
 
 user_prompt () ->
@@ -155,9 +164,10 @@ user_prompt () ->
     %% without the flag the default is "lfe> " and to obtain the
     %% old-style LFE prompt, use -prompt empty.
     case init:get_argument(prompt) of
-        {ok,[["empty"]]} -> "> ";
-        {ok,[[P]]} -> [P,"> "];
-        _ -> "lfe> "
+        {ok, [[]]} -> [""];
+        {ok, [["empty"]]} -> ["> "];
+        {ok, [P]} -> P;
+        _ -> ["lfe> "]
     end.
 
 report_exception(Class, Reason, Stk) ->
