@@ -189,6 +189,8 @@ it. This also works when starting a remote shell.
 
 Flags that LFE recognizes include the following:
 
+* ``-h`` or ``--help`` - provides command line usage help
+* ``-e`` or ``-eval`` - evaluates a given sexpr
 * ``-prompt`` - users may supply a value here to override the
   default ``lfe>`` prompt; note that ``-prompt empty`` will set
   the prompt to the original ``>``.
