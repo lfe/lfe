@@ -192,7 +192,7 @@ Flags that LFE recognizes include the following:
 * ``-h`` or ``--help`` - provides command line usage help
 * ``-e`` or ``-eval`` - evaluates a given sexpr
 * ``-prompt`` - users may supply a value here to override the
-  default ``lfe>`` prompt; note that ``-prompt empty`` will set
+  default ``lfe>`` prompt; note that ``-prompt classic`` will set
   the prompt to the original ``>`` and ``-prompt`` with no
   associated value will cause no prompt to be displayed at all.
   These also work when node names are provided (with either
