@@ -166,10 +166,10 @@ node_prompt () ->
 user_prompt () ->
     %% Allow users to set a prompt with the -prompt flag; note that
     %% without the flag the default is "lfe> " and to obtain the
-    %% old-style LFE prompt, use -prompt empty.
+    %% old-style LFE prompt, use -prompt classic.
     case init:get_argument(prompt) of
         {ok, [[]]} -> [""];
-        {ok, [["empty"]]} -> ["> "];
+        {ok, [["classic"]]} -> ["> "];
         {ok, [P]} -> P;
         _ -> ["lfe> "]
     end.
