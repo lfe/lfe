@@ -147,16 +147,20 @@ prompt() ->
     %% Don't bother flattening the list, no need.
     case is_alive() of
         true -> lfe_io:format1("~s~s~s", node_prompt());
-        false -> lfe_io:format1("~s", user_prompt())
+        false ->
+            %% If a user supplied the ~node formatting option but the
+            %% node is not actually alive, let's get rid of it
+            P1 = user_prompt(),
+            P2 = re:replace(P1, "~node", "", [{return, list}]),
+            lfe_io:format1("~s", [P2])
     end.
 
 node_prompt () ->
     Prompt = user_prompt(),
+    Node = atom_to_list(node()),
     case re:run(Prompt, "~node") of
-        nomatch -> ["(", node(), [")", Prompt]];
-        _ -> ["", re:replace(Prompt,
-                             "~node", atom_to_list(node()),
-                             [{return, list}]), ""]
+        nomatch -> ["(", Node, [")", Prompt]];
+        _ -> ["", re:replace(Prompt, "~node", Node, [{return, list}]), ""]
     end.
 
 user_prompt () ->
