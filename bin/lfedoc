@@ -113,13 +113,11 @@
      (case (ldoc-chunk beam)
        (`#(ok ,(match-lfe_docs_v1 docs docs moduledoc moduledoc))
         (let ((hrule      (lists:duplicate 70 #\-))
-              (moduledoc* (if (=:= #"" moduledoc)
+              (moduledoc* (if (=:= [] moduledoc)
                             #""
-                            (list #"  "
-                                  (lists:map
-                                    (lambda (line) (list line #"\n"))
-                                    (binary:split moduledoc
-                                                  #"\n" '[global]))))))
+                            (lists:map
+                              (lambda (line) (list #"  " line #"\n"))
+                              moduledoc))))
           (lfe_io:format "~p\n~s~s\n\n" (list name moduledoc* hrule)))
         (lists:foreach #'print-doc/1 docs)
         (print-ldocs mods))

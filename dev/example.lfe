@@ -1,7 +1,7 @@
 (defmodule example
-  (doc "This is an example module.")
-  (export all)
-  (export-macro add varargs forty-two?))
+  "This is an example module."
+  (export (matchfun 3))
+  (export-macro add varargs forty-two? tricky))
 
 (defmacro add (x y)
   "Add `x` and `y`."
@@ -19,13 +19,15 @@
 
 (defmacro tricky
   "This is a tricky varargs macro."
-  ([x]       'one)
-  ([x y]     'two)
-  ([x y . z] 'many))
+  (`(,x)         'one)
+  (`(,x ,y)      'two)
+  (`(,x ,y . ,z) 'many))
 
-(defun subtract (x y)
+(define-function subtract
   "Subtract `y` from `x`."
-  (- x y))
+  (lambda (x y) (- x y)))
+
+(extend-module "" (export (subtract 2)))
 
 (defun matchfun
   "This is a function with pattern clauses."
@@ -34,10 +36,12 @@
   ([x y z] (when (=:= x y) (=:= y z)) 'eq)
   ([_ _ _]                            'idk))
 
+
 (defmodule another-example
-  ;; Deliberately no doc here.
-  (export all))
+  "")
 
 (defun divmod (n d)
   ;; Deliberately no docstring here.
   (tuple (div n d) (rem n d)))
+
+(extend-module "This is another example." (export (divmod 2)))

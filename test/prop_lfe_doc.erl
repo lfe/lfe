@@ -34,17 +34,17 @@ prop_define_lambda() -> ?FORALL(Def, define_lambda(), validate(Def)).
 
 prop_define_match() -> ?FORALL(Def, define_match(), validate(Def)).
 
-validate({['define-function',Name,[lambda,Args|_],_],_}=Def) ->
+validate({['define-function',Name,_Doc,[lambda,Args|_]],_}=Def) ->
     do_validate({Name,arity([Args])}, Def);
-validate({['define-function',Name,['match-lambda',[Pat|_]|_],_],_}=Def) ->
+validate({['define-function',Name,_Doc,['match-lambda',[Pat|_]|_]],_}=Def) ->
     do_validate({Name,arity([Pat])}, Def);
-validate({['define-macro',Name,['match-lambda'|_],_],_}=Def) ->
+validate({['define-macro',Name,_Doc,['match-lambda'|_]],_}=Def) ->
     do_validate(Name, Def).
 
-do_validate(Name,{[Define,_,_,DocStr],Line}=Def) ->
-    Type  = define_to_type(Define),
+do_validate(Name,{[Define,_Name,DocStr,_Lambda],Line}=Def) ->
+    Type = define_to_type(Define),
     case module([Def], #cinfo{}) of
-        {ok,[#doc{type=Type,name=Name,doc=Doc,line=Line}]} ->
+        {ok,{[],[#doc{type=Type,name=Name,doc=Doc,line=Line}=Res]}} ->
             string_to_binary(DocStr) =:= Doc;
         _ ->
             false
@@ -58,10 +58,10 @@ define_to_type('define-macro')    -> macro.
 %%% Definition shapes
 %%%===================================================================
 
-define_lambda() -> {['define-function',atom1(),lambda(),docstring()],line()}.
+define_lambda() -> {['define-function',atom1(),docstring(),lambda()],line()}.
 
 define_match() ->
-    ?LET(D, define(), {[D,atom1(),'match-lambda'(D),docstring()],line()}).
+    ?LET(D, define(), {[D,atom1(),docstring(),'match-lambda'(D)],line()}).
 
 
 %%%===================================================================
