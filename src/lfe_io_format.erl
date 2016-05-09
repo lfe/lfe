@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2013 Robert Virding
+%% Copyright (c) 2008-2016 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -29,11 +29,18 @@
 %% -compile([export_all]).
 
 fwrite1(Format, Data) ->
-    Cs = collect(Format, Data),
+    Cs = scan(Format, Data),
     Pc = pcount(Cs),
     build(Cs, Pc, 0).
 
-%% collect(Format, Args) -> [Commands].
+%% scan(Format, Args) -> FormatList.
+
+scan(Format, Args) when is_binary(Format) ->
+    scan(binary_to_list(Format), Args);
+scan(Format, Args) ->
+    collect(Format, Args).
+
+%% collect(Format, Args) -> FormatList.
 
 collect([$~|Fmt0], As0) ->
     {C,Fmt1,As1} = collect_cseq(Fmt0, As0),
@@ -97,7 +104,7 @@ pcount(Cs) ->
               (_, Acc) -> Acc
           end, 0, Cs).
 
-%% build([Control], Pc, Indentation) -> [Char].
+%% build(FormatList, Pc, Indentation) -> [Char].
 %%  Interpret the control structures. Count the number of print
 %%  remaining and only calculate indentation when necessary. Must also
 %%  be smart when calculating indentation for characters in format.
