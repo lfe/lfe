@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2013 Robert Virding
+%% Copyright (c) 2008-2016 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -108,6 +108,7 @@ read(Prompt) -> read(standard_io, Prompt).
 read(Io, Prompt) ->
     case io:request(Io, {get_until,unicode,Prompt,?MODULE,scan_sexpr,[1]}) of
         {ok,Sexpr,_} -> {ok,Sexpr};
+        {error,E} -> {error,{1,io,E}};
         {error,Error,_} -> {error,Error};
         {eof,_} -> eof
     end.
@@ -127,7 +128,7 @@ read_line(Io, Prompt) ->
 
 read_line_1(Io, P, C0, L0) ->
     case io:get_line(Io, P) of
-        {error,Error} -> {error,Error};
+        {error,Error} -> {error,{L0,io,Error}};
         Cs0 ->
             case scan_sexpr(C0, Cs0, L0) of
                 {done,{ok,Ret,_L1},_Cs1} -> {ok,Ret};
