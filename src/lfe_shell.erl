@@ -273,8 +273,11 @@ add_shell_functions(Env0) ->
     Env1.
 
 add_shell_macros(Env0) ->
-    %% We write macros in LFE and expand them with macro package.
+    %% We KNOW how macros are expanded and write them directly in
+    %% expanded form here.
     Ms = [{c,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,c,?C_A(args)])]},
+          {describe,[lambda,[args,'$ENV'],
+                     ?BQ([':',lfe_shell,docs,?Q(?C(args))])]},
           {doc,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,docs,?Q(?C(args))])]},
           {ec,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ec,?C_A(args)])]},
           {l,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,l,[list|?C(args)]])]},
@@ -818,7 +821,10 @@ doc(What) ->
                 [Fun,Ar] ->                     %Function
                     print_function_doc(Fun, Ar, Docs)
             end;
-        error -> lfe_io:format("~s\n\n", [<<"No module documentation">>])
+        {error,module} ->
+            lfe_io:format("No module ~s\n\n", [Mod]);
+        {error,docs} ->
+            lfe_io:format("No module documentation for ~s\n\n", [Mod])
     end.
 
 get_doc_chunk(Mod) ->
@@ -827,9 +833,9 @@ get_doc_chunk(Mod) ->
             case beam_lib:chunks(Bin, ["LDoc"], []) of
                 {ok,{_,[{"LDoc",Chunk}]}} ->
                     {ok,binary_to_term(Chunk)};
-                _ -> error                      %Could not find the chunk
+                _ -> {error,docs}               %Could not find the chunk
             end;
-        error -> error                          %Could not find the module
+        error -> {error,module}                 %Could not find the module
     end.
 
 print_module_doc(Mod, Mdoc) ->
@@ -839,20 +845,25 @@ print_module_doc(Mod, Mdoc) ->
 print_macro_doc(Mac, Docs) ->
     case lists:keyfind(Mac, #doc.name, Docs) of
         #doc{patterns=Pats,doc=Doc} ->
-            lfe_io:format(?BLU("~p")++"\n  ~p\n", [Mac,Pats]),
+            lfe_io:format(?BLU("~p")++"\n", [Mac]),
+            print_patterns(Pats),
             print_docs([Doc]);
         false ->
-            lfe_io:format("~s\n\n", [<<"No macro defined">>])
+            lfe_io:format("No macro ~s defined\n\n", [Mac])
     end.
 
 print_function_doc(Fun, Ar, Docs) ->
     case lists:keyfind({Fun,Ar}, #doc.name, Docs) of
         #doc{patterns=Pats,doc=Doc} ->
-            lfe_io:format(?BLU("~p/~p")++"\n  ~p\n", [Fun,Ar,Pats]),
+            lfe_io:format(?BLU("~p/~p")++"\n", [Fun,Ar]),
+            print_patterns(Pats),
             print_docs([Doc]);
         false ->
-            lfe_io:format("~s\n\n", [<<"No function defined">>])
+            lfe_io:format("No function ~s/~p defined\n\n", [Fun,Ar])
     end.
+
+print_patterns(Pats) ->
+    lists:foreach(fun (P) -> lfe_io:format("  ~p\n", [P]) end, Pats).
 
 print_docs(Ds) ->
     Fun = fun (D) -> (D =/= <<>>) andalso lfe_io:format("\n~s\n", [D]) end,
