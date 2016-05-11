@@ -37,8 +37,7 @@
   ([_ _ _]                            'idk))
 
 
-(defmodule another-example
-  "")
+(defmodule another-example)
 
 (defun divmod (n d)
   ;; Deliberately no docstring here.
