@@ -1129,8 +1129,9 @@ exp_orelse([]) -> ?Q(false).
 
 %% exp_defmodule(Rest) -> {DocString,Attributes}.
 %%  Extract the comment string either if it is first. Ignore 'doc'
-%%  attributes.
+%%  attributes. Allow empty module definition.
 
+exp_defmodule([]) -> {"",[]};
 exp_defmodule([Doc|Atts]=Rest) ->
     ?IF(is_doc_string(Doc), {Doc,Atts}, {"",Rest}).
 

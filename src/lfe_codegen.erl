@@ -92,10 +92,10 @@ collect_module(Mfs, St0) ->
 %%  Collect valid forms and module data. Returns forms and put module
 %%  data into state.
 
-collect_form({['define-module',Mod,_Doc|Mdef],L}, {Acc,St}) ->
+collect_form({['define-module',Mod|Mdef],L}, {Acc,St}) ->
     %% Everything into State.
     {Acc,collect_mdef(Mdef, L, St#cg{module=Mod,anno=[L]})};
-collect_form({['extend-module',_Doc|Mdef],L}, {Acc,St}) ->
+collect_form({['extend-module'|Mdef],L}, {Acc,St}) ->
     %% Everything into State.
     {Acc,collect_mdef(Mdef, L, St#cg{anno=[L]})};
 collect_form({['define-function',Name,_Doc,Def],L}, {Acc,St}) ->
@@ -105,15 +105,24 @@ collect_form({['define-macro'|_],_}, {Acc,St}) -> {Acc,St};
 collect_form({['eval-when-compile'|_],_}, {Acc,St}) -> {Acc,St}.
 
 %% collect_mdef(ModDef, Line, State) -> State.
-%%  Collect module definition and fill in the #cg state record.
+%%  Collect module definition and fill in the #cg state record. Need
+%%  to handle deprecated case where there is no doc string first and
+%%  we ignore all eventual doc attributes.
 
-collect_mdef([[export|Es]|Mdef], L, St) ->
-    collect_mdef(Mdef, L, collect_exps(Es, St));
-collect_mdef([[import|Is]|Mdef], L, St) ->
-    collect_mdef(Mdef, L, collect_imps(Is, St));
-collect_mdef([[N|Vs]|Mdef], L, St) ->
-    collect_mdef(Mdef, L, collect_atts(N, Vs, L, St));
-collect_mdef([], _, St) -> St.
+collect_mdef([Doc|As]=Mdef, L, St) ->
+    case lfe_lib:is_doc_string(Doc) of
+	true -> collect_attrs(As, L, St);
+	false -> collect_attrs(Mdef, L, St)
+    end.
+
+collect_attrs(As, L, St) ->
+    foldl(fun (A, S) -> collect_attr(A, L, S) end, St, As).
+
+collect_attr([export|Es], _, St) -> collect_exps(Es, St);
+collect_attr([import|Is], _, St) -> collect_imps(Is, St);
+collect_attr([doc|_], _, St) -> St;             %Don't save doc attribute!
+collect_attr([N|Vs], L, #cg{atts=As}=St) ->
+    St#cg{atts=As ++ [{N,Vs,L}]}.               %Probably not many
 
 collect_exps([all], St) -> St#cg{exps=all};     %Propagate all
 collect_exps(_, #cg{exps=all}=St) -> St;
@@ -122,10 +131,6 @@ collect_exps(Es, #cg{exps=Exps0}=St) ->
     Exps1 = foldl(fun ([F,A], E) -> add_element({F,A}, E) end,
                   Exps0, Es),
     St#cg{exps=Exps1}.
-
-collect_atts(doc, _, _, St) -> St;              %Don't save doc attribute!
-collect_atts(N, Vs, L, #cg{atts=As}=St) ->
-    St#cg{atts=As ++ [{N,Vs,L}]}.               %Probably not many
 
 collect_imps(Is, St) ->
     foldl(fun (I, S) -> collect_imp(I, S) end, St, Is).

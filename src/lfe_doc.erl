@@ -60,7 +60,7 @@ format_error({bad_lambda,Name,Lambda}) ->
 
 module([], _Ci)   -> {ok,[]};
 module(Defs, _Ci) ->
-    {Mdoc,Docs} = do_module([], [], Defs),
+    {Mdoc,Docs} = do_forms([], [], Defs),
     Errors = filter(fun (#doc{}) -> false;
                         (_) -> true
                     end, Docs),
@@ -68,20 +68,37 @@ module(Defs, _Ci) ->
         {ok,{Mdoc,Docs}},
         {error,Errors,[]}).
 
-do_module(Mdoc0, Docs, [{['define-module',_,DocStr|_],_}|Defs]) ->
-    Mdoc1 = Mdoc0 ++ [string_to_binary(DocStr)],
-    do_module(Mdoc1, Docs, Defs);
-do_module(Mdoc0, Docs, [{['extend-module',DocStr|_],_}|Defs]) ->
-    Mdoc1 = Mdoc0 ++ [string_to_binary(DocStr)],
-    do_module(Mdoc1, Docs, Defs);
-do_module(Mdoc, Docs0, [{['define-function',Name,DocStr,Body],Line}|Defs]) ->
+do_forms(Mdoc0, Docs, [{['define-module',_|Mdef],_}|Defs]) ->
+    Mdoc1 = do_module_def(Mdef, Mdoc0),
+    do_forms(Mdoc1, Docs, Defs);
+do_forms(Mdoc0, Docs, [{['extend-module'|Mdef],_}|Defs]) ->
+    Mdoc1 = do_module_def(Mdef, Mdoc0),
+    do_forms(Mdoc1, Docs, Defs);
+do_forms(Mdoc, Docs0, [{['define-function',Name,DocStr,Body],Line}|Defs]) ->
     Docs1 = do_function(Docs0, Name, Body, DocStr, Line),
-    do_module(Mdoc, Docs1, Defs);
-do_module(Mdoc, Docs0, [{['define-macro',Name,DocStr,Body],Line}|Defs]) ->
+    do_forms(Mdoc, Docs1, Defs);
+do_forms(Mdoc, Docs0, [{['define-macro',Name,DocStr,Body],Line}|Defs]) ->
     Docs1 = do_macro(Docs0, Name, Body, DocStr, Line),
-    do_module(Mdoc, Docs1, Defs);
-do_module(Mdoc, Docs, [_|Defs]) -> do_module(Mdoc, Docs, Defs);
-do_module(Mdoc, Docs, [])       -> {Mdoc,Docs}.
+    do_forms(Mdoc, Docs1, Defs);
+do_forms(Mdoc, Docs, [_|Defs]) -> do_forms(Mdoc, Docs, Defs);
+do_forms(Mdoc, Docs, [])       -> {Mdoc,Docs}.
+
+do_module_def([Doc|As]=Mdef, Mdoc0) ->
+    case lfe_lib:is_doc_string(Doc) of
+	true ->
+	    Mdoc1 = Mdoc0 ++ [string_to_binary(Doc)],
+	    collect_mdocs(As, Mdoc1);
+	false -> collect_mdocs(Mdef, Mdoc0)
+    end.
+
+collect_mdocs(As, Mdoc) ->
+    %% Collect all the docs in all the doc attributes.
+    Fun = fun ([doc|Docs], Md) ->
+		  foldl(fun (D, M) -> M ++ [string_to_binary(D)] end,
+			Md, Docs);
+	      (_, Md) -> Md
+	  end,
+    foldl(Fun, Mdoc, As).
 
 do_function(Docs, Name, Body, DocStr, Line) ->
     %% Must get patterns and arity before we can check if excluded.
