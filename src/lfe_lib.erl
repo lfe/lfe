@@ -21,7 +21,8 @@
 %% General library functions.
 -export([is_bif/2,is_erl_bif/2,is_guard_bif/2]).
 
--export([is_symb/1,is_symb_list/1,is_proper_list/1,is_core_form/1]).
+-export([is_symb/1,is_symb_list/1,is_proper_list/1,is_doc_string/1]).
+-export([is_core_form/1]).
 
 -export([proc_forms/3,proc_forms/4]).
 
@@ -71,6 +72,7 @@ is_guard_bif(Op ,Ar) ->
 %% is_symb(Sexpr) -> bool().
 %% is_symb_list(Sexprs) -> bool().
 %% is_proper_list(Sexprs) -> bool().
+%% is_doc_string(Doc) -> bool().
 
 is_symb(S) -> is_atom(S).
 
@@ -82,6 +84,9 @@ is_symb_list(_) -> false.                       %Might not be a proper list
 is_proper_list([_|Ss]) -> is_proper_list(Ss);
 is_proper_list([]) -> true;
 is_proper_list(_) -> false.
+
+is_doc_string(Doc) ->
+    is_binary(Doc) or io_lib:char_list(Doc).
 
 %% is_core_form(Form) -> bool().
 %%  Return true if Form (name) is one of the LFE core forms, else false.
