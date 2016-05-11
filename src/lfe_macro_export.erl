@@ -71,11 +71,14 @@
 
 -define(NODOC, []).                             %Empty documentation
 
--record(umac, {mline=[],expm=[],env=[]}).
-
 %% We need these variables to have a funny name.
 -define(NAMEVAR, '|- MACRO NAME -|').
 -define(ARGSVAR, '|- CALL ARGS -|').
+
+%% Define the macro data.
+-record(umac, {mline=[],expm=[],env=[],
+               leem=false,huf=false             %Do we have leem and huf?
+              }).
 
 %% module(ModuleForms, CompState) -> {ModuleForms,CompState}.
 %% module(ModuleDef, ModuleForms, UmacState, CompState) ->
@@ -94,7 +97,7 @@ module({['define-module',Name,Doc|Mdef],L}, Fs0, Mst0, Cst) ->
     Exp = [export,['LFE-EXPAND-EXPORTED-MACRO',3],
            ['$handle_undefined_function',2]],
     Md1 = {['define-module',Name,Doc,Exp|Mdef],L},
-    {[Md1|Fs1 ++ [{Umac,L}]],Cst}.
+    {[Md1|Fs1 ++ Umac],Cst}.
 
 collect_macros(Fs, Mst) ->
     lists:foldl(fun collect_macro/2, Mst, Fs).
@@ -106,7 +109,16 @@ collect_macro({['eval-when-compile'|Fs],_}, Mst) ->
     lists:foldl(fun collect_ewc_macro/2, Mst, Fs);
 collect_macro({['extend-module',_|Mdef],_}, Mst) ->
     collect_mdef(Mdef, Mst);
-collect_macro(_, Mst) -> Mst.                   %Ignore functions here.
+collect_macro({['define-function',Name,_,Def],_}, Mst) ->
+    %% Check for LFE-EXPAND-EXPORTED-MACRO and $handle_undefined_function.
+    case {Name,function_arity(Def)} of
+        {'LFE-EXPAND-EXPORTED-MACRO',3} ->
+            Mst#umac{leem=true};
+        {'$handle_undefined_function',2} ->
+            Mst#umac{huf=true};
+        _ -> Mst                                %Ignore other functions
+    end;
+collect_macro(_, Mst) -> Mst.                   %Ignore everything else
 
 collect_ewc_macro([set,Name,Val], #umac{env=Env0}=Mst) ->
     Env1 = lfe_env:add_vbinding(Name, Val, Env0),
@@ -150,9 +162,10 @@ exported_macro(Name, #umac{expm=Expm}) ->
 %%  LFE-EXPAND-EXPORTED-MACRO function. In this version we expand the
 %%  macros are compile time.
 
-build_user_macro(#umac{expm=[]}) ->             %No macros to export
-    empty_leum();
-build_user_macro(#umac{env=Env}=Mst) ->
+build_user_macro(#umac{leem=true}) -> [];       %Already have LEEM
+build_user_macro(#umac{mline=L,expm=[]}) ->     %No macros to export
+    [{empty_leum(),L}];
+build_user_macro(#umac{mline=ModLine,env=Env}=Mst) ->
     Vfun = fun (N, V, Acc) -> [[N,V]|Acc] end,
     Sets = lfe_env:fold_vars(Vfun, [], Env),
     %% Collect the local functions.
@@ -171,46 +184,21 @@ build_user_macro(#umac{env=Env}=Mst) ->
                    end
            end,
     %% Get the macros to export as case clauses.
-    case lfe_env:fold_macros(Mfun, [], Env) of
-        [] -> empty_leum();                     %No macros to export
-        Macs ->
-            %% Build case, flet and let.
-            Case = ['case',?NAMEVAR|Macs ++ [['_',?Q(no)]]],
-            Flr = ['letrec-function',Funs,Case],
-            Fl = ['let',Sets,Flr],
-            ['define-function','LFE-EXPAND-EXPORTED-MACRO',?NODOC,
-             [lambda,[?NAMEVAR,?ARGSVAR,'$ENV'],Fl]]
-    end.
+    LEEM = case lfe_env:fold_macros(Mfun, [], Env) of
+               [] -> empty_leum();              %No macros to export
+               Macs ->
+                   %% Build case, flet and let.
+                   Case = ['case',?NAMEVAR|Macs ++ [['_',?Q(no)]]],
+                   Flr = ['letrec-function',Funs,Case],
+                   Fl = ['let',Sets,Flr],
+                   ['define-function','LFE-EXPAND-EXPORTED-MACRO',?NODOC,
+                    [lambda,[?NAMEVAR,?ARGSVAR,'$ENV'],Fl]]
+           end,
+    [{LEEM,ModLine}].
 
 empty_leum() ->
     ['define-function','LFE-EXPAND-EXPORTED-MACRO',?NODOC,
      [lambda,['_','_','_'],?Q(no)]].
-
-%% add_huf(ModLine, Forms) -> Forms.
-%%  Add the $handle_undefined_function/2 function to catch run-time
-%%  macro calls. Scan through forms to check if there is an
-%%  $handle_undefined_function/2 function already defined. If so use
-%%  that as default when not a macro, otherwise just generate the
-%%  standard undef error.
-
-add_huf(L, [{['define-function','$handle_undefined_function',Doc,Def],Lf}=F|Fs]) ->
-    case function_arity(Def) of
-        2 -> [{make_huf(Def, Doc),Lf}|Fs];      %Found the right $huf
-        _ -> [F|add_huf(L, Fs)]
-    end;
-add_huf(L, [F|Fs]) ->
-    [F|add_huf(L, Fs)];
-add_huf(L, []) ->                               %No $huf, so make one.
-    %% Use the default undef exception handler.
-    Excep = [lambda,[a,b],
-             [':',error_handler,raise_undef_exception,['MODULE'],a,b]],
-    [{make_huf(Excep, []),L}].
-
-make_huf(Huf, Doc) ->
-    [defun,'$handle_undefined_function',[f,as],Doc,
-     ['case',['LFE-EXPAND-EXPORTED-MACRO',f,as,[':',lfe_env,new]],
-      [[tuple,?Q(yes),exp],[':',lfe_eval,expr,exp]],
-      [?Q(no),[funcall,Huf,f,as]]]].
 
 %% macro_case_clause(Name, Def) -> CaseClause.
 %%  Build a case clause for expanding macr Name.
@@ -235,3 +223,29 @@ macro_clause(Args, [['when'|_]=W|Body]) ->
     [Args,W,[tuple,?Q(yes),[progn|Body]]];
 macro_clause(Args, Body) ->
     [Args,[tuple,?Q(yes),[progn|Body]]].
+
+%% add_huf(ModLine, Forms) -> Forms.
+%%  Add the $handle_undefined_function/2 function to catch run-time
+%%  macro calls. Scan through forms to check if there is an
+%%  $handle_undefined_function/2 function already defined. If so use
+%%  that as default when not a macro, otherwise just generate the
+%%  standard undef error.
+
+add_huf(L, [{['define-function','$handle_undefined_function',Doc,Def],Lf}=F|Fs]) ->
+    case function_arity(Def) of
+        2 -> [{make_huf(Doc, Def),Lf}|Fs];      %Found the right $huf
+        _ -> [F|add_huf(L, Fs)]
+    end;
+add_huf(L, [F|Fs]) ->
+    [F|add_huf(L, Fs)];
+add_huf(L, []) ->                               %No $huf, so make one.
+    %% Use the default undef exception handler.
+    Excep = [lambda,[a,b],
+             [':',error_handler,raise_undef_exception,['MODULE'],a,b]],
+    [{make_huf([], Excep),L}].
+
+make_huf(Doc, Huf) ->
+    [defun,'$handle_undefined_function',[f,as],Doc,
+     ['case',['LFE-EXPAND-EXPORTED-MACRO',f,as,[':',lfe_env,new]],
+      [[tuple,?Q(yes),exp],[':',lfe_eval,expr,exp]],
+      [?Q(no),[funcall,Huf,f,as]]]].
