@@ -37,16 +37,21 @@ the following ``make`` target:
 By default this will create the programs ``lfe``, ``lfec`` and
 ``lfescript`` in the same directory as the ``erl`` program. This can
 changed by defining the make variable ``DESTBINDIR`` to point to the
-desired directory. So:
-
-```shell
-    $ make install DESTBINDIR=/Users/rv/bin
-```
-
-will put the programs in ``/Users/rv/bin``.
+desired directory.
 
 Note that the installation target will also install the LFE man pages
-in the appropriate ``/usr/local/man/man*`` directories.
+in the appropriate ``/usr/local/man/man*`` directories. This can be
+changed by defining the make variable ``MANINSTDIR`` to point to the
+desired top man directory.
+
+So:
+
+```shell
+    $ make install DESTBINDIR=/Users/rv/bin MANINSTDIR=/Users/rv/man
+```
+
+will put the programs in ``/Users/rv/bin`` and the man pages in the
+``/Users/rv/man/man*`` directories.
 
 
 ## REPL

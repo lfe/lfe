@@ -126,7 +126,7 @@ DOCSRC = $(DOCDIR)/src
 MANDIR = $(DOCDIR)/man
 PDFDIR = $(DOCDIR)/pdf
 EPUBDIR = $(DOCDIR)/epub
-MANINST = /usr/local/share/man
+MANINSTDIR ?= /usr/local/share/man
 
 MAN1_SRCS = $(notdir $(wildcard $(DOCSRC)/*1.md))
 MAN1S = $(MAN1_SRCS:.1.md=.1)
@@ -222,10 +222,10 @@ $(EPUBDIR)/%.epub: $(DOCSRC)/%.7.md
 	pandoc -f markdown -t epub -o $@ $<
 
 install-man: docs-man
-	@mkdir -p $(MANINST)/man1 $(MANINST)/man3 $(MANINST)/man7
-	cp $(MANDIR)/*.1 $(MANINST)/man1/
-	cp $(MANDIR)/*.3 $(MANINST)/man3/
-	cp $(MANDIR)/*.7 $(MANINST)/man7/
+	@mkdir -p $(MANINSTDIR)/man1 $(MANINSTDIR)/man3 $(MANINSTDIR)/man7
+	cp $(MANDIR)/*.1 $(MANINSTDIR)/man1/
+	cp $(MANDIR)/*.3 $(MANINSTDIR)/man3/
+	cp $(MANDIR)/*.7 $(MANINSTDIR)/man7/
 
 # Targets for working with Docker
 docker-build:
