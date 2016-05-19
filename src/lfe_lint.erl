@@ -42,7 +42,7 @@
                pref=[],                         %Prefixes
                funcs=[],                        %Defined functions
                env=[],                          %Top-level environment
-               line=[],                         %Current line
+               lline=[],                        %Last line
                func=[],                         %Current function
                file="nofile",                   %File name
                opts=[],                         %Compiler options
@@ -115,7 +115,7 @@ pattern(P, Env) ->
 %%  Create a dummy module then test the form, a function.
 
 form(F) ->
-    module([{['define-module',dummy,[]],1},{F,2}]).
+    module([{['define-module',dummy,[],[]],1},{F,2}]).
 
 %% module(ModuleForms) ->
 %%     {ok,ModuleName,[Warning]} | {error,[Error],[Warning]}.
@@ -159,10 +159,9 @@ collect_module(Mfs, St0) ->
     {Acc,St1} = lists:foldl(fun collect_form/2, {[],St0}, Mfs),
     {lists:reverse(Acc),St1}.
 
-collect_form({['define-module',Mod|Mdef],L}, {Acc,St0}) ->
-    St1 = check_mdef(Mdef, L, St0#lint{module=Mod}),
+collect_form({['define-module',Mod,Meta,Atts],L}, {Acc,St0}) ->
+    St1 = check_mdef(Meta, Atts, L, St0#lint{module=Mod}),
     if is_atom(Mod) ->                  %Normal module
-            %% Everything into State.
             {Acc,St1};
        true ->                          %Bad module name
             {Acc,bad_mdef_error(L, name, St1)}
@@ -170,10 +169,10 @@ collect_form({['define-module',Mod|Mdef],L}, {Acc,St0}) ->
 collect_form({_,L}, {Acc,#lint{module=[]}=St}) ->
     %% Set module name so this only triggers once.
     {Acc,bad_mdef_error(L, name, St#lint{module='-no-module-'})};
-collect_form({['extend-module'|Mdef],L}, {Acc,St}) ->
-    {Acc,check_mdef(Mdef, L, St)};
-collect_form({['define-function',Func,Doc,Body],L}, {Acc,St}) ->
-    Type = is_atom(Func) and lfe_lib:is_doc_string(Doc),
+collect_form({['extend-module',Meta,Atts],L}, {Acc,St}) ->
+    {Acc,check_mdef(Meta, Atts, L, St)};
+collect_form({['define-function',Func,Meta,Body],L}, {Acc,St}) ->
+    Type = is_atom(Func) and check_fmeta(Meta),
     case Body of
         [lambda|_] when Type ->
             {[{Func,Body,L}|Acc],St};
@@ -187,20 +186,30 @@ collect_form({['eval-when-compile'|_],_}, {Acc,St}) -> {Acc,St};
 collect_form({_,L}, {Acc,St}) ->
     {Acc,add_error(L, unknown_form, St)}.
 
-check_mdef(Mdef, L, St0) ->
-    {As,St1} = check_mdoc(Mdef, L, St0),
-    check_attrs(As, L, St1).
+check_fmeta([[doc|Docs]|Meta]) ->
+    check_docs(Docs) andalso check_fmeta(Meta);
+check_fmeta([M|Meta]) -> is_list(M) andalso check_fmeta(Meta);
+check_fmeta([]) -> true;
+check_fmeta(_) -> false.
 
-check_mdoc([Doc|Mdef], L, St) ->
-    case lfe_lib:is_doc_string(Doc) of
-        true -> {Mdef,St};
-        false -> {[Doc|Mdef],depr_dstring_warning(L, St)}
-    end;
-check_mdoc(Mdef, L, St) ->
-    {Mdef,depr_dstring_warning(L, St)}.
+check_docs(Docs) ->
+    Fun = fun (D) -> lfe_lib:is_doc_string(D) end,
+    is_proper_list(Docs) andalso all(Fun, Docs).
 
-depr_dstring_warning(L, St) ->
-    depr_warning(L, "no documentation string", St).
+check_mdef(Meta, Atts, L, St0) ->
+    St1 = check_mmeta(Meta, L, St0),
+    check_attrs(Atts, L, St1).
+
+check_mmeta([[doc|Docs]|Meta], L, St) ->
+    ?IF(check_docs(Docs),
+        check_mmeta(Meta, L, St),
+        check_mmeta(Meta, L, bad_mdef_error(L, doc, St)));
+check_mmeta([M|Meta], L, St) ->
+    ?IF(is_proper_list(M),
+        check_mmeta(Meta, L, St),
+        check_mmeta(Meta, L, bad_mdef_error(L, meta, St)));
+check_mmeta([], _, St) -> St;
+check_mmeta(_, L, St) -> bad_mdef_error(L, meta, St).
 
 check_attrs(As, L, St0) ->
     {_,St1} = check_foldl(fun (A, Acc, St) -> {Acc,check_attr(A, L, St)} end,
@@ -231,11 +240,7 @@ check_attr([Name|Vals], L, St) ->
 check_attr(_, L, St) -> bad_mdef_error(L, attribute, St).
 
 check_doc_attr(Docs, L, St) ->
-    Fun = fun (D) -> lfe_lib:is_doc_string(D) end,
-    case is_proper_list(Docs) andalso all(Fun, Docs) of
-	true -> St;
-	false -> bad_attr_error(L, doc, St)
-    end.
+    ?IF(check_docs(Docs), St, bad_attr_error(L, doc, St)).
 
 check_imports(Is, L, St) ->
     check_foreach(fun (I, S) -> check_import(I, L, S) end,

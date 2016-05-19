@@ -26,7 +26,7 @@
 -export([module/2,function_patterns/1,macro_patterns/1,add_docs_module/2]).
 
 -import(beam_lib, [all_chunks/1,build_module/1,chunks/2]).
--import(lists, [member/2,filter/2,foldl/3,reverse/1]).
+-import(lists, [member/2,filter/2,foldl/3,foldr/3,reverse/1]).
 -import(proplists, [delete/2,get_value/3]).
 
 -include("lfe_comp.hrl").
@@ -59,94 +59,80 @@ format_error({bad_lambda,Name,Lambda}) ->
       Error  :: {bad_lambda,Form}.
 
 module([], _Ci)   -> {ok,[]};
-module(Defs, _Ci) ->
-    {Mdoc,Docs} = do_forms([], [], Defs),
+module(Defs, Ci) ->
+    {Mdoc,Docs} = do_forms(Defs),
     Errors = filter(fun (#doc{}) -> false;
                         (_) -> true
                     end, Docs),
+    ?DEBUG("#doc: ~p\n", [{Mdoc,Docs}], Ci#cinfo.opts),
     ?IF([] =:= Errors,
         {ok,{Mdoc,Docs}},
         {error,Errors,[]}).
 
-do_forms(Mdoc0, Docs, [{['define-module',_|Mdef],_}|Defs]) ->
-    Mdoc1 = do_module_def(Mdef, Mdoc0),
-    do_forms(Mdoc1, Docs, Defs);
-do_forms(Mdoc0, Docs, [{['extend-module'|Mdef],_}|Defs]) ->
-    Mdoc1 = do_module_def(Mdef, Mdoc0),
-    do_forms(Mdoc1, Docs, Defs);
-do_forms(Mdoc, Docs0, [{['define-function',Name,DocStr,Body],Line}|Defs]) ->
-    Docs1 = do_function(Docs0, Name, Body, DocStr, Line),
-    do_forms(Mdoc, Docs1, Defs);
-do_forms(Mdoc, Docs0, [{['define-macro',Name,DocStr,Body],Line}|Defs]) ->
-    Docs1 = do_macro(Docs0, Name, Body, DocStr, Line),
-    do_forms(Mdoc, Docs1, Defs);
-do_forms(Mdoc, Docs, [_|Defs]) -> do_forms(Mdoc, Docs, Defs);
-do_forms(Mdoc, Docs, [])       -> {Mdoc,Docs}.
+do_forms(Fs) ->
+    foldl(fun do_form/2, {[],[]}, Fs).
 
-do_module_def([Doc|As]=Mdef, Mdoc0) ->
-    case lfe_lib:is_doc_string(Doc) of
-	true ->
-	    Mdoc1 = Mdoc0 ++ [string_to_binary(Doc)],
-	    collect_mdocs(As, Mdoc1);
-	false -> collect_mdocs(Mdef, Mdoc0)
-    end.
+do_form({['define-module',_,Meta,Atts],_}, {Mdoc,Docs}) ->
+    {do_module_def(Meta, Atts, Mdoc),Docs};
+do_form({['extend-module',Meta,Atts],_}, {Mdoc,Docs}) ->
+    {do_module_def(Meta, Atts, Mdoc),Docs};
+do_form({['define-function',Name,Meta,Body],Line}, {Mdoc,Docs}) ->
+    {Mdoc,do_function(Name, Body, Meta, Line, Docs)};
+do_form({['define-macro',Name,Meta,Body],Line}, {Mdoc,Docs}) ->
+    {Mdoc,do_macro(Name, Body, Meta, Line, Docs)};
+do_form(_, Doc) -> Doc.                         %Ignore eval-when-compile
 
-collect_mdocs(As, Mdoc) ->
-    %% Collect all the docs in all the doc attributes.
-    Fun = fun ([doc|Docs], Md) ->
-		  foldl(fun (D, M) -> M ++ [string_to_binary(D)] end,
-			Md, Docs);
-	      (_, Md) -> Md
-	  end,
-    foldl(Fun, Mdoc, As).
+do_module_def(Meta, Atts, Mdoc0) ->
+    Mdoc1 = collect_docs(Meta, Mdoc0),          %First take meta docs
+    collect_docs(Atts, Mdoc1).                  %then the attribute docs
 
-do_function(Docs, Name, Body, DocStr, Line) ->
+collect_docs(As, Mdoc) ->
+    %% Collect all the docs in all the doc metas/attributes.
+    Afun = fun ([doc|Docs], Md) ->
+                   Dfun = fun (D, M) -> M ++ [string_to_binary(D)] end,
+                   foldl(Dfun, Md, Docs);
+               (_, Md) -> Md
+           end,
+    foldl(Afun, Mdoc, As).
+
+do_function(Name, Body, Meta, Line, Docs) ->
     %% Must get patterns and arity before we can check if excluded.
-    case function_patterns(Body) of
-        no ->
-            Error = {Line,?MODULE,{bad_lambda,Name,Body}},
-            [Error|Docs];
-        {yes,Arity,Patterns} ->
-            ?IF(exclude(Name, Arity, DocStr),
-                Docs,
-                begin
-                    Doc = make_doc(function, {Name,Arity},
-                                   Patterns, DocStr, Line),
-                    [Doc|Docs]
-                end)
-    end.
-
-do_macro(Docs, Name, Body, DocStr, Line) ->
-    %% We only need the name to check for exclusion.
-    ?IF(exclude(Name, DocStr),
+    {Arity,Pats} = function_patterns(Body),
+    ?IF(exclude(Name, Arity, Meta),
         Docs,
-        case macro_patterns(Body) of
-            no ->
-                Error = {Line,?MODULE,{bad_lambda,Name,Body}},
-                [Error|Docs];
-            {yes,Patterns} ->
-                Doc = make_doc(macro, Name, Patterns, DocStr, Line),
-                [Doc|Docs]
+        begin
+            Fdoc = make_doc(function, {Name,Arity}, Pats, Meta, Line),
+            [Fdoc|Docs]
         end).
 
-%% exclude(Name, Arity, DocStr) -> boolean().
-%% exclude(Name, DocStr) -> boolean().
+do_macro(Name, Body, Meta, Line, Docs) ->
+    %% We only need the name to check for exclusion.
+    ?IF(exclude(Name, Meta),
+        Docs,
+        begin
+            Pats = macro_patterns(Body),
+            Mdoc = make_doc(macro, Name, Pats, Meta, Line),
+            [Mdoc|Docs]
+        end).
+
+%% exclude(Name, Arity, Meta) -> boolean().
+%% exclude(Name, Meta) -> boolean().
 %%  Return true if a function should be excluded from the docs chunk.
 %%  $handle_undefined_function/2 needs special handling as it is
 %%  automatically generated but can also be defined by the user. So we
 %%  only include it is it has user documentation.
 
--spec exclude(Name, Arity, DocStr) -> boolean() when
+-spec exclude(Name, Arity, Meta) -> boolean() when
       Name  :: atom(),
       Arity :: non_neg_integer(),
-      DocStr :: binary() | string().
--spec exclude(Name, DocStr) -> boolean() when
+      Meta  :: list().
+-spec exclude(Name, Meta) -> boolean() when
       Name  :: atom(),
-      DocStr :: binary() | string().
+      Meta  :: list().
 
 exclude('LFE-EXPAND-EXPORTED-MACRO', 3, _) -> true;
-exclude('$handle_undefined_function', 2, DS) ->
-    (DS == []) or (DS == <<"">>);
+exclude('$handle_undefined_function', 2, _) ->  %Should check for doc string
+    true;
 exclude(_, _, _) -> false.
 
 exclude('MODULE', _)                        -> true;
@@ -159,36 +145,32 @@ exclude(_, _)                               -> false.
 %%  a list of lists.  A macro definition must have 2 args, the pattern
 %%  and the environment.
 
--spec function_patterns(LambdaForm) -> 'no' | {'yes',Arity,Patterns} when
+-spec function_patterns(LambdaForm) -> {Arity,Patterns} when
       LambdaForm :: nonempty_list(),
       Arity      :: non_neg_integer(),
       Patterns   :: nonempty_list(pattern()).
--spec macro_patterns(LambdaForm) -> 'no' | {'yes',Patterns} when
+-spec macro_patterns(LambdaForm) -> Patterns when
       LambdaForm :: nonempty_list(),
       Patterns   :: nonempty_list(pattern()).
 
-function_patterns([lambda,Args|_]) ->
-    {yes,length(Args),[Args]};
+function_patterns([lambda,Args|_]) -> {length(Args),[Args]};
 function_patterns(['match-lambda',[Pat|_]=Cl|Cls]) ->
-    do_function_patterns(length(Pat), [], [Cl|Cls]);
-function_patterns(_) -> no.
+    {length(Pat),do_function_patterns([Cl|Cls], [])}.
 
-do_function_patterns(N, Acc, [[Pat,['when'|_]=Guard|_]|Cls]) ->
-    do_function_patterns(N, [Pat++[Guard]|Acc], Cls);
-do_function_patterns(N, Acc, [[Pat|_]|Cls]) ->
-    do_function_patterns(N, [Pat|Acc], Cls);
-do_function_patterns(N, Acc, []) -> {yes,N,reverse(Acc)}.
+do_function_patterns([[Pat,['when'|_]=Guard|_]|Cls], Acc) ->
+    do_function_patterns(Cls, [Pat++[Guard]|Acc]);
+do_function_patterns([[Pat|_]|Cls], Acc) ->
+    do_function_patterns(Cls, [Pat|Acc]);
+do_function_patterns([], Acc) -> reverse(Acc).
 
-macro_patterns([lambda,[Args,_Env]|_]) -> {yes,[Args]};
-macro_patterns(['match-lambda'|Cls])   -> do_macro_patterns([], Cls);
-macro_patterns(_)                      -> no.
+macro_patterns([lambda,[Args,_Env]|_]) -> [Args];
+macro_patterns(['match-lambda'|Cls])   -> do_macro_patterns(Cls, []).
 
-do_macro_patterns(Acc, [[[Pat,_Env],['when'|_]=Guard|_]|Cls]) ->
-    do_macro_patterns([Pat++[Guard]|Acc], Cls);
-do_macro_patterns(Acc, [[[Pat,_Env]|_]|Cls]) ->
-    do_macro_patterns([Pat|Acc], Cls);
-do_macro_patterns(Acc, []) -> {yes,reverse(Acc)};
-do_macro_patterns(_, _)    -> no.
+do_macro_patterns([[[Pat,_Env],['when'|_]=Guard|_]|Cls], Acc) ->
+    do_macro_patterns(Cls, [Pat++[Guard]|Acc]);
+do_macro_patterns([[[Pat,_Env]|_]|Cls], Acc) ->
+    do_macro_patterns(Cls, [Pat|Acc]);
+do_macro_patterns([], Acc) -> reverse(Acc).
 
 %% make_doc(Type, Name, Arity, Patterns, Doc, Line) -> doc().
 %%  Convenience constructor for #doc{}, which is defined in src/lfe_doc.hrl.
@@ -200,9 +182,9 @@ do_macro_patterns(_, _)    -> no.
       Doc      :: binary() | string(),
       Line     :: pos_integer().
 
-make_doc(Type, Name, Patterns, Doc, Line) ->
-    Bdoc = string_to_binary(Doc),
-    #doc{type=Type,name=Name,patterns=Patterns,doc=Bdoc,line=Line}.
+make_doc(Type, Name, Patterns, Meta, Line) ->
+    Docs = collect_docs(Meta, []),
+    #doc{type=Type,name=Name,patterns=Patterns,doc=Docs,line=Line}.
 
 string_to_binary(Str) when is_list(Str) ->
     unicode:characters_to_binary(Str, utf8, utf8);

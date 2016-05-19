@@ -69,7 +69,7 @@
 -define(C(E), [comma,E]).
 -define(C_A(E), ['comma-at',E]).
 
--define(NODOC, []).                             %Empty documentation
+-define(NOMETA, []).                            %Empty documentation
 
 %% We need these variables to have a funny name.
 -define(NAMEVAR, '|- MACRO NAME -|').
@@ -89,14 +89,14 @@ module([Mdef|Fs], Cst) ->
     %% io:format("m: ~p\n", [Umac]),
     module(Mdef, Fs, Mst, Cst).
 
-module({['define-module',Name,Doc|Mdef],L}, Fs0, Mst0, Cst) ->
-    Mst1 = collect_mdef(Mdef, Mst0#umac{mline=L}),
+module({['define-module',Name,Meta,Atts],L}, Fs0, Mst0, Cst) ->
+    Mst1 = collect_attrs(Atts, Mst0#umac{mline=L}),
     Fs1 = add_huf(L, Fs0),
     Umac = build_user_macro(Mst1),
     %% We need to export the expansion function but leave the rest.
     Exp = [export,['LFE-EXPAND-EXPORTED-MACRO',3],
            ['$handle_undefined_function',2]],
-    Md1 = {['define-module',Name,Doc,Exp|Mdef],L},
+    Md1 = {['define-module',Name,Meta,[Exp|Atts]],L},
     {[Md1|Fs1 ++ Umac],Cst}.
 
 collect_macros(Fs, Mst) ->
@@ -107,8 +107,8 @@ collect_macro({['define-macro',Name,_,Def],_}, #umac{env=Env0}=Mst) ->
     Mst#umac{env=Env1};
 collect_macro({['eval-when-compile'|Fs],_}, Mst) ->
     lists:foldl(fun collect_ewc_macro/2, Mst, Fs);
-collect_macro({['extend-module',_|Mdef],_}, Mst) ->
-    collect_mdef(Mdef, Mst);
+collect_macro({['extend-module',_,Atts],_}, Mst) ->
+    collect_attrs(Atts, Mst);
 collect_macro({['define-function',Name,_,Def],_}, Mst) ->
     %% Check for LFE-EXPAND-EXPORTED-MACRO and $handle_undefined_function.
     case {Name,function_arity(Def)} of
@@ -136,14 +136,14 @@ collect_ewc_macro([progn|Fs], Mst) ->
 function_arity([lambda,As|_]) -> length(As);
 function_arity(['match-lambda',[Pats|_]|_]) -> length(Pats).
 
-%% collect_mdef(ModuleDef, MacroState) -> MacroState.
+%% collect_attrs(Attributes, MacroState) -> MacroState.
 %%  We are only interested in which macros are exported.
 
-collect_mdef([['export-macro'|Ms]|Mdef], #umac{expm=Expm0}=Mst) ->
+collect_attrs([['export-macro'|Ms]|Atts], #umac{expm=Expm0}=Mst) ->
     Expm1 = add_exports(Expm0, Ms),
-    collect_mdef(Mdef, Mst#umac{expm=Expm1});
-collect_mdef([_|Mdef], Mst) -> collect_mdef(Mdef, Mst);
-collect_mdef([], Mst) -> Mst.
+    collect_attrs(Atts, Mst#umac{expm=Expm1});
+collect_attrs([_|Atts], Mst) -> collect_attrs(Atts, Mst);
+collect_attrs([], Mst) -> Mst.
 
 %% add_exports(Old, More) -> New.
 %% exported_macro(Name, State) -> true | false.
@@ -191,13 +191,13 @@ build_user_macro(#umac{mline=ModLine,env=Env}=Mst) ->
                    Case = ['case',?NAMEVAR|Macs ++ [['_',?Q(no)]]],
                    Flr = ['letrec-function',Funs,Case],
                    Fl = ['let',Sets,Flr],
-                   ['define-function','LFE-EXPAND-EXPORTED-MACRO',?NODOC,
+                   ['define-function','LFE-EXPAND-EXPORTED-MACRO',?NOMETA,
                     [lambda,[?NAMEVAR,?ARGSVAR,'$ENV'],Fl]]
            end,
     [{LEEM,ModLine}].
 
 empty_leum() ->
-    ['define-function','LFE-EXPAND-EXPORTED-MACRO',?NODOC,
+    ['define-function','LFE-EXPAND-EXPORTED-MACRO',?NOMETA,
      [lambda,['_','_','_'],?Q(no)]].
 
 %% macro_case_clause(Name, Def) -> CaseClause.
@@ -231,10 +231,10 @@ macro_clause(Args, Body) ->
 %%  that as default when not a macro, otherwise just generate the
 %%  standard undef error.
 
-add_huf(L, [{['define-function','$handle_undefined_function',Doc,Def],Lf}=F|Fs]) ->
+add_huf(L, [{['define-function','$handle_undefined_function',Meta,Def],Lf}=F|Fs]) ->
     case function_arity(Def) of
-        2 -> [{make_huf(Doc, Def),Lf}|Fs];      %Found the right $huf
-        _ -> [F|add_huf(L, Fs)]
+        2 -> [{make_huf(Meta, Def),Lf}|Fs];     %Found the right $huf
+        _ -> [F|add_huf(L, Fs)]                 %Keep going
     end;
 add_huf(L, [F|Fs]) ->
     [F|add_huf(L, Fs)];
@@ -244,8 +244,9 @@ add_huf(L, []) ->                               %No $huf, so make one.
              [':',error_handler,raise_undef_exception,['MODULE'],a,b]],
     [{make_huf([], Excep),L}].
 
-make_huf(Doc, Huf) ->
-    [defun,'$handle_undefined_function',[f,as],Doc,
-     ['case',['LFE-EXPAND-EXPORTED-MACRO',f,as,[':',lfe_env,new]],
-      [[tuple,?Q(yes),exp],[':',lfe_eval,expr,exp]],
-      [?Q(no),[funcall,Huf,f,as]]]].
+make_huf(Meta, Huf) ->
+    ['define-function','$handle_undefined_function',Meta,
+     [lambda,[f,as],
+      ['case',['LFE-EXPAND-EXPORTED-MACRO',f,as,[':',lfe_env,new]],
+       [[tuple,?Q(yes),exp],[':',lfe_eval,expr,exp]],
+       [?Q(no),[funcall,Huf,f,as]]]]].
