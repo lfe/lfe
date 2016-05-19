@@ -33,7 +33,7 @@
 -include("lfe_doc.hrl").
 
 -ifdef(EUNIT).
--export([string_to_binary/1, pprint/2]).        %Used by prop_lfe_doc
+-export([collect_docs/2,pprint/2]).             %Used by prop_lfe_doc
 
 -include_lib("eunit/include/eunit.hrl").
 

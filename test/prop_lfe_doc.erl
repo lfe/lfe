@@ -20,7 +20,7 @@
 
 -export([prop_define_lambda/0,prop_define_match/0]).
 
--import(lfe_doc, [module/2,string_to_binary/1]).
+-import(lfe_doc, [collect_docs/2,module/2]).
 
 -include_lib("lfe/src/lfe_comp.hrl").
 -include_lib("lfe/src/lfe_doc.hrl").
@@ -41,11 +41,11 @@ validate({['define-function',Name,_Doc,['match-lambda',[Pat|_]|_]],_}=Def) ->
 validate({['define-macro',Name,_Doc,['match-lambda'|_]],_}=Def) ->
     do_validate(Name, Def).
 
-do_validate(Name,{[Define,_Name,DocStr,_Lambda],Line}=Def) ->
+do_validate(Name,{[Define,_Name,Meta,_Lambda],Line}=Def) ->
     Type = define_to_type(Define),
     case module([Def], #cinfo{}) of
         {ok,{[],[#doc{type=Type,name=Name,doc=Doc,line=Line}=Res]}} ->
-            string_to_binary(DocStr) =:= Doc;
+            collect_docs(Meta, []) =:= Doc;
         _ ->
             false
     end.
@@ -58,10 +58,11 @@ define_to_type('define-macro')    -> macro.
 %%% Definition shapes
 %%%===================================================================
 
-define_lambda() -> {['define-function',atom1(),docstring(),lambda()],line()}.
+define_lambda() ->
+    {['define-function',atom1(),meta_with_doc(),lambda()],line()}.
 
 define_match() ->
-    ?LET(D, define(), {[D,atom1(),docstring(),'match-lambda'(D)],line()}).
+    ?LET(D, define(), {[D,atom1(),meta_with_doc(),'match-lambda'(D)],line()}).
 
 
 %%%===================================================================
@@ -88,6 +89,8 @@ body() -> non_empty(list(form())).
 form() -> union([form_elem(),[atom1()|list(form_elem())]]).
 
 form_elem() -> union([non_string_term(),printable_string(),atom1()]).
+
+meta_with_doc() -> [[doc,docstring()]].
 
 docstring() -> printable_string().
 
