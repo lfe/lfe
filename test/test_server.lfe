@@ -13,11 +13,10 @@
 ;; limitations under the License.
 
 ;; As close as we can get to a vanilla erlang if, a case with no match.
-(defmacro eif
-  (args
+(defmacro eif args
    (fletrec ((r ([(t v . as)] `((_ (when ,t) ,v) . ,(r as)))
                 ([()] ())))
-     `(case 1 . ,(r args)))))
+     `(case 1 . ,(r args))))
 
 (defmacro test-pat (pat expr)
   `(let* ((val ,expr)
@@ -27,7 +26,7 @@
 ;; We don't have any sensible line numbers to save so we save form.
 (defmacro line (expr)
   `(progn (put 'test_server_loc (tuple (MODULE) ',expr))
-      ,expr))
+          ,expr))
 
 (defmacro config args
   `(: test_server lookup_config . ,args))
