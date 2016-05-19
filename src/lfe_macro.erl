@@ -280,10 +280,6 @@ pass_eval_set_1(Pat, Guard, Exp, Env0, St) ->
     {yes,_,Bs} = lfe_eval:match_when(Pat, Val, Guard, Env0),
     Env1 = foldl(fun ({N,V}, E) -> add_vbinding(N, V, E) end, Env0, Bs),
     Sets = ?IF(St#mac.keep, [ [set,N,V] || {N,V} <- Bs ], []),
-    %% Sets = case St#mac.keep of
-    %%            true -> [ [set,N,V] || {N,V} <- Bs ];
-    %%            false -> []
-    %%        end,
     {['progn'|Sets],Env1,St}.
 
 %% pass_expand_expr(Expr, Env, State, DeepFlag) ->
@@ -305,7 +301,7 @@ pass_expand_expr([_|_]=E0, Env, St0, Deep) ->
     end;
 pass_expand_expr(E, _, St, _) -> {no,E,St}.
 
-%% pass_define_macro([Name,Doc,Def], Env, State) ->
+%% pass_define_macro([Name,Meta,Def], Env, State) ->
 %%     {yes,Env,State} | no.
 %%  Add the macro definition to the environment. We do a small format
 %%  check.
@@ -804,14 +800,14 @@ exp_predef(['define',Head|Body], _, St) ->
                   ['define-function',hd(Head),[],[lambda,tl(Head)|Body]];
               false ->
                   %% Let next step catch errors here.
-                  ['define-function',Head,[]|Body]
+                  ['define-function',Head,[],Body]
           end,
     {yes,Exp,St};
 exp_predef(['define-record'|Def], _, St) ->
     {yes,[defrecord|Def],St};
 exp_predef(['define-syntax',Name,Def], _, St) ->
-    {Doc,Mdef} = exp_syntax(Name, Def),
-    {yes,['define-macro',Name,Doc,Mdef],St};
+    {Meta,Mdef} = exp_syntax(Name, Def),
+    {yes,['define-macro',Name,Meta,Mdef],St};
 exp_predef(['let-syntax',Defs|Body], _, St) ->
     Fun = fun ([Name,Def]) ->
                   {_,Def} = exp_syntax(Name, Def),
@@ -827,38 +823,38 @@ exp_predef([defmodule,Name|Rest], _, St) ->
                 Mod -> Mod                      %Normal module
             end,
     MODULE = [defmacro,'MODULE',[],?BQ(?Q(Mname))],
-    {Doc,Atts} = exp_defmodule(Rest),
-    {yes,[progn,['define-module',Name,Doc|Atts],MODULE],St#mac{module=Mname}};
+    {Meta,Atts} = exp_defmodule(Rest),
+    {yes,[progn,['define-module',Name,Meta,Atts],MODULE],St#mac{module=Mname}};
 exp_predef([defun,Name|Rest], _, St) ->
     %% Educated guess whether traditional (defun name (a1 a2 ...) ...)
     %% or matching (defun name (patlist1 ...) (patlist2 ...))
-    {Doc,Def} = exp_defun(Rest),
-    {yes,['define-function',Name,Doc,Def],St};
+    {Meta,Def} = exp_defun(Rest),
+    {yes,['define-function',Name,Meta,Def],St};
 exp_predef([defmacro,Name|Rest], _, St) ->
     %% Educated guess whether traditional (defmacro name (a1 a2 ...) ...)
     %% or matching (defmacro name (patlist1 ...) (patlist2 ...))
-    {Doc,Def} = exp_defmacro(Rest),
-    {yes,['define-macro',Name,Doc,Def],St};
+    {Meta,Def} = exp_defmacro(Rest),
+    {yes,['define-macro',Name,Meta,Def],St};
 exp_predef([defsyntax,Name|Rules], _, St) ->
-    {Doc,Def} = exp_rules(Name, [], Rules),
-    {yes,['define-macro',Name,Doc,Def],St};
+    {Meta,Def} = exp_rules(Name, [], Rules),
+    {yes,['define-macro',Name,Meta,Def],St};
 exp_predef([flet,Defs|Body], _, St) ->
     Fun = fun ([Name|Rest]) ->
-                  {_,Def} = exp_defun(Rest),    %Ignore doc string
+                  {_,Def} = exp_defun(Rest),    %Ignore meta data
                   [Name,Def]
           end,
     Fdefs = map(Fun, Defs),
     {yes,['let-function',Fdefs|Body], St};
 exp_predef([fletrec,Defs|Body], _, St) ->
     Fun = fun ([Name|Rest]) ->
-                  {_,Def} = exp_defun(Rest),    %Ignore doc string
+                  {_,Def} = exp_defun(Rest),    %Ignore meta data
                   [Name,Def]
           end,
     Fdefs = map(Fun, Defs),
     {yes,['letrec-function',Fdefs|Body], St};
 exp_predef([macrolet,Defs|Body], _, St) ->
     Fun = fun ([Name|Rest]) ->
-                  {_,Def} = exp_defmacro(Rest), %Ignore doc string
+                  {_,Def} = exp_defmacro(Rest), %Ignore meta data
                   [Name,Def]
           end,
     Mdefs = map(Fun, Defs),
@@ -1127,15 +1123,15 @@ exp_orelse([E]) -> E;                           %Let user check last call
 exp_orelse([E|Es]) -> ['if',E,?Q(true),exp_orelse(Es)];
 exp_orelse([]) -> ?Q(false).
 
-%% exp_defmodule(Rest) -> {DocString,Attributes}.
+%% exp_defmodule(Rest) -> {Meta,Attributes}.
 %%  Extract the comment string either if it is first. Ignore 'doc'
 %%  attributes. Allow empty module definition.
 
-exp_defmodule([]) -> {"",[]};
+exp_defmodule([]) -> {[],[]};
 exp_defmodule([Doc|Atts]=Rest) ->
-    ?IF(is_doc_string(Doc), {Doc,Atts}, {"",Rest}).
+    ?IF(is_doc_string(Doc), {[[doc,Doc]],Atts}, {[],Rest}).
 
-%% exp_defun(Rest) -> {DocString,Lambda | MatchLambda}.
+%% exp_defun(Rest) -> {Meta,Lambda | MatchLambda}.
 %%  Educated guess whether traditional (defun name (a1 a2 ...) ...)
 %%  or matching (defun name (patlist1 ...) (patlist2 ...)) and whether
 %%  there is a comment string.
@@ -1147,26 +1143,26 @@ exp_defun([Args|Body]=Rest) ->
     end.
 
 exp_lambda_defun(Args, Body) ->
-    {Doc,Def} = exp_lambda_body(Body),
-    {Doc,['lambda',Args|Def]}.
+    {Meta,Def} = exp_lambda_body(Body),
+    {Meta,['lambda',Args|Def]}.
 
-exp_lambda_body([Doc|Rest]=Body) ->
+exp_lambda_body([Doc|Body]=Rest) ->
     %% Test whether first expression is a comment string.
-    ?IF(is_doc_string(Doc) and (Rest =/= []), {Doc,Rest}, {"",Body});
-exp_lambda_body(Body) -> {"",Body}.
+    ?IF(is_doc_string(Doc) and (Body =/= []), {[[doc,Doc]],Body}, {[],Rest});
+exp_lambda_body(Body) -> {[],Body}.
 
 exp_match_defun(Rest) ->
-    {Doc,Cls} = exp_match_clauses(Rest),
-    {Doc,['match-lambda'|Cls]}.
+    {Meta,Cls} = exp_match_clauses(Rest),
+    {Meta,['match-lambda'|Cls]}.
 
 exp_match_clauses([Doc|Cls]=Rest) ->
     %% Test whether first thing is a comment string.
-    ?IF(is_doc_string(Doc), {Doc,Cls}, {"",Rest});
-exp_match_clauses(Cls) -> {"",Cls}.
+    ?IF(is_doc_string(Doc), {[[doc,Doc]],Cls}, {[],Rest});
+exp_match_clauses(Cls) -> {[],Cls}.
 
 is_doc_string(Doc) -> io_lib:char_list(Doc).
 
-%% exp_defmacro(Rest) -> {DocString,MatchLambda}.
+%% exp_defmacro(Rest) -> {Meta,MatchLambda}.
 %%  Educated guess whether traditional (defmacro name (a1 a2 ...) ...)
 %%  or matching (defmacro name (patlist1 ...) (patlist2 ...)). Special
 %%  case (defmacro name arg ...) to make arg be whole argument list.
@@ -1175,26 +1171,26 @@ is_doc_string(Doc) -> io_lib:char_list(Doc).
 %%  environment.
 
 exp_defmacro([Args|Body]=Rest) ->
-    {Doc,Cls} = case is_symb_list(Args) of
-                    true -> exp_lambda_defmacro([list|Args], Body);
-                    false ->
-                        if is_atom(Args) ->
-                                exp_lambda_defmacro(Args, Body);
-                           true ->
-                                exp_match_defmacro(Rest)
-                        end
-                end,
-    {Doc,['match-lambda'|Cls]}.
+    {Meta,Cls} = case is_symb_list(Args) of
+                     true -> exp_lambda_defmacro([list|Args], Body);
+                     false ->
+                         if is_atom(Args) ->
+                                 exp_lambda_defmacro(Args, Body);
+                            true ->
+                                 exp_match_defmacro(Rest)
+                         end
+                 end,
+    {Meta,['match-lambda'|Cls]}.
 
 exp_lambda_defmacro(Args, Body) ->
-    {Doc,Def} = exp_lambda_body(Body),
-    {Doc,[[[Args,'$ENV']|Def]]}.
+    {Meta,Def} = exp_lambda_body(Body),
+    {Meta,[[[Args,'$ENV']|Def]]}.
 
 exp_match_defmacro(Rest) ->
-    {Doc,Cls} = exp_match_clauses(Rest),
-    {Doc,map(fun ([Head|Body]) -> [[Head,'$ENV']|Body] end, Cls)}.
+    {Meta,Cls} = exp_match_clauses(Rest),
+    {Meta,map(fun ([Head|Body]) -> [[Head,'$ENV']|Body] end, Cls)}.
 
-%% exp_syntax(Name, Def) -> {DocString,Lambda | MatchLambda}.
+%% exp_syntax(Name, Def) -> {Meta,Lambda | MatchLambda}.
 %%  N.B. New macro definition is function of 2 arguments, the whole
 %%  argument list of macro call, and the current macro environment.
 
@@ -1202,19 +1198,19 @@ exp_syntax(Name, Def) ->
     case Def of
         [macro|Cls] ->
             Mcls = map(fun ([Pat|Body]) -> [[Pat,'$ENV']|Body] end, Cls),
-            {"",['match-lambda'|Mcls]};
+            {[],['match-lambda'|Mcls]};
         ['syntax-rules'|Rules] ->
             exp_rules(Name, [], Rules)
     end.
 
-%% exp_rules(Name, Keywords, Rules) -> {DocString,Lambda}.
+%% exp_rules(Name, Keywords, Rules) -> {Meta,Lambda}.
 %%  Expand into call function which expands macro an invocation time,
 %%  this saves much space and costs us nothing.
 %%  N.B. New macro definition is function of 2 arguments, the whole
 %%  argument list of macro call, and the current macro environment.
 
 exp_rules(Name, Keywords, Rules) ->
-    {"",[lambda,[args,'$ENV'],
+    {[],[lambda,[args,'$ENV'],
          [':',lfe_macro,mbe_syntax_rules_proc,
           [quote,Name],[quote,Keywords],[quote,Rules],args]]}.
 

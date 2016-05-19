@@ -92,30 +92,25 @@ collect_module(Mfs, St0) ->
 %%  Collect valid forms and module data. Returns forms and put module
 %%  data into state.
 
-collect_form({['define-module',Mod|Mdef],L}, {Acc,St}) ->
-    %% Everything into State.
-    {Acc,collect_mdef(Mdef, L, St#cg{module=Mod,anno=[L]})};
-collect_form({['extend-module'|Mdef],L}, {Acc,St}) ->
-    %% Everything into State.
-    {Acc,collect_mdef(Mdef, L, St#cg{anno=[L]})};
-collect_form({['define-function',Name,_Doc,Def],L}, {Acc,St}) ->
+collect_form({['define-module',Mod,_Meta,Atts],L}, {Acc,St}) ->
+    %% Ignore the meta data, everything else into State.
+    {Acc,collect_attrs(Atts, L, St#cg{module=Mod,anno=[L]})};
+collect_form({['extend-module',_Meta,Atts],L}, {Acc,St}) ->
+    %% Ignore the meta data, everything else into State.
+    {Acc,collect_attrs(Atts, L, St#cg{anno=[L]})};
+collect_form({['define-function',Name,_Meta,Def],L}, {Acc,St}) ->
+    %% Ignore the meta data.
     {[{Name,Def,L}|Acc],St};
 %% Ignore macro definitions and eval-when-compile forms.
 collect_form({['define-macro'|_],_}, {Acc,St}) -> {Acc,St};
 collect_form({['eval-when-compile'|_],_}, {Acc,St}) -> {Acc,St}.
 
-%% collect_mdef(ModDef, Line, State) -> State.
-%%  Collect module definition and fill in the #cg state record. Need
-%%  to handle deprecated case where there is no doc string first and
-%%  we ignore all eventual doc attributes.
-
-collect_mdef([Doc|As]=Mdef, L, St) ->
-    case lfe_lib:is_doc_string(Doc) of
-	true -> collect_attrs(As, L, St);
-	false -> collect_attrs(Mdef, L, St)
-    end.
+%% collect_attrs(Attributes, Line, State) -> State.
+%%  Collect module attributes and fill in the #cg state record. Need
+%%  to ignore all eventual doc attributes.
 
 collect_attrs(As, L, St) ->
+    %% io:format("ca: ~p\n", [As]),
     foldl(fun (A, S) -> collect_attr(A, L, S) end, St, As).
 
 collect_attr([export|Es], _, St) -> collect_exps(Es, St);
@@ -318,7 +313,7 @@ comp_expr([Fun|As], Env, L, St) when is_atom(Fun) ->
                            %% Might have been renamed, use real function name.
                            {ann_c_apply(Ann, c_fname(Name, Ar), Cas),Sta};
                        no ->
-                           %%io:format("ce: ~p\n", [{{Fun,Ar},En}]),
+                           %% io:format("ce: ~p\n", [{{Fun,Ar},En}]),
                            error(foo)
                    end
            end,

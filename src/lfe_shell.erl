@@ -839,15 +839,18 @@ get_doc_chunk(Mod) ->
     end.
 
 print_module_doc(Mod, Mdoc) ->
-    lfe_io:format(?BLU("~p")++"\n", [Mod]),
-    print_docs(Mdoc).
+    lfe_io:format(?BLU("~p")++"\n\n", [Mod]),
+    print_docs(Mdoc),
+    io:nl().
 
 print_macro_doc(Mac, Docs) ->
     case lists:keyfind(Mac, #doc.name, Docs) of
         #doc{patterns=Pats,doc=Doc} ->
             lfe_io:format(?BLU("~p")++"\n", [Mac]),
             print_patterns(Pats),
-            print_docs([Doc]);
+            io:nl(),
+            print_docs(Doc),
+            io:nl();
         false ->
             lfe_io:format("No macro ~s defined\n\n", [Mac])
     end.
@@ -857,7 +860,9 @@ print_function_doc(Fun, Ar, Docs) ->
         #doc{patterns=Pats,doc=Doc} ->
             lfe_io:format(?BLU("~p/~p")++"\n", [Fun,Ar]),
             print_patterns(Pats),
-            print_docs([Doc]);
+            io:nl(),
+            print_docs(Doc),
+            io:nl();
         false ->
             lfe_io:format("No function ~s/~p defined\n\n", [Fun,Ar])
     end.
@@ -866,6 +871,5 @@ print_patterns(Pats) ->
     lists:foreach(fun (P) -> lfe_io:format("  ~p\n", [P]) end, Pats).
 
 print_docs(Ds) ->
-    Fun = fun (D) -> (D =/= <<>>) andalso lfe_io:format("\n~s\n", [D]) end,
-    foreach(Fun, Ds),
-    io:nl().
+    Fun = fun (D) -> (D =/= <<>>) andalso lfe_io:format("~s\n", [D]) end,
+    foreach(Fun, Ds).

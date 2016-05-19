@@ -24,10 +24,12 @@
   (`(,x ,y . ,z) 'many))
 
 (define-function subtract
-  "Subtract `y` from `x`."
+  ((doc "Subtract `y` from `x`."))      ;The function meta data
   (lambda (x y) (- x y)))
 
-(extend-module "" (export (subtract 2)))
+(extend-module
+  ()
+  ((export (subtract 2))))
 
 (defun matchfun
   "This is a function with pattern clauses."
@@ -43,4 +45,6 @@
   ;; Deliberately no docstring here.
   (tuple (div n d) (rem n d)))
 
-(extend-module "This is another example." (export (divmod 2)))
+(extend-module
+  ((doc "This is another example."))
+  ((export (divmod 2))))

@@ -334,11 +334,11 @@ while it reads the expression and then be effectively ``2``.
 (funcall func arg ... )
 (call mod func arg ... )        - Call to Mod:Func(Arg, ... )
 
-(define-module name doc-string declaration ... )
-(extend-module doc-string declaration ... )
+(define-module name meta-data attributes)
+(extend-module meta-data attributes)
 
-(define-function name doc-string lambda|match-lambda)
-(define-macro name doc-string lambda|match-lambda)
+(define-function name meta-data lambda|match-lambda)
+(define-macro name meta-data lambda|match-lambda)
 ```
 
 ## Basic macro forms
@@ -557,6 +557,7 @@ the core meaning and never an alternative. Silently!
 
 ```
 (defmodule name
+  "This is the module documentation."
   (export (f 2) (g 1) ... )
   (export all)                          ;Export all functions
   (import (from mod (f1 2) (f2 1) ... )
@@ -595,7 +596,7 @@ can be either a lambda or a match-lambda. The basic forms for defining
 macros are:
 
 ```
-(define-macro name lambda|match-lambda doc-string)
+(define-macro name meta-data lambda|match-lambda)
 (let-macro ((name lambda|match-lambda)
   ...)
 ```
