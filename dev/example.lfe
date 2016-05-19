@@ -3,6 +3,8 @@
   (export (matchfun 3))
   (export-macro add varargs forty-two? tricky))
 
+(defrecord foo bar baz)
+
 (defmacro add (x y)
   "Add `x` and `y`."
   `(+ ,x ,y))
