@@ -60,10 +60,10 @@ expand_module(Fs0, Opts) ->
     %% {ok,_} = lfe_lint:module(Fs1, Opts),
     Fs1.
 
-exp_form({['define-module',[Mod|Ps],Doc|Mdef0],L}, {Acc,St0}) ->
+exp_form({['define-module',[Mod|Ps],Meta,Atts0],L}, {Acc,St0}) ->
     %% Save the good bits and define new/N and instance/N.
     St1 = St0#param{mod=Mod,pars=Ps},
-    {Mdef1,St2} = exp_mdef(Mdef0, St1),
+    {Atts1,St2} = exp_attrs(Atts0, St1),
     {Nl,Il} = case St2#param.extd of
                   [] ->
                       {[lambda,Ps,[instance|Ps]],
@@ -79,20 +79,20 @@ exp_form({['define-module',[Mod|Ps],Doc|Mdef0],L}, {Acc,St0}) ->
               [] -> St2#param{this=['=',this,[tuple,'_'|Ps]]};
               _ -> St2#param{this=['=',this,[tuple,'_',base|Ps]]}
           end,
-    {[{{New,L},{Inst,L},['define-module',Mod,Doc|Mdef1],L}|Acc],St3};
+    {[{{New,L},{Inst,L},['define-module',Mod,Meta,Atts1],L}|Acc],St3};
 exp_form({['define-function',F,Doc,Def0],L}, {Acc,St}) ->
     Def1 = exp_function(Def0, St),
     {[{['define-function',F,Doc,Def1],L}|Acc],St};
 exp_form({F,L}, {Acc,St}) ->
     {[{F,L}|Acc],St}.
 
-exp_mdef(Mdef0, St0) ->
+exp_attrs(Atts0, St0) ->
     %% Pre-scan to pick up 'extends'.
     St1 = foldl(fun ([extends,M], S) -> S#param{extd=M};
                     (_, S) -> S
-                end, St0, Mdef0),
+                end, St0, Atts0),
     %% Now do "real" processing.
-    {Mdef1,St2} = mapfoldl(fun ([export,all], S) -> {[export,all],S};
+    {Atts1,St2} = mapfoldl(fun ([export,all], S) -> {[export,all],S};
                                ([export|Es0], S) ->
                                    %% Add 1 for this to each export.
                                    Es1 = map(fun ([F,A]) -> [F,A+1] end, Es0),
@@ -101,14 +101,14 @@ exp_mdef(Mdef0, St0) ->
                                    S1 = collect_imps(Is, S0),
                                    {[import|Is],S1};
                                (Md, S) -> {Md,S}
-                           end, St1, Mdef0 ++ [[abstract,true]]),
+                           end, St1, Atts0 ++ [[abstract,true]]),
     %% Add export for new/N and instance/N.
-    Ar = length(St2#param.pars),
+    Nar = length(St2#param.pars),
     Iar = case St2#param.extd of
-              [] -> Ar;
-              _ -> Ar+1
+              [] -> Nar;
+              _ -> Nar+1
           end,
-    {[[export,[new,Ar],[instance,Iar]]|Mdef1],St2}.
+    {[[export,[new,Nar],[instance,Iar]]|Atts1],St2}.
 
 collect_imps(Is, St) ->
     foldl(fun (['from',M|Fs], S) ->
