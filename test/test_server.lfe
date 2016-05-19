@@ -21,7 +21,7 @@
 
 (defmacro test-pat (pat expr)
   `(let* ((val ,expr)
-      (,pat val))
+          (,pat val))
      val))
 
 ;; We don't have any sensible line numbers to save so we save form.
