@@ -24,6 +24,8 @@
 
 (defun all () '(compile))
 
-(defun compile (_config)
-  (line (test-pat #(ok (#(ok example ()) #(ok another-example ())) ())
-                  (lfe_comp:file "../../../../dev/example.lfe" '(return)))))
+(defun compile (config)
+  (let* ((dpath (config 'data_dir config))
+	 (efile (filename:join dpath "example.lfe")))
+    (line (test-pat #(ok (#(ok example ()) #(ok another-example ())) ())
+		    (lfe_comp:file efile '(return))))))
