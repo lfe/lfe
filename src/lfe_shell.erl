@@ -383,11 +383,11 @@ eval_form_1([unslurp|_], St) ->
 eval_form_1([run|Args], St0) ->
     {Value,St1} = run(Args, St0),
     {Value,St1};
-eval_form_1(['define-function',Name,_Doc,Def], #state{curr=Ce0}=St) ->
+eval_form_1(['define-function',Name,_Meta,Def], #state{curr=Ce0}=St) ->
     Ar = function_arity(Def),
     Ce1 = lfe_eval:add_dynamic_func(Name, Ar, Def, Ce0),
     {Name,St#state{curr=Ce1}};
-eval_form_1(['define-macro',Name,_Doc,Def], #state{curr=Ce0}=St) ->
+eval_form_1(['define-macro',Name,_Meta,Def], #state{curr=Ce0}=St) ->
     Ce1 = add_mbinding(Name, Def, Ce0),
     {Name,St#state{curr=Ce1}};
 eval_form_1(['reset-environment'], #state{base=Be}=St) ->
@@ -523,20 +523,20 @@ slurp_error_ret(Name, Es, Ws) ->
 slurp_form(['eval-when-compile'|_], _, D) -> {[],D};
 slurp_form(F, L, D) -> {[{F,L}],D}.
 
-collect_module({['define-module',Mod,_Doc|Mdef],_}, Sl0) ->
-    Sl1 = collect_mdef(Mdef, Sl0),
+collect_module({['define-module',Mod,_Mets,Atts],_}, Sl0) ->
+    Sl1 = collect_attrs(Atts, Sl0),
     Sl1#slurp{mod=Mod};
-collect_module({['extend-module',_Doc|Mdef],_}, Sl) ->
-    collect_mdef(Mdef, Sl);
-collect_module({['define-function',F,_Doc,Def],_}, #slurp{funs=Fs}=Sl) ->
+collect_module({['extend-module',_Meta,Atts],_}, Sl) ->
+    collect_attrs(Atts, Sl);
+collect_module({['define-function',F,_Meta,Def],_}, #slurp{funs=Fs}=Sl) ->
     Ar = function_arity(Def),
     Sl#slurp{funs=[{F,Ar,Def}|Fs]}.
 
-collect_mdef([[import|Is]|Mdef], St) ->
-    collect_mdef(Mdef, collect_imps(Is, St));
-collect_mdef([_|Mdef], St) ->                   %Ignore everything else
-    collect_mdef(Mdef, St);
-collect_mdef([], St) -> St.
+collect_attrs([[import|Is]|Atts], St) ->
+    collect_attrs(Atts, collect_imps(Is, St));
+collect_attrs([_|Atts], St) ->                  %Ignore everything else
+    collect_attrs(Atts, St);
+collect_attrs([], St) -> St.
 
 collect_imps(Is, St) ->
     foldl(fun (I, S) -> collect_imp(I, S) end, St, Is).
