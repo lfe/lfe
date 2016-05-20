@@ -80,9 +80,9 @@ exp_form({['define-module',[Mod|Ps],Meta,Atts0],L}, {Acc,St0}) ->
               _ -> St2#param{this=['=',this,[tuple,'_',base|Ps]]}
           end,
     {[{{New,L},{Inst,L},['define-module',Mod,Meta,Atts1],L}|Acc],St3};
-exp_form({['define-function',F,Doc,Def0],L}, {Acc,St}) ->
+exp_form({['define-function',F,Meta,Def0],L}, {Acc,St}) ->
     Def1 = exp_function(Def0, St),
-    {[{['define-function',F,Doc,Def1],L}|Acc],St};
+    {[{['define-function',F,Meta,Def1],L}|Acc],St};
 exp_form({F,L}, {Acc,St}) ->
     {[{F,L}|Acc],St}.
 

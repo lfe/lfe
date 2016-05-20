@@ -171,13 +171,13 @@ collect_form({_,L}, {Acc,#lint{module=[]}=St}) ->
     {Acc,bad_mdef_error(L, name, St#lint{module='-no-module-'})};
 collect_form({['extend-module',Meta,Atts],L}, {Acc,St}) ->
     {Acc,check_mdef(Meta, Atts, L, St)};
-collect_form({['define-function',Func,Meta,Body],L}, {Acc,St}) ->
+collect_form({['define-function',Func,Meta,Def],L}, {Acc,St}) ->
     Type = is_atom(Func) and check_fmeta(Meta),
-    case Body of
+    case Def of
         [lambda|_] when Type ->
-            {[{Func,Body,L}|Acc],St};
+            {[{Func,Def,L}|Acc],St};
         ['match-lambda'|_] when Type ->
-            {[{Func,Body,L}|Acc],St};
+            {[{Func,Def,L}|Acc],St};
         _ -> {Acc,bad_form_error(L, 'define-function', St)}
     end;
 %% Ignore macro definitions and eval-when-compile forms.
