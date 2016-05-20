@@ -76,10 +76,10 @@ do_form({['define-module',_,Meta,Atts],_}, {Mdoc,Docs}) ->
     {do_module_def(Meta, Atts, Mdoc),Docs};
 do_form({['extend-module',Meta,Atts],_}, {Mdoc,Docs}) ->
     {do_module_def(Meta, Atts, Mdoc),Docs};
-do_form({['define-function',Name,Meta,Body],Line}, {Mdoc,Docs}) ->
-    {Mdoc,do_function(Name, Body, Meta, Line, Docs)};
-do_form({['define-macro',Name,Meta,Body],Line}, {Mdoc,Docs}) ->
-    {Mdoc,do_macro(Name, Body, Meta, Line, Docs)};
+do_form({['define-function',Name,Meta,Def],Line}, {Mdoc,Docs}) ->
+    {Mdoc,do_function(Name, Def, Meta, Line, Docs)};
+do_form({['define-macro',Name,Meta,Def],Line}, {Mdoc,Docs}) ->
+    {Mdoc,do_macro(Name, Def, Meta, Line, Docs)};
 do_form(_, Doc) -> Doc.                         %Ignore eval-when-compile
 
 do_module_def(Meta, Atts, Mdoc0) ->
@@ -95,9 +95,9 @@ collect_docs(As, Mdoc) ->
            end,
     foldl(Afun, Mdoc, As).
 
-do_function(Name, Body, Meta, Line, Docs) ->
+do_function(Name, Def, Meta, Line, Docs) ->
     %% Must get patterns and arity before we can check if excluded.
-    {Arity,Pats} = function_patterns(Body),
+    {Arity,Pats} = function_patterns(Def),
     ?IF(exclude(Name, Arity, Meta),
         Docs,
         begin
@@ -105,12 +105,12 @@ do_function(Name, Body, Meta, Line, Docs) ->
             [Fdoc|Docs]
         end).
 
-do_macro(Name, Body, Meta, Line, Docs) ->
+do_macro(Name, Def, Meta, Line, Docs) ->
     %% We only need the name to check for exclusion.
     ?IF(exclude(Name, Meta),
         Docs,
         begin
-            Pats = macro_patterns(Body),
+            Pats = macro_patterns(Def),
             Mdoc = make_doc(macro, Name, Pats, Meta, Line),
             [Mdoc|Docs]
         end).

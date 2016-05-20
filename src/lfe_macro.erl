@@ -795,11 +795,11 @@ exp_predef(['include-lib'|Ibody], Env, St) ->
 exp_predef(['begin'|Body], _, St) ->
     {yes,['progn'|Body],St};
 exp_predef(['define',Head|Body], _, St) ->
+    %% Let the lint catch errors here.
     Exp = case is_symb_list(Head) of
               true ->
                   ['define-function',hd(Head),[],[lambda,tl(Head)|Body]];
               false ->
-                  %% Let next step catch errors here.
                   ['define-function',Head,[],Body]
           end,
     {yes,Exp,St};
