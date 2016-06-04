@@ -845,10 +845,9 @@ print_module_doc(Mod, Mdoc) ->
 
 print_macro_doc(Mac, Docs) ->
     case lists:keyfind(Mac, #doc.name, Docs) of
-        #doc{patterns=Pats,doc=Doc} ->
+        #doc{patterns=_Pats,doc=Doc} ->
             lfe_io:format(?BLU("~p")++"\n", [Mac]),
-            print_patterns(Pats),
-            io:nl(),
+            %% print_patterns(Pats), io:nl(),
             print_docs(Doc),
             io:nl();
         false ->
@@ -857,10 +856,9 @@ print_macro_doc(Mac, Docs) ->
 
 print_function_doc(Fun, Ar, Docs) ->
     case lists:keyfind({Fun,Ar}, #doc.name, Docs) of
-        #doc{patterns=Pats,doc=Doc} ->
+        #doc{patterns=_Pats,doc=Doc} ->
             lfe_io:format(?BLU("~p/~p")++"\n", [Fun,Ar]),
-            print_patterns(Pats),
-            io:nl(),
+            %% print_patterns(Pats), io:nl(),
             print_docs(Doc),
             io:nl();
         false ->
@@ -871,5 +869,49 @@ print_patterns(Pats) ->
     lists:foreach(fun (P) -> lfe_io:format("  ~p\n", [P]) end, Pats).
 
 print_docs(Ds) ->
-    Fun = fun (D) -> (D =/= <<>>) andalso lfe_io:format("~s\n", [D]) end,
+    Fun = fun (D) -> print_doc(D) end,
     foreach(Fun, Ds).
+
+print_doc(Doc) ->
+    %[L|Ls] = binary:split(Doc, <<"\n">>, [global,trim]),
+    Ls = re:split(Doc, <<"[ \t]*\n">>, [trim]), %Also trims trailing blanks
+    print_doc_lines(Ls).
+
+print_doc_lines([<<>>|Ls0]) ->                  %First line empty
+    case skip_empty_lines(Ls0) of               %Skip lines until text
+        [L2|_]=Ls1 ->
+            C = count_spaces(L2),
+            print_doc_lines(Ls1, C);
+        [] -> 0
+    end;
+print_doc_lines([L1|Ls0]) ->
+    lfe_io:format("~s\n", [L1]),                %Write out first line as is
+    case skip_print_empty_lines(Ls0) of
+        [L2|_]=Ls1 ->
+            C = count_spaces(L2),
+            print_doc_lines(Ls1, C);
+        [] -> 0
+    end;
+print_doc_lines([]) -> 0.
+
+print_doc_lines([L|Ls], C) ->
+    Rest = skip_spaces(L, C),
+    lfe_io:format("~s\n", [Rest]),
+    print_doc_lines(Ls, C);
+print_doc_lines([], C) -> C.
+
+count_spaces(L) ->
+    {match,[{_,C}]} = re:run(L, <<" *">>, []),
+    C.
+
+skip_spaces(<<32,L/binary>>, C) when C > 0 ->
+    skip_spaces(L, C-1);
+skip_spaces(L, _) -> L.                         %C =:= 0 or no space
+
+skip_empty_lines([<<>>|Ls]) -> skip_empty_lines(Ls);
+skip_empty_lines(Ls) -> Ls.
+
+skip_print_empty_lines([<<>>|Ls]) ->
+    io:nl(),
+    skip_print_empty_lines(Ls);
+skip_print_empty_lines(Ls) -> Ls.
