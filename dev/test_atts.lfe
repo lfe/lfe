@@ -21,7 +21,8 @@
 
 (extend-module
   ()
-  ((doc "Even more deprecated strings!" "In one doc!.")))
+  ((doc "More deprecated docs!" "Many in one doc!."
+        "Three doc strings in one doc in fact.")))
 
 (defun bar (x)
   (tuple x))
