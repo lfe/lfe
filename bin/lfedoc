@@ -14,8 +14,6 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-(include-lib "lfe/src/lfe_doc.hrl")
-
 ;; Taken from lfec.
 (defun fix-code-path ()
   (let* ((p0 (code:get_path))
@@ -86,42 +84,39 @@
     (`#(error ,_ ,_ ,_) 'error)))
 
 (defun ldoc-chunk (beam)
-  (case (beam_lib:chunks beam '["LDoc"] '[allow_missing_chunks])
-    (`#(ok #(,_ [#("LDoc" missing_chunk)])) 'error)
-    (`#(ok #(,_ [#("LDoc" ,chunk)]))        `#(ok ,(binary_to_term chunk)))))
+  (lfe_doc:get_module_docs beam))
 
-(defun print-doc
-  ([(match-doc name `#(,name ,arity) patterns patterns doc doc)]
-   (let* ((format    "~p/~p\n ~s~s\n\n")
-          (patterns* (if (=:= 0 arity)
-                       #""
-                       (list (lfe_io_pretty:term patterns -1 1) #"\n")))
-          (doc*      (if (=:= #"" doc) #"" (list #" " doc "\n")))
-          (data      (list name arity patterns* doc*)))
-     (lfe_io:format format data)))
-  ([(match-doc name name patterns patterns doc doc)]
-   (let* ((format    "~p\n ~s~s\n\n")
-          (patterns* (list (lfe_io_pretty:term patterns -1 1) #"\n"))
-          (doc*      (if (=:= #"" doc) #"" (list #" " doc "\n")))
-          (data      (list name patterns* doc*)))
-     (lfe_io:format format data))))
+(defun print-doc (mf-doc)
+  (case (lfe_doc:mf_doc_type mf-doc)
+    ('function
+     (let* ((fdoc (case (lfe_doc:function_doc mf-doc)
+                    (() #"")
+                    (ds (lists:map (lambda (line) (list line #"\n")) ds))))
+            (data (list (lfe_doc:function_name mf-doc)
+                        (lfe_doc:function_arity mf-doc)
+                        fdoc)))
+       (lfe_io:format "~p/~p\n~s\n" data)))
+    ('macro
+     (let* ((mdoc (case (lfe_doc:macro_doc mf-doc)
+                    (() #"")
+                    (ds (lists:map (lambda (line) (list line #"\n")) ds))))
+            (data (list (lfe_doc:macro_name mf-doc) mdoc)))
+       (lfe_io:format "~p\n~s\n" data)))))
 
 (defun print-ldocs
   ([(cons mod mods)]
    (let ((name (element 2 mod))         ;`#(ok ,mod ...)
          (beam (element 3 mod)))        ;`#(ok ,_ ,beam ...)
      (case (ldoc-chunk beam)
-       (`#(ok ,(match-lfe_docs_v1 docs docs moduledoc moduledoc))
-        (let ((hrule      (lists:duplicate 70 #\-))
-              (moduledoc* (if (=:= [] moduledoc)
-                            #""
-                            (lists:map
-                              (lambda (line) (list #"  " line #"\n"))
-                              moduledoc))))
-          (lfe_io:format "~p\n~s~s\n\n" (list name moduledoc* hrule)))
-        (lists:foreach #'print-doc/1 docs)
+       (`#(ok ,chunk)
+        (let ((hrule  (lists:duplicate 70 #\-))
+              (moddoc (case (lfe_doc:module_doc chunk)
+                        (() #"")
+                        (ds (lists:map (lambda (line) (list line #"\n")) ds)))))
+          (lfe_io:format "~p\n~s~s\n\n" (list name moddoc hrule)))
+        (lists:foreach #'print-doc/1 (lfe_doc:mf_docs chunk))
         (print-ldocs mods))
-       ('error 'error))))
+       (`#(error ,_) 'error))))
   ([()] 'ok)
   ([_] 'error))
 
