@@ -12,31 +12,57 @@ lfe_doc - Lisp Flavoured Erlang (LFE) documentation parser.
 
 This module provides functions to parse docstrings in LFE module sources.
 
-The functions herein are used internally by the compiler.
-There is no guarantee the API will not change dramatically in future.
-
-an interface to the standard LFE
-docuementation . The compiler can handle files which contain multiple
-modules. It can generate either new files which contain the
-object code, or return binaries which can be loaded directly.
-
+There is no guarantee that the internal formats will not change but
+the interface functions should stay the same.
 
 # EXPORTS
 
-**module(Mod) -> Mod | {error,Errors,[]}**
+**extract_module_docs(Mod, CompilerInfo) -> {ok,ModDocs} | {error,Errors,[]}**
 
-Parse a module's docstrings and populate Mod#module.docs.
+Parse a module's docstrings and return module documentation structure.
 
-**patterns(LambdaForm) -> 'no' | {'yes',Arity,Patterns}**
+**save_module_docs(Beam, ModDocs, CompilerInfo) -> Beam**
 
-Given a ``{match-,}lambda`` form, attempt to return its patterns (or arglist).
+Add the "LDoc" chunk containing ModDocs to a module's .beam binary.
 
-N.B. A guard is appended to its pattern and ``Patterns`` is a list of lists.
+**get_module_docs(Module | Binary) -> {ok,DocChunk} | {error,Error}**
 
-**add_docs_module(Mod) -> Mod**
+Extract the documentation chunk from a module. The chunk will be
+converted to an internal format.
 
-Add the "LDoc" chunk to a module's .beam binary.
+**module_doc(DocChunk) -> [DocString]**
 
+**mf_docs(DocChunk) -> [MacFuncDoc]**
+
+**mf_doc_type(MacFuncDoc) -> function | macro**
+
+**function_docs(DocChunk) -> [FuncDoc]**
+
+**macro_docs(DocChunk) -> [MacDoc]**
+
+Extract fields from the module documentation chunk.
+
+**function_name(FuncDoc) -> Name**
+
+**function_arity(FuncDoc) -> Arity**
+
+**function_line(FuncDoc) -> Line**
+
+**function_patterns(FunDoc) -> [Pattern]**
+
+**function_doc(FuncDoc) -> [DocString]**
+
+Extract fields from a function documentation structure.
+
+**macro_name(MacDoc) -> Name**
+
+**macro_line(MacDoc) -> Line**
+
+**macro_patterns(FunDoc) -> [Pattern]**
+
+**macro_doc(MacDoc) -> [DocString]**
+
+Extract fields from a macro documentation structure.
 
 # ERROR INFORMATION
 

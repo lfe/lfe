@@ -20,10 +20,6 @@
 
 -export([prop_define_lambda/0,prop_define_match/0]).
 
--import(lfe_doc, [collect_docs/2,module/2]).
-
--include_lib("lfe/src/lfe_comp.hrl").
--include_lib("lfe/src/lfe_doc.hrl").
 -include_lib("proper/include/proper.hrl").
 
 %%%===================================================================
@@ -34,25 +30,32 @@ prop_define_lambda() -> ?FORALL(Def, define_lambda(), validate(Def)).
 
 prop_define_match() -> ?FORALL(Def, define_match(), validate(Def)).
 
-validate({['define-function',Name,_Doc,[lambda,Args|_]],_}=Def) ->
-    do_validate({Name,arity([Args])}, Def);
-validate({['define-function',Name,_Doc,['match-lambda',[Pat|_]|_]],_}=Def) ->
-    do_validate({Name,arity([Pat])}, Def);
-validate({['define-macro',Name,_Doc,['match-lambda'|_]],_}=Def) ->
-    do_validate(Name, Def).
+validate({['define-function',Name,_Doc,Def],_}=Func) ->
+    validate_function(Name, function_arity(Def), Func);
+validate({['define-macro',Name,_Doc,Def],_}=Mac) ->
+    validate_macro(Name, Mac).
 
-do_validate(Name,{[Define,_Name,Meta,_Lambda],Line}=Def) ->
-    Type = define_to_type(Define),
-    case module([Def], #cinfo{}) of
-        {ok,{[],[#doc{type=Type,name=Name,doc=Doc,line=Line}=Res]}} ->
-            collect_docs(Meta, []) =:= Doc;
-        _ ->
-            false
+function_arity([lambda,Args|_]) -> length(Args);
+function_arity(['match-lambda',[Pat|_]|_]) -> length(Pat).
+
+validate_function(Name, Arity, {[_Define,_Name,Meta,_Def],Line}=Func) ->
+    case lfe_doc:extract_module_docs([Func]) of
+	{ok,{[],[Fdoc]}} ->
+	    (lfe_doc:collect_docs(Meta, []) =:= lfe_doc:function_doc(Fdoc))
+		and (Name =:= lfe_doc:function_name(Fdoc))
+		and (Arity =:= lfe_doc:function_arity(Fdoc))
+		and (Line =:= lfe_doc:function_line(Fdoc));
+	_ -> false
     end.
 
-define_to_type('define-function') -> function;
-define_to_type('define-macro')    -> macro.
-
+validate_macro(Name, {[Define,_Name,Meta,_Lambda],Line}=Mac) ->
+    case lfe_doc:extract_module_docs([Mac]) of
+	{ok,{[],[Mdoc]}} ->
+	    (lfe_doc:collect_docs(Meta, []) =:= lfe_doc:macro_doc(Mdoc))
+		and (Name =:= lfe_doc:macro_name(Mdoc))
+		and (Line =:= lfe_doc:macro_line(Mdoc));
+	_ -> false
+    end.
 
 %%%===================================================================
 %%% Definition shapes
@@ -147,15 +150,3 @@ non_string_term() ->
 printable_char() -> union([integer(32, 126),integer(160, 255)]).
 
 printable_string() -> list(printable_char()).
-
-
-%%% Helper functions
-
--spec arity([pattern()]) -> non_neg_integer().
-arity([[_|Args]|_])      -> do_arity(1, Args);
-arity([[]|_])            -> 0.
-
--spec do_arity(non_neg_integer(), [pattern()]) -> non_neg_integer().
-do_arity(N, [['when'|_]]) -> N;
-do_arity(N, [_|Args])     -> do_arity(N+1, Args);
-do_arity(N, [])           -> N.

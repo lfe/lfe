@@ -433,7 +433,7 @@ do_lfe_lint(#comp{cinfo=Ci,code=Ms0}=St0) ->
 
 do_get_docs(#comp{cinfo=Ci,code=Ms0}=St0) ->
     Doc = fun (#module{code=Mfs,warnings=Ws}=Mod) ->
-                  case lfe_doc:module(Mfs, Ci) of
+                  case lfe_doc:extract_module_docs(Mfs, Ci) of
                       {ok,Docs} -> Mod#module{docs=Docs};
                       {error,Des,Dws} -> {error,Des,Ws ++ Dws}
                   end
@@ -569,7 +569,13 @@ do_save_file(Save, Ext, St) ->
     end.
 
 do_add_docs(#comp{cinfo=Ci,code=Ms0}=St0) ->
-    Add = fun (Mod) -> lfe_doc:add_docs_module(Mod, Ci) end,
+    Add = fun (#module{code=Beam0,docs=Docs}=Mod) ->
+		  case lfe_doc:save_module_docs(Beam0, Docs, Ci) of
+		      {ok,Beam1} -> Mod#module{code=Beam1};
+		      {error,Es} -> {error,Es,[]}
+		  end
+	  end,
+    %%Add = fun (Mod) -> lfe_doc:save_module_docs(Mod, Ci) end,
     Ms1 = lists:map(Add, Ms0),
     St1 = St0#comp{code=Ms1},
     ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
