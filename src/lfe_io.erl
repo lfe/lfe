@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2013 Robert Virding
+%% Copyright (c) 2008-2016 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -24,7 +24,10 @@
 
 -module(lfe_io).
 
--export([parse_file/1,read_file/1,read/0,read/1,read_string/1]).
+-export([parse_file/1,read_file/1]).
+-export([read/0,read/1,read/2,read_line/0,read_line/1,read_line/2]).
+-export([read_string/1]).
+-export([scan_sexpr/2,scan_sexpr/3]).
 -export([print/1,print/2,print1/1,print1/2]).
 -export([prettyprint/1,prettyprint/2,
          prettyprint1/1,prettyprint1/2,prettyprint1/3,prettyprint1/4]).
@@ -85,7 +88,7 @@ read_file1([], Ss) -> {ok,reverse(Ss)}.
 with_token_file(Name, Do) ->
     case file:open(Name, [read]) of
         {ok,F} ->
-            Ret = case io:request(F, {get_until,'',lfe_scan,tokens,[1]}) of
+            Ret = case io:request(F, {get_until,unicode,'',lfe_scan,tokens,[1]}) of
                       {ok,Ts,_} -> Do(Ts);
                       {error,Error,_} -> {error,Error}
                   end,
@@ -97,40 +100,76 @@ with_token_file(Name, Do) ->
 %% read() -> {ok,Sexpr} | {error,Error}.
 %% read(Prompt) -> {ok,Sexpr} | {error,Error}.
 %% read(IoDevice, Prompt) -> {ok,Sexpr} | {error,Error}.
-%%  A very simple read function. Line oriented and cannot handle
-%%  tokens over line-breaks but can handle multiple lines. Anything
-%%  remaining on last line after a sexpr is lost. Signal errors.
+%%  A simple read function. It is not line oriented and stops as soon
+%%  as it has consumed enough.
 
-%% read() -> read(standard_io, '').
-%% read(Prompt) -> read(standard_io, Prompt).
-%% read(Io, Prompt) ->
-%%     scan_and_parse(Io, Prompt, [], 1).
-read() -> read(standard_io).
-read(Io) ->
-    scan_and_parse(Io, '', [], 1).
+read() -> read(standard_io, '').
+read(Prompt) -> read(standard_io, Prompt).
+read(Io, Prompt) ->
+    case io:request(Io, {get_until,unicode,Prompt,?MODULE,scan_sexpr,[1]}) of
+        {ok,Sexpr,_} -> {ok,Sexpr};
+        {error,E} -> {error,{1,io,E}};
+        {error,Error,_} -> {error,Error};
+        {eof,_} -> eof
+    end.
 
-scan_and_parse(Io, Prompt, Pc0, L) ->
-    case io:get_line(Io, Prompt) of
-        {error,E} -> {error,{L,lfe_parse,E}};
-        eof ->
-            %% No more so must take what we have.
-            case lfe_parse:sexpr(Pc0, {eof,L}) of
-                {ok,_,S,_} -> {ok,S};
-                {error,E,_} -> {error,E}
-            end;
-        Cs ->
-            case lfe_scan:string(Cs, L) of
-                {ok,[],_} ->
-                    %% Empty line (token free) just go on.
-                    scan_and_parse(Io, Prompt, Pc0, L+1);
-                {ok,Ts,_} ->
-                    case lfe_parse:sexpr(Pc0, Ts) of
-                        {ok,_,S,_} -> {ok,S};
-                        {more,Pc1} -> scan_and_parse(Io, Prompt, Pc1, L+1);
-                        {error,E,_} -> {error,E}
-                    end;
-                {error,E,_} -> {error,E}
+%% read_line() -> {ok,Sexpr} | {error,Error}.
+%% read_line(Prompt) -> {ok,Sexpr} | {error,Error}.
+%% read_line(IoDevice, Prompt) -> {ok,Sexpr} | {error,Error}.
+%%  A simple read function. It is line oriented and reads whole lines
+%%  until it has consumed enough characters. Left-over characters in
+%%  the last line are discarded.
+
+read_line() -> read_line(standard_io, '').
+read_line(Prompt) -> read_line(standard_io, Prompt).
+read_line(Io, Prompt) ->
+    %% We input lines and call scan_sexpr directly ourself.
+    read_line_1(Io, Prompt, [], 1).
+
+read_line_1(Io, P, C0, L0) ->
+    case io:get_line(Io, P) of
+        {error,Error} -> {error,{L0,io,Error}};
+        Cs0 ->
+            case scan_sexpr(C0, Cs0, L0) of
+                {done,{ok,Ret,_L1},_Cs1} -> {ok,Ret};
+                {done,{error,Error,_},_Cs1} -> {error,Error};
+                {more,C1} ->
+                    read_line_1(Io, P, C1, L0)
             end
+    end.
+
+%% scan_sexpr(Continuation, Chars) ->
+%% scan_sexpr(Continuation, Chars, Line) ->
+%%     {done,Ret,Rest} | {more,Continuation}.
+%%  This function is a re-entrant call which scans tokens from the
+%%  input and parses a sexpr. If there are enough characters then it
+%%  returns {done,...} else {cont,Cont} if it needs more characters.
+%%  This is continued until a sexpr has been scanned.
+
+scan_sexpr([], Cs) ->
+    scan_sexpr({[],[]}, Cs, 1).
+
+scan_sexpr([], Cs, L) ->
+    scan_sexpr({[],[]}, Cs, L);
+scan_sexpr({Sc,Pc}, Cs, L) ->
+    scan_sexpr_1(Sc, Pc, Cs, L).
+
+scan_sexpr_1(Sc0, Pc0, Cs0, L0) ->
+    case lfe_scan:token(Sc0, Cs0, L0) of
+        {done,{error,_,_},_}=Error -> Error;
+        {done,{ok,T,L1},Cs1} ->
+            %% We have a token, now check if we have a sexpr.
+            case lfe_parse:sexpr(Pc0, [T]) of
+                {ok,L2,Sexpr,_} ->
+                    {done,{ok,Sexpr,L2},Cs1};
+                {error,Error,_} ->
+                    {done,{error,Error,Cs1},Cs1};
+                {more,Pc1} ->                   %Need more tokens
+                    scan_sexpr_1([], Pc1, Cs1, L1)
+            end;
+        {done,{eof,_},_}=Eof -> Eof;
+        {more,Sc1} ->
+            {more,{Sc1,Pc0}}
     end.
 
 %% read_string(String) -> {ok,Sexpr} | {error,Error}.

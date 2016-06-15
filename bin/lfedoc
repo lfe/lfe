@@ -1,0 +1,145 @@
+#!/usr/bin/env lfe
+;; -*- mode: lfe; -*-
+;; Copyright (c) 2016 Eric Bailey.
+;;
+;; Licensed under the Apache License, Version 2.0 (the "License");
+;; you may not use this file except in compliance with the License.
+;; You may obtain a copy of the License at
+;;
+;;     http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
+
+;; Taken from lfec.
+(defun fix-code-path ()
+  (let* ((p0 (code:get_path))
+         (p1 (lists:delete "." p0)))
+    (code:set_path p1)))
+
+;; Taken from lfec.
+(defun parse-opts
+  ([(cons "-h" as) opts]
+   (usage)
+   (tuple as opts))
+  ([(list* "-I" idir as) opts]          ;Keep these in order
+   (parse-opts as (++ opts `(#(i ,idir)))))
+  ([(list* "-o" odir as) opts]          ;Ignore this here
+   (parse-opts as opts))
+  ([(list* "-pa" dir as) opts]
+   (code:add_patha dir)
+   (parse-opts as opts))
+  ([(list* "-pz" dir as) opts]
+   (code:add_pathz dir)
+   (parse-opts as opts))
+  ([(cons "-v" as) opts]
+   (parse-opts as (cons 'verbose opts)))
+  ([(cons "-D" as) opts]
+   (parse-opts as (cons 'debug-print opts)))
+  ([(cons "-Werror" as) opts]
+   (parse-opts as (cons 'warnings-as-errors opts)))
+  ([(cons (++* "-W" _) as) opts]        ;Ignore this here
+   (parse-opts as opts))
+  ([(cons "-D" as) opts]
+   (parse-opts as (cons 'debug-print opts)))
+  ([(cons "-P" as) opts]                ;Ignore as no LFE counterpart
+   (parse-opts as opts))
+  ([(cons "--" as) opts]
+   (tuple as opts))
+  ([(cons (++* "+to" _) as) opts]       ;Ignore this here
+   (parse-opts as opts))
+  ([(cons (cons #\+ s) as) opts]
+   (let ((`#(ok ,t) (lfe_io:read_string s)))
+     (parse-opts as (cons t opts))))
+  ([as opts]
+   (tuple as opts)))
+
+;; Modified from lfec's usage/0.
+(defun usage ()
+  (let ((usage (++ "Usage: lfedoc [options] file\n\n"
+                   "Options:\n"
+                   "-h             Print usage and exit\n"
+                   "-I name        Name of include directory\n"
+                   "-pa path       Add path to the front of LFE's code path\n"
+                   "-pz path       Add path to the end of LFE's code path\n"
+                   "-v             Verbose compiler output\n"
+                   "-Werror        Make all warnings into errors\n"
+                   "-Wnumber       Set warning level (ignored)\n"
+                   "-D             Equivalent to +debug-print\n"
+                   "--             No more options, only file names follow\n"
+                   "+term          Term will be added to options\n\n"
+                   "Terms include:\n\n"
+                   "+binary, +no-docs, +{outdir, Dir}, +report, +return, +debug-print\n")))
+    (io:put_chars usage)))
+
+;; Modified from lfec's compile-file/2.
+(defun file->mods (file opts)
+  (case (lfe_comp:file file opts)       ;Catch all the return values
+    (`#(ok ,mods)       `#(ok ,mods))
+    (`#(ok ,mods ,_)    `#(ok ,mods))
+    ('error             'error)         ;Or any error
+    (`#(error ,_ ,_ ,_) 'error)))
+
+(defun ldoc-chunk (beam)
+  (lfe_doc:get_module_docs beam))
+
+(defun print-doc (mf-doc)
+  (case (lfe_doc:mf_doc_type mf-doc)
+    ('function
+     (let* ((fdoc (case (lfe_doc:function_doc mf-doc)
+                    (() #"")
+                    (ds (lists:map (lambda (line) (list line #"\n")) ds))))
+            (data (list (lfe_doc:function_name mf-doc)
+                        (lfe_doc:function_arity mf-doc)
+                        fdoc)))
+       (lfe_io:format "~p/~p\n~s\n" data)))
+    ('macro
+     (let* ((mdoc (case (lfe_doc:macro_doc mf-doc)
+                    (() #"")
+                    (ds (lists:map (lambda (line) (list line #"\n")) ds))))
+            (data (list (lfe_doc:macro_name mf-doc) mdoc)))
+       (lfe_io:format "~p\n~s\n" data)))))
+
+(defun print-ldocs
+  ([(cons mod mods)]
+   (let ((name (element 2 mod))         ;`#(ok ,mod ...)
+         (beam (element 3 mod)))        ;`#(ok ,_ ,beam ...)
+     (case (ldoc-chunk beam)
+       (`#(ok ,chunk)
+        (let ((hrule  (lists:duplicate 70 #\-))
+              (moddoc (case (lfe_doc:module_doc chunk)
+                        (() #"")
+                        (ds (lists:map (lambda (line) (list line #"\n")) ds)))))
+          (lfe_io:format "~p\n~s~s\n\n" (list name moddoc hrule)))
+        (lists:foreach #'print-doc/1 (lfe_doc:mf_docs chunk))
+        (print-ldocs mods))
+       (`#(error ,_) 'error))))
+  ([()] 'ok)
+  ([_] 'error))
+
+(defun ldoc-file (file opts)
+  (case (file->mods file opts)
+    (`#(ok ,mods) (print-ldocs mods))
+    ('error       'error)))
+
+;; Modified from lfec's compile-files/2
+(defun ldoc-files
+  ([(cons file files) opts] (case (ldoc-file file opts)
+                              ('ok (ldoc-files files opts))
+                              (_   'error)))
+  ([() _]                   'ok))
+
+;; Parse the arguments, compile the files
+;; and pretty print the resultant LDoc chunks.
+;; Modified from lfec.
+(case script-args
+  (() (usage))
+  (args
+   (fix-code-path)
+   (let ((`#(,files ,opts) (parse-opts args ())))
+     (case (ldoc-files files (cons 'binary opts))
+       ('error (halt 1))
+       ('ok 'ok)))))

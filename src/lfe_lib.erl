@@ -21,7 +21,8 @@
 %% General library functions.
 -export([is_bif/2,is_erl_bif/2,is_guard_bif/2]).
 
--export([is_symb/1,is_symb_list/1,is_proper_list/1,is_core_form/1]).
+-export([is_symb/1,is_symb_list/1,is_proper_list/1,is_doc_string/1]).
+-export([is_core_form/1]).
 
 -export([proc_forms/3,proc_forms/4]).
 
@@ -39,6 +40,8 @@
 
 %% Miscellaneous useful LFE functions.
 -export([format_exception/6,format_stacktrace/3]).
+
+-export([split_name/1]).
 
 -import(lists, [reverse/1,reverse/2,map/2,foldl/3,dropwhile/2]).
 
@@ -69,6 +72,7 @@ is_guard_bif(Op ,Ar) ->
 %% is_symb(Sexpr) -> bool().
 %% is_symb_list(Sexprs) -> bool().
 %% is_proper_list(Sexprs) -> bool().
+%% is_doc_string(Doc) -> bool().
 
 is_symb(S) -> is_atom(S).
 
@@ -80,6 +84,9 @@ is_symb_list(_) -> false.                       %Might not be a proper list
 is_proper_list([_|Ss]) -> is_proper_list(Ss);
 is_proper_list([]) -> true;
 is_proper_list(_) -> false.
+
+is_doc_string(Doc) ->
+    is_binary(Doc) or io_lib:char_list(Doc).
 
 %% is_core_form(Form) -> bool().
 %%  Return true if Form (name) is one of the LFE core forms, else false.
@@ -335,6 +342,26 @@ macroexpand(Form, Env) ->
 'macroexpand-all'(Form, Env) -> lfe_macro:expand_expr_all(Form, Env).
 
 %% Miscellaneous useful LFE functions.
+
+%% split_name(Name) -> [Mod] | [Mod,Func] | [Mod,Func,Arity].
+%%  Split a name into its parts. Don't handle the case where there is
+%%  no module.
+
+split_name('=:=/2') -> ['=:=',2];
+split_name(Name) ->
+    Str = atom_to_list(Name),
+    case string:chr(Str, $:) of
+        0 -> [Name];                            %Only module
+        C when C > 1 ->                         %Don't allow empty module name
+            Mod = list_to_atom(string:substr(Str, 1, C-1)),
+            Rest = string:substr(Str, C+1),
+            case string:rchr(Rest, $/) of
+                0 -> [Mod,list_to_atom(Rest)];  %Module and function
+                S ->                            %Module, function and arity
+                    [Mod,list_to_atom(string:substr(Rest, 1, S-1)),
+                     list_to_integer(string:substr(Rest, S+1))]
+            end
+    end.
 
 %% format_exception(Class, Error, Stacktrace, SkipFun, FormatFun, Indentation)
 %%      -> DeepCharList.

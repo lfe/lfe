@@ -35,9 +35,17 @@ is used by the compiler to give better error information.
 
 # EXPORTS
 
-**read([IoDevice]) -> {ok,Sexpr} | {error,ErrorInfo}**
+**read([[IoDevice,] Prompt]) -> {ok,Sexpr} | {error,ErrorInfo}**
 
-Read an s-expr from the standard input (IoDevice).
+Read an s-expr from the standard input (IoDevice) with a prompt
+(Prompt). Note that this is not line-oriented in that it stops as soon
+as it has consumed enough characters.
+
+**read_line([[IoDevice,] Prompt]) -> {ok,Sexpr} | {error,ErrorInfo}**
+
+Read an s-expr from the standard input (IoDevice) with a prompt
+(Prompt). Note that this is line-oriented in that it reads whole lines
+discarding left-over characters in the last line.
 
 **read_string(String) -> {ok,Sexpr} | {error,ErrorInfo}**
 
@@ -74,14 +82,14 @@ Indentation or 0.
 Print formatted output. The following commands are valid in
 the format string:
 
-* **~w**, **~W** - print LFE terms
-* **~p**, **~P** - prettyprint LFE terms
+* **~w, ~W** - print LFE terms
+* **~p, ~P** - prettyprint LFE terms
 * **~s** - print a string
-* **~e**, **~f**, **~g** - print floats
-* **~b**, **~B** - based integers
-* **~x**, **~X** - based integers with a prefix
-* **~+**, **~#** - based integers in vanilla erlang format
-* **~c**, **~n**, **~i**
+* **~e, ~f, ~g** - print floats
+* **~b, ~B** - based integers
+* **~x, ~X** - based integers with a prefix
+* **~+, ~#** - based integers in vanilla erlang format
+* **~c, ~n, ~i**
 
 Currently they behave as for vanilla erlang except that ``~w``,
 ``~W``, ``~p``, ``~P`` print the terms as LFE sexprs.
@@ -101,6 +109,18 @@ FileSexpr = filesexpr()
 
 Read the file Filename returning a list of pairs containing
 s-expr and line number of the start of the s-expr.
+
+**scan_sexpr(Cont, Chars [,Line]) -> {done,Ret,RestChars}|{more,Cont1}**
+
+This is a re-entrant call which scans tokens from the input and
+returns a parsed sepxr. If there are enough characters to parse a
+sexpr or it detects and error then it returns ``{done,...}`` otherwise
+it returns ``{more,Cont}`` where ``Cont`` is used in the next call to
+``scan_sexpr`` with more characters to try and parse a sexpr. This is continued until a sexpr has been parsed. ``Cont``  is initially ``[]``.
+
+It is not designed to be called directly by an application but used through the i/o system where it can typically be called in an application by:
+
+``io:request(In, {get_until,unicode,Prompt,Module,scan_sexpr,[Line]})``
 
 
 # ERROR INFORMATION
