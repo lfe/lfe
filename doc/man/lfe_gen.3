@@ -16,51 +16,19 @@ generating modules.
 An LFE s\-expression, a list structure.
 .SH EXPORTS
 .PP
-\f[B]compile_forms(Forms) \-> CompRet\f[]
-.PP
-where
-.IP
-.nf
-\f[C]
-Forms\ =\ [sexpr()]
-CompRet\ =\ BinRet\ |\ ErrRet
-BinRet\ =\ {ok,ModuleName,Binary,Warnings}
-ErrRet\ =\ {error,Errors,Warnings}
-\f[]
-.fi
-.PP
-Compile a list of LFE forms which comprise an LFE module.
-For example:
-.IP
-.nf
-\f[C]
-lfe_gen:compile_forms([[defmodule,foo,[export,[a,0]]],
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [defun,a,[],[quote,yes]]])
-\f[]
-.fi
-.PP
-Both \f[C]WarningList\f[] and \f[C]ErrorList\f[] have the following
-format:
-.IP
-.nf
-\f[C]
-[{FileName,[ErrorInfo]}]
-\f[]
-.fi
-.PP
-\f[C]ErrorInfo\f[] is described below.
-When generating Errors and Warnings the "line number" is the index of
-the form in which the error occured.
-.PP
 \f[B]new_module(Name) \-> ModDef.\f[]
 .PP
-\f[B]add_exports([{Name,Arity}], ModDef) \-> ModDef.\f[]
+\f[B]add_exports([[Name,Arity]], ModDef) \-> ModDef.\f[]
 .PP
-\f[B]add_imports({from,Module,[{Name,Arity}]}, ModDef) \-> ModDef.\f[]
+\f[B]add_imports([from,Module|Functions], ModDef) \-> ModDef.\f[]
+.PP
+\f[B]add_imports([rename,Module|Renames], ModDef) \-> ModDef.\f[]
+.PP
+\f[B]add_attribute(Attribute, ModDef) \-> ModDef.\f[]
 .PP
 \f[B]add_form(Form, ModDef) \-> ModDef.\f[]
 .PP
-\f[B]print_mod(ModDef) \-> iolist().\f[]
+\f[B]build_mod(ModDef) \-> Forms.\f[]
 .PP
 \f[B]compile_mod(Mod) \-> CompRet\f[]
 .PP
@@ -76,12 +44,15 @@ ErrRet\ =\ {error,Errors,Warnings}
 .PP
 These functions are used to incrementally create a module which can at
 the end be compiled by \f[C]compile_mod/1\f[].
-The same example as above could be written:
+The various components have the same formats as they do when defining a
+module in a file.
+A simple module which defines one function \f[C]a/0\f[] could be defined
+with:
 .IP
 .nf
 \f[C]
 M0\ =\ lfe_gen:new_module(foo),
-M1\ =\ lfe_gen:add_exports([{a,0}],\ M0),
+M1\ =\ lfe_gen:add_exports([[a,0]],\ M0),
 M2\ =\ lfe_gen:add_form([defun,a,[],[quote,yes]],\ M1),
 lfe_gen:compile_mod(M2)
 \f[]
@@ -143,7 +114,7 @@ The following code builds and compiles a module from the parameter data:
 \f[C]
 make_module(Name,\ Params)\ \->
 \ \ \ \ Mod0\ =\ lfe_gen:new_module(Name),
-\ \ \ \ Exps\ =\ map(fun\ ({F,_})\ \->\ {F,1}\ end,\ Params),
+\ \ \ \ Exps\ =\ lists:map(fun\ ({Param,_})\ \->\ [Param,1]\ end,\ Params),
 \ \ \ \ Mod1\ =\ lfe_gen:add_exports(Exps,\ Mod0),
 \ \ \ \ Mod2\ =\ make_funcs(Params,\ Mod1),
 \ \ \ \ lfe_gen:compile_mod(Mod2).
@@ -153,15 +124,29 @@ make_funcs([{Param,Fs}|Ps],\ Mod)\ \->
 \ \ \ \ CatchAll\ =\ [f,[\[aq]:\[aq],erlang,error,
 \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [tuple,unknown_feature,[quote,Param],f]]],
 \ \ \ \ %%\ Build\ case\ clauses
-\ \ \ \ Cls\ =\ foldr(fun\ ({Feature,Value},\ Cls)\ \->
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [[[quote,Feature],[quote,Value]]|Cls]
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ end,\ [CatchAll],\ Params),
+\ \ \ \ Fold\ =\ fun\ ({Feature,Value},\ Cls)\ \->
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [[[quote,Feature],[quote,Value]]|Cls]
+\ \ \ \ \ \ \ \ \ \ \ end
+\ \ \ \ Cls\ =\ lists:foldr(Fold,\ [CatchAll],\ Params),
 \ \ \ \ %%\ Build\ function.
 \ \ \ \ Func\ =\ [defun,Param,[f],[\[aq]case\[aq],f,Cls]],
 \ \ \ \ make_funcs(Ps,\ lfe_gen:add_form(Func,\ Mod));
 make_funcs([],\ Mod)\ \->\ Mod.\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ %All\ done
 \f[]
 .fi
+.PP
+This module could be generated and then be loaded into the system by
+doing:
+.IP
+.nf
+\f[C]
+{ok,ModuleName,Binary,Warnings}\ =\ make_module(Name,\ Params),
+code:load_binary(ModuleName,\ "nofile",\ Binary)
+\f[]
+.fi
+.PP
+The second argument to \f[C]code:load_binary/3\f[], here
+\f[C]"nofile"\f[], is irrelevant in this case.
 .SH ERROR INFORMATION
 .PP
 The ErrorInfo mentioned above is the standard ErrorInfo structure which

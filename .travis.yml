@@ -1,5 +1,9 @@
 language: erlang
-before_install: echo "#!/usr/bin/env bash" > `which rebar`
+install: true
+before_script:
+  - wget https://s3.amazonaws.com/rebar3/rebar3
+  - chmod +x rebar3
+env: PATH=$PATH:.:./bin
 script: make travis
 notifications:
   disabled: true
@@ -8,6 +12,6 @@ otp_release:
   - 18.0
   - 17.5
   - 17.1
-  - R16B03
-  - R15B03
-  - R14B04
+  - R16B03-1
+  # - R15B03
+  # - R14B04

@@ -334,11 +334,11 @@ while it reads the expression and then be effectively ``2``.
 (funcall func arg ... )
 (call mod func arg ... )        - Call to Mod:Func(Arg, ... )
 
-(define-module name declaration ... )
-(extend-module declaration ... )
+(define-module name meta-data attributes)
+(extend-module meta-data attributes)
 
-(define-function name lambda|match-lambda doc-string)
-(define-macro name lambda|match-lambda doc-string)
+(define-function name meta-data lambda|match-lambda)
+(define-macro name meta-data lambda|match-lambda)
 ```
 
 ## Basic macro forms
@@ -352,11 +352,11 @@ while it reads the expression and then be effectively ``2``.
 (++ ... )
 (list* ...)
 (let* (...) ... )
-(flet ((name (arg ...) ...)
+(flet ((name (arg ...) {{doc-string}} ...)
        ...)
   ...)
 (flet* (...) ... )
-(fletrec ((name (arg ...) ...)
+(fletrec ((name (arg ...) {{doc-string}} ...)
           ...)
   ...)
 (cond ...
@@ -376,19 +376,21 @@ while it reads the expression and then be effectively ``2``.
 ## Common Lisp inspired macros
 
 ```
-(defun name (arg ...) ...)
+(defun name (arg ...) {{doc-string}} ...)
 (defun name
+  {{doc-string}}
   ((argpat ...) ...)
   ...)
-(defmacro name (arg ...) ...)
-(defmacro name arg ...)
+(defmacro name (arg ...) {{doc-string}} ...)
+(defmacro name arg {{doc-string}} ...)
 (defmacro name
+  {{doc-string}}
   ((argpat ...) ...)
   ...)
 (defsyntax name
   (pat exp)
   ...)
-(macrolet ((name (arg ...) ...)
+(macrolet ((name (arg ...) {{doc-string}} ...)
            ...)
   ...)
 (syntaxlet ((name (pat exp) ...)
@@ -555,6 +557,7 @@ the core meaning and never an alternative. Silently!
 
 ```
 (defmodule name
+  "This is the module documentation."
   (export (f 2) (g 1) ... )
   (export all)                          ;Export all functions
   (import (from mod (f1 2) (f2 1) ... )
@@ -593,7 +596,7 @@ can be either a lambda or a match-lambda. The basic forms for defining
 macros are:
 
 ```
-(define-macro name lambda|match-lambda doc-string)
+(define-macro name meta-data lambda|match-lambda)
 (let-macro ((name lambda|match-lambda)
   ...)
 ```

@@ -1,5 +1,11 @@
 # LFE
 
+[![Travis](https://img.shields.io/travis/rvirding/lfe.svg)](https://travis-ci.org/rvirding/lfe)
+[![Hex.pm version](https://img.shields.io/hexpm/v/lfe.svg)](https://hex.pm/packages/lfe)
+[![Hex.pm downloads](https://img.shields.io/hexpm/dt/lfe.svg)](https://hex.pm/packages/lfe)
+[![Hex.pm weekly downloads](https://img.shields.io/hexpm/dw/lfe.svg)](https://hex.pm/packages/lfe)
+[![Hex.pm daily downloads](https://img.shields.io/hexpm/dd/lfe.svg)](https://hex.pm/packages/lfe)
+
 LFE, Lisp Flavoured Erlang, is a lisp syntax front-end to the Erlang
 compiler. Code produced with it is compatible with "normal" Erlang
 code. An LFE evaluator and shell is also included.
@@ -31,16 +37,21 @@ the following ``make`` target:
 By default this will create the programs ``lfe``, ``lfec`` and
 ``lfescript`` in the same directory as the ``erl`` program. This can
 changed by defining the make variable ``DESTBINDIR`` to point to the
-desired directory. So:
-
-```shell
-    $ make install DESTBINDIR=/Users/rv/bin
-```
-
-will put the programs in ``/Users/rv/bin``.
+desired directory.
 
 Note that the installation target will also install the LFE man pages
-in the appropriate ``/usr/local/man/man*`` directories.
+in the appropriate ``/usr/local/man/man*`` directories. This can be
+changed by defining the make variable ``MANINSTDIR`` to point to the
+desired top man directory.
+
+So:
+
+```shell
+    $ make install DESTBINDIR=/Users/rv/bin MANINSTDIR=/Users/rv/man
+```
+
+will put the programs in ``/Users/rv/bin`` and the man pages in the
+``/Users/rv/man/man*`` directories.
 
 
 ## REPL
@@ -132,7 +143,7 @@ with LFE, be sure to read the
 
 * [Quick Start](https://lfe.gitbooks.io/quick-start/content/)
 * LFE [user guide](doc/user_guide.txt)
-* [version history](doc/source/version_history.md)
+* [version history](doc/src/version_history.md)
 
 Files with more technical details:
 
@@ -148,4 +159,4 @@ Files with more technical details:
 If you would like to make changes to the LFE documentation and then regenerate
 the docs, you'll want to read the instructions here:
 
-* [Updating LFE Documentation](doc/source/updating_docs.md)
+* [Updating LFE Documentation](doc/src/updating_docs.md)

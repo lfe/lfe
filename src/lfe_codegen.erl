@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2015 Robert Virding
+%% Copyright (c) 2008-2016 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -92,37 +92,40 @@ collect_module(Mfs, St0) ->
 %%  Collect valid forms and module data. Returns forms and put module
 %%  data into state.
 
-collect_form({['define-module',Mod|Mdef],L}, {Acc,St}) ->
-    %% Everything into State.
-    {Acc,collect_mdef(Mdef, L, St#cg{module=Mod,anno=[L]})};
-collect_form({['extend-module'|Mdef],L}, {Acc,St}) ->
-    %% Everything into State.
-    {Acc,collect_mdef(Mdef, L, St#cg{anno=[L]})};
-collect_form({['define-function',Name,[lambda|_]=Lambda,_],L}, {Acc,St}) ->
-    {[{Name,Lambda,L}|Acc],St};
-collect_form({['define-function',Name,['match-lambda'|_]=Match,_],L}, {Acc,St}) ->
-    {[{Name,Match,L}|Acc],St}.
+collect_form({['define-module',Mod,_Meta,Atts],L}, {Acc,St}) ->
+    %% Ignore the meta data, everything else into State.
+    {Acc,collect_attrs(Atts, L, St#cg{module=Mod,anno=[L]})};
+collect_form({['extend-module',_Meta,Atts],L}, {Acc,St}) ->
+    %% Ignore the meta data, everything else into State.
+    {Acc,collect_attrs(Atts, L, St#cg{anno=[L]})};
+collect_form({['define-function',Name,_Meta,Def],L}, {Acc,St}) ->
+    %% Ignore the meta data.
+    {[{Name,Def,L}|Acc],St};
+%% Ignore macro definitions and eval-when-compile forms.
+collect_form({['define-macro'|_],_}, {Acc,St}) -> {Acc,St};
+collect_form({['eval-when-compile'|_],_}, {Acc,St}) -> {Acc,St}.
 
-%% collect_mdef(ModDef, Line, State) -> State.
-%%  Collect module definition and fill in the #cg state record.
+%% collect_attrs(Attributes, Line, State) -> State.
+%%  Collect module attributes and fill in the #cg state record. Need
+%%  to ignore all eventual doc attributes.
 
-collect_mdef([[export,all]|Mdef], L, St) ->
-    collect_mdef(Mdef, L, St#cg{exps=all});
-collect_mdef([[export|Es]|Mdef], L, St) ->
-    case St#cg.exps of
-        all -> collect_mdef(Mdef, L, St);       %Propagate all.
-        Exps0 ->
-            %% Add exports to export set.
-            Exps1 = foldl(fun ([F,A], E) -> add_element({F,A}, E) end,
-                          Exps0, Es),
-            collect_mdef(Mdef, L, St#cg{exps=Exps1})
-    end;
-collect_mdef([[import|Is]|Mdef], L, St) ->
-    collect_mdef(Mdef, L, collect_imps(Is, St));
-collect_mdef([[N|Vs]|Mdef], L, St) ->
-    As = St#cg.atts ++ [{N,Vs,L}],              %Probably not many
-    collect_mdef(Mdef, L, St#cg{atts=As});
-collect_mdef([], _, St) -> St.
+collect_attrs(As, L, St) ->
+    %% io:format("ca: ~p\n", [As]),
+    foldl(fun (A, S) -> collect_attr(A, L, S) end, St, As).
+
+collect_attr([export|Es], _, St) -> collect_exps(Es, St);
+collect_attr([import|Is], _, St) -> collect_imps(Is, St);
+collect_attr([doc|_], _, St) -> St;             %Don't save doc attribute!
+collect_attr([N|Vs], L, #cg{atts=As}=St) ->
+    St#cg{atts=As ++ [{N,Vs,L}]}.               %Probably not many
+
+collect_exps([all], St) -> St#cg{exps=all};     %Propagate all
+collect_exps(_, #cg{exps=all}=St) -> St;
+collect_exps(Es, #cg{exps=Exps0}=St) ->
+    %% Add exports to export set.
+    Exps1 = foldl(fun ([F,A], E) -> add_element({F,A}, E) end,
+                  Exps0, Es),
+    St#cg{exps=Exps1}.
 
 collect_imps(Is, St) ->
     foldl(fun (I, S) -> collect_imp(I, S) end, St, Is).
@@ -171,15 +174,11 @@ compile_forms(Fbs0, St0, Core0) ->
     %% Build the final core module structure.
     Core1 = update_c_module(Core0, c_atom(St2#cg.module), Exps, Atts, Cdefs),
     %% Maybe print lots of debug info.
-    debug_print("#cg: ~p\n", [St2], St2),
-    when_opt(fun () -> io:fwrite("core_lint: ~p\n",
-                                 [(catch core_lint:module(Core1))])
-             end, debug_print, St2),
-    debug_print("#core: ~p\n", [Core1], St2),
-    %% when_opt(fun () ->
-    %%                  Pp = (catch io:put_chars([core_pp:format(Core1),$\n])),
-    %%                  io:fwrite("core_pp: ~p\n", [Pp])
-    %%          end, debug_print, St2),
+    ?DEBUG("#cg: ~p\n", [St2], St2#cg.opts),
+    ?DEBUG("core_lint: ~p\n", [(catch core_lint:module(Core1))], St2#cg.opts),
+    ?DEBUG("#core: ~p\n", [Core1], St2#cg.opts),
+    %% ?DEBUG("core_pp: ~p\n",
+    %%        [(catch io:put_chars([core_pp:format(Core1),$\n]))], St2#cg.opts),
     {Core1,St2}.
 
 forms_env(Fbs, St) ->
@@ -192,15 +191,6 @@ forms_env(Fbs, St) ->
     foldl(fun ({Name,Def,_}, E) ->
                   add_fbinding(Name, func_arity(Def), Name, E)
           end, Env, Fbs).
-
-debug_print(Format, Args, St) ->
-    when_opt(fun () -> io:fwrite(Format, Args) end, debug_print, St).
-
-when_opt(Fun, Opt, St) ->
-    case member(Opt, St#cg.opts) of
-        true -> Fun();
-        false -> ok
-    end.
 
 add_exports(all, _) -> all;
 add_exports(Old, More) -> union(Old, More).
@@ -323,7 +313,7 @@ comp_expr([Fun|As], Env, L, St) when is_atom(Fun) ->
                            %% Might have been renamed, use real function name.
                            {ann_c_apply(Ann, c_fname(Name, Ar), Cas),Sta};
                        no ->
-                           io:format("ce: ~p\n", [{{Fun,Ar},En}]),
+                           %% io:format("ce: ~p\n", [{{Fun,Ar},En}]),
                            error(foo)
                    end
            end,
@@ -867,7 +857,7 @@ comp_map_test(Cm, Cpairs, _, L, St) ->
     Cfail = map_fail(Cm, L, St),
     {ann_c_case(Ann, ann_c_values(Ann, []), [Cmap,Cfail]),St}.
 
-map_fail(Map, L, St) ->
+map_fail(_Map, L, St) ->
     Fann = [{eval_failure,badmap}],
     fail_clause([], c_atom(badmap), Fann, L, St).
 %%    fail_clause([], c_tuple([c_atom(badmap),Map]), Fann, L, St).

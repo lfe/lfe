@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2013 Robert Virding
+%% Copyright (c) 2008-2016 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -142,7 +142,7 @@ parse_file1([], _, Ss) -> {ok,lists:reverse(Ss)}.
 %% expand_macros(Forms, File, Args, Lopts) -> {Forms,Fenv}.
 
 expand_macros(Fs0, File, _, _) ->
-    case lfe_macro:expand_forms(Fs0, lfe_env:new()) of
+    case lfe_macro:expand_forms(Fs0, lfe_env:new(), true, false) of
         {ok,Fs1,Fenv,Ws} ->
             list_warnings(File, Ws),
             {Fs1,Fenv};
@@ -154,7 +154,7 @@ expand_macros(Fs0, File, _, _) ->
 %%  make lfe_lint happy.
 
 check_code(Fs, File, _, _) ->
-    Module = [{['define-module',dummy,[export,[main,1]]],1}|Fs],
+    Module = [{['define-module',dummy,[],[export,[main,1]]],1}|Fs],
     case lfe_lint:module(Module) of
         {ok,dummy,Ws} ->
             list_warnings(File, Ws);
@@ -167,10 +167,13 @@ make_env(Fs, Fenv, _, _, _) ->
     {Fbs,null} = lfe_lib:proc_forms(fun collect_form/3, Fs, null),
     lfe_eval:make_letrec_env(Fbs, Fenv).
 
-collect_form(['define-function',F,[lambda,As|_]=Lambda,_], _, St) ->
-    {[{F,length(As),Lambda}],St};
-collect_form(['define-function',F,['match-lambda',[Pats|_]|_]=Match,_], _, St) ->
-    {[{F,length(Pats),Match}],St}.
+collect_form(['define-function',F,_Meta,Def], _, St) ->
+    Ar = function_arity(Def),
+    {[{F,Ar,Def}],St}.
+
+function_arity([lambda,As|_]) -> length(As);
+function_arity(['match-lambda',[Pats|_]|_]) -> length(Pats).
+
 
 %% eval_code(Fenv, File, Args, Lopts) -> Res.
 %%  Evaluate the code. We must explicitly catch and handle errors in

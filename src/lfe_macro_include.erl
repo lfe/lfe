@@ -168,7 +168,7 @@ read_hrl_file(Name, St) ->
 parse_hrl_file(Fs, Ms, St0) ->
     {As,Lfs,St1} = trans_forms(Fs, St0),
     {Lms,St2} = trans_macros(Ms, St1),
-    {ok,[['extend-module'|As]] ++ Lfs ++ Lms,St2}.
+    {ok,[['extend-module',[],As]] ++ Lfs ++ Lms,St2}.
 
 %% trans_forms(Forms, State) -> {Attributes,LForms,State}.
 %%  Translate the record and function defintions and attributes in the

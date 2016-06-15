@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2015 Robert Virding
+%% Copyright (c) 2008-2016 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@
                pref=[],                         %Prefixes
                funcs=[],                        %Defined functions
                env=[],                          %Top-level environment
-               line=[],                         %Current line
+               lline=[],                        %Last line
                func=[],                         %Current function
                file="nofile",                   %File name
                opts=[],                         %Compiler options
@@ -88,7 +88,7 @@ format_error(bittype_unit) ->
     "bit unit size can only be specified together with size";
 format_error(illegal_bitsize) -> "illegal bit size";
 format_error({deprecated,What}) ->
-    lfe_io:format1("deprecated ~s", [What]);
+    lfe_io:format1("deprecated: ~s", [What]);
 format_error(unknown_form) -> "unknown form".
 
 %% expr(Expr) -> {ok,[Warning]} | {error,[Error],[Warning]}.
@@ -112,10 +112,10 @@ pattern(P, Env) ->
     return_status(St1).
 
 %% form(Form) -> {ok,[Warning]} | {error,[Error],[Warning]}.
-%%  Create a dummy module then test the form a function.
+%%  Create a dummy module then test the form, a function.
 
 form(F) ->
-    module([{['define-module',dummy],1},{F,2}]).
+    module([{['define-module',dummy,[],[]],1},{F,2}]).
 
 %% module(ModuleForms) ->
 %%     {ok,ModuleName,[Warning]} | {error,[Error],[Warning]}.
@@ -128,14 +128,8 @@ module(Ms) -> module(Ms, #cinfo{file="nofile",opts=[]}).
 module(Ms, #cinfo{file=F,opts=Os}) ->
     St0 = #lint{file=F,opts=Os},                %Initialise the lint record
     St1 = check_module(Ms, St0),
-    debug_print("#lint: ~p\n", [St1], Os),
+    ?DEBUG("#lint: ~s\n", [io_lib:format("~p",[St1])], Os),
     return_status(St1).
-
-debug_print(Format, Args, Opts) ->
-    case member(debug_print, Opts) of
-        true -> io:fwrite(Format, Args);
-        false -> ok
-    end.
 
 return_status(#lint{module=M,errors=[]}=St) ->
     {ok,M,St#lint.warnings};
@@ -165,51 +159,88 @@ collect_module(Mfs, St0) ->
     {Acc,St1} = lists:foldl(fun collect_form/2, {[],St0}, Mfs),
     {lists:reverse(Acc),St1}.
 
-collect_form({['define-module',Mod|Mdef],L}, {Acc,St0}) ->
+collect_form({['define-module',Mod,Meta,Atts],L}, {Acc,St0}) ->
+    St1 = check_mdef(Meta, Atts, L, St0#lint{module=Mod}),
     if is_atom(Mod) ->                  %Normal module
-            %% Everything into State.
-            {Acc,check_mdef(Mdef, L, St0#lint{module=Mod})};
+            {Acc,St1};
        true ->                          %Bad module name
-            {Acc,bad_mdef_error(L, name, St0)}
+            {Acc,bad_mdef_error(L, name, St1)}
     end;
 collect_form({_,L}, {Acc,#lint{module=[]}=St}) ->
     %% Set module name so this only triggers once.
     {Acc,bad_mdef_error(L, name, St#lint{module='-no-module-'})};
-collect_form({['extend-module'|Mdef],L}, {Acc,St}) ->
-    {Acc,check_mdef(Mdef, L, St)};
-collect_form({['define-function',Func,Body,Doc],L}, {Acc,St}) ->
-    Type = is_atom(Func) and (io_lib:char_list(Doc) or is_binary(Doc)),
-    case Body of
+collect_form({['extend-module',Meta,Atts],L}, {Acc,St}) ->
+    {Acc,check_mdef(Meta, Atts, L, St)};
+collect_form({['define-function',Func,Meta,Def],L}, {Acc,St}) ->
+    Type = is_atom(Func) and check_fmeta(Meta),
+    case Def of
         [lambda|_] when Type ->
-            {[{Func,Body,L}|Acc],St};
+            {[{Func,Def,L}|Acc],St};
         ['match-lambda'|_] when Type ->
-            {[{Func,Body,L}|Acc],St};
+            {[{Func,Def,L}|Acc],St};
         _ -> {Acc,bad_form_error(L, 'define-function', St)}
     end;
+%% Ignore macro definitions and eval-when-compile forms.
+collect_form({['define-macro'|_],_}, {Acc,St}) -> {Acc,St};
+collect_form({['eval-when-compile'|_],_}, {Acc,St}) -> {Acc,St};
 collect_form({_,L}, {Acc,St}) ->
     {Acc,add_error(L, unknown_form, St)}.
 
-check_mdef([[export,all]|Mdef], L, St) ->       %Pass 'all' along
-    check_mdef(Mdef, L, St#lint{exps=all});
-check_mdef([[export|Es]|Mdef], L, St) ->
+check_fmeta([[doc|Docs]|Meta]) ->
+    check_docs(Docs) andalso check_fmeta(Meta);
+check_fmeta([M|Meta]) -> is_list(M) andalso check_fmeta(Meta);
+check_fmeta([]) -> true;
+check_fmeta(_) -> false.
+
+check_docs(Docs) ->
+    Fun = fun (D) -> lfe_lib:is_doc_string(D) end,
+    is_proper_list(Docs) andalso all(Fun, Docs).
+
+check_mdef(Meta, Atts, L, St0) ->
+    St1 = check_mmeta(Meta, L, St0),
+    check_attrs(Atts, L, St1).
+
+check_mmeta([[doc|Docs]|Meta], L, St) ->
+    ?IF(check_docs(Docs),
+        check_mmeta(Meta, L, St),
+        check_mmeta(Meta, L, bad_mdef_error(L, doc, St)));
+check_mmeta([M|Meta], L, St) ->
+    ?IF(is_proper_list(M),
+        check_mmeta(Meta, L, St),
+        check_mmeta(Meta, L, bad_mdef_error(L, meta, St)));
+check_mmeta([], _, St) -> St;
+check_mmeta(_, L, St) -> bad_mdef_error(L, meta, St).
+
+check_attrs(As, L, St0) ->
+    {_,St1} = check_foldl(fun (A, Acc, St) -> {Acc,check_attr(A, L, St)} end,
+                          fun (St) -> bad_mdef_error(L, form, St) end,
+                          nul, St0, As),
+    St1.
+
+check_attr([export,all], _, St) ->             %Pass 'all' along
+    St#lint{exps=all};
+check_attr([export|Es], L, St) ->
     case is_flist(Es) of
         {yes,Fs} ->
             Exps = add_exports(St#lint.exps, Fs),
-            check_mdef(Mdef, L, St#lint{exps=Exps});
-        no ->
-            check_mdef(Mdef, L, bad_mdef_error(L, export, St))
+            St#lint{exps=Exps};
+        no -> bad_mdef_error(L, export, St)
     end;
-check_mdef([[import|Is]|Mdef], L, St0) ->
-    St1 = check_imports(Is, L, St0),
-    check_mdef(Mdef, L, St1);
-check_mdef([[Name|Vals]|Mdef], L, St) ->
+check_attr([import|Is], L, St) ->
+    check_imports(Is, L, St);
+check_attr([doc|Docs], L, St0) ->
+    St1 = depr_warning(L, "documentation string attribute", St0),
+    check_doc_attr(Docs, L, St1);
+check_attr([Name|Vals], L, St) ->
     %% Other attributes, must be list and have symbol name.
     case is_atom(Name) and is_proper_list(Vals) of
-        true -> check_mdef(Mdef, L, St);
-        false -> check_mdef(Mdef, L, add_error(L, {bad_attribute,Name}, St))
+        true -> St;
+        false -> bad_attr_error(L, Name, St)
     end;
-check_mdef([], _, St) -> St;
-check_mdef(_, L, St) -> bad_mdef_error(L, form, St).
+check_attr(_, L, St) -> bad_mdef_error(L, attribute, St).
+
+check_doc_attr(Docs, L, St) ->
+    ?IF(check_docs(Docs), St, bad_attr_error(L, doc, St)).
 
 check_imports(Is, L, St) ->
     check_foreach(fun (I, S) -> check_import(I, L, S) end,
@@ -973,7 +1004,7 @@ pattern([H|T]=List, Pvs0, Env, L, St0) ->
     case is_posint_list(List) of
         true -> {Pvs0,St0};                     %A string
         false ->                                %Illegal pattern
-            St1 = add_warning(L, {deprecated,"pattern"}, St0),
+            St1 = depr_warning(L, "no constructor in list pattern", St0),
             {Pvs1,St2} = pattern(H, Pvs0, Env, L, St1),
             pattern(T, Pvs1, Env, L, St2)
     end;
@@ -1292,11 +1323,17 @@ bad_pat_error(L, F, St) ->
 bad_mdef_error(L, D, St) ->
     add_error(L, {bad_mdef,D}, St).
 
+bad_attr_error(L, A, St) ->
+    add_error(L, {bad_attribute,A}, St).
+
 multi_var_error(L, V, St) ->
     add_error(L, {multi_var,V}, St).
 
 illegal_guard_error(L, St) ->
     add_error(L, illegal_guard, St).
+
+depr_warning(L, D, St) ->
+    add_warning(L, {deprecated,D}, St).
 
 %% Interface to the binding functions in lfe_lib.
 %% These just add arity as a dummy values as we are not interested in

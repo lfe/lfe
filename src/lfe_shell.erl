@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2015 Robert Virding
+%% Copyright (c) 2008-2016 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -30,8 +30,9 @@
          run_script/2,run_script/3,run_string/2,run_string/3]).
 
 %% The shell commands which generally callable.
--export([c/1,c/2,cd/1,ec/1,ec/2,help/0,i/0,i/1,l/1,ls/1,clear/0,m/0,m/1,
-         pid/3,p/1,pp/1,pwd/0,q/0,flush/0,regs/0,exit/0]).
+-export([c/1,c/2,cd/1,doc/1,docs/1,ec/1,ec/2,help/0,i/0,i/1,l/1,
+         ls/1,clear/0,m/0,m/1,pid/3,p/1,pp/1,pwd/0,q/0,
+         flush/0,regs/0,exit/0]).
 
 -import(lfe_env, [new/0,add_env/2,
                   add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
@@ -44,6 +45,7 @@
 -import(lists, [reverse/1,foreach/2]).
 
 -include("lfe.hrl").
+-include("lfe_doc.hrl").
 
 %% Colours for the LFE banner
 -define(RED(Str), "\e[31m" ++ Str ++ "\e[0m").
@@ -95,7 +97,7 @@ server(default) ->
     server(lfe_env:new());
 server(Env) ->
     process_flag(trap_exit, true),              %Must trap exists
-    io:fwrite(make_banner()),
+    io:put_chars(make_banner()),
     %% Create a default base env of predefined shell variables with
     %% default nil bindings and basic shell macros.
     St = new_state("lfe", [], Env),
@@ -171,9 +173,9 @@ report_exception(Class, Reason, Stk) ->
 
 read_expression(Prompt, Eval, St) ->
     Read = fun () ->
-                   %% Ret = lfe_io:read(Prompt),
-                   io:put_chars(Prompt),
-                   Ret = lfe_io:read(),
+                   %% io:put_chars(Prompt),
+                   %% Ret = lfe_io:read_line(),
+                   Ret = lfe_io:read_line(Prompt),
                    exit(Ret)
            end,
     Rdr = spawn_link(Read),
@@ -197,11 +199,11 @@ make_banner() ->
     [io_lib:format(
        ?GRN("   ..-~~") ++ ?YLW(".~~_") ++ ?GRN("~~---..") ++ "\n" ++
        ?GRN("  (      ") ++ ?YLW("\\\\") ++ ?GRN("     )") ++ "    |   A Lisp-2+ on the Erlang VM\n" ++
-       ?GRN("  |`-.._") ++ ?YLW("/") ++ ?GRN("_") ++ ?YLW("\\\\") ++ ?GRN("_.-';") ++ "    |   Type " ++ ?GRN("(help)") ++ " for usage info.\n" ++
-       ?GRN("  |         ") ++ ?RED("g") ++ ?GRN(" |_ \\") ++  "   |   \n" ++
-       ?GRN("  |        ") ++ ?RED("n") ++ ?GRN("    | |") ++   "  |   Docs: " ++ ?BLU("http://docs.lfe.io/") ++ " \n" ++
+       ?GRN("  |`-.._") ++ ?YLW("/") ++ ?GRN("_") ++ ?YLW("\\\\") ++ ?GRN("_.-':") ++ "    |   Type " ++ ?GRN("(help)") ++ " for usage info.\n" ++
+       ?GRN("  |         ") ++ ?RED("g") ++ ?GRN(" |_ \\") ++  "   |\n" ++
+       ?GRN("  |        ") ++ ?RED("n") ++ ?GRN("    | |") ++   "  |   Docs: " ++ ?BLU("http://docs.lfe.io/") ++ "\n" ++
        ?GRN("  |       ") ++ ?RED("a") ++ ?GRN("    / /") ++   "   |   Source: " ++ ?BLU("http://github.com/rvirding/lfe") ++ "\n" ++
-       ?GRN("   \\     ") ++ ?RED("l") ++ ?GRN("    |_/") ++  "    |   \n" ++
+       ?GRN("   \\     ") ++ ?RED("l") ++ ?GRN("    |_/") ++  "    |\n" ++
        ?GRN("    \\   ") ++ ?RED("r") ++ ?GRN("     /") ++  "      |   LFE v~s ~s\n" ++
        ?GRN("     `-") ++ ?RED("E") ++ ?GRN("___.-'") ++ "\n\n", [get_lfe_version(), get_abort_message()])].
 
@@ -271,8 +273,12 @@ add_shell_functions(Env0) ->
     Env1.
 
 add_shell_macros(Env0) ->
-    %% We write macros in LFE and expand them with macro package.
+    %% We KNOW how macros are expanded and write them directly in
+    %% expanded form here.
     Ms = [{c,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,c,?C_A(args)])]},
+          {describe,[lambda,[args,'$ENV'],
+                     ?BQ([':',lfe_shell,docs,?Q(?C(args))])]},
+          {doc,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,docs,?Q(?C(args))])]},
           {ec,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ec,?C_A(args)])]},
           {l,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,l,[list|?C(args)]])]},
           {ls,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ls,[list|?C(args)]])]},
@@ -344,7 +350,8 @@ nocatch(_, Reason) -> Reason.
 
 eval_form(Form, #state{curr=Ce}=St) ->
     %% Flatten progn nested forms.
-    case lfe_macro:macro_forms([{Form,1}], Ce) of
+    %% Don't deep expand, keep everything.
+    case lfe_macro:expand_forms([{Form,1}], Ce, false, true) of
         {ok,Eforms,Ce1,Ws} ->
             list_warnings(Ws),
             St1 = St#state{curr=Ce1},
@@ -376,11 +383,11 @@ eval_form_1([unslurp|_], St) ->
 eval_form_1([run|Args], St0) ->
     {Value,St1} = run(Args, St0),
     {Value,St1};
-eval_form_1(['define-function',Name,Def,_], #state{curr=Ce0}=St) ->
+eval_form_1(['define-function',Name,_Meta,Def], #state{curr=Ce0}=St) ->
     Ar = function_arity(Def),
     Ce1 = lfe_eval:add_dynamic_func(Name, Ar, Def, Ce0),
     {Name,St#state{curr=Ce1}};
-eval_form_1(['define-macro',Name,Def,_], #state{curr=Ce0}=St) ->
+eval_form_1(['define-macro',Name,_Meta,Def], #state{curr=Ce0}=St) ->
     Ce1 = add_mbinding(Name, Def, Ce0),
     {Name,St#state{curr=Ce1}};
 eval_form_1(['reset-environment'], #state{base=Be}=St) ->
@@ -466,7 +473,7 @@ slurp_1(Name, Ce) ->
     case slurp_file(Name) of
         {ok,Mod,Fs,Env0,Ws} ->
             slurp_warnings(Ws),
-	    %% Collect functions and imports.
+            %% Collect functions and imports.
             Sl0 = #slurp{mod=Mod,funs=[],imps=[]},
             Sl1 = lists:foldl(fun collect_module/2, Sl0, Fs),
             %% Add imports to environment.
@@ -494,7 +501,8 @@ slurp_1(Name, Ce) ->
 slurp_file(Name) ->
     case lfe_comp:file(Name, [binary,to_split,return]) of
         {ok,[{ok,Mod,Fs0,_}|_],Ws} ->           %Only do first module
-            case lfe_macro:expand_forms(Fs0, lfe_env:new()) of
+            %% Deep expand, don't keep everything.
+            case lfe_macro:expand_forms(Fs0, lfe_env:new(), true, false) of
                 {ok,Fs1,Env,_} ->
                     %% Flatten and trim away any eval-when-compile.
                     {Fs2,42} = lfe_lib:proc_forms(fun slurp_form/3, Fs1, 42),
@@ -515,20 +523,20 @@ slurp_error_ret(Name, Es, Ws) ->
 slurp_form(['eval-when-compile'|_], _, D) -> {[],D};
 slurp_form(F, L, D) -> {[{F,L}],D}.
 
-collect_module({['define-module',Mod|Mdef],_}, Sl0) ->
-    Sl1 = collect_mdef(Mdef, Sl0),
+collect_module({['define-module',Mod,_Mets,Atts],_}, Sl0) ->
+    Sl1 = collect_attrs(Atts, Sl0),
     Sl1#slurp{mod=Mod};
-collect_module({['extend-module'|Mdef],_}, Sl) ->
-    collect_mdef(Mdef, Sl);
-collect_module({['define-function',F,Def,_],_}, #slurp{funs=Fs}=Sl) ->
+collect_module({['extend-module',_Meta,Atts],_}, Sl) ->
+    collect_attrs(Atts, Sl);
+collect_module({['define-function',F,_Meta,Def],_}, #slurp{funs=Fs}=Sl) ->
     Ar = function_arity(Def),
     Sl#slurp{funs=[{F,Ar,Def}|Fs]}.
 
-collect_mdef([[import|Is]|Mdef], St) ->
-    collect_mdef(Mdef, collect_imps(Is, St));
-collect_mdef([_|Mdef], St) ->                   %Ignore everything else
-    collect_mdef(Mdef, St);
-collect_mdef([], St) -> St.
+collect_attrs([[import|Is]|Atts], St) ->
+    collect_attrs(Atts, collect_imps(Is, St));
+collect_attrs([_|Atts], St) ->                  %Ignore everything else
+    collect_attrs(Atts, St);
+collect_attrs([], St) -> St.
 
 collect_imps(Is, St) ->
     foldl(fun (I, S) -> collect_imp(I, S) end, St, Is).
@@ -790,3 +798,59 @@ regs() -> c:regs().
 %% exit() -> ok.
 
 exit() -> c:q().
+
+%% doc(Fun) -> ok.
+%% docs(Funs) -> ok.
+%%  Print out documentation of a module/macro/function. Always try to
+%%  find the file and use it as this is the only way to get hold of
+%%  the chunks. This may get a later version than is loaded.
+
+docs(Fs) ->
+    lists:foreach(fun doc/1, Fs).
+
+doc(What) ->
+    [Mod|F] = lfe_lib:split_name(What),
+    io:format(?RED("~*c")++"\n", [60,$_]),      %Print a red line
+    case lfe_doc:get_module_docs(Mod) of
+        {ok,Docs} ->
+            case F of
+                [] ->                           %Only module name
+                    print_module_doc(Mod, Docs);
+                [Mac] ->                        %Macro
+                    print_macro_doc(Mac, Docs);
+                [Fun,Ar] ->                     %Function
+                    print_function_doc(Fun, Ar, Docs)
+            end;
+        {error,module} ->
+            lfe_io:format("No module ~s\n\n", [Mod]);
+        {error,docs} ->
+            lfe_io:format("No module documentation for ~s\n\n", [Mod])
+    end.
+
+print_module_doc(Mod, Docs) ->
+    lfe_io:format(?BLU("~p")++"\n\n", [Mod]),
+    print_docs(lfe_doc:module_doc(Docs)),
+    io:nl().
+
+print_macro_doc(Mac, Docs) ->
+    case lfe_doc:macro_docs(Mac, Docs) of
+        {ok,Md} ->
+            lfe_io:format(?BLU("~p")++"\n", [Mac]),
+            print_docs(lfe_doc:macro_doc(Md)),
+            io:nl();
+        error ->
+            lfe_io:format("No macro ~s defined\n\n", [Mac])
+    end.
+
+print_function_doc(Fun, Ar, Docs) ->
+    case lfe_doc:function_docs(Fun, Ar, Docs) of
+        {ok,Fd} ->
+            lfe_io:format(?BLU("~p/~p")++"\n", [Fun,Ar]),
+            print_docs(lfe_doc:function_doc(Fd)),
+            io:nl();
+        error ->
+            lfe_io:format("No function ~s/~p defined\n\n", [Fun,Ar])
+    end.
+
+print_docs(Ds) ->
+    foreach(fun (D) -> lfe_io:format("~s\n", [D]) end, Ds).

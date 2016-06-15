@@ -27,9 +27,8 @@
 -export([expand_expr/2,expand_expr_1/2,expand_expr_all/2]).
 
 %% These work on list of forms in "file format".
--export([expand_forms/2,expand_forms/3,macro_forms/2,macro_forms/3]).
--export([macro_form_init/0,macro_form_init/1,macro_form/4,macro_fileform/3]).
--export([expand_form_init/0,expand_form_init/1,
+-export([expand_forms/4]).
+-export([expand_form_init/2,expand_form_init/3,
          expand_form/4,expand_fileform/3]).
 
 -export([format_error/1]).
@@ -50,12 +49,6 @@
 
 -include("lfe_comp.hrl").
 -include("lfe_macro.hrl").
-
-%% Bloody useful
--define(IF(Test,True,False), case Test of
-                                 true -> True;
-                                 false -> False
-                             end).
 
 %% Define IS_MAP/1 macro for is_map/1 bif.
 -ifdef(HAS_MAPS).
@@ -110,32 +103,13 @@ expand_expr_all(F, Env) ->
     {Ef,_} = exp_form(F, Env, default_state(true, false)),
     Ef.
 
-%% expand_forms(FileForms, Env) ->
-%% expand_forms(FileForms, Env, CompInfo) ->
+%% expand_forms(FileForms, Env, Deep, Keep) ->
 %%     {ok,FileForms,Env,Warnings} | {error,Errors,Warnings}.
 %%  Collect macro definitions in file forms, completely expand all
 %%  macros and only keep all functions.
 
-expand_forms(Fs, Env) ->
-    St = default_state(true, false),
-    do_forms(Fs, Env, St).
-
-expand_forms(Fs, Env, Ci) ->
-    St = default_state(Ci, true, false),
-    do_forms(Fs, Env, St).
-
-%% macro_forms(FileForms, Env) ->
-%% macro_forms(FileForms, Env, CompInfo) ->
-%%     {ok,FileForms,Env,Warnings} | {error,Errors,Warnings}.
-%%  Collect macro definitions in file forms, expand top-level macros
-%%  and keep all forms.
-
-macro_forms(Fs, Env) ->
-    St = default_state(false, true),
-    do_forms(Fs, Env, St).
-
-macro_forms(Fs, Env, Ci) ->
-    St = default_state(Ci, false, true),
+expand_forms(Fs, Env, Deep, Keep) ->
+    St = default_state(Deep, Keep),
     do_forms(Fs, Env, St).
 
 do_forms(Fs0, Env0, St0) ->
@@ -145,51 +119,30 @@ do_forms(Fs0, Env0, St0) ->
         Es -> {error,Es,St1#mac.warnings}
     end.
 
-default_state(Expand, Keep) ->
-    #mac{expand=Expand,keep=Keep,line=1,file="-nofile-",opts=[],ipath=["."]}.
+default_state(Deep, Keep) ->
+    #mac{deep=Deep,keep=Keep,line=1,file="-nofile-",opts=[],ipath=["."]}.
 
-default_state(#cinfo{file=File,opts=Os,ipath=Is}, Expand, Keep) ->
-    #mac{expand=Expand,keep=Keep,line=1,file=File,opts=Os,ipath=Is}.
+default_state(#cinfo{file=File,opts=Os,ipath=Is}, Deep, Keep) ->
+    #mac{deep=Deep,keep=Keep,line=1,file=File,opts=Os,ipath=Is}.
 
-%% expand_form_init() -> State.
-%% expand_form_init(CompInfo) -> State.
+%% expand_form_init(Deep, Keep) -> State.
+%% expand_form_init(CompInfo, Deep, Keep) -> State.
 %% expand_form(Form, Line, Env, State) -> {Form,Env,State}.
 %% expand_fileform(Form, Env, State) -> {Form,Env,State}.
 %%  Collect macro definitions in a (file)form, completely expand all
 %%  macros and only keep all functions.
 
-expand_form_init() ->
-    default_state(true, false).
+expand_form_init(Deep, Keep) ->
+    default_state(Deep, Keep).
 
-expand_form_init(Ci) ->
-    default_state(Ci, true, false).
+expand_form_init(Ci, Deep, Keep) ->
+    default_state(Ci, Deep, Keep).
 
 expand_form(F0, L, E0, St0) ->
     {F1,E1,St1} = pass_form(F0, E0, St0#mac{line=L}),
     return_status(F1, E1, St1).
 
 expand_fileform({F0,L}, E0, St0) ->
-    {F1,E1,St1} = pass_form(F0, E0, St0#mac{line=L}),
-    return_status({F1,L}, E1, St1).
-
-%% macro_form_init() -> State.
-%% macro_form_init(CompInfo) -> State.
-%% macro_form(Form, Line, Env, State) -> {Form,Env,State}.
-%% macro_fileform(Form, Env, State) -> {FileForm,Env,State}.
-%%  Collect macro definitions in a (file)form, expand top-level macros
-%%  and keep all forms.
-
-macro_form_init() ->
-    default_state(false, true).
-
-macro_form_init(Ci) ->
-    default_state(Ci, false, true).
-
-macro_form(F0, L, E0, St0) ->
-    {F1,E1,St1} = pass_form(F0, E0, St0#mac{line=L}),
-    return_status(F1, E1, St1).
-
-macro_fileform({F0,L}, E0, St0) ->
     {F1,E1,St1} = pass_form(F0, E0, St0#mac{line=L}),
     return_status({F1,L}, E1, St1).
 
@@ -236,7 +189,7 @@ pass_form(['define-macro'|Def]=M, Env0, St0) ->
     end;
 pass_form(F, Env, St0) ->
     %% First expand enough to test top form, if so process again.
-    case pass_expand_expr(F, Env, St0, St0#mac.expand) of
+    case pass_expand_expr(F, Env, St0, St0#mac.deep) of
         {yes,Exp,St1} ->                        %Top form expanded
             pass_form(Exp, Env, St1);
         {no,F1,St1} ->                          %Expanded all if flag set
@@ -270,7 +223,7 @@ pass_ewc_form(['define-macro'|Def]=M, Env0, St0) ->
             St1 = add_error({bad_env_form,macro}, St0),
             {[progn],Env0,St1}                  %Just throw it away
     end;
-pass_ewc_form(['define-function',Name,Def,_]=F, Env0, St0) ->
+pass_ewc_form(['define-function',Name,_,Def]=F, Env0, St0) ->
     case function_arity(Def) of
         {yes,Ar} ->                             %Definition not too bad
             Env1 = lfe_eval:add_dynamic_func(Name, Ar, Def, Env0),
@@ -300,10 +253,7 @@ pass_ewc_form(F0, Env, St0) ->
 function_arity([lambda,Args|_]) ->
     ?IF(is_symb_list(Args), {yes,length(Args)}, no);
 function_arity(['match-lambda',[Pat|_]|_]) ->
-    case is_proper_list(Pat) of
-        true -> {yes,length(Pat)};
-        false -> no
-    end;
+    ?IF(is_proper_list(Pat), {yes,length(Pat)}, no);
 function_arity(_) -> no.
 
 %% pass_eval_set(Args, Env, State) -> {Set,Env,State}.
@@ -330,22 +280,18 @@ pass_eval_set_1(Pat, Guard, Exp, Env0, St) ->
     {yes,_,Bs} = lfe_eval:match_when(Pat, Val, Guard, Env0),
     Env1 = foldl(fun ({N,V}, E) -> add_vbinding(N, V, E) end, Env0, Bs),
     Sets = ?IF(St#mac.keep, [ [set,N,V] || {N,V} <- Bs ], []),
-    %% Sets = case St#mac.keep of
-    %%            true -> [ [set,N,V] || {N,V} <- Bs ];
-    %%            false -> []
-    %%        end,
     {['progn'|Sets],Env1,St}.
 
-%% pass_expand_expr(Expr, Env, State, ExpandFlag) ->
+%% pass_expand_expr(Expr, Env, State, DeepFlag) ->
 %%     {yes,Exp,State} | {no,State}.
 %%  Try to macro expand Expr, catch errors and return them in State.
 %%  Only try to expand list expressions.
 
-pass_expand_expr([_|_]=E0, Env, St0, Expand) ->
+pass_expand_expr([_|_]=E0, Env, St0, Deep) ->
     try
         case exp_macro(E0, Env, St0) of
             {yes,_,_}=Yes -> Yes;
-            no when Expand ->                   %Expand all if flag set.
+            no when Deep ->                     %Deep expand if flag set.
                 {E1,St1} = exp_form(E0, Env, St0),
                 {no,E1,St1};
             no -> {no,E0,St0}
@@ -355,12 +301,12 @@ pass_expand_expr([_|_]=E0, Env, St0, Expand) ->
     end;
 pass_expand_expr(E, _, St, _) -> {no,E,St}.
 
-%% pass_define_macro([Name,Def,Doc], Env, State) ->
+%% pass_define_macro([Name,Meta,Def], Env, State) ->
 %%     {yes,Env,State} | no.
 %%  Add the macro definition to the environment. We do a small format
 %%  check.
 
-pass_define_macro([Name,Def,_], Env, St) ->
+pass_define_macro([Name,_,Def], Env, St) ->
     case Def of
         ['lambda'|_] -> {yes,add_mbinding(Name, Def, Env),St};
         ['match-lambda'|_] -> {yes,add_mbinding(Name, Def, Env),St};
@@ -849,70 +795,75 @@ exp_predef(['include-lib'|Ibody], Env, St) ->
 exp_predef(['begin'|Body], _, St) ->
     {yes,['progn'|Body],St};
 exp_predef(['define',Head|Body], _, St) ->
+    %% Let the lint catch errors here.
     Exp = case is_symb_list(Head) of
               true ->
-                  ['define-function',hd(Head),[lambda,tl(Head)|Body],[]];
+                  ['define-function',hd(Head),[],[lambda,tl(Head)|Body]];
               false ->
-                  %% Let next step catch errors here.
-                  ['define-function',Head|Body]
+                  ['define-function',Head,[],Body]
           end,
     {yes,Exp,St};
 exp_predef(['define-record'|Def], _, St) ->
     {yes,[defrecord|Def],St};
 exp_predef(['define-syntax',Name,Def], _, St) ->
-    Mdef = exp_syntax(Name, Def),
-    {yes,['define-macro',Name,Mdef,[]],St};
+    {Meta,Mdef} = exp_syntax(Name, Def),
+    {yes,['define-macro',Name,Meta,Mdef],St};
 exp_predef(['let-syntax',Defs|Body], _, St) ->
-    Mdefs = map(fun ([Name,Def]) -> [Name,exp_syntax(Name, Def)] end, Defs),
+    Fun = fun ([Name,Def]) ->
+                  {_,Def} = exp_syntax(Name, Def),
+                  [Name,Def]
+          end,
+    Mdefs = map(Fun, Defs),
     {yes,['let-macro',Mdefs|Body],St};
 %% Common Lisp inspired macros.
-exp_predef([defmodule|Mdef], _, St) ->
+exp_predef([defmodule,Name|Rest], _, St) ->
     %% Need to handle parametrised module defs here. Limited checking.
-    Mname = case Mdef of
-                [[Mod|_]|_] -> Mod;             %Parametrised module
-                [Mod|_] -> Mod                  %Normal module
+    Mname = case Name of
+                [Mod|_] -> Mod;                 %Parametrised module
+                Mod -> Mod                      %Normal module
             end,
     MODULE = [defmacro,'MODULE',[],?BQ(?Q(Mname))],
-    {yes,[progn,['define-module'|Mdef],MODULE],St#mac{module=Mname}};
+    {Meta,Atts} = exp_defmodule(Rest),
+    {yes,[progn,['define-module',Name,Meta,Atts],MODULE],St#mac{module=Mname}};
 exp_predef([defun,Name|Rest], _, St) ->
     %% Educated guess whether traditional (defun name (a1 a2 ...) ...)
     %% or matching (defun name (patlist1 ...) (patlist2 ...))
-    {Def,Doc} = exp_defun(Rest),
-    {yes,['define-function',Name,Def,Doc],St};
+    {Meta,Def} = exp_defun(Rest),
+    {yes,['define-function',Name,Meta,Def],St};
 exp_predef([defmacro,Name|Rest], _, St) ->
     %% Educated guess whether traditional (defmacro name (a1 a2 ...) ...)
     %% or matching (defmacro name (patlist1 ...) (patlist2 ...))
-    {Def,Doc} = exp_defmacro(Rest),
-    {yes,['define-macro',Name,Def,Doc],St};
+    {Meta,Def} = exp_defmacro(Rest),
+    {yes,['define-macro',Name,Meta,Def],St};
 exp_predef([defsyntax,Name|Rules], _, St) ->
-    {Def,Doc} = exp_rules(Name, [], Rules),
-    {yes,['define-macro',Name,Def,Doc],St};
+    {Meta,Def} = exp_rules(Name, [], Rules),
+    {yes,['define-macro',Name,Meta,Def],St};
 exp_predef([flet,Defs|Body], _, St) ->
     Fun = fun ([Name|Rest]) ->
-		  {Def,_} = exp_defun(Rest),	%Ignore doc string
-		  [Name,Def]
-	  end,
+                  {_,Def} = exp_defun(Rest),    %Ignore meta data
+                  [Name,Def]
+          end,
     Fdefs = map(Fun, Defs),
     {yes,['let-function',Fdefs|Body], St};
 exp_predef([fletrec,Defs|Body], _, St) ->
     Fun = fun ([Name|Rest]) ->
-		  {Def,_} = exp_defun(Rest),	%Ignore doc string
-		  [Name,Def]
-	  end,
+                  {_,Def} = exp_defun(Rest),    %Ignore meta data
+                  [Name,Def]
+          end,
     Fdefs = map(Fun, Defs),
     {yes,['letrec-function',Fdefs|Body], St};
 exp_predef([macrolet,Defs|Body], _, St) ->
     Fun = fun ([Name|Rest]) ->
-		  {Def,_} = exp_defmacro(Rest),	%Ignore doc string
-		  [Name,Def]
-	  end,
+                  {_,Def} = exp_defmacro(Rest), %Ignore meta data
+                  [Name,Def]
+          end,
     Mdefs = map(Fun, Defs),
     {yes,['let-macro',Mdefs|Body],St};
 exp_predef([syntaxlet,Defs|Body], _, St) ->
     Fun = fun ([Name|Rest]) ->
-		  {Def,_} = exp_rules(Name, [], Rest),
-		  [Name,Def]
-	  end,
+                  {_,Def} = exp_rules(Name, [], Rest),
+                  [Name,Def]
+          end,
     Mdefs = map(Fun, Defs),
     {yes,['let-macro',Mdefs|Body],St};
 exp_predef([prog1|Body], _, St0) ->
@@ -985,7 +936,7 @@ exp_call_macro(M, F, As, Env, St) ->
                                 {module,_} -> exp_call_macro(M, F, As, Env, St);
                                 {error,_} ->
                                     %% Echo modules we couldn't load
-                                    lfe_io:format("ecp: ~p\n", [{M,Unl}]),
+                                    %%lfe_io:format("ecp: ~p\n", [{M,Unl}]),
                                     St1 = St#mac{unloadable=[M|Unl]},
                                     {no,St1}
                             end
@@ -1172,68 +1123,74 @@ exp_orelse([E]) -> E;                           %Let user check last call
 exp_orelse([E|Es]) -> ['if',E,?Q(true),exp_orelse(Es)];
 exp_orelse([]) -> ?Q(false).
 
-%% exp_defun(Rest) -> {Lambda | MatchLambda,DocString}.
+%% exp_defmodule(Rest) -> {Meta,Attributes}.
+%%  Extract the comment string either if it is first. Ignore 'doc'
+%%  attributes. Allow empty module definition.
+
+exp_defmodule([]) -> {[],[]};
+exp_defmodule([Doc|Atts]=Rest) ->
+    ?IF(is_doc_string(Doc), {[[doc,Doc]],Atts}, {[],Rest}).
+
+%% exp_defun(Rest) -> {Meta,Lambda | MatchLambda}.
 %%  Educated guess whether traditional (defun name (a1 a2 ...) ...)
-%%  or matching (defun name (patlist1 ...) (patlist2 ...))
+%%  or matching (defun name (patlist1 ...) (patlist2 ...)) and whether
+%%  there is a comment string.
 
 exp_defun([Args|Body]=Rest) ->
     case is_symb_list(Args) of
-        true -> exp_lambda_defun(Args, Body);
+        true  -> exp_lambda_defun(Args, Body);
         false -> exp_match_defun(Rest)
     end.
 
 exp_lambda_defun(Args, Body) ->
-    {Def,Doc} = exp_lambda_body(Body),
-    {['lambda',Args|Def],Doc}.
+    {Meta,Def} = exp_lambda_body(Body),
+    {Meta,['lambda',Args|Def]}.
 
-exp_lambda_body([Doc|Rest]=Body) ->
+exp_lambda_body([Doc|Body]=Rest) ->
     %% Test whether first expression is a comment string.
-    case io_lib:char_list(Doc) and (Rest =/= []) of
-        true -> {Rest,Doc};
-        false -> {Body,""}
-    end;
-exp_lambda_body(Body) -> {Body,""}.
+    ?IF(is_doc_string(Doc) and (Body =/= []), {[[doc,Doc]],Body}, {[],Rest});
+exp_lambda_body(Body) -> {[],Body}.
 
 exp_match_defun(Rest) ->
-    {Cls,Doc} = exp_match_clauses(Rest),
-    {['match-lambda'|Cls],Doc}.
+    {Meta,Cls} = exp_match_clauses(Rest),
+    {Meta,['match-lambda'|Cls]}.
 
 exp_match_clauses([Doc|Cls]=Rest) ->
     %% Test whether first thing is a comment string.
-    case io_lib:char_list(Doc) of
-        true -> {Cls,Doc};
-        false -> {Rest,""}
-    end;
-exp_match_clauses(Cls) -> {Cls,""}.
+    ?IF(is_doc_string(Doc), {[[doc,Doc]],Cls}, {[],Rest});
+exp_match_clauses(Cls) -> {[],Cls}.
 
-%% exp_defmacro(Rest) -> {MatchLambda,DocString}.
+is_doc_string(Doc) -> io_lib:char_list(Doc).
+
+%% exp_defmacro(Rest) -> {Meta,MatchLambda}.
 %%  Educated guess whether traditional (defmacro name (a1 a2 ...) ...)
 %%  or matching (defmacro name (patlist1 ...) (patlist2 ...)). Special
 %%  case (defmacro name arg ...) to make arg be whole argument list.
-%%  N.B. Macro definition is function of 2 arguments, the whole
-%%  argument list of macro call, and the current macro environment.
+%%  N.B. Macro definition is function of 2 arguments: the whole
+%%  argument list of macro call; and $ENV, the current macro
+%%  environment.
 
 exp_defmacro([Args|Body]=Rest) ->
-    {Cls,Doc} = case is_symb_list(Args) of
-		    true -> exp_lambda_defmacro([list|Args], Body);
-		    false ->
-			if is_atom(Args) ->
-				exp_lambda_defmacro(Args, Body);
-			   true ->
-				exp_match_defmacro(Rest)
-			end
-		end,
-    {['match-lambda'|Cls],Doc}.
+    {Meta,Cls} = case is_symb_list(Args) of
+                     true -> exp_lambda_defmacro([list|Args], Body);
+                     false ->
+                         if is_atom(Args) ->
+                                 exp_lambda_defmacro(Args, Body);
+                            true ->
+                                 exp_match_defmacro(Rest)
+                         end
+                 end,
+    {Meta,['match-lambda'|Cls]}.
 
 exp_lambda_defmacro(Args, Body) ->
-    {Def,Doc} = exp_lambda_body(Body),
-    {[[[Args,'$ENV']|Def]],Doc}.
+    {Meta,Def} = exp_lambda_body(Body),
+    {Meta,[[[Args,'$ENV']|Def]]}.
 
 exp_match_defmacro(Rest) ->
-    {Cls,Doc} = exp_match_clauses(Rest),
-    {map(fun ([Head|Body]) -> [[Head,'$ENV']|Body] end, Cls),Doc}.
+    {Meta,Cls} = exp_match_clauses(Rest),
+    {Meta,map(fun ([Head|Body]) -> [[Head,'$ENV']|Body] end, Cls)}.
 
-%% exp_syntax(Name, Def) -> Lambda | MatchLambda.
+%% exp_syntax(Name, Def) -> {Meta,Lambda | MatchLambda}.
 %%  N.B. New macro definition is function of 2 arguments, the whole
 %%  argument list of macro call, and the current macro environment.
 
@@ -1241,21 +1198,21 @@ exp_syntax(Name, Def) ->
     case Def of
         [macro|Cls] ->
             Mcls = map(fun ([Pat|Body]) -> [[Pat,'$ENV']|Body] end, Cls),
-            ['match-lambda'|Mcls];
+            {[],['match-lambda'|Mcls]};
         ['syntax-rules'|Rules] ->
             exp_rules(Name, [], Rules)
     end.
 
-%% exp_rules(Name, Keywords, Rules) -> Lambda.
+%% exp_rules(Name, Keywords, Rules) -> {Meta,Lambda}.
 %%  Expand into call function which expands macro an invocation time,
 %%  this saves much space and costs us nothing.
 %%  N.B. New macro definition is function of 2 arguments, the whole
 %%  argument list of macro call, and the current macro environment.
 
 exp_rules(Name, Keywords, Rules) ->
-    [lambda,[args,'$ENV'],
-     [':',lfe_macro,mbe_syntax_rules_proc,
-      [quote,Name],[quote,Keywords],[quote,Rules],args]].
+    {[],[lambda,[args,'$ENV'],
+         [':',lfe_macro,mbe_syntax_rules_proc,
+          [quote,Name],[quote,Keywords],[quote,Rules],args]]}.
 
 %%  By Andr� van Tonder
 %%  Unoptimized.  See Dybvig source for optimized version.
