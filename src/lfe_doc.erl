@@ -108,7 +108,7 @@ do_function(Name, Def, Meta, Line, Docs) ->
     ?IF(exclude(Name, Arity, Meta),
         Docs,
         begin
-            Fdoc = make_doc(function, {Name,Arity}, Pats, Meta, Line),
+            Fdoc = make_function_doc(Name, Arity, Pats, Meta, Line),
             [Fdoc|Docs]
         end).
 
@@ -118,7 +118,7 @@ do_macro(Name, Def, Meta, Line, Docs) ->
         Docs,
         begin
             Pats = get_macro_patterns(Def),
-            Mdoc = make_doc(macro, Name, Pats, Meta, Line),
+            Mdoc = make_macro_doc(Name, Pats, Meta, Line),
             [Mdoc|Docs]
         end).
 
@@ -155,43 +155,54 @@ exclude(_, _)        -> false.
 -spec get_function_patterns(LambdaForm) -> {Arity,Patterns} when
       LambdaForm :: nonempty_list(),
       Arity      :: non_neg_integer(),
-      Patterns   :: nonempty_list(pattern()).
+      Patterns   :: nonempty_list({pattern(),guard()}).
 -spec get_macro_patterns(LambdaForm) -> Patterns when
       LambdaForm :: nonempty_list(),
-      Patterns   :: nonempty_list(pattern()).
+      Patterns   :: nonempty_list({pattern(),guard()}).
 
-get_function_patterns([lambda,Args|_]) -> {length(Args),[Args]};
+get_function_patterns([lambda,Args|_]) -> {length(Args),[{Args,[]}]};
 get_function_patterns(['match-lambda',[Pat|_]=Cl|Cls]) ->
     {length(Pat),do_function_patterns([Cl|Cls], [])}.
 
-do_function_patterns([[Pat,['when'|_]=Guard|_]|Cls], Acc) ->
-    do_function_patterns(Cls, [Pat++[Guard]|Acc]);
+do_function_patterns([[Pat,['when'|Guard]|_]|Cls], Acc) ->
+    do_function_patterns(Cls, [{Pat,Guard}|Acc]);
 do_function_patterns([[Pat|_]|Cls], Acc) ->
-    do_function_patterns(Cls, [Pat|Acc]);
+    do_function_patterns(Cls, [{Pat,[]}|Acc]);
 do_function_patterns([], Acc) -> reverse(Acc).
 
 get_macro_patterns([lambda,[Args,_Env]|_]) -> [Args];
 get_macro_patterns(['match-lambda'|Cls])   -> do_macro_patterns(Cls, []).
 
-do_macro_patterns([[[Pat,_Env],['when'|_]=Guard|_]|Cls], Acc) ->
-    do_macro_patterns(Cls, [Pat++[Guard]|Acc]);
+do_macro_patterns([[[Pat,_Env],['when'|Guard]|_]|Cls], Acc) ->
+    do_macro_patterns(Cls, [{Pat,Guard}|Acc]);
 do_macro_patterns([[[Pat,_Env]|_]|Cls], Acc) ->
-    do_macro_patterns(Cls, [Pat|Acc]);
+    do_macro_patterns(Cls, [{Pat,[]}|Acc]);
 do_macro_patterns([], Acc) -> reverse(Acc).
 
-%% make_doc(Type, Name, Arity, Patterns, Doc, Line) -> doc().
+%% make_function_doc(Name, Arity, Patterns, Doc, Line) -> doc().
+%% make_macro_doc(Name, Patterns, Doc, Line) -> doc().
 %%  Convenience constructor for #doc{}, which is defined in src/lfe_doc.hrl.
 
--spec make_doc(Type, Name, Patterns, Doc, Line) -> doc() when
-      Type     :: function | macro,
-      Name     :: name(),
-      Patterns :: [[]],
-      Doc      :: binary() | string(),
+-spec make_function_doc(Name, Arity, Patterns, Meta, Line) -> doc() when
+      Name     :: atom(),
+      Arity    :: non_neg_integer(),
+      Patterns :: [{[],[]}],
+      Meta     :: [any()],
       Line     :: pos_integer().
 
-make_doc(Type, Name, Patterns, Meta, Line) ->
+-spec make_macro_doc(Name, Patterns, Meta, Line) -> doc() when
+      Name     :: atom(),
+      Patterns :: [{[],[]}],
+      Meta     :: [any()],
+      Line     :: pos_integer().
+
+make_function_doc(Name, Arity, Patterns, Meta, Line) ->
     Docs = collect_docs(Meta, []),
-    #doc{type=Type,name=Name,patterns=Patterns,doc=Docs,line=Line}.
+    #doc{type=function,name={Name,Arity},patterns=Patterns,doc=Docs,line=Line}.
+
+make_macro_doc(Name, Patterns, Meta, Line) ->
+    Docs = collect_docs(Meta, []),
+    #doc{type=macro,name=Name,patterns=Patterns,doc=Docs,line=Line}.
 
 string_to_binary(Str) when is_list(Str) ->
     unicode:characters_to_binary(Str, utf8, utf8);

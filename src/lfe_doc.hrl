@@ -16,8 +16,10 @@
 %% Author  : Eric Bailey
 %% Purpose : Common documentation-related definitions.
 
-%% TODO: Actually define this, if possible.
+%% TODO: Actually define these, if possible.
 -type pattern() :: [atom() | term()].
+
+-type guard() :: [term()].
 
 -type name() :: atom() | {atom(),non_neg_integer()}.
 
@@ -25,8 +27,8 @@
 -record(doc, {type     = error(missing_type)     :: function | macro,
               exported = false                   :: boolean(),
               name     = error(missing_name)     :: name(),
-              patterns = error(missing_patterns) :: [pattern()],
-              doc      = <<"">>                  :: binary(),
+              patterns = error(missing_patterns) :: [{pattern(),guard()}],
+              doc      = []                      :: [binary()],
               line     = error(missing_line)     :: pos_integer()
              }).
 
