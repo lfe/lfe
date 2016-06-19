@@ -16,15 +16,14 @@
 %% Author  : Eric Bailey
 %% Purpose : Lisp Flavoured Erlang (LFE) documentation parser.
 
-%% The functions herein are used internally by the compiler.
-%% There is no guarantee the API will not change dramatically in future.
+%% There is no guarantee the internal formats will not change
+%% but the interface functions should stay the same.
 
 -module(lfe_doc).
 
 -export([format_error/1]).
 
 -export([extract_module_docs/1,extract_module_docs/2,save_module_docs/3]).
-%%-export([function_patterns/1,macro_patterns/1]).
 
 %% Access functions for documentation in modules.
 -export([get_module_docs/1,module_doc/1,mf_docs/1,mf_doc_type/1,
@@ -50,11 +49,7 @@
 -endif.
 
 %% Errors
--spec format_error({bad_lambda,Name::atom(),Lambda::list()}) -> string().
-format_error({bad_lambda,Name,Lambda}) ->
-    lfe_io:format1("bad lambda: ~p\n    ~P", [Name,Lambda,10]);
-format_error(save_chunk) ->
-    "error saving doc chunk".
+format_error(_) -> "doc error".
 
 %% extract_module_docs(Defs, CompInfo) -> {ok,Docs} | {error,Errors,[]}.
 %%  Parse a module's docstrings and return the docs.
@@ -66,24 +61,23 @@ format_error(save_chunk) ->
       Cinfo  :: #cinfo{},
       Docs   :: [doc()],
       Errors :: nonempty_list({error,Line,Error}),
-      Error  :: {bad_lambda,Form}.
+      Error  :: any().
 
 extract_module_docs(Defs) ->                    %Just give a default #cinfo{}
     extract_module_docs(Defs, #cinfo{}).
 
-extract_module_docs([], _Ci)   -> {ok,[]};
+extract_module_docs([], _Ci)  -> {ok,[]};
 extract_module_docs(Defs, Ci) ->
     {Mdoc,Docs} = do_forms(Defs),
     Errors = filter(fun (#doc{}) -> false;
-                        (_) -> true
+                        (_)      -> true
                     end, Docs),
     ?DEBUG("#doc: ~p\n", [{Mdoc,Docs}], Ci#cinfo.opts),
     ?IF([] =:= Errors,
         {ok,{Mdoc,Docs}},
         {error,Errors,[]}).
 
-do_forms(Fs) ->
-    foldl(fun do_form/2, {[],[]}, Fs).
+do_forms(Fs) -> foldl(fun do_form/2, {[],[]}, Fs).
 
 do_form({['define-module',_,Meta,Atts],_}, {Mdoc,Docs}) ->
     {do_module_def(Meta, Atts, Mdoc),Docs};
@@ -114,7 +108,7 @@ do_function(Name, Def, Meta, Line, Docs) ->
     ?IF(exclude(Name, Arity, Meta),
         Docs,
         begin
-            Fdoc = make_doc(function, {Name,Arity}, Pats, Meta, Line),
+            Fdoc = make_function_doc(Name, Arity, Pats, Meta, Line),
             [Fdoc|Docs]
         end).
 
@@ -124,7 +118,7 @@ do_macro(Name, Def, Meta, Line, Docs) ->
         Docs,
         begin
             Pats = get_macro_patterns(Def),
-            Mdoc = make_doc(macro, Name, Pats, Meta, Line),
+            Mdoc = make_macro_doc(Name, Pats, Meta, Line),
             [Mdoc|Docs]
         end).
 
@@ -143,61 +137,72 @@ do_macro(Name, Def, Meta, Line, Docs) ->
       Name  :: atom(),
       Meta  :: list().
 
-exclude('LFE-EXPAND-EXPORTED-MACRO', 3, _) -> true;
+exclude('LFE-EXPAND-EXPORTED-MACRO', 3, _)  -> true;
 exclude('$handle_undefined_function', 2, _) ->  %Should check for doc string
     true;
 exclude(_, _, _) -> false.
 
-exclude('MODULE', _)                        -> true;
-exclude(_, _)                               -> false.
+exclude('MODULE', _) -> true;
+exclude(_, _)        -> false.
 
-%% function_patterns(LambdaForm) -> no | {yes,Arity,Patterns}.
-%% macro_patterns(LambdaForm) -> no | {yes,Patterns}.
+%% get_function_patterns(LambdaForm) -> {Arity,Patterns}.
+%% get_macro_patterns(LambdaForm)    -> Patterns.
 %%  Given a {match-,}lambda form, attempt to return its patterns (or
 %%  arglist).  N.B. A guard is appended to its pattern and Patterns is
-%%  a list of lists.  A macro definition must have 2 args, the pattern
+%%  a list of lists.  A macro definition must have two args, the pattern
 %%  and the environment.
 
 -spec get_function_patterns(LambdaForm) -> {Arity,Patterns} when
       LambdaForm :: nonempty_list(),
       Arity      :: non_neg_integer(),
-      Patterns   :: nonempty_list(pattern()).
+      Patterns   :: nonempty_list({pattern(),guard()}).
 -spec get_macro_patterns(LambdaForm) -> Patterns when
       LambdaForm :: nonempty_list(),
-      Patterns   :: nonempty_list(pattern()).
+      Patterns   :: nonempty_list({pattern(),guard()}).
 
-get_function_patterns([lambda,Args|_]) -> {length(Args),[Args]};
+get_function_patterns([lambda,Args|_]) -> {length(Args),[{Args,[]}]};
 get_function_patterns(['match-lambda',[Pat|_]=Cl|Cls]) ->
     {length(Pat),do_function_patterns([Cl|Cls], [])}.
 
-do_function_patterns([[Pat,['when'|_]=Guard|_]|Cls], Acc) ->
-    do_function_patterns(Cls, [Pat++[Guard]|Acc]);
+do_function_patterns([[Pat,['when'|Guard]|_]|Cls], Acc) ->
+    do_function_patterns(Cls, [{Pat,Guard}|Acc]);
 do_function_patterns([[Pat|_]|Cls], Acc) ->
-    do_function_patterns(Cls, [Pat|Acc]);
+    do_function_patterns(Cls, [{Pat,[]}|Acc]);
 do_function_patterns([], Acc) -> reverse(Acc).
 
 get_macro_patterns([lambda,[Args,_Env]|_]) -> [Args];
 get_macro_patterns(['match-lambda'|Cls])   -> do_macro_patterns(Cls, []).
 
-do_macro_patterns([[[Pat,_Env],['when'|_]=Guard|_]|Cls], Acc) ->
-    do_macro_patterns(Cls, [Pat++[Guard]|Acc]);
+do_macro_patterns([[[Pat,_Env],['when'|Guard]|_]|Cls], Acc) ->
+    do_macro_patterns(Cls, [{Pat,Guard}|Acc]);
 do_macro_patterns([[[Pat,_Env]|_]|Cls], Acc) ->
-    do_macro_patterns(Cls, [Pat|Acc]);
+    do_macro_patterns(Cls, [{Pat,[]}|Acc]);
 do_macro_patterns([], Acc) -> reverse(Acc).
 
-%% make_doc(Type, Name, Arity, Patterns, Doc, Line) -> doc().
+%% make_function_doc(Name, Arity, Patterns, Doc, Line) -> doc().
+%% make_macro_doc(Name, Patterns, Doc, Line) -> doc().
 %%  Convenience constructor for #doc{}, which is defined in src/lfe_doc.hrl.
 
--spec make_doc(Type, Name, Patterns, Doc, Line) -> doc() when
-      Type     :: function | macro,
-      Name     :: name(),
-      Patterns :: [[]],
-      Doc      :: binary() | string(),
+-spec make_function_doc(Name, Arity, Patterns, Meta, Line) -> doc() when
+      Name     :: atom(),
+      Arity    :: non_neg_integer(),
+      Patterns :: [{[],[]}],
+      Meta     :: [any()],
       Line     :: pos_integer().
 
-make_doc(Type, Name, Patterns, Meta, Line) ->
+-spec make_macro_doc(Name, Patterns, Meta, Line) -> doc() when
+      Name     :: atom(),
+      Patterns :: [{[],[]}],
+      Meta     :: [any()],
+      Line     :: pos_integer().
+
+make_function_doc(Name, Arity, Patterns, Meta, Line) ->
     Docs = collect_docs(Meta, []),
-    #doc{type=Type,name=Name,patterns=Patterns,doc=Docs,line=Line}.
+    #doc{type=function,name={Name,Arity},patterns=Patterns,doc=Docs,line=Line}.
+
+make_macro_doc(Name, Patterns, Meta, Line) ->
+    Docs = collect_docs(Meta, []),
+    #doc{type=macro,name=Name,patterns=Patterns,doc=Docs,line=Line}.
 
 string_to_binary(Str) when is_list(Str) ->
     unicode:characters_to_binary(Str, utf8, utf8);
@@ -215,7 +220,7 @@ string_to_binary(Bin) -> Bin.
 save_module_docs(Beam, {Mdoc,Fdocs0}, _Ci) ->
     Fdocs1 = exports_attributes(Beam, Fdocs0),
     %% Modified from elixir_module
-    LDoc = term_to_binary(#lfe_docs_v1{                                
+    LDoc = term_to_binary(#lfe_docs_v1{
                              docs=Fdocs1,
                              moduledoc=format_docs(Mdoc)
                             }),
@@ -260,8 +265,7 @@ add_beam_chunk(Bin, Id, ChunkData)
 %%  Take a list of doc strings and generate a list of indented doc
 %%  lines. Each doc string is indented separately. Should it be so?
 
-format_docs(Ds) ->
-    lists:flatmap(fun format_doc/1, Ds).
+format_docs(Ds) -> lists:flatmap(fun format_doc/1, Ds).
 
 format_doc(D) ->
     %% Split the string into separate lines, also trims trailing blanks.
@@ -285,8 +289,7 @@ format_doc_lines([L1|Ls0]) ->                   %First line not empty
     end;
 format_doc_lines([]) -> [].
 
-format_doc_lines(Ls, C) ->
-    lists:map(fun (L) -> skip_spaces(L, C) end, Ls).
+format_doc_lines(Ls, C) -> lists:map(fun (L) -> skip_spaces(L, C) end, Ls).
 
 count_spaces(L) ->
     {match,[{_,C}]} = re:run(L, <<"^ *">>, []),
@@ -296,8 +299,7 @@ skip_spaces(<<$\s,L/binary>>, C) when C > 0 ->
     skip_spaces(L, C-1);
 skip_spaces(L, _) -> L.                         %C =:= 0 or no space
 
-skip_empty_lines(Ls) ->
-    lists:splitwith(fun (L) -> L =:= <<>> end, Ls).
+skip_empty_lines(Ls) -> lists:splitwith(fun (L) -> L =:= <<>> end, Ls).
 
 %% Access functions for the module doc chunk.
 

@@ -45,7 +45,6 @@
 -import(lists, [reverse/1,foreach/2]).
 
 -include("lfe.hrl").
--include("lfe_doc.hrl").
 
 %% Colours for the LFE banner
 -define(RED(Str), "\e[31m" ++ Str ++ "\e[0m").

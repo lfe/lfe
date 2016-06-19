@@ -117,7 +117,7 @@ parse_file(File) ->
     case file:open(File, [read]) of
         {ok,F} ->
             io:get_line(F, ''),                 %Skip first line
-            case io:request(F, {get_until,'',lfe_scan,tokens,[2]}) of
+            case io:request(F, {get_until,unicode,'',lfe_scan,tokens,[2]}) of
                 {ok,Ts,_} ->
                     Ret = parse_file1(Ts, [], []),
                     file:close(F),
@@ -154,7 +154,7 @@ expand_macros(Fs0, File, _, _) ->
 %%  make lfe_lint happy.
 
 check_code(Fs, File, _, _) ->
-    Module = [{['define-module',dummy,[],[export,[main,1]]],1}|Fs],
+    Module = [{['define-module',dummy,[],[[export,[main,1]]]],1}|Fs],
     case lfe_lint:module(Module) of
         {ok,dummy,Ws} ->
             list_warnings(File, Ws);
@@ -186,9 +186,9 @@ eval_code(Fenv, _, Args, _) ->
         %% Catch all exceptions in the code.
         Class:Error ->
             St = erlang:get_stacktrace(),       %Need to get this first
-            Sf = fun (_) -> false end,
-            Ff = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
-            Cs = lfe_lib:format_exception(Class, Error, St, Sf, Ff, 1),
+            Skip = fun (_) -> false end,
+            Format = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
+            Cs = lfe_lib:format_exception(Class, Error, St, Skip, Format, 1),
             io:put_chars(Cs),
             halt(?ERROR_STATUS)
     end.
