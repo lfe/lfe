@@ -279,7 +279,7 @@ tag_lines(E, No) ->
               end, E).
 
 map_lines(F, E) ->
-    erl_lint:modify_line(E, F).
+    erl_parse:map_anno(E, F).
 
 tagged_messages(MsL) ->
     [{File,
@@ -369,7 +369,7 @@ intro_variables(FormsNoShadows, State) ->
     sofs:to_external(sofs:family_union(sofs:family(QIds), I1)).
 
 intro_set_line(Tag, Vars) ->
-    L = erl_parse:set_line(1, fun(_) -> Tag end),
+    L = erl_anno:set_line(1, fun(_) -> Tag end),
     [{var,L,V} || V <- Vars].
 
 compile_errors(FormsNoShadows) ->
@@ -436,7 +436,7 @@ used_genvar_check(FormsNoShadows, State) ->
                             AF = fun(Line) ->
                                          {extra, Line, get(?QLC_FILE), OrigVar}
                                  end,
-                            L2 = erl_parse:set_line(L, AF),
+                            L2 = erl_anno:set_line(L, AF),
                             {var, L2, V}
                     end,
                 Vs = [Var || {var, _, V}=Var <- qlc:var_fold(F, [], LE),
@@ -2467,13 +2467,13 @@ aux_var(Name, LcN, QN, N, AllVars) ->
     qlc:aux_name(lists:concat([Name, LcN, '_', QN, '_']), N, AllVars).
 
 no_compiler_warning(L) ->
-    erl_parse:set_line(L, fun(Line) -> -abs(Line) end).
+    erl_anno:set_line(L, fun(Line) -> -abs(Line) end).
 
 abs_loc(L) ->
-    loc(erl_parse:set_line(L, fun(Line) -> abs(Line) end)).
+    loc(erl_anno:set_line(L, fun(Line) -> abs(Line) end)).
 
 loc(L) ->
-    {location,Location} = erl_parse:get_attribute(L, location),
+    {location,Location} = erl_anno:location(L),
     Location.
 
 list2op([E], _Op) ->
@@ -2648,7 +2648,7 @@ nos_pattern(T, S, PVs) ->
     {T, S, PVs}.
 
 nos_var(L, Name) ->
-    erl_parse:set_line(L, fun(Line) -> {nos,Name,Line} end).
+    erl_anno:set_line(L, fun(Line) -> {nos,Name,Line} end).
 
 used_var(V, Vs, UV) ->
     case dict:find(V, Vs) of
@@ -2677,9 +2677,9 @@ undo_no_shadows(E) ->
     var_map(fun undo_no_shadows1/1, E).
 
 undo_no_shadows1({var, L, _}=Var) ->
-    case erl_parse:get_attribute(L, line) of
+    case erl_anno:line(L) of
         {line,{nos,V,_VL}} ->
-            NL = erl_parse:set_line(L, fun({nos,_V,VL}) -> VL end),
+            NL = erl_anno:set_line(L, fun({nos,_V,VL}) -> VL end),
             undo_no_shadows1({var, NL, V});
         %% Next clause added to fix error in erl_scan:set_attr/3. /RV
         {line,Line} when is_integer(Line) -> setelement(2, Var, Line);
@@ -2691,9 +2691,9 @@ restore_line_numbers(E) ->
     var_map(fun restore_line_numbers1/1, E).
 
 restore_line_numbers1({var, L, V}=Var) ->
-    case erl_parse:get_attribute(L, line) of
+    case erl_anno:line(L) of
         {line,{nos,_,_}} ->
-            NL = erl_parse:set_line(L, fun({nos,_V,VL}) -> VL end),
+            NL = erl_anno:set_line(L, fun({nos,_V,VL}) -> VL end),
             restore_line_numbers1({var, NL, V});
         %% Next clause added to fix error in erl_scan:set_attr/3. /RV
         {line,Line} when is_integer(Line) -> setelement(2, Var, Line);
@@ -2708,22 +2708,22 @@ make_lcid(Attrs, No) when is_integer(No), No > 0 ->
     F = fun(Line) when is_integer(Line), Line < (1 bsl ?MAX_NUM_OF_LINES) ->
                 sgn(Line) * ((No bsl ?MAX_NUM_OF_LINES) + sgn(Line) * Line)
         end,
-    erl_parse:set_line(Attrs, F).
+    erl_anno:set_line(Attrs, F).
 
 is_lcid(Attrs) ->
     try
-        {line,Id} = erl_parse:get_attribute(Attrs, line),
+        {line,Id} = erl_anno:line(Attrs),
         is_integer(Id) andalso (abs(Id) > (1 bsl ?MAX_NUM_OF_LINES))
     catch _:_ ->
         false
     end.
 
 get_lcid_no(IdAttrs) ->
-    {line,Id} = erl_parse:get_attribute(IdAttrs, line),
+    {line,Id} = erl_anno:line(IdAttrs),
     abs(Id) bsr ?MAX_NUM_OF_LINES.
 
 get_lcid_line(IdAttrs) ->
-    {line,Id} = erl_parse:get_attribute(IdAttrs, line),
+    {line,Id} = erl_anno:line(IdAttrs),
     sgn(Id) * (abs(Id) band ((1 bsl ?MAX_NUM_OF_LINES) - 1)).
 
 sgn(X) when X >= 0 ->
@@ -2802,4 +2802,3 @@ display_forms(Forms) ->
 display_forms(_) ->
     ok.
 -endif.
-
