@@ -3,7 +3,7 @@
   (export (matchfun 3))
   (export-macro add varargs forty-two? tricky))
 
-(defrecord foo bar baz)
+(include-file "foo.lfe")
 
 (defmacro add (x y)
   "Add `x` and `y`."
@@ -39,6 +39,10 @@
   ([x y z] (when (> x y) (> y z))     'gt)
   ([x y z] (when (=:= x y) (=:= y z)) 'eq)
   ([_ _ _]                            'idk))
+
+(defun foo-bar
+  "Given a #foo{}, return its bar."
+  ([(match-foo bar bar)] bar))
 
 
 (defmodule another-example)
