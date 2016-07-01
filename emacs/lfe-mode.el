@@ -237,7 +237,7 @@ Other commands:
       "car" "cdr" "caar" "cadr" "cdar" "cddr"
       ;; Just for the fun of it.
       "caaar" "caadr" "cadar" "caddr" "cdaar" "cddar" "cdadr" "cdddr"
-      "list" "list*" "tuple" "binary"
+      "function" "list" "list*" "tuple" "binary"
       "map" "mref" "mset" "mupd" "map-get" "map-set" "map-update")
     "LFE builtin functions (BIFs) and some type macros")
   (defconst lfe-core-forms

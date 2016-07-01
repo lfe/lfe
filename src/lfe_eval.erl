@@ -136,11 +136,16 @@ eval_expr(['map-set',M|As], Env) ->
     eval_expr([mset,M|As], Env);
 eval_expr(['map-update',M|As], Env) ->
     eval_expr([mupd,M|As], Env);
+eval_expr([function,F,Ar], Env) ->
+    Apply = fun (Vals) -> eval_expr([F|Vals], Env) end,
+    make_lambda(Ar, Apply);
+eval_expr([function,M,F,Ar], _) ->
+    erlang:make_fun(M, F, Ar);
 %% Handle the Core closure special forms.
-eval_expr([lambda|_]=Sexpr, Env) ->
-    eval_lambda_expr(Sexpr, Env);
-eval_expr(['match-lambda'|_]=Sexpr, Env) ->
-    eval_lambda_expr(Sexpr, Env);
+eval_expr([lambda|_]=Lambda, Env) ->
+    eval_lambda(Lambda, Env);
+eval_expr(['match-lambda'|_]=Mlambda, Env) ->
+    eval_match_lambda(Mlambda, Env);
 eval_expr(['let'|Body], Env) ->
     eval_let(Body, Env);
 eval_expr(['let-function'|Body], Env) ->
@@ -330,21 +335,22 @@ map_key(E, _) when not is_atom(E) -> E;         %Everything else
 map_key(_, _) -> eval_error(illegal_mapkey).
 -endif.
 
-%% eval_lambda_expr([lambda|LambdaBody], Env) -> Val.
+%% eval_lambda([lambda|LambdaBody], Env) -> Val.
 %%  Evaluate (lambda args ...).
-%% eval_lambda_expr(['match-lambda'|MatchClauses], Env) -> Val.
+%% eval_match_lambda(['match-lambda'|MatchClauses], Env) -> Val.
 %%  Evaluate (match-lambda cls ...).
 
-eval_lambda_expr(Sexp, Env) ->
-    {Arity,Apply} =
-        case Sexp of
-            [lambda,Args|Body] ->
-                { length(Args)
-                , fun (Vals) -> apply_lambda(Args, Body, Vals, Env) end };
-            ['match-lambda'|Cls] ->
-                { match_lambda_arity(Cls)
-                , fun(Vals) -> apply_match_lambda(Cls, Vals, Env) end }
-        end,
+eval_lambda([lambda,Args|Body], Env) ->
+    Apply =  fun (Vals) -> apply_lambda(Args, Body, Vals, Env) end,
+    make_lambda(length(Args), Apply);
+eval_lambda(_, _) ->
+    eval_error({bad_form,lambda}).
+
+eval_match_lambda(['match-lambda'|Cls], Env) ->
+    Apply = fun(Vals) -> apply_match_lambda(Cls, Vals, Env) end,
+    make_lambda(match_lambda_arity(Cls), Apply).
+
+make_lambda(Arity, Apply) ->
     %% This is a really ugly hack! But it's the same hack as in erl_eval.
     case Arity of
         0  -> fun () -> Apply([]) end;
@@ -366,7 +372,8 @@ eval_lambda_expr(Sexp, Env) ->
         14 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N) ->
                       Apply([A,B,C,D,E,F,G,H,I,J,K,L,M,N]) end;
         15 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O) ->
-                      Apply([A,B,C,D,E,F,G,H,I,J,K,L,M,N,O]) end
+                      Apply([A,B,C,D,E,F,G,H,I,J,K,L,M,N,O]) end;
+        _ -> eval_error(argument_limit)
     end.
 
 apply_lambda(Args, Body, Vals, Env0) ->
