@@ -262,6 +262,14 @@ comp_expr(['map-set',Map|As], Env, L, St) ->
     comp_expr(['mset',Map|As], Env, L, St);
 comp_expr(['map-update',Map|As], Env, L, St) ->
     comp_expr(['mupd',Map|As], Env, L, St);
+comp_expr([function,F,Ar], Env, L, St) ->
+    %% In general case create a lambda.
+    Args = new_vars(Ar),
+    Body = [[F|Args]],
+    comp_lambda(Args, Body, Env, L, St);
+comp_expr([function,M,F,Ar], Env, L, St) ->
+    %% The arguments are all literals.
+    comp_expr([call,?Q(erlang),?Q(make_fun),?Q(M),?Q(F),Ar], Env, L, St);
 %% Handle the Core closure special forms.
 comp_expr([lambda,Args|Body], Env, L, St) ->
     comp_lambda(Args, Body, Env, L, St);
@@ -706,20 +714,27 @@ tag_tail([[Tag|Tail]|_], Tag) -> Tail;
 tag_tail([_|Try], Tag) -> tag_tail(Try, Tag);
 tag_tail([], _) -> [].
 
-%% comp_funcall(Call, Args, Env, Line, State) -> {Core,State}.
-%%  Special case if Call is directly lambda or match-lambda, convert
-%%  to a let. Might be useful in macros.
+%% comp_funcall(Function, Args, Env, Line, State) -> {Core,State}.
+%%  Special case if Function is directly function, lambda or
+%%  match-lambda, convert to a let. Might be useful in macros. We can
+%%  do this is the lambda body is still "inside" the outer
+%%  function. If handling of function changes then may need to be
+%%  changed.
 
-comp_funcall([lambda,Las|Body]=F, As, Env, L, St) ->
-    if length(Las) == length(As) ->             %Check right number of args
-            %% Convert into a let. Would like to sequentialise eval of
-            %% args here but leave that to let.
-            Vbs = zipwith(fun (V, E) -> [V,E] end, Las, As),
-            comp_let(Vbs, Body, Env, L, St);
+comp_funcall([function,F,Ar]=Func, As, Env, L, St) ->
+    if Ar == length(As) ->                      %Check right number of args
+            Las = new_vars(Ar),
+            comp_funcall_let(Las, [[F|Las]], As, Env, L, St);
        true ->                                  %Catch arg mismatch at runtime
-            comp_funcall_1(F, As, Env, L, St)
+            comp_funcall_1(Func, As, Env, L, St)
     end;
-comp_funcall(['match-lambda'|Cls]=F, As, Env, L, St0) ->
+comp_funcall([lambda,Las|Body]=Func, As, Env, L, St) ->
+    if length(Las) == length(As) ->             %Check right number of args
+            comp_funcall_let(Las, Body, As, Env, L, St);
+       true ->                                  %Catch arg mismatch at runtime
+            comp_funcall_1(Func, As, Env, L, St)
+    end;
+comp_funcall(['match-lambda'|Cls]=Func, As, Env, L, St0) ->
     case match_lambda_arity(Cls) == length(As) of
         true ->
             %% Expand comp_let as we need to special case body.
@@ -729,18 +744,24 @@ comp_funcall(['match-lambda'|Cls]=F, As, Env, L, St0) ->
             Efun = fun (E, St) -> comp_expr(E, Env, L, St) end,
             {Ces,St2} = mapfoldl(Efun, St1, As),
             {ann_c_let([L], Cvs, ann_c_values([L], Ces), Cb),St2};
-        false ->                %Catch arg mismatch at runtime
-            comp_funcall_1(F, As, Env, L, St0)
+        false ->                                %Catch arg mismatch at runtime
+            comp_funcall_1(Func, As, Env, L, St0)
     end;
-comp_funcall(F, As, Env, L, St0) ->
-    comp_funcall_1(F, As, Env, L, St0).         %Naively just do it.
+comp_funcall(Func, As, Env, L, St0) ->
+    comp_funcall_1(Func, As, Env, L, St0).      %Naively just do it.
 
-comp_funcall_1(F, As, Env, L, St0) ->
+comp_funcall_let(Las, Body, As, Env, L, St) ->
+    %% Convert into a let. Would like to sequentialise eval of
+    %% args here but leave that to let.
+    Vbs = zipwith(fun (V, E) -> [V,E] end, Las, As),
+    comp_let(Vbs, Body, Env, L, St).
+
+comp_funcall_1(Func, As, Env, L, St0) ->
     App = fun ([Cf|Cas], _, Li, St) ->
                   Ann = line_file_anno(Li, St),
                   {ann_c_apply(Ann, Cf, Cas),St}
           end,
-    comp_args([F|As], App, Env, L, St0).
+    comp_args([Func|As], App, Env, L, St0).
 
 %% comp_binary(Segs, Env, Line, State) -> {CbinaryExpr,State}.
 %% Compile a binary.
@@ -1348,6 +1369,13 @@ comp_gen_anno(L, _) ->
 new_fun_name(Pre, St) ->
     C = St#cg.fc,
     {list_to_atom("'" ++ Pre ++ "~" ++ integer_to_list(C)),St#cg{fc=C+1}}.
+
+%% new_vars(N) -> Vars.
+
+new_vars(N) when N > 0 ->
+    V = list_to_atom(integer_to_list(N)),
+    [V|new_vars(N-1)];
+new_vars(0) -> [].
 
 %% new_c_var(Line, State) -> {c_var(),State}.
 %% Create a hopefully new core variable.
