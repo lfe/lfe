@@ -26,7 +26,7 @@
    ;; Other functions.
    (identity 1))
   ;; Threading macros
-  (export-macro -> ->>))
+  (export-macro -> ->> as-> cond-> cond->> some-> some->>))
 
 ;;; Function composition.
 
@@ -84,42 +84,103 @@
 
 ;; Macro helper functions
 (eval-when-compile
-  (defun flip (f) (lambda (x y) (funcall f y x)))
   (defun ->*
-    ((x (= `(fun ,_ ,_) f))
-     `(funcall ,f ,x))
-    ((x `(quote ,y))
-     `(list ,x ',y))
-    ((x `(,f . ,args))
-     `(,f ,x ,@args))
-    ((x sexp)
-     `(list ,sexp ,x)))
+    ([`(,x)]                     x)
+    ([`(,x ,(= `(fun . ,_) f))] `(funcall ,f ,x))
+    ([`(,x (quote (,y . ,ys)))] `(list* ',y ,x ',ys))
+    ([`(,x (quote ,y))]         `(list ',y ,x))
+    ([`(,x (,sexp . ,sexps))]   `(,sexp ,x ,@sexps))
+    ([`(,x ,sexp)]              `(list ,sexp ,x))
+    ([`(,x ,sexp . ,sexps)]
+     (->* (cons (->* (list x sexp)) sexps))))
   (defun ->>*
-    ((x (= `(fun ,_ ,_) f))
-     `(funcall ,f ,x))
-    ((x `(quote ,y))
-     `(list ',y ,x))
-    ((x `(,f . ,args))
-     `(,f ,@args ,x))
-    ((x sexp)
-     `(list ,sexp ,x))))
+    ([`(,x)]                      x)
+    ([`(,x ,(= `(fun . ,_) f))] `(funcall ,f ,x))
+    ([`(,x (quote (,y . ,ys)))] `(list* ',y ',@ys (list ,x)))
+    ([`(,x (quote ,y))]         `(list ',y ,x))
+    ([`(,x (,f . ,sexps))]      `(,f ,@sexps ,x))
+    ([`(,x ,sexp)]              `(list ,sexp ,x))
+    ([`(,x ,sexp . ,sexps)]
+     (->>* (cons (->>* (list x sexp)) sexps))))
+  (defun as->*
+    ([`(,x ,_)]           x)
+    ([`(,x ,name ,sexp)] `(let ((,name ,x)) ,sexp))
+    ([`(,x ,name ,sexp . ,sexps)]
+     (as->* (list* (as->* (list x name sexp)) name sexps))))
+  (defun cond->*
+    ([`(,x)]              x)
+    ([`(,x ,_)]           (error "cond-> requires test/sexp pairs."))
+    ([`(,x ,test ,sexp)] `(if ,test ,(->* (list x sexp)) ,x))
+    ([`(,x ,test ,sexp . ,clauses)]
+     (cond->* (cons (cond->* (list x test sexp)) clauses))))
+  (defun cond->>*
+    ([`(,x)]              x)
+    ([`(,x ,_)]           (error "cond->> requires test/sexp pairs."))
+    ([`(,x ,test ,sexp)] `(if ,test ,(->>* (list x sexp)) ,x))
+    ([`(,x ,test ,sexp . ,clauses)]
+     (cond->>* (cons (cond->>* (list x test sexp)) clauses))))
+  (defun some->*
+    ([`(,x)] x)
+    ([`(,x ,sexp)]
+     (case x
+       ('undefined 'undefined)
+       (|-X-|       (->* (list |-X-| sexp)))))
+    ([`(,x ,sexp . ,sexps)]
+     (some->* (cons (some->* (list x sexp)) sexps))))
+  (defun some->>*
+    ([`(,x)] x)
+    ([`(,x ,sexp)]
+     (case x
+       ('undefined 'undefined)
+       (|-X-|       (->>* (list |-X-| sexp)))))
+    ([`(,x ,sexp . ,sexps)]
+     (some->>* (cons (some->>* (list x sexp)) sexps)))))
 
-(defmacro ->
-  "Thread an S-expression through `sexps`.
-  Insert `x` as the second item in the first `sexp`, making a list of it if it
-  is not a list already. If there are more `sexps`, insert the first `sexp` as
-  the second item in second `sexp`, etc."
-  (`(,x) x)
-  (`(,x ,sexp) (->* x sexp))
-  (`(,x ,sexp . ,sexps)
-   (lists:foldl (flip #'->*/2) (->* x sexp) sexps)))
+(defmacro -> args
+  "x . sexps
+  Thread `x` through `sexps`. Insert `x` as the second item in the first `sexp`,
+  making a list of it if it is not a list already. If there are more `sexps`,
+  insert the first `sexp` as the second item in second `sexp`, etc."
+  (->* args))
 
-(defmacro ->>
-  "Thread an S-expression through `sexps`.
-  Insert `x` as the last item in the first `sexp`, making a list of it if it is
-  not a list already. If there are more `sexps`, insert the first `sexp` as the
-  last item in second `sexp`, etc."
-  (`(,x) x)
-  (`(,x ,sexp) (->>* x sexp))
-  (`(,x ,sexp . ,sexps)
-   (lists:foldl (flip #'->>*/2) (->>* x sexp) sexps)))
+(defmacro ->> args
+  "x . sexps
+  Thread `x` through `sexps`. Insert `x` as the last item in the first `sexp`,
+  making a list of it if it is not a list already. If there are more `sexps`,
+  insert the first `sexp` as the last item in second `sexp`, etc."
+  (->>* args))
+
+(defmacro as-> args
+  "expr name . sexps
+  Bind `name` to `expr`, evaluate the first `sexp` in the lexical context of
+  that binding, then bind `name` to that result, repeating for each successive
+  `sexp` in `sexps`, returning the result of the last `sexp`."
+  (as->* args))
+
+(defmacro cond-> args
+  "expr . clauses
+  Given an `expr`ession and a set of `test`/`sexp` pairs, thread `x` (via `->`)
+  through each `sexp` for which the corresponding `test` expression is `true`.
+  Note that, unlike `cond` branching, `cond->` threading does not short circuit
+  after the first `true` test expression."
+  (cond->* args))
+
+(defmacro cond->> args
+  "expr . clauses
+  Given an `expr`ession and a set of `test`/`sexp` pairs, thread `x` (via `->>`)
+  through each `sexp` for which the corresponding `test` expression is `true`.
+  Note that, unlike `cond` branching, `cond->>` threading does not short circuit
+  after the first `true` `test` expression."
+  (cond->>* args))
+
+(defmacro some-> args
+  "x . sexps
+  When `x` is not `undefined`, thread it into the first `sexp` (via `->`),
+  and when that result is not `undefined`, through the next, etc."
+  (some->* args))
+
+(defmacro some->> args
+  "x . sexps
+  When `x` is not `undefined`, thread it into the first sexp (via `->>`),
+  and when that result is not `undefined`, through the next, etc."
+  (some->>* args))
