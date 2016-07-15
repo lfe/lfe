@@ -62,9 +62,9 @@ Or used in another function call:
 \f[]
 .fi
 .PP
-The usage above is best when \f[C]compose\f[] will be called from in
-functions like \f[C](lists:foldl\ ...)\f[] or
-\f[C](lists:filter\ ...)\f[], etc.
+The usage above is best when \f[C]compose\f[] will be called by
+higher\-order functions like \f[C]lists:foldl/3\f[] or
+\f[C]lists:filter/2\f[], etc.
 However, one may also call \f[C]compose\f[] in the following manner,
 best suited for direct usage:
 .IP
@@ -111,5 +111,118 @@ of \f[C]args\f[].
 \f[B](identity x)\f[]
 .PP
 Identity function.
+.SS Threading Macros
+.PP
+Note: The original versions were copied from Tim Dysinger\[aq]s lfesl
+repo here:
+.IP
+.nf
+\f[C]
+https://github.com/lfex/lfesl/blob/master/include/thread.lfe
+\f[]
+.fi
+.PP
+\f[B](\-> ...)\f[]
+.PP
+Thread first.
+.PP
+Example usage, demonstrating ordering:
+.IP
+.nf
+\f[C]
+>\ (set\ o\ \[aq](#(a\ 1)\ #(b\ 2)\ #(c\ 3)))
+(#(a\ 1)\ #(b\ 2)\ #(c\ 3))
+>\ (\->\ o
+>\ \ \ \ \ (++\ \[aq](#(d\ 4)))
+>\ \ \ \ \ (++\ \[aq](#(e\ 5)))
+>\ \ \ \ \ (++\ \[aq](#(f\ 6))))
+(#(a\ 1)\ #(b\ 2)\ #(c\ 3)\ #(d\ 4)\ #(e\ 5)\ #(f\ 6))
+\f[]
+.fi
+.PP
+Note that the use of \f[C]\->\f[] in this example results in each
+successive value being \f[I]appended\f[] to the input list.
+.PP
+Another example showing how this works:
+.IP
+.nf
+\f[C]
+>\ (lists:sublist
+>\ \ \ (lists:reverse
+>\ \ \ \ \ (lists:sort
+>\ \ \ \ \ \ \ (lists:merge
+>\ \ \ \ \ \ \ \ \ (string:tokens
+>\ \ \ \ \ \ \ \ \ \ \ (string:to_upper\ "a\ b\ c\ d\ e")
+>\ \ \ \ \ \ \ \ \ \ \ "\ ")
+>\ \ \ \ \ \ \ \ \ \[aq]("X"\ "F"\ "L"))))
+>\ \ \ 2\ 3)
+("L"\ "F"\ "E")
+\f[]
+.fi
+.PP
+Can be rewritten as this:
+.IP
+.nf
+\f[C]
+>\ (\->\ "a\ b\ c\ d\ e"
+>\ \ \ \ \ (string:to_upper)
+>\ \ \ \ \ (string:tokens\ "\ ")
+>\ \ \ \ \ (lists:merge\ \[aq]("X"\ "F"\ "L"))
+>\ \ \ \ \ (lists:sort)
+>\ \ \ \ \ (lists:reverse)
+>\ \ \ \ \ (lists:sublist\ 2\ 3))
+("L"\ "F"\ "E")
+\f[]
+.fi
+.PP
+\f[B](\->> ...)\f[]
+.PP
+Thread last.
+.PP
+Example usage, demonstrating ordering:
+.IP
+.nf
+\f[C]
+>\ (set\ o\ \[aq](#(a\ 1)\ #(b\ 2)\ #(c\ 3)))
+(#(a\ 1)\ #(b\ 2)\ #(c\ 3))
+>\ (\->>\ o
+>\ \ \ \ \ \ (++\ \[aq](#(d\ 4)))
+>\ \ \ \ \ \ (++\ \[aq](#(e\ 5)))
+>\ \ \ \ \ \ (++\ \[aq](#(f\ 6))))
+(#(f\ 6)\ #(e\ 5)\ #(d\ 4)\ #(a\ 1)\ #(b\ 2)\ #(c\ 3))
+\f[]
+.fi
+.PP
+Note that the use of \f[C]\->>\f[] in this example results in each
+successive value being \f[I]prepended\f[] to the input list.
+.PP
+Another example showing how this:
+.IP
+.nf
+\f[C]
+>\ (lists:foldl\ #\[aq]+/2\ 0
+>\ \ \ (take\ 10
+>\ \ \ \ \ (lists:filter
+>\ \ \ \ \ \ \ (compose\ #\[aq]even?/1\ #\[aq]round/1)
+>\ \ \ \ \ \ \ (lists:map
+>\ \ \ \ \ \ \ \ \ (lambda\ (x)
+>\ \ \ \ \ \ \ \ \ \ \ (math:pow\ x\ 2))
+>\ \ \ \ \ \ \ \ \ (seq\ 42)))))
+1540.0
+\f[]
+.fi
+.PP
+Can be rewritten as this:
+.IP
+.nf
+\f[C]
+>\ (\->>\ (seq\ 42)
+>\ \ \ \ \ \ (lists:map\ (lambda\ (x)\ (math:pow\ x\ 2)))
+>\ \ \ \ \ \ (lists:filter\ (compose\ #\[aq]even?/1\ #\[aq]round/1))
+>\ \ \ \ \ \ (take\ 10)
+>\ \ \ \ \ \ (lists:foldl\ #\[aq]+/2\ 0))
+1540.0
+\f[]
+.fi
 .SH AUTHORS
 Tim Dysinger, Duncan McGreggor, Eric Bailey.
