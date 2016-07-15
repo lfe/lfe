@@ -24,7 +24,9 @@
    ;; Partial application.
    (partial 2)
    ;; Other functions.
-   (identity 1)))
+   (identity 1))
+  ;; Threading macros
+  (export-macro -> ->>))
 
 ;;; Function composition.
 
@@ -77,3 +79,48 @@
 (defun identity (x)
   "Identity function."
   x)
+
+
+;;; Threading macros
+
+;; Macro helper functions
+(eval-when-compile
+  (defun flip (f) (lambda (x y) (funcall f y x)))
+  (defun ->*
+    ((x (= `(fun ,_ ,_) f))
+     `(funcall ,f ,x))
+    ((x `(quote ,y))
+     `(list ,x ',y))
+    ((x `(,f . ,args))
+     `(,f ,x ,@args))
+    ((x sexp)
+     `(list ,sexp ,x)))
+  (defun ->>*
+    ((x (= `(fun ,_ ,_) f))
+     `(funcall ,f ,x))
+    ((x `(quote ,y))
+     `(list ',y ,x))
+    ((x `(,f . ,args))
+     `(,f ,@args ,x))
+    ((x sexp)
+     `(list ,sexp ,x))))
+
+(defmacro ->
+  "Thread an S-expression through `sexps`.
+  Insert `x` as the second item in the first `sexp`, making a list of it if it
+  is not a list already. If there are more `sexps`, insert the first `sexp` as
+  the second item in second `sexp`, etc."
+  (`(,x) x)
+  (`(,x ,sexp) (->* x sexp))
+  (`(,x ,sexp . ,sexps)
+   (lists:foldl (flip #'->*/2) (->* x sexp) sexps)))
+
+(defmacro ->>
+  "Thread an S-expression through `sexps`.
+  Insert `x` as the last item in the first `sexp`, making a list of it if it is
+  not a list already. If there are more `sexps`, insert the first `sexp` as the
+  last item in second `sexp`, etc."
+  (`(,x) x)
+  (`(,x ,sexp) (->>* x sexp))
+  (`(,x ,sexp . ,sexps)
+   (lists:foldl (flip #'->>*/2) (->>* x sexp) sexps)))
