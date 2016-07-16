@@ -37,8 +37,9 @@
                #"" #"abc"
                () (1 2)
                #() #(1 2)
-               #m()
-               #m(a 1 b 2))))
+               ;; FIXME: only test maps on 17
+               ;; #m() #m(a 1 b 2)
+               )))
     (line (is (=:= (clj:identity x) x))))
   (line (test-pat 3 (clj:identity (+ 1 2))))
   (line (test-pat 'true (clj:identity (> 5 0)))))
@@ -53,8 +54,9 @@
                  #"" #"abc"
                  () (1 2)
                  #() #(1 2)
-                 #m()
-                 #m(a 1 b 2))))
+                 ;; FIXME: only test maps on 17
+                 ;; #m() #m(a 1 b 2)
+                 )))
       (line (is (=:= (clj:identity x) (c0 x)))))
     (line (is (=:= (clj:identity (+ 1 2 3)) (c0 6))))
     (line (is (=:= (clj:identity (quote foo)) (c0 'foo))))))
