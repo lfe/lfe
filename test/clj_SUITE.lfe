@@ -20,13 +20,13 @@
 
 (defmodule clj_SUITE
   "Test clj exports."
-  (export (all 0) (identity 1) (compose 1) (partial 1)))
+  (export (all 0) (identity 1) (comp 1) (partial 1)))
 
 (defmacro is (expr)
   `(let (('true ,expr))
      ,expr))
 
-(defun all () '(identity compose))
+(defun all () '(identity comp))
 
 (defun identity (_config)
   (lc ((<- x '(atom
@@ -43,8 +43,8 @@
   (line (test-pat 3 (clj:identity (+ 1 2))))
   (line (test-pat 'true (clj:identity (> 5 0)))))
 
-(defun compose (_config)
-  (flet ((c0 (x) (funcall (clj:compose) x)))
+(defun comp (_config)
+  (flet ((c0 (x) (funcall (clj:comp) x)))
     (lc ((<- x '(atom
                  0 42
                  0.0 3.14

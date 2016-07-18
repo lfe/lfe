@@ -20,7 +20,7 @@
   "LFE Clojure interface library."
   (export
    ;; Function composition.
-   (compose 2) (compose 3) (compose 1) (compose 0)
+   (comp 2) (comp 3) (comp 1) (comp 0)
    ;; Partial application.
    (partial 2)
    ;; Other functions.
@@ -30,26 +30,25 @@
 
 ;;; Function composition.
 
-(defun compose
+(defun comp
   "Function composition.
   If the second argument is a function, compose `f` and `g`.
   Otherwise, compose a list of functions `fs` and apply the result to `x`."
   ((f g) (when (is_function g))
    (lambda (x)
-     (funcall f
-       (funcall g x))))
+     (funcall f (funcall g x))))
   ((fs x)
-   (funcall (compose fs) x)))
+   (funcall (comp fs) x)))
 
-(defun compose (f g x)
-  "Equivalent to `(funcall (compose f g) x)`."
-  (funcall (compose f g) x))
+(defun comp (f g x)
+  "Equivalent to `(funcall (comp f g) x)`."
+  (funcall (comp f g) x))
 
-(defun compose (fs)
+(defun comp (fs)
   "Compose a list of functions right to left."
-  (lists:foldr #'compose/2 #'identity/1 fs))
+  (lists:foldr #'comp/2 #'identity/1 fs))
 
-(defun compose ()
+(defun comp ()
   "Equivalent to `#'identity/1`."
   #'identity/1)
 
