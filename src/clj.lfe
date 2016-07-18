@@ -36,6 +36,17 @@
    (string? 1) (unicode? 1)
    (list? 1) (set? 1) (dict? 1) (proplist? 1) (proplist-kv? 1) (queue? 1)
    (empty? 1) (every? 2) (all? 2) (any? 2) (not-any? 2) (element? 2)
+   ;; Sequence functions.
+   (seq 1) (seq 2) (seq 3)
+   (next 1) (next 2) (next 3)
+   (range 0) (range 1) (range 2)
+   (drop 2) (take 2)
+   (split-at 2) (partition 2) (partition 3) (partition 4)
+   (partition-all 2) (partition-all 3)
+   (interleave 2)
+   (get-in 2) (get-in 3)
+   (reduce 2) (reduce 3)
+   (repeat 1) (repeat 2)
    ;; Other functions.
    (identity 1) (constantly 1)))
 
@@ -453,6 +464,137 @@
     ('true 'false))))
 
 
+;;; Sequence functions.
+
+(defun seq (end)
+  "Equivalent to `(seq 1 end)`."
+  (seq 1 end))
+
+(defun seq (start end)
+  "Equivalent to `(seq start end 1)`."
+  (seq start end 1))
+
+(defun seq (start end step)
+  "Return a sequence of integers, starting with `start`, containing the
+  successive results of adding `step` to the previous element, until `end` has
+  been reached or password. In the latter case, `end` is not an element of the
+  sequence."
+  (lists:seq start end step))
+
+(defun next (func)
+  "Equivalent to `(next func 1 1)`."
+  (next func 1 1))
+
+(defun next (func start)
+  "Equivalent to `(next func start 1)`."
+  (next func start 1))
+
+;; TODO: Improve this docstring.
+(defun next (func start step)
+  "Return a nullary function that returns a cons cell with `start` as the head
+  and a nullary function, `(next func (funcall func start step) step)` as the
+  tail. The result can be treated as a (possibly infinite) lazy list, which
+  only computes subseqeuent values as needed."
+  (lambda ()
+    (cons start (next func (funcall func start step) step))))
+
+(defun range ()
+  "Equivalent to `(range 1 1)`."
+  (range 1 1))
+
+(defun range (start)
+  "Equivalent to `(range start 1)`."
+  (range start 1))
+
+(defun range (start step)
+  "Return a lazy list of integers, starting with `start` and increasing by
+  `step`. Equivalent to `(next #'+/2 start step)`. See also: [[next/3]]."
+  (next #'+/2 start step))
+
+(defun drop
+  "Return a list of all but the first `n` elements in `lst`. If `n` is the atom
+  `all`, return the empty list."
+  ((_    ())                             ())
+  ((0    lst)                            lst)
+  (('all lst)       (when (is_list lst)) ())
+  ((n    `(,_ . ,t))                     (drop (- n 1) t)))
+
+(defun take
+  "Given a (possibly lazy) list `lst`, return a list of the first `n` elements
+  of `lst`, or all elements if there are fewer than `n`. If `n` is the atom
+  `all` and `lst` is a \"normal\" list, return `lst`."
+  ((_ ())                          ())
+  (('all lst) (when (is_list lst)) lst)
+  ((n lst) (when (is_list lst))
+   (lists:sublist lst n))
+  ((n func) (when (is_function func) (is_integer n) (>= n 0))
+   (-take n () (funcall func))))
+
+(defun split-at (n lst)
+  "Return a tuple of `` `#(,(take n lst) ,(drop n lst)) ``."
+  (tuple (take n lst) (drop n lst)))
+
+(defun partition (n lst)
+  "Equivalent to `(partition n n lst)`."
+  (partition n n lst))
+
+(defun partition (n step lst)
+  "Equivalent to `(partition n step () lst)`."
+  (-partition n step () 'false () lst))
+
+(defun partition (n step pad lst)
+  "Return a list of lists of `n` items each, at offsets `step` apart. Use the
+  elements of `pad` as necessary to complete the last partition up to `n`
+  elements. In case there are not enough padding elements, return a parition
+  with less than `n` items."
+  (-partition n step pad 'true () lst))
+
+(defun partition-all (n lst)
+  "Equivalent to `(partition-all n n lst)`."
+  (partition-all n n lst))
+
+(defun partition-all (n step lst)
+  "Return a list of lists like [[partition/3]], possibly including partitions
+  with fewer than `n` elements at the end."
+  (-partition n step () 'true () lst))
+
+(defun interleave (list-1 list-2)
+  "Return a list of the first element of each list, then the second, etc."
+  (-interleave () list-1 list-2))
+
+(defun get-in (data keys)
+  "Equivalent to `(get-in data keys 'undefined)`."
+  (-get-in data keys 'undefined))
+
+(defun get-in (data keys not-found)
+  "Return the value in a nested associative structure, where `keys` is a list of
+  keys or list indices. Return the atom `not-found` if the key is not present or
+  index is out of bounds, or the `not-found` value."
+  (-get-in data keys not-found))
+
+(defun reduce
+  "Equivalent to `(reduce func head tail)`."
+  ((func `(,head . ,tail))
+   (reduce func head tail)))
+
+(defun reduce (func acc lst)
+  "Equivalent to `(lists:foldl func acc lst)`."
+  (lists:foldl func acc lst))
+
+(defun repeat (x)
+  "Returns a lazy infinite sequence of `x`s.
+  See [[next/3]] for details on the structure."
+  (next (lambda (y _) y) x x))
+
+(defun repeat
+  ((n f) (when (is_function f) (is_integer n) (>= n 0))
+   (fletrec ((repeat-fun
+              ((0 acc) acc)
+              ((n acc) (repeat-fun (- n 1) (cons (funcall f) acc)))))
+     (repeat-fun n ())))
+  ((n x)
+   (lists:duplicate n x)))
+
 ;;; Other functions.
 
 (defun identity (x)
@@ -463,3 +605,75 @@
   "Return a unary function that returns `x`.
   N.B. This is like Haskell's `const` rather than Clojure's `constantly`."
   (lambda (_) x))
+
+
+;;; Internal functions.
+
+(defun -take
+  ((0 acc _)                (lists:reverse acc))
+  ((n acc (cons item func)) (-take (- n 1) (cons item acc) (funcall func))))
+
+(defun -partition
+  ((0  _step _pad _partial? _acc lst) lst) ; FIXME: Do we want this behaviour?
+  ((_n _step _pad _partial?  acc ())  (lists:reverse acc))
+  ((n   step  pad  partial?  acc lst)
+   (case (take n lst)
+     (p (when (== n (length p)))
+        (-partition n step pad partial? (cons p acc) (drop step lst)))
+     (_ (when (== 'false partial?))
+        (-partition n step pad partial? acc ()))
+     (p (when (== () pad))
+        (-partition n step pad partial? (cons (take n p) acc) ()))
+     (p
+      (let ((acc* (cons (take n (lists:append p pad)) acc)))
+        (-partition n step pad partial? acc* ()))))))
+
+(defun -interleave
+  ((acc `(,x . ,xs) `(,y . ,ys))
+   (-interleave (list* y x acc) xs ys))
+  ((acc _ _) (lists:reverse acc)))
+
+(defun -get-in
+  ((data () not-found) data)
+  ((data keys not-found)
+   (cond ((proplist? data) (-get-in-proplist data keys not-found))
+         ((dict?     data) (-get-in-dict     data keys not-found))
+         ((list?     data) (-get-in-list     data keys not-found))
+         ((map?      data) (-get-in-map      data keys not-found))
+         ('true            not-found))))
+
+(defun -get-in
+  ((func data `(,key) not-found)
+   (funcall func key data))
+  ((func data `(,key . ,keys) not-found)
+   (-get-in (funcall func key data) keys not-found)))
+
+(defun -get-in-list
+  ((lst  () not-found) lst)
+  ((lst `(,n . ,keys) not-found) (when (is_integer n))
+   (let ((data
+          (try
+            (lists:nth n lst)
+            (catch
+              (`#(error function_clause ,_)
+               not-found)))))
+     (-get-in data keys not-found))))
+
+(defun -get-in-proplist (proplist keys not-found)
+  (flet ((get-value (k l) (proplists:get_value k l not-found)))
+    (-get-in #'get-value/2 proplist keys not-found)))
+
+(defun -get-in-dict (dict keys not-found)
+  (flet ((dict-find (k d)
+                    (case (dict:fetch k d)
+                      (`#(ok ,v) v)
+                      ('errror   not-found))))
+    (-get-in #'dict-find/2 dict keys)))
+
+(defun -get-in-map (xmap keys not-found)
+  (if (-has-maps?)
+    (flet ((maps-get (k m) (call 'maps 'get k m not-found)))
+      (-get-in #'maps-get/2 xmap keys not-found))
+    not-found))
+
+(defun -has-maps? () (erl_internal:bif 'is_map 1))
