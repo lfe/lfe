@@ -37,7 +37,7 @@
    (list? 1) (set? 1) (dict? 1) (proplist? 1) (proplist-kv? 1) (queue? 1)
    (empty? 1) (every? 2) (all? 2) (any? 2) (not-any? 2) (element? 2)
    ;; Other functions.
-   (identity 1)))
+   (identity 1) (constantly 1)))
 
 ;;; Threading macros.
 
@@ -458,3 +458,8 @@
 (defun identity (x)
   "Identity function."
   x)
+
+(defun constantly (x)
+  "Return a unary function that returns `x`.
+  N.B. This is like Haskell's `const` rather than Clojure's `constantly`."
+  (lambda (_) x))
