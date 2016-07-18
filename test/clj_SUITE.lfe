@@ -22,9 +22,18 @@
   "Test clj exports."
   (export (all 0) (identity 1) (comp 1) (partial 1)))
 
-(defmacro is (expr)
-  `(let (('true ,expr))
-     ,expr))
+(defmacro is* (expr) `(let (('true ,expr)) ,expr))
+
+(defmacro is (expr) `(line (is* ,expr)))
+
+(defmacro is-not (expr) `(is-equal 'false ,expr))
+
+(defmacro is-equal (lhs rhs) `(line (is* (=:= ,lhs ,rhs))))
+
+(defmacro deftest
+  (`(,name . ,body)
+   `(progn (defun ,name (_config) ,@body)
+           (extend-module () ((export (,name 1)))))))
 
 (defun all () '(identity comp))
 
@@ -40,9 +49,9 @@
                ;; FIXME: only test maps on 17
                ;; #m() #m(a 1 b 2)
                )))
-    (line (is (=:= (clj:identity x) x))))
-  (line (test-pat 3 (clj:identity (+ 1 2))))
-  (line (test-pat 'true (clj:identity (> 5 0)))))
+    (is-equal (clj:identity x) x))
+  (is-equal 3 (clj:identity (+ 1 2)))
+  (is (clj:identity (> 5 0))))
 
 (defun comp (_config)
   (flet ((c0 (x) (funcall (clj:comp) x)))
@@ -57,16 +66,16 @@
                  ;; FIXME: only test maps on 17
                  ;; #m() #m(a 1 b 2)
                  )))
-      (line (is (=:= (clj:identity x) (c0 x)))))
-    (line (is (=:= (clj:identity (+ 1 2 3)) (c0 6))))
-    (line (is (=:= (clj:identity (quote foo)) (c0 'foo))))))
+      (is-equal (clj:identity x) (c0 x)))
+    (is-equal (clj:identity (+ 1 2 3)) (c0 6))
+    (is-equal (clj:identity (quote foo)) (c0 'foo))))
 
 (defun partial (_config)
   (flet (;; (p0 (x) (funcall (clj:partial inc) x))
          (p1 (x) (funcall (clj:partial #'+/2 20) x))
          ;; (p2 (x) (funcall (clj:partial conj #(1 2)) x))
          )
-    ;; (line (is (=:= 41 (p0 40))))
-    (line (is (=:= 40 (p1 20))))
-    ;; (line (is (=:= #(1 2 3) (p2 3))))
+    ;; (is-equal 41 (p0 40))
+    (is-equal 40 (p1 20))
+    ;; (is-equal #(1 2 3) (p2 3))
     ))
