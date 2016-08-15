@@ -1,4 +1,4 @@
-%% Copyright (c) 2013-2015 Robert Virding
+%% Copyright (c) 2013-2016 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -45,6 +45,8 @@ format_error({notrans_function,F,A}) ->
     io_lib:format("unable to translate function ~w/~w", [F,A]);
 format_error({notrans_record,R}) ->
     io_lib:format("unable to translate record ~w", [R]);
+format_error({notrans_type,T}) ->
+    io_lib:format("unable to translate type ~w", [T]);
 format_error({notrans_macro,M}) ->
     io_lib:format("unable to translate macro ~w", [M]).
 
@@ -175,12 +177,19 @@ parse_hrl_file(Fs, Ms, St0) ->
 %%  forms to LFE record and function definitions and
 %%  attributes. Ignore all type declarations and other forms.
 
-trans_forms([{attribute,_,record,{Name,Fields}}|Fs], St0) ->
+trans_forms([{attribute,Line,record,{Name,Fields}}|Fs], St0) ->
     {As,Lfs,St1} = trans_forms(Fs, St0),
-    case catch {ok,trans_record(Name, Fields)} of
+    case catch {ok,trans_record(Name, Line, Fields)} of
         {ok,Lrec} -> {As,[Lrec|Lfs],St1};
         {'EXIT',_} ->                           %Something went wrong
             {As,Lfs,add_warning({notrans_record,Name}, St1)}
+    end;
+trans_forms([{attribute,Line,type,{Name,Def,E}}|Fs], St0) ->
+    {As,Lfs,St1} = trans_forms(Fs, St0),
+    case catch {ok,trans_type(Name, Line, Def, E)} of
+        {ok,Ltype} -> {[Ltype|As],Lfs,St1};
+        {'EXIT',_} ->                           %Something went wrong
+            {As,Lfs,add_warning({notrans_type,Name}, St1)}
     end;
 trans_forms([{attribute,_,export,Es}|Fs], St0) ->
     {As,Lfs,St1} = trans_forms(Fs, St0),
@@ -209,9 +218,11 @@ trans_forms([], St) -> {[],[],St}.
 trans_farity(Es) ->
     lists:map(fun ({F,A}) -> [F,A] end, Es).
 
-%% trans_record(Name, Fields) -> LRecDef.
+%% trans_record(Name, Line, Fields) -> LRecDef.
+%%  Translate an Erlang record definition to LFE. We currently ignore
+%%  any type information.
 
-trans_record(Name, Fs) ->
+trans_record(Name, _, Fs) ->
     Lfs = record_fields(Fs),
     [defrecord,Name|Lfs].
 
@@ -223,7 +234,29 @@ record_field({record_field,_,F}) ->             %Just the field name
 record_field({record_field,_,F,Def}) ->         %Field name and default value
     Fd = lfe_trans:from_lit(F),
     Ld = lfe_trans:from_expr(Def),
-    [Fd,Ld].
+    [Fd,Ld];
+record_field({typed_record_field,Rf,_Type}) ->
+    %% We can also see the typed record fields, ignore the type.
+    record_field(Rf).
+
+%% trans_type(Name, Line, Definition, Extra) -> TypeDef.
+%%  Translate an Erlang type definition to LFE. Currently we make a we
+%%  do a REALLY QUICK HACK which generates the the hopefully correct
+%%  form for the type attributes.
+
+trans_type(Name, Line, Def, E) ->
+    [type,{Name,convert_type(Def, Line),E}].
+
+convert_type({One,Two,Three}, L) when is_integer(Two), is_list(Three) ->
+    T = lists:map(fun (T) -> convert_type(T, L) end, Three),
+    {One,[L],T};
+convert_type({One,Two,Three}, L) when is_integer(Two) ->
+    {One,[L],Three};
+convert_type({One,Two,Three,Four}, L) when is_integer(Two), is_list(Four) ->
+    F = lists:map(fun (T) -> convert_type(T, L) end, Four),
+    {One,[L],Three,F};
+convert_type({One,Two,Three,Four}, L) when is_integer(Two) ->
+    {One,[L],Three,Four}.
 
 %% trans_function(Name, Arity, Clauses) -> LfuncDef.
 
