@@ -34,6 +34,12 @@ Change the working directory.
 
 Compile and load an Erlang file.
 
+**(ep Expr)**
+
+**(epp Expr)**
+
+Print/prettyprint a value in Erlang form to full depth.
+
 **(flush)**
 
 Flush any messages sent to the shell.

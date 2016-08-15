@@ -30,7 +30,7 @@
          run_script/2,run_script/3,run_string/2,run_string/3]).
 
 %% The shell commands which generally callable.
--export([c/1,c/2,cd/1,doc/1,docs/1,ec/1,ec/2,help/0,i/0,i/1,l/1,
+-export([c/1,c/2,cd/1,doc/1,docs/1,ec/1,ec/2,ep/1,epp/1,help/0,i/0,i/1,l/1,
          ls/1,clear/0,m/0,m/1,pid/3,p/1,pp/1,pwd/0,q/0,
          flush/0,regs/0,exit/0]).
 
@@ -252,6 +252,8 @@ update_shell_vars(Form, Value, Env0) ->
 
 add_shell_functions(Env0) ->
     Fs = [{cd,1,[lambda,[d],[':',lfe_shell,cd,d]]},
+	  {ep,1,[lambda,[e],[':',lfe_shell,ep,e]]},
+	  {epp,1,[lambda,[e],[':',lfe_shell,epp,e]]},
           {help,0,[lambda,[],[':',lfe_shell,help]]},
           {i,0,[lambda,[],[':',lfe_shell,i]]},
           {i,1,[lambda,[ps],[':',lfe_shell,i,ps]]},
@@ -600,7 +602,7 @@ read_script_file(File) ->
                 "#!" ++ _ -> ok;
                 _ -> file:position(F, bof)      %Reset to start of file
             end,
-            Ret = case io:request(F, {get_until,'',lfe_scan,tokens,[1]}) of
+            Ret = case io:request(F, {get_until,unicode,'',lfe_scan,tokens,[1]}) of
                       {ok,Ts,Lline} -> parse_tokens(Ts, Lline, []);
                       {error,Error,_} -> {error,Error}
                   end,
@@ -695,6 +697,18 @@ ec(F) -> c:c(F).
 
 ec(F, Os) -> c:c(F, Os).
 
+%% ep(Expr) -> ok.
+%% epp(Expr) -> ok.
+%%  Print/prettyprint a value in Erlang format.
+
+ep(E) ->
+    Cs = io_lib:write(E),
+    io:put_chars([Cs,$\n]).
+
+epp(E) ->
+    Cs = io_lib:format("~p", [E]),
+    io:put_chars([Cs,$\n]).
+
 %% help() -> ok.
 
 help() ->
@@ -702,6 +716,8 @@ help() ->
                    "(c file)    -- compile and load code in <file>\n"
                    "(cd dir)    -- change working directory to <dir>\n"
                    "(ec file)   -- compile and load code in erlang <file>\n"
+		   "(ep expr)   -- print a term in erlang form\n"
+		   "(epp expr)  -- pretty print a term in erlang form\n"
                    "(exit)      -- quit - an alias for (q)\n"
                    "(help)      -- help info\n"
                    "(i)         -- information about the system\n"
@@ -711,6 +727,8 @@ help() ->
                    "(ls dir)    -- list files in directory <dir>\n"
                    "(m)         -- which modules are loaded\n"
                    "(m mod)     -- information about module <mod>\n"
+		   "(p expr)    -- print a term\n"
+		   "(pp expr)   -- pretty print a term\n"
                    "(pid x y z) -- convert <x>, <y> and <z> to a pid\n"
                    "(pwd)       -- print working directory\n"
                    "(q)         -- quit - shorthand for init:stop/0\n"
@@ -763,7 +781,7 @@ m(Ms) ->
 
 %% p(Expr) -> ok.
 %% pp(Expr) -> ok.
-%%  Print/prettyprint a value.
+%%  Print/prettyprint a value in LFE format.
 
 p(E) ->
     Cs = lfe_io:print1(E),
