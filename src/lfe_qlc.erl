@@ -32,7 +32,7 @@
 %%  variable bindings and call the transformer again. We will now get
 %%  any "real" errors which we return.
 
-expand(LC, Opts) ->
+expand(LC, _Opts) ->
     case qlc_pt:transform_expression(LC, []) of
 	{not_ok,Errs} ->
 	    Uvs = unbound_vars(Errs, ordsets:new()),
