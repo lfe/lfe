@@ -136,9 +136,10 @@ eval_expr(['map-set',M|As], Env) ->
     eval_expr([mset,M|As], Env);
 eval_expr(['map-update',M|As], Env) ->
     eval_expr([mupd,M|As], Env);
-eval_expr([function,F,Ar], Env) ->
-    Apply = fun (Vals) -> eval_expr([F|Vals], Env) end,
-    make_lambda(Ar, Apply);
+eval_expr([function,Fun,Ar], Env) ->
+    %% Build a lambda which can be applied.
+    Vs = new_vars(Ar),
+    eval_lambda([lambda,Vs,[Fun|Vs]], Env);
 eval_expr([function,M,F,Ar], _) ->
     erlang:make_fun(M, F, Ar);
 %% Handle the Core closure special forms.
@@ -334,6 +335,13 @@ map_key([_|_]=L, _) ->
 map_key(E, _) when not is_atom(E) -> E;         %Everything else
 map_key(_, _) -> eval_error(illegal_mapkey).
 -endif.
+
+%% new_vars(N) -> Vars.
+
+new_vars(N) when N > 0 ->
+    V = list_to_atom(integer_to_list(N)),
+    [V|new_vars(N-1)];
+new_vars(0) -> [].
 
 %% eval_lambda([lambda|LambdaBody], Env) -> Val.
 %%  Evaluate (lambda args ...).
