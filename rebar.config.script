@@ -31,6 +31,8 @@ Version = case erlang:system_info(otp_release) of
                   end
           end,
 
+%% These are the macros we add to the configuration.
+
 Copts0 = [{d,'ERLANG_VERSION',Version}],
 Copts1 = if Version >= "17" -> Copts0 ++ [HasOpt];
             true -> Copts0
@@ -42,6 +44,8 @@ Copts3 = if Version >= "19" -> Copts2 ++ [RecOpt,RandOpt];
             true -> Copts2
          end,
 Copts = Copts3,                                 %This is it
+
+%% Now add them.
 
 case lists:keyfind(erl_opts, 1, Conf0) of
     {erl_opts,Opts} ->                          %Existing erl_opts
