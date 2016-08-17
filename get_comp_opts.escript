@@ -21,7 +21,7 @@ main(_) ->
     file:write_file("comp_opts.mk", "COMP_OPTS = " ++ CompOpts ++ "\n").
 
 comp_opts(Version) ->
-    Copts0 = "-DERLANG_VERSION=" ++ Version,
+    Copts0 = "-DERLANG_VERSION=\\\"" ++ Version ++ "\\\"",
     Copts1 = ?IF(Version >= "17", Copts0 ++ " " ++ ?HAS_MAPS_OPT, Copts0),
     Copts2 = ?IF(Version >= "18", Copts1 ++ " " ++ ?FULL_KEYS_OPT, Copts1),
     Copts3 = ?IF(Version >= "19",
