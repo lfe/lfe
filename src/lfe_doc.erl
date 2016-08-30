@@ -382,6 +382,6 @@ parse_test_() ->
           prop_lfe_doc:prop_define_match())
     ].
 
-pprint(Format, [{Def,_Line}]) -> lfe_io:format(user, "~p\n", [Def]);
+pprint(_Format, [{Def,_Line}]) -> lfe_io:format(user, "~p\n", [Def]);
 pprint(Format, Data) -> lfe_io:format(user, Format, Data).
 -endif.
