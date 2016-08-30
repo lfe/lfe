@@ -123,13 +123,13 @@ eval_expr(['mref',Map,K], Env) ->
     Key = map_key(K, Env),
     maps:get(Key, eval_expr(Map, Env));
 eval_expr(['mset',M|As], Env) ->
-    Map = eval_expr(M, Env),
+    Map   = eval_expr(M, Env),
     Pairs = map_pairs(As, Env),
-    foldl(fun ({K,V}, M) -> maps:put(K, V, M) end, Map, Pairs);
+    foldl(fun maps_put/2, Map, Pairs);
 eval_expr(['mupd',M|As], Env) ->
-    Map = eval_expr(M, Env),
+    Map   = eval_expr(M, Env),
     Pairs = map_pairs(As, Env),
-    foldl(fun ({K,V}, M) -> maps:update(K, V, M) end, Map, Pairs);
+    foldl(fun maps_update/2, Map, Pairs);
 eval_expr(['map-get',Map,K], Env) ->
     eval_expr([mref,Map,K], Env);
 eval_expr(['map-set',M|As], Env) ->
@@ -747,13 +747,13 @@ eval_gexpr([map|As], Env) ->
 %%     Key = map_key(K, Env),
 %%     maps:get(Key, eval_gexpr(Map, Env));
 eval_gexpr(['mset',M|As], Env) ->
-    Map = eval_gexpr(M, Env),
+    Map   = eval_gexpr(M, Env),
     Pairs = gmap_pairs(As, Env),
-    foldl(fun ({K,V}, M) -> maps:put(K, V, M) end, Map, Pairs);
+    foldl(fun maps_put/2, Map, Pairs);
 eval_gexpr(['mupd',M|As], Env) ->
-    Map = eval_gexpr(M, Env),
+    Map   = eval_gexpr(M, Env),
     Pairs = gmap_pairs(As, Env),
-    foldl(fun ({K,V}, M) -> maps:update(K, V, M) end, Map, Pairs);
+    foldl(fun maps_update/2, Map, Pairs);
 %% eval_gexpr(['map-get',Map,K], Env) ->
 %%     eval_gexpr(['mref',Map,K], Env) ->
 eval_gexpr(['map-set',M|As], Env) ->
@@ -1112,3 +1112,9 @@ eval_error(Error) ->
     erlang:raise(error, Error, stacktrace()).
 
 stacktrace() -> [{?MODULE,eval_expr,2}].
+
+%%% Helper functions
+
+maps_put({K,V}, M) -> maps:put(K, V, M).
+
+maps_update({K,V}, M) -> maps:update(K, V, M).
