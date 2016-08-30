@@ -42,11 +42,11 @@
 -define(ERASE(K, D), maps:remove(K, D)).
 -define(FOLD(F, A, D), maps:fold(F, A, D)).
 -define(UPDATE(K, UPD, DEF, D),                 %This is slightly complex
-  begin (fun (___K, {ok,___V}) ->
-           maps:put(___K, UPD(___V), D);
-       (___K, error) ->
-           maps:put(___K, DEF, D)
-         end)(K, maps:find(K, D)) end).
+        begin (fun (___K, {ok,___V}) ->
+                       maps:put(___K, UPD(___V), D);
+                   (___K, error) ->
+                       maps:put(___K, DEF, D)
+               end)(K, maps:find(K, D)) end).
 -else.
 -define(NEW(), orddict:new()).
 -define(IS_KEY(K, D), orddict:is_key(K, D)).
