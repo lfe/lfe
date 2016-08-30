@@ -237,9 +237,8 @@
    (fletrec ((some-loop
               ([i n] (when (>= i n)) 'false)
               ([i n]
-               (if (funcall pred (element i seq))
-                 'true
-                 (some-loop (+ i 1) n)))))
+               (orelse (funcall pred (element i seq))
+                       (some-loop (+ i 1) n)))))
      (some-loop 1 (tuple_size seq)))))
 
 (defun every
@@ -251,9 +250,8 @@
    (fletrec ((every-loop
               ([i n] (when (>= i n)) 'false)
               ([i n]
-               (if (funcall pred (element i seq))
-                 'false
-                 (every-loop (+ i 1) n)))))
+               (andalso (not (funcall pred (element i seq)))
+                        (every-loop (+ i 1) n)))))
      (every-loop 1 (tuple_size seq)))))
 
 (defun notany (pred seq)
@@ -534,18 +532,15 @@
   "pred list
    Return true if `pred` is satisfied for a member of `list`."
   ([pred (cons e list)]
-   (if (funcall pred e)
-     'true
-     (member-if pred list)))
+   (orelse (funcall pred e)
+           (member-if pred list)))
   ([pred ()] 'false))
 
 (defun member-if-not
   "pred list
    Return true if `pred` is not satisfied for a member of `list`."
   ([pred (cons e list)]
-   (if (funcall pred e)
-     (member-if-not pred list)
-     'true))
+   (orelse (not (funcall pred e)) (member-if-not pred list)))
   ([pred ()] 'false))
 
 (defun adjoin (item list)
@@ -582,10 +577,7 @@
 (defun subsetp
   "list-1 list-2
    Return true if every element in `list-1` is also in `list-2`."
-  ([(cons e l1) l2]
-   (if (member e l2)
-     (subsetp l1 l2)
-     'false))
+  ([(cons e l1) l2] (andalso (member e l2) (subsetp l1 l2)))
   ([()          l2] 'true))
 
 ;; Association list functions.
