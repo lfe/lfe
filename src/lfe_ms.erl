@@ -299,8 +299,8 @@ new_binding(Var, Val, #ms{bs=Bs}=St) ->
 find_binding(Var, #ms{bs=Bs}) ->
     orddict:find(Var, Bs).
 
-fetch_binding(Var, #ms{bs=Bs}) ->
-    orddict:fetch(Var, Bs).
+%% fetch_binding(Var, #ms{bs=Bs}) ->
+%%     orddict:fetch(Var, Bs).
 
 new_dollar(St) ->
     C = St#ms.dc,

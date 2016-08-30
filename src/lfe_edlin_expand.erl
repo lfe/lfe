@@ -225,13 +225,13 @@ over_symbol2([C|Cs], Stack, N) ->
 over_symbol2([], Stack, N) when is_integer(N) ->
     {[],Stack,N}.
 
-over_non_symbol([C|Cs], Stack, N) ->
-    case symbol_char(C) of
-        true -> {[C|Cs],Stack,N};
-        false -> over_non_symbol(Cs, [C|Stack], N+1)
-    end;
-over_non_symbol([], Stack, N) ->
-    {[],Stack,N}.
+%% over_non_symbol([C|Cs], Stack, N) ->
+%%     case symbol_char(C) of
+%%         true -> {[C|Cs],Stack,N};
+%%         false -> over_non_symbol(Cs, [C|Stack], N+1)
+%%     end;
+%% over_non_symbol([], Stack, N) ->
+%%     {[],Stack,N}.
 
 symbol_char($:) -> false;                       %We want to separate on this
 symbol_char(C) -> lfe_scan:symbol_char(C).
