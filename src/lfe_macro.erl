@@ -622,10 +622,10 @@ exp_predef_macro(Call, Env, St) ->
         %%     erlang:error({expand_macro,Call,{Error,Stack1}})
     end.
 
-trim_stacktrace([{lfe_macro,_,_,_}=S|_]) -> [S];    %R15 and later
-trim_stacktrace([{lfe_macro,_,_}|_]=S) -> [S];      %Pre R15
-trim_stacktrace([S|Stk]) -> [S|trim_stacktrace(Stk)];
-trim_stacktrace([]) -> [].
+%% trim_stacktrace([{lfe_macro,_,_,_}=S|_]) -> [S];    %R15 and later
+%% trim_stacktrace([{lfe_macro,_,_}|_]=S) -> [S];      %Pre R15
+%% trim_stacktrace([S|Stk]) -> [S|trim_stacktrace(Stk)];
+%% trim_stacktrace([]) -> [].
 
 %% exp_predef(Form, Env, State) -> {yes,Form,State} | no.
 %%  Expand the built-in predefined macros completely at top-level
@@ -1246,9 +1246,9 @@ exp_rules(Name, Keywords, Rules) ->
 %%                 (quasisyntax (cons  #,(qq-expand (syntax x) level)
 %%                                     #,(qq-expand (syntax y) level))))
 %%           (#(x ...)
-%%                 (quasisyntax (list->vector #,(qq-expand (syntax (x ...))    
+%%                 (quasisyntax (list->vector #,(qq-expand (syntax (x ...))
 %%                                                         level))))
-%%           (x    (syntax 'x)))) 
+%%           (x    (syntax 'x))))
 %%       (syntax-case s ()
 %%         ((_ x) (qq-expand (syntax x) 0)))))
 
@@ -1328,7 +1328,7 @@ new_symbs(N, St) -> new_symbs(N, St, []).
 new_symbs(N, St0, Vs) when N > 0 ->
     {V,St1} = new_symb(St0),
     new_symbs(N-1, St1, [V|Vs]);
-new_symbs(0, St, Vs) -> {Vs,St}.    
+new_symbs(0, St, Vs) -> {Vs,St}.
 
 new_fun_name(Pre, St) ->
     C = St#mac.fc,
@@ -1420,7 +1420,7 @@ ormap(F, [H|T]) ->
         V -> V
     end;
 ormap(_, []) -> false.
-    
+
 mbe_intersect(V, Y) ->
     case is_mbe_symbol(V) orelse is_mbe_symbol(Y) of
         true -> V =:= Y;
