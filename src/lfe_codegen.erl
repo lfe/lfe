@@ -847,12 +847,12 @@ comp_bitseg({Val,Sz,{Ty,Un,Si,En}}, Env, L, St0) ->
 %% argument is a map.  This does not have exactly the same structure
 %% and annotations as a "normal" 'if'.
 
-comp_map(Args, Env, Line, St) ->
-    Mapper = fun (Cas, _, L, St) ->
+comp_map(Args, Env, Line, St0) ->
+    Mapper = fun (Cas, _, L, St1) ->
                      Cpairs = comp_map_pairs(Cas, assoc, L),
-                     {ann_c_map([L], c_lit(#{}), Cpairs),St}
+                     {ann_c_map([L], c_lit(#{}), Cpairs),St1}
              end,
-    comp_args(Args, Mapper, Env, Line, St).
+    comp_args(Args, Mapper, Env, Line, St0).
 
 comp_set_map(Map, Args, Env, Line, St) ->
     comp_modify_map(Map, Args, assoc, Env, Line, St).
@@ -970,20 +970,21 @@ comp_guard_test_1(Test, Op, Args, Env, L, St0) ->
 
 %% Handle the Core data special forms.
 comp_gexpr([quote,E], _, _, St) -> {comp_lit(E),St};
-comp_gexpr([cons,H,T], Env, L, St) ->
-    Cons = fun ([Ch,Ct], _, _, St) -> {c_cons(Ch, Ct),St} end,
-    comp_gargs([H,T], Cons, Env, L, St);
+comp_gexpr([cons,H,T], Env, L, St0) ->
+    Cons = fun ([Ch,Ct], _, _, St1) -> {c_cons(Ch, Ct),St1} end,
+    comp_gargs([H,T], Cons, Env, L, St0);
 comp_gexpr([car,E], Env, L, St) ->              %Provide lisp names
     comp_gexpr([hd,E], Env, L, St);
 comp_gexpr([cdr,E], Env, L, St) ->
     comp_gexpr([tl,E], Env, L, St);
-comp_gexpr([list|Es], Env, L, St) ->
-    List = fun (Ces, _, _, St) ->
-                   {foldr(fun (E, T) -> c_cons(E, T) end, c_nil(), Ces),St}
+comp_gexpr([list|Es], Env, L, St0) ->
+    List = fun (Ces, _, _, St1) ->
+                   {foldr(fun (E, T) -> c_cons(E, T) end, c_nil(), Ces),St1}
            end,
-    comp_gargs(Es, List, Env, L, St);
-comp_gexpr([tuple|As], Env, L, St) ->
-    comp_gargs(As, fun (Args, _, _, St) -> {c_tuple(Args),St} end, Env, L, St);
+    comp_gargs(Es, List, Env, L, St0);
+comp_gexpr([tuple|As], Env, L, St0) ->
+    Tuple = fun (Args, _, _, St1) -> {c_tuple(Args),St1} end,
+    comp_gargs(As, Tuple, Env, L, St0);
 comp_gexpr([binary|Segs], Env, L, St) ->
     comp_binary(Segs, Env, L, St);              %And bitstring as well
 comp_gexpr([map|As], Env, L, St) ->

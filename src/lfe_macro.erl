@@ -1021,9 +1021,9 @@ exp_comp(As, Op, St0) ->
     Ts = op_pairs(Ls, Op),
     {exp_let_star([Ls,exp_andalso(Ts)]),St1}.
 
-op_pairs([[V,_]|Ls], Op) ->
-    element(1, mapfoldl(fun ([V,_], Acc) -> {exp_bif(Op, [Acc,V]),V} end,
-                        V, Ls)).
+op_pairs([[V0,_]|Ls], Op) ->
+    element(1, mapfoldl(fun ([V1,_], Acc) -> {exp_bif(Op, [Acc,V1]),V1} end,
+                        V0, Ls)).
 
 %% exp_nequal(Args, Op, State) -> {Exp,State}.
 %%  Expand not equal test strictly forcing evaluation of all
