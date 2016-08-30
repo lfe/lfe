@@ -97,12 +97,12 @@ term(Other, _, _, _) ->
 
 bitstring(Bit, D) ->
     try
-	Chars = unicode:characters_to_list(Bit, utf8),
-	true = io_lib:printable_unicode_list(Chars),
-	[$#|lfe_io_write:string(Chars, $")]
+  Chars = unicode:characters_to_list(Bit, utf8),
+  true = io_lib:printable_unicode_list(Chars),
+  [$#|lfe_io_write:string(Chars, $")]
     catch
-	_:_ ->
-	    lfe_io_write:bitstring(Bit, D)
+  _:_ ->
+      lfe_io_write:bitstring(Bit, D)
     end.
 
 %% defun(List, Depth, Indentation, LineLength) -> [char()].
@@ -311,11 +311,11 @@ map_body(KVs, D, I, L) ->
 
 map_body([K,V|KVs], CurL, D, I, L) ->
     case map_assoc(K, V, CurL, D, I, L) of
-        {both_fit,KVcs,KVl} ->			%Both fit on this line
+        {both_fit,KVcs,KVl} ->      %Both fit on this line
             [KVcs,map_rest(KVs, CurL+KVl, D-1, I, L)];
-        {both_line,KVcs,KVl} ->			%Both fit on single line
+        {both_line,KVcs,KVl} ->     %Both fit on single line
             [KVcs,map_rest(KVs, I+KVl, D-1, I, L)];
-        {break,KVcs} ->		                %On separate lines
+        {break,KVcs} ->                   %On separate lines
             %% Force a break after K/V split.
             [KVcs,map_rest(KVs, L, D-1, I, L)]
     end;
@@ -332,11 +332,11 @@ map_rest([], _, _, _, _) -> "";
 map_rest(_, _, 0, _, _) -> " ...";
 map_rest([K,V|KVs], CurL, D, I, L) ->
     case map_assoc(K, V, CurL+1, D, I, L) of
-        {both_fit,KVcs,KVl} ->			%Both fit on this line
+        {both_fit,KVcs,KVl} ->      %Both fit on this line
             [$\s,KVcs,map_rest(KVs, CurL+KVl+1, D-1, I, L)];
-        {both_line,KVcs,KVl} ->		        %Both fit on single line
+        {both_line,KVcs,KVl} ->           %Both fit on single line
             [newline(I, KVcs),map_rest(KVs, I+KVl, D-1, I, L)];
-        {break,KVcs} ->				%On separate lines
+        {break,KVcs} ->       %On separate lines
             %% Force a break after K/V split.
             [newline(I, KVcs),map_rest(KVs, L, D-1, I, L)]
     end;

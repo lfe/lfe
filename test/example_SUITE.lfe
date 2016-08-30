@@ -26,6 +26,6 @@
 
 (defun compile (config)
   (let* ((dpath (config 'data_dir config))
-	 (efile (filename:join dpath "example.lfe")))
+   (efile (filename:join dpath "example.lfe")))
     (line (test-pat #(ok (#(ok example ()) #(ok another-example ())) ())
-		    (lfe_comp:file efile '(return))))))
+        (lfe_comp:file efile '(return))))))
