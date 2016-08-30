@@ -97,12 +97,11 @@ term(Other, _, _, _) ->
 
 bitstring(Bit, D) ->
     try
-  Chars = unicode:characters_to_list(Bit, utf8),
-  true = io_lib:printable_unicode_list(Chars),
-  [$#|lfe_io_write:string(Chars, $")]
+        Chars = unicode:characters_to_list(Bit, utf8),
+        true  = io_lib:printable_unicode_list(Chars),
+        [$#|lfe_io_write:string(Chars, $")]
     catch
-  _:_ ->
-      lfe_io_write:bitstring(Bit, D)
+        _:_ -> lfe_io_write:bitstring(Bit, D)
     end.
 
 %% defun(List, Depth, Indentation, LineLength) -> [char()].

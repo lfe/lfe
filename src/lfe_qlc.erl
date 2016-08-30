@@ -34,14 +34,14 @@
 
 expand(LC, _Opts) ->
     case qlc_pt:transform_expression(LC, []) of
-  {not_ok,Errs} ->
-      Uvs = unbound_vars(Errs, ordsets:new()),
-      %% io:format("~p\n", [{Errs,Uvs}]),
-      case qlc_pt:transform_expression(LC, Uvs) of
-    {not_ok,Errors} -> {error,Errors};
-    Ok -> Ok
-      end;
-  Ok -> Ok
+        {not_ok,Errs} ->
+            Uvs = unbound_vars(Errs, ordsets:new()),
+            %% io:format("~p\n", [{Errs,Uvs}]),
+            case qlc_pt:transform_expression(LC, Uvs) of
+                {not_ok,Errors} -> {error,Errors};
+                Ok              -> Ok
+            end;
+        Ok -> Ok
     end.
 
 unbound_vars([{error,{_,_,{unbound_var,V}}}|Es], Uvs) ->

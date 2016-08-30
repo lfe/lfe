@@ -40,21 +40,21 @@ function_arity(['match-lambda',[Pat|_]|_]) -> length(Pat).
 
 validate_function(Name, Arity, {[_Define,_Name,Meta,_Def],Line}=Func) ->
     case lfe_doc:extract_module_docs([Func]) of
-  {ok,{[],[Fdoc]}} ->
-      (lfe_doc:collect_docs(Meta, []) =:= lfe_doc:function_doc(Fdoc))
-    and (Name =:= lfe_doc:function_name(Fdoc))
-    and (Arity =:= lfe_doc:function_arity(Fdoc))
-    and (Line =:= lfe_doc:function_line(Fdoc));
-  _ -> false
+        {ok,{[],[Fdoc]}} ->
+            (lfe_doc:collect_docs(Meta, []) =:= lfe_doc:function_doc(Fdoc))
+                and (Name =:= lfe_doc:function_name(Fdoc))
+                and (Arity =:= lfe_doc:function_arity(Fdoc))
+                and (Line =:= lfe_doc:function_line(Fdoc));
+        _ -> false
     end.
 
 validate_macro(Name, {[_Define,_Name,Meta,_Lambda],Line}=Mac) ->
     case lfe_doc:extract_module_docs([Mac]) of
-  {ok,{[],[Mdoc]}} ->
-      (lfe_doc:collect_docs(Meta, []) =:= lfe_doc:macro_doc(Mdoc))
-    and (Name =:= lfe_doc:macro_name(Mdoc))
-    and (Line =:= lfe_doc:macro_line(Mdoc));
-  _ -> false
+        {ok,{[],[Mdoc]}} ->
+            (lfe_doc:collect_docs(Meta, []) =:= lfe_doc:macro_doc(Mdoc))
+                and (Name =:= lfe_doc:macro_name(Mdoc))
+                and (Line =:= lfe_doc:macro_line(Mdoc));
+        _ -> false
     end.
 
 %%%===================================================================
