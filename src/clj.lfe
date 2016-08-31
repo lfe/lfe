@@ -50,6 +50,8 @@
    ;; Other functions.
    (identity 1) (constantly 1)))
 
+(defmacro HAS_MAPS () ``(erl_internal:bif 'is_map 1))
+
 ;;; Threading macros.
 
 ;; Macro helper functions
@@ -285,7 +287,7 @@
 (defmacro map? (x)
   "Return `'true` if `data` is a map.
   Return `'false` on versions of Erlang without maps."
-  `(is_map ,x))
+  `(andalso ,(HAS_MAPS) (call 'erlang 'is_map ,x)))
 
 (defmacro undefined? (x)
   "Return `'true` if `x` is the atom `'undefined`."
@@ -672,9 +674,7 @@
     (-get-in #'dict-find/2 dict keys)))
 
 (defun -get-in-map (xmap keys not-found)
-  (if (-has-maps?)
+  (if (HAS_MAPS)
     (flet ((maps-get (k m) (call 'maps 'get k m not-found)))
       (-get-in #'maps-get/2 xmap keys not-found))
     not-found))
-
-(defun -has-maps? () (erl_internal:bif 'is_map 1))

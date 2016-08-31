@@ -38,8 +38,8 @@
         #"" #"abc"
         () (1 2)
         #() #(1 2)
-        (IFF-MAPS #m())
-        (IFF-MAPS #m(a 1 b 2)))
+        (IFF-MAPS (call 'maps 'new))
+        (IFF-MAPS (call 'maps 'from_list '[#(a 1) #(b 2)])))
   (is-equal 3 (clj:identity (+ 1 2)))
   (is (clj:identity (> 5 0))))
 
@@ -64,8 +64,8 @@
           #"" #"abc"
           () (1 2)
           #() #(1 2)
-          (IFF-MAPS #m())
-          (IFF-MAPS #m(a 1 b 2)))
+          (IFF-MAPS (call 'maps 'new))
+          (IFF-MAPS (call 'maps 'from_list '(#(a 1) #(b 2)))))
     (is-equal (clj:identity (+ 1 2 3)) (c0 6))
     (is-equal (clj:identity (quote foo)) (c0 'foo)))
   (let ((asin-result (funcall (clj:comp #'math:sin/1 #'math:asin/1) 0.5)))
@@ -205,8 +205,7 @@
 
 (deftest identical?
   (is-not (clj:identical? '(a b c) '(a b d)))
-  (is (clj:identical? '(a b c) '(a b c)))
-  )
+  (is (clj:identical? '(a b c) '(a b c))))
 
 (deftest empty?
   (is-not (clj:empty? '(1 2 3)))
