@@ -360,6 +360,7 @@
 
 ;;; Partial application.
 
+;; FIXME: Doesn't work with HOF.
 (defun partial
   "Partial application.
   Given a function `f`, and an argument or list of arguments, return a function
