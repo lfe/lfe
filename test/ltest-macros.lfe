@@ -1,0 +1,82 @@
+;; Include EUnit macros
+(include-lib "eunit/include/eunit.hrl")
+
+;;;===================================================================
+;;; Helper functions
+;;;===================================================================
+
+(eval-when-compile
+  (defun to-unders (atm)
+    (re:replace (atom_to_list atm) "-" "_" '(#(return list) global))))
+
+
+;;;===================================================================
+;;; Test definition macros
+;;;===================================================================
+
+(defmacro deftest
+  "Define a standard EUnit test."
+  ((name . body)
+   (let ((name_test (list_to_atom (++ (to-unders name) "_test"))))
+     `(progn (defun ,name_test () ,@body)
+             (extend-module () ((export (,name_test 0))))))))
+
+
+;;;===================================================================
+;;; Assertion macros
+;;;===================================================================
+
+(defmacro is (bool-expression)
+  "Assert `bool-expression` evaluates to `'true`."
+  `(assert ,bool-expression))
+
+(defmacro is-not (bool-expression)
+  "Assert `bool-expression` evaluates to `'false`."
+  `(assertNot ,bool-expression))
+
+(defmacro is-equal (value expression)
+  "Assert `expression` evaluates to `value`."
+  `(assertEqual ,value ,expression))
+
+(defmacro is-error
+  "Equivalent to [[is-exception/3]] with `'error` as `expected-class`."
+  ((expression) `(is-error _ ,expression))
+  ((error body) `(assertError ,error ,body)))
+
+
+;;;===================================================================
+;;; Clojure-inspired macros
+;;;===================================================================
+
+;; TODO: pull these functions/macros out
+
+;; Based on clojure.walk
+(eval-when-compile
+  ;; FIXME: walk more data structures
+  (defun walk
+    ([inner outer form] (when (is_list form))
+     (funcall outer (lists:map inner form)))
+    ([_inner outer form] (funcall outer form)))
+  (defun postwalk (f form)
+    ;; N.B. Due to implementation details, we can't use
+    ;;          (clj:partial #'postwalk/2 f)
+    (walk (lambda (inner-form) (postwalk f inner-form)) f form))
+  (defun postwalk-replace (proplist form)
+    (postwalk (lambda (|-X-|) (proplists:get_value |-X-| proplist |-X-|)) form))
+  (defun apply-template (arglist expr values)
+    (orelse (is_list arglist) (error 'badarg (list arglist expr values)))
+    (orelse (lists:all #'is_atom/1 arglist))
+    (postwalk-replace (lists:zip arglist values) expr))
+  ;; Based on #'clojure.template/do-template
+  (defmacro do-template
+    (`(,arglist ,expr . ,values)
+     (let ((|-LEN-| (length arglist)))
+       `(list ,@(lists:map (lambda (|-A-|) (apply-template arglist expr |-A-|))
+                  (clj:partition |-LEN-| values)))))))
+
+;; Based on #'clojure.test/are
+(defmacro are*
+  (`(() ,expr) `(is* 'true))
+  (`(,arglist ,expr . ,args)
+   `(do-template ,arglist (is ,expr) ,@args))
+  (_ (error 'badarg (list* arglist expr args))))
