@@ -170,6 +170,88 @@
   (is (clj:atom? 'my-atom))
   (is (clj:atom? '|more atom data|)))
 
+(deftest binary?
+  (is-not (clj:binary? "string"))
+  (is-not (clj:binary? (binary (42 (size 6)))))
+  (is (clj:binary? #"binary"))
+  (is (clj:binary? #b(125 114 196))))
+
+(deftest bitstring?
+  (is-not (clj:bitstring? "string"))
+  (are* [x] (clj:bitstring? x)
+        (binary (42 (size 6)))
+        #"binary"
+        #b(125 114 196)))
+
+(deftest boolean?
+  (are* [x] (not (clj:boolean? x))
+        42
+        (andalso 'true 42)
+        (orelse  'false 42))
+  (are* [x] (clj:boolean? x)
+        'true
+        'false
+        (=/= 42 123)))
+
+(deftest bool?
+  (are* [x] (not (clj:bool? x))
+        42
+        (andalso 'true 42)
+        (orelse  'false 42))
+  (are* [x] (clj:bool? x)
+        'true
+        'false
+        (=/= 42 123)))
+
+(deftest float?
+  (is-not (clj:float? 42))
+  (is (clj:float? 42.0)))
+
+(deftest function?
+  (are* [x] (not (clj:function? x))
+        '|#'+/2|
+        '(fun + 2)
+        'function
+        42)
+  (are* [x] (clj:function? x)
+        #'+/2
+        (fun + 2)
+        (lambda (y) (+ y 1))
+        (flet ((id (x) x)) #'id/1)))
+
+(deftest func?
+  (are* [x] (not (clj:func? x))
+        '|#'+/2|
+        '(fun + 2)
+        'func
+        42)
+  (are* [x] (clj:func? x)
+        #'+/2
+        (fun + 2)
+        (lambda (y) (+ y 1))
+        (flet ((id (x) x)) #'id/1)))
+
+(deftest integer?
+  (is-not (clj:integer? 42.0))
+  (is (clj:integer? 42)))
+
+(deftest int?
+  (is-not (clj:int? 42.0))
+  (is (clj:int? 42)))
+
+(deftest number?
+  (are* [x] (not (clj:number? x))
+        'forty-two
+        '(42)
+        #(40 2)
+        "42"
+        #"42")
+  (are* [x] (clj:number? x)
+        42
+        42.0
+        (/ 4 2)
+        (+ 1.0 2 3)))
+
 (deftest dict?
   (are* [x] (not (clj:dict? x))
         "a string"
@@ -210,6 +292,11 @@
   (is (clj:proplist-kv? 'a))
   (is (clj:proplist-kv? '#(a b))))
 
+(deftest undefined?
+  (is-not (clj:undefined? 42))
+  (is-not (clj:undefined? 'undef))
+  (is (clj:undefined? 'undefined)))
+
 (deftest undef?
   (is-not (clj:undef? 42))
   (is-not (clj:undef? 'undef))
@@ -229,6 +316,26 @@
   (is-not (clj:false? 'true))
   (is (clj:false? 'false)))
 
+(deftest odd?
+  (is-not (clj:odd? 42))
+  (is (clj:odd? 333)))
+
+(deftest even?
+  (is-not (clj:even? 333))
+  (is (clj:even? 42)))
+
+(deftest zero?
+  (is-not (clj:zero? 42))
+  (is (clj:zero? 0)))
+
+(deftest pos?
+  (is-not (clj:pos? -42))
+  (is (clj:pos? 42)))
+
+(deftest neg?
+  (is-not (clj:neg? 42))
+  (is (clj:neg? -42)))
+
 (deftest identical?
   (is-not (clj:identical? '(a b c) '(a b d)))
   (is (clj:identical? '(a b c) '(a b c))))
@@ -240,6 +347,15 @@
 (deftest every?
   (is-not (clj:every? #'clj:zero?/1 '(0 0 0 0 1)))
   (is (clj:every? #'clj:zero?/1 '(0 0 0 0 0))))
+
+;; Based on lists_SUITE.
+(deftest all?
+  (is-error (lists:all 'func []))
+  (flet ((pred (_a) 'true))
+    (is (lists:all #'pred/1 [])))
+  (let ((l '[1 2 3]))
+    (is (lists:all (lambda (n) (is_integer n)) l))
+    (is-not (lists:all (lambda (n) (=:= (rem n 2) 0)) l))))
 
 (deftest any?
   (is-not (clj:any? #'clj:zero?/1 '(1 1 1 1 1)))
@@ -260,7 +376,7 @@
         (ordsets:from_list '(a b c))))
 
 
-;;; clj-seq-testas
+;;; clj-seq-tests
 
 (deftest seq
   (are* [x y] (=:= x y)
@@ -354,6 +470,23 @@
           'undefined '(key-18)
           'undefined '(key-3 key-6 key-89)
           'undefined '(key-3 key-6 key-89 key-100))))
+
+(deftest get-in-default
+  (let ((data '(#(key-1 val-1)
+                #(key-2 val-2)
+                #(key-3 (#(key-4 val-4)
+                         #(key-5 val-5)
+                         #(key-6 (#(key-7 val-7)
+                                  #(key-8 val-8)
+                                  #(key-9 val-9))))))))
+    (are* [keys] (=/= 'default (clj:get-in data keys 'default))
+          '(key-1)
+          '(key-3 key-5)
+          '(key-3 key-6 key-9))
+    (are* [keys] (=:= 'default (clj:get-in data keys 'default))
+          '(key-18)
+          '(key-3 key-6 key-89)
+          '(key-3 key-6 key-89 key-100))))
 
 (deftest reduce
   (let ((lst '(1 2 3)))

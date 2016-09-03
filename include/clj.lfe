@@ -21,6 +21,7 @@
 (defmacro atom?      args `(clj:atom?      ,@args))
 (defmacro binary?    args `(clj:binary?    ,@args))
 (defmacro bitstring? args `(clj:bitstring? ,@args))
+(defmacro boolean?   args `(clj:boolean?   ,@args))
 (defmacro bool?      args `(clj:bool?      ,@args))
 (defmacro float?     args `(clj:float?     ,@args))
 (defmacro function?  args `(clj:function?  ,@args))
