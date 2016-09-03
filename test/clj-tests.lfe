@@ -123,6 +123,21 @@
                  (clj:take 10)
                  (lists:foldl (fun + 2) 0))))
 
+;; TODO
+;; (deftest as->
+;;   (is-not (clj:))
+;;   (is (clj:)))
+
+;; TODO
+;; (deftest cond->
+;;   (is-not (clj:))
+;;   (is (clj:)))
+
+;; TODO
+;; (deftest cond->>
+;;   (is-not (clj:))
+;;   (is (clj:)))
+
 ;;; Conditional macros
 
 ;; Ported from clojure.test-clojure.control.
@@ -149,13 +164,31 @@
   (is-error 'no-matching-clause (clj:condp #'=:=/2 1))
   (is-error 'no-matching-clause (clj:condp #'=:=/2 1 2 'fail)))
 
+;; TODO
+;; (deftest if-not
+;;   (is-not (clj:))
+;;   (is (clj:)))
+
+;; TODO
+;; (deftest when-not
+;;   (is-not (clj:))
+;;   (is (clj:)))
+
+;; TODO
+;; (deftest not=
+;;   (is-not (clj:))
+;;   (is (clj:)))
+
 ;;; clj-p-tests
 
 (deftest string?
   (is-not (clj:string? (list "my" "string" "data")))
   (is (clj:string? "string data! yaya!")))
 
-;; TODO: add a unit test for (unicode? ...)
+;; TODO
+;; (deftest unicode?
+;;   (is-not (clj:))
+;;   (is (clj:)))
 
 (deftest list?
   (is-not (clj:list? "string data! yaya!"))
@@ -252,6 +285,26 @@
         (/ 4 2)
         (+ 1.0 2 3)))
 
+;; TODO
+;; (deftest record?
+;;   (is-not (clj:))
+;;   (is (clj:)))
+
+;; TODO
+;; (deftest reference?
+;;   (is-not (clj:))
+;;   (is (clj:)))
+
+;; TODO
+;; (deftest map?
+;;   (is-not (clj:))
+;;   (is (clj:)))
+
+;; TODO
+;; (deftest
+;;   (is-not (clj:))
+;;   (is (clj:)))
+
 (deftest dict?
   (are* [x] (not (clj:dict? x))
         "a string"
@@ -339,6 +392,11 @@
 (deftest identical?
   (is-not (clj:identical? '(a b c) '(a b d)))
   (is (clj:identical? '(a b c) '(a b c))))
+
+;; TODO
+;; (deftest queue?
+;;   (is-not (clj:))
+;;   (is (clj:)))
 
 (deftest empty?
   (is-not (clj:empty? '(1 2 3)))
