@@ -24,7 +24,7 @@
   (export-macro condp if-not when-not not=)
   ;; Predicate macros.
   (export-macro
-   tuple? atom? binary? bitstring? bool? float? function? func?
+   tuple? atom? binary? bitstring? boolean? bool? float? function? func?
    integer? int? number? record? reference? map? undefined? undef? nil?
    true? false? odd? even? zero? pos? neg? identical?)
   (export
