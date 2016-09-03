@@ -178,11 +178,13 @@
 
   If no clause matches and a single default expression is given after the
   clauses, return it. If no default expression is given and no clause matches,
-  return a tuple of the form:
-
-      #(error \"No matching clause: {{expr}}\")"
+  throw a `no-matching-clause` error."
   (`(,pred ,expr . ,clauses)
-   (fletrec ((falsey? (x) `(lists:member ,x '(undefined false)))
+   (fletrec ((falsey? (x)
+              `(case ,x
+                 ('undefined 'true)
+                 ('false     'true)
+                 (_          'false)))
              (emit
               ([pred expr `(,a >> ,c . ,more)]
                `(let ((|-P-| (funcall ,pred ,a ,expr)))
@@ -193,13 +195,8 @@
                `(if ,(falsey? `(funcall ,pred ,a ,expr))
                   ,(emit pred expr more)
                   ,b))
-              ([pred expr `(,a)] a)
-              ([pred expr ()]
-               `#(error
-                  ,(lists:flatten
-                    ;; Consider avoiding lfe_io_pretty:term/1, since
-                    ;; LFE may not be available at runtime.
-                    `("No matching clause: " . ,(lfe_io_pretty:term expr)))))))
+              ([pred expr `(,a)]  a)
+              ([pred expr  ()]   `(error 'no-matching-clause (list ,expr)))))
      (emit pred expr clauses))))
 
 (defmacro if-not

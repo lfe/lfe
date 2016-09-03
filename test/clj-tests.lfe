@@ -123,6 +123,32 @@
                  (clj:take 10)
                  (lists:foldl (fun + 2) 0))))
 
+;;; Conditional macros
+
+;; Ported from clojure.test-clojure.control.
+(deftest condp
+  (are* [x] (=:= 'pass x)
+        (clj:condp #'=:=/2 1
+          1 'pass
+          2 'fail)
+        (clj:condp #'=:=/2 1
+          2 'fail
+          1 'pass)
+        (clj:condp #'=:=/2 1
+          2 'fail
+          'pass)
+        (clj:condp #'=:=/2 1
+          'pass)
+        (clj:condp #'=:=/2 1
+          2 'fail
+          (clj:identity 'pass))
+        (clj:condp #'+/2 1
+          1 >> (lambda (y) (if (=:= y 2) 'pass 'fail)))
+        (clj:condp #'+/2 1
+          1 >> (lambda (y) (if (=:= y 3) 'fail 'pass))))
+  (is-error 'no-matching-clause (clj:condp #'=:=/2 1))
+  (is-error 'no-matching-clause (clj:condp #'=:=/2 1 2 'fail)))
+
 ;;; clj-p-tests
 
 (deftest string?
