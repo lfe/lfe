@@ -50,7 +50,6 @@
           42
           "foo")))
 
-
 ;;; clj-comp-tests
 
 (deftest comp
@@ -285,10 +284,15 @@
         (/ 4 2)
         (+ 1.0 2 3)))
 
-;; TODO
-;; (deftest record?
-;;   (is-not (clj:))
-;;   (is (clj:)))
+;; Based on record_SUITE.
+(defrecord foo a b c d)
+(deftest record?
+  (is (clj:record? (make-foo) 'foo))
+  (is-not (clj:record? (make-foo) 'barf))
+  ;; This fails due a bug: https://github.com/rvirding/lfe/issues/266
+  ;; (is-not (clj:record? #(foo) 'foo))
+  (is-not (clj:record? [] 'foo))
+  (is-not (clj:record? 'a 'foo)))
 
 ;; TODO
 ;; (deftest reference?
@@ -297,11 +301,6 @@
 
 ;; TODO
 ;; (deftest map?
-;;   (is-not (clj:))
-;;   (is (clj:)))
-
-;; TODO
-;; (deftest
 ;;   (is-not (clj:))
 ;;   (is (clj:)))
 
@@ -393,10 +392,18 @@
   (is-not (clj:identical? '(a b c) '(a b d)))
   (is (clj:identical? '(a b c) '(a b c))))
 
-;; TODO
-;; (deftest queue?
-;;   (is-not (clj:))
-;;   (is (clj:)))
+;; Based on OTP's queue_SUITE.
+(deftest queue?
+  (is-not (clj:queue? '[1 2 3 4 5]))
+  (clj:as-> (queue:new) q
+    (queue:in 1 q)
+    (queue:in 2 q)
+    (queue:in 3 q)
+    (let ((`#(#(value 1) ,q1) (queue:out q)))
+      q1)
+    (queue:in 4 q)
+    (queue:in 5 q)
+    (is (clj:queue? q))))
 
 (deftest empty?
   (is-not (clj:empty? '(1 2 3)))
@@ -432,7 +439,6 @@
         '(a b c)
         (sets:from_list '(a b c))
         (ordsets:from_list '(a b c))))
-
 
 ;;; clj-seq-tests
 
