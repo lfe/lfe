@@ -201,16 +201,16 @@
 
 (defmacro if-not
   "If `test` evaluates to `false`, evaluate and return `then`, otherwise `else`,
-  if supplied, else `undefined`."
-  (`(,test ,then) `(if-not ,test ,then 'undefined))
+  if supplied, else `false`."
+  (`(,test ,then) `(if (not ,test) ,then 'false))
   (`(,test ,then . (,else))
    `(if (not ,test) ,then ,else)))
 
 (defmacro when-not
   "If `test` evaluates to `false`, evaluate `body` in an implicit `progn`,
-  otherwise if `test` evaluates to `true`, return `undefined`."
+  otherwise if `test` evaluates to `true`, return `false`."
   (`(,test . ,body)
-   `(if ,test 'undefined (progn ,@body))))
+   `(if ,test 'false (progn ,@body))))
 
 (defmacro not=
   "Same as `(not (== ...))`."
