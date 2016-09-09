@@ -163,20 +163,19 @@
   (is-error 'no-matching-clause (clj:condp #'=:=/2 1))
   (is-error 'no-matching-clause (clj:condp #'=:=/2 1 2 'fail)))
 
-;; TODO
-;; (deftest if-not
-;;   (is-not (clj:))
-;;   (is (clj:)))
+(deftest if-not
+  (is-not (clj:if-not 'true 'then 'false))
+  (are* [x] (clj:true? x)
+        (clj:if-not 'false 'true)
+        (clj:if-not 'false 'true 'else)))
 
-;; TODO
-;; (deftest when-not
-;;   (is-not (clj:))
-;;   (is (clj:)))
+(deftest when-not
+  (is-not (clj:when-not 'true 'ok))
+  (is (clj:when-not 'false 'true)))
 
-;; TODO
-;; (deftest not=
-;;   (is-not (clj:))
-;;   (is (clj:)))
+(deftest not=
+  (is-not (clj:not= 42 42))
+  (is (clj:not= 42 123)))
 
 ;;; clj-p-tests
 
@@ -184,10 +183,12 @@
   (is-not (clj:string? (list "my" "string" "data")))
   (is (clj:string? "string data! yaya!")))
 
-;; TODO
-;; (deftest unicode?
-;;   (is-not (clj:))
-;;   (is (clj:)))
+(deftest unicode?
+  (is-not (clj:unicode? (lists:seq 1 7)))
+  (are* [s] (clj:unicode? s)
+        "simple"
+        "Schrödinger"
+        "Umeå Vråljazz Giganter"))
 
 (deftest list?
   (is-not (clj:list? "string data! yaya!"))
@@ -294,15 +295,13 @@
   (is-not (clj:record? [] 'foo))
   (is-not (clj:record? 'a 'foo)))
 
-;; TODO
-;; (deftest reference?
-;;   (is-not (clj:))
-;;   (is (clj:)))
+(deftest reference?
+  (is-not (clj:reference? 42))
+  (is (clj:reference? (make_ref))))
 
-;; TODO
-;; (deftest map?
-;;   (is-not (clj:))
-;;   (is (clj:)))
+(deftest map?
+  (is-not (clj:map? 42))
+  (IFF-MAPS (is (clj:map? (call 'maps 'new)))))
 
 (deftest dict?
   (are* [x] (not (clj:dict? x))
