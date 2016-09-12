@@ -19,7 +19,7 @@
 (defmodule clj
   "LFE Clojure interface library."
   ;; Threading macros.
-  (export-macro -> ->> as-> cond-> cond->> some-> some->>)
+  (export-macro -> ->> as-> cond-> cond->> some-> some->> doto)
   ;; Conditional macros.
   (export-macro condp if-not when-not not=)
   ;; Predicate macros.
@@ -157,6 +157,18 @@
   and when that result is not `undefined`, through the next, etc."
   (some->>* args))
 
+(defmacro doto
+  "Evaluate all given `sexps` and functions in order,
+  for their side effects, with the value of `x` as the first argument
+  and return `x`."
+  (`(,x . ,sexps)
+   `(let ((,'x* ,x))
+      ,@(lists:map
+          (match-lambda
+            ([`(,f . ,args)] `(,f ,'x* ,@args))
+            ([f]             `(,f ,'x*)))
+          sexps)
+      ,'x*)))
 
 ;;; Conditional macros.
 
