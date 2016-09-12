@@ -13,6 +13,7 @@
 
 (defmacro condp      args `(clj:condp      ,@args))
 (defmacro if-not     args `(clj:if-not     ,@args))
+(defmacro iff        args `(clj:iff        ,@args))
 (defmacro when-not   args `(clj:when-not   ,@args))
 (defmacro not=       args `(clj:not=       ,@args))
 

@@ -21,7 +21,7 @@
   ;; Threading macros.
   (export-macro -> ->> as-> cond-> cond->> some-> some->> doto)
   ;; Conditional macros.
-  (export-macro condp if-not when-not not=)
+  (export-macro condp if-not iff when-not not=)
   ;; Predicate macros.
   (export-macro
    tuple? atom? binary? bitstring? boolean? bool? float? function? func?
@@ -217,6 +217,12 @@
   (`(,test ,then) `(if ,test 'false ,then))
   (`(,test ,then ,else)
    `(if ,test ,else ,then)))
+
+(defmacro iff
+  "Like Clojure's `when`.
+  Evaluate `test`. If `'true`, evaluate `body` in an implicit `progn`."
+  (`(,test . ,body)
+   (list 'if test (cons 'progn body))))
 
 (defmacro when-not
   "If `test` evaluates to `false`, evaluate `body` in an implicit `progn`,
