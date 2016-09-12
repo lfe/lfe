@@ -214,9 +214,9 @@
 (defmacro if-not
   "If `test` evaluates to `false`, evaluate and return `then`, otherwise `else`,
   if supplied, else `false`."
-  (`(,test ,then) `(if (not ,test) ,then 'false))
-  (`(,test ,then . (,else))
-   `(if (not ,test) ,then ,else)))
+  (`(,test ,then) `(if ,test 'false ,then))
+  (`(,test ,then ,else)
+   `(if ,test ,else ,then)))
 
 (defmacro when-not
   "If `test` evaluates to `false`, evaluate `body` in an implicit `progn`,
