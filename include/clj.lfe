@@ -7,6 +7,7 @@
 (defmacro cond->>    args `(clj:cond->>    ,@args))
 (defmacro some->     args `(clj:some->     ,@args))
 (defmacro some->>    args `(clj:some->>    ,@args))
+(defmacro doto       args `(clj:doto       ,@args))
 
 ;;; Conditional macros.
 
