@@ -31,7 +31,7 @@ Note: The original versions were copied from Tim Dysinger's lfesl repo here:
 
     https://github.com/lfex/lfesl/blob/master/include/thread.lfe
 
-The have since been modified to be safely exportable.
+They have since been modified to be safely exportable.
 
 **(-> ...)**
 
