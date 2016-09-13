@@ -458,7 +458,7 @@
   (flet ((pred (_a) 'true))
     (is (lists:all #'pred/1 [])))
   (let ((l '[1 2 3]))
-    (is (lists:all (lambda (n) (is_integer n)) l))
+    (is (lists:all (lambda (n) (clj:integer? n)) l))
     (is-not (lists:all (lambda (n) (=:= (rem n 2) 0)) l))))
 
 (deftest any?
