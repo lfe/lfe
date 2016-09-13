@@ -23,6 +23,23 @@ then call them directly, e.g.
 (\->\ 2\ (+\ 2)\ (=:=\ 4))\ ;\ \[aq]true
 \f[]
 .fi
+.SS Function Macros
+.PP
+\f[B](defn name [arg ...] {{doc\-string}} ...)\f[]
+.PP
+\f[B](defn {{doc\-string}} ([argpat ...] ...))\f[]
+.PP
+Define and automatically export a function.
+.PP
+\f[B](defn\- name [arg ...] {{doc\-string}} ...)\f[]
+.PP
+\f[B](defn\- {{doc\-string}} ([argpat ...] ...))\f[]
+.PP
+Equivalent to \f[B]defun\f[].
+.PP
+\f[B](fn (arg ...) ...)\f[]
+.PP
+Equivalent to \f[C]lambda\f[].
 .SS Threading Macros
 .PP
 Note: The original versions were copied from Tim Dysinger\[aq]s lfesl
@@ -675,5 +692,13 @@ Return a unary function that returns \f[C]x\f[].
 N.B.
 This is like Haskell\[aq]s \f[C]const\f[] rather than Clojure\[aq]s
 \f[C]constantly\f[].
+.PP
+\f[B](inc x)\f[]
+.PP
+Increment \f[C]x\f[] by 1.
+.PP
+\f[B](dec x)\f[]
+.PP
+Decrement \f[C]x\f[] by 1.
 .SH AUTHORS
 Tim Dysinger, Duncan McGreggor, Eric Bailey.
