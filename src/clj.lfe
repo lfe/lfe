@@ -305,7 +305,9 @@
 (defmacro map? (x)
   "Return `'true` if `data` is a map.
   Return `'false` on versions of Erlang without maps."
-  `(andalso ',(HAS_MAPS) (call 'erlang 'is_map ,x)))
+  (if (HAS_MAPS)
+    `(call 'erlang 'is_map ,x)
+    `'false))
 
 (defmacro undefined? (x)
   "Return `'true` if `x` is the atom `'undefined`."
