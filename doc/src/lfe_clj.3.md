@@ -25,6 +25,25 @@ you may `(include-lib "lfe/include/clj.lfe")` and then call them directly, e.g.
 ```
 
 
+## Function Macros
+
+**(defn name [arg ...] {{doc-string}} ...)**
+
+**(defn {{doc-string}} ([argpat ...] ...))**
+
+Define and automatically export a function.
+
+**(defn- name [arg ...] {{doc-string}} ...)**
+
+**(defn- {{doc-string}} ([argpat ...] ...))**
+
+Equivalent to **defun**.
+
+**(fn (arg ...) ...)**
+
+Equivalent to `lambda`.
+
+
 ## Threading Macros
 
 Note: The original versions were copied from Tim Dysinger's lfesl repo here:
@@ -616,3 +635,11 @@ Identity function.
 
 Return a unary function that returns `x`.
 N.B. This is like Haskell's `const` rather than Clojure's `constantly`.
+
+**(inc x)**
+
+Increment `x` by 1.
+
+**(dec x)**
+
+Decrement `x` by 1.
