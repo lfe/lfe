@@ -22,14 +22,15 @@
 
 (include-file "ltest-macros.lfe")
 
-;;; HACK
+(defmacro ok? (x) `(=:= 'ok ,x))
 
+;; HACK
 (defmacro IFF-MAPS expr `(andalso (erl_internal:bif 'is_map 1) ,@expr))
 
 ;;; identity and constantly
 
 (deftest identity
-  (are* [x] (=:= (clj:identity x) x)
+  (are* [x] (ok? (is-match x (clj:identity x)))
         'atom
         0 42
         0.0 3.14
@@ -37,7 +38,8 @@
         "" "abc"
         #"" #"abc"
         () (1 2)
-        #() #(1 2)
+        #() #(1 2))
+  (are* [x] (ok? (is-equal x (clj:identity x)))
         (IFF-MAPS (call 'maps 'new))
         (IFF-MAPS (call 'maps 'from_list '[#(a 1) #(b 2)])))
   (is-equal 3 (clj:identity (+ 1 2)))
@@ -45,7 +47,7 @@
 
 (deftest constantly
   (flet ((c0 (x) (funcall (clj:constantly 10) x)))
-    (are* [x] (=:= 10 (c0 x))
+    (are* [x] (ok? (is-match 10 (c0 x)))
           'nil
           42
           "foo")))
@@ -91,7 +93,7 @@
     (is-equal 6 (funcall (clj:partial (fun + 3) 1) '(2 3)))))
 
 (deftest ->
-  (are* [x y] (=:= x y)
+  (are* [x y] (ok? (is-match x y))
 
         '(#(a 1) #(b 2) #(c 3) #(d 4) #(e 5) #(f 6))
         (clj:-> '(#(a 1) #(b 2) #(c 3))
@@ -109,7 +111,7 @@
                 (lists:sublist 2 3))))
 
 (deftest ->>
-  (are* [x y] (=:= x y)
+  (are* [x y] (ok? (is-match x y))
         '(#(f 6) #(e 5) #(d 4) #(a 1) #(b 2) #(c 3))
         (clj:->> '(#(a 1) #(b 2) #(c 3))
                  (++ '(#(d 4)))
@@ -139,9 +141,9 @@
 
 ;;; Conditional macros
 
-;; Ported from clojure.test-clojure.control.
+;; Ported from #'clojure.test-clojure.control/test-condp
 (deftest condp
-  (are* [x] (=:= 'pass x)
+  (are* [x] (ok? (is-match 'pass x))
         (clj:condp #'=:=/2 1
           1 'pass
           2 'fail)
@@ -442,25 +444,25 @@
 ;;; clj-seq-tests
 
 (deftest seq
-  (are* [x y] (=:= x y)
+  (are* [x y] (ok? (is-match x y))
         '(1 2 3 4)    (clj:seq 4)
         '(2 3 4)      (clj:seq 2 4)
         '(2 4 6 8 10) (clj:seq 2 10 2)))
 
 (deftest drop
-  (are* [x y] (=:= x y)
-        '(6 7 8 9 10 11 12) (clj:drop 5    '(1 2 3 4 5 6 7 8 9 10 11 12))
-        ()                  (clj:drop 'all '(1 2 3 4 5 6 7 8 9 10 11 12))))
+  (are* [x y] (ok? (is-match x y))
+        '(6 7 8 9 10 11 12) (clj:drop 5    (lists:seq 1 12))
+        ()                  (clj:drop 'all (lists:seq 1 12))))
 
 (deftest take
-  (are* [n xs] (=:= xs (clj:take n '(1 2 3 4 5 6 7 8 9 10 11 12)))
+  (are* [n xs] (ok? (is-match xs (clj:take n (lists:seq 1 12))))
         5    '(1 2 3 4 5)
         'all '(1 2 3 4 5 6 7 8 9 10 11 12))
   (is-equal '(1 2 3 4) (clj:take 4 (clj:range)))
   (is-error 'function_clause (clj:take -1 (clj:range))))
 
 (deftest next-and-take
-  (are* [x y] (=:= x y)
+  (are* [x y] (ok? (is-match x y))
 
         '(1 6 21 66 201 606 1821 5466 16401 49206)
         (clj:take 10 (clj:next (lambda (x y) (* 3 (+ x y))) 1 1))
@@ -472,7 +474,7 @@
         (clj:take 7 (clj:next (lambda (x _) (math:pow (+ x 1) 2)) 1 1))))
 
 (deftest range
-  (are* [x y] (=:= x y)
+  (are* [x y] (ok? (is-match x y))
         1 (car (funcall (clj:range)))
         2 (car (funcall (cdr (funcall (clj:range)))))
         3 (car (funcall (cdr (funcall (cdr (funcall (clj:range)))))))
@@ -485,11 +487,11 @@
    (clj:split-at 3 '(1 2 3 4 5 6 7 8 9 10 11 12))))
 
 (deftest partition
-  (are* [n parts] (=:= parts (clj:partition n ()))
+  (are* [n parts] (ok? (is-match parts (clj:partition n ())))
         0   ()
         1   ()
         100 ())
-  (are* [n parts] (=:= parts (clj:partition n '(1 2 3 4 5 6 7 8 9 10 11 12)))
+  (are* [n parts] (ok? (is-match parts (clj:partition n (lists:seq 1 12))))
         0 '(1 2 3 4 5 6 7 8 9 10 11 12)
         1 '((1) (2) (3) (4) (5) (6) (7) (8) (9) (10) (11) (12))
         2 '((1 2) (3 4) (5 6) (7 8) (9 10) (11 12))
@@ -499,7 +501,7 @@
         12 '((1 2 3 4 5 6 7 8 9 10 11 12))))
 
 (deftest partition-all
-  (are* [n pts] (=:= pts (clj:partition-all n '(1 2 3 4 5 6 7 8 9 10 11 12)))
+  (are* [n pts] (ok? (is-match pts (clj:partition-all n (lists:seq 1 12))))
         5 '((1 2 3 4 5) (6 7 8 9 10) (11 12))
         7 '((1 2 3 4 5 6 7) (8 9 10 11 12))
         11 '((1 2 3 4 5 6 7 8 9 10 11) (12))))
@@ -511,7 +513,7 @@
   (let ((data '((1)
                 (1 2 3)
                 (1 2 (3 4 (5 6 (7 8 9)))))))
-    (are* [val keys] (=:= val (clj:get-in data keys))
+    (are* [val keys] (ok? (is-match val (clj:get-in data keys)))
           1          '(1 1)
           3          '(2 3)
           9          '(3 3 3 3 3)
@@ -526,7 +528,7 @@
                          #(key-6 (#(key-7 val-7)
                                   #(key-8 val-8)
                                   #(key-9 val-9))))))))
-    (are* [val keys] (=:= val (clj:get-in data keys))
+    (are* [val keys] (ok? (is-match val (clj:get-in data keys)))
           'val-1     '(key-1)
           'val-5     '(key-3 key-5)
           'val-9     '(key-3 key-6 key-9)
@@ -546,24 +548,24 @@
           '(key-1)
           '(key-3 key-5)
           '(key-3 key-6 key-9))
-    (are* [keys] (=:= 'default (clj:get-in data keys 'default))
+    (are* [keys] (ok? (is-match 'default (clj:get-in data keys 'default)))
           '(key-18)
           '(key-3 key-6 key-89)
           '(key-3 key-6 key-89 key-100))))
 
 (deftest reduce
   (let ((lst '(1 2 3)))
-    (are* [f] (=:= 6 (clj:reduce f lst))
+    (are* [f] (ok? (is-match 6 (clj:reduce f lst)))
           (lambda (x acc) (+ x acc))
           (fun + 2)
           #'+/2)
-    (are* [f] (=:= 6 (clj:reduce f 0 lst))
+    (are* [f] (ok? (is-match 6 (clj:reduce f 0 lst)))
           (lambda (x acc) (+ x acc))
           (fun + 2)
           #'+/2)))
 
 (deftest repeat
-  (are* [x y] (=:= x y)
+  (are* [x y] (ok? (is-match x y))
         '(1 1 1)       (clj:repeat 3 1)
         '("xo" "xo")   (clj:repeat 2 "xo")
         ()             (clj:repeat 0 "oh noes")
