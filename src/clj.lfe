@@ -628,6 +628,13 @@
   N.B. This is like Haskell's `const` rather than Clojure's `constantly`."
   (lambda (_) x))
 
+(defn inc [x]
+  "Increment `x` by 1."
+  (+ x 1))
+
+(defn dec [x]
+  "Decrement `x` by 1."
+  (- x 1))
 
 ;;; Internal functions.
 

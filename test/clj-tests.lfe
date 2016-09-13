@@ -611,7 +611,7 @@
   (is-error 'function_clause (clj:repeat -1 0))
   (is-error 'function_clause (clj:repeat -1 (lambda () 1))))
 
-;;; identity and constantly
+;;; Other functions.
 
 (deftest identity
   (are* [x] (ok? (is-match x (clj:identity x)))
@@ -635,3 +635,11 @@
           'nil
           42
           "foo")))
+
+(deftest inc
+  (is-match 2 (clj:inc 1))
+  (is-match 4.0 (clj:inc 3.0)))
+
+(deftest dec
+  (is-match 2 (clj:dec 3))
+  (is-match 4.0 (clj:dec 5.0)))
