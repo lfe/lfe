@@ -140,17 +140,17 @@
 (defmacro cond-> args
   "expr . clauses
   Given an `expr`ession and a set of `test`/`sexp` pairs, thread `x` (via `->`)
-  through each `sexp` for which the corresponding `test` expression is `true`.
+  through each `sexp` for which the corresponding `test` expression is `'true`.
   Note that, unlike `cond` branching, `cond->` threading does not short circuit
-  after the first `true` test expression."
+  after the first `'true` test expression."
   (cond->* args))
 
 (defmacro cond->> args
   "expr . clauses
   Given an `expr`ession and a set of `test`/`sexp` pairs, thread `x` (via `->>`)
-  through each `sexp` for which the corresponding `test` expression is `true`.
+  through each `sexp` for which the corresponding `test` expression is `'true`.
   Note that, unlike `cond` branching, `cond->>` threading does not short circuit
-  after the first `true` `test` expression."
+  after the first `'true` `test` expression."
   (cond->>* args))
 
 (defmacro some-> args
@@ -181,8 +181,7 @@
 ;;; Conditional macros.
 
 (defmacro condp args
-  "Usage: `(condp pred expr . clauses)`
-
+  "pred expr . clauses
   Given a binary predicate, an expression and a set of clauses of the form:
 
       test-expr result-expr
@@ -190,7 +189,7 @@
       test-expr >> result-fn
 
   where `result-fn` is a unary function, if `(pred test-expr expr)` returns
-  anything other than `undefined` or `false`, the clause is a match.
+  anything other than `undefined` or `'false`, the clause is a match.
 
   If a binary clause matches, return `result-expr`.  If a ternary clause
   matches, call `result-fn` with the result of the predicate and return the
@@ -202,21 +201,24 @@
   (condp* args))
 
 (defmacro if-not
-  "If `test` evaluates to `false`, evaluate and return `then`, otherwise `else`,
-  if supplied, else `false`."
+  "test then [else]
+  If `test` evaluates to `'false`, evaluate and return `then`,
+  otherwise `else`, if supplied, else `'false`."
   (`(,test ,then) `(if ,test 'false ,then))
   (`(,test ,then ,else)
    `(if ,test ,else ,then)))
 
 (defmacro iff
-  "Like Clojure's `when`.
+  "test . body
+  Like Clojure's `when`.
   Evaluate `test`. If `'true`, evaluate `body` in an implicit `progn`."
   (`(,test . ,body)
    (list 'if test (cons 'progn body))))
 
 (defmacro when-not
-  "If `test` evaluates to `false`, evaluate `body` in an implicit `progn`,
-  otherwise if `test` evaluates to `true`, return `false`."
+  "test . body
+  If `test` evaluates to `'false`, evaluate `body` in an implicit `progn`,
+  otherwise if `test` evaluates to `'true`, return `'false`."
   (`(,test . ,body)
    `(if ,test 'false (progn ,@body))))
 
@@ -237,7 +239,7 @@
   `(is_atom ,x))
 
 (defmacro binary? (x)
-  "Return `'true` if `data` is a binary."
+  "Return `'true` if `x` is a binary."
   `(is_binary ,x))
 
 (defmacro bitstring? (x)
@@ -257,12 +259,14 @@
   `(is_float ,x))
 
 (defmacro function?
-  "Return `'true` if `f` is a function."
+  "Return `'true` if `f` is a function.
+  If `n` is given, return whether `f` is an `n`-ary function."
   (`(,f)    `(is_function ,f))
   (`(,f ,n) `(is_function ,f ,n)))
 
 (defmacro func?
-  "Return `'true` if `f` is a function."
+  "Return `'true` if `f` is a function.
+  If `n` is given, return whether `f` is an `n`-ary function."
   (`(,f)    `(is_function ,f))
   (`(,f ,n) `(is_function ,f ,n)))
 
@@ -279,9 +283,12 @@
   `(is_number ,x))
 
 (defmacro record?
-  "Return `'true` if `x` is a tuple and its first element is `record-tag`."
-  ;; "`record-tag` must be an atom. Return `'true` if `x` is a tuple,
-  ;; its first element is `record-tag`, and its size is `size`."
+  "Return `'true` if `x` is a tuple and its first element is `record-tag`.
+  If `size` is given, check that `x` is a `record-tag` record of size `size`.
+
+  N.B. `record?/2` may yield unexpected results, due to difference between the
+  Erlang and LFE compilers. As such, whenever possible, prefer `record?/3`."
+  ;; NOTE: record-tag must be an atom
   (`(,x ,record-tag)       `(is_record ,x ,record-tag))
   (`(,x ,record-tag ,size) `(is_record ,x ,record-tag ,size)))
 
@@ -367,7 +374,6 @@
 
 ;;; Partial application.
 
-;; FIXME: Doesn't work with HOF.
 (defun partial
   "Partial application.
   Given a function `f`, and an argument or list of arguments, return a function
@@ -590,11 +596,13 @@
   (lists:foldl func acc lst))
 
 (defun repeat (x)
-  "Returns a lazy infinite sequence of `x`s.
+  "Return a lazy infinite sequence of `x`s.
   See [[next/3]] for details on the structure."
   (next (lambda (y _) y) x x))
 
 (defun repeat
+  "Given a nullary function `f`, return a list of `n` applications of `f`.
+  Given a term `x`, return a list of `n` copies of `x`."
   ((n f) (when (is_function f) (is_integer n) (>= n 0))
    (fletrec ((repeat-fun
               ((0 acc) acc)
