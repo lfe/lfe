@@ -1,3 +1,9 @@
+;;; Function macros.
+
+(defmacro defn       args `(clj:defn       ,@args))
+(defmacro defn-      args `(clj:defn-      ,@args))
+(defmacro fn         args `(clj:fn         ,@args))
+
 ;;; Threading macros.
 
 (defmacro ->         args `(clj:->         ,@args))

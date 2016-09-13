@@ -27,6 +27,25 @@
 ;; HACK
 (defmacro IFF-MAPS expr `(andalso (erl_internal:bif 'is_map 1) ,@expr))
 
+;;; defn
+
+(defun test-defn (f a def)
+  (let* ((forms                      `((defmodule dummy) ,def))
+         (`#(ok (#(ok dummy ,beam)))  (lfe_comp:forms forms))
+         (`#(ok ,docs)                (lfe_doc:get_module_docs beam)))
+    (lfe_io:format "~s/~w ~p~n" (list f a docs))
+    (lfe_doc:function_docs f a docs)))
+
+(deftest defn
+  (are* [f a def] (ok? (is-match `#(ok ,_doc) (test-defn f a def)))
+        'foo 1 '(clj:defn foo [bar] bar)
+        'foo 1 '(clj:defn foo [bar] "doc" bar)
+        'foo 2 '(clj:defn foo [_bar baz] baz)
+        'foo 2 '(clj:defn foo [_bar baz] "doc" baz)
+        'foo 3 '(clj:defn foo ([_bar _baz qux] qux))
+        'foo 3 '(clj:defn foo "doc" ([_bar _baz qux] qux))
+        'foo 3 '(clj:defn foo ([`#(bar ,_bar) _baz qux] qux))
+        'foo 3 '(clj:defn foo "doc" ([`#(bar ,_bar) _baz qux] qux))))
 
 ;;; Threading macros.
 
