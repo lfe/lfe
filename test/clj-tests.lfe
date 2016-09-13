@@ -124,18 +124,47 @@
                  (clj:take 10)
                  (lists:foldl (fun + 2) 0))))
 
-;; TODO
-;; (deftest as->
-;;   (is-not (clj:))
-;;   (is (clj:)))
+;; Ported from #'clojure.test-clojure.macros/as->test
+(deftest as->
+  (flet ((inc (x) (+ x 1)))
+    (is-match 0 (clj:as-> 0 x))
+    (is-match 1 (clj:as-> 0 x (inc x)))
+    (is-match 2 (clj:as-> '[0 1] x
+                  (lists:map #'inc/1 x)
+                  (lists:reverse x)
+                  (car x)))))
+
+;; Ported from #'clojure.test-clojure.macros/cond->test
+(deftest cond->
+  (is-match  0 (clj:cond-> 0))
+  (is-match -1 (clj:cond-> 0 'true  (+ 1) 'true  (- 2)))
+  (is-match  0 (clj:cond-> 0 'false (+ 1)))
+  (is-match -1 (clj:cond-> 1 'true  (- 2) 'false (+ 1))))
+
+;; Ported from #'clojure.test-clojure.macros/cond->>test
+(deftest cond->>
+  (is-match 0 (clj:cond->> 0))
+  (is-match 1 (clj:cond->> 0 'true  (+ 1) 'true  (- 2)))
+  (is-match 0 (clj:cond->> 0 'false (+ 1)))
+  (is-match 1 (clj:cond->> 1 'true  (- 2) 'false (+ 1))))
+
+;; Ported from #'clojure.test-clojure.macros/some->test
+(deftest some->test
+  (is-match 'undefined (clj:some-> 'undefined))
+  (is-match  0         (clj:some-> 0))
+  (is-match -1         (clj:some-> 1 (- 2)))
+  (is-match 'undefined (clj:some-> 1 (progn 'undefined) (- 2))))
+
+;; Ported from #'clojure.test-clojure.macros/some->>test
+(deftest some->>test
+  (is-match 'undefined (clj:some->> 'undefined))
+  (is-match 0 (clj:some->> 0))
+  (is-match 1 (clj:some->> 1 (- 2)))
+  (flet ((constantly-undefined (_) 'undefined))
+    (is-match 'undefined (clj:some->> 1 (constantly-undefined) (- 2)))))
 
 ;; TODO
-;; (deftest cond->
-;;   (is-not (clj:))
-;;   (is (clj:)))
-
-;; TODO
-;; (deftest cond->>
+;; (deftest doto
 ;;   (is-not (clj:))
 ;;   (is (clj:)))
 
@@ -170,6 +199,14 @@
   (are* [x] (clj:true? x)
         (clj:if-not 'false 'true)
         (clj:if-not 'false 'true 'else)))
+
+;; Ported from #'clojure.test-clojure.control/test-when
+(deftest iff
+  (are* [x y] (ok? (is-match x y))
+        1 (clj:iff 'true 1)
+        () (clj:iff 'true)
+        'false (clj:iff 'false)
+        'false (clj:iff 'false (error 'bad-iff))))
 
 (deftest when-not
   (is-not (clj:when-not 'true 'ok))
