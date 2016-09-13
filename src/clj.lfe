@@ -92,19 +92,13 @@
     ([`(,x ,test ,sexp . ,clauses)]
      (cond->>* (cons (cond->>* (list x test sexp)) clauses))))
   (defun some->*
-    ([`(,x)] x)
-    ([`(,x ,sexp)]
-     (case x
-       ('undefined 'undefined)
-       (|-X-|       (->* (list |-X-| sexp)))))
+    ([`(,x)]        x)
+    ([`(,x ,sexp)] `(if (clj:undefined? ,x) 'undefined ,(->* (list x sexp))))
     ([`(,x ,sexp . ,sexps)]
      (some->* (cons (some->* (list x sexp)) sexps))))
   (defun some->>*
-    ([`(,x)] x)
-    ([`(,x ,sexp)]
-     (case x
-       ('undefined 'undefined)
-       (|-X-|       (->>* (list |-X-| sexp)))))
+    ([`(,x)]        x)
+    ([`(,x ,sexp)] `(if (clj:undefined? ,x) 'undefined ,(->>* (list x sexp))))
     ([`(,x ,sexp . ,sexps)]
      (some->>* (cons (some->>* (list x sexp)) sexps)))))
 
