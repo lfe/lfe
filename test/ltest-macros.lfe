@@ -34,6 +34,13 @@
   "Assert `bool-expression` evaluates to `'false`."
   `(assertNot ,bool-expression))
 
+(defmacro is-match (guard expression)
+  "Assert `guard` matches `expression`.
+
+  The main reason to use [[is-match/2]], instead of matching with `=`,
+  is that it produces more detailed error messages."
+  `(assertMatch ,guard ,expression))
+
 (defmacro is-equal (value expression)
   "Assert `expression` evaluates to `value`."
   `(assertEqual ,value ,expression))
