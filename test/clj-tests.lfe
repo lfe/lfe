@@ -444,7 +444,9 @@
 
 (deftest empty?
   (is-not (clj:empty? '(1 2 3)))
-  (is (clj:empty? ())))
+  (IFF-MAPS (is-not (clj:empty? (call 'maps 'from_list '[#(a 1) #(b 2)]))))
+  (is (clj:empty? ()))
+  (IFF-MAPS (is (clj:empty? (call 'maps 'new)))))
 
 (deftest every?
   (is-not (clj:every? #'clj:zero?/1 '(0 0 0 0 1)))
@@ -588,6 +590,17 @@
           '(key-18)
           '(key-3 key-6 key-89)
           '(key-3 key-6 key-89 key-100))))
+
+(deftest get-in-map
+  (IFF-MAPS
+   (let* ((c (call 'maps 'from_list '[#(c 123)]))
+          (b (call 'maps 'from_list `[#(b ,c)]))
+          (m (call 'maps 'from_list `[#(a ,b)])))
+     (are* [data keys] (ok? (is-match data (clj:get-in m keys)))
+           b          '(a)
+           c          '(a b)
+           123        '(a b c)
+           'undefined '(x y z)))))
 
 (deftest reduce
   (let ((lst '(1 2 3)))
