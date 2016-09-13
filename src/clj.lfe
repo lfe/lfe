@@ -360,8 +360,7 @@
   If the second argument is a function, compose `f` and `g`.
   Otherwise, compose a list of functions `fs` and apply the result to `x`."
   ([f g] (when (is_function g))
-   (lambda [x]
-     (funcall f (funcall g x))))
+   (fn [x] (funcall f (funcall g x))))
   ([fs x]
    (funcall (comp fs) x)))
 
@@ -515,8 +514,7 @@
   and a nullary function, `(next func (funcall func start step) step)` as the
   tail. The result can be treated as a (possibly infinite) lazy list, which
   only computes subseqeuent values as needed."
-  (lambda ()
-    (cons start (next func (funcall func start step) step))))
+  (fn [] (cons start (next func (funcall func start step) step))))
 
 (defn range []
   "Equivalent to `(range 1 1)`."
@@ -604,7 +602,7 @@
 (defn repeat [x]
   "Return a lazy infinite sequence of `x`s.
   See [[next/3]] for details on the structure."
-  (next (lambda (y _) y) x x))
+  (next (fn [y _] y) x x))
 
 (defn repeat
   "Given a nullary function `f`, return a list of `n` applications of `f`.
@@ -626,7 +624,7 @@
 (defn constantly [x]
   "Return a unary function that returns `x`.
   N.B. This is like Haskell's `const` rather than Clojure's `constantly`."
-  (lambda (_) x))
+  (fn [_] x))
 
 (defn inc [x]
   "Increment `x` by 1."
