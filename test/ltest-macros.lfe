@@ -41,6 +41,10 @@
   is that it produces more detailed error messages."
   `(assertMatch ,guard ,expression))
 
+(defmacro is-not-match (guard expression)
+  "The inverse case of [[is-match/2]], for convenience."
+  `(assertNotMatch ,guard ,expression))
+
 (defmacro is-equal (value expression)
   "Assert `expression` evaluates to `value`."
   `(assertEqual ,value ,expression))

@@ -163,10 +163,12 @@
   (flet ((constantly-undefined (_) 'undefined))
     (is-match 'undefined (clj:some->> 1 (constantly-undefined) (- 2)))))
 
-;; TODO
-;; (deftest doto
-;;   (is-not (clj:))
-;;   (is (clj:)))
+(deftest doto
+  (is-not-match 6 (clj:doto 42 (/ 7)))
+  (let ((answer 42))
+    (is-match answer (clj:doto answer (+ 1) (- 10) (progn 'undefined) (list))))
+  (let ((bin #"never you change"))
+    (is-match bin (clj:doto bin (io:put_chars)))))
 
 ;;; Conditional macros
 
