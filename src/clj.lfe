@@ -359,7 +359,7 @@
   "Function composition.
   If the second argument is a function, compose `f` and `g`.
   Otherwise, compose a list of functions `fs` and apply the result to `x`."
-  ([f g] (when (is_function g))
+  ([f g] (when (function? g))
    (fn [x] (funcall f (funcall g x))))
   ([fs x]
    (funcall (comp fs) x)))
@@ -433,12 +433,9 @@
 
 (defn proplist-kv?
   "Return `'true` if a given term is a key/value tuple or an atom."
-  ([`#(,key ,_)] (when (is_atom key))
-   'true)
-  ([bool-key] (when (is_atom bool-key))
-   'true)
-  ([_]
-   'false))
+  ([`#(,key ,_)] (when (atom? key))      'true)
+  ([bool-key]    (when (atom? bool-key)) 'true)
+  ([_]                                   'false))
 
 (defn queue? [x]
   "Return `'true` if `x` is a queue."
@@ -545,7 +542,7 @@
   (['all lst] (when (is_list lst)) lst)
   ([n lst] (when (is_list lst))
    (lists:sublist lst n))
-  ([n func] (when (is_function func) (is_integer n) (>= n 0))
+  ([n func] (when (function? func) (integer? n) (>= n 0))
    (-take n () (funcall func))))
 
 (defn split-at [n lst]
@@ -607,7 +604,7 @@
 (defn repeat
   "Given a nullary function `f`, return a list of `n` applications of `f`.
   Given a term `x`, return a list of `n` copies of `x`."
-  ([n f] (when (is_function f) (is_integer n) (>= n 0))
+  ([n f] (when (function? f) (integer? n) (>= n 0))
    (fletrec ((repeat-fun
               ((0 acc) acc)
               ((n acc) (repeat-fun (- n 1) (cons (funcall f) acc)))))
@@ -677,7 +674,7 @@
 
 (defn- -get-in-list
   ([lst  () not-found] lst)
-  ([lst `(,n . ,keys) not-found] (when (is_integer n))
+  ([lst `(,n . ,keys) not-found] (when (integer? n))
    (let ((data
           (try
             (lists:nth n lst)
