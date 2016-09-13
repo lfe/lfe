@@ -27,70 +27,8 @@
 ;; HACK
 (defmacro IFF-MAPS expr `(andalso (erl_internal:bif 'is_map 1) ,@expr))
 
-;;; identity and constantly
 
-(deftest identity
-  (are* [x] (ok? (is-match x (clj:identity x)))
-        'atom
-        0 42
-        0.0 3.14
-        #\c
-        "" "abc"
-        #"" #"abc"
-        () (1 2)
-        #() #(1 2))
-  (are* [x] (ok? (is-equal x (clj:identity x)))
-        (IFF-MAPS (call 'maps 'new))
-        (IFF-MAPS (call 'maps 'from_list '[#(a 1) #(b 2)])))
-  (is-equal 3 (clj:identity (+ 1 2)))
-  (is (clj:identity (> 5 0))))
-
-(deftest constantly
-  (flet ((c0 (x) (funcall (clj:constantly 10) x)))
-    (are* [x] (ok? (is-match 10 (c0 x)))
-          'nil
-          42
-          "foo")))
-
-;;; clj-comp-tests
-
-(deftest comp
-  (flet ((c0 (x) (funcall (clj:comp) x)))
-    (are* [x] (=:= (clj:identity x) (c0 x))
-          'atom
-          0 42
-          0.0 3.14
-          #\c
-          "" "abc"
-          #"" #"abc"
-          () (1 2)
-          #() #(1 2)
-          (IFF-MAPS (call 'maps 'new))
-          (IFF-MAPS (call 'maps 'from_list '(#(a 1) #(b 2)))))
-    (is-equal (clj:identity (+ 1 2 3)) (c0 6))
-    (is-equal (clj:identity (quote foo)) (c0 'foo)))
-  (let ((asin-result (funcall (clj:comp #'math:sin/1 #'math:asin/1) 0.5)))
-    (is-equal "0.5" (car (io_lib:format "~.1f" `(,asin-result)))))
-  (is-equal 1.5
-            (funcall (clj:comp `(,(lambda (x) (+ x 1))
-                                 ,#'math:sin/1
-                                 ,#'math:asin/1)) 0.5))
-  (is-equal '(1 2 3 4)
-            (lists:filter (clj:comp #'not/1 #'clj:zero?/1)
-              '(0 1 0 2 0 3 0 4)))
-  (let ((asin-result (clj:comp #'math:sin/1 #'math:asin/1 0.5)))
-    (is-equal "0.5" (car (io_lib:format "~.1f" `(,asin-result))))))
-
-(deftest partial
-  (flet (;; (p0 (x) (funcall (clj:partial inc) x))
-         (p1 (x) (funcall (clj:partial (fun + 2) 20) x))
-         ;; (p2 (x) (funcall (clj:partial conj #(1 2)) x))
-         )
-    ;; (is-equal 41 (p0 40))
-    (is-equal 40 (p1 20))
-    ;; (is-equal #(1 2 3) (p2 3))
-    (is-equal 3 (funcall (clj:partial (fun + 2) 1) 2))
-    (is-equal 6 (funcall (clj:partial (fun + 3) 1) '(2 3)))))
+;;; Threading macros.
 
 (deftest ->
   (are* [x y] (ok? (is-match x y))
@@ -217,6 +155,46 @@
 (deftest not=
   (is-not (clj:not= 42 42))
   (is (clj:not= 42 123)))
+
+;;; clj-comp-tests
+
+(deftest comp
+  (flet ((c0 (x) (funcall (clj:comp) x)))
+    (are* [x] (=:= (clj:identity x) (c0 x))
+          'atom
+          0 42
+          0.0 3.14
+          #\c
+          "" "abc"
+          #"" #"abc"
+          () (1 2)
+          #() #(1 2)
+          (IFF-MAPS (call 'maps 'new))
+          (IFF-MAPS (call 'maps 'from_list '(#(a 1) #(b 2)))))
+    (is-equal (clj:identity (+ 1 2 3)) (c0 6))
+    (is-equal (clj:identity (quote foo)) (c0 'foo)))
+  (let ((asin-result (funcall (clj:comp #'math:sin/1 #'math:asin/1) 0.5)))
+    (is-equal "0.5" (car (io_lib:format "~.1f" `(,asin-result)))))
+  (is-equal 1.5
+            (funcall (clj:comp `(,(lambda (x) (+ x 1))
+                                 ,#'math:sin/1
+                                 ,#'math:asin/1)) 0.5))
+  (is-equal '(1 2 3 4)
+            (lists:filter (clj:comp #'not/1 #'clj:zero?/1)
+              '(0 1 0 2 0 3 0 4)))
+  (let ((asin-result (clj:comp #'math:sin/1 #'math:asin/1 0.5)))
+    (is-equal "0.5" (car (io_lib:format "~.1f" `(,asin-result))))))
+
+(deftest partial
+  (flet (;; (p0 (x) (funcall (clj:partial inc) x))
+         (p1 (x) (funcall (clj:partial (fun + 2) 20) x))
+         ;; (p2 (x) (funcall (clj:partial conj #(1 2)) x))
+         )
+    ;; (is-equal 41 (p0 40))
+    (is-equal 40 (p1 20))
+    ;; (is-equal #(1 2 3) (p2 3))
+    (is-equal 3 (funcall (clj:partial (fun + 2) 1) 2))
+    (is-equal 6 (funcall (clj:partial (fun + 3) 1) '(2 3)))))
 
 ;;; clj-p-tests
 
@@ -613,3 +591,28 @@
         2              (length (clj:repeat 2 #'random:uniform/0)))
   (is-error 'function_clause (clj:repeat -1 0))
   (is-error 'function_clause (clj:repeat -1 (lambda () 1))))
+
+;;; identity and constantly
+
+(deftest identity
+  (are* [x] (ok? (is-match x (clj:identity x)))
+        'atom
+        0 42
+        0.0 3.14
+        #\c
+        "" "abc"
+        #"" #"abc"
+        () (1 2)
+        #() #(1 2))
+  (are* [x] (ok? (is-equal x (clj:identity x)))
+        (IFF-MAPS (call 'maps 'new))
+        (IFF-MAPS (call 'maps 'from_list '[#(a 1) #(b 2)])))
+  (is-equal 3 (clj:identity (+ 1 2)))
+  (is (clj:identity (> 5 0))))
+
+(deftest constantly
+  (flet ((c0 (x) (funcall (clj:constantly 10) x)))
+    (are* [x] (ok? (is-match 10 (c0 x)))
+          'nil
+          42
+          "foo")))
