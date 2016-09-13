@@ -18,6 +18,8 @@
 
 (defmodule clj
   "LFE Clojure interface library."
+  ;; Function macros.
+  (export-macro defn defn- fn)
   ;; Threading macros.
   (export-macro -> ->> as-> cond-> cond->> some-> some->> doto)
   ;; Conditional macros.
@@ -26,37 +28,41 @@
   (export-macro
    tuple? atom? binary? bitstring? boolean? bool? float? function? func?
    integer? int? number? record? reference? map? undefined? undef? nil?
-   true? false? odd? even? zero? pos? neg? identical?)
-  (export
-   ;; Function composition.
-   (comp 2) (comp 3) (comp 1) (comp 0)
-   ;; Partial application.
-   (partial 2)
-   ;; Predicate functions.
-   (string? 1) (unicode? 1)
-   (list? 1) (set? 1) (dict? 1) (proplist? 1) (proplist-kv? 1) (queue? 1)
-   (empty? 1) (every? 2) (all? 2) (any? 2) (not-any? 2) (element? 2)
-   ;; Sequence functions.
-   (seq 1) (seq 2) (seq 3)
-   (next 1) (next 2) (next 3)
-   (range 0) (range 1) (range 2)
-   (drop 2) (take 2)
-   (split-at 2) (partition 2) (partition 3) (partition 4)
-   (partition-all 2) (partition-all 3)
-   (interleave 2)
-   (get-in 2) (get-in 3)
-   (reduce 2) (reduce 3)
-   (repeat 1) (repeat 2)
-   ;; Other functions.
-   (identity 1) (constantly 1)))
+   true? false? odd? even? zero? pos? neg? identical?))
 
 (defmacro HAS_MAPS () ``(erl_internal:bif 'is_map 1))
+
+;;; Function macros.
+
+(defmacro defn
+  "name [arg ...] {{doc-string}} body
+   name {{doc-string}} ([argpat ...] body) ...)
+  Define and automatically export a function."
+  (`[,name . ,rest]
+   (let* ((|-DEFUN-| `(defun ,name ,@rest))
+          ;; This is basically lfe_doc:get_function_patterns/1.
+          (|-ARITY-|  (case (lists:last (lfe_lib:macroexpand-1 |-DEFUN-|))
+                        (`(match-lambda (,|-PAT-| . ,_) . ,_)
+                         (length |-PAT-|))
+                        (`(lambda ,|-ARGS-| . ,_)
+                         (length |-ARGS-|)))))
+     `(progn ,|-DEFUN-| (extend-module () ((export (,name ,|-ARITY-|))))))))
+
+(defmacro defn- args
+  "name [arg ...] {{doc-string}} body
+   name {{doc-string}} ([argpat ...] body) ...)
+  Equivalent to `defun`."
+  `(defun ,@args))
+
+(defmacro fn args
+  "Equivalent to `lambda`."
+  `(lambda ,@args))
 
 ;;; Threading macros.
 
 ;; Macro helper functions
 (eval-when-compile
-  (defun ->*
+  (defn- ->*
     ([`(,x)]                     x)
     ([`(,x ,(= `(fun . ,_) f))] `(funcall ,f ,x))
     ([`(,x (quote (,y . ,ys)))] `(list* ',y ,x ',ys))
@@ -65,7 +71,7 @@
     ([`(,x ,sexp)]              `(list ,sexp ,x))
     ([`(,x ,sexp . ,sexps)]
      (->* (cons (->* (list x sexp)) sexps))))
-  (defun ->>*
+  (defn- ->>*
     ([`(,x)]                      x)
     ([`(,x ,(= `(fun . ,_) f))] `(funcall ,f ,x))
     ([`(,x (quote (,y . ,ys)))] `(list* ',y ',@ys (list ,x)))
@@ -74,39 +80,39 @@
     ([`(,x ,sexp)]              `(list ,sexp ,x))
     ([`(,x ,sexp . ,sexps)]
      (->>* (cons (->>* (list x sexp)) sexps))))
-  (defun as->*
+  (defn- as->*
     ([`(,x ,_)]           x)
     ([`(,x ,name ,sexp)] `(let ((,name ,x)) ,sexp))
     ([`(,x ,name ,sexp . ,sexps)]
      (as->* (list* (as->* (list x name sexp)) name sexps))))
-  (defun cond->*
+  (defn- cond->*
     ([`(,x)]              x)
     ([`(,x ,_)]           (error "cond-> requires test/sexp pairs."))
     ([`(,x ,test ,sexp)] `(if ,test ,(->* (list x sexp)) ,x))
     ([`(,x ,test ,sexp . ,clauses)]
      (cond->* (cons (cond->* (list x test sexp)) clauses))))
-  (defun cond->>*
+  (defn- cond->>*
     ([`(,x)]              x)
     ([`(,x ,_)]           (error "cond->> requires test/sexp pairs."))
     ([`(,x ,test ,sexp)] `(if ,test ,(->>* (list x sexp)) ,x))
     ([`(,x ,test ,sexp . ,clauses)]
      (cond->>* (cons (cond->>* (list x test sexp)) clauses))))
-  (defun some->*
+  (defn- some->*
     ([`(,x)]        x)
     ([`(,x ,sexp)] `(if (clj:undefined? ,x) 'undefined ,(->* (list x sexp))))
     ([`(,x ,sexp . ,sexps)]
      (some->* (cons (some->* (list x sexp)) sexps))))
-  (defun some->>*
+  (defn- some->>*
     ([`(,x)]        x)
     ([`(,x ,sexp)] `(if (clj:undefined? ,x) 'undefined ,(->>* (list x sexp))))
     ([`(,x ,sexp . ,sexps)]
      (some->>* (cons (some->>* (list x sexp)) sexps))))
-  (defun falsey? (x)
+  (defn- falsey? (x)
     `(case ,x
        ('undefined 'true)
        ('false     'true)
        (_          'false)))
-  (defun emit
+  (defn- emit
     ([pred expr `(,a >> ,c . ,more)]
      `(let ((|-P-| (funcall ,pred ,a ,expr)))
         (if ,(falsey? '|-P-|) ,(emit pred expr more) (funcall ,c |-P-|))))
@@ -114,7 +120,7 @@
      `(if ,(falsey? `(funcall ,pred ,a ,expr)) ,(emit pred expr more) ,b))
     ([pred expr `(,a)]  a)
     ([pred expr  ()]   `(error 'no-matching-clause (list ,expr))))
-  (defun condp* ([`(,pred ,expr . ,clauses)] (emit pred expr clauses))))
+  (defn- condp* ([`(,pred ,expr . ,clauses)] (emit pred expr clauses))))
 
 (defmacro -> args
   "x . sexps
@@ -349,97 +355,97 @@
 
 ;;; Function composition.
 
-(defun comp
+(defn comp
   "Function composition.
   If the second argument is a function, compose `f` and `g`.
   Otherwise, compose a list of functions `fs` and apply the result to `x`."
-  ((f g) (when (is_function g))
-   (lambda (x)
+  ([f g] (when (is_function g))
+   (lambda [x]
      (funcall f (funcall g x))))
-  ((fs x)
+  ([fs x]
    (funcall (comp fs) x)))
 
-(defun comp (f g x)
+(defn comp [f g x]
   "Equivalent to `(funcall (comp f g) x)`."
   (funcall (comp f g) x))
 
-(defun comp (fs)
+(defn comp [fs]
   "Compose a list of functions right to left."
   (lists:foldr #'comp/2 #'identity/1 fs))
 
-(defun comp ()
+(defn comp []
   "Equivalent to `#'identity/1`."
   #'identity/1)
 
 
 ;;; Partial application.
 
-(defun partial
+(defn partial
   "Partial application.
   Given a function `f`, and an argument or list of arguments, return a function
   that applies `f` to the given argument(s) plus (an) additional argument(s)."
-  ((f args-1) (when (is_list args-1))
+  ([f args-1] (when (is_list args-1))
    (match-lambda
-     ((args-2) (when (is_list args-2))
+     ([args-2] (when (is_list args-2))
       (apply f (++ args-1 args-2)))
-     ((arg)
+     ([arg]
       (apply f (++ args-1 `(,arg))))))
-  ((f arg-1)
+  ([f arg-1]
    (match-lambda
-     ((args) (when (is_list args))
+     ([args] (when (is_list args))
       (apply f (cons arg-1 args)))
-     ((arg-2)
+     ([arg-2]
       (funcall f arg-1 arg-2)))))
 
 
 ;;; Predicate functions.
 
-(defun string? (data)
+(defn string? [data]
   "Return `'true` if `data` is a flat list of printable characters."
   (io_lib:printable_list data))
 
-(defun unicode? (data)
+(defn unicode? [data]
   "Return `'true` if `data` is a flat list of printable Unicode characters."
   (io_lib:printable_unicode_list data))
 
-(defun list? (data)
+(defn list? [data]
   "Return `'true` if `data` is a list and not a string."
   (andalso (is_list data) (not (string? data))))
 
-(defun set? (data)
+(defn set? [data]
   "Return `'true` if `data` is appears to be a (possibly ordered) set."
   (orelse (sets:is_set data)
           (ordsets:is_set data)))
 
-(defun dict?
+(defn dict?
   "Return `'true` if `data` is a dictionary."
-  ((data) (when (=:= 'dict (element 1 data)))
+  ([data] (when (=:= 'dict (element 1 data)))
    'true)
-  ((_)
+  ([_]
    'false))
 
-(defun proplist?
+(defn proplist?
   "Return `'true` if `lst` is a list where [[proplist-kv?/1]] returns `'true`
   for all elements in `lst`."
-  ((lst) (when (is_list lst))
+  ([lst] (when (is_list lst))
    (lists:all #'proplist-kv?/1 lst))
-  ((_)
+  ([_]
    'false))
 
-(defun proplist-kv?
+(defn proplist-kv?
   "Return `'true` if a given term is a key/value tuple or an atom."
-  ((`#(,key ,_)) (when (is_atom key))
+  ([`#(,key ,_)] (when (is_atom key))
    'true)
-  ((bool-key) (when (is_atom bool-key))
+  ([bool-key] (when (is_atom bool-key))
    'true)
-  ((_)
+  ([_]
    'false))
 
-(defun queue? (x)
+(defn queue? [x]
   "Return `'true` if `x` is a queue."
   (queue:is_queue x))
 
-(defun empty? (x)
+(defn empty? [x]
   "Return `'true` if `x` is the empty list, tuple, map, dictionary, queue, or
   general balanced tree."
   (orelse (=:= () x) (=:= #() x)
@@ -448,28 +454,28 @@
           (andalso (queue? x) (queue:is_empty x))
           (gb_sets:is_empty x)))
 
-(defun every? (pred lst)
+(defn every? [pred lst]
   "Return `'true` if `(pred x)` returns `'true` for every `x` in `lst`."
   (lists:all pred lst))
 
-(defun all? (pred lst)
+(defn all? [pred lst]
   "Return `'true` if `(pred x)` returns `'true` for every `x` in `lst`."
   (lists:all pred lst))
 
-(defun any? (pred lst)
+(defn any? [pred lst]
   "Return `'true` if `(pred x)` returns `'true` for any `x` in `lst`."
   (lists:any pred lst))
 
-(defun not-any? (pred lst)
+(defn not-any? [pred lst]
   "Return `'false` if `(pred x)` returns `'true` for any `x` in `lst`."
   (not (lists:any pred lst)))
 
-(defun element?
+(defn element?
   "Return `'true` if `elem` is an element of `data`, where `data` is a list,
   set or ordset."
-  ((elem data) (when (is_list data))
+  ([elem data] (when (is_list data))
    (lists:member elem data))
-  ((elem data)
+  ([elem data]
    (cond
     ((sets:is_set data)
      (sets:is_element elem data))
@@ -480,31 +486,31 @@
 
 ;;; Sequence functions.
 
-(defun seq (end)
+(defn seq [end]
   "Equivalent to `(seq 1 end)`."
   (seq 1 end))
 
-(defun seq (start end)
+(defn seq [start end]
   "Equivalent to `(seq start end 1)`."
   (seq start end 1))
 
-(defun seq (start end step)
+(defn seq [start end step]
   "Return a sequence of integers, starting with `start`, containing the
   successive results of adding `step` to the previous element, until `end` has
   been reached or password. In the latter case, `end` is not an element of the
   sequence."
   (lists:seq start end step))
 
-(defun next (func)
+(defn next [func]
   "Equivalent to `(next func 1 1)`."
   (next func 1 1))
 
-(defun next (func start)
+(defn next [func start]
   "Equivalent to `(next func start 1)`."
   (next func start 1))
 
 ;; TODO: Improve this docstring.
-(defun next (func start step)
+(defn next [func start step]
   "Return a nullary function that returns a cons cell with `start` as the head
   and a nullary function, `(next func (funcall func start step) step)` as the
   tail. The result can be treated as a (possibly infinite) lazy list, which
@@ -512,112 +518,112 @@
   (lambda ()
     (cons start (next func (funcall func start step) step))))
 
-(defun range ()
+(defn range []
   "Equivalent to `(range 1 1)`."
   (range 1 1))
 
-(defun range (start)
+(defn range [start]
   "Equivalent to `(range start 1)`."
   (range start 1))
 
-(defun range (start step)
+(defn range [start step]
   "Return a lazy list of integers, starting with `start` and increasing by
   `step`. Equivalent to `(next #'+/2 start step)`. See also: [[next/3]]."
   (next #'+/2 start step))
 
-(defun drop
+(defn drop
   "Return a list of all but the first `n` elements in `lst`. If `n` is the atom
   `all`, return the empty list."
-  ((_    ())                             ())
-  ((0    lst)                            lst)
-  (('all lst)       (when (is_list lst)) ())
-  ((n    `(,_ . ,t))                     (drop (- n 1) t)))
+  ([_    ()]                             ())
+  ([0    lst]                            lst)
+  (['all lst]       (when (is_list lst)) ())
+  ([n    `(,_ . ,t)]                     (drop (- n 1) t)))
 
-(defun take
+(defn take
   "Given a (possibly lazy) list `lst`, return a list of the first `n` elements
   of `lst`, or all elements if there are fewer than `n`. If `n` is the atom
   `all` and `lst` is a \"normal\" list, return `lst`."
-  ((_ ())                          ())
-  (('all lst) (when (is_list lst)) lst)
-  ((n lst) (when (is_list lst))
+  ([_ ()]                          ())
+  (['all lst] (when (is_list lst)) lst)
+  ([n lst] (when (is_list lst))
    (lists:sublist lst n))
-  ((n func) (when (is_function func) (is_integer n) (>= n 0))
+  ([n func] (when (is_function func) (is_integer n) (>= n 0))
    (-take n () (funcall func))))
 
-(defun split-at (n lst)
+(defn split-at [n lst]
   "Return a tuple of `` `#(,(take n lst) ,(drop n lst)) ``."
   (tuple (take n lst) (drop n lst)))
 
-(defun partition (n lst)
+(defn partition [n lst]
   "Equivalent to `(partition n n lst)`."
   (partition n n lst))
 
-(defun partition (n step lst)
+(defn partition [n step lst]
   "Equivalent to `(partition n step () lst)`."
   (-partition n step () 'false () lst))
 
-(defun partition (n step pad lst)
+(defn partition [n step pad lst]
   "Return a list of lists of `n` items each, at offsets `step` apart. Use the
   elements of `pad` as necessary to complete the last partition up to `n`
   elements. In case there are not enough padding elements, return a parition
   with less than `n` items."
   (-partition n step pad 'true () lst))
 
-(defun partition-all (n lst)
+(defn partition-all [n lst]
   "Equivalent to `(partition-all n n lst)`."
   (partition-all n n lst))
 
-(defun partition-all (n step lst)
+(defn partition-all [n step lst]
   "Return a list of lists like [[partition/3]], possibly including partitions
   with fewer than `n` elements at the end."
   (-partition n step () 'true () lst))
 
-(defun interleave (list-1 list-2)
+(defn interleave [list-1 list-2]
   "Return a list of the first element of each list, then the second, etc."
   (-interleave () list-1 list-2))
 
-(defun get-in (data keys)
+(defn get-in [data keys]
   "Equivalent to `(get-in data keys 'undefined)`."
   (-get-in data keys 'undefined))
 
-(defun get-in (data keys not-found)
+(defn get-in [data keys not-found]
   "Return the value in a nested associative structure, where `keys` is a list of
   keys or list indices. Return the atom `not-found` if the key is not present or
   index is out of bounds, or the `not-found` value."
   (-get-in data keys not-found))
 
-(defun reduce
+(defn reduce
   "Equivalent to `(reduce func head tail)`."
-  ((func `(,head . ,tail))
+  ([func `(,head . ,tail)]
    (reduce func head tail)))
 
-(defun reduce (func acc lst)
+(defn reduce [func acc lst]
   "Equivalent to `(lists:foldl func acc lst)`."
   (lists:foldl func acc lst))
 
-(defun repeat (x)
+(defn repeat [x]
   "Return a lazy infinite sequence of `x`s.
   See [[next/3]] for details on the structure."
   (next (lambda (y _) y) x x))
 
-(defun repeat
+(defn repeat
   "Given a nullary function `f`, return a list of `n` applications of `f`.
   Given a term `x`, return a list of `n` copies of `x`."
-  ((n f) (when (is_function f) (is_integer n) (>= n 0))
+  ([n f] (when (is_function f) (is_integer n) (>= n 0))
    (fletrec ((repeat-fun
               ((0 acc) acc)
               ((n acc) (repeat-fun (- n 1) (cons (funcall f) acc)))))
      (repeat-fun n ())))
-  ((n x)
+  ([n x]
    (lists:duplicate n x)))
 
 ;;; Other functions.
 
-(defun identity (x)
+(defn identity [x]
   "Identity function."
   x)
 
-(defun constantly (x)
+(defn constantly [x]
   "Return a unary function that returns `x`.
   N.B. This is like Haskell's `const` rather than Clojure's `constantly`."
   (lambda (_) x))
@@ -625,14 +631,14 @@
 
 ;;; Internal functions.
 
-(defun -take
-  ((0 acc _)                (lists:reverse acc))
-  ((n acc (cons item func)) (-take (- n 1) (cons item acc) (funcall func))))
+(defn- -take
+  ([0 acc _]                (lists:reverse acc))
+  ([n acc (cons item func)] (-take (- n 1) (cons item acc) (funcall func))))
 
-(defun -partition
-  ((0  _step _pad _partial? _acc lst) lst) ; FIXME: Do we want this behaviour?
-  ((_n _step _pad _partial?  acc ())  (lists:reverse acc))
-  ((n   step  pad  partial?  acc lst)
+(defn- -partition
+  ([0  _step _pad _partial? _acc lst] lst) ; FIXME: Do we want this behaviour?
+  ([_n _step _pad _partial?  acc ()]  (lists:reverse acc))
+  ([n   step  pad  partial?  acc lst]
    (case (take n lst)
      (p (when (== n (length p)))
         (-partition n step pad partial? (cons p acc) (drop step lst)))
@@ -644,29 +650,29 @@
       (let ((acc* (cons (take n (lists:append p pad)) acc)))
         (-partition n step pad partial? acc* ()))))))
 
-(defun -interleave
-  ((acc `(,x . ,xs) `(,y . ,ys))
+(defn- -interleave
+  ([acc `(,x . ,xs) `(,y . ,ys)]
    (-interleave (list* y x acc) xs ys))
-  ((acc _ _) (lists:reverse acc)))
+  ([acc _ _] (lists:reverse acc)))
 
-(defun -get-in
-  ((data () not-found) data)
-  ((data keys not-found)
+(defn- -get-in
+  ([data () not-found] data)
+  ([data keys not-found]
    (cond ((proplist? data) (-get-in-proplist data keys not-found))
          ((dict?     data) (-get-in-dict     data keys not-found))
          ((list?     data) (-get-in-list     data keys not-found))
          ((map?      data) (-get-in-map      data keys not-found))
          ('true            not-found))))
 
-(defun -get-in
-  ((func data `(,key) not-found)
+(defn- -get-in
+  ([func data `(,key) not-found]
    (funcall func key data))
-  ((func data `(,key . ,keys) not-found)
+  ([func data `(,key . ,keys) not-found]
    (-get-in (funcall func key data) keys not-found)))
 
-(defun -get-in-list
-  ((lst  () not-found) lst)
-  ((lst `(,n . ,keys) not-found) (when (is_integer n))
+(defn- -get-in-list
+  ([lst  () not-found] lst)
+  ([lst `(,n . ,keys) not-found] (when (is_integer n))
    (let ((data
           (try
             (lists:nth n lst)
@@ -675,19 +681,19 @@
                not-found)))))
      (-get-in data keys not-found))))
 
-(defun -get-in-proplist (proplist keys not-found)
-  (flet ((get-value (k l) (proplists:get_value k l not-found)))
+(defn- -get-in-proplist [proplist keys not-found]
+  (flet ((get-value [k l] (proplists:get_value k l not-found)))
     (-get-in #'get-value/2 proplist keys not-found)))
 
-(defun -get-in-dict (dict keys not-found)
-  (flet ((dict-find (k d)
+(defn- -get-in-dict [dict keys not-found]
+  (flet ((dict-find [k d]
                     (case (dict:fetch k d)
                       (`#(ok ,v) v)
                       ('errror   not-found))))
     (-get-in #'dict-find/2 dict keys)))
 
-(defun -get-in-map (xmap keys not-found)
+(defn- -get-in-map [xmap keys not-found]
   (if (HAS_MAPS)
-    (flet ((maps-get (k m) (call 'maps 'get k m not-found)))
+    (flet ((maps-get [k m] (call 'maps 'get k m not-found)))
       (-get-in #'maps-get/2 xmap keys not-found))
     not-found))
