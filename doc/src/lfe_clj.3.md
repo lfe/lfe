@@ -15,6 +15,16 @@ This module provides Clojure-inpired functions and macros for use in LFE.
 
 # EXPORTS
 
+N.B. Instead of making fully-qualified calls to the macros exported from *clj*,
+you may `(include-lib "lfe/include/clj.lfe")` and then call them directly, e.g.
+
+```lfe
+(include-lib "lfe/include/clj.lfe")
+
+(-> 2 (+ 2) (=:= 4)) ; 'true
+```
+
+
 ## Threading Macros
 
 Note: The original versions were copied from Tim Dysinger's lfesl repo here:
@@ -151,9 +161,11 @@ and when that result is not `undefined`, through the next, etc.
 
 Given a binary predicate, an expression and a set of clauses of the form:
 
-      test-expr result-expr
+```lfe
+test-expr result-expr
 
-      test-expr >> result-fn
+test-expr >> result-fn
+```
 
 where `result-fn` is a unary function, if `(pred test-expr expr)` returns
 anything other than `undefined` or `'false`, the clause is a match.

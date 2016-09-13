@@ -10,6 +10,19 @@ clj \- LFE Clojure interface library.
 This module provides Clojure\-inpired functions and macros for use in
 LFE.
 .SH EXPORTS
+.PP
+N.B.
+Instead of making fully\-qualified calls to the macros exported from
+\f[I]clj\f[], you may \f[C](include\-lib\ "lfe/include/clj.lfe")\f[] and
+then call them directly, e.g.
+.IP
+.nf
+\f[C]
+(include\-lib\ "lfe/include/clj.lfe")
+
+(\->\ 2\ (+\ 2)\ (=:=\ 4))\ ;\ \[aq]true
+\f[]
+.fi
 .SS Threading Macros
 .PP
 Note: The original versions were copied from Tim Dysinger\[aq]s lfesl
@@ -173,9 +186,9 @@ form:
 .IP
 .nf
 \f[C]
-\ \ test\-expr\ result\-expr
+test\-expr\ result\-expr
 
-\ \ test\-expr\ >>\ result\-fn
+test\-expr\ >>\ result\-fn
 \f[]
 .fi
 .PP
