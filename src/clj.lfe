@@ -330,11 +330,11 @@
 
 (defmacro odd? (x)
   "Return `'true` if `x` is odd."
-  `(=:= 1 ,(rem x 2)))
+  `(not (clj:even? ,x)))
 
 (defmacro even? (x)
   "Return `'true` if `x` is even."
-  `(=:= 0 ,(rem x 2)))
+  `(clj:zero? ,(band 1 x)))
 
 (defmacro zero? (x)
   "Return `'true` if `x` is zero."
