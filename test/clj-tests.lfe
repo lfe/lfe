@@ -509,7 +509,12 @@
         (clj:take 17 (clj:next (lambda (x _) (* 2 x)) 1 1))
 
         '(1 4.0 25.0 676.0 458329.0 210066388900.0 4.4127887745906175e22)
-        (clj:take 7 (clj:next (lambda (x _) (math:pow (+ x 1) 2)) 1 1))))
+        (clj:take 7 (clj:next (lambda (x _) (math:pow (+ x 1) 2)) 1 1)))
+  (is-not-error (clj:take 3 (clj:next (match-lambda
+                                         ([1 _] 2)
+                                         ([2 _] 3)
+                                         ([3 _] 4)
+                                         ([4 _] (error 'overzealous-take)))))))
 
 (deftest range
   (are* [x y] (ok? (is-match x y))

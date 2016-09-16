@@ -54,6 +54,20 @@
   ((expression) `(is-error _ ,expression))
   ((error body) `(assertError ,error ,body)))
 
+(defmacro is-not-error
+  "The inverse case of `is-error/{1,2}`, for convenience."
+  ((expression)
+   `(is-not-error _ ,expression))
+  ((expected-term expression)
+   `(is-not-exception 'error ,expected-term ,expression)))
+
+(defmacro is-not-exception
+  "The inverse case of [[is-exception/3]], for convenience."
+  ((expression)
+   `(is-not-exception _ _ ,expression))
+  ((expected-class expected-term expression)
+   `(assertNotException ,expected-class ,expected-term ,expression)))
+
 
 ;;;===================================================================
 ;;; Clojure-inspired macros
