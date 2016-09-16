@@ -541,10 +541,11 @@
   of `lst`, or all elements if there are fewer than `n`. If `n` is the atom
   `all` and `lst` is a \"normal\" list, return `lst`."
   ([_ ()]                          ())
+  ([0 _]                           ())
   (['all lst] (when (is_list lst)) lst)
   ([n lst] (when (is_list lst))
    (lists:sublist lst n))
-  ([n func] (when (function? func) (integer? n) (>= n 0))
+  ([n func] (when (function? func 0) (integer? n) (pos? n))
    (-take n () (funcall func))))
 
 (defn split-at [n lst]
@@ -636,8 +637,8 @@
 ;;; Internal functions.
 
 (defn- -take
-  ([0 acc _]                (lists:reverse acc))
-  ([n acc (cons item func)] (-take (dec n) (cons item acc) (funcall func))))
+  ([1 acc (cons item _func)] (lists:reverse (cons item acc)))
+  ([n acc (cons item  func)] (-take (dec n) (cons item acc) (funcall func))))
 
 (defn- -partition
   ([0  _step _pad _partial? _acc lst] lst) ; FIXME: Do we want this behaviour?
