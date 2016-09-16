@@ -534,7 +534,7 @@
   ([_    ()]                             ())
   ([0    lst]                            lst)
   (['all lst]       (when (is_list lst)) ())
-  ([n    `(,_ . ,t)]                     (drop (- n 1) t)))
+  ([n    `(,_ . ,t)]                     (drop (dec n) t)))
 
 (defn take
   "Given a (possibly lazy) list `lst`, return a list of the first `n` elements
@@ -609,7 +609,7 @@
   ([n f] (when (function? f) (integer? n) (>= n 0))
    (fletrec ((repeat-fun
               ((0 acc) acc)
-              ((n acc) (repeat-fun (- n 1) (cons (funcall f) acc)))))
+              ((n acc) (repeat-fun (dec n) (cons (funcall f) acc)))))
      (repeat-fun n ())))
   ([n x]
    (lists:duplicate n x)))
@@ -637,7 +637,7 @@
 
 (defn- -take
   ([0 acc _]                (lists:reverse acc))
-  ([n acc (cons item func)] (-take (- n 1) (cons item acc) (funcall func))))
+  ([n acc (cons item func)] (-take (dec n) (cons item acc) (funcall func))))
 
 (defn- -partition
   ([0  _step _pad _partial? _acc lst] lst) ; FIXME: Do we want this behaviour?
