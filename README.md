@@ -147,8 +147,8 @@ with LFE, be sure to read the
 
 Files with more technical details:
 
+* [lfe.txt](doc/lfe.txt)
 * [lfescript.txt](doc/lfescript.txt)
-* [lfe_shell.txt](doc/lfe_shell.txt)
 * [lfe_macro.txt](doc/lfe_macro.txt)
 * [lfe_lib.txt](doc/lfe_lib.txt)
 * [lfe_io.txt](doc/lfe_io.txt)

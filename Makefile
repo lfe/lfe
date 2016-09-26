@@ -1,3 +1,17 @@
+# Copyright (c) 2016 Robert Virding
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+#  limitations under the License.
+
 # Makefile for LFE
 
 BINDIR = bin
@@ -54,7 +68,7 @@ $(BINDIR)/%: $(CSRCDIR)/%.c
 
 $(EBINDIR)/%.beam: $(SRCDIR)/%.erl
 	@mkdir -p $(EBINDIR)
-	$(ERLC) -I $(INCDIR) -o $(EBINDIR) $(MAPS_OPTS) $(ERLCFLAGS) $<
+	$(ERLC) -I $(INCDIR) -o $(EBINDIR) $(COMP_OPTS) $(ERLCFLAGS) $<
 
 %.erl: %.xrl
 	$(ERLC) -o $(SRCDIR) $<
@@ -69,7 +83,7 @@ all: compile
 
 .PHONY: compile erlc-compile lfec-compile erlc-lfec emacs install docs clean docker-build docker-push docker
 
-compile: maps_opts.mk
+compile: comp_opts.mk
 	$(MAKE) $(MFLAGS) erlc-lfec
 
 ## Compile using erlc
@@ -87,10 +101,10 @@ emacs:
 	cd $(EMACSDIR) ; \
 	emacs -L . -batch -f batch-byte-compile inferior-lfe.el lfe-mode.el lfe-indent.el
 
-maps_opts.mk:
-	escript get_maps_opts.escript
+comp_opts.mk:
+	escript get_comp_opts.escript
 
--include maps_opts.mk
+-include comp_opts.mk
 
 install: install-man
 	ln -sf `pwd`/bin/lfe $(DESTBINDIR)
@@ -99,7 +113,7 @@ install: install-man
 	ln -sf `pwd`/bin/lfescript $(DESTBINDIR)
 
 clean:
-	rm -rf $(EBINDIR)/*.beam erl_crash.dump maps_opts.mk
+	rm -rf $(EBINDIR)/*.beam erl_crash.dump comp_opts.mk
 
 echo:
 	@ echo $(ESRCS)
@@ -249,4 +263,5 @@ docker-docs-bash:
 	docker run -i -v `pwd`/doc:/docs -t lfex/lfe-docs:latest bash
 
 travis:
-	@rebar3 do eunit, ct
+	@rebar3 ct
+	@rebar3 eunit -m clj-tests,prop_lfe_doc

@@ -570,11 +570,11 @@ do_save_file(Save, Ext, St) ->
 
 do_add_docs(#comp{cinfo=Ci,code=Ms0}=St0) ->
     Add = fun (#module{code=Beam0,docs=Docs}=Mod) ->
-		  case lfe_doc:save_module_docs(Beam0, Docs, Ci) of
-		      {ok,Beam1} -> Mod#module{code=Beam1};
-		      {error,Es} -> {error,Es,[]}
-		  end
-	  end,
+                  case lfe_doc:save_module_docs(Beam0, Docs, Ci) of
+                      {ok,Beam1} -> Mod#module{code=Beam1};
+                      {error,Es} -> {error,Es,[]}
+                  end
+          end,
     %%Add = fun (Mod) -> lfe_doc:save_module_docs(Mod, Ci) end,
     Ms1 = lists:map(Add, Ms0),
     St1 = St0#comp{code=Ms1},

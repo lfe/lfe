@@ -62,9 +62,9 @@ format_error({bad_form,Type}) ->
     lfe_io:format1("bad form: ~w", [Type]);
 format_error({bad_env_form,Type}) ->
     lfe_io:format1("bad environment form: ~w", [Type]);
-format_error({expand_macro,Call,_}) ->
+format_error({expand_macro,Call,Error}) ->
     %% Can be very big so only print limited depth.
-    lfe_io:format1("error expanding ~P", [Call,10]).
+    lfe_io:format1("error expanding ~P: ~P", [Call,10,Error,10]).
 
 %% expand_expr(Form, Env) -> {yes,Exp} | no.
 %% expand_expr_1(Form, Env) -> {yes,Exp} | no.
@@ -367,6 +367,7 @@ exp_form(['map-set'|As], Env, St) ->
     exp_normal_core('map-set', As, Env, St);
 exp_form(['map-update'|As], Env, St) ->
     exp_normal_core('map-update', As, Env, St);
+exp_form([function|_]=F, _, St) -> {F,St};
 %% Core closure special forms.
 exp_form([lambda,Head|B], Env, St) ->
     exp_head_tail(lambda, Head, B, Env, St);
@@ -621,10 +622,10 @@ exp_predef_macro(Call, Env, St) ->
         %%     erlang:error({expand_macro,Call,{Error,Stack1}})
     end.
 
-trim_stacktrace([{lfe_macro,_,_,_}=S|_]) -> [S];    %R15 and later
-trim_stacktrace([{lfe_macro,_,_}|_]=S) -> [S];      %Pre R15
-trim_stacktrace([S|Stk]) -> [S|trim_stacktrace(Stk)];
-trim_stacktrace([]) -> [].
+%% trim_stacktrace([{lfe_macro,_,_,_}=S|_]) -> [S];    %R15 and later
+%% trim_stacktrace([{lfe_macro,_,_}|_]=S) -> [S];      %Pre R15
+%% trim_stacktrace([S|Stk]) -> [S|trim_stacktrace(Stk)];
+%% trim_stacktrace([]) -> [].
 
 %% exp_predef(Form, Env, State) -> {yes,Form,State} | no.
 %%  Expand the built-in predefined macros completely at top-level
@@ -777,7 +778,8 @@ exp_predef(['andalso'|Abody], _, St) ->
 exp_predef(['orelse'|Obody], _, St) ->
     Exp = exp_orelse(Obody),
     {yes,Exp,St};
-%% The fun forms assume M, F and Ar are atoms and integer.
+%% The fun forms assume M, F and Ar are atoms and integer. We leave
+%% them as before for backwards compatibility.
 exp_predef(['fun',F,Ar], _, St0) ->
     {Vs,St1} = new_symbs(Ar, St0),
     {yes,['lambda',Vs,[F|Vs]],St1};
@@ -960,6 +962,7 @@ exp_qlc([lc,Qs|Es], Opts, Env, St0) ->
     %% back to LFE.  lfe_qlc:expand/2 wants a list of conversions not
     %% a conversion of a list.
     Vlc = lfe_trans:to_expr([lc,Eqs|Ees], 42),
+    %% lfe_io:format("~w\n", [Vlc]),
     Vos = map(fun (O) -> lfe_trans:to_expr(O, 42) end, Opts),
     %% io:put_chars(["E0 = ",erl_pp:expr(Vlc, 5, []),"\n"]),
     {ok,Vexp} = lfe_qlc:expand(Vlc, Vos),
@@ -1018,9 +1021,9 @@ exp_comp(As, Op, St0) ->
     Ts = op_pairs(Ls, Op),
     {exp_let_star([Ls,exp_andalso(Ts)]),St1}.
 
-op_pairs([[V,_]|Ls], Op) ->
-    element(1, mapfoldl(fun ([V,_], Acc) -> {exp_bif(Op, [Acc,V]),V} end,
-                        V, Ls)).
+op_pairs([[V0,_]|Ls], Op) ->
+    element(1, mapfoldl(fun ([V1,_], Acc) -> {exp_bif(Op, [Acc,V1]),V1} end,
+                        V0, Ls)).
 
 %% exp_nequal(Args, Op, State) -> {Exp,State}.
 %%  Expand not equal test strictly forcing evaluation of all
@@ -1243,9 +1246,9 @@ exp_rules(Name, Keywords, Rules) ->
 %%                 (quasisyntax (cons  #,(qq-expand (syntax x) level)
 %%                                     #,(qq-expand (syntax y) level))))
 %%           (#(x ...)
-%%                 (quasisyntax (list->vector #,(qq-expand (syntax (x ...))    
+%%                 (quasisyntax (list->vector #,(qq-expand (syntax (x ...))
 %%                                                         level))))
-%%           (x    (syntax 'x)))) 
+%%           (x    (syntax 'x))))
 %%       (syntax-case s ()
 %%         ((_ x) (qq-expand (syntax x) 0)))))
 
@@ -1325,7 +1328,7 @@ new_symbs(N, St) -> new_symbs(N, St, []).
 new_symbs(N, St0, Vs) when N > 0 ->
     {V,St1} = new_symb(St0),
     new_symbs(N-1, St1, [V|Vs]);
-new_symbs(0, St, Vs) -> {Vs,St}.    
+new_symbs(0, St, Vs) -> {Vs,St}.
 
 new_fun_name(Pre, St) ->
     C = St#mac.fc,
@@ -1417,7 +1420,7 @@ ormap(F, [H|T]) ->
         V -> V
     end;
 ormap(_, []) -> false.
-    
+
 mbe_intersect(V, Y) ->
     case is_mbe_symbol(V) orelse is_mbe_symbol(Y) of
         true -> V =:= Y;

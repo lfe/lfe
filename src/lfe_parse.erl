@@ -42,11 +42,11 @@ make_fun(FunStr) ->
     case string:chr(FunStr, $:) of
         0 ->
             F = list_to_atom(string:substr(FunStr, 1, J - 1)),
-            ['fun', F, A];
+            [function,F,A];
         I ->
             F = list_to_atom(string:substr(FunStr, I + 1, J - I - 1)),
             M = list_to_atom(string:substr(FunStr, 1, I - 1)),
-            ['fun', M, F, A]
+            [function,M,F,A]
     end.
 
 %% make_bin(Line, Segments) -> Binary.

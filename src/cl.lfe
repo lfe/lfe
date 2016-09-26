@@ -48,21 +48,19 @@
    (acons 3) (pairlis 2) (pairlis 3) (assoc 2) (assoc-if 2) (assoc-if-not 2)
    (rassoc 2) (rassoc-if 2) (rassoc-if-not 2)
    ;; Types.
-   (type-of 1) (coerce 2)
-   )
+   (type-of 1) (coerce 2))
   ;; Export CL-style if and cond, which we don't use internally.
-  (export-macro if cond)
-  )
+  (export-macro if cond))
 
 ;;; Boolean conversion functions.
 
-(defun make-lfe-bool		        ;Make an LFE bool from a CL value
+(defun make-lfe-bool                    ;Make an LFE bool from a CL value
   "cl-boolean
    Make an LFE bool from a CL value."
   ([()] 'false)
-  ([_] 'true))				;Everything else is true
+  ([_]  'true))                         ;Everything else is true
 
-(defun make-cl-bool			;Make a CL bool from an LFE value
+(defun make-cl-bool                     ;Make a CL bool from an LFE value
   "lfe-boolean
    Make a CL bool from an LFE value."
   (['false] ())
@@ -87,11 +85,11 @@
 
 (defun mapl (func list)
   "function list"
-  (fletrec ((mapl-loop 
-	     ([(= (cons _ rest) list)]
-	      (funcall func list)
-	      (mapl-loop rest))
-	     ([()] ())))
+  (fletrec ((mapl-loop
+             ([(= (cons _ rest) list)]
+              (funcall func list)
+              (mapl-loop rest))
+             ([()] ())))
     (mapl-loop list)
     list))
 
@@ -105,7 +103,7 @@
     ('undefined
      (let ((init-pid (erlang:whereis 'init)))
        (ets:new 'lfe-symbol-plist
-		(list 'set 'public 'named_table (tuple 'heir init-pid ())))))
+        (list 'set 'public 'named_table (tuple 'heir init-pid ())))))
     (_ 'ok)))
 
 (defun symbol-plist (symbol)
@@ -139,11 +137,11 @@
   (ensure-plist-table)
   (let ((plist (symbol-plist symbol)))
     (fletrec ((getl-loop
-		  ([(= (list* p v plist-rest) plist) pnames]
-		   (if (member p pnames)
-		     plist
-		     (getl-loop plist-rest pnames)))
-		  ([() pnames] ())))
+               ([(= (list* p v plist-rest) plist) pnames]
+                (if (member p pnames)
+                  plist
+                  (getl-loop plist-rest pnames)))
+               ([() pnames] ())))
       (getl-loop plist pnames))))
 
 ;; (defun putprop (plist val pname) (putf plist val pname))
@@ -152,7 +150,7 @@
   "symbol value pname"
   (ensure-plist-table)
   (let* ((plist (symbol-plist symbol))
-	 (plist (putf plist val pname)))
+         (plist (putf plist val pname)))
     (ets:insert 'lfe-symbol-plist (tuple symbol plist))))
 
 ;; (defun getprop (plist pname) (remf plist pname))
@@ -161,7 +159,7 @@
   "symbol pname"
   (ensure-plist-table)
   (let* ((plist (symbol-plist symbol))
-	 (plist (remf plist pname)))
+         (plist (remf plist pname)))
     ;; Delete element if plist empty
     (if (=:= plist ())
       (ets:delete 'lfe-symbol-plist symbol)
@@ -179,7 +177,7 @@
   ([(list* _ _ plist) pname def] (getf plist pname def))
   ([() pname def] def))
 
-(defun putf				;This doesn't exist in CL
+(defun putf                             ;This doesn't exist in CL
   "plist value pname"
   ([(list* p _ plist) val pname] (when (=:= p pname))
    (list* pname val plist))
@@ -198,8 +196,8 @@
   "plist pnames"
   ([(= (list* p v plist-rest) plist) pnames]
    (if (member p pnames)
-       (tuple p v plist)
-       (get-properties plist-rest pnames)))
+     (tuple p v plist)
+     (get-properties plist-rest pnames)))
   ([() pnames] (tuple () () ())))
 
 ;; Arrays.
@@ -237,11 +235,10 @@
    (lists:any pred seq))
   ([pred seq] (when (is_tuple seq))
    (fletrec ((some-loop
-	      ([i n] (when (>= i n)) 'false)
-	      ([i n]
-	       (if (funcall pred (element i seq))
-		 'true
-		 (some-loop (+ i 1) n)))))
+              ([i n] (when (>= i n)) 'false)
+              ([i n]
+               (orelse (funcall pred (element i seq))
+                       (some-loop (+ i 1) n)))))
      (some-loop 1 (tuple_size seq)))))
 
 (defun every
@@ -251,11 +248,10 @@
    (lists:all pred seq))
   ([pred seq] (when (is_tuple seq))
    (fletrec ((every-loop
-	      ([i n] (when (>= i n)) 'false)
-	      ([i n]
-	       (if (funcall pred (element i seq))
-		 'false
-		 (every-loop (+ i 1) n)))))
+              ([i n] (when (>= i n)) 'false)
+              ([i n]
+               (andalso (not (funcall pred (element i seq)))
+                        (every-loop (+ i 1) n)))))
      (every-loop 1 (tuple_size seq)))))
 
 (defun notany (pred seq)
@@ -309,16 +305,16 @@
   ([pred seq] (when (is_tuple seq))
    (list_to_tuple (remove-if-not pred (tuple_to_list seq)))))
 
-(defun remove-duplicates 
+(defun remove-duplicates
   "sequence
    Remove duplicates from sequence."
   ([seq] (when (is_list seq))
    (fletrec ((rm-loop
-	      ([(cons x rest)]
-	       (if (lists:member x rest)
-		 (rm-loop rest)
-		 (cons x (rm-loop rest))))
-	      ([()] ())))
+              ([(cons x rest)]
+               (if (lists:member x rest)
+                 (rm-loop rest)
+                 (cons x (rm-loop rest))))
+              ([()] ())))
      (rm-loop seq)))
   ([seq] (when (is_tuple seq))
    (list_to_tuple (remove-duplicates (tuple_to_list seq)))))
@@ -328,11 +324,11 @@
    Replace all elements in sequence which are equal to old with new."
   ([new old seq] (when (is_list seq))
    (fletrec ((sub-loop
-	      ([n o (cons x xs)] (when (=:= o x))
-	       (cons n (sub-loop n o xs)))
-	      ([n o (cons x xs)]
-	       (cons x (sub-loop n o xs)))
-	      ([_ _ ()] ())))
+              ([n o (cons x xs)] (when (=:= o x))
+               (cons n (sub-loop n o xs)))
+              ([n o (cons x xs)]
+               (cons x (sub-loop n o xs)))
+              ([_ _ ()] ())))
      (sub-loop new old seq)))
   ([new old seq] (when (is_tuple seq))
    (list_to_tuple (substitute new old (tuple_to_list seq)))))
@@ -342,9 +338,9 @@
    Replace all elements in sequence for which pred is true with new."
   ([new pred seq] (when (is_list seq))
    (fletrec ((sub-loop
-	      ([n p (cons x xs)]
-	       (cons (if (funcall p x) n x) (sub-loop n p xs)))
-	      ([_ _ ()] ())))
+              ([n p (cons x xs)]
+               (cons (if (funcall p x) n x) (sub-loop n p xs)))
+              ([_ _ ()] ())))
      (sub-loop new pred seq)))
   ([new pred seq] (when (is_tuple seq))
    (list_to_tuple (substitute-if new pred (tuple_to_list seq)))))
@@ -354,9 +350,9 @@
    Replace all elements in sequence for which pred is false with new."
   ([new pred seq] (when (is_list seq))
    (fletrec ((sub-loop
-	      ([n p (cons x xs)]
-	       (cons (if (funcall p x) x n) (sub-loop n p xs)))
-	      ([_ _ ()] ())))
+              ([n p (cons x xs)]
+               (cons (if (funcall p x) x n) (sub-loop n p xs)))
+              ([_ _ ()] ())))
      (sub-loop new pred seq)))
   ([new pred seq] (when (is_tuple seq))
    (list_to_tuple (substitute-if-not new pred (tuple_to_list seq)))))
@@ -367,88 +363,88 @@
   "item sequence
    If sequence contains item then it is returned else ()."
   (fletrec ((find-loop
-	      ([x (cons x1 xs)] (when (=:= x x1)) x)
-	      ([x (cons x1 xs)] (find-loop x xs))
-	      ([x ()] ())))
+             ([x (cons x1 xs)] (when (=:= x x1)) x)
+             ([x (cons x1 xs)] (find-loop x xs))
+             ([x ()] ())))
     (find-loop item seq)))
 
 (defun find-if (pred seq)
   "pred sequence
    Return element in sequnce for which pred is true else ()."
   (fletrec ((find-if-loop
-	      ([pred (cons x xs)]
-	       (if (funcall pred x) x (find-if-loop pred xs)))
-	      ([pred ()] ())))
+             ([pred (cons x xs)]
+              (if (funcall pred x) x (find-if-loop pred xs)))
+             ([pred ()] ())))
     (find-if-loop pred seq)))
 
 (defun find-if-not (pred seq)
   "pred sequence
    Return element in sequnce for which pred is true else ()."
   (fletrec ((find-if-not-loop
-	      ([pred (cons x xs)]
-	       (if (funcall pred x) (find-if-not-loop pred xs) x))
-	      ([pred ()] ())))
+             ([pred (cons x xs)]
+              (if (funcall pred x) (find-if-not-loop pred xs) x))
+             ([pred ()] ())))
     (find-if-not-loop pred seq)))
 
 (defun position (item seq)
   "item sequence
    Return index of item in sequence else ()."
   (fletrec ((pos-loop
-	      ([x n (cons x1 xs)] (when (=:= x x1)) n)
-	      ([x n (cons x1 xs)] (pos-loop x (+ n 1) xs))
-	      ([x n ()] ())))
+             ([x n (cons x1 xs)] (when (=:= x x1)) n)
+             ([x n (cons x1 xs)] (pos-loop x (+ n 1) xs))
+             ([x n ()] ())))
     (pos-loop item 0 seq)))
 
 (defun position-if (pred seq)
   "item sequence
    Return index of item in sequence for which pred is true else ()."
   (fletrec ((pos-if-loop
-	      ([pred n (cons x xs)]
-	       (if (funcall pred x)
-		 n
-		 (pos-if-loop pred (+ n 1) xs)))
-	      ([pred n ()] ())))
+             ([pred n (cons x xs)]
+              (if (funcall pred x)
+                n
+                (pos-if-loop pred (+ n 1) xs)))
+             ([pred n ()] ())))
     (pos-if-loop pred 0 seq)))
 
 (defun position-if-not (pred xs)
   "item sequence
    Return index of item in sequence for which pred is false else ()."
   (fletrec ((pos-if-not-loop
-	      ([pred n (cons x xs)]
-	       (if (funcall pred x)
-		 (pos-if-not-loop pred (+ n 1) xs)
-		 n))
-	      ([pred n ()] ())))
+             ([pred n (cons x xs)]
+              (if (funcall pred x)
+                (pos-if-not-loop pred (+ n 1) xs)
+                n))
+             ([pred n ()] ())))
     (pos-if-not-loop pred 0 xs)))
 
 (defun count (item seq)
   "item sequence
    Return the number of elements in sequence equal to item."
   (fletrec ((count-loop
-	      ([x n (cons x1 xs)]
-	       (let ((n1 (if (=:= x x1) (+ n 1) n)))
-		 (count-loop x n1 xs)))
-	      ([x n ()] n)))
+             ([x n (cons x1 xs)]
+              (let ((n1 (if (=:= x x1) (+ n 1) n)))
+                (count-loop x n1 xs)))
+             ([x n ()] n)))
     (count-loop item 0 seq)))
 
 (defun count-if (pred seq)
   "pred sequence
    Return the number of elements in sequence for which pred is true."
   (fletrec ((count-if-loop
-	      ([pred n (cons x xs)]
-	       (let ((n1 (if (funcall pred x) (+ n 1) n)))
-		 (count-if-loop pred n1 xs)))
-	      ([pred n ()] n)))
+             ([pred n (cons x xs)]
+              (let ((n1 (if (funcall pred x) (+ n 1) n)))
+                (count-if-loop pred n1 xs)))
+             ([pred n ()] n)))
     (count-if-loop pred 0 seq)))
 
 (defun count-if-not (pred seq)
   "pred sequence
    Return the number of elements in sequence for which pred is false."
   (fletrec ((count-if-not-loop
-	      ([pred n (cons x xs)]
-	       (let ((n1 (if (funcall pred x) n (+ n 1))))
-		 (count-if-not-loop pred n1 xs)))
-	      ([pred n ()] n)))
+             ([pred n (cons x xs)]
+              (let ((n1 (if (funcall pred x) n (+ n 1))))
+                (count-if-not-loop pred n1 xs)))
+             ([pred n ()] n)))
     (count-if-not-loop pred 0 seq)))
 
 ;;; Lists
@@ -471,9 +467,9 @@
   ([n xs] (when (< n 0)) ())
   ([n xs]
    (fletrec ((nth-loop
-	       ([n ()] ())		;End of the list
-	       ([0 xs] (car xs))	;Found the one
-	       ([n xs] (nth-loop (- n 1) (cdr xs)))))
+              ([n ()] ())               ;End of the list
+              ([0 xs] (car xs))         ;Found the one
+              ([n xs] (nth-loop (- n 1) (cdr xs)))))
      (nth-loop n xs))))
 
 (defun nthcdr (n xs)
@@ -500,29 +496,29 @@
    Substitute `new` for every subtree which satisfies `test` in `tree`."
   (if (funcall test tree) new
       (case tree
-	((cons e rest)
-	 (cons (subst-if new test e) (subst-if new test rest)))
-	(_ tree))))
+        ((cons e rest)
+         (cons (subst-if new test e) (subst-if new test rest)))
+        (_ tree))))
 
 (defun subst-if-not (new test tree)
   "new test tree
    Substitute `new` for every subtree which does not satisfy `test` in `tree`."
   (if (funcall test tree)
-      (case tree
-	((cons e rest)
-	 (cons (subst-if-not new test e) (subst-if-not new test rest)))
-	(_ tree))
-      new))
+    (case tree
+      ((cons e rest)
+       (cons (subst-if-not new test e) (subst-if-not new test rest)))
+      (_ tree))
+    new))
 
 (defun sublis (a-list tree)
   "a-list tree
    Subsitute the value of each key in `a-list` occurring in `tree`."
   (case (assoc tree a-list)
-    ((cons _ new) new)			;Found it
-    (()					;Not there
+    ((cons _ new) new)                  ;Found it
+    (()                                 ;Not there
      (case tree
        ((cons e rest)
-	(cons (sublis a-list e) (sublis a-list rest)))
+        (cons (sublis a-list e) (sublis a-list rest)))
        (_ tree)))))
 
 ;; Lists as sets.
@@ -536,34 +532,31 @@
   "pred list
    Return true if `pred` is satisfied for a member of `list`."
   ([pred (cons e list)]
-   (if (funcall pred e)
-       'true
-       (member-if pred list)))
+   (orelse (funcall pred e)
+           (member-if pred list)))
   ([pred ()] 'false))
 
 (defun member-if-not
   "pred list
    Return true if `pred` is not satisfied for a member of `list`."
   ([pred (cons e list)]
-   (if (funcall pred e)
-       (member-if-not pred list)
-       'true))
+   (orelse (not (funcall pred e)) (member-if-not pred list)))
   ([pred ()] 'false))
 
 (defun adjoin (item list)
   "item list
    Add `item` to `list` if it is not already a member."
   (if (member item list)
-      list
-      (cons item list)))
+    list
+    (cons item list)))
 
 (defun union
   "list-1 list-2
    Returns the elements which are members of lists `list-1` or `list-2`."
   ([(cons e l1) l2]
    (if (member e l2)
-       (union l1 l2)
-       (cons e (union l1 l2))))
+     (union l1 l2)
+     (cons e (union l1 l2))))
   ([() l2] l2))
 
 (defun intersection (l1 l2)
@@ -584,11 +577,8 @@
 (defun subsetp
   "list-1 list-2
    Return true if every element in `list-1` is also in `list-2`."
-  ([(cons e l1) l2]
-   (if (member e l2)
-       (subsetp l1 l2)
-       'false))
-  ([() l2] 'true))
+  ([(cons e l1) l2] (andalso (member e l2) (subsetp l1 l2)))
+  ([()          l2] 'true))
 
 ;; Association list functions.
 
@@ -629,8 +619,8 @@
    Searches a-list returning the first pair for which pred is false."
   ([pred (cons (= (cons k _) pair) a-list)]
    (if (funcall pred k)
-       (assoc-if-not pred a-list)
-       pair))
+     (assoc-if-not pred a-list)
+     pair))
   ([pred ()] ()))
 
 (defun rassoc
@@ -645,8 +635,8 @@
    Searches a-list returning the first pair for which pred is true."
   ([pred (cons (= (cons _ v) pair) a-list)]
    (if (funcall pred v)
-       pair
-       (rassoc-if pred a-list)))
+     pair
+     (rassoc-if pred a-list)))
   ([pred ()] ()))
 
 (defun rassoc-if-not
@@ -654,8 +644,8 @@
    Searches a-list returning the first pair for which pred is false."
   ([pred (cons (= (cons _ v) pair) a-list)]
    (if (funcall pred v)
-       (rassoc-if-not pred a-list)
-       pair))
+     (rassoc-if-not pred a-list)
+     pair))
   ([pred ()] ()))
 
 ;;; Types
@@ -733,9 +723,9 @@
   "test true-case false-case
    CL compatible if macro."
   (flet ((exp-if (test if-true if-false)
-	   `(case ,test
-	      (() ,if-false)
-	      (_ ,if-true))))
+                 `(case ,test
+                    (() ,if-false)
+                    (_ ,if-true))))
     (case args
       ((list test if-true) (exp-if test if-true ()))
       ((list test if-true if-false)
@@ -745,13 +735,13 @@
   "args
    CL compatible cond macro."
   (fletrec ((exp-cond
-	      ([(cons (list test) cond)]
-	       `(case ,test
-		  (() ,(exp-cond cond))
-		  (|\|-cond-test-\|| |\|-cond-test-\||)))
-	      ([(cons (cons test body) cond)]
-	       `(case ,test
-		  (() ,(exp-cond cond))
-		  (_ (progn . ,body))))
-	      ([()] ())))
+             ([(cons (list test) cond)]
+              `(case ,test
+                 (() ,(exp-cond cond))
+                 (|\|-cond-test-\|| |\|-cond-test-\||)))
+             ([(cons (cons test body) cond)]
+              `(case ,test
+                 (() ,(exp-cond cond))
+                 (_ (progn . ,body))))
+             ([()] ())))
     (exp-cond args)))
