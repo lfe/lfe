@@ -22,7 +22,7 @@
 -export([is_bif/2,is_erl_bif/2,is_guard_bif/2]).
 
 -export([is_symb/1,is_symb_list/1,is_proper_list/1,is_doc_string/1]).
--export([is_core_form/1]).
+-export([is_core_form/1,is_core_func/2]).
 
 -export([proc_forms/3,proc_forms/4]).
 
@@ -53,7 +53,9 @@
 %%  Collected tests for valid BIFs in guards and expressions.
 
 is_bif(Name, Ar) ->
-    is_lfe_bif(Name, Ar) orelse is_erl_bif(Name, Ar).
+    is_core_func(Name, Ar)
+        orelse is_lfe_bif(Name, Ar)
+        orelse is_erl_bif(Name, Ar).
 
 is_erl_bif(Op, Ar) ->
     erl_internal:bif(Op, Ar)
@@ -106,6 +108,7 @@ is_core_form(mupd) -> true;
 is_core_form('map-get') -> true;
 is_core_form('map-set') -> true;
 is_core_form('map-update') -> true;
+is_core_form(function) -> true;
 %% Core closure special forms.
 is_core_form(lambda) -> true;
 is_core_form('match-lambda') -> true;
@@ -130,6 +133,28 @@ is_core_form('define-module') -> true;
 is_core_form('extend-module') -> true;
 %% Everything else is not a core form.
 is_core_form(_) -> false.
+
+%% is_core_func(Name, Arity) -> bool().
+%%  Return true if Name/Arity is one of the LFE core functions, else
+%%  false. For those which can take multiple arguments we accept any
+%%  number and push checking to run time.
+
+is_core_func(cons, 2) -> true;
+is_core_func(car, 1) -> true;
+is_core_func(cdr, 1) -> true;
+is_core_func(list, Ar) when Ar >= 0 -> true;
+is_core_func(tuple, Ar) when Ar >= 0  -> true;
+is_core_func(binary, Ar) when Ar >= 0  -> true;
+is_core_func(map, Ar) when Ar >= 0, (Ar rem 2) =:= 0 -> true;
+is_core_func(mref, 2) -> true;
+is_core_func(mset, Ar) when Ar >= 0, (Ar rem 2) =:= 1 -> true;
+is_core_func(mupd, Ar) when Ar >= 0, (Ar rem 2) =:= 1 -> true;
+is_core_func('map-get', 2) -> true;
+is_core_func('map-set', Ar) when Ar >= 0, (Ar rem 2) =:= 1 -> true;
+is_core_func('map-upd', Ar) when Ar >= 0, (Ar rem 2) =:= 1 -> true;
+is_core_func(funcall, Ar) when Ar >= 1 -> true;
+is_core_func(call, Ar) when Ar >= 2 -> true;
+is_core_func(_, _) -> false.
 
 %% proc_forms(FormFun, Forms, State) -> {Forms,State}.
 %% proc_forms(FormFun, Forms, Line, State) -> {Forms,State}.

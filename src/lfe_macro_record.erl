@@ -146,6 +146,19 @@ field_macros(Name, Fs) ->
                    Fas]
           end, [], Fis).
 
+-ifdef(NEW_REC_CORE).
+type_information(Name, Fdefs, #mac{line=L}) ->
+    %% Only field names which will result in default type any().
+    %% Adding types greatly complicates things. If we add defaults
+    %% then they would have to be expanded here.
+    Fs = map(fun ([F,_D]) ->
+                     %% De = lfe_trans:to_expr(D, L),
+                     {record_field,[L],{atom,[L],F}};
+                 (F) ->
+                     {record_field,[L],{atom,[L],F}}
+             end, Fdefs),
+    [record,{Name,Fs}].
+-else.
 type_information(Name, Fdefs, #mac{line=L}) ->
     %% Only field names which will result in default type any().
     %% Adding types greatly complicates things. If we add defaults
@@ -157,3 +170,4 @@ type_information(Name, Fdefs, #mac{line=L}) ->
                      {record_field,L,{atom,L,F}}
              end, Fdefs),
     [type,[{record,Name},Fs,[]]].
+-endif.

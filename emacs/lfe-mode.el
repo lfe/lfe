@@ -237,7 +237,7 @@ Other commands:
       "car" "cdr" "caar" "cadr" "cdar" "cddr"
       ;; Just for the fun of it.
       "caaar" "caadr" "cadar" "caddr" "cdaar" "cddar" "cdadr" "cdddr"
-      "list" "list*" "tuple" "binary"
+      "function" "list" "list*" "tuple" "binary"
       "map" "mref" "mset" "mupd" "map-get" "map-set" "map-update")
     "LFE builtin functions (BIFs) and some type macros")
   (defconst lfe-core-forms
@@ -278,7 +278,7 @@ Other commands:
 
 ;;;###autoload
 ;; Associate ".lfe{s,sh}?" with LFE mode.
-(add-to-list 'auto-mode-alist '("\\.lfe\\(?:s\\|sh\\)\\'" . lfe-mode) t)
+(add-to-list 'auto-mode-alist '("\\.lfe\\(s\\|sh\\)?\\'" . lfe-mode) t)
 
 ;;;###autoload
 ;; Ignore files ending in ".jam", ".vee", and ".beam" when performing

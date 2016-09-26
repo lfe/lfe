@@ -32,7 +32,7 @@ prop_define_match() -> ?FORALL(Def, define_match(), validate(Def)).
 
 validate({['define-function',Name,_Doc,Def],_}=Func) ->
     validate_function(Name, function_arity(Def), Func);
-validate({['define-macro',Name,_Doc,Def],_}=Mac) ->
+validate({['define-macro',Name,_Doc,_Def],_}=Mac) ->
     validate_macro(Name, Mac).
 
 function_arity([lambda,Args|_]) -> length(Args);
@@ -40,21 +40,21 @@ function_arity(['match-lambda',[Pat|_]|_]) -> length(Pat).
 
 validate_function(Name, Arity, {[_Define,_Name,Meta,_Def],Line}=Func) ->
     case lfe_doc:extract_module_docs([Func]) of
-	{ok,{[],[Fdoc]}} ->
-	    (lfe_doc:collect_docs(Meta, []) =:= lfe_doc:function_doc(Fdoc))
-		and (Name =:= lfe_doc:function_name(Fdoc))
-		and (Arity =:= lfe_doc:function_arity(Fdoc))
-		and (Line =:= lfe_doc:function_line(Fdoc));
-	_ -> false
+        {ok,{[],[Fdoc]}} ->
+            (lfe_doc:collect_docs(Meta, []) =:= lfe_doc:function_doc(Fdoc))
+                and (Name =:= lfe_doc:function_name(Fdoc))
+                and (Arity =:= lfe_doc:function_arity(Fdoc))
+                and (Line =:= lfe_doc:function_line(Fdoc));
+        _ -> false
     end.
 
-validate_macro(Name, {[Define,_Name,Meta,_Lambda],Line}=Mac) ->
+validate_macro(Name, {[_Define,_Name,Meta,_Lambda],Line}=Mac) ->
     case lfe_doc:extract_module_docs([Mac]) of
-	{ok,{[],[Mdoc]}} ->
-	    (lfe_doc:collect_docs(Meta, []) =:= lfe_doc:macro_doc(Mdoc))
-		and (Name =:= lfe_doc:macro_name(Mdoc))
-		and (Line =:= lfe_doc:macro_line(Mdoc));
-	_ -> false
+        {ok,{[],[Mdoc]}} ->
+            (lfe_doc:collect_docs(Meta, []) =:= lfe_doc:macro_doc(Mdoc))
+                and (Name =:= lfe_doc:macro_name(Mdoc))
+                and (Line =:= lfe_doc:macro_line(Mdoc));
+        _ -> false
     end.
 
 %%%===================================================================
@@ -113,9 +113,9 @@ pattern_form() ->
 
 match_fun() -> 'match-record'.
 
-macro_pattern_clause() -> pattern_clause(random:uniform(10), true).
+macro_pattern_clause() -> pattern_clause(rand_arity(), true).
 
-function_pattern_clause() -> pattern_clause(random:uniform(10), false).
+function_pattern_clause() -> pattern_clause(rand_arity(), false).
 
 pattern_clause(Arity, Macro) ->
     [arglist_patterns(Arity, Macro)|[oneof([guard(),form()])|body()]].
@@ -150,3 +150,12 @@ non_string_term() ->
 printable_char() -> union([integer(32, 126),integer(160, 255)]).
 
 printable_string() -> list(printable_char()).
+
+
+%%% Rand compat
+
+-ifdef(NEW_RAND).
+rand_arity() -> rand:uniform(10).
+-else.
+rand_arity() -> random:uniform(10).
+-endif.

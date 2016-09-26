@@ -340,6 +340,17 @@ check_expr(['map-set',Map|As], Env, L, St) ->
     check_expr(['mset',Map|As], Env, L, St);
 check_expr(['map-update',Map|As], Env, L, St) ->
     check_expr(['mupd',Map|As], Env, L, St);
+check_expr([function,F,Ar], Env, L, St) ->
+    %% Check for the right types.
+    if is_atom(F) and is_integer(Ar) and (Ar >= 0) ->
+            check_func(F, Ar, Env, L, St);
+       true -> bad_form_error(L, function, St)
+    end;
+check_expr([function,M,F,Ar], _, L, St) ->
+    %% Just need the right types here.
+    if is_atom(M) and is_atom(F) and is_integer(Ar) and (Ar >= 0) -> St;
+       true -> bad_form_error(L, function, St)
+    end;
 %% Check the Core closure special forms.
 check_expr(['lambda'|Lambda], Env, L, St) ->
     check_lambda(Lambda, Env, L, St);
@@ -376,10 +387,7 @@ check_expr([Fun|As], Env, L, St0) when is_atom(Fun) ->
     St1 = check_args(As, Env, L, St0),          %Check arguments first
     %% Here we are not interested in HOW fun is associated to a
     %% function, just that it is.
-    case is_fbound(Fun, safe_length(As), Env) of
-        true -> St1;
-        false -> add_error(L, {unbound_func,{Fun,safe_length(As)}}, St1)
-    end;
+    check_func(Fun, safe_length(As), Env, L, St1);
 check_expr([_|As]=S, Env, L, St0) ->            %Test if literal string
     case is_posint_list(S) of
         true -> St0;
@@ -400,6 +408,15 @@ check_symb(Symb, Env, L, St) ->
     case is_vbound(Symb, Env) of
         true -> St;
         false -> add_error(L, {unbound_symb,Symb}, St)
+    end.
+
+%% check_func(Func, Arity, Env, Line, State) -> State.
+%%  Check if Func/Arity is bound.
+
+check_func(F, Ar, Env, L, St) ->
+    case is_fbound(F, Ar, Env) of
+        true -> St;
+        false -> unbound_func_error(L, {F,Ar}, St)
     end.
 
 %% check_body(Body, Env, Line, State) -> State.
@@ -541,16 +558,16 @@ is_map_key(Lit) -> is_literal(Lit).
 
 -else.
 expr_map(Ps, _, L, St) ->
-    add_error(L, {unbound_func,{map,safe_length(Ps)}}, St).
+    unbound_func_error(L, {map,safe_length(Ps)}, St).
 
 expr_get_map(_, _, _, L, St) ->
-    add_error(L, {unbound_func,{'map-get',2}}, St).
+    unbound_func_error(L, {'map-get',2}, St).
 
 expr_set_map(_, Ps, _, L, St) ->
-    add_error(L, {unbound_func,{'map-set',safe_length(Ps)+1}}, St).
+    unbound_func_error(L, {'map-set',safe_length(Ps)+1}, St).
 
 expr_update_map(_, Ps, _, L, St) ->
-    add_error(L, {unbound_func,{'map-update',safe_length(Ps)+1}}, St).
+    unbound_func_error(L, {'map-update',safe_length(Ps)+1}, St).
 -endif.
 
 %% check_lambda(LambdaBody, Env, Line, State) -> State.
@@ -949,13 +966,13 @@ is_gmap_key(Lit) -> is_literal(Lit).
 
 -else.
 gexpr_map(Ps, _, L, St) ->
-    add_error(L, {unbound_func,{map,safe_length(Ps)}}, St).
+    unbound_func_error(L, {map,safe_length(Ps)}, St).
 
 gexpr_set_map(_, Ps, _, L, St) ->
-    add_error(L, {unbound_func,{'map-set',safe_length(Ps)+1}}, St).
+    unbound_func_error(L, {'map-set',safe_length(Ps)+1}, St).
 
 gexpr_update_map(_, Ps, _, L, St) ->
-    add_error(L, {unbound_func,{'map-update',safe_length(Ps)+1}}, St).
+    unbound_func_error(L, {'map-update',safe_length(Ps)+1}, St).
 -endif.
 
 %% pattern(Pattern, Env, L, State) -> {PatVars,State}.
@@ -1328,6 +1345,9 @@ bad_attr_error(L, A, St) ->
 
 multi_var_error(L, V, St) ->
     add_error(L, {multi_var,V}, St).
+
+unbound_func_error(L, F, St) ->
+    add_error(L, {unbound_func,F}, St).
 
 illegal_guard_error(L, St) ->
     add_error(L, illegal_guard, St).

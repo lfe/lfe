@@ -1,0 +1,1 @@
+(defrecord foo bar baz)
