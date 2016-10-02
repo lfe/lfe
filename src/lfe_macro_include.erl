@@ -187,9 +187,26 @@ trans_forms([{attribute,Line,record,{Name,Fields}}|Fs], St0) ->
 trans_forms([{attribute,Line,type,{Name,Def,E}}|Fs], St0) ->
     {As,Lfs,St1} = trans_forms(Fs, St0),
     case catch {ok,trans_type(Name, Line, Def, E)} of
-        {ok,Ltype} -> {[Ltype|As],Lfs,St1};
-        {'EXIT',_} ->                           %Something went wrong
+        {ok,Ltype} -> {As,[['define-type'|Ltype]|Lfs],St1};
+        {'EXIT',_E} ->                          %Something went wrong
+            exit({boom,_E,{Name,Line,Def,E}}),
             {As,Lfs,add_warning({notrans_type,Name}, St1)}
+    end;
+trans_forms([{attribute,Line,opaque,{Name,Def,E}}|Fs], St0) ->
+    {As,Lfs,St1} = trans_forms(Fs, St0),
+    case catch {ok,trans_opaque(Name, Line, Def, E)} of
+        {ok,Ltype} -> {As,[['define-opaque-type'|Ltype]|Lfs],St1};
+        {'EXIT',_E} ->                          %Something went wrong
+            exit({boom,_E,{Name,Line,Def,E}}),
+            {As,Lfs,add_warning({notrans_type,Name}, St1)}
+    end;
+trans_forms([{attribute,Line,spec,{Func,Types}}|Fs], St0) ->
+    {As,Lfs,St1} = trans_forms(Fs, St0),
+    case catch {ok,trans_spec(Func, Line, Types)} of
+        {ok,Lspec} -> {As,[['define-function-spec'|Lspec]|Lfs],St1};
+        {'EXIT',_E} ->                          %Something went wrong
+            exit({boom,_E,{Func,Line,Types}}),
+            {As,Lfs,add_warning({notrans_spec,Func}, St1)}
     end;
 trans_forms([{attribute,_,export,Es}|Fs], St0) ->
     {As,Lfs,St1} = trans_forms(Fs, St0),
@@ -235,9 +252,19 @@ record_field({record_field,_,F,Def}) ->         %Field name and default value
     Fd = lfe_trans:from_lit(F),
     Ld = lfe_trans:from_expr(Def),
     [Fd,Ld];
-record_field({typed_record_field,Rf,_Type}) ->
-    %% We can also see the typed record fields, ignore the type.
-    record_field(Rf).
+record_field({typed_record_field,Rf,Type}) ->
+    typed_record_field(Rf, Type).
+
+typed_record_field({record_field,_,F}, Type) ->
+    %% Just the field name, set default value to 'undefined.
+    Fd = lfe_trans:from_lit(F),
+    Td = lfe_types:from_type_def(Type),
+    [Fd,?Q(undefined),Td];
+typed_record_field({record_field,_,F,Def}, Type) ->
+    Fd = lfe_trans:from_lit(F),
+    Ld = lfe_trans:from_expr(Def),
+    Td = lfe_types:from_type_def(Type),
+    [Fd,Ld,Td].
 
 %% trans_type(Name, Line, Definition, Extra) -> TypeDef.
 %%  Translate an Erlang type definition to LFE. Currently we make a we
@@ -245,7 +272,12 @@ record_field({typed_record_field,Rf,_Type}) ->
 %%  form for the type attributes.
 
 trans_type(Name, Line, Def, E) ->
-    [type,{Name,convert_type(Def, Line),E}].
+    [[Name|lfe_types:from_type_defs(E)],lfe_types:from_type_def(Def)].
+    %%[type,{Name,convert_type(Def, Line),E}].
+
+trans_opaque(Name, Line, Def, E) ->
+    [[Name|lfe_types:from_type_defs(E)],lfe_types:from_type_def(Def)].
+    %%[type,{Name,convert_type(Def, Line),E}].
 
 convert_type({One,Two,Three}, L) when is_integer(Two), is_list(Three) ->
     T = lists:map(fun (T) -> convert_type(T, L) end, Three),
@@ -257,6 +289,11 @@ convert_type({One,Two,Three,Four}, L) when is_integer(Two), is_list(Four) ->
     {One,[L],Three,F};
 convert_type({One,Two,Three,Four}, L) when is_integer(Two) ->
     {One,[L],Three,Four}.
+
+%% trans_spec(FuncArity, Line, Clauses) -> SpecDef.
+
+trans_spec({Name,Arity}, Line, Defs) ->
+    [[Name,Arity],lfe_types:from_func_types(Defs)].
 
 %% trans_function(Name, Arity, Clauses) -> LfuncDef.
 

@@ -31,6 +31,9 @@
 -export([expand_form_init/2,expand_form_init/3,
          expand_form/4,expand_fileform/3]).
 
+%% For creating the macro expansion state.
+-export([default_state/2,default_state/3]).
+
 -export([format_error/1]).
 
 -export([mbe_syntax_rules_proc/4,mbe_syntax_rules_proc/5,
