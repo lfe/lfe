@@ -515,6 +515,11 @@
   only computes subseqeuent values as needed."
   (fn [] (cons start (next func (funcall func start step) step))))
 
+(defn cycle
+  "Return a lazy list with all of its elements cycled."
+  ([()] ())
+  ([lst] (fn [] (-cycle lst ()))))
+
 (defn range []
   "Equivalent to `(range 1 1)`."
   (range 1 1))
@@ -702,3 +707,9 @@
    (flet ((maps-get [k m] (call 'maps 'get k m not-found)))
      (-get-in #'maps-get/2 xmap keys not-found)))
   ([_xmap _keys not-found] not-found))
+
+(defn- -cycle
+  ([() ()] ())
+  ([() lst] (-cycle (lists:reverse lst) ()))
+  ([`(,head . ,tail) lst]
+   (cons head (fn [] (-cycle tail (cons head lst))))))
