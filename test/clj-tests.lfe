@@ -516,6 +516,24 @@
                                          ([3 _] 4)
                                          ([4 _] (error 'overzealous-take)))))))
 
+(deftest cycle-and-take
+  (are* [x y] (ok? (is-match x y))
+
+        ()
+        (clj:cycle ())
+
+        '(1 2 3)
+        (clj:take 3 (clj:cycle '(1 2 3)))
+
+        '(1 2)
+        (clj:take 2 (clj:cycle '(1 2 3)))
+
+        '(1 2 3 1)
+        (clj:take 4 (clj:cycle '(1 2 3)))
+
+        '(1 2 3 1 2 3 1)
+        (clj:take 7 (clj:cycle '(1 2 3)))))
+
 (deftest range
   (are* [x y] (ok? (is-match x y))
         1 (car (funcall (clj:range)))
