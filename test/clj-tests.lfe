@@ -522,6 +522,9 @@
         ()
         (clj:cycle ())
 
+        '(1 1 1)
+        (clj:take 3 (clj:cycle '(1)))
+
         '(1 2 3)
         (clj:take 3 (clj:cycle '(1 2 3)))
 

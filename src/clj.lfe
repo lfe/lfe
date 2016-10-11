@@ -516,7 +516,7 @@
   (fn [] (cons start (next func (funcall func start step) step))))
 
 (defn cycle
-  "Return a lazy list with all of its elements cycled."
+  "Return a lazy infinite sequence with all of elements from a given list cycled."
   ([()] ())
   ([lst] (fn [] (-cycle lst ()))))
 
@@ -709,7 +709,6 @@
   ([_xmap _keys not-found] not-found))
 
 (defn- -cycle
-  ([() ()] ())
   ([() lst] (-cycle (lists:reverse lst) ()))
   ([`(,head . ,tail) lst]
    (cons head (fn [] (-cycle tail (cons head lst))))))
