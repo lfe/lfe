@@ -534,7 +534,8 @@ computes subseqeuent values as needed.
 
 **(cycle lst)**
 
-Return a lazy infinite sequence with all elements from a given list `lst` cycled.
+Return a lazy infinite sequence with all elements from a given list `lst` or
+another lazy sequence cycled.
 
 See **next/3** for details on the structure.
 

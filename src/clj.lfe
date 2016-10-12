@@ -517,7 +517,7 @@
 
 (defn cycle
   "Return a lazy infinite sequence with all elements from a given list `lst`
-  cycled.
+  or another lazy sequence cycled.
   See [[next/3]] for details on the structure."
   ([()] ())
   ([lst] (fn [] (-cycle lst ()))))
@@ -712,5 +712,7 @@
 
 (defn- -cycle
   ([() lst] (-cycle (lists:reverse lst) ()))
+  ([f lst] (when (function? f 0))
+   (-cycle (funcall f) lst))
   ([`(,head . ,tail) lst]
    (cons head (fn [] (-cycle tail (cons head lst))))))
