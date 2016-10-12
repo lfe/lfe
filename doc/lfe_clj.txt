@@ -485,6 +485,13 @@ EXPORTS
        as the tail.  The result can be treated as a (possibly  infinite)  lazy
        list, which only computes subseqeuent values as needed.
 
+       (cycle lst)
+
+       Return a lazy infinite sequence with all elements from a given list lst
+       cycled.
+
+       See next/3 for details on the structure.
+
        (range)
 
        Equivalent to (range 1 1).
@@ -495,7 +502,7 @@ EXPORTS
 
        (range start step)
 
-       Return  a  lazy list of integers, starting with start and increasing by
+       Return a lazy list of integers, starting with start and  increasing  by
        step.  Equivalent to (next #'+/2 start step).  See also: next/3.
 
        (drop n lst)
@@ -510,7 +517,7 @@ EXPORTS
        (take 'all lst)
 
        Given a (possibly lazy) list lst, return a list of the first n elements
-       of lst, or all elements if there are fewer than n.  If n  is  the  atom
+       of  lst,  or  all elements if there are fewer than n.  If n is the atom
        all and lst is a "normal" list, return lst.
 
        (split-at n lst)
@@ -529,7 +536,7 @@ EXPORTS
 
        Return a list of lists of n items each, at offsets step apart.  Use the
        elements of pad as necessary to complete the last partition up to n el‐
-       ements.   In case there are not enough padding elements, return a pari‐
+       ements.  In case there are not enough padding elements, return a  pari‐
        tion with less than n items.
 
        (partition-all n lst)
@@ -538,7 +545,7 @@ EXPORTS
 
        (partition-all n step lst)
 
-       Return a list of lists like partition/3, possibly including  partitions
+       Return  a list of lists like partition/3, possibly including partitions
        with fewer than n elements at the end.
 
        (interleave list-1 list-2)
@@ -551,8 +558,8 @@ EXPORTS
 
        (get-in data keys not-found)
 
-       Return  the  value  in  a nested associative structure, where keys is a
-       list of keys or list indices.  Return the atom not-found if the key  is
+       Return the value in a nested associative structure,  where  keys  is  a
+       list  of keys or list indices.  Return the atom not-found if the key is
        not present or index is out of bounds, or the not-found value.
 
        (reduce func (cons head tail))
@@ -584,7 +591,7 @@ EXPORTS
 
        (constantly x)
 
-       Return  a  unary function that returns x.  N.B.  This is like Haskell's
+       Return a unary function that returns x.  N.B.  This is  like  Haskell's
        const rather than Clojure's constantly.
 
        (inc x)
