@@ -516,7 +516,9 @@
   (fn [] (cons start (next func (funcall func start step) step))))
 
 (defn cycle
-  "Return a lazy infinite sequence with all of elements from a given list cycled."
+  "Return a lazy infinite sequence with all elements from a given list `lst`
+  cycled.
+  See [[next/3]] for details on the structure."
   ([()] ())
   ([lst] (fn [] (-cycle lst ()))))
 

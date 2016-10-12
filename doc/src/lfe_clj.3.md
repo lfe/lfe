@@ -532,6 +532,12 @@ a nullary function, `(next func (funcall func start step) step)` as the tail.
 The result can be treated as a (possibly infinite) lazy list, which only
 computes subseqeuent values as needed.
 
+**(cycle lst)**
+
+Return a lazy infinite sequence with all elements from a given list `lst` cycled.
+
+See **next/3** for details on the structure.
+
 **(range)**
 
 Equivalent to `(range 1 1)`.
