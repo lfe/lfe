@@ -15,7 +15,7 @@
 
 {application, lfe,
  [{description, "Lisp Flavored Erlang (LFE)"},
-  {vsn, "1.2-dev"},
+  {vsn, "1.3-dev"},
   {modules,[cl,clj,lfe,lfe_bits,lfe_codegen,lfe_comp,lfe_doc,
             lfe_edlin_expand,lfe_env,lfe_eval,lfe_gen,lfe_init,lfe_io,
             lfe_io_format,lfe_io_pretty,lfe_io_write,lfe_lib,
@@ -28,5 +28,6 @@
   {licenses, ["Apache"]},
   {links, [{"Github", "https://github.com/rvirding/lfe"},
            {"Main site", "http://lfe.io/"},
-           {"Documentation", "http://docs.lfe.io/"}]}
+           {"Documentation", "http://docs.lfe.io/"}]},
+  {files, ["src", "include", "bin", "rebar.*", "README.md", "LICENSE"]}
  ]}.
