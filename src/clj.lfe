@@ -526,6 +526,15 @@
   only computes subseqeuent values as needed."
   (fn [] (cons start (next func (funcall func start step) step))))
 
+(defn lazy-seq
+  "Return a lazy sequence (possibly infinite) from given lazy sequence `f`
+  or finite lazy sequence from given list `lst`. Lazy sequence is treated as
+  finite if at any iteration it produces empty list instead of data as its
+  head and nullary function for next iteration as its tail."
+  ([()] ())
+  ([f] (when (function? f 0)) f)
+  ([lst] (when (is_list lst)) (fn [] (-lazy-seq lst))))
+
 (defn cycle
   "Return a lazy infinite sequence with all elements from a given list `lst`
   or another lazy sequence cycled.
@@ -552,6 +561,7 @@
   ([_    ()]                             ())
   ([0    lst]                            lst)
   (['all lst]       (when (is_list lst)) ())
+  ([n    f]         (when (function? f)) (fn [] (-drop n (funcall f))))
   ([n    `(,_ . ,t)]                     (drop (dec n) t)))
 
 (defn take
@@ -654,7 +664,18 @@
 
 ;;; Internal functions.
 
+(defn- -lazy-seq
+  ([()] ())
+  ([`(,head . ,tail)] (cons head (fn [] (-lazy-seq tail)))))
+
+(defn- -drop
+  ([_ ()] ())
+  ([0 data] data)
+  ([n `(,_ . ,tail)]
+   (when (function? tail)) (-drop (dec n) (funcall tail))))
+
 (defn- -take
+  ([_ acc ()] (lists:reverse acc))
   ([1 acc (cons item _func)] (lists:reverse (cons item acc)))
   ([n acc (cons item  func)] (-take (dec n) (cons item acc) (funcall func))))
 
