@@ -671,8 +671,8 @@
 (defn- -drop
   ([_ ()] ())
   ([0 data] data)
-  ([n `(,_ . ,tail)]
-   (when (function? tail)) (-drop (dec n) (funcall tail))))
+  ([n `(,_ . ,tail)] (when (function? tail))
+   (-drop (dec n) (funcall tail))))
 
 (defn- -take
   ([_ acc ()] (lists:reverse acc))
