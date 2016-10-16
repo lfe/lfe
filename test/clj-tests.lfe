@@ -609,7 +609,21 @@
         (clj:take 4 (clj:cycle (clj:range 3)))
 
         '(1 2 3 1)
-        (clj:take 4 (clj:cycle (clj:cycle '(1 2 3))))))
+        (clj:take 4 (clj:cycle (clj:cycle '(1 2 3)))))
+
+  (are* [x y] (ok? (is-match x y))
+
+        ()
+        (clj:cycle (clj:lazy-seq ()))
+
+        '(1 1 1)
+        (clj:take 3 (clj:cycle (clj:lazy-seq '(1))))
+
+        '(1 2 3 1 2 3 1)
+        (clj:take 7 (clj:cycle (clj:lazy-seq '(1 2 3))))
+
+        '(2 3 2 3 2)
+        (clj:take 5 (clj:cycle (clj:drop 1 (clj:lazy-seq '(1 2 3)))))))
 
 (deftest range
   (are* [x y] (ok? (is-match x y))
