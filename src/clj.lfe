@@ -28,7 +28,9 @@
   (export-macro
    tuple? atom? binary? bitstring? boolean? bool? float? function? func?
    integer? int? number? record? reference? map? undefined? undef? nil?
-   true? false? odd? even? zero? pos? neg? identical?))
+   true? false? odd? even? zero? pos? neg? identical?)
+  ;; String constructor
+  (export-macro str))
 
 (defmacro HAS_MAPS () (quote (erl_internal:bif 'is_map 1)))
 
@@ -640,6 +642,21 @@
 (defn dec [x]
   "Decrement `x` by 1."
   (- x 1))
+
+(defmacro str args
+  "Construct a string from an arbitrary number of scalar values."
+  `(lists:flatmap
+    (match-lambda
+      ([x] (when (is_integer x))
+       (integer_to_list x))
+      ([x] (when (is_float x))
+       (float_to_list x '(#(decimals 2))))
+      ([x] (when (is_atom x))
+       (atom_to_list x))
+      ([x] (when (is_binary x))
+       (binary_to_list x))
+      ([x] x))
+    (list ,@args)))
 
 ;;; Internal functions.
 
