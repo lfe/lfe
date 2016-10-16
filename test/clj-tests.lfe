@@ -544,6 +544,41 @@
                                          ([3 _] 4)
                                          ([4 _] (error 'overzealous-take)))))))
 
+(deftest lazy-seq-and-take-and-drop
+  (are* [x y] (ok? (is-match x y))
+
+        ()
+        (clj:lazy-seq ())
+
+        ()
+        (clj:take 1 (clj:lazy-seq ()))
+
+        '(1 2)
+        (clj:take 2 (clj:lazy-seq '(1 2 3)))
+
+        '(1 2 3)
+        (clj:take 3 (clj:lazy-seq '(1 2 3)))
+
+        '(1 2 3)
+        (clj:take 4 (clj:lazy-seq '(1 2 3))))
+
+  (are* [x y] (ok? (is-match x y))
+
+        ()
+        (clj:take 1 (clj:drop 1 (clj:lazy-seq ())))
+
+        ()
+        (clj:take 1 (clj:drop 1 (clj:lazy-seq '(1))))
+
+        ()
+        (clj:take 1 (clj:drop 4 (clj:lazy-seq '(1 2 3))))
+
+        '(2 3)
+        (clj:take 2 (clj:drop 1 (clj:lazy-seq '(1 2 3))))
+
+        '(2 3)
+        (clj:take 2 (clj:drop 1 (clj:range 1)))))
+
 (deftest cycle-and-take
   (are* [x y] (ok? (is-match x y))
 
