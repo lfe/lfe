@@ -602,6 +602,16 @@ as the head and a nullary function,
 The result can be treated as a (possibly infinite) lazy list, which only
 computes subseqeuent values as needed.
 .PP
+\f[B](lazy\-seq f)\f[]
+.PP
+\f[B](lazy\-seq lst)\f[]
+.PP
+Return a lazy sequence (possibly infinite) from given lazy sequence
+\f[C]f\f[] or finite lazy sequence from given list \f[C]lst\f[].
+Lazy sequence is treated as finite if at any iteration it produces empty
+list instead of data as its head and nullary function for next iteration
+as its tail.
+.PP
 \f[B](cycle lst)\f[]
 .PP
 Return a lazy infinite sequence with all elements from a given list
