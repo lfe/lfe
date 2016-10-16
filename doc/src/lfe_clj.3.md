@@ -551,6 +551,15 @@ a nullary function, `(next func (funcall func start step) step)` as the tail.
 The result can be treated as a (possibly infinite) lazy list, which only
 computes subseqeuent values as needed.
 
+**(lazy-seq f)**
+
+**(lazy-seq lst)**
+
+Return a lazy sequence (possibly infinite) from given lazy sequence `f`
+or finite lazy sequence from given list `lst`. Lazy sequence is treated as
+finite if at any iteration it produces empty list instead of data as its
+head and nullary function for next iteration as its tail.
+
 **(cycle lst)**
 
 Return a lazy infinite sequence with all elements from a given list `lst` or
