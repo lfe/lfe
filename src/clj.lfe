@@ -30,7 +30,8 @@
    integer? int? number? record? reference? map? undefined? undef? nil?
    true? false? odd? even? zero? pos? neg? identical?)
   ;; Other macros.
-  (export-macro str))
+  (export-macro
+   str lazy-seq))
 
 (defmacro HAS_MAPS () (quote (erl_internal:bif 'is_map 1)))
 
@@ -366,6 +367,23 @@
          (not (clj:string? arg)) (lfe_io:print1)))
      (list ,@args)))
 
+(defmacro lazy-seq
+  "Return a lazy sequence (possibly infinite) from given lazy sequence `seq`
+  or finite lazy sequence from given list `seq`. Lazy sequence is treated as
+  finite if at any iteration it produces empty list instead of data as its
+  head and nullary function for next iteration as its tail."
+  ((()) ())
+  (`(,seq)
+   `(lambda ()
+      (let ((,'seq* ,seq))
+        (if (is_function ,'seq* 0)
+          (funcall ,'seq*)
+          (fletrec ((-lazy-seq
+                     ((()) ())
+                     ((`(,h . ,t))
+                      (cons h (lambda () (-lazy-seq t))))))
+            (-lazy-seq ,'seq*)))))))
+
 ;;; Function composition.
 
 (defn comp
@@ -526,15 +544,6 @@
   only computes subseqeuent values as needed."
   (fn [] (cons start (next func (funcall func start step) step))))
 
-(defn lazy-seq
-  "Return a lazy sequence (possibly infinite) from given lazy sequence `f`
-  or finite lazy sequence from given list `lst`. Lazy sequence is treated as
-  finite if at any iteration it produces empty list instead of data as its
-  head and nullary function for next iteration as its tail."
-  ([()] ())
-  ([f] (when (function? f 0)) f)
-  ([lst] (when (is_list lst)) (fn [] (-lazy-seq lst))))
-
 (defn cycle
   "Return a lazy infinite sequence with all elements from a given list `lst`
   or another lazy sequence cycled.
@@ -663,10 +672,6 @@
   (- x 1))
 
 ;;; Internal functions.
-
-(defn- -lazy-seq
-  ([()] ())
-  ([`(,head . ,tail)] (cons head (fn [] (-lazy-seq tail)))))
 
 (defn- -drop
   ([_ ()] ())
