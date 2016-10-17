@@ -551,12 +551,10 @@ a nullary function, `(next func (funcall func start step) step)` as the tail.
 The result can be treated as a (possibly infinite) lazy list, which only
 computes subseqeuent values as needed.
 
-**(lazy-seq f)**
+**(lazy-seq seq)**
 
-**(lazy-seq lst)**
-
-Return a lazy sequence (possibly infinite) from given lazy sequence `f`
-or finite lazy sequence from given list `lst`. Lazy sequence is treated as
+Return a lazy sequence (possibly infinite) from given lazy sequence `seq`
+or finite lazy sequence from given list `seq`. Lazy sequence is treated as
 finite if at any iteration it produces empty list instead of data as its
 head and nullary function for next iteration as its tail.
 
