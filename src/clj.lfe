@@ -29,7 +29,7 @@
    tuple? atom? binary? bitstring? boolean? bool? float? function? func?
    integer? int? number? record? reference? map? undefined? undef? nil?
    true? false? odd? even? zero? pos? neg? identical?)
-  ;; String constructor
+  ;; Other macros.
   (export-macro str))
 
 (defmacro HAS_MAPS () (quote (erl_internal:bif 'is_map 1)))
@@ -356,6 +356,15 @@
   "Return `'true` if `x` is exactly equal to `y`."
   `(=:= ,x ,y))
 
+;;; Other macros.
+
+(defmacro str args
+  "Construct a string from an arbitrary number of scalar values."
+  `(lists:flatmap
+     (lambda (arg)
+       (clj:cond-> arg
+         (not (clj:string? arg)) (lfe_io:print1)))
+     (list ,@args)))
 
 ;;; Function composition.
 
@@ -642,16 +651,6 @@
 (defn dec [x]
   "Decrement `x` by 1."
   (- x 1))
-
-(defmacro str args
-  "Construct a string from an arbitrary number of scalar values."
-  `(lists:flatmap
-    (lambda (arg)
-      (clj:cond->
-       arg
-       (not (clj:string? arg))
-       (lfe_io:print1)))
-    (list ,@args)))
 
 ;;; Internal functions.
 
