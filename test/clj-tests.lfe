@@ -695,9 +695,15 @@
   (is-match 4.0 (clj:dec 5.0)))
 
 (deftest str
-  (is-equal () (clj:str))
-  (is-equal "123" (clj:str 1 2 3))
-  (is-equal "abc" (clj:str "a" "b" "c"))
-  (is-equal "abc" (clj:str 'a 'b "c"))
-  (is-equal "1a2b" (clj:str 1 'a 2 "b"))
-  (is-equal "2.00c" (clj:str 2.0 'c)))
+  (is-match () (clj:str))
+  (is-match "123" (clj:str 1 2 3))
+  (is-match "abc" (clj:str "a" "b" "c"))
+  (is-match "abc" (clj:str 'a 'b "c"))
+  (is-match "1a2b" (clj:str 1 'a 2 "b"))
+  (is-match "2.00c" (clj:str 2.0 'c))
+  (is-match "roughly 3.14"
+            (let ((pi-string (clj:str "roughly" " " 3.14)))
+              pi-string))
+  (is-match "200 and a half"
+            (let ((number-str (clj:str 200 " " 'and " " 'a " " 'half)))
+              number-str)))
