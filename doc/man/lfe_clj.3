@@ -368,6 +368,28 @@ Return \f[C]\[aq]true\f[] if \f[C]x\f[] is less than zero.
 \f[B](identical? x)\f[]
 .PP
 Return \f[C]\[aq]true\f[] if \f[C]x\f[] is exactly equal to \f[C]y\f[].
+.SS Other Macros
+.PP
+\f[B](str x1, x2 ... xn)\f[]
+.PP
+Given arbitrary number of arguments, return a string consisting of each
+of their string representations.
+.PP
+N.B.
+Because Erlang characters are represented as integers, this will not
+work for chars, e.g.
+\f[C]#\\a\f[], which will be presented in the return value as its
+integer value, i.e.
+\f[C]"97"\f[].
+.IP
+.nf
+\f[C]
+>\ (clj:str\ #\\a\ "bc")
+"97bc"
+>\ (clj:str\ "a"\ "bc")
+"abc"
+\f[]
+.fi
 .SS Function Composition
 .PP
 \f[B](comp f g)\f[]
@@ -707,16 +729,5 @@ Increment \f[C]x\f[] by 1.
 \f[B](dec x)\f[]
 .PP
 Decrement \f[C]x\f[] by 1.
-.PP
-\f[B](str x1, x2 ... xn)\f[]
-.PP
-Given arbitrary number of arguments, returns a string consisting of each
-of their string representations.
-N.B.
-Because Erlang characters are represented as integers, this will not
-work for chars, e.g.
-\f[C]#\\a\f[] which will be presented in the return value as its integer
-value, e.g.
-\f[C]"97"\f[].
 .SH AUTHORS
 Tim Dysinger, Duncan McGreggor, Eric Bailey.
