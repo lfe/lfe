@@ -706,4 +706,15 @@
               pi-string))
   (is-match "200 and a half"
             (let ((number-str (clj:str 200 " " 'and " " 'a " " 'half)))
-              number-str)))
+              number-str))
+  (is-match "eighty plus 1000"
+            (let ((x "eighty ")
+                  (y "plus ")
+                  (z 1000))
+              (clj:str x y z)))
+  (is-match "a1b2"
+            (let ((a 'a)
+                  (b 'b)
+                  (one 1)
+                  (two 2))
+              (clj:str a one b two))))
