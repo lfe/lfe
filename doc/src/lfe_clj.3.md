@@ -650,3 +650,8 @@ Increment `x` by 1.
 **(dec x)**
 
 Decrement `x` by 1.
+
+**(str x1, x2 ... xn)**
+
+Given arbitrary number of arguments, returns a string consisting of each of their string representations.
+N.B. Because Erlang characters are represented as integers, this will not work for chars, e.g. `#\a` which will be presented in the return value as its integer value, e.g. `"97"`.

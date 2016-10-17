@@ -707,5 +707,16 @@ Increment \f[C]x\f[] by 1.
 \f[B](dec x)\f[]
 .PP
 Decrement \f[C]x\f[] by 1.
+.PP
+\f[B](str x1, x2 ... xn)\f[]
+.PP
+Given arbitrary number of arguments, returns a string consisting of each
+of their string representations.
+N.B.
+Because Erlang characters are represented as integers, this will not
+work for chars, e.g.
+\f[C]#\\a\f[] which will be presented in the return value as its integer
+value, e.g.
+\f[C]"97"\f[].
 .SH AUTHORS
 Tim Dysinger, Duncan McGreggor, Eric Bailey.
