@@ -51,3 +51,7 @@
 (defmacro pos?       args `(clj:pos?       ,@args))
 (defmacro neg?       args `(clj:neg?       ,@args))
 (defmacro identical? args `(clj:identical? ,@args))
+
+;;; Other macros.
+
+(defmacro str        args `(clj:str        ,@args))
