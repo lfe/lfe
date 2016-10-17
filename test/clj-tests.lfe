@@ -429,6 +429,34 @@
   (is-not (clj:identical? '(a b c) '(a b d)))
   (is (clj:identical? '(a b c) '(a b c))))
 
+;;; Other macros.
+
+(deftest str
+  (are* [x y] (ok? (is-match x y))
+        "" (clj:str)
+        "123" (clj:str 1 2 3)
+        "abc" (clj:str "a" "b" "c")
+        "abc" (clj:str 'a 'b "c")
+        "1a2b" (clj:str 1 'a 2 "b")
+        "2.0c" (clj:str 2.0 'c)
+        "roughly 3.14"
+        (let ((pi-string (clj:str "roughly" " " 3.14)))
+          pi-string)
+        "200 and a half"
+        (let ((number-str (clj:str 200 " " 'and " " 'a " " 'half)))
+          number-str)
+        "eighty plus 1000"
+        (let ((x "eighty ")
+              (y "plus ")
+              (z 1000))
+          (clj:str x y z))
+        "a1b2"
+        (let ((a 'a)
+              (b 'b)
+              (one 1)
+              (two 2))
+          (clj:str a one b two))))
+
 ;; Based on OTP's queue_SUITE.
 (deftest queue?
   (is-not (clj:queue? '[1 2 3 4 5]))
@@ -693,28 +721,3 @@
 (deftest dec
   (is-match 2 (clj:dec 3))
   (is-match 4.0 (clj:dec 5.0)))
-
-(deftest str
-  (is-match () (clj:str))
-  (is-match "123" (clj:str 1 2 3))
-  (is-match "abc" (clj:str "a" "b" "c"))
-  (is-match "abc" (clj:str 'a 'b "c"))
-  (is-match "1a2b" (clj:str 1 'a 2 "b"))
-  (is-match "2.0c" (clj:str 2.0 'c))
-  (is-match "roughly 3.14"
-            (let ((pi-string (clj:str "roughly" " " 3.14)))
-              pi-string))
-  (is-match "200 and a half"
-            (let ((number-str (clj:str 200 " " 'and " " 'a " " 'half)))
-              number-str))
-  (is-match "eighty plus 1000"
-            (let ((x "eighty ")
-                  (y "plus ")
-                  (z 1000))
-              (clj:str x y z)))
-  (is-match "a1b2"
-            (let ((a 'a)
-                  (b 'b)
-                  (one 1)
-                  (two 2))
-              (clj:str a one b two))))

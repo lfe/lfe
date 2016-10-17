@@ -336,6 +336,25 @@ Return `'true` if `x` is less than zero.
 Return `'true` if `x` is exactly equal to `y`.
 
 
+## Other Macros
+
+**(str x1, x2 ... xn)**
+
+Given arbitrary number of arguments, return a string consisting of each of their
+string representations.
+
+N.B. Because Erlang characters are represented as integers, this will not work
+for chars, e.g. `#\a`, which will be presented in the return value as its
+integer value, i.e. `"97"`.
+
+```lfe
+> (clj:str #\a "bc")
+"97bc"
+> (clj:str "a" "bc")
+"abc"
+```
+
+
 ## Function Composition
 
 **(comp f g)**
@@ -650,8 +669,3 @@ Increment `x` by 1.
 **(dec x)**
 
 Decrement `x` by 1.
-
-**(str x1, x2 ... xn)**
-
-Given arbitrary number of arguments, returns a string consisting of each of their string representations.
-N.B. Because Erlang characters are represented as integers, this will not work for chars, e.g. `#\a` which will be presented in the return value as its integer value, e.g. `"97"`.
