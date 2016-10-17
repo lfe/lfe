@@ -646,16 +646,11 @@
 (defmacro str args
   "Construct a string from an arbitrary number of scalar values."
   `(lists:flatmap
-    (match-lambda
-      ([x] (when (is_integer x))
-       (integer_to_list x))
-      ([x] (when (is_float x))
-       (float_to_list x '(#(decimals 2))))
-      ([x] (when (is_atom x))
-       (atom_to_list x))
-      ([x] (when (is_binary x))
-       (binary_to_list x))
-      ([x] x))
+    (lambda (arg)
+      (clj:cond->
+       arg
+       (not (clj:string? arg))
+       (lfe_io:print1)))
     (list ,@args)))
 
 ;;; Internal functions.

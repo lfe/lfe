@@ -700,7 +700,7 @@
   (is-match "abc" (clj:str "a" "b" "c"))
   (is-match "abc" (clj:str 'a 'b "c"))
   (is-match "1a2b" (clj:str 1 'a 2 "b"))
-  (is-match "2.00c" (clj:str 2.0 'c))
+  (is-match "2.0c" (clj:str 2.0 'c))
   (is-match "roughly 3.14"
             (let ((pi-string (clj:str "roughly" " " 3.14)))
               pi-string))
