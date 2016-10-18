@@ -579,6 +579,23 @@
         '(2 3)
         (clj:take 2 (clj:drop 1 (clj:range 1)))))
 
+(deftest lazy-seq-evaluation
+  (flet ((form-list (last-element)
+                    `(lists:map #'funcall/1
+                                '((lambda () 1)
+                                  (lambda () ,last-element)))))
+
+    (let ((bad-list (form-list '(error 'evaluation_error)))
+          (good-list (form-list 2)))
+
+      (is-error 'evaluation_error (eval bad-list))
+      (is-error 'evaluation_error (eval `(clj:take 1 (clj:lazy-seq ,bad-list))))
+
+      (is-not-error (eval `(clj:lazy-seq ,bad-list)))
+      (is-not-error (eval `(clj:lazy-seq (clj:lazy-seq ,bad-list))))
+
+      (is-match '(1 2) (eval `(clj:take 3 (clj:lazy-seq ,good-list)))))))
+
 (deftest cycle-and-take
   (are* [x y] (ok? (is-match x y))
 
@@ -621,6 +638,9 @@
 
         '(1 2 3 1 2 3 1)
         (clj:take 7 (clj:cycle (clj:lazy-seq '(1 2 3))))
+
+        '(1 2 3 1 2 3 1)
+        (clj:take 7 (clj:lazy-seq (clj:cycle '(1 2 3))))
 
         '(2 3 2 3 2)
         (clj:take 5 (clj:cycle (clj:drop 1 (clj:lazy-seq '(1 2 3)))))))
