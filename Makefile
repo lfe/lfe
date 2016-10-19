@@ -90,12 +90,12 @@ compile: comp_opts.mk
 erlc-compile: $(addprefix $(EBINDIR)/, $(EBINS)) $(addprefix $(BINDIR)/, $(BINS))
 
 ## Compile using lfec
-lfec-compile: $(addprefix $(EBINDIR)/, $(LBINS))
+lfec-compile: erlc-lfec $(addprefix $(EBINDIR)/, $(LBINS))
 
 $(EBINDIR)/$(APP_DEF): $(SRCDIR)/$(APP_DEF).src
 	cp $(SRCDIR)/$(APP_DEF).src $(EBINDIR)/$(APP_DEF)
 
-erlc-lfec: erlc-compile lfec-compile $(EBINDIR)/$(APP_DEF)
+erlc-lfec: erlc-compile $(EBINDIR)/$(APP_DEF)
 
 emacs:
 	cd $(EMACSDIR) ; \
