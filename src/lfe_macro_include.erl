@@ -25,6 +25,8 @@
 
 -export([file/3,lib/3,format_error/1,stringify/1]).
 
+-export([read_hrl_file_1/1,read_hrl_file/2]).
+
 -compile([export_all]).
 
 -include("lfe_macro.hrl").
@@ -267,9 +269,8 @@ typed_record_field({record_field,_,F,Def}, Type) ->
     [Fd,Ld,Td].
 
 %% trans_type(Name, Line, Definition, Extra) -> TypeDef.
-%%  Translate an Erlang type definition to LFE. Currently we make a we
-%%  do a REALLY QUICK HACK which generates the the hopefully correct
-%%  form for the type attributes.
+%% trans_opaque(Name, Line, Definition, Extra) -> TypeDef.
+%%  Translate an Erlang type/opaque type definition to LFE.
 
 trans_type(Name, Line, Def, E) ->
     [[Name|lfe_types:from_type_defs(E)],lfe_types:from_type_def(Def)].
@@ -279,21 +280,10 @@ trans_opaque(Name, Line, Def, E) ->
     [[Name|lfe_types:from_type_defs(E)],lfe_types:from_type_def(Def)].
     %%[type,{Name,convert_type(Def, Line),E}].
 
-convert_type({One,Two,Three}, L) when is_integer(Two), is_list(Three) ->
-    T = lists:map(fun (T) -> convert_type(T, L) end, Three),
-    {One,[L],T};
-convert_type({One,Two,Three}, L) when is_integer(Two) ->
-    {One,[L],Three};
-convert_type({One,Two,Three,Four}, L) when is_integer(Two), is_list(Four) ->
-    F = lists:map(fun (T) -> convert_type(T, L) end, Four),
-    {One,[L],Three,F};
-convert_type({One,Two,Three,Four}, L) when is_integer(Two) ->
-    {One,[L],Three,Four}.
+%% trans_spec(FuncArity, Line, TypeList) -> SpecDef.
 
-%% trans_spec(FuncArity, Line, Clauses) -> SpecDef.
-
-trans_spec({Name,Arity}, Line, Defs) ->
-    [[Name,Arity],lfe_types:from_func_types(Defs)].
+trans_spec({Name,Arity}, Line, Tl) ->
+    [[Name,Arity],lfe_types:from_func_type_list(Tl)].
 
 %% trans_function(Name, Arity, Clauses) -> LfuncDef.
 
