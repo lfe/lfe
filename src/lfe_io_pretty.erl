@@ -287,6 +287,9 @@ indent_type('define-function') -> 1;
 indent_type('define-macro') -> 1;
 indent_type('define-module') -> 1;
 indent_type('extend-module') -> 0;
+indent_type('define-type') -> 1;
+indent_type('define-opaque-type') -> 1;
+indent_type('define-function-spec') -> 1;
 %% Core macros.
 indent_type(':') -> 2;
 indent_type('cond') -> 999;                     %All following forms

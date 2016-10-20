@@ -22,7 +22,7 @@
 -module(lfe_types).
 
 -export([from_type_def/1,from_type_defs/1,to_type_def/2,to_type_defs/2,
-         from_func_type/1,from_func_types/1,to_func_type/2,to_func_types/2]).
+         from_func_type_list/1,to_func_type_list/2]).
 
 -compile(export_all).
 
@@ -34,6 +34,10 @@
 %%  defined types.
 
 from_type_def({type,_L,tuple,any}) -> [tuple];
+from_type_def({type,_L,record,[{atom,_L,Name}|Fields]}) ->
+    [record,Name,from_type_defs(Fields)];
+from_type_def({type,_L,field_type,[{atom,_,Name},Type]}) ->
+    [Name,from_type_def(Type)];
 from_type_def({type,_L,Type,Args}) when is_list(Args) ->
     [Type|from_type_defs(Args)];
 from_type_def({user_type,_L,Type,Args}) when is_list(Args) ->
@@ -44,7 +48,7 @@ from_type_def({remote_type,_L,[{atom,_,M},{atom,_,T},Args]}) ->
     Type = list_to_atom(lists:concat([M,":",T])),
     [Type|from_type_defs(Args)];
 from_type_def({var,_L,Var}) -> Var;             %A type variable
-from_type_def({atom,_L,Atom}) -> [quote,Atom];  %Literal atom
+from_type_def({atom,_L,Atom}) -> ?Q(Atom);      %Literal atom
 from_type_def({integer,_L,Int}) -> Int.         %Literal integer
 
 from_type_defs(Ts) ->
@@ -52,12 +56,14 @@ from_type_defs(Ts) ->
 
 %% to_type_def(Def, Line) -> AST.
 
-to_type_def([quote,Val], Line) ->                       %Quoted atom literal
+to_type_def(?Q(Val), Line) ->                   %Quoted atom literal
     to_lit(Val, Line);
 to_type_def([tuple], Line) ->                   %Undefined tuple
     {type,Line,tuple,any};
 to_type_def([tuple|Args], Line) ->
     {type,Line,tuple,to_type_defs(Args, Line)};
+to_type_def([record,Name,Fields], Line) ->
+    {type,Line,record,[to_lit(Name, Line)|to_type_rec_fields(Fields, Line)]};
 to_type_def([Type|Args], Line) ->
     Dargs = to_type_defs(Args, Line),
     case string:tokens(atom_to_list(Type), ":") of
@@ -80,19 +86,28 @@ to_type_def(Val, Line) when is_atom(Val) ->     %Variable
 to_lit(Val, Line) when is_atom(Val) -> {atom,Line,Val};
 to_lit(Val, Line) when is_integer(Val) -> {integer,Line,Val}.
 
+to_type_rec_fields(Fs, Line) ->
+    Fun = fun ([F,Type]) ->
+		  {type,Line,field_type,
+		   [to_lit(F, Line),to_type_def(Type, Line)]}
+	  end,
+    [ Fun(F) || F <- Fs ].
+
 to_type_defs(Ds, Line) ->
     lists:map(fun (D) -> to_type_def(D, Line) end, Ds).
 
-%% from_func_type(AST) -> Type.
-%% to_func_type(Type, Line) -> AST.
+%% from_func_type_list([FuncType]) -> Type.
+
+from_func_type_list(Ss) ->
+    Fun = fun ({type,_L,'fun',_}=Type) ->
+		  from_func_type(Type) ++ [[]];
+	      ({type,_L,bounded_fun,[Fun,Cs]}) ->
+		  from_func_type(Fun) ++ [from_func_constraints(Cs)]
+	  end,
+    lists:map(Fun, Ss).
 
 from_func_type({type,_L,'fun',[Prod,Ret]}) ->
-    [from_func_prod(Prod),from_type_def(Ret)];
-from_func_type({type,_L,bounded_fun,[Fun,Cs]}) ->
-    from_func_type(Fun) ++ [from_func_constraints(Cs)].
-
-from_func_types(Ss) ->
-    lists:map(fun from_func_type/1, Ss).
+    [from_func_prod(Prod),from_type_def(Ret)].
 
 from_func_prod({type,_L,product,Args}) when is_list(Args) ->
     from_type_defs(Args).                       %Function arguments
@@ -105,6 +120,11 @@ from_func_constraints(Cs) ->
 
 from_subtype([{var,_,Var},Type]) -> [Var,from_type_def(Type)].
 
+%% to_func_type_list(Type, Line) -> AST.
+
+to_func_type_list(Fts, Line) ->
+    lists:map(fun (Ft) -> to_func_type(Ft, Line) end, Fts).
+
 to_func_type([Prod,Ret], Line) ->
     to_func_type(Prod, Ret, Line);
 to_func_type([Prod,Ret,[]], Line) ->            %Future proof
@@ -116,9 +136,6 @@ to_func_type([Prod,Ret,Cs], Line) ->
 
 to_func_type(Prod, Ret, Line) ->
     {type,Line,'fun',[to_func_prod(Prod, Line),to_type_def(Ret, Line)]}.
-
-to_func_types(Fts, Line) ->
-    lists:map(fun (Ft) -> to_func_type(Ft, Line) end, Fts).
 
 to_func_prod(Args, Line) ->
     {type,Line,product,to_type_defs(Args, Line)}.
