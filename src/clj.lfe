@@ -30,8 +30,7 @@
    integer? int? number? record? reference? map? undefined? undef? nil?
    true? false? odd? even? zero? pos? neg? identical?)
   ;; Other macros.
-  (export-macro
-   str lazy-seq))
+  (export-macro str lazy-seq))
 
 (defmacro HAS_MAPS () (quote (erl_internal:bif 'is_map 1)))
 
@@ -372,7 +371,7 @@
   or finite lazy sequence from given list `seq`. Lazy sequence is treated as
   finite if at any iteration it produces empty list instead of data as its
   head and nullary function for next iteration as its tail."
-  ((()) ())
+  (`(()) ())
   (`(,seq)
    `(lambda ()
       (let ((,'seq* ,seq))
