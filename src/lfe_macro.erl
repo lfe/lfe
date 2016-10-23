@@ -123,7 +123,7 @@ do_forms(Fs0, Env0, St0) ->
     end.
 
 default_state(Deep, Keep) ->
-    #mac{deep=Deep,keep=Keep,line=1,file="-nofile-",opts=[],ipath=["."]}.
+    #mac{deep=Deep,keep=Keep,line=1,file="-no-file-",opts=[],ipath=["."]}.
 
 default_state(#cinfo{file=File,opts=Os,ipath=Is}, Deep, Keep) ->
     #mac{deep=Deep,keep=Keep,line=1,file=File,opts=Os,ipath=Is}.
