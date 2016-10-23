@@ -34,10 +34,14 @@
 %%  defined types.
 
 from_type_def({type,_L,tuple,any}) -> [tuple];
+from_type_def({type,_L,union,Types}) ->		%Special case union
+    ['UNION'|from_type_defs(Types)];
 from_type_def({type,_L,record,[{atom,_L,Name}|Fields]}) ->
     [record,Name,from_type_defs(Fields)];
 from_type_def({type,_L,field_type,[{atom,_,Name},Type]}) ->
     [Name,from_type_def(Type)];
+from_type_def({type,_L,'fun',[Args,Ret]}) ->
+    [lambda,from_lambda_args(Args),from_type_def(Ret)];
 from_type_def({type,_L,Type,Args}) when is_list(Args) ->
     [Type|from_type_defs(Args)];
 from_type_def({user_type,_L,Type,Args}) when is_list(Args) ->
@@ -54,6 +58,10 @@ from_type_def({integer,_L,Int}) -> Int.         %Literal integer
 from_type_defs(Ts) ->
     lists:map(fun from_type_def/1, Ts).
 
+from_lambda_args({type,_L,any}) -> any;         %Any arity
+from_lambda_args(Args) -> from_func_prod(Args).
+
+
 %% to_type_def(Def, Line) -> AST.
 
 to_type_def(?Q(Val), Line) ->                   %Quoted atom literal
@@ -62,8 +70,12 @@ to_type_def([tuple], Line) ->                   %Undefined tuple
     {type,Line,tuple,any};
 to_type_def([tuple|Args], Line) ->
     {type,Line,tuple,to_type_defs(Args, Line)};
+to_type_def(['UNION'|Types], Line) ->			%Union
+    {type,Line,union,to_type_defs(Types, Line)};
 to_type_def([record,Name,Fields], Line) ->
     {type,Line,record,[to_lit(Name, Line)|to_type_rec_fields(Fields, Line)]};
+to_type_def([lambda,Args,Ret], Line) ->
+    {type,Line,'fun',[to_lambda_args(Args, Line),to_type_def(Ret, Line)]};
 to_type_def([Type|Args], Line) ->
     Dargs = to_type_defs(Args, Line),
     case string:tokens(atom_to_list(Type), ":") of
@@ -88,10 +100,13 @@ to_lit(Val, Line) when is_integer(Val) -> {integer,Line,Val}.
 
 to_type_rec_fields(Fs, Line) ->
     Fun = fun ([F,Type]) ->
-		  {type,Line,field_type,
-		   [to_lit(F, Line),to_type_def(Type, Line)]}
-	  end,
+                  {type,Line,field_type,
+                   [to_lit(F, Line),to_type_def(Type, Line)]}
+          end,
     [ Fun(F) || F <- Fs ].
+
+to_lambda_args(any, Line) -> {type,Line,any};
+to_lambda_args(Args, Line) -> to_func_prod(Args, Line).
 
 to_type_defs(Ds, Line) ->
     lists:map(fun (D) -> to_type_def(D, Line) end, Ds).
@@ -100,10 +115,10 @@ to_type_defs(Ds, Line) ->
 
 from_func_type_list(Ss) ->
     Fun = fun ({type,_L,'fun',_}=Type) ->
-		  from_func_type(Type) ++ [[]];
-	      ({type,_L,bounded_fun,[Fun,Cs]}) ->
-		  from_func_type(Fun) ++ [from_func_constraints(Cs)]
-	  end,
+                  from_func_type(Type) ++ [[]];
+              ({type,_L,bounded_fun,[Fun,Cs]}) ->
+                  from_func_type(Fun) ++ [from_func_constraints(Cs)]
+          end,
     lists:map(Fun, Ss).
 
 from_func_type({type,_L,'fun',[Prod,Ret]}) ->
