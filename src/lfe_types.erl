@@ -18,6 +18,8 @@
 
 %% Handling types in LFE including functions for converting between
 %% Erlang and LFE type formats.
+%% We can correctly do most types except for maps where we lose the
+%% distinction between assoc and exact pairs.
 
 -module(lfe_types).
 
@@ -33,9 +35,11 @@
 %%  nothing.  We don't differentiate here between pre-defined or user
 %%  defined types.
 
-from_type_def({type,_L,tuple,any}) -> [tuple];
-from_type_def({type,_L,union,Types}) ->		%Special case union
+from_type_def({type,_L,union,Types}) ->         %Special case union
     ['UNION'|from_type_defs(Types)];
+from_type_def({type,_L,tuple,any}) -> [tuple];
+from_type_def({type,_L,map,Pairs}) ->
+    [map|from_map_pairs(Pairs)];
 from_type_def({type,_L,record,[{atom,_L,Name}|Fields]}) ->
     [record,Name,from_type_defs(Fields)];
 from_type_def({type,_L,field_type,[{atom,_,Name},Type]}) ->
@@ -58,24 +62,31 @@ from_type_def({integer,_L,Int}) -> Int.         %Literal integer
 from_type_defs(Ts) ->
     lists:map(fun from_type_def/1, Ts).
 
+from_map_pairs(Pairs) ->
+    %% Lose distinction between assoc and exact pairs.
+    Fun = fun ({type,_L,_P,Types}) -> from_type_defs(Types) end,
+    lists:map(Fun, Pairs).
+
 from_lambda_args({type,_L,any}) -> any;         %Any arity
 from_lambda_args(Args) -> from_func_prod(Args).
 
 
 %% to_type_def(Def, Line) -> AST.
 
-to_type_def(?Q(Val), Line) ->                   %Quoted atom literal
-    to_lit(Val, Line);
+to_type_def(['UNION'|Types], Line) ->                   %Union
+    {type,Line,union,to_type_defs(Types, Line)};
 to_type_def([tuple], Line) ->                   %Undefined tuple
     {type,Line,tuple,any};
 to_type_def([tuple|Args], Line) ->
     {type,Line,tuple,to_type_defs(Args, Line)};
-to_type_def(['UNION'|Types], Line) ->			%Union
-    {type,Line,union,to_type_defs(Types, Line)};
+to_type_def([map|Pairs], Line) ->
+    {type,Line,map,to_map_pairs(Pairs, Line)};
 to_type_def([record,Name,Fields], Line) ->
     {type,Line,record,[to_lit(Name, Line)|to_type_rec_fields(Fields, Line)]};
 to_type_def([lambda,Args,Ret], Line) ->
     {type,Line,'fun',[to_lambda_args(Args, Line),to_type_def(Ret, Line)]};
+to_type_def(?Q(Val), Line) ->                   %Quoted atom literal
+    to_lit(Val, Line);
 to_type_def([Type|Args], Line) ->
     Dargs = to_type_defs(Args, Line),
     case string:tokens(atom_to_list(Type), ":") of
@@ -95,8 +106,18 @@ to_type_def(Val, Line) when is_integer(Val) ->  %Literal integer value
 to_type_def(Val, Line) when is_atom(Val) ->     %Variable
     {var,Line,Val}.
 
+to_type_defs(Ds, Line) ->
+    lists:map(fun (D) -> to_type_def(D, Line) end, Ds).
+
 to_lit(Val, Line) when is_atom(Val) -> {atom,Line,Val};
 to_lit(Val, Line) when is_integer(Val) -> {integer,Line,Val}.
+
+to_map_pairs(Pairs, Line) ->
+    %% Havem lost distinction between assoc and exact pairs.
+    Fun = fun (Pair) ->
+                  {type,Line,map_field_assoc,to_type_defs(Pair, Line)}
+          end,
+    [ Fun(P) || P <- Pairs ].
 
 to_type_rec_fields(Fs, Line) ->
     Fun = fun ([F,Type]) ->
@@ -107,9 +128,6 @@ to_type_rec_fields(Fs, Line) ->
 
 to_lambda_args(any, Line) -> {type,Line,any};
 to_lambda_args(Args, Line) -> to_func_prod(Args, Line).
-
-to_type_defs(Ds, Line) ->
-    lists:map(fun (D) -> to_type_def(D, Line) end, Ds).
 
 %% from_func_type_list([FuncType]) -> Type.
 
