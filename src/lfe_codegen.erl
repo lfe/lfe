@@ -98,10 +98,15 @@ collect_form({['define-module',Mod,_Meta,Atts],L}, {Acc,St}) ->
 collect_form({['extend-module',_Meta,Atts],L}, {Acc,St}) ->
     %% Ignore the meta data, everything else into State.
     {Acc,collect_attrs(Atts, L, St#cg{anno=[L]})};
+collect_form({['define-type',Type,Def],L}, {Acc,St}) ->
+    {Acc,collect_attr([type,[Type,Def]], L, St#cg{anno=[L]})};
+collect_form({['define-opaque-type',Type,Def],L}, {Acc,St}) ->
+    {Acc,collect_attr([opaque,[Type,Def]], L, St#cg{anno=[L]})};
 collect_form({['define-function',Name,_Meta,Def],L}, {Acc,St}) ->
     %% Ignore the meta data.
     {[{Name,Def,L}|Acc],St};
 %% Ignore macro definitions and eval-when-compile forms.
+collect_form({['define-function-spec'|_],_}, {Acc,St}) -> {Acc,St};
 collect_form({['define-macro'|_],_}, {Acc,St}) -> {Acc,St};
 collect_form({['eval-when-compile'|_],_}, {Acc,St}) -> {Acc,St}.
 
@@ -164,10 +169,7 @@ compile_forms(Fbs0, St0, Core0) ->
     St1 = St0#cg{exps=add_exports(St0#cg.exps, Predefs),
                  defs=Fbs1,env=Env},
     Exps = make_exports(St1#cg.exps, Fbs1),
-    Atts = map(fun ({N,V,L}) ->
-                       Ann = [L],
-                       {ann_c_lit(Ann, N),ann_c_lit(Ann, V)}
-               end, St1#cg.atts),
+    Atts = map(fun (Attr) -> io:format("ca: ~p\n", [Attr]),comp_attribute(Attr) end, St1#cg.atts),
     %% Compile the functions.
     {Cdefs,St2} = mapfoldl(fun (D, St) -> comp_define(D, Env, St) end,
                            St1, St1#cg.defs),
@@ -199,6 +201,53 @@ make_exports(all, Fbs) ->
     map(fun ({F,Def,_}) -> c_fname(F, func_arity(Def)) end, Fbs);
 make_exports(Exps, _) ->
     map(fun ({F,A}) -> c_fname(F, A) end, Exps).
+
+%% comp_attribute(Attribute) -> CoreAttr.
+
+comp_attribute({type,Types,Line}) ->
+    comp_type_attribute(type, Types, Line);
+comp_attribute({opaque,Types,Line}) ->
+    comp_type_attribute(opaque, Types, Line);
+comp_attribute({record,Records,Line}) ->
+    comp_record_attributes(Records, Line);
+comp_attribute({N,V,Line}) ->
+    Ann = [Line],
+    {ann_c_lit(Ann, N),ann_c_lit(Ann, V)}.
+
+comp_type_attribute(Attr, Types, Line) ->
+    Ann = [Line],
+    Tfun = fun ([[Type|Args],Def]) ->
+		   {Type,
+		    lfe_types:to_type_def(Def, Ann),
+		    lfe_types:to_type_defs(Args, Ann)}
+	   end,
+    Tdefs = [ Tfun(Type) || Type <- Types ],
+    {ann_c_lit(Ann, Attr),ann_c_lit(Ann, Tdefs)}.
+
+comp_record_attributes(Recs, Line) ->
+    Ann = [Line],
+    Rs = [ comp_record_attribute(Rec, Ann) || Rec <- Recs ],
+    {ann_c_lit(Ann, record),ann_c_lit(Ann, Rs)}.
+
+comp_record_attribute([Name|Fields], Ann) ->
+    Typed = lists:any(fun ([_,_,_]) -> true; (_) -> false end, Fields),
+    Ffun = if Typed -> fun comp_typed_field/2;
+	      true -> fun comp_untyped_field/2
+	   end,
+    {Name,[ Ffun(Fdef, Ann) || Fdef <- Fields ]}.
+
+comp_typed_field([F,D,T], Ann) ->
+    {typed_record_field,
+     comp_untyped_field([F,D], Ann),lfe_types:to_type_def(T, Ann)};
+comp_typed_field([F,D], Ann) ->
+    comp_typed_field([F,D,[any]], Ann);
+comp_typed_field([F], Ann) ->
+    comp_typed_field([F,undefined,[any]], Ann).
+
+comp_untyped_field([F,D], Ann) ->
+    {record_field,Ann,{atom,Ann,F},lfe_trans:to_expr(D, Ann)};
+comp_untyped_field(F, Ann) ->
+    {record_field,Ann,{atom,Ann,F}}.
 
 %% comp_define(DefForm, Env, State) -> {Corefunc,State}.
 %%  Compile a top-level define. Sets current function name. Be careful
