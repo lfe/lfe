@@ -40,10 +40,12 @@ define([Name|Fdefs], Env, St0) ->
 
 define(Name, Fdefs, Env, St) ->
     %% Get field names, default values and indices.
-    Fields = map(fun ([F,_]) when is_atom(F) -> F;
+    Fields = map(fun ([F,_,_]) when is_atom(F) -> F;
+                     ([F,_]) when is_atom(F) -> F;
                      (F) when is_atom(F) -> F
                  end, Fdefs),
-    Defs = map(fun ([F,D])when is_atom(F) -> ?Q(D);
+    Defs = map(fun ([F,D,_]) when is_atom(F) -> ?Q(D);
+                   ([F,D]) when is_atom(F) -> ?Q(D);
                    (F) when is_atom(F) -> ?Q(?Q(undefined))
                end, Fdefs),
     Findexs = field_indexes(Fields),
@@ -148,22 +150,19 @@ field_macros(Name, Fs) ->
 
 -ifdef(NEW_REC_CORE).
 type_information(Name, Fdefs, #mac{line=L}) ->
-    %% Only field names which will result in default type any().
-    %% Adding types greatly complicates things. If we add defaults
-    %% then they would have to be expanded here.
-    Fs = map(fun ([F,_D]) ->
-                     %% De = lfe_trans:to_expr(D, L),
-                     {record_field,[L],{atom,[L],F}};
-                 (F) ->
-                     {record_field,[L],{atom,[L],F}}
-             end, Fdefs),
-    [record,{Name,Fs}].
+    %% We push the problem of generating the right final forms to the
+    %% code generator which knows about the record attribute.
+    [record,[Name|Fdefs]].
 -else.
 type_information(Name, Fdefs, #mac{line=L}) ->
     %% Only field names which will result in default type any().
     %% Adding types greatly complicates things. If we add defaults
     %% then they would have to be expanded here.
-    Fs = map(fun ([F,_D]) ->
+    Typed = lists:any(fun ([_,_,_]) -> true; (_) -> false end, Fdefs),
+    Fs = map(fun ([F,_D,_T]) ->
+                     %% De = lfe_trans:to_expr(D, L),
+                     {record_field,L,{atom,L,F}};
+                 ([F,_D]) ->
                      %% De = lfe_trans:to_expr(D, L),
                      {record_field,L,{atom,L,F}};
                  (F) ->

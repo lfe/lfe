@@ -171,6 +171,10 @@ collect_form({_,L}, {Acc,#lint{module=[]}=St}) ->
     {Acc,bad_mdef_error(L, name, St#lint{module='-no-module-'})};
 collect_form({['extend-module',Meta,Atts],L}, {Acc,St}) ->
     {Acc,check_mdef(Meta, Atts, L, St)};
+%% Don't check types and specs yet.
+collect_form({['define-type'|_],_}, {Acc,St}) -> {Acc,St};
+collect_form({['define-opaque-type'|_],_}, {Acc,St}) -> {Acc,St};
+collect_form({['define-function-spec'|_],_}, {Acc,St}) -> {Acc,St};
 collect_form({['define-function',Func,Meta,Def],L}, {Acc,St}) ->
     Type = is_atom(Func) and check_fmeta(Meta),
     case Def of

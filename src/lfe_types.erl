@@ -87,6 +87,10 @@ to_type_def([lambda,Args,Ret], Line) ->
     {type,Line,'fun',[to_lambda_args(Args, Line),to_type_def(Ret, Line)]};
 to_type_def(?Q(Val), Line) ->                   %Quoted atom literal
     to_lit(Val, Line);
+to_type_def([call,?Q(M),?Q(T)|Args], Line) ->
+    %% Special case mod:fun expands to (call 'mod 'fun)
+    Dargs = to_type_defs(Args, Line),
+    {remote_type,Line,[{atom,Line,M},{atom,Line,T},Dargs]};
 to_type_def([Type|Args], Line) ->
     Dargs = to_type_defs(Args, Line),
     case string:tokens(atom_to_list(Type), ":") of
