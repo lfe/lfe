@@ -149,7 +149,7 @@ field_macros(Name, Fs) ->
           end, [], Fis).
 
 -ifdef(NEW_REC_CORE).
-type_information(Name, Fdefs, #mac{line=L}) ->
+type_information(Name, Fdefs, _St) ->
     %% We push the problem of generating the right final forms to the
     %% code generator which knows about the record attribute.
     [record,[Name|Fdefs]].

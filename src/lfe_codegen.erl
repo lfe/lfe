@@ -203,6 +203,7 @@ make_exports(Exps, _) ->
     map(fun ({F,A}) -> c_fname(F, A) end, Exps).
 
 %% comp_attribute(Attribute) -> CoreAttr.
+%%  Compile attributes handling the special cases.
 
 comp_attribute({type,Types,Line}) ->
     comp_type_attribute(type, Types, Line);
@@ -217,10 +218,10 @@ comp_attribute({N,V,Line}) ->
 comp_type_attribute(Attr, Types, Line) ->
     Ann = [Line],
     Tfun = fun ([[Type|Args],Def]) ->
-		   {Type,
-		    lfe_types:to_type_def(Def, Ann),
-		    lfe_types:to_type_defs(Args, Ann)}
-	   end,
+                   {Type,
+                    lfe_types:to_type_def(Def, Ann),
+                    lfe_types:to_type_defs(Args, Ann)}
+           end,
     Tdefs = [ Tfun(Type) || Type <- Types ],
     {ann_c_lit(Ann, Attr),ann_c_lit(Ann, Tdefs)}.
 
@@ -230,20 +231,18 @@ comp_record_attributes(Recs, Line) ->
     {ann_c_lit(Ann, record),ann_c_lit(Ann, Rs)}.
 
 comp_record_attribute([Name|Fields], Ann) ->
-    Typed = lists:any(fun ([_,_,_]) -> true; (_) -> false end, Fields),
-    Ffun = if Typed -> fun comp_typed_field/2;
-	      true -> fun comp_untyped_field/2
-	   end,
-    {Name,[ Ffun(Fdef, Ann) || Fdef <- Fields ]}.
+    %% Each field specifically handles whether it is typed or not.
+    {Name,[ comp_record_field(Fdef, Ann) || Fdef <- Fields ]}.
 
-comp_typed_field([F,D,T], Ann) ->
+comp_record_field([F,D,T], Ann) ->
     {typed_record_field,
-     comp_untyped_field([F,D], Ann),lfe_types:to_type_def(T, Ann)};
-comp_typed_field([F,D], Ann) ->
-    comp_typed_field([F,D,[any]], Ann);
-comp_typed_field([F], Ann) ->
-    comp_typed_field([F,undefined,[any]], Ann).
+     comp_untyped_field([F,D], Ann),
+     lfe_types:to_type_def(T, Ann)};
+comp_record_field(Fd, Ann) ->
+    comp_untyped_field(Fd, Ann).
 
+comp_untyped_field([F,?Q(undefined)], Ann) ->   %No need for undefined default
+    {record_field,Ann,{atom,Ann,F}};
 comp_untyped_field([F,D], Ann) ->
     {record_field,Ann,{atom,Ann,F},lfe_trans:to_expr(D, Ann)};
 comp_untyped_field(F, Ann) ->
