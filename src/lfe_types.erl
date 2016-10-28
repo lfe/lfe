@@ -41,9 +41,7 @@ from_type_def({type,_L,tuple,any}) -> [tuple];
 from_type_def({type,_L,map,Pairs}) ->
     [map|from_map_pairs(Pairs)];
 from_type_def({type,_L,record,[{atom,_L,Name}|Fields]}) ->
-    [record,Name,from_type_defs(Fields)];
-from_type_def({type,_L,field_type,[{atom,_,Name},Type]}) ->
-    [Name,from_type_def(Type)];
+    [record,Name|from_rec_fields(Fields)];
 from_type_def({type,_L,'fun',[Args,Ret]}) ->
     [lambda,from_lambda_args(Args),from_type_def(Ret)];
 from_type_def({type,_L,Type,Args}) when is_list(Args) ->
@@ -67,9 +65,14 @@ from_map_pairs(Pairs) ->
     Fun = fun ({type,_L,_P,Types}) -> from_type_defs(Types) end,
     lists:map(Fun, Pairs).
 
+from_rec_fields(Fields) ->
+    Fun = fun ({type,_L,field_type,[{atom,_,Name},Type]}) ->
+		  [Name,from_type_def(Type)]
+	  end,
+    [ Fun(F) || F <- Fields ].
+
 from_lambda_args({type,_L,any}) -> any;         %Any arity
 from_lambda_args(Args) -> from_func_prod(Args).
-
 
 %% to_type_def(Def, Line) -> AST.
 
@@ -81,8 +84,8 @@ to_type_def([tuple|Args], Line) ->
     {type,Line,tuple,to_type_defs(Args, Line)};
 to_type_def([map|Pairs], Line) ->
     {type,Line,map,to_map_pairs(Pairs, Line)};
-to_type_def([record,Name,Fields], Line) ->
-    {type,Line,record,[to_lit(Name, Line)|to_type_rec_fields(Fields, Line)]};
+to_type_def([record,Name|Fields], Line) ->
+    {type,Line,record,[to_lit(Name, Line)|to_rec_fields(Fields, Line)]};
 to_type_def([lambda,Args,Ret], Line) ->
     {type,Line,'fun',[to_lambda_args(Args, Line),to_type_def(Ret, Line)]};
 to_type_def(?Q(Val), Line) ->                   %Quoted atom literal
@@ -123,7 +126,7 @@ to_map_pairs(Pairs, Line) ->
           end,
     [ Fun(P) || P <- Pairs ].
 
-to_type_rec_fields(Fs, Line) ->
+to_rec_fields(Fs, Line) ->
     Fun = fun ([F,Type]) ->
                   {type,Line,field_type,
                    [to_lit(F, Line),to_type_def(Type, Line)]}
