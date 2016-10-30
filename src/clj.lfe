@@ -30,7 +30,7 @@
    integer? int? number? record? reference? map? undefined? undef? nil?
    true? false? odd? even? zero? pos? neg? identical?)
   ;; Other macros.
-  (export-macro str lazy-seq))
+  (export-macro str lazy-seq conj))
 
 (defmacro HAS_MAPS () (quote (erl_internal:bif 'is_map 1)))
 
@@ -526,6 +526,20 @@
   been reached or password. In the latter case, `end` is not an element of the
   sequence."
   (lists:seq start end step))
+
+(defmacro conj
+  "conj[oins] a value onto an existing collection, either a list, a tuple,
+ or a map. For lists this means prepending, for tuples appending,
+ and for maps merging."
+  (`[,coll . ,xs]
+   `(cond ((is_list ,coll) (cons ,@xs ,coll))
+          ((is_tuple ,coll)
+           (lists:foldl (lambda (x acc) (erlang:append_element acc x))
+                        ,coll
+                        (list ,@xs)))
+          ((is_map ,coll) (lists:foldl (lambda (x acc) (maps:merge acc x))
+                                          ,coll
+                                          (list ,@xs))))))
 
 (defn next [func]
   "Equivalent to `(next func 1 1)`."
