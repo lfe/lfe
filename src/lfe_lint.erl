@@ -41,6 +41,7 @@
                imps=[],                         %Imports
                pref=[],                         %Prefixes
                funcs=[],                        %Defined functions
+               types=[],                        %Known types
                env=[],                          %Top-level environment
                lline=[],                        %Last line
                func=[],                         %Current function
@@ -63,6 +64,8 @@ format_error(bad_alias) -> "bad alias";
 format_error(bad_arity) -> "head arity mismatch";
 format_error({bad_attribute,A}) ->
     lfe_io:format1("bad attribute: ~w", [A]);
+format_error({bad_meta,M}) ->
+    lfe_io:format1("bad metadata: ~w", [M]);
 format_error({bad_form,Type}) ->
     lfe_io:format1("bad form: ~w", [Type]);
 format_error({bad_gform,Type}) ->
@@ -89,7 +92,16 @@ format_error(bittype_unit) ->
 format_error(illegal_bitsize) -> "illegal bit size";
 format_error({deprecated,What}) ->
     lfe_io:format1("deprecated: ~s", [What]);
-format_error(unknown_form) -> "unknown form".
+format_error(unknown_form) -> "unknown form";
+%% Type errors. These are also returned from lfe_types.
+format_error({bad_type,T}) ->
+    lfe_io:format1("bad type: ~w", [T]);
+format_error({unknown_type,T}) ->
+    lfe_io:format1("unknown type: ~w", [T]);
+format_error({illegal_type,T}) ->
+    lfe_io:format1("illegal type: ~w", [T]);
+format_error({redef_type,T}) ->
+    lfe_io:format1("redefining type: ~w", [T]).
 
 %% expr(Expr) -> {ok,[Warning]} | {error,[Error],[Warning]}.
 %% expr(Expr, Env) -> {ok,[Warning]} | {error,[Error],[Warning]}.
@@ -145,7 +157,7 @@ check_module(Mfs, St0) ->
     {Predefs,Env0,St2} = init_state(St1),
     Fbs1 = Predefs ++ Fbs0,
     %% Now check definitions.
-    {Fs,Env1,St3} = check_letrec_bindings(Fbs1, Env0, St2),
+    {Fs,Env1,St3} = check_functions(Fbs1, Env0, St2),
     %% Save functions and environment and test exports.
     St4 = St3#lint{funcs=Fs,env=Env1},
     check_exports(St4#lint.exps, Fs, St4).
@@ -156,70 +168,66 @@ check_module(Mfs, St0) ->
 %%  not first.
 
 collect_module(Mfs, St0) ->
-    {Acc,St1} = lists:foldl(fun collect_form/2, {[],St0}, Mfs),
-    {lists:reverse(Acc),St1}.
+    {Fbs,St1} = lists:foldl(fun collect_form/2, {[],St0}, Mfs),
+    {lists:reverse(Fbs),St1}.
 
-collect_form({['define-module',Mod,Meta,Atts],L}, {Acc,St0}) ->
+collect_form({['define-module',Mod,Meta,Atts],L}, {Fbs,St0}) ->
     St1 = check_mdef(Meta, Atts, L, St0#lint{module=Mod}),
     if is_atom(Mod) ->                  %Normal module
-            {Acc,St1};
+            {Fbs,St1};
        true ->                          %Bad module name
-            {Acc,bad_mdef_error(L, name, St1)}
+            {Fbs,bad_mdef_error(L, name, St1)}
     end;
-collect_form({_,L}, {Acc,#lint{module=[]}=St}) ->
+collect_form({_,L}, {Fbs,#lint{module=[]}=St}) ->
     %% Set module name so this only triggers once.
-    {Acc,bad_mdef_error(L, name, St#lint{module='-no-module-'})};
-collect_form({['extend-module',Meta,Atts],L}, {Acc,St}) ->
-    {Acc,check_mdef(Meta, Atts, L, St)};
+    {Fbs,bad_mdef_error(L, name, St#lint{module='-no-module-'})};
+collect_form({['extend-module',Meta,Atts],L}, {Fbs,St}) ->
+    {Fbs,check_mdef(Meta, Atts, L, St)};
 %% Don't check types and specs yet.
-collect_form({['define-type'|_],_}, {Acc,St}) -> {Acc,St};
-collect_form({['define-opaque-type'|_],_}, {Acc,St}) -> {Acc,St};
-collect_form({['define-function-spec'|_],_}, {Acc,St}) -> {Acc,St};
-collect_form({['define-function',Func,Meta,Def],L}, {Acc,St}) ->
-    Type = is_atom(Func) and check_fmeta(Meta),
-    case Def of
-        [lambda|_] when Type ->
-            {[{Func,Def,L}|Acc],St};
-        ['match-lambda'|_] when Type ->
-            {[{Func,Def,L}|Acc],St};
-        _ -> {Acc,bad_form_error(L, 'define-function', St)}
-    end;
+collect_form({['define-type',Type,Def],L}, {Fbs,St}) ->
+    {Fbs,check_type_def(Type, Def, L, St)};
+collect_form({['define-opaque-type',Type,Def],L}, {Fbs,St}) ->
+    {Fbs,check_type_def(Type, Def, L, St)};
+collect_form({['define-function-spec'|_],_}, {Fbs,St}) -> {Fbs,St};
+collect_form({['define-function',Func,Meta,Def],L}, {Fbs,St}) ->
+    collect_function(Func, Meta, Def, L, Fbs, St);
 %% Ignore macro definitions and eval-when-compile forms.
-collect_form({['define-macro'|_],_}, {Acc,St}) -> {Acc,St};
-collect_form({['eval-when-compile'|_],_}, {Acc,St}) -> {Acc,St};
-collect_form({_,L}, {Acc,St}) ->
-    {Acc,add_error(L, unknown_form, St)}.
+collect_form({['define-macro'|_],_}, {Fbs,St}) -> {Fbs,St};
+collect_form({['eval-when-compile'|_],_}, {Fbs,St}) -> {Fbs,St};
+collect_form({_,L}, {Fbs,St}) ->
+    {Fbs,add_error(L, unknown_form, St)}.
 
-check_fmeta([[doc|Docs]|Meta]) ->
-    check_docs(Docs) andalso check_fmeta(Meta);
-check_fmeta([M|Meta]) -> is_list(M) andalso check_fmeta(Meta);
-check_fmeta([]) -> true;
-check_fmeta(_) -> false.
-
-check_docs(Docs) ->
-    Fun = fun (D) -> lfe_lib:is_doc_string(D) end,
-    is_proper_list(Docs) andalso all(Fun, Docs).
+%% check_mdef(Meta, Attributes, Line, State) -> State.
 
 check_mdef(Meta, Atts, L, St0) ->
-    St1 = check_mmeta(Meta, L, St0),
+    St1 = check_mmetas(Meta, L, St0),
     check_attrs(Atts, L, St1).
 
-check_mmeta([[doc|Docs]|Meta], L, St) ->
-    ?IF(check_docs(Docs),
-        check_mmeta(Meta, L, St),
-        check_mmeta(Meta, L, bad_mdef_error(L, doc, St)));
-check_mmeta([M|Meta], L, St) ->
-    ?IF(is_proper_list(M),
-        check_mmeta(Meta, L, St),
-        check_mmeta(Meta, L, bad_mdef_error(L, meta, St)));
-check_mmeta([], _, St) -> St;
+%% check_mmetas(Meta, Line, State) -> State.
+%%  Only allow docs and type definitions.
+
+check_mmetas(Ms, L, St) ->
+    check_foreach(fun (M, S) -> check_mmeta(M, L, S) end,
+		  fun (S) -> bad_mdef_error(L, form, S) end,
+		  St, Ms).
+
+check_mmeta([doc|Docs], L, St) ->
+    ?IF(check_docs(Docs), St, bad_meta_error(L, doc, St));
+check_mmeta([type,[Type,Def]], L, St) ->
+    check_type_def(Type, Def, L, St);
+check_mmeta([opaque,[Type,Def]], L, St) ->
+    check_type_def(Type, Def, L, St);
+check_mmeta([M|Vals], L, St) ->
+    %% Other metadata, must be list and have symbol name.
+    ?IF(is_atom(M) and is_proper_list(Vals), St, bad_meta_error(L, M, St));
 check_mmeta(_, L, St) -> bad_mdef_error(L, meta, St).
 
-check_attrs(As, L, St0) ->
-    {_,St1} = check_foldl(fun (A, Acc, St) -> {Acc,check_attr(A, L, St)} end,
-                          fun (St) -> bad_mdef_error(L, form, St) end,
-                          nul, St0, As),
-    St1.
+%% check_attrs(Attributes, Line, State) -> State.
+
+check_attrs(As, L, St) ->
+    check_foreach(fun (A, S) -> check_attr(A, L, S) end,
+		  fun (S) -> bad_mdef_error(L, form, S) end,
+		  St, As).
 
 check_attr([export,all], _, St) ->             %Pass 'all' along
     St#lint{exps=all};
@@ -235,12 +243,13 @@ check_attr([import|Is], L, St) ->
 check_attr([doc|Docs], L, St0) ->
     St1 = depr_warning(L, "documentation string attribute", St0),
     check_doc_attr(Docs, L, St1);
-check_attr([Name|Vals], L, St) ->
+check_attr([type,[Type,Def]], L, St) ->
+    check_type_def(Type, Def, L, St);
+check_attr([opaque,[Type,Def]], L, St) ->
+    check_type_def(Type, Def, L, St);
+check_attr([A|Vals], L, St) ->
     %% Other attributes, must be list and have symbol name.
-    case is_atom(Name) and is_proper_list(Vals) of
-        true -> St;
-        false -> bad_attr_error(L, Name, St)
-    end;
+    ?IF(is_atom(A) and is_proper_list(Vals), St, bad_attr_error(L, A, St));
 check_attr(_, L, St) -> bad_mdef_error(L, attribute, St).
 
 check_doc_attr(Docs, L, St) ->
@@ -288,6 +297,60 @@ is_flist([[F,Ar]|Fs], Funcs) when is_atom(F), is_integer(Ar), Ar >= 0 ->
 is_flist([], Funcs) -> {yes,Funcs};
 is_flist(_, _) -> no.
 
+%% check_type_def(Type, Def, Line, State) -> State.
+%%  Check a type definition.
+check_type_def(Name, Def, L, St0) ->
+    {Pars,St1} = check_type_name(Name, L, St0),
+    case lfe_types:check_type_def(Def, St1#lint.types, Pars) of
+        ok -> St1;
+        {error,Error} -> add_error(L, Error, St1)
+    end.
+
+check_type_name([T|Args], L, #lint{types=Kts}=St) when is_atom(T) ->
+    case lfe_lib:is_symb_list(Args) of
+        true ->
+            Arity = length(Args),
+            Kt = {T,Arity},
+            case lists:member(Kt, Kts) of
+                true -> {Args,add_error(L, {redef_type,[T,Arity]}, St)};
+                false ->
+                    case lfe_types:is_predefined_type(T, Arity) of
+                        true ->
+                            {Args,add_error(L, {illegal_type,[T,Arity]}, St)};
+                        false ->
+                            {Args,St#lint{types=[Kt|Kts]}}
+                    end
+            end;
+        false -> {[],add_error(L, {bad_type,T}, St)}
+    end;
+check_type_name(T, L, St) ->                    %Type name wrong format
+    {[],add_error(L, {bad_type,T}, St)}.
+
+%% collect_function(Name, Meta, Def, Line, Fbs, State) -> {Fbs,State}.
+%%  Collect function and do some basic checks.
+
+collect_function(Name, Meta, Def, L, Fbs, St) ->
+    Valid = is_atom(Name) and check_fmeta(Meta),
+    case Def of
+        [lambda|_] when Valid ->
+            {[{Name,Def,L}|Fbs],St};
+        ['match-lambda'|_] when Valid ->
+            {[{Name,Def,L}|Fbs],St};
+        _ -> {Fbs,bad_form_error(L, 'define-function', St)}
+    end.
+
+check_fmeta([[doc|Docs]|Meta]) ->
+    check_docs(Docs) andalso check_fmeta(Meta);
+check_fmeta([M|Meta]) -> is_list(M) andalso check_fmeta(Meta);
+check_fmeta([]) -> true;
+check_fmeta(_) -> false.
+
+%% check_docs(Docs) -> boolean().
+
+check_docs(Docs) ->
+    Fun = fun (D) -> lfe_lib:is_doc_string(D) end,
+    is_proper_list(Docs) andalso all(Fun, Docs).
+
 %% init_state(State) -> {Predefs,Env,State}.
 %%  Setup the initial predefines and state. Build dummies for
 %%  predefined module_info and parameteried module functions, which
@@ -305,6 +368,16 @@ init_state(St) ->
                 {module_info,[lambda,[x],[quote,dummy]],1}],
     Exps0 = [{module_info,0},{module_info,1}],
     {Predefs0,Env0,St#lint{exps=add_exports(St#lint.exps, Exps0)}}.
+
+%% check_functions(FuncBindings, Env, State) -> {Funcs,Env,State}.
+%%  Check the top-level functions definitions. These have the format
+%%  as in letrec but the environment only contains explicit imports
+%%  and the module info functions.
+
+check_functions(Fbs, Env, St) ->
+    check_letrec_bindings(Fbs, Env, St).
+
+%% check_exports(Exports, Funcs, State) -> State.
 
 check_exports(all, _, St) -> St;                %All is all
 check_exports(Exps, Fs, St) ->
@@ -896,10 +969,9 @@ check_gexpr(Lit, Env, L, St) ->                 %Everything else is a literal
 %%  The guard counter parts. Check_gexprs assumes a proper list.
 
 check_gargs(Args, Env, L, St) ->
-    case is_proper_list(Args) of
-        true -> check_gexprs(Args, Env, L, St);
-        false -> add_error(L, bad_gargs, St)
-    end.
+    check_foreach(fun (A, S) -> check_gexpr(A, Env, L, S) end,
+		  fun (S) -> add_error(L, bad_gargs, S) end,
+		  St, Args).
 
 check_gexprs(Es, Env, L, St) ->
     foldl(fun (E, S) -> check_gexpr(E, Env, L, S) end, St, Es).
@@ -1346,6 +1418,9 @@ bad_mdef_error(L, D, St) ->
 
 bad_attr_error(L, A, St) ->
     add_error(L, {bad_attribute,A}, St).
+
+bad_meta_error(L, A, St) ->
+    add_error(L, {bad_meta,A}, St).
 
 multi_var_error(L, V, St) ->
     add_error(L, {multi_var,V}, St).
