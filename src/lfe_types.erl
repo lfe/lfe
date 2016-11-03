@@ -17,23 +17,38 @@
 %% Purpose : Lisp Flavoured Erlang type formatting.
 
 %% Handling types in LFE including functions for converting between
-%% Erlang and LFE type formats.
+%% Erlang and LFE type syntaxes.
+%%
 %% We can correctly do most types except for maps where we lose the
 %% distinction between assoc and exact pairs.
 
 -module(lfe_types).
 
+-export([format_error/1]).
+
 -export([from_type_def/1,from_type_defs/1,to_type_def/2,to_type_defs/2,
          from_func_type_list/1,to_func_type_list/2]).
+
+-export([check_type_def/3,check_type_defs/3]).
+
+-export([is_predefined_type/2]).
 
 -compile(export_all).
 
 -include("lfe.hrl").
 
+%% format_error(Error) -> String.
+%%  Do we really need this here?
+
+format_error({bad_type,T}) ->
+    lfe_io:format1("bad type: ~w", [T]);
+format_error({unknown_type,T}) ->
+    lfe_io:format1("unknown type: ~w", [T]).
+
 %% from_type_def(AST) -> Def.
-%%  Translate an Erlang type definition to LFE. Currently it does
-%%  nothing.  We don't differentiate here between pre-defined or user
-%%  defined types.
+%%  Translate an Erlang type definition to LFE. This takes the Erlang
+%%  AST form of a type definition and translates to the LFE type
+%%  syntax. No AST there of course.
 
 from_type_def({type,_L,union,Types}) ->         %Special case union
     ['UNION'|from_type_defs(Types)];
@@ -67,14 +82,108 @@ from_map_pairs(Pairs) ->
 
 from_rec_fields(Fields) ->
     Fun = fun ({type,_L,field_type,[{atom,_,Name},Type]}) ->
-		  [Name,from_type_def(Type)]
-	  end,
+                  [Name,from_type_def(Type)]
+          end,
     [ Fun(F) || F <- Fields ].
 
 from_lambda_args({type,_L,any}) -> any;         %Any arity
 from_lambda_args(Args) -> from_func_prod(Args).
 
+%% check_type_def(Def, KnownTypes, Parameters) -> ok | {error,Error}.
+%%  Check a type definition. Errors returned are:
+%%  {bad_type,Type}     - error in the type definition
+%%  {unknown_type,Type} - referring to an unknown type
+
+check_type_def(['UNION'|Types], Kts, Ps) ->
+    check_type_defs(Types, Kts, Ps);
+check_type_def([tuple|Ts], Kts, Ps) ->
+    check_type_defs(Ts, Kts, Ps);
+check_type_def([map|Pairs], Kts, Ps) ->
+    check_map_pairs(Pairs, Kts, Ps);
+check_type_def([record,Name|Fields], Kts, Ps) ->
+    if is_atom(Name) -> check_record_fields(Fields, Kts, Ps);
+       true -> bad_type_error(Name)
+    end;
+check_type_def([lambda,Args,Ret], Kts, Ps) ->
+    case check_lambda_args(Args, Kts, Ps) of
+        ok -> check_type_def(Ret, Kts, Ps);
+        Error -> Error
+    end;
+check_type_def(?Q(Val), _Kts, _Ps) -> check_type_lit(Val);
+check_type_def([call,?Q(M),?Q(T)|Args], Kts, Ps) when is_atom(M), is_atom(T) ->
+    check_type_defs(Args, Kts, Ps);
+check_type_def([Type|Args], Kts, Ps) when is_atom(Type) ->
+    case check_type_defs(Args, Kts, Ps) of
+        ok ->
+            case string:tokens(atom_to_list(Type), ":") of
+                [_M,_T] -> ok;                  %Remote so we just accept it
+                _ ->
+                    Arity = length(Args),       %It's a proper list
+                    case lists:member({Type,Arity}, Kts)
+                        or is_predefined_type(Type, Arity) of
+                        true -> ok;
+                        false -> unknown_type_error([Type,Arity])
+                    end
+            end;
+        Error -> Error
+    end;
+%% Only integers legally left now.
+check_type_def(Val, _Kts, _Ps) when is_integer(Val) -> ok;
+check_type_def(Val, _Kts, Ps) ->
+    case lists:member(Val, Ps) of
+	true -> ok;
+	false -> bad_type_error(Val)
+    end.
+
+check_type_defs(Defs, Kts, Ps) ->
+    check_type_list(fun check_type_def/3, Defs, Kts, Ps).
+
+check_type_lit(Val) when is_integer(Val) ; is_atom(Val) -> ok;
+check_type_lit(Val) -> bad_type_error(Val).
+
+check_map_pairs(Pairs, Kts, Ps) ->
+    check_type_list(fun check_map_pair/3, Pairs, Kts, Ps).
+
+check_map_pair([K,V], Kts, Ps) ->
+    case check_type_def(K, Kts, Ps) of
+        ok -> check_type_def(V, Kts, Ps);
+        Error -> Error
+    end;
+check_map_pair(Other, _Kts, _Ps) ->
+    bad_type_error(Other).
+
+check_record_fields(Fs, Kts, Ps) ->
+    check_type_list(fun check_record_field/3, Fs, Kts, Ps).
+
+check_record_field([F,T], Kts, Ps) when is_atom(F) ->
+    check_type_def(T, Kts, Ps);
+check_record_field(Other, _Kts, _Ps) ->
+    bad_type_error(Other).
+
+check_lambda_args(any, _Kts, _Ps) -> ok;
+check_lambda_args(Args, Kts, Ps) ->
+    check_type_defs(Args, Kts, Ps).
+
+check_type_list(Check, [E|Es], Kts, Ps) ->
+    case Check(E, Kts, Ps) of
+        ok -> check_type_list(Check, Es, Kts, Ps);
+        Error -> Error
+    end;
+check_type_list(_Check, [], _Kts, _Ps) -> ok;
+check_type_list(_Check, Other, _Kts, _Ps) ->    %Not a proper list
+    bad_type_error(Other).
+
+bad_type_error(Val) -> {error,{bad_type,Val}}.
+
+unknown_type_error(Val) -> {error,{unknown_type,Val}}.
+
+safe_length([_|Es], L) -> safe_length(Es, L+1);
+safe_length([], L) -> L;
+safe_length(_, _) -> -1.                        %Never matches
+
 %% to_type_def(Def, Line) -> AST.
+%%  Translate a type definition from the LFE type syntax to the Erlang
+%%  AST.
 
 to_type_def(['UNION'|Types], Line) ->                   %Union
     {type,Line,union,to_type_defs(Types, Line)};
@@ -120,7 +229,7 @@ to_lit(Val, Line) when is_atom(Val) -> {atom,Line,Val};
 to_lit(Val, Line) when is_integer(Val) -> {integer,Line,Val}.
 
 to_map_pairs(Pairs, Line) ->
-    %% Havem lost distinction between assoc and exact pairs.
+    %% Have lost distinction between assoc and exact pairs.
     Fun = fun (Pair) ->
                   {type,Line,map_field_assoc,to_type_defs(Pair, Line)}
           end,
@@ -186,3 +295,12 @@ to_func_constraints(Cs, Line) ->
 to_func_constraint([Var,Type], Line) ->
     {type,Line,constraint,[{atom,Line,is_subtype},
                            [{var,Line,Var},to_type_def(Type, Line)]]}.
+
+%% is_predefined_type(Name, Arity) -> bool().
+%%  Check whether Name/Arity is a predefined type.
+
+is_predefined_type('UNION', _) -> true;
+is_predefined_type(call, _) -> true;
+is_predefined_type(lambda, _) -> true;
+is_predefined_type(Name, Arity) ->
+    erl_internal:is_type(Name, Arity).
