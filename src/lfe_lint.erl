@@ -42,6 +42,7 @@
                pref=[],                         %Prefixes
                funcs=[],                        %Defined functions
                types=[],                        %Known types
+               specs=[],                        %Known func specs
                env=[],                          %Top-level environment
                lline=[],                        %Last line
                func=[],                         %Current function
@@ -101,7 +102,12 @@ format_error({unknown_type,T}) ->
 format_error({illegal_type,T}) ->
     lfe_io:format1("illegal type: ~w", [T]);
 format_error({redef_type,T}) ->
-    lfe_io:format1("redefining type: ~w", [T]).
+    lfe_io:format1("redefining type: ~w", [T]);
+%% Function spec errors. These are also returned from lfe_types.
+format_error({bad_spec,S}) ->
+    lfe_io:format1("bad function spec: ~w", [S]);
+format_error({redef_spec,S}) ->
+    lfe_io:format1("redefining function spec: ~w", [S]).
 
 %% expr(Expr) -> {ok,[Warning]} | {error,[Error],[Warning]}.
 %% expr(Expr, Env) -> {ok,[Warning]} | {error,[Error],[Warning]}.
@@ -183,12 +189,12 @@ collect_form({_,L}, {Fbs,#lint{module=[]}=St}) ->
     {Fbs,bad_mdef_error(L, name, St#lint{module='-no-module-'})};
 collect_form({['extend-module',Meta,Atts],L}, {Fbs,St}) ->
     {Fbs,check_mdef(Meta, Atts, L, St)};
-%% Don't check types and specs yet.
 collect_form({['define-type',Type,Def],L}, {Fbs,St}) ->
     {Fbs,check_type_def(Type, Def, L, St)};
 collect_form({['define-opaque-type',Type,Def],L}, {Fbs,St}) ->
     {Fbs,check_type_def(Type, Def, L, St)};
-collect_form({['define-function-spec'|_],_}, {Fbs,St}) -> {Fbs,St};
+collect_form({['define-function-spec',Func,Spec],L}, {Fbs,St}) ->
+    {Fbs,check_func_spec(Func, Spec, L, St)};
 collect_form({['define-function',Func,Meta,Def],L}, {Fbs,St}) ->
     collect_function(Func, Meta, Def, L, Fbs, St);
 %% Ignore macro definitions and eval-when-compile forms.
@@ -299,6 +305,7 @@ is_flist(_, _) -> no.
 
 %% check_type_def(Type, Def, Line, State) -> State.
 %%  Check a type definition.
+
 check_type_def(Name, Def, L, St0) ->
     {Pars,St1} = check_type_name(Name, L, St0),
     case lfe_types:check_type_def(Def, St1#lint.types, Pars) of
@@ -325,6 +332,26 @@ check_type_name([T|Args], L, #lint{types=Kts}=St) when is_atom(T) ->
     end;
 check_type_name(T, L, St) ->                    %Type name wrong format
     {[],add_error(L, {bad_type,T}, St)}.
+
+%% check_func_spec(Func, Spec, Line, State) -> State.
+%%  Check a function specification.
+
+check_func_spec(Func, Spec, L, St0) ->
+    {Ar,St1} = check_func_name(Func, L, St0),
+    case lfe_types:check_func_spec_list(Spec, Ar, St1#lint.types) of
+	ok -> St1;
+	{error,Error} -> add_error(L, Error, St1)
+    end.
+
+check_func_name([F,Ar], L, #lint{specs=Kss}=St)
+  when is_atom(F), is_integer(Ar), Ar >= 0 ->
+    Ks = {F,Ar},
+    case lists:member(Ks, Kss) of
+	true -> {Ar,add_error(L, {redef_spec,[F,Ar]}, St)};
+	false -> {Ar,St#lint{specs=[Ks|Kss]}}
+    end;
+check_func_name(F, L, St) ->
+    {0,add_error(L, {bad_spec,F}, St)}.
 
 %% collect_function(Name, Meta, Def, Line, Fbs, State) -> {Fbs,State}.
 %%  Collect function and do some basic checks.
