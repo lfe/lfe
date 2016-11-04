@@ -40,6 +40,8 @@ the following predefined types which cannot be redefined: `UNION`,
 
 **(deftype (type-name par1 par2) type-def)**
 
+**(defopaque (type-name par1 par2) type-def)**
+
 For unparameterised types the parentheses around the type name are optional. An example:
 
 ```
@@ -54,3 +56,39 @@ Fields with type annotations *MUST* give a default value and fields
 without type annotations get the default type `(any)`.
 
 # SPECIFICATIONS
+
+## Type specifications of User-Defined Functions
+
+**(defspec (func-name arity) function-spec ...)**
+
+where
+
+```
+function-spec = ((arg-types) ret-type)
+function-spec = ((arg-types) ret-type constraint ...)
+constraint = (var var-type)
+```
+
+For multiple types add more function specs. For example from the docs:
+
+```
+(defspec (foo 1) (((pos_integer)) (pos_integer)))
+
+(defspec (foo 1)
+  (((pos_integer)) (pos_integer))
+  (((integer) (integer))))
+```
+
+Or with constraints:
+
+```
+(defspec (id 1) ((X) X (X (tuple))))
+
+(defspec (foo 1)
+  (((tuple X (integer))) X (X (atom)))
+  (((list Y)) Y (Y (number))))
+```
+
+Note that a constraint variable doesn't need to start with an
+upper-case like an Erlang variable, though in some case it may be
+easier to read.

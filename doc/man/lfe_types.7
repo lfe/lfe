@@ -102,6 +102,8 @@ the following predefined types which cannot be redefined:
 .PP
 \f[B](deftype (type\-name par1 par2) type\-def)\f[]
 .PP
+\f[B](defopaque (type\-name par1 par2) type\-def)\f[]
+.PP
 For unparameterised types the parentheses around the type name are
 optional.
 An example:
@@ -119,5 +121,47 @@ field3)\f[]
 Fields with type annotations \f[I]MUST\f[] give a default value and
 fields without type annotations get the default type \f[C](any)\f[].
 .SH SPECIFICATIONS
+.SS Type specifications of User\-Defined Functions
+.PP
+\f[B](defspec (func\-name arity) function\-spec ...)\f[]
+.PP
+where
+.IP
+.nf
+\f[C]
+function\-spec\ =\ ((arg\-types)\ ret\-type)
+function\-spec\ =\ ((arg\-types)\ ret\-type\ constraint\ ...)
+constraint\ =\ (var\ var\-type)
+\f[]
+.fi
+.PP
+For multiple types add more function specs.
+For example from the docs:
+.IP
+.nf
+\f[C]
+(defspec\ (foo\ 1)\ (((pos_integer))\ (pos_integer)))
+
+(defspec\ (foo\ 1)
+\ \ (((pos_integer))\ (pos_integer))
+\ \ (((integer)\ (integer))))
+\f[]
+.fi
+.PP
+Or with constraints:
+.IP
+.nf
+\f[C]
+(defspec\ (id\ 1)\ ((X)\ X\ (X\ (tuple))))
+
+(defspec\ (foo\ 1)
+\ \ (((tuple\ X\ (integer)))\ X\ (X\ (atom)))
+\ \ (((list\ Y))\ Y\ (Y\ (number))))
+\f[]
+.fi
+.PP
+Note that a constraint variable doesn\[aq]t need to start with an
+upper\-case like an Erlang variable, though in some case it may be
+easier to read.
 .SH AUTHORS
 Robert Virding.

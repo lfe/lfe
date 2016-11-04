@@ -283,7 +283,7 @@ trans_opaque(Name, Line, Def, E) ->
 %% trans_spec(FuncArity, Line, TypeList) -> SpecDef.
 
 trans_spec({Name,Arity}, Line, Tl) ->
-    [[Name,Arity],lfe_types:from_func_type_list(Tl)].
+    [[Name,Arity],lfe_types:from_func_spec_list(Tl)].
 
 %% trans_function(Name, Arity, Clauses) -> LfuncDef.
 
