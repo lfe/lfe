@@ -81,6 +81,8 @@ format_error({multi_var,S}) ->
     lfe_io:format1("multiple variable: ~w", [S]);
 format_error({redef_fun,F}) ->
     lfe_io:format1("redefining function: ~w", [F]);
+format_error({bad_fdef,F}) ->
+    lfe_io:format1("bad function definition: ~w", [F]);
 format_error(illegal_literal) -> "illegal literal";
 format_error(illegal_pattern) -> "illegal pattern";
 format_error(illegal_guard) -> "illegal guard";
@@ -209,13 +211,13 @@ check_mdef(Meta, Atts, L, St0) ->
     St1 = check_mmetas(Meta, L, St0),
     check_attrs(Atts, L, St1).
 
-%% check_mmetas(Meta, Line, State) -> State.
+%% check_mmetas(Metas, Line, State) -> State.
 %%  Only allow docs and type definitions.
 
 check_mmetas(Ms, L, St) ->
     check_foreach(fun (M, S) -> check_mmeta(M, L, S) end,
-		  fun (S) -> bad_mdef_error(L, form, S) end,
-		  St, Ms).
+                  fun (S) -> bad_mdef_error(L, form, S) end,
+                  St, Ms).
 
 check_mmeta([doc|Docs], L, St) ->
     ?IF(check_docs(Docs), St, bad_meta_error(L, doc, St));
@@ -232,8 +234,8 @@ check_mmeta(_, L, St) -> bad_mdef_error(L, meta, St).
 
 check_attrs(As, L, St) ->
     check_foreach(fun (A, S) -> check_attr(A, L, S) end,
-		  fun (S) -> bad_mdef_error(L, form, S) end,
-		  St, As).
+                  fun (S) -> bad_mdef_error(L, form, S) end,
+                  St, As).
 
 check_attr([export,all], _, St) ->             %Pass 'all' along
     St#lint{exps=all};
@@ -339,16 +341,16 @@ check_type_name(T, L, St) ->                    %Type name wrong format
 check_func_spec(Func, Spec, L, St0) ->
     {Ar,St1} = check_func_name(Func, L, St0),
     case lfe_types:check_func_spec_list(Spec, Ar, St1#lint.types) of
-	ok -> St1;
-	{error,Error} -> add_error(L, Error, St1)
+        ok -> St1;
+        {error,Error} -> add_error(L, Error, St1)
     end.
 
 check_func_name([F,Ar], L, #lint{specs=Kss}=St)
   when is_atom(F), is_integer(Ar), Ar >= 0 ->
     Ks = {F,Ar},
     case lists:member(Ks, Kss) of
-	true -> {Ar,add_error(L, {redef_spec,[F,Ar]}, St)};
-	false -> {Ar,St#lint{specs=[Ks|Kss]}}
+        true -> {Ar,add_error(L, {redef_spec,[F,Ar]}, St)};
+        false -> {Ar,St#lint{specs=[Ks|Kss]}}
     end;
 check_func_name(F, L, St) ->
     {0,add_error(L, {bad_spec,F}, St)}.
@@ -356,21 +358,28 @@ check_func_name(F, L, St) ->
 %% collect_function(Name, Meta, Def, Line, Fbs, State) -> {Fbs,State}.
 %%  Collect function and do some basic checks.
 
-collect_function(Name, Meta, Def, L, Fbs, St) ->
-    Valid = is_atom(Name) and check_fmeta(Meta),
-    case Def of
-        [lambda|_] when Valid ->
-            {[{Name,Def,L}|Fbs],St};
-        ['match-lambda'|_] when Valid ->
-            {[{Name,Def,L}|Fbs],St};
-        _ -> {Fbs,bad_form_error(L, 'define-function', St)}
-    end.
+collect_function(Name, Meta, Def, L, Fbs, St0) ->
+    St1 = check_fmetas(Meta, L, St0),
+    {[{Name,Def,L}|Fbs],St1}.
 
-check_fmeta([[doc|Docs]|Meta]) ->
-    check_docs(Docs) andalso check_fmeta(Meta);
-check_fmeta([M|Meta]) -> is_list(M) andalso check_fmeta(Meta);
-check_fmeta([]) -> true;
-check_fmeta(_) -> false.
+%% check_fmetas(Metas, Line, State) -> State.
+
+check_fmetas(Ms, L, St) ->
+    check_foreach(fun (M, S) -> check_fmeta(M, L, S) end,
+                  fun (S) -> bad_form_error(L, 'define-function', S) end,
+                  St, Ms).
+
+check_fmeta([doc|Docs], L, St) ->
+    ?IF(check_docs(Docs), St, bad_meta_error(L, doc, St));
+%% Need to get arity in here.
+%% check_fmeta([spec|Specs], L, St) ->
+%%     case lfe_types:check_func_spec_list(Specs, Ar, St#lint.types) of
+%%         ok -> St1;
+%%         {error,Error} -> add_error(L, Error, St)
+%%     end;
+check_fmeta([M|Vals], L, St) ->
+    ?IF(is_atom(M) and is_proper_list(Vals), St, bad_meta_error(L, M, St));
+check_fmeta(_, L, St) -> bad_fdef_error(L, meta, St).
 
 %% check_docs(Docs) -> boolean().
 
@@ -997,8 +1006,8 @@ check_gexpr(Lit, Env, L, St) ->                 %Everything else is a literal
 
 check_gargs(Args, Env, L, St) ->
     check_foreach(fun (A, S) -> check_gexpr(A, Env, L, S) end,
-		  fun (S) -> add_error(L, bad_gargs, S) end,
-		  St, Args).
+                  fun (S) -> add_error(L, bad_gargs, S) end,
+                  St, Args).
 
 check_gexprs(Es, Env, L, St) ->
     foldl(fun (E, S) -> check_gexpr(E, Env, L, S) end, St, Es).
@@ -1448,6 +1457,9 @@ bad_attr_error(L, A, St) ->
 
 bad_meta_error(L, A, St) ->
     add_error(L, {bad_meta,A}, St).
+
+bad_fdef_error(L, D, St) ->
+    add_error(L, {bad_fdef,D}, St).
 
 multi_var_error(L, V, St) ->
     add_error(L, {multi_var,V}, St).
