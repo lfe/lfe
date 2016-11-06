@@ -64,31 +64,42 @@ without type annotations get the default type `(any)`.
 where
 
 ```
-function-spec = ((arg-types) ret-type)
-function-spec = ((arg-types) ret-type constraint ...)
+function-spec = (arg-type-list ret-type)
+function-spec = (arg-type-list ret-type constraint-list)
+arg-type-list = (arg-type ...)
+constraint-list = (constraint ...)
 constraint = (var var-type)
 ```
 
 For multiple types add more function specs. For example from the docs:
 
 ```
-(defspec (foo 1) (((pos_integer)) (pos_integer)))
+(defspec (foo 1) ([(pos_integer)] (pos_integer)))
 
 (defspec (foo 1)
-  (((pos_integer)) (pos_integer))
-  (((integer) (integer))))
+  ([(pos_integer)] (pos_integer))
+  ([(integer)] (integer)))
+
+(defspec (remove-if 2)
+  ([(lambda ((any)) (boolean)) (list)] (list)))
 ```
 
 Or with constraints:
 
 ```
-(defspec (id 1) ((X) X (X (tuple))))
+(defspec (id 1) ((X) X ((X (tuple)))))
 
 (defspec (foo 1)
-  (((tuple X (integer))) X (X (atom)))
-  (((list Y)) Y (Y (number))))
+  ([(tuple X (integer))] X ((X (atom))))
+  ([(list Y)] Y ((Y (number)))))
+
+(defspec (remove-if 2)
+  ([pred (list)] (list) [(pred (lambda ((any)) (boolean)))]))
 ```
 
 Note that a constraint variable doesn't need to start with an
 upper-case like an Erlang variable, though in some case it may be
 easier to read.
+
+Note we are using the alternate list form with `[ ]` instead of
+parentheses to make it easier to see the function arguments.
