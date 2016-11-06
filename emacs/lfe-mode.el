@@ -168,7 +168,7 @@ Other commands:
   (eval-when-compile
     (list
      (concat
-      "(\\(def\\(module\\|record\\)\\)\\>"
+      "(\\(def\\(module\\|record\\|type\\|opaque\\|spec\\)\\)\\>"
       ;; Any whitespace and declared object.
       "[ \t]*(?"
       "\\(\\sw+\\)?")
