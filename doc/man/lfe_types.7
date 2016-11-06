@@ -129,8 +129,10 @@ where
 .IP
 .nf
 \f[C]
-function\-spec\ =\ ((arg\-types)\ ret\-type)
-function\-spec\ =\ ((arg\-types)\ ret\-type\ constraint\ ...)
+function\-spec\ =\ (arg\-type\-list\ ret\-type)
+function\-spec\ =\ (arg\-type\-list\ ret\-type\ constraint\-list)
+arg\-type\-list\ =\ (arg\-type\ ...)
+constraint\-list\ =\ (constraint\ ...)
 constraint\ =\ (var\ var\-type)
 \f[]
 .fi
@@ -140,11 +142,14 @@ For example from the docs:
 .IP
 .nf
 \f[C]
-(defspec\ (foo\ 1)\ (((pos_integer))\ (pos_integer)))
+(defspec\ (foo\ 1)\ ([(pos_integer)]\ (pos_integer)))
 
 (defspec\ (foo\ 1)
-\ \ (((pos_integer))\ (pos_integer))
-\ \ (((integer)\ (integer))))
+\ \ ([(pos_integer)]\ (pos_integer))
+\ \ ([(integer)]\ (integer)))
+
+(defspec\ (remove\-if\ 2)
+\ \ ([(lambda\ ((any))\ (boolean))\ (list)]\ (list)))
 \f[]
 .fi
 .PP
@@ -152,16 +157,22 @@ Or with constraints:
 .IP
 .nf
 \f[C]
-(defspec\ (id\ 1)\ ((X)\ X\ (X\ (tuple))))
+(defspec\ (id\ 1)\ ((X)\ X\ ((X\ (tuple)))))
 
 (defspec\ (foo\ 1)
-\ \ (((tuple\ X\ (integer)))\ X\ (X\ (atom)))
-\ \ (((list\ Y))\ Y\ (Y\ (number))))
+\ \ ([(tuple\ X\ (integer))]\ X\ ((X\ (atom))))
+\ \ ([(list\ Y)]\ Y\ ((Y\ (number)))))
+
+(defspec\ (remove\-if\ 2)
+\ \ ([pred\ (list)]\ (list)\ [(pred\ (lambda\ ((any))\ (boolean)))]))
 \f[]
 .fi
 .PP
 Note that a constraint variable doesn\[aq]t need to start with an
 upper\-case like an Erlang variable, though in some case it may be
 easier to read.
+.PP
+Note we are using the alternate list form with \f[C][\ ]\f[] instead of
+parentheses to make it easier to see the function arguments.
 .SH AUTHORS
 Robert Virding.
