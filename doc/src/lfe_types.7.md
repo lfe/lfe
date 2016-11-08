@@ -30,7 +30,8 @@ This is a description of the type syntax.
 
 Apart from the predefined types in the Erlang type system we also have
 the following predefined types which cannot be redefined: `UNION`,
-`call` and `lambda`.
+`call` and `lambda`. The usage of `tuple` and `map` have also been
+extended.
 
 ## Type Declarations of User-Defined Types
 
@@ -42,7 +43,8 @@ the following predefined types which cannot be redefined: `UNION`,
 
 **(defopaque (type-name par1 par2) type-def)**
 
-For unparameterised types the parentheses around the type name are optional. An example:
+For unparameterised types the parentheses around the type name are
+optional. An example:
 
 ```
 (deftype (foo) (tuple 'foo (integer) (list)))

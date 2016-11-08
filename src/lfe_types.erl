@@ -27,7 +27,7 @@
 -export([format_error/1]).
 
 -export([from_type_def/1,from_type_defs/1,to_type_def/2,to_type_defs/2,
-	 check_type_def/3,check_type_defs/3]).
+         check_type_def/3,check_type_defs/3]).
 
 -export([from_func_spec_list/1,to_func_spec_list/2,
          check_func_spec_list/3]).
@@ -154,93 +154,95 @@ to_rec_fields(Fs, Line) ->
 to_lambda_args(any, Line) -> {type,Line,any};
 to_lambda_args(Args, Line) -> to_func_prod(Args, Line).
 
-%% check_type_def(Def, KnownTypes, Parameters) -> ok | {error,Error}.
-%%  Check a type definition. Errors returned are:
+%% check_type_def(Def, KnownTypes, TypeVars) ->
+%%     {ok,TypeVars} | {error,Error,TypeVars}.
+%%  Check a type definition. TypeVars is an orddict of variable names
+%%  and usage counts. Errors returned are:
 %%  {bad_type,Type}     - error in the type definition
 %%  {unknown_type,Type} - referring to an unknown type
 
-check_type_def(['UNION'|Types], Kts, Ps) ->
-    check_type_defs(Types, Kts, Ps);
-check_type_def([tuple|Ts], Kts, Ps) ->
-    check_type_defs(Ts, Kts, Ps);
-check_type_def([map|Pairs], Kts, Ps) ->
-    check_map_pairs(Pairs, Kts, Ps);
-check_type_def([record,Name|Fields], Kts, Ps) ->
-    if is_atom(Name) -> check_record_fields(Fields, Kts, Ps);
-       true -> bad_type_error(Name)
+check_type_def(['UNION'|Types], Kts, Tvs) ->
+    check_type_defs(Types, Kts, Tvs);
+check_type_def([tuple|Ts], Kts, Tvs) ->
+    check_type_defs(Ts, Kts, Tvs);
+check_type_def([map|Pairs], Kts, Tvs) ->
+    check_map_pairs(Pairs, Kts, Tvs);
+check_type_def([record,Name|Fields], Kts, Tvs) ->
+    if is_atom(Name) -> check_record_fields(Fields, Kts, Tvs);
+       true -> bad_type_error(Name, Tvs)
     end;
-check_type_def([lambda,Args,Ret], Kts, Ps) ->
-    case check_lambda_args(Args, Kts, Ps) of
-        ok -> check_type_def(Ret, Kts, Ps);
+check_type_def([lambda,Args,Ret], Kts, Tvs0) ->
+    case check_lambda_args(Args, Kts, Tvs0) of
+        {ok,Tvs1} -> check_type_def(Ret, Kts, Tvs1);
         Error -> Error
     end;
-check_type_def(?Q(Val), _Kts, _Ps) -> check_type_lit(Val);
-check_type_def([call,?Q(M),?Q(T)|Args], Kts, Ps) when is_atom(M), is_atom(T) ->
-    check_type_defs(Args, Kts, Ps);
-check_type_def([Type|Args], Kts, Ps) when is_atom(Type) ->
-    case check_type_defs(Args, Kts, Ps) of
-        ok ->
+check_type_def(?Q(Val), _Kts, Tvs) -> check_type_lit(Val, Tvs);
+check_type_def([call,?Q(M),?Q(T)|Args], Kts, Tvs) when is_atom(M), is_atom(T) ->
+    check_type_defs(Args, Kts, Tvs);
+check_type_def([Type|Args], Kts, Tvs0) when is_atom(Type) ->
+    case check_type_defs(Args, Kts, Tvs0) of
+        {ok,Tvs1} ->
             case string:tokens(atom_to_list(Type), ":") of
                 [_M,_T] -> ok;                  %Remote so we just accept it
                 _ ->
                     Arity = length(Args),       %It's a proper list
                     case lists:member({Type,Arity}, Kts)
                         or is_predefined_type(Type, Arity) of
-                        true -> ok;
-                        false -> unknown_type_error([Type,Arity])
+                        true -> {ok,Tvs1};
+                        false -> unknown_type_error([Type,Arity], Tvs1)
                     end
             end;
         Error -> Error
     end;
-%% Only integers legally left now.
-check_type_def(Val, _Kts, _Ps) when is_integer(Val) -> ok;
-check_type_def(Val, _Kts, Ps) ->
-    case lists:member(Val, Ps) of
-        true -> ok;
-        false -> bad_type_error(Val)
-    end.
+%% Only integers and atoms (type variables) legally left now.
+check_type_def(Val, _Kts, Tvs) when is_integer(Val) -> {ok,Tvs};
+check_type_def(Val, _Kts, Tvs) when is_atom(Val) ->
+    %% It's a type variable.
+    {ok,orddict:update_counter(Val, 1, Tvs)};
+check_type_def(Val, _Kts, Tvs) ->
+    bad_type_error(Val, Tvs).
 
-check_type_defs(Defs, Kts, Ps) ->
-    check_type_list(fun check_type_def/3, Defs, Kts, Ps).
+check_type_defs(Defs, Kts, Tvs) ->
+    check_type_list(fun check_type_def/3, Defs, Kts, Tvs).
 
-check_type_lit(Val) when is_integer(Val) ; is_atom(Val) -> ok;
-check_type_lit(Val) -> bad_type_error(Val).
+check_type_lit(Val, Tvs) when is_integer(Val) ; is_atom(Val) -> {ok,Tvs};
+check_type_lit(Val, Tvs) -> bad_type_error(Val, Tvs).
 
-check_map_pairs(Pairs, Kts, Ps) ->
-    check_type_list(fun check_map_pair/3, Pairs, Kts, Ps).
+check_map_pairs(Pairs, Kts, Tvs) ->
+    check_type_list(fun check_map_pair/3, Pairs, Kts, Tvs).
 
-check_map_pair([K,V], Kts, Ps) ->
-    case check_type_def(K, Kts, Ps) of
-        ok -> check_type_def(V, Kts, Ps);
+check_map_pair([K,V], Kts, Tvs0) ->
+    case check_type_def(K, Kts, Tvs0) of
+        {ok,Tvs1} -> check_type_def(V, Kts, Tvs1);
         Error -> Error
     end;
-check_map_pair(Other, _Kts, _Ps) ->
-    bad_type_error(Other).
+check_map_pair(Other, _Kts, Tvs) ->
+    bad_type_error(Other, Tvs).
 
-check_record_fields(Fs, Kts, Ps) ->
-    check_type_list(fun check_record_field/3, Fs, Kts, Ps).
+check_record_fields(Fs, Kts, Tvs) ->
+    check_type_list(fun check_record_field/3, Fs, Kts, Tvs).
 
-check_record_field([F,T], Kts, Ps) when is_atom(F) ->
-    check_type_def(T, Kts, Ps);
-check_record_field(Other, _Kts, _Ps) ->
-    bad_type_error(Other).
+check_record_field([F,T], Kts, Tvs) when is_atom(F) ->
+    check_type_def(T, Kts, Tvs);
+check_record_field(Other, _Kts, Tvs) ->
+    bad_type_error(Other, Tvs).
 
-check_lambda_args(any, _Kts, _Ps) -> ok;
-check_lambda_args(Args, Kts, Ps) ->
-    check_type_defs(Args, Kts, Ps).
+check_lambda_args(any, _Kts, Tvs) -> {ok,Tvs};
+check_lambda_args(Args, Kts, Tvs) ->
+    check_type_defs(Args, Kts, Tvs).
 
-check_type_list(Check, [E|Es], Kts, Ps) ->
-    case Check(E, Kts, Ps) of
-        ok -> check_type_list(Check, Es, Kts, Ps);
+check_type_list(Check, [E|Es], Kts, Tvs0) ->
+    case Check(E, Kts, Tvs0) of
+        {ok,Tvs1} -> check_type_list(Check, Es, Kts, Tvs1);
         Error -> Error
     end;
-check_type_list(_Check, [], _Kts, _Ps) -> ok;
-check_type_list(_Check, Other, _Kts, _Ps) ->    %Not a proper list
-    bad_type_error(Other).
+check_type_list(_Check, [], _Kts, Tvs) -> {ok,Tvs};
+check_type_list(_Check, Other, _Kts, Tvs) ->     %Not a proper list
+    bad_type_error(Other, Tvs).
 
-bad_type_error(Val) -> {error,{bad_type,Val}}.
+bad_type_error(Val, Tvs) -> {error,{bad_type,Val},Tvs}.
 
-unknown_type_error(Val) -> {error,{unknown_type,Val}}.
+unknown_type_error(Val, Tvs) -> {error,{unknown_type,Val},Tvs}.
 
 %% from_func_spec_list([FuncType]) -> Type.
 
@@ -293,7 +295,11 @@ to_func_constraint([Var,Type], Line) ->
     {type,Line,constraint,[{atom,Line,is_subtype},
                            [{var,Line,Var},to_type_def(Type, Line)]]}.
 
-%% check_func_spec_list([FuncType], Arity, KnownTypes) -> ok | {error,Error}.
+%% check_func_spec_list([FuncType], Arity, KnownTypes, TypeVars) ->
+%%     {ok,[TypeVars]} | {error,Error,[TypeVars]}.
+%%  Check a list of function specs. TypeVars is an orddict of variable
+%%  names and usage counts. Errors returned are:
+%%  {bad_spec,Spec}     - error in the type definition
 
 check_func_spec_list(Ss, Ar, Kts) ->
     check_spec_list(fun check_func_spec/3, Ss, Ar, Kts).
@@ -301,66 +307,61 @@ check_func_spec_list(Ss, Ar, Kts) ->
 check_func_spec([Prod,Ret], Ar, Kts) ->
     check_func_spec([Prod,Ret,[]], Ar, Kts);
 check_func_spec([Prod,Ret,Cs], Ar, Kts) ->
-    case check_func_constraints(Cs, Kts) of
-        {ok,Ps} -> case check_spec_type_def(Ret, Kts, Ps) of
-		       ok -> check_func_prod(Prod, Ar, Kts, Ps);
-		       {error,_}=Error -> Error
-		   end;
-        {error,_}=Error -> Error
-    end;
-check_func_spec(Other, _Ar, _Kts) ->
-    bad_spec_error(Other).
-
-check_func_prod(Args, Ar, Kts, Ps) ->
-    %% This checks both the list and the types.
-    case check_type_defs(Args, Kts, Ps) of
-	ok ->
-	    if length(Args) =:= Ar -> ok;
-	       true -> bad_spec_error(Args)
-	    end;
-	{error,_}=Error-> Error
-    end.
-
-check_spec_type_def(Var, _Kts, Ps) when is_atom(Var) ->
-    case lists:member(Var, Ps) of
-        true -> ok;
-        false -> bad_spec_error(Var)
-    end;
-check_spec_type_def(Type, Kts, Ps) ->
-    check_type_def(Type, Kts, Ps).
-
-check_func_constraints(Cs, Kts) ->
-    check_func_constraints(Cs, Kts, []).
-
-check_func_constraints([[Var,Type]|Cs], Kts, Ps) when is_atom(Var) ->
-    case lists:member(Var, Ps) of
-        true -> bad_spec_error(Var);
-        false ->
-            case check_spec_type_def(Type, Kts, []) of
-                ok -> check_func_constraints(Cs, Kts, [Var|Ps]);
+    Tvs0 = [],
+    case check_func_prod(Prod, Ar, Kts, Tvs0) of
+        {ok,Tvs1} ->
+            case check_type_def(Ret, Kts, Tvs1) of
+                {ok,Tvs2} ->
+                    check_func_constraints(Cs, Kts, Tvs2);
                 Error -> Error
-            end
-    end;
-check_func_constraints([], _Kts, Ps) -> {ok,Ps};
-check_func_constraints(Other, _Kts, _Ps) ->
-    bad_spec_error(Other).
-
-check_spec_list(Check, [E|Es], Ar, Kts) ->
-    case Check(E, Ar, Kts) of
-        ok -> check_spec_list(Check, Es, Ar, Kts);
+            end;
         Error -> Error
     end;
-check_spec_list(_Check, [], _Ar, _Kts) -> ok;
-check_spec_list(_Check, Other, _Ar, _Kts) ->    %Not a proper list
-    bad_spec_error(Other).
+check_func_spec(Other, _Ar, _Kts) ->
+    bad_spec_error(Other, []).
 
-bad_spec_error(Val) -> {error,{bad_spec,Val}}.
+check_func_prod(Args, Ar, Kts, Tvs0) ->
+    %% This checks both the list and the types.
+    case check_type_defs(Args, Kts, Tvs0) of
+        {ok,Tvs1} ->
+            if length(Args) =:= Ar -> {ok,Tvs1};
+               true -> bad_spec_error(Args, Tvs1)
+            end;
+        Error -> Error
+    end.
+
+check_func_constraints([[Var,Type]|Cs], Kts, Tvs0) when is_atom(Var) ->
+    Tvs1 = orddict:update_counter(Var, 1, Tvs0),
+    case check_type_def(Type, Kts, Tvs1) of
+        {ok,Tvs2} -> check_func_constraints(Cs, Kts, Tvs2);
+        Error -> Error
+    end;
+check_func_constraints([], _Kts, Tvs) -> {ok,Tvs};
+check_func_constraints(Other, _Kts, Tvs) ->
+    bad_spec_error(Other, Tvs).
+
+check_spec_list(Check, Es, Ar, Kts) ->
+    check_spec_list(Check, Es, Ar, Kts, []).
+
+check_spec_list(Check, [E|Es], Ar, Kts, Tvss) ->
+    case Check(E, Ar, Kts) of
+        {ok,Tvs} -> check_spec_list(Check, Es, Ar, Kts, Tvss ++ [Tvs]);
+        Error -> Error
+    end;
+check_spec_list(_Check, [], _Ar, _Kts, Tvss) -> {ok,Tvss};
+check_spec_list(_Check, Other, _Ar, _Kts, Tvss) ->
+    %% Not a proper list.
+    bad_spec_error(Other, Tvss).
+
+bad_spec_error(Val, Tvs) -> {error,{bad_spec,Val},Tvs}.
 
 %% is_predefined_type(Name, Arity) -> bool().
 %%  Check whether Name/Arity is a predefined type.
 
-is_predefined_type('UNION', _) -> true;
-is_predefined_type(call, _) -> true;
-is_predefined_type(lambda, _) -> true;
+is_predefined_type('UNION', Ar) -> is_integer(Ar) and (Ar >= 0);
+is_predefined_type(call, Ar) -> is_integer(Ar) and (Ar >= 0);
+is_predefined_type(lambda, Ar) -> is_integer(Ar) and (Ar >= 0);
+is_predefined_type(map, Ar) -> is_integer(Ar) and (Ar >= 0);
+is_predefined_type(tuple, Ar) -> is_integer(Ar) and (Ar >= 0);
 is_predefined_type(Name, Arity) ->
     erl_internal:is_type(Name, Arity).
