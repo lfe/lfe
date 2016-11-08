@@ -32,7 +32,6 @@
 -import(lists, [member/2,sort/1,all/2,foldl/3,foldr/3,foreach/2,mapfoldl/3]).
 -import(ordsets, [add_element/2,from_list/1,is_element/2,
                   union/1,union/2,intersection/2,subtract/2]).
--import(orddict, [store/3,find/2]).
 
 -include("lfe_comp.hrl").
 
@@ -97,6 +96,8 @@ format_error({deprecated,What}) ->
     lfe_io:format1("deprecated: ~s", [What]);
 format_error(unknown_form) -> "unknown form";
 %% Type errors. These are also returned from lfe_types.
+format_error({singleton_type_var,V}) ->
+    lfe_io:format1("singleton type variable: ~w", [V]);
 format_error({bad_type,T}) ->
     lfe_io:format1("bad type: ~w", [T]);
 format_error({unknown_type,T}) ->
@@ -269,7 +270,7 @@ check_imports(Is, L, St) ->
 
 check_import([from,Mod|Fs], L, St) when is_atom(Mod) ->
     Check = fun ([F,A], Imps, S) when is_atom(F), is_integer(A) ->
-                    {store({F,A}, F, Imps),S};
+                    {orddict:store({F,A}, F, Imps),S};
                 (_, Imps, S) -> {Imps,bad_mdef_error(L, from, S)}
             end,
     check_import(Check, Mod, L, St, Fs);
@@ -277,16 +278,16 @@ check_import([rename,Mod|Rs], L, St) when is_atom(Mod) ->
     Check = fun ([[F,A],R], Imps, S) when is_atom(F),
                                           is_integer(A),
                                           is_atom(R) ->
-                    {store({F,A}, R, Imps),S};
+                    {orddict:store({F,A}, R, Imps),S};
                 (_, Imps, S) -> {Imps,bad_mdef_error(L, rename, S)}
             end,
     check_import(Check, Mod, L, St, Rs);
 check_import([prefix,Mod,Pre], L, St) when is_atom(Mod), is_atom(Pre) ->
     Pstr = atom_to_list(Pre),
-    case find(Pstr, St#lint.pref) of
+    case orddict:find(Pstr, St#lint.pref) of
         {ok,_} -> bad_mdef_error(L, prefix, St);
         error ->
-            Pref = store(Pstr, Mod, St#lint.pref),
+            Pref = orddict:store(Pstr, Mod, St#lint.pref),
             St#lint{pref=Pref}
     end;
 check_import(_, L, St) -> import_error(L, St).
@@ -294,7 +295,7 @@ check_import(_, L, St) -> import_error(L, St).
 check_import(Check, Mod, L, St0, Fs) ->
     Imps0 = safe_fetch(Mod, St0#lint.imps, []),
     {Imps1,St1} = foldl_form(Check, import, L, Imps0, St0, Fs),
-    St1#lint{imps=store(Mod, Imps1, St1#lint.imps)}.
+    St1#lint{imps=orddict:store(Mod, Imps1, St1#lint.imps)}.
 
 import_error(L, St) -> bad_mdef_error(L, import, St).
 
@@ -309,10 +310,12 @@ is_flist(_, _) -> no.
 %%  Check a type definition.
 
 check_type_def(Name, Def, L, St0) ->
-    {Pars,St1} = check_type_name(Name, L, St0),
-    case lfe_types:check_type_def(Def, St1#lint.types, Pars) of
-        ok -> St1;
-        {error,Error} -> add_error(L, Error, St1)
+    {Tvs0,St1} = check_type_name(Name, L, St0),
+    case lfe_types:check_type_def(Def, St1#lint.types, Tvs0) of
+        {ok,Tvs1} -> check_type_vars(Tvs1, L, St1);
+        {error,Error,Tvs1} ->
+            St2 = add_error(L, Error, St1),
+            check_type_vars(Tvs1, L, St2)
     end.
 
 check_type_name([T|Args], L, #lint{types=Kts}=St) when is_atom(T) ->
@@ -320,14 +323,16 @@ check_type_name([T|Args], L, #lint{types=Kts}=St) when is_atom(T) ->
         true ->
             Arity = length(Args),
             Kt = {T,Arity},
+            Ts = lists:foldl(fun (V, S) -> orddict:update_counter(V, 1, S) end,
+                             [], Args),
             case lists:member(Kt, Kts) of
-                true -> {Args,add_error(L, {redef_type,[T,Arity]}, St)};
+                true -> {Ts,add_error(L, {redef_type,[T,Arity]}, St)};
                 false ->
                     case lfe_types:is_predefined_type(T, Arity) of
                         true ->
-                            {Args,add_error(L, {illegal_type,[T,Arity]}, St)};
+                            {Ts,add_error(L, {illegal_type,[T,Arity]}, St)};
                         false ->
-                            {Args,St#lint{types=[Kt|Kts]}}
+                            {Ts,St#lint{types=[Kt|Kts]}}
                     end
             end;
         false -> {[],add_error(L, {bad_type,T}, St)}
@@ -335,14 +340,26 @@ check_type_name([T|Args], L, #lint{types=Kts}=St) when is_atom(T) ->
 check_type_name(T, L, St) ->                    %Type name wrong format
     {[],add_error(L, {bad_type,T}, St)}.
 
+%% check_type_vars(TypeVars, Line, State) -> State.
+%%  Check for singleton type variables except for _ which we allow.
+
+check_type_vars(Tvs, L, St) ->
+    Check = fun (V, 1, S) when V =/= '_' ->
+		    add_error(L, {singleton_type_var,V}, S);
+                (_, _, S) -> S
+            end,
+    orddict:fold(Check, St, Tvs).
+
 %% check_func_spec(Func, Spec, Line, State) -> State.
 %%  Check a function specification.
 
 check_func_spec(Func, Spec, L, St0) ->
     {Ar,St1} = check_func_name(Func, L, St0),
     case lfe_types:check_func_spec_list(Spec, Ar, St1#lint.types) of
-        ok -> St1;
-        {error,Error} -> add_error(L, Error, St1)
+        {ok,Tvss} -> check_type_vars_list(Tvss, L, St1);
+        {error,Error,Tvss} ->
+            St2 = add_error(L, Error, St1),
+            check_type_vars_list(Tvss, L, St2)
     end.
 
 check_func_name([F,Ar], L, #lint{specs=Kss}=St)
@@ -354,6 +371,9 @@ check_func_name([F,Ar], L, #lint{specs=Kss}=St)
     end;
 check_func_name(F, L, St) ->
     {0,add_error(L, {bad_spec,F}, St)}.
+
+check_type_vars_list(Tvss, L, St) ->
+    lists:foldl(fun (Tvs, S) -> check_type_vars(Tvs, L, S) end, St, Tvss).
 
 %% collect_function(Name, Meta, Def, Line, Fbs, State) -> {Fbs,State}.
 %%  Collect function and do some basic checks.
@@ -1430,15 +1450,18 @@ safe_length(L) -> safe_length(L, 0).
 safe_length([_|L], Acc) -> safe_length(L, Acc+1);
 safe_length(_, Acc) -> Acc.
 
-%% add_error(Error, State) -> State.
 %% add_error(Line, Error, State) -> State.
 %% add_warning(Line, Warning, State) -> State.
+%% add_errors(Line, Errors, State) -> State.
 
-add_error(L, E, St) ->
-    St#lint{errors=St#lint.errors ++ [{L,?MODULE,E}]}.
+add_error(L, E, #lint{errors=Errs}=St) ->
+    St#lint{errors=Errs ++ [{L,?MODULE,E}]}.
 
-add_warning(L, W, St) ->
-    St#lint{warnings=St#lint.warnings ++ [{L,?MODULE,W}]}.
+add_warning(L, W, #lint{warnings=Warns}=St) ->
+    St#lint{warnings=Warns ++ [{L,?MODULE,W}]}.
+
+add_errors(L, Es, #lint{errors=Errs}=St) ->
+    St#lint{errors=Errs ++ [ {L,?MODULE,E} || E <- Es ]}.
 
 bad_form_error(L, F, St) ->
     add_error(L, {bad_form,F}, St).
@@ -1485,7 +1508,7 @@ add_vbindings(Vs, Env) ->
 %% safe_fetch(Key, Dict, Default) -> Value.
 
 safe_fetch(Key, D, Def) ->
-    case find(Key, D) of
+    case orddict:find(Key, D) of
         {ok,Val} -> Val;
         error -> Def
     end.
