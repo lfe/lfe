@@ -148,25 +148,7 @@ field_macros(Name, Fs) ->
                    Fas]
           end, [], Fis).
 
--ifdef(NEW_REC_CORE).
 type_information(Name, Fdefs, _St) ->
     %% We push the problem of generating the right final forms to the
     %% code generator which knows about the record attribute.
     [record,[Name|Fdefs]].
--else.
-type_information(Name, Fdefs, #mac{line=L}) ->
-    %% Only field names which will result in default type any().
-    %% Adding types greatly complicates things. If we add defaults
-    %% then they would have to be expanded here.
-    Typed = lists:any(fun ([_,_,_]) -> true; (_) -> false end, Fdefs),
-    Fs = map(fun ([F,_D,_T]) ->
-                     %% De = lfe_trans:to_expr(D, L),
-                     {record_field,L,{atom,L,F}};
-                 ([F,_D]) ->
-                     %% De = lfe_trans:to_expr(D, L),
-                     {record_field,L,{atom,L,F}};
-                 (F) ->
-                     {record_field,L,{atom,L,F}}
-             end, Fdefs),
-    [type,[{record,Name},Fs,[]]].
--endif.
