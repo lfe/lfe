@@ -249,11 +249,15 @@ comp_type_attribute(Attr, Types, Line) ->
 comp_spec_attribute(Specs, Line) ->
     Ann = [Line],
     Sfun = fun ([[N,Ar],Spec]) ->
-		   {{N,Ar},lfe_types:to_func_spec_list(Spec, Ann)}
-	   end,
+                   {{N,Ar},lfe_types:to_func_spec_list(Spec, Ann)}
+           end,
     Fspecs = [ Sfun(Spec) || Spec <- Specs ],
     {ann_c_lit(Ann, spec),ann_c_lit(Ann, Fspecs)}.
 
+%% comp_record_attributes(Records, Line) -> Attribute.
+%%  Format depends on whether 18 and older or newer.
+
+-ifdef(NEW_REC_CORE).
 comp_record_attributes(Recs, Line) ->
     Ann = [Line],
     Rs = [ comp_record_attribute(Rec, Ann) || Rec <- Recs ],
@@ -262,6 +266,16 @@ comp_record_attributes(Recs, Line) ->
 comp_record_attribute([Name|Fields], Ann) ->
     %% Each field specifically handles whether it is typed or not.
     {Name,[ comp_record_field(Fdef, Ann) || Fdef <- Fields ]}.
+-else.
+comp_record_attributes(Recs, Line) ->
+    Ann = [Line],
+    Rs = [ comp_record_attribute(Rec, Ann) || Rec <- Recs ],
+    {ann_c_lit(Ann, type),ann_c_lit(Ann, Rs)}.
+
+comp_record_attribute([Name|Fields], Ann) ->
+    %% Each field specifically handles whether it is typed or not.
+    {{record,Name},[ comp_record_field(Fdef, Ann) || Fdef <- Fields ],[]}.
+-endif.
 
 comp_record_field([F,D,T], Ann) ->
     {typed_record_field,
