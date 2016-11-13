@@ -345,7 +345,7 @@ check_type_name(T, L, St) ->                    %Type name wrong format
 
 check_type_vars(Tvs, L, St) ->
     Check = fun (V, 1, S) when V =/= '_' ->
-		    add_error(L, {singleton_type_var,V}, S);
+                    add_error(L, {singleton_type_var,V}, S);
                 (_, _, S) -> S
             end,
     orddict:fold(Check, St, Tvs).
@@ -379,27 +379,27 @@ check_type_vars_list(Tvss, L, St) ->
 %%  Collect function and do some basic checks.
 
 collect_function(Name, Meta, Def, L, Fbs, St0) ->
-    St1 = check_fmetas(Meta, L, St0),
+    St1 = check_fmetas(Name, Meta, L, St0),
     {[{Name,Def,L}|Fbs],St1}.
 
-%% check_fmetas(Metas, Line, State) -> State.
+%% check_fmetas(Name, Metas, Line, State) -> State.
 
-check_fmetas(Ms, L, St) ->
-    check_foreach(fun (M, S) -> check_fmeta(M, L, S) end,
+check_fmetas(N, Ms, L, St) ->
+    check_foreach(fun (M, S) -> check_fmeta(N, M, L, S) end,
                   fun (S) -> bad_form_error(L, 'define-function', S) end,
                   St, Ms).
 
-check_fmeta([doc|Docs], L, St) ->
-    ?IF(check_docs(Docs), St, bad_meta_error(L, doc, St));
+check_fmeta(N, [doc|Docs], L, St) ->
+    ?IF(check_docs(Docs), St, bad_meta_error(L, N, St));
 %% Need to get arity in here.
-%% check_fmeta([spec|Specs], L, St) ->
+%% check_fmeta(N, [spec|Specs], L, St) ->
 %%     case lfe_types:check_func_spec_list(Specs, Ar, St#lint.types) of
 %%         ok -> St1;
 %%         {error,Error} -> add_error(L, Error, St)
 %%     end;
-check_fmeta([M|Vals], L, St) ->
-    ?IF(is_atom(M) and is_proper_list(Vals), St, bad_meta_error(L, M, St));
-check_fmeta(_, L, St) -> bad_fdef_error(L, meta, St).
+check_fmeta(N, [M|Vals], L, St) ->
+    ?IF(is_atom(M) and is_proper_list(Vals), St, bad_meta_error(L, N, St));
+check_fmeta(N, _, L, St) -> bad_meta_error(L, N, St).
 
 %% check_docs(Docs) -> boolean().
 
@@ -430,8 +430,19 @@ init_state(St) ->
 %%  as in letrec but the environment only contains explicit imports
 %%  and the module info functions.
 
-check_functions(Fbs, Env, St) ->
-    check_letrec_bindings(Fbs, Env, St).
+check_functions(Fbs, Env0, St0) ->
+    {Fs,St1} = check_fbindings(Fbs, St0),
+    %% Add to the environment.
+    Env1 = foldl(fun ({F,A}, Env) -> add_fbinding(F, A, Env) end, Env0, Fs),
+    %% Now check function definitions.
+    St2 = foldl(fun ({_,[lambda|Lambda],L}, St) ->
+                        check_lambda(Lambda, Env1, L, St);
+                    ({_,['match-lambda'|Match],L}, St) ->
+                        check_match_lambda(Match, Env1, L, St);
+                    ({F,_,L}, St) ->            %Flag error here
+                        bad_fdef_error(L, F, St)
+                end, St1, Fbs),
+    {Fs,Env1,St2}.
 
 %% check_exports(Exports, Funcs, State) -> State.
 
@@ -837,7 +848,7 @@ check_let_bindings(Fbs, Env0, St0) ->
 
 check_letrec_bindings(Fbs, Env0, St0) ->
     {Fs,St1} = check_fbindings(Fbs, St0),
-    %% Add to environment
+    %% Add to the environment.
     Env1 = foldl(fun ({F,A}, Env) -> add_fbinding(F, A, Env) end, Env0, Fs),
     %% Now check function definitions.
     St2 = foldl(fun ({_,[lambda|Lambda],L}, St) ->
@@ -868,7 +879,7 @@ check_fbindings(Fbs0, St0) ->
                         true -> AddFb({V,length(Pats)}, Fs, L, St);
                         false -> {Fs,bad_form_error(L, 'match-lambda', St)}
                     end;
-                (_, Acc) -> Acc                 %Error here flagged later
+                (_, Acc) -> Acc                 %Error here flagged elsewhere
             end,
     foldl(Check, {[],St0}, Fbs0).
 

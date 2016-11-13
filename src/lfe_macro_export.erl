@@ -133,8 +133,16 @@ collect_ewc_macro(['define-macro'|_], Mst) ->
 collect_ewc_macro([progn|Fs], Mst) ->
     lists:foldl(fun collect_ewc_macro/2, Mst, Fs).
 
-function_arity([lambda,As|_]) -> length(As);
-function_arity(['match-lambda',[Pats|_]|_]) -> length(Pats).
+%% function_arity(FuncDef) -> Arity.
+%%  Don't crash on bad function just return illegal arity.
+
+function_arity([lambda,As|_]) -> safe_length(As, 0);
+function_arity(['match-lambda',[Pats|_]|_]) -> safe_length(Pats, 0);
+function_arity(_) -> -1.
+
+safe_length([_|Es], L) -> safe_length(Es, L+1);
+safe_length([], L) -> L;
+safe_length(_, _) -> -1.
 
 %% collect_attrs(Attributes, MacroState) -> MacroState.
 %%  We are only interested in which macros are exported.
