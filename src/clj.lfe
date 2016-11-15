@@ -537,7 +537,7 @@
            (lists:foldl (lambda (x acc) (erlang:append_element acc x))
                         ,coll
                         (list ,@xs)))
-          ((is_map ,coll) (lists:foldl (lambda (x acc) (maps:merge acc x))
+          ((clj:map? ,coll) (lists:foldl (lambda (x acc) (maps:merge acc x))
                                           ,coll
                                           (list ,@xs))))))
 
