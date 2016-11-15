@@ -519,7 +519,11 @@
   (is-equal '(1 2 3 4) (clj:conj '(2 3 4) 1))
   (is-equal '((1) 2 3 4) (clj:conj '(2 3 4) '(1)))
   (is-equal #(a b c d) (clj:conj #(a b c) 'd))
-  (is-equal #(a b c #(d)) (clj:conj #(a b c) #(d))))
+  (is-equal #(a b c #(d)) (clj:conj #(a b c) #(d)))
+  (IFF-MAPS
+   (is-equal (maps:from_list '(#(a 1) #(b 2)))
+             (clj:conj (maps:from_list '(#(b 2)))
+                       (maps:from_list '(#(a 1)))))))
 
 (deftest drop
   (are* [x y] (ok? (is-match x y))
