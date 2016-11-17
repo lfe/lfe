@@ -34,7 +34,7 @@
 %% The shell commands which generally callable.
 -export([c/1,c/2,cd/1,doc/1,ec/1,ec/2,ep/1,ep/2,epp/1,epp/2,help/0,
          i/0,i/1,l/1,ls/1,clear/0,m/0,m/1,pid/3,p/1,p/2,pp/1,pp/2,pwd/0,
-         q/0,flush/0,regs/0,exit/0]).
+         q/0,flush/0,regs/0,exit/0,version/0,version/1]).
 
 -import(lfe_env, [new/0,add_env/2,
                   add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
@@ -345,7 +345,9 @@ add_shell_functions(Env0) ->
           {q,0,[lambda,[],[':',lfe_shell,exit]]},
           {flush,0,[lambda,[],[':',lfe_shell,flush]]},
           {regs,0,[lambda,[],[':',lfe_shell,regs]]},
-          {exit,0,[lambda,[],[':',lfe_shell,exit]]}
+          {exit,0,[lambda,[],[':',lfe_shell,exit]]},
+          {version,0,[lambda,[],[':',lfe_shell,version]]},
+          {version,1,[lambda,[app],[':',lfe_shell,version,app]]}
          ],
     %% Any errors here will crash shell startup!
     Add = fun ({N,Ar,Def}, E) ->
@@ -824,7 +826,8 @@ help() ->
                    "(pid x y z)    -- convert <x>, <y> and <z> to a pid\n"
                    "(pwd)          -- print working directory\n"
                    "(q)            -- quit - shorthand for init:stop/0\n"
-                   "(regs)         -- information about registered processes\n\n"
+                   "(regs)         -- information about registered processes\n"
+                   "(version)   -- provide version information for os, core apps, and tools\n\n"
                    "LFE shell built-in commands\n\n"
                    "(reset-environment)             -- reset the environment to its initial state\n"
                    "(run file)                      -- execute all the shell commands in a <file>\n"
@@ -1010,6 +1013,14 @@ regs() -> c:regs().
 %% exit() -> ok.
 
 exit() -> c:q().
+
+%% version() -> [tuple()].
+%% version([App]) -> list().
+%%  Return version data for key apps or a single app
+
+version() -> lfe_system_info:version().
+
+version(App) -> lfe_system_info:version(App).
 
 %% doc(Fun) -> ok | {error,Error}.
 %%  Print out documentation of a module/macro/function. Always try to
