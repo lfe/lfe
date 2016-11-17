@@ -743,6 +743,10 @@ exp_predef([cddadr,E], _, St) -> {yes,[cdr,[cdr,[car,[cdr,E]]]],St};
 exp_predef([cdddar,E], _, St) -> {yes,[cdr,[cdr,[cdr,[car,E]]]],St};
 exp_predef([cddddr,E], _, St) -> {yes,[cdr,[cdr,[cdr,[cdr,E]]]],St};
 
+%% Alias macro for version info
+exp_predef([version], _, St) -> {yes, [':',lfe_system_info,version], St};
+exp_predef([version,A], _, St) -> {yes, [':',lfe_system_info,version,A], St};
+
 %% Arithmetic operations and comparison operations.
 %% Be careful to make these behave as if they were a function and
 %% strictly evalated all their arguments.
