@@ -238,7 +238,7 @@ $(EPUBDIR)/%.epub: $(DOCSRC)/%.3.md
 $(EPUBDIR)/%.epub: $(DOCSRC)/%.7.md
 	pandoc -f markdown -t epub -o $@ $<
 
-install-man: docs-man
+install-man:
 	@mkdir -p $(MANINSTDIR)/man1 $(MANINSTDIR)/man3 $(MANINSTDIR)/man7
 	cp $(MANDIR)/*.1 $(MANINSTDIR)/man1/
 	cp $(MANDIR)/*.3 $(MANINSTDIR)/man3/
