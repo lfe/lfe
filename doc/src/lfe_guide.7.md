@@ -1325,6 +1325,20 @@ the use of which allows developers to forego the `clj:` prefix in calls:
 (include-lib "lfe/include/clj.lfe")
 ```
 
+## Utility and System Information Functions
+
+```
+lfe_system_info:app_version atom
+lfe_system_info:os_versions
+lfe_system_info:core_versions
+lfe_system_info:tool_versions
+lfe_system_info:version
+lfe_system_info:version atom
+```
+
+Note that an alias is provided for the last two as `version`, accessible both
+from LFE modules and the LFE REPL.
+
 # Notes
 
 * NYI - Not Yet Implemented
