@@ -110,6 +110,13 @@ BUILT-IN SHELL FUNCTIONS
 
        Print information about the registered processes in the system.
 
+       (version)
+
+       Return a data structure of current version information.
+
+       (version App)
+
+
 BUILT-IN SHELL COMMANDS
        These are special forms which are only recognised at the  top-level  in
        shell input.  The cannot be redefined.
@@ -144,6 +151,13 @@ BUILT-IN SHELL COMMANDS
        Revert back to the state before the last slurp  removing  all  function
        and macro definitions both in the slurped file and defined in the shell
        since then.
+
+
+       (run File)
+
+       Execute all the shell commands in File.  All defined  variables,  func‐
+       tions  and  macros will be saved in the environment if there are no er‐
+       rors.
 
 SHELL FUNCTIONS AND MACROS
        Functions and macros can be defined in the shell.  These will  only  be
