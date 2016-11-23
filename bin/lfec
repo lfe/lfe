@@ -39,7 +39,7 @@
    (parse-opts as (cons 'debug-print opts)))
   ([(cons "-Werror" as) opts]
    (parse-opts as (cons 'warnings-as-errors opts)))
-  ([(cons (++ "-W" _) as) opts]         ;Ignore this here
+  ([(cons (++* "-W" _) as) opts]        ;Ignore this here
    (parse-opts as opts))
   ([(cons "-D" as) opts]
    (parse-opts as (cons 'debug-print opts)))

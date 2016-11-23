@@ -1059,16 +1059,12 @@ pattern([binary|Segs], Pvs, Env, L, St) ->
 pattern([map|As], Pvs, Env, L, St) ->
     pat_map(As, Pvs, Env, L, St);
 %% Check old no contructor list forms.
-pattern([H|T]=List, Pvs0, Env, L, St0) ->
+pattern([_|_]=List, Pvs0, _, L, St0) ->
     case is_posint_list(List) of
         true -> {Pvs0,St0};                     %A string
         false ->                                %Illegal pattern
-            St1 = depr_warning(L, "no constructor in list pattern", St0),
-            {Pvs1,St2} = pattern(H, Pvs0, Env, L, St1),
-            pattern(T, Pvs1, Env, L, St2)
+            {Pvs0,add_error(L, illegal_pattern, St0)}
     end;
-%% pattern([_|_], Pvs, _, L, St) ->
-%%     {Pvs,add_error(L, illegal_pattern, St)};
 pattern([], Pvs, _, _, St) -> {Pvs,St};
 pattern(Symb, Pvs, _, L, St) when is_atom(Symb) ->
     pat_symb(Symb, Pvs, L, St);
