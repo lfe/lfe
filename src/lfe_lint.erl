@@ -80,11 +80,14 @@ format_error({redef_fun,F}) ->
     lfe_io:format1("redefining function: ~w", [F]);
 format_error({bad_fdef,F}) ->
     lfe_io:format1("bad function definition: ~w", [F]);
-format_error(illegal_literal) -> "illegal literal";
-format_error(illegal_pattern) -> "illegal pattern";
+format_error({illegal_literal,Lit}) ->
+    lfe_io:format1("illegal literal value: ~w", [Lit]);
+format_error({illegal_pattern,Pat}) ->
+    lfe_io:format1("illegal pattern: ~w", [Pat]);
 format_error(illegal_guard) -> "illegal guard";
 format_error(illegal_bitseg) -> "illegal bit segment";
-format_error(illegal_mapkey) -> "illegal map key";
+format_error({illegal_mapkey,Key}) ->
+    lfe_io:format1("illegal map key: ~w", [Key]);
 format_error({undefined_bittype,S}) ->
     lfe_io:format1("bit type ~w undefined", [S]);
 format_error(bittype_unit) ->
@@ -590,7 +593,7 @@ map_key(Key, Env, L, St) ->
 map_key(Key, _, L, St) ->
     case is_map_key(Key) of
         true -> St;
-        false -> add_error(L, illegal_mapkey, St)
+        false -> illegal_mapkey_error(L, Key, St)
     end.
 
 is_map_key([quote,Lit]) -> is_literal(Lit);
@@ -997,7 +1000,7 @@ gmap_key(Key, Env, L, St) ->
 gmap_key(Key, _, L, St) ->
     case is_gmap_key(Key) of
         true -> St;
-        false -> add_error(L, illegal_mapkey, St)
+        false -> illegal_mapkey_error(L, Key, St)
     end.
 
 is_gmap_key([quote,Lit]) -> is_literal(Lit);
@@ -1032,7 +1035,7 @@ pattern(Pat, Env, L, St) ->
 %%     try
 %%     pattern(Pat, [], Env, L, St)
 %%     catch
-%%     _:_ -> {[],add_error(L, illegal_pattern, St)}
+%%     _:_ -> {[],illegal_pattern_error(L, Pat, St)}
 %%     end.
 
 pattern([quote,Lit], Pvs, Env, L, St) ->
@@ -1056,14 +1059,14 @@ pattern([tuple|Ps], Pvs, Env, L, St) ->         %Tuple elements
     pat_list(Ps, Pvs, Env, L, St);
 pattern([binary|Segs], Pvs, Env, L, St) ->
     pat_binary(Segs, Pvs, Env, L, St);
-pattern([map|As], Pvs, Env, L, St) ->
-    pat_map(As, Pvs, Env, L, St);
+pattern([map|Ps], Pvs, Env, L, St) ->
+    pat_map(Ps, Pvs, Env, L, St);
 %% Check old no contructor list forms.
 pattern([_|_]=List, Pvs0, _, L, St0) ->
     case is_posint_list(List) of
         true -> {Pvs0,St0};                     %A string
         false ->                                %Illegal pattern
-            {Pvs0,add_error(L, illegal_pattern, St0)}
+            {Pvs0,illegal_pattern_error(L, List, St0)}
     end;
 pattern([], Pvs, _, _, St) -> {Pvs,St};
 pattern(Symb, Pvs, _, L, St) when is_atom(Symb) ->
@@ -1075,8 +1078,8 @@ pat_list([P|Ps], Pvs0, Env, L, St0) ->
     {Pvs1,St1} = pattern(P, Pvs0, Env, L, St0),
     pat_list(Ps, Pvs1, Env, L, St1);
 pat_list([], Pvs, _, _, St) -> {Pvs,St};
-pat_list(_, Pvs, _, L, St) ->
-    {Pvs,add_error(L, illegal_pattern, St)}.
+pat_list(Pat, Pvs, _, L, St) ->
+    {Pvs,illegal_pattern_error(L, Pat, St)}.
 
 pat_symb('_', Pvs, _, St) -> {Pvs,St};          %Don't care variable
 pat_symb(Symb, Pvs, L, St) ->
@@ -1201,7 +1204,7 @@ pat_bit_expr(S, Bvs, Pvs, _, L, St) when is_atom(S) ->
 pat_bit_expr(_, Bvs, _, _, L, St) ->
     {Bvs,add_error(L, illegal_bitseg, St)}.
 
-%% pat_map(Args, PatVars, Env, Line, State) -> {PatVars,State}.
+%% pat_map(Pairs, PatVars, Env, Line, State) -> {PatVars,State}.
 
 -ifdef(HAS_MAPS).
 pat_map([K,V|As], Pvs0, Env, L, St0) ->
@@ -1221,7 +1224,7 @@ pat_map_assoc(K, V, Pvs, Env, L, St0) ->
 pat_map_key(Key, _, L, St) ->
     case is_pat_map_key(Key) of
         true -> St;
-        false -> add_error(L, illegal_mapkey, St)
+        false -> illegal_mapkey_error(L, Key, St)
     end.
 
 is_pat_map_key([quote,Lit]) -> is_literal(Lit);
@@ -1229,8 +1232,8 @@ is_pat_map_key([_|_]=L) -> is_posint_list(L);   %Literal strings only
 is_pat_map_key(E) when is_atom(E) -> false;
 is_pat_map_key(Lit) -> is_literal(Lit).
 -else.
-pat_map(_, Pvs, _, L, St) ->
-    {Pvs,add_error(L, illegal_pattern, St)}.
+pat_map(Ps, Pvs, _, L, St) ->
+    {Pvs,illegal_pattern_error(L, Ps, St)}.
 -endif.
 
 %% is_literal(Literal) -> true | false.
@@ -1243,7 +1246,7 @@ pat_map(_, Pvs, _, L, St) ->
 literal(Lit, _, L, St) ->
     case is_literal(Lit) of
         true -> St;
-        false -> add_error(L, illegal_literal, St)
+        false -> add_error(L, {illegal_literal,Lit}, St)
     end.
 
 is_literal(A) when is_atom(A) -> true;
@@ -1375,8 +1378,14 @@ bad_form_error(L, F, St) ->
 bad_gform_error(L, F, St) ->
     add_error(L, {bad_gform,F}, St).
 
+illegal_mapkey_error(L, K, St) ->
+    add_error(L, {illegal_mapkey,K}, St).
+
 bad_pat_error(L, F, St) ->
     add_error(L, {bad_pat,F}, St).
+
+illegal_pattern_error(L, P, St) ->
+    add_error(L, {illegal_pattern,P}, St).
 
 bad_mdef_error(L, D, St) ->
     add_error(L, {bad_mdef,D}, St).
