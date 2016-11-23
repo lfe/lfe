@@ -368,6 +368,28 @@ Return \f[C]\[aq]true\f[] if \f[C]x\f[] is less than zero.
 \f[B](identical? x)\f[]
 .PP
 Return \f[C]\[aq]true\f[] if \f[C]x\f[] is exactly equal to \f[C]y\f[].
+.SS Other Macros
+.PP
+\f[B](str x1, x2 ... xn)\f[]
+.PP
+Given arbitrary number of arguments, return a string consisting of each
+of their string representations.
+.PP
+N.B.
+Because Erlang characters are represented as integers, this will not
+work for chars, e.g.
+\f[C]#\\a\f[], which will be presented in the return value as its
+integer value, i.e.
+\f[C]"97"\f[].
+.IP
+.nf
+\f[C]
+>\ (clj:str\ #\\a\ "bc")
+"97bc"
+>\ (clj:str\ "a"\ "bc")
+"abc"
+\f[]
+.fi
 .SS Function Composition
 .PP
 \f[B](comp f g)\f[]
@@ -579,6 +601,21 @@ as the head and a nullary function,
 \f[C](next\ func\ (funcall\ func\ start\ step)\ step)\f[] as the tail.
 The result can be treated as a (possibly infinite) lazy list, which only
 computes subseqeuent values as needed.
+.PP
+\f[B](lazy\-seq seq)\f[]
+.PP
+Return a lazy sequence (possibly infinite) from given lazy sequence
+\f[C]seq\f[] or finite lazy sequence from given list \f[C]seq\f[].
+Lazy sequence is treated as finite if at any iteration it produces empty
+list instead of data as its head and nullary function for next iteration
+as its tail.
+.PP
+\f[B](cycle lst)\f[]
+.PP
+Return a lazy infinite sequence with all elements from a given list
+\f[C]lst\f[] or another lazy sequence cycled.
+.PP
+See \f[B]next/3\f[] for details on the structure.
 .PP
 \f[B](range)\f[]
 .PP

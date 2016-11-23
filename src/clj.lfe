@@ -28,7 +28,9 @@
   (export-macro
    tuple? atom? binary? bitstring? boolean? bool? float? function? func?
    integer? int? number? record? reference? map? undefined? undef? nil?
-   true? false? odd? even? zero? pos? neg? identical?))
+   true? false? odd? even? zero? pos? neg? identical?)
+  ;; Other macros.
+  (export-macro str lazy-seq conj))
 
 (defmacro HAS_MAPS () (quote (erl_internal:bif 'is_map 1)))
 
@@ -354,6 +356,32 @@
   "Return `'true` if `x` is exactly equal to `y`."
   `(=:= ,x ,y))
 
+;;; Other macros.
+
+(defmacro str args
+  "Construct a string from an arbitrary number of scalar values."
+  `(lists:flatmap
+     (lambda (arg)
+       (clj:cond-> arg
+         (not (clj:string? arg)) (lfe_io:print1)))
+     (list ,@args)))
+
+(defmacro lazy-seq
+  "Return a lazy sequence (possibly infinite) from given lazy sequence `seq`
+  or finite lazy sequence from given list `seq`. Lazy sequence is treated as
+  finite if at any iteration it produces empty list instead of data as its
+  head and nullary function for next iteration as its tail."
+  (`(()) ())
+  (`(,seq)
+   `(lambda ()
+      (let ((,'seq* ,seq))
+        (if (is_function ,'seq* 0)
+          (funcall ,'seq*)
+          (fletrec ((-lazy-seq
+                     ((()) ())
+                     ((`(,h . ,t))
+                      (cons h (lambda () (-lazy-seq t))))))
+            (-lazy-seq ,'seq*)))))))
 
 ;;; Function composition.
 
@@ -499,6 +527,20 @@
   sequence."
   (lists:seq start end step))
 
+(defmacro conj
+  "conj[oins] a value onto an existing collection, either a list, a tuple,
+ or a map. For lists this means prepending, for tuples appending,
+ and for maps merging."
+  (`[,coll . ,xs]
+   `(cond ((is_list ,coll) (cons ,@xs ,coll))
+          ((is_tuple ,coll)
+           (lists:foldl (lambda (x acc) (erlang:append_element acc x))
+                        ,coll
+                        (list ,@xs)))
+          ((clj:map? ,coll) (lists:foldl (lambda (x acc) (maps:merge acc x))
+                                          ,coll
+                                          (list ,@xs))))))
+
 (defn next [func]
   "Equivalent to `(next func 1 1)`."
   (next func 1 1))
@@ -514,6 +556,13 @@
   tail. The result can be treated as a (possibly infinite) lazy list, which
   only computes subseqeuent values as needed."
   (fn [] (cons start (next func (funcall func start step) step))))
+
+(defn cycle
+  "Return a lazy infinite sequence with all elements from a given list `lst`
+  or another lazy sequence cycled.
+  See [[next/3]] for details on the structure."
+  ([()] ())
+  ([lst] (fn [] (-cycle lst ()))))
 
 (defn range []
   "Equivalent to `(range 1 1)`."
@@ -534,6 +583,7 @@
   ([_    ()]                             ())
   ([0    lst]                            lst)
   (['all lst]       (when (is_list lst)) ())
+  ([n    f]         (when (function? f)) (fn [] (-drop n (funcall f))))
   ([n    `(,_ . ,t)]                     (drop (dec n) t)))
 
 (defn take
@@ -636,7 +686,14 @@
 
 ;;; Internal functions.
 
+(defn- -drop
+  ([_ ()] ())
+  ([0 data] data)
+  ([n `(,_ . ,tail)] (when (function? tail))
+   (-drop (dec n) (funcall tail))))
+
 (defn- -take
+  ([_ acc ()] (lists:reverse acc))
   ([1 acc (cons item _func)] (lists:reverse (cons item acc)))
   ([n acc (cons item  func)] (-take (dec n) (cons item acc) (funcall func))))
 
@@ -702,3 +759,10 @@
    (flet ((maps-get [k m] (call 'maps 'get k m not-found)))
      (-get-in #'maps-get/2 xmap keys not-found)))
   ([_xmap _keys not-found] not-found))
+
+(defn- -cycle
+  ([() lst] (-cycle (lists:reverse lst) ()))
+  ([f lst] (when (function? f 0))
+   (-cycle (funcall f) lst))
+  ([`(,head . ,tail) lst]
+   (cons head (fn [] (-cycle tail (cons head lst))))))

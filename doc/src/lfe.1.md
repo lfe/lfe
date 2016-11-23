@@ -187,6 +187,20 @@ Giving the user switch commands:
 will create a job running the LFE shell and connect to
 it. This also works when starting a remote shell.
 
+Flags that LFE recognizes include the following:
+
+* ``-h`` or ``--help`` - provides command line usage help
+* ``-e`` or ``-eval`` - evaluates a given sexpr
+* ``-prompt`` - users may supply a value here to override the
+  default ``lfe>`` prompt; note that ``-prompt classic`` will set
+  the prompt to the original ``>`` and ``-prompt`` with no
+  associated value will cause no prompt to be displayed at all.
+  These also work when node names are provided (with either
+  ``-sname`` or ``-name``). Furthermore, users may override the
+  default formatting of node names in prompts by providing a
+  prompt value containing the string ``~node`` (which will be
+  substituted with the actual name of the node).
+
 
 # RUNNING LFE SHELL SCRIPTS
 
