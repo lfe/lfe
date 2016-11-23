@@ -442,19 +442,12 @@ list_ews(Format, Ews) ->
 set([], St) -> {[],St};
 set([Pat|Rest], #state{curr=Ce}=St) ->
     Epat = lfe_macro:expand_expr_all(Pat, Ce),  %Expand macros in pattern
-    %% Special case to lint pattern.
-    case lfe_lint:pattern(Epat, Ce) of
-        {ok,_,Ws} -> list_warnings(Ws);
-        {error,Es,Ws} ->
-            list_errors(Es),
-            list_warnings(Ws)
-    end,
     set_1(Epat, Rest, St).
 
 set_1(Pat, [['when'|_]=G,Exp], St) ->
     set_1(Pat, [G], Exp, St);                   %Just the guard
 set_1(Pat, [Exp], St) ->
-    set_1(Pat, [], Exp, St);                    %Empty body
+    set_1(Pat, [], Exp, St);                    %Empty guard body
 set_1(_, _, _) -> erlang:error({bad_form,'set'}).
 
 set_1(Pat, Guard, Exp, #state{curr=Ce0}=St) ->

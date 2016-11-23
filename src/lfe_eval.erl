@@ -23,7 +23,8 @@
 -export([expr/1,expr/2,literal/1,literal/2,body/1,body/2,
          gexpr/1,gexpr/2,guard/1,guard/2,match/3,match_when/4,
          apply/2,apply/3,
-         make_letrec_env/2,add_lexical_func/4,add_dynamic_func/4]).
+         make_letrec_env/2,add_lexical_func/4,add_dynamic_func/4,
+         format_error/1]).
 
 %% Deprecated exports.
 -export([eval/1,eval/2,eval_list/2]).
@@ -46,6 +47,30 @@
 -endif.
 
 %% -compile([export_all]).
+
+%% Errors.
+format_error(badarg) -> "bad argument";
+format_error({badmatch,Val}) ->
+    lfe_io:format1("bad match: ~w", [Val]);
+format_error(if_expression) -> "non-boolean if test";
+format_error(function_clause) -> "no function clause matching";
+format_error({case_clause,Val}) ->
+    lfe_io:format1("no case clause matching: ~w", [Val]);
+format_error({multi_var,V}) ->
+    lfe_io:format1("multiple occurrence of variable: ~w", [V]);
+format_error(illegal_bitsize) -> "illegal bitsize";
+format_error(illegal_bitseg) -> "illegal bitsegment";
+format_error(illegal_pattern) -> "illegal pattern";
+format_error(illegal_literal) -> "illegal literal value";
+format_error(illegal_mapkey) -> "illegal map key";
+format_error(bad_arity) -> "arity mismatch";
+format_error({argument_limit,Arity}) ->
+    lfe_io:format1("too many arguments: ~w", [Arity]);
+format_error({bad_form,Form}) ->
+    lfe_io:format1("bad form: ~w", [Form]);
+%% Everything we don't recognise or know about.
+format_error(Error) ->
+    lfe_io:prettyprint1(Error).
 
 %% eval(Sexpr) -> Value.
 %% eval(Sexpr, Env) -> Value.
@@ -177,18 +202,18 @@ eval_expr([Fun|Es], Env) when is_atom(Fun) ->
     case get_fbinding(Fun, Ar, Env) of
         {yes,M,F} -> erlang:apply(M, F, eval_list(Es, Env));
         {yes,F} -> eval_apply(F, eval_list(Es, Env), Env);
-        no -> eval_error({unbound_func,{Fun,Ar}})
+        no -> unbound_func_error({Fun,Ar})
     end;
 eval_expr([_|_]=S, _) ->                        %Test if string literal
     case is_posint_list(S) of
         true -> S;                              %It an "atomic" type
         false ->                                %It is a bad application form
-            eval_error({bad_form,application})
+            bad_form_error(application)
     end;
 eval_expr(Symb, Env) when is_atom(Symb) ->
     case get_vbinding(Symb, Env) of
         {yes,Val} -> Val;
-        no -> eval_error({unbound_symb,Symb})
+        no -> unbound_symb_error(Symb)
     end;
 eval_expr(E, _) -> E.                           %Atomic evaluate to themselves
 
@@ -330,10 +355,10 @@ map_key([quote,E], _) -> E;
 map_key([_|_]=L, _) ->
     case is_posint_list(L) of
         true -> L;                              %Literal strings only
-        false -> eval_error(illegal_mapkey)
+        false -> illegal_mapkey_error()
     end;
 map_key(E, _) when not is_atom(E) -> E;         %Everything else
-map_key(_, _) -> eval_error(illegal_mapkey).
+map_key(_, _) -> illegal_mapkey_error().
 -endif.
 
 %% new_vars(N) -> Vars.
@@ -352,7 +377,7 @@ eval_lambda([lambda,Args|Body], Env) ->
     Apply =  fun (Vals) -> apply_lambda(Args, Body, Vals, Env) end,
     make_lambda(length(Args), Apply);
 eval_lambda(_, _) ->
-    eval_error({bad_form,lambda}).
+    bad_form_error(lambda).
 
 eval_match_lambda(['match-lambda'|Cls], Env) ->
     Apply = fun(Vals) -> apply_match_lambda(Cls, Vals, Env) end,
@@ -381,7 +406,7 @@ make_lambda(Arity, Apply) ->
                       Apply([A,B,C,D,E,F,G,H,I,J,K,L,M,N]) end;
         15 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O) ->
                       Apply([A,B,C,D,E,F,G,H,I,J,K,L,M,N,O]) end;
-        _ -> eval_error(argument_limit)
+        _ -> eval_error({argument_limit,Arity})
     end.
 
 apply_lambda(Args, Body, Vals, Env0) ->
@@ -405,9 +430,10 @@ apply_match_lambda([[Pats|B0]|Cls], Vals, Env) ->
                 {yes,B1,Vbs} -> eval_body(B1, add_vbindings(Vbs, Env));
                 no -> apply_match_lambda(Cls, Vals, Env)
             end;
-       true -> eval_error(badarity)
+       true -> eval_error(bad_arity)
     end;
-apply_match_lambda(_, _, _) -> eval_error(function_clause).
+apply_match_lambda([], Vals, _) -> eval_error({function_clause,Vals});
+apply_match_lambda(_, _, _) -> bad_form_error('match-lambda').
 
 %% eval_let([PatBindings|Body], Env) -> Value.
 
@@ -425,7 +451,7 @@ eval_let([Vbs|Body], Env0) ->
                              {yes,[],Bs} -> add_vbindings(Bs, Env);
                              no -> eval_error({badmatch,Val})
                          end;
-                     (_, _) -> eval_error({bad_form,'let'})
+                     (_, _) -> bad_form_error('let')
                  end, Env0, Vbs),
     eval_body(Body, Env1).
 
@@ -440,7 +466,7 @@ eval_let_function([Fbs|Body], Env0) ->
                      ([V,['match-lambda',[Pats|_]|_]=Match], E)
                        when is_atom(V) ->
                          Add(V, length(Pats), Match, Env0, E);
-                     (_, _) -> eval_error({bad_form,'let-function'})
+                     (_, _) -> bad_form_error('let-function')
                  end, Env0, Fbs),
     %% io:fwrite("elf: ~p\n", [{Body,Env1}]),
     eval_body(Body, Env1).
@@ -455,7 +481,7 @@ eval_letrec_function([Fbs0|Body], Env0) ->
                        {V,length(Args),Lambda};
                    ([V,['match-lambda',[Pats|_]|_]=Match]) when is_atom(V) ->
                        {V,length(Pats),Match};
-                   (_) -> eval_error({bad_form,'letrec-function'})
+                   (_) -> bad_form_error('letrec-function')
                end, Fbs0),
     Env1 = make_letrec_env(Fbs1, Env0),
     %% io:fwrite("elrf: ~p\n", [{Env0,Env1}]),
@@ -534,7 +560,7 @@ eval_if(Test, True, False, Env) ->
     case eval_expr(Test, Env) of
         true -> eval_expr(True, Env);
         false -> eval_expr(False, Env);
-        _ -> eval_error(if_clause)              %Explicit error here
+        _ -> eval_error(if_expression)          %Explicit error here
     end.
 
 %% eval_case(CaseBody, Env) -> Value.
@@ -640,14 +666,18 @@ send_all([], _) -> true.
 eval_try([E,['case'|Cls]|Catch], Env) ->
     eval_try_catch(Catch, E, {yes,Cls}, Env);
 eval_try([E|Catch], Env) ->
-    eval_try_catch(Catch, E, no, Env).
+    eval_try_catch(Catch, E, no, Env);
+eval_try(_, _) ->
+    bad_form_error('try').
 
 eval_try_catch([['catch'|Cls]], E, Case, Env) ->
     eval_try(E, Case, {yes,Cls}, no, Env);
 eval_try_catch([['catch'|Cls],['after'|B]], E, Case, Env) ->
     eval_try(E, Case, {yes,Cls}, {yes,B}, Env);
 eval_try_catch([['after'|B]], E, Case, Env) ->
-    eval_try(E, Case, no, {yes,B}, Env).
+    eval_try(E, Case, no, {yes,B}, Env);
+eval_try_catch(_, _, _, _) ->
+    bad_form_error('try').
 
 %% We do it all in one, not so efficient but easier.
 eval_try(E, Case, Catch, After, Env) ->
@@ -769,20 +799,20 @@ eval_gexpr([call,[quote,erlang],F0|As], Env) ->
     F1 = eval_gexpr(F0, Env),
     case get_gbinding(F1, Ar, Env) of
         {yes,M,F} -> erlang:apply(M, F, eval_glist(As, Env));
-        _ -> eval_error({unbound_func,{F1,Ar}})
+        _ -> unbound_func_error({F1,Ar})
     end;
 eval_gexpr([Fun|Es], Env) when is_atom(Fun) ->
     Ar = length(Es),
     case get_gbinding(Fun, Ar, Env) of
         {yes,M,F} -> erlang:apply(M, F, eval_glist(Es, Env));
-        _ -> eval_error({unbound_func,Fun})
+        _ -> unbound_func_error(Fun)
     end;
 eval_gexpr([_|_], _) ->
     eval_error(illegal_guard);
 eval_gexpr(Symb, Env) when is_atom(Symb) ->
     case get_vbinding(Symb, Env) of
         {yes,Val} -> Val;
-        no -> eval_error({unbound_symb,Symb})
+        no -> unbound_symb_error(Symb)
     end;
 eval_gexpr(E, _) -> E.                %Atoms evaluate to themselves.
 
@@ -816,10 +846,10 @@ gmap_key([quote,E], _) -> E;
 gmap_key([_|_]=L, _) ->
     case is_posint_list(L) of
         true -> L;                              %Literal strings only
-        false -> eval_error(illegal_mapkey)
+        false -> illegal_mapkey_error()
     end;
 gmap_key(E, _) when not is_atom(E) -> E;        %Everything else
-gmap_key(_, _) -> eval_error(illegal_mapkey).
+gmap_key(_, _) -> illegal_mapkey_error().
 -endif.
 
 %% eval_gif(IfBody, Env) -> Val.
@@ -842,7 +872,7 @@ eval_gif(Test, True, False, Env) ->
 match(Pat, Val, Env) -> match(Pat, Val, [], Env).
 
 match([quote,P], Val, Pbs, _) ->
-    if P == Val -> {yes,Pbs};
+    if P =:= Val -> {yes,Pbs};
        true -> no
     end;
 match(['=',P1,P2], Val, Pbs0, Env) ->           %Aliases
@@ -850,11 +880,8 @@ match(['=',P1,P2], Val, Pbs0, Env) ->           %Aliases
         {yes,Pbs1} -> match(P2, Val, Pbs1, Env);
         no -> no
     end;
-match([cons,H,T], [V|Vs], Pbs0, Env) ->         %Explicit cons constructor
-    case match(H, V, Pbs0, Env) of
-        {yes,Pbs1} -> match(T, Vs, Pbs1, Env);
-        no -> no
-    end;
+match([cons,H,T], Val, Pbs, Env) ->             %Explicit cons constructor
+    match_cons(H, T, Val, Pbs, Env);
 match([list|Ps], Val, Pbs, Env) ->              %Explicit list constructor
     match_list(Ps, Val, Pbs, Env);
 match([tuple|Ps], Val, Pbs, Env) ->
@@ -873,19 +900,26 @@ match([map|Ps], Val, Pbs, Env) ->
         true -> match_map(Ps, Val, Pbs, Env);
         false -> no
     end;
-%% Use old no contructor list forms.
-match([P|Ps], [V|Vs], Pbs0, Env) ->
-    case match(P, V, Pbs0, Env) of
-        {yes,Pbs1} -> match(Ps, Vs, Pbs1, Env);
-        no -> no
+match([_|_]=List, Val, Pbs, _) ->               %No constructor
+    case is_posint_list(List) of                %Accept strings
+        true ->
+            if List =:= Val -> {yes,Pbs};
+               true -> no
+            end;
+        false -> eval_error(illegal_pattern)
     end;
-%% match([_|_], _, _, _) ->                     %No constructor
-%%     eval_error(illegal_pattern);
 match([], [], Pbs, _) -> {yes,Pbs};
 match(Symb, Val, Pbs, Env) when is_atom(Symb) ->
     match_symb(Symb, Val, Pbs, Env);
 match(Val, Val, Pbs, _) -> {yes,Pbs};
 match(_, _, _, _) -> no.
+
+match_cons(H, T, [V|Vs], Pbs0, Env) ->
+    case match(H, V, Pbs0, Env) of
+        {yes,Pbs1} -> match(T, Vs, Pbs1, Env);
+        no -> no
+    end;
+match_cons(_, _, _, _, _) -> no.
 
 match_list([P|Ps], [V|Vs], Pbs0, Env) ->
     case match(P, V, Pbs0, Env) of
@@ -948,7 +982,7 @@ get_pat_bitsize(S, _, Bbs, _, Env) when is_atom(S) ->
         no ->
             case find(S, Bbs) of
                 {ok,V} -> V;
-                error -> eval_error({unbound_symb,S})
+                error -> unbound_symb_error(S)
             end
     end.
 
@@ -1065,10 +1099,10 @@ pat_map_key([quote,E]) -> E;
 pat_map_key([_|_]=L) ->
     case is_posint_list(L) of
         true -> L;                              %Literal strings only
-        false -> eval_error(illegal_mapkey)
+        false -> illegal_mapkey_error()
     end;
 pat_map_key(E) when not is_atom(E) -> E;        %Everything else
-pat_map_key(_) -> eval_error(illegal_mapkey).
+pat_map_key(_) -> illegal_mapkey_error().
 
 %% eval_lit(Literal, Env) -> Value.
 %%  Evaluate a literal expression. Error if invalid.
@@ -1090,7 +1124,7 @@ eval_lit([_|_], _) ->                           %All other lists illegal
 eval_lit(Symb, Env) when is_atom(Symb) ->
     case get_vbinding(Symb, Env) of
         {yes,Val} -> Val;
-        no -> eval_error({unbound_symb,Symb})
+        no -> unbound_symb_error(Symb)
     end;
 eval_lit(Key, _) -> Key.                        %Literal values
 
@@ -1107,6 +1141,18 @@ eval_lit_map([K,V|As], Env) ->
 eval_lit_map([], _) -> [].
 
 %% Error functions. {?MODULE,eval_expr,2} is the stacktrace.
+
+unbound_symb_error(Sym) ->
+    eval_error({unbound_symb,Sym}).
+
+unbound_func_error(Func) ->
+    eval_error({unbound_func,Func}).
+
+bad_form_error(Form) ->
+    eval_error({bad_form,Form}).
+
+illegal_mapkey_error() ->
+    eval_error(illegal_mapkey).
 
 eval_error(Error) ->
     erlang:raise(error, Error, stacktrace()).
