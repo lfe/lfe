@@ -16,7 +16,7 @@
 
 (defmacro deftest
   "Define a standard EUnit test."
-  ((name . body)
+  ((cons name body)
    (let ((name_test (list_to_atom (++ (to-unders name) "_test"))))
      `(progn (defun ,name_test () ,@body)
              (extend-module () ((export (,name_test 0))))))))
@@ -51,21 +51,21 @@
 
 (defmacro is-error
   "Equivalent to [[is-exception/3]] with `'error` as `expected-class`."
-  ((expression) `(is-error _ ,expression))
-  ((error body) `(assertError ,error ,body)))
+  (`(,expression) `(is-error _ ,expression))
+  (`(,error ,body) `(assertError ,error ,body)))
 
 (defmacro is-not-error
   "The inverse case of `is-error/{1,2}`, for convenience."
-  ((expression)
+  (`(,expression)
    `(is-not-error _ ,expression))
-  ((expected-term expression)
+  (`(,expected-term ,expression)
    `(is-not-exception 'error ,expected-term ,expression)))
 
 (defmacro is-not-exception
   "The inverse case of [[is-exception/3]], for convenience."
-  ((expression)
+  (`(,expression)
    `(is-not-exception _ _ ,expression))
-  ((expected-class expected-term expression)
+  (`(,expected-class ,expected-term ,expression)
    `(assertNotException ,expected-class ,expected-term ,expression)))
 
 
