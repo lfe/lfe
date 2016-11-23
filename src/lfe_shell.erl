@@ -146,8 +146,32 @@ shell_eval(Form, Eval0, St0) ->
 prompt() ->
     %% Don't bother flattening the list, no need.
     case is_alive() of
-        true -> lfe_io:format1("(~s)> ", [node()]);
-        false -> "> "
+        true -> lfe_io:format1("~s~s~s", node_prompt());
+        false ->
+            %% If a user supplied the ~node formatting option but the
+            %% node is not actually alive, let's get rid of it
+            P1 = user_prompt(),
+            P2 = re:replace(P1, "~node", "", [{return, list}]),
+            lfe_io:format1("~s", [P2])
+    end.
+
+node_prompt () ->
+    Prompt = user_prompt(),
+    Node = atom_to_list(node()),
+    case re:run(Prompt, "~node") of
+        nomatch -> ["(", Node, [")", Prompt]];
+        _ -> ["", re:replace(Prompt, "~node", Node, [{return, list}]), ""]
+    end.
+
+user_prompt () ->
+    %% Allow users to set a prompt with the -prompt flag; note that
+    %% without the flag the default is "lfe> " and to obtain the
+    %% old-style LFE prompt, use -prompt classic.
+    case init:get_argument(prompt) of
+        {ok, [[]]} -> [""];
+        {ok, [["classic"]]} -> ["> "];
+        {ok, [P]} -> P;
+        _ -> ["lfe> "]
     end.
 
 report_exception(Class, Reason, Stk) ->
@@ -418,19 +442,12 @@ list_ews(Format, Ews) ->
 set([], St) -> {[],St};
 set([Pat|Rest], #state{curr=Ce}=St) ->
     Epat = lfe_macro:expand_expr_all(Pat, Ce),  %Expand macros in pattern
-    %% Special case to lint pattern.
-    case lfe_lint:pattern(Epat, Ce) of
-        {ok,_,Ws} -> list_warnings(Ws);
-        {error,Es,Ws} ->
-            list_errors(Es),
-            list_warnings(Ws)
-    end,
     set_1(Epat, Rest, St).
 
 set_1(Pat, [['when'|_]=G,Exp], St) ->
     set_1(Pat, [G], Exp, St);                   %Just the guard
 set_1(Pat, [Exp], St) ->
-    set_1(Pat, [], Exp, St);                    %Empty body
+    set_1(Pat, [], Exp, St);                    %Empty guard body
 set_1(_, _, _) -> erlang:error({bad_form,'set'}).
 
 set_1(Pat, Guard, Exp, #state{curr=Ce0}=St) ->

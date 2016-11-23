@@ -627,7 +627,7 @@ to_let_bindings(Lbs, L, Vt, St) ->
 %%  If/case/receive/try clauses.
 
 to_icrt_cls(Cls, L, Vt, St) ->
-    Fun = fun (Cl, St0) -> to_icrt_cl(Cl, L, Vt, St0) end, 
+    Fun = fun (Cl, St0) -> to_icrt_cl(Cl, L, Vt, St0) end,
     mapfoldl(Fun, St, Cls).
 
 to_icrt_cl([P,['when'|G]|B], L, Vt0, St0) ->

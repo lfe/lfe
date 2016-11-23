@@ -429,6 +429,34 @@
   (is-not (clj:identical? '(a b c) '(a b d)))
   (is (clj:identical? '(a b c) '(a b c))))
 
+;;; Other macros.
+
+(deftest str
+  (are* [x y] (ok? (is-match x y))
+        "" (clj:str)
+        "123" (clj:str 1 2 3)
+        "abc" (clj:str "a" "b" "c")
+        "abc" (clj:str 'a 'b "c")
+        "1a2b" (clj:str 1 'a 2 "b")
+        "2.0c" (clj:str 2.0 'c)
+        "roughly 3.14"
+        (let ((pi-string (clj:str "roughly" " " 3.14)))
+          pi-string)
+        "200 and a half"
+        (let ((number-str (clj:str 200 " " 'and " " 'a " " 'half)))
+          number-str)
+        "eighty plus 1000"
+        (let ((x "eighty ")
+              (y "plus ")
+              (z 1000))
+          (clj:str x y z))
+        "a1b2"
+        (let ((a 'a)
+              (b 'b)
+              (one 1)
+              (two 2))
+          (clj:str a one b two))))
+
 ;; Based on OTP's queue_SUITE.
 (deftest queue?
   (is-not (clj:queue? '[1 2 3 4 5]))
@@ -487,6 +515,16 @@
         '(2 3 4)      (clj:seq 2 4)
         '(2 4 6 8 10) (clj:seq 2 10 2)))
 
+(deftest conj
+  (is-match '(1 2 3 4) (clj:conj '(2 3 4) 1))
+  (is-match '((1) 2 3 4) (clj:conj '(2 3 4) '(1)))
+  (is-match #(a b c d) (clj:conj #(a b c) 'd))
+  (is-match #(a b c #(d)) (clj:conj #(a b c) #(d)))
+  (IFF-MAPS
+   (is-equal (maps:from_list '(#(a 1) #(b 2)))
+             (clj:conj (maps:from_list '(#(b 2)))
+                       (maps:from_list '(#(a 1)))))))
+
 (deftest drop
   (are* [x y] (ok? (is-match x y))
         '(6 7 8 9 10 11 12) (clj:drop 5    (lists:seq 1 12))
@@ -515,6 +553,107 @@
                                          ([2 _] 3)
                                          ([3 _] 4)
                                          ([4 _] (error 'overzealous-take)))))))
+
+(deftest lazy-seq-and-take-and-drop
+  (are* [x y] (ok? (is-match x y))
+
+        ()
+        (clj:lazy-seq ())
+
+        ()
+        (clj:take 1 (clj:lazy-seq ()))
+
+        '(1 2)
+        (clj:take 2 (clj:lazy-seq '(1 2 3)))
+
+        '(1 2 3)
+        (clj:take 3 (clj:lazy-seq '(1 2 3)))
+
+        '(1 2 3)
+        (clj:take 4 (clj:lazy-seq '(1 2 3))))
+
+  (are* [x y] (ok? (is-match x y))
+
+        ()
+        (clj:take 1 (clj:drop 1 (clj:lazy-seq ())))
+
+        ()
+        (clj:take 1 (clj:drop 1 (clj:lazy-seq '(1))))
+
+        ()
+        (clj:take 1 (clj:drop 4 (clj:lazy-seq '(1 2 3))))
+
+        '(2 3)
+        (clj:take 2 (clj:drop 1 (clj:lazy-seq '(1 2 3))))
+
+        '(2 3)
+        (clj:take 2 (clj:drop 1 (clj:range 1)))))
+
+(deftest lazy-seq-evaluation
+  (flet ((form-list (last-element)
+                    `(lists:map #'funcall/1
+                                '((lambda () 1)
+                                  (lambda () ,last-element)))))
+
+    (let ((bad-list (form-list '(error 'evaluation_error)))
+          (good-list (form-list 2)))
+
+      (is-error 'evaluation_error (eval bad-list))
+      (is-error 'evaluation_error (eval `(clj:take 1 (clj:lazy-seq ,bad-list))))
+
+      (is-not-error (eval `(clj:lazy-seq ,bad-list)))
+      (is-not-error (eval `(clj:lazy-seq (clj:lazy-seq ,bad-list))))
+
+      (is-match '(1 2) (eval `(clj:take 3 (clj:lazy-seq ,good-list)))))))
+
+(deftest cycle-and-take
+  (are* [x y] (ok? (is-match x y))
+
+        ()
+        (clj:cycle ())
+
+        '(1 1 1)
+        (clj:take 3 (clj:cycle '(1)))
+
+        '(1 2 3)
+        (clj:take 3 (clj:cycle '(1 2 3)))
+
+        '(1 2)
+        (clj:take 2 (clj:cycle '(1 2 3)))
+
+        '(1 2 3 1)
+        (clj:take 4 (clj:cycle '(1 2 3)))
+
+        '(1 2 3 1 2 3 1)
+        (clj:take 7 (clj:cycle '(1 2 3))))
+
+  (are* [x y] (ok? (is-match x y))
+
+        '(3 3 3 3)
+        (clj:take 4 (clj:cycle (clj:repeat 3)))
+
+        '(3 4 5 6)
+        (clj:take 4 (clj:cycle (clj:range 3)))
+
+        '(1 2 3 1)
+        (clj:take 4 (clj:cycle (clj:cycle '(1 2 3)))))
+
+  (are* [x y] (ok? (is-match x y))
+
+        ()
+        (clj:cycle (clj:lazy-seq ()))
+
+        '(1 1 1)
+        (clj:take 3 (clj:cycle (clj:lazy-seq '(1))))
+
+        '(1 2 3 1 2 3 1)
+        (clj:take 7 (clj:cycle (clj:lazy-seq '(1 2 3))))
+
+        '(1 2 3 1 2 3 1)
+        (clj:take 7 (clj:lazy-seq (clj:cycle '(1 2 3))))
+
+        '(2 3 2 3 2)
+        (clj:take 5 (clj:cycle (clj:drop 1 (clj:lazy-seq '(1 2 3)))))))
 
 (deftest range
   (are* [x y] (ok? (is-match x y))

@@ -86,16 +86,19 @@ all: compile
 compile: comp_opts.mk
 	$(MAKE) $(MFLAGS) erlc-lfec
 
-## Compile using erlc
+## Compile Erlang files using erlc
 erlc-compile: $(addprefix $(EBINDIR)/, $(EBINS)) $(addprefix $(BINDIR)/, $(BINS))
 
-## Compile using lfec
+## Compile LFE files using lfec
 lfec-compile: $(addprefix $(EBINDIR)/, $(LBINS))
+
+$(addprefix $(EBINDIR)/, $(LBINS)): $(addprefix $(EBINDIR)/, $(EBINS))
 
 $(EBINDIR)/$(APP_DEF): $(SRCDIR)/$(APP_DEF).src
 	cp $(SRCDIR)/$(APP_DEF).src $(EBINDIR)/$(APP_DEF)
 
-erlc-lfec: erlc-compile lfec-compile $(EBINDIR)/$(APP_DEF)
+## Compile Erlang files using erlc and LFE files using lfec
+erlc-lfec: erlc-compile $(EBINDIR)/$(APP_DEF) lfec-compile
 
 emacs:
 	cd $(EMACSDIR) ; \
@@ -235,7 +238,7 @@ $(EPUBDIR)/%.epub: $(DOCSRC)/%.3.md
 $(EPUBDIR)/%.epub: $(DOCSRC)/%.7.md
 	pandoc -f markdown -t epub -o $@ $<
 
-install-man: docs-man
+install-man:
 	@mkdir -p $(MANINSTDIR)/man1 $(MANINSTDIR)/man3 $(MANINSTDIR)/man7
 	cp $(MANDIR)/*.1 $(MANINSTDIR)/man1/
 	cp $(MANDIR)/*.3 $(MANINSTDIR)/man3/

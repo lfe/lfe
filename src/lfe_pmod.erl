@@ -122,7 +122,7 @@ collect_imps(Is, St) ->
                               S#param.env, Fs),
                   S#param{env=Env}
           end, St, Is).
-    
+
 %% exp_function(Lambda, State) -> Lambda.
 %%  The resultant code matches the arguments in two steps: first the
 %%  THIS arguemnt is matched and then the expanded function body
