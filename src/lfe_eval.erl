@@ -60,9 +60,11 @@ format_error({multi_var,V}) ->
     lfe_io:format1("multiple occurrence of variable: ~w", [V]);
 format_error(illegal_bitsize) -> "illegal bitsize";
 format_error(illegal_bitseg) -> "illegal bitsegment";
-format_error(illegal_pattern) -> "illegal pattern";
+format_error({illegal_pattern,Pat}) ->
+    lfe_io:format1("illegal pattern: ~w", [Pat]);
 format_error(illegal_literal) -> "illegal literal value";
-format_error(illegal_mapkey) -> "illegal map key";
+format_error({illegal_mapkey,Key}) ->
+    lfe_io:format1("illegal map key: ~w", [Key]);
 format_error(bad_arity) -> "arity mismatch";
 format_error({argument_limit,Arity}) ->
     lfe_io:format1("too many arguments: ~w", [Arity]);
@@ -355,10 +357,10 @@ map_key([quote,E], _) -> E;
 map_key([_|_]=L, _) ->
     case is_posint_list(L) of
         true -> L;                              %Literal strings only
-        false -> illegal_mapkey_error()
+        false -> illegal_mapkey_error(L)
     end;
 map_key(E, _) when not is_atom(E) -> E;         %Everything else
-map_key(_, _) -> illegal_mapkey_error().
+map_key(E, _) -> illegal_mapkey_error(E).
 -endif.
 
 %% new_vars(N) -> Vars.
@@ -846,10 +848,10 @@ gmap_key([quote,E], _) -> E;
 gmap_key([_|_]=L, _) ->
     case is_posint_list(L) of
         true -> L;                              %Literal strings only
-        false -> illegal_mapkey_error()
+        false -> illegal_mapkey_error(L)
     end;
 gmap_key(E, _) when not is_atom(E) -> E;        %Everything else
-gmap_key(_, _) -> illegal_mapkey_error().
+gmap_key(E, _) -> illegal_mapkey_error(E).
 -endif.
 
 %% eval_gif(IfBody, Env) -> Val.
@@ -906,7 +908,7 @@ match([_|_]=List, Val, Pbs, _) ->               %No constructor
             if List =:= Val -> {yes,Pbs};
                true -> no
             end;
-        false -> eval_error(illegal_pattern)
+        false -> eval_error({illegal_pattern,List})
     end;
 match([], [], Pbs, _) -> {yes,Pbs};
 match(Symb, Val, Pbs, Env) when is_atom(Symb) ->
@@ -1093,16 +1095,16 @@ match_map([K,V|Ps], Map, Pbs0, Env) ->
         false -> no
     end;
 match_map([], _, Pbs, _) -> {yes,Pbs};
-match_map(_, _, _, _) -> eval_error(illegal_pattern).
+match_map(Ps, _, _, _) -> eval_error({illegal_pattern,Ps}).
 
 pat_map_key([quote,E]) -> E;
 pat_map_key([_|_]=L) ->
     case is_posint_list(L) of
         true -> L;                              %Literal strings only
-        false -> illegal_mapkey_error()
+        false -> illegal_mapkey_error(L)
     end;
 pat_map_key(E) when not is_atom(E) -> E;        %Everything else
-pat_map_key(_) -> illegal_mapkey_error().
+pat_map_key(K) -> illegal_mapkey_error(K).
 
 %% eval_lit(Literal, Env) -> Value.
 %%  Evaluate a literal expression. Error if invalid.
@@ -1119,8 +1121,8 @@ eval_lit([binary|Bs], Env) ->
 eval_lit([map|As], Env) ->
     KVs = eval_lit_map(As, Env),
     maps:from_list(KVs);
-eval_lit([_|_], _) ->                           %All other lists illegal
-    eval_error(illegal_literal);
+eval_lit([_|_]=Lit, _) ->                       %All other lists illegal
+    eval_error({illegal_literal,Lit});
 eval_lit(Symb, Env) when is_atom(Symb) ->
     case get_vbinding(Symb, Env) of
         {yes,Val} -> Val;
@@ -1151,8 +1153,8 @@ unbound_func_error(Func) ->
 bad_form_error(Form) ->
     eval_error({bad_form,Form}).
 
-illegal_mapkey_error() ->
-    eval_error(illegal_mapkey).
+illegal_mapkey_error(Key) ->
+    eval_error({illegal_mapkey,Key}).
 
 eval_error(Error) ->
     erlang:raise(error, Error, stacktrace()).
