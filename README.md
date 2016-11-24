@@ -16,9 +16,9 @@ code. An LFE evaluator and shell is also included.
 To compile LFE, simple clone it and compile:
 
 ```shell
-    $ git clone https://github.com/rvirding/lfe.git
-    $ cd lfe
-    $ make compile
+$ git clone https://github.com/rvirding/lfe.git
+$ cd lfe
+$ make compile
 ```
 
 LFE requires Erlang be installed on the system and that the ``erl`` binary is
@@ -31,7 +31,7 @@ Should you wish to have LFE available system-wide, you can run
 the following ``make`` target:
 
 ```shell
-    $ make install
+$ make install
 ```
 
 By default this will create the programs ``lfe``, ``lfec`` and
@@ -47,7 +47,7 @@ desired top man directory.
 So:
 
 ```shell
-    $ make install DESTBINDIR=/Users/rv/bin MANINSTDIR=/Users/rv/man
+$ make install DESTBINDIR=/Users/rv/bin MANINSTDIR=/Users/rv/man
 ```
 
 will put the programs in ``/Users/rv/bin`` and the man pages in the
@@ -60,34 +60,34 @@ If you're running LFE from a git clone working dir, you can start the REPL
 like so after compiling:
 
 ```shell
-    $ ./bin/lfe
-    Erlang 17 (erts-6.0) [source] [64-bit] [smp:8:8] ...
+$ ./bin/lfe
+Erlang 17 (erts-6.0) [source] [64-bit] [smp:8:8] ...
 
-    LFE Shell V6.0 (abort with ^G)
-    >
+LFE Shell V6.0 (abort with ^G)
+>
 ```
 
 If you have installed LFE, then you may start the REPL from any location:
 
 ```shell
-    $ lfe
-    Erlang 17 (erts-6.0) [source] [64-bit] [smp:8:8] ...
+$ lfe
+Erlang 17 (erts-6.0) [source] [64-bit] [smp:8:8] ...
 
-    LFE Shell V6.0 (abort with ^G)
-    >
+LFE Shell V6.0 (abort with ^G)
+>
 ```
 
 Likewise, you may run an LFE shell script in the same style as shell scripts
 with:
 
 ```shell
-    $ ./bin/lfe script-name script-arg-1 ...
+$ ./bin/lfe script-name script-arg-1 ...
 ```
 
 or
 
 ```shell
-    $ lfe script-name script-arg-1 ...
+$ lfe script-name script-arg-1 ...
 ```
 
 ## Usage
@@ -98,10 +98,10 @@ that will show you how to start using LFE. However, here's a quick taste:
 * start up an LFE REPL as demonstrated above
 * then, do something like this:
 ```cl
-    > (* 2 (+ 1 2 3 4 5 6))
-    42
-    > (* 2 (lists:foldl #'+/2 0 (lists:seq 1 6)))
-    42
+> (* 2 (+ 1 2 3 4 5 6))
+42
+> (* 2 (lists:foldl #'+/2 0 (lists:seq 1 6)))
+42
 ```
 
 ## Docker Support
@@ -125,7 +125,9 @@ Here are a couple of simple usage examples:
 ```bash
 $ docker run lfex/lfe
 42
+```
 
+```bash
 $ docker run -i -t lfex/lfe lfe
 Erlang/OTP 18 [erts-7.0] [source-4d83b58] [64-bit] [smp:8:8] ...
 
