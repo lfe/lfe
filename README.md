@@ -151,12 +151,14 @@ Files with more technical details:
 
 * [lfe.txt](doc/lfe.txt)
 * [lfescript.txt](doc/lfescript.txt)
-* [lfe_macro.txt](doc/lfe_macro.txt)
-* [lfe_lib.txt](doc/lfe_lib.txt)
-* [lfe_io.txt](doc/lfe_io.txt)
-* [lfe_gen.txt](doc/lfe_gen.txt)
-* [lfe_comp.txt](doc/lfe_comp.txt)
 * [lfe_bits.txt](doc/lfe_bits.txt)
+* [lfe_clj.txt](doc/lfe_clj.txt)
+* [lfe_comp.txt](doc/lfe_comp.txt)
+* [lfe_doc.txt](doc/lfe_doc.txt)
+* [lfe_gen.txt](doc/lfe_gen.txt)
+* [lfe_io.txt](doc/lfe_io.txt)
+* [lfe_lib.txt](doc/lfe_lib.txt)
+* [lfe_macro.txt](doc/lfe_macro.txt)
 
 If you would like to make changes to the LFE documentation and then regenerate
 the docs, you'll want to read the instructions here:
