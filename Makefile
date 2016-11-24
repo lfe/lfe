@@ -21,6 +21,14 @@ CSRCDIR = c_src
 LSRCDIR = src
 INCDIR = include
 EMACSDIR = emacs
+PREFIX ?= /usr/local
+INSTALL = install
+INSTALL_DIR = $(INSTALL) -m755 -d
+INSTALL_DATA = $(INSTALL) -m644
+INSTALL_BIN = $(INSTALL) -m755
+DESTLIBDIR := $(PREFIX)/lib/lfe
+DESTEBINDIR := $(DESTLIBDIR)/$(EBINDIR)
+DESTBINDIR := $(DESTLIBDIR)/$(BINDIR)
 
 VPATH = $(SRCDIR)
 
@@ -57,9 +65,6 @@ BINS = $(CSRCS:.c=)
 
 EMACSRCS = $(notdir $(wildcard $(EMACSDIR)/*.el))
 ELCS = $(EMACSRCS:.el=.elc)
-
-## Where we install links to the LFE binaries.
-DESTBINDIR ?= $(PREFIX)$(shell dirname `which erl` 2> /dev/null || echo "/usr/local/bin" )
 
 .SUFFIXES: .erl .beam
 
@@ -109,11 +114,15 @@ comp_opts.mk:
 
 -include comp_opts.mk
 
-install: install-man
-	ln -sf `pwd`/bin/lfe $(DESTBINDIR)
-	ln -sf `pwd`/bin/lfec $(DESTBINDIR)
-	ln -sf `pwd`/bin/lfedoc $(DESTBINDIR)
-	ln -sf `pwd`/bin/lfescript $(DESTBINDIR)
+install: compile install-man
+	rm -Rf $(DESTEBINDIR)
+	$(INSTALL_DIR) $(DESTEBINDIR)
+	$(INSTALL_DATA) $(EBINDIR)/$(APP_DEF) $(DESTEBINDIR)
+	$(INSTALL_DATA) $(addprefix $(EBINDIR)/, $(EBINS)) $(DESTEBINDIR)
+	$(INSTALL_DATA) $(addprefix $(EBINDIR)/, $(LBINS)) $(DESTEBINDIR)
+	$(INSTALL_DIR) $(DESTBINDIR)
+	$(INSTALL_BIN) $(BINDIR)/lfe{,c,doc,script} $(DESTBINDIR)
+	ln -sf $(DESTBINDIR)/* $(PREFIX)/bin/
 
 clean:
 	rm -rf $(EBINDIR)/*.beam erl_crash.dump comp_opts.mk
@@ -143,7 +152,7 @@ DOCSRC = $(DOCDIR)/src
 MANDIR = $(DOCDIR)/man
 PDFDIR = $(DOCDIR)/pdf
 EPUBDIR = $(DOCDIR)/epub
-MANINSTDIR ?= /usr/local/share/man
+MANINSTDIR ?= $(PREFIX)/share/man
 
 MAN1_SRCS = $(notdir $(wildcard $(DOCSRC)/*1.md))
 MAN1S = $(MAN1_SRCS:.1.md=.1)
@@ -239,10 +248,10 @@ $(EPUBDIR)/%.epub: $(DOCSRC)/%.7.md
 	pandoc -f markdown -t epub -o $@ $<
 
 install-man:
-	@mkdir -p $(MANINSTDIR)/man1 $(MANINSTDIR)/man3 $(MANINSTDIR)/man7
-	cp $(MANDIR)/*.1 $(MANINSTDIR)/man1/
-	cp $(MANDIR)/*.3 $(MANINSTDIR)/man3/
-	cp $(MANDIR)/*.7 $(MANINSTDIR)/man7/
+	$(INSTALL_DIR) $(MANINSTDIR)/man{1,3,7}
+	$(INSTALL_DATA) $(MANDIR)/*.1 $(MANINSTDIR)/man1/
+	$(INSTALL_DATA) $(MANDIR)/*.3 $(MANINSTDIR)/man3/
+	$(INSTALL_DATA) $(MANDIR)/*.7 $(MANINSTDIR)/man7/
 
 # Targets for working with Docker
 docker-build:
