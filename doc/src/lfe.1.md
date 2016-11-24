@@ -26,9 +26,27 @@ They can also be explicitly called (: lfe_shell ...).
 
 Compile and load an LFE file. Assumes default extension ``.lfe``.
 
+**(: c Command Arg ...)**
+
+**(c:Command Arg ...)**
+
+All the commands in the standard Erlang shell can be reached in this way.
+
 **(cd Dir)**
 
 Change the working directory.
+
+**(clear)**
+
+Clear the REPL output.
+
+**([doc | describe] Mod)**
+
+**([doc | describe] Mod:Mac)**
+
+**([doc | describe] Mod:Fun/Arity)**
+
+Print out documentation of a module/macro/function.
 
 **(ec File [Options])**
 
@@ -44,22 +62,32 @@ Print/prettyprint a value in Erlang form to full depth.
 
 Flush any messages sent to the shell.
 
-**(i)**
+**(h)**
 
-Print information about the currently running processes in the system.
+**(help)**
+
+Print usage info.
+
+**(i [(list Pid ...)])**
+
+Print information about a list of pids. If no list is given then
+print information about currently running processes in the system.
 
 **(l Module ...)**
 
 Load modules.
 
-**(m Module ...)**
+**(ls)**
 
-Print out module information, if no modules are given then print
+**(ls dir)**
+
+List files in a directory. If no directory is given then list
+files in the current directory.
+
+**(m [Module ...])**
+
+Print out module information. If no modules are given then print
 information about all modules.
-
-**(pid x y z)**
-
-Create a pid from x, y, z.
 
 **(p Expr)**
 
@@ -67,19 +95,21 @@ Create a pid from x, y, z.
 
 Print/prettyprint a value to full depth.
 
+**(pid x y z)**
+
+Create a pid from x, y, z.
+
 **(pwd)**
 
 Print the current working directory.
 
+**(q)**
+
+Quit - shorthand for ``init:stop/0``.
+
 **(regs)**
 
 Print information about the registered processes in the system.
-
-**(: c Command Arg ...)**
-
-**(c:Command Arg ...)**
-
-All the commands in the standard Erlang shell can be reached in this way.
 
 
 # BUILT-IN SHELL COMMANDS
@@ -91,6 +121,12 @@ top-level in shell input. The cannot be redefined.
 
 Resets the environment to its initial state. This will clear all
 variables, functions an macros that have been set.
+
+**(run File)**
+
+Execute all the shell commands in File. All defined
+variables, functions and macros will be saved in the
+environment if there are no errors.
 
 **(set Pattern Expr)**
 
@@ -112,12 +148,6 @@ slurping a new file basically does an unslurp first.
 Revert back to the state before the last slurp
 removing all function and macro definitions both in
 the slurped file and defined in the shell since then.
-
-**(run File)**
-
-Execute all the shell commands in File. All defined
-variables, functions and macros will be saved in the
-environment if there are no errors.
 
 
 # SHELL FUNCTIONS AND MACROS
@@ -228,4 +258,4 @@ empty list.
 
 # SEE ALSO
 
-**lfescript(1)**, **lfe_guide(7)**
+**lfescript(1)**, **lfe_guide(7)** **lfe_doc(3)**
