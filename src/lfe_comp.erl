@@ -26,6 +26,7 @@
 
 -module(lfe_comp).
 
+-export([format_error/1]).
 -export([file/1,file/2,forms/1,forms/2,default_options/0]).
 
 %% -compile(export_all).
@@ -55,6 +56,9 @@
 %%  Return the default compiler options.
 
 -define(DEFAULT_OPTS, [verbose,report]).
+
+%% Errors.
+format_error(write_file) -> "error writing file".
 
 default_options() -> ?DEFAULT_OPTS.
 
@@ -554,18 +558,22 @@ do_list_save_file(SaveOne, Ext, St) ->
               end,
     do_save_file(SaveAll, Ext, St).
 
-do_save_file(Save, Ext, St) ->
+do_save_file(SaveAll, Ext, St) ->
     Name = filename:join(St#comp.odir, St#comp.base ++ ["."|Ext]),
     %% delayed_write useful here but plays havoc with erjang.
     case file:open(Name, [write]) of
         {ok,File} ->
-            Ret = Save(File, St#comp.code),
+            Ret = SaveAll(File, St#comp.code),
             ok = file:close(File),
             case Ret of
                 ok -> {ok,St};
-                {error,E} -> {error,St#comp{errors=[{file,E}]}}
+                {error,_} ->
+		    %% Just signal we couldn't write the file.
+		    {error,St#comp{errors=[{lfe_comp,write_file}]}}
             end;
-        {error,E} -> {error,St#comp{errors=[{file,E}]}}
+        {error,_} ->
+	    %% Just signal we couldn't write the file.
+	    {error,St#comp{errors=[{lfe_comp,write_file}]}}
     end.
 
 do_add_docs(#comp{cinfo=Ci,code=Ms0}=St0) ->
@@ -590,8 +598,9 @@ beam_write_module(#module{name=M,code=Beam}=Mod, St) ->
     Name = filename:join(St#comp.odir, lists:concat([M,".beam"])),
     case file:write_file(Name, Beam) of
         ok -> Mod;
-        {error,E} ->
-            {error,St#comp{errors=[{file,E}]}}
+        {error,_} ->
+	    %% Just signal we couldn't write the file.
+            {error,[{lfe_comp,write_file}],[]}
     end.
 
 %% fix_erl_errors([{File,Errors}]) -> Errors.
