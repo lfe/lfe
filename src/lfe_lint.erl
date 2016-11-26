@@ -21,9 +21,6 @@
 -export([module/1,module/2,form/1,expr/1,expr/2,
          pattern/1,pattern/2,format_error/1]).
 
--import(lfe_env, [new/0,is_vbound/2,is_fbound/3,is_gbound/3,
-                  add_vbinding/3,add_fbinding/4,add_ibinding/5]).
-
 -import(lfe_lib, [is_erl_bif/2,is_guard_bif/2,
                   is_symb_list/1,is_proper_list/1]).
 
@@ -318,7 +315,7 @@ init_state(St) ->
     %% Add the imports.
     Env0 = foldl(fun ({M,Fs}, Env) ->
                          foldl(fun ({{F,A},R}, E) ->
-                                       add_ibinding(M, F, A, R, E)
+                                       lfe_env:add_ibinding(M, F, A, R, E)
                                end, Env, Fs)
                  end, lfe_env:new(), St#lint.imps),
     %% Basic predefines
@@ -451,7 +448,7 @@ check_expr(Lit, Env, L, St) ->                  %Everything else is a literal
 %%  Check if Symbol is bound.
 
 check_symb(Symb, Env, L, St) ->
-    case is_vbound(Symb, Env) of
+    case lfe_env:is_vbound(Symb, Env) of
         true -> St;
         false -> add_error(L, {unbound_symb,Symb}, St)
     end.
@@ -460,7 +457,7 @@ check_symb(Symb, Env, L, St) ->
 %%  Check if Func/Arity is bound.
 
 check_func(F, Ar, Env, L, St) ->
-    case is_fbound(F, Ar, Env) of
+    case lfe_env:is_fbound(F, Ar, Env) of
         true -> St;
         false -> unbound_func_error(L, {F,Ar}, St)
     end.
@@ -634,35 +631,32 @@ check_lambda_args(Args, L, St) ->
     end.
 
 %% check_match_lambda(MatchBody, Env, Line, State) -> State.
-%% Check form (match-lambda Clause ...), must be at least one clause.
-%% First check arities then each clause, don't assume anything.
+%%  Check form (match-lambda Clause ...), must be at least one clause.
+%%  Use arity of 1st as THE arity. Do one pass to get errors in right
+%%  order.
 
-check_match_lambda([[Pat|_]|_]=Cls, Env, L, St0) ->
-    St1 = case is_proper_list(Pat) of
-              true -> check_ml_arity(tl(Cls), length(Pat), L, St0);
-              false -> St0
-          end,
-    check_ml_clauses(Cls, Env, L, St1);
-check_match_lambda(_, _, L, St) ->              %Totally wrong
+check_match_lambda([C|_]=Cls, Env, L, St) ->
+    Ar = ml_arity(C),                           %Arity of 1st clause
+    check_ml_clauses(Cls, Ar, Env, L, St);
+check_match_lambda(_, _, L, St) ->              %Totally wrong, no clauses
     bad_form_error(L, 'match-lambda', St).
 
-check_ml_arity([[Pat|_]|Cls], Ar, L, St) ->
-    case is_proper_list(Pat) andalso length(Pat) == Ar of
-        true -> check_ml_arity(Cls, Ar, L, St);
-        false -> add_error(L, bad_arity, St)
-    end;
-check_ml_arity([], _, _, St) -> St.
+ml_arity([Pat|_]) ->
+    safe_length(Pat, -1);
+ml_arity(_) -> -1.
 
-check_ml_clauses(Cls, Env, L, St) ->
-    %% Sneaky! m-l args a list of patterns so wrap with list and pass
-    %% in as one pattern. Have already checked a proper list.
-    foreach_form(fun ([As|B], S) -> check_clause([[list|As]|B], Env, L, S) end,
+check_ml_clause([Pat|Rest]=C, Ar, Env0, L, St0) ->
+    St1 = case ml_arity(C) =:= Ar of
+              true -> St0;
+              false -> add_error(L, bad_arity, St0)
+          end,
+    check_clause([[list|Pat]|Rest], Env0, L, St1);
+check_ml_clause(_, _, _, L, St) ->
+    bad_form_error(L, clause, St).
+
+check_ml_clauses(Cls, Ar, Env, L, St) ->
+    foreach_form(fun (C, S) -> check_ml_clause(C, Ar, Env, L, S) end,
                  'match-lambda', L, St, Cls).
-
-%% check_ml_clauses(Cls, Env, L, St) ->
-%%     %% Sneaky! m-l args list of patterns so just pass in as one pattern.
-%%     foreach_form(fun (Cl, S) -> check_clause(Cl, Env, L, S) end,
-%%           'match-lambda', L, St, Cls).
 
 %% check_let(LetBody, Env, Line, State) -> {Env,State}.
 %%  Check let variable bindings and then body. Must be careful to use
@@ -916,7 +910,7 @@ check_gexpr([call|_], _, L, St) ->              %Other calls not allowed
 check_gexpr([Fun|As], Env, L, St0) when is_atom(Fun) ->
     St1 = check_gargs(As, Env, L, St0),
     %% Function must be a legal guard bif AND not a defined function.
-    case is_gbound(Fun, safe_length(As), Env) of
+    case lfe_env:is_gbound(Fun, safe_length(As), Env) of
         true -> St1;
         false -> illegal_guard_error(L, St1)
     end;
@@ -1188,7 +1182,7 @@ pat_bit_size(undefined, {Ty,_,_,_}, _, _, _, L, St) ->
 pat_bit_size(N, _, _, _, _, _, St) when is_integer(N), N > 0 -> St;
 pat_bit_size(S, _, Bvs, _, Env, L, St) when is_atom(S) ->
     %% Size must be bound here or occur earlier in binary pattern.
-    case is_element(S, Bvs) or is_vbound(S, Env) of
+    case is_element(S, Bvs) or lfe_env:is_vbound(S, Env) of
         true -> St;
         false -> add_error(L, {unbound_symb,S}, St)
     end;
