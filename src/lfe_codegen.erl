@@ -92,18 +92,39 @@ collect_module(Mfs, St0) ->
 %%  Collect valid forms and module data. Returns forms and put module
 %%  data into state.
 
-collect_form({['define-module',Mod,_Meta,Atts],L}, {Acc,St}) ->
-    %% Ignore the meta data, everything else into State.
-    {Acc,collect_attrs(Atts, L, St#cg{module=Mod,anno=[L]})};
-collect_form({['extend-module',_Meta,Atts],L}, {Acc,St}) ->
-    %% Ignore the meta data, everything else into State.
-    {Acc,collect_attrs(Atts, L, St#cg{anno=[L]})};
+collect_form({['define-module',Mod,Meta,Atts],L}, {Acc,St0}) ->
+    St1 = collect_metas(Meta, L, St0#cg{module=Mod,anno=[L]}),
+    {Acc,collect_attrs(Atts, L, St1)};
+collect_form({['extend-module',Meta,Atts],L}, {Acc,St0}) ->
+    St1 = collect_metas(Meta, L, St0#cg{anno=[L]}),
+    {Acc,collect_attrs(Atts, L, St1)};
+collect_form({['define-type',Type,Def],L}, {Acc,St}) ->
+    {Acc,collect_attr([type,[Type,Def]], L, St#cg{anno=[L]})};
+collect_form({['define-opaque-type',Type,Def],L}, {Acc,St}) ->
+    {Acc,collect_attr([opaque,[Type,Def]], L, St#cg{anno=[L]})};
+collect_form({['define-function-spec',Func,Spec],L}, {Acc,St}) ->
+    {Acc,collect_attr([spec,[Func,Spec]], L, St#cg{anno=[L]})};
 collect_form({['define-function',Name,_Meta,Def],L}, {Acc,St}) ->
     %% Ignore the meta data.
     {[{Name,Def,L}|Acc],St};
 %% Ignore macro definitions and eval-when-compile forms.
 collect_form({['define-macro'|_],_}, {Acc,St}) -> {Acc,St};
 collect_form({['eval-when-compile'|_],_}, {Acc,St}) -> {Acc,St}.
+
+%% collect_metas(Metas, Line, State) -> State.
+%%  Collect module metadata which is to be compiled. Only type
+%%  information is to be kept.
+
+collect_metas(Ms, L, St) ->
+    foldl(fun (M, S) -> collect_meta(M, L, S) end, St, Ms).
+
+collect_meta([type,[_,_]=T], L, #cg{atts=As}=St) ->
+    St#cg{atts=As ++ [{type,[T],L}]};
+collect_meta([opaque,[_,_]=T], L, #cg{atts=As}=St) ->
+    St#cg{atts=As ++ [{opaque,[T],L}]};
+collect_meta([spec,[_,_]=S], L, #cg{atts=As}=St) ->
+    St#cg{atts=As ++ [{opaque,[S],L}]};
+collect_meta(_M, _L, St) -> St.                 %Ignore the rest
 
 %% collect_attrs(Attributes, Line, State) -> State.
 %%  Collect module attributes and fill in the #cg state record. Need
@@ -164,9 +185,9 @@ compile_forms(Fbs0, St0, Core0) ->
     St1 = St0#cg{exps=add_exports(St0#cg.exps, Predefs),
                  defs=Fbs1,env=Env},
     Exps = make_exports(St1#cg.exps, Fbs1),
-    Atts = map(fun ({N,V,L}) ->
-                       Ann = [L],
-                       {ann_c_lit(Ann, N),ann_c_lit(Ann, V)}
+    Atts = map(fun (Attr) ->
+                       %% io:format("ca: ~p\n", [Attr]),
+                       comp_attribute(Attr)
                end, St1#cg.atts),
     %% Compile the functions.
     {Cdefs,St2} = mapfoldl(fun (D, St) -> comp_define(D, Env, St) end,
@@ -199,6 +220,76 @@ make_exports(all, Fbs) ->
     map(fun ({F,Def,_}) -> c_fname(F, func_arity(Def)) end, Fbs);
 make_exports(Exps, _) ->
     map(fun ({F,A}) -> c_fname(F, A) end, Exps).
+
+%% comp_attribute(Attribute) -> CoreAttr.
+%%  Compile attributes handling the special cases.
+
+comp_attribute({type,Types,Line}) ->
+    comp_type_attribute(type, Types, Line);
+comp_attribute({opaque,Types,Line}) ->
+    comp_type_attribute(opaque, Types, Line);
+comp_attribute({spec,Specs,Line}) ->
+    comp_spec_attribute(Specs, Line);
+comp_attribute({record,Records,Line}) ->
+    comp_record_attributes(Records, Line);
+comp_attribute({N,V,Line}) ->
+    Ann = [Line],
+    {ann_c_lit(Ann, N),ann_c_lit(Ann, V)}.
+
+comp_type_attribute(Attr, Types, Line) ->
+    Ann = [Line],
+    Tfun = fun ([[Type|Args],Def]) ->
+                   {Type,
+                    lfe_types:to_type_def(Def, Ann),
+                    lfe_types:to_type_defs(Args, Ann)}
+           end,
+    Tdefs = [ Tfun(Type) || Type <- Types ],
+    {ann_c_lit(Ann, Attr),ann_c_lit(Ann, Tdefs)}.
+
+comp_spec_attribute(Specs, Line) ->
+    Ann = [Line],
+    Sfun = fun ([[N,Ar],Spec]) ->
+                   {{N,Ar},lfe_types:to_func_spec_list(Spec, Ann)}
+           end,
+    Fspecs = [ Sfun(Spec) || Spec <- Specs ],
+    {ann_c_lit(Ann, spec),ann_c_lit(Ann, Fspecs)}.
+
+%% comp_record_attributes(Records, Line) -> Attribute.
+%%  Format depends on whether 18 and older or newer.
+
+-ifdef(NEW_REC_CORE).
+comp_record_attributes(Recs, Line) ->
+    Ann = [Line],
+    Rs = [ comp_record_attribute(Rec, Ann) || Rec <- Recs ],
+    {ann_c_lit(Ann, record),ann_c_lit(Ann, Rs)}.
+
+comp_record_attribute([Name|Fields], Ann) ->
+    %% Each field specifically handles whether it is typed or not.
+    {Name,[ comp_record_field(Fdef, Ann) || Fdef <- Fields ]}.
+-else.
+comp_record_attributes(Recs, Line) ->
+    Ann = [Line],
+    Rs = [ comp_record_attribute(Rec, Ann) || Rec <- Recs ],
+    {ann_c_lit(Ann, type),ann_c_lit(Ann, Rs)}.
+
+comp_record_attribute([Name|Fields], Ann) ->
+    %% Each field specifically handles whether it is typed or not.
+    {{record,Name},[ comp_record_field(Fdef, Ann) || Fdef <- Fields ],[]}.
+-endif.
+
+comp_record_field([F,D,T], Ann) ->
+    {typed_record_field,
+     comp_untyped_field([F,D], Ann),
+     lfe_types:to_type_def(T, Ann)};
+comp_record_field(Fd, Ann) ->
+    comp_untyped_field(Fd, Ann).
+
+comp_untyped_field([F,?Q(undefined)], Ann) ->   %No need for undefined default
+    {record_field,Ann,{atom,Ann,F}};
+comp_untyped_field([F,D], Ann) ->
+    {record_field,Ann,{atom,Ann,F},lfe_trans:to_expr(D, Ann)};
+comp_untyped_field(F, Ann) ->
+    {record_field,Ann,{atom,Ann,F}}.
 
 %% comp_define(DefForm, Env, State) -> {Corefunc,State}.
 %%  Compile a top-level define. Sets current function name. Be careful

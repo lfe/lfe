@@ -37,6 +37,8 @@
                imps=[],                         %Imports
                pref=[],                         %Prefixes
                funcs=[],                        %Defined functions
+               types=[],                        %Known types
+               specs=[],                        %Known func specs
                env=[],                          %Top-level environment
                lline=[],                        %Last line
                func=[],                         %Current function
@@ -92,7 +94,23 @@ format_error(bittype_unit) ->
 format_error(illegal_bitsize) -> "illegal bit size";
 format_error({deprecated,What}) ->
     lfe_io:format1("deprecated: ~s", [What]);
-format_error(unknown_form) -> "unknown form".
+format_error(unknown_form) -> "unknown form";
+%% Type errors. These are also returned from lfe_types.
+format_error({singleton_type_var,V}) ->
+    lfe_io:format1("singleton type variable: ~w", [V]);
+format_error({bad_type,T}) ->
+    lfe_io:format1("bad type: ~w", [T]);
+format_error({unknown_type,T}) ->
+    lfe_io:format1("unknown type: ~w", [T]);
+format_error({illegal_type,T}) ->
+    lfe_io:format1("illegal type: ~w", [T]);
+format_error({redef_type,T}) ->
+    lfe_io:format1("redefining type: ~w", [T]);
+%% Function spec errors. These are also returned from lfe_types.
+format_error({bad_spec,S}) ->
+    lfe_io:format1("bad function spec: ~w", [S]);
+format_error({redef_spec,S}) ->
+    lfe_io:format1("redefining function spec: ~w", [S]).
 
 %% expr(Expr) -> {ok,[Warning]} | {error,[Error],[Warning]}.
 %% expr(Expr, Env) -> {ok,[Warning]} | {error,[Error],[Warning]}.
@@ -159,28 +177,34 @@ check_module(Mfs, St0) ->
 %%  not first.
 
 collect_module(Mfs, St0) ->
-    {Acc,St1} = lists:foldl(fun collect_form/2, {[],St0}, Mfs),
-    {lists:reverse(Acc),St1}.
+    {Fbs,St1} = lists:foldl(fun collect_form/2, {[],St0}, Mfs),
+    {lists:reverse(Fbs),St1}.
 
-collect_form({['define-module',Mod,Meta,Atts],L}, {Acc,St0}) ->
+collect_form({['define-module',Mod,Meta,Atts],L}, {Fbs,St0}) ->
     St1 = check_mdef(Meta, Atts, L, St0#lint{module=Mod}),
     if is_atom(Mod) ->                  %Normal module
-            {Acc,St1};
+            {Fbs,St1};
        true ->                          %Bad module name
-            {Acc,bad_mdef_error(L, name, St1)}
+            {Fbs,bad_mdef_error(L, name, St1)}
     end;
-collect_form({_,L}, {Acc,#lint{module=[]}=St}) ->
+collect_form({_,L}, {Fbs,#lint{module=[]}=St}) ->
     %% Set module name so this only triggers once.
-    {Acc,bad_mdef_error(L, name, St#lint{module='-no-module-'})};
-collect_form({['extend-module',Meta,Atts],L}, {Acc,St}) ->
-    {Acc,check_mdef(Meta, Atts, L, St)};
-collect_form({['define-function',Func,Meta,Def],L}, {Acc,St}) ->
-    collect_function(Func, Meta, Def, L, Acc, St);
+    {Fbs,bad_mdef_error(L, name, St#lint{module='-no-module-'})};
+collect_form({['extend-module',Meta,Atts],L}, {Fbs,St}) ->
+    {Fbs,check_mdef(Meta, Atts, L, St)};
+collect_form({['define-type',Type,Def],L}, {Fbs,St}) ->
+    {Fbs,check_type_def(Type, Def, L, St)};
+collect_form({['define-opaque-type',Type,Def],L}, {Fbs,St}) ->
+    {Fbs,check_type_def(Type, Def, L, St)};
+collect_form({['define-function-spec',Func,Spec],L}, {Fbs,St}) ->
+    {Fbs,check_func_spec(Func, Spec, L, St)};
+collect_form({['define-function',Func,Meta,Def],L}, {Fbs,St}) ->
+    collect_function(Func, Meta, Def, L, Fbs, St);
 %% Ignore macro definitions and eval-when-compile forms.
-collect_form({['define-macro'|_],_}, {Acc,St}) -> {Acc,St};
-collect_form({['eval-when-compile'|_],_}, {Acc,St}) -> {Acc,St};
-collect_form({_,L}, {Acc,St}) ->
-    {Acc,add_error(L, unknown_form, St)}.
+collect_form({['define-macro'|_],_}, {Fbs,St}) -> {Fbs,St};
+collect_form({['eval-when-compile'|_],_}, {Fbs,St}) -> {Fbs,St};
+collect_form({_,L}, {Fbs,St}) ->
+    {Fbs,add_error(L, unknown_form, St)}.
 
 %% check_mdef(Meta, Attributes, Line, State) -> State.
 
@@ -189,7 +213,7 @@ check_mdef(Meta, Atts, L, St0) ->
     check_attrs(Atts, L, St1).
 
 %% check_mmetas(Metas, Line, State) -> State.
-%%  Only allow docs.
+%%  Only allow docs and type definitions.
 
 check_mmetas(Ms, L, St) ->
     check_foreach(fun (M, S) -> check_mmeta(M, L, S) end,
@@ -198,6 +222,10 @@ check_mmetas(Ms, L, St) ->
 
 check_mmeta([doc|Docs], L, St) ->
     ?IF(check_docs(Docs), St, bad_meta_error(L, doc, St));
+check_mmeta([type,[Type,Def]], L, St) ->
+    check_type_def(Type, Def, L, St);
+check_mmeta([opaque,[Type,Def]], L, St) ->
+    check_type_def(Type, Def, L, St);
 check_mmeta([M|Vals], L, St) ->
     %% Other metadata, must be list and have symbol name.
     ?IF(is_atom(M) and is_proper_list(Vals), St, bad_meta_error(L, M, St));
@@ -224,6 +252,10 @@ check_attr([import|Is], L, St) ->
 check_attr([doc|Docs], L, St0) ->
     St1 = depr_warning(L, "documentation string attribute", St0),
     check_doc_attr(Docs, L, St1);
+check_attr([type,[Type,Def]], L, St) ->
+    check_type_def(Type, Def, L, St);
+check_attr([opaque,[Type,Def]], L, St) ->
+    check_type_def(Type, Def, L, St);
 check_attr([A|Vals], L, St) ->
     %% Other attributes, must be list and have symbol name.
     ?IF(is_atom(A) and is_proper_list(Vals), St, bad_attr_error(L, A, St));
@@ -273,6 +305,75 @@ is_flist([[F,Ar]|Fs], Funcs) when is_atom(F), is_integer(Ar), Ar >= 0 ->
     is_flist(Fs, add_element({F,Ar}, Funcs));
 is_flist([], Funcs) -> {yes,Funcs};
 is_flist(_, _) -> no.
+
+%% check_type_def(Type, Def, Line, State) -> State.
+%%  Check a type definition.
+
+check_type_def(Name, Def, L, St0) ->
+    {Tvs0,St1} = check_type_name(Name, L, St0),
+    case lfe_types:check_type_def(Def, St1#lint.types, Tvs0) of
+        {ok,Tvs1} -> check_type_vars(Tvs1, L, St1);
+        {error,Error,Tvs1} ->
+            St2 = add_error(L, Error, St1),
+            check_type_vars(Tvs1, L, St2)
+    end.
+
+check_type_name([T|Args], L, #lint{types=Kts}=St) when is_atom(T) ->
+    case lfe_lib:is_symb_list(Args) of
+        true ->
+            Arity = length(Args),
+            Kt = {T,Arity},
+            Ts = lists:foldl(fun (V, S) -> orddict:update_counter(V, 1, S) end,
+                             [], Args),
+            case lists:member(Kt, Kts) of
+                true -> {Ts,add_error(L, {redef_type,[T,Arity]}, St)};
+                false ->
+                    case lfe_types:is_predefined_type(T, Arity) of
+                        true ->
+                            {Ts,add_error(L, {illegal_type,[T,Arity]}, St)};
+                        false ->
+                            {Ts,St#lint{types=[Kt|Kts]}}
+                    end
+            end;
+        false -> {[],add_error(L, {bad_type,T}, St)}
+    end;
+check_type_name(T, L, St) ->                    %Type name wrong format
+    {[],add_error(L, {bad_type,T}, St)}.
+
+%% check_type_vars(TypeVars, Line, State) -> State.
+%%  Check for singleton type variables except for _ which we allow.
+
+check_type_vars(Tvs, L, St) ->
+    Check = fun (V, 1, S) when V =/= '_' ->
+                    add_error(L, {singleton_type_var,V}, S);
+                (_, _, S) -> S
+            end,
+    orddict:fold(Check, St, Tvs).
+
+%% check_func_spec(Func, Spec, Line, State) -> State.
+%%  Check a function specification.
+
+check_func_spec(Func, Spec, L, St0) ->
+    {Ar,St1} = check_func_name(Func, L, St0),
+    case lfe_types:check_func_spec_list(Spec, Ar, St1#lint.types) of
+        {ok,Tvss} -> check_type_vars_list(Tvss, L, St1);
+        {error,Error,Tvss} ->
+            St2 = add_error(L, Error, St1),
+            check_type_vars_list(Tvss, L, St2)
+    end.
+
+check_func_name([F,Ar], L, #lint{specs=Kss}=St)
+  when is_atom(F), is_integer(Ar), Ar >= 0 ->
+    Ks = {F,Ar},
+    case lists:member(Ks, Kss) of
+        true -> {Ar,add_error(L, {redef_spec,[F,Ar]}, St)};
+        false -> {Ar,St#lint{specs=[Ks|Kss]}}
+    end;
+check_func_name(F, L, St) ->
+    {0,add_error(L, {bad_spec,F}, St)}.
+
+check_type_vars_list(Tvss, L, St) ->
+    lists:foldl(fun (Tvs, S) -> check_type_vars(Tvs, L, S) end, St, Tvss).
 
 %% collect_function(Name, Meta, Def, Line, Fbs, State) -> {Fbs,State}.
 %%  Collect function and do some basic checks.
