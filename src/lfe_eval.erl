@@ -62,7 +62,8 @@ format_error(illegal_bitsize) -> "illegal bitsize";
 format_error(illegal_bitseg) -> "illegal bitsegment";
 format_error({illegal_pattern,Pat}) ->
     lfe_io:format1("illegal pattern: ~w", [Pat]);
-format_error(illegal_literal) -> "illegal literal value";
+format_error({illegal_literal,Lit}) ->
+    lfe_io:format1("illegal literal value: ~w", [Lit]);
 format_error({illegal_mapkey,Key}) ->
     lfe_io:format1("illegal map key: ~w", [Key]);
 format_error(bad_arity) -> "arity mismatch";
