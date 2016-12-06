@@ -311,6 +311,10 @@ Return `'true` if `x` is the atom `'true`.
 
 Return `'true` if `x` is the atom `'false`.
 
+**(falsy? x)**
+
+Return `'true` if `x` is one of the atoms `'false` and `'undefined`.
+
 **(odd? x)**
 
 Return `'true` if `x` is odd.

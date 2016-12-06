@@ -28,7 +28,7 @@
   (export-macro
    tuple? atom? binary? bitstring? boolean? bool? float? function? func?
    integer? int? number? record? reference? map? undefined? undef? nil?
-   true? false? odd? even? zero? pos? neg? identical?)
+   true? false? falsy? odd? even? zero? pos? neg? identical?)
   ;; Other macros.
   (export-macro str lazy-seq conj))
 
@@ -331,6 +331,10 @@
 (defmacro false? (x)
   "Return `'true` if `x` is the atom `'false`."
   `(=:= 'false ,x))
+
+(defmacro falsy? (x)
+  "Return `'true` if `x` is one of the atoms `'false` and `'undefined`."
+  `(orelse (=:= 'false ,x) (=:= 'undefined ,x)))
 
 (defmacro odd? (x)
   "Return `'true` if `x` is odd."
