@@ -172,6 +172,7 @@
   (is (clj:when-not 'false 'true)))
 
 (deftest not=
+  (is-not (clj:not= 42))
   (is-not (clj:not= 42 42))
   (is (clj:not= 42 123)))
 
