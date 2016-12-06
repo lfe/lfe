@@ -184,6 +184,12 @@ If `test` evaluates to anything other than `'false` or `'undefined`,
 evaluate `then` with `patt` bound to the value of `test`,
 otherwise `else`, if supplied, else `'undefined`.
 
+**(iff-let ((patt test)) . body)**
+
+When `test` evaluates to anything other than `'false` or `'undefined`,
+evaluate `body` with `patt` bound to the value of `test`,
+otherwise return `'undefined`.
+
 **(condp pred expr . clauses)**
 
 Given a binary predicate, an expression and a set of clauses of the form:
