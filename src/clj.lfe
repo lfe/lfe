@@ -23,7 +23,7 @@
   ;; Threading macros.
   (export-macro -> ->> as-> cond-> cond->> some-> some->> doto)
   ;; Conditional macros.
-  (export-macro condp if-not iff when-not not=)
+  (export-macro if-let condp if-not iff when-not not=)
   ;; Predicate macros.
   (export-macro
    tuple? atom? binary? bitstring? boolean? bool? float? function? func?
@@ -197,6 +197,20 @@
       ,'x*)))
 
 ;;; Conditional macros.
+
+(defmacro if-let args
+  "((patt test)) then {{else}}
+  If `test` evaluates to anything other than `'false` or `'undefined`,
+  evaluate `then` with `patt` bound to the value of `test`,
+  otherwise `else`, if supplied, else `'undefined`."
+  (flet ((exp-if-let (patt test then else)
+           `(case ,test
+              ('false     ,else)
+              ('undefined ,else)
+              (,patt      ,then))))
+    (case args
+      ((list (list patt test) then) (exp-if-let patt test then `'undefined))
+      ((list (list patt test) then else) (exp-if-let patt test then else)))))
 
 (defmacro condp args
   "pred expr . clauses

@@ -178,6 +178,12 @@ and when that result is not `'undefined`, through the next, etc.
 
 ## Conditional Macros
 
+**(if-let ((patt test)) then {{else}})**
+
+If `test` evaluates to anything other than `'false` or `'undefined`,
+evaluate `then` with `patt` bound to the value of `test`,
+otherwise `else`, if supplied, else `'undefined`.
+
 **(condp pred expr . clauses)**
 
 Given a binary predicate, an expression and a set of clauses of the form:
