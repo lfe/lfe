@@ -232,7 +232,7 @@
 
 (defmacro not=
   "Same as `(not (== ...))`."
-  (`(,x)            'false)
+  (`(,x)            `'false)
   (`(,x ,y . ,more) `(not (== ,x ,y ,@more))))
 
 
