@@ -152,26 +152,28 @@ in `sexps`, returning the result of the last `sexp`.
 **(cond-> expr . clauses)**
 
 Given an `expr`ession and a set of `test`/`sexp` pairs, thread `x` (via **->**)
-through each `sexp` for which the corresponding `test` expression is `'true`.
+through each `sexp` for which the corresponding `test` expression is truthy,
+i.e. neither `'false` nor `'undefined`.
 Note that, unlike **cond** branching, **cond->** threading does not short
-circuit after the first `'true` test expression.
+circuit after the first truthy test expression.
 
 **(cond->> expr . clauses)**
 
 Given an `expr`ession and a set of `test`/`sexp` pairs, thread `x` (via **->>**)
-through each `sexp` for which the corresponding `test` expression is `'true`.
+through each `sexp` for which the corresponding `test` expression is truthy,
+i.e. neither `'false` nor `'undefined`.
 Note that, unlike **cond** branching, **cond->>** threading does not short
-circuit after the first `'true` `test` expression.
+circuit after the first truthy `test` expression.
 
 **(some-> x . sexps)**
 
-When `x` is not `undefined`, thread it into the first `sexp` (via **->**),
-and when that result is not `undefined`, through the next, etc.
+When `x` is not `'undefined`, thread it into the first `sexp` (via **->**),
+and when that result is not `'undefined`, through the next, etc.
 
 **(some->> x . sexps)**
 
-When `x` is not `undefined`, thread it into the first sexp (via **->>**),
-and when that result is not `undefined`, through the next, etc.
+When `x` is not `'undefined`, thread it into the first `sexp` (via **->>**),
+and when that result is not `'undefined`, through the next, etc.
 
 
 ## Conditional Macros
@@ -187,7 +189,7 @@ test-expr >> result-fn
 ```
 
 where `result-fn` is a unary function, if `(pred test-expr expr)` returns
-anything other than `undefined` or `'false`, the clause is a match.
+anything other than `'undefined` or `'false`, the clause is a match.
 
 If a binary clause matches, return `result-expr`. If a ternary clause matches,
 call `result-fn` with the result of the predicate and return the result.
@@ -200,18 +202,19 @@ return it. If no default expression is given and no clause matches, throw a
 
 **(if-not test then else)**
 
-If `test` evaluates to `'false`, evaluate and return `then`, otherwise `else`,
-if supplied, else `'false`.
+If `test` evaluates to `'false` or `'undefined`, evaluate and return `then`,
+otherwise `else`, if supplied, else `'undefined`.
 
 **(iff test . body)**
 
 Like Clojure's `when`.
-Evaluate `test`. If `'true`, evaluate `body` in an implicit `progn`.
+If `test` evaluates to anything other than `'false` or `'undefined`,
+evaluate `body` in an implicit `progn`.
 
 **(when-not test . body)**
 
-If `test` evaluates to `'false`, evaluate `body` in an implicit `progn`,
-otherwise if `test` evaluates to `'true`, return `'false`.
+If `test` evaluates to `'false` or `'undefined`, evaluate `body`
+in an implicit `progn`. Otherwise return `'undefined`.
 
 **(not= x)**
 

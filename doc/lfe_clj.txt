@@ -131,26 +131,28 @@ EXPORTS
        (cond-> expr . clauses)
 
        Given  an  expression  and  a set of test/sexp pairs, thread x (via ->)
-       through each sexp for which the corresponding test expression is 'true.
-       Note  that, unlike cond branching, cond-> threading does not short cir‐
-       cuit after the first 'true test expression.
+       through each sexp  for  which  the  corresponding  test  expression  is
+       truthy,  i.e.   neither  'false nor 'undefined.  Note that, unlike cond
+       branching, cond-> threading does not  short  circuit  after  the  first
+       truthy test expression.
 
        (cond->> expr . clauses)
 
-       Given an expression and a set of test/sexp pairs, thread  x  (via  ->>)
-       through each sexp for which the corresponding test expression is 'true.
-       Note that, unlike cond branching, cond->> threading does not short cir‐
-       cuit after the first 'true test expression.
+       Given  an  expression  and a set of test/sexp pairs, thread x (via ->>)
+       through each sexp  for  which  the  corresponding  test  expression  is
+       truthy,  i.e.   neither  'false nor 'undefined.  Note that, unlike cond
+       branching, cond->> threading does not short  circuit  after  the  first
+       truthy test expression.
 
        (some-> x . sexps)
 
-       When  x  is  not undefined, thread it into the first sexp (via ->), and
-       when that result is not undefined, through the next, etc.
+       When  x  is not 'undefined, thread it into the first sexp (via ->), and
+       when that result is not 'undefined, through the next, etc.
 
        (some->> x . sexps)
 
-       When x is not undefined, thread it into the first sexp (via  ->>),  and
-       when that result is not undefined, through the next, etc.
+       When x is not 'undefined, thread it into the first sexp (via ->>),  and
+       when that result is not 'undefined, through the next, etc.
 
    Conditional Macros
        (condp pred expr . clauses)
@@ -163,7 +165,7 @@ EXPORTS
               test-expr >> result-fn
 
        where result-fn is a unary function, if  (pred test-expr expr)  returns
-       anything other than undefined or 'false, the clause is a match.
+       anything other than 'undefined or 'false, the clause is a match.
 
        If  a  binary  clause matches, return result-expr.  If a ternary clause
        matches, call result-fn with the result of the predicate and return the
@@ -177,18 +179,18 @@ EXPORTS
 
        (if-not test then else)
 
-       If  test evaluates to 'false, evaluate and return then, otherwise else,
-       if supplied, else 'false.
+       If  test  evaluates  to 'false or 'undefined, evaluate and return then,
+       otherwise else, if supplied, else 'undefined.
 
        (iff test . body)
 
-       Like Clojure's when.  Evaluate test.  If 'true, evaluate body in an im‐
-       plicit progn.
+       Like Clojure's when.  If test evaluates to anything other  than  'false
+       or 'undefined, evaluate body in an implicit progn.
 
        (when-not test . body)
 
-       If test evaluates to 'false, evaluate body in an implicit progn, other‐
-       wise if test evaluates to 'true, return 'false.
+       If test evaluates to 'false or 'undefined, evaluate body in an implicit
+       progn.  Otherwise return 'undefined.
 
        (not= x)
 

@@ -164,12 +164,14 @@
   (are* [x y] (ok? (is-match x y))
         1 (clj:iff 'true 1)
         () (clj:iff 'true)
-        'false (clj:iff 'false)
-        'false (clj:iff 'false (error 'bad-iff))))
+        'undefined (clj:iff 'false)
+        'undefined (clj:iff 'undefined)
+        'undefined (clj:iff 'false (error 'bad-iff))))
 
 (deftest when-not
-  (is-not (clj:when-not 'true 'ok))
-  (is (clj:when-not 'false 'true)))
+  (is-match 'undefined (clj:when-not 'true 'ok))
+  (is-match 'true (clj:when-not 'false 'true))
+  (is-match 42 (clj:when-not 'undefined 42)))
 
 (deftest not=
   (is-not (clj:not= 42))
