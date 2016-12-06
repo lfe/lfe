@@ -30,7 +30,9 @@
    integer? int? number? record? reference? map? undefined? undef? nil?
    true? false? falsy? odd? even? zero? pos? neg? identical?)
   ;; Other macros.
-  (export-macro str lazy-seq conj))
+  (export-macro str lazy-seq conj)
+  ;; Clojure-inspired if macro.
+  (export-macro if))
 
 (defmacro HAS_MAPS () (quote (erl_internal:bif 'is_map 1)))
 
@@ -770,3 +772,18 @@
    (-cycle (funcall f) lst))
   ([`(,head . ,tail) lst]
    (cons head (fn [] (-cycle tail (cons head lst))))))
+
+;;; Clojure-inspired if macro.
+
+(defmacro if args
+  "test then {{else}}
+  If `test` evaluates to anything other than `'false` or `'undefined`,
+  return `then`, otherwise `else`, if given, else `'undefined`."
+  (flet ((exp-if (test then else)
+           `(case ,test
+              ('false     ,else)
+              ('undefined ,else)
+              (_          ,then))))
+    (case args
+      ((list test then)      (exp-if test then `'undefined))
+      ((list test then else) (exp-if test then else)))))

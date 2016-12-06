@@ -410,6 +410,15 @@ function for the next iteration as the tail.
 .PP
 conj[oin] a value onto an existing collection.
 Prepend to a list, append to a tuple, and merge maps.
+.SS Clojure\-inspired \f[I]if\f[] Macro
+.PP
+\f[B](if test then)\f[]
+.PP
+\f[B](if test then else)\f[]
+.PP
+If \f[C]test\f[] evaluates to anything other than \f[C]\[aq]false\f[] or
+\f[C]\[aq]undefined\f[], return \f[C]then\f[], otherwise \f[C]else\f[],
+if given, else \f[C]\[aq]undefined\f[].
 .SS Function Composition
 .PP
 \f[B](comp f g)\f[]
