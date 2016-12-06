@@ -274,6 +274,9 @@ docker-docs:
 docker-docs-bash:
 	docker run -i -v `pwd`/doc:/docs -t lfex/lfe-docs:latest bash
 
+nix-docs:
+	nix-shell --run "make docs"
+
 travis:
 	@rebar3 ct
 	@rebar3 eunit -m clj-tests,prop_lfe_doc
