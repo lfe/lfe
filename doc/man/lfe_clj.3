@@ -194,6 +194,13 @@ When \f[C]x\f[] is not \f[C]\[aq]undefined\f[], thread it into the first
 \f[C]\[aq]undefined\f[], through the next, etc.
 .SS Conditional Macros
 .PP
+\f[B](if\-let ((patt test)) then {{else}})\f[]
+.PP
+If \f[C]test\f[] evaluates to anything other than \f[C]\[aq]false\f[] or
+\f[C]\[aq]undefined\f[], evaluate \f[C]then\f[] with \f[C]patt\f[] bound
+to the value of \f[C]test\f[], otherwise \f[C]else\f[], if supplied,
+else \f[C]\[aq]undefined\f[].
+.PP
 \f[B](condp pred expr . clauses)\f[]
 .PP
 Given a binary predicate, an expression and a set of clauses of the
