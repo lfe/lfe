@@ -167,33 +167,31 @@ returning the result of the last \f[C]sexp\f[].
 .PP
 Given an \f[C]expr\f[]ession and a set of \f[C]test\f[]/\f[C]sexp\f[]
 pairs, thread \f[C]x\f[] (via \f[B]\->\f[]) through each \f[C]sexp\f[]
-for which the corresponding \f[C]test\f[] expression is
-\f[C]\[aq]true\f[].
+for which the corresponding \f[C]test\f[] expression is truthy, i.e.
+neither \f[C]\[aq]false\f[] nor \f[C]\[aq]undefined\f[].
 Note that, unlike \f[B]cond\f[] branching, \f[B]cond\->\f[] threading
-does not short circuit after the first \f[C]\[aq]true\f[] test
-expression.
+does not short circuit after the first truthy test expression.
 .PP
 \f[B](cond\->> expr . clauses)\f[]
 .PP
 Given an \f[C]expr\f[]ession and a set of \f[C]test\f[]/\f[C]sexp\f[]
 pairs, thread \f[C]x\f[] (via \f[B]\->>\f[]) through each \f[C]sexp\f[]
-for which the corresponding \f[C]test\f[] expression is
-\f[C]\[aq]true\f[].
+for which the corresponding \f[C]test\f[] expression is truthy, i.e.
+neither \f[C]\[aq]false\f[] nor \f[C]\[aq]undefined\f[].
 Note that, unlike \f[B]cond\f[] branching, \f[B]cond\->>\f[] threading
-does not short circuit after the first \f[C]\[aq]true\f[] \f[C]test\f[]
-expression.
+does not short circuit after the first truthy \f[C]test\f[] expression.
 .PP
 \f[B](some\-> x . sexps)\f[]
 .PP
-When \f[C]x\f[] is not \f[C]undefined\f[], thread it into the first
+When \f[C]x\f[] is not \f[C]\[aq]undefined\f[], thread it into the first
 \f[C]sexp\f[] (via \f[B]\->\f[]), and when that result is not
-\f[C]undefined\f[], through the next, etc.
+\f[C]\[aq]undefined\f[], through the next, etc.
 .PP
 \f[B](some\->> x . sexps)\f[]
 .PP
-When \f[C]x\f[] is not \f[C]undefined\f[], thread it into the first sexp
-(via \f[B]\->>\f[]), and when that result is not \f[C]undefined\f[],
-through the next, etc.
+When \f[C]x\f[] is not \f[C]\[aq]undefined\f[], thread it into the first
+\f[C]sexp\f[] (via \f[B]\->>\f[]), and when that result is not
+\f[C]\[aq]undefined\f[], through the next, etc.
 .SS Conditional Macros
 .PP
 \f[B](condp pred expr . clauses)\f[]
@@ -211,7 +209,7 @@ test\-expr\ >>\ result\-fn
 .PP
 where \f[C]result\-fn\f[] is a unary function, if
 \f[C](pred\ test\-expr\ expr)\f[] returns anything other than
-\f[C]undefined\f[] or \f[C]\[aq]false\f[], the clause is a match.
+\f[C]\[aq]undefined\f[] or \f[C]\[aq]false\f[], the clause is a match.
 .PP
 If a binary clause matches, return \f[C]result\-expr\f[].
 If a ternary clause matches, call \f[C]result\-fn\f[] with the result of
@@ -226,22 +224,23 @@ If no default expression is given and no clause matches, throw a
 .PP
 \f[B](if\-not test then else)\f[]
 .PP
-If \f[C]test\f[] evaluates to \f[C]\[aq]false\f[], evaluate and return
-\f[C]then\f[], otherwise \f[C]else\f[], if supplied, else
-\f[C]\[aq]false\f[].
+If \f[C]test\f[] evaluates to \f[C]\[aq]false\f[] or
+\f[C]\[aq]undefined\f[], evaluate and return \f[C]then\f[], otherwise
+\f[C]else\f[], if supplied, else \f[C]\[aq]undefined\f[].
 .PP
 \f[B](iff test . body)\f[]
 .PP
 Like Clojure\[aq]s \f[C]when\f[].
-Evaluate \f[C]test\f[].
-If \f[C]\[aq]true\f[], evaluate \f[C]body\f[] in an implicit
+If \f[C]test\f[] evaluates to anything other than \f[C]\[aq]false\f[] or
+\f[C]\[aq]undefined\f[], evaluate \f[C]body\f[] in an implicit
 \f[C]progn\f[].
 .PP
 \f[B](when\-not test . body)\f[]
 .PP
-If \f[C]test\f[] evaluates to \f[C]\[aq]false\f[], evaluate
-\f[C]body\f[] in an implicit \f[C]progn\f[], otherwise if \f[C]test\f[]
-evaluates to \f[C]\[aq]true\f[], return \f[C]\[aq]false\f[].
+If \f[C]test\f[] evaluates to \f[C]\[aq]false\f[] or
+\f[C]\[aq]undefined\f[], evaluate \f[C]body\f[] in an implicit
+\f[C]progn\f[].
+Otherwise return \f[C]\[aq]undefined\f[].
 .PP
 \f[B](not= x)\f[]
 .PP

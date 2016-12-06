@@ -92,36 +92,42 @@
   (defn- cond->*
     ([`(,x)]              x)
     ([`(,x ,_)]           (error "cond-> requires test/sexp pairs."))
-    ([`(,x ,test ,sexp)] `(if ,test ,(->* (list x sexp)) ,x))
+    ([`(,x ,test ,sexp)] `(case ,test
+                            ('false     ,x)
+                            ('undefined ,x)
+                            (_          ,(->* (list x sexp)))))
     ([`(,x ,test ,sexp . ,clauses)]
      (cond->* (cons (cond->* (list x test sexp)) clauses))))
   (defn- cond->>*
     ([`(,x)]              x)
     ([`(,x ,_)]           (error "cond->> requires test/sexp pairs."))
-    ([`(,x ,test ,sexp)] `(if ,test ,(->>* (list x sexp)) ,x))
+    ([`(,x ,test ,sexp)] `(case ,test
+                            ('false     ,x)
+                            ('undefined ,x)
+                            (_          ,(->>* (list x sexp)))))
     ([`(,x ,test ,sexp . ,clauses)]
      (cond->>* (cons (cond->>* (list x test sexp)) clauses))))
   (defn- some->*
     ([`(,x)]        x)
-    ([`(,x ,sexp)] `(if (clj:undefined? ,x) 'undefined ,(->* (list x sexp))))
+    ([`(,x ,sexp)] `(if (=:= 'undefined ,x) 'undefined ,(->* (list x sexp))))
     ([`(,x ,sexp . ,sexps)]
      (some->* (cons (some->* (list x sexp)) sexps))))
   (defn- some->>*
     ([`(,x)]        x)
-    ([`(,x ,sexp)] `(if (clj:undefined? ,x) 'undefined ,(->>* (list x sexp))))
+    ([`(,x ,sexp)] `(if (=:= 'undefined ,x) 'undefined ,(->>* (list x sexp))))
     ([`(,x ,sexp . ,sexps)]
      (some->>* (cons (some->>* (list x sexp)) sexps))))
-  (defn- falsey? (x)
-    `(case ,x
-       ('undefined 'true)
-       ('false     'true)
-       (_          'false)))
   (defn- emit
     ([pred expr `(,a >> ,c . ,more)]
-     `(let ((|-P-| (funcall ,pred ,a ,expr)))
-        (if ,(falsey? '|-P-|) ,(emit pred expr more) (funcall ,c |-P-|))))
+     `(case (funcall ,pred ,a ,expr)
+        ('false     ,(emit pred expr more))
+        ('undefined ,(emit pred expr more))
+        (|-P-|       (funcall ,c |-P-|))))
     ([pred expr `(,a ,b . ,more)]
-     `(if ,(falsey? `(funcall ,pred ,a ,expr)) ,(emit pred expr more) ,b))
+     `(case (funcall ,pred ,a ,expr)
+        ('false     ,(emit pred expr more))
+        ('undefined ,(emit pred expr more))
+        (_          ,b)))
     ([pred expr `(,a)]  a)
     ([pred expr  ()]   `(error 'no-matching-clause (list ,expr))))
   (defn- condp* ([`(,pred ,expr . ,clauses)] (emit pred expr clauses))))
@@ -150,29 +156,31 @@
 (defmacro cond-> args
   "expr . clauses
   Given an `expr`ession and a set of `test`/`sexp` pairs, thread `x` (via `->`)
-  through each `sexp` for which the corresponding `test` expression is `'true`.
+  through each `sexp` for which the corresponding `test` expression is truthy,
+  i.e. neither `'false` nor `'undefined`.
   Note that, unlike `cond` branching, `cond->` threading does not short circuit
-  after the first `'true` test expression."
+  after the first truthy test expression."
   (cond->* args))
 
 (defmacro cond->> args
   "expr . clauses
   Given an `expr`ession and a set of `test`/`sexp` pairs, thread `x` (via `->>`)
-  through each `sexp` for which the corresponding `test` expression is `'true`.
+  through each `sexp` for which the corresponding `test` expression is truthy,
+  i.e. neither `'false` nor `'undefined`.
   Note that, unlike `cond` branching, `cond->>` threading does not short circuit
-  after the first `'true` `test` expression."
+  after the first thruthy `test` expression."
   (cond->>* args))
 
 (defmacro some-> args
   "x . sexps
-  When `x` is not `undefined`, thread it into the first `sexp` (via `->`),
-  and when that result is not `undefined`, through the next, etc."
+  When `x` is not `'undefined`, thread it into the first `sexp` (via `->`),
+  and when that result is not `'undefined`, through the next, etc."
   (some->* args))
 
 (defmacro some->> args
   "x . sexps
-  When `x` is not `undefined`, thread it into the first sexp (via `->>`),
-  and when that result is not `undefined`, through the next, etc."
+  When `x` is not `'undefined`, thread it into the first `sexp` (via `->>`),
+  and when that result is not `'undefined`, through the next, etc."
   (some->>* args))
 
 (defmacro doto
@@ -199,9 +207,9 @@
       test-expr >> result-fn
 
   where `result-fn` is a unary function, if `(pred test-expr expr)` returns
-  anything other than `undefined` or `'false`, the clause is a match.
+  anything other than `'undefined` or `'false`, the clause is a match.
 
-  If a binary clause matches, return `result-expr`.  If a ternary clause
+  If a binary clause matches, return `result-expr`. If a ternary clause
   matches, call `result-fn` with the result of the predicate and return the
   result.
 
@@ -210,27 +218,39 @@
   throw a `no-matching-clause` error."
   (condp* args))
 
-(defmacro if-not
+(defmacro if-not args
   "test then [else]
-  If `test` evaluates to `'false`, evaluate and return `then`,
-  otherwise `else`, if supplied, else `'false`."
-  (`(,test ,then) `(if ,test 'false ,then))
-  (`(,test ,then ,else)
-   `(if ,test ,else ,then)))
+  If `test` evaluates to `'false` or `'undefined`, evaluate and return `then`,
+  otherwise `else`, if supplied, else `'undefined`."
+  (flet ((exp-if-not (test then else)
+           `(case ,test
+              ('false     ,then)
+              ('undefined ,then)
+              (_          ,else))))
+    (case args
+      ((list test then)      (exp-if-not test then `'undefined))
+      ((list test then else) (exp-if-not test then else)))))
 
 (defmacro iff
   "test . body
   Like Clojure's `when`.
-  Evaluate `test`. If `'true`, evaluate `body` in an implicit `progn`."
+  If `test` evaluates to anything other than `'false` or `'undefined`,
+  evaluate `body` in an implicit `progn`. Otherwise, return `'undefined`."
   (`(,test . ,body)
-   (list 'if test (cons 'progn body))))
+   `(case ,test
+      ('false     'undefined)
+      ('undefined 'undefined)
+      (_          (progn ,@body)))))
 
 (defmacro when-not
   "test . body
-  If `test` evaluates to `'false`, evaluate `body` in an implicit `progn`,
-  otherwise if `test` evaluates to `'true`, return `'false`."
+  If `test` evaluates to `'false` or `'undefined`, evaluate `body`
+  in an implicit `progn`. Otherwise return `'undefined`."
   (`(,test . ,body)
-   `(if ,test 'false (progn ,@body))))
+   `(case ,test
+      ('false     (progn ,@body))
+      ('undefined (progn ,@body))
+      (_          'undefined))))
 
 (defmacro not=
   "Same as `(not (== ...))`."
