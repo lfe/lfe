@@ -751,7 +751,7 @@
   (flet ((dict-find [k d]
                     (case (dict:fetch k d)
                       (`#(ok ,v) v)
-                      ('errror   not-found))))
+                      ('error    not-found))))
     (-get-in #'dict-find/2 dict keys)))
 
 (defn- -get-in-map
