@@ -358,6 +358,21 @@ integer value, i.e. `"97"`.
 "abc"
 ```
 
+**(lazy-seq)**
+
+**(lazy-seq seq)**
+
+Return a (possibly infinite) lazy sequence from a given lazy sequence `seq`
+or a finite lazy sequence from given list `seq`.
+A lazy sequence is treated as finite if at any iteration it produces
+the empty list, instead of a cons cell with data as the head and a
+nullary function for the next iteration as the tail.
+
+**(conj coll . xs)**
+
+conj[oin] a value onto an existing collection.
+Prepend to a list, append to a tuple, and merge maps.
+
 
 ## Function Composition
 

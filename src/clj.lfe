@@ -371,10 +371,11 @@
      (list ,@args)))
 
 (defmacro lazy-seq
-  "Return a lazy sequence (possibly infinite) from given lazy sequence `seq`
-  or finite lazy sequence from given list `seq`. Lazy sequence is treated as
-  finite if at any iteration it produces empty list instead of data as its
-  head and nullary function for next iteration as its tail."
+  "Return a (possibly infinite) lazy sequence from a given lazy sequence `seq`
+  or a finite lazy sequence from given list `seq`.
+  A lazy sequence is treated as finite if at any iteration it produces
+  the empty list, instead of a cons cell with data as the head and a
+  nullary function for the next iteration as the tail."
   (`(()) ())
   (`(,seq)
    `(lambda ()
@@ -386,6 +387,19 @@
                      ((`(,h . ,t))
                       (cons h (lambda () (-lazy-seq t))))))
             (-lazy-seq ,'seq*)))))))
+
+(defmacro conj
+  "conj[oin] a value onto an existing collection.
+  Prepend to a list, append to a tuple, and merge maps."
+  (`[,coll . ,xs]
+   `(cond ((is_list ,coll) (cons ,@xs ,coll))
+          ((is_tuple ,coll)
+           (lists:foldl (lambda (x acc) (erlang:append_element acc x))
+                        ,coll
+                        (list ,@xs)))
+          ((clj:map? ,coll) (lists:foldl (lambda (x acc) (maps:merge acc x))
+                                          ,coll
+                                          (list ,@xs))))))
 
 ;;; Function composition.
 
@@ -530,20 +544,6 @@
   been reached or password. In the latter case, `end` is not an element of the
   sequence."
   (lists:seq start end step))
-
-(defmacro conj
-  "conj[oins] a value onto an existing collection, either a list, a tuple,
- or a map. For lists this means prepending, for tuples appending,
- and for maps merging."
-  (`[,coll . ,xs]
-   `(cond ((is_list ,coll) (cons ,@xs ,coll))
-          ((is_tuple ,coll)
-           (lists:foldl (lambda (x acc) (erlang:append_element acc x))
-                        ,coll
-                        (list ,@xs)))
-          ((clj:map? ,coll) (lists:foldl (lambda (x acc) (maps:merge acc x))
-                                          ,coll
-                                          (list ,@xs))))))
 
 (defn next [func]
   "Equivalent to `(next func 1 1)`."

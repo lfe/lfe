@@ -395,6 +395,21 @@ integer value, i.e.
 "abc"
 \f[]
 .fi
+.PP
+\f[B](lazy\-seq)\f[]
+.PP
+\f[B](lazy\-seq seq)\f[]
+.PP
+Return a (possibly infinite) lazy sequence from a given lazy sequence
+\f[C]seq\f[] or a finite lazy sequence from given list \f[C]seq\f[].
+A lazy sequence is treated as finite if at any iteration it produces the
+empty list, instead of a cons cell with data as the head and a nullary
+function for the next iteration as the tail.
+.PP
+\f[B](conj coll . xs)\f[]
+.PP
+conj[oin] a value onto an existing collection.
+Prepend to a list, append to a tuple, and merge maps.
 .SS Function Composition
 .PP
 \f[B](comp f g)\f[]
