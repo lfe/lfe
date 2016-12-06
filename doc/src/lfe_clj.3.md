@@ -374,6 +374,16 @@ conj[oin] a value onto an existing collection.
 Prepend to a list, append to a tuple, and merge maps.
 
 
+## Clojure-inspired *if* Macro
+
+**(if test then)**
+
+**(if test then else)**
+
+If `test` evaluates to anything other than `'false` or `'undefined`,
+return `then`, otherwise `else`, if given, else `'undefined`.
+
+
 ## Function Composition
 
 **(comp f g)**
