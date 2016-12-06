@@ -406,6 +406,14 @@
   (is-not (clj:false? 'true))
   (is (clj:false? 'false)))
 
+(deftest falsy?
+  (is-not (clj:falsy? 'true))
+  (is-not (clj:falsy? 42))
+  (is-not (clj:falsy? ()))
+  (is (clj:falsy? 'false))
+  (is (clj:falsy? 'undefined))
+  (is (clj:falsy? (proplists:get_value 42 ()))))
+
 (deftest odd?
   (is-not (clj:odd? 42))
   (is (clj:odd? 333)))
