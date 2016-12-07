@@ -310,9 +310,14 @@ comp_body([E|Es], Env, L, St0) ->
     {append_c_seq(Ce, Cb, L),St2};              %Flatten nested sequences
 comp_body([], _, _, St) -> {c_nil(),St}.        %Empty body returns []
 
+%% append_c_seq(Expr, Body, Line) -> {CoreBody}.
+%%  Create a c_seq with Expr and Body by appending Body to the end of
+%%  Expr c_seq chain if there is one. We get flat sequence.
+
 append_c_seq(Ce, Cb, L) ->
     case is_c_seq(Ce) of
-        true -> update_c_seq(Ce, seq_arg(Ce), seq_body(Ce));
+        true ->
+            update_c_seq(Ce, seq_arg(Ce), append_c_seq(seq_body(Ce), Cb, L));
         false -> ann_c_seq([L], Ce, Cb)
     end.
 
