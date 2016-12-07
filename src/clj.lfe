@@ -436,10 +436,12 @@
             (-lazy-seq ,'seq*)))))))
 
 (defmacro conj
-  "conj[oin] a value onto an existing collection.
-  Prepend to a list, append to a tuple, and merge maps."
+  "conj[oins] a value onto an existing collection, either a list, a tuple,
+ or a map. For lists this means prepending, for tuples appending,
+ and for maps merging."
   (`[,coll . ,xs]
-   `(cond ((is_list ,coll) (cons ,@xs ,coll))
+   `(cond ((is_list ,coll)
+           (++ (lists:reverse (list ,@xs)) ,coll))
           ((is_tuple ,coll)
            (lists:foldl (lambda (x acc) (erlang:append_element acc x))
                         ,coll
