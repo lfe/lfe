@@ -529,7 +529,9 @@
 (deftest conj
   (is-match '(1 2 3 4) (clj:conj '(2 3 4) 1))
   (is-match '((1) 2 3 4) (clj:conj '(2 3 4) '(1)))
+  (is-match '(1 2 3 4) (clj:conj '(4) 3 2 1))
   (is-match #(a b c d) (clj:conj #(a b c) 'd))
+  (is-match #(a b c d) (clj:conj #(a) 'b 'c 'd))
   (is-match #(a b c #(d)) (clj:conj #(a b c) #(d)))
   (IFF-MAPS
    (is-equal (maps:from_list '(#(a 1) #(b 2)))
