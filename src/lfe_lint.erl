@@ -190,8 +190,8 @@ collect_form({['define-module',Mod,Meta,Atts],L}, {Fbs,St0}) ->
 collect_form({_,L}, {Fbs,#lint{module=[]}=St}) ->
     %% Set module name so this only triggers once.
     {Fbs,bad_mdef_error(L, name, St#lint{module='-no-module-'})};
-collect_form({['extend-module',Meta,Atts],L}, {Fbs,St}) ->
-    {Fbs,check_mdef(Meta, Atts, L, St)};
+collect_form({['extend-module',Metas,Atts],L}, {Fbs,St}) ->
+    {Fbs,check_mdef(Metas, Atts, L, St)};
 collect_form({['define-type',Type,Def],L}, {Fbs,St}) ->
     {Fbs,check_type_def(Type, Def, L, St)};
 collect_form({['define-opaque-type',Type,Def],L}, {Fbs,St}) ->
@@ -206,10 +206,10 @@ collect_form({['eval-when-compile'|_],_}, {Fbs,St}) -> {Fbs,St};
 collect_form({_,L}, {Fbs,St}) ->
     {Fbs,add_error(L, unknown_form, St)}.
 
-%% check_mdef(Meta, Attributes, Line, State) -> State.
+%% check_mdef(Metadata, Attributes, Line, State) -> State.
 
-check_mdef(Meta, Atts, L, St0) ->
-    St1 = check_mmetas(Meta, L, St0),
+check_mdef(Metas, Atts, L, St0) ->
+    St1 = check_mmetas(Metas, L, St0),
     check_attrs(Atts, L, St1).
 
 %% check_mmetas(Metas, Line, State) -> State.
@@ -222,10 +222,12 @@ check_mmetas(Ms, L, St) ->
 
 check_mmeta([doc|Docs], L, St) ->
     ?IF(check_docs(Docs), St, bad_meta_error(L, doc, St));
-check_mmeta([type,[Type,Def]], L, St) ->
-    check_type_def(Type, Def, L, St);
-check_mmeta([opaque,[Type,Def]], L, St) ->
-    check_type_def(Type, Def, L, St);
+check_mmeta([type|Tds], L, St) ->
+    check_type_defs(Tds, L, St);
+check_mmeta([opaque|Tds], L, St) ->
+    check_type_defs(Tds, L, St);
+check_mmeta([spec|Sps], L, St) ->
+    check_func_specs(Sps, L, St);
 check_mmeta([M|Vals], L, St) ->
     %% Other metadata, must be list and have symbol name.
     ?IF(is_atom(M) and is_proper_list(Vals), St, bad_meta_error(L, M, St));
@@ -252,10 +254,7 @@ check_attr([import|Is], L, St) ->
 check_attr([doc|Docs], L, St0) ->
     St1 = depr_warning(L, "documentation string attribute", St0),
     check_doc_attr(Docs, L, St1);
-check_attr([type,[Type,Def]], L, St) ->
-    check_type_def(Type, Def, L, St);
-check_attr([opaque,[Type,Def]], L, St) ->
-    check_type_def(Type, Def, L, St);
+%% Note we handle type and spec as normal attributes here.
 check_attr([A|Vals], L, St) ->
     %% Other attributes, must be list and have symbol name.
     ?IF(is_atom(A) and is_proper_list(Vals), St, bad_attr_error(L, A, St));
@@ -306,11 +305,23 @@ is_flist([[F,Ar]|Fs], Funcs) when is_atom(F), is_integer(Ar), Ar >= 0 ->
 is_flist([], Funcs) -> {yes,Funcs};
 is_flist(_, _) -> no.
 
+%% check_type_defs(TypeDefs, Def, Line, State) -> State.
+%% check_type_def(TypeDef, Def, Line, State) -> State.
 %% check_type_def(Type, Def, Line, State) -> State.
 %%  Check a type definition.
 
-check_type_def(Name, Def, L, St0) ->
-    {Tvs0,St1} = check_type_name(Name, L, St0),
+check_type_defs(Tds, L, St) ->
+    check_foreach(fun (Td, S) -> check_type_def(Td, L, S) end,
+                  fun (S) -> bad_meta_error(L, type, S) end,
+                  St, Tds).
+
+check_type_def([Type,Def], L, St) ->
+    check_type_def(Type, Def, L, St);
+check_type_def(_, L, St) ->
+    bad_meta_error(L, type, St).
+
+check_type_def(Type, Def, L, St0) ->
+    {Tvs0,St1} = check_type_name(Type, L, St0),
     case lfe_types:check_type_def(Def, St1#lint.types, Tvs0) of
         {ok,Tvs1} -> check_type_vars(Tvs1, L, St1);
         {error,Error,Tvs1} ->
@@ -350,8 +361,20 @@ check_type_vars(Tvs, L, St) ->
             end,
     orddict:fold(Check, St, Tvs).
 
+%% check_func_specs(FuncSpecs, Line, State) -> State.
+%% check_func_spec(FuncSpec, Line, State) -> State.
 %% check_func_spec(Func, Spec, Line, State) -> State.
 %%  Check a function specification.
+
+check_func_specs(Sps, L, St) ->
+    check_foreach(fun (Sp, S) -> check_func_spec(Sp, L, S) end,
+                  fun (S) -> bad_meta_error(L, spec, S) end,
+                  St, Sps).
+
+check_func_spec([Func,Spec], L, St) ->
+    check_func_spec(Func, Spec, L, St);
+check_func_spec(_, L, St) ->
+    bad_meta_error(L, spec, St).
 
 check_func_spec(Func, Spec, L, St0) ->
     {Ar,St1} = check_func_name(Func, L, St0),
