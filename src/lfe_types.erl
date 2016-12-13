@@ -42,7 +42,7 @@
 %%  Do we really need this here?
 
 format_error({bad_type,T}) ->
-    lfe_io:format1("bad type: ~w", [T]);
+    lfe_io:format1("bad type definition: ~w", [T]);
 format_error({unknown_type,T}) ->
     lfe_io:format1("unknown type: ~w", [T]).
 

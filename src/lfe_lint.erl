@@ -95,11 +95,13 @@ format_error(illegal_bitsize) -> "illegal bit size";
 format_error({deprecated,What}) ->
     lfe_io:format1("deprecated: ~s", [What]);
 format_error(unknown_form) -> "unknown form";
+format_error({bad_record,R}) ->
+    lfe_io:format1("bad record definition: ~w", [R]);
 %% Type errors. These are also returned from lfe_types.
 format_error({singleton_type_var,V}) ->
     lfe_io:format1("singleton type variable: ~w", [V]);
 format_error({bad_type,T}) ->
-    lfe_io:format1("bad type: ~w", [T]);
+    lfe_io:format1("bad type definition: ~w", [T]);
 format_error({unknown_type,T}) ->
     lfe_io:format1("unknown type: ~w", [T]);
 format_error({illegal_type,T}) ->
@@ -228,6 +230,8 @@ check_mmeta([opaque|Tds], L, St) ->
     check_type_defs(Tds, L, St);
 check_mmeta([spec|Sps], L, St) ->
     check_func_specs(Sps, L, St);
+check_mmeta([record|Rds], L, St) ->
+    check_record_defs(Rds, L, St);
 check_mmeta([M|Vals], L, St) ->
     %% Other metadata, must be list and have symbol name.
     ?IF(is_atom(M) and is_proper_list(Vals), St, bad_meta_error(L, M, St));
@@ -397,6 +401,40 @@ check_func_name(F, L, St) ->
 
 check_type_vars_list(Tvss, L, St) ->
     lists:foldl(fun (Tvs, S) -> check_type_vars(Tvs, L, S) end, St, Tvss).
+
+%% check_record_defs(RecordDefs, Line, State) -> State.
+
+check_record_defs(Rds, L, St) ->
+    check_foreach(fun (Rd, S) -> check_record_def(Rd, L, S) end,
+                  fun (S) -> bad_meta_error(L, record, S) end,
+                  St, Rds).
+
+check_record_def([Name|Fields], L, St) ->
+    check_record_def(Name, Fields, L, St);
+check_record_def(_, L, St) ->
+    bad_meta_error(L, record, St).
+
+check_record_def(Name, Fds, L, St) when is_atom(Name) ->
+    check_foreach(fun (Fd, S) -> check_record_field(Fd, L, S) end,
+		  fun (S) -> bad_record_error(L, Name, S) end,
+		  St, Fds);
+check_record_def(Name, _, L, St) ->
+    bad_record_error(L, Name, St).
+
+check_record_field([F,D,T], L, St0) ->
+    St1 = check_record_field([F,D], L, St0),
+    case lfe_types:check_type_def(T, St1#lint.types, []) of
+	{ok,Tvs} -> check_type_vars(Tvs, L, St1);
+	{error,Error,Tvs} ->
+	    St2 = add_error(L, Error, St1),
+	    check_type_vars(Tvs, L, St2)
+    end;
+check_record_field([F,_D], L, St) ->		%No need to check default value
+    check_record_field(F, L, St);
+check_record_field(F, L, St) ->
+    if is_atom(F) -> St;
+       true -> bad_record_error(L, F, St)
+    end.
 
 %% collect_function(Name, Meta, Def, Line, Fbs, State) -> {Fbs,State}.
 %%  Collect function and do some basic checks.
@@ -1513,6 +1551,9 @@ bad_attr_error(L, A, St) ->
 
 bad_meta_error(L, A, St) ->
     add_error(L, {bad_meta,A}, St).
+
+bad_record_error(L, R, St) ->
+    add_error(L, {bad_record,R}, St).
 
 bad_fdef_error(L, D, St) ->
     add_error(L, {bad_fdef,D}, St).
