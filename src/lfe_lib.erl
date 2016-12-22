@@ -127,10 +127,15 @@ is_core_form('funcall') -> true;
 is_core_form(call) -> true;
 %% Core definition special forms.
 is_core_form('eval-when-compile') -> true;
-is_core_form('define-function') -> true;
-is_core_form('define-macro') -> true;
 is_core_form('define-module') -> true;
 is_core_form('extend-module') -> true;
+is_core_form('define-type') -> true;
+is_core_form('define-opaque-type') -> true;
+is_core_form('define-function-spec') -> true;
+is_core_form('define-function') -> true;
+is_core_form('define-macro') -> true;
+%% And don't forget when.
+is_core_form('when') -> true;
 %% Everything else is not a core form.
 is_core_form(_) -> false.
 
