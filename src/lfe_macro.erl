@@ -331,7 +331,6 @@ add_error(L, E, St) ->
 %%     St#mac{warnings=St#mac.warnings ++ [{L,?MODULE,W}]}.
 
 %% exp_form(Form, Env, State) -> {Form,State}.
-
 %%  Completely expand a form using expansions in Env and pre-defined
 %%  macros.  N.B. builtin core forms cannot be overidden and are
 %%  handled here first. Some core forms also are particular about how
@@ -423,6 +422,9 @@ exp_form(['define-function',Head|B], Env, St) ->
     exp_head_tail('define-function', Head, B, Env, St);
 exp_form(['define-macro',Head|B], Env, St) ->
     exp_head_tail('define-macro', Head, B, Env, St);
+%% And don't forget when.
+exp_form(['when'|G], Env, St) ->
+    exp_normal_core('when', G, Env, St);
 %% Now the case where we can have macros.
 exp_form([Fun|_]=Call, Env, St0) when is_atom(Fun) ->
     %% Expand top macro as much as possible.
