@@ -796,12 +796,108 @@ ls(Dir) -> apply(c, ls, Dir).
 clear() -> io:format("\e[H\e[J").
 
 %% m([Modules]) -> ok.
-%%  Print module information.
+%%  Print module information. Instead of using the c module we do
+%%  module info ourselves to get all the data and the right formats.
 
-m() -> c:m().
+m() ->
+    mformat("Module", "File"),
+    lists:foreach(fun ({Mod,File}) ->
+                          Mstr = lists:flatten(lfe_io:print1(Mod)),
+                          mformat(Mstr, File)
+                  end,
+                  lists:sort(code:all_loaded())).
+
+mformat(S1, S2) ->
+    Fstr = if length(S1) > 20 -> "~s~n                      ~s~n";
+              true -> "~-20s  ~s~n"
+           end,
+    lfe_io:format(Fstr, [S1,S2]).
 
 m(Ms) ->
-    foreach(fun (M) -> c:m(M) end, Ms).
+    foreach(fun (M) -> print_module(M) end, Ms).
+
+print_module(M) ->
+    Info = M:module_info(),
+    lfe_io:format("Module: ~w~n", [M]),
+    print_object_file(M),
+    print_md5(Info),
+    print_compile_time(Info),
+    print_compile_options(Info),
+    print_exports(Info),
+    print_macros(Info).
+
+print_md5(Info) ->
+    case lists:keyfind(md5, 1, Info) of
+        {md5,<<MD5:128>>} -> lfe_io:format("MD5: ~.16b~n", [MD5]);
+        error -> ok
+    end.
+
+print_compile_time(Info) ->
+    Cstr = case get_compile_info(Info, time) of
+               {Year,Month,Day,Hour,Min,Sec} ->
+                   lfe_io:format1("~w-~.2.0w-.2.0~w ~.2.0w:~.2.0w:~.2.0w",
+                                  [Year,Month,Day,Hour,Min,Sec]);
+               error -> "No compile time info avaliable"
+           end,
+    lfe_io:format("Compiled: ~s~n", [Cstr]).
+
+print_object_file(M) ->
+    case code:is_loaded(M) of
+        {file,File} -> lfe_io:format("Object file: ~s~n", [File]);
+        _ -> ok
+    end.
+
+print_compile_options(Info) ->
+    case get_compile_info(Info, options) of     %Export Opts
+               Opts when is_list(Opts) -> ok;
+               error -> Opts = []
+    end,
+    lfe_io:format("Compiler options: ~p~n", [Opts]).
+
+print_exports(Info) ->
+    lfe_io:format("Exported functions:~n", []),
+    Exps = case lists:keyfind(exports, 1, Info) of
+               {exports,Es} -> Es;
+               error -> []
+           end,
+    print_names(fun ({N,Ar}) -> lfe_io:format1("~w/~w", [N,Ar]) end, Exps).
+
+print_macros(Info) ->
+    lfe_io:format("Exported macros:~n", []),
+    Macs = case lists:keyfind(attributes, 1, Info) of
+               {attributes,Attrs} ->
+                   Fun = fun ({'export-macro',Ms}) -> Ms;
+                             (_) -> []
+                         end,
+                   lists:flatmap(Fun, Attrs);
+               error -> []
+           end,
+    print_names(fun (N) -> lfe_io:print1(N) end, Macs).
+
+print_names(Format, Names) ->
+    %% Generate flattened list of strings.
+    Strs = lists:map(fun (N) -> lists:flatten(Format(N)) end,
+		     lists:sort(Names)),
+    %% Split into equal length lists and print out.
+    {S1,S2} = lists:split(round(length(Strs)/2), Strs),
+    print_name_strings(S1, S2).
+
+print_name_strings([N1|N1s], [N2|N2s]) ->
+    lfe_io:format("  ~-30s  ~-30s~n", [N1,N2]),
+    print_name_strings(N1s, N2s);
+print_name_strings([N1], []) ->
+    lfe_io:format("  ~s~n", [N1]);
+print_name_strings([], []) -> ok.
+
+get_compile_info(Info, Tag) ->
+    case lists:keyfind(compile, 1, Info) of
+        {compile,C} ->
+            case lists:keyfind(Tag, 1, C) of
+                {Tag,Val} -> Val;
+                false -> error
+            end;
+        false -> error
+    end.
 
 %% p(Expr) -> ok.
 %% pp(Expr) -> ok.
