@@ -35,11 +35,36 @@
 
 ;;; Code:
 
+
 (require 'browse-url)
+(require 'cl-lib)
+(require 'company)
 
 (global-set-key (kbd "s-1") 'lfedoc-sexp-autocompletion-at-point) ; without arity
 (global-set-key (kbd "s-7") 'lfedoc-module-functions) ; with arity
 (global-set-key (kbd "s-/") 'lfedoc-helpme) ; works with complete sexps and arity
+;;; ----------------------------------------------------------------------------
+
+(defun company-lfe-backend (command &optional arg &rest ignored)
+  (interactive (list 'interactive))
+
+  (case command
+    (interactive (company-begin-backend 'company-lfe-backend))
+    (prefix (and (or t (eq major-mode 'fundamental-mode))
+                 (company-grab-symbol)))
+    (candidates
+     (-map 'symbol-name
+           (-flatten
+            (lfedoc-sexp-autocompletion-at-point))))))
+
+(add-to-list 'company-backends 'company-lfe-backend)
+
+(defun sample-completions ()
+  (-map (lambda (x) (concat x (format "%s" (sexp-at-point))))
+        '("alan" "john" "ada" "don")))
+
+
+
 ;;; ----------------------------------------------------------------------------
 
 ;;; define global variable for loaded modules
@@ -227,8 +252,7 @@ or all functions if no function characters are given."
   (let ((se  (sexp-at-point)))
     ;; at the moment we print the result, in future we will pass it to future
     ;; completion UI
-    (pp
-     (lfedoc-sexp-autocompletion se))))
+    (lfedoc-sexp-autocompletion se)))
 
 ;;; autocompletion for various sexp forms
 (defun lfedoc-sexp-autocompletion (sexp-str)
