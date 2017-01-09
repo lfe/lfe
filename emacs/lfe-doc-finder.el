@@ -12,7 +12,7 @@
 ;;; Usage:
 
 ;;; Load this file by adding it in the load-path and running:
-;;; (load "lfe-doc-finder.el")
+;;; (load "/home/jacek/Programming/Pyrulis/Emacs/vendor/lfe-doc-finder.el")
 
 ;;; LOOK-UP
 
@@ -35,35 +35,27 @@
 
 ;;; Code:
 
-
 (require 'browse-url)
-(require 'cl-lib)
-(require 'company)
 
-(global-set-key (kbd "s-1") 'lfedoc-sexp-autocompletion-at-point) ; without arity
+(global-set-key (kbd "s-1") 'company-lfe-backend)
 (global-set-key (kbd "s-7") 'lfedoc-module-functions) ; with arity
 (global-set-key (kbd "s-/") 'lfedoc-helpme) ; works with complete sexps and arity
 ;;; ----------------------------------------------------------------------------
 
-(defun company-lfe-backend (command &optional arg &rest ignored)
-  (interactive (list 'interactive))
+;; (load "/home/jacek/Programming/Pyrulis/Emacs/vendor/lfe-doc-finder.el")
 
+(defun company-lfe-backend (command &optional arg &rest ignored)
+  "Get auto completion COMMAND for ARG and IGNORED."
+  (interactive (list 'interactive))
   (case command
     (interactive (company-begin-backend 'company-lfe-backend))
-    (prefix (and (or t (eq major-mode 'fundamental-mode))
+    (prefix (and (or (eq major-mode 'lfe-mode)
+                     (eq major-mode 'inferior-lfe-mode))
                  (company-grab-symbol)))
     (candidates
-     (-map 'symbol-name
-           (-flatten
-            (lfedoc-sexp-autocompletion-at-point))))))
+     (lfedoc-new-ac-at-point arg))))
 
 (add-to-list 'company-backends 'company-lfe-backend)
-
-(defun sample-completions ()
-  (-map (lambda (x) (concat x (format "%s" (sexp-at-point))))
-        '("alan" "john" "ada" "don")))
-
-
 
 ;;; ----------------------------------------------------------------------------
 
@@ -246,13 +238,43 @@ or all functions if no function characters are given."
       (list (list
              'modules found-modules)))))
 
+;;; ############################################################################
+
+(defun lfedoc-new-ac-at-point (arg)
+  (interactive)
+  "Get ne auto completions at point."
+  (let ((se (sexp-at-point)))
+    (lfedoc-new-autocompletions se arg)))
+
+(defun lfedoc-new-autocompletions (sexp-str arg)
+  "New auto completion for SEXP-STR and ARG."
+  (let ((ss (split-string arg ":")))
+      (if (equal 1 (length ss))
+          (lfedoc-ac-symbols-and-modules arg)
+        (lfedoc-ac-module-functions (car ss) (cadr ss)))))
+
+(defun lfedoc-ac-symbols-and-modules (arg)
+  "Write me."
+
+  (cl-remove-if-not
+          (lambda (c) (string-prefix-p arg c))
+          (-map (lambda (x) (format "%s" x))
+                (-flatten (list (-map (lambda (x) (funcall x)) (butlast (lfedoc-get-symbol-functions)))
+                                (-map (lambda (x) (intern (format "%s:" x))) (funcall 'lfedoc-data-loaded-modules)))))))
+
+(defun lfedoc-ac-module-functions (m a)
+  "Module M functions."
+  (-map (lambda (f) (format "%s:%s" m f))  (lfedoc-module-functions-2 m a)))
+
+;;; ############################################################################
+
 (defun lfedoc-sexp-autocompletion-at-point ()
   "Auto complete sexp at point."
-  (interactive)
   (let ((se  (sexp-at-point)))
     ;; at the moment we print the result, in future we will pass it to future
     ;; completion UI
-    (lfedoc-sexp-autocompletion se)))
+    (pp
+     (lfedoc-sexp-autocompletion se))))
 
 ;;; autocompletion for various sexp forms
 (defun lfedoc-sexp-autocompletion (sexp-str)
@@ -311,7 +333,8 @@ or all functions if no function characters are given."
     ;; return to the original position
     (goto-char (marker-position original-marker))
     ;; and finally return the string containing the sexp
-    (buffer-substring (marker-position opening-bracket) (marker-position closing-bracket))))
+    (buffer-substring-no-properties (marker-position opening-bracket)
+                                    (marker-position closing-bracket))))
 
 (defun lfedoc-helpme ()
   "Go to Erlang website for help."
