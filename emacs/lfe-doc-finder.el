@@ -1,18 +1,36 @@
-;;; lfedoc --- Code for finding LFE documentation
+;;; lfe-doc-finder.el --- Code for finding LFE documentation and auto-completion
+
+;; Copyright (c) 2017 Jacek Podkanski
+;;
+;; Licensed under the Apache License, Version 2.0 (the "License");
+;; you may not use this file except in compliance with the License.
+;; You may obtain a copy of the License at
+;;
+;;     http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
+
+;; Author Jacek Podkanski
 
 ;;; Commentary:
 
 ;;; WARNING: I made a big mistake calling the new syntax the old syntax
 ;;; correct new syntax is (module:function) not (: module function)
 
-;;; This is supposed to make easier to look up documentation.
-;;; To make it useful I need to study following file
-;;; https://github.com/rvirding/lfe/blob/develop/doc/user_guide.txt
+;;; Also code needs a good refactoring.
+;;; We need sensible function names, caching exported function names and other
+;;; things.
 
 ;;; Usage:
 
-;;; Load this file by adding it in the load-path and running:
-;;; (load "/home/jacek/Programming/Pyrulis/Emacs/vendor/lfe-doc-finder.el")
+;;; Load this file by adding it to the load-path and running:
+;;; (require 'lfe-doc-finder)
+;;; or loading it directly
+;;; (load "emacs/lfe-doc-finder.el")
 
 ;;; LOOK-UP
 
@@ -23,6 +41,7 @@
 ;;; Will print to the mini buffer the sexp at the cursor.
 
 ;;; AUTO-COMPLETION s-1
+;;; Your file has to be in lfe-mode for auto completion to work.
 ;;; Placing cursor in various LFE sexps and pressing s-1 will give you various
 ;;; auto completion options that later hopefully will be integrated with Emacs.
 ;;; Even not it will give you a list of modules available by default and explore
@@ -589,5 +608,5 @@ or all functions if no function characters are given."
       (princ (format "%cerror count %s%c" 10 error-count 10))
       nil)))
 
-(provide 'lfedoc)
+(provide 'lfe-doc-finder)
 ;;; lfe-doc-finder.el ends here
