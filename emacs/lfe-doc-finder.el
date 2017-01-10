@@ -79,7 +79,7 @@
 ;;; ----------------------------------------------------------------------------
 
 ;;; define global variable for loaded modules
-(setq lfedoc-global-loaded-modules (list nil))
+(defvar lfedoc-global-loaded-modules (list nil))
 
 (defun lfedoc-query-loaded-modules ()
   "Get loaded module names."
