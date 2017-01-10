@@ -23,14 +23,18 @@
   ;; Threading macros.
   (export-macro -> ->> as-> cond-> cond->> some-> some->> doto)
   ;; Conditional macros.
-  (export-macro condp if-not iff when-not not=)
+  (export-macro if-let iff-let condp if-not iff when-not not=)
   ;; Predicate macros.
   (export-macro
    tuple? atom? binary? bitstring? boolean? bool? float? function? func?
    integer? int? number? record? reference? map? undefined? undef? nil?
-   true? false? odd? even? zero? pos? neg? identical?))
+   true? false? falsy? odd? even? zero? pos? neg? identical?)
+  ;; Other macros.
+  (export-macro str lazy-seq conj)
+  ;; Clojure-inspired if macro.
+  (export-macro if))
 
-(defmacro HAS_MAPS () ``(erl_internal:bif 'is_map 1))
+(defmacro HAS_MAPS () (quote (erl_internal:bif 'is_map 1)))
 
 ;;; Function macros.
 
@@ -88,36 +92,42 @@
   (defn- cond->*
     ([`(,x)]              x)
     ([`(,x ,_)]           (error "cond-> requires test/sexp pairs."))
-    ([`(,x ,test ,sexp)] `(if ,test ,(->* (list x sexp)) ,x))
+    ([`(,x ,test ,sexp)] `(case ,test
+                            ('false     ,x)
+                            ('undefined ,x)
+                            (_          ,(->* (list x sexp)))))
     ([`(,x ,test ,sexp . ,clauses)]
      (cond->* (cons (cond->* (list x test sexp)) clauses))))
   (defn- cond->>*
     ([`(,x)]              x)
     ([`(,x ,_)]           (error "cond->> requires test/sexp pairs."))
-    ([`(,x ,test ,sexp)] `(if ,test ,(->>* (list x sexp)) ,x))
+    ([`(,x ,test ,sexp)] `(case ,test
+                            ('false     ,x)
+                            ('undefined ,x)
+                            (_          ,(->>* (list x sexp)))))
     ([`(,x ,test ,sexp . ,clauses)]
      (cond->>* (cons (cond->>* (list x test sexp)) clauses))))
   (defn- some->*
     ([`(,x)]        x)
-    ([`(,x ,sexp)] `(if (clj:undefined? ,x) 'undefined ,(->* (list x sexp))))
+    ([`(,x ,sexp)] `(if (=:= 'undefined ,x) 'undefined ,(->* (list x sexp))))
     ([`(,x ,sexp . ,sexps)]
      (some->* (cons (some->* (list x sexp)) sexps))))
   (defn- some->>*
     ([`(,x)]        x)
-    ([`(,x ,sexp)] `(if (clj:undefined? ,x) 'undefined ,(->>* (list x sexp))))
+    ([`(,x ,sexp)] `(if (=:= 'undefined ,x) 'undefined ,(->>* (list x sexp))))
     ([`(,x ,sexp . ,sexps)]
      (some->>* (cons (some->>* (list x sexp)) sexps))))
-  (defn- falsey? (x)
-    `(case ,x
-       ('undefined 'true)
-       ('false     'true)
-       (_          'false)))
   (defn- emit
     ([pred expr `(,a >> ,c . ,more)]
-     `(let ((|-P-| (funcall ,pred ,a ,expr)))
-        (if ,(falsey? '|-P-|) ,(emit pred expr more) (funcall ,c |-P-|))))
+     `(case (funcall ,pred ,a ,expr)
+        ('false     ,(emit pred expr more))
+        ('undefined ,(emit pred expr more))
+        (|-P-|       (funcall ,c |-P-|))))
     ([pred expr `(,a ,b . ,more)]
-     `(if ,(falsey? `(funcall ,pred ,a ,expr)) ,(emit pred expr more) ,b))
+     `(case (funcall ,pred ,a ,expr)
+        ('false     ,(emit pred expr more))
+        ('undefined ,(emit pred expr more))
+        (_          ,b)))
     ([pred expr `(,a)]  a)
     ([pred expr  ()]   `(error 'no-matching-clause (list ,expr))))
   (defn- condp* ([`(,pred ,expr . ,clauses)] (emit pred expr clauses))))
@@ -146,29 +156,31 @@
 (defmacro cond-> args
   "expr . clauses
   Given an `expr`ession and a set of `test`/`sexp` pairs, thread `x` (via `->`)
-  through each `sexp` for which the corresponding `test` expression is `'true`.
+  through each `sexp` for which the corresponding `test` expression is truthy,
+  i.e. neither `'false` nor `'undefined`.
   Note that, unlike `cond` branching, `cond->` threading does not short circuit
-  after the first `'true` test expression."
+  after the first truthy test expression."
   (cond->* args))
 
 (defmacro cond->> args
   "expr . clauses
   Given an `expr`ession and a set of `test`/`sexp` pairs, thread `x` (via `->>`)
-  through each `sexp` for which the corresponding `test` expression is `'true`.
+  through each `sexp` for which the corresponding `test` expression is truthy,
+  i.e. neither `'false` nor `'undefined`.
   Note that, unlike `cond` branching, `cond->>` threading does not short circuit
-  after the first `'true` `test` expression."
+  after the first thruthy `test` expression."
   (cond->>* args))
 
 (defmacro some-> args
   "x . sexps
-  When `x` is not `undefined`, thread it into the first `sexp` (via `->`),
-  and when that result is not `undefined`, through the next, etc."
+  When `x` is not `'undefined`, thread it into the first `sexp` (via `->`),
+  and when that result is not `'undefined`, through the next, etc."
   (some->* args))
 
 (defmacro some->> args
   "x . sexps
-  When `x` is not `undefined`, thread it into the first sexp (via `->>`),
-  and when that result is not `undefined`, through the next, etc."
+  When `x` is not `'undefined`, thread it into the first `sexp` (via `->>`),
+  and when that result is not `'undefined`, through the next, etc."
   (some->>* args))
 
 (defmacro doto
@@ -186,6 +198,31 @@
 
 ;;; Conditional macros.
 
+(defmacro if-let args
+  "((patt test)) then {{else}}
+  If `test` evaluates to anything other than `'false` or `'undefined`,
+  evaluate `then` with `patt` bound to the value of `test`,
+  otherwise `else`, if supplied, else `'undefined`."
+  (flet ((exp-if-let (patt test then else)
+           `(case ,test
+              ('false     ,else)
+              ('undefined ,else)
+              (,patt      ,then))))
+    (case args
+      ((list (list patt test) then) (exp-if-let patt test then `'undefined))
+      ((list (list patt test) then else) (exp-if-let patt test then else)))))
+
+(defmacro iff-let
+  "((patt test)) . body
+  When `test` evaluates to anything other than `'false` or `'undefined`,
+  evaluate `body` with `patt` bound to the value of `test`,
+  otherwise return `'undefined`."
+  (`(((,patt ,test)) . ,body)
+   `(case ,test
+      ('false     'undefined)
+      ('undefined 'undefined)
+      (,patt      ,@body))))
+
 (defmacro condp args
   "pred expr . clauses
   Given a binary predicate, an expression and a set of clauses of the form:
@@ -195,9 +232,9 @@
       test-expr >> result-fn
 
   where `result-fn` is a unary function, if `(pred test-expr expr)` returns
-  anything other than `undefined` or `'false`, the clause is a match.
+  anything other than `'undefined` or `'false`, the clause is a match.
 
-  If a binary clause matches, return `result-expr`.  If a ternary clause
+  If a binary clause matches, return `result-expr`. If a ternary clause
   matches, call `result-fn` with the result of the predicate and return the
   result.
 
@@ -206,31 +243,43 @@
   throw a `no-matching-clause` error."
   (condp* args))
 
-(defmacro if-not
+(defmacro if-not args
   "test then [else]
-  If `test` evaluates to `'false`, evaluate and return `then`,
-  otherwise `else`, if supplied, else `'false`."
-  (`(,test ,then) `(if ,test 'false ,then))
-  (`(,test ,then ,else)
-   `(if ,test ,else ,then)))
+  If `test` evaluates to `'false` or `'undefined`, evaluate and return `then`,
+  otherwise `else`, if supplied, else `'undefined`."
+  (flet ((exp-if-not (test then else)
+           `(case ,test
+              ('false     ,then)
+              ('undefined ,then)
+              (_          ,else))))
+    (case args
+      ((list test then)      (exp-if-not test then `'undefined))
+      ((list test then else) (exp-if-not test then else)))))
 
 (defmacro iff
   "test . body
   Like Clojure's `when`.
-  Evaluate `test`. If `'true`, evaluate `body` in an implicit `progn`."
+  If `test` evaluates to anything other than `'false` or `'undefined`,
+  evaluate `body` in an implicit `progn`. Otherwise, return `'undefined`."
   (`(,test . ,body)
-   (list 'if test (cons 'progn body))))
+   `(case ,test
+      ('false     'undefined)
+      ('undefined 'undefined)
+      (_          (progn ,@body)))))
 
 (defmacro when-not
   "test . body
-  If `test` evaluates to `'false`, evaluate `body` in an implicit `progn`,
-  otherwise if `test` evaluates to `'true`, return `'false`."
+  If `test` evaluates to `'false` or `'undefined`, evaluate `body`
+  in an implicit `progn`. Otherwise return `'undefined`."
   (`(,test . ,body)
-   `(if ,test 'false (progn ,@body))))
+   `(case ,test
+      ('false     (progn ,@body))
+      ('undefined (progn ,@body))
+      (_          'undefined))))
 
 (defmacro not=
   "Same as `(not (== ...))`."
-  (`(,x)            'false)
+  (`(,x)            `'false)
   (`(,x ,y . ,more) `(not (== ,x ,y ,@more))))
 
 
@@ -305,7 +354,9 @@
 (defmacro map? (x)
   "Return `'true` if `data` is a map.
   Return `'false` on versions of Erlang without maps."
-  `(andalso ,(HAS_MAPS) (call 'erlang 'is_map ,x)))
+  (if (HAS_MAPS)
+    `(call 'erlang 'is_map ,x)
+    `'false))
 
 (defmacro undefined? (x)
   "Return `'true` if `x` is the atom `'undefined`."
@@ -328,13 +379,17 @@
   "Return `'true` if `x` is the atom `'false`."
   `(=:= 'false ,x))
 
+(defmacro falsy? (x)
+  "Return `'true` if `x` is one of the atoms `'false` and `'undefined`."
+  `(orelse (=:= 'false ,x) (=:= 'undefined ,x)))
+
 (defmacro odd? (x)
   "Return `'true` if `x` is odd."
-  `(=:= 1 ,(rem x 2)))
+  `(not (clj:even? ,x)))
 
 (defmacro even? (x)
   "Return `'true` if `x` is even."
-  `(=:= 0 ,(rem x 2)))
+  `(clj:zero? ,(band 1 x)))
 
 (defmacro zero? (x)
   "Return `'true` if `x` is zero."
@@ -352,6 +407,48 @@
   "Return `'true` if `x` is exactly equal to `y`."
   `(=:= ,x ,y))
 
+;;; Other macros.
+
+(defmacro str args
+  "Construct a string from an arbitrary number of scalar values."
+  `(lists:flatmap
+     (lambda (arg)
+       (clj:cond-> arg
+         (not (clj:string? arg)) (lfe_io:print1)))
+     (list ,@args)))
+
+(defmacro lazy-seq
+  "Return a (possibly infinite) lazy sequence from a given lazy sequence `seq`
+  or a finite lazy sequence from given list `seq`.
+  A lazy sequence is treated as finite if at any iteration it produces
+  the empty list, instead of a cons cell with data as the head and a
+  nullary function for the next iteration as the tail."
+  (`(()) ())
+  (`(,seq)
+   `(lambda ()
+      (let ((,'seq* ,seq))
+        (if (is_function ,'seq* 0)
+          (funcall ,'seq*)
+          (fletrec ((-lazy-seq
+                     ((()) ())
+                     ((`(,h . ,t))
+                      (cons h (lambda () (-lazy-seq t))))))
+            (-lazy-seq ,'seq*)))))))
+
+(defmacro conj
+  "conj[oins] a value onto an existing collection, either a list, a tuple,
+ or a map. For lists this means prepending, for tuples appending,
+ and for maps merging."
+  (`[,coll . ,xs]
+   `(cond ((is_list ,coll)
+           (++ (lists:reverse (list ,@xs)) ,coll))
+          ((is_tuple ,coll)
+           (lists:foldl (lambda (x acc) (erlang:append_element acc x))
+                        ,coll
+                        (list ,@xs)))
+          ((clj:map? ,coll) (lists:foldl (lambda (x acc) (maps:merge acc x))
+                                          ,coll
+                                          (list ,@xs))))))
 
 ;;; Function composition.
 
@@ -359,9 +456,8 @@
   "Function composition.
   If the second argument is a function, compose `f` and `g`.
   Otherwise, compose a list of functions `fs` and apply the result to `x`."
-  ([f g] (when (is_function g))
-   (lambda [x]
-     (funcall f (funcall g x))))
+  ([f g] (when (function? g))
+   (fn [x] (funcall f (funcall g x))))
   ([fs x]
    (funcall (comp fs) x)))
 
@@ -434,12 +530,9 @@
 
 (defn proplist-kv?
   "Return `'true` if a given term is a key/value tuple or an atom."
-  ([`#(,key ,_)] (when (is_atom key))
-   'true)
-  ([bool-key] (when (is_atom bool-key))
-   'true)
-  ([_]
-   'false))
+  ([`#(,key ,_)] (when (atom? key))      'true)
+  ([bool-key]    (when (atom? bool-key)) 'true)
+  ([_]                                   'false))
 
 (defn queue? [x]
   "Return `'true` if `x` is a queue."
@@ -515,8 +608,14 @@
   and a nullary function, `(next func (funcall func start step) step)` as the
   tail. The result can be treated as a (possibly infinite) lazy list, which
   only computes subseqeuent values as needed."
-  (lambda ()
-    (cons start (next func (funcall func start step) step))))
+  (fn [] (cons start (next func (funcall func start step) step))))
+
+(defn cycle
+  "Return a lazy infinite sequence with all elements from a given list `lst`
+  or another lazy sequence cycled.
+  See [[next/3]] for details on the structure."
+  ([()] ())
+  ([lst] (fn [] (-cycle lst ()))))
 
 (defn range []
   "Equivalent to `(range 1 1)`."
@@ -537,17 +636,19 @@
   ([_    ()]                             ())
   ([0    lst]                            lst)
   (['all lst]       (when (is_list lst)) ())
-  ([n    `(,_ . ,t)]                     (drop (- n 1) t)))
+  ([n    f]         (when (function? f)) (fn [] (-drop n (funcall f))))
+  ([n    `(,_ . ,t)]                     (drop (dec n) t)))
 
 (defn take
   "Given a (possibly lazy) list `lst`, return a list of the first `n` elements
   of `lst`, or all elements if there are fewer than `n`. If `n` is the atom
   `all` and `lst` is a \"normal\" list, return `lst`."
   ([_ ()]                          ())
+  ([0 _]                           ())
   (['all lst] (when (is_list lst)) lst)
   ([n lst] (when (is_list lst))
    (lists:sublist lst n))
-  ([n func] (when (is_function func) (is_integer n) (>= n 0))
+  ([n func] (when (function? func 0) (integer? n) (pos? n))
    (-take n () (funcall func))))
 
 (defn split-at [n lst]
@@ -604,15 +705,15 @@
 (defn repeat [x]
   "Return a lazy infinite sequence of `x`s.
   See [[next/3]] for details on the structure."
-  (next (lambda (y _) y) x x))
+  (next (fn [y _] y) x x))
 
 (defn repeat
   "Given a nullary function `f`, return a list of `n` applications of `f`.
   Given a term `x`, return a list of `n` copies of `x`."
-  ([n f] (when (is_function f) (is_integer n) (>= n 0))
+  ([n f] (when (function? f) (integer? n) (>= n 0))
    (fletrec ((repeat-fun
               ((0 acc) acc)
-              ((n acc) (repeat-fun (- n 1) (cons (funcall f) acc)))))
+              ((n acc) (repeat-fun (dec n) (cons (funcall f) acc)))))
      (repeat-fun n ())))
   ([n x]
    (lists:duplicate n x)))
@@ -626,7 +727,7 @@
 (defn constantly [x]
   "Return a unary function that returns `x`.
   N.B. This is like Haskell's `const` rather than Clojure's `constantly`."
-  (lambda (_) x))
+  (fn [_] x))
 
 (defn inc [x]
   "Increment `x` by 1."
@@ -638,9 +739,16 @@
 
 ;;; Internal functions.
 
+(defn- -drop
+  ([_ ()] ())
+  ([0 data] data)
+  ([n `(,_ . ,tail)] (when (function? tail))
+   (-drop (dec n) (funcall tail))))
+
 (defn- -take
-  ([0 acc _]                (lists:reverse acc))
-  ([n acc (cons item func)] (-take (- n 1) (cons item acc) (funcall func))))
+  ([_ acc ()] (lists:reverse acc))
+  ([1 acc (cons item _func)] (lists:reverse (cons item acc)))
+  ([n acc (cons item  func)] (-take (dec n) (cons item acc) (funcall func))))
 
 (defn- -partition
   ([0  _step _pad _partial? _acc lst] lst) ; FIXME: Do we want this behaviour?
@@ -679,7 +787,7 @@
 
 (defn- -get-in-list
   ([lst  () not-found] lst)
-  ([lst `(,n . ,keys) not-found] (when (is_integer n))
+  ([lst `(,n . ,keys) not-found] (when (integer? n))
    (let ((data
           (try
             (lists:nth n lst)
@@ -696,11 +804,33 @@
   (flet ((dict-find [k d]
                     (case (dict:fetch k d)
                       (`#(ok ,v) v)
-                      ('errror   not-found))))
+                      ('error    not-found))))
     (-get-in #'dict-find/2 dict keys)))
 
-(defn- -get-in-map [xmap keys not-found]
-  (if (HAS_MAPS)
-    (flet ((maps-get [k m] (call 'maps 'get k m not-found)))
-      (-get-in #'maps-get/2 xmap keys not-found))
-    not-found))
+(defn- -get-in-map
+  ([xmap keys not-found] (when (map? xmap))
+   (flet ((maps-get [k m] (call 'maps 'get k m not-found)))
+     (-get-in #'maps-get/2 xmap keys not-found)))
+  ([_xmap _keys not-found] not-found))
+
+(defn- -cycle
+  ([() lst] (-cycle (lists:reverse lst) ()))
+  ([f lst] (when (function? f 0))
+   (-cycle (funcall f) lst))
+  ([`(,head . ,tail) lst]
+   (cons head (fn [] (-cycle tail (cons head lst))))))
+
+;;; Clojure-inspired if macro.
+
+(defmacro if args
+  "test then {{else}}
+  If `test` evaluates to anything other than `'false` or `'undefined`,
+  return `then`, otherwise `else`, if given, else `'undefined`."
+  (flet ((exp-if (test then else)
+           `(case ,test
+              ('false     ,else)
+              ('undefined ,else)
+              (_          ,then))))
+    (case args
+      ((list test then)      (exp-if test then `'undefined))
+      ((list test then else) (exp-if test then else)))))

@@ -40,10 +40,12 @@ define([Name|Fdefs], Env, St0) ->
 
 define(Name, Fdefs, Env, St) ->
     %% Get field names, default values and indices.
-    Fields = map(fun ([F,_]) when is_atom(F) -> F;
+    Fields = map(fun ([F,_,_]) when is_atom(F) -> F;
+                     ([F,_]) when is_atom(F) -> F;
                      (F) when is_atom(F) -> F
                  end, Fdefs),
-    Defs = map(fun ([F,D])when is_atom(F) -> ?Q(D);
+    Defs = map(fun ([F,D,_]) when is_atom(F) -> ?Q(D);
+                   ([F,D]) when is_atom(F) -> ?Q(D);
                    (F) when is_atom(F) -> ?Q(?Q(undefined))
                end, Fdefs),
     Findexs = field_indexes(Fields),
@@ -64,7 +66,7 @@ define(Name, Fdefs, Env, St) ->
             field_macros(Name, Fields)],        %Name-F,set-Name-F
     Type = type_information(Name, Fdefs, St),
     %% We can always add type information here as it is stripped later.
-    Forms = [['extend-module',[],[Type]]|Macs],
+    Forms = [['extend-module',[Type],[]]|Macs],
     %% lfe_io:format("~p\n", [{Funs,Forms}]),
     {Funs,Forms,Env,St}.
 
@@ -146,28 +148,7 @@ field_macros(Name, Fs) ->
                    Fas]
           end, [], Fis).
 
--ifdef(NEW_REC_CORE).
-type_information(Name, Fdefs, #mac{line=L}) ->
-    %% Only field names which will result in default type any().
-    %% Adding types greatly complicates things. If we add defaults
-    %% then they would have to be expanded here.
-    Fs = map(fun ([F,_D]) ->
-                     %% De = lfe_trans:to_expr(D, L),
-                     {record_field,[L],{atom,[L],F}};
-                 (F) ->
-                     {record_field,[L],{atom,[L],F}}
-             end, Fdefs),
-    [record,{Name,Fs}].
--else.
-type_information(Name, Fdefs, #mac{line=L}) ->
-    %% Only field names which will result in default type any().
-    %% Adding types greatly complicates things. If we add defaults
-    %% then they would have to be expanded here.
-    Fs = map(fun ([F,_D]) ->
-                     %% De = lfe_trans:to_expr(D, L),
-                     {record_field,L,{atom,L,F}};
-                 (F) ->
-                     {record_field,L,{atom,L,F}}
-             end, Fdefs),
-    [type,[{record,Name},Fs,[]]].
--endif.
+type_information(Name, Fdefs, _St) ->
+    %% We push the problem of generating the right final forms to the
+    %% code generator which knows about the record attribute.
+    [record,[Name|Fdefs]].

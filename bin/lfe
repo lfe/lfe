@@ -32,6 +32,7 @@ show_help () {
     -h | --help              Print this help and exit
     -e | -eval \"sexp\"        Evaluates the given sexpr
     -- | -extra \"switches\"   Send misc configuration switches to the Erlang VM
+    -prompt value            Set the LFE prompt to a user-supplied value
     -flag | +flag            Enables/disables configuration flags to be
                              used by the Erlang VM" >&2
 }

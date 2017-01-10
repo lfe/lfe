@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2015 Robert Virding
+%% Copyright (c) 2008-2016 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@ term([quote,E], D, I, L) -> ["'",term(E, D, I+1, L)];
 term([backquote,E], D, I, L) -> ["`",term(E, D, I+1, L)];
 term([comma,E], D, I, L) -> [",",term(E, D, I+1, L)];
 term(['comma-at',E], D, I, L) -> [",@",term(E, D, I+2, L)];
-term([map|MapBody], D, I, L) ->
+term([map|MapBody], D, I, L) ->                 %Special case map form
     Mcs = map_body(MapBody, D, I+5, L),
     ["(map ",Mcs,$)];
 term([Car|_]=List, D, I, L) ->
@@ -85,6 +85,8 @@ term(Tup, D, I, L) when is_tuple(Tup) ->
 term(Bit, D, _, _) when is_bitstring(Bit) ->
     bitstring(Bit, D);                          %First D bytes
 term(Map, D, I, L) when ?IS_MAP(Map) ->
+    %% This will return kv pairs in reverse order to from_list, but
+    %% this dooesn't really matter here.
     Fun = fun (K, V, Acc) -> [K,V|Acc] end,
     Mcs = map_body(maps:fold(Fun, [], Map), D, I+3, L),
     ["#M(",Mcs,$)];
@@ -285,6 +287,9 @@ indent_type('define-function') -> 1;
 indent_type('define-macro') -> 1;
 indent_type('define-module') -> 1;
 indent_type('extend-module') -> 0;
+indent_type('define-type') -> 1;
+indent_type('define-opaque-type') -> 1;
+indent_type('define-function-spec') -> 1;
 %% Core macros.
 indent_type(':') -> 2;
 indent_type('cond') -> 999;                     %All following forms
@@ -304,19 +309,21 @@ indent_type(_) -> none.
 
 %% map(KVs, Depth, Indentation, LineLength).
 %% map_body(KVs, CurrentLineIndent, Depth, Indentation, LineLength)
+%%  Don't include the start and end of the map as this is called from
+%%  differenct functions.
 
 map_body(KVs, D, I, L) ->
     map_body(KVs, I, D, I, L-1).
 
 map_body([K,V|KVs], CurL, D, I, L) ->
     case map_assoc(K, V, CurL, D, I, L) of
-        {both_fit,KVcs,KVl} ->      %Both fit on this line
+        {curr_line,KVcs,KVl} ->                 %Both fit on current line
             [KVcs,map_rest(KVs, CurL+KVl, D-1, I, L)];
-        {both_line,KVcs,KVl} ->     %Both fit on single line
+        {one_line,KVcs,KVl} ->                  %Both fit on one line
             [KVcs,map_rest(KVs, I+KVl, D-1, I, L)];
-        {break,KVcs} ->                   %On separate lines
+        {sep_lines,Kcs,Vcs} ->                  %On separate lines
             %% Force a break after K/V split.
-            [KVcs,map_rest(KVs, L, D-1, I, L)]
+            [Kcs,newline(I, Vcs),map_rest(KVs, L, D-1, I, L)]
     end;
 map_body(E, CurL, D, I, L) ->
     map_last(E, CurL, D, I, L).
@@ -327,21 +334,21 @@ map_body(E, CurL, D, I, L) ->
 map_rest(KVs, D, I, L) ->
     map_rest(KVs, I, D, I, L-1).
 
-map_rest([], _, _, _, _) -> "";
-map_rest(_, _, 0, _, _) -> " ...";
+map_rest(_, _, 0, _, _) -> " ...";              %Reached our depth
 map_rest([K,V|KVs], CurL, D, I, L) ->
     case map_assoc(K, V, CurL+1, D, I, L) of
-        {both_fit,KVcs,KVl} ->      %Both fit on this line
+        {curr_line,KVcs,KVl} ->                 %Both fit on current line
             [$\s,KVcs,map_rest(KVs, CurL+KVl+1, D-1, I, L)];
-        {both_line,KVcs,KVl} ->           %Both fit on single line
+        {one_line,KVcs,KVl} ->                  %Both fit on one line
             [newline(I, KVcs),map_rest(KVs, I+KVl, D-1, I, L)];
-        {break,KVcs} ->       %On separate lines
+        {sep_lines,Kcs,Vcs} ->                  %On separate lines
             %% Force a break after K/V split.
-            [newline(I, KVcs),map_rest(KVs, L, D-1, I, L)]
+            [newline(I, Kcs),newline(I, Vcs),map_rest(KVs, L, D-1, I, L)]
     end;
 map_rest(E, CurL, D, I, L) ->
     map_last(E, CurL, D, I, L).
 
+%% Print any remaining element as list element.
 map_last(Tail, CurL, D, I, L) ->
     list_tail(Tail, CurL, D, I, L).
 
@@ -350,10 +357,10 @@ map_assoc(K, V, CurL, D, I, L) ->
     Kl = flatlength(Kcs),
     Vcs = term(V, D, 0, 99999),                 %Never break the line
     Vl = flatlength(Vcs),
-    if CurL+Kl+Vl < L-10 ->                     %Both fit together here
-            {both_fit,[Kcs,$\s,Vcs],Kl+1+Vl};
-       I+Kl+Vl < L-10 ->                        %Both fit on single line
-            {both_line,[Kcs,$\s,Vcs],Kl+1+Vl};
+    if CurL+Kl+Vl < L-10 ->                     %Both fit on current line
+            {curr_line,[Kcs,$\s,Vcs],Kl+1+Vl};
+       I+Kl+Vl < L-10 ->                        %Both fit on one line
+            {one_line,[Kcs,$\s,Vcs],Kl+1+Vl};
        true ->                                  %On separate lines
             %% Try to reuse flat prints if they fit on one line.
             Ks = if I+Kl < L-10 -> Kcs;
@@ -362,7 +369,7 @@ map_assoc(K, V, CurL, D, I, L) ->
             Vs = if I+Vl < L-10 -> Vcs;
                     true -> term(V, D, I, L)
                  end,
-            {break,[Ks,newline(I, Vs)]}
+            {sep_lines,Ks,Vs}
     end.
 
 %% last_length(Chars) -> Length.

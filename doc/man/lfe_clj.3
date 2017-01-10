@@ -23,6 +23,23 @@ then call them directly, e.g.
 (\->\ 2\ (+\ 2)\ (=:=\ 4))\ ;\ \[aq]true
 \f[]
 .fi
+.SS Function Macros
+.PP
+\f[B](defn name [arg ...] {{doc\-string}} ...)\f[]
+.PP
+\f[B](defn {{doc\-string}} ([argpat ...] ...))\f[]
+.PP
+Define and automatically export a function.
+.PP
+\f[B](defn\- name [arg ...] {{doc\-string}} ...)\f[]
+.PP
+\f[B](defn\- {{doc\-string}} ([argpat ...] ...))\f[]
+.PP
+Equivalent to \f[B]defun\f[].
+.PP
+\f[B](fn (arg ...) ...)\f[]
+.PP
+Equivalent to \f[C]lambda\f[].
 .SS Threading Macros
 .PP
 Note: The original versions were copied from Tim Dysinger\[aq]s lfesl
@@ -150,34 +167,46 @@ returning the result of the last \f[C]sexp\f[].
 .PP
 Given an \f[C]expr\f[]ession and a set of \f[C]test\f[]/\f[C]sexp\f[]
 pairs, thread \f[C]x\f[] (via \f[B]\->\f[]) through each \f[C]sexp\f[]
-for which the corresponding \f[C]test\f[] expression is
-\f[C]\[aq]true\f[].
+for which the corresponding \f[C]test\f[] expression is truthy, i.e.
+neither \f[C]\[aq]false\f[] nor \f[C]\[aq]undefined\f[].
 Note that, unlike \f[B]cond\f[] branching, \f[B]cond\->\f[] threading
-does not short circuit after the first \f[C]\[aq]true\f[] test
-expression.
+does not short circuit after the first truthy test expression.
 .PP
 \f[B](cond\->> expr . clauses)\f[]
 .PP
 Given an \f[C]expr\f[]ession and a set of \f[C]test\f[]/\f[C]sexp\f[]
 pairs, thread \f[C]x\f[] (via \f[B]\->>\f[]) through each \f[C]sexp\f[]
-for which the corresponding \f[C]test\f[] expression is
-\f[C]\[aq]true\f[].
+for which the corresponding \f[C]test\f[] expression is truthy, i.e.
+neither \f[C]\[aq]false\f[] nor \f[C]\[aq]undefined\f[].
 Note that, unlike \f[B]cond\f[] branching, \f[B]cond\->>\f[] threading
-does not short circuit after the first \f[C]\[aq]true\f[] \f[C]test\f[]
-expression.
+does not short circuit after the first truthy \f[C]test\f[] expression.
 .PP
 \f[B](some\-> x . sexps)\f[]
 .PP
-When \f[C]x\f[] is not \f[C]undefined\f[], thread it into the first
+When \f[C]x\f[] is not \f[C]\[aq]undefined\f[], thread it into the first
 \f[C]sexp\f[] (via \f[B]\->\f[]), and when that result is not
-\f[C]undefined\f[], through the next, etc.
+\f[C]\[aq]undefined\f[], through the next, etc.
 .PP
 \f[B](some\->> x . sexps)\f[]
 .PP
-When \f[C]x\f[] is not \f[C]undefined\f[], thread it into the first sexp
-(via \f[B]\->>\f[]), and when that result is not \f[C]undefined\f[],
-through the next, etc.
+When \f[C]x\f[] is not \f[C]\[aq]undefined\f[], thread it into the first
+\f[C]sexp\f[] (via \f[B]\->>\f[]), and when that result is not
+\f[C]\[aq]undefined\f[], through the next, etc.
 .SS Conditional Macros
+.PP
+\f[B](if\-let ((patt test)) then {{else}})\f[]
+.PP
+If \f[C]test\f[] evaluates to anything other than \f[C]\[aq]false\f[] or
+\f[C]\[aq]undefined\f[], evaluate \f[C]then\f[] with \f[C]patt\f[] bound
+to the value of \f[C]test\f[], otherwise \f[C]else\f[], if supplied,
+else \f[C]\[aq]undefined\f[].
+.PP
+\f[B](iff\-let ((patt test)) . body)\f[]
+.PP
+When \f[C]test\f[] evaluates to anything other than \f[C]\[aq]false\f[]
+or \f[C]\[aq]undefined\f[], evaluate \f[C]body\f[] with \f[C]patt\f[]
+bound to the value of \f[C]test\f[], otherwise return
+\f[C]\[aq]undefined\f[].
 .PP
 \f[B](condp pred expr . clauses)\f[]
 .PP
@@ -194,7 +223,7 @@ test\-expr\ >>\ result\-fn
 .PP
 where \f[C]result\-fn\f[] is a unary function, if
 \f[C](pred\ test\-expr\ expr)\f[] returns anything other than
-\f[C]undefined\f[] or \f[C]\[aq]false\f[], the clause is a match.
+\f[C]\[aq]undefined\f[] or \f[C]\[aq]false\f[], the clause is a match.
 .PP
 If a binary clause matches, return \f[C]result\-expr\f[].
 If a ternary clause matches, call \f[C]result\-fn\f[] with the result of
@@ -209,22 +238,23 @@ If no default expression is given and no clause matches, throw a
 .PP
 \f[B](if\-not test then else)\f[]
 .PP
-If \f[C]test\f[] evaluates to \f[C]\[aq]false\f[], evaluate and return
-\f[C]then\f[], otherwise \f[C]else\f[], if supplied, else
-\f[C]\[aq]false\f[].
+If \f[C]test\f[] evaluates to \f[C]\[aq]false\f[] or
+\f[C]\[aq]undefined\f[], evaluate and return \f[C]then\f[], otherwise
+\f[C]else\f[], if supplied, else \f[C]\[aq]undefined\f[].
 .PP
 \f[B](iff test . body)\f[]
 .PP
 Like Clojure\[aq]s \f[C]when\f[].
-Evaluate \f[C]test\f[].
-If \f[C]\[aq]true\f[], evaluate \f[C]body\f[] in an implicit
+If \f[C]test\f[] evaluates to anything other than \f[C]\[aq]false\f[] or
+\f[C]\[aq]undefined\f[], evaluate \f[C]body\f[] in an implicit
 \f[C]progn\f[].
 .PP
 \f[B](when\-not test . body)\f[]
 .PP
-If \f[C]test\f[] evaluates to \f[C]\[aq]false\f[], evaluate
-\f[C]body\f[] in an implicit \f[C]progn\f[], otherwise if \f[C]test\f[]
-evaluates to \f[C]\[aq]true\f[], return \f[C]\[aq]false\f[].
+If \f[C]test\f[] evaluates to \f[C]\[aq]false\f[] or
+\f[C]\[aq]undefined\f[], evaluate \f[C]body\f[] in an implicit
+\f[C]progn\f[].
+Otherwise return \f[C]\[aq]undefined\f[].
 .PP
 \f[B](not= x)\f[]
 .PP
@@ -328,6 +358,11 @@ Return \f[C]\[aq]true\f[] if \f[C]x\f[] is the atom \f[C]\[aq]true\f[].
 .PP
 Return \f[C]\[aq]true\f[] if \f[C]x\f[] is the atom \f[C]\[aq]false\f[].
 .PP
+\f[B](falsy? x)\f[]
+.PP
+Return \f[C]\[aq]true\f[] if \f[C]x\f[] is one of the atoms
+\f[C]\[aq]false\f[] and \f[C]\[aq]undefined\f[].
+.PP
 \f[B](odd? x)\f[]
 .PP
 Return \f[C]\[aq]true\f[] if \f[C]x\f[] is odd.
@@ -351,6 +386,52 @@ Return \f[C]\[aq]true\f[] if \f[C]x\f[] is less than zero.
 \f[B](identical? x)\f[]
 .PP
 Return \f[C]\[aq]true\f[] if \f[C]x\f[] is exactly equal to \f[C]y\f[].
+.SS Other Macros
+.PP
+\f[B](str x1, x2 ... xn)\f[]
+.PP
+Given arbitrary number of arguments, return a string consisting of each
+of their string representations.
+.PP
+N.B.
+Because Erlang characters are represented as integers, this will not
+work for chars, e.g.
+\f[C]#\\a\f[], which will be presented in the return value as its
+integer value, i.e.
+\f[C]"97"\f[].
+.IP
+.nf
+\f[C]
+>\ (clj:str\ #\\a\ "bc")
+"97bc"
+>\ (clj:str\ "a"\ "bc")
+"abc"
+\f[]
+.fi
+.PP
+\f[B](lazy\-seq)\f[]
+.PP
+\f[B](lazy\-seq seq)\f[]
+.PP
+Return a (possibly infinite) lazy sequence from a given lazy sequence
+\f[C]seq\f[] or a finite lazy sequence from given list \f[C]seq\f[].
+A lazy sequence is treated as finite if at any iteration it produces the
+empty list, instead of a cons cell with data as the head and a nullary
+function for the next iteration as the tail.
+.PP
+\f[B](conj coll . xs)\f[]
+.PP
+conj[oin] a value onto an existing collection.
+Prepend to a list, append to a tuple, and merge maps.
+.SS Clojure\-inspired \f[I]if\f[] Macro
+.PP
+\f[B](if test then)\f[]
+.PP
+\f[B](if test then else)\f[]
+.PP
+If \f[C]test\f[] evaluates to anything other than \f[C]\[aq]false\f[] or
+\f[C]\[aq]undefined\f[], return \f[C]then\f[], otherwise \f[C]else\f[],
+if given, else \f[C]\[aq]undefined\f[].
 .SS Function Composition
 .PP
 \f[B](comp f g)\f[]
@@ -563,6 +644,21 @@ as the head and a nullary function,
 The result can be treated as a (possibly infinite) lazy list, which only
 computes subseqeuent values as needed.
 .PP
+\f[B](lazy\-seq seq)\f[]
+.PP
+Return a lazy sequence (possibly infinite) from given lazy sequence
+\f[C]seq\f[] or finite lazy sequence from given list \f[C]seq\f[].
+Lazy sequence is treated as finite if at any iteration it produces empty
+list instead of data as its head and nullary function for next iteration
+as its tail.
+.PP
+\f[B](cycle lst)\f[]
+.PP
+Return a lazy infinite sequence with all elements from a given list
+\f[C]lst\f[] or another lazy sequence cycled.
+.PP
+See \f[B]next/3\f[] for details on the structure.
+.PP
 \f[B](range)\f[]
 .PP
 Equivalent to \f[C](range\ 1\ 1)\f[].
@@ -675,5 +771,13 @@ Return a unary function that returns \f[C]x\f[].
 N.B.
 This is like Haskell\[aq]s \f[C]const\f[] rather than Clojure\[aq]s
 \f[C]constantly\f[].
+.PP
+\f[B](inc x)\f[]
+.PP
+Increment \f[C]x\f[] by 1.
+.PP
+\f[B](dec x)\f[]
+.PP
+Decrement \f[C]x\f[] by 1.
 .SH AUTHORS
 Tim Dysinger, Duncan McGreggor, Eric Bailey.

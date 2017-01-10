@@ -14,7 +14,7 @@
 
 ;; As close as we can get to a vanilla erlang if, a case with no match.
 (defmacro eif args
-   (fletrec ((r ([(t v . as)] `((_ (when ,t) ,v) . ,(r as)))
+   (fletrec ((r ([(list* t v as)] `((_ (when ,t) ,v) . ,(r as)))
                 ([()] ())))
      `(case 1 . ,(r args))))
 

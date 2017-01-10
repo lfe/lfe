@@ -31,6 +31,9 @@
 -export([expand_form_init/2,expand_form_init/3,
          expand_form/4,expand_fileform/3]).
 
+%% For creating the macro expansion state.
+-export([default_state/2,default_state/3]).
+
 -export([format_error/1]).
 
 -export([mbe_syntax_rules_proc/4,mbe_syntax_rules_proc/5,
@@ -120,7 +123,7 @@ do_forms(Fs0, Env0, St0) ->
     end.
 
 default_state(Deep, Keep) ->
-    #mac{deep=Deep,keep=Keep,line=1,file="-nofile-",opts=[],ipath=["."]}.
+    #mac{deep=Deep,keep=Keep,line=1,file="-no-file-",opts=[],ipath=["."]}.
 
 default_state(#cinfo{file=File,opts=Os,ipath=Is}, Deep, Keep) ->
     #mac{deep=Deep,keep=Keep,line=1,file=File,opts=Os,ipath=Is}.
@@ -328,7 +331,6 @@ add_error(L, E, St) ->
 %%     St#mac{warnings=St#mac.warnings ++ [{L,?MODULE,W}]}.
 
 %% exp_form(Form, Env, State) -> {Form,State}.
-
 %%  Completely expand a form using expansions in Env and pre-defined
 %%  macros.  N.B. builtin core forms cannot be overidden and are
 %%  handled here first. Some core forms also are particular about how
@@ -406,14 +408,23 @@ exp_form([call|As], Env, St) ->
 %% Core definition special forms.
 exp_form(['eval-when-compile'|B], Env, St) ->
     exp_normal_core('eval-when-compile', B, Env, St);
-exp_form(['define-function',Head|B], Env, St) ->
-    exp_head_tail('define-function', Head, B, Env, St);
-exp_form(['define-macro',Head|B], Env, St) ->
-    exp_head_tail('define-macro', Head, B, Env, St);
 exp_form(['define-module',Head|B], Env, St) ->
     exp_head_tail('define-module', Head, B, Env, St);
 exp_form(['extend-module'|B], Env, St) ->
     exp_normal_core('extend-module', B, Env, St);
+exp_form(['define-type',Type|D], Env, St) ->
+    exp_head_tail('define-type', Type, D, Env, St);
+exp_form(['define-opaque-type',Type|D], Env, St) ->
+    exp_head_tail('define-opaque-type', Type, D, Env, St);
+exp_form(['define-function-spec',Func|S], Env, St) ->
+    exp_head_tail('define-function-spec', Func, S, Env, St);
+exp_form(['define-function',Head|B], Env, St) ->
+    exp_head_tail('define-function', Head, B, Env, St);
+exp_form(['define-macro',Head|B], Env, St) ->
+    exp_head_tail('define-macro', Head, B, Env, St);
+%% And don't forget when.
+exp_form(['when'|G], Env, St) ->
+    exp_normal_core('when', G, Env, St);
 %% Now the case where we can have macros.
 exp_form([Fun|_]=Call, Env, St0) when is_atom(Fun) ->
     %% Expand top macro as much as possible.
@@ -827,6 +838,15 @@ exp_predef([defmodule,Name|Rest], _, St) ->
     MODULE = [defmacro,'MODULE',[],?BQ(?Q(Mname))],
     {Meta,Atts} = exp_defmodule(Rest),
     {yes,[progn,['define-module',Name,Meta,Atts],MODULE],St#mac{module=Mname}};
+exp_predef([deftype,Type0|Def0], _, St) ->
+    {Type1,Def1} = exp_deftype(Type0, Def0),
+    {yes,['define-type',Type1,Def1],St};
+exp_predef([defopaque,Type0|Def0], _, St) ->
+    {Type1,Def1} = exp_deftype(Type0, Def0),
+    {yes,['define-opaque-type',Type1,Def1],St};
+exp_predef([defspec,Func0|Spec0], _, St) ->
+    {Func1,Spec1} = exp_defspec(Func0, Spec0),
+    {yes,['define-function-spec',Func1,Spec1],St};
 exp_predef([defun,Name|Rest], _, St) ->
     %% Educated guess whether traditional (defun name (a1 a2 ...) ...)
     %% or matching (defun name (patlist1 ...) (patlist2 ...))
@@ -1134,6 +1154,20 @@ exp_defmodule([]) -> {[],[]};
 exp_defmodule([Doc|Atts]=Rest) ->
     ?IF(is_doc_string(Doc), {[[doc,Doc]],Atts}, {[],Rest}).
 
+%% exp_deftype(Type, Def) -> {Type,Def}.
+%%  Paramterless types to be written as just type name and default
+%%  type is any.
+
+exp_deftype(T, D) ->
+    Type = if is_list(T) -> T; true -> [T] end,
+    Def = if D =:= [] -> [any]; true -> hd(D) end,
+    {Type,Def}.
+
+%% exp_defspec(Func, Def) -> {Func,Def}.
+%%  Nothing to do here.
+
+exp_defspec(Type, Def) -> {Type,Def}.
+
 %% exp_defun(Rest) -> {Meta,Lambda | MatchLambda}.
 %%  Educated guess whether traditional (defun name (a1 a2 ...) ...)
 %%  or matching (defun name (patlist1 ...) (patlist2 ...)) and whether
@@ -1146,22 +1180,21 @@ exp_defun([Args|Body]=Rest) ->
     end.
 
 exp_lambda_defun(Args, Body) ->
-    {Meta,Def} = exp_lambda_body(Body),
+    {Meta,Def} = exp_meta(Body, []),
     {Meta,['lambda',Args|Def]}.
 
-exp_lambda_body([Doc|Body]=Rest) ->
-    %% Test whether first expression is a comment string.
-    ?IF(is_doc_string(Doc) and (Body =/= []), {[[doc,Doc]],Body}, {[],Rest});
-exp_lambda_body(Body) -> {[],Body}.
-
 exp_match_defun(Rest) ->
-    {Meta,Cls} = exp_match_clauses(Rest),
+    {Meta,Cls} = exp_meta(Rest, []),
     {Meta,['match-lambda'|Cls]}.
 
-exp_match_clauses([Doc|Cls]=Rest) ->
-    %% Test whether first thing is a comment string.
-    ?IF(is_doc_string(Doc), {[[doc,Doc]],Cls}, {[],Rest});
-exp_match_clauses(Cls) -> {[],Cls}.
+exp_meta([[spec|Spec]|Rest], Meta) ->
+    exp_meta(Rest, Meta ++ [[spec|Spec]]);
+exp_meta([Doc|Rest], Meta) ->
+    %% The untagged doc string but not at the end.
+    ?IF(is_doc_string(Doc) and (Rest =/= []),
+	exp_meta(Rest, Meta ++ [[doc,Doc]]),
+	{Meta,[Doc|Rest]});
+exp_meta([], Meta) -> {Meta,[]}.
 
 is_doc_string(Doc) -> io_lib:char_list(Doc).
 
@@ -1186,11 +1219,11 @@ exp_defmacro([Args|Body]=Rest) ->
     {Meta,['match-lambda'|Cls]}.
 
 exp_lambda_defmacro(Args, Body) ->
-    {Meta,Def} = exp_lambda_body(Body),
+    {Meta,Def} = exp_meta(Body, []),
     {Meta,[[[Args,'$ENV']|Def]]}.
 
 exp_match_defmacro(Rest) ->
-    {Meta,Cls} = exp_match_clauses(Rest),
+    {Meta,Cls} = exp_meta(Rest, []),
     {Meta,map(fun ([Head|Body]) -> [[Head,'$ENV']|Body] end, Cls)}.
 
 %% exp_syntax(Name, Def) -> {Meta,Lambda | MatchLambda}.

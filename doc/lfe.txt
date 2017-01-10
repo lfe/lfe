@@ -22,9 +22,28 @@ BUILT-IN SHELL FUNCTIONS
 
        Compile and load an LFE file.  Assumes default extension .lfe.
 
+       (: c Command Arg ...)
+
+       (c:Command Arg ...)
+
+       All the commands in the standard Erlang shell can be  reached  in  this
+       way.
+
        (cd Dir)
 
        Change the working directory.
+
+       (clear)
+
+       Clear the REPL output.
+
+       ([doc | describe] Mod)
+
+       ([doc | describe] Mod:Mac)
+
+       ([doc | describe] Mod:Fun/Arity)
+
+       Print out documentation of a module/macro/function.
 
        (ec File [Options])
 
@@ -40,22 +59,32 @@ BUILT-IN SHELL FUNCTIONS
 
        Flush any messages sent to the shell.
 
-       (i)
+       (h)
 
-       Print information about the currently running processes in the system.
+       (help)
+
+       Print usage info.
+
+       (i [(list Pid ...)])
+
+       Print information about a list of pids.  If no list is given then print
+       information about currently running processes in the system.
 
        (l Module ...)
 
        Load modules.
 
-       (m Module ...)
+       (ls)
 
-       Print out module information, if no modules are given then print infor‐
-       mation about all modules.
+       (ls dir)
 
-       (pid x y z)
+       List files in a directory.  If no directory is given then list files in
+       the current directory.
 
-       Create a pid from x, y, z.
+       (m [Module ...])
+
+       Print  out  module information.  If no modules are given then print in‐
+       formation about all modules.
 
        (p Expr)
 
@@ -63,20 +92,21 @@ BUILT-IN SHELL FUNCTIONS
 
        Print/prettyprint a value to full depth.
 
+       (pid x y z)
+
+       Create a pid from x, y, z.
+
        (pwd)
 
        Print the current working directory.
 
+       (q)
+
+       Quit - shorthand for init:stop/0.
+
        (regs)
 
        Print information about the registered processes in the system.
-
-       (: c Command Arg ...)
-
-       (c:Command Arg ...)
-
-       All  the  commands  in the standard Erlang shell can be reached in this
-       way.
 
 BUILT-IN SHELL COMMANDS
        These are special forms which are only recognised at the  top-level  in
@@ -86,6 +116,12 @@ BUILT-IN SHELL COMMANDS
 
        Resets the environment to its initial state.  This will clear all vari‐
        ables, functions an macros that have been set.
+
+       (run File)
+
+       Execute all the shell commands in File.  All defined  variables,  func‐
+       tions  and  macros will be saved in the environment if there are no er‐
+       rors.
 
        (set Pattern Expr)
 
@@ -106,12 +142,6 @@ BUILT-IN SHELL COMMANDS
        Revert back to the state before the last slurp  removing  all  function
        and macro definitions both in the slurped file and defined in the shell
        since then.
-
-       (run File)
-
-       Execute all the shell commands in File.  All defined  variables,  func‐
-       tions  and  macros will be saved in the environment if there are no er‐
-       rors.
 
 SHELL FUNCTIONS AND MACROS
        Functions and macros can be defined in the shell.  These will  only  be
@@ -165,14 +195,29 @@ STARTING THE LFE SHELL
        will create a job running the LFE shell and connect to it.   This  also
        works when starting a remote shell.
 
+       Flags that LFE recognizes include the following:
+
+       · -h or --help - provides command line usage help
+
+       · -e or -eval - evaluates a given sexpr
+
+       · -prompt  - users may supply a value here to override the default lfe>
+         prompt; note that -prompt classic will set the prompt to the original
+         >  and  -prompt  with  no associated value will cause no prompt to be
+         displayed at all.  These also work when node names are provided (with
+         either -sname or -name).  Furthermore, users may override the default
+         formatting of node names in prompts by providing a prompt value  con‐
+         taining  the  string ~node (which will be substituted with the actual
+         name of the node).
+
 RUNNING LFE SHELL SCRIPTS
-       The  LFE  shell  can  also  be directly called to run LFE shell scripts
+       The LFE shell can also be directly called  to  run  LFE  shell  scripts
        with:
 
               lfe [flags] file [args]
 
-       This will start the shell, run a script with  LFE  shell  commands  and
-       then  terminate  the  shell.  The following built-in variables are also
+       This  will  start  the  shell, run a script with LFE shell commands and
+       then terminate the shell.  The following built-in  variables  are  also
        bound:
 
        script-name
@@ -185,7 +230,7 @@ RUNNING LFE SHELL SCRIPTS
        been given then this will be an empty list.
 
 SEE ALSO
-       lfescript(1), lfe_guide(7)
+       lfescript(1), lfe_guide(7) lfe_doc(3)
 
 AUTHORS
        Robert Virding.
