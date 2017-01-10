@@ -457,7 +457,8 @@ or all functions if no function characters are given."
   '(quote cons car cdr list tuple binary map map-get map-set map-update lambda
           match-lambda let let-function letrec-function let-macro progn if case receive
           catch try case catch when after funcall call define-module extend-module
-          define-function define-macro type-test guard-bif))
+          define-function define-macro type-test guard-bif
+          include-lib))
 
 (defun lfedoc-data-basic-macro-forms ()
   "Basic macro forms."
