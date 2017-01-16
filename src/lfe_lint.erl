@@ -32,6 +32,9 @@
 
 -include("lfe_comp.hrl").
 
+%% We do a lot of quoting!
+-define(Q(E), [quote,E]).
+
 -record(lint, {module=[],                       %Module name
                exps=[],                         %Exports
                imps=[],                         %Imports
@@ -481,8 +484,8 @@ init_state(St) ->
                                end, Env, Fs)
                  end, lfe_env:new(), St#lint.imps),
     %% Basic predefines
-    Predefs0 = [{module_info,[lambda,[],[quote,dummy]],1},
-                {module_info,[lambda,[x],[quote,dummy]],1}],
+    Predefs0 = [{module_info,[lambda,[],?Q(dummy)],1},
+                {module_info,[lambda,[x],?Q(dummy)],1}],
     Exps0 = [{module_info,0},{module_info,1}],
     {Predefs0,Env0,St#lint{exps=add_exports(St#lint.exps, Exps0)}}.
 
@@ -525,7 +528,7 @@ add_exports(Old, More) -> union(Old, More).
 %% Check an expression.
 
 %% Check the Core data special forms.
-check_expr([quote,Lit], Env, L, St) -> literal(Lit, Env, L, St);
+check_expr(?Q(Lit), Env, L, St) -> literal(Lit, Env, L, St);
 check_expr([cons|[_,_]=As], Env, L, St) -> check_args(As, Env, L, St);
 check_expr([car,E], Env, L, St) -> check_expr(E, Env, L, St);
 check_expr([cdr,E], Env, L, St) -> check_expr(E, Env, L, St);
@@ -755,7 +758,7 @@ map_key(Key, _, L, St) ->
         false -> illegal_mapkey_error(L, Key, St)
     end.
 
-is_map_key([quote,Lit]) -> is_literal(Lit);
+is_map_key(?Q(Lit)) -> is_literal(Lit);
 is_map_key([_|_]=L) -> is_posint_list(L);       %Literal strings only
 is_map_key(E) when is_atom(E) -> false;
 is_map_key(Lit) -> is_literal(Lit).
@@ -1035,31 +1038,19 @@ check_gbody(_, _, L, St) -> illegal_guard_error(L, St).
 %%  Check a guard expression. This is a restricted body expression.
 
 %% Check the Core data special cases.
-check_gexpr([quote,Lit], Env, L, St) -> literal(Lit, Env, L, St);
+check_gexpr(?Q(Lit), Env, L, St) -> literal(Lit, Env, L, St);
 check_gexpr([cons|[_,_]=As], Env, L, St) -> check_gargs(As, Env, L, St);
 check_gexpr([car,E], Env, L, St) -> check_gexpr(E, Env, L, St);
 check_gexpr([cdr,E], Env, L, St) -> check_gexpr(E, Env, L, St);
 check_gexpr([list|As], Env, L, St) -> check_gargs(As, Env, L, St);
 check_gexpr([tuple|As], Env, L, St) -> check_gargs(As, Env, L, St);
 check_gexpr([binary|Segs], Env, L, St) -> gexpr_bitsegs(Segs, Env, L, St);
-check_gexpr([map|As], Env, L, St) -> gexpr_map(As, Env, L, St);
-%% check_gexpr(['mref',Map,K], Env, L, St) ->
-%%     gexpr_get_map(Map, K, Env, L, St);
-check_gexpr(['mset',Map|As], Env, L, St) ->
-    gexpr_set_map(Map, As, Env, L, St);
-check_gexpr(['mupd',Map|As], Env, L, St) ->
-    gexpr_update_map(Map, As, Env, L, St);
-check_gexpr(['map-get',Map,K], Env, L, St) ->
-    check_gexpr(['mref',Map,K], Env, L, St);
-check_gexpr(['map-set',Map|As], Env, L, St) ->
-    check_expr(['mset',Map|As], Env, L, St);
-check_gexpr(['map-update',Map|As], Env, L, St) ->
-    check_gexpr(['mupd',Map|As], Env, L, St);
+%% Map operations are not allowed in guards.
 %% Check the Core closure special forms.
 %% Check the Core control special forms.
 check_gexpr(['progn'|B], Env, L, St) -> check_gbody(B, Env, L, St);
 check_gexpr(['if'|B], Env, L, St) -> check_gif(B, Env, L, St);
-check_gexpr([call,[quote,erlang],[quote,Fun]|As], Env, L, St0) ->
+check_gexpr([call,?Q(erlang),?Q(Fun)|As], Env, L, St0) ->
     St1 = check_gargs(As, Env, L, St0),
     %% It must be a legal guard bif here.
     case is_guard_bif(Fun, safe_length(As)) of
@@ -1117,65 +1108,6 @@ gexpr_bitsegs(Segs, Env, L, St0) ->
     check_foreach(fun (S, St) -> bitseg(S, Env, L, St, fun check_gexpr/4) end,
                   fun (St) -> bad_gform_error(L, binary, St) end, St0, Segs).
 
-%% gexpr_map(Pairs, Env, Line, State) -> State.
-%% gexpr_set_map(Map, Pairs, Env, Line, State) -> State.
-%% gexpr_update_map(Map, Pairs, Env, Line, State) -> State.
-%%  Functions for checking maps, these always return errors if system
-%%  does not support maps.
-
--ifdef(HAS_MAPS).
-gexpr_map(Pairs, Env, L, St) ->
-    gexpr_map_pairs(Pairs, Env, L, St).
-
-gexpr_set_map(Map, Pairs, Env, L, St0) ->
-    St1 = check_gexpr(Map, Env, L, St0),
-    gexpr_map_pairs(Pairs, Env, L, St1).
-
-gexpr_update_map(Map, Pairs, Env, L, St0) ->
-    St1 = check_gexpr(Map, Env, L, St0),
-    gexpr_map_pairs(Pairs, Env, L, St1).
-
-gexpr_map_pairs([K,V|As], Env, L, St0) ->
-    St1 = gexpr_map_assoc(K, V, Env, L, St0),
-    gexpr_map_pairs(As, Env, L, St1);
-gexpr_map_pairs([],  _, _, St) -> St;
-gexpr_map_pairs(_, _, L, St) ->
-    bad_form_error(L, map, St).
-
-gexpr_map_assoc(K, V, Env, L, St0) ->
-    St1 = gmap_key(K, Env, L, St0),
-    check_gexpr(V, Env, L, St1).
-
-%% gmap_key(Key, Env, L, State) -> State.
-%%  A map key can only be a literal in 17 but can be anything in 18.
-
--ifdef(HAS_FULL_KEYS).
-gmap_key(Key, Env, L, St) ->
-    check_gexpr(Key, Env, L, St).
--else.
-gmap_key(Key, _, L, St) ->
-    case is_gmap_key(Key) of
-        true -> St;
-        false -> illegal_mapkey_error(L, Key, St)
-    end.
-
-is_gmap_key([quote,Lit]) -> is_literal(Lit);
-is_gmap_key([_|_]=L) -> is_posint_list(L);       %Literal strings only
-is_gmap_key(E) when is_atom(E) -> false;
-is_gmap_key(Lit) -> is_literal(Lit).
--endif.
-
--else.
-gexpr_map(Ps, _, L, St) ->
-    unbound_func_error(L, {map,safe_length(Ps)}, St).
-
-gexpr_set_map(_, Ps, _, L, St) ->
-    unbound_func_error(L, {'map-set',safe_length(Ps)+1}, St).
-
-gexpr_update_map(_, Ps, _, L, St) ->
-    unbound_func_error(L, {'map-update',safe_length(Ps)+1}, St).
--endif.
-
 %% pattern(Pattern, Env, L, State) -> {PatVars,State}.
 %% pattern(Pattern, PatVars, Env, L, State) -> {PatVars,State}.
 %%  Return the *set* of Variables in Pattern.  Patterns are
@@ -1194,7 +1126,7 @@ pattern(Pat, Env, L, St) ->
 %%     _:_ -> {[],illegal_pattern_error(L, Pat, St)}
 %%     end.
 
-pattern([quote,Lit], Pvs, Env, L, St) ->
+pattern(?Q(Lit), Pvs, Env, L, St) ->
     {Pvs,literal(Lit, Env, L, St)};
 pattern(['=',P1,P2], Pvs0, Env, L, St0) ->
     %% Must check patterns together as same variable can occur
@@ -1248,7 +1180,7 @@ pat_symb(Symb, Pvs, L, St) ->
 %%  Check if two aliases are compatible. Note that binaries can never
 %%  be aliased, this is from erlang.
 
-is_pat_alias([quote,P1], [quote,P2]) -> P1 =:= P2;
+is_pat_alias(?Q(P1), ?Q(P2)) -> P1 =:= P2;
 is_pat_alias([tuple|Ps1], [tuple|Ps2]) ->
     is_pat_alias_list(Ps1, Ps2);
 %% is_pat_alias([tuple|Ps1], P2) when is_tuple(P2) ->
@@ -1383,7 +1315,7 @@ pat_map_key(Key, _, L, St) ->
         false -> illegal_mapkey_error(L, Key, St)
     end.
 
-is_pat_map_key([quote,Lit]) -> is_literal(Lit);
+is_pat_map_key(?Q(Lit)) -> is_literal(Lit);
 is_pat_map_key([_|_]=L) -> is_posint_list(L);   %Literal strings only
 is_pat_map_key(E) when is_atom(E) -> false;
 is_pat_map_key(Lit) -> is_literal(Lit).
