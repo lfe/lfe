@@ -1098,16 +1098,7 @@ comp_gexpr([tuple|As], Env, L, St0) ->
     comp_gargs(As, Tuple, Env, L, St0);
 comp_gexpr([binary|Segs], Env, L, St) ->
     comp_binary(Segs, Env, L, St);              %And bitstring as well
-comp_gexpr([map|As], Env, L, St) ->
-    comp_map(As, Env, L, St);
-comp_gexpr(['mset',Map|As], Env, L, St) ->
-    comp_set_map(Map, As, Env, L, St);
-comp_gexpr(['mupd',Map|As], Env, L, St) ->
-    comp_upd_map(Map, As, Env, L, St);
-comp_gexpr(['map-set',Map|As], Env, L, St) ->
-    comp_gexpr(['mset',Map|As], Env, L, St);
-comp_gexpr(['map-update',Map|As], Env, L, St) ->
-    comp_gexpr(['mupd',Map|As], Env, L, St);
+%% Map operations are not allowed in guards.
 %% Handle the Core closure special forms.
 %% (let-syntax ...) should never be seen here!
 %% Handle the Core control special forms.

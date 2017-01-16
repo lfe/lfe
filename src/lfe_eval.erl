@@ -39,6 +39,9 @@
 -compile({no_auto_import,[apply/3]}).           %For our apply/3 function
 -deprecated([eval/1,eval/2,eval_list/2]).
 
+%% We do a lot of quoting!
+-define(Q(E), [quote,E]).
+
 %% Define IS_MAP/1 macro for is_map/1 bif.
 -ifdef(HAS_MAPS).
 -define(IS_MAP(T), is_map(T)).
@@ -136,7 +139,7 @@ apply(F, Args, Env) ->
 %%  users can redefine core forms with different number of arguments.
 
 %% Handle the Core data special forms.
-eval_expr([quote|E], _) -> hd(E);
+eval_expr(?Q(E), _) -> E;
 eval_expr([cons,H,T], Env) ->
     [eval_expr(H, Env)|eval_expr(T, Env)];
 eval_expr([car,E], Env) -> hd(eval_expr(E, Env)); %Provide lisp names
@@ -354,7 +357,7 @@ map_pairs(_, _) -> eval_error(badarg).
 map_key(Key, Env) ->
     eval_expr(Key, Env).
 -else.
-map_key([quote,E], _) -> E;
+map_key(?Q(E), _) -> E;
 map_key([_|_]=L, _) ->
     case is_posint_list(L) of
         true -> L;                              %Literal strings only
@@ -555,7 +558,7 @@ eval_apply_expr(Func, Es, Env) ->
 %% eval_if(IfBody, Env) -> Value.
 
 eval_if([Test,True], Env) ->                    %Add default false value
-    eval_if(Test, True, [quote,false], Env);
+    eval_if(Test, True, ?Q(false), Env);
 eval_if([Test,True,False], Env) ->
     eval_if(Test, True, False, Env).
 
@@ -599,7 +602,7 @@ split_receive([['after',T|B]], Rcls) ->
 split_receive([Cl|Cls], Rcls) ->
     split_receive(Cls, [Cl|Rcls]);
 split_receive([], Rcls) ->
-    {reverse(Rcls),[quote,infinity],[]}.    %No timeout, return 'infinity.
+    {reverse(Rcls),?Q(infinity),[]}.    %No timeout, return 'infinity.
 
 %% receive_clauses(Clauses, Env) -> Value.
 %%  Recurse down message queue. We are only called with timeout value
@@ -765,7 +768,7 @@ eval_gbody(Gts, Env) ->
 %%  Evaluate a guard sexpr in the current environment.
 
 %% Handle the Core data special forms.
-eval_gexpr([quote,E], _) -> E;
+eval_gexpr(?Q(E), _) -> E;
 eval_gexpr([cons,H,T], Env) ->
     [eval_gexpr(H, Env)|eval_gexpr(T, Env)];
 eval_gexpr([car,E], Env) -> hd(eval_gexpr(E, Env)); %Provide lisp names
@@ -773,31 +776,12 @@ eval_gexpr([cdr,E], Env) -> tl(eval_gexpr(E, Env));
 eval_gexpr([list|Es], Env) -> eval_glist(Es, Env);
 eval_gexpr([tuple|Es], Env) -> list_to_tuple(eval_glist(Es, Env));
 eval_gexpr([binary|Bs], Env) -> eval_gbinary(Bs, Env);
-eval_gexpr([map|As], Env) ->
-    Pairs = gmap_pairs(As, Env),
-    maps:from_list(Pairs);
-%% eval_gexpr(['mref',K,Map], Env) ->
-%%     Key = map_key(K, Env),
-%%     maps:get(Key, eval_gexpr(Map, Env));
-eval_gexpr(['mset',M|As], Env) ->
-    Map   = eval_gexpr(M, Env),
-    Pairs = gmap_pairs(As, Env),
-    foldl(fun maps_put/2, Map, Pairs);
-eval_gexpr(['mupd',M|As], Env) ->
-    Map   = eval_gexpr(M, Env),
-    Pairs = gmap_pairs(As, Env),
-    foldl(fun maps_update/2, Map, Pairs);
-%% eval_gexpr(['map-get',Map,K], Env) ->
-%%     eval_gexpr(['mref',Map,K], Env) ->
-eval_gexpr(['map-set',M|As], Env) ->
-    eval_gexpr([mset,M|As], Env);
-eval_gexpr(['map-update',M|As], Env) ->
-    eval_gexpr([mupd,M|As], Env);
+%% Map operations are not allowed in guards.
 %% Handle the Core closure special forms.
 %% Handle the control special forms.
 eval_gexpr(['progn'|Body], Env) -> eval_gbody(Body, Env);
 eval_gexpr(['if'|Body], Env) -> eval_gif(Body, Env);
-eval_gexpr([call,[quote,erlang],F0|As], Env) ->
+eval_gexpr([call,?Q(erlang),F0|As], Env) ->
     Ar = length(As),
     F1 = eval_gexpr(F0, Env),
     case get_gbinding(F1, Ar, Env) of
@@ -830,35 +814,10 @@ eval_gbinary(Segs, Env) ->
     Eval = fun(S) -> eval_gexpr(S, Env) end,
     eval_bitsegs(Vsps, Eval).
 
-%% gmap_pairs(Args, Env) -> [{K,V}].
-
-gmap_pairs([K,V|As], Env) ->
-    P = {gmap_key(K, Env),eval_gexpr(V, Env)},
-    [P|gmap_pairs(As, Env)];
-gmap_pairs([], _) -> [];
-gmap_pairs(_, _) -> eval_error(badarg).
-
-%% gmap_key(Key, Env) -> Value.
-%%  A map key can only be a literal in 17 but can be anything in 18..
-
--ifdef(HAS_FULL_KEYS).
-gmap_key(Key, Env) ->
-    eval_gexpr(Key, Env).
--else.
-gmap_key([quote,E], _) -> E;
-gmap_key([_|_]=L, _) ->
-    case is_posint_list(L) of
-        true -> L;                              %Literal strings only
-        false -> illegal_mapkey_error(L)
-    end;
-gmap_key(E, _) when not is_atom(E) -> E;        %Everything else
-gmap_key(E, _) -> illegal_mapkey_error(E).
--endif.
-
 %% eval_gif(IfBody, Env) -> Val.
 
 eval_gif([Test,True], Env) ->
-    eval_gif(Test, True, [quote,false], Env);
+    eval_gif(Test, True, ?Q(false), Env);
 eval_gif([Test,True,False], Env) ->
     eval_gif(Test, True, False, Env).
 
@@ -874,7 +833,7 @@ eval_gif(Test, True, False, Env) ->
 
 match(Pat, Val, Env) -> match(Pat, Val, [], Env).
 
-match([quote,P], Val, Pbs, _) ->
+match(?Q(P), Val, Pbs, _) ->
     if P =:= Val -> {yes,Pbs};
        true -> no
     end;
@@ -1098,7 +1057,7 @@ match_map([K,V|Ps], Map, Pbs0, Env) ->
 match_map([], _, Pbs, _) -> {yes,Pbs};
 match_map(Ps, _, _, _) -> eval_error({illegal_pattern,Ps}).
 
-pat_map_key([quote,E]) -> E;
+pat_map_key(?Q(E)) -> E;
 pat_map_key([_|_]=L) ->
     case is_posint_list(L) of
         true -> L;                              %Literal strings only
@@ -1110,7 +1069,7 @@ pat_map_key(K) -> illegal_mapkey_error(K).
 %% eval_lit(Literal, Env) -> Value.
 %%  Evaluate a literal expression. Error if invalid.
 
-eval_lit([quote,K], _) -> K;
+eval_lit(?Q(K), _) -> K;
 eval_lit([cons,H,T], Env) ->
     [eval_lit(H, Env)|eval_lit(T, Env)];
 eval_lit([list|Es], Env) ->
