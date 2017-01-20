@@ -124,7 +124,7 @@ split_name(Name) ->
 %%  exception; SkipFun is used to trim the end of stack; FormatFun is
 %%  used to format terms; and Indentation is the current column.
 
-format_exception(Cl, Error0, St0, Sf, Ff, I) ->
+format_exception(Cl, Error0, St0, Skip, Format, I) ->
     Cs = case Cl of                             %Class type as string
              throw -> "throw";
              exit -> "exit";
@@ -136,7 +136,7 @@ format_exception(Cl, Error0, St0, Sf, Ff, I) ->
                    end,
     P = "exception " ++ Cs ++ ": ",             %Class description string
     [P,lfe_io:prettyprint1(Error1, 10, length(P)+I-1),"\n",
-     format_stacktrace(St1, Sf, Ff)].
+     format_stacktrace(St1, Skip, Format)].
 
 %% format_stacktrace(Stacktrace, SkipFun, FormatFun) -> DeepCharList.
 %%  Format a stacktrace. SkipFun is used to trim the end of stack;
@@ -150,11 +150,11 @@ format_stacktrace(St0, Skip, Format) ->
 format_stackcall({M,F,A}, _) when is_integer(A) ->    %Pre R15
     lfe_io:format1("  in ~w:~w/~w\n", [M,F,A]);
 format_stackcall({M,F,A}, Format) ->
-    ["  in ",Format([':',M,F|A], 5),"\n"];
+    ["  in ",Format([M,':',F|A], 5),"\n"];
 format_stackcall({M,F,A,Loc},_) when is_integer(A) -> %R15 and later.
     lfe_io:format1("  in ~w:~w/~w ~s\n", [M,F,A,location(Loc)]);
 format_stackcall({M,F,A,_}, Format) ->
-    ["  in ",Format([':',M,F|A], 5),"\n"].
+    ["  in ",Format([M,':',F|A], 5),"\n"].
 
 location(Loc) ->
     File = proplists:get_value(file, Loc),
