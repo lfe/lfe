@@ -122,15 +122,21 @@ add_env(#env{vars=Vs1,funs=Fs1}, #env{vars=Vs2,funs=Fs2}) ->
          funs=orddict:merge(Merge, Fs1, Fs2)}.
 -endif.
 
+%% Accessing the variable table.
+
 get_vars(Env) -> Env#env.vars.
 clr_vars(Env) -> Env#env{vars=?NEW()}.
 set_vars(Vars, Env) -> Env#env{vars=Vars}.
 fold_vars(Fun, Acc, Env) ->
     ?FOLD(Fun, Acc, Env#env.vars).
 
+%% Accessing the function/macro table.
+
 get_funs(Env) -> Env#env.funs.
 clr_funs(Env) -> Env#env{funs=?NEW()}.
 set_funs(Funs, Env) -> Env#env{funs=Funs}.
+
+%% Fold over functions and macros.
 
 fold_funs(Fun, Acc, Env) ->
     Ofun = fun (F, {function,Fs}, Ac) ->        %Function
@@ -200,11 +206,10 @@ is_fbound(N, A, #env{funs=Fs}) ->
     case ?FIND(N, Fs) of
         {ok,{function,Fas}} ->
             case lists:keyfind(A, 1, Fas) of
-                false -> is_bif(N, A);
+                false -> false;
                 _ -> true
             end;
-        {ok,_} -> false;                        %A macro
-        error -> is_bif(N, A)
+        _ -> false                              %A macro or not found
     end.
 
 get_fbinding(N, A, #env{funs=Fs}) ->
@@ -213,10 +218,9 @@ get_fbinding(N, A, #env{funs=Fs}) ->
             case lists:keyfind(A, 1, Fas) of
                 {A,M,F} -> {yes,M,F};
                 {A,V} -> {yes,V};
-                false -> get_bif(N, A)
+                false -> no
             end;
-        {ok,_} -> no;                           %A macro
-        error -> get_bif(N, A)
+        _ -> no                                 %A macro or not found
     end.
 
 get_bif(N, A) ->

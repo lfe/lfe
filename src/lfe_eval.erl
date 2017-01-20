@@ -29,9 +29,9 @@
 %% Deprecated exports.
 -export([eval/1,eval/2,eval_list/2]).
 
--import(lfe_env, [new/0,add_vbinding/3,add_vbindings/2,get_vbinding/2,
-          add_fbinding/4,add_fbindings/2,get_fbinding/3,
-          add_ibinding/5,get_gbinding/3]).
+-import(lfe_env, [add_vbinding/3,add_vbindings/2,get_vbinding/2,
+                  add_fbinding/4,add_fbindings/2,
+                  add_ibinding/5]).
 
 -import(lists, [reverse/1,all/2,map/2,foldl/3,foldr/3]).
 -import(orddict, [find/2,fetch/2,store/3,is_key/2]).
@@ -55,12 +55,17 @@
 format_error(badarg) -> "bad argument";
 format_error({badmatch,Val}) ->
     lfe_io:format1("bad match: ~w", [Val]);
+format_error({unbound_symb,S}) ->
+    lfe_io:format1("unbound symbol: ~w", [S]);
+format_error({unbound_func,F}) ->
+    lfe_io:format1("unbound function: ~w", [F]);
 format_error(if_expression) -> "non-boolean if test";
 format_error(function_clause) -> "no function clause matching";
 format_error({case_clause,Val}) ->
     lfe_io:format1("no case clause matching: ~w", [Val]);
 format_error({multi_var,V}) ->
     lfe_io:format1("multiple occurrence of variable: ~w", [V]);
+format_error(illegal_guard) -> "illegal guard";
 format_error(illegal_bitsize) -> "illegal bitsize";
 format_error(illegal_bitseg) -> "illegal bitsegment";
 format_error({illegal_pattern,Pat}) ->
@@ -223,6 +228,26 @@ eval_expr(Symb, Env) when is_atom(Symb) ->
     end;
 eval_expr(E, _) -> E.                           %Atomic evaluate to themselves
 
+%% get_fbinding(NAme, Arity, Env) ->
+%%     {yes,Module,Fun} | {yes,Binding} | no.
+%%  Get the function binding. Locally bound function takes precedence
+%%  over auto-imported BIFs.
+
+get_fbinding(Name, Ar, Env) ->
+    case lfe_env:get_fbinding(Name, Ar, Env) of
+        {yes,_,_}=Yes -> Yes;                   %Imported function
+        {yes,_}=Yes -> Yes;                     %Bound function
+        no ->
+	    case lfe_internal:is_erl_bif(Name, Ar) of
+		true -> {yes,erlang,Name};      %Auto-imported Erlang BIF
+		false ->
+		    case lfe_internal:is_lfe_bif(Name, Ar) of
+			true -> {yes,lfe_lib,Name}; %Auto-imported LFE BIF
+			false -> no
+		    end
+	    end
+    end.
+
 eval_list(Es, Env) ->
     map(fun (E) -> eval_expr(E, Env) end, Es).
 
@@ -315,7 +340,7 @@ eval_exp_bitseg(Val, Size, Eval, Type) ->
                     case bit_size(Val) of
                         Sz when Sz rem Unit =:= 0 ->
                             <<Val:Sz/bitstring>>;
-                        _ -> eval_error(badarg)
+                        _ -> badarg_error()
                     end;
                true ->
                     Sz = Eval(Size),
@@ -348,7 +373,7 @@ map_pairs([K,V|As], Env) ->
     P = {map_key(K, Env),eval_expr(V, Env)},
     [P|map_pairs(As, Env)];
 map_pairs([], _) -> [];
-map_pairs(_, _) -> eval_error(badarg).
+map_pairs(_, _) -> badarg_error().
 
 %% map_key(Key, Env) -> Value.
 %%  A map key can only be a literal in 17 but can be anything in 18..
@@ -465,7 +490,7 @@ eval_let([Vbs|Body], Env0) ->
 
 eval_let_function([Fbs|Body], Env0) ->
     Add = fun (F, Ar, Def, Lenv, Env) ->
-                  add_fbinding(F, Ar, {lexical_expr,Def,Lenv}, Env)
+                  add_lexical_func(F, Ar, Def, Lenv, Env)
           end,
     Env1 = foldl(fun ([V,[lambda,Args|_]=Lambda], E) when is_atom(V) ->
                          Add(V, length(Args), Lambda, Env0, E);
@@ -515,10 +540,14 @@ make_letrec_env(Fbs0, Env) ->
 %% extend_letrec_env(Lete0, Fbs0, Env0) ->
 %%     {Lete0,Env0}.
 
+%% add_lexical_func(Name, Arity, Def, FuncEnv, Env) -> Env.
 %% add_lexical_func(Name, Arity, Def, Env) -> Env.
 %% add_dynamic_func(Name, Arity, Def, Env) -> Env.
 %%  Add a function definition in the correct format to the
 %%  environment.
+
+add_lexical_func(Name, Ar, Def, Fenv, Env) ->
+    add_fbinding(Name, Ar, {lexical_expr,Def,Fenv}, Env).
 
 add_lexical_func(Name, Ar, Def, Env) ->
     add_fbinding(Name, Ar, {lexical_expr,Def,Env}, Env).
@@ -781,27 +810,39 @@ eval_gexpr([binary|Bs], Env) -> eval_gbinary(Bs, Env);
 %% Handle the control special forms.
 eval_gexpr(['progn'|Body], Env) -> eval_gbody(Body, Env);
 eval_gexpr(['if'|Body], Env) -> eval_gif(Body, Env);
-eval_gexpr([call,?Q(erlang),F0|As], Env) ->
+eval_gexpr([call,?Q(erlang),?Q(Fun)|As], Env) ->
     Ar = length(As),
-    F1 = eval_gexpr(F0, Env),
-    case get_gbinding(F1, Ar, Env) of
-        {yes,M,F} -> erlang:apply(M, F, eval_glist(As, Env));
-        _ -> unbound_func_error({F1,Ar})
+    case lfe_internal:is_guard_bif(Fun, Ar) of
+	true -> erlang:apply(erlang, Fun, eval_glist(As, Env));
+        false -> illegal_guard_error()
     end;
-eval_gexpr([Fun|Es], Env) when is_atom(Fun) ->
+eval_gexpr([Fun|Es], Env) when is_atom(Fun), Fun =/= call ->
     Ar = length(Es),
     case get_gbinding(Fun, Ar, Env) of
         {yes,M,F} -> erlang:apply(M, F, eval_glist(Es, Env));
-        _ -> unbound_func_error(Fun)
+        no -> illegal_guard_error()
     end;
-eval_gexpr([_|_], _) ->
-    eval_error(illegal_guard);
+eval_gexpr([_|_], _) -> illegal_guard_error();
 eval_gexpr(Symb, Env) when is_atom(Symb) ->
     case get_vbinding(Symb, Env) of
         {yes,Val} -> Val;
         no -> unbound_symb_error(Symb)
     end;
-eval_gexpr(E, _) -> E.                %Atoms evaluate to themselves.
+eval_gexpr(E, _) -> E.                          %Atoms evaluate to themselves.
+
+%% get_gbinding(NAme, Arity, Env) -> {yes,Module,Fun} | no.
+%%  Get the guard function binding. Locally bound function cannot be
+%%  called in guard only guard BIF.
+
+get_gbinding(Name, Ar, Env) ->
+    case lfe_env:is_fbound(Name, Ar, Env) of
+        true -> no;                             %Locally bound function
+        false ->
+            case lfe_internal:is_guard_bif(Name, Ar) of
+                true -> {yes,erlang,Name};
+                false -> no
+            end
+    end.
 
 eval_glist(Es, Env) ->
     map(fun (E) -> eval_gexpr(E, Env) end, Es).
@@ -1104,6 +1145,8 @@ eval_lit_map([], _) -> [].
 
 %% Error functions. {?MODULE,eval_expr,2} is the stacktrace.
 
+badarg_error() -> eval_error(badarg).
+
 unbound_symb_error(Sym) ->
     eval_error({unbound_symb,Sym}).
 
@@ -1112,6 +1155,9 @@ unbound_func_error(Func) ->
 
 bad_form_error(Form) ->
     eval_error({bad_form,Form}).
+
+illegal_guard_error() ->
+    eval_error(illegal_guard).
 
 illegal_mapkey_error(Key) ->
     eval_error({illegal_mapkey,Key}).

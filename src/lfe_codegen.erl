@@ -36,7 +36,7 @@
 -import(orddict, [store/3,find/2]).
 
 -import(lfe_env, [new/0,add_env/2,
-                  add_vbinding/3,get_vbinding/2,add_fbinding/4,get_fbinding/3,
+                  add_vbinding/3,get_vbinding/2,add_fbinding/4,
                   add_ibinding/5,get_gbinding/3]).
 
 -include("lfe_comp.hrl").
@@ -442,6 +442,26 @@ comp_expr(Symb, _, _, St) when is_atom(Symb) ->
 %% Everything is a literal constant (nil, tuples, numbers, binaries, maps).
 comp_expr(Const, _, _, St) ->
     {comp_lit(Const),St}.
+
+%% get_fbinding(NAme, Arity, Env) ->
+%%     {yes,Module,Fun} | {yes,Binding} | no.
+%%  Get the function binding. Locally bound function takes precedence
+%%  over auto-imported BIFs.
+
+get_fbinding(Name, Ar, Env) ->
+    case lfe_env:get_fbinding(Name, Ar, Env) of
+        {yes,_,_}=Yes -> Yes;                   %Imported function
+        {yes,_}=Yes -> Yes;                     %Bound function
+        no ->
+	    case lfe_internal:is_erl_bif(Name, Ar) of
+		true -> {yes,erlang,Name};      %Auto-imported Erlang BIF
+		false ->
+		    case lfe_internal:is_lfe_bif(Name, Ar) of
+			true -> {yes,lfe_lib,Name}; %Auto-imported LFE BIF
+			false -> no
+		    end
+	    end
+    end.
 
 %% comp_args(Args, CallFun, Env, Line, State) -> {Call,State}.
 %%  Sequentialise the evaluation of Args building the Call at the
@@ -1107,21 +1127,25 @@ comp_gexpr(['progn'|Body], Env, L, St) ->
 comp_gexpr(['if'|Body], Env, L, St) ->
     comp_gif(Body, Env, L, St);
 comp_gexpr([call,[quote,erlang],[quote,Fun]|As], Env, L, St) ->
-    comp_gexpr([Fun|As], Env, L, St);           %Pass the buck
-%% Finally the general case.
+    comp_gcall(Fun, As, Env, L, St);
+%% Finally the not so general case.
 comp_gexpr([Fun|As], Env, L, St) ->
-    Call = fun (Cas, En, Li, Sta) ->
-                   Ar = length(Cas),
-                   {yes,M,F} = get_gbinding(Fun, Ar, En),
-                   Ann = line_file_anno(Li, Sta),
-                   {ann_c_call(Ann, c_atom(M), c_atom(F), Cas),Sta}
-           end,
-    comp_gargs(As, Call, Env, L, St);
+    comp_gcall(Fun, As, Env, L, St);
 comp_gexpr(Symb, _, _, St) when is_atom(Symb) ->
     {c_var(Symb),St};
 %% Everything is a literal constant (nil, tuples, numbers, binaries).
 comp_gexpr(Const, _, _, St) ->
     {comp_lit(Const),St}.
+
+%% comp_gcall(Function, Args, Env, Line, State) -> {Call,State}.
+%%  Only guard BIFs can be called in the guard.
+
+comp_gcall(Fun, As, Env, L, St) ->
+    Call = fun (Cas, _, Li, Sta) ->
+		   Ann = line_file_anno(Li, Sta),
+		   {ann_c_call(Ann, c_atom(erlang), c_atom(Fun), Cas),Sta}
+	   end,
+    comp_gargs(As, Call, Env, L, St).
 
 %% comp_gargs(Args, CallFun, Env, Line, State) -> {Call,State}.
 
