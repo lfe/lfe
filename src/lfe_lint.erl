@@ -21,9 +21,6 @@
 -export([module/1,module/2,form/1,expr/1,expr/2,
          pattern/1,pattern/2,format_error/1]).
 
--import(lfe_lib, [is_erl_bif/2,is_guard_bif/2,
-                  is_symb_list/1,is_proper_list/1]).
-
 %% -compile(export_all).
 
 -import(lists, [member/2,sort/1,all/2,foldl/3,foldr/3,foreach/2,mapfoldl/3]).
@@ -237,7 +234,8 @@ check_mmeta([record|Rds], L, St) ->
     check_record_defs(Rds, L, St);
 check_mmeta([M|Vals], L, St) ->
     %% Other metadata, must be list and have symbol name.
-    ?IF(is_atom(M) and is_proper_list(Vals), St, bad_meta_error(L, M, St));
+    ?IF(is_atom(M) and lfe_lib:is_proper_list(Vals),
+        St, bad_meta_error(L, M, St));
 check_mmeta(_, L, St) -> bad_mdef_error(L, meta, St).
 
 %% check_attrs(Attributes, Line, State) -> State.
@@ -264,7 +262,8 @@ check_attr([doc|Docs], L, St0) ->
 %% Note we handle type and spec as normal attributes here.
 check_attr([A|Vals], L, St) ->
     %% Other attributes, must be list and have symbol name.
-    ?IF(is_atom(A) and is_proper_list(Vals), St, bad_attr_error(L, A, St));
+    ?IF(is_atom(A) and lfe_lib:is_proper_list(Vals),
+        St, bad_attr_error(L, A, St));
 check_attr(_, L, St) -> bad_mdef_error(L, attribute, St).
 
 check_doc_attr(Docs, L, St) ->
@@ -462,14 +461,15 @@ check_fmeta(N, [doc|Docs], L, St) ->
 %%         {error,Error} -> add_error(L, Error, St)
 %%     end;
 check_fmeta(N, [M|Vals], L, St) ->
-    ?IF(is_atom(M) and is_proper_list(Vals), St, bad_meta_error(L, N, St));
+    ?IF(is_atom(M) and lfe_lib:is_proper_list(Vals),
+        St, bad_meta_error(L, N, St));
 check_fmeta(N, _, L, St) -> bad_meta_error(L, N, St).
 
 %% check_docs(Docs) -> boolean().
 
 check_docs(Docs) ->
     Fun = fun (D) -> lfe_lib:is_doc_string(D) end,
-    is_proper_list(Docs) andalso all(Fun, Docs).
+    lfe_lib:is_proper_list(Docs) andalso all(Fun, Docs).
 
 %% init_state(State) -> {Predefs,Env,State}.
 %%  Setup the initial predefines and state. Build dummies for
@@ -638,7 +638,7 @@ check_body(Body, Env, L, St) ->
 
 %% check_body(Body, Env, L, St) ->
 %%     %% check_body(fun check_exprs/4, Env, L, St, Body).
-%%     case is_proper_list(Body) of
+%%     case lfe_lib:is_proper_list(Body) of
 %%         true -> check_exprs(Body, Env, L, St);
 %%         false -> add_error(L, bad_body, St)
 %%     end.
@@ -652,7 +652,7 @@ check_args(Args, Env, L, St) ->
                   St, Args).
 
 %% check_args(Args, Env, L, St) ->
-%%     case is_proper_list(Args) of
+%%     case lfe_lib:is_proper_list(Args) of
 %%         true -> check_exprs(Args, Env, L, St);
 %%         false -> add_error(L, bad_args, St)
 %%     end.
@@ -790,7 +790,7 @@ check_lambda_args(Args, L, St) ->
     %% Check for multiple variables but allow don't care variables,
     %% same rules as for pattern symbols.
     Check = fun (A, {As,S}) -> pat_symb(A, As, L, S) end,
-    case is_symb_list(Args) of
+    case lfe_lib:is_symb_list(Args) of
         true -> foldl(Check, {[],St}, Args);
         false -> {[],bad_form_error(L, lambda, St)}
     end.
@@ -931,12 +931,12 @@ check_fbindings(Fbs0, St0) ->
                     end
             end,
     Check = fun ({V,[lambda,Args|_],L}, {Fs,St}) ->
-                    case is_symb_list(Args) of
+                    case lfe_lib:is_symb_list(Args) of
                         true -> AddFb({V,length(Args)}, Fs, L, St);
                         false -> {Fs,bad_form_error(L, lambda, St)}
                     end;
                 ({V,['match-lambda',[Pats|_]|_],L}, {Fs,St}) ->
-                    case is_proper_list(Pats) of
+                    case lfe_lib:is_proper_list(Pats) of
                         true -> AddFb({V,length(Pats)}, Fs, L, St);
                         false -> {Fs,bad_form_error(L, 'match-lambda', St)}
                     end;

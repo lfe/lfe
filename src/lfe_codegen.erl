@@ -457,7 +457,7 @@ get_fbinding(Name, Ar, Env) ->
 		true -> {yes,erlang,Name};      %Auto-imported Erlang BIF
 		false ->
 		    case lfe_internal:is_lfe_bif(Name, Ar) of
-			true -> {yes,lfe_lib,Name}; %Auto-imported LFE BIF
+			true -> {yes,lfe,Name}; %Auto-imported LFE BIF
 			false -> no
 		    end
 	    end
