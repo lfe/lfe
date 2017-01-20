@@ -593,8 +593,6 @@ check_expr(['call'|As], Env, L, St) ->
 %% Finally the general cases.
 check_expr([Fun|As], Env, L, St0) when is_atom(Fun) ->
     St1 = check_args(As, Env, L, St0),          %Check arguments first
-    %% Here we are not interested in HOW fun is associated to a
-    %% function, just that it is.
     check_func(Fun, safe_length(As), Env, L, St1);
 check_expr([_|As]=S, Env, L, St0) ->            %Test if literal string
     case is_posint_list(S) of
@@ -619,10 +617,12 @@ check_symb(Symb, Env, L, St) ->
     end.
 
 %% check_func(Func, Arity, Env, Line, State) -> State.
-%%  Check if Func/Arity is bound.
+%%  Check if Func/Arity is bound or an auto-imported BIF.
 
 check_func(F, Ar, Env, L, St) ->
-    case lfe_env:is_fbound(F, Ar, Env) of
+    case lfe_env:is_fbound(F, Ar, Env) orelse
+	lfe_internal:is_erl_bif(F, Ar) orelse
+	lfe_internal:is_lfe_bif(F, Ar) of
         true -> St;
         false -> unbound_func_error(L, {F,Ar}, St)
     end.
@@ -1053,7 +1053,7 @@ check_gexpr(['if'|B], Env, L, St) -> check_gif(B, Env, L, St);
 check_gexpr([call,?Q(erlang),?Q(Fun)|As], Env, L, St0) ->
     St1 = check_gargs(As, Env, L, St0),
     %% It must be a legal guard bif here.
-    case is_guard_bif(Fun, safe_length(As)) of
+    case lfe_internal:is_guard_bif(Fun, safe_length(As)) of
         true -> St1;
         false -> illegal_guard_error(L, St1)
     end;
@@ -1062,11 +1062,7 @@ check_gexpr([call|_], _, L, St) ->              %Other calls not allowed
 %% Finally the general case.
 check_gexpr([Fun|As], Env, L, St0) when is_atom(Fun) ->
     St1 = check_gargs(As, Env, L, St0),
-    %% Function must be a legal guard bif AND not a defined function.
-    case lfe_env:is_gbound(Fun, safe_length(As), Env) of
-        true -> St1;
-        false -> illegal_guard_error(L, St1)
-    end;
+    check_gfunc(Fun, safe_length(As), Env, L, St1);
 check_gexpr([_|As]=S, Env, L, St0) ->            %Test if literal string
     case is_posint_list(S) of
         true -> St0;
@@ -1079,6 +1075,16 @@ check_gexpr(Symb, Env, L, St) when is_atom(Symb) ->
     check_symb(Symb, Env, L, St);
 check_gexpr(Lit, Env, L, St) ->                 %Everything else is a literal
     literal(Lit, Env, L, St).
+
+%% check_gfunc(Func, Arity, Env, Line, State) -> State.
+%%  Check if Func/Arity is not bound and an auto-imported guard BIF.
+
+check_gfunc(F, Ar, Env, L, St) ->
+    case (not lfe_env:is_fbound(F, Ar, Env)) andalso
+         lfe_internal:is_guard_bif(F, Ar) of
+        true -> St;
+        false -> illegal_guard_error(L, St)
+    end.
 
 %% check_gargs(Args, Env, Line, State) -> State.
 %% check_gexprs(Exprs, Env, Line, State) -> State.
