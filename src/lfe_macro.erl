@@ -45,8 +45,6 @@
                   add_fbinding/4,is_fbound/3,
                   add_mbinding/3,is_mbound/2,get_mbinding/2]).
 
--import(lfe_lib, [is_symb_list/1,is_proper_list/1]).
-
 -import(lists, [any/2,all/2,map/2,foldl/3,foldr/3,mapfoldl/3,
                 reverse/1,reverse/2,member/2,concat/1]).
 
@@ -254,9 +252,9 @@ pass_ewc_form(F0, Env, St0) ->
     end.
 
 function_arity([lambda,Args|_]) ->
-    ?IF(is_symb_list(Args), {yes,length(Args)}, no);
+    ?IF(lfe_lib:is_symb_list(Args), {yes,length(Args)}, no);
 function_arity(['match-lambda',[Pat|_]|_]) ->
-    ?IF(is_proper_list(Pat), {yes,length(Pat)}, no);
+    ?IF(lfe_lib:is_proper_list(Pat), {yes,length(Pat)}, no);
 function_arity(_) -> no.
 
 %% pass_eval_set(Args, Env, State) -> {Set,Env,State}.
@@ -574,7 +572,7 @@ exp_try(E0, B0, Env, St0) ->
 %%  Expand the macro in top call, but not if it is a core form.
 
 exp_macro([Name|_]=Call, Env, St) ->
-    case lfe_lib:is_core_form(Name) of
+    case lfe_internal:is_core_form(Name) of
         true -> no;                             %Never expand core forms
         false ->
             case get_mbinding(Name, Env) of
@@ -809,7 +807,7 @@ exp_predef(['begin'|Body], _, St) ->
     {yes,['progn'|Body],St};
 exp_predef(['define',Head|Body], _, St) ->
     %% Let the lint catch errors here.
-    Exp = case is_symb_list(Head) of
+    Exp = case lfe_lib:is_symb_list(Head) of
               true ->
                   ['define-function',hd(Head),[],[lambda,tl(Head)|Body]];
               false ->
@@ -1152,7 +1150,7 @@ exp_orelse([]) -> ?Q(false).
 
 exp_defmodule([]) -> {[],[]};
 exp_defmodule([Doc|Atts]=Rest) ->
-    ?IF(is_doc_string(Doc), {[[doc,Doc]],Atts}, {[],Rest}).
+    ?IF(lfe_lib:is_doc_string(Doc), {[[doc,Doc]],Atts}, {[],Rest}).
 
 %% exp_deftype(Type, Def) -> {Type,Def}.
 %%  Paramterless types to be written as just type name and default
@@ -1174,7 +1172,7 @@ exp_defspec(Type, Def) -> {Type,Def}.
 %%  there is a comment string.
 
 exp_defun([Args|Body]=Rest) ->
-    case is_symb_list(Args) of
+    case lfe_lib:is_symb_list(Args) of
         true  -> exp_lambda_defun(Args, Body);
         false -> exp_match_defun(Rest)
     end.
@@ -1191,12 +1189,10 @@ exp_meta([[spec|Spec]|Rest], Meta) ->
     exp_meta(Rest, Meta ++ [[spec|Spec]]);
 exp_meta([Doc|Rest], Meta) ->
     %% The untagged doc string but not at the end.
-    ?IF(is_doc_string(Doc) and (Rest =/= []),
+    ?IF(lfe_lib:is_doc_string(Doc) and (Rest =/= []),
 	exp_meta(Rest, Meta ++ [[doc,Doc]]),
 	{Meta,[Doc|Rest]});
 exp_meta([], Meta) -> {Meta,[]}.
-
-is_doc_string(Doc) -> io_lib:char_list(Doc).
 
 %% exp_defmacro(Rest) -> {Meta,MatchLambda}.
 %%  Educated guess whether traditional (defmacro name (a1 a2 ...) ...)
@@ -1207,7 +1203,7 @@ is_doc_string(Doc) -> io_lib:char_list(Doc).
 %%  environment.
 
 exp_defmacro([Args|Body]=Rest) ->
-    {Meta,Cls} = case is_symb_list(Args) of
+    {Meta,Cls} = case lfe_lib:is_symb_list(Args) of
                      true -> exp_lambda_defmacro([list|Args], Body);
                      false ->
                          if is_atom(Args) ->
@@ -1398,7 +1394,7 @@ mbe_match_pat([tuple|Ps], E, Ks) ->             %Match literal tuple
         false -> false
     end;
 mbe_match_pat(?mbe_ellipsis(Pcar, _), E, Ks) ->
-    case is_proper_list(E) of
+    case lfe_lib:is_proper_list(E) of
         true ->
             all(fun (X) -> mbe_match_pat(Pcar, X, Ks) end, E);
         false -> false
@@ -1506,7 +1502,7 @@ mbe_expand_pattern(Pat, R, Ks) ->
             case member(Pat, Ks) of
                 true -> Pat;
                 false ->
-                    case lfe_lib:assoc(Pat, R) of
+                    case lfe:assoc(Pat, R) of
                         [_|Cdr] -> Cdr;
                         [] -> Pat
                     end

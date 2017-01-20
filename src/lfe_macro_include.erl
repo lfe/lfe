@@ -389,7 +389,7 @@ trans_macro_body(As, Ts0) ->
     Le0 = lfe_trans:from_expr(E),
     %% Wrap variables in arg list with an (comma ...) call.
     Alist = [ [A|[comma,A]] || A <- As ],
-    Le1 = lfe_lib:sublis(Alist, Le0),
+    Le1 = lfe:sublis(Alist, Le0),
     %% Le1 = unquote_vars(Alist, Le0),
     [?BQ(Le1)].
 
@@ -402,7 +402,7 @@ trans_macro_body(As, Ts0) ->
 
 %% unquote_vars(_, ?Q(_)=E) -> E;
 %% unquote_vars(Alist, E) ->
-%%     case lfe_lib:assoc(E, Alist) of
+%%     case lfe:assoc(E, Alist) of
 %%     [_|New] -> New;          %Found it
 %%     [] ->                    %Not there
 %%         case E of

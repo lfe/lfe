@@ -45,7 +45,7 @@
   (`[,name . ,rest]
    (let* ((|-DEFUN-| `(defun ,name ,@rest))
           ;; This is basically lfe_doc:get_function_patterns/1.
-          (|-ARITY-|  (case (lists:last (lfe_lib:macroexpand-1 |-DEFUN-|))
+          (|-ARITY-|  (case (lists:last (lfe:macroexpand-1 |-DEFUN-|))
                         (`(match-lambda (,|-PAT-| . ,_) . ,_)
                          (length |-PAT-|))
                         (`(lambda ,|-ARGS-| . ,_)
