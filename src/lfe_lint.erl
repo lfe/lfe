@@ -534,6 +534,8 @@ check_expr([car,E], Env, L, St) -> check_expr(E, Env, L, St);
 check_expr([cdr,E], Env, L, St) -> check_expr(E, Env, L, St);
 check_expr([list|As], Env, L, St) -> check_args(As, Env, L, St);
 check_expr([tuple|As], Env, L, St) -> check_args(As, Env, L, St);
+check_expr([tref|[_,_]=As], Env, L, St) -> check_args(As, Env, L, St);
+check_expr([tset|[_,_,_]=As], Env, L, St) -> check_args(As, Env, L, St);
 check_expr([binary|Segs], Env, L, St) -> expr_bitsegs(Segs, Env, L, St);
 check_expr([map|As], Env, L, St) -> expr_map(As, Env, L, St);
 check_expr(['mref',Map,K], Env, L, St) ->
@@ -1044,6 +1046,7 @@ check_gexpr([car,E], Env, L, St) -> check_gexpr(E, Env, L, St);
 check_gexpr([cdr,E], Env, L, St) -> check_gexpr(E, Env, L, St);
 check_gexpr([list|As], Env, L, St) -> check_gargs(As, Env, L, St);
 check_gexpr([tuple|As], Env, L, St) -> check_gargs(As, Env, L, St);
+check_gexpr([tref|[_,_]=As], Env, L, St) -> check_gargs(As, Env, L, St);
 check_gexpr([binary|Segs], Env, L, St) -> gexpr_bitsegs(Segs, Env, L, St);
 %% Map operations are not allowed in guards.
 %% Check the Core closure special forms.

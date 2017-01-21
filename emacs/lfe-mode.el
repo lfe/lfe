@@ -248,7 +248,7 @@ Other commands:
                      "==" "/=" "=:=" "=/=" ">" ">=" "<" "=<"
                      "iolist_size" "length" "make_ref" ;;"size"
                      "binary" "bit_size" "byte_size"
-                     "tuple" "tuple_size" "element" "setelement"
+                     "tuple" "tuple_size" "tref" "tset" "element" "setelement"
                      "hd" "tl"
                      "cons" "car" "cdr" "caar" "cadr" "cdar" "cddr"
                      ;; Just for the fun of it.

@@ -212,7 +212,7 @@
   ((n seq) (when (is_list seq))
    (nth n seq))
   ((n seq) (when (is_tuple seq))
-   (element (+ n 1) seq)))
+   (tref seq (+ n 1))))
 
 (defun length
   ([seq] (when (is_list seq))
@@ -237,7 +237,7 @@
    (fletrec ((some-loop
               ([i n] (when (>= i n)) 'false)
               ([i n]
-               (orelse (funcall pred (element i seq))
+               (orelse (funcall pred (tref seq i))
                        (some-loop (+ i 1) n)))))
      (some-loop 1 (tuple_size seq)))))
 
@@ -250,7 +250,7 @@
    (fletrec ((every-loop
               ([i n] (when (>= i n)) 'false)
               ([i n]
-               (andalso (not (funcall pred (element i seq)))
+               (andalso (not (funcall pred (tref seq i)))
                         (every-loop (+ i 1) n)))))
      (every-loop 1 (tuple_size seq)))))
 

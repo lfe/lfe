@@ -292,6 +292,8 @@ while it reads the expression and then be effectively ``2``.
 (cdr e)
 (list e ... )
 (tuple e ... )
+(tref tuple index)
+(tset tuple index val)
 (binary seg ... )
 (map key val ...)
 (map-get m k) (map-set m k v ...) (map-update m k v ...)
@@ -460,6 +462,7 @@ following guard expressions:
 (cdr gexpr)
 (list gexpr ...)
 (tuple gexpr ...)
+(tref gexpr gexpr)
 (binary ...)
 (progn gtest ...)           - Sequence of guard tests
 (if gexpr gexpr gexpr)
