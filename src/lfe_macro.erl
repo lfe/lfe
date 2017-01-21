@@ -351,6 +351,10 @@ exp_form([list|As], Env, St) ->
     exp_normal_core(list, As, Env, St);
 exp_form([tuple|As], Env, St) ->
     exp_normal_core(tuple, As, Env, St);
+exp_form([tref|[_,_]=As], Env, St) ->
+    exp_normal_core(tref, As, Env, St);
+exp_form([tset|[_,_,_]=As], Env, St) ->
+    exp_normal_core(tset, As, Env, St);
 exp_form([binary|As], Env, St) ->
     exp_normal_core(binary, As, Env, St);
 exp_form([map|As], Env, St) ->

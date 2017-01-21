@@ -151,6 +151,10 @@ eval_expr([car,E], Env) -> hd(eval_expr(E, Env)); %Provide lisp names
 eval_expr([cdr,E], Env) -> tl(eval_expr(E, Env));
 eval_expr([list|Es], Env) -> eval_list(Es, Env);
 eval_expr([tuple|Es], Env) -> list_to_tuple(eval_list(Es, Env));
+eval_expr([tref,Tup,I], Env) ->
+    element(eval_expr(I, Env), eval_expr(Tup, Env));
+eval_expr([tset,Tup,I,V], Env) ->
+    setelement(eval_expr(I, Env), eval_expr(Tup, Env), eval_expr(V, Env));
 eval_expr([binary|Bs], Env) -> eval_binary(Bs, Env);
 eval_expr([map|As], Env) ->
     Pairs = map_pairs(As, Env),
@@ -804,6 +808,8 @@ eval_gexpr([car,E], Env) -> hd(eval_gexpr(E, Env)); %Provide lisp names
 eval_gexpr([cdr,E], Env) -> tl(eval_gexpr(E, Env));
 eval_gexpr([list|Es], Env) -> eval_glist(Es, Env);
 eval_gexpr([tuple|Es], Env) -> list_to_tuple(eval_glist(Es, Env));
+eval_gexpr([tref,Tup,I], Env) ->
+    element(eval_gexpr(I, Env), eval_gexpr(Tup, Env));
 eval_gexpr([binary|Bs], Env) -> eval_gbinary(Bs, Env);
 %% Map operations are not allowed in guards.
 %% Handle the Core closure special forms.

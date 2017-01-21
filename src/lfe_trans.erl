@@ -476,6 +476,17 @@ to_expr(['list*'|Es], L, Vt, St) ->             %Macro
 to_expr([tuple|Es], L, Vt, St0) ->
     {Ees,St1} = to_expr_list(Es, L, Vt, St0),
     {{tuple,L,Ees},St1};
+to_expr([tref,T,I], L, Vt, St0) ->
+    {Et,St1} = to_expr(T, L, Vt, St0),
+    {Ei,St2} = to_expr(I, L, Vt, St1),
+    %% Get the argument order correct.
+    {{call,L,{atom,L,element},[Ei,Et]},St2};
+to_expr([tset,T,I,V], L, Vt, St0) ->
+    {Et,St1} = to_expr(T, L, Vt, St0),
+    {Ei,St2} = to_expr(I, L, Vt, St1),
+    {Ev,St2} = to_expr(V, L, Vt, St2),
+    %% Get the argument order correct.
+    {{call,L,{atom,L,setelement},[Ei,Et,Ev]},St2};
 to_expr([binary|Segs], L, Vt, St0) ->
     {Esegs,St1} = to_bitsegs(Segs, L, Vt, St0),
     {{bin,L,Esegs},St1};

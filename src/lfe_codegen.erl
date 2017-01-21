@@ -345,9 +345,9 @@ comp_expr([cons,H,T], Env, L, St) ->
     Cons = fun ([Ch,Ct], _, _, Sta) -> {c_cons(Ch, Ct),Sta} end,
     comp_args([H,T], Cons, Env, L, St);
 comp_expr([car,E], Env, L, St) ->               %Provide lisp names
-    comp_expr([hd,E], Env, L, St);
+    comp_bif_call(hd, [E], Env, L, St);
 comp_expr([cdr,E], Env, L, St) ->
-    comp_expr([tl,E], Env, L, St);
+    comp_bif_call(tl, [E], Env, L, St);
 comp_expr([list|Es], Env, L, St) ->
     List = fun (Ces, _, _, Sta) ->
                    {foldr(fun (E, T) -> c_cons(E, T) end, c_nil(), Ces),Sta}
@@ -356,6 +356,10 @@ comp_expr([list|Es], Env, L, St) ->
 comp_expr([tuple|As], Env, L, St) ->
     Args = fun (Args, _, _, Sta) -> {c_tuple(Args),Sta} end,
     comp_args(As, Args, Env, L, St);
+comp_expr([tref,Tup,I], Env, L, St) ->
+    comp_bif_call(element, [I,Tup], Env, L, St);
+comp_expr([tset,Tup,I,V], Env, L, St) ->
+    comp_bif_call(setelement, [I,Tup,V], Env, L, St);
 comp_expr([binary|Segs], Env, L, St) ->
     comp_binary(Segs, Env, L, St);              %And bitstring as well
 comp_expr([map|As], Env, L, St) ->
@@ -380,7 +384,7 @@ comp_expr([function,F,Ar], Env, L, St) ->
     comp_lambda(Args, Body, Env, L, St);
 comp_expr([function,M,F,Ar], Env, L, St) ->
     %% The arguments are all literals.
-    comp_expr([call,?Q(erlang),?Q(make_fun),?Q(M),?Q(F),Ar], Env, L, St);
+    comp_bif_call(make_fun, [?Q(M),?Q(F),Ar], Env, L, St);
 %% Handle the Core closure special forms.
 comp_expr([lambda,Args|Body], Env, L, St) ->
     comp_lambda(Args, Body, Env, L, St);
@@ -462,6 +466,16 @@ get_fbinding(Name, Ar, Env) ->
 		    end
 	    end
     end.
+
+%% comp_bif_call(Bif, Args, Env, Line, State) -> {Call,State}.
+%%  Call a BIF in the erlang module.
+
+comp_bif_call(Bif, As, Env, L, St) ->
+    Call = fun(Cas, _, Li, Sta) ->
+		   Ann = line_file_anno(Li, Sta),
+		   {ann_c_call(Ann, c_atom(erlang), c_atom(Bif), Cas),Sta}
+	   end,
+    comp_args(As, Call, Env, L, St).
 
 %% comp_args(Args, CallFun, Env, Line, State) -> {Call,State}.
 %%  Sequentialise the evaluation of Args building the Call at the
@@ -1105,9 +1119,9 @@ comp_gexpr([cons,H,T], Env, L, St0) ->
     Cons = fun ([Ch,Ct], _, _, St1) -> {c_cons(Ch, Ct),St1} end,
     comp_gargs([H,T], Cons, Env, L, St0);
 comp_gexpr([car,E], Env, L, St) ->              %Provide lisp names
-    comp_gexpr([hd,E], Env, L, St);
+    comp_gcall(hd, [E], Env, L, St);
 comp_gexpr([cdr,E], Env, L, St) ->
-    comp_gexpr([tl,E], Env, L, St);
+    comp_gcall(tl, [E], Env, L, St);
 comp_gexpr([list|Es], Env, L, St0) ->
     List = fun (Ces, _, _, St1) ->
                    {foldr(fun (E, T) -> c_cons(E, T) end, c_nil(), Ces),St1}
@@ -1116,6 +1130,8 @@ comp_gexpr([list|Es], Env, L, St0) ->
 comp_gexpr([tuple|As], Env, L, St0) ->
     Tuple = fun (Args, _, _, St1) -> {c_tuple(Args),St1} end,
     comp_gargs(As, Tuple, Env, L, St0);
+comp_gexpr([tref,Tup,I], Env, L, St) ->
+    comp_gcall(element, [I,Tup], Env, L, St);
 comp_gexpr([binary|Segs], Env, L, St) ->
     comp_binary(Segs, Env, L, St);              %And bitstring as well
 %% Map operations are not allowed in guards.
