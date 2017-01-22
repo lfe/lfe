@@ -410,20 +410,16 @@ exp_form([call|As], Env, St) ->
 %% Core definition special forms.
 exp_form(['eval-when-compile'|B], Env, St) ->
     exp_normal_core('eval-when-compile', B, Env, St);
-exp_form(['define-module',Head|B], Env, St) ->
-    exp_head_tail('define-module', Head, B, Env, St);
-exp_form(['extend-module'|B], Env, St) ->
-    exp_normal_core('extend-module', B, Env, St);
-exp_form(['define-type',Type|D], Env, St) ->
-    exp_head_tail('define-type', Type, D, Env, St);
-exp_form(['define-opaque-type',Type|D], Env, St) ->
-    exp_head_tail('define-opaque-type', Type, D, Env, St);
-exp_form(['define-function-spec',Func|S], Env, St) ->
-    exp_head_tail('define-function-spec', Func, S, Env, St);
 exp_form(['define-function',Head|B], Env, St) ->
     exp_head_tail('define-function', Head, B, Env, St);
 exp_form(['define-macro',Head|B], Env, St) ->
     exp_head_tail('define-macro', Head, B, Env, St);
+%% These don't expand at all as name clashes are allowed.
+exp_form(['define-module',_Mod|_]=Form, _, St) -> {Form,St};
+exp_form(['extend-module'|_]=Form, _, St) -> {Form,St};
+exp_form(['define-type',_Type|_]=Form, _, St) -> {Form,St};
+exp_form(['define-opaque-type',_Type|_]=Form, _, St) -> {Form,St};
+exp_form(['define-function-spec',_Func|_]=Form, _, St) -> {Form,St};
 %% And don't forget when.
 exp_form(['when'|G], Env, St) ->
     exp_normal_core('when', G, Env, St);
