@@ -31,16 +31,19 @@
 
 %% We do a lot of quoting!
 -define(Q(E), [quote,E]).
+-define(BQ(E), [backquote,E]).
+-define(C(E), [comma,E]).
+-define(C_A(E), ['comma-at',E]).
 
 -record(lint, {module=[],                       %Module name
-               exps=[],                         %Exports
+               mline=0,                         %Module definition line
+               exps=orddict:new(),              %Exports
                imps=[],                         %Imports
                pref=[],                         %Prefixes
                funcs=[],                        %Defined functions
                types=[],                        %Known types
                specs=[],                        %Known func specs
                env=[],                          %Top-level environment
-               lline=[],                        %Last line
                func=[],                         %Current function
                file="nofile",                   %File name
                opts=[],                         %Compiler options
@@ -55,42 +58,43 @@ format_error(bad_extends) -> "bad extends";
 format_error(bad_funcs) -> "bad function list";
 format_error(bad_body) -> "bad body";
 format_error(bad_clause) -> "bad clause";
-format_error(bad_args) -> "bad arguments";
-format_error(bad_gargs) -> "bad guard arguments";
-format_error(bad_alias) -> "bad alias";
+format_error(bad_guard) -> "bad guard";
+format_error(bad_args) -> "bad argument list";
+format_error(bad_gargs) -> "bad guard argument list";
+format_error(bad_alias) -> "bad pattern alias";
 format_error(bad_arity) -> "head arity mismatch";
 format_error({bad_attribute,A}) ->
     lfe_io:format1("bad attribute: ~w", [A]);
 format_error({bad_meta,M}) ->
     lfe_io:format1("bad metadata: ~w", [M]);
 format_error({bad_form,Type}) ->
-    lfe_io:format1("bad form: ~w", [Type]);
+    lfe_io:format1("bad ~w form", [Type]);
 format_error({bad_gform,Type}) ->
-    lfe_io:format1("bad guard form: ~w", [Type]);
+    lfe_io:format1("bad ~w guard form", [Type]);
 format_error({bad_pat,Type}) ->
-    lfe_io:format1("bad pattern: ~w", [Type]);
+    lfe_io:format1("bad ~w pattern", [Type]);
 format_error({unbound_symb,S}) ->
-    lfe_io:format1("unbound symbol: ~w", [S]);
-format_error({unbound_func,F}) ->
-    lfe_io:format1("unbound function: ~w", [F]);
+    lfe_io:format1("symbol ~w unbound", [S]);
+format_error({undefined_func,F}) ->
+    lfe_io:format1("function ~w undefined", [F]);
 format_error({multi_var,S}) ->
-    lfe_io:format1("multiple variable: ~w", [S]);
+    lfe_io:format1("variable ~w multiply defined", [S]);
 format_error({redef_fun,F}) ->
-    lfe_io:format1("redefining function: ~w", [F]);
+    lfe_io:format1("redefining function ~w", [F]);
 format_error({bad_fdef,F}) ->
-    lfe_io:format1("bad function definition: ~w", [F]);
+    lfe_io:format1("bad definition of function ~w", [F]);
 format_error({illegal_literal,Lit}) ->
-    lfe_io:format1("illegal literal value: ~w", [Lit]);
+    lfe_io:format1("illegal literal value ~w", [Lit]);
 format_error({illegal_pattern,Pat}) ->
-    lfe_io:format1("illegal pattern: ~w", [Pat]);
+    lfe_io:format1("illegal pattern ~w", [Pat]);
 format_error(illegal_guard) -> "illegal guard";
-format_error(illegal_bitseg) -> "illegal bit segment";
 format_error({illegal_mapkey,Key}) ->
-    lfe_io:format1("illegal map key: ~w", [Key]);
+    lfe_io:format1("illegal map key ~w", [Key]);
 format_error({undefined_bittype,S}) ->
     lfe_io:format1("bit type ~w undefined", [S]);
 format_error(bittype_unit) ->
     "bit unit size can only be specified together with size";
+format_error(illegal_bitseg) -> "illegal bit segment";
 format_error(illegal_bitsize) -> "illegal bit size";
 format_error({deprecated,What}) ->
     lfe_io:format1("deprecated: ~s", [What]);
@@ -183,7 +187,7 @@ collect_module(Mfs, St0) ->
     {lists:reverse(Fbs),St1}.
 
 collect_form({['define-module',Mod,Meta,Atts],L}, {Fbs,St0}) ->
-    St1 = check_mdef(Meta, Atts, L, St0#lint{module=Mod}),
+    St1 = check_mdef(Meta, Atts, L, St0#lint{module=Mod,mline=L}),
     if is_atom(Mod) ->                  %Normal module
             {Fbs,St1};
        true ->                          %Bad module name
@@ -245,12 +249,11 @@ check_attrs(As, L, St) ->
                   fun (S) -> bad_mdef_error(L, form, S) end,
                   St, As).
 
-check_attr([export,all], _, St) ->             %Pass 'all' along
-    St#lint{exps=all};
+check_attr([export,all], _, St) -> St;          %Ignore 'all' here
 check_attr([export|Es], L, St) ->
     case is_flist(Es) of
         {yes,Fs} ->
-            Exps = add_exports(St#lint.exps, Fs),
+            Exps = add_exports(Fs, L, St#lint.exps),
             St#lint{exps=Exps};
         no -> bad_mdef_error(L, export, St)
     end;
@@ -418,20 +421,20 @@ check_record_def(_, L, St) ->
 
 check_record_def(Name, Fds, L, St) when is_atom(Name) ->
     check_foreach(fun (Fd, S) -> check_record_field(Fd, L, S) end,
-		  fun (S) -> bad_record_error(L, Name, S) end,
-		  St, Fds);
+                  fun (S) -> bad_record_error(L, Name, S) end,
+                  St, Fds);
 check_record_def(Name, _, L, St) ->
     bad_record_error(L, Name, St).
 
 check_record_field([F,D,T], L, St0) ->
     St1 = check_record_field([F,D], L, St0),
     case lfe_types:check_type_def(T, St1#lint.types, []) of
-	{ok,Tvs} -> check_type_vars(Tvs, L, St1);
-	{error,Error,Tvs} ->
-	    St2 = add_error(L, Error, St1),
-	    check_type_vars(Tvs, L, St2)
+        {ok,Tvs} -> check_type_vars(Tvs, L, St1);
+        {error,Error,Tvs} ->
+            St2 = add_error(L, Error, St1),
+            check_type_vars(Tvs, L, St2)
     end;
-check_record_field([F,_D], L, St) ->		%No need to check default value
+check_record_field([F,_D], L, St) ->            %No need to check default value
     check_record_field(F, L, St);
 check_record_field(F, L, St) ->
     if is_atom(F) -> St;
@@ -487,7 +490,8 @@ init_state(St) ->
     Predefs0 = [{module_info,[lambda,[],?Q(dummy)],1},
                 {module_info,[lambda,[x],?Q(dummy)],1}],
     Exps0 = [{module_info,0},{module_info,1}],
-    {Predefs0,Env0,St#lint{exps=add_exports(St#lint.exps, Exps0)}}.
+    {Predefs0,Env0,
+     St#lint{exps=add_exports(Exps0, St#lint.mline, St#lint.exps)}}.
 
 %% check_functions(FuncBindings, Env, State) -> {Funcs,Env,State}.
 %%  Check the top-level functions definitions. These have the format
@@ -510,19 +514,23 @@ check_functions(Fbs, Env0, St0) ->
 
 %% check_exports(Exports, Funcs, State) -> State.
 
-check_exports(all, _, St) -> St;                %All is all
 check_exports(Exps, Fs, St) ->
-    foldl(fun (E, S) ->
+    Fun = fun (E, L, S) ->
                   case is_element(E, Fs) of
                       true -> S;
-                      false -> add_error(9999, {unbound_func,E}, S)
+                      false -> undefined_func_error(L, E, S)
                   end
-          end, St, Exps).
+          end,
+    orddict:fold(Fun, St, Exps).
 
-%% add_exports(Old, More) -> New.
+%% add_exports(More, Line, Exports) -> New.
+%%  Add exports preserving line number of earliest entry.
 
-add_exports(all, _) -> all;
-add_exports(Old, More) -> union(Old, More).
+add_exports(More, L, Exps) ->
+    Fun = fun (F, Es) ->
+                  orddict:update(F, fun (Old) -> Old end, L, Es)
+          end,
+    lists:foldl(Fun, Exps, More).
 
 %% check_expr(Expr, Env, Line, State) -> State.
 %% Check an expression.
@@ -623,10 +631,10 @@ check_symb(Symb, Env, L, St) ->
 
 check_func(F, Ar, Env, L, St) ->
     case lfe_env:is_fbound(F, Ar, Env) orelse
-	lfe_internal:is_erl_bif(F, Ar) orelse
-	lfe_internal:is_lfe_bif(F, Ar) of
+        lfe_internal:is_erl_bif(F, Ar) orelse
+        lfe_internal:is_lfe_bif(F, Ar) of
         true -> St;
-        false -> unbound_func_error(L, {F,Ar}, St)
+        false -> undefined_func_error(L, {F,Ar}, St)
     end.
 
 %% check_body(Body, Env, Line, State) -> State.
@@ -700,11 +708,11 @@ bitspecs(Specs, Env, L, St, Check) ->
 
 bit_size(all, {Ty,_,_,_}, _, L, St, _) ->
     if Ty =:= binary -> St;
-       true -> add_error(L, illegal_bitsize, St)
+       true -> illegal_bitsize_error(L, St)
     end;
 bit_size(undefined, {Ty,_,_,_}, _, L, St, _) ->
     if Ty =:= utf8; Ty =:= utf16; Ty =:= utf32 -> St;
-       true -> add_error(L, illegal_bitsize, St)
+       true -> illegal_bitsize_error(L, St)
     end;
 bit_size(Sz, _, Env, L, St, Check) -> Check(Sz, Env, L, St).
 
@@ -768,16 +776,16 @@ is_map_key(Lit) -> is_literal(Lit).
 
 -else.
 expr_map(Ps, _, L, St) ->
-    unbound_func_error(L, {map,safe_length(Ps)}, St).
+    undefined_func_error(L, {map,safe_length(Ps)}, St).
 
 expr_get_map(_, _, _, L, St) ->
-    unbound_func_error(L, {'map-get',2}, St).
+    undefined_func_error(L, {'map-get',2}, St).
 
 expr_set_map(_, Ps, _, L, St) ->
-    unbound_func_error(L, {'map-set',safe_length(Ps)+1}, St).
+    undefined_func_error(L, {'map-set',safe_length(Ps)+1}, St).
 
 expr_update_map(_, Ps, _, L, St) ->
-    unbound_func_error(L, {'map-update',safe_length(Ps)+1}, St).
+    undefined_func_error(L, {'map-update',safe_length(Ps)+1}, St).
 -endif.
 
 %% check_lambda(LambdaBody, Env, Line, State) -> State.
@@ -1034,7 +1042,7 @@ check_gbody([E|Es], Env, L, St0) ->
     St1 = check_gexpr(E, Env, L, St0),
     check_gbody(Es, Env, L, St1);
 check_gbody([], _, _, St) -> St;
-check_gbody(_, _, L, St) -> illegal_guard_error(L, St).
+check_gbody(_, _, L, St) -> add_error(L, bad_guard, St).
 
 %% check_gexpr(Call, Env, Line, State) -> State.
 %%  Check a guard expression. This is a restricted body expression.
@@ -1276,11 +1284,11 @@ pat_bitspecs(Specs, Bvs, Pvs, Env, L, St) ->
 
 pat_bit_size(all, {Ty,_,_,_}, _, _, _, L, St) ->
     if Ty =:= binary -> St;
-       true -> add_error(L, illegal_bitsize, St)
+       true -> illegal_bitsize_error(L, St)
     end;
 pat_bit_size(undefined, {Ty,_,_,_}, _, _, _, L, St) ->
     if Ty =:= utf8; Ty =:= utf16; Ty =:= utf32 -> St;
-       true -> add_error(L, illegal_bitsize, St)
+       true -> illegal_bitsize_error(L, St)
     end;
 pat_bit_size(N, _, _, _, _, _, St) when is_integer(N), N > 0 -> St;
 pat_bit_size(S, _, Bvs, _, Env, L, St) when is_atom(S) ->
@@ -1289,7 +1297,7 @@ pat_bit_size(S, _, Bvs, _, Env, L, St) when is_atom(S) ->
         true -> St;
         false -> add_error(L, {unbound_symb,S}, St)
     end;
-pat_bit_size(_, _, _, _, _, L, St) -> add_error(L, illegal_bitsize, St).
+pat_bit_size(_, _, _, _, _, L, St) -> illegal_bitsize_error(L, St).
 
 pat_bit_expr(N, Bvs, _, _, _, St) when is_number(N) -> {Bvs,St};
 pat_bit_expr('_', Bvs, _, _, _, St) -> {Bvs,St};
@@ -1478,6 +1486,9 @@ bad_gform_error(L, F, St) ->
 illegal_mapkey_error(L, K, St) ->
     add_error(L, {illegal_mapkey,K}, St).
 
+illegal_bitsize_error(L, St) ->
+    add_error(L, illegal_bitsize, St).
+
 bad_pat_error(L, F, St) ->
     add_error(L, {bad_pat,F}, St).
 
@@ -1502,8 +1513,8 @@ bad_fdef_error(L, D, St) ->
 multi_var_error(L, V, St) ->
     add_error(L, {multi_var,V}, St).
 
-unbound_func_error(L, F, St) ->
-    add_error(L, {unbound_func,F}, St).
+undefined_func_error(L, F, St) ->
+    add_error(L, {undefined_func,F}, St).
 
 illegal_guard_error(L, St) ->
     add_error(L, illegal_guard, St).
