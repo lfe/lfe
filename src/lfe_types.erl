@@ -183,7 +183,7 @@ check_type_def([Type|Args], Kts, Tvs0) when is_atom(Type) ->
     case check_type_defs(Args, Kts, Tvs0) of
         {ok,Tvs1} ->
             case string:tokens(atom_to_list(Type), ":") of
-                [_M,_T] -> ok;                  %Remote so we just accept it
+                [_M,_T] -> {ok,Tvs1};           %Remote so we just accept it
                 _ ->
                     Arity = length(Args),       %It's a proper list
                     case lists:member({Type,Arity}, Kts)
