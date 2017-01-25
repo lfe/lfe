@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2014 Robert Virding
+%% Copyright (c) 2008-2017 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -56,29 +56,29 @@ format_error(badarg) -> "bad argument";
 format_error({badmatch,Val}) ->
     lfe_io:format1("bad match: ~w", [Val]);
 format_error({unbound_symb,S}) ->
-    lfe_io:format1("unbound symbol: ~w", [S]);
-format_error({unbound_func,F}) ->
-    lfe_io:format1("unbound function: ~w", [F]);
+    lfe_io:format1("symbol ~w unbound", [S]);
+format_error({undefined_func,F}) ->
+    lfe_io:format1("function ~w undefined", [F]);
 format_error(if_expression) -> "non-boolean if test";
 format_error(function_clause) -> "no function clause matching";
 format_error({case_clause,Val}) ->
     lfe_io:format1("no case clause matching: ~w", [Val]);
 format_error({multi_var,V}) ->
-    lfe_io:format1("multiple occurrence of variable: ~w", [V]);
+    lfe_io:format1("variable ~w multiply definend", [V]);
 format_error(illegal_guard) -> "illegal guard";
 format_error(illegal_bitsize) -> "illegal bitsize";
 format_error(illegal_bitseg) -> "illegal bitsegment";
 format_error({illegal_pattern,Pat}) ->
-    lfe_io:format1("illegal pattern: ~w", [Pat]);
+    lfe_io:format1("illegal pattern ~w", [Pat]);
 format_error({illegal_literal,Lit}) ->
-    lfe_io:format1("illegal literal value: ~w", [Lit]);
+    lfe_io:format1("illegal literal value ~w", [Lit]);
 format_error({illegal_mapkey,Key}) ->
-    lfe_io:format1("illegal map key: ~w", [Key]);
+    lfe_io:format1("illegal map key ~w", [Key]);
 format_error(bad_arity) -> "arity mismatch";
 format_error({argument_limit,Arity}) ->
     lfe_io:format1("too many arguments: ~w", [Arity]);
 format_error({bad_form,Form}) ->
-    lfe_io:format1("bad form: ~w", [Form]);
+    lfe_io:format1("bad ~w form", [Form]);
 %% Everything we don't recognise or know about.
 format_error(Error) ->
     lfe_io:prettyprint1(Error).
@@ -217,7 +217,7 @@ eval_expr([Fun|Es], Env) when is_atom(Fun) ->
     case get_fbinding(Fun, Ar, Env) of
         {yes,M,F} -> erlang:apply(M, F, eval_list(Es, Env));
         {yes,F} -> eval_apply(F, eval_list(Es, Env), Env);
-        no -> unbound_func_error({Fun,Ar})
+        no -> undefined_func_error({Fun,Ar})
     end;
 eval_expr([_|_]=S, _) ->                        %Test if string literal
     case is_posint_list(S) of
@@ -242,14 +242,14 @@ get_fbinding(Name, Ar, Env) ->
         {yes,_,_}=Yes -> Yes;                   %Imported function
         {yes,_}=Yes -> Yes;                     %Bound function
         no ->
-	    case lfe_internal:is_erl_bif(Name, Ar) of
-		true -> {yes,erlang,Name};      %Auto-imported Erlang BIF
-		false ->
-		    case lfe_internal:is_lfe_bif(Name, Ar) of
-			true -> {yes,lfe,Name}; %Auto-imported LFE BIF
-			false -> no
-		    end
-	    end
+            case lfe_internal:is_erl_bif(Name, Ar) of
+                true -> {yes,erlang,Name};      %Auto-imported Erlang BIF
+                false ->
+                    case lfe_internal:is_lfe_bif(Name, Ar) of
+                        true -> {yes,lfe,Name}; %Auto-imported LFE BIF
+                        false -> no
+                    end
+            end
     end.
 
 eval_list(Es, Env) ->
@@ -819,7 +819,7 @@ eval_gexpr(['if'|Body], Env) -> eval_gif(Body, Env);
 eval_gexpr([call,?Q(erlang),?Q(Fun)|As], Env) ->
     Ar = length(As),
     case lfe_internal:is_guard_bif(Fun, Ar) of
-	true -> erlang:apply(erlang, Fun, eval_glist(As, Env));
+        true -> erlang:apply(erlang, Fun, eval_glist(As, Env));
         false -> illegal_guard_error()
     end;
 eval_gexpr([Fun|Es], Env) when is_atom(Fun), Fun =/= call ->
@@ -1156,8 +1156,8 @@ badarg_error() -> eval_error(badarg).
 unbound_symb_error(Sym) ->
     eval_error({unbound_symb,Sym}).
 
-unbound_func_error(Func) ->
-    eval_error({unbound_func,Func}).
+undefined_func_error(Func) ->
+    eval_error({undefined_func,Func}).
 
 bad_form_error(Form) ->
     eval_error({bad_form,Form}).
