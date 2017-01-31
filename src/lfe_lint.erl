@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2016 Robert Virding
+%% Copyright (c) 2008-2017 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -15,6 +15,10 @@
 %% File    : lfe_lint.erl
 %% Author  : Robert Virding
 %% Purpose : Lisp Flavoured Erlang syntax checker.
+
+%%% In a fun argument where when matching a binary we import the size
+%%% of bitseg as a variable from the environment not just from earlier
+%%% segments. No other argument variables are imported.
 
 -module(lfe_lint).
 
@@ -1187,11 +1191,8 @@ pat_list(Pat, Pvs, _, L, St) ->
     {Pvs,illegal_pattern_error(L, Pat, St)}.
 
 pat_symb('_', Pvs, _, St) -> {Pvs,St};          %Don't care variable
-pat_symb(Symb, Pvs, L, St) ->
-    case is_element(Symb, Pvs) of
-        true -> {Pvs,multi_var_error(L, Symb, St)};
-        false -> {add_element(Symb, Pvs),St}
-    end.
+pat_symb(Symb, Pvs, _, St) ->
+    {add_element(Symb, Pvs),St}.                %Add that to pattern vars
 
 %% is_pat_alias(Pattern, Pattern) -> true | false.
 %%  Check if two aliases are compatible. Note that binaries can never
@@ -1301,11 +1302,8 @@ pat_bit_size(_, _, _, _, _, L, St) -> illegal_bitsize_error(L, St).
 
 pat_bit_expr(N, Bvs, _, _, _, St) when is_number(N) -> {Bvs,St};
 pat_bit_expr('_', Bvs, _, _, _, St) -> {Bvs,St};
-pat_bit_expr(S, Bvs, Pvs, _, L, St) when is_atom(S) ->
-    case is_element(S, Bvs) or is_element(S, Pvs) of
-        true -> {Bvs,multi_var_error(L, S, St)};
-        false -> {add_element(S, Bvs),St}
-    end;
+pat_bit_expr(S, Bvs, _, _, _, St) when is_atom(S) ->
+    {add_element(S, Bvs),St};
 pat_bit_expr(_, Bvs, _, _, L, St) ->
     {Bvs,add_error(L, illegal_bitseg, St)}.
 

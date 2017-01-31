@@ -16,7 +16,11 @@
 %% Author  : Robert Virding
 %% Purpose : Lisp Flavoured Erlang interpreter.
 
-%%% This is a real hack!
+%%% We follow Erlang here in many cases even though it is sometimes a
+%%% bit strange. In a fun argument where when matching a binary we
+%%% import the size of bitseg as a variable from the environment not
+%%% just from earlier segments. No other argument variables are
+%%% imported.
 
 -module(lfe_eval).
 
@@ -41,6 +45,9 @@
 
 %% We do a lot of quoting!
 -define(Q(E), [quote,E]).
+-define(BQ(E), [backquote,E]).
+-define(C(E), [comma,E]).
+-define(C_A(E), ['comma-at',E]).
 
 %% Define IS_MAP/1 macro for is_map/1 bif.
 -ifdef(HAS_MAPS).
@@ -942,7 +949,8 @@ match_symb('_', _, Pbs, _) -> {yes,Pbs};        %Don't care variable.
 match_symb(S, Val, Pbs, _) ->
     %% Check if Symb already bound.
     case find(S, Pbs) of
-        {ok,_} -> eval_error({multi_var,S});    %Already bound, multiple var
+        {ok,Val} -> {yes,Pbs};                  %Bound to the same value
+        {ok,_} -> no;                           %Bound to a different value
         error -> {yes,store(S, Val, Pbs)}       %Not yet bound
     end.
 
@@ -1001,10 +1009,11 @@ match_bitexpr(N, Val, Bbs, Pbs, _) when is_number(N) ->
     end;
 match_bitexpr('_', _, Bbs, Pbs, _) -> {yes,Bbs,Pbs};
 match_bitexpr(S, Val, Bbs, Pbs, _) when is_atom(S) ->
-    %% Don't need value, just check if symbol is set.
-    case is_key(S, Bbs) or is_key(S, Pbs) of
-        true -> eval_error({multi_var,S});
-        false ->
+    %% We know that if variable is in Pbs it will also be in Bbs!
+    case find(S, Pbs) of
+        {ok,Val} -> {yes,Bbs,Pbs};              %Bound to the same value
+        {ok,_} -> no;                           %Bound to a different value
+        error ->                                %Not yet bound
             {yes,store(S, Val, Bbs),store(S, Val, Pbs)}
     end;
 match_bitexpr(_, _, _, _, _) -> eval_error(illegal_bitseg).
