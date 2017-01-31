@@ -509,17 +509,18 @@ simple_seq([], Then, Ses, Env, L, St) ->
 %% comp_lambda(Args, Body, Env, Line, State) -> {c_fun(),State}.
 %%  Compile a (lambda (...) ...).
 
-comp_lambda(Args, Body, Env, L, St0) ->
-    {Cvs,Pvs,St1} = comp_lambda_args(Args, L, St0),
-    {Cb,St2} = comp_body(Body, add_vbindings(Pvs, Env), L, St1),
+comp_lambda(Args, Body0, Env, L, St0) ->
+    {Cvs,Pvs,Ts,St1} = comp_lambda_args(Args, L, St0),
+    Body1 = add_guard_tests(Ts, Body0),
+    {Cb,St2} = comp_body(Body1, add_vbindings(Pvs, Env), L, St1),
     Ann = line_file_anno(L, St2),
     {ann_c_fun(Ann, Cvs, Cb),St2}.
 
 comp_lambda_args(Args, L, St) ->
-    foldr(fun (A, {Cvs,Pvs0,St0}) ->
-                  {Cv,Pvs1,St1} = pat_symb(A, L, Pvs0, St0),
-                  {[Cv|Cvs],Pvs1,St1}
-          end, {[],[],St}, Args).
+    foldr(fun (A, {Cvs,Pvs0,Ts0,St0}) ->
+                  {Cv,Pvs1,Ts1,St1} = pat_symb(A, L, Pvs0, Ts0, St0),
+                  {[Cv|Cvs],Pvs1,Ts1,St1}
+          end, {[],[],[],St}, Args).
 
 %% lambda_arity([Args|_]) -> length(Args).
 
@@ -555,16 +556,24 @@ comp_match_clauses(Cls, Env, L, St) ->
 %%  arguments. This must be compiled to a list of patterns not a
 %%  pattern with a list!
 
-comp_match_clause([Pats|Body], Env0, L, St0) ->
-    Pfun = fun (P, {Psvs,Sta}) ->
-                   {Cp,Pvs,Stb} = pattern(P, L, Sta),
-                   {Cp,{union(Pvs, Psvs),Stb}}
+comp_match_clause([Pats|Body0], Env0, L, St0) ->
+    Pfun = fun (P, {Pvsa,Vtsa,Sta}) ->
+                   {Cp,Pvsb,Vtsb,Stb} = pattern(P, L, Pvsa, Vtsa, Sta),
+                   {Cp,{Pvsb,Vtsb,Stb}}
            end,
-    {Cps,{Pvs,St1}} = mapfoldl(Pfun, {[],St0}, Pats),
+    {Cps,{Pvs,Vts,St1}} = mapfoldl(Pfun, {[],[],St0}, Pats),
+    %% io:format("~p\n", [{Cps,Vts}]),
     Env1 = add_vbindings(Pvs, Env0),
-    {Cg,Cb,St2} = comp_clause_body(Body, Env1, L, St1),
+    Body1 = add_guard_tests(Vts, Body0),
+    {Cg,Cb,St2} = comp_clause_body(Body1, Env1, L, St1),
     Ann = line_file_anno(L, St2),
     {ann_c_clause(Ann, Cps, Cg, Cb),St2}.
+
+add_guard_tests([], Body) -> Body;
+add_guard_tests(Ts, [['when'|Guard]|Body]) ->
+    [['when'|Ts ++ Guard]|Body];
+add_guard_tests(Ts, Body) ->
+    [['when'|Ts]|Body].
 
 %% comp_let(VarBindings, Body, Env, L, State) -> {c_let()|c_case(),State}.
 %%  Compile a let expr. We are a little cunning in that we specialise
@@ -579,7 +588,7 @@ comp_let(Vbs, B, Env, L, St0) ->
     case Simple of
         true ->
             %% This is not really necessary, but fun.
-            {Cvs,Pvs,St1} = comp_lambda_args([ V || [V|_] <- Vbs ], L, St0),
+            {Cvs,Pvs,[],St1} = comp_lambda_args([ V || [V|_] <- Vbs ], L, St0),
             Efun = fun ([_,E], St) -> comp_expr(E, Env, L, St) end,
             {Ces,St2} = mapfoldl(Efun, St1, Vbs),
             {Cb,St3} = comp_body(B, add_vbindings(Pvs, Env), L, St2),
@@ -588,11 +597,11 @@ comp_let(Vbs, B, Env, L, St0) ->
             %% This would be much easier to do by building a clause
             %% and compiling it directly, but then we would have to
             %% build a tuple to hold all values.
-            Pfun = fun ([P|_], {Psvs,Sta}) ->
-                           {Cp,Pvs,Stb} = pattern(P, L, Sta),
-                           {Cp,{union(Pvs, Psvs),Stb}}
+            Pfun = fun ([P|_], {Psvs,Vsts,Sta}) ->
+                           {Cp,Pvs,Vts,Stb} = pattern(P, L, Sta),
+                           {Cp,{union(Pvs, Psvs),Vsts ++ Vts,Stb}}
                    end,
-            {Cps,{Pvs,St1}} = mapfoldl(Pfun, {[],St0}, Vbs),
+            {Cps,{Pvs,Vts,St1}} = mapfoldl(Pfun, {[],[],St0}, Vbs),
             %% Build a sequence of guard tests.
             Gfun = fun ([_,['when'|G]|_], Cgs) -> G ++ Cgs;
                        (_, Cgs) -> Cgs
@@ -755,10 +764,11 @@ rec_clauses([], _, _, St) ->
 %% comp_clause(Clause, Env, Line, State) -> {c_clause(),State}.
 %%  This is a case/receive clause where the is only one pattern.
 
-comp_clause([Pat|Body], Env0, L, St0) ->
-    {Cp,Pvs,St1} = pattern(Pat, L, St0),
+comp_clause([Pat|Body0], Env0, L, St0) ->
+    {Cp,Pvs,Vts,St1} = pattern(Pat, L, St0),
     Env1 = add_vbindings(Pvs, Env0),
-    {Cg,Cb,St2} = comp_clause_body(Body, Env1, L, St1),
+    Body1 = add_guard_tests(Vts, Body0),
+    {Cg,Cb,St2} = comp_clause_body(Body1, Env1, L, St1),
     {ann_c_clause([L], [Cp], Cg, Cb),St2}.
 
 comp_clause_body([['when'|Guard]|Body], Env, L, St0) ->
@@ -1258,66 +1268,74 @@ comp_lit_map_pairs([]) -> [].
 comp_lit_map(_) -> c_lit(map).
 -endif.
 
-%% pattern(Pattern, Line, Status) -> {CorePat,PatVars,State}.
+%% pattern(Pattern, Line, Status) -> {CorePat,PatVars,VarTests,State}.
 %%  Compile a pattern into a Core term. Handle quoted sexprs here
 %%  especially for symbols which then become variables instead of
 %%  atoms.
 
-pattern(Pat, L, St) -> pattern(Pat, L, [], St).
+pattern(Pat, L, St) -> pattern(Pat, L, [], [], St).
 
-pattern([quote,E], _, Vs, St) -> {pat_lit(E),Vs,St};
-pattern(['=',P1,P2], L, Vs0, St0) ->
-    %% Core can only alias against a variable so there is wotk to do!
-    {Cp1,Vs1,St1} = pattern(P1, L, Vs0, St0),
-    {Cp2,Vs2,St2} = pattern(P2, L, Vs0, St1),
+pattern([quote,E], _, Vs, Ts, St) -> {pat_lit(E),Vs,Ts,St};
+pattern(['=',P1,P2], L, Vs0, Ts0, St0) ->
+    %% Core can only alias against a variable so there is work to do!
+    {Cp1,Vs1,Ts1,St1} = pattern(P1, L, Vs0, Ts0, St0),
+    {Cp2,Vs2,Ts2,St2} = pattern(P2, L, Vs0, Ts1, St1),
     Cp = pat_alias(Cp1, Cp2),
-    {Cp,union(Vs1, Vs2),St2};
-pattern([cons,H,T], L, Vs0, St0) ->
-    {Ch,Vs1,St1} = pattern(H, L, Vs0, St0),
-    {Ct,Vs2,St2} = pattern(T, L, Vs1, St1),
-    {c_cons(Ch, Ct),Vs2,St2};
-pattern([list|Ps], L, Vs, St) ->
-    pat_list(Ps, L, Vs, St);
-pattern([tuple|Ps], L, Vs0, St0) ->
-    {Cps,{Vs1,St1}} = mapfoldl(fun (P, {Vsa,Sta}) ->
-                                       {Cp,Vsb,Stb} = pattern(P, L, Vsa, Sta),
-                                       {Cp,{Vsb,Stb}}
-                               end, {Vs0,St0}, Ps),
-    {c_tuple(Cps),Vs1,St1};
-pattern([binary|Segs], L, Vs, St) ->
-    pat_binary(Segs, L, Vs, St);
-pattern([map|As], L, Vs, St) ->
-    pat_map(As, L, Vs, St);
+    {Cp,union(Vs1, Vs2),Ts2,St2};
+pattern([cons,H,T], L, Vs0, Ts0, St0) ->
+    {Ch,Vs1,Ts1,St1} = pattern(H, L, Vs0, Ts0, St0),
+    {Ct,Vs2,Ts2,St2} = pattern(T, L, Vs1, Ts1, St1),
+    {c_cons(Ch, Ct),Vs2,Ts2,St2};
+pattern([list|Ps], L, Vs, Ts, St) ->
+    pat_list(Ps, L, Vs, Ts, St);
+pattern([tuple|Ps], L, Vs0, Ts0, St0) ->
+    Fun = fun (P, {Vsa,Tsa,Sta}) ->
+		  {Cp,Vsb,Tsb,Stb} = pattern(P, L, Vsa, Tsa, Sta),
+		  {Cp,{Vsb,Tsb,Stb}}
+	  end,
+    {Cps,{Vs1,Ts1,St1}} = mapfoldl(Fun, {Vs0,Ts0,St0}, Ps),
+    {c_tuple(Cps),Vs1,Ts1,St1};
+pattern([binary|Segs], L, Vs, Ts, St) ->
+    pat_binary(Segs, L, Vs, Ts, St);
+pattern([map|As], L, Vs, Ts, St) ->
+    pat_map(As, L, Vs, Ts, St);
 %% This allows us to use ++ macro in patterns.
 %% pattern([call,[quote,erlang],[quote,'++'],A1,A2], L, Vs, St) ->
 %%     Pat = foldr(fun (H, T) -> [cons,H,T] end, A2, A1),
 %%     pattern(Pat, L, Vs, St);
 %% Compile old no contructor list forms.
-pattern([H|T], L, Vs0, St0) ->
-    {Ch,Vs1,St1} = pattern(H, L, Vs0, St0),
-    {Ct,Vs2,St2} = pattern(T, L, Vs1, St1),
-    {c_cons(Ch, Ct),Vs2,St2};
-pattern([], _, Vs, St) -> {c_nil(),Vs,St};
+pattern([H|T], L, Vs0, Ts0, St0) ->
+    {Ch,Vs1,Ts1,St1} = pattern(H, L, Vs0, Ts0, St0),
+    {Ct,Vs2,Ts2,St2} = pattern(T, L, Vs1, Ts1, St1),
+    {c_cons(Ch, Ct),Vs2,Ts2,St2};
+pattern([], _, Vs, Ts, St) -> {c_nil(),Vs,Ts,St};
 %% Literals.
-pattern(Bin, _, Vs, St) when is_bitstring(Bin) ->
-    {pat_lit(Bin),Vs,St};
-pattern(Tup, _, Vs, St) when is_tuple(Tup) ->
-    {pat_lit(Tup),Vs,St};
-pattern(Symb, L, Vs, St) when is_atom(Symb) ->
-    pat_symb(Symb, L, Vs, St);                  %Variable
-pattern(Numb, _, Vs, St) when is_number(Numb) -> {c_lit(Numb),Vs,St}.
+pattern(Bin, _, Vs, Ts, St) when is_bitstring(Bin) ->
+    {pat_lit(Bin),Vs,Ts,St};
+pattern(Tup, _, Vs, Ts, St) when is_tuple(Tup) ->
+    {pat_lit(Tup),Vs,Ts,St};
+pattern(Symb, L, Vs, Ts,St) when is_atom(Symb) ->
+    pat_symb(Symb, L, Vs, Ts, St);              %Variable
+pattern(Numb, _, Vs, Ts, St) when is_number(Numb) ->
+    {c_lit(Numb),Vs,Ts,St}.
 
-pat_list([P|Ps], L, Vs0, St0) ->
-    {Cp,Vs1,St1} = pattern(P, L, Vs0, St0),
-    {Cps,Vs2,St2} = pat_list(Ps, L, Vs1, St1),
-    {c_cons(Cp, Cps),Vs2,St2};
-pat_list([], _, Vs, St) -> {c_nil(),Vs,St}.
+pat_list([P|Ps], L, Vs0, Ts0, St0) ->
+    {Cp,Vs1,Ts1,St1} = pattern(P, L, Vs0, Ts0, St0),
+    {Cps,Vs2,Ts2,St2} = pat_list(Ps, L, Vs1, Ts1, St1),
+    {c_cons(Cp, Cps),Vs2,Ts2,St2};
+pat_list([], _, Vs, Ts, St) -> {c_nil(),Vs,Ts,St}.
 
-pat_symb('_', L, Vs, St0) ->    %Don't care variable.
+pat_symb('_', L, Vs, Ts, St0) ->                %Don't care variable.
     {Cv,St1} = new_c_var(L, St0),
-    {Cv,Vs,St1};                %Not added to variables
-pat_symb(Symb, _, Vs, St) ->
-    {c_var(Symb),add_element(Symb, Vs),St}.
+    {Cv,Vs,Ts,St1};                             %Not added to variables
+pat_symb(Symb, _, Vs, Ts, St0) ->
+    case is_element(Symb, Vs) of
+	true ->					%Replace and add test
+	    {New,St1} = new_var(St0),
+	    {c_var(New),Vs,[['=:=',Symb,New]|Ts],St1};
+	false ->				%Just add variable
+	    {c_var(Symb),add_element(Symb, Vs),Ts,St0}
+    end.
 
 %% pat_alias(CorePat, CorePat) -> AliasPat.
 %%  Normalise aliases. This has been taken from v3_core.erl in the
@@ -1386,61 +1404,63 @@ pat_alias_list([A1|A1s], [A2|A2s]) ->
 pat_alias_list([], []) -> [];
 pat_alias_list(_, _) -> throw(nomatch).
 
-%% pat_binary(Segs, Line, PatVars, State) -> {c_binary(),PatVars,State}.
+%% pat_binary(Segs, Line, PatVars, VarTests, State) ->
+%%     {c_binary(),PatVars,VarTests,State}.
 
-pat_binary(Segs, L, Vs0, St0) ->
+pat_binary(Segs, L, Vs0, Ts0, St0) ->
     Vsps = get_bitsegs(Segs),
-    {Csegs,Vs1,St1} = pat_bitsegs(Vsps, L, Vs0, St0),
-    {ann_c_binary([L], Csegs),Vs1,St1}.
+    {Csegs,Vs1,Ts1,St1} = pat_bitsegs(Vsps, L, Vs0, Ts0, St0),
+    {ann_c_binary([L], Csegs),Vs1,Ts1,St1}.
 
-%% pat_bitsegs(Segs, Line, PatVars, State) -> {CBitsegs,PatVars,State}.
+%% pat_bitsegs(Segs, Line, PatVars, VarTests, State) ->
+%%     {CBitsegs,PatVars,VarTests,State}.
 
-pat_bitsegs(Segs, L, Vs0, St0) ->
-    {Csegs,{Vs1,St1}} =
-        mapfoldl(fun (S, {Vsa,Sta}) ->
-                         {Cs,Vsb,Stb} = pat_bitseg(S, L, Vsa, Sta),
-                         {Cs,{Vsb,Stb}}
-                 end, {Vs0,St0}, Segs),
-    {Csegs,Vs1,St1}.
+pat_bitsegs(Segs, L, Vs0, Ts0, St0) ->
+    {Csegs,{Vs1,Ts1,St1}} =
+        mapfoldl(fun (S, {Vsa,Tsa,Sta}) ->
+                         {Cs,Vsb,Tsb,Stb} = pat_bitseg(S, L, Vsa, Tsa, Sta),
+                         {Cs,{Vsb,Tsb,Stb}}
+                 end, {Vs0,Ts0,St0}, Segs),
+    {Csegs,Vs1,Ts1,St1}.
 
 %% pat_bitseg(Seg, Line, PatVars, State) -> {c_bitstr(),PatVars,State}.
 %%  ??? Should noenv be lfe_env:new() instead ???
 %%  ??? We know its correct so why worry? ???
 
-pat_bitseg({Pat,_,{Ty,_,Si,En}}, L, Vs0, St0)
+pat_bitseg({Pat,_,{Ty,_,Si,En}}, L, Vs0, Ts0, St0)
   when Ty =:= utf8 ; Ty =:= utf16 ; Ty =:= utf32 ->
     %% Special case utf types.
-    {Cpat,Vs1,St1} = pattern(Pat, L, Vs0, St0),
+    {Cpat,Vs1,Ts1,St1} = pattern(Pat, L, Vs0, Ts0, St0),
     Undef = c_atom(undefined),
-    {c_bitstr(Cpat,Undef,Undef,c_atom(Ty),c_lit([Si,En])),Vs1,St1};
-pat_bitseg({Pat,all,{binary,_,_,_}=Ty}, L, Vs, St) ->
-    pat_bitseg({Pat,?Q(all),Ty}, L, Vs, St);
-pat_bitseg({Pat,Sz,{Ty,Un,Si,En}}, L, Vs0, St0) ->
-    {Cpat,Vs1,St1} = pattern(Pat, L, Vs0, St0),
+    {c_bitstr(Cpat,Undef,Undef,c_atom(Ty),c_lit([Si,En])),Vs1,Ts1,St1};
+pat_bitseg({Pat,all,{binary,_,_,_}=Ty}, L, Vs, Ts, St) ->
+    pat_bitseg({Pat,?Q(all),Ty}, L, Vs, Ts, St);
+pat_bitseg({Pat,Sz,{Ty,Un,Si,En}}, L, Vs0, Ts0, St0) ->
+    {Cpat,Vs1,Ts1,St1} = pattern(Pat, L, Vs0, Ts0, St0),
     {Csize,St2} = comp_expr(Sz, noenv, L, St1),
-    {c_bitstr(Cpat, Csize, c_int(Un), c_atom(Ty), c_lit([Si,En])),Vs1,St2}.
+    {c_bitstr(Cpat, Csize, c_int(Un), c_atom(Ty), c_lit([Si,En])),Vs1,Ts1,St2}.
 
 -ifdef(HAS_MAPS).
 %% pat_map(Args, Line, PatVars, State) -> {c_map(),PatVars,State}.
 
-pat_map(Args, L, Vs0, St0) ->
-    {Pairs,Vs1,St1} = pat_map_pairs(Args, L, Vs0, St0),
+pat_map(Args, L, Vs0, Ts0, St0) ->
+    {Pairs,Vs1,Ts1,St1} = pat_map_pairs(Args, L, Vs0, Ts0, St0),
     %% Build #c_map{} then fill it in.
     Map = ann_c_map_pattern([L], Pairs),        %Must us this for a pattern
-    {Map,Vs1,St1}.
+    {Map,Vs1,Ts1,St1}.
 
-pat_map_pairs([K,V|As], L, Vs0, St0) ->
+pat_map_pairs([K,V|As], L, Vs0, Ts0, St0) ->
     Ck = pat_map_key(K),
-    {Cv,Vs1,St1} = pattern(V, L, Vs0, St0),
-    {Cps,Vs2,St2} = pat_map_pairs(As, L, Vs1, St1),
+    {Cv,Vs1,Ts1,St1} = pattern(V, L, Vs0, Ts0, St0),
+    {Cps,Vs2,Ts2,St2} = pat_map_pairs(As, L, Vs1, Ts1, St1),
     {[ann_c_map_pair([L], c_lit(exact), Ck, Cv)|Cps],
-     Vs2,St2};
-pat_map_pairs([], _, Vs, St) -> {[],Vs,St}.
+     Vs2,Ts2,St2};
+pat_map_pairs([], _, Vs, Ts, St) -> {[],Vs,Ts,St}.
 
 pat_map_key([quote,L]) -> pat_lit(L);
 pat_map_key(L) -> pat_lit(L).
 -else.
-pat_map(_, _, Vs, St) -> {c_lit(map),Vs,St}.
+pat_map(_, _, Vs, Ts, St) -> {c_lit(map),Vs,Ts,St}.
 -endif.
 
 %% pat_lit(Value) -> LitExpr.
@@ -1520,13 +1540,16 @@ new_vars(N) when N > 0 ->
     [V|new_vars(N-1)];
 new_vars(0) -> [].
 
+%% new_var(State) -> {VarName,State}.
 %% new_c_var(Line, State) -> {c_var(),State}.
 %% Create a hopefully new core variable.
 
-new_c_var(_, St) ->
-    C = St#cg.vc,
-    Name = list_to_atom(integer_to_list(C)),
-    {c_var(Name),St#cg{vc=C+1}}.
+new_var(#cg{vc=C}=St) ->
+    {list_to_atom(integer_to_list(C)),St#cg{vc=C+1}}.
+
+new_c_var(_, St0) ->
+    {Name,St1} = new_var(St0),
+    {c_var(Name),St1}.
 
 new_c_vars(N, L, St) -> new_c_vars(N, L, St, []).
 
