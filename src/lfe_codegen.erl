@@ -22,6 +22,9 @@
 %%% are not as it expects them to be. Note that now the whole
 %%% annotation is passed into the constructor functions, not just the
 %%% line number.
+%%%
+%%% We make temporary variables of the form ' <num> ', which while
+%%% they are not guaranteed to be unique are pretty unlikely.
 
 -module(lfe_codegen).
 
@@ -606,7 +609,7 @@ comp_let(Vbs, B, Env, L, St0) ->
             Gfun = fun ([_,['when'|G]|_], Cgs) -> G ++ Cgs;
                        (_, Cgs) -> Cgs
                    end,
-            Gs = foldr(Gfun, [], Vbs),
+            Gs = Vts ++ foldr(Gfun, [], Vbs),	%The variable tests
             Efun = fun ([_,_,E], St) -> comp_expr(E, Env, L, St);
                        ([_,E], St) -> comp_expr(E, Env, L, St)
                    end,
@@ -1545,7 +1548,7 @@ new_vars(0) -> [].
 %% Create a hopefully new core variable.
 
 new_var(#cg{vc=C}=St) ->
-    {list_to_atom(integer_to_list(C)),St#cg{vc=C+1}}.
+    {list_to_atom(lists:concat([" ",C," "])),St#cg{vc=C+1}}.
 
 new_c_var(_, St0) ->
     {Name,St1} = new_var(St0),
