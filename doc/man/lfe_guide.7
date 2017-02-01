@@ -433,14 +433,13 @@ Binaries and tuples have special syntax.
 {ok,X}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \->\ (tuple\ \[aq]ok\ x)
 error\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \->\ \[aq]error
 {yes,[X|Xs]}\ \ \ \ \ \ \ \ \ \ \ \ \->\ (tuple\ \[aq]yes\ (cons\ x\ xs))
-<<34,F/float>>\ \ \ \ \ \ \ \ \ \ \->\ (binary\ 34\ (f\ float))
+<<34,U:16,F/float>>\ \ \ \ \ \->\ (binary\ 34\ (u\ (size\ 16))\ (f\ float))
 [P|Ps]=All\ \ \ \ \ \ \ \ \ \ \ \ \ \ \->\ (=\ (cons\ p\ ps)\ all)
 \f[]
 .fi
 .PP
-Repeated variables are \f[I]NOT\f[] supported in patterns, there is no
-automatic comparison of values.
-It must explicitly be done in a guard.
+Repeated variables are supported in patterns and there is an automatic
+comparison of values.
 .PP
 \f[C]_\f[] as the "don\[aq]t care" variable is supported.
 This means that the symbol \f[C]_\f[], which is a perfectly valid
@@ -522,33 +521,44 @@ flet and fletrec:
 \ \ \ \ (m\ x\ y)))
 \f[]
 .fi
-.SH Bindings and Scoping
+.SH Variable Binding and Scoping
 .PP
-LFE is a Lisp\-2 and has separate namespaces for variables and
-functions/macros.
-Both variables and functions/macros are lexically scoped.
-Variables are bound by lambda, match\-lambda and let, functions are
-bound by top\-level defun, flet and fletrec, macros are bound by
-top\-level defmacro/defsyntax and by macrolet/syntaxlet.
-.PP
-When searching for function both name and arity are used, a macro is
-considered to have any arity and will match all functions with that
-name.
-While this is not consistent with either Scheme (or CL) it is simple,
-usually easy to understand, and fits Erlang quite well.
-It does, however, require using \f[C](funcall\ func\ arg\ ...\ )\f[]
-like CL to call \f[C]lambdas\f[]/\f[C]match\-lambdas\f[] (funs) bound to
-variables.
-.PP
-Core solves this by having separate bindings and special to have only
-one apply:
+Variables are lexically scoped and bound by \f[C]lambda\f[],
+\f[C]match\-lambda\f[] and \f[C]let\f[] forms.
+All variables which are bound within these forms shadow variables bound
+outside but other variables occurring in the bodies of these forms will
+be imported from the surrounding environments.No variables are exported
+out of the form.
+So for example the following function:
 .IP
 .nf
 \f[C]
-\ \ \ \ apply\ _F\ (...)\ and\ apply\ _F/3\ (\ a1,\ a2,\ a3\ ).
+(defun\ foo\ (x\ y\ z)
+\ \ (let\ ((x\ (zip\ y)))
+\ \ \ \ (zap\ x\ z))
+\ \ (zop\ x\ y))
 \f[]
 .fi
-.SH Function shadowing
+.PP
+The variable \f[C]y\f[] in the call \f[C](zip\ y)\f[] comes from the
+function arguments.
+However, the \f[C]x\f[] bound in the \f[C]let\f[] will shadow the
+\f[C]x\f[] from the arguments so in the call \f[C](zap\ x\ z)\f[] the
+\f[C]x\f[] is bound in the \f[C]let\f[] while the \f[C]z\f[] comes from
+the function arguments.
+In the final \f[C](zop\ x\ y)\f[] both \f[C]x\f[] and \f[C]y\f[] come
+from the function arguments as the \f[C]let\f[] does not export
+\f[C]x\f[].
+.SH Function Binding and Scoping
+.PP
+Functions are lexically scoped and bound by the top\-level
+\f[C]defun\f[] and by the macros \f[C]flet\f[] and \f[C]fletrec\f[].
+LFE is a Lisp\-2 so functions and variables have separate namespaces and
+when searching for function both name and arity are used.
+This means that when calling a function which has been bound to a
+variable using \f[C](funcall\ func\-var\ arg\ ...)\f[] is required to
+call \f[C]lambda\f[]/\f[C]match\-lambda\f[] bound to a variable or used
+as a value.
 .PP
 Unqualified functions shadow as stated above which results in the
 following order within a module, outermost to innermost:
@@ -1000,7 +1010,7 @@ remove an element but will not stop extraction.
 Using a guard is probably not what you want!
 .PP
 Normal vanilla Erlang does the same thing but does not allow guards.
-.SS ETS and Mnesia
+.SH ETS and Mnesia
 .PP
 Apart from \f[C](emp\-record\ ...)\f[] macros for ETS Match Patterns,
 which are also valid in Mnesia, LFE also supports match specifications
