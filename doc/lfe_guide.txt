@@ -337,11 +337,11 @@ Patterns
               {ok,X}                  -> (tuple 'ok x)
               error                   -> 'error
               {yes,[X|Xs]}            -> (tuple 'yes (cons x xs))
-              <<34,F/float>>          -> (binary 34 (f float))
+              <<34,U:16,F/float>>     -> (binary 34 (u (size 16)) (f float))
               [P|Ps]=All              -> (= (cons p ps) all)
 
-       Repeated variables are NOT supported in patterns, there is no automatic
-       comparison of values.  It must explicitly be done in a guard.
+       Repeated  variables are supported in patterns and there is an automatic
+       comparison of values.
 
        _ as the "don't care" variable is supported.  This means that the  sym‐
        bol  _,  which  is a perfectly valid symbol, can never be bound through
@@ -405,27 +405,35 @@ Comments in Function Definitions
                          (if (>= a b) a b)))
                   (m x y)))
 
-Bindings and Scoping
-       LFE is a Lisp-2 and has separate namespaces  for  variables  and  func‐
-       tions/macros.    Both  variables  and  functions/macros  are  lexically
-       scoped.  Variables are bound by lambda, match-lambda and let, functions
-       are  bound  by  top-level  defun, flet and fletrec, macros are bound by
-       top-level defmacro/defsyntax and by macrolet/syntaxlet.
+Variable Binding and Scoping
+       Variables are lexically scoped and bound by  lambda,  match-lambda  and
+       let  forms.   All  variables  which are bound within these forms shadow
+       variables bound outside but other variables occurring in the bodies  of
+       these forms will be imported from the surrounding environments.No vari‐
+       ables are exported out of the form.  So for example the following func‐
+       tion:
 
-       When searching for function both name and arity are used,  a  macro  is
-       considered  to  have  any  arity and will match all functions with that
-       name.  While this is not consistent with either Scheme (or  CL)  it  is
-       simple,  usually  easy  to  understand, and fits Erlang quite well.  It
-       does, however, require using (funcall func arg ... ) like  CL  to  call
-       lambdas/match-lambdas (funs) bound to variables.
+              (defun foo (x y z)
+                (let ((x (zip y)))
+                  (zap x z))
+                (zop x y))
 
-       Core  solves  this by having separate bindings and special to have only
-       one apply:
+       The  variable  y in the call (zip y) comes from the function arguments.
+       However, the x bound in the let will shadow the x from the arguments so
+       in  the call (zap x z) the x is bound in the let while the z comes from
+       the function arguments.  In the final (zop x y) both x and y come  from
+       the function arguments as the let does not export x.
 
-                  apply _F (...) and apply _F/3 ( a1, a2, a3 ).
+Function Binding and Scoping
+       Functions  are lexically scoped and bound by the top-level defun and by
+       the macros flet and fletrec.  LFE is a Lisp-2 so  functions  and  vari‐
+       ables  have  separate  namespaces  and when searching for function both
+       name and arity are used.  This means that when calling a function which
+       has  been  bound  to a variable using (funcall func-var arg ...) is re‐
+       quired to call lambda/match-lambda bound to a variable  or  used  as  a
+       value.
 
-Function shadowing
-       Unqualified functions shadow as stated above which results in the  fol‐
+       Unqualified  functions shadow as stated above which results in the fol‐
        lowing order within a module, outermost to innermost:
 
        · Predefined BIFs (same as in vanilla Erlang)
@@ -438,16 +446,16 @@ Function shadowing
 
        · Flet/fletrec
 
-       This  means  that  it  is  perfectly  legal  to shadow BIFs by imports,
-       BIFs/imports by top-level functions and BIFs/imports/top-level by  fle‐
-       trecs.   In this respect there is nothing special about BIfs, they just
+       This means that it is  perfectly  legal  to  shadow  BIFs  by  imports,
+       BIFs/imports  by top-level functions and BIFs/imports/top-level by fle‐
+       trecs.  In this respect there is nothing special about BIfs, they  just
        behave as prefined imported functions, a whopping big (import (from er‐
-       lang ...)).   EXCEPT that we know about guard BIFs and expression BIFs.
+       lang ...)).  EXCEPT that we know about guard BIFs and expression  BIFs.
        If you want a private version of spawn then define it, there will be no
        warnings.
 
-       CAVEAT  This  does not hold for the supported core forms.  These can be
-       shadowed by imports or redefined but the compiler will always  use  the
+       CAVEAT This does not hold for the supported core forms.  These  can  be
+       shadowed  by  imports or redefined but the compiler will always use the
        core meaning and never an alternative.  Silently!
 
 Module definition
@@ -462,24 +470,24 @@ Module definition
                 ... )
 
        Can have multiple export and import declarations within module declara‐
-       tion.  The (export all) declaration is allowed together with other  ex‐
-       port  declarations  and overrides them.  Other attributes which are not
-       recognised by the compiler are allowed and are simply passed on to  the
+       tion.   The (export all) declaration is allowed together with other ex‐
+       port declarations and overrides them.  Other attributes which  are  not
+       recognised  by the compiler are allowed and are simply passed on to the
        module and can be accessed through module_info/0-1.
 
 Parameterized modules
               (defmodule (name par1 par2 ... )
                 ... )
 
-       Define  a parameterized module which behaves the same way as in vanilla
+       Define a parameterized module which behaves the same way as in  vanilla
        Erlang.  For now avoid defining functions 'new' and 'instance'.
 
 Macros
-       Macro calls are expanded in both body and patterns.  This can  be  very
+       Macro  calls  are expanded in both body and patterns.  This can be very
        useful to have both make and match macros, but be careful with names.
 
-       A  macro  is  function of two argument which is a called with a list of
-       the arguments to the macro call and the current macro environment.   It
+       A macro is function of two argument which is a called with  a  list  of
+       the  arguments to the macro call and the current macro environment.  It
        can be either a lambda or a match-lambda.  The basic forms for defining
        macros are:
 
@@ -496,9 +504,9 @@ Macros
               (defmacro name ((argpat ...) body) ...)
 
        Defmacro can be used for defining simple macros or sequences of matches
-       depending  on whether the arguments are a simple list of symbols or can
-       be interpreted as a list of pattern/body pairs.   In  the  second  case
-       when  the argument is just a symbol it will be bound to the whole argu‐
+       depending on whether the arguments are a simple list of symbols or  can
+       be  interpreted  as  a  list of pattern/body pairs.  In the second case
+       when the argument is just a symbol it will be bound to the whole  argu‐
        ment list.  For example:
 
               (defmacro double (a) `(+ ,a ,a))
@@ -510,20 +518,20 @@ Macros
 
        The macro definitions in a macrolet obey the same rules as defmacro.
 
-       The macro functions created by defmacro and macrolet automatically  add
-       the  second  argument  with the current macro environment with the name
-       $ENV.  This allows explicit expansion of macros inside  the  macro  and
+       The  macro functions created by defmacro and macrolet automatically add
+       the second argument with the current macro environment  with  the  name
+       $ENV.   This  allows  explicit expansion of macros inside the macro and
        also manipulation of the macro environment.  No changes to the environ‐
        ment are exported outside the macro.
 
-       User defined macros shadow the predefined macros so it is  possible  to
-       redefine  the  built-in macro definitions.  However, see the caveat be‐
+       User  defined  macros shadow the predefined macros so it is possible to
+       redefine the built-in macro definitions.  However, see the  caveat  be‐
        low!
 
-       Yes, we have the backquote.  It is implemented as a macro so it is  ex‐
+       Yes,  we have the backquote.  It is implemented as a macro so it is ex‐
        panded at macro expansion time.
 
-       Local  functions  that  are  only  available at compile time and can be
+       Local functions that are only available at  compile  time  and  can  be
        called by macros are defined using eval-when-compile:
 
               (defmacro foo (x)
@@ -538,15 +546,15 @@ Macros
                 )
 
        There can be many eval-when-compile forms.  Functions defined within an
-       eval-when-compile  are  mutually recursive but they can only call other
-       local functions defined in an earlier eval-when-compile and macros  de‐
-       fined  earlier  in  the  file.   Functions defined in eval-when-compile
-       which are called by macros can defined after the macro but must be  de‐
+       eval-when-compile are mutually recursive but they can only  call  other
+       local  functions defined in an earlier eval-when-compile and macros de‐
+       fined earlier in the  file.   Functions  defined  in  eval-when-compile
+       which  are called by macros can defined after the macro but must be de‐
        fined before the macro is used.
 
-       Scheme's  syntax  rules are an easy way to define macros where the body
-       is just a simple expansion.  These are  supported  with  defsyntax  and
-       syntaxlet.   Note that the patterns are only the arguments to the macro
+       Scheme's syntax rules are an easy way to define macros where  the  body
+       is  just  a  simple  expansion.  These are supported with defsyntax and
+       syntaxlet.  Note that the patterns are only the arguments to the  macro
        call and do not contain the macro name.  So using them we would get:
 
               (defsyntax andalso
@@ -556,19 +564,19 @@ Macros
 
        N.B.  These are definitely NOT hygienic.
 
-       CAVEAT While it is perfectly legal to define a Core  form  as  a  macro
+       CAVEAT  While  it  is  perfectly legal to define a Core form as a macro
        these will silently be ignored by the compiler.
 
 Comments in Macro Definitions
-       Inside  macros  defined  with  defmacro  LFE  permits  optional comment
-       strings in the Common Lisp style after the argument list.   So  we  can
+       Inside macros  defined  with  defmacro  LFE  permits  optional  comment
+       strings  in  the  Common Lisp style after the argument list.  So we can
        have:
 
               (defmacro double (a)
                 "Double macro."
                 `(+ ,a ,a))
 
-       Optional  comments  are  also  allowed  in match style macros after the
+       Optional comments are also allowed in  match  style  macros  after  the
        macro name and before the clauses:
 
               (defmacro my-list args
@@ -581,7 +589,7 @@ Comments in Macro Definitions
                 ((cons e es) `(if ,e (andalso ,@es) 'false))
                 (() `'true))
 
-       This is also possible in a similar style in local functions defined  by
+       This  is also possible in a similar style in local functions defined by
        macrolet:
 
               (defun foo (x y)
@@ -593,8 +601,8 @@ Comments in Macro Definitions
 
 Extended cond
        Cond has been extended with the extra test (?= pat expr) which tests if
-       the result of expr matches pat.  If so it binds the  variables  in  pat
-       which  can  be used in the cond.  A optional guard is allowed here.  An
+       the  result  of  expr matches pat.  If so it binds the variables in pat
+       which can be used in the cond.  A optional guard is allowed  here.   An
        example:
 
               (cond ((foo x) ...)
@@ -605,8 +613,8 @@ Extended cond
                     ... )
 
 Records
-       Records are tuples with the record name as first element and  the  rest
-       of  the  fields in order exactly like "normal" Erlang records.  As with
+       Records  are  tuples with the record name as first element and the rest
+       of the fields in order exactly like "normal" Erlang records.   As  with
        Erlang records the default default value is 'undefined'.
 
               (defrecord name
@@ -614,7 +622,7 @@ Records
                 (field default-value)
                 ... )
 
-       Will create access functions/macros for creation and accessing  fields.
+       Will  create access functions/macros for creation and accessing fields.
        The  make-,  match-  and  set-  forms  takes  optional  argument  pairs
        field-name value to get non-default values.  E.g.  for
 
@@ -640,34 +648,34 @@ Records
                (person-address r)
                (set-person-address r address)
 
-       · (make-person name "Robert" age 54) - Will create a new person  record
-         with  the name field set to "Robert", the age field set to 54 and the
+       · (make-person name "Robert" age 54)  - Will create a new person record
+         with the name field set to "Robert", the age field set to 54 and  the
          address field set to the default "".
 
        · (match-person name name age 55) - Will match a person with age 55 and
-         bind  the variable name to the name field of the record.  Can use any
+         bind the variable name to the name field of the record.  Can use  any
          variable name here.
 
        · (is-person john) - Test if john is a person record.
 
-       · (emp-person age '$1) - Create an Ets Match Pattern for record  person
+       · (emp-person age '$1)  - Create an Ets Match Pattern for record person
          where the age field is set to $1 and all other fields are set to '_.
 
        · (person-address john) - Return the address field of the person record
          john.
 
-       · (person-address) - Return the index of the address field of a  person
+       · (person-address)  - Return the index of the address field of a person
          record.
 
-       · (set-person-address john "back street")  -  Sets the address field of
+       · (set-person-address john "back street") - Sets the address  field  of
          the person record john to "back street".
 
-       · (set-person john age 35 address "front street")  -  In   the   person
-         record  john  set the age field to 35 and the address field to "front
+       · (set-person john age 35 address "front street")   -   In  the  person
+         record john set the age field to 35 and the address field  to  "front
          street".
 
-       · (fields-person) - Returns a list of fields for the record.   This  is
-         useful  for  when  using  LFE  with Mnesia, as the record field names
+       · (fields-person)  -  Returns a list of fields for the record.  This is
+         useful for when using LFE with Mnesia,  as  the  record  field  names
          don't have to be provided manually in the create_table call.
 
 Binaries/bitstrings
@@ -685,8 +693,8 @@ Binaries/bitstrings
                            big|little|native
                            signed|unsigned)
 
-       val can also be a string in which case the specifiers will  be  applied
-       to  every  character in the string.  As strings are just lists of inte‐
+       val  can  also be a string in which case the specifiers will be applied
+       to every character in the string.  As strings are just lists  of  inte‐
        gers these are also valid here.  In a binary constant all literal forms
        are allowed on input but they will always be written as bytes.
 
@@ -701,18 +709,18 @@ Maps
 
        · (map-set map key val ... ) - Set keys in map to values.
 
-       · (map-update map key val ... )  -  Update keys in map to values.  Note
+       · (map-update map key val ... ) - Update keys in map to  values.   Note
          that this form requires all the keys to exist.
 
-       N.B.  This syntax for processing maps has stablized but may  change  in
+       N.B.   This  syntax for processing maps has stablized but may change in
        the future!
 
-       There  is  also  an alternate short form map, mref, mset, mupd based on
-       the Maclisp array reference forms.  They take  the  same  arguments  as
+       There is also an alternate short form map, mref, mset,  mupd  based  on
+       the  Maclisp  array  reference  forms.  They take the same arguments as
        their longer alternatives.
 
 List/binary comprehensions
-       List/binary  comprehensions  are  supported  as macros.  The syntax for
+       List/binary comprehensions are supported as  macros.   The  syntax  for
        list comprehensions is:
 
               (lc (qual  ...) expr ... )
@@ -725,7 +733,7 @@ List/binary comprehensions
               (bc (qual  ...) expr ... )
               (binary-comp (qual  ...) expr ... )
 
-       where the final expr is a bitseg expr and is used to generate the  ele‐
+       where  the final expr is a bitseg expr and is used to generate the ele‐
        ments of the binary.
 
        The supported qualifiers, in both list/binary comprehensions are:
@@ -741,7 +749,7 @@ List/binary comprehensions
                    (== (rem v 2) 0))
                 v)
 
-       returns  a  list  of  all  the  even  elements of the list l1 which are
+       returns a list of all the even  elements  of  the  list  l1  which  are
        greater than 5.
 
               (bc ((<= (f float (size 32)) b1)        ;Only bitseg needed
@@ -749,24 +757,24 @@ List/binary comprehensions
                 (: io fwrite "~p\n" (list f))
                 (f float (size 64)))                  ;Only bitseg needed
 
-       returns a binary of floats of size 64 of floats which are  larger  than
+       returns  a  binary of floats of size 64 of floats which are larger than
        10.0 from the binary b1 and of size 32.  The returned numbers are first
        printed.
 
        N.B.  A word of warning when using guards when extracting elements from
-       a  binary.  When a match/guard fails for a binary no more attempts will
-       be made to extract data from the binary.  This means  that  even  if  a
-       value  could be extracted from the binary if the guard fails this value
+       a binary.  When a match/guard fails for a binary no more attempts  will
+       be  made  to  extract  data from the binary.  This means that even if a
+       value could be extracted from the binary if the guard fails this  value
        will be lost and extraction will cease.  This is NOT the same as having
-       following  boolean  test  which may remove an element but will not stop
+       following boolean test which may remove an element but  will  not  stop
        extraction.  Using a guard is probably not what you want!
 
        Normal vanilla Erlang does the same thing but does not allow guards.
 
-   ETS and Mnesia
-       Apart from (emp-record ...) macros for ETS Match  Patterns,  which  are
-       also  valid in Mnesia, LFE also supports match specifications and Query
-       List Comprehensions.  The syntax for a match specification is the  same
+ETS and Mnesia
+       Apart  from  (emp-record ...)  macros for ETS Match Patterns, which are
+       also valid in Mnesia, LFE also supports match specifications and  Query
+       List  Comprehensions.  The syntax for a match specification is the same
        as for match-lambdas:
 
               (match-spec
@@ -778,8 +786,8 @@ List/binary comprehensions
               (ets:select db (match-spec
                                ([(tuple _ a b)] (when (> a 3)) (tuple 'ok b))))
 
-       It  is a macro which creates the match specification structure which is
-       used in ets:select and mnesia:select.  The same  match-spec  macro  can
+       It is a macro which creates the match specification structure which  is
+       used  in  ets:select  and mnesia:select.  The same match-spec macro can
        also be used with the dbg module.  The same restrictions as to what can
        be done apply as for vanilla match specifications:
 
@@ -787,24 +795,24 @@ List/binary comprehensions
 
        · There are some special functions only for use with dbg
 
-       · For ets/mnesia it takes a single parameter which must a  tuple  or  a
+       · For  ets/mnesia  it  takes a single parameter which must a tuple or a
          variable
 
        · For dbg it takes a single parameter which must a list or a variable
 
-       N.B.   the  current  macro  neither knows nor cares whether it is being
+       N.B.  the current macro neither knows nor cares  whether  it  is  being
        used in ets/mnesia or in dbg.  It is up to the user to get this right.
 
-       Macros, especially record macros,  can  freely  be  used  inside  match
+       Macros,  especially  record  macros,  can  freely  be used inside match
        specs.
 
-       CAVEAT  Some  things which are known not to work in the current version
+       CAVEAT Some things which are known not to work in the  current  version
        are andalso, orelse and record updates.
 
 Query List Comprehensions
-       LFE supports QLCs for mnesia through the qlc macro.  It  has  the  same
-       structure  as  a list comprehension and generates a Query Handle in the
-       same way as with qlc:q([...]).  The handle can be  used  together  with
+       LFE  supports  QLCs  for mnesia through the qlc macro.  It has the same
+       structure as a list comprehension and generates a Query Handle  in  the
+       same  way  as  with qlc:q([...]).  The handle can be used together with
        all the combination functions in the module qlc.
 
        For example:
@@ -812,10 +820,10 @@ Query List Comprehensions
               (qlc (lc ((<- (tuple k v) (: ets table e2)) (== k i)) v)
                    {{Option}})
 
-       Macros,  especially record macros, can freely be used inside query list
+       Macros, especially record macros, can freely be used inside query  list
        comprehensions.
 
-       CAVEAT Some things which are known not to work in the  current  version
+       CAVEAT  Some  things which are known not to work in the current version
        are nested QLCs and let/case/recieve which shadow variables.
 
 Predefined LFE functions
@@ -824,7 +832,7 @@ Predefined LFE functions
               (<arith_op> expr ...)
               (<comp_op> expr ...)
 
-       The  standard arithmentic operators, + - * /, and comparison operators,
+       The standard arithmentic operators, + - * /, and comparison  operators,
        > >= < =< == /= =:= =/= , can take multiple arguments the same as their
        standard lisp counterparts.  This is still experimental and implemented
        using macros.  They do, however, behave like normal functions and eval‐
@@ -856,38 +864,38 @@ Predefined LFE functions
 
               (macroexpand expr {{environment}})
 
-       Returns  the  expansion  returned  by calling macroexpand-1 repeatedly,
+       Returns the expansion returned  by  calling  macroexpand-1  repeatedly,
        starting with Expr, until the result is no longer a macro call.
 
               (macroexpand-all expr {{environment}})
 
-       Returns the expansion from the expression where all  macro  calls  have
+       Returns  the  expansion  from the expression where all macro calls have
        been expanded with macroexpand.
 
-       NOTE  that  when no explicit environment is given the macroexpand func‐
-       tions then only the default built-in macros will be  expanded.   Inside
+       NOTE that when no explicit environment is given the  macroexpand  func‐
+       tions  then  only the default built-in macros will be expanded.  Inside
        macros and in the shell the variable $ENV is bound to the current macro
        environment.
 
               (eval expr {{environment}})
 
-       Evaluate the expression expr.  Note  that  only  the  pre-defined  lisp
-       functions,  erlang  BIFs and exported functions can be called.  Also no
+       Evaluate  the  expression  expr.   Note  that only the pre-defined lisp
+       functions, erlang BIFs and exported functions can be called.   Also  no
        local variables can be accessed.  To access local variables the expr to
        be evaluated can be wrapped in a let defining these.
 
        For example if the data we wish to evaluate is in the variable expr and
-       it assumes there is a local variable "foo" which  it  needs  to  access
+       it  assumes  there  is  a local variable "foo" which it needs to access
        then we could evaluate it by calling:
 
               (eval `(let ((foo ,foo)) ,expr))
 
    Supplemental Common Lisp Functions
        LFE provides the module cl which contains the following functions which
-       closely mirror functions defined in the Common  Lisp  Hyperspec.   Note
-       that  the following functions use zero-based indices, like Common Lisp.
-       A major difference is that the boolean values are  the  LFE  'true  and
-       'false.   Otherwise  the  definitions closely follow the CL definitions
+       closely  mirror  functions  defined in the Common Lisp Hyperspec.  Note
+       that the following functions use zero-based indices, like Common  Lisp.
+       A  major  difference  is  that the boolean values are the LFE 'true and
+       'false.  Otherwise the definitions closely follow  the  CL  definitions
        and won't be documented here.
 
               cl:make-lfe-bool cl-value
@@ -979,11 +987,11 @@ Predefined LFE functions
               cl:type-of  object
               cl:coerce  object  type
 
-       Furthmore, there is an include file which developers may which to  uti‐
-       lize  in  their LFE programs: (include-lib "lfe/include/cl.lfe").  Cur‐
+       Furthmore,  there is an include file which developers may which to uti‐
+       lize in their LFE programs:  (include-lib "lfe/include/cl.lfe").   Cur‐
        rently this offers Common Lisp predicates, but may include other useful
        macros and functions in the future.  The provided predicate macros wrap
-       the various is_* Erlang functions; since these are expanded at  compile
+       the  various is_* Erlang functions; since these are expanded at compile
        time, they are usable in guards.  The include the following:
 
               (alivep x)

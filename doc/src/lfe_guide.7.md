@@ -427,13 +427,12 @@ quote to match explicit values. Binaries and tuples have special syntax.
 {ok,X}                  -> (tuple 'ok x)
 error                   -> 'error
 {yes,[X|Xs]}            -> (tuple 'yes (cons x xs))
-<<34,F/float>>          -> (binary 34 (f float))
+<<34,U:16,F/float>>     -> (binary 34 (u (size 16)) (f float))
 [P|Ps]=All              -> (= (cons p ps) all)
 ```
 
-Repeated variables are *NOT* supported in patterns, there is no
-automatic comparison of values. It must explicitly be done in a
-guard.
+Repeated variables are supported in patterns and there is an automatic
+comparison of values.
 
 ``_`` as the "don't care" variable is supported. This means that the
 symbol ``_``, which is a perfectly valid symbol, can never be bound
@@ -509,30 +508,38 @@ flet and fletrec:
     (m x y)))
 ```
 
-# Bindings and Scoping
+# Variable Binding and Scoping
 
-LFE is a Lisp-2 and has separate namespaces for variables and
-functions/macros. Both variables and functions/macros are lexically
-scoped. Variables are bound by lambda, match-lambda and let, functions
-are bound by top-level defun, flet and fletrec, macros are bound by
-top-level defmacro/defsyntax and by macrolet/syntaxlet.
-
-When searching for function both name and arity are used, a macro is
-considered to have any arity and will match all functions with that
-name. While this is not consistent with either Scheme (or CL) it is
-simple, usually easy to understand, and fits Erlang quite well. It
-does, however, require using ``(funcall func arg ... )`` like CL to call
-``lambdas``/``match-lambdas`` (funs) bound to variables.
-
-Core solves this by having separate bindings and special to
-have only one apply:
+Variables are lexically scoped and bound by ``lambda``,
+``match-lambda`` and ``let`` forms. All variables which are bound
+within these forms shadow variables bound outside but other variables
+occurring in the bodies of these forms will be imported from the
+surrounding environments.No variables are exported out of the form. So
+for example the following function:
 
 ```
-    apply _F (...) and apply _F/3 ( a1, a2, a3 ).
+(defun foo (x y z)
+  (let ((x (zip y)))
+    (zap x z))
+  (zop x y))
 ```
 
+The variable ``y`` in the call ``(zip y)`` comes from the function
+arguments. However, the ``x`` bound in the ``let`` will shadow the
+``x`` from the arguments so in the call ``(zap x z)`` the ``x`` is
+bound in the ``let`` while the ``z`` comes from the function
+arguments. In the final ``(zop x y)`` both ``x`` and ``y`` come from
+the function arguments as the ``let`` does not export ``x``.
 
-# Function shadowing
+# Function Binding and Scoping
+
+Functions are lexically scoped and bound by the top-level ``defun``
+and by the macros ``flet`` and ``fletrec``. LFE is a Lisp-2 so
+functions and variables have separate namespaces and when searching
+for function both name and arity are used. This means that when
+calling a function which has been bound to a variable using ``(funcall
+func-var arg ...)`` is required to call ``lambda``/``match-lambda``
+bound to a variable or used as a value.
 
 Unqualified functions shadow as stated above which results in the
 following order within a module, outermost to innermost:
@@ -938,7 +945,7 @@ stop extraction. Using a guard is probably not what you want!
 Normal vanilla Erlang does the same thing but does not allow guards.
 
 
-## ETS and Mnesia
+# ETS and Mnesia
 
 Apart from ``(emp-record ...)`` macros for ETS Match Patterns, which are
 also valid in Mnesia, LFE also supports match specifications and Query
