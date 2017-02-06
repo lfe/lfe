@@ -436,7 +436,7 @@ Function Binding and Scoping
        Unqualified  functions shadow as stated above which results in the fol‐
        lowing order within a module, outermost to innermost:
 
-       · Predefined BIFs (same as in vanilla Erlang)
+       · Predefined Erlang BIFs
 
        · Predefined LFE BIFs
 
@@ -445,6 +445,8 @@ Function Binding and Scoping
        · Top-level defines
 
        · Flet/fletrec
+
+       · Core forms, these can never be shadowed
 
        This means that it is  perfectly  legal  to  shadow  BIFs  by  imports,
        BIFs/imports  by top-level functions and BIFs/imports/top-level by fle‐
