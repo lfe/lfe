@@ -460,14 +460,15 @@ get_fbinding(Name, Ar, Env) ->
         {yes,_,_}=Yes -> Yes;                   %Imported function
         {yes,_}=Yes -> Yes;                     %Bound function
         no ->
-	    case lfe_internal:is_erl_bif(Name, Ar) of
-		true -> {yes,erlang,Name};      %Auto-imported Erlang BIF
-		false ->
-		    case lfe_internal:is_lfe_bif(Name, Ar) of
-			true -> {yes,lfe,Name}; %Auto-imported LFE BIF
-			false -> no
-		    end
-	    end
+            case lfe_internal:is_lfe_bif(Name, Ar) of
+                true -> {yes,lfe,Name};         %Auto-imported LFE BIF
+                false ->
+                    case lfe_internal:is_erl_bif(Name, Ar) of
+                        true ->                 %Auto-imported Erlang BIF
+			    {yes,erlang,Name};
+                        false -> no
+                    end
+            end
     end.
 
 %% comp_bif_call(Bif, Args, Env, Line, State) -> {Call,State}.

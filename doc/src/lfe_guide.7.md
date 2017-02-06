@@ -544,11 +544,12 @@ bound to a variable or used as a value.
 Unqualified functions shadow as stated above which results in the
 following order within a module, outermost to innermost:
 
-* Predefined BIFs (same as in vanilla Erlang)
+* Predefined Erlang BIFs
 * Predefined LFE BIFs
 * Imports
 * Top-level defines
 * Flet/fletrec
+* Core forms, these can never be shadowed
 
 This means that it is perfectly legal to shadow BIFs by imports,
 BIFs/imports by top-level functions and BIFs/imports/top-level by

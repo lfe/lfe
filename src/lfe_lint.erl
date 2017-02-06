@@ -635,8 +635,8 @@ check_symb(Symb, Env, L, St) ->
 
 check_func(F, Ar, Env, L, St) ->
     case lfe_env:is_fbound(F, Ar, Env) orelse
-        lfe_internal:is_erl_bif(F, Ar) orelse
-        lfe_internal:is_lfe_bif(F, Ar) of
+        lfe_internal:is_lfe_bif(F, Ar) orelse
+        lfe_internal:is_erl_bif(F, Ar) of
         true -> St;
         false -> undefined_func_error(L, {F,Ar}, St)
     end.
