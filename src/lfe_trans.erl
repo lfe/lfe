@@ -84,6 +84,22 @@ from_expr({tuple,_,Es}, Vt0, St0) ->
 from_expr({bin,_,Segs}, Vt0, St0) ->
     {Ss,Vt1,St1} = from_bitsegs(Segs, Vt0, St0),
     {[binary|Ss],Vt1,St1};
+from_expr({map,_,Pairs}, Vt0, St0) ->           %Build a map
+    {Ps,Vt1,St1} = from_map_pairs(Pairs, Vt0, St0),
+    {[map|Ps],Vt1,St1};
+from_expr({map,_,Map,Pairs}, Vt0, St0) ->       %Update a map
+    {Es,As} = split_map_pairs(Pairs),
+    {Lm,Vt1,St1} = from_expr(Map, Vt0, St0),
+    {Les,Vt2,St2} = from_map_pairs(Es, Vt1, St1),
+    {Aes,Vt3,St3} = from_map_pairs(As, Vt2, St2),
+    %% First do updates then normal sets as these can over write.
+    Lum = if Les =:= [] -> Lm;                  %Expand update fields
+             true -> ['map-update',Lm|Les]
+          end,
+    Lam = if Aes =:= [] -> Lum;                 %Expand set fields
+             true -> ['map-set',Lum|Aes]
+          end,
+    {Lam,Vt3,St3};
 %% Core closure special forms.
 from_expr({'fun',_,{clauses,Cls}}, Vt, St0) ->
     {Lcls,St1} = from_fun_cls(Cls, Vt, St0),
@@ -264,6 +280,10 @@ from_fun_cl({clause,_,H,[G],B}, Vt0, St0) ->
     Leg = from_eq_tests(Eqt),
     {[Lh,['when'|Leg ++ Lg]|Lb],Vt3,St3}.
 
+%% from_cls(ClauseFun, VarTable, State, Clauses) -> {Clauses,VarTable,State}.
+%%  Translate the clauses but only export variables that are defined
+%%  in all clauses, the intersection of the variables.
+
 from_cls(Fun, Vt0, St0, [C]) ->
     {Lc,Vt1,St1} = Fun(C, Vt0, St0),
     {[Lc],Vt1,St1};
@@ -332,6 +352,23 @@ from_bitseg_size(Size, Vt0, St0) ->
 from_bitseg_type(default) -> [];
 from_bitseg_type(Ts) ->
     map(fun ({unit,U}) -> [unit,U]; (T) -> T end, Ts).
+
+%% from_map_pairs(MapFields, VarTable, State) -> {Pairs,VarTable,State}.
+
+from_map_pairs([{_,_,Key,Val}|Ps], Vt0, St0) ->
+    {Lk,Vt1,St1} = from_expr(Key, Vt0, St0),
+    {Lv,Vt2,St2} = from_expr(Val, Vt1, St1),
+    {Lps,Vt3,St3} = from_map_pairs(Ps, Vt2, St2),
+    {[Lk,Lv|Lps],Vt3,St3};
+from_map_pairs([], Vt, St) -> {[],Vt,St}.
+
+%% split_map_pairs(MapFields) -> {ExactFields,AssocFields}.
+
+split_map_pairs(Ps) ->
+    Split = fun ({map_field_exact,_,_,_}=F, {Es,As}) -> {[F|Es],As};
+                ({map_field_assoc,_,_,_}=F, {Es,As}) -> {Es,[F|As]}
+            end,
+    lists:foldr(Split, {[],[]},Ps).
 
 new_from_var(#from{vc=C}=St) ->
     V = list_to_atom(lists:concat(["---",C,"---"])),
@@ -490,6 +527,25 @@ to_expr([tset,T,I,V], L, Vt, St0) ->
 to_expr([binary|Segs], L, Vt, St0) ->
     {Esegs,St1} = to_bitsegs(Segs, L, Vt, St0),
     {{bin,L,Esegs},St1};
+to_expr([map|Pairs], L, Vt, St0) ->
+    {Eps,St1} = to_map_pairs(Pairs, map_field_assoc, L, Vt, St0),
+    {{map,L,Eps},St1};
+to_expr([mref,Map,K], L, Vt, St) ->
+    to_expr([call,?Q(maps),?Q(get),K,Map], L, Vt, St);
+to_expr([mset,Map|Pairs], L, Vt, St0) ->
+    {Em,St1} = to_expr(Map, L, Vt, St0),
+    {Eps,St2} = to_map_pairs(Pairs, map_field_assoc, L, Vt, St1),
+    {{map,L,Em,Eps},St2};
+to_expr([mupd,Map|Pairs], L, Vt, St0) ->
+    {Em,St1} = to_expr(Map, L, Vt, St0),
+    {Eps,St2} = to_map_pairs(Pairs, map_field_exact, L, Vt, St1),
+    {{map,L,Em,Eps},St2};
+to_expr(['map-get',Map,K], L, Vt, St) ->
+    to_expr([mref,Map,K], L, Vt, St);
+to_expr(['map-set',Map|Ps], L, Vt, St) ->
+    to_expr([mset,Map|Ps], L, Vt, St);
+to_expr(['map-update',Map|Ps], L, Vt, St) ->
+    to_expr([mupd,Map|Ps], L, Vt, St);
 %% Core closure special forms.
 to_expr([lambda,As|B], L, Vt, St0) ->
     {Ecl,St1} = to_fun_cl([As|B], L, Vt, St0),
@@ -726,6 +782,15 @@ to_bitspecs(Ss) ->
         {ok,Sz,Ty} -> {Sz,Ty};
         {error,Error} -> erlang:error(Error)
     end.
+
+%% to_map_pairs(Pairs, LineNumber, VarTable, State) -> {Fields,State}.
+
+to_map_pairs([K,V|Ps], Field, L, Vt, St0) ->
+    {Ek,St1} = to_expr(K, L, Vt, St0),
+    {Ev,St2} = to_expr(V, L, Vt, St1),
+    {Eps,St3} = to_map_pairs(Ps, Field, L, Vt, St2),
+    {[{Field,L,Ek,Ev}|Eps],St3};
+to_map_pairs([], _, _, _, St) -> {[],St}.
 
 new_to_var(#to{vc=C}=St) ->
     V = list_to_atom(lists:concat(["___",C,"___"])),
