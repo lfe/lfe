@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2016 Robert Virding
+%% Copyright (c) 2008-2017 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -280,17 +280,17 @@ comp_spec_metadata(Specs, Line) ->
 comp_record_metadata(Recs, Line) ->
     Ann = [Line],
     Rfun = fun ([Name|Fields]) ->
-		   {Name,[ comp_record_field(Fdef, Ann) || Fdef <- Fields ]}
-	   end,
+                   {Name,[ comp_record_field(Fdef, Ann) || Fdef <- Fields ]}
+           end,
     Rs = [ Rfun(Rec) || Rec <- Recs ],
     {ann_c_lit(Ann, record),ann_c_lit(Ann, Rs)}.
 -else.
 comp_record_metadata(Recs, Line) ->
     Ann = [Line],
     Rfun = fun ([Name|Fields]) ->
-		   {{record,Name},
-		    [ comp_record_field(Fdef, Ann) || Fdef <- Fields ]}
-	   end,
+                   {{record,Name},
+                    [ comp_record_field(Fdef, Ann) || Fdef <- Fields ]}
+           end,
     Rs = [ Rfun(Rec) || Rec <- Recs ],
     {ann_c_lit(Ann, type),ann_c_lit(Ann, Rs)}.
 -endif.
@@ -433,7 +433,7 @@ comp_expr([Fun|As], Env, L, St) when is_atom(Fun) ->
                    Ar = length(Cas),
                    Ann = line_file_anno(Li, Sta),
                    case get_fbinding(Fun, Ar, En) of
-                       {yes,M,F} ->             %Import
+                       {yes,M,F} ->             %BIF or import
                            {ann_c_call(Ann, c_atom(M), c_atom(F), Cas),Sta};
                        {yes,Name} ->
                            %% Might have been renamed, use real function name.
@@ -465,7 +465,7 @@ get_fbinding(Name, Ar, Env) ->
                 false ->
                     case lfe_internal:is_erl_bif(Name, Ar) of
                         true ->                 %Auto-imported Erlang BIF
-			    {yes,erlang,Name};
+                            {yes,erlang,Name};
                         false -> no
                     end
             end
@@ -476,9 +476,9 @@ get_fbinding(Name, Ar, Env) ->
 
 comp_bif_call(Bif, As, Env, L, St) ->
     Call = fun(Cas, _, Li, Sta) ->
-		   Ann = line_file_anno(Li, Sta),
-		   {ann_c_call(Ann, c_atom(erlang), c_atom(Bif), Cas),Sta}
-	   end,
+                   Ann = line_file_anno(Li, Sta),
+                   {ann_c_call(Ann, c_atom(erlang), c_atom(Bif), Cas),Sta}
+           end,
     comp_args(As, Call, Env, L, St).
 
 %% comp_args(Args, CallFun, Env, Line, State) -> {Call,State}.
@@ -580,53 +580,47 @@ add_guard_tests(Ts, Body) ->
     [['when'|Ts]|Body].
 
 %% comp_let(VarBindings, Body, Env, L, State) -> {c_let()|c_case(),State}.
-%%  Compile a let expr. We are a little cunning in that we specialise
-%%  the the case where all the patterns are variables and there are no
-%%  guards, the simple case.
+%%  Compile a let expr. First evaluate all the value expressions in
+%%  parallel so they don't inherit variables, then build nested cases
+%%  to do matching optimising case where value bound to variable. Use
+%%  nested cases so match fail only give one value. Probably not worth
+%%  the effort as optimiser would do it.
 
 comp_let(Vbs, B, Env, L, St0) ->
-    %% Test if this is a simple let, i.e. no matching.
-    Simple = all(fun ([Pat,_]) -> is_atom(Pat);
-                     (_) -> false               %Has guard
-                 end, Vbs),
-    case Simple of
-        true ->
-            %% This is not really necessary, but fun.
-            {Cvs,Pvs,[],St1} = comp_lambda_args([ V || [V|_] <- Vbs ], L, St0),
-            Efun = fun ([_,E], St) -> comp_expr(E, Env, L, St) end,
-            {Ces,St2} = mapfoldl(Efun, St1, Vbs),
-            {Cb,St3} = comp_body(B, add_vbindings(Pvs, Env), L, St2),
-            {ann_c_let([L], Cvs, ann_c_values([L], Ces), Cb),St3};
-        false ->
-            %% This would be much easier to do by building a clause
-            %% and compiling it directly, but then we would have to
-            %% build a tuple to hold all values.
-            Pfun = fun ([P|_], {Psvs,Vsts,Sta}) ->
-                           {Cp,Pvs,Vts,Stb} = pattern(P, L, Sta),
-                           {Cp,{union(Pvs, Psvs),Vsts ++ Vts,Stb}}
-                   end,
-            {Cps,{Pvs,Vts,St1}} = mapfoldl(Pfun, {[],[],St0}, Vbs),
-            %% Build a sequence of guard tests.
-            Gfun = fun ([_,['when'|G]|_], Cgs) -> G ++ Cgs;
-                       (_, Cgs) -> Cgs
-                   end,
-            Gs = Vts ++ foldr(Gfun, [], Vbs),	%The variable tests
-            Efun = fun ([_,_,E], St) -> comp_expr(E, Env, L, St);
-                       ([_,E], St) -> comp_expr(E, Env, L, St)
-                   end,
-            {Ces,St2} = mapfoldl(Efun, St1, Vbs),
-            Env1 = add_vbindings(Pvs, Env),
-            {Cg,St3} = comp_guard(Gs, Env1, L, St2),
-            {Cb,St4} = comp_body(B, Env1, L, St3),
-            {Cvs,St5} = new_c_vars(length(Ces), L, St4),
-            Cf = let_fail(Cvs, L, St5),
-            {ann_c_case([L], ann_c_values([L], Ces),
-                        [ann_c_clause([L], Cps, Cg, Cb),Cf]),
-             St5}
-    end.
+    {Cvs,Ces,Cms,St1} = comp_let_vbs(Vbs, Env, L, St0),
+    {Cb,St2} = comp_let_body(Cms, B, add_vbindings(Cvs, Env), L, St1),
+    %% Build nesting let which evaluates expressions first.
+    {ann_c_let([L], Cvs, ann_c_values([L], Ces), Cb),St2}.
 
-let_fail(Cvs, L, St) ->
-    fail_clause(Cvs, c_tuple([c_atom(badmatch),c_tuple(Cvs)]), [], L, St).
+comp_let_vbs(Vbs, Env, L, St) ->
+    Fun = fun ([V,E], {Cvs,Ces,Cms,St0}) when is_atom(V) ->
+                  {Ce,St1} = comp_expr(E, Env, L, St0),
+                  {[c_var(V)|Cvs],[Ce|Ces],Cms,St1};
+              ([P,E], {Cvs,Ces,Cms,St0}) ->
+                  {V,St1} = new_var(St0),
+                  {Ce,St2} = comp_expr(E, Env, L, St1),
+                  {[c_var(V)|Cvs],[Ce|Ces],[{P,[],V}|Cms],St2};
+              ([P,['when'|G],E], {Cvs,Ces,Cms,St0}) ->
+                  {V,St1} = new_var(St0),
+                  {Ce,St2} = comp_expr(E, Env, L, St1),
+                  {[c_var(V)|Cvs],[Ce|Ces],[{P,G,V}|Cms],St2}
+          end,
+    lists:foldr(Fun, {[],[],[],St}, Vbs).
+
+comp_let_body([{P,G,V}|Cms], B, Env0, L, St0) ->
+    Cv = c_var(V),
+    {Cp,Pvs,Vts,St1} = pattern(P, L, St0),
+    Env1 = add_vbindings(Pvs, Env0),
+    {Cg,St2} = comp_guard(Vts ++ G, Env1, L, St1),
+    {Cb,St3} = comp_let_body(Cms, B, Env1, L, St2),
+    Cf = let_fail(Cv, L, St3),
+    {ann_c_case([L], Cv, [ann_c_clause([L], [Cp], Cg, Cb),Cf]),St3};
+comp_let_body([], B, Env, L, St0) ->
+    {Cb,St1} = comp_body(B, Env, L, St0),
+    {Cb,St1}.
+
+let_fail(Cv, L, St) ->
+    fail_clause([Cv], c_tuple([c_atom(badmatch),Cv]), [], L, St).
 
 %% comp_let_function(FuncBindngs, Body, Env, Line, State) ->
 %%      {c_letrec(),State}.
@@ -1172,9 +1166,9 @@ comp_gexpr(Const, _, _, St) ->
 
 comp_gcall(Fun, As, Env, L, St) ->
     Call = fun (Cas, _, Li, Sta) ->
-		   Ann = line_file_anno(Li, Sta),
-		   {ann_c_call(Ann, c_atom(erlang), c_atom(Fun), Cas),Sta}
-	   end,
+                   Ann = line_file_anno(Li, Sta),
+                   {ann_c_call(Ann, c_atom(erlang), c_atom(Fun), Cas),Sta}
+           end,
     comp_gargs(As, Call, Env, L, St).
 
 %% comp_gargs(Args, CallFun, Env, Line, State) -> {Call,State}.
@@ -1294,9 +1288,9 @@ pattern([list|Ps], L, Vs, Ts, St) ->
     pat_list(Ps, L, Vs, Ts, St);
 pattern([tuple|Ps], L, Vs0, Ts0, St0) ->
     Fun = fun (P, {Vsa,Tsa,Sta}) ->
-		  {Cp,Vsb,Tsb,Stb} = pattern(P, L, Vsa, Tsa, Sta),
-		  {Cp,{Vsb,Tsb,Stb}}
-	  end,
+                  {Cp,Vsb,Tsb,Stb} = pattern(P, L, Vsa, Tsa, Sta),
+                  {Cp,{Vsb,Tsb,Stb}}
+          end,
     {Cps,{Vs1,Ts1,St1}} = mapfoldl(Fun, {Vs0,Ts0,St0}, Ps),
     {c_tuple(Cps),Vs1,Ts1,St1};
 pattern([binary|Segs], L, Vs, Ts, St) ->
@@ -1334,11 +1328,11 @@ pat_symb('_', L, Vs, Ts, St0) ->                %Don't care variable.
     {Cv,Vs,Ts,St1};                             %Not added to variables
 pat_symb(Symb, _, Vs, Ts, St0) ->
     case is_element(Symb, Vs) of
-	true ->					%Replace and add test
-	    {New,St1} = new_var(St0),
-	    {c_var(New),Vs,[['=:=',Symb,New]|Ts],St1};
-	false ->				%Just add variable
-	    {c_var(Symb),add_element(Symb, Vs),Ts,St0}
+        true ->                                 %Replace and add test
+            {New,St1} = new_var(St0),
+            {c_var(New),Vs,[['=:=',Symb,New]|Ts],St1};
+        false ->                                %Just add variable
+            {c_var(Symb),add_element(Symb, Vs),Ts,St0}
     end.
 
 %% pat_alias(CorePat, CorePat) -> AliasPat.
@@ -1386,18 +1380,19 @@ pat_alias(Cp1, Cp2) ->
             end
     end.
 
-pat_alias_cons(Cc, Cl) ->
-    case lit_val(Cl) of
+pat_alias_cons(Ccons, Clit) ->
+    case lit_val(Clit) of
         [H|T] ->
             %% Must be sure to build a #c_cons{} here
-            pat_alias(Cc, c_cons_skel(c_lit(H), c_lit(T)));
+            pat_alias(Ccons, c_cons_skel(c_lit(H), c_lit(T)));
         _ -> throw(nomatch)
     end.
 
-pat_alias_tuple(Ct, Cl) ->
-    case lit_val(Cl) of
+pat_alias_tuple(Ctup, Clit) ->
+    case lit_val(Clit) of
         Tup when is_tuple(Tup) ->
-            update_c_tuple(Ct, pat_alias_list(tuple_es(Ct), data_es(Cl)));
+            update_c_tuple(Ctup,
+                           pat_alias_list(tuple_es(Ctup), data_es(Clit)));
         _ -> throw(nomatch)
     end.
 
@@ -1635,12 +1630,14 @@ ann_c_receive(Ann, Cs, To, A) ->
 ann_c_case(Ann, E, Cs) ->
     cerl:ann_c_case(Ann, E, Cs).
 
+%% Clause functions.
 ann_c_clause(Ann, Ps, B) ->                     %Default true guard
     cerl:ann_c_clause(Ann, Ps, B).
 
 ann_c_clause(Ann, Ps, G, B) ->
     cerl:ann_c_clause(Ann, Ps, G, B).
 
+%% Expression sequence functions.
 ann_c_seq(Ann, A, B) ->
     cerl:ann_c_seq(Ann, A, B).
 
@@ -1659,6 +1656,7 @@ ann_c_apply(Ann, Op, As) ->
 
 ann_c_values(Ann, Vs) -> cerl:ann_c_values(Ann, Vs).
 
+%% General annotation access functions.
 get_ann(Node) -> cerl:get_ann(Node).
 set_ann(Node, Ann) -> cerl:set_ann(Node, Ann).
 
@@ -1666,12 +1664,14 @@ c_alias(Var, Pat) -> cerl:c_alias(Var, Pat).
 alias_var(Alias) -> cerl:alias_var(Alias).
 alias_pat(Alias) -> cerl:alias_pat(Alias).
 
+%% Atomic data type functions.
 c_atom(A) -> cerl:c_atom(A).
 ann_c_atom(Ann, A) -> cerl:ann_c_atom(Ann, A).
 c_int(I) -> cerl:c_int(I).
 c_float(F) -> cerl:c_float(F).
 c_nil() -> cerl:c_nil().
 
+%% Literal value functions.
 ann_c_lit(Ann, Val) -> cerl:ann_abstract(Ann, Val). %Generic literal
 c_lit(Val) -> cerl:abstract(Val).
 is_literal(Node) -> cerl:is_literal(Node).
