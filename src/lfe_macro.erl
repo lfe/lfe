@@ -1162,9 +1162,22 @@ exp_deftype(T, D) ->
     {Type,Def}.
 
 %% exp_defspec(Func, Def) -> {Func,Def}.
-%%  Nothing to do here.
+%%  Do very little here, leave it to lint
 
-exp_defspec(Type, Def) -> {Type,Def}.
+exp_defspec([_,_]=Func, Def) -> {Func,Def};
+exp_defspec(Name, Def) ->
+    {[Name,defspec_arity(Def)],Def}.
+
+%% defspec_arity(Spec) -> Arity.
+%%  Just return the length of the first arg list and let lint check
+%%  properly later.
+
+defspec_arity([[Args|_]|_]) ->
+    case lfe_lib:is_proper_list(Args) of
+	true -> length(Args);
+	false -> 0
+    end;
+defspec_arity(_) -> 0.
 
 %% exp_defun(Rest) -> {Meta,Lambda | MatchLambda}.
 %%  Educated guess whether traditional (defun name (a1 a2 ...) ...)

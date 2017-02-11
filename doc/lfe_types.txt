@@ -27,7 +27,7 @@ TYPES
 
        Apart  from the predefined types in the Erlang type system we also have
        the following predefined types which cannot be redefined:  UNION,  call
-       and lambda.
+       and lambda.  The usage of tuple and map have also been extended.
 
    Type Declarations of User-Defined Types
        (deftype type-name type-def)
@@ -42,6 +42,8 @@ TYPES
        tional.  An example:
 
               (deftype (foo) (tuple 'foo (integer) (list)))
+
+              (deftype bar (tuple 'bar (integer) (list)))
 
    Type Information in Record Declarations
        (defrecord rec (field1 default1 type1) (field2 default2) field3)
@@ -61,9 +63,10 @@ SPECIFICATIONS
               constraint-list = (constraint ...)
               constraint = (var var-type)
 
-       For multiple types add more function specs.  For example from the docs:
+       For multiple types add more function specs.  The parentheses around the
+       function name and the arity are optional.  For example from the docs:
 
-              (defspec (foo 1) ([(pos_integer)] (pos_integer)))
+              (defspec foo ([(pos_integer)] (pos_integer)))
 
               (defspec (foo 1)
                 ([(pos_integer)] (pos_integer))
@@ -74,7 +77,7 @@ SPECIFICATIONS
 
        Or with constraints:
 
-              (defspec (id 1) ((X) X ((X (tuple)))))
+              (defspec id ((X) X ((X (tuple)))))
 
               (defspec (foo 1)
                 ([(tuple X (integer))] X ((X (atom))))
@@ -83,8 +86,8 @@ SPECIFICATIONS
               (defspec (remove-if 2)
                 ([pred (list)] (list) [(pred (lambda ((any)) (boolean)))]))
 
-       Note  that  a  constraint  variable  doesn't  need to start with an up‐
-       per-case like an Erlang variable, though in some case it may be  easier
+       Note that a constraint variable doesn't  need  to  start  with  an  up‐
+       per-case  like an Erlang variable, though in some case it may be easier
        to read.
 
        Note we are using the alternate list form with [ ] instead of parenthe‐

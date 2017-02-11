@@ -94,6 +94,7 @@ T}
 Apart from the predefined types in the Erlang type system we also have
 the following predefined types which cannot be redefined:
 \f[C]UNION\f[], \f[C]call\f[] and \f[C]lambda\f[].
+The usage of \f[C]tuple\f[] and \f[C]map\f[] have also been extended.
 .SS Type Declarations of User\-Defined Types
 .PP
 \f[B](deftype type\-name type\-def)\f[]
@@ -111,6 +112,8 @@ An example:
 .nf
 \f[C]
 (deftype\ (foo)\ (tuple\ \[aq]foo\ (integer)\ (list)))
+
+(deftype\ bar\ (tuple\ \[aq]bar\ (integer)\ (list)))
 \f[]
 .fi
 .SS Type Information in Record Declarations
@@ -138,11 +141,12 @@ constraint\ =\ (var\ var\-type)
 .fi
 .PP
 For multiple types add more function specs.
+The parentheses around the function name and the arity are optional.
 For example from the docs:
 .IP
 .nf
 \f[C]
-(defspec\ (foo\ 1)\ ([(pos_integer)]\ (pos_integer)))
+(defspec\ foo\ ([(pos_integer)]\ (pos_integer)))
 
 (defspec\ (foo\ 1)
 \ \ ([(pos_integer)]\ (pos_integer))
@@ -157,7 +161,7 @@ Or with constraints:
 .IP
 .nf
 \f[C]
-(defspec\ (id\ 1)\ ((X)\ X\ ((X\ (tuple)))))
+(defspec\ id\ ((X)\ X\ ((X\ (tuple)))))
 
 (defspec\ (foo\ 1)
 \ \ ([(tuple\ X\ (integer))]\ X\ ((X\ (atom))))
