@@ -173,21 +173,21 @@
 
 (defun getf
   "plist pname default"
-  ([(list* p v plist) pname def] (when (=:= p pname)) v)
+  ([(list* p v plist) p def]  v)
   ([(list* _ _ plist) pname def] (getf plist pname def))
-  ([() pname def] def))
+  ([() _m def] def))
 
 (defun putf                             ;This doesn't exist in CL
   "plist value pname"
-  ([(list* p _ plist) val pname] (when (=:= p pname))
-   (list* pname val plist))
+  ([(list* p _ plist) val p]
+   (list* p val plist))
   ([(list* p v plist) val pname]
    (list* p v (putf plist val pname)))
   ([() val pname] (list pname val)))
 
 (defun remf
   "plist pname"
-  ([(list* p _ plist) pname] (when (=:= p pname)) plist)
+  ([(list* p _ plist) p] plist)
   ([(list* p v plist) pname]
    (list* p v (remf plist pname)))
   ([() pname] ()))
@@ -324,7 +324,7 @@
    Replace all elements in sequence which are equal to old with new."
   ([new old seq] (when (is_list seq))
    (fletrec ((sub-loop
-              ([n o (cons x xs)] (when (=:= o x))
+              ([n o (cons o xs)]
                (cons n (sub-loop n o xs)))
               ([n o (cons x xs)]
                (cons x (sub-loop n o xs)))
@@ -363,8 +363,8 @@
   "item sequence
    If sequence contains item then it is returned else ()."
   (fletrec ((find-loop
-             ([x (cons x1 xs)] (when (=:= x x1)) x)
-             ([x (cons x1 xs)] (find-loop x xs))
+             ([x (cons x xs)] x)
+             ([x (cons _ xs)] (find-loop x xs))
              ([x ()] ())))
     (find-loop item seq)))
 
@@ -390,8 +390,8 @@
   "item sequence
    Return index of item in sequence else ()."
   (fletrec ((pos-loop
-             ([x n (cons x1 xs)] (when (=:= x x1)) n)
-             ([x n (cons x1 xs)] (pos-loop x (+ n 1) xs))
+             ([x n (cons x xs)] n)
+             ([x n (cons _ xs)] (pos-loop x (+ n 1) xs))
              ([x n ()] ())))
     (pos-loop item 0 seq)))
 
@@ -486,7 +486,7 @@
 (defun subst
   "new old tree
    Substitute `new` for every subtree `old` in `tree`."
-  ([new old tree] (when (=:= old tree)) new)
+  ([new old old] new)
   ([new old (cons e rest)]
    (cons (subst new old e) (subst new old rest)))
   ([new old tree] tree))
@@ -602,7 +602,7 @@
 (defun assoc
   "key a-list
    Searches a-list returning the first pair whose car is key."
-  ([k (cons (= (cons k1 v) pair) _)] (when (=:= k k1)) pair)
+  ([k (cons (= (cons k v) pair) _)] pair)
   ([k (cons _ a-list)] (assoc k a-list))
   ([k ()] ()))
 
@@ -626,8 +626,8 @@
 (defun rassoc
   "value a-list
    Searches a-list returning the first pair whose cdr is value."
-  ([v (cons (= (cons _ v1) pair) _)] (when (=:= v v1)) pair)
-  ([v (cons _ a-list)] (assoc v a-list))
+  ([v (cons (= (cons _ v) pair) _)] pair)
+  ([v (cons _ a-list)] (rassoc v a-list))
   ([v ()] ()))
 
 (defun rassoc-if
