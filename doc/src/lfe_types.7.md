@@ -48,6 +48,8 @@ optional. An example:
 
 ```
 (deftype (foo) (tuple 'foo (integer) (list)))
+
+(deftype bar (tuple 'bar (integer) (list)))
 ```
 
 ## Type Information in Record Declarations
@@ -73,10 +75,11 @@ constraint-list = (constraint ...)
 constraint = (var var-type)
 ```
 
-For multiple types add more function specs. For example from the docs:
+For multiple types add more function specs. The parentheses around the
+function name and the arity are optional. For example from the docs:
 
 ```
-(defspec (foo 1) ([(pos_integer)] (pos_integer)))
+(defspec foo ([(pos_integer)] (pos_integer)))
 
 (defspec (foo 1)
   ([(pos_integer)] (pos_integer))
@@ -89,7 +92,7 @@ For multiple types add more function specs. For example from the docs:
 Or with constraints:
 
 ```
-(defspec (id 1) ((X) X ((X (tuple)))))
+(defspec id ((X) X ((X (tuple)))))
 
 (defspec (foo 1)
   ([(tuple X (integer))] X ((X (atom))))
