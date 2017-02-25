@@ -828,6 +828,9 @@ the following will be generated:
   using LFE with Mnesia, as the record field names don't have to be
   provided manually in the create_table call.
 
+* ``(size-person)`` -
+  Returns the size of the record tuple.
+
 # Binaries/bitstrings
 
 A binary is
