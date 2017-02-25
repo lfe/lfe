@@ -1,4 +1,4 @@
-%% File for testing the expansion of records.
+%% Include file defining records for testing the expansion of records.
 
 %% Untyped and typed record definitions.
 
