@@ -32,6 +32,8 @@ DESTBINDIR := $(DESTLIBDIR)/$(BINDIR)
 
 VPATH = $(SRCDIR)
 
+MKDIR_P = mkdir -p
+
 ERLCFLAGS = -W1
 ERLC = erlc
 
@@ -72,7 +74,7 @@ $(BINDIR)/%: $(CSRCDIR)/%.c
 	cc -o $@ $<
 
 $(EBINDIR)/%.beam: $(SRCDIR)/%.erl
-	@mkdir -p $(EBINDIR)
+	@$(MKDIR_P) $(EBINDIR)
 	$(ERLC) -I $(INCDIR) -o $(EBINDIR) $(COMP_OPTS) $(ERLCFLAGS) $<
 
 %.erl: %.xrl
@@ -214,7 +216,7 @@ $(DOCDIR)/%.txt: $(MANDIR)/%.7
 	groff -t -e -mandoc -Tutf8 -Kutf8 $< | col -bx > $@
 
 $(PDFDIR):
-	@mkdir -p $(PDFDIR)
+	@$(MKDIR_P) $(PDFDIR)
 
 docs-pdf: $(PDFDIR) \
 	$(addprefix $(PDFDIR)/, $(PDF1S)) \
@@ -231,7 +233,7 @@ $(PDFDIR)/%.pdf: $(DOCSRC)/%.7.md
 	pandoc -f markdown --latex-engine=xelatex -o $@ $<
 
 $(EPUBDIR):
-	@mkdir -p $(EPUBDIR)
+	@$(MKDIR_P) $(EPUBDIR)
 
 docs-epub: $(EPUBDIR) \
 	$(addprefix $(EPUBDIR)/, $(EPUB1S)) \
@@ -247,8 +249,10 @@ $(EPUBDIR)/%.epub: $(DOCSRC)/%.3.md
 $(EPUBDIR)/%.epub: $(DOCSRC)/%.7.md
 	pandoc -f markdown -t epub -o $@ $<
 
-install-man:
-	$(INSTALL_DIR) $(MANINSTDIR)/man{1,3,7}
+$(MANINSTDIR)/man%:
+	mkdir -p $@
+
+install-man: $(MANINSTDIR)/man1 $(MANINSTDIR)/man3 $(MANINSTDIR)/man7
 	$(INSTALL_DATA) $(MANDIR)/*.1 $(MANINSTDIR)/man1/
 	$(INSTALL_DATA) $(MANDIR)/*.3 $(MANINSTDIR)/man3/
 	$(INSTALL_DATA) $(MANDIR)/*.7 $(MANINSTDIR)/man7/
