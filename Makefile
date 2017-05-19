@@ -33,6 +33,7 @@ DESTBINDIR := $(DESTLIBDIR)/$(BINDIR)
 VPATH = $(SRCDIR)
 
 MKDIR_P = mkdir -p
+MANDB = $(shell which mandb)
 
 ERLCFLAGS = -W1
 ERLC = erlc
@@ -88,7 +89,7 @@ $(EBINDIR)/%.beam: $(LSRCDIR)/%.lfe
 
 all: compile
 
-.PHONY: compile erlc-compile lfec-compile erlc-lfec emacs install docs clean docker-build docker-push docker
+.PHONY: compile erlc-compile lfec-compile erlc-lfec emacs install docs clean docker-build docker-push docker update-mandb
 
 compile: comp_opts.mk
 	$(MAKE) $(MFLAGS) erlc-lfec
@@ -253,12 +254,20 @@ $(EPUBDIR)/%.epub: $(DOCSRC)/%.7.md
 	pandoc -f markdown -t epub -o $@ $<
 
 $(MANINSTDIR)/man%:
-	mkdir -p $@
+	@$(MKDIR_P) -p $@
 
+ifeq (,$(findstring mandb,$(MANDB)))
 install-man: $(MANINSTDIR)/man1 $(MANINSTDIR)/man3 $(MANINSTDIR)/man7
+else
+install-man: $(MANINSTDIR)/man1 $(MANINSTDIR)/man3 $(MANINSTDIR)/man7 update-mandb
+endif
 	$(INSTALL_DATA) $(MANDIR)/*.1 $(MANINSTDIR)/man1/
 	$(INSTALL_DATA) $(MANDIR)/*.3 $(MANINSTDIR)/man3/
 	$(INSTALL_DATA) $(MANDIR)/*.7 $(MANINSTDIR)/man7/
+
+update-mandb:
+	@echo "Updating man page database ..."
+	$(MANDB) $(MANINSTDIR)
 
 # Targets for working with Docker
 docker-build:
