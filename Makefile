@@ -116,6 +116,9 @@ comp_opts.mk:
 
 -include comp_opts.mk
 
+$(BINDIR)/lfe%:
+	$(INSTALL_BIN) $@ $(DESTBINDIR)
+
 install: compile install-man
 	rm -Rf $(DESTEBINDIR)
 	$(INSTALL_DIR) $(DESTEBINDIR)
@@ -123,7 +126,7 @@ install: compile install-man
 	$(INSTALL_DATA) $(addprefix $(EBINDIR)/, $(EBINS)) $(DESTEBINDIR)
 	$(INSTALL_DATA) $(addprefix $(EBINDIR)/, $(LBINS)) $(DESTEBINDIR)
 	$(INSTALL_DIR) $(DESTBINDIR)
-	$(INSTALL_BIN) $(BINDIR)/lfe{,c,doc,script} $(DESTBINDIR)
+	$(MAKE) $(BINDIR)/lfe $(BINDIR)/lfec $(BINDIR)/lfedoc $(BINDIR)/lfescript
 	ln -sf $(DESTBINDIR)/* $(PREFIX)/bin/
 
 clean:
