@@ -30,9 +30,9 @@
          run_script/2,run_script/3,run_string/2,run_string/3]).
 
 %% The shell commands which generally callable.
--export([c/1,c/2,cd/1,doc/1,docs/1,ec/1,ec/2,ep/1,epp/1,help/0,i/0,i/1,l/1,
-         ls/1,clear/0,m/0,m/1,pid/3,p/1,pp/1,pwd/0,q/0,
-         flush/0,regs/0,exit/0]).
+-export([c/1,c/2,cd/1,doc/1,docs/1,ec/1,ec/2,ep/1,ep/2,epp/1,epp/2,help/0,
+	 i/0,i/1,l/1,ls/1,clear/0,m/0,m/1,pid/3,p/1,p/2,pp/1,pp/2,pwd/0,
+	 q/0,flush/0,regs/0,exit/0]).
 
 -import(lfe_env, [new/0,add_env/2,
                   add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
@@ -278,7 +278,9 @@ add_shell_functions(Env0) ->
     Fs = [
           {cd,1,[lambda,[d],[':',lfe_shell,cd,d]]},
           {ep,1,[lambda,[e],[':',lfe_shell,ep,e]]},
+          {ep,2,[lambda,[e,d],[':',lfe_shell,ep,e,d]]},
           {epp,1,[lambda,[e],[':',lfe_shell,epp,e]]},
+          {epp,2,[lambda,[e,d],[':',lfe_shell,epp,e,d]]},
           {h,0,[lambda,[],[':',lfe_shell,help]]},
           {help,0,[lambda,[],[':',lfe_shell,help]]},
           {i,0,[lambda,[],[':',lfe_shell,i]]},
@@ -286,7 +288,9 @@ add_shell_functions(Env0) ->
           {clear,0,[lambda,[],[':',lfe_shell,clear]]},
           {pid,3,[lambda,[i,j,k],[':',lfe_shell,pid,i,j,k]]},
           {p,1,[lambda,[e],[':',lfe_shell,p,e]]},
+          {p,2,[lambda,[e,d],[':',lfe_shell,p,e,d]]},
           {pp,1,[lambda,[e],[':',lfe_shell,pp,e]]},
+          {pp,2,[lambda,[e,d],[':',lfe_shell,pp,e,d]]},
           {pwd,0,[lambda,[],[':',lfe_shell,pwd]]},
           {q,0,[lambda,[],[':',lfe_shell,exit]]},
           {flush,0,[lambda,[],[':',lfe_shell,flush]]},
@@ -716,16 +720,24 @@ ec(F) -> c:c(F).
 
 ec(F, Os) -> c:c(F, Os).
 
-%% ep(Expr) -> ok.
-%% epp(Expr) -> ok.
+%% ep(Expr [, Depth]) -> ok.
+%% epp(Expr [, Depth]) -> ok.
 %%  Print/prettyprint a value in Erlang format.
 
 ep(E) ->
     Cs = io_lib:write(E),
     io:put_chars([Cs,$\n]).
 
+ep(E, D) ->
+    Cs = io_lib:write(E, D),
+    io:put_chars([Cs,$\n]).
+
 epp(E) ->
     Cs = io_lib:format("~p", [E]),
+    io:put_chars([Cs,$\n]).
+
+epp(E, D) ->
+    Cs = io_lib:format("~P", [E,D]),
     io:put_chars([Cs,$\n]).
 
 %% help() -> ok.
@@ -899,16 +911,24 @@ get_compile_info(Info, Tag) ->
         false -> error
     end.
 
-%% p(Expr) -> ok.
-%% pp(Expr) -> ok.
+%% p(Expr [, Depth]) -> ok.
+%% pp(Expr [, Depth]) -> ok.
 %%  Print/prettyprint a value in LFE format.
 
 p(E) ->
     Cs = lfe_io:print1(E),
     io:put_chars([Cs,$\n]).
 
+p(E, D) ->
+    Cs = lfe_io:print1(E, D),
+    io:put_chars([Cs,$\n]).
+
 pp(E) ->
     Cs = lfe_io:prettyprint1(E),
+    io:put_chars([Cs,$\n]).
+
+pp(E, D) ->
+    Cs = lfe_io:prettyprint1(E, D),
     io:put_chars([Cs,$\n]).
 
 %% pid(A, B, C) -> Pid.
