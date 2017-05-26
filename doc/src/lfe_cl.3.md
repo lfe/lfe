@@ -16,7 +16,8 @@ documented here.
 
 # DATA TYPES
 
-The boolean values are the LFE ``true`` and ``false``.
+The boolean values used here are the standard LFE ``true`` and
+``false`` and **NOT** the Common Lisp values.
 
 # EXPORTS
 
@@ -27,6 +28,12 @@ The boolean values are the LFE ``true`` and ``false``.
 **make-cl-bool  lfe-bool**
 
 ## Control structures
+
+**`do vars (end-test result) body                            [macro]`**
+
+The value of ``body`` is bound the variable ``do-state`` which can be
+used when updating vars and in the ``end-test``. This is the only way
+to get a value out of the body.
 
 **mapcar  function  list**
 
