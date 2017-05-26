@@ -49,8 +49,11 @@
    (rassoc 2) (rassoc-if 2) (rassoc-if-not 2)
    ;; Types.
    (type-of 1) (coerce 2))
+  (export-macro
+   ;; Export control structure macros.
+   do
   ;; Export CL-style if and cond, which we don't use internally.
-  (export-macro if cond))
+   if cond))
 
 ;;; Boolean conversion functions.
 
@@ -67,6 +70,21 @@
   (['true] 'true))
 
 ;; Control structure.
+
+(defmacro do args
+  "vars (end-test result) body"
+  (let* ((`(,pars (,test ,ret) . ,body) args)
+	 ((tuple vs is cs)
+	  (lists:foldr (match-lambda
+			 ([(list v i c) (tuple vs is cs)]
+			  (tuple (cons v vs) (cons i is) (cons c cs))))
+		       (tuple () () ()) pars)))
+    `(letrec-function ((|\|-do-func-\||
+			(lambda ,vs
+			  (if ,test ,ret
+			      (let ((do-state (progn . ,body)))
+				(|\|-do-func-\|| . ,cs))))))
+       (|\|-do-func-\|| . ,is))))
 
 (defun mapcar (func list)
   "function list"

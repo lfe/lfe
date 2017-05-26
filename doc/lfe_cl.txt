@@ -11,7 +11,8 @@ SYNOPSIS
        documented here.
 
 DATA TYPES
-       The boolean values are the LFE true and false.
+       The  boolean  values  used here are the standard LFE true and false and
+       NOT the Common Lisp values.
 
 EXPORTS
    Boolean conversion functions
@@ -20,6 +21,12 @@ EXPORTS
        make-cl-bool lfe-bool
 
    Control structures
+       do vars (end-test result) body                            [macro]
+
+       The value of body is bound the variable do-state which can be used when
+       updating vars and in the end-test.  This is the only way to get a value
+       out of the body.
+
        mapcar function list
 
        maplist function list
@@ -43,9 +50,9 @@ EXPORTS
 
        remprop symbol pname
 
-       Atoms  (symbols) in LFE don't have property lists associated with them.
-       However, here we have experimented  with  having  a  global  ETS  table
-       lfe-symbol-plist  which  associates an atom with a property list.  This
+       Atoms (symbols) in LFE don't have property lists associated with  them.
+       However,  here  we  have  experimented  with  having a global ETS table
+       lfe-symbol-plist which associates an atom with a property  list.   This
        is very unLFEy, but quite fun.
 
    Property list functions
@@ -59,7 +66,7 @@ EXPORTS
 
        get-properties plist pname-list
 
-       The function putf/3 does not exist in Common Lisp but  is  included  to
+       The  function  putf/3  does not exist in Common Lisp but is included to
        complete the operations on property lists.
 
    Simple sequence functions
@@ -195,10 +202,10 @@ EXPORTS
 
    Type testing macros
        There is an include file which developers may which to utilize in their
-       LFE programs: (include-lib "lfe/include/cl.lfe").  Currently  this  of‐
-       fers  Common  Lisp  predicates, but may include other useful macros and
-       functions in the future.  The provided predicate macros wrap the  vari‐
-       ous  is_*  Erlang  functions; since these are expanded at compile time,
+       LFE  programs:  (include-lib "lfe/include/cl.lfe").  Currently this of‐
+       fers Common Lisp predicates, but may include other  useful  macros  and
+       functions  in the future.  The provided predicate macros wrap the vari‐
+       ous is_* Erlang functions; since these are expanded  at  compile  time,
        they are usable in guards.  It includes the following:
 
        alivep x
