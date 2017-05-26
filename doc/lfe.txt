@@ -49,11 +49,12 @@ BUILT-IN SHELL FUNCTIONS
 
        Compile and load an Erlang file.
 
-       (ep Expr)
+       (ep Expr [Depth])
 
-       (epp Expr)
+       (epp Expr [Depth])
 
-       Print/prettyprint a value in Erlang form to full depth.
+       Print/prettyprint  a value in Erlang form to either the specified depth
+       or if no value is given the full depth.
 
        (flush)
 
@@ -83,14 +84,15 @@ BUILT-IN SHELL FUNCTIONS
 
        (m [Module ...])
 
-       Print  out  module information.  If no modules are given then print in‐
+       Print out module information.  If no modules are given then  print  in‐
        formation about all modules.
 
-       (p Expr)
+       (p Expr [Depth])
 
-       (pp Expr)
+       (pp Expr [Depth])
 
-       Print/prettyprint a value to full depth.
+       Print/prettyprint  a value to either the specified depth or if no value
+       is given the full depth.
 
        (pid x y z)
 
