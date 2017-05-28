@@ -48,10 +48,10 @@ static char* possibly_quote(char *arg);
 int main(int argc, char **argv) {
   char *emu;			/* Emulator */
   char *rootdir;		/* $LFE_ROOTDIR */
-  char *pa;			/* Path */
+  char *path;			/* Path */
   char *arg;
   int i;
-  int eval = 0;			/* Are 'eval'ing? */
+  int eval = 0;			/* Are we LFE 'eval'ing? */
 
   /* The erl program and the ebin directory */
   emu = DEFAULT_PROGNAME;
@@ -60,8 +60,8 @@ int main(int argc, char **argv) {
   if (rootdir == NULL) {
       error("LFE_ROOTDIR envionment variable is not set");
   }
-  pa = emalloc(strlen(rootdir) + 6);
-  sprintf(pa, "%s/ebin", rootdir);
+  path = emalloc(strlen(rootdir) + 6);
+  sprintf(path, "%s/ebin", rootdir);
 
   /* Allocate and initialise the erl argument array. */
   Eargv = (char **)emalloc(sizeof(*argv) * (argc + 16));
@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
    */
 
   PUSH("-pa");
-  PUSH(pa);
+  PUSH(path);
   if (i < argc) {
     PUSH("-noshell");
   }
@@ -166,10 +166,10 @@ emalloc(size_t size)
 static char*
 possibly_quote(char* arg)
 {
-  int mustQuote = NO;
-  int n = 0;			/* Quote count */
+  int must_quote = NO;
+  int qlen = 0;			/* Quoted string length */
   char* s;
-  char* narg;
+  char* new_arg;
 
   if (arg == NULL)		/* We are now safer */
     return arg;
@@ -179,25 +179,25 @@ possibly_quote(char* arg)
    * the original argument if not.
    */
 
-  for (s = arg; *s; s++, n++) {
+  for (s = arg; *s; s++, qlen++) {
     switch(*s) {
     case ' ':
-      mustQuote = YES;
+      must_quote = YES;
       continue;
     case '"':
-      mustQuote = YES;
-      n++;
+      must_quote = YES;
+      qlen++;
       continue;
     case '\\':
       if(s[1] == '"')
-	n++;
+	qlen++;
       continue;
     default:
       continue;
     }
   }
 
-  if (!mustQuote) {
+  if (!must_quote) {
     return arg;
   }
 
@@ -206,7 +206,7 @@ possibly_quote(char* arg)
    * inside the string.
    */
 
-  s = narg = emalloc(n+2+1);
+  s = new_arg = emalloc(qlen+2+1);
   for (*s++ = '"'; *arg; arg++, s++) {
     if (*arg == '"' || (*arg == '\\' && arg[1] == '"')) {
       *s++ = '\\';
@@ -218,6 +218,6 @@ possibly_quote(char* arg)
   }
   *s++ = '"';
   *s = '\0';
-  return narg;
+  return new_arg;
 }
 #endif
