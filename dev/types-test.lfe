@@ -4,7 +4,7 @@
   (export all))
 
 ;; Include erlang types and record definitions.
-;;(include-file "include_types.hrl")
+;; (include-file "include_types.hrl")
 (include-file "include-types.lfe")
 
 (defun a () 42)
