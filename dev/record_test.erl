@@ -1,11 +1,11 @@
--module(test_rec_e).
+-module(record_test).
 
 -compile(export_all).
 
--record(point, {x=0,y=element(3, now())}).
+-record(point, {x=0,y=element(3, date())}).
 
 a(X, Y, R) ->
-    [#point{x=now()},
+    [#point{x=date()},
      #point{x= <<34,X/float,(Y+3)/float>>}].
 
 b(X, Y, R) ->
@@ -17,3 +17,16 @@ b(X, Y, R) ->
 c(X, Y, R) ->
     C = #point{x=42},
     #circle{center=C,radius=R}.
+
+d(P, C) ->
+    {P#point.x,C#circle.radius}.
+
+e(P, C) ->
+    {case P of
+         #point{x=X} -> X;
+         _ -> error({badrecord,point})
+     end,
+     case C of
+         #circle{radius=Radius} -> Radius;
+         _ -> error({badrecord,circle})
+     end}.
