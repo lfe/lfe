@@ -42,10 +42,29 @@
 
 -type t12(X) :: {X, _}.
 
+%% Binary type declarations.
+
+-type t13() :: binary().
+
+-type t14() :: bitstring().
+
+-type t15() :: <<>>.
+
+-type t16() :: <<_:256>>.
+
+-type t17() :: <<_:_*256>>.
+
+-type t18() :: <<_:42,_:_*84>>.
+
+%% Range type definitions.
+
+-type t20() :: 1..42.
+
 %% Bad type defs.
-%%-type t10() :: ok.
-%%-type it1(X) :: {not_atom,integer(),X,Y}.
-%%-type it2() :: sune().
-%%-type integer() :: {integer,atom()}.          %Illegal as integer() exists
-%%-type it3(A, 1) :: list(A).
-%%-type it4(A, B) :: X.
+%% -type t10() :: ok.                              %Redefining t10
+%% -type integer() :: {integer,atom()}.            %Redefining type integer()
+%% -type it1(X) :: {not_atom,integer(),X,Y}.       %Singleton type var Y
+%% -type it2() :: sune().                          %Unknown type sune()
+%% -type it3(A, 1) :: list(A).                     %Bad parameter list
+%% -type it4(A, B) :: X.                           %Singleton type vars A, B, X
+%% -type t19() :: <<_>>.                           %Illegal binary format

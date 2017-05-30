@@ -5,7 +5,7 @@
 ;; Some normal attributes.
 
 (extend-module () ((dummy foo)
-		   (dummystr "abc")
+                   (dummystr "abc")
                    (dummyier (foo))
                    (dummiest foo bar baz)))
 
@@ -15,6 +15,7 @@
 (defrecord r2 (a 'hello (atom)) (b 'undefined (record r1)) c)
 
 ;; Defining types.
+;; Bad type defs are in comments.
 
 (deftype (t1) (list (integer)))
 
@@ -45,10 +46,29 @@
 
 (deftype (t12 x) (tuple x _))
 
+;; Binary type declarations.
+
+(deftype t13 (binary))
+
+(deftype t14 (bitstring))
+
+(deftype t15 (bitstring 0 0))
+
+(deftype t16 (bitstring 256 0))
+
+(deftype t17 (bitstring 0 256))
+
+(deftype t18 (bitstring 42 84))
+
+;; Range type declarations.
+
+(deftype t20 (range 1 42))
+
 ;; Bad type defs.
-;;(deftype (t10) 'ok)                     ;Redefining t10
-;;(deftype (it1 x) (tuple 'not-atom (integer) x y))
-;;(deftype (it2) (sune))                  ;Unknown type (sune 0)
-;;(deftype (integer) (tuple 42))          ;Redefining predefined type
-;;(deftype (it3 a 1) (list a))            ;Bad parameter list
-;;(deftype (it4 a b) x)                   ;Singleton type vars a, b, x
+;; (deftype (t10) 'ok)                     ;Redefining t10
+;; (deftype (integer) (tuple 42))          ;Redefining predefined type
+;; (deftype (it1 x)                        ;Singlton type var y
+;;  (tuple 'not-atom (integer) x y))
+;; (deftype (it2) (sune))                  ;Unknown type (sune 0)
+;; (deftype (it3 a 1) (list a))            ;Bad parameter list
+;; (deftype (it4 a b) x)                   ;Singleton type vars a, b, x

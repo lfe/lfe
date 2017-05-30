@@ -105,22 +105,24 @@ format_error({deprecated,What}) ->
 format_error(unknown_form) -> "unknown form";
 format_error({bad_record,R}) ->
     lfe_io:format1("bad record definition: ~w", [R]);
-%% Type errors. These are also returned from lfe_types.
-format_error({singleton_type_var,V}) ->
-    lfe_io:format1("singleton type variable: ~w", [V]);
+%% Type and spec errors.
+format_error({singleton_typevar,V}) ->
+    lfe_io:format1("type variable ~w is only used once", [V]);
+format_error({builtin_type,{T,A}}) ->
+    lfe_io:format1("type ~w/~w is a builtin type", [T,A]);
+format_error({redefine_type,{T,A}}) ->
+    lfe_io:format1("type ~w/~w already defined", [T,A]);
+format_error({redefine_spec,{F,A}}) ->
+    lfe_io:format1("spec for ~w/~w is already defined", [F,A]);
+%% Type and spec errors. These are also returned from lfe_types.
 format_error({bad_type,T}) ->
-    lfe_io:format1("bad type definition: ~w", [T]);
-format_error({unknown_type,T}) ->
-    lfe_io:format1("unknown type: ~w", [T]);
-format_error({illegal_type,T}) ->
-    lfe_io:format1("illegal type: ~w", [T]);
-format_error({redef_type,T}) ->
-    lfe_io:format1("redefining type: ~w", [T]);
-%% Function spec errors. These are also returned from lfe_types.
+    lfe_io:format1("bad ~w type definition", [T]);
+format_error({type_syntax,T}) ->
+    lfe_io:format1("bad ~w type", [T]);
+format_error({undefined_type,{T,A}}) ->
+    lfe_io:format1("type ~w/~w undefined", [T,A]);
 format_error({bad_spec,S}) ->
-    lfe_io:format1("bad function spec: ~w", [S]);
-format_error({redef_spec,S}) ->
-    lfe_io:format1("redefining function spec: ~w", [S]).
+    lfe_io:format1("bad function spec: ~w", [S]).
 
 %% expr(Expr) -> {ok,[Warning]} | {error,[Error],[Warning]}.
 %% expr(Expr, Env) -> {ok,[Warning]} | {error,[Error],[Warning]}.
@@ -350,11 +352,11 @@ check_type_name([T|Args], L, #lint{types=Kts}=St) when is_atom(T) ->
             Ts = lists:foldl(fun (V, S) -> orddict:update_counter(V, 1, S) end,
                              [], Args),
             case lists:member(Kt, Kts) of
-                true -> {Ts,add_error(L, {redef_type,[T,Arity]}, St)};
+                true -> {Ts,add_error(L, {redefine_type,{T,Arity}}, St)};
                 false ->
                     case lfe_types:is_predefined_type(T, Arity) of
                         true ->
-                            {Ts,add_error(L, {illegal_type,[T,Arity]}, St)};
+                            {Ts,add_error(L, {builtin_type,{T,Arity}}, St)};
                         false ->
                             {Ts,St#lint{types=[Kt|Kts]}}
                     end
@@ -369,7 +371,7 @@ check_type_name(T, L, St) ->                    %Type name wrong format
 
 check_type_vars(Tvs, L, St) ->
     Check = fun (V, 1, S) when V =/= '_' ->
-                    add_error(L, {singleton_type_var,V}, S);
+                    add_error(L, {singleton_typevar,V}, S);
                 (_, _, S) -> S
             end,
     orddict:fold(Check, St, Tvs).
@@ -402,7 +404,7 @@ check_func_name([F,Ar], L, #lint{specs=Kss}=St)
   when is_atom(F), is_integer(Ar), Ar >= 0 ->
     Ks = {F,Ar},
     case lists:member(Ks, Kss) of
-        true -> {Ar,add_error(L, {redef_spec,[F,Ar]}, St)};
+        true -> {Ar,add_error(L, {redefine_spec,{F,Ar}}, St)};
         false -> {Ar,St#lint{specs=[Ks|Kss]}}
     end;
 check_func_name(F, L, St) ->

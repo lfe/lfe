@@ -17,7 +17,11 @@ This is a description of the type syntax.
   | `(any)`                        | `any()`                        |
   | `(atom)`                       | `atom()`                       |
   | `(integer)`                    | `integer()`                    |
+  | `(range i1 i2)`                | `I1..I2`                       |
   | `(float)`                      | `float()`                      |
+  | `(bitstring m n)`              | `<<_:M,_:_*N>>`                |
+  | `(binary)`                     | `<<_:0,_:_*8>>`                |
+  | `(bitstring)`                  | `<<_:0,_:_*1>>`                |
   | `...`                          | `...`                          |
   | `(lambda any <type>)`          | `fun((...) -> <type>)`         |
   | `(lambda () <type>)`           | `fun(() -> <type>)`            |
@@ -30,12 +34,19 @@ This is a description of the type syntax.
 
 Apart from the predefined types in the Erlang type system we also have
 the following predefined types which cannot be redefined: `UNION`,
-`call` and `lambda`. The usage of `tuple` and `map` have also been
-extended.
+`call`, `lambda` and `range`. The usage of `bitstring`, `tuple` and
+`map` have also been extended.
+
+The general form of bitstrings is `(bitstring m n)` which denotes a
+bitstring which starts with `m` bits and continues with segments of
+`n` bits. `(binary)` is a short form for a sequence of bytes while
+`(bitstring)` is a short form for a sequence of bits. There is
+currently no short form for an empty binary, `(bitstring 0 0)` must be
+used.
 
 ## Type Declarations of User-Defined Types
 
-**(deftype type-name type-def)**
+**(deftype (type-name) type-def)**
 
 **(defopaque (type-name) type-def)**
 
@@ -47,7 +58,7 @@ For unparameterised types the parentheses around the type name are
 optional. An example:
 
 ```
-(deftype (foo) (tuple 'foo (integer) (list)))
+(deftype foo (tuple 'foo (integer) (list)))
 
 (deftype bar (tuple 'bar (integer) (list)))
 ```
