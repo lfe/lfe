@@ -705,6 +705,11 @@ exp_predef(['/'|Es], _, St0) ->
             {Exp,St1} = exp_arith(Es, '/', St0),
             {yes,Exp,St1}
     end;
+%% Logical operators.
+exp_predef([Op|Es], _, St0)
+  when Op =:= 'and'; Op =:= 'or'; Op =:= 'xor' ->
+    {Exp,St1} = exp_logical(Es, Op, St0),
+    {yes,Exp,St1};
 %% Comparison operators.
 exp_predef(['!='|Es], Env, St) -> exp_predef(['/='|Es], Env, St);
 exp_predef(['==='|Es], Env, St) -> exp_predef(['=:='|Es], Env, St);
@@ -713,8 +718,8 @@ exp_predef([Op|Es], _, St0) when Op == '/=' ; Op == '=/=' ->
     {Exp,St1} = exp_nequal(Es, Op, St0),
     {yes,Exp,St1};
 exp_predef([Op|Es], _, St0)
-  when Op == '>'; Op == '>='; Op == '<'; Op == '=<';
-       Op == '=='; Op == '=:=' ->
+  when Op =:= '>'; Op =:= '>='; Op =:= '<'; Op =:= '=<';
+       Op =:= '=='; Op =:= '=:=' ->
     case Es of
         [_|_] ->
             {Exp,St1} = exp_comp(Es, Op, St0),
@@ -749,17 +754,7 @@ exp_predef(['cond'|Cbody], _, St) ->
     Exp = exp_cond(Cbody),
     {yes,Exp,St};
 exp_predef(['do'|Dbody], _, St0) ->
-    %% (do ((v i c) ...) (test val) . body) but of limited use as it
-    %% stands as we have to everything in new values.
-    [Pars,[Test,Ret]|B] = Dbody,                %Check syntax
-    {Vs,Is,Cs} = foldr(fun ([V,I,C], {Vs,Is,Cs}) -> {[V|Vs],[I|Is],[C|Cs]} end,
-                       {[],[],[]}, Pars),
-    {Fun,St1} = new_fun_name("do", St0),
-    Exp = ['letrec-function',
-           [[Fun,[lambda,Vs,
-                  ['if',Test,Ret,
-                   ['progn'] ++ B ++ [[Fun|Cs]]]]]],
-           [Fun|Is]],
+    {Exp,St1} = exp_do(Dbody, St0),
     {yes,Exp,St1};
 exp_predef([lc|Lbody], _, St0) ->
     %% (lc (qual ...) e ...)
@@ -1026,6 +1021,18 @@ exp_arith(As, Op, St0) ->
     B = foldl(fun ([V,_], Acc) -> exp_bif(Op, [Acc,V]) end, hd(hd(Ls)), tl(Ls)),
     {exp_let_star([Ls,B]),St1}.
 
+%% exp_logical(Args, Op State) -> {Exp,State}.
+%%  Expand logical call forcing evaluation of all arguments but not
+%%  strictly; this guarantees expansion is hygenic.  Note that single
+%%  argument version may need special casing.
+
+exp_logical([A], Op, St) -> {exp_bif(Op, [A,?Q(true)]),St};
+exp_logical([A,B], Op, St) -> {exp_bif(Op, [A,B]),St};
+exp_logical(As, Op, St0) ->
+    {Ls,St1} = exp_args(As, St0),
+    B = foldl(fun ([V,_], Acc) -> exp_bif(Op, [Acc,V]) end, hd(hd(Ls)), tl(Ls)),
+    {['let',Ls,B],St1}.
+
 %% exp_comp(Args, Op, State) -> {Exp,State}.
 %%  Expand comparison test strictly forcing evaluation of all
 %%  arguments. Note that single argument version may need special
@@ -1132,6 +1139,24 @@ exp_cond([Test|Cond]) ->                        %Naked test
     ['if',Test,?Q(true),exp_cond(Cond)];
 exp_cond([]) -> ?Q(false).
 
+%% exp_do(DoBody) -> DoLoop.
+%%  Expand a do body into a loop. Add a variable 'do-state' which is
+%%  the value of the do body which can be used when setting new values
+%%  to do vars.
+
+exp_do([Pars,[Test,Ret]|Body], St0) ->
+    {Vs,Is,Cs} = foldr(fun ([V,I,C], {Vs,Is,Cs}) -> {[V|Vs],[I|Is],[C|Cs]} end,
+                       {[],[],[]}, Pars),
+    {Fun,St1} = new_fun_name("do", St0),
+    Exp = ['letrec-function',
+           [[Fun,[lambda,Vs,
+                  ['if',Test,Ret,
+		   ['let',[['do-state',
+			    ['progn'] ++ Body]],
+		    [Fun|Cs]]]]]],
+	   [Fun|Is]],
+    {Exp,St1}.
+
 %% exp_andalso(AndAlsoBody) -> Ifs.
 %% exp_orelse(OrElseBody) -> Ifs.
 
@@ -1174,8 +1199,8 @@ exp_defspec(Name, Def) ->
 
 defspec_arity([[Args|_]|_]) ->
     case lfe_lib:is_proper_list(Args) of
-	true -> length(Args);
-	false -> 0
+        true -> length(Args);
+        false -> 0
     end;
 defspec_arity(_) -> 0.
 
@@ -1203,8 +1228,8 @@ exp_meta([[spec|Spec]|Rest], Meta) ->
 exp_meta([Doc|Rest], Meta) ->
     %% The untagged doc string but not at the end.
     ?IF(lfe_lib:is_doc_string(Doc) and (Rest =/= []),
-	exp_meta(Rest, Meta ++ [[doc,Doc]]),
-	{Meta,[Doc|Rest]});
+        exp_meta(Rest, Meta ++ [[doc,Doc]]),
+        {Meta,[Doc|Rest]});
 exp_meta([], Meta) -> {Meta,[]}.
 
 %% exp_defmacro(Rest) -> {Meta,MatchLambda}.
