@@ -1,4 +1,4 @@
-%% Copyright (c) 2013-2016 Robert Virding
+%% Copyright (c) 2013-2017 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -178,6 +178,7 @@ read_hrl_file(Name, St) ->
 -ifdef(NEW_REC_CORE).
 parse_hrl_file(Fs, Ms, St0) ->
     {As,Lfs,St1} = trans_forms(Fs, St0),
+    %% io:format("~p\n",[Ms]),
     {Lms,St2} = trans_macros(Ms, St1),
     {ok,[['extend-module',[],As]] ++ Lfs ++ Lms,St2}.
 -else.
@@ -257,8 +258,9 @@ trans_form({function,_,Name,Arity,Cls}, As, Lfs, St) ->
         {'EXIT',_} ->                           %Something went wrong
             {As,Lfs,add_warning({notrans_function,Name,Arity}, St)}
     end;
-trans_form({error,_}, As, Lfs, St) ->           %What should we do with these?
-    {As,Lfs,St};
+trans_form({error,E}, As, Lfs, #mac{errors=Es}=St) ->
+    %% Assume the error is in the right format, {Line,Mod,Err}.
+    {As,Lfs,St#mac{errors=Es ++ [E]}};
 trans_form(_, As, Lfs, St) ->                   %Ignore everything else
     {As,Lfs,St}.
 
@@ -339,8 +341,8 @@ trans_function(Name, _, Cls) ->
 trans_macros([{{atom,Mac},Defs}|Ms], St0) ->
     {Lms,St1} = trans_macros(Ms, St0),
     case catch trans_macro(Mac, Defs, St1) of
-        {'EXIT',_} ->                           %It crashed
-            {Lms,add_warning({notrans_macro,Mac}, St1)};
+        {'EXIT',E} ->                           %It crashed
+            {Lms,add_warning({notrans_macro,Mac,E}, St1)};
         {none,St2} -> {Lms,St2};                %No definition, ignore
         {Mdef,St2} -> {[Mdef|Lms],St2}
     end;
@@ -381,7 +383,9 @@ trans_macro_defs([]) -> [].
 
 trans_macro_body([], Ts0) ->
     Ts1 = trans_qm(Ts0),
+    %% io:format("parse: ~p\n",[Ts1 ++ [{dot,0}]]),
     {ok,[E]} = erl_parse:parse_exprs(Ts1 ++ [{dot,0}]),
+    %% io:format("result: ~p\n",[E]),
     [?BQ(lfe_trans:from_expr(E))];
 trans_macro_body(As, Ts0) ->
     Ts1 = trans_qm(Ts0),
@@ -418,21 +422,33 @@ trans_macro_body(As, Ts0) ->
 
 %% trans_qm(Tokens) -> Tokens.
 %%  Translate variable argument names to atoms to get correct
-%%  translation later on: ?Sune -> ?'Sune' -> (Sune)
+%%  translation to LFE later on: ?Sune -> ?'Sune' -> (Sune)
 
-trans_qm([{'?',_},{atom,_,_}=A,{'(',_}=P|Ts]) ->
-    [A,P|trans_qm(Ts)];
-trans_qm([{'?',_},{var,L,V},{'(',_}=P|Ts]) ->
-    [{atom,L,V},P|trans_qm(Ts)];
+%% Translate ?FOO( ==> FOO(
+trans_qm([{'?',_},{atom,_,_}=A,{'(',_}=Lp|Ts]) ->
+    [A,Lp|trans_qm(Ts)];
+trans_qm([{'?',_},{var,L,V},{'(',_}=Lp|Ts]) ->
+    [{atom,L,V},Lp|trans_qm(Ts)];
+%% Translate ?FOO:bar ==> (FOO()):bar.
+trans_qm([{'?',L},{atom,_,_}=A,{':',_}=C|Ts]) ->
+    Lp = {'(',L},
+    Rp = {')',L},
+    [Lp,A,Lp,Rp,Rp,C|trans_qm(Ts)];
+trans_qm([{'?',L},{var,_,V},{':',_}=C|Ts]) ->
+    Lp = {'(',L},
+    Rp = {')',L},
+    [Lp,{atom,L,V},Lp,Rp,Rp,C|trans_qm(Ts)];
+%% Translate ?FOO ==> FOO().
 trans_qm([{'?',L},{atom,_,_}=A|Ts]) ->
     [A,{'(',L},{')',L}|trans_qm(Ts)];
 trans_qm([{'?',L},{var,_,V}|Ts]) ->
     [{atom,L,V},{'(',L},{')',L}|trans_qm(Ts)];
+%% Translate ??FOO ==> lfe_macro_include:stringify(quote(FOO))
 trans_qm([{'?',L},{'?',_},Arg|Ts]) ->
-    %% Expand to call lfe_macro_include:stringify(quote(Arg)).
-    [{atom,L,?MODULE},{':',L},{atom,L,stringify},{'(',L},
-     {atom,L,quote},{'(',L},Arg,{')',L},
-     {')',L}|
+    Lp = {'(',L},
+    Rp = {')',L},
+    [{atom,L,?MODULE},{':',L},{atom,L,stringify},Lp,
+     {atom,L,quote},Lp,Arg,Rp,Rp|
      trans_qm(Ts)];
 trans_qm([T|Ts]) -> [T|trans_qm(Ts)];
 trans_qm([]) -> [].
