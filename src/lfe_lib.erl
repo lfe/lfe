@@ -135,8 +135,36 @@ format_exception(Cl, Error0, St0, Skip, Format, I) ->
                        false -> {{Error0,St0},[]}
                    end,
     P = "exception " ++ Cs ++ ": ",             %Class description string
-    [P,lfe_io:prettyprint1(Error1, 10, length(P)+I-1),"\n",
+    [P,format_reason(Error1, length(P)+I-1),"\n",
      format_stacktrace(St1, Skip, Format)].
+
+%% format_reason(Error, Indentation) -> DeepCharList.
+%%  Format an error giving a little better information.
+
+format_reason(badarg, _I) -> <<"bad argument">>;
+format_reason(badarith, _I) -> <<"error in arithmetic expression">>;
+format_reason({badmatch,V}, I) ->
+    lfe_io:format1(<<"no match of value ~.*P">>, [I+18,V,10]);
+format_reason(function_clause, _I) -> <<"no function clause matching">>;
+format_reason({case_clause,V}, I) ->
+    lfe_io:format1(<<"no case clause matching ~.*P">>, [I+24,V,10]);
+format_reason(if_clause, _I) -> <<"no if clause matching">>;
+format_reason(undef, _I) -> <<"undefined function">>;
+%% Some LFE eval specific errors.
+format_reason({unbound_symb,S}, _I) ->
+    lfe_io:format1(<<"symbol ~w is unbound">>, [S]);
+format_reason(illegal_guard, _I) -> <<"illegal guard">>;
+format_reason({undefined_func,{F,A}}, _I) ->
+    lfe_io:format1(<<"undefined function ~w/~w">>, [F,A]);
+format_reason(if_expression, _I) -> <<"non-boolean if test">>;
+format_reason({illegal_pattern,Pat}, _I) ->
+    lfe_io:format1(<<"illegal pattern ~w">>, [Pat]);
+format_reason({illegal_literal,Lit}, I) ->
+    lfe_io:format1(<<"illegal literal value ~.*P">>, [I+22,Lit,10]);
+format_reason(bad_arity, _I) -> <<"arity mismatch">>;
+%% Default catch-all
+format_reason(Error, I) ->			%Default catch-all
+    lfe_io:prettyprint1(Error, 10, I).
 
 %% format_stacktrace(Stacktrace, SkipFun, FormatFun) -> DeepCharList.
 %%  Format a stacktrace. SkipFun is used to trim the end of stack;

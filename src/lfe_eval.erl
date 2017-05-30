@@ -59,33 +59,31 @@
 %% -compile([export_all]).
 
 %% Errors.
-format_error(badarg) -> "bad argument";
+format_error(badarg) -> <<"bad argument">>;
 format_error({badmatch,Val}) ->
-    lfe_io:format1("bad match: ~w", [Val]);
+    lfe_io:format1(<<"bad match: ~w">>, [Val]);
 format_error({unbound_symb,S}) ->
-    lfe_io:format1("symbol ~w unbound", [S]);
-format_error({undefined_func,F}) ->
-    lfe_io:format1("function ~w undefined", [F]);
-format_error(if_expression) -> "non-boolean if test";
-format_error(function_clause) -> "no function clause matching";
+    lfe_io:format1(<<"symbol ~w is unbound">>, [S]);
+format_error({undefined_func,{F,A}}) ->
+    lfe_io:format1(<<"undefined function ~w/~w">>, [F,A]);
+format_error(if_expression) -> <<"non-boolean if test">>;
+format_error(function_clause) -> <<"no function clause matching">>;
 format_error({case_clause,Val}) ->
-    lfe_io:format1("no case clause matching: ~w", [Val]);
-format_error({multi_var,V}) ->
-    lfe_io:format1("variable ~w multiply definend", [V]);
-format_error(illegal_guard) -> "illegal guard";
-format_error(illegal_bitsize) -> "illegal bitsize";
-format_error(illegal_bitseg) -> "illegal bitsegment";
+    lfe_io:format1(<<"no case clause matching ~.P">>, [Val,10]);
+format_error(illegal_guard) -> <<"illegal guard">>;
+format_error(illegal_bitsize) -> <<"illegal bitsize">>;
+format_error(illegal_bitseg) -> <<"illegal bitsegment">>;
 format_error({illegal_pattern,Pat}) ->
-    lfe_io:format1("illegal pattern ~w", [Pat]);
+    lfe_io:format1(<<"illegal pattern ~w">>, [Pat]);
 format_error({illegal_literal,Lit}) ->
-    lfe_io:format1("illegal literal value ~w", [Lit]);
+    lfe_io:format1(<<"illegal literal value ~w">>, [Lit]);
 format_error({illegal_mapkey,Key}) ->
-    lfe_io:format1("illegal map key ~w", [Key]);
-format_error(bad_arity) -> "arity mismatch";
+    lfe_io:format1(<<"illegal map key ~w">>, [Key]);
+format_error(bad_arity) -> <<"arity mismatch">>;
 format_error({argument_limit,Arity}) ->
-    lfe_io:format1("too many arguments: ~w", [Arity]);
+    lfe_io:format1(<<"too many arguments ~w">>, [Arity]);
 format_error({bad_form,Form}) ->
-    lfe_io:format1("bad ~w form", [Form]);
+    lfe_io:format1(<<"bad ~w form">>, [Form]);
 %% Everything we don't recognise or know about.
 format_error(Error) ->
     lfe_io:prettyprint1(Error).
@@ -224,7 +222,7 @@ eval_expr([Fun|Es], Env) when is_atom(Fun) ->
     case get_fbinding(Fun, Ar, Env) of
         {yes,M,F} -> erlang:apply(M, F, eval_list(Es, Env));
         {yes,F} -> eval_apply(F, eval_list(Es, Env), Env);
-        no -> undefined_func_error({Fun,Ar})
+        no -> undefined_func_error(Fun, Ar)
     end;
 eval_expr([_|_]=S, _) ->                        %Test if string literal
     case is_posint_list(S) of
@@ -796,6 +794,9 @@ eval_guard(Gts, Env) ->
         true -> true;
         _Other -> false                         %Fail guard
     catch
+	error:illegal_guard ->			%Handle illegal guard
+	    St = erlang:get_stacktrace(),
+	    erlang:raise(error, illegal_guard, St);
         _:_ -> false                            %Fail guard
     end.
 
@@ -1166,8 +1167,8 @@ badarg_error() -> eval_error(badarg).
 unbound_symb_error(Sym) ->
     eval_error({unbound_symb,Sym}).
 
-undefined_func_error(Func) ->
-    eval_error({undefined_func,Func}).
+undefined_func_error(Func, Ar) ->
+    eval_error({undefined_func,{Func,Ar}}).
 
 bad_form_error(Form) ->
     eval_error({bad_form,Form}).
