@@ -1,4 +1,4 @@
-%% Copyright (c) 2009-2015 Robert Virding
+%% Copyright (c) 2009-2017 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -94,9 +94,10 @@ parse1(#spell1{line=L,st=St0,vs=Vs0}, Ts) ->
         parse2(Ts, St0, Vs0) of
         {done,Rest,[],[V]} -> {ok,L,V,Rest};
         {more,[],St1,Vs1} -> {more,#spell1{line=L,st=St1,vs=Vs1}};
-        {error,Line,Error,Rest,_,_} ->
-            %% Can't really continue from errors here.
-            {error,{Line,?MODULE,Error},Rest}
+        {error,_,Error,Rest,_,_} ->
+            %% Can't really continue from errors here. Give line
+            %% number of start of uncompleted form.
+            {error,{L,?MODULE,Error},Rest}
     catch
         throw:{spell1_error,Error} ->
             {error,Error,[]}
