@@ -31,6 +31,9 @@
 -export([expand_form_init/2,expand_form_init/3,
          expand_form/4,expand_fileform/3]).
 
+%% For creating the macro expansion state.
+-export([default_state/2,default_state/3]).
+
 -export([format_error/1]).
 
 -export([mbe_syntax_rules_proc/4,mbe_syntax_rules_proc/5,
@@ -41,8 +44,6 @@
 -import(lfe_env, [new/0,add_vbinding/3,is_vbound/2,
                   add_fbinding/4,is_fbound/3,
                   add_mbinding/3,is_mbound/2,get_mbinding/2]).
-
--import(lfe_lib, [is_symb_list/1,is_proper_list/1]).
 
 -import(lists, [any/2,all/2,map/2,foldl/3,foldr/3,mapfoldl/3,
                 reverse/1,reverse/2,member/2,concat/1]).
@@ -120,7 +121,7 @@ do_forms(Fs0, Env0, St0) ->
     end.
 
 default_state(Deep, Keep) ->
-    #mac{deep=Deep,keep=Keep,line=1,file="-nofile-",opts=[],ipath=["."]}.
+    #mac{deep=Deep,keep=Keep,line=1,file="-no-file-",opts=[],ipath=["."]}.
 
 default_state(#cinfo{file=File,opts=Os,ipath=Is}, Deep, Keep) ->
     #mac{deep=Deep,keep=Keep,line=1,file=File,opts=Os,ipath=Is}.
@@ -251,9 +252,9 @@ pass_ewc_form(F0, Env, St0) ->
     end.
 
 function_arity([lambda,Args|_]) ->
-    ?IF(is_symb_list(Args), {yes,length(Args)}, no);
+    ?IF(lfe_lib:is_symb_list(Args), {yes,length(Args)}, no);
 function_arity(['match-lambda',[Pat|_]|_]) ->
-    ?IF(is_proper_list(Pat), {yes,length(Pat)}, no);
+    ?IF(lfe_lib:is_proper_list(Pat), {yes,length(Pat)}, no);
 function_arity(_) -> no.
 
 %% pass_eval_set(Args, Env, State) -> {Set,Env,State}.
@@ -328,7 +329,6 @@ add_error(L, E, St) ->
 %%     St#mac{warnings=St#mac.warnings ++ [{L,?MODULE,W}]}.
 
 %% exp_form(Form, Env, State) -> {Form,State}.
-
 %%  Completely expand a form using expansions in Env and pre-defined
 %%  macros.  N.B. builtin core forms cannot be overidden and are
 %%  handled here first. Some core forms also are particular about how
@@ -351,6 +351,10 @@ exp_form([list|As], Env, St) ->
     exp_normal_core(list, As, Env, St);
 exp_form([tuple|As], Env, St) ->
     exp_normal_core(tuple, As, Env, St);
+exp_form([tref|[_,_]=As], Env, St) ->
+    exp_normal_core(tref, As, Env, St);
+exp_form([tset|[_,_,_]=As], Env, St) ->
+    exp_normal_core(tset, As, Env, St);
 exp_form([binary|As], Env, St) ->
     exp_normal_core(binary, As, Env, St);
 exp_form([map|As], Env, St) ->
@@ -410,10 +414,15 @@ exp_form(['define-function',Head|B], Env, St) ->
     exp_head_tail('define-function', Head, B, Env, St);
 exp_form(['define-macro',Head|B], Env, St) ->
     exp_head_tail('define-macro', Head, B, Env, St);
-exp_form(['define-module',Head|B], Env, St) ->
-    exp_head_tail('define-module', Head, B, Env, St);
-exp_form(['extend-module'|B], Env, St) ->
-    exp_normal_core('extend-module', B, Env, St);
+%% These don't expand at all as name clashes are allowed.
+exp_form(['define-module',_Mod|_]=Form, _, St) -> {Form,St};
+exp_form(['extend-module'|_]=Form, _, St) -> {Form,St};
+exp_form(['define-type',_Type|_]=Form, _, St) -> {Form,St};
+exp_form(['define-opaque-type',_Type|_]=Form, _, St) -> {Form,St};
+exp_form(['define-function-spec',_Func|_]=Form, _, St) -> {Form,St};
+%% And don't forget when.
+exp_form(['when'|G], Env, St) ->
+    exp_normal_core('when', G, Env, St);
 %% Now the case where we can have macros.
 exp_form([Fun|_]=Call, Env, St0) when is_atom(Fun) ->
     %% Expand top macro as much as possible.
@@ -563,7 +572,7 @@ exp_try(E0, B0, Env, St0) ->
 %%  Expand the macro in top call, but not if it is a core form.
 
 exp_macro([Name|_]=Call, Env, St) ->
-    case lfe_lib:is_core_form(Name) of
+    case lfe_internal:is_core_form(Name) of
         true -> no;                             %Never expand core forms
         false ->
             case get_mbinding(Name, Env) of
@@ -696,6 +705,11 @@ exp_predef(['/'|Es], _, St0) ->
             {Exp,St1} = exp_arith(Es, '/', St0),
             {yes,Exp,St1}
     end;
+%% Logical operators.
+exp_predef([Op|Es], _, St0)
+  when Op =:= 'and'; Op =:= 'or'; Op =:= 'xor' ->
+    {Exp,St1} = exp_logical(Es, Op, St0),
+    {yes,Exp,St1};
 %% Comparison operators.
 exp_predef(['!='|Es], Env, St) -> exp_predef(['/='|Es], Env, St);
 exp_predef(['==='|Es], Env, St) -> exp_predef(['=:='|Es], Env, St);
@@ -704,8 +718,8 @@ exp_predef([Op|Es], _, St0) when Op == '/=' ; Op == '=/=' ->
     {Exp,St1} = exp_nequal(Es, Op, St0),
     {yes,Exp,St1};
 exp_predef([Op|Es], _, St0)
-  when Op == '>'; Op == '>='; Op == '<'; Op == '=<';
-       Op == '=='; Op == '=:=' ->
+  when Op =:= '>'; Op =:= '>='; Op =:= '<'; Op =:= '=<';
+       Op =:= '=='; Op =:= '=:=' ->
     case Es of
         [_|_] ->
             {Exp,St1} = exp_comp(Es, Op, St0),
@@ -740,17 +754,7 @@ exp_predef(['cond'|Cbody], _, St) ->
     Exp = exp_cond(Cbody),
     {yes,Exp,St};
 exp_predef(['do'|Dbody], _, St0) ->
-    %% (do ((v i c) ...) (test val) . body) but of limited use as it
-    %% stands as we have to everything in new values.
-    [Pars,[Test,Ret]|B] = Dbody,                %Check syntax
-    {Vs,Is,Cs} = foldr(fun ([V,I,C], {Vs,Is,Cs}) -> {[V|Vs],[I|Is],[C|Cs]} end,
-                       {[],[],[]}, Pars),
-    {Fun,St1} = new_fun_name("do", St0),
-    Exp = ['letrec-function',
-           [[Fun,[lambda,Vs,
-                  ['if',Test,Ret,
-                   ['progn'] ++ B ++ [[Fun|Cs]]]]]],
-           [Fun|Is]],
+    {Exp,St1} = exp_do(Dbody, St0),
     {yes,Exp,St1};
 exp_predef([lc|Lbody], _, St0) ->
     %% (lc (qual ...) e ...)
@@ -798,7 +802,7 @@ exp_predef(['begin'|Body], _, St) ->
     {yes,['progn'|Body],St};
 exp_predef(['define',Head|Body], _, St) ->
     %% Let the lint catch errors here.
-    Exp = case is_symb_list(Head) of
+    Exp = case lfe_lib:is_symb_list(Head) of
               true ->
                   ['define-function',hd(Head),[],[lambda,tl(Head)|Body]];
               false ->
@@ -827,6 +831,15 @@ exp_predef([defmodule,Name|Rest], _, St) ->
     MODULE = [defmacro,'MODULE',[],?BQ(?Q(Mname))],
     {Meta,Atts} = exp_defmodule(Rest),
     {yes,[progn,['define-module',Name,Meta,Atts],MODULE],St#mac{module=Mname}};
+exp_predef([deftype,Type0|Def0], _, St) ->
+    {Type1,Def1} = exp_deftype(Type0, Def0),
+    {yes,['define-type',Type1,Def1],St};
+exp_predef([defopaque,Type0|Def0], _, St) ->
+    {Type1,Def1} = exp_deftype(Type0, Def0),
+    {yes,['define-opaque-type',Type1,Def1],St};
+exp_predef([defspec,Func0|Spec0], _, St) ->
+    {Func1,Spec1} = exp_defspec(Func0, Spec0),
+    {yes,['define-function-spec',Func1,Spec1],St};
 exp_predef([defun,Name|Rest], _, St) ->
     %% Educated guess whether traditional (defun name (a1 a2 ...) ...)
     %% or matching (defun name (patlist1 ...) (patlist2 ...))
@@ -1008,6 +1021,18 @@ exp_arith(As, Op, St0) ->
     B = foldl(fun ([V,_], Acc) -> exp_bif(Op, [Acc,V]) end, hd(hd(Ls)), tl(Ls)),
     {exp_let_star([Ls,B]),St1}.
 
+%% exp_logical(Args, Op State) -> {Exp,State}.
+%%  Expand logical call forcing evaluation of all arguments but not
+%%  strictly; this guarantees expansion is hygenic.  Note that single
+%%  argument version may need special casing.
+
+exp_logical([A], Op, St) -> {exp_bif(Op, [A,?Q(true)]),St};
+exp_logical([A,B], Op, St) -> {exp_bif(Op, [A,B]),St};
+exp_logical(As, Op, St0) ->
+    {Ls,St1} = exp_args(As, St0),
+    B = foldl(fun ([V,_], Acc) -> exp_bif(Op, [Acc,V]) end, hd(hd(Ls)), tl(Ls)),
+    {['let',Ls,B],St1}.
+
 %% exp_comp(Args, Op, State) -> {Exp,State}.
 %%  Expand comparison test strictly forcing evaluation of all
 %%  arguments. Note that single argument version may need special
@@ -1114,6 +1139,24 @@ exp_cond([Test|Cond]) ->                        %Naked test
     ['if',Test,?Q(true),exp_cond(Cond)];
 exp_cond([]) -> ?Q(false).
 
+%% exp_do(DoBody) -> DoLoop.
+%%  Expand a do body into a loop. Add a variable 'do-state' which is
+%%  the value of the do body which can be used when setting new values
+%%  to do vars.
+
+exp_do([Pars,[Test,Ret]|Body], St0) ->
+    {Vs,Is,Cs} = foldr(fun ([V,I,C], {Vs,Is,Cs}) -> {[V|Vs],[I|Is],[C|Cs]} end,
+                       {[],[],[]}, Pars),
+    {Fun,St1} = new_fun_name("do", St0),
+    Exp = ['letrec-function',
+           [[Fun,[lambda,Vs,
+                  ['if',Test,Ret,
+		   ['let',[['do-state',
+			    ['progn'] ++ Body]],
+		    [Fun|Cs]]]]]],
+	   [Fun|Is]],
+    {Exp,St1}.
+
 %% exp_andalso(AndAlsoBody) -> Ifs.
 %% exp_orelse(OrElseBody) -> Ifs.
 
@@ -1132,7 +1175,34 @@ exp_orelse([]) -> ?Q(false).
 
 exp_defmodule([]) -> {[],[]};
 exp_defmodule([Doc|Atts]=Rest) ->
-    ?IF(is_doc_string(Doc), {[[doc,Doc]],Atts}, {[],Rest}).
+    ?IF(lfe_lib:is_doc_string(Doc), {[[doc,Doc]],Atts}, {[],Rest}).
+
+%% exp_deftype(Type, Def) -> {Type,Def}.
+%%  Paramterless types to be written as just type name and default
+%%  type is any.
+
+exp_deftype(T, D) ->
+    Type = if is_list(T) -> T; true -> [T] end,
+    Def = if D =:= [] -> [any]; true -> hd(D) end,
+    {Type,Def}.
+
+%% exp_defspec(Func, Def) -> {Func,Def}.
+%%  Do very little here, leave it to lint
+
+exp_defspec([_,_]=Func, Def) -> {Func,Def};
+exp_defspec(Name, Def) ->
+    {[Name,defspec_arity(Def)],Def}.
+
+%% defspec_arity(Spec) -> Arity.
+%%  Just return the length of the first arg list and let lint check
+%%  properly later.
+
+defspec_arity([[Args|_]|_]) ->
+    case lfe_lib:is_proper_list(Args) of
+        true -> length(Args);
+        false -> 0
+    end;
+defspec_arity(_) -> 0.
 
 %% exp_defun(Rest) -> {Meta,Lambda | MatchLambda}.
 %%  Educated guess whether traditional (defun name (a1 a2 ...) ...)
@@ -1140,30 +1210,27 @@ exp_defmodule([Doc|Atts]=Rest) ->
 %%  there is a comment string.
 
 exp_defun([Args|Body]=Rest) ->
-    case is_symb_list(Args) of
+    case lfe_lib:is_symb_list(Args) of
         true  -> exp_lambda_defun(Args, Body);
         false -> exp_match_defun(Rest)
     end.
 
 exp_lambda_defun(Args, Body) ->
-    {Meta,Def} = exp_lambda_body(Body),
+    {Meta,Def} = exp_meta(Body, []),
     {Meta,['lambda',Args|Def]}.
 
-exp_lambda_body([Doc|Body]=Rest) ->
-    %% Test whether first expression is a comment string.
-    ?IF(is_doc_string(Doc) and (Body =/= []), {[[doc,Doc]],Body}, {[],Rest});
-exp_lambda_body(Body) -> {[],Body}.
-
 exp_match_defun(Rest) ->
-    {Meta,Cls} = exp_match_clauses(Rest),
+    {Meta,Cls} = exp_meta(Rest, []),
     {Meta,['match-lambda'|Cls]}.
 
-exp_match_clauses([Doc|Cls]=Rest) ->
-    %% Test whether first thing is a comment string.
-    ?IF(is_doc_string(Doc), {[[doc,Doc]],Cls}, {[],Rest});
-exp_match_clauses(Cls) -> {[],Cls}.
-
-is_doc_string(Doc) -> io_lib:char_list(Doc).
+exp_meta([[spec|Spec]|Rest], Meta) ->
+    exp_meta(Rest, Meta ++ [[spec|Spec]]);
+exp_meta([Doc|Rest], Meta) ->
+    %% The untagged doc string but not at the end.
+    ?IF(lfe_lib:is_doc_string(Doc) and (Rest =/= []),
+        exp_meta(Rest, Meta ++ [[doc,Doc]]),
+        {Meta,[Doc|Rest]});
+exp_meta([], Meta) -> {Meta,[]}.
 
 %% exp_defmacro(Rest) -> {Meta,MatchLambda}.
 %%  Educated guess whether traditional (defmacro name (a1 a2 ...) ...)
@@ -1174,7 +1241,7 @@ is_doc_string(Doc) -> io_lib:char_list(Doc).
 %%  environment.
 
 exp_defmacro([Args|Body]=Rest) ->
-    {Meta,Cls} = case is_symb_list(Args) of
+    {Meta,Cls} = case lfe_lib:is_symb_list(Args) of
                      true -> exp_lambda_defmacro([list|Args], Body);
                      false ->
                          if is_atom(Args) ->
@@ -1186,11 +1253,11 @@ exp_defmacro([Args|Body]=Rest) ->
     {Meta,['match-lambda'|Cls]}.
 
 exp_lambda_defmacro(Args, Body) ->
-    {Meta,Def} = exp_lambda_body(Body),
+    {Meta,Def} = exp_meta(Body, []),
     {Meta,[[[Args,'$ENV']|Def]]}.
 
 exp_match_defmacro(Rest) ->
-    {Meta,Cls} = exp_match_clauses(Rest),
+    {Meta,Cls} = exp_meta(Rest, []),
     {Meta,map(fun ([Head|Body]) -> [[Head,'$ENV']|Body] end, Cls)}.
 
 %% exp_syntax(Name, Def) -> {Meta,Lambda | MatchLambda}.
@@ -1365,7 +1432,7 @@ mbe_match_pat([tuple|Ps], E, Ks) ->             %Match literal tuple
         false -> false
     end;
 mbe_match_pat(?mbe_ellipsis(Pcar, _), E, Ks) ->
-    case is_proper_list(E) of
+    case lfe_lib:is_proper_list(E) of
         true ->
             all(fun (X) -> mbe_match_pat(Pcar, X, Ks) end, E);
         false -> false
@@ -1473,7 +1540,7 @@ mbe_expand_pattern(Pat, R, Ks) ->
             case member(Pat, Ks) of
                 true -> Pat;
                 false ->
-                    case lfe_lib:assoc(Pat, R) of
+                    case lfe:assoc(Pat, R) of
                         [_|Cdr] -> Cdr;
                         [] -> Pat
                     end

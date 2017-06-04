@@ -25,7 +25,7 @@
 %% Macro expander state.
 -record(mac, {deep=true,                        %Deep expand everything
               keep=true,                        %Keep all forms
-              module='-no-module',              %Current module
+              module='-no-module-',             %Current module
               line=1,                           %Line no of current form
               vc=0,                             %Variable counter
               fc=0,                             %Function counter

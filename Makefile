@@ -21,8 +21,19 @@ CSRCDIR = c_src
 LSRCDIR = src
 INCDIR = include
 EMACSDIR = emacs
+PREFIX ?= /usr/local
+INSTALL = install
+INSTALL_DIR = $(INSTALL) -m755 -d
+INSTALL_DATA = $(INSTALL) -m644
+INSTALL_BIN = $(INSTALL) -m755
+DESTLIBDIR := $(PREFIX)/lib/lfe
+DESTEBINDIR := $(DESTLIBDIR)/$(EBINDIR)
+DESTBINDIR := $(DESTLIBDIR)/$(BINDIR)
 
 VPATH = $(SRCDIR)
+
+MKDIR_P = mkdir -p
+MANDB = $(shell which mandb)
 
 ERLCFLAGS = -W1
 ERLC = erlc
@@ -58,16 +69,13 @@ BINS = $(CSRCS:.c=)
 EMACSRCS = $(notdir $(wildcard $(EMACSDIR)/*.el))
 ELCS = $(EMACSRCS:.el=.elc)
 
-## Where we install links to the LFE binaries.
-DESTBINDIR ?= $(PREFIX)$(shell dirname `which erl` 2> /dev/null || echo "/usr/local/bin" )
-
 .SUFFIXES: .erl .beam
 
 $(BINDIR)/%: $(CSRCDIR)/%.c
 	cc -o $@ $<
 
 $(EBINDIR)/%.beam: $(SRCDIR)/%.erl
-	@mkdir -p $(EBINDIR)
+	@$(MKDIR_P) $(EBINDIR)
 	$(ERLC) -I $(INCDIR) -o $(EBINDIR) $(COMP_OPTS) $(ERLCFLAGS) $<
 
 %.erl: %.xrl
@@ -81,7 +89,7 @@ $(EBINDIR)/%.beam: $(LSRCDIR)/%.lfe
 
 all: compile
 
-.PHONY: compile erlc-compile lfec-compile erlc-lfec emacs install docs clean docker-build docker-push docker
+.PHONY: compile erlc-compile lfec-compile erlc-lfec emacs install docs clean docker-build docker-push docker update-mandb
 
 compile: comp_opts.mk
 	$(MAKE) $(MFLAGS) erlc-lfec
@@ -109,11 +117,18 @@ comp_opts.mk:
 
 -include comp_opts.mk
 
-install: install-man
-	ln -sf `pwd`/bin/lfe $(DESTBINDIR)
-	ln -sf `pwd`/bin/lfec $(DESTBINDIR)
-	ln -sf `pwd`/bin/lfedoc $(DESTBINDIR)
-	ln -sf `pwd`/bin/lfescript $(DESTBINDIR)
+$(BINDIR)/lfe%:
+	$(INSTALL_BIN) $@ $(DESTBINDIR)
+
+install: compile install-man
+	rm -Rf $(DESTEBINDIR)
+	$(INSTALL_DIR) $(DESTEBINDIR)
+	$(INSTALL_DATA) $(EBINDIR)/$(APP_DEF) $(DESTEBINDIR)
+	$(INSTALL_DATA) $(addprefix $(EBINDIR)/, $(EBINS)) $(DESTEBINDIR)
+	$(INSTALL_DATA) $(addprefix $(EBINDIR)/, $(LBINS)) $(DESTEBINDIR)
+	$(INSTALL_DIR) $(DESTBINDIR)
+	$(MAKE) $(BINDIR)/lfe $(BINDIR)/lfec $(BINDIR)/lfedoc $(BINDIR)/lfescript
+	ln -sf $(DESTBINDIR)/* $(PREFIX)/bin/
 
 clean:
 	rm -rf $(EBINDIR)/*.beam erl_crash.dump comp_opts.mk
@@ -143,7 +158,7 @@ DOCSRC = $(DOCDIR)/src
 MANDIR = $(DOCDIR)/man
 PDFDIR = $(DOCDIR)/pdf
 EPUBDIR = $(DOCDIR)/epub
-MANINSTDIR ?= /usr/local/share/man
+MANINSTDIR ?= $(PREFIX)/share/man
 
 MAN1_SRCS = $(notdir $(wildcard $(DOCSRC)/*1.md))
 MAN1S = $(MAN1_SRCS:.1.md=.1)
@@ -205,7 +220,7 @@ $(DOCDIR)/%.txt: $(MANDIR)/%.7
 	groff -t -e -mandoc -Tutf8 -Kutf8 $< | col -bx > $@
 
 $(PDFDIR):
-	@mkdir -p $(PDFDIR)
+	@$(MKDIR_P) $(PDFDIR)
 
 docs-pdf: $(PDFDIR) \
 	$(addprefix $(PDFDIR)/, $(PDF1S)) \
@@ -222,7 +237,7 @@ $(PDFDIR)/%.pdf: $(DOCSRC)/%.7.md
 	pandoc -f markdown --latex-engine=xelatex -o $@ $<
 
 $(EPUBDIR):
-	@mkdir -p $(EPUBDIR)
+	@$(MKDIR_P) $(EPUBDIR)
 
 docs-epub: $(EPUBDIR) \
 	$(addprefix $(EPUBDIR)/, $(EPUB1S)) \
@@ -238,11 +253,21 @@ $(EPUBDIR)/%.epub: $(DOCSRC)/%.3.md
 $(EPUBDIR)/%.epub: $(DOCSRC)/%.7.md
 	pandoc -f markdown -t epub -o $@ $<
 
-install-man:
-	@mkdir -p $(MANINSTDIR)/man1 $(MANINSTDIR)/man3 $(MANINSTDIR)/man7
-	cp $(MANDIR)/*.1 $(MANINSTDIR)/man1/
-	cp $(MANDIR)/*.3 $(MANINSTDIR)/man3/
-	cp $(MANDIR)/*.7 $(MANINSTDIR)/man7/
+$(MANINSTDIR)/man%:
+	@$(MKDIR_P) -p $@
+
+ifeq (,$(findstring mandb,$(MANDB)))
+install-man: $(MANINSTDIR)/man1 $(MANINSTDIR)/man3 $(MANINSTDIR)/man7
+else
+install-man: $(MANINSTDIR)/man1 $(MANINSTDIR)/man3 $(MANINSTDIR)/man7 update-mandb
+endif
+	$(INSTALL_DATA) $(MANDIR)/*.1 $(MANINSTDIR)/man1/
+	$(INSTALL_DATA) $(MANDIR)/*.3 $(MANINSTDIR)/man3/
+	$(INSTALL_DATA) $(MANDIR)/*.7 $(MANINSTDIR)/man7/
+
+update-mandb:
+	@echo "Updating man page database ..."
+	$(MANDB) $(MANINSTDIR)
 
 # Targets for working with Docker
 docker-build:

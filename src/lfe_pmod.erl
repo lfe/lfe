@@ -158,6 +158,8 @@ exp_expr([car,E], Env) -> [car,exp_expr(E, Env)]; %Provide lisp names
 exp_expr([cdr,E], Env) -> [cdr,exp_expr(E, Env)];
 exp_expr([list|Es], Env) -> [list|exp_list(Es, Env)];
 exp_expr([tuple|Es], Env) -> [tuple|exp_list(Es, Env)];
+exp_expr([tref|[_,_]=Es], Env) -> [tref|exp_list(Es, Env)];
+exp_expr([tset|[_,_,_]=Es], Env) -> [tset|exp_list(Es, Env)];
 exp_expr([binary|Bs], Env) ->
     [binary|exp_binary(Bs, Env)];
 %% Handle the Core closure special forms.

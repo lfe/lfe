@@ -152,29 +152,43 @@ in `sexps`, returning the result of the last `sexp`.
 **(cond-> expr . clauses)**
 
 Given an `expr`ession and a set of `test`/`sexp` pairs, thread `x` (via **->**)
-through each `sexp` for which the corresponding `test` expression is `'true`.
+through each `sexp` for which the corresponding `test` expression is truthy,
+i.e. neither `'false` nor `'undefined`.
 Note that, unlike **cond** branching, **cond->** threading does not short
-circuit after the first `'true` test expression.
+circuit after the first truthy test expression.
 
 **(cond->> expr . clauses)**
 
 Given an `expr`ession and a set of `test`/`sexp` pairs, thread `x` (via **->>**)
-through each `sexp` for which the corresponding `test` expression is `'true`.
+through each `sexp` for which the corresponding `test` expression is truthy,
+i.e. neither `'false` nor `'undefined`.
 Note that, unlike **cond** branching, **cond->>** threading does not short
-circuit after the first `'true` `test` expression.
+circuit after the first truthy `test` expression.
 
 **(some-> x . sexps)**
 
-When `x` is not `undefined`, thread it into the first `sexp` (via **->**),
-and when that result is not `undefined`, through the next, etc.
+When `x` is not `'undefined`, thread it into the first `sexp` (via **->**),
+and when that result is not `'undefined`, through the next, etc.
 
 **(some->> x . sexps)**
 
-When `x` is not `undefined`, thread it into the first sexp (via **->>**),
-and when that result is not `undefined`, through the next, etc.
+When `x` is not `'undefined`, thread it into the first `sexp` (via **->>**),
+and when that result is not `'undefined`, through the next, etc.
 
 
 ## Conditional Macros
+
+**(if-let ((patt test)) then {{else}})**
+
+If `test` evaluates to anything other than `'false` or `'undefined`,
+evaluate `then` with `patt` bound to the value of `test`,
+otherwise `else`, if supplied, else `'undefined`.
+
+**(iff-let ((patt test)) . body)**
+
+When `test` evaluates to anything other than `'false` or `'undefined`,
+evaluate `body` with `patt` bound to the value of `test`,
+otherwise return `'undefined`.
 
 **(condp pred expr . clauses)**
 
@@ -187,7 +201,7 @@ test-expr >> result-fn
 ```
 
 where `result-fn` is a unary function, if `(pred test-expr expr)` returns
-anything other than `undefined` or `'false`, the clause is a match.
+anything other than `'undefined` or `'false`, the clause is a match.
 
 If a binary clause matches, return `result-expr`. If a ternary clause matches,
 call `result-fn` with the result of the predicate and return the result.
@@ -200,18 +214,19 @@ return it. If no default expression is given and no clause matches, throw a
 
 **(if-not test then else)**
 
-If `test` evaluates to `'false`, evaluate and return `then`, otherwise `else`,
-if supplied, else `'false`.
+If `test` evaluates to `'false` or `'undefined`, evaluate and return `then`,
+otherwise `else`, if supplied, else `'undefined`.
 
 **(iff test . body)**
 
 Like Clojure's `when`.
-Evaluate `test`. If `'true`, evaluate `body` in an implicit `progn`.
+If `test` evaluates to anything other than `'false` or `'undefined`,
+evaluate `body` in an implicit `progn`.
 
 **(when-not test . body)**
 
-If `test` evaluates to `'false`, evaluate `body` in an implicit `progn`,
-otherwise if `test` evaluates to `'true`, return `'false`.
+If `test` evaluates to `'false` or `'undefined`, evaluate `body`
+in an implicit `progn`. Otherwise return `'undefined`.
 
 **(not= x)**
 
@@ -311,6 +326,10 @@ Return `'true` if `x` is the atom `'true`.
 
 Return `'true` if `x` is the atom `'false`.
 
+**(falsy? x)**
+
+Return `'true` if `x` is one of the atoms `'false` and `'undefined`.
+
 **(odd? x)**
 
 Return `'true` if `x` is odd.
@@ -353,6 +372,31 @@ integer value, i.e. `"97"`.
 > (clj:str "a" "bc")
 "abc"
 ```
+
+**(lazy-seq)**
+
+**(lazy-seq seq)**
+
+Return a (possibly infinite) lazy sequence from a given lazy sequence `seq`
+or a finite lazy sequence from given list `seq`.
+A lazy sequence is treated as finite if at any iteration it produces
+the empty list, instead of a cons cell with data as the head and a
+nullary function for the next iteration as the tail.
+
+**(conj coll . xs)**
+
+conj[oin] a value onto an existing collection.
+Prepend to a list, append to a tuple, and merge maps.
+
+
+## Clojure-inspired *if* Macro
+
+**(if test then)**
+
+**(if test then else)**
+
+If `test` evaluates to anything other than `'false` or `'undefined`,
+return `then`, otherwise `else`, if given, else `'undefined`.
 
 
 ## Function Composition

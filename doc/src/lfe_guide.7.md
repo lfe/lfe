@@ -292,6 +292,8 @@ while it reads the expression and then be effectively ``2``.
 (cdr e)
 (list e ... )
 (tuple e ... )
+(tref tuple index)
+(tset tuple index val)
 (binary seg ... )
 (map key val ...)
 (map-get m k) (map-set m k v ...) (map-update m k v ...)
@@ -299,6 +301,8 @@ while it reads the expression and then be effectively ``2``.
 (match-lambda
   ((arg ... ) {{(when e ...)}} ...)           - Matches clauses
   ... )
+(function func-name arity)                    - Function references
+(function mod-name func-name arity)
 (let ((pat {{(when e ...)}} e)
       ...)
   ... )
@@ -425,13 +429,12 @@ quote to match explicit values. Binaries and tuples have special syntax.
 {ok,X}                  -> (tuple 'ok x)
 error                   -> 'error
 {yes,[X|Xs]}            -> (tuple 'yes (cons x xs))
-<<34,F/float>>          -> (binary 34 (f float))
+<<34,U:16,F/float>>     -> (binary 34 (u (size 16)) (f float))
 [P|Ps]=All              -> (= (cons p ps) all)
 ```
 
-Repeated variables are *NOT* supported in patterns, there is no
-automatic comparison of values. It must explicitly be done in a
-guard.
+Repeated variables are supported in patterns and there is an automatic
+comparison of values.
 
 ``_`` as the "don't care" variable is supported. This means that the
 symbol ``_``, which is a perfectly valid symbol, can never be bound
@@ -460,6 +463,7 @@ following guard expressions:
 (cdr gexpr)
 (list gexpr ...)
 (tuple gexpr ...)
+(tref gexpr gexpr)
 (binary ...)
 (progn gtest ...)           - Sequence of guard tests
 (if gexpr gexpr gexpr)
@@ -506,39 +510,48 @@ flet and fletrec:
     (m x y)))
 ```
 
-# Bindings and Scoping
+# Variable Binding and Scoping
 
-LFE is a Lisp-2 and has separate namespaces for variables and
-functions/macros. Both variables and functions/macros are lexically
-scoped. Variables are bound by lambda, match-lambda and let, functions
-are bound by top-level defun, flet and fletrec, macros are bound by
-top-level defmacro/defsyntax and by macrolet/syntaxlet.
-
-When searching for function both name and arity are used, a macro is
-considered to have any arity and will match all functions with that
-name. While this is not consistent with either Scheme (or CL) it is
-simple, usually easy to understand, and fits Erlang quite well. It
-does, however, require using ``(funcall func arg ... )`` like CL to call
-``lambdas``/``match-lambdas`` (funs) bound to variables.
-
-Core solves this by having separate bindings and special to
-have only one apply:
+Variables are lexically scoped and bound by ``lambda``,
+``match-lambda`` and ``let`` forms. All variables which are bound
+within these forms shadow variables bound outside but other variables
+occurring in the bodies of these forms will be imported from the
+surrounding environments.No variables are exported out of the form. So
+for example the following function:
 
 ```
-    apply _F (...) and apply _F/3 ( a1, a2, a3 ).
+(defun foo (x y z)
+  (let ((x (zip y)))
+    (zap x z))
+  (zop x y))
 ```
 
+The variable ``y`` in the call ``(zip y)`` comes from the function
+arguments. However, the ``x`` bound in the ``let`` will shadow the
+``x`` from the arguments so in the call ``(zap x z)`` the ``x`` is
+bound in the ``let`` while the ``z`` comes from the function
+arguments. In the final ``(zop x y)`` both ``x`` and ``y`` come from
+the function arguments as the ``let`` does not export ``x``.
 
-# Function shadowing
+# Function Binding and Scoping
+
+Functions are lexically scoped and bound by the top-level ``defun``
+and by the macros ``flet`` and ``fletrec``. LFE is a Lisp-2 so
+functions and variables have separate namespaces and when searching
+for function both name and arity are used. This means that when
+calling a function which has been bound to a variable using ``(funcall
+func-var arg ...)`` is required to call ``lambda``/``match-lambda``
+bound to a variable or used as a value.
 
 Unqualified functions shadow as stated above which results in the
 following order within a module, outermost to innermost:
 
-* Predefined BIFs (same as in vanilla Erlang)
+* Predefined Erlang BIFs
 * Predefined LFE BIFs
 * Imports
 * Top-level defines
 * Flet/fletrec
+* Core forms, these can never be shadowed
 
 This means that it is perfectly legal to shadow BIFs by imports,
 BIFs/imports by top-level functions and BIFs/imports/top-level by
@@ -817,6 +830,9 @@ the following will be generated:
   using LFE with Mnesia, as the record field names don't have to be
   provided manually in the create_table call.
 
+* ``(size-person)`` -
+  Returns the size of the record tuple.
+
 # Binaries/bitstrings
 
 A binary is
@@ -935,7 +951,7 @@ stop extraction. Using a guard is probably not what you want!
 Normal vanilla Erlang does the same thing but does not allow guards.
 
 
-## ETS and Mnesia
+# ETS and Mnesia
 
 Apart from ``(emp-record ...)`` macros for ETS Match Patterns, which are
 also valid in Mnesia, LFE also supports match specifications and Query
@@ -1080,134 +1096,6 @@ needs to access then we could evaluate it by calling:
 (eval `(let ((foo ,foo)) ,expr))
 ```
 
-## Supplemental Common Lisp Functions
-
-LFE provides the module cl which contains the following functions
-which closely mirror functions defined in the Common Lisp
-Hyperspec. Note that the following functions use zero-based indices,
-like Common Lisp. A major difference is that the boolean values are
-the LFE 'true and 'false. Otherwise the definitions closely follow the
-CL definitions and won't be documented here.
-
-```
-cl:make-lfe-bool cl-value
-cl:make-cl-bool lfe-bool
-
-cl:mapcar  function  list
-cl:maplist  function  list
-cl:mapc  function  list
-cl:mapl  function  list
-
-cl:symbol-plist  symbol
-cl:symbol-name  symbol
-cl:get  symbol  pname
-cl:get  symbol  pname  default
-cl:getl  symbol  pname-list
-cl:putprop  symbol  value  pname
-cl:remprop  symbol  pname
-
-cl:getf  plist  pname
-cl:getf  plist  pname  default
-cl:putf  plist  value  pname            This does not exist in CL
-cl:remf  plist  pname
-cl:get-properties  plist  pname-list
-
-cl:elt  index  sequence
-cl:length  sequence
-cl:reverse  sequence
-cl:some  predicate  sequence
-cl:every  predicate  sequence
-cl:notany  predicate  sequence
-cl:notevery  predicate  sequence
-cl:reduce  function  sequence
-cl:reduce  function  sequence  'initial-value  x
-cl:reduce  function  sequence  'from-end  'true
-cl:reduce  function  sequence  'initial-value  x  'from-end  'true
-
-cl:remove  item  sequence
-cl:remove-if  predicate  sequence
-cl:remove-if-not  predicate  sequence
-cl:remove-duplicates  sequence
-
-cl:find  item  sequence
-cl:find-if  predicate  sequence
-cl:find-if-not  predicate  sequence
-cl:find-duplicates  sequence
-cl:position  item  sequence
-cl:position-if  predicate  sequence
-cl:position-if-not  predicate  sequence
-cl:position-duplicates  sequence
-cl:count  item  sequence
-cl:count-if  predicate  sequence
-cl:count-if-not  predicate  sequence
-cl:count-duplicates  sequence
-
-cl:car  list
-cl:first  list
-cl:cdr  list
-cl:rest  list
-cl:nth  index  list
-cl:nthcdr  index  list
-cl:last  list
-cl:butlast  list
-
-cl:subst  new  old  tree
-cl:subst-if  new  test  tree
-cl:subst-if-not  new  test  tree
-cl:sublis  alist  tree
-
-cl:member  item  list
-cl:member-if  predicate  list
-cl:member-if-not  predicate  list
-cl:adjoin  item  list
-cl:union  list  list
-cl:intersection  list  list
-cl:set-difference  list  list
-cl:set-exclusive-or  list  list
-cl:subsetp  list  list
-
-cl:acons  key  data  alist
-cl:pairlis  list  list
-cl:pairlis  list  list  alist
-cl:assoc  key  alist
-cl:assoc-if  predicate  alost
-cl:assoc-if-not  predicate  alost
-cl:rassoc  key  alist
-cl:rassoc-if  predicate  alost
-cl:rassoc-if-not  predicate  alost
-
-cl:type-of  object
-cl:coerce  object  type
-```
-
-Furthmore, there is an include file which developers may which to utilize in
-their LFE programs: ``(include-lib "lfe/include/cl.lfe")``. Currently this offers
-Common Lisp predicates, but may include other useful macros and functions in
-the future. The provided predicate macros wrap the various ``is_*`` Erlang
-functions; since these are expanded at compile time, they are usable in guards.
-The include the following:
-
-```
-(alivep x)
-(atomp x)
-(binaryp x)
-(bitstringp x)
-(boolp x) and (booleanp x)
-(builtinp x)
-(floatp x)
-(funcp x) and (functionp x)
-(intp x) and (integerp x)
-(listp x)
-(mapp x)
-(numberp x)
-(pidp x)
-(process-alive-p x)
-(recordp x tag)
-(recordp x tag size)
-(refp x) and (referencep x)
-(tuplep x)
-```
-
 # Notes
 
 * NYI - Not Yet Implemented
@@ -1216,4 +1104,4 @@ The include the following:
 
 # SEE ALSO
 
-**lfe(1)**, **lfescript(1)**
+**lfe(1)**, **lfescript(1)**, **lfe_cl(3)**

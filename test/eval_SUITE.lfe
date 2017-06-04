@@ -24,13 +24,13 @@
   (export (all 0) (suite 0) (groups 0) (init_per_suite 1) (end_per_suite 1)
       (init_per_group 2) (end_per_group 2)
       ;; (init_per_testcase 2) (end_per_testcase 2)
-      (guard_1 1) (binary_1 1) (binding_1 1)))
+      (guard_1 1) (binary_1 1) (let_1 1) (binding_1 1)))
 
 (defmacro MODULE () `'eval_SUITE)
 
 (defun all ()
   ;; (: test_lib recompile (MODULE))
-  (list 'guard_1 'binary_1 'binding_1))
+  (list 'guard_1 'let_1 'binary_1 'binding_1))
 
 ;;(defun suite () (list (tuple 'ct_hooks (list 'ts_install_cth))))
 (defun suite () ())
@@ -50,13 +50,26 @@
   (['doc] '"Guard tests.")
   ([config] (when (is_list config))
    (line (test-pat 'no (eval `(case 42
-                (42 (when (== (+ 'a 4) 4)) 'yes)
-                (42 'no)))))
+                                (42 (when (== (+ 'a 4) 4)) 'yes)
+                                (42 'no)))))
    (line (test-pat 'no (eval `(case 42
-                (42 (when (== (+ 6 4) 4)) 'yes)
-                (42 'no)))))
+                                (42 (when (== (+ 6 4) 4)) 'yes)
+                                (42 'no)))))
 
    'ok))
+
+(defun let_1
+  (['suite] ())
+  (['doc] '"Test let bindings.")
+  ([config] (when (is_list config))
+   (let ((env (default-env)))
+     (line (test-pat (list 2 3)
+                     (eval `(let ((x (length '(a b)))
+                                  (y (tuple_size (date))))
+                              (list x y)) env)))
+     ;; Access variables in the environment.
+     (line (test-pat 85 (eval `(let ((x sune)) (+ x bert)) env)))
+     'ok)))
 
 (defun binary_1
   (['suite] ())
@@ -89,13 +102,26 @@
   (['suite] ())
   (['doc] '"Test function bindings.")
   ([config] (when (is_list config))
-   (let (((1 2)
-          (funcall (: lfe_eval expr
-                     '(lambda () (foo 1 2))
-                     ;; We evaluate the above lambda form in a new
-                     ;; environment that contains a binding for the
-                     ;; function foo/2.
-                     (: lfe_eval add_lexical_func
-                       'foo 2 (lambda (a b) (list a b))
-                       (: lfe_env new))))))
-     'ok)))
+   (let ((env (default-env)))
+     ;; We evaluate forms in a new environment that contains a binding
+     ;; for the function foo/2.
+     (line (test-pat (list 1 2) (eval '(foo 1 2) env)))
+     (line (test-pat (list 1 2)
+                     (funcall (eval '(lambda () (foo 1 2)) env))))
+     )
+   'ok))
+
+;; Define a default environment containing some functions and variables.
+
+(defun default-env ()
+  (: lists foldl
+    (match-lambda
+      ([(list 'add-var n v) e]          ;Bind variable n to v
+       (: lfe_env add_vbinding n v e))
+      ([(list 'add-fun n a d) e]        ;Define function n/a to d
+       (: lfe_eval add_dynamic_func n a d e)))
+    (: lfe_env new)
+    (list '(add-var sune 42)
+          '(add-var bert 43)
+          '(add-fun foo 2 (lambda (a b) (list a b))))))
+

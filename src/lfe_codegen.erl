@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2016 Robert Virding
+%% Copyright (c) 2008-2017 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -22,6 +22,9 @@
 %%% are not as it expects them to be. Note that now the whole
 %%% annotation is passed into the constructor functions, not just the
 %%% line number.
+%%%
+%%% We make temporary variables of the form ' <num> ', which while
+%%% they are not guaranteed to be unique are pretty unlikely.
 
 -module(lfe_codegen).
 
@@ -36,7 +39,7 @@
 -import(orddict, [store/3,find/2]).
 
 -import(lfe_env, [new/0,add_env/2,
-                  add_vbinding/3,get_vbinding/2,add_fbinding/4,get_fbinding/3,
+                  add_vbinding/3,get_vbinding/2,add_fbinding/4,
                   add_ibinding/5,get_gbinding/3]).
 
 -include("lfe_comp.hrl").
@@ -55,6 +58,7 @@
              imps=[],                           %Imports (orddict)
              pref=[],                           %Prefixes
              atts=[],                           %Attrubutes
+             mets=[],                           %Metadata
              defs=[],                           %Function definitions.
              env=[],                            %Environment
              anno=[],                           %Current annotation
@@ -85,25 +89,48 @@ compile_module(Mfs, St0) ->
 %%  module data into state.
 
 collect_module(Mfs, St0) ->
-    {Acc,St1} = lists:foldl(fun collect_form/2, {[],St0}, Mfs),
-    {lists:reverse(Acc),St1}.
+    {Fds,St1} = lists:foldl(fun collect_form/2, {[],St0}, Mfs),
+    {lists:reverse(Fds),St1}.
 
-%% collect_form(Form, Line, State} -> {[Ret],State}.
+%% collect_form(Form, Line, State} -> {FuncDefs,State}.
 %%  Collect valid forms and module data. Returns forms and put module
 %%  data into state.
 
-collect_form({['define-module',Mod,_Meta,Atts],L}, {Acc,St}) ->
-    %% Ignore the meta data, everything else into State.
-    {Acc,collect_attrs(Atts, L, St#cg{module=Mod,anno=[L]})};
-collect_form({['extend-module',_Meta,Atts],L}, {Acc,St}) ->
-    %% Ignore the meta data, everything else into State.
-    {Acc,collect_attrs(Atts, L, St#cg{anno=[L]})};
-collect_form({['define-function',Name,_Meta,Def],L}, {Acc,St}) ->
+collect_form({['define-module',Mod,Metas,Atts],L}, {Fds,St0}) ->
+    St1 = collect_metas(Metas, L, St0#cg{module=Mod,anno=[L]}),
+    {Fds,collect_attrs(Atts, L, St1)};
+collect_form({['extend-module',Meta,Atts],L}, {Fds,St0}) ->
+    St1 = collect_metas(Meta, L, St0#cg{anno=[L]}),
+    {Fds,collect_attrs(Atts, L, St1)};
+collect_form({['define-type',Type,Def],L}, {Fds,St}) ->
+    {Fds,collect_meta([type,[Type,Def]], L, St#cg{anno=[L]})};
+collect_form({['define-opaque-type',Type,Def],L}, {Fds,St}) ->
+    {Fds,collect_meta([opaque,[Type,Def]], L, St#cg{anno=[L]})};
+collect_form({['define-function-spec',Func,Spec],L}, {Fds,St}) ->
+    {Fds,collect_meta([spec,[Func,Spec]], L, St#cg{anno=[L]})};
+collect_form({['define-function',Name,_Meta,Def],L}, {Fds,St}) ->
     %% Ignore the meta data.
-    {[{Name,Def,L}|Acc],St};
+    {[{Name,Def,L}|Fds],St};
 %% Ignore macro definitions and eval-when-compile forms.
-collect_form({['define-macro'|_],_}, {Acc,St}) -> {Acc,St};
-collect_form({['eval-when-compile'|_],_}, {Acc,St}) -> {Acc,St}.
+collect_form({['define-macro'|_],_}, {Fds,St}) -> {Fds,St};
+collect_form({['eval-when-compile'|_],_}, {Fds,St}) -> {Fds,St}.
+
+%% collect_metas(Metas, Line, State) -> State.
+%%  Collect module metadata which is to be compiled. Only type
+%%  information is to be kept.
+
+collect_metas(Ms, L, St) ->
+    foldl(fun (M, S) -> collect_meta(M, L, S) end, St, Ms).
+
+collect_meta([type|Tds], L, #cg{mets=Ms}=St) ->
+    St#cg{mets=Ms ++ [{type,Tds,L}]};
+collect_meta([opaque|Tds], L, #cg{mets=Ms}=St) ->
+    St#cg{mets=Ms ++ [{opaque,Tds,L}]};
+collect_meta([spec|Sps], L, #cg{mets=Ms}=St) ->
+    St#cg{mets=Ms ++ [{spec,Sps,L}]};
+collect_meta([record|Rds], L, #cg{mets=Ms}=St) ->
+    St#cg{mets=Ms ++ [{record,Rds,L}]};
+collect_meta(_M, _L, St) -> St.                 %Ignore the rest
 
 %% collect_attrs(Attributes, Line, State) -> State.
 %%  Collect module attributes and fill in the #cg state record. Need
@@ -164,15 +191,21 @@ compile_forms(Fbs0, St0, Core0) ->
     St1 = St0#cg{exps=add_exports(St0#cg.exps, Predefs),
                  defs=Fbs1,env=Env},
     Exps = make_exports(St1#cg.exps, Fbs1),
-    Atts = map(fun ({N,V,L}) ->
-                       Ann = [L],
-                       {ann_c_lit(Ann, N),ann_c_lit(Ann, V)}
+    Atts = map(fun (Attr) ->
+                       %% io:format("ca: ~p\n", [Attr]),
+                       comp_attribute(Attr)
                end, St1#cg.atts),
+    Mets = map(fun (Meta) ->
+                       %% io:format("cm: ~p\n", [Meta]),
+                       comp_metadata(Meta)
+               end, St1#cg.mets),
+    %% Both the attributes and saved metadata end up in the attributes.
+    Catts = Mets ++ Atts,
     %% Compile the functions.
     {Cdefs,St2} = mapfoldl(fun (D, St) -> comp_define(D, Env, St) end,
                            St1, St1#cg.defs),
     %% Build the final core module structure.
-    Core1 = update_c_module(Core0, c_atom(St2#cg.module), Exps, Atts, Cdefs),
+    Core1 = update_c_module(Core0, c_atom(St2#cg.module), Exps, Catts, Cdefs),
     %% Maybe print lots of debug info.
     ?DEBUG("#cg: ~p\n", [St2], St2#cg.opts),
     ?DEBUG("core_lint: ~p\n", [(catch core_lint:module(Core1))], St2#cg.opts),
@@ -200,6 +233,82 @@ make_exports(all, Fbs) ->
 make_exports(Exps, _) ->
     map(fun ({F,A}) -> c_fname(F, A) end, Exps).
 
+%% comp_attribute(Attribute) -> CoreAttr.
+%%  Compile attributes.
+
+comp_attribute({N,V,Line}) ->
+    Ann = [Line],
+    {ann_c_lit(Ann, N),ann_c_lit(Ann, V)}.
+
+%% comp_metadata(Metadata) -> CoreAttr.
+%%  Compile metadata handling the special cases.
+
+comp_metadata({type,Types,Line}) ->
+    comp_type_metadata(type, Types, Line);
+comp_metadata({opaque,Types,Line}) ->
+    comp_type_metadata(opaque, Types, Line);
+comp_metadata({spec,Specs,Line}) ->
+    comp_spec_metadata(Specs, Line);
+comp_metadata({record,Records,Line}) ->
+    comp_record_metadata(Records, Line);
+comp_metadata({N,V,Line}) ->
+    Ann = [Line],
+    {ann_c_lit(Ann, N),ann_c_lit(Ann, V)}.
+
+comp_type_metadata(Attr, Types, Line) ->
+    Ann = [Line],
+    Tfun = fun ([[Type|Args],Def]) ->
+                   {Type,
+                    lfe_types:to_type_def(Def, Ann),
+                    lfe_types:to_type_defs(Args, Ann)}
+           end,
+    Tdefs = [ Tfun(Type) || Type <- Types ],
+    {ann_c_lit(Ann, Attr),ann_c_lit(Ann, Tdefs)}.
+
+comp_spec_metadata(Specs, Line) ->
+    Ann = [Line],
+    Sfun = fun ([[N,Ar],Spec]) ->
+                   {{N,Ar},lfe_types:to_func_spec_list(Spec, Ann)}
+           end,
+    Fspecs = [ Sfun(Spec) || Spec <- Specs ],
+    {ann_c_lit(Ann, spec),ann_c_lit(Ann, Fspecs)}.
+
+%% comp_record_metadata(Records, Line) -> Metadata.
+%%  Format depends on whether 18 and older or newer.
+
+-ifdef(NEW_REC_CORE).
+comp_record_metadata(Recs, Line) ->
+    Ann = [Line],
+    Rfun = fun ([Name|Fields]) ->
+                   {Name,[ comp_record_field(Fdef, Ann) || Fdef <- Fields ]}
+           end,
+    Rs = [ Rfun(Rec) || Rec <- Recs ],
+    {ann_c_lit(Ann, record),ann_c_lit(Ann, Rs)}.
+-else.
+comp_record_metadata(Recs, Line) ->
+    Ann = [Line],
+    Rfun = fun ([Name|Fields]) ->
+                   {{record,Name},
+                    [ comp_record_field(Fdef, Ann) || Fdef <- Fields ]}
+           end,
+    Rs = [ Rfun(Rec) || Rec <- Recs ],
+    {ann_c_lit(Ann, type),ann_c_lit(Ann, Rs)}.
+-endif.
+
+comp_record_field([F,D,T], Ann) ->
+    {typed_record_field,
+     comp_untyped_field([F,D], Ann),
+     lfe_types:to_type_def(T, Ann)};
+comp_record_field(Fd, Ann) ->
+    comp_untyped_field(Fd, Ann).
+
+comp_untyped_field([F,?Q(undefined)], Ann) ->   %No need for undefined default
+    {record_field,Ann,{atom,Ann,F}};
+comp_untyped_field([F,D], Ann) ->
+    {record_field,Ann,{atom,Ann,F},lfe_trans:to_expr(D, Ann)};
+comp_untyped_field(F, Ann) ->
+    {record_field,Ann,{atom,Ann,F}}.
+
 %% comp_define(DefForm, Env, State) -> {Corefunc,State}.
 %%  Compile a top-level define. Sets current function name. Be careful
 %%  with annotations as dialyzer then sometimes goes crazy.
@@ -219,9 +328,14 @@ comp_body([E|Es], Env, L, St0) ->
     {append_c_seq(Ce, Cb, L),St2};              %Flatten nested sequences
 comp_body([], _, _, St) -> {c_nil(),St}.        %Empty body returns []
 
+%% append_c_seq(Expr, Body, Line) -> {CoreBody}.
+%%  Create a c_seq with Expr and Body by appending Body to the end of
+%%  Expr c_seq chain if there is one. We get flat sequence.
+
 append_c_seq(Ce, Cb, L) ->
     case is_c_seq(Ce) of
-        true -> update_c_seq(Ce, seq_arg(Ce), seq_body(Ce));
+        true ->
+            update_c_seq(Ce, seq_arg(Ce), append_c_seq(seq_body(Ce), Cb, L));
         false -> ann_c_seq([L], Ce, Cb)
     end.
 
@@ -234,9 +348,9 @@ comp_expr([cons,H,T], Env, L, St) ->
     Cons = fun ([Ch,Ct], _, _, Sta) -> {c_cons(Ch, Ct),Sta} end,
     comp_args([H,T], Cons, Env, L, St);
 comp_expr([car,E], Env, L, St) ->               %Provide lisp names
-    comp_expr([hd,E], Env, L, St);
+    comp_bif_call(hd, [E], Env, L, St);
 comp_expr([cdr,E], Env, L, St) ->
-    comp_expr([tl,E], Env, L, St);
+    comp_bif_call(tl, [E], Env, L, St);
 comp_expr([list|Es], Env, L, St) ->
     List = fun (Ces, _, _, Sta) ->
                    {foldr(fun (E, T) -> c_cons(E, T) end, c_nil(), Ces),Sta}
@@ -245,6 +359,10 @@ comp_expr([list|Es], Env, L, St) ->
 comp_expr([tuple|As], Env, L, St) ->
     Args = fun (Args, _, _, Sta) -> {c_tuple(Args),Sta} end,
     comp_args(As, Args, Env, L, St);
+comp_expr([tref,Tup,I], Env, L, St) ->
+    comp_bif_call(element, [I,Tup], Env, L, St);
+comp_expr([tset,Tup,I,V], Env, L, St) ->
+    comp_bif_call(setelement, [I,Tup,V], Env, L, St);
 comp_expr([binary|Segs], Env, L, St) ->
     comp_binary(Segs, Env, L, St);              %And bitstring as well
 comp_expr([map|As], Env, L, St) ->
@@ -269,7 +387,7 @@ comp_expr([function,F,Ar], Env, L, St) ->
     comp_lambda(Args, Body, Env, L, St);
 comp_expr([function,M,F,Ar], Env, L, St) ->
     %% The arguments are all literals.
-    comp_expr([call,?Q(erlang),?Q(make_fun),?Q(M),?Q(F),Ar], Env, L, St);
+    comp_bif_call(make_fun, [?Q(M),?Q(F),Ar], Env, L, St);
 %% Handle the Core closure special forms.
 comp_expr([lambda,Args|Body], Env, L, St) ->
     comp_lambda(Args, Body, Env, L, St);
@@ -315,7 +433,7 @@ comp_expr([Fun|As], Env, L, St) when is_atom(Fun) ->
                    Ar = length(Cas),
                    Ann = line_file_anno(Li, Sta),
                    case get_fbinding(Fun, Ar, En) of
-                       {yes,M,F} ->             %Import
+                       {yes,M,F} ->             %BIF or import
                            {ann_c_call(Ann, c_atom(M), c_atom(F), Cas),Sta};
                        {yes,Name} ->
                            %% Might have been renamed, use real function name.
@@ -331,6 +449,37 @@ comp_expr(Symb, _, _, St) when is_atom(Symb) ->
 %% Everything is a literal constant (nil, tuples, numbers, binaries, maps).
 comp_expr(Const, _, _, St) ->
     {comp_lit(Const),St}.
+
+%% get_fbinding(NAme, Arity, Env) ->
+%%     {yes,Module,Fun} | {yes,Binding} | no.
+%%  Get the function binding. Locally bound function takes precedence
+%%  over auto-imported BIFs.
+
+get_fbinding(Name, Ar, Env) ->
+    case lfe_env:get_fbinding(Name, Ar, Env) of
+        {yes,_,_}=Yes -> Yes;                   %Imported function
+        {yes,_}=Yes -> Yes;                     %Bound function
+        no ->
+            case lfe_internal:is_lfe_bif(Name, Ar) of
+                true -> {yes,lfe,Name};         %Auto-imported LFE BIF
+                false ->
+                    case lfe_internal:is_erl_bif(Name, Ar) of
+                        true ->                 %Auto-imported Erlang BIF
+                            {yes,erlang,Name};
+                        false -> no
+                    end
+            end
+    end.
+
+%% comp_bif_call(Bif, Args, Env, Line, State) -> {Call,State}.
+%%  Call a BIF in the erlang module.
+
+comp_bif_call(Bif, As, Env, L, St) ->
+    Call = fun(Cas, _, Li, Sta) ->
+                   Ann = line_file_anno(Li, Sta),
+                   {ann_c_call(Ann, c_atom(erlang), c_atom(Bif), Cas),Sta}
+           end,
+    comp_args(As, Call, Env, L, St).
 
 %% comp_args(Args, CallFun, Env, Line, State) -> {Call,State}.
 %%  Sequentialise the evaluation of Args building the Call at the
@@ -364,17 +513,18 @@ simple_seq([], Then, Ses, Env, L, St) ->
 %% comp_lambda(Args, Body, Env, Line, State) -> {c_fun(),State}.
 %%  Compile a (lambda (...) ...).
 
-comp_lambda(Args, Body, Env, L, St0) ->
-    {Cvs,Pvs,St1} = comp_lambda_args(Args, L, St0),
-    {Cb,St2} = comp_body(Body, add_vbindings(Pvs, Env), L, St1),
+comp_lambda(Args, Body0, Env, L, St0) ->
+    {Cvs,Pvs,Ts,St1} = comp_lambda_args(Args, L, St0),
+    Body1 = add_guard_tests(Ts, Body0),
+    {Cb,St2} = comp_body(Body1, add_vbindings(Pvs, Env), L, St1),
     Ann = line_file_anno(L, St2),
     {ann_c_fun(Ann, Cvs, Cb),St2}.
 
 comp_lambda_args(Args, L, St) ->
-    foldr(fun (A, {Cvs,Pvs0,St0}) ->
-                  {Cv,Pvs1,St1} = pat_symb(A, L, Pvs0, St0),
-                  {[Cv|Cvs],Pvs1,St1}
-          end, {[],[],St}, Args).
+    foldr(fun (A, {Cvs,Pvs0,Ts0,St0}) ->
+                  {Cv,Pvs1,Ts1,St1} = pat_symb(A, L, Pvs0, Ts0, St0),
+                  {[Cv|Cvs],Pvs1,Ts1,St1}
+          end, {[],[],[],St}, Args).
 
 %% lambda_arity([Args|_]) -> length(Args).
 
@@ -410,65 +560,67 @@ comp_match_clauses(Cls, Env, L, St) ->
 %%  arguments. This must be compiled to a list of patterns not a
 %%  pattern with a list!
 
-comp_match_clause([Pats|Body], Env0, L, St0) ->
-    Pfun = fun (P, {Psvs,Sta}) ->
-                   {Cp,Pvs,Stb} = pattern(P, L, Sta),
-                   {Cp,{union(Pvs, Psvs),Stb}}
+comp_match_clause([Pats|Body0], Env0, L, St0) ->
+    Pfun = fun (P, {Pvsa,Vtsa,Sta}) ->
+                   {Cp,Pvsb,Vtsb,Stb} = pattern(P, L, Pvsa, Vtsa, Sta),
+                   {Cp,{Pvsb,Vtsb,Stb}}
            end,
-    {Cps,{Pvs,St1}} = mapfoldl(Pfun, {[],St0}, Pats),
+    {Cps,{Pvs,Vts,St1}} = mapfoldl(Pfun, {[],[],St0}, Pats),
+    %% io:format("~p\n", [{Cps,Vts}]),
     Env1 = add_vbindings(Pvs, Env0),
-    {Cg,Cb,St2} = comp_clause_body(Body, Env1, L, St1),
+    Body1 = add_guard_tests(Vts, Body0),
+    {Cg,Cb,St2} = comp_clause_body(Body1, Env1, L, St1),
     Ann = line_file_anno(L, St2),
     {ann_c_clause(Ann, Cps, Cg, Cb),St2}.
 
+add_guard_tests([], Body) -> Body;
+add_guard_tests(Ts, [['when'|Guard]|Body]) ->
+    [['when'|Ts ++ Guard]|Body];
+add_guard_tests(Ts, Body) ->
+    [['when'|Ts]|Body].
+
 %% comp_let(VarBindings, Body, Env, L, State) -> {c_let()|c_case(),State}.
-%%  Compile a let expr. We are a little cunning in that we specialise
-%%  the the case where all the patterns are variables and there are no
-%%  guards, the simple case.
+%%  Compile a let expr. First evaluate all the value expressions in
+%%  parallel so they don't inherit variables, then build nested cases
+%%  to do matching optimising case where value bound to variable. Use
+%%  nested cases so match fail only give one value. Probably not worth
+%%  the effort as optimiser would do it.
 
 comp_let(Vbs, B, Env, L, St0) ->
-    %% Test if this is a simple let, i.e. no matching.
-    Simple = all(fun ([Pat,_]) -> is_atom(Pat);
-                     (_) -> false               %Has guard
-                 end, Vbs),
-    case Simple of
-        true ->
-            %% This is not really necessary, but fun.
-            {Cvs,Pvs,St1} = comp_lambda_args([ V || [V|_] <- Vbs ], L, St0),
-            Efun = fun ([_,E], St) -> comp_expr(E, Env, L, St) end,
-            {Ces,St2} = mapfoldl(Efun, St1, Vbs),
-            {Cb,St3} = comp_body(B, add_vbindings(Pvs, Env), L, St2),
-            {ann_c_let([L], Cvs, ann_c_values([L], Ces), Cb),St3};
-        false ->
-            %% This would be much easier to do by building a clause
-            %% and compiling it directly, but then we would have to
-            %% build a tuple to hold all values.
-            Pfun = fun ([P|_], {Psvs,Sta}) ->
-                           {Cp,Pvs,Stb} = pattern(P, L, Sta),
-                           {Cp,{union(Pvs, Psvs),Stb}}
-                   end,
-            {Cps,{Pvs,St1}} = mapfoldl(Pfun, {[],St0}, Vbs),
-            %% Build a sequence of guard tests.
-            Gfun = fun ([_,['when'|G]|_], Cgs) -> G ++ Cgs;
-                       (_, Cgs) -> Cgs
-                   end,
-            Gs = foldr(Gfun, [], Vbs),
-            Efun = fun ([_,_,E], St) -> comp_expr(E, Env, L, St);
-                       ([_,E], St) -> comp_expr(E, Env, L, St)
-                   end,
-            {Ces,St2} = mapfoldl(Efun, St1, Vbs),
-            Env1 = add_vbindings(Pvs, Env),
-            {Cg,St3} = comp_guard(Gs, Env1, L, St2),
-            {Cb,St4} = comp_body(B, Env1, L, St3),
-            {Cvs,St5} = new_c_vars(length(Ces), L, St4),
-            Cf = let_fail(Cvs, L, St5),
-            {ann_c_case([L], ann_c_values([L], Ces),
-                        [ann_c_clause([L], Cps, Cg, Cb),Cf]),
-             St5}
-    end.
+    {Cvs,Ces,Cms,St1} = comp_let_vbs(Vbs, Env, L, St0),
+    {Cb,St2} = comp_let_body(Cms, B, add_vbindings(Cvs, Env), L, St1),
+    %% Build nesting let which evaluates expressions first.
+    {ann_c_let([L], Cvs, ann_c_values([L], Ces), Cb),St2}.
 
-let_fail(Cvs, L, St) ->
-    fail_clause(Cvs, c_tuple([c_atom(badmatch),c_tuple(Cvs)]), [], L, St).
+comp_let_vbs(Vbs, Env, L, St) ->
+    Fun = fun ([V,E], {Cvs,Ces,Cms,St0}) when is_atom(V) ->
+                  {Ce,St1} = comp_expr(E, Env, L, St0),
+                  {[c_var(V)|Cvs],[Ce|Ces],Cms,St1};
+              ([P,E], {Cvs,Ces,Cms,St0}) ->
+                  {V,St1} = new_var(St0),
+                  {Ce,St2} = comp_expr(E, Env, L, St1),
+                  {[c_var(V)|Cvs],[Ce|Ces],[{P,[],V}|Cms],St2};
+              ([P,['when'|G],E], {Cvs,Ces,Cms,St0}) ->
+                  {V,St1} = new_var(St0),
+                  {Ce,St2} = comp_expr(E, Env, L, St1),
+                  {[c_var(V)|Cvs],[Ce|Ces],[{P,G,V}|Cms],St2}
+          end,
+    lists:foldr(Fun, {[],[],[],St}, Vbs).
+
+comp_let_body([{P,G,V}|Cms], B, Env0, L, St0) ->
+    Cv = c_var(V),
+    {Cp,Pvs,Vts,St1} = pattern(P, L, St0),
+    Env1 = add_vbindings(Pvs, Env0),
+    {Cg,St2} = comp_guard(Vts ++ G, Env1, L, St1),
+    {Cb,St3} = comp_let_body(Cms, B, Env1, L, St2),
+    Cf = let_fail(Cv, L, St3),
+    {ann_c_case([L], Cv, [ann_c_clause([L], [Cp], Cg, Cb),Cf]),St3};
+comp_let_body([], B, Env, L, St0) ->
+    {Cb,St1} = comp_body(B, Env, L, St0),
+    {Cb,St1}.
+
+let_fail(Cv, L, St) ->
+    fail_clause([Cv], c_tuple([c_atom(badmatch),Cv]), [], L, St).
 
 %% comp_let_function(FuncBindngs, Body, Env, Line, State) ->
 %%      {c_letrec(),State}.
@@ -610,10 +762,11 @@ rec_clauses([], _, _, St) ->
 %% comp_clause(Clause, Env, Line, State) -> {c_clause(),State}.
 %%  This is a case/receive clause where the is only one pattern.
 
-comp_clause([Pat|Body], Env0, L, St0) ->
-    {Cp,Pvs,St1} = pattern(Pat, L, St0),
+comp_clause([Pat|Body0], Env0, L, St0) ->
+    {Cp,Pvs,Vts,St1} = pattern(Pat, L, St0),
     Env1 = add_vbindings(Pvs, Env0),
-    {Cg,Cb,St2} = comp_clause_body(Body, Env1, L, St1),
+    Body1 = add_guard_tests(Vts, Body0),
+    {Cg,Cb,St2} = comp_clause_body(Body1, Env1, L, St1),
     {ann_c_clause([L], [Cp], Cg, Cb),St2}.
 
 comp_clause_body([['when'|Guard]|Body], Env, L, St0) ->
@@ -974,9 +1127,9 @@ comp_gexpr([cons,H,T], Env, L, St0) ->
     Cons = fun ([Ch,Ct], _, _, St1) -> {c_cons(Ch, Ct),St1} end,
     comp_gargs([H,T], Cons, Env, L, St0);
 comp_gexpr([car,E], Env, L, St) ->              %Provide lisp names
-    comp_gexpr([hd,E], Env, L, St);
+    comp_gcall(hd, [E], Env, L, St);
 comp_gexpr([cdr,E], Env, L, St) ->
-    comp_gexpr([tl,E], Env, L, St);
+    comp_gcall(tl, [E], Env, L, St);
 comp_gexpr([list|Es], Env, L, St0) ->
     List = fun (Ces, _, _, St1) ->
                    {foldr(fun (E, T) -> c_cons(E, T) end, c_nil(), Ces),St1}
@@ -985,18 +1138,11 @@ comp_gexpr([list|Es], Env, L, St0) ->
 comp_gexpr([tuple|As], Env, L, St0) ->
     Tuple = fun (Args, _, _, St1) -> {c_tuple(Args),St1} end,
     comp_gargs(As, Tuple, Env, L, St0);
+comp_gexpr([tref,Tup,I], Env, L, St) ->
+    comp_gcall(element, [I,Tup], Env, L, St);
 comp_gexpr([binary|Segs], Env, L, St) ->
     comp_binary(Segs, Env, L, St);              %And bitstring as well
-comp_gexpr([map|As], Env, L, St) ->
-    comp_map(As, Env, L, St);
-comp_gexpr(['mset',Map|As], Env, L, St) ->
-    comp_set_map(Map, As, Env, L, St);
-comp_gexpr(['mupd',Map|As], Env, L, St) ->
-    comp_upd_map(Map, As, Env, L, St);
-comp_gexpr(['map-set',Map|As], Env, L, St) ->
-    comp_gexpr(['mset',Map|As], Env, L, St);
-comp_gexpr(['map-update',Map|As], Env, L, St) ->
-    comp_gexpr(['mupd',Map|As], Env, L, St);
+%% Map operations are not allowed in guards.
 %% Handle the Core closure special forms.
 %% (let-syntax ...) should never be seen here!
 %% Handle the Core control special forms.
@@ -1005,21 +1151,25 @@ comp_gexpr(['progn'|Body], Env, L, St) ->
 comp_gexpr(['if'|Body], Env, L, St) ->
     comp_gif(Body, Env, L, St);
 comp_gexpr([call,[quote,erlang],[quote,Fun]|As], Env, L, St) ->
-    comp_gexpr([Fun|As], Env, L, St);           %Pass the buck
-%% Finally the general case.
+    comp_gcall(Fun, As, Env, L, St);
+%% Finally the not so general case.
 comp_gexpr([Fun|As], Env, L, St) ->
-    Call = fun (Cas, En, Li, Sta) ->
-                   Ar = length(Cas),
-                   {yes,M,F} = get_gbinding(Fun, Ar, En),
-                   Ann = line_file_anno(Li, Sta),
-                   {ann_c_call(Ann, c_atom(M), c_atom(F), Cas),Sta}
-           end,
-    comp_gargs(As, Call, Env, L, St);
+    comp_gcall(Fun, As, Env, L, St);
 comp_gexpr(Symb, _, _, St) when is_atom(Symb) ->
     {c_var(Symb),St};
 %% Everything is a literal constant (nil, tuples, numbers, binaries).
 comp_gexpr(Const, _, _, St) ->
     {comp_lit(Const),St}.
+
+%% comp_gcall(Function, Args, Env, Line, State) -> {Call,State}.
+%%  Only guard BIFs can be called in the guard.
+
+comp_gcall(Fun, As, Env, L, St) ->
+    Call = fun (Cas, _, Li, Sta) ->
+                   Ann = line_file_anno(Li, Sta),
+                   {ann_c_call(Ann, c_atom(erlang), c_atom(Fun), Cas),Sta}
+           end,
+    comp_gargs(As, Call, Env, L, St).
 
 %% comp_gargs(Args, CallFun, Env, Line, State) -> {Call,State}.
 
@@ -1116,66 +1266,74 @@ comp_lit_map_pairs([]) -> [].
 comp_lit_map(_) -> c_lit(map).
 -endif.
 
-%% pattern(Pattern, Line, Status) -> {CorePat,PatVars,State}.
+%% pattern(Pattern, Line, Status) -> {CorePat,PatVars,VarTests,State}.
 %%  Compile a pattern into a Core term. Handle quoted sexprs here
 %%  especially for symbols which then become variables instead of
 %%  atoms.
 
-pattern(Pat, L, St) -> pattern(Pat, L, [], St).
+pattern(Pat, L, St) -> pattern(Pat, L, [], [], St).
 
-pattern([quote,E], _, Vs, St) -> {pat_lit(E),Vs,St};
-pattern(['=',P1,P2], L, Vs0, St0) ->
-    %% Core can only alias against a variable so there is wotk to do!
-    {Cp1,Vs1,St1} = pattern(P1, L, Vs0, St0),
-    {Cp2,Vs2,St2} = pattern(P2, L, Vs0, St1),
+pattern([quote,E], _, Vs, Ts, St) -> {pat_lit(E),Vs,Ts,St};
+pattern(['=',P1,P2], L, Vs0, Ts0, St0) ->
+    %% Core can only alias against a variable so there is work to do!
+    {Cp1,Vs1,Ts1,St1} = pattern(P1, L, Vs0, Ts0, St0),
+    {Cp2,Vs2,Ts2,St2} = pattern(P2, L, Vs0, Ts1, St1),
     Cp = pat_alias(Cp1, Cp2),
-    {Cp,union(Vs1, Vs2),St2};
-pattern([cons,H,T], L, Vs0, St0) ->
-    {Ch,Vs1,St1} = pattern(H, L, Vs0, St0),
-    {Ct,Vs2,St2} = pattern(T, L, Vs1, St1),
-    {c_cons(Ch, Ct),Vs2,St2};
-pattern([list|Ps], L, Vs, St) ->
-    pat_list(Ps, L, Vs, St);
-pattern([tuple|Ps], L, Vs0, St0) ->
-    {Cps,{Vs1,St1}} = mapfoldl(fun (P, {Vsa,Sta}) ->
-                                       {Cp,Vsb,Stb} = pattern(P, L, Vsa, Sta),
-                                       {Cp,{Vsb,Stb}}
-                               end, {Vs0,St0}, Ps),
-    {c_tuple(Cps),Vs1,St1};
-pattern([binary|Segs], L, Vs, St) ->
-    pat_binary(Segs, L, Vs, St);
-pattern([map|As], L, Vs, St) ->
-    pat_map(As, L, Vs, St);
+    {Cp,union(Vs1, Vs2),Ts2,St2};
+pattern([cons,H,T], L, Vs0, Ts0, St0) ->
+    {Ch,Vs1,Ts1,St1} = pattern(H, L, Vs0, Ts0, St0),
+    {Ct,Vs2,Ts2,St2} = pattern(T, L, Vs1, Ts1, St1),
+    {c_cons(Ch, Ct),Vs2,Ts2,St2};
+pattern([list|Ps], L, Vs, Ts, St) ->
+    pat_list(Ps, L, Vs, Ts, St);
+pattern([tuple|Ps], L, Vs0, Ts0, St0) ->
+    Fun = fun (P, {Vsa,Tsa,Sta}) ->
+                  {Cp,Vsb,Tsb,Stb} = pattern(P, L, Vsa, Tsa, Sta),
+                  {Cp,{Vsb,Tsb,Stb}}
+          end,
+    {Cps,{Vs1,Ts1,St1}} = mapfoldl(Fun, {Vs0,Ts0,St0}, Ps),
+    {c_tuple(Cps),Vs1,Ts1,St1};
+pattern([binary|Segs], L, Vs, Ts, St) ->
+    pat_binary(Segs, L, Vs, Ts, St);
+pattern([map|As], L, Vs, Ts, St) ->
+    pat_map(As, L, Vs, Ts, St);
 %% This allows us to use ++ macro in patterns.
 %% pattern([call,[quote,erlang],[quote,'++'],A1,A2], L, Vs, St) ->
 %%     Pat = foldr(fun (H, T) -> [cons,H,T] end, A2, A1),
 %%     pattern(Pat, L, Vs, St);
 %% Compile old no contructor list forms.
-pattern([H|T], L, Vs0, St0) ->
-    {Ch,Vs1,St1} = pattern(H, L, Vs0, St0),
-    {Ct,Vs2,St2} = pattern(T, L, Vs1, St1),
-    {c_cons(Ch, Ct),Vs2,St2};
-pattern([], _, Vs, St) -> {c_nil(),Vs,St};
+pattern([H|T], L, Vs0, Ts0, St0) ->
+    {Ch,Vs1,Ts1,St1} = pattern(H, L, Vs0, Ts0, St0),
+    {Ct,Vs2,Ts2,St2} = pattern(T, L, Vs1, Ts1, St1),
+    {c_cons(Ch, Ct),Vs2,Ts2,St2};
+pattern([], _, Vs, Ts, St) -> {c_nil(),Vs,Ts,St};
 %% Literals.
-pattern(Bin, _, Vs, St) when is_bitstring(Bin) ->
-    {pat_lit(Bin),Vs,St};
-pattern(Tup, _, Vs, St) when is_tuple(Tup) ->
-    {pat_lit(Tup),Vs,St};
-pattern(Symb, L, Vs, St) when is_atom(Symb) ->
-    pat_symb(Symb, L, Vs, St);                  %Variable
-pattern(Numb, _, Vs, St) when is_number(Numb) -> {c_lit(Numb),Vs,St}.
+pattern(Bin, _, Vs, Ts, St) when is_bitstring(Bin) ->
+    {pat_lit(Bin),Vs,Ts,St};
+pattern(Tup, _, Vs, Ts, St) when is_tuple(Tup) ->
+    {pat_lit(Tup),Vs,Ts,St};
+pattern(Symb, L, Vs, Ts,St) when is_atom(Symb) ->
+    pat_symb(Symb, L, Vs, Ts, St);              %Variable
+pattern(Numb, _, Vs, Ts, St) when is_number(Numb) ->
+    {c_lit(Numb),Vs,Ts,St}.
 
-pat_list([P|Ps], L, Vs0, St0) ->
-    {Cp,Vs1,St1} = pattern(P, L, Vs0, St0),
-    {Cps,Vs2,St2} = pat_list(Ps, L, Vs1, St1),
-    {c_cons(Cp, Cps),Vs2,St2};
-pat_list([], _, Vs, St) -> {c_nil(),Vs,St}.
+pat_list([P|Ps], L, Vs0, Ts0, St0) ->
+    {Cp,Vs1,Ts1,St1} = pattern(P, L, Vs0, Ts0, St0),
+    {Cps,Vs2,Ts2,St2} = pat_list(Ps, L, Vs1, Ts1, St1),
+    {c_cons(Cp, Cps),Vs2,Ts2,St2};
+pat_list([], _, Vs, Ts, St) -> {c_nil(),Vs,Ts,St}.
 
-pat_symb('_', L, Vs, St0) ->    %Don't care variable.
+pat_symb('_', L, Vs, Ts, St0) ->                %Don't care variable.
     {Cv,St1} = new_c_var(L, St0),
-    {Cv,Vs,St1};                %Not added to variables
-pat_symb(Symb, _, Vs, St) ->
-    {c_var(Symb),add_element(Symb, Vs),St}.
+    {Cv,Vs,Ts,St1};                             %Not added to variables
+pat_symb(Symb, _, Vs, Ts, St0) ->
+    case is_element(Symb, Vs) of
+        true ->                                 %Replace and add test
+            {New,St1} = new_var(St0),
+            {c_var(New),Vs,[['=:=',Symb,New]|Ts],St1};
+        false ->                                %Just add variable
+            {c_var(Symb),add_element(Symb, Vs),Ts,St0}
+    end.
 
 %% pat_alias(CorePat, CorePat) -> AliasPat.
 %%  Normalise aliases. This has been taken from v3_core.erl in the
@@ -1222,18 +1380,19 @@ pat_alias(Cp1, Cp2) ->
             end
     end.
 
-pat_alias_cons(Cc, Cl) ->
-    case lit_val(Cl) of
+pat_alias_cons(Ccons, Clit) ->
+    case lit_val(Clit) of
         [H|T] ->
             %% Must be sure to build a #c_cons{} here
-            pat_alias(Cc, c_cons_skel(c_lit(H), c_lit(T)));
+            pat_alias(Ccons, c_cons_skel(c_lit(H), c_lit(T)));
         _ -> throw(nomatch)
     end.
 
-pat_alias_tuple(Ct, Cl) ->
-    case lit_val(Cl) of
+pat_alias_tuple(Ctup, Clit) ->
+    case lit_val(Clit) of
         Tup when is_tuple(Tup) ->
-            update_c_tuple(Ct, pat_alias_list(tuple_es(Ct), data_es(Cl)));
+            update_c_tuple(Ctup,
+                           pat_alias_list(tuple_es(Ctup), data_es(Clit)));
         _ -> throw(nomatch)
     end.
 
@@ -1244,61 +1403,63 @@ pat_alias_list([A1|A1s], [A2|A2s]) ->
 pat_alias_list([], []) -> [];
 pat_alias_list(_, _) -> throw(nomatch).
 
-%% pat_binary(Segs, Line, PatVars, State) -> {c_binary(),PatVars,State}.
+%% pat_binary(Segs, Line, PatVars, VarTests, State) ->
+%%     {c_binary(),PatVars,VarTests,State}.
 
-pat_binary(Segs, L, Vs0, St0) ->
+pat_binary(Segs, L, Vs0, Ts0, St0) ->
     Vsps = get_bitsegs(Segs),
-    {Csegs,Vs1,St1} = pat_bitsegs(Vsps, L, Vs0, St0),
-    {ann_c_binary([L], Csegs),Vs1,St1}.
+    {Csegs,Vs1,Ts1,St1} = pat_bitsegs(Vsps, L, Vs0, Ts0, St0),
+    {ann_c_binary([L], Csegs),Vs1,Ts1,St1}.
 
-%% pat_bitsegs(Segs, Line, PatVars, State) -> {CBitsegs,PatVars,State}.
+%% pat_bitsegs(Segs, Line, PatVars, VarTests, State) ->
+%%     {CBitsegs,PatVars,VarTests,State}.
 
-pat_bitsegs(Segs, L, Vs0, St0) ->
-    {Csegs,{Vs1,St1}} =
-        mapfoldl(fun (S, {Vsa,Sta}) ->
-                         {Cs,Vsb,Stb} = pat_bitseg(S, L, Vsa, Sta),
-                         {Cs,{Vsb,Stb}}
-                 end, {Vs0,St0}, Segs),
-    {Csegs,Vs1,St1}.
+pat_bitsegs(Segs, L, Vs0, Ts0, St0) ->
+    {Csegs,{Vs1,Ts1,St1}} =
+        mapfoldl(fun (S, {Vsa,Tsa,Sta}) ->
+                         {Cs,Vsb,Tsb,Stb} = pat_bitseg(S, L, Vsa, Tsa, Sta),
+                         {Cs,{Vsb,Tsb,Stb}}
+                 end, {Vs0,Ts0,St0}, Segs),
+    {Csegs,Vs1,Ts1,St1}.
 
 %% pat_bitseg(Seg, Line, PatVars, State) -> {c_bitstr(),PatVars,State}.
 %%  ??? Should noenv be lfe_env:new() instead ???
 %%  ??? We know its correct so why worry? ???
 
-pat_bitseg({Pat,_,{Ty,_,Si,En}}, L, Vs0, St0)
+pat_bitseg({Pat,_,{Ty,_,Si,En}}, L, Vs0, Ts0, St0)
   when Ty =:= utf8 ; Ty =:= utf16 ; Ty =:= utf32 ->
     %% Special case utf types.
-    {Cpat,Vs1,St1} = pattern(Pat, L, Vs0, St0),
+    {Cpat,Vs1,Ts1,St1} = pattern(Pat, L, Vs0, Ts0, St0),
     Undef = c_atom(undefined),
-    {c_bitstr(Cpat,Undef,Undef,c_atom(Ty),c_lit([Si,En])),Vs1,St1};
-pat_bitseg({Pat,all,{binary,_,_,_}=Ty}, L, Vs, St) ->
-    pat_bitseg({Pat,?Q(all),Ty}, L, Vs, St);
-pat_bitseg({Pat,Sz,{Ty,Un,Si,En}}, L, Vs0, St0) ->
-    {Cpat,Vs1,St1} = pattern(Pat, L, Vs0, St0),
+    {c_bitstr(Cpat,Undef,Undef,c_atom(Ty),c_lit([Si,En])),Vs1,Ts1,St1};
+pat_bitseg({Pat,all,{binary,_,_,_}=Ty}, L, Vs, Ts, St) ->
+    pat_bitseg({Pat,?Q(all),Ty}, L, Vs, Ts, St);
+pat_bitseg({Pat,Sz,{Ty,Un,Si,En}}, L, Vs0, Ts0, St0) ->
+    {Cpat,Vs1,Ts1,St1} = pattern(Pat, L, Vs0, Ts0, St0),
     {Csize,St2} = comp_expr(Sz, noenv, L, St1),
-    {c_bitstr(Cpat, Csize, c_int(Un), c_atom(Ty), c_lit([Si,En])),Vs1,St2}.
+    {c_bitstr(Cpat, Csize, c_int(Un), c_atom(Ty), c_lit([Si,En])),Vs1,Ts1,St2}.
 
 -ifdef(HAS_MAPS).
 %% pat_map(Args, Line, PatVars, State) -> {c_map(),PatVars,State}.
 
-pat_map(Args, L, Vs0, St0) ->
-    {Pairs,Vs1,St1} = pat_map_pairs(Args, L, Vs0, St0),
+pat_map(Args, L, Vs0, Ts0, St0) ->
+    {Pairs,Vs1,Ts1,St1} = pat_map_pairs(Args, L, Vs0, Ts0, St0),
     %% Build #c_map{} then fill it in.
     Map = ann_c_map_pattern([L], Pairs),        %Must us this for a pattern
-    {Map,Vs1,St1}.
+    {Map,Vs1,Ts1,St1}.
 
-pat_map_pairs([K,V|As], L, Vs0, St0) ->
+pat_map_pairs([K,V|As], L, Vs0, Ts0, St0) ->
     Ck = pat_map_key(K),
-    {Cv,Vs1,St1} = pattern(V, L, Vs0, St0),
-    {Cps,Vs2,St2} = pat_map_pairs(As, L, Vs1, St1),
+    {Cv,Vs1,Ts1,St1} = pattern(V, L, Vs0, Ts0, St0),
+    {Cps,Vs2,Ts2,St2} = pat_map_pairs(As, L, Vs1, Ts1, St1),
     {[ann_c_map_pair([L], c_lit(exact), Ck, Cv)|Cps],
-     Vs2,St2};
-pat_map_pairs([], _, Vs, St) -> {[],Vs,St}.
+     Vs2,Ts2,St2};
+pat_map_pairs([], _, Vs, Ts, St) -> {[],Vs,Ts,St}.
 
 pat_map_key([quote,L]) -> pat_lit(L);
 pat_map_key(L) -> pat_lit(L).
 -else.
-pat_map(_, _, Vs, St) -> {c_lit(map),Vs,St}.
+pat_map(_, _, Vs, Ts, St) -> {c_lit(map),Vs,Ts,St}.
 -endif.
 
 %% pat_lit(Value) -> LitExpr.
@@ -1378,13 +1539,16 @@ new_vars(N) when N > 0 ->
     [V|new_vars(N-1)];
 new_vars(0) -> [].
 
+%% new_var(State) -> {VarName,State}.
 %% new_c_var(Line, State) -> {c_var(),State}.
 %% Create a hopefully new core variable.
 
-new_c_var(_, St) ->
-    C = St#cg.vc,
-    Name = list_to_atom(integer_to_list(C)),
-    {c_var(Name),St#cg{vc=C+1}}.
+new_var(#cg{vc=C}=St) ->
+    {list_to_atom(lists:concat([" ",C," "])),St#cg{vc=C+1}}.
+
+new_c_var(_, St0) ->
+    {Name,St1} = new_var(St0),
+    {c_var(Name),St1}.
 
 new_c_vars(N, L, St) -> new_c_vars(N, L, St, []).
 
@@ -1466,12 +1630,14 @@ ann_c_receive(Ann, Cs, To, A) ->
 ann_c_case(Ann, E, Cs) ->
     cerl:ann_c_case(Ann, E, Cs).
 
+%% Clause functions.
 ann_c_clause(Ann, Ps, B) ->                     %Default true guard
     cerl:ann_c_clause(Ann, Ps, B).
 
 ann_c_clause(Ann, Ps, G, B) ->
     cerl:ann_c_clause(Ann, Ps, G, B).
 
+%% Expression sequence functions.
 ann_c_seq(Ann, A, B) ->
     cerl:ann_c_seq(Ann, A, B).
 
@@ -1490,6 +1656,7 @@ ann_c_apply(Ann, Op, As) ->
 
 ann_c_values(Ann, Vs) -> cerl:ann_c_values(Ann, Vs).
 
+%% General annotation access functions.
 get_ann(Node) -> cerl:get_ann(Node).
 set_ann(Node, Ann) -> cerl:set_ann(Node, Ann).
 
@@ -1497,12 +1664,14 @@ c_alias(Var, Pat) -> cerl:c_alias(Var, Pat).
 alias_var(Alias) -> cerl:alias_var(Alias).
 alias_pat(Alias) -> cerl:alias_pat(Alias).
 
+%% Atomic data type functions.
 c_atom(A) -> cerl:c_atom(A).
 ann_c_atom(Ann, A) -> cerl:ann_c_atom(Ann, A).
 c_int(I) -> cerl:c_int(I).
 c_float(F) -> cerl:c_float(F).
 c_nil() -> cerl:c_nil().
 
+%% Literal value functions.
 ann_c_lit(Ann, Val) -> cerl:ann_abstract(Ann, Val). %Generic literal
 c_lit(Val) -> cerl:abstract(Val).
 is_literal(Node) -> cerl:is_literal(Node).
