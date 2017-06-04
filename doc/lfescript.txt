@@ -13,7 +13,7 @@ SYNOPSIS
 EXPORTS
        script-name script-arg1 script-arg2 ...
 
-       lfescript lfescript-flags script-name script-arg1 script-arg2
+       lfescript lfescript-flags script-name script-arg1 script-arg2 ...
 
        lfescript runs a script written in LFE.
 
