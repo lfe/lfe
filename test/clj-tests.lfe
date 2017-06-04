@@ -164,14 +164,17 @@
   (are* [x y] (ok? (is-match x y))
         1 (clj:iff 'true 1)
         () (clj:iff 'true)
-        'false (clj:iff 'false)
-        'false (clj:iff 'false (error 'bad-iff))))
+        'undefined (clj:iff 'false)
+        'undefined (clj:iff 'undefined)
+        'undefined (clj:iff 'false (error 'bad-iff))))
 
 (deftest when-not
-  (is-not (clj:when-not 'true 'ok))
-  (is (clj:when-not 'false 'true)))
+  (is-match 'undefined (clj:when-not 'true 'ok))
+  (is-match 'true (clj:when-not 'false 'true))
+  (is-match 42 (clj:when-not 'undefined 42)))
 
 (deftest not=
+  (is-not (clj:not= 42))
   (is-not (clj:not= 42 42))
   (is (clj:not= 42 123)))
 
@@ -405,6 +408,14 @@
   (is-not (clj:false? 'true))
   (is (clj:false? 'false)))
 
+(deftest falsy?
+  (is-not (clj:falsy? 'true))
+  (is-not (clj:falsy? 42))
+  (is-not (clj:falsy? ()))
+  (is (clj:falsy? 'false))
+  (is (clj:falsy? 'undefined))
+  (is (clj:falsy? (proplists:get_value 42 ()))))
+
 (deftest odd?
   (is-not (clj:odd? 42))
   (is (clj:odd? 333)))
@@ -518,7 +529,9 @@
 (deftest conj
   (is-match '(1 2 3 4) (clj:conj '(2 3 4) 1))
   (is-match '((1) 2 3 4) (clj:conj '(2 3 4) '(1)))
+  (is-match '(1 2 3 4) (clj:conj '(4) 3 2 1))
   (is-match #(a b c d) (clj:conj #(a b c) 'd))
+  (is-match #(a b c d) (clj:conj #(a) 'b 'c 'd))
   (is-match #(a b c #(d)) (clj:conj #(a b c) #(d)))
   (IFF-MAPS
    (is-equal (maps:from_list '(#(a 1) #(b 2)))

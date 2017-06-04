@@ -1,4 +1,4 @@
-%% Copyright (c) 2009-2015 Robert Virding
+%% Copyright (c) 2009-2017 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -31,11 +31,11 @@ sexpr(Cont, Ts) -> form(Cont, Ts).
 
 %% make_fun(String) -> FunList.
 %%  Convert a fun string to a fun sexpr.
-%%    "F/A" -> ['fun', F, A].
-%%    "M:F/A" -> ['fun', M, F, A].
+%%    "F/A" -> [function, F, A].
+%%    "M:F/A" -> [function, M, F, A].
 
 make_fun("=:=/2") ->
-    ['fun', '=:=', 2];
+    [function,'=:=',2];
 make_fun(FunStr) ->
     J = string:rchr(FunStr, $/),
     A = list_to_integer(string:substr(FunStr, J + 1)),

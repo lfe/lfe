@@ -1270,7 +1270,7 @@
      (: test_server fail))))
 
 (defun fc
-  ([(tuple 'EXIT (tuple 'function_clause))] 'ok)
+  ([(tuple 'EXIT (tuple 'function_clause _))] 'ok)
   ([(tuple 'EXIT (tuple (tuple 'case_clause _) _))] 'ok))
 
 ;;  ([(tuple 'EXIT (tuple (tuple 'case_clause _) _))]

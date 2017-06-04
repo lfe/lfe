@@ -134,7 +134,7 @@ if [ -d "$REBAR_DEPS_DIR" ]; then
     R3_PROJ_LIBS=$(find_libs "$REBAR_DEPS_DIR")
 else
     # ... otherwise provide a sensible default
-    R3_PROJ_LIBS=$(find_libs "./_build/default/deps"):$(find_libs "./_build/default/lib")
+    R3_PROJ_LIBS=$(find_libs "./_build/${REBAR_PROFILE:-default}/deps"):$(find_libs "./_build/${REBAR_PROFILE:-default}/lib")
 fi
 LFE_HOME_LIBS=$(find_libs "$HOME"/.lfe/lib)
 ALL_LIBS="$LFE_ROOTDIR":"$ERL_LIBS":"$PROJ_LIBS""$R3_PROJ_LIBS""$LFE_HOME_LIBS"

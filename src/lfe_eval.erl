@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2014 Robert Virding
+%% Copyright (c) 2008-2017 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -16,7 +16,11 @@
 %% Author  : Robert Virding
 %% Purpose : Lisp Flavoured Erlang interpreter.
 
-%%% This is a real hack!
+%%% We follow Erlang here in many cases even though it is sometimes a
+%%% bit strange. In a fun argument where when matching a binary we
+%%% import the size of bitseg as a variable from the environment not
+%%% just from earlier segments. No other argument variables are
+%%% imported.
 
 -module(lfe_eval).
 
@@ -29,15 +33,21 @@
 %% Deprecated exports.
 -export([eval/1,eval/2,eval_list/2]).
 
--import(lfe_env, [new/0,add_vbinding/3,add_vbindings/2,get_vbinding/2,
-          add_fbinding/4,add_fbindings/2,get_fbinding/3,
-          add_ibinding/5,get_gbinding/3]).
+-import(lfe_env, [add_vbinding/3,add_vbindings/2,get_vbinding/2,
+                  add_fbinding/4,add_fbindings/2,
+                  add_ibinding/5]).
 
 -import(lists, [reverse/1,all/2,map/2,foldl/3,foldr/3]).
 -import(orddict, [find/2,fetch/2,store/3,is_key/2]).
 
 -compile({no_auto_import,[apply/3]}).           %For our apply/3 function
 -deprecated([eval/1,eval/2,eval_list/2]).
+
+%% We do a lot of quoting!
+-define(Q(E), [quote,E]).
+-define(BQ(E), [backquote,E]).
+-define(C(E), [comma,E]).
+-define(C_A(E), ['comma-at',E]).
 
 %% Define IS_MAP/1 macro for is_map/1 bif.
 -ifdef(HAS_MAPS).
@@ -49,27 +59,31 @@
 %% -compile([export_all]).
 
 %% Errors.
-format_error(badarg) -> "bad argument";
+format_error(badarg) -> <<"bad argument">>;
 format_error({badmatch,Val}) ->
-    lfe_io:format1("bad match: ~w", [Val]);
-format_error(if_expression) -> "non-boolean if test";
-format_error(function_clause) -> "no function clause matching";
+    lfe_io:format1(<<"bad match: ~w">>, [Val]);
+format_error({unbound_symb,S}) ->
+    lfe_io:format1(<<"symbol ~w is unbound">>, [S]);
+format_error({undefined_func,{F,A}}) ->
+    lfe_io:format1(<<"undefined function ~w/~w">>, [F,A]);
+format_error(if_expression) -> <<"non-boolean if test">>;
+format_error(function_clause) -> <<"no function clause matching">>;
 format_error({case_clause,Val}) ->
-    lfe_io:format1("no case clause matching: ~w", [Val]);
-format_error({multi_var,V}) ->
-    lfe_io:format1("multiple occurrence of variable: ~w", [V]);
-format_error(illegal_bitsize) -> "illegal bitsize";
-format_error(illegal_bitseg) -> "illegal bitsegment";
+    lfe_io:format1(<<"no case clause matching ~.P">>, [Val,10]);
+format_error(illegal_guard) -> <<"illegal guard">>;
+format_error(illegal_bitsize) -> <<"illegal bitsize">>;
+format_error(illegal_bitseg) -> <<"illegal bitsegment">>;
 format_error({illegal_pattern,Pat}) ->
-    lfe_io:format1("illegal pattern: ~w", [Pat]);
-format_error(illegal_literal) -> "illegal literal value";
+    lfe_io:format1(<<"illegal pattern ~w">>, [Pat]);
+format_error({illegal_literal,Lit}) ->
+    lfe_io:format1(<<"illegal literal value ~w">>, [Lit]);
 format_error({illegal_mapkey,Key}) ->
-    lfe_io:format1("illegal map key: ~w", [Key]);
-format_error(bad_arity) -> "arity mismatch";
+    lfe_io:format1(<<"illegal map key ~w">>, [Key]);
+format_error(bad_arity) -> <<"arity mismatch">>;
 format_error({argument_limit,Arity}) ->
-    lfe_io:format1("too many arguments: ~w", [Arity]);
+    lfe_io:format1(<<"too many arguments ~w">>, [Arity]);
 format_error({bad_form,Form}) ->
-    lfe_io:format1("bad form: ~w", [Form]);
+    lfe_io:format1(<<"bad ~w form">>, [Form]);
 %% Everything we don't recognise or know about.
 format_error(Error) ->
     lfe_io:prettyprint1(Error).
@@ -135,13 +149,17 @@ apply(F, Args, Env) ->
 %%  users can redefine core forms with different number of arguments.
 
 %% Handle the Core data special forms.
-eval_expr([quote|E], _) -> hd(E);
+eval_expr(?Q(E), _) -> E;
 eval_expr([cons,H,T], Env) ->
     [eval_expr(H, Env)|eval_expr(T, Env)];
 eval_expr([car,E], Env) -> hd(eval_expr(E, Env)); %Provide lisp names
 eval_expr([cdr,E], Env) -> tl(eval_expr(E, Env));
 eval_expr([list|Es], Env) -> eval_list(Es, Env);
 eval_expr([tuple|Es], Env) -> list_to_tuple(eval_list(Es, Env));
+eval_expr([tref,Tup,I], Env) ->
+    element(eval_expr(I, Env), eval_expr(Tup, Env));
+eval_expr([tset,Tup,I,V], Env) ->
+    setelement(eval_expr(I, Env), eval_expr(Tup, Env), eval_expr(V, Env));
 eval_expr([binary|Bs], Env) -> eval_binary(Bs, Env);
 eval_expr([map|As], Env) ->
     Pairs = map_pairs(As, Env),
@@ -204,7 +222,7 @@ eval_expr([Fun|Es], Env) when is_atom(Fun) ->
     case get_fbinding(Fun, Ar, Env) of
         {yes,M,F} -> erlang:apply(M, F, eval_list(Es, Env));
         {yes,F} -> eval_apply(F, eval_list(Es, Env), Env);
-        no -> unbound_func_error({Fun,Ar})
+        no -> undefined_func_error(Fun, Ar)
     end;
 eval_expr([_|_]=S, _) ->                        %Test if string literal
     case is_posint_list(S) of
@@ -218,6 +236,27 @@ eval_expr(Symb, Env) when is_atom(Symb) ->
         no -> unbound_symb_error(Symb)
     end;
 eval_expr(E, _) -> E.                           %Atomic evaluate to themselves
+
+%% get_fbinding(NAme, Arity, Env) ->
+%%     {yes,Module,Fun} | {yes,Binding} | no.
+%%  Get the function binding. Locally bound function takes precedence
+%%  over auto-imported BIFs.
+
+get_fbinding(Name, Ar, Env) ->
+    case lfe_env:get_fbinding(Name, Ar, Env) of
+        {yes,_,_}=Yes -> Yes;                   %Imported function
+        {yes,_}=Yes -> Yes;                     %Bound function
+        no ->
+            case lfe_internal:is_lfe_bif(Name, Ar) of
+                true -> {yes,lfe,Name};         %Auto-imported LFE BIF
+                false ->
+                    case lfe_internal:is_erl_bif(Name, Ar) of
+                        true ->                 %Auto-imported Erlang BIF
+                            {yes,erlang,Name};
+                        false -> no
+                    end
+            end
+    end.
 
 eval_list(Es, Env) ->
     map(fun (E) -> eval_expr(E, Env) end, Es).
@@ -311,7 +350,7 @@ eval_exp_bitseg(Val, Size, Eval, Type) ->
                     case bit_size(Val) of
                         Sz when Sz rem Unit =:= 0 ->
                             <<Val:Sz/bitstring>>;
-                        _ -> eval_error(badarg)
+                        _ -> badarg_error()
                     end;
                true ->
                     Sz = Eval(Size),
@@ -344,7 +383,7 @@ map_pairs([K,V|As], Env) ->
     P = {map_key(K, Env),eval_expr(V, Env)},
     [P|map_pairs(As, Env)];
 map_pairs([], _) -> [];
-map_pairs(_, _) -> eval_error(badarg).
+map_pairs(_, _) -> badarg_error().
 
 %% map_key(Key, Env) -> Value.
 %%  A map key can only be a literal in 17 but can be anything in 18..
@@ -353,7 +392,7 @@ map_pairs(_, _) -> eval_error(badarg).
 map_key(Key, Env) ->
     eval_expr(Key, Env).
 -else.
-map_key([quote,E], _) -> E;
+map_key(?Q(E), _) -> E;
 map_key([_|_]=L, _) ->
     case is_posint_list(L) of
         true -> L;                              %Literal strings only
@@ -461,7 +500,7 @@ eval_let([Vbs|Body], Env0) ->
 
 eval_let_function([Fbs|Body], Env0) ->
     Add = fun (F, Ar, Def, Lenv, Env) ->
-                  add_fbinding(F, Ar, {lexical_expr,Def,Lenv}, Env)
+                  add_lexical_func(F, Ar, Def, Lenv, Env)
           end,
     Env1 = foldl(fun ([V,[lambda,Args|_]=Lambda], E) when is_atom(V) ->
                          Add(V, length(Args), Lambda, Env0, E);
@@ -511,10 +550,14 @@ make_letrec_env(Fbs0, Env) ->
 %% extend_letrec_env(Lete0, Fbs0, Env0) ->
 %%     {Lete0,Env0}.
 
+%% add_lexical_func(Name, Arity, Def, FuncEnv, Env) -> Env.
 %% add_lexical_func(Name, Arity, Def, Env) -> Env.
 %% add_dynamic_func(Name, Arity, Def, Env) -> Env.
 %%  Add a function definition in the correct format to the
 %%  environment.
+
+add_lexical_func(Name, Ar, Def, Fenv, Env) ->
+    add_fbinding(Name, Ar, {lexical_expr,Def,Fenv}, Env).
 
 add_lexical_func(Name, Ar, Def, Env) ->
     add_fbinding(Name, Ar, {lexical_expr,Def,Env}, Env).
@@ -554,7 +597,7 @@ eval_apply_expr(Func, Es, Env) ->
 %% eval_if(IfBody, Env) -> Value.
 
 eval_if([Test,True], Env) ->                    %Add default false value
-    eval_if(Test, True, [quote,false], Env);
+    eval_if(Test, True, ?Q(false), Env);
 eval_if([Test,True,False], Env) ->
     eval_if(Test, True, False, Env).
 
@@ -598,7 +641,7 @@ split_receive([['after',T|B]], Rcls) ->
 split_receive([Cl|Cls], Rcls) ->
     split_receive(Cls, [Cl|Rcls]);
 split_receive([], Rcls) ->
-    {reverse(Rcls),[quote,infinity],[]}.    %No timeout, return 'infinity.
+    {reverse(Rcls),?Q(infinity),[]}.    %No timeout, return 'infinity.
 
 %% receive_clauses(Clauses, Env) -> Value.
 %%  Recurse down message queue. We are only called with timeout value
@@ -751,6 +794,9 @@ eval_guard(Gts, Env) ->
         true -> true;
         _Other -> false                         %Fail guard
     catch
+	error:illegal_guard ->			%Handle illegal guard
+	    St = erlang:get_stacktrace(),
+	    erlang:raise(error, illegal_guard, St);
         _:_ -> false                            %Fail guard
     end.
 
@@ -764,59 +810,54 @@ eval_gbody(Gts, Env) ->
 %%  Evaluate a guard sexpr in the current environment.
 
 %% Handle the Core data special forms.
-eval_gexpr([quote,E], _) -> E;
+eval_gexpr(?Q(E), _) -> E;
 eval_gexpr([cons,H,T], Env) ->
     [eval_gexpr(H, Env)|eval_gexpr(T, Env)];
 eval_gexpr([car,E], Env) -> hd(eval_gexpr(E, Env)); %Provide lisp names
 eval_gexpr([cdr,E], Env) -> tl(eval_gexpr(E, Env));
 eval_gexpr([list|Es], Env) -> eval_glist(Es, Env);
 eval_gexpr([tuple|Es], Env) -> list_to_tuple(eval_glist(Es, Env));
+eval_gexpr([tref,Tup,I], Env) ->
+    element(eval_gexpr(I, Env), eval_gexpr(Tup, Env));
 eval_gexpr([binary|Bs], Env) -> eval_gbinary(Bs, Env);
-eval_gexpr([map|As], Env) ->
-    Pairs = gmap_pairs(As, Env),
-    maps:from_list(Pairs);
-%% eval_gexpr(['mref',K,Map], Env) ->
-%%     Key = map_key(K, Env),
-%%     maps:get(Key, eval_gexpr(Map, Env));
-eval_gexpr(['mset',M|As], Env) ->
-    Map   = eval_gexpr(M, Env),
-    Pairs = gmap_pairs(As, Env),
-    foldl(fun maps_put/2, Map, Pairs);
-eval_gexpr(['mupd',M|As], Env) ->
-    Map   = eval_gexpr(M, Env),
-    Pairs = gmap_pairs(As, Env),
-    foldl(fun maps_update/2, Map, Pairs);
-%% eval_gexpr(['map-get',Map,K], Env) ->
-%%     eval_gexpr(['mref',Map,K], Env) ->
-eval_gexpr(['map-set',M|As], Env) ->
-    eval_gexpr([mset,M|As], Env);
-eval_gexpr(['map-update',M|As], Env) ->
-    eval_gexpr([mupd,M|As], Env);
+%% Map operations are not allowed in guards.
 %% Handle the Core closure special forms.
 %% Handle the control special forms.
 eval_gexpr(['progn'|Body], Env) -> eval_gbody(Body, Env);
 eval_gexpr(['if'|Body], Env) -> eval_gif(Body, Env);
-eval_gexpr([call,[quote,erlang],F0|As], Env) ->
+eval_gexpr([call,?Q(erlang),?Q(Fun)|As], Env) ->
     Ar = length(As),
-    F1 = eval_gexpr(F0, Env),
-    case get_gbinding(F1, Ar, Env) of
-        {yes,M,F} -> erlang:apply(M, F, eval_glist(As, Env));
-        _ -> unbound_func_error({F1,Ar})
+    case lfe_internal:is_guard_bif(Fun, Ar) of
+        true -> erlang:apply(erlang, Fun, eval_glist(As, Env));
+        false -> illegal_guard_error()
     end;
-eval_gexpr([Fun|Es], Env) when is_atom(Fun) ->
+eval_gexpr([Fun|Es], Env) when is_atom(Fun), Fun =/= call ->
     Ar = length(Es),
     case get_gbinding(Fun, Ar, Env) of
         {yes,M,F} -> erlang:apply(M, F, eval_glist(Es, Env));
-        _ -> unbound_func_error(Fun)
+        no -> illegal_guard_error()
     end;
-eval_gexpr([_|_], _) ->
-    eval_error(illegal_guard);
+eval_gexpr([_|_], _) -> illegal_guard_error();
 eval_gexpr(Symb, Env) when is_atom(Symb) ->
     case get_vbinding(Symb, Env) of
         {yes,Val} -> Val;
         no -> unbound_symb_error(Symb)
     end;
-eval_gexpr(E, _) -> E.                %Atoms evaluate to themselves.
+eval_gexpr(E, _) -> E.                          %Atoms evaluate to themselves.
+
+%% get_gbinding(NAme, Arity, Env) -> {yes,Module,Fun} | no.
+%%  Get the guard function binding. Locally bound function cannot be
+%%  called in guard only guard BIF.
+
+get_gbinding(Name, Ar, Env) ->
+    case lfe_env:is_fbound(Name, Ar, Env) of
+        true -> no;                             %Locally bound function
+        false ->
+            case lfe_internal:is_guard_bif(Name, Ar) of
+                true -> {yes,erlang,Name};
+                false -> no
+            end
+    end.
 
 eval_glist(Es, Env) ->
     map(fun (E) -> eval_gexpr(E, Env) end, Es).
@@ -829,35 +870,10 @@ eval_gbinary(Segs, Env) ->
     Eval = fun(S) -> eval_gexpr(S, Env) end,
     eval_bitsegs(Vsps, Eval).
 
-%% gmap_pairs(Args, Env) -> [{K,V}].
-
-gmap_pairs([K,V|As], Env) ->
-    P = {gmap_key(K, Env),eval_gexpr(V, Env)},
-    [P|gmap_pairs(As, Env)];
-gmap_pairs([], _) -> [];
-gmap_pairs(_, _) -> eval_error(badarg).
-
-%% gmap_key(Key, Env) -> Value.
-%%  A map key can only be a literal in 17 but can be anything in 18..
-
--ifdef(HAS_FULL_KEYS).
-gmap_key(Key, Env) ->
-    eval_gexpr(Key, Env).
--else.
-gmap_key([quote,E], _) -> E;
-gmap_key([_|_]=L, _) ->
-    case is_posint_list(L) of
-        true -> L;                              %Literal strings only
-        false -> illegal_mapkey_error(L)
-    end;
-gmap_key(E, _) when not is_atom(E) -> E;        %Everything else
-gmap_key(E, _) -> illegal_mapkey_error(E).
--endif.
-
 %% eval_gif(IfBody, Env) -> Val.
 
 eval_gif([Test,True], Env) ->
-    eval_gif(Test, True, [quote,false], Env);
+    eval_gif(Test, True, ?Q(false), Env);
 eval_gif([Test,True,False], Env) ->
     eval_gif(Test, True, False, Env).
 
@@ -873,7 +889,7 @@ eval_gif(Test, True, False, Env) ->
 
 match(Pat, Val, Env) -> match(Pat, Val, [], Env).
 
-match([quote,P], Val, Pbs, _) ->
+match(?Q(P), Val, Pbs, _) ->
     if P =:= Val -> {yes,Pbs};
        true -> no
     end;
@@ -935,7 +951,8 @@ match_symb('_', _, Pbs, _) -> {yes,Pbs};        %Don't care variable.
 match_symb(S, Val, Pbs, _) ->
     %% Check if Symb already bound.
     case find(S, Pbs) of
-        {ok,_} -> eval_error({multi_var,S});    %Already bound, multiple var
+        {ok,Val} -> {yes,Pbs};                  %Bound to the same value
+        {ok,_} -> no;                           %Bound to a different value
         error -> {yes,store(S, Val, Pbs)}       %Not yet bound
     end.
 
@@ -994,10 +1011,11 @@ match_bitexpr(N, Val, Bbs, Pbs, _) when is_number(N) ->
     end;
 match_bitexpr('_', _, Bbs, Pbs, _) -> {yes,Bbs,Pbs};
 match_bitexpr(S, Val, Bbs, Pbs, _) when is_atom(S) ->
-    %% Don't need value, just check if symbol is set.
-    case is_key(S, Bbs) or is_key(S, Pbs) of
-        true -> eval_error({multi_var,S});
-        false ->
+    %% We know that if variable is in Pbs it will also be in Bbs!
+    case find(S, Pbs) of
+        {ok,Val} -> {yes,Bbs,Pbs};              %Bound to the same value
+        {ok,_} -> no;                           %Bound to a different value
+        error ->                                %Not yet bound
             {yes,store(S, Val, Bbs),store(S, Val, Pbs)}
     end;
 match_bitexpr(_, _, _, _, _) -> eval_error(illegal_bitseg).
@@ -1097,7 +1115,7 @@ match_map([K,V|Ps], Map, Pbs0, Env) ->
 match_map([], _, Pbs, _) -> {yes,Pbs};
 match_map(Ps, _, _, _) -> eval_error({illegal_pattern,Ps}).
 
-pat_map_key([quote,E]) -> E;
+pat_map_key(?Q(E)) -> E;
 pat_map_key([_|_]=L) ->
     case is_posint_list(L) of
         true -> L;                              %Literal strings only
@@ -1109,7 +1127,7 @@ pat_map_key(K) -> illegal_mapkey_error(K).
 %% eval_lit(Literal, Env) -> Value.
 %%  Evaluate a literal expression. Error if invalid.
 
-eval_lit([quote,K], _) -> K;
+eval_lit(?Q(K), _) -> K;
 eval_lit([cons,H,T], Env) ->
     [eval_lit(H, Env)|eval_lit(T, Env)];
 eval_lit([list|Es], Env) ->
@@ -1144,14 +1162,19 @@ eval_lit_map([], _) -> [].
 
 %% Error functions. {?MODULE,eval_expr,2} is the stacktrace.
 
+badarg_error() -> eval_error(badarg).
+
 unbound_symb_error(Sym) ->
     eval_error({unbound_symb,Sym}).
 
-unbound_func_error(Func) ->
-    eval_error({unbound_func,Func}).
+undefined_func_error(Func, Ar) ->
+    eval_error({undefined_func,{Func,Ar}}).
 
 bad_form_error(Form) ->
     eval_error({bad_form,Form}).
+
+illegal_guard_error() ->
+    eval_error(illegal_guard).
 
 illegal_mapkey_error(Key) ->
     eval_error({illegal_mapkey,Key}).
