@@ -89,7 +89,7 @@ $(EBINDIR)/%.beam: $(LSRCDIR)/%.lfe
 
 all: compile
 
-.PHONY: compile erlc-compile lfec-compile erlc-lfec emacs install docs clean docker-build docker-push docker update-mandb
+.PHONY: compile erlc-compile lfec-compile erlc-lfec emacs install install-beam install-bin install-man docs clean docker-build docker-push docker update-mandb
 
 compile: comp_opts.mk
 	$(MAKE) $(MFLAGS) erlc-lfec
@@ -117,17 +117,23 @@ comp_opts.mk:
 
 -include comp_opts.mk
 
-$(BINDIR)/lfe%:
-	$(INSTALL_BIN) $@ $(DESTBINDIR)
+install: compile install-beam install-bin install-man
 
-install: compile install-man
+install-beam:
 	rm -Rf $(DESTEBINDIR)
 	$(INSTALL_DIR) $(DESTEBINDIR)
-	$(INSTALL_DATA) $(EBINDIR)/$(APP_DEF) $(DESTEBINDIR)
-	$(INSTALL_DATA) $(addprefix $(EBINDIR)/, $(EBINS)) $(DESTEBINDIR)
-	$(INSTALL_DATA) $(addprefix $(EBINDIR)/, $(LBINS)) $(DESTEBINDIR)
+	$(INSTALL_DATA) -t $(DESTEBINDIR) \
+		$(EBINDIR)/$(APP_DEF) \
+		$(addprefix $(EBINDIR)/, $(EBINS)) \
+		$(addprefix $(EBINDIR)/, $(LBINS))
+
+install-bin:
 	$(INSTALL_DIR) $(DESTBINDIR)
-	$(MAKE) $(BINDIR)/lfe $(BINDIR)/lfec $(BINDIR)/lfedoc $(BINDIR)/lfescript
+	$(INSTALL_BIN) -t $(DESTBINDIR) \
+		$(BINDIR)/lfe \
+		$(BINDIR)/lfec \
+		$(BINDIR)/lfedoc \
+		$(BINDIR)/lfescript
 	ln -sf $(DESTBINDIR)/* $(PREFIX)/bin/
 
 clean:
