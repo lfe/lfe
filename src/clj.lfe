@@ -207,7 +207,8 @@
            `(case ,test
               ('false     ,else)
               ('undefined ,else)
-              (,patt      ,then))))
+              (,patt      ,then)
+              (_          ,else))))
     (case args
       ((list (list patt test) then) (exp-if-let patt test then `'undefined))
       ((list (list patt test) then else) (exp-if-let patt test then else)))))
@@ -221,7 +222,8 @@
    `(case ,test
       ('false     'undefined)
       ('undefined 'undefined)
-      (,patt      ,@body))))
+      (,patt      ,@body)
+      (_          'undefined))))
 
 (defmacro condp args
   "pred expr . clauses
