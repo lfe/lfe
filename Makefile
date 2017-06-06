@@ -32,7 +32,6 @@ DESTBINDIR := $(DESTLIBDIR)/$(BINDIR)
 
 VPATH = $(SRCDIR)
 
-MKDIR_P = mkdir -p
 MANDB = $(shell which mandb)
 
 ERLCFLAGS = -W1
@@ -75,7 +74,7 @@ $(BINDIR)/%: $(CSRCDIR)/%.c
 	cc -o $@ $<
 
 $(EBINDIR)/%.beam: $(SRCDIR)/%.erl
-	@$(MKDIR_P) $(EBINDIR)
+	@$(INSTALL_DIR) $(EBINDIR)
 	$(ERLC) -I $(INCDIR) -o $(EBINDIR) $(COMP_OPTS) $(ERLCFLAGS) $<
 
 %.erl: %.xrl
@@ -122,18 +121,21 @@ install: compile install-beam install-bin install-man
 install-beam:
 	rm -Rf $(DESTEBINDIR)
 	$(INSTALL_DIR) $(DESTEBINDIR)
-	$(INSTALL_DATA) -t $(DESTEBINDIR) \
+	$(INSTALL_DATA) \
 		$(EBINDIR)/$(APP_DEF) \
 		$(addprefix $(EBINDIR)/, $(EBINS)) \
-		$(addprefix $(EBINDIR)/, $(LBINS))
+		$(addprefix $(EBINDIR)/, $(LBINS)) \
+		$(DESTEBINDIR)
 
 install-bin:
 	$(INSTALL_DIR) $(DESTBINDIR)
-	$(INSTALL_BIN) -t $(DESTBINDIR) \
+	$(INSTALL_BIN) \
 		$(BINDIR)/lfe \
 		$(BINDIR)/lfec \
 		$(BINDIR)/lfedoc \
-		$(BINDIR)/lfescript
+		$(BINDIR)/lfescript \
+		$(DESTBINDIR)
+	$(INSTALL_DIR) $(PREFIX)/bin
 	ln -sf $(DESTBINDIR)/* $(PREFIX)/bin/
 
 clean:
@@ -226,7 +228,7 @@ $(DOCDIR)/%.txt: $(MANDIR)/%.7
 	groff -t -e -mandoc -Tutf8 -Kutf8 $< | col -bx > $@
 
 $(PDFDIR):
-	@$(MKDIR_P) $(PDFDIR)
+	@$(INSTALL_DIR) $(PDFDIR)
 
 docs-pdf: $(PDFDIR) \
 	$(addprefix $(PDFDIR)/, $(PDF1S)) \
@@ -243,7 +245,7 @@ $(PDFDIR)/%.pdf: $(DOCSRC)/%.7.md
 	pandoc -f markdown --latex-engine=xelatex -o $@ $<
 
 $(EPUBDIR):
-	@$(MKDIR_P) $(EPUBDIR)
+	@$(INSTALL_DIR) $(EPUBDIR)
 
 docs-epub: $(EPUBDIR) \
 	$(addprefix $(EPUBDIR)/, $(EPUB1S)) \
@@ -260,7 +262,7 @@ $(EPUBDIR)/%.epub: $(DOCSRC)/%.7.md
 	pandoc -f markdown -t epub -o $@ $<
 
 $(MANINSTDIR)/man%:
-	@$(MKDIR_P) -p $@
+	@$(INSTALL_DIR) $@
 
 ifeq (,$(findstring mandb,$(MANDB)))
 install-man: $(MANINSTDIR)/man1 $(MANINSTDIR)/man3 $(MANINSTDIR)/man7
@@ -296,6 +298,8 @@ docker-docs:
 docker-docs-bash:
 	docker run -i -v `pwd`/doc:/docs -t lfex/lfe-docs:latest bash
 
+# For travis
 travis:
+	$(MAKE) $(MFLAGS) install PREFIX=$$(mktemp -d)
 	@rebar3 ct
 	@rebar3 eunit -m clj-tests,prop_lfe_doc
