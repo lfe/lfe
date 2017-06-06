@@ -27,6 +27,7 @@ INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
 INSTALL_BIN = $(INSTALL) -m755
 DESTLIBDIR := $(PREFIX)/lib/lfe
+DESTINCDIR := $(DESTLIBDIR)/$(INCDIR)
 DESTEBINDIR := $(DESTLIBDIR)/$(EBINDIR)
 DESTBINDIR := $(DESTLIBDIR)/$(BINDIR)
 
@@ -116,7 +117,11 @@ comp_opts.mk:
 
 -include comp_opts.mk
 
-install: compile install-beam install-bin install-man
+install: compile install-include install-beam install-bin install-man
+
+install-include:
+	$(INSTALL_DIR) $(DESTINCDIR)
+	$(INSTALL_DATA) $(INCDIR)/* $(DESTINCDIR)
 
 install-beam:
 	rm -Rf $(DESTEBINDIR)
