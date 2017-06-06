@@ -17,6 +17,8 @@
 
 ;;; Conditional macros.
 
+(defmacro if-let     args `(clj:if-let     ,@args))
+(defmacro iff-let    args `(clj:iff-let    ,@args))
 (defmacro condp      args `(clj:condp      ,@args))
 (defmacro if-not     args `(clj:if-not     ,@args))
 (defmacro iff        args `(clj:iff        ,@args))
