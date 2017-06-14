@@ -123,7 +123,7 @@ install-beam:
 	$(INSTALL_DIR) $(DESTEBINDIR)
 	$(INSTALL_DATA) \
 		$(EBINDIR)/$(APP_DEF) \
-		$(addprefix $(EBINDIR)/, $(EBINS)) \
+		$$(printf '%s\n' $(addprefix $(EBINDIR)/, $(EBINS)) | sort -u) \
 		$(addprefix $(EBINDIR)/, $(LBINS)) \
 		$(DESTEBINDIR)
 
