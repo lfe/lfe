@@ -127,12 +127,15 @@
    (line (setup config))
    (line
     (test-pat
-     '(#(#(t $1 $2 foo _) (#(is_list $1)) (#(#(#(hd $1) $_))))
-       #(#(t _ _ _ _) (#(== #(element 2 $_) nisse)) (#(#($*)))))
+     ;; '(#(#(t $1 $2 foo _) (#(is_list $1)) (#(#(#(hd $1) $_))))
+     ;;   #(#(t _ _ _ _) (#(== #(element 2 $_) nisse)) (#(#($*)))))
+     ;; (match-spec ([(match-t t1 x t2 y t3 'foo)] (when (is_list x))
+     ;;              (tuple (hd x) (object)))
+     ;;             ([(match-t)] (when (== (t-t1 (object)) 'nisse))
+     ;;              (tuple (bindings))))
+     '(#(#(t $1 $2 foo _) (#(is_list $1)) (#(#(#(hd $1) $_)))))
      (match-spec ([(match-t t1 x t2 y t3 'foo)] (when (is_list x))
-          (tuple (hd x) (object)))
-         ([(match-t)] (when (== (t-t1 (object)) 'nisse))
-          (tuple (bindings))))
+                  (tuple (hd x) (object))))
      ))
    ;; [{{t,'$1','$2','_',foo},[{'==',{element,4,'$_'},7},{is_list,'$1'}],
    ;;   [{{{hd,'$1'},'$_'}}]},
@@ -140,30 +143,33 @@
    ;;   [{{{element,2,'$1'},
    ;;      {{t,'$1',foo,undefined,undefined}},
    ;;      {{t,{element,2,'$1'},{element,3,'$1'},{element,4,'$1'},boooo}}}}]}]
-   (line
-    (test-pat
-     '(#(#(t $1 $2 _ foo) (#(== #(element 4 $_) 7) #(is_list $1))
-     (#(#(#(hd $1) $_))))
-       #($1 (#(is_record $1 t 5))
-        (#(#(#(element 2 $1)
-         #(#(t $1 foo undefined undefined))
-         #(setelement 5 $1 boooo))))))
-     (match-spec ([(match-t t1 x t2 y t4 'foo)]
-          (when (== (t-t3 (object)) 7) (is_list x))
-          (tuple (hd x) (object)))
-         ([a] (when (is-t a))
-          (tuple (t-t1 a) (make-t t1 a) (set-t-t4 a 'boooo))))
-     ))
+   ;; (line
+   ;;  (test-pat
+   ;;   '(#(#(t $1 $2 _ foo) (#(== #(element 4 $_) 7) #(is_list $1))
+   ;;       (#(#(#(hd $1) $_))))
+   ;;     #($1 (#(is_record $1 t 5))
+   ;;          (#(#(#(element 2 $1)
+   ;;               #(#(t $1 foo undefined undefined))
+   ;;               #(setelement 5 $1 boooo))))))
+   ;;   (match-spec ([(match-t t1 x t2 y t4 'foo)]
+   ;;                (when (== (t-t3 (object)) 7) (is_list x))
+   ;;                (tuple (hd x) (object)))
+   ;;               ([a] (when (is-t a))
+   ;;                (tuple (t-t1 a) (make-t t1 a) (set-t-t4 a 'boooo))))
+   ;;   ))
    ;; [{[{t,'$1','$2',foo,'_'}],[{is_list,'$1'}],[{{{hd,'$1'},'$_'}}]},
    ;;  {[{t,'_','_','_','_'}],[{'==',{element,2,{hd,'$_'}},nisse}],[{{'$*'}}]}]
    (line
     (test-pat
-     '(#((#(t $1 $2 foo _)) (#(is_list $1)) (#(#(#(hd $1) $_))))
-       #((#(t _ _ _ _)) (#(== #(element 2 #(hd $_)) nisse)) (#(#($*)))))
+     ;; '(#((#(t $1 $2 foo _)) (#(is_list $1)) (#(#(#(hd $1) $_))))
+     ;;   #((#(t _ _ _ _)) (#(== #(element 2 #(hd $_)) nisse)) (#(#($*)))))
+     ;; (match-spec ([(list (match-t t1 x t2 y t3 'foo))] (when (is_list x))
+     ;;              (tuple (hd x) (object)))
+     ;;             ([(list (match-t))] (when (== (t-t1 (hd (object))) 'nisse))
+     ;;              (tuple (bindings))))
+     '(#((#(t $1 $2 foo _)) (#(is_list $1)) (#(#(#(hd $1) $_)))))
      (match-spec ([(list (match-t t1 x t2 y t3 'foo))] (when (is_list x))
-          (tuple (hd x) (object)))
-         ([(list (match-t))] (when (== (t-t1 (hd (object))) 'nisse))
-          (tuple (bindings))))
+                  (tuple (hd x) (object))))
      ))
 
    'ok))
