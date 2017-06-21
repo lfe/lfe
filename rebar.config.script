@@ -1,10 +1,21 @@
 %% -*- mode: erlang; indent-tabs-mode: nil -*-
 
-Conf0 = CONFIG,
-HasOpt = {d,'HAS_MAPS',true},
-FullOpt = {d,'HAS_FULL_KEYS',true},
-RecOpt = {d,'NEW_REC_CORE',true},
-RandOpt = {d,'NEW_RAND',true},
+Conf0 = CONFIG,                                 %The original config
+
+%% Do a deep set stepping down a list of keys replacing/adding last
+%% with value. Named funs would be nicer but not always available.
+
+SetConf = fun ([K], Val, Ps, _F) ->
+                  %% Replace the whole K field with Val.
+                  [Val|proplists:delete(K, Ps)];
+              ([K|Ks], Val, Ps, F) ->
+                  %% Step down and build coming up.
+                  case lists:keyfind(K, 1, Ps) of
+                      {K,Kps} ->
+                          lists:keyreplace(K, 1, Ps, {K,F(Ks, Val, Kps, F)});
+                      false -> Ps ++ [{K,F(Ks, Val, [], F)}]
+                  end
+          end,
 
 %% Get the release number.
 %% We have stolen the idea and most of the code from rebar3.
@@ -31,7 +42,13 @@ Version = case erlang:system_info(otp_release) of
                   end
           end,
 
-%% These are the macros we add to the configuration.
+%% Collect the macro definitions we will add to the compiler options.
+
+%% Erlc macro definitions.
+HasOpt = {d,'HAS_MAPS',true},
+FullOpt = {d,'HAS_FULL_KEYS',true},
+RecOpt = {d,'NEW_REC_CORE',true},
+RandOpt = {d,'NEW_RAND',true},
 
 Copts0 = [{d,'ERLANG_VERSION',Version}],
 Copts1 = if Version >= "17" -> Copts0 ++ [HasOpt];
@@ -45,12 +62,24 @@ Copts3 = if Version >= "19" -> Copts2 ++ [RecOpt,RandOpt];
          end,
 Copts = Copts3,                                 %This is it
 
-%% Now add them.
+%% Ensure they are in erl_opts.
 
-case lists:keyfind(erl_opts, 1, Conf0) of
-    {erl_opts,Opts} ->                          %Existing erl_opts
-        NewOpts = {erl_opts,Opts ++ Copts},
-        lists:keyreplace(erl_opts, 1, Conf0, NewOpts);
-    false ->                                    %No erl_opts
-        Conf0 ++ [{erl_opts,Copts}]
-end.
+Conf1 = case lists:keyfind(erl_opts, 1, Conf0) of
+            {erl_opts,Opts} ->                  %Existing erl_opts
+                NewOpts = {erl_opts,Opts ++ Copts},
+                lists:keyreplace(erl_opts, 1, Conf0, NewOpts);
+            false ->                            %No erl_opts
+                Conf0 ++ [{erl_opts,Copts}]
+        end,
+
+%% Get the proper dep we will add to profiles-test-deps.
+
+Prop = if Version >= "18" -> proper;            %Take the latest one.
+          true -> {proper,"1.1.1-beta"}
+       end,
+
+%% Ensure we have set the right value of proper dep.
+
+Conf2 = SetConf([profiles,test,deps,proper], Prop, Conf1, SetConf),
+
+Conf2.
