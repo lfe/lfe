@@ -780,19 +780,19 @@ the following will be generated:
 
 ```
 (make-person {{field value}} ... )
- (match-person {{field value}} ... )
- (is-person r)
- (fields-person)
- (emp-person {{field value}} ... )
- (set-person r {{field value}} ... )
- (person-name r)
- (person-name)
- (set-person-name r name)
- (person-age r)
- (person-age)
- (set-person-age r age)
- (person-address r)
- (set-person-address r address)
+(match-person {{field value}} ... )
+(is-person r)
+(fields-person)
+(emp-person {{field value}} ... )
+(set-person r {{field value}} ... )
+(person-name r)
+(person-name)
+(set-person-name r name)
+(person-age r)
+(person-age)
+(set-person-age r age)
+(person-address r)
+(set-person-address r address)
 ```
 
 * ``(make-person name "Robert" age 54)`` -
