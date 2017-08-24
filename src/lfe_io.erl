@@ -50,37 +50,38 @@
 %%  numbers of start of each sexpr. Handle errors consistently.
 
 parse_file(Name) ->
-    with_token_file(Name, fun (Ts) -> parse_file1(Ts, [], []) end).
+    with_token_file(Name,
+		    fun (Ts, Lline) -> parse_file1(Ts, Lline, [], []) end).
 
-parse_file1([_|_]=Ts0, Pc0, Ss) ->
+parse_file1([_|_]=Ts0, Lline, Pc0, Ss) ->
     case lfe_parse:sexpr(Pc0, Ts0) of
-        {ok,L,S,Ts1} -> parse_file1(Ts1, [], [{S,L}|Ss]);
+        {ok,L,S,Ts1} -> parse_file1(Ts1, Lline, [], [{S,L}|Ss]);
         {more,Pc1} ->
             %% Need more tokens but there are none, so call again to
             %% generate an error message.
-            {error,E,_} = lfe_parse:sexpr(Pc1, {eof,99999}),
+            {error,E,_} = lfe_parse:sexpr(Pc1, {eof,Lline}),
             {error,E};
         {error,E,_} -> {error,E}
     end;
-parse_file1([], _, Ss) -> {ok,reverse(Ss)}.
+parse_file1([], _, _, Ss) -> {ok,reverse(Ss)}.
 
 %% read_file(FileName) -> {ok,[Sexpr]} | {error,Error}.
 %%  Read a file returning the raw sexprs (as it should be).
 
 read_file(Name) ->
-    with_token_file(Name, fun (Ts) -> read_file1(Ts, []) end).
+    with_token_file(Name, fun (Ts, Lline) -> read_file1(Ts, Lline, []) end).
 
-read_file1([_|_]=Ts0, Ss) ->
+read_file1([_|_]=Ts0, Lline, Ss) ->
     case lfe_parse:sexpr(Ts0) of
-        {ok,_,S,Ts1} -> read_file1(Ts1, [S|Ss]);
+        {ok,_,S,Ts1} -> read_file1(Ts1, Lline, [S|Ss]);
         {more,Pc1} ->
             %% Need more tokens but there are none, so call again to
             %% generate an error message.
-            {error,E,_} = lfe_parse:sexpr(Pc1, {eof,99999}),
+            {error,E,_} = lfe_parse:sexpr(Pc1, {eof,Lline}),
             {error,E};
         {error,E,_} -> {error,E}
     end;
-read_file1([], Ss) -> {ok,reverse(Ss)}.
+read_file1([], _, Ss) -> {ok,reverse(Ss)}.
 
 %% with_token_file(FileName, DoFunc)
 %%  Open the file, scan all LFE tokens and apply DoFunc on them.
@@ -89,7 +90,7 @@ with_token_file(Name, Do) ->
     case file:open(Name, [read]) of
         {ok,F} ->
             Ret = case io:request(F, {get_until,unicode,'',lfe_scan,tokens,[1]}) of
-                      {ok,Ts,_} -> Do(Ts);
+                      {ok,Ts,Lline} -> Do(Ts, Lline);
                       {error,Error,_} -> {error,Error}
                   end,
             file:close(F),                      %Close the file
