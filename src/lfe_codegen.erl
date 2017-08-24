@@ -28,9 +28,18 @@
 
 -module(lfe_codegen).
 
--export([module/2]).
+-export([module/2,
+	is_lit_list/1,
+	get_ann/1,
+	is_literal/1,
+	update_c_binary/2,
+	update_c_bitstr/6,
+	bitstr_unit/1,
+	bitstr_type/1,
+	bitstr_flags/1
+	]).
 
--compile(export_all).
+%%-compile(export_all).
 
 -import(lists, [member/2,keysearch/3,reverse/1,
                 all/2,map/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3,

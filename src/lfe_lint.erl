@@ -23,7 +23,8 @@
 -module(lfe_lint).
 
 -export([module/1,module/2,form/1,expr/1,expr/2,
-         pattern/1,pattern/2,format_error/1]).
+         pattern/1,pattern/2,format_error/1,
+		add_errors/3]).
 
 %% -compile(export_all).
 

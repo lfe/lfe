@@ -34,7 +34,7 @@
 
 -export([is_predefined_type/2]).
 
--compile(export_all).
+%%-compile(export_all).
 
 -include("lfe.hrl").
 
