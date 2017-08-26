@@ -1,4 +1,4 @@
-%% Copyright (c) 2016 Eric Bailey
+%% Copyright (c) 2016-2017 Eric Bailey
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -23,10 +23,11 @@
 
 -export([format_error/1]).
 
--export([extract_module_docs/1,extract_module_docs/2,save_module_docs/3]).
+-export([make_doc_info/2,make_chunk/2]).
+%%-export([extract_module_docs/1,extract_module_docs/2,save_module_docs/3]).
 
 %% Access functions for documentation in modules.
--export([get_module_docs/1,module_doc/1,mf_docs/1,mf_doc_type/1,
+-export([get_module_docs/1,module_doc/1,function_docs/1,macro_docs/1,
          function_docs/3,macro_docs/2,
          function_name/1,function_arity/1,function_line/1,
          function_patterns/1, function_doc/1,
@@ -34,7 +35,7 @@
 
 -export([format_docs/1]).
 
--import(lists, [member/2,filter/2,foldl/3,foldr/3,reverse/1]).
+-import(lists, [map/2,member/2,filter/2,foldl/3,foldr/3,reverse/1]).
 
 -include("lfe_comp.hrl").
 -include("lfe_doc.hrl").
@@ -48,50 +49,135 @@
 -define(QC(T,P), {timeout,30,{T,?_assert(proper:quickcheck(P, ?QC_OPTS))}}).
 -endif.
 
+-record(st, {moddoc=[],                         %Module docs
+             fs=[],                             %Function info
+             ms=[],                             %Macro info
+             expf=[],                           %Exported functions and macros
+             expm=[],
+             errors=[]
+            }).
+
 %% Errors
-format_error(_) -> "doc error".
+format_error(Error) -> io_lib:format("doc error: ~p", [Error]).
 
-%% extract_module_docs(Defs, CompInfo) -> {ok,Docs} | {error,Errors,[]}.
-%%  Parse a module's docstrings and return the docs.
+%% make_chunk(Defs, Opts) -> {ok,Chunk}.
+%% make_doc_info(Defs, Opts) -> {ok,Chunk}.
 
--spec extract_module_docs(Defs, Cinfo) -> {ok,Docs} | {error,Errors,[]} when
-      Defs   :: [{Form,Line}],
-      Form   :: [_],
-      Line   :: non_neg_integer(),
-      Cinfo  :: #cinfo{},
-      Docs   :: [doc()],
-      Errors :: nonempty_list({error,Line,Error}),
-      Error  :: any().
+-spec make_chunk(Defs, Opts) -> {ok,Chunk} when
+      Defs :: [{Form,Line}],
+      Form :: [_],
+      Line :: non_neg_integer(),
+      Opts :: [_],
+      Chunk :: {string(),binary()}.
 
-extract_module_docs(Defs) ->                    %Just give a default #cinfo{}
-    extract_module_docs(Defs, #cinfo{}).
+-spec make_doc_info(Defs, Opts) -> {ok,DocInfo} | {error,Errors,[]} when
+      Defs :: [{Form,Line}],
+      Form :: [_],
+      Line :: non_neg_integer(),
+      Opts :: [_],
+      DocInfo :: lfe_docs_v1(),
+      Errors :: nonempty_list({error,Line,any()}).
 
-extract_module_docs([], _Ci)  -> {ok,[]};
-extract_module_docs(Defs, Ci) ->
-    {Mdoc,Docs} = do_forms(Defs),
-    Errors = filter(fun (#doc{}) -> false;
-                        (_)      -> true
-                    end, Docs),
-    ?DEBUG("#doc: ~p\n", [{Mdoc,Docs}], Ci#cinfo.opts),
-    ?IF([] =:= Errors,
-        {ok,{Mdoc,Docs}},
-        {error,Errors,[]}).
+make_chunk(Defs, Opts) ->
+    {ok,DocInfo} = make_doc_info(Defs, Opts),
+    Chunk = {"LDoc",erlang:term_to_binary(DocInfo, [compressed])},
+    {ok,Chunk}.
 
-do_forms(Fs) -> foldl(fun do_form/2, {[],[]}, Fs).
+make_doc_info(Defs, Opts) ->
+    St0 = do_forms(Defs, #st{}),
+    St1 = trim_info(St0),
+    St2 = format_info(St1),
+    #st{moddoc=Moddoc,fs=Fdocs,ms=Mdocs} = St2,
+    ?DEBUG("#doc: ~p\n", [{Moddoc,Fdocs,Mdocs}], Opts),
+    ?IF(St2#st.errors =:= [],
+        {ok,#lfe_docs_v1{moduledoc=Moddoc,fdocs=Fdocs,mdocs=Mdocs}},
+        {error,St2#st.errors,[]}).
 
-do_form({['define-module',_,Meta,Atts],_}, {Mdoc,Docs}) ->
-    {do_module_def(Meta, Atts, Mdoc),Docs};
-do_form({['extend-module',Meta,Atts],_}, {Mdoc,Docs}) ->
-    {do_module_def(Meta, Atts, Mdoc),Docs};
-do_form({['define-function',Name,Meta,Def],Line}, {Mdoc,Docs}) ->
-    {Mdoc,do_function(Name, Def, Meta, Line, Docs)};
-do_form({['define-macro',Name,Meta,Def],Line}, {Mdoc,Docs}) ->
-    {Mdoc,do_macro(Name, Def, Meta, Line, Docs)};
-do_form(_, Doc) -> Doc.                         %Ignore eval-when-compile
+%% trim_info(State) -> State.
+%%  Remove all non-exported functions and macros from the state.
 
-do_module_def(Meta, Atts, Mdoc0) ->
-    Mdoc1 = collect_docs(Meta, Mdoc0),          %First take meta docs
-    collect_docs(Atts, Mdoc1).                  %then the attribute docs
+trim_info(#st{fs=Fs0,ms=Ms0,expf=Expf,expm=Expm}=St) ->
+    Fs1 = filter(fun (#fdoc{name=N,arity=Ar}) ->
+                         is_exported(N, Ar, Expf)
+                 end, Fs0),
+    Ms1 = filter(fun (#mdoc{name=N}) ->
+                         ordsets:is_element(N, Expm)
+                 end, Ms0),
+    St#st{fs=Fs1,ms=Ms1}.
+
+is_exported(N, Ar, Expf) ->
+    Expf =:= all orelse ordsets:is_element([N,Ar], Expf).
+
+%% format_info(State) -> State.
+%%  Format all the module, function and macro doc strings in the state.
+
+format_info(#st{moddoc=Mdoc0,fs=Fs0,ms=Ms0}=St) ->
+    Mdoc1 = format_docs(Mdoc0),
+    Fs1 = map(fun (#fdoc{doc=Ds}=Fd) -> Fd#fdoc{doc=format_docs(Ds)} end, Fs0),
+    Ms1 = map(fun (#mdoc{doc=Ds}=Md) -> Md#mdoc{doc=format_docs(Ds)} end, Ms0),
+    St#st{moddoc=Mdoc1,fs=Fs1,ms=Ms1}.
+
+%% do_forms(Forms, State) -> State.
+
+do_forms(Forms, St) -> foldl(fun do_form/2, St, Forms).
+
+do_form({['define-module',_,Meta,Atts],_}, St) ->
+    define_module(Meta, Atts, St);
+do_form({['extend-module',Meta,Atts],_}, St) ->
+    define_module(Meta, Atts, St);
+do_form({['define-function',Name,Meta,Def],Line}, St) ->
+    define_function(Name, Meta, Def, Line, St);
+do_form({['define-macro',Name,Meta,Def],Line}, St) ->
+    define_macro(Name, Meta, Def, Line, St);
+do_form(_, St) -> St.                         %Ignore other forms
+
+define_module(Meta, Atts, #st{moddoc=Md0,expf=Expf0,expm=Expm0}=St) ->
+    Md1 = collect_docs(Meta, Md0),
+    Md2 = collect_docs(Atts, Md1),
+    Expf1 = collect_fexports(Atts, Expf0),
+    Expm1 = collect_mexports(Atts, Expm0),
+    St#st{moddoc=Md2,expf=Expf1,expm=Expm1}.
+
+collect_fexports(Atts, Expf) ->
+    Fun = fun ([export|Es], Efs) -> collect_fexport(Es, Efs);
+              (_, Efs) -> Efs
+          end,
+    foldl(Fun, Expf, Atts).
+
+collect_fexport(_, all) -> all;
+collect_fexport([all], _) -> all;
+collect_fexport(Es, Efs) ->
+    foldl(fun ordsets:add_element/2, Efs, Es).
+
+collect_mexports(Atts, Expm) ->
+    Fun = fun (['export-macro'|Es], Em) ->
+                  foldl(fun ordsets:add_element/2, Em, Es);
+              (_, Em) -> Em
+          end,
+    foldl(Fun, Expm, Atts).
+
+define_function(Name, Meta, Def, Line, #st{fs=Fs}=St) ->
+    {Arity,Pats} = get_function_patterns(Def),
+    ?IF(exclude_function(Name, Arity, Meta),
+        St,
+        begin
+            Ds = collect_docs(Meta, []),
+            Fd = #fdoc{name=Name,arity=Arity,patterns=Pats,doc=Ds,line=Line},
+            St#st{fs=[Fd|Fs]}
+        end).
+
+define_macro(Name, Meta, Def, Line, #st{ms=Ms}=St) ->
+    ?IF(exclude_macro(Name, Meta),
+        St,
+        begin
+            Ds = collect_docs(Meta, []),
+            Pats = get_macro_patterns(Def),
+            Md = #mdoc{name=Name,patterns=Pats,doc=Ds,line=Line},
+            St#st{ms=[Md|Ms]}
+        end).
+
+%% func_arity(['lambda',As|_]) -> length(As);
+%% func_arity(['match-lambda',[Pats|_]|_]) -> length(Pats).
 
 collect_docs(As, Mdoc) ->
     %% Collect all the docs in all the doc metas/attributes.
@@ -102,48 +188,29 @@ collect_docs(As, Mdoc) ->
            end,
     foldl(Afun, Mdoc, As).
 
-do_function(Name, Def, Meta, Line, Docs) ->
-    %% Must get patterns and arity before we can check if excluded.
-    {Arity,Pats} = get_function_patterns(Def),
-    ?IF(exclude(Name, Arity, Meta),
-        Docs,
-        begin
-            Fdoc = make_function_doc(Name, Arity, Pats, Meta, Line),
-            [Fdoc|Docs]
-        end).
-
-do_macro(Name, Def, Meta, Line, Docs) ->
-    %% We only need the name to check for exclusion.
-    ?IF(exclude(Name, Meta),
-        Docs,
-        begin
-            Pats = get_macro_patterns(Def),
-            Mdoc = make_macro_doc(Name, Pats, Meta, Line),
-            [Mdoc|Docs]
-        end).
-
-%% exclude(Name, Arity, Meta) -> boolean().
-%% exclude(Name, Meta) -> boolean().
+%% exclude_function(Name, Arity, Meta) -> boolean().
+%% exclude_macro(Name, Meta) -> boolean().
 %%  Return true if a function should be excluded from the docs chunk.
 %%  $handle_undefined_function/2 needs special handling as it is
 %%  automatically generated but can also be defined by the user. So we
 %%  only include it is it has user documentation.
 
--spec exclude(Name, Arity, Meta) -> boolean() when
+-spec exclude_function(Name, Arity, Meta) -> boolean() when
       Name  :: atom(),
       Arity :: non_neg_integer(),
       Meta  :: list().
--spec exclude(Name, Meta) -> boolean() when
+-spec exclude_macro(Name, Meta) -> boolean() when
       Name  :: atom(),
       Meta  :: list().
 
-exclude('LFE-EXPAND-EXPORTED-MACRO', 3, _)  -> true;
-exclude('$handle_undefined_function', 2, _) ->  %Should check for doc string
+exclude_function('LFE-EXPAND-EXPORTED-MACRO', 3, _)  -> true;
+exclude_function('$handle_undefined_function', 2, _) ->
+    %% Should check for doc string.
     true;
-exclude(_, _, _) -> false.
+exclude_function(_, _, _) -> false.
 
-exclude('MODULE', _) -> true;
-exclude(_, _)        -> false.
+exclude_macro('MODULE', _) -> true;
+exclude_macro(_, _)        -> false.
 
 %% get_function_patterns(LambdaForm) -> {Arity,Patterns}.
 %% get_macro_patterns(LambdaForm)    -> Patterns.
@@ -179,87 +246,9 @@ do_macro_patterns([[[Pat,_Env]|_]|Cls], Acc) ->
     do_macro_patterns(Cls, [{Pat,[]}|Acc]);
 do_macro_patterns([], Acc) -> reverse(Acc).
 
-%% make_function_doc(Name, Arity, Patterns, Doc, Line) -> doc().
-%% make_macro_doc(Name, Patterns, Doc, Line) -> doc().
-%%  Convenience constructor for #doc{}, which is defined in src/lfe_doc.hrl.
-
--spec make_function_doc(Name, Arity, Patterns, Meta, Line) -> doc() when
-      Name     :: atom(),
-      Arity    :: non_neg_integer(),
-      Patterns :: [{[],[]}],
-      Meta     :: [any()],
-      Line     :: pos_integer().
-
--spec make_macro_doc(Name, Patterns, Meta, Line) -> doc() when
-      Name     :: atom(),
-      Patterns :: [{[],[]}],
-      Meta     :: [any()],
-      Line     :: pos_integer().
-
-make_function_doc(Name, Arity, Patterns, Meta, Line) ->
-    Docs = collect_docs(Meta, []),
-    #doc{type=function,name={Name,Arity},patterns=Patterns,doc=Docs,line=Line}.
-
-make_macro_doc(Name, Patterns, Meta, Line) ->
-    Docs = collect_docs(Meta, []),
-    #doc{type=macro,name=Name,patterns=Patterns,doc=Docs,line=Line}.
-
 string_to_binary(Str) when is_list(Str) ->
     unicode:characters_to_binary(Str, utf8, utf8);
 string_to_binary(Bin) -> Bin.
-
-%% save_module_docs(Beam, ModDocs, CompInfo) -> Mod.
-%%  Add the "LDoc" chunk to a module's .beam binary.
-
--spec save_module_docs(Beam, Docs, Cinfo) -> {ok,Beam} | {error,Errors} when
-      Beam   :: binary(),
-      Docs   :: {[doc()],[doc()]},
-      Cinfo  :: #cinfo{},
-      Errors :: [{_,_,_}].
-
-save_module_docs(Beam, {Mdoc,Fdocs0}, _Ci) ->
-    Fdocs1 = exports_attributes(Beam, Fdocs0),
-    %% Modified from elixir_module
-    LDoc = term_to_binary(#lfe_docs_v1{
-                             docs=Fdocs1,
-                             moduledoc=format_docs(Mdoc)
-                            }),
-    {ok,add_beam_chunk(Beam, "LDoc", LDoc)};
-save_module_docs(_, _, _) -> {error,[{none,lfe_doc,save_chunk}]}.
-
-%% exports_attributes(Beam, MacFuncDocs) -> MacFuncDocs.
-%%  Return the exported macro and function docs seeting exported=true.
-
-exports_attributes(Beam, Fdocs) ->
-    Crefs = [exports,attributes],
-    {ok,{_,[{exports,Expf},{attributes,Atts}]}} = beam_lib:chunks(Beam, Crefs),
-    Expm  = proplists:get_value('export-macro', Atts, []),
-    foldl(do_exports(Expf, Expm), [], Fdocs).
-
-%% do_exports(Expf, Expm) -> Fun.
-%%  Close over Expf and Expm then return the folding function for
-%%  exports/1.  We only included exported functions and macros.  The
-%%  export-macro attribute is not necessarily sorted.
-
-do_exports(Expf, Expm) ->
-    fun (#doc{type=function,name=FA,doc=Ds}=Doc, Docs) ->
-            ?IF(member(FA, Expf),
-                [Doc#doc{exported=true,doc=format_docs(Ds)}|Docs],
-                Docs);
-        (#doc{type=macro,name=M,doc=Ds}=Doc, Docs) ->
-            ?IF(member(M, Expm),
-                [Doc#doc{exported=true,doc=format_docs(Ds)}|Docs],
-                Docs)
-    end.
-
-%% add_beam_chunk(Bin, Id, ChunkData) -> Bin.
-%%  Add a custom chunk to a .beam binary. Modified from elixir_module.
-
-add_beam_chunk(Bin, Id, ChunkData)
-  when is_binary(Bin), is_list(Id), is_binary(ChunkData) ->
-    {ok,_,Chunks} = beam_lib:all_chunks(Bin),
-    {ok,NewBin}   = beam_lib:build_module([{Id,ChunkData}|Chunks]),
-    NewBin.
 
 %% format_docs([DocString]) -> [DocLine].
 %%  Take a list of doc strings and generate a list of indented doc
@@ -329,21 +318,20 @@ get_module_chunk(Bin) ->
 
 module_doc(#lfe_docs_v1{moduledoc=Moddoc}) -> Moddoc.
 
-mf_docs(#lfe_docs_v1{docs=Docs}) -> Docs.
+function_docs(#lfe_docs_v1{fdocs=Fdocs}) -> Fdocs.
+macro_docs(#lfe_docs_v1{mdocs=Mdocs}) -> Mdocs.
 
-mf_doc_type(#doc{name={_,_}}) -> function;
-mf_doc_type(#doc{name=N}) when is_atom(N) -> macro.
-
-function_docs(Fun, Ar, #lfe_docs_v1{docs=Docs}) ->
-    case lists:keysearch({Fun,Ar}, #doc.name, Docs) of
-        {value,Fdoc} -> {ok,Fdoc};
-        false -> error
+function_docs(Name, Ar, #lfe_docs_v1{fdocs=Fdocs}) ->
+    Fun = fun (#fdoc{name=N,arity=A}) -> (N =/= Name) or (A =/= Ar) end,
+    case lists:dropwhile(Fun, Fdocs) of
+        [Fd|_] -> {ok,Fd};
+        [] -> error
     end.
 
-macro_docs(Mac, #lfe_docs_v1{docs=Docs}) ->
-    case lists:keysearch(Mac, #doc.name, Docs) of
-        {value,Mdoc} -> {ok,Mdoc};
-        false -> error
+macro_docs(Name, #lfe_docs_v1{mdocs=Mdocs}) ->
+    case lists:dropwhile(fun (#mdoc{name=N}) -> N =/= Name end, Mdocs) of
+        [Md|_] -> {ok,Md};
+        [] -> error
     end.
 
 %% function_name(FunctionDoc) -> Name.
@@ -353,11 +341,11 @@ macro_docs(Mac, #lfe_docs_v1{docs=Docs}) ->
 %% function_doc(FunctionDoc) -> [DocString].
 %%  Extract fields from a function doc structure.
 
-function_name(#doc{name={Name,_}}) -> Name.
-function_arity(#doc{name={_,Ar}}) -> Ar.
-function_line(#doc{line=Line}) -> Line.
-function_patterns(#doc{name={_,_},patterns=Ps}) -> Ps.
-function_doc(#doc{name={_,_},doc=Ds}) -> Ds.
+function_name(#fdoc{name=Name}) -> Name.
+function_arity(#fdoc{arity=Ar}) -> Ar.
+function_line(#fdoc{line=Line}) -> Line.
+function_patterns(#fdoc{patterns=Ps}) -> Ps.
+function_doc(#fdoc{doc=Ds}) -> Ds.
 
 %% macro_name(MacroDoc) -> Name.
 %% macro_line(MacroDoc) -> LineNo.
@@ -365,10 +353,10 @@ function_doc(#doc{name={_,_},doc=Ds}) -> Ds.
 %% macro_doc(MacroDoc) -> [DocString].
 %%  Extract fields from a macr doc structure.
 
-macro_name(#doc{name=Name}) -> Name.
-macro_line(#doc{line=Line}) -> Line.
-macro_patterns(#doc{name=N,patterns=Ps}) when is_atom(N) -> Ps.
-macro_doc(#doc{name=N,doc=Ds}) when is_atom(N) -> Ds.
+macro_name(#mdoc{name=Name}) -> Name.
+macro_line(#mdoc{line=Line}) -> Line.
+macro_patterns(#mdoc{name=N,patterns=Ps}) when is_atom(N) -> Ps.
+macro_doc(#mdoc{name=N,doc=Ds}) when is_atom(N) -> Ds.
 
 %%%===================================================================
 %%% EUnit tests

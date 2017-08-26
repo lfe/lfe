@@ -24,19 +24,28 @@
 -type name() :: atom() | {atom(),non_neg_integer()}.
 
 %% de{fun,macro} docs.
--record(doc, {type     = error(missing_type)     :: function | macro,
-              exported = false                   :: boolean(),
-              name     = error(missing_name)     :: name(),
-              patterns = error(missing_patterns) :: [{pattern(),guard()}],
-              doc      = []                      :: [binary()],
-              line     = error(missing_line)     :: pos_integer()
-             }).
+-record(fdoc, {name = error(missing_name)         :: atom(),
+               arity = error(missing_arity)       :: integer(),
+               patterns = error(missing_patterns),
+               doc = []                           :: [binary()],
+               line = error(missing_line)         :: pos_integer()
+               }).
 
--type doc() :: #doc{}.
+-record(mdoc, {name = error(missing_name)         :: atom(),
+               patterns = error(missing_patterns),
+               doc = []                           :: [binary()],
+               line = error(missing_line)         :: pos_integer()
+               }).
+
+-type fdoc() :: #fdoc{}.
+-type mdoc() :: #mdoc{}.
 
 %% For the BEAM beam chunk, "LDoc".
--record(lfe_docs_v1, {docs      = []  :: [doc()],    %Function/macro docs
-                      moduledoc = []  :: [binary()]  %Module doc
-                      %% callback_docs=CallbackDocs, %Callback docs
-                      %% type_docs=TypeDocs          %Type docs
+-record(lfe_docs_v1, {moduledoc = [] :: [binary()], %Module doc
+                      fdocs     = [] :: [fdoc()],   %Function docs
+                      mdocs     = [] :: [mdoc()]    %Macro docs
+                      %% callback_docs=CallbackDocs,   %Callback docs
+                      %% type_docs=TypeDocs            %Type docs
                      }).
+
+-type lfe_docs_v1() :: #lfe_docs_v1{}.
