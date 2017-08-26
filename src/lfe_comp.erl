@@ -49,7 +49,8 @@
                code=[],                         %Code after last pass.
                return=[],                       %What is returned [Val] | []
                errors=[],
-               warnings=[]
+               warnings=[],
+	       extra=[]                         %Pass specific options, plist
               }).
 
 %% default_options() -> Options.
@@ -176,6 +177,7 @@ lfe_comp_opts(Opts) ->
               ('to-core') -> to_core;
               ('to-kernel') -> to_kernel;
               ('to-asm') -> to_asm;
+              ('debug-info') -> debug_info;
               ('no-export-macros') -> no_export_macros;
               ('warnings-as-errors') -> warnings_as_errors;
               ('report-warnings') -> report_warnings;
@@ -237,6 +239,7 @@ passes() ->
      {unless_flag,no_docs,{do,fun do_get_docs/1}},
      {do,fun do_lfe_codegen/1},
      {when_flag,to_core0,{done,fun core_pp/1}},
+     {when_flag,debug_info,{do,fun do_get_abstract/1}},
      {do,fun do_erl_comp/1},
      %% These options will have made erlang compiler return internal
      %% form after pass.
@@ -244,7 +247,7 @@ passes() ->
      {when_flag,to_kernel,{done,fun erl_kernel_pp/1}},
      {when_flag,to_asm,{done,fun erl_asm_pp/1}},
      %% Write docs beam chunks.
-     {unless_flag,no_docs,{do,fun do_add_docs/1}},
+     {do,fun add_chunks/1},
      %% Now we just write the beam file unless warnings-as-errors is
      %% set and we have warnings.
      {when_test,fun is_werror/1,error},
@@ -410,8 +413,9 @@ process_forms(Fun, Fs, L, St) ->
 
 %% do_lfe_pmod(State) -> {ok,State} | {error,State}.
 %% do_lint(State) -> {ok,State} | {error,State}.
-%% do_lfe_codegen(State) -> {ok,State} | {error,State}.
 %% do_get_docs(State) -> {ok,State} | {error,State}.
+%% do_lfe_codegen(State) -> {ok,State} | {error,State}.
+%% do_get_abstract(State) -> {ok,State} | {error,State}.
 %% do_erl_comp(State) -> {ok,State} | {error,State}.
 %%  The actual compiler passes.
 
@@ -435,16 +439,13 @@ do_lfe_lint(#comp{cinfo=Ci,code=Ms0}=St0) ->
     St1 = St0#comp{code=Ms1},
     ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
 
-do_get_docs(#comp{cinfo=Ci,code=Ms0}=St0) ->
-    Doc = fun (#module{code=Mfs,warnings=Ws}=Mod) ->
-                  case lfe_doc:extract_module_docs(Mfs, Ci) of
-                      {ok,Docs} -> Mod#module{docs=Docs};
-                      {error,Des,Dws} -> {error,Des,Ws ++ Dws}
-                  end
+do_get_docs(#comp{code=Ms0,opts=Opts}=St) ->
+    Doc = fun (#module{code=Mfs,chunks=Chks}=Mod) ->
+                  {ok,Chunk} = lfe_doc:make_chunk(Mfs, Opts),
+                  Mod#module{chunks=[Chunk|Chks]}
           end,
     Ms1 = lists:map(Doc, Ms0),
-    St1 = St0#comp{code=Ms1},
-    ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
+    {ok,St#comp{code=Ms1}}.
 
 do_lfe_codegen(#comp{cinfo=Ci,code=Ms0}=St) ->
     Code = fun (#module{name=Name,code=Mfs}=Mod) ->
@@ -453,6 +454,14 @@ do_lfe_codegen(#comp{cinfo=Ci,code=Ms0}=St) ->
                    Mod#module{code=Core}
            end,
     Ms1 = lists:map(Code, Ms0),
+    {ok,St#comp{code=Ms1}}.
+
+do_get_abstract(#comp{code=Ms0,opts=Opts}=St) ->
+    Abst = fun (#module{code=Core,chunks=Chks}=Mod) ->
+                   {ok,Chunk} = lfe_abstract_code:make_chunk(Core, Opts),
+                   Mod#module{chunks=[Chunk|Chks]}
+           end,
+    Ms1 = lists:map(Abst, Ms0),
     {ok,St#comp{code=Ms1}}.
 
 do_erl_comp(#comp{code=Ms0}=St0) ->
@@ -568,25 +577,25 @@ do_save_file(SaveAll, Ext, St) ->
             case Ret of
                 ok -> {ok,St};
                 {error,_} ->
-		    %% Just signal we couldn't write the file.
-		    {error,St#comp{errors=[{lfe_comp,write_file}]}}
+                    %% Just signal we couldn't write the file.
+                    {error,St#comp{errors=[{lfe_comp,write_file}]}}
             end;
         {error,_} ->
-	    %% Just signal we couldn't write the file.
-	    {error,St#comp{errors=[{lfe_comp,write_file}]}}
+            %% Just signal we couldn't write the file.
+            {error,St#comp{errors=[{lfe_comp,write_file}]}}
     end.
 
-do_add_docs(#comp{cinfo=Ci,code=Ms0}=St0) ->
-    Add = fun (#module{code=Beam0,docs=Docs}=Mod) ->
-                  case lfe_doc:save_module_docs(Beam0, Docs, Ci) of
-                      {ok,Beam1} -> Mod#module{code=Beam1};
-                      {error,Es} -> {error,Es,[]}
+add_chunks(#comp{code=Ms0}=St) ->
+    Add = fun (#module{name=Name,code=Beam0,chunks=Chks}=Mod) ->
+                  if Chks =:= [] -> Mod;        %Nothing to do
+                     true ->
+                          {ok,Name,All} = beam_lib:all_chunks(Beam0),
+                          {ok,Beam1} = beam_lib:build_module(Chks ++ All),
+                          Mod#module{code=Beam1}
                   end
           end,
-    %%Add = fun (Mod) -> lfe_doc:save_module_docs(Mod, Ci) end,
     Ms1 = lists:map(Add, Ms0),
-    St1 = St0#comp{code=Ms1},
-    ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
+    {ok,St#comp{code=Ms1}}.
 
 beam_write(St0) ->
     Ms1 = lists:map(fun (M) -> beam_write_module(M, St0) end, St0#comp.code),
@@ -599,7 +608,7 @@ beam_write_module(#module{name=M,code=Beam}=Mod, St) ->
     case file:write_file(Name, Beam) of
         ok -> Mod;
         {error,_} ->
-	    %% Just signal we couldn't write the file.
+            %% Just signal we couldn't write the file.
             {error,[{lfe_comp,write_file}],[]}
     end.
 

@@ -26,8 +26,8 @@
 
 -record(module, {name=[],                       %Module name
                  code=none,                     %Module code
-                 warnings=[],                   %Module warnings
-                 docs=[]                        %Module docs
+                 chunks=[],                     %Extra chunks
+                 warnings=[]                    %Module warnings
                 }).
 
 %% Bloody useful
