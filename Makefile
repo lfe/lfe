@@ -34,10 +34,10 @@ VPATH = $(SRCDIR)
 
 MANDB = $(shell which mandb)
 
-ERLCFLAGS = -W1
+ERLCFLAGS = -W1 +debug_info
 ERLC = erlc
 
-LFECFLAGS = -pa ../lfe
+LFECFLAGS = -pa ../lfe +debug-info
 LFEC = $(BINDIR)/lfe $(BINDIR)/lfec
 APP_DEF = lfe.app
 
