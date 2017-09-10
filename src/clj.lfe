@@ -59,7 +59,8 @@
   `(defun ,@args))
 
 (defmacro fn args
-  "Equivalent to `lambda`."
+  "args
+   Equivalent to `lambda`."
   `(lambda ,@args))
 
 ;;; Threading macros.
@@ -184,7 +185,8 @@
   (some->>* args))
 
 (defmacro doto
-  "Evaluate all given `sexps` and functions in order,
+  "x . sexps
+  Evaluate all given `sexps` and functions in order,
   for their side effects, with the value of `x` as the first argument
   and return `x`."
   (`(,x . ,sexps)
@@ -280,7 +282,8 @@
       (_          'undefined))))
 
 (defmacro not=
-  "Same as `(not (== ...))`."
+  "exp
+  Same as `(not (== ...))`."
   (`(,x)            `'false)
   (`(,x ,y . ,more) `(not (== ,x ,y ,@more))))
 
@@ -576,7 +579,7 @@
      (sets:is_element elem data))
     ((ordsets:is_set data)
      (ordsets:is_element elem data))
-    ('true 'false))))
+    (else 'false))))
 
 
 ;;; Sequence functions.
@@ -779,7 +782,7 @@
          ((dict?     data) (-get-in-dict     data keys not-found))
          ((list?     data) (-get-in-list     data keys not-found))
          ((map?      data) (-get-in-map      data keys not-found))
-         ('true            not-found))))
+         (else             not-found))))
 
 (defn- -get-in
   ([func data `(,key) not-found]

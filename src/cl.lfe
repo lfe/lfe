@@ -48,7 +48,9 @@
    (acons 3) (pairlis 2) (pairlis 3) (assoc 2) (assoc-if 2) (assoc-if-not 2)
    (rassoc 2) (rassoc-if 2) (rassoc-if-not 2)
    ;; Types.
-   (type-of 1) (coerce 2))
+   (type-of 1) (coerce 2)
+   ;; System
+   (posix-argv 0))
   (export-macro
    ;; Export control structure macros.
    do
@@ -683,7 +685,7 @@
    (cond ((io_lib:printable_latin1_list x) 'string)
          ((io_lib:printable_unicode_list x) 'unicode)
          ((?= `(,a . ,b) (when (not (is_list b))) x) 'cons)
-         ('true 'list)))
+         (else 'list)))
   ((x) (when (is_function x))
    'function)
   ((x) (when (is_binary x))
