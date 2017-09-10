@@ -191,9 +191,6 @@ collect_docs(As, Mdoc) ->
 %% exclude_function(Name, Arity, Meta) -> boolean().
 %% exclude_macro(Name, Meta) -> boolean().
 %%  Return true if a function should be excluded from the docs chunk.
-%%  $handle_undefined_function/2 needs special handling as it is
-%%  automatically generated but can also be defined by the user. So we
-%%  only include it is it has user documentation.
 
 -spec exclude_function(Name, Arity, Meta) -> boolean() when
       Name  :: atom(),
@@ -204,9 +201,6 @@ collect_docs(As, Mdoc) ->
       Meta  :: list().
 
 exclude_function('LFE-EXPAND-EXPORTED-MACRO', 3, _)  -> true;
-exclude_function('$handle_undefined_function', 2, _) ->
-    %% Should check for doc string.
-    true;
 exclude_function(_, _, _) -> false.
 
 exclude_macro('MODULE', _) -> true;

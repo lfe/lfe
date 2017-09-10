@@ -77,7 +77,7 @@
 
 %% Define the macro data.
 -record(umac, {mline=[],expm=[],env=[],
-               leem=false,huf=false             %Do we have leem and huf?
+               leem=false                       %Do we have leem?
               }).
 
 %% module(ModuleForms, CompState) -> {ModuleForms,CompState}.
@@ -88,18 +88,15 @@ module([Mdef|Fs], Cst) ->
     Mst = collect_macros(Fs, #umac{env=lfe_env:new()}),
     module(Mdef, Fs, Mst, Cst).
 
-module({['define-module',Name,Meta,Atts],L}, Fs0, Mst0, Cst) ->
+module({['define-module',Name,Meta,Atts],L}, Fs, Mst0, Cst) ->
     Mst1 = collect_attrs(Atts, Mst0#umac{mline=L}),
-    {NoWarn,Fs1} = add_huf(L, Fs0),
     Emac = build_exported_macro(Mst1),
     %% We need to export the expansion function but leave the rest.
-    Exp = [export,['LFE-EXPAND-EXPORTED-MACRO',3],
-           ['$handle_undefined_function',2]],
+    Exp = [export,['LFE-EXPAND-EXPORTED-MACRO',3]],
     Md1 = {['define-module',Name,Meta,[Exp|Atts]],L},
-    %% io:format("m: ~p\n", [{Md1,Fs1,Emac}]), Put nowarn_function
-    %% attribute early to make old erlangs happy and export-macro last
-    %% so it can find all macros.
-    {[Md1|NoWarn ++ Fs1  ++ Emac],Cst}.
+    %% io:format("m: ~p\n", [{Md1,Fs,Emac}]),
+    %% Put export-macro last so it can find all macros.
+    {[Md1|Fs ++ Emac],Cst}.
 
 collect_macros(Fs, Mst) ->
     lists:foldl(fun collect_macro/2, Mst, Fs).
@@ -112,12 +109,10 @@ collect_macro({['eval-when-compile'|Fs],_}, Mst) ->
 collect_macro({['extend-module',_,Atts],_}, Mst) ->
     collect_attrs(Atts, Mst);
 collect_macro({['define-function',Name,_,Def],_}, Mst) ->
-    %% Check for LFE-EXPAND-EXPORTED-MACRO and $handle_undefined_function.
+    %% Check for LFE-EXPAND-EXPORTED-MACRO.
     case {Name,function_arity(Def)} of
         {'LFE-EXPAND-EXPORTED-MACRO',3} ->
             Mst#umac{leem=true};
-        {'$handle_undefined_function',2} ->
-            Mst#umac{huf=true};
         _ -> Mst                                %Ignore other functions
     end;
 collect_macro(_, Mst) -> Mst.                   %Ignore everything else
@@ -233,40 +228,3 @@ macro_clause(Args, [['when'|_]=W|Body]) ->
     [Args,W,[tuple,?Q(yes),[progn|Body]]];
 macro_clause(Args, Body) ->
     [Args,[tuple,?Q(yes),[progn|Body]]].
-
-%% add_huf(ModLine, Forms) -> {NoWarn,Forms}.
-%%  Add the $handle_undefined_function/2 function to catch run-time
-%%  macro calls. Scan through forms to check if there is an
-%%  $handle_undefined_function/2 function already defined. If so use
-%%  that as default when not a macro, otherwise just generate the
-%%  standard undef error. If we have added our huf then we also add a
-%%  nowarn_function attribute for dialyzer.
-
-add_huf(L, Fs) -> add_huf(L, Fs, []).
-
-add_huf(L, [{['define-function',
-	      '$handle_undefined_function',Meta,Def],Lf}=F|Fs], Acc) ->
-    case function_arity(Def) of
-        2 ->					%Found the right $huf
-	    {[],reverse(Acc, [{make_huf(Meta, Def),Lf}|Fs])};
-        _ ->					%Keep going
-	    add_huf(L, Fs, [F|Acc])
-    end;
-add_huf(L, [F|Fs], Acc) ->			%Keep going
-    add_huf(L, Fs, [F|Acc]);
-add_huf(L, [], Acc) ->	                        %No $huf, so make one.
-    %% Use the default undef exception handler.
-    Excep = [lambda,[a,b],
-             [':',error_handler,raise_undef_exception,['MODULE'],a,b]],
-    {[{nowarn_huf(),L}],reverse(Acc, [{make_huf([], Excep),L}])}.
-
-make_huf(Meta, Huf) ->
-    ['define-function','$handle_undefined_function',Meta,
-     [lambda,[f,as],
-      ['case',['LFE-EXPAND-EXPORTED-MACRO',f,as,[':',lfe_env,new]],
-       [[tuple,?Q(yes),exp],[':',lfe_eval,expr,exp]],
-       [?Q(no),[funcall,Huf,f,as]]]]].
-
-nowarn_huf() ->
-    ['extend-module',[],
-     [[dialyzer,{nowarn_function,{'$handle_undefined_function',2}}]]].
