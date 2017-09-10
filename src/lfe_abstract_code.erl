@@ -16,9 +16,10 @@
 %%% Author  : Robert Virding
 %%% Purpose : Extract LFE abstract code for BEAM data.
 
-%% This is quite simple as the compiler produces Core erlang for us so
-%% there is no need to convert it when the debug info is
-%% required. However we cannot return Erlang AST.
+%% This is quite simple as the compiler produces Core erlang for
+%% us. However this has not been optimised so we do the Core
+%% optimisations when the debug_info is required.  However we cannot
+%% return Erlang AST.
 
 -module(lfe_abstract_code).
 
@@ -26,8 +27,14 @@
 
 %% debug_info(Format, Module, Data, Options) -> {ok,Code} | {error,Error}.
 
-debug_info(core_v1, _Mod, {Data,_Copts}, _Opts) ->
-    {ok,Data};
+debug_info(core_v1, _Mod, {Core0,Copts0}, Opts) ->
+    Copts = add_core_returns(delete_reports(Copts0 ++ Opts)),
+    try compile:noenv_forms(Core0, Copts) of
+	{ok,_,Core,_} -> {ok,Core};
+	_ -> {error,failed_conversion}
+    catch
+	error:_ -> {error,failed_conversion}
+    end;
 debug_info(_Format, _, _, _) ->
     {error,unknown_format}.
 
@@ -42,3 +49,14 @@ make_chunk(Core, Opts) ->
     {ok,DebugInfo} = make_debug_info(Core, Opts),
     Chunk = {"Dbgi",erlang:term_to_binary(DebugInfo, [compressed])},
     {ok,Chunk}.
+
+delete_reports(Opts) ->
+    [Opt || Opt <- Opts, not is_report_option(Opt)].
+
+is_report_option(report) -> true;
+is_report_option(report_errors) -> true;
+is_report_option(report_warnings) -> true;
+is_report_option(_) -> false.
+
+add_core_returns(Opts) ->
+    [from_core,to_core,return_errors,return_warnings] ++ Opts.
