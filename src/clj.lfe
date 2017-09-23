@@ -394,7 +394,7 @@
 
 (defmacro even? (x)
   "Return `'true` if `x` is even."
-  `(clj:zero? ,(band 1 x)))
+  `(clj:zero? (band 1 ,x)))
 
 (defmacro zero? (x)
   "Return `'true` if `x` is zero."

@@ -77,7 +77,7 @@
         1540.0
         (clj:->> (clj:seq 42)
                  (lists:map (lambda (x) (math:pow x 2)))
-                 (lists:filter (clj:comp #'clj:even?/1 #'round/1))
+                 (lists:filter (clj:comp #'even?/1 #'round/1))
                  (clj:take 10)
                  (lists:foldl (fun + 2) 0))))
 
@@ -202,7 +202,7 @@
                                  ,#'math:sin/1
                                  ,#'math:asin/1)) 0.5))
   (is-equal '(1 2 3 4)
-            (lists:filter (clj:comp #'not/1 #'clj:zero?/1)
+            (lists:filter (clj:comp #'not/1 #'zero?/1)
               '(0 1 0 2 0 3 0 4)))
   (let ((asin-result (clj:comp #'math:sin/1 #'math:asin/1 0.5)))
     (is-equal "0.5" (car (io_lib:format "~.1f" `(,asin-result))))))
@@ -488,8 +488,8 @@
   (IFF-MAPS (is (clj:empty? (call 'maps 'new)))))
 
 (deftest every?
-  (is-not (clj:every? #'clj:zero?/1 '(0 0 0 0 1)))
-  (is (clj:every? #'clj:zero?/1 '(0 0 0 0 0))))
+  (is-not (clj:every? #'zero?/1 '(0 0 0 0 1)))
+  (is (clj:every? #'zero?/1 '(0 0 0 0 0))))
 
 ;; Based on lists_SUITE.
 (deftest all?
@@ -501,12 +501,16 @@
     (is-not (lists:all (lambda (n) (=:= (rem n 2) 0)) l))))
 
 (deftest any?
-  (is-not (clj:any? #'clj:zero?/1 '(1 1 1 1 1)))
-  (is (clj:any? #'clj:zero?/1 '(0 1 1 1 1))))
+  (is-not (clj:any? #'zero?/1 '(1 1 1 1 1)))
+  (is (clj:any? #'zero?/1 '(0 1 1 1 1))))
 
 (deftest not-any?
-  (is-not (clj:not-any? #'clj:zero?/1 '(0 1 1 1 1)))
-  (is (clj:not-any? #'clj:zero?/1 '(1 1 1 1 1))))
+  (is-not (clj:not-any? #'zero?/1 '(0 1 1 1 1)))
+  (is (clj:not-any? #'zero?/1 '(1 1 1 1 1))))
+
+;; Functional forms of clj module macros.
+(defun zero? (x) (clj:zero? x))
+(defun even? (x) (clj:even? x))
 
 (deftest element?
   (are* [data] (not (clj:element? 'z data))
