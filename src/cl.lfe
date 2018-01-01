@@ -1,4 +1,4 @@
-;; Copyright (c) 2015-2016 Robert Virding
+;; Copyright (c) 2015-2018 Robert Virding
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -76,16 +76,16 @@
 (defmacro do args
   "vars (end-test result) body"
   (let* ((`(,pars (,test ,ret) . ,body) args)
-	 ((tuple vs is cs)
-	  (lists:foldr (match-lambda
-			 ([(list v i c) (tuple vs is cs)]
-			  (tuple (cons v vs) (cons i is) (cons c cs))))
-		       (tuple () () ()) pars)))
+         ((tuple vs is cs)
+          (lists:foldr (match-lambda
+                         ([(list v i c) (tuple vs is cs)]
+                          (tuple (cons v vs) (cons i is) (cons c cs))))
+                       (tuple () () ()) pars)))
     `(letrec-function ((|\|-do-func-\||
-			(lambda ,vs
-			  (if ,test ,ret
-			      (let ((do-state (progn . ,body)))
-				(|\|-do-func-\|| . ,cs))))))
+                        (lambda ,vs
+                          (if ,test ,ret
+                              (let ((do-state (progn . ,body)))
+                                (|\|-do-func-\|| . ,cs))))))
        (|\|-do-func-\|| . ,is))))
 
 (defun mapcar (func list)
@@ -236,7 +236,7 @@
 
 (defun length
   ([seq] (when (is_list seq))
-   (length seq))
+   (erlang:length seq))                 ;To ensure we call system length
   ([seq] (when (is_tuple seq))
    (tuple_size seq)))
 
