@@ -10,28 +10,10 @@
 %% on whether this version of erlang has maps (17) and general map
 %% keys (18), or NEW_CORE_REC for new core definition of records (19).
 
--define(HAS_MAPS_OPT, "-DHAS_MAPS=true").
--define(FULL_KEYS_OPT, "-DHAS_FULL_KEYS=true").
--define(NEW_REC_OPT, "-DNEW_REC_CORE=true").
--define(NEW_RAND_OPT, "-DNEW_RAND=true").
-
 main(_) ->
     Version = otp_release(),
     CompOpts = comp_opts(Version),
     file:write_file("comp_opts.mk", "COMP_OPTS = " ++ CompOpts ++ "\n").
-
-comp_opts(Version) ->
-    Copts0 = "-DERLANG_VERSION=\\\"" ++ Version ++ "\\\"",
-    Copts1 = ?IF(Version >= "17", Copts0 ++ " " ++ ?HAS_MAPS_OPT, Copts0),
-    Copts2 = ?IF(Version >= "18", Copts1 ++ " " ++ ?FULL_KEYS_OPT, Copts1),
-    Copts3 = ?IF(Version >= "19",
-                 Copts2 ++ append_copts([?NEW_REC_OPT,?NEW_RAND_OPT]),
-                 Copts2),
-    Copts3.
-
-append_copts([Copt|Copts]) ->
-    " " ++ Copt ++ append_copts(Copts);
-append_copts([]) -> [].
 
 %% Get the release number.
 %% We have stolen the idea and most of the code from rebar3.
@@ -60,3 +42,16 @@ otp_release() ->
                     end
             end
     end.
+
+comp_opts(Version) ->
+    Copts0 = "-DERLANG_VERSION=\\\"" ++ Version ++ "\\\"",
+    Copts0 ++ append_copts(Version, [{"17","HAS_MAPS"},
+                                     {"18","HAS_FULL_KEYS"},
+                                     {"19","NEW_REC_CORE"},
+                                     {"19","NEW_RAND"},
+                                     {"20","NEW_BOOL_GUARD"}]).
+
+append_copts(Version, [{Ver,Opt}|Opts]) ->
+    Rest = append_copts(Version, Opts),
+    ?IF(Version >= Ver, Rest ++ " " ++ "-D" ++ Opt ++ "=true", Rest);
+append_copts(_Version, []) -> [].
