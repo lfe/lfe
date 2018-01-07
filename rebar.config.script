@@ -20,47 +20,54 @@ SetConf = fun ([K], Val, Ps, _F) ->
 %% Get the release number.
 %% We have stolen the idea and most of the code from rebar3.
 
-Version = case erlang:system_info(otp_release) of
-              [$R,N1|Rest] when is_integer(N1) ->
-                  %% If OTP <= R16, take the digits.
-                  [N1|Rest];
-              Rel ->
-                  File = filename:join([code:root_dir(),"releases",Rel,"OTP_VERSION"]),
-                  case file:read_file(File) of
-                      {error, _} -> Rel;
-                      {ok, Vsn} ->
-                          Size = byte_size(Vsn),
-                          %% The shortest vsn string consists of at least
-                          %% two digits followed by "\n". Therefore, it's
-                          %% safe to assume Size >= 3.
-                          case binary:part(Vsn, {Size, -3}) of
-                              <<"**\n">> ->
-                                  binary:bin_to_list(Vsn, {0, Size - 3});
-                              _ ->
-                                  binary:bin_to_list(Vsn, {0, Size - 1})
-                          end
-                  end
-          end,
+OTPRelease =
+    fun () ->
+            case erlang:system_info(otp_release) of
+                [$R,N1|Rest] when is_integer(N1) ->
+                    %% If OTP <= R16, take the digits.
+                    [N1|Rest];
+                Rel ->
+                    File = filename:join([code:root_dir(),"releases",Rel,"OTP_VERSION"]),
+                    case file:read_file(File) of
+                        {error, _} -> Rel;
+                        {ok, Vsn} ->
+                            Size = byte_size(Vsn),
+                            %% The shortest vsn string consists of at least
+                            %% two digits followed by "\n". Therefore, it's
+                            %% safe to assume Size >= 3.
+                            case binary:part(Vsn, {Size, -3}) of
+                                <<"**\n">> ->
+                                    binary:bin_to_list(Vsn, {0, Size - 3});
+                                _ ->
+                                    binary:bin_to_list(Vsn, {0, Size - 1})
+                            end
+                    end
+            end
+    end,
+
+Version = OTPRelease(),
 
 %% Collect the macro definitions we will add to the compiler options.
+%%  Named funs would be nicer but not always available.
 
-%% Erlc macro definitions.
-HasOpt = {d,'HAS_MAPS',true},
-FullOpt = {d,'HAS_FULL_KEYS',true},
-RecOpt = {d,'NEW_REC_CORE',true},
-RandOpt = {d,'NEW_RAND',true},
+AppendCopts = fun (Version, [{Ver,Opt}|Opts], F) ->
+                      Rest = F(Version, Opts, F),
+                      if Version >= Ver ->
+                              [{d,Opt,true}|Rest];
+                         true ->
+                              Rest
+                      end;
+                  (_Version, [], _F) -> []
+              end,
 
 Copts0 = [{d,'ERLANG_VERSION',Version}],
-Copts1 = if Version >= "17" -> Copts0 ++ [HasOpt];
-            true -> Copts0
-         end,
-Copts2 = if Version >= "18" -> Copts1 ++ [FullOpt];
-            true -> Copts1
-         end,
-Copts3 = if Version >= "19" -> Copts2 ++ [RecOpt,RandOpt];
-            true -> Copts2
-         end,
-Copts = Copts3,                                 %This is it
+Copts = Copts0 ++ AppendCopts(Version,
+                              [{"17",'HAS_MAPS'},
+                               {"18",'HAS_FULL_KEYS'},
+                               {"19",'NEW_REC_CORE'},
+                               {"19",'NEW_RAND'},
+                               {"20",'NEW_BOOL_GUARD'}],
+                             AppendCopts),
 
 %% Ensure they are in erl_opts.
 
