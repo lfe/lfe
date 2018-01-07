@@ -39,7 +39,8 @@ EXPORTS
 
        read_string(String) -> {ok,Sexpr} | {error,ErrorInfo}
 
-       Read an s-expr from String.
+       Read an s-expr from String.  Note that this only reads from String dis‐
+       carding left-over characters at the end of the string.
 
        print([IoDevice,] Sexpr) -> ok
 
@@ -49,6 +50,10 @@ EXPORTS
 
        Return the list of characters which represent the s-expr Sexpr.
 
+       prettyprint([IoDevice,] Sexpr) -> ok
+
+       Pretty print the s-expr Sexpr to the standard output (IoDevice).
+
        prettyprint1(Sexpr) -> DeepCharList
 
        prettyprint1(Sexpr, Depth) -> DeepCharList
@@ -57,8 +62,9 @@ EXPORTS
 
        prettyprint1(Sexpr, Depth, Indentation, LineLength) -> DeepCharList
 
-       Return the lost of characters which represents the prettyprinted s-expr
-       Sexpr.  Assume we start at indentation Indentation or 0.
+       Return the list of characters which represents the prettyprinted s-expr
+       Sexpr.  Default values for Depth is 30, Indentation is 0 and LineLength
+       is 80.
 
        format([IoDevice,] Format, Args) -> ok
 
