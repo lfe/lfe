@@ -30,30 +30,39 @@ by the compiler to give better error information.
 .PP
 \f[B]read([[IoDevice,] Prompt]) \-> {ok,Sexpr} | {error,ErrorInfo}\f[]
 .PP
-Read an s\-expr from the standard input (IoDevice) with a prompt
-(Prompt).
+Read an s\-expr from the standard input (\f[C]IoDevice\f[]) with a
+prompt (\f[C]Prompt\f[]).
 Note that this is not line\-oriented in that it stops as soon as it has
 consumed enough characters.
 .PP
 \f[B]read_line([[IoDevice,] Prompt]) \-> {ok,Sexpr} |
 {error,ErrorInfo}\f[]
 .PP
-Read an s\-expr from the standard input (IoDevice) with a prompt
-(Prompt).
+Read an s\-expr from the standard input (\f[C]IoDevice\f[]) with a
+prompt (\f[C]Prompt\f[]).
 Note that this is line\-oriented in that it reads whole lines discarding
 left\-over characters in the last line.
 .PP
 \f[B]read_string(String) \-> {ok,Sexpr} | {error,ErrorInfo}\f[]
 .PP
-Read an s\-expr from String.
+Read an s\-expr from \f[C]String\f[].
+Note that this only reads from \f[C]String\f[] discarding left\-over
+characters at the end of the string.
 .PP
 \f[B]print([IoDevice,] Sexpr) \-> ok\f[]
 .PP
-Print the s\-expr Sexpr to the standard output (IoDevice).
+Print the s\-expr \f[C]Sexpr\f[] to the standard output
+(\f[C]IoDevice\f[]).
 .PP
 \f[B]print1(Sexpr) \-> DeepCharList\f[]
 .PP
-Return the list of characters which represent the s\-expr Sexpr.
+Return the list of characters which represent the s\-expr
+\f[C]Sexpr\f[].
+.PP
+\f[B]prettyprint([IoDevice,] Sexpr) \-> ok\f[]
+.PP
+Pretty print the s\-expr \f[C]Sexpr\f[] to the standard output
+(\f[C]IoDevice\f[]).
 .PP
 \f[B]prettyprint1(Sexpr) \-> DeepCharList\f[]
 .PP
@@ -64,9 +73,10 @@ Return the list of characters which represent the s\-expr Sexpr.
 \f[B]prettyprint1(Sexpr, Depth, Indentation, LineLength) \->
 DeepCharList\f[]
 .PP
-Return the lost of characters which represents the prettyprinted s\-expr
+Return the list of characters which represents the prettyprinted s\-expr
 \f[C]Sexpr\f[].
-Assume we start at indentation Indentation or 0.
+Default values for \f[C]Depth\f[] is 30, \f[C]Indentation\f[] is 0 and
+\f[C]LineLength\f[] is 80.
 .PP
 \f[B]format([IoDevice,] Format, Args) \-> ok\f[]
 .PP
@@ -100,7 +110,8 @@ Currently they behave as for vanilla erlang except that \f[C]~w\f[],
 .PP
 \f[B]read_file(FileName) \-> {ok,[Sexpr]} | {error,ErrorInfo}\f[]
 .PP
-Read the file Filename returning a list of s\-exprs (as it should be).
+Read the file \f[C]Filename\f[] returning a list of s\-exprs (as it
+should be).
 .PP
 \f[B]parse_file(FileName) \-> {ok,[FileSexpr]} | {error,ErrorInfo}\f[]
 .PP
@@ -112,8 +123,8 @@ FileSexpr\ =\ filesexpr()
 \f[]
 .fi
 .PP
-Read the file Filename returning a list of pairs containing s\-expr and
-line number of the start of the s\-expr.
+Read the file \f[C]Filename\f[] returning a list of pairs containing
+s\-expr and line number of the start of the s\-expr.
 .PP
 \f[B]scan_sexpr(Cont, Chars [,Line]) \->
 {done,Ret,RestChars}|{more,Cont1}\f[]

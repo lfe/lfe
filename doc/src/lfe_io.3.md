@@ -37,27 +37,32 @@ is used by the compiler to give better error information.
 
 **read([[IoDevice,] Prompt]) -> {ok,Sexpr} | {error,ErrorInfo}**
 
-Read an s-expr from the standard input (IoDevice) with a prompt
-(Prompt). Note that this is not line-oriented in that it stops as soon
+Read an s-expr from the standard input (``IoDevice``) with a prompt
+(``Prompt``). Note that this is not line-oriented in that it stops as soon
 as it has consumed enough characters.
 
 **read_line([[IoDevice,] Prompt]) -> {ok,Sexpr} | {error,ErrorInfo}**
 
-Read an s-expr from the standard input (IoDevice) with a prompt
-(Prompt). Note that this is line-oriented in that it reads whole lines
+Read an s-expr from the standard input (``IoDevice``) with a prompt
+(``Prompt``). Note that this is line-oriented in that it reads whole lines
 discarding left-over characters in the last line.
 
 **read_string(String) -> {ok,Sexpr} | {error,ErrorInfo}**
 
-Read an s-expr from String.
+Read an s-expr from ``String``. Note that this only reads from ``String``
+discarding left-over characters at the end of the string.
 
 **print([IoDevice,] Sexpr) -> ok**
 
-Print the s-expr Sexpr to the standard output (IoDevice).
+Print the s-expr ``Sexpr`` to the standard output (``IoDevice``).
 
 **print1(Sexpr) -> DeepCharList**
 
-Return the list of characters which represent the s-expr Sexpr.
+Return the list of characters which represent the s-expr ``Sexpr``.
+
+**prettyprint([IoDevice,] Sexpr) -> ok**
+
+Pretty print the s-expr ``Sexpr`` to the standard output (``IoDevice``).
 
 **prettyprint1(Sexpr) -> DeepCharList**
 
@@ -67,9 +72,9 @@ Return the list of characters which represent the s-expr Sexpr.
 
 **prettyprint1(Sexpr, Depth, Indentation, LineLength) -> DeepCharList**
 
-Return the lost of characters which represents the
-prettyprinted s-expr ``Sexpr``. Assume we start at indentation
-Indentation or 0.
+Return the list of characters which represents the prettyprinted
+s-expr ``Sexpr``. Default values for ``Depth`` is 30, ``Indentation``
+is 0 and ``LineLength`` is 80.
 
 **format([IoDevice,] Format, Args) -> ok**
 
@@ -96,7 +101,7 @@ Currently they behave as for vanilla erlang except that ``~w``,
 
 **read_file(FileName) -> {ok,[Sexpr]} | {error,ErrorInfo}**
 
-Read the file Filename returning a list of s-exprs (as it
+Read the file ``Filename`` returning a list of s-exprs (as it
 should be).
 
 **parse_file(FileName) -> {ok,[FileSexpr]} | {error,ErrorInfo}**
@@ -107,7 +112,7 @@ where
 FileSexpr = filesexpr()
 ```
 
-Read the file Filename returning a list of pairs containing
+Read the file ``Filename`` returning a list of pairs containing
 s-expr and line number of the start of the s-expr.
 
 **scan_sexpr(Cont, Chars [,Line]) -> {done,Ret,RestChars}|{more,Cont1}**
