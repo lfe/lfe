@@ -31,8 +31,8 @@
 
 %% The shell commands which generally callable.
 -export([c/1,c/2,cd/1,doc/1,docs/1,ec/1,ec/2,ep/1,ep/2,epp/1,epp/2,help/0,
-	 i/0,i/1,l/1,ls/1,clear/0,m/0,m/1,pid/3,p/1,p/2,pp/1,pp/2,pwd/0,
-	 q/0,flush/0,regs/0,exit/0]).
+         i/0,i/1,l/1,ls/1,clear/0,m/0,m/1,pid/3,p/1,p/2,pp/1,pp/2,pwd/0,
+         q/0,flush/0,regs/0,exit/0]).
 
 -import(lfe_env, [new/0,add_env/2,
                   add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
@@ -554,7 +554,10 @@ collect_module({['extend-module',_Meta,Atts],_}, Sl) ->
     collect_attrs(Atts, Sl);
 collect_module({['define-function',F,_Meta,Def],_}, #slurp{funs=Fs}=Sl) ->
     Ar = function_arity(Def),
-    Sl#slurp{funs=[{F,Ar,Def}|Fs]}.
+    Sl#slurp{funs=[{F,Ar,Def}|Fs]};
+collect_module({_,_}, Sl) ->
+    %% Ignore other forms, type and spec defs.
+    Sl.
 
 collect_attrs([[import|Is]|Atts], St) ->
     collect_attrs(Atts, collect_imps(Is, St));
@@ -889,7 +892,7 @@ print_macros(Info) ->
 print_names(Format, Names) ->
     %% Generate flattened list of strings.
     Strs = lists:map(fun (N) -> lists:flatten(Format(N)) end,
-		     lists:sort(Names)),
+                     lists:sort(Names)),
     %% Split into equal length lists and print out.
     {S1,S2} = lists:split(round(length(Strs)/2), Strs),
     print_name_strings(S1, S2).
