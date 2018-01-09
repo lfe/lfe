@@ -21,6 +21,9 @@ c(X, Y, R) ->
 d(P, C) ->
     {P#point.x,C#circle.radius}.
 
+d2(PP) when (element(2, PP))#point.y =:= 99 ->
+    (element(2, PP))#point.x.
+
 e(P, C) ->
     {case P of
          #point{x=X} -> X;
