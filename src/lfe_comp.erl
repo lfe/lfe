@@ -36,6 +36,12 @@
 
 -include("lfe_comp.hrl").
 
+%% We do a lot of quoting!
+-define(Q(E), [quote,E]).
+-define(BQ(E), [backquote,E]).
+-define(C(E), [comma,E]).
+-define(C_A(E), ['comma-at',E]).
+
 %% The main compiler state.
 
 -record(comp, {base="",                         %Base name
@@ -50,7 +56,7 @@
                return=[],                       %What is returned [Val] | []
                errors=[],
                warnings=[],
-	       extra=[]                         %Pass specific options, plist
+               extra=[]                         %Pass specific options, plist
               }).
 
 %% default_options() -> Options.
@@ -115,10 +121,10 @@ do_file(Name, Opts0) ->
     end.
 
 do_forms(Fs0, Opts0) ->
-    Source = proplists:get_value(source, Opts0, "-no-file-"),
+    Source = lprop(source, Opts0, ""),
     Opts1 = lfe_comp_opts(Opts0),
     St0 = #comp{opts=[binary|Opts1]},           %Implicit binary option
-    St1 = filenames(Source, ".lfe", St0),
+    St1 = filenames(Source, "", St0),
     St2 = include_path(St1),
     %% Tag forms with a "line number", just use their index.
     {Fs1,_} = mapfoldl(fun (F, N) -> {{F,N},N+1} end, 1, Fs0),
@@ -130,20 +136,29 @@ do_forms(Fs0, Opts0) ->
 
 filenames(File, Suffix, St) ->
     %% Test for explicit outdir.
-    Odir = outdir(St#comp.opts),
+    Odir = outdir(St#comp.opts, "."),
     Ldir = filename:dirname(File),
     Base = filename:basename(File, Suffix),
-    Lfile = filename:join(Ldir, Base ++ Suffix),
+    Lfile = lfefile(Ldir, Base, Suffix),
     St#comp{base=Base,
             ldir=Ldir,
             lfile=Lfile,
             odir=Odir
            }.
 
-outdir([{outdir,Dir}|_]) -> Dir;                %Erlang way
-outdir([[outdir,Dir]|_]) -> Dir;                %LFE way
-outdir([_|Opts]) -> outdir(Opts);
-outdir([]) -> ".".
+lfefile(".", Base, Suffix) -> Base ++ Suffix;
+lfefile(Dir, Base, Suffix) ->
+    filename:join(Dir, Base ++ Suffix).
+
+outdir(Opts, Def) -> lprop(outdir, Opts, Def).
+
+%% lprop(Key, PropList, Default) -> Value.
+%%  Find Key, Val from PropList else Default.
+
+lprop(Key, [{Key,Val}|_], _) -> Val;                %Erlang way
+lprop(Key, [[Key,Val]|_], _) -> Val;                %LFE way
+lprop(Key, [_|List], Def) -> lprop(Key, List, Def);
+lprop(_, [], Def) -> Def.
 
 %% include_path(State) -> State.
 %%  Set the include path, we permit {i,Dir} and [i,Dir].
@@ -177,6 +192,7 @@ lfe_comp_opts(Opts) ->
               ('to-core') -> to_core;
               ('to-kernel') -> to_kernel;
               ('to-asm') -> to_asm;
+              ('to-ast') -> to_ast;             %The output should be an AST
               ('debug-info') -> debug_info;
               ('no-export-macros') -> no_export_macros;
               ('warnings-as-errors') -> warnings_as_errors;
@@ -238,7 +254,7 @@ passes() ->
      {when_flag,to_lint,{done,fun lint_pp/1}},
      {unless_flag,no_docs,{do,fun do_get_docs/1}},
      {do,fun do_lfe_codegen/1},
-     {when_flag,to_core0,{done,fun core_pp/1}},
+     {when_flag,to_core0,{done,fun erl_core_pp/1}},
      {when_flag,debug_info,{do,fun do_get_abstract/1}},
      {do,fun do_erl_comp/1},
      %% These options will have made erlang compiler return internal
@@ -283,8 +299,11 @@ do_passes([], St) -> {ok,St}.                   %Got to the end, everything ok!
 %%  top-level macros in forms so we can safelt detect the start of
 %%  each module (with define-module form).
 
-do_split_file(#comp{cinfo=Ci,code=Code}=St) ->
-    case collect_pre_forms(Code, Ci) of         %Expand pre module forms
+do_split_file(#comp{lfile=Lfile,cinfo=Ci,code=Code0}=St) ->
+    %% Add a FILE macro with the file name at the beginning.
+    Mac = {[defmacro,'FILE',[],?BQ(?Q(Lfile))],1},
+    Code1 = [Mac|Code0],
+    case collect_pre_forms(Code1, Ci) of        %Expand pre module forms
         {Pfs,Fs,Env0,Mst0} ->
             %% Expand the modules using the pre forms and environment.
             case collect_modules(Fs, Pfs, Env0, Mst0) of
@@ -308,53 +327,53 @@ do_split_file(#comp{cinfo=Ci,code=Code}=St) ->
 collect_pre_forms(Fs, Ci) ->
     Env = lfe_env:new(),
     %% Don't deep expand, keep everything.
-    St = lfe_macro:expand_form_init(Ci, false, true),
-    collect_mod_forms(Fs, Env, St).
+    Mst = lfe_macro:expand_form_init(Ci, false, true),
+    collect_mod_forms(Fs, Env, Mst).
 
-%% collect_modules(Forms, PreForms, PreEnv, State) ->
-%%     {Modules,State}.
+%% collect_modules(Forms, PreForms, PreEnv, MacroState) ->
+%%     {Modules,MacroState}.
 %%  Collect and expand modules upto the end. Each module initially has
 %%  the pre environment and all pre forms are appended to it.
 
-collect_modules(Fs, PreFs, PreEnv, St) ->
-    collect_modules(Fs, [], PreFs, PreEnv, St).
+collect_modules(Fs, PreFs, PreEnv, Mst) ->
+    collect_modules(Fs, [], PreFs, PreEnv, Mst).
 
-collect_modules([{['define-module',Name|_],_}=Mdef|Fs0], Ms, PreFs, PreEnv, St0) ->
+collect_modules([{['define-module',Name|_],_}=Mdef|Fs0], Ms, PreFs, PreEnv, Mst0) ->
     %% Expand and collect all forms upto next define-module or end.
-    case collect_mod_forms(Fs0, PreEnv, St0) of
-        {Mfs0,Fs1,_,St1} ->
+    case collect_mod_forms(Fs0, PreEnv, Mst0) of
+        {Mfs0,Fs1,_,Mst1} ->
             M = #module{name=Name,code=[Mdef] ++ PreFs ++ Mfs0},
-            collect_modules(Fs1, [M|Ms], PreFs, PreEnv, St1);
+            collect_modules(Fs1, [M|Ms], PreFs, PreEnv, Mst1);
         Error -> Error
     end;
-collect_modules([], Ms, _PreFs, _PreEnv, St) ->
-    {ok,lists:reverse(Ms),St}.
+collect_modules([], Ms, _PreFs, _PreEnv, Mst) ->
+    {ok,lists:reverse(Ms),Mst}.
 
-%% collect_mod_forms(Forms, Env, State) ->
-%% collect_mod_forms(Forms, Acc, Env, State) ->
-%%     {Modforms,RestForms,Env,State}.
+%% collect_mod_forms(Forms, Env, MacroState) ->
+%% collect_mod_forms(Forms, Acc, Env, MacroState) ->
+%%     {Modforms,RestForms,Env,MAcroState}.
 %%  Expand and collect forms upto the next define-module or end. We
 %%  also flatten top-level nested progn code.
 
-collect_mod_forms(Fs, Env0, St0) ->
-    case collect_mod_forms(Fs, [], Env0, St0) of
-        {Acc,Rest,Env1,St1} ->
-            {lists:reverse(Acc),Rest,Env1,St1};
+collect_mod_forms(Fs, Env0, Mst0) ->
+    case collect_mod_forms(Fs, [], Env0, Mst0) of
+        {Acc,Rest,Env1,Mst1} ->
+            {lists:reverse(Acc),Rest,Env1,Mst1};
         {error,_,_}=Error -> Error
     end.
 
-collect_mod_forms([F0|Fs0], Acc, Env0, St0) ->
-    case lfe_macro:expand_fileform(F0, Env0, St0) of
-        {ok,{['define-module'|_],_}=F1,Env1,St1} ->
-            {Acc,[F1|Fs0],Env1,St1};
-        {ok,{['progn'|Pfs],L},Env1,St1} ->      %Flatten progn's
+collect_mod_forms([F0|Fs0], Acc, Env0, Mst0) ->
+    case lfe_macro:expand_fileform(F0, Env0, Mst0) of
+        {ok,{['define-module'|_],_}=F1,Env1,Mst1} ->
+            {Acc,[F1|Fs0],Env1,Mst1};
+        {ok,{['progn'|Pfs],L},Env1,Mst1} ->     %Flatten progn's
             Fs1 = [ {F,L} || F <- Pfs ] ++ Fs0,
-            collect_mod_forms(Fs1, Acc, Env1, St1);
-        {ok,F1,Env1,St1} ->
-            collect_mod_forms(Fs0, [F1|Acc], Env1, St1);
+            collect_mod_forms(Fs1, Acc, Env1, Mst1);
+        {ok,F1,Env1,Mst1} ->
+            collect_mod_forms(Fs0, [F1|Acc], Env1, Mst1);
         {error,Es,Ws,_} -> {error,Es,Ws}
     end;
-collect_mod_forms([], Acc, Env, St) -> {Acc,[],Env,St}.
+collect_mod_forms([], Acc, Env, Mst) -> {Acc,[],Env,Mst}.
 
 %% do_export_macros(State) -> {ok,State} | {error,State}.
 %% do_expand_macros(State) -> {ok,State} | {error,State}.
@@ -516,7 +535,6 @@ erl_comp_opts(St) ->
 %% pmod_pp(State) -> {ok,State} | {error,State}.
 %% lint_pp(State) -> {ok,State} | {error,State}.
 %% sexpr_pp(State) -> {ok,State} | {error,State}.
-%% core_pp(State) -> {ok,State} | {error,State}.
 %% erl_core_pp(State) -> {ok,State} | {error,State}.
 %% erl_kernel_pp(State) -> {ok,State} | {error,State}.
 %% erl_asm_pp(State) -> {ok,State} | {error,State}.
@@ -539,26 +557,28 @@ sexpr_pp(St, Ext) ->
     do_list_save_file(Save, Ext, St).
 
 %% These print a list of module structures.
-core_pp(St) ->
+erl_core_pp(#comp{opts=Opts}=St) ->
+    Format = ?IF(member(to_ast, Opts),
+                 fun (F) -> io_lib:format("~p\n", [F]) end,
+                 fun (F) -> [core_pp:format(F),$\n] end),
     Save = fun (File, #module{code=Core}) ->
-                   io:put_chars(File, [core_pp:format(Core),$\n])
+                   io:put_chars(File, [Format(Core),$\n])
            end,
     do_list_save_file(Save, "core", St).
 
-erl_core_pp(St) ->
-    Save = fun (File, #module{code=Core}) ->
-                   io:put_chars(File, [core_pp:format(Core),$\n])
-           end,
-    do_list_save_file(Save, "core", St).
-
-erl_kernel_pp(St) ->
+erl_kernel_pp(#comp{opts=Opts}=St) ->
+    Format = ?IF(member(to_ast, Opts),
+                 fun (F) -> io_lib:format("~p\n", [F]) end,
+                 fun (F) -> [v3_kernel_pp:format(F),$\n] end),
     Save = fun (File, #module{code=Kern}) ->
-                   io:put_chars(File, [v3_kernel_pp:format(Kern),$\n]) end,
+                   io:put_chars(File, [Format(Kern),$\n])
+           end,
     do_list_save_file(Save, "kernel", St).
 
 erl_asm_pp(St) ->
     Save = fun (File, #module{code=Asm}) ->
-                   beam_listing:module(File, Asm), io:nl(File) end,
+                   beam_listing:module(File, Asm), io:nl(File)
+           end,
     do_list_save_file(Save, "S", St).
 
 do_list_save_file(SaveOne, Ext, St) ->

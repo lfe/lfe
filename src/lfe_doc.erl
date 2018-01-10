@@ -204,6 +204,8 @@ exclude_function('LFE-EXPAND-EXPORTED-MACRO', 3, _)  -> true;
 exclude_function(_, _, _) -> false.
 
 exclude_macro('MODULE', _) -> true;
+exclude_macro('FILE', _)   -> true;
+exclude_macro('LINE', _)   -> true;
 exclude_macro(_, _)        -> false.
 
 %% get_function_patterns(LambdaForm) -> {Arity,Patterns}.
