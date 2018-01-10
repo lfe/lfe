@@ -1064,6 +1064,8 @@ check_gexpr([tref|[_,_]=As], Env, L, St) -> check_gargs(As, Env, L, St);
 check_gexpr([binary|Segs], Env, L, St) -> gexpr_bitsegs(Segs, Env, L, St);
 %% Map operations are not allowed in guards.
 %% Check the Core closure special forms.
+check_gexpr(['let'|Let], Env, L, St) ->
+    check_glet(Let, Env, L, St);
 %% Check the Core control special forms.
 check_gexpr(['progn'|B], Env, L, St) -> check_gbody(B, Env, L, St);
 check_gexpr(['if'|B], Env, L, St) -> check_gif(B, Env, L, St);
@@ -1076,6 +1078,8 @@ check_gexpr([call,?Q(erlang),?Q(Fun)|As], Env, L, St0) ->
     end;
 check_gexpr([call|_], _, L, St) ->              %Other calls not allowed
     illegal_guard_error(L, St);
+check_gexpr([error,_], _, _, St) -> St;         %Allow calls to error
+check_gexpr([error,_,_], _, _, St) -> St;
 %% Finally the general case.
 check_gexpr([Fun|As], Env, L, St0) when is_atom(Fun) ->
     St1 = check_gargs(As, Env, L, St0),
@@ -1114,6 +1118,29 @@ check_gargs(Args, Env, L, St) ->
 
 check_gexprs(Es, Env, L, St) ->
     foldl(fun (E, S) -> check_gexpr(E, Env, L, S) end, St, Es).
+
+%% check_glet(LetBody, Env, Line, State) -> State.
+%%  Allow restricted let in guard with no matching and only guard
+%%  expressions.
+
+check_glet([Vbs|Body], Env, L, St0) ->
+    Check = fun (Vb, Vs, Sta) ->
+                    {Bvs,Stb} = check_glet_vb(Vb, Env, L, Sta),
+                    Stc = case intersection(Bvs, Vs) of
+                              [] -> Stb;
+                              Ivs -> multi_var_error(L, Ivs, Stb)
+                          end,
+                    {union(Bvs, Vs), Stc}
+            end,
+    {Pvs,St1} = foldl_form(Check, 'let', L, [], St0, Vbs),
+    check_gbody(Body, add_vbindings(Pvs, Env), L, St1);
+check_glet(_, _, L, St) ->
+    bad_gform_error(L, 'let', St).
+
+check_glet_vb([V,Expr], Env, L, St) when is_atom(V) ->
+    {[V],check_gexpr(Expr, Env, L, St)};
+check_glet_vb(_, _, L, St) ->
+    {[],bad_gform_error(L, 'let', St)}.
 
 %% check_gif(IfBody, Env, Line, State) -> State.
 %%  Check guard form (if Test True [False]).

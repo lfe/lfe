@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2017 Robert Virding
+%% Copyright (c) 2008-2018 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -1144,6 +1144,8 @@ comp_gexpr([binary|Segs], Env, L, St) ->
     comp_binary(Segs, Env, L, St);              %And bitstring as well
 %% Map operations are not allowed in guards.
 %% Handle the Core closure special forms.
+comp_gexpr(['let',Vbs|Body], Env, L, St) ->
+    comp_let(Vbs, Body, Env, L, St);
 %% (let-syntax ...) should never be seen here!
 %% Handle the Core control special forms.
 comp_gexpr(['progn'|Body], Env, L, St) ->
@@ -1165,11 +1167,82 @@ comp_gexpr(Const, _, _, St) ->
 %%  Only guard BIFs can be called in the guard.
 
 comp_gcall(Fun, As, Env, L, St) ->
-    Call = fun (Cas, _, Li, Sta) ->
-                   Ann = line_file_anno(Li, Sta),
-                   {ann_c_call(Ann, c_atom(erlang), c_atom(Fun), Cas),Sta}
+    Ar = length(As),
+    Call = case erl_internal:bool_op(Fun, Ar) of
+               true ->
+                   %% vout(),
+                   comp_bool_test(Fun, Ar);
+               false ->
+                   fun (Cas, _, Li, Sta) ->
+                           Ann = line_file_anno(Li, Sta),
+                           {ann_bif_call(Ann, Fun, Cas),Sta}
+                   end
            end,
     comp_gargs(As, Call, Env, L, St).
+
+-ifdef(ERLANG_VERSION).
+vout() -> io:format("EV: ~p\n", [?ERLANG_VERSION]).
+-else.
+vout() -> ok.
+-endif.
+
+%% comp_bool_test(Op, Arity) -> CallFun.
+%%  Generate boolean test fun. This fun is called with the compiled
+%%  arguments and returns form to test the boolean operator. This
+%%  became more complex in 20 as the compiler optimises away the
+%%  {bif,...} assembler instruction.
+
+comp_bool_test('not', 1) ->
+    fun ([Ca], _, Li, Sta) ->
+            Ann = line_file_anno(Li, Sta),
+            %% {Cb,Stb} = new_c_var(Li, Sta),
+            %% {Ct,Stc} = new_c_var(Li, Stb),
+            %% Bool = ann_bif_call(Ann, 'not', [Ca]),
+            %% Bt = ann_bif_call(Ann, is_boolean, [Ca]),
+            %% Band = ann_bif_call(Ann, 'and', [Cb,Ct]),
+            %% Let2 = ann_c_let(Ann, [Ct], Bt, Band),
+            %% {ann_c_let(Ann, [Cb], Bool, Let2),Stc}
+
+            %% Bt = ann_bif_call(Ann, '=:=', [Ca,c_atom(false)]),
+            %% {ann_c_let(Ann, [Cb], Bt, Cb),Stb}
+
+            %% We do the no-brainer here which seems to work ok.
+            {ann_bif_call(Ann, 'not', [Ca]),Sta}
+    end;
+comp_bool_test('and', 2) ->
+    fun ([Ca1,Ca2], _, Li, Sta) ->
+            Ann = line_file_anno(Li, Sta),
+            {Cb1,Stb} = new_c_var(Li, Sta),
+            {Cb2,Stc} = new_c_var(Li, Stb),
+            Ctrue = c_atom(true),
+            Bt1 = ann_bif_call(Ann, '=:=', [Ca1,Ctrue]),
+            Bt2 = ann_bif_call(Ann, '=:=', [Ca2,Ctrue]),
+            Band = ann_bif_call(Ann, 'and', [Cb1,Cb2]),
+            %% Build the lets starting from the end.
+            Let2 = ann_c_let(Ann, [Cb2], Bt2, Band),
+            {ann_c_let(Ann, [Cb1], Bt1, Let2),Stc}
+    end;
+comp_bool_test(Op, 2) ->                        %Or and xor
+    fun ([Ca1,Ca2], _, Li, Sta) ->
+            Ann = line_file_anno(Li, Sta),
+            {Cb,Stb} = new_c_var(Li, Sta),
+            {Ct1,Stc} = new_c_var(Li, Stb),
+            {Ca,Std} = new_c_var(Li, Stc),
+            {Ct2,Ste} = new_c_var(Li, Std),
+            Bool = ann_bif_call(Ann, Op, [Ca1,Ca2]),
+            Bt1 = ann_bif_call(Ann, is_boolean, [Ca1]),
+            Bt2 = ann_bif_call(Ann, is_boolean, [Ca2]),
+            Band1 = ann_bif_call(Ann, 'and', [Cb,Ct1]),
+            Band2 = ann_bif_call(Ann, 'and', [Ca,Ct2]),
+            %% Build the lets starting from the end.
+            Let4 = ann_c_let(Ann, [Ct2], Bt2, Band2),
+            Let3 = ann_c_let(Ann, [Ca], Band1, Let4),
+            Let2 = ann_c_let(Ann, [Ct1], Bt1, Let3),
+            {ann_c_let(Ann, [Cb], Bool, Let2),Ste}
+    end.
+
+ann_bif_call(Ann, Bif, As) ->
+    ann_c_call(Ann, c_atom(erlang), c_atom(Bif), As).
 
 %% comp_gargs(Args, CallFun, Env, Line, State) -> {Call,State}.
 
@@ -1720,7 +1793,7 @@ ann_c_map_pattern(Ann, Ps) ->
         true ->
             cerl:ann_c_map_pattern(Ann, Ps);
         false ->
-            Map0 = ann_c_map(Ann, dummy, Ps),
+            Map0 = ann_c_map(Ann, c_lit(dummy), Ps),
             update_c_map(Map0, c_lit(#{}), Ps)
     end.
 
