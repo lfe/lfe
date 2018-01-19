@@ -349,7 +349,8 @@
   N.B. `record?/2` may yield unexpected results, due to difference between the
   Erlang and LFE compilers. As such, whenever possible, prefer `record?/3`."
   ;; NOTE: record-tag must be an atom
-  (`(,x ,record-tag)       `(is_record ,x ,record-tag))
+  (`(,x ,record-tag)       `(andalso (is_tuple ,x)
+                                     (=:= (tref ,x 1) ,record-tag)))
   (`(,x ,record-tag ,size) `(is_record ,x ,record-tag ,size)))
 
 (defmacro reference? (x)
