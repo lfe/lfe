@@ -220,7 +220,7 @@ trans_forms(Fs, St0) ->
 trans_form({attribute,Line,record,{Name,Fields}}, As, Lfs, St) ->
     case catch {ok,trans_record(Name, Line, Fields)} of
         {ok,Lrec} -> {As,[Lrec|Lfs],St};
-        {'EXIT',_} ->                           %Something went wrong
+        {'EXIT',_E}->                           %Something went wrong
             {As,Lfs,add_warning({notrans_record,Name}, St)}
     end;
 trans_form({attribute,Line,type,{Name,Def,E}}, As, Lfs, St) ->
@@ -255,7 +255,7 @@ trans_form({attribute,_,Name,E}, As, Lfs, St) ->
 trans_form({function,_,Name,Arity,Cls}, As, Lfs, St) ->
     case catch {ok,trans_function(Name, Arity, Cls)} of
         {ok,Lfunc} -> {As,[Lfunc|Lfs],St};
-        {'EXIT',_} ->                           %Something went wrong
+        {'EXIT',_E} ->                          %Something went wrong
             {As,Lfs,add_warning({notrans_function,Name,Arity}, St)}
     end;
 trans_form({error,E}, As, Lfs, #mac{errors=Es}=St) ->
@@ -341,8 +341,8 @@ trans_function(Name, _, Cls) ->
 trans_macros([{{atom,Mac},Defs}|Ms], St0) ->
     {Lms,St1} = trans_macros(Ms, St0),
     case catch trans_macro(Mac, Defs, St1) of
-        {'EXIT',E} ->                           %It crashed
-            {Lms,add_warning({notrans_macro,Mac,E}, St1)};
+        {'EXIT',_E} ->                          %Something went wrong
+            {Lms,add_warning({notrans_macro,Mac}, St1)};
         {none,St2} -> {Lms,St2};                %No definition, ignore
         {Mdef,St2} -> {[Mdef|Lms],St2}
     end;

@@ -776,12 +776,12 @@ exp_predef(['binary-comp'|Bbody], _, St0) ->
     [Qs|Es] = Bbody,
     {Exp,St1} = bc_te(Es, Qs, St0),
     {yes,Exp,St1};
-exp_predef(['andalso'|Abody], _, St) ->
-    Exp = exp_andalso(Abody),
-    {yes,Exp,St};
-exp_predef(['orelse'|Obody], _, St) ->
-    Exp = exp_orelse(Obody),
-    {yes,Exp,St};
+%% exp_predef(['andalso'|Abody], _, St) ->
+%%     Exp = exp_andalso(Abody),
+%%     {yes,Exp,St};
+%% exp_predef(['orelse'|Obody], _, St) ->
+%%     Exp = exp_orelse(Obody),
+%%     {yes,Exp,St};
 %% The fun forms assume M, F and Ar are atoms and integer. We leave
 %% them as before for backwards compatibility.
 exp_predef(['fun',F,Ar], _, St0) ->
@@ -1018,20 +1018,20 @@ exp_arith([A], Op, St) -> {exp_bif(Op, [A]),St};
 exp_arith([A,B], Op, St) -> {exp_bif(Op, [A,B]),St};
 exp_arith(As, Op, St0) ->
     {Ls,St1} = exp_args(As, St0),
-    B = foldl(fun ([V,_], Acc) -> exp_bif(Op, [Acc,V]) end, hd(hd(Ls)), tl(Ls)),
-    {exp_let_star([Ls,B]),St1}.
+    Fun = fun ([A,_], Acc) -> exp_bif(Op, [Acc,A]) end,
+    Body = foldl(Fun, hd(hd(Ls)), tl(Ls)),
+    {['let',Ls,Body],St1}.
+
+%% {foldl(fun (A, Acc) -> exp_bif(Op, [Acc,A]) end, hd(As), tl(As)),St}.
 
 %% exp_logical(Args, Op State) -> {Exp,State}.
-%%  Expand logical call forcing evaluation of all arguments but not
-%%  strictly; this guarantees expansion is hygenic.  Note that single
-%%  argument version may need special casing.
+%%  Expand logical call strictly forcing evaluation of all arguments.
+%%  Note that single argument version may need special casing.
 
 exp_logical([A], Op, St) -> {exp_bif(Op, [A,?Q(true)]),St};
 exp_logical([A,B], Op, St) -> {exp_bif(Op, [A,B]),St};
-exp_logical(As, Op, St0) ->
-    {Ls,St1} = exp_args(As, St0),
-    B = foldl(fun ([V,_], Acc) -> exp_bif(Op, [Acc,V]) end, hd(hd(Ls)), tl(Ls)),
-    {['let',Ls,B],St1}.
+exp_logical(As, Op, St) ->
+    {foldl(fun (A, Acc) -> exp_bif(Op, [Acc,A]) end, hd(As), tl(As)),St}.
 
 %% exp_comp(Args, Op, State) -> {Exp,State}.
 %%  Expand comparison test strictly forcing evaluation of all
@@ -1041,14 +1041,8 @@ exp_logical(As, Op, St0) ->
 exp_comp([A], _, St) ->            %Force evaluation
     {[progn,A,?Q(true)],St};
 exp_comp([A,B], Op, St) -> {exp_bif(Op, [A,B]),St};
-exp_comp(As, Op, St0) ->
-    {Ls,St1} = exp_args(As, St0),
-    Ts = op_pairs(Ls, Op),
-    {exp_let_star([Ls,exp_andalso(Ts)]),St1}.
-
-op_pairs([[V0,_]|Ls], Op) ->
-    element(1, mapfoldl(fun ([V1,_], Acc) -> {exp_bif(Op, [Acc,V1]),V1} end,
-                        V0, Ls)).
+exp_comp(As, Op, St) ->
+    {foldl(fun (A, Acc) -> exp_bif(Op, [Acc,A]) end, hd(As), tl(As)),St}.
 
 %% exp_nequal(Args, Op, State) -> {Exp,State}.
 %%  Expand not equal test strictly forcing evaluation of all
