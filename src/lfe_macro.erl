@@ -65,7 +65,7 @@ format_error({bad_env_form,Type}) ->
     lfe_io:format1("bad environment form: ~w", [Type]);
 format_error({expand_macro,Call,Error}) ->
     %% Can be very big so only print limited depth.
-    lfe_io:format1("error expanding ~P: ~P", [Call,10,Error,10]).
+    lfe_io:format1("error expanding ~P:\n    ~P", [Call,10,Error,10]).
 
 %% expand_expr(Form, Env) -> {yes,Exp} | no.
 %% expand_expr_1(Form, Env) -> {yes,Exp} | no.
@@ -371,6 +371,20 @@ exp_form(['map-set'|As], Env, St) ->
     exp_normal_core('map-set', As, Env, St);
 exp_form(['map-update'|As], Env, St) ->
     exp_normal_core('map-update', As, Env, St);
+%% Record special forms.
+exp_form(['record-index',R,F], _, St) ->
+    {['record-index',R,F],St};
+exp_form(['make-record',R|Fs], Env, St0) ->
+    {Efs,St1} = exp_rec_fields(Fs, Env, St0),
+    {['make-record',R|Efs],St1};
+exp_form(['set-record',R,E|Fs], Env, St0) ->
+    {Ee,St1} = exp_form(E, Env, St0),
+    {Efs,St2} = exp_rec_fields(Fs, Env, St1),
+    {['set-record',R,Ee|Efs],St2};
+exp_form(['record-field',R,E,F], Env, St0) ->
+    {Ee,St1} = exp_form(E, Env, St0),
+    {['record-field',R,Ee,F],St1};
+%% Function forms.
 exp_form([function|_]=F, _, St) -> {F,St};
 %% Core closure special forms.
 exp_form([lambda,Head|B], Env, St) ->
@@ -464,6 +478,15 @@ exp_tail(Fun, [E0|Es0], Env, St0) ->
     {[E1|Es1],St2};
 exp_tail(_, [], _, St) -> {[],St};
 exp_tail(Fun, E, Env, St) -> Fun(E, Env, St).   %Same on improper tail.
+
+%% exp_rec_fields(Fields, Env, State) -> {ExpFields,State}.
+
+exp_rec_fields([F0,V0|Fs0], Env, St0) ->
+    {F1,St1} = exp_form(F0, Env, St0),
+    {V1,St2} = exp_form(V0, Env, St1),
+    {Fs1,St3} = exp_rec_fields(Fs0, Env, St2),
+    {[F1,V1|Fs1],St3};
+exp_rec_fields([], _, St) -> {[],St}.
 
 %% exp_clauses(Clauses, Env, State) -> {ExpCls,State}.
 %% exp_ml_clauses(Clauses, Env, State) -> {ExpCls,State}.
@@ -892,12 +915,17 @@ exp_predef([prog1|Body], _, St0) ->
 exp_predef([prog2|Body], _, St) ->
     [First|Rest] = Body,                        %Catch bad form here
     {yes,[progn,First,[prog1|Rest]],St};
-%% This has to go here for the time being so as to be able to macro
-%% expand body.
-exp_predef(['match-spec'|Body], Env, St0) ->
-    %% Expand it like a match-lambda.
+%% Handle match specifications both ets and dbg.
+%% This has to go here so as to be able to macro expand body.
+exp_predef(['match-spec'|Cls], Env, St) ->      %The old interface.
+    exp_predef(['ets-ms'|Cls], Env, St);
+exp_predef(['ets-ms'|Body], Env, St0) ->
     {Exp,St1} = exp_ml_clauses(Body, Env, St0),
-    MS = lfe_ms:expand(Exp),
+    MS = lfe_ms:expand(ets, Exp),
+    {yes,MS,St1};
+exp_predef(['dbg-ms'|Body], Env, St0) ->
+    {Exp,St1} = exp_ml_clauses(Body, Env, St0),
+    MS = lfe_ms:expand(dbg, Exp),
     {yes,MS,St1};
 %% (qlc (lc (qual ...) e ...) opts)
 exp_predef([qlc,LC], Env, St) -> exp_qlc(LC, [], Env, St);
@@ -1145,10 +1173,10 @@ exp_do([Pars,[Test,Ret]|Body], St0) ->
     Exp = ['letrec-function',
            [[Fun,[lambda,Vs,
                   ['if',Test,Ret,
-		   ['let',[['do-state',
-			    ['progn'] ++ Body]],
-		    [Fun|Cs]]]]]],
-	   [Fun|Is]],
+                   ['let',[['do-state',
+                            ['progn'] ++ Body]],
+                    [Fun|Cs]]]]]],
+           [Fun|Is]],
     {Exp,St1}.
 
 %% exp_andalso(AndAlsoBody) -> Ifs.

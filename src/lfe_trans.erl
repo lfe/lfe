@@ -104,19 +104,15 @@ from_expr({map,_,Map,Assocs}, Vt0, St0) ->      %Update a map
     from_map_update(Assocs, nul, Lm, Vt1, St1);
 %% Record special forms.
 from_expr({record_index,_,R,{atom,_,F}}, Vt, St) -> %We KNOW!
-    %% Record field index.
     {['record-index',R,F],Vt,St};
 from_expr({record,_,R,Fs}, Vt0, St0) ->
-    %% Create a record.
     {Lfs,Vt1,St1} = from_rec_fields(Fs, Vt0, St0),
     {['make-record',R|Lfs],Vt1,St1};
 from_expr({record,_,E,R,Fs}, Vt0, St0) ->
-    %% Set fields in record.
     {Le,Vt1,St1} = from_expr(E, Vt0, St0),
     {Lfs,Vt2,St2} = from_rec_fields(Fs, Vt1, St1),
     {['set-record',R,Le|Lfs],Vt2,St2};
 from_expr({record_field,_,E,R,{atom,_,F}}, Vt0, St0) -> %We KNOW!
-    %% Record field value.
     {Le,Vt1,St1} = from_expr(E, Vt0, St0),
     {['record-field',R,Le,F],Vt1,St1};
 from_expr({record_field,_,_,_}=M, Vt, St) ->    %Pre R16 packages
@@ -329,15 +325,15 @@ from_map_update([], _, Map, Vt, St) -> {Map,Vt,St}.
 
 %% from_rec_fields(Recfields, VarTable, State) -> {Recfields,VarTable,State}.
 
-from_rec_fields([{record_field,_,{atom,_,F},E}|Fs], Vt0, St0) ->
-    {Le,Vt1,St1} = from_expr(E, Vt0, St0),
+from_rec_fields([{record_field,_,{atom,_,F},V}|Fs], Vt0, St0) ->
+    {Lv,Vt1,St1} = from_expr(V, Vt0, St0),
     {Lfs,Vt2,St2} = from_rec_fields(Fs, Vt1, St1),
-    {[F,Le|Lfs],Vt2,St2};
-from_rec_fields([{record_field,_,{var,_,F},E}|Fs], Vt0, St0) ->
+    {[F,Lv|Lfs],Vt2,St2};
+from_rec_fields([{record_field,_,{var,_,F},V}|Fs], Vt0, St0) ->
     %% Special case!!
-    {Le,Vt1,St1} = from_expr(E, Vt0, St0),
+    {Lv,Vt1,St1} = from_expr(V, Vt0, St0),
     {Lfs,Vt2,St2} = from_rec_fields(Fs, Vt1, St1),
-    {[F,Le|Lfs],Vt2,St2};
+    {[F,Lv|Lfs],Vt2,St2};
 from_rec_fields([], Vt, St) -> {[],Vt,St}.
 
 %% from_icrt_cls(Clauses, VarTable, State) -> {Clauses,VarTable,State}.
@@ -496,10 +492,11 @@ from_pat({bin,_,Segs}, Vt0, St0) ->
 from_pat({map,_,Assocs}, Vt0, St0) ->
     {Ps,Eqt,Vt1,St1} = from_pat_map_assocs(Assocs, Vt0, St0),
     {[map|Ps],Eqt,Vt1,St1};
+from_pat({record_index,_,R,{atom,_,F}}, Vt, St) -> %We KNOW!
+    {['record-index',R,F],Vt,St};
 from_pat({record,_,R,Fs}, Vt0, St0) ->          %Match a record
-    MR = list_to_atom("match-" ++ atom_to_list(R)),
     {Sfs,Eqt,Vt1,St1} = from_pat_rec_fields(Fs, Vt0, St0),
-    {[MR|Sfs],Eqt,Vt1,St1};
+    {['make-record',R|Sfs],Eqt,Vt1,St1};
 from_pat({match,_,P1,P2}, Vt0, St0) ->          %Aliases
     {Lp1,Eqt1,Vt1,St1} = from_pat(P1, Vt0, St0),
     {Lp2,Eqt2,Vt2,St2} = from_pat(P2, Vt1, St1),
@@ -677,8 +674,8 @@ to_expr(['map-set',Map|Ps], L, Vt, St) ->
 to_expr(['map-update',Map|Ps], L, Vt, St) ->
     to_expr([mupd,Map|Ps], L, Vt, St);
 %% Record special forms.
-to_expr(['record-index',R,F], L, Vt, St) ->
-    {{record_index,L,R,{atom,L,F}},Vt,St};
+to_expr(['record-index',R,F], L, _, St) ->
+    {{record_index,L,R,{atom,L,F}},St};
 to_expr(['make-record',R|Fs], L, Vt, St0) ->
     {Efs,St1} = to_rec_fields(Fs, L, Vt, St0),
     {{record,L,R,Efs},St1};
@@ -872,15 +869,15 @@ to_map_pairs([], _, _, _, St) -> {[],St}.
 
 %% to_rec_fields(Fields, LineNumber, VarTable, State) -> {Fields,State}.
 
-to_rec_fields(['_',E|Fs], L, Vt, St0) ->
+to_rec_fields(['_',V|Fs], L, Vt, St0) ->
     %% Special case!!
-    {Ee,St1} = to_expr(E, L, Vt, St0),
+    {Ev,St1} = to_expr(V, L, Vt, St0),
     {Efs,St2} = to_rec_fields(Fs, L, Vt, St1),
-    {[{record_field,L,{var,L,'_'},Ee}|Efs],St2};
-to_rec_fields([F,E|Fs], L, Vt, St0) ->
-    {Ee,St1} = to_expr(E, L, Vt, St0),
+    {[{record_field,L,{var,L,'_'},Ev}|Efs],St2};
+to_rec_fields([F,V|Fs], L, Vt, St0) ->
+    {Ev,St1} = to_expr(V, L, Vt, St0),
     {Efs,St2} = to_rec_fields(Fs, L, Vt, St1),
-    {[{record_field,L,{atom,L,F},Ee}|Efs],St2};
+    {[{record_field,L,{atom,L,F},Ev}|Efs],St2};
 to_rec_fields([], _, _, St) -> {[],St}.
 
 %% to_fun_cls(Clauses, LineNumber) -> Clauses.
@@ -1139,6 +1136,8 @@ to_pat([binary|Segs], L, Pvs0, Vt0, St0) ->
 to_pat([map|Pairs], L, Pvs0, Vt0, St0) ->
     {As,Pvs1,Vt1,St1} = to_pat_map_pairs(Pairs, L, Pvs0, Vt0, St0),
     {{map,L,As},Pvs1,Vt1,St1};
+to_pat(['record-index',R,F], L, Pvs, Vt, St) ->
+    {{record_index,L,R,{atom,L,F}},Pvs,Vt,St};
 to_pat(['make-record',R|Fs], L, Pvs0, Vt0, St0) ->
     {Efs,Pvs1,Vt1,St1} = to_pat_rec_fields(Fs, L, Pvs0, Vt0, St0),
     {{record,L,R,Efs},Pvs1,Vt1,St1};

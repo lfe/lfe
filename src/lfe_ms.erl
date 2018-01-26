@@ -27,7 +27,7 @@
 
 -module(lfe_ms).
 
--export([expand/1,format_error/1]).
+-export([expand/1,expand/2,format_error/1]).
 
 -import(lists, [foldr/3,mapfoldl/3]).
 
@@ -41,14 +41,18 @@ format_error(match_spec_head) -> "Illegal number of head arguments".
 
 -record(ms, {dc=1,                              %Dollar variable count from 1
              bs=[],                             %Variable/$var bindings
+             dialect=ets,                       %Which dialect are we doing
              where=guard                        %Where in spec head/guard/body
             }).
 
 %% expand(MSBody) -> Expansion.
+%% expand(Dialect, MSBody) -> Expansion.
 %%  Expand the match spec body.
 
-expand(Cls) ->
-    case catch clauses(Cls, #ms{}) of
+expand(Cls) -> expand(ets, Cls).
+
+expand(Dialect, Cls) ->
+    case catch clauses(Cls, #ms{dialect=Dialect}) of
         {error,E} -> error(E);                  %Signals errors
         {'EXIT',E} -> error(E);                 %Signals errors
         {Exp,_} -> Exp                          %Hurrah it worked
@@ -97,7 +101,7 @@ pattern('_', St) -> {?Q('_'),St};
 pattern(Symb, St0) when is_atom(Symb) ->        %Variable
     {Dv,St1} = pat_binding(Symb, St0),
     {?Q(Dv),St1};
-pattern([quote,_]=E, St) -> {E,St};
+pattern(?Q(_)=E, St) -> {E,St};
 pattern([cons,H0,T0], St0) ->
     {H1,St1} = pattern(H0, St0),
     {T1,St2} = pattern(T0, St1),
@@ -108,6 +112,16 @@ pattern([list|Ps0], St0) ->
 pattern([tuple|Ps0], St0) ->
     {Ps1,St1} = pat_list(Ps0, St0),
     {[tuple|Ps1],St1};
+pattern(['=',L0,R0], St0) ->                    %General aliasing
+    {L1,St1} = pattern(L0, St0),
+    {R1,St2} = pattern(R0, St1),
+    {['=',L1,R1],St2};
+pattern(['record-index',R,F], St) ->
+    {['record-index',R,F],St};
+pattern(['make-record',R|Fs0], St0) ->
+    %% This is in a term but is going to be used as a pattern!
+    {Fs1,St1} = pat_rec_fields(Fs0, St0),
+    {['make-record',R|Fs1 ++ ['_',?Q('_')]],St1};
 %% Support old no constructor style list forms.
 pattern([H0|T0], St0) ->
     {H1,St1} = pattern(H0, St0),
@@ -116,6 +130,20 @@ pattern([H0|T0], St0) ->
 pattern(E, St) -> {E,St}.                       %Atomic
 
 pat_list(Ps, St) -> mapfoldl(fun pattern/2, St, Ps).
+
+%% pat_rec_fields(Fields, State) -> {Patterns,State}.
+
+pat_rec_fields([F,P0|Fs0], St0) when is_atom(F) ->
+    %% Field names go straight through untouched.
+    {P1,St1} = pattern(P0, St0),
+    {Fs1,St2} = pat_rec_fields(Fs0, St1),
+    {[F,P1|Fs1],St2};
+pat_rec_fields([F0,P0|Fs0], St0) ->
+    {F1,St1} = pattern(F0, St0),
+    {P1,St2} = pattern(P0, St1),
+    {Fs1,St3} = pat_rec_fields(Fs0, St2),
+    {[F1,P1|Fs1],St3};
+pat_rec_fields([], St) -> {[],St}.
 
 %% pat_binding(Var, Status) -> {DVar,Status}.
 %%  Get dollar var for variable, creating a new one if neccessary.
@@ -156,14 +184,14 @@ expr(S, St) when is_atom(S) ->                  %Variable
         {ok,Dv}  -> {?Q(Dv),St};                %Head variable
         error -> {S,St}                         %Free variable, need binding
     end;
-expr([quote,A]=E, St) when is_atom(A) ->        %Atom
+expr(?Q(A)=E, St) when is_atom(A) ->            %Atom
     case atom_to_list(A) of
         [$$|_] -> {[tuple,?Q(const),E],St};     %Catch dollar variables
         _ -> {E,St}
     end;
-expr([quote,T], St) when is_tuple(T) ->         %Must tuple tuples
+expr(?Q(T), St) when is_tuple(T) ->             %Must tuple tuples
     {[tuple,T],St};
-expr([quote,_]=E, St) -> {E,St};                %No need for {const,E}?
+expr(?Q(_)=E, St) -> {E,St};                    %No need for {const,E}?
 expr([cons,H0,T0], St0) ->
     {H1,St1} = expr(H0, St0),
     {T1,St2} = expr(T0, St1),
@@ -177,6 +205,23 @@ expr([tuple|Es0], St0) ->                       %Must tuple tuples
 expr([binary|Segs0], St0) ->
     {Segs1,St1} = expr_bitsegs(Segs0, St0),
     {[binary|Segs1],St1};
+%% Record special forms.
+expr(['record-index',R,F], St) ->
+    {['record-index',R,F],St};
+expr(['make-record',R|Fs], St0) ->
+    %% This is in a term and is going to be used as an expression!
+    {Efs,St1} = expr_rec_fields(Fs, St0),
+    {[tuple,['make-record',R|Efs]],St1};        %Must tuple tuples
+expr(['set-record',R,E|Fs], St0) ->
+    %% We must remove all checks and return simple nested setelement/3 calls.
+    {Ee,St1} = expr(E, St0),
+    {Efs,St2} = expr_rec_fields(Fs, St1),
+    Set = expr_set_record(Efs, Ee, R),
+    {Set,St2};
+expr(['record-field',R,E,F], St0) ->
+    %% We must remove all checks and return simple call to element/2.
+    {Ee,St1} = expr(E, St0),
+    {[tuple,?Q(element),['record-index',R,F],Ee],St1};
 %% Special match spec calls.
 expr([bindings], St) -> {?Q('$*'),St};          %Special calls
 expr([object], St) -> {?Q('$_'),St};
@@ -228,6 +273,27 @@ expr_bitspecs(Specs, St) ->
                      {[size,Sz1],S1};
                  (Sp, S) -> {Sp,S}
              end, St, Specs).
+
+%% expr_rec_fields(Fields, State) -> {Patterns,State}.
+
+expr_rec_fields([F,V0|Fs0], St0) when is_atom(F) ->
+    %% Field names go straight through untouched.
+    {V1,St1} = expr(V0, St0),
+    {Fs1,St2} = expr_rec_fields(Fs0, St1),
+    {[F,V1|Fs1],St2};
+expr_rec_fields([F0,V0|Fs0], St0) ->
+    {F1,St1} = expr(F0, St0),
+    {V1,St2} = expr(V0, St1),
+    {Fs1,St3} = expr_rec_fields(Fs0, St2),
+    {[F1,V1|Fs1],St3};
+expr_rec_fields([], St) -> {[],St}.
+
+%% expr_set_record(Fields, Expr, Record) -> SetRec.
+
+expr_set_record([F,V|Fs], E0, R) ->
+    E1= [tuple,?Q(setelement),['record-index',R,F],E0,V],
+    expr_set_record(Fs, E1, R);
+expr_set_record([], E, _) -> E.
 
 is_integer_list([I|Is]) when is_integer(I) ->
     is_integer_list(Is);

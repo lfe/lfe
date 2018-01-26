@@ -596,7 +596,7 @@ check_expr([function,M,F,Ar], _, L, St) ->
     end;
 %% Check record special forms.
 check_expr(['record-index',R,F], Env, L, St) ->
-    check_record(R, [F], Env, L, St);
+    check_record(R, [F,42], Env, L, St);        %Need a dummy value here
 check_expr(['make-record',R|Fs], Env, L, St) ->
     check_record(R, Fs, Env, L, St);
 check_expr(['set-record',R,E|Fs], Env, L, St0) ->
@@ -604,7 +604,7 @@ check_expr(['set-record',R,E|Fs], Env, L, St0) ->
     check_record(R, Fs, Env, L, St1);
 check_expr(['record-field',R,E,F], Env, L, St0) ->
     St1 = check_expr(E, Env, L, St0),
-    check_record(R, [F], Env, L, St1);
+    check_record(R, [F,42], Env, L, St1);       %Need a dummy value here
 %% Special known data type operations.
 check_expr(['andalso'|Es], Env, L, St) ->
     check_args(Es, Env, L, St);
@@ -832,13 +832,27 @@ expr_update_map(_, Ps, _, L, St) ->
 %% check_record(Name, Fields, Env, Line, State) -> State.
 %%  Check records.
 
-check_record(Name, _Fs, _, L, #lint{recs=Rs}=St) ->
-    %% Don't do much yet, only check if record is defined.
-    case orddict:is_key(Name, Rs) of
-        true -> St;
+check_record(R, Fs, Env, L, #lint{recs=Rs}=St) ->
+    case orddict:find(R, Rs) of
+        {ok,Rfs} -> record_fields(Fs, Rfs, Env, L, St);
         false ->
-            undefined_record_error(L, Name, St)
+            undefined_record_error(L, R, St)
     end.
+
+record_fields(['_',_Val|Fs], Rfs, Env, L, St) ->
+    %% The _ field is special!
+    record_fields(Fs, Rfs, Env, L, St);
+record_fields([F,Val|Fs], Rfs, Env, L, St0) ->
+    case lists:member(F, Rfs) of
+        true ->
+            St1 = check_expr(Val, Env, L, St0),
+            record_fields(Fs, Rfs, Env, L, St1);
+        false ->
+            undefined_field_error(L, F, St0)
+    end;
+record_fields([], _, _, _, St) -> St;
+record_fields(Pat, _, _, L, St) ->
+    illegal_pattern_error(L, Pat, St).
 
 %% check_lambda(LambdaBody, Env, Line, State) -> State.
 %% Check form (lambda Args ...).
@@ -1110,6 +1124,8 @@ check_gexpr([tref|[_,_]=As], Env, L, St) -> check_gargs(As, Env, L, St);
 check_gexpr([binary|Segs], Env, L, St) -> gexpr_bitsegs(Segs, Env, L, St);
 %% Map operations are not allowed in guards.
 %% Check record special forms.
+check_gexpr(['record-index',R,F], Env, L, St) ->
+    check_record(R, [F], Env, L, St);
 check_gexpr(['record-field',R,E,F], Env, L, St0) ->
     St1 = check_gexpr(E, Env, L, St0),
     check_record(R, [F], Env, L, St1);
@@ -1255,6 +1271,8 @@ pattern([binary|Segs], Pvs, Env, L, St) ->
 pattern([map|Ps], Pvs, Env, L, St) ->
     pat_map(Ps, Pvs, Env, L, St);
 %% Check record patterns.
+pattern(['record-index',R,F], Pvs, Env, L, St) ->
+    pat_record(R, [F,42], Pvs, Env, L, St);     %Need a dummyy value here
 pattern(['make-record',R|Fs], Pvs, Env, L, St) ->
     pat_record(R, Fs, Pvs, Env, L, St);
 %% Check old no contructor list forms.
@@ -1431,25 +1449,25 @@ pat_map(Ps, Pvs, _, L, St) ->
 pat_record(R, Fs, Pvs, Env, L, #lint{recs=Rs}=St) ->
     case orddict:find(R, Rs) of
         {ok,Rfs} ->
-	    pat_record_fields(Fs, Rfs, Pvs, Env, L, St);
-	error ->
-	    {Pvs,undefined_record_error(L, R, St)}
+            pat_record_fields(Fs, Rfs, Pvs, Env, L, St);
+        error ->
+            {Pvs,undefined_record_error(L, R, St)}
     end.
 
 pat_record_fields([F,Pat|Fs], Rfs, Pvs0, Env, L, St0) ->
     case lists:member(F, Rfs) of
-	true ->
-	    {Pvs1,St1} = if is_atom(Pat) ->
-				 pat_symb(Pat, Pvs0, L, St0);
-			    true ->
-				 {Pvs0,literal(Pat, Env, L, St0)}
-			 end,
-	    pat_record_fields(Fs, Rfs, Pvs1, Env, L, St1);
-	false ->
-	    {Pvs0,undefined_field_error(L, F, St0)}
+        true ->
+            {Pvs1,St1} = if is_atom(Pat) ->
+                                 pat_symb(Pat, Pvs0, L, St0);
+                            true ->
+                                 {Pvs0,literal(Pat, Env, L, St0)}
+                         end,
+            pat_record_fields(Fs, Rfs, Pvs1, Env, L, St1);
+        false ->
+            {Pvs0,undefined_field_error(L, F, St0)}
     end;
 pat_record_fields([], _, Pvs, _, _, St) -> {Pvs,St};
-pat_record_fields(Pat, _, Pvs, _, L, St) -> 
+pat_record_fields(Pat, _, Pvs, _, L, St) ->
     {Pvs,illegal_pattern_error(L, Pat, St)}.
 
 %% is_literal(Literal) -> true | false.
