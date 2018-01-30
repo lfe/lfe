@@ -208,6 +208,7 @@ Other commands:
                      "match-lambda" "progn" "receive" "try" "when"
                      ;; Core macro forms.
                      "andalso" "bc" "binary-comp" "cond" "do"
+                     "dbg-ms" "ets-ms" "table-ms" "trace-ms"
                      "flet" "flet*" "fletrec"
                      "fun" "lc" "list-comp"
                      "let*" "match-spec" "macrolet" "orelse"

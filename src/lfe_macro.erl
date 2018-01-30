@@ -915,18 +915,22 @@ exp_predef([prog1|Body], _, St0) ->
 exp_predef([prog2|Body], _, St) ->
     [First|Rest] = Body,                        %Catch bad form here
     {yes,[progn,First,[prog1|Rest]],St};
-%% Handle match specifications both ets and dbg.
+%% Handle match specifications both ets and tracing (dbg).
 %% This has to go here so as to be able to macro expand body.
 exp_predef(['match-spec'|Cls], Env, St) ->      %The old interface.
     exp_predef(['ets-ms'|Cls], Env, St);
-exp_predef(['ets-ms'|Body], Env, St0) ->
+exp_predef(['table-ms'|Body], Env, St0) ->
     {Exp,St1} = exp_ml_clauses(Body, Env, St0),
-    MS = lfe_ms:expand(ets, Exp),
+    MS = lfe_ms:expand(table, Exp),
     {yes,MS,St1};
-exp_predef(['dbg-ms'|Body], Env, St0) ->
+exp_predef(['trace-ms'|Body], Env, St0) ->
     {Exp,St1} = exp_ml_clauses(Body, Env, St0),
-    MS = lfe_ms:expand(dbg, Exp),
+    MS = lfe_ms:expand(trace, Exp),
     {yes,MS,St1};
+exp_predef(['ets-ms'|Body], Env, St) ->
+    exp_predef(['table-ms'|Body], Env, St);
+exp_predef(['dbg-ms'|Body], Env, St) ->		%Just a synonym
+    exp_predef(['trace-ms'|Body], Env, St);
 %% (qlc (lc (qual ...) e ...) opts)
 exp_predef([qlc,LC], Env, St) -> exp_qlc(LC, [], Env, St);
 exp_predef([qlc,LC,Opts], Env, St) -> exp_qlc(LC, [Opts], Env, St);

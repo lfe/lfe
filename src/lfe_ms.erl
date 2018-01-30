@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2013 Robert Virding
+%% Copyright (c) 2008-2018 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ format_error(match_spec_head) -> "Illegal number of head arguments".
 
 expand(Cls) -> expand(ets, Cls).
 
-expand(Dialect, Cls) ->
+expand(Dialect, Cls) when Dialect =:= table ; Dialect =:= trace ->
     case catch clauses(Cls, #ms{dialect=Dialect}) of
         {error,E} -> error(E);                  %Signals errors
         {'EXIT',E} -> error(E);                 %Signals errors
@@ -89,13 +89,34 @@ head(Pats, St0) ->
     case Pats of                                %Test for top-level aliasing
         [['=',S,Pat]] when is_atom(S) ->
             St2 = new_binding(S, '$_', St1),
-            pattern(Pat, St2);
+            head_pattern(Pat, St2);
         [['=',Pat,S]] when is_atom(S) ->
             St2 = new_binding(S, '$_', St1),
-            pattern(Pat, St2);
-        [Pat] -> pattern(Pat, St1);
+            head_pattern(Pat, St2);
+        [Pat] -> head_pattern(Pat, St1);
         _ -> throw({error,match_spec_head})     %Wrong size
     end.
+
+%% head_pattern(Pattern, State) -> {Pattern,State}.
+%%  Check the head pattern has the right format for the dialect.
+
+head_pattern(Pat, St) ->                        %Just a variable
+    check_head(Pat, St#ms.dialect),             %Correct format
+    pattern(Pat, St).
+
+check_head(Pat, _) when is_atom(Pat) -> ok;     %Variable
+check_head(Pat, table) when is_tuple(Pat) -> ok;
+check_head(?Q(Pat), table) when is_tuple(Pat) -> ok;
+check_head([tuple|_], table) -> ok;
+check_head(['make-record'|_], table) -> ok;
+check_head(?Q(Pat), trace) when is_list(Pat) -> ok;
+check_head([list|_], trace) -> ok;
+check_head([cons|_], trace) -> ok;
+check_head([], trace) -> ok;
+check_head(Pat, _Type) ->
+    throw({error,{match_spec_head,Pat}}).
+
+%% pattern(Pattern, State) -> {Pattern,State}.
 
 pattern('_', St) -> {?Q('_'),St};
 pattern(Symb, St0) when is_atom(Symb) ->        %Variable
@@ -228,19 +249,21 @@ expr([object], St) -> {?Q('$_'),St};
 %% General function calls.
 expr([call,?Q(erlang),?Q(Op)|Es0], St0) when is_atom(Op) ->
     Ar = length(Es0),
-    case is_ms_erlang_func(Op, Ar) of
+    case is_ms_erlang_func(Op, Ar, St0#ms.where) of
         true ->
             {Es1,St1} = expr_list(Es0, St0),
             {[tuple,?Q(Op)|Es1],St1};
-        false -> throw({error,{illegal_ms_func,{erlang,Op,Ar}}})
+        false -> illegal_func_error({erlang,Op,Ar})
     end;
+expr([call,M,F|As], _St) ->
+    illegal_func_error({M,F,length(As)});
 expr([Op|Es0], St0) when is_atom(Op) ->
     Ar = length(Es0),
     case is_ms_func(Op, Ar, St0#ms.where) of    %Need to know where we are!
         true ->
             {Es1,St1} = expr_list(Es0, St0),
             {[tuple,?Q(Op)|Es1],St1};
-        false -> throw({error,{illegal_ms_func,{Op,Ar}}})
+        false -> illegal_func_error({Op,Ar})
     end;
 expr([_|_], _) -> throw({error,illegal_ms_call});
 expr([], St) -> {[],St};
@@ -300,22 +323,45 @@ is_integer_list([I|Is]) when is_integer(I) ->
 is_integer_list([]) -> true;
 is_integer_list(_) -> false.
 
-is_ms_erlang_func(N, A) ->
-    is_ms_op(N, A) orelse is_ms_bif(N, A).
+illegal_func_error(Func) ->
+    throw({error,{illegal_ms_func,Func}}).
 
-%% is_ms_func(Name, Arity, Where) -> bool().
-%% Test if Name/Arity is legal function in Where (guard/body).
+%% We are very explicit in what operators and functions are allowed.
 
-is_ms_func(N, A, guard) ->
-    is_ms_op(N, A) orelse is_ms_bif(N, A) orelse is_ms_guard(N, A);
-is_ms_func(N, A, body) ->
-    is_ms_op(N, A) orelse is_ms_bif(N, A) orelse is_ms_action(N, A).
+is_ms_test(is_atom,1) -> true;
+is_ms_test(is_float,1) -> true;
+is_ms_test(is_integer,1) -> true;
+is_ms_test(is_list,1) -> true;
+is_ms_test(is_number,1) -> true;
+is_ms_test(is_pid,1) -> true;
+is_ms_test(is_port,1) -> true;
+is_ms_test(is_reference,1) -> true;
+is_ms_test(is_tuple,1) -> true;
+is_ms_test(is_map,1) -> true;
+is_ms_test(is_binary,1) -> true;
+is_ms_test(is_function,1) -> true;
+is_ms_test(is_record,2) -> true;
+is_ms_test(is_record,3) -> true;                %We get this one directly
+is_ms_test(is_seq_trace,0) -> true;
+is_ms_test(_,_) -> false.
 
-%% is_ms_guard(Name, Arity) -> bool().
-%% is_ms_action(Name, Arity) -> bool().
+is_erl_guard(abs,1) -> true;
+is_erl_guard(element,2) -> true;
+is_erl_guard(hd,1) -> true;
+is_erl_guard(length,1) -> true;
+is_erl_guard(node,0) -> true;
+is_erl_guard(node,1) -> true;
+is_erl_guard(round,1) -> true;
+is_erl_guard(size,1) -> true;
+is_erl_guard(map_size,1) -> true;
+is_erl_guard(tl,1) -> true;
+is_erl_guard(trunc,1) -> true;
+is_erl_guard(self,0) -> true;
+is_erl_guard(float,1) -> true;
+is_erl_guard(_,_) -> false.
 
-is_ms_guard(get_tcw, 0) -> true;
-is_ms_guard(_, _) -> false.
+is_ms_guard(get_tcw, 0) -> true;                %MS pseudo guard function
+is_ms_guard(N, A) -> is_erl_guard(N, A).
 
 is_ms_action(caller, 0) -> true;
 is_ms_action(disable_trace, 1) -> true;
@@ -335,25 +381,55 @@ is_ms_action(trace, 2) -> true;
 is_ms_action(trace, 3) -> true;
 is_ms_action(_, _) -> false.
 
-%% is_ms_op(Name, Arity) -> bool().
-%% Valid match-spec operators.
+is_ms_bool('and',2) -> true;
+is_ms_bool('or',2) -> true;
+is_ms_bool('xor',2) -> true;
+is_ms_bool('not',1) -> true;
+is_ms_bool('andalso',2) -> true;
+is_ms_bool('orelse',2) -> true;
+is_ms_bool(_,_) -> false.
+
+is_ms_arith('+',1) -> true;
+is_ms_arith('+',2) -> true;
+is_ms_arith('-',1) -> true;
+is_ms_arith('-',2) -> true;
+is_ms_arith('*',2) -> true;
+is_ms_arith('/',2) -> true;
+is_ms_arith('div',2) -> true;
+is_ms_arith('rem',2) -> true;
+is_ms_arith('band',2) -> true;
+is_ms_arith('bor',2) -> true;
+is_ms_arith('bxor',2) -> true;
+is_ms_arith('bnot',1) -> true;
+is_ms_arith('bsl',2) -> true;
+is_ms_arith('bsr',2) -> true;
+is_ms_arith(_,_) -> false.
+
+is_ms_comp('>',2) -> true;
+is_ms_comp('>=',2) -> true;
+is_ms_comp('<',2) -> true;
+is_ms_comp('=<',2) -> true;
+is_ms_comp('==',2) -> true;
+is_ms_comp('=:=',2) -> true;
+is_ms_comp('/=',2) -> true;
+is_ms_comp('=/=',2) -> true;
+is_ms_comp(_,_) -> false.
 
 is_ms_op(Op, Ar) ->
-    erl_internal:arith_op(Op, Ar)
-    orelse erl_internal:bool_op(Op, Ar)
-    orelse erl_internal:comp_op(Op, Ar).
+    is_ms_bool(Op, Ar) orelse is_ms_arith(Op, Ar) orelse is_ms_comp(Op, Ar).
 
-%% is_ms_bif(Name, Arity) -> bool().
-%% Valid match-spec bifs, both guard and body. All the standard ones
-%% MINUS a few!
+is_ms_erlang_func(N, A, _) ->
+    is_erl_guard(N, A) orelse is_ms_test(N, A) orelse is_ms_bool(N, A) orelse
+        is_ms_arith(N, A) orelse is_ms_comp(N, A).
 
-is_ms_bif(setelement, 3) -> true;        %Not true, dangerous!!!!!
-is_ms_bif(bit_size, 1) -> false;
-is_ms_bif(byte_size, 1) -> false;
-is_ms_bif(tuple_size, 1) -> false;
-is_ms_bif(binary_part, _) -> false;
-is_ms_bif(N, Ar) ->
-    erl_internal:guard_bif(N, Ar).
+%% is_ms_func(Name, Arity, Where) -> bool().
+%%  Test if Name/Arity is legal function in Where (guard/body).
+
+is_ms_func(N, A, body) ->
+    is_ms_action(N, A) orelse is_ms_guard(N, A) orelse is_ms_test(N, A) orelse
+        is_ms_op(N, A);
+is_ms_func(N, A, guard) ->
+    is_ms_guard(N, A) orelse is_ms_test(N, A) orelse is_ms_op(N, A).
 
 %% new_binding(Name, Value, State) -> State.
 %% find_binding(Name, State) -> {ok,Value} | error.

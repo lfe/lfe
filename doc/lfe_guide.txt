@@ -292,7 +292,8 @@ Supported forms
               (list-comp (qual ...) ...)
               (bc (qual ...) ...)
               (binary-comp (qual ...) ...)
-              (match-spec ...)
+              (ets-ms ...)
+              (trace-ms ...)
 
    Common Lisp inspired macros
               (defun name (arg ...) {{doc-string}} ...)
@@ -783,42 +784,43 @@ ETS and Mnesia
        List  Comprehensions.  The syntax for a match specification is the same
        as for match-lambdas:
 
-              (match-spec
+              (ets-ms
                 ((arg ... ) {{(when e ...)}} ...)             - Matches clauses
                 ... )
 
        For example:
 
-              (ets:select db (match-spec
+              (ets:select db (ets-ms
                                ([(tuple _ a b)] (when (> a 3)) (tuple 'ok b))))
 
        It is a macro which creates the match specification structure which  is
-       used  in  ets:select  and mnesia:select.  The same match-spec macro can
-       also be used with the dbg module.  The same restrictions as to what can
-       be done apply as for vanilla match specifications:
+       used  in  ets:select  and  mnesia:select.   For  tracing instead of the
+       ets-ms macro there is the trace-ms macro which is also used in conjunc‐
+       tion with the dbg module.  The same restrictions as to what can be done
+       apply as for vanilla match specifications:
 
        · There is only a limited number of BIFs which are allowed
 
        · There are some special functions only for use with dbg
 
-       · For  ets/mnesia  it  takes a single parameter which must a tuple or a
+       · For ets/mnesia it takes a single parameter which must a  tuple  or  a
          variable
 
        · For dbg it takes a single parameter which must a list or a variable
 
-       N.B.  the current macro neither knows nor cares  whether  it  is  being
+       N.B.   the  current  macro  neither knows nor cares whether it is being
        used in ets/mnesia or in dbg.  It is up to the user to get this right.
 
-       Macros,  especially  record  macros,  can  freely  be used inside match
+       Macros, especially record macros,  can  freely  be  used  inside  match
        specs.
 
-       CAVEAT Some things which are known not to work in the  current  version
+       CAVEAT  Some  things which are known not to work in the current version
        are andalso, orelse and record updates.
 
 Query List Comprehensions
-       LFE  supports  QLCs  for mnesia through the qlc macro.  It has the same
-       structure as a list comprehension and generates a Query Handle  in  the
-       same  way  as  with qlc:q([...]).  The handle can be used together with
+       LFE supports QLCs for mnesia through the qlc macro.  It  has  the  same
+       structure  as  a list comprehension and generates a Query Handle in the
+       same way as with qlc:q([...]).  The handle can be  used  together  with
        all the combination functions in the module qlc.
 
        For example:
@@ -826,10 +828,10 @@ Query List Comprehensions
               (qlc (lc ((<- (tuple k v) (: ets table e2)) (== k i)) v)
                    {{Option}})
 
-       Macros, especially record macros, can freely be used inside query  list
+       Macros,  especially record macros, can freely be used inside query list
        comprehensions.
 
-       CAVEAT  Some  things which are known not to work in the current version
+       CAVEAT Some things which are known not to work in the  current  version
        are nested QLCs and let/case/recieve which shadow variables.
 
 Predefined LFE functions
@@ -838,7 +840,7 @@ Predefined LFE functions
               (<arith_op> expr ...)
               (<comp_op> expr ...)
 
-       The standard arithmentic operators, + - * /, and comparison  operators,
+       The  standard arithmentic operators, + - * /, and comparison operators,
        > >= < =< == /= =:= =/= , can take multiple arguments the same as their
        standard lisp counterparts.  This is still experimental and implemented
        using macros.  They do, however, behave like normal functions and eval‐
@@ -870,28 +872,28 @@ Predefined LFE functions
 
               (macroexpand expr {{environment}})
 
-       Returns the expansion returned  by  calling  macroexpand-1  repeatedly,
+       Returns  the  expansion  returned  by calling macroexpand-1 repeatedly,
        starting with Expr, until the result is no longer a macro call.
 
               (macroexpand-all expr {{environment}})
 
-       Returns  the  expansion  from the expression where all macro calls have
+       Returns the expansion from the expression where all  macro  calls  have
        been expanded with macroexpand.
 
-       NOTE that when no explicit environment is given the  macroexpand  func‐
-       tions  then  only the default built-in macros will be expanded.  Inside
+       NOTE  that  when no explicit environment is given the macroexpand func‐
+       tions then only the default built-in macros will be  expanded.   Inside
        macros and in the shell the variable $ENV is bound to the current macro
        environment.
 
               (eval expr {{environment}})
 
-       Evaluate  the  expression  expr.   Note  that only the pre-defined lisp
-       functions, erlang BIFs and exported functions can be called.   Also  no
+       Evaluate the expression expr.  Note  that  only  the  pre-defined  lisp
+       functions,  erlang  BIFs and exported functions can be called.  Also no
        local variables can be accessed.  To access local variables the expr to
        be evaluated can be wrapped in a let defining these.
 
        For example if the data we wish to evaluate is in the variable expr and
-       it  assumes  there  is  a local variable "foo" which it needs to access
+       it assumes there is a local variable "foo" which  it  needs  to  access
        then we could evaluate it by calling:
 
               (eval `(let ((foo ,foo)) ,expr))
@@ -909,4 +911,4 @@ AUTHORS
 
 
 
-                                   2008-2016                      lfe_guide(7)
+                                   2008-2018                      lfe_guide(7)
