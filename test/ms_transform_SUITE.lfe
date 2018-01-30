@@ -1,4 +1,4 @@
-;; Copyright (c) 2008-2013 Robert Virding
+;; Copyright (c) 2008-2018 Robert Virding
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -24,13 +24,13 @@
 ;; Note that some of these tests are not LFE specific but more general
 ;; guard tests but we include them anyway for completeness.
 ;;
-;; As match-spec is a macro we can expand it directly inline which
-;; means that many errors/inconsistencies will be detected at compile
+;; As ets-ms is a macro we can expand it directly inline which means
+;; that many errors/inconsistencies will be detected at compile
 ;; time. Should we write it to a file or in memory and compile at
 ;; run-time?
 ;;
-;; NOTE: match-spec generates a pattern so when testing the pattern
-;; with test-pat it *must* be used in the pattern not in the value.
+;; NOTE: ets-ms generates a pattern so when testing the pattern with
+;; test-pat it *must* be used in the pattern not in the value.
 
 (include-file "test_server.lfe")
 
@@ -95,6 +95,43 @@
   (['suite] ())
   (['doc] '"Tests that andalso and orelse are allowed in guards.")
   ([config] (when (is_list config))
+   (setup config)
+   ;; [{{'$1','$2'},
+   ;;  [{'and',{is_integer,'$1'},{'>',{'+','$1',5},'$2'}}],
+   ;;  [{'andalso','$1','$2'}]}]
+   (test-pat '(#(#($1 $2)
+                 (#(and #(is_integer $1) #(> #(+ $1 5) $2)))
+                 (#(andalso $1 $2))))
+             (ets-ms ([(tuple a b)]
+                      (when (and (is_integer a) (> (+ a 5) b)))
+                      (andalso a b))))
+   ;; [{{'$1','$2'},
+   ;;  [{'or',{is_atom,'$1'},{'>',{'+','$1',5},'$2'}}],
+   ;;  [{'orelse','$1','$2'}]}]
+   (test-pat '(#(#($1 $2)
+                 (#(or #(is_atom $1) #(> #(+ $1 5) $2)))
+                 (#(orelse $1 $2))))
+             (ets-ms ([(tuple a b)]
+                      (when (or (is_atom a) (> (+ a 5) b)))
+                      (orelse a b))))
+   ;; [{{'$1','$2'},
+   ;;  [{'andalso',{is_integer,'$1'},{'>',{'+','$1',5},'$2'}}],
+   ;;  ['$1']}]
+   (test-pat '(#(#($1 $2)
+                 (#(andalso #(is_integer $1) #(> #(+ $1 5) $2)))
+                 ($1)))
+             (ets-ms ([(tuple a b)]
+                      (when (andalso (is_integer a) (> (+ a 5) b)))
+                      a)))
+   ;; [{{'$1','$2'},
+   ;;  [{'orelse',{is_atom,'$1'},{'>',{'+','$1',5},'$2'}}],
+   ;;  ['$1']}]
+   (test-pat '(#(#($1 $2)
+                 (#(orelse #(is_atom $1) #(> #(+ $1 5) $2)))
+                 ($1)))
+             (ets-ms ([(tuple a b)]
+                      (when (orelse (is_atom a) (> (+ a 5) b)))
+                      a)))
 
    'ok))
 
@@ -120,11 +157,21 @@
 
    'ok))
 
+(defrecord d a b c (d 'foppa))          ;Changed record name from a
+
 (defun record_defaults
   (['suite] ())
   (['doc] '"Tests that record defaults works")
   ([config] (when (is_list config))
    (line (setup config))
+   ;; [{{<<27>>,{a,5,'$1',hej,hej}},
+   ;;   [],
+   ;;   [{{a,hej,{'*','$1',2},flurp,flurp}}]}
+   (line (test-pat '(#(#(#b(27) #(d 5 $1 hej hej))
+                       ()
+                       (#(#(d hej #(* $1 2) flurp flurp)))))
+                   (ets-ms ([(tuple #b(27) (match-d a 5 b b _ 'hej))]
+                            (make-d a 'hej b (* b 2) _ 'flurp)))))
 
    'ok))
 
@@ -151,22 +198,22 @@
 
 (defun basic_dbg
   (['suite] ())
-  (['doc] '"Tests basic dbg:fun2ms")
+  (['doc] '"Tests basic dbg:fun2ms using the trace-ms macro")
   ([config] (when (is_list config))
    (line (setup config))
    (line (test-pat '(#((a b) () (#(message banan) #(return_trace))))
-                   (dbg-ms ([(list 'a 'b)]
-                            (message 'banan) (return_trace)))))
+                   (trace-ms ([(list 'a 'b)]
+                              (message 'banan) (return_trace)))))
    (line (test-pat '(#(($1 $2) () (#(#($2 $1)))))
-                   (dbg-ms ([(list a b)] (tuple b a)))))
+                   (trace-ms ([(list a b)] (tuple b a)))))
    (line (test-pat '(#(($1 $2) () (($2 $1))))
-                   (dbg-ms ([(list a b)] (list b a)))))
+                   (trace-ms ([(list a b)] (list b a)))))
    (line (test-pat '(#(($1 $2) () ($*)))
-                   (dbg-ms ([(list a b)] (bindings)))))
+                   (trace-ms ([(list a b)] (bindings)))))
    (line (test-pat '(#(($1 $2) () ($_)))
-                   (dbg-ms ([(list a b)] (object)))))
+                   (trace-ms ([(list a b)] (object)))))
    (line (test-pat '(#(() () (#(return_trace))))
-                   (dbg-ms ([()] (return_trace)))))
+                   (trace-ms ([()] (return_trace)))))
    'ok))
 
 (defun from_shell
@@ -226,10 +273,10 @@
     (test-pat
      '(#((#(t $1 $2 foo _)) (#(is_list $1)) (#(#(#(hd $1) $_))))
        #((#(t _ _ _ _)) (#(== #(element 2 #(hd $_)) nisse)) (#(#($*)))))
-     (dbg-ms ([(list (match-t t1 x t2 y t3 'foo))] (when (is_list x))
-              (tuple (hd x) (object)))
-             ([(list (match-t))] (when (== (t-t1 (hd (object))) 'nisse))
-              (tuple (bindings))))
+     (trace-ms ([(list (match-t t1 x t2 y t3 'foo))] (when (is_list x))
+                (tuple (hd x) (object)))
+               ([(list (match-t))] (when (== (t-t1 (hd (object))) 'nisse))
+                (tuple (bindings))))
      ))
 
    'ok))
@@ -265,9 +312,9 @@
    (line (test-pat '(#(#(a 3 _) () ($_)))
                    (ets-ms ([(= (match-a a 3) a)] a))))
    (line (test-pat '(#((a b) () ($_)))
-                   (dbg-ms ([(= a (list 'a 'b))] a))))
+                   (trace-ms ([(= a (list 'a 'b))] a))))
    (line (test-pat '(#((a b) () ($_)))
-                   (dbg-ms ([(= (list 'a 'b) a)] a))))
+                   (trace-ms ([(= (list 'a 'b) a)] a))))
 
    'ok))
 
@@ -316,23 +363,23 @@
                                    #(message $1)
                                    #(return_trace)
                                    #(exception_trace))))
-                   (dbg-ms ([(list x y)]
-                            (set_seq_token 'label 0)
-                            (get_seq_token)
-                            (message x)
-                            (return_trace)
-                            (exception_trace)))))
+                   (trace-ms ([(list x y)]
+                              (set_seq_token 'label 0)
+                              (get_seq_token)
+                              (message x)
+                              (return_trace)
+                              (exception_trace)))))
    (line (test-pat '(#(($1 $2) () (#(process_dump)
                                    #(enable_trace send)
                                    #(enable_trace $2 send)
                                    #(disable_trace procs)
                                    #(disable_trace $2 procs))))
-                   (dbg-ms ([(list x y)]
-                            (process_dump)
-                            (enable_trace 'send)
-                            (enable_trace y 'send)
-                            (disable_trace 'procs)
-                            (disable_trace y 'procs)))))
+                   (trace-ms ([(list x y)]
+                              (process_dump)
+                              (enable_trace 'send)
+                              (enable_trace y 'send)
+                              (disable_trace 'procs)
+                              (disable_trace y 'procs)))))
    (line (let ((a 16))
            (test-pat '(#(($1 $2) () (#(display $1)
                                      #(caller)
@@ -340,13 +387,13 @@
                                      #(silent true)
                                      #(trace (send) (procs))
                                      #(trace $2 (procs) (send)))))
-                     (dbg-ms ([(list x y)]
-                              (display x)
-                              (caller)
-                              (set_tcw a)
-                              (silent 'true)
-                              (trace (list 'send) (list 'procs))
-                              (trace y (list 'procs) (list 'send)))))))
+                     (trace-ms ([(list x y)]
+                                (display x)
+                                (caller)
+                                (set_tcw a)
+                                (silent 'true)
+                                (trace (list 'send) (list 'procs))
+                                (trace y (list 'procs) (list 'send)))))))
 
    'ok))
 
