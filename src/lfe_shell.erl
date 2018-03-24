@@ -794,7 +794,7 @@ help() ->
 
 i() -> c:i().
 
-i(Pids) -> c:i(Pids).
+i(X, Y, Z) -> c:i(X, Y, Z).
 
 %% l(Modules) -> ok.
 %%  Load the modules.
