@@ -611,7 +611,7 @@ check_expr([Fun|As], Env, L, St0) when is_atom(Fun) ->
     St1 = check_args(As, Env, L, St0),          %Check arguments first
     check_func(Fun, safe_length(As), Env, L, St1);
 check_expr([_|As]=S, Env, L, St0) ->            %Test if literal string
-    case is_posint_list(S) of
+    case lfe_lib:is_posint_list(S) of
         true -> St0;
         false ->
             %% Function here is an expression, report error and check args.
@@ -691,11 +691,11 @@ expr_bitsegs(Segs, Env, L, St0) ->
 %% Functions for checking expression bitsegments.
 
 bitseg([Val|Specs]=Seg, Env, L, St0, Check) ->
-    case is_posint_list(Seg) of                 %Is bitseg a string?
+    case lfe_lib:is_posint_list(Seg) of         %Is bitseg a string?
         true -> St0;                            %A string
         false ->                                %A value and spec
             St1 = bitspecs(Specs, Env, L, St0, Check),
-            case is_posint_list(Val) of         %Is Val a string?
+            case lfe_lib:is_posint_list(Val) of %Is Val a string?
                 true -> St1;
                 false -> Check(Val, Env, L, St1)
             end
@@ -721,11 +721,6 @@ bit_size(undefined, {Ty,_,_,_}, _, L, St, _) ->
        true -> illegal_bitsize_error(L, St)
     end;
 bit_size(Sz, _, Env, L, St, Check) -> Check(Sz, Env, L, St).
-
-is_posint_list([I|Is]) when is_integer(I), I >= 0 ->
-    is_posint_list(Is);
-is_posint_list([]) -> true;
-is_posint_list(_) -> false.
 
 %% expr_map(Pairs, Env, Line, State) -> State.
 %% expr_get_map(Map, Key, Env, Line, State) -> State.
@@ -775,7 +770,8 @@ map_key(Key, _, L, St) ->
     end.
 
 is_map_key(?Q(Lit)) -> is_literal(Lit);
-is_map_key([_|_]=L) -> is_posint_list(L);       %Literal strings only
+is_map_key([_|_]=L) ->
+    lfe_lib:is_posint_list(L);                  %Literal strings only
 is_map_key(E) when is_atom(E) -> false;
 is_map_key(Lit) -> is_literal(Lit).
 -endif.
@@ -1085,7 +1081,7 @@ check_gexpr([Fun|As], Env, L, St0) when is_atom(Fun) ->
     St1 = check_gargs(As, Env, L, St0),
     check_gfunc(Fun, safe_length(As), Env, L, St1);
 check_gexpr([_|As]=S, Env, L, St0) ->            %Test if literal string
-    case is_posint_list(S) of
+    case lfe_lib:is_posint_list(S) of
         true -> St0;
         false ->
             %% Function here is an expression, report error and check args.
@@ -1201,7 +1197,7 @@ pattern([map|Ps], Pvs, Env, L, St) ->
     pat_map(Ps, Pvs, Env, L, St);
 %% Check old no contructor list forms.
 pattern([_|_]=List, Pvs0, _, L, St0) ->
-    case is_posint_list(List) of
+    case lfe_lib:is_posint_list(List) of
         true -> {Pvs0,St0};                     %A string
         false ->                                %Illegal pattern
             {Pvs0,illegal_pattern_error(L, List, St0)}
@@ -1291,11 +1287,11 @@ pat_bitsegs(Segs, Bvs0, Pvs, Env, L, St0) ->
     {union(Bvs1, Pvs),St1}.                     %Add bitvars to patvars
 
 pat_bitseg([Pat|Specs]=Seg, Bvs, Pvs, Env, L, St0) ->
-    case is_posint_list(Seg) of                 %Is bitseg a string?
+    case lfe_lib:is_posint_list(Seg) of         %Is bitseg a string?
         true -> {Bvs,St0};                      %A string
         false ->                                %A pattern and spec
             St1 = pat_bitspecs(Specs, Bvs, Pvs, Env, L, St0),
-            case is_posint_list(Pat) of         %Is Pat a string?
+            case lfe_lib:is_posint_list(Pat) of %Is Pat a string?
                 true -> {Bvs,St1};
                 false -> pat_bit_expr(Pat, Bvs, Pvs, Env, L, St1)
             end
@@ -1360,7 +1356,8 @@ pat_map_key(Key, _, L, St) ->
     end.
 
 is_pat_map_key(?Q(Lit)) -> is_literal(Lit);
-is_pat_map_key([_|_]=L) -> is_posint_list(L);   %Literal strings only
+is_pat_map_key([_|_]=L) ->
+    lfe_lib:is_posint_list(L);                  %Literal strings only
 is_pat_map_key(E) when is_atom(E) -> false;
 is_pat_map_key(Lit) -> is_literal(Lit).
 -else.
