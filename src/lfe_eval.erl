@@ -225,8 +225,8 @@ eval_expr([Fun|Es], Env) when is_atom(Fun) ->
         no -> undefined_func_error(Fun, Ar)
     end;
 eval_expr([_|_]=S, _) ->                        %Test if string literal
-    case is_posint_list(S) of
-        true -> S;                              %It an "atomic" type
+    case lfe_lib:is_posint_list(S) of
+        true -> S;                              %It is an "atomic" type
         false ->                                %It is a bad application form
             bad_form_error(application)
     end;
@@ -285,13 +285,13 @@ get_bitsegs(Segs) ->
 %%  a string.
 
 get_bitseg([Val|Specs]=Seg, Vsps) ->
-    case is_posint_list(Seg) of                 %Is bitseg a string?
+    case lfe_lib:is_posint_list(Seg) of         %Is bitseg a string?
         true ->                                 %A string
             {Sz,Ty} = get_bitspecs([]),
             foldr(fun (V, Vs) -> [{V,Sz,Ty}|Vs] end, Vsps, Seg);
         false ->                                %A value and spec
             {Sz,Ty} = get_bitspecs(Specs),
-            case is_posint_list(Val) of         %Is Val a string?
+            case lfe_lib:is_posint_list(Val) of %Is Val a string?
                 true -> foldr(fun (V, Vs) -> [{V,Sz,Ty}|Vs] end, Vsps, Val);
                 false -> [{Val,Sz,Ty}|Vsps]     %The default
             end
@@ -308,11 +308,6 @@ get_bitspecs(Ss) ->
         {ok,Sz,Ty} -> {Sz,Ty};
         {error,Error} -> eval_error(Error)
     end.
-
-is_posint_list([I|Is]) when is_integer(I), I >= 0 ->
-    is_posint_list(Is);
-is_posint_list([]) -> true;
-is_posint_list(_) -> false.
 
 %% eval_bitsegs(VSTys, Evaluator) -> Binary.
 %%  The evaluator function is use to evaluate the value and size
@@ -394,7 +389,7 @@ map_key(Key, Env) ->
 -else.
 map_key(?Q(E), _) -> E;
 map_key([_|_]=L, _) ->
-    case is_posint_list(L) of
+    case lfe_lib:is_posint_list(L) of
         true -> L;                              %Literal strings only
         false -> illegal_mapkey_error(L)
     end;
@@ -794,9 +789,9 @@ eval_guard(Gts, Env) ->
         true -> true;
         _Other -> false                         %Fail guard
     catch
-	error:illegal_guard ->			%Handle illegal guard
-	    St = erlang:get_stacktrace(),
-	    erlang:raise(error, illegal_guard, St);
+        error:illegal_guard ->                  %Handle illegal guard
+            St = erlang:get_stacktrace(),
+            erlang:raise(error, illegal_guard, St);
         _:_ -> false                            %Fail guard
     end.
 
@@ -837,7 +832,11 @@ eval_gexpr([Fun|Es], Env) when is_atom(Fun), Fun =/= call ->
         {yes,M,F} -> erlang:apply(M, F, eval_glist(Es, Env));
         no -> illegal_guard_error()
     end;
-eval_gexpr([_|_], _) -> illegal_guard_error();
+eval_gexpr([_|_]=S, _) ->                       %Test is literal string
+    case lfe_lib:is_posint_list(S) of
+        true -> S;                              %It is an "atomic" type
+        false -> illegal_guard_error()          %It is a bad application form
+    end;
 eval_gexpr(Symb, Env) when is_atom(Symb) ->
     case get_vbinding(Symb, Env) of
         {yes,Val} -> Val;
@@ -919,7 +918,7 @@ match([map|Ps], Val, Pbs, Env) ->
         false -> no
     end;
 match([_|_]=List, Val, Pbs, _) ->               %No constructor
-    case is_posint_list(List) of                %Accept strings
+    case lfe_lib:is_posint_list(List) of        %Accept strings
         true ->
             if List =:= Val -> {yes,Pbs};
                true -> no
@@ -1117,7 +1116,7 @@ match_map(Ps, _, _, _) -> eval_error({illegal_pattern,Ps}).
 
 pat_map_key(?Q(E)) -> E;
 pat_map_key([_|_]=L) ->
-    case is_posint_list(L) of
+    case lfe_lib:is_posint_list(L) of
         true -> L;                              %Literal strings only
         false -> illegal_mapkey_error(L)
     end;

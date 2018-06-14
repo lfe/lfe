@@ -19,7 +19,8 @@
 -module(lfe_lib).
 
 %% General library functions.
--export([is_symb/1,is_symb_list/1,is_proper_list/1,is_doc_string/1]).
+-export([is_symb/1,is_symb_list/1,is_posint_list/1,
+         is_proper_list/1,is_doc_string/1]).
 
 -export([proc_forms/3,proc_forms/4]).
 
@@ -41,6 +42,11 @@ is_symb_list([S|Ss]) when is_atom(S) ->
     is_symb_list(Ss);
 is_symb_list([]) -> true;
 is_symb_list(_) -> false.                       %Might not be a proper list
+
+is_posint_list([I|Is]) when is_integer(I), I >= 0 ->
+    is_posint_list(Is);
+is_posint_list([]) -> true;
+is_posint_list(_) -> false.
 
 is_proper_list([_|Ss]) -> is_proper_list(Ss);
 is_proper_list([]) -> true;
@@ -163,7 +169,7 @@ format_reason({illegal_literal,Lit}, I) ->
     lfe_io:format1(<<"illegal literal value ~.*P">>, [I+22,Lit,10]);
 format_reason(bad_arity, _I) -> <<"arity mismatch">>;
 %% Default catch-all
-format_reason(Error, I) ->			%Default catch-all
+format_reason(Error, I) ->                      %Default catch-all
     lfe_io:prettyprint1(Error, 10, I).
 
 %% format_stacktrace(Stacktrace, SkipFun, FormatFun) -> DeepCharList.
