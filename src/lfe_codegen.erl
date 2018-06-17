@@ -1155,11 +1155,12 @@ comp_gexpr(['if'|Body], Env, L, St) ->
 comp_gexpr([call,[quote,erlang],[quote,Fun]|As], Env, L, St) ->
     comp_gcall(Fun, As, Env, L, St);
 %% Finally the not so general case.
-comp_gexpr([Fun|As], Env, L, St) ->
+comp_gexpr([Fun|As], Env, L, St) when is_atom(Fun) ->
+    %% Only call with atom literal fun.
     comp_gcall(Fun, As, Env, L, St);
 comp_gexpr(Symb, _, _, St) when is_atom(Symb) ->
     {c_var(Symb),St};
-%% Everything is a literal constant (nil, tuples, numbers, binaries).
+%% Everything is a literal constant (nil, lists, tuples, numbers, binaries).
 comp_gexpr(Const, _, _, St) ->
     {comp_lit(Const),St}.
 
