@@ -18,9 +18,14 @@
 
 -module(lfe_io_pretty).
 
--export([term/1,term/2,term/3,term/4]).
+-export([term/1,term/2,term/3,term/4,
+		 newline/1,
+		 map_rest/4,
+		 last_length/1,
+		 last_length/2
+		]).
 
--compile(export_all).
+%%-compile(export_all).
 
 -import(lists, [reverse/1,reverse/2,flatlength/1]).
 

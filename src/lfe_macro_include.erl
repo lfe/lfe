@@ -303,7 +303,7 @@ typed_record_field({record_field,_,F,Def}, Type) ->
 %%  could also contain a typed record definition which we use.
 
 -ifdef(NEW_REC_CORE).
-trans_type(Name, Line, Def, E) ->
+trans_type(Name, _Line, Def, E) ->
     ['define-type',[Name|lfe_types:from_type_defs(E)],
      lfe_types:from_type_def(Def)].
 -else.
