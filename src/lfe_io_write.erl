@@ -49,6 +49,8 @@ term(Vec, D) when is_tuple(Vec) ->
 term(Bit, _) when is_bitstring(Bit) ->
     bitstring(Bit);
 term(Map, D) when ?IS_MAP(Map) -> map(Map, D);
+term(Pid, D) when is_pid(Pid) ->
+    "#Pid" ++ io_lib:write(Pid, D);
 term(Other, D) ->                               %Use standard Erlang for rest
     io_lib:write(Other, D).
 
