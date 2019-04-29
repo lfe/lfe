@@ -129,7 +129,7 @@ do_form({['define-function',Name,Meta,Def],Line}, St) ->
     define_function(Name, Meta, Def, Line, St);
 do_form({['define-macro',Name,Meta,Def],Line}, St) ->
     define_macro(Name, Meta, Def, Line, St);
-do_form(_, St) -> St.                         %Ignore other forms
+do_form(_, St) -> St.                           %Ignore other forms
 
 define_module(Meta, Atts, #st{moddoc=Md0,expf=Expf0,expm=Expm0}=St) ->
     Md1 = collect_docs(Meta, Md0),

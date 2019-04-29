@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2016 Robert Virding
+%% Copyright (c) 2008-2018 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -397,11 +397,6 @@ eval_form(Form, #state{curr=Ce}=St) ->
 eval_form_1([progn|Eforms], St) ->              %Top-level nested progn
     foldl(fun (F, {_,S}) -> eval_form_1(F, S) end,
           {[],St}, Eforms);
-eval_form_1(['extend-module'|_], St) ->         %Maybe from macro expansion
-    {[],St};
-eval_form_1(['eval-when-compile'|_], St) ->     %Maybe from macro expansion
-    %% We can happily ignore this.
-    {[],St};
 eval_form_1([set|Rest], St0) ->
     {Value,St1} = set(Rest, St0),
     {Value,St1};
@@ -414,6 +409,13 @@ eval_form_1([unslurp|_], St) ->
 eval_form_1([run|Args], St0) ->
     {Value,St1} = run(Args, St0),
     {Value,St1};
+eval_form_1(['reset-environment'], #state{base=Be}=St) ->
+    {ok,St#state{curr=Be}};
+eval_form_1(['extend-module'|_], St) ->         %Maybe from macro expansion
+    {[],St};
+eval_form_1(['eval-when-compile'|_], St) ->     %Maybe from macro expansion
+    %% We can happily ignore this.
+    {[],St};
 eval_form_1(['define-function',Name,_Meta,Def], #state{curr=Ce0}=St) ->
     Ar = function_arity(Def),
     Ce1 = lfe_eval:add_dynamic_func(Name, Ar, Def, Ce0),
@@ -421,8 +423,6 @@ eval_form_1(['define-function',Name,_Meta,Def], #state{curr=Ce0}=St) ->
 eval_form_1(['define-macro',Name,_Meta,Def], #state{curr=Ce0}=St) ->
     Ce1 = add_mbinding(Name, Def, Ce0),
     {Name,St#state{curr=Ce1}};
-eval_form_1(['reset-environment'], #state{base=Be}=St) ->
-    {ok,St#state{curr=Be}};
 eval_form_1(Expr, St) ->
     %% General case just evaluate the expression.
     {lfe_eval:expr(Expr, St#state.curr),St}.
@@ -547,17 +547,21 @@ slurp_error_ret(Name, Es, Ws) ->
 slurp_form(['eval-when-compile'|_], _, D) -> {[],D};
 slurp_form(F, L, D) -> {[{F,L}],D}.
 
-collect_module({['define-module',Mod,_Mets,Atts],_}, Sl0) ->
-    Sl1 = collect_attrs(Atts, Sl0),
-    Sl1#slurp{mod=Mod};
-collect_module({['extend-module',_Meta,Atts],_}, Sl) ->
-    collect_attrs(Atts, Sl);
+collect_module({['define-module',Mod,Meta,Atts],_}, Sl0) ->
+    Sl1 = collect_meta(Meta, Sl0),
+    Sl2 = collect_attrs(Atts, Sl1),
+    Sl2#slurp{mod=Mod};
+collect_module({['extend-module',Meta,Atts],_}, Sl0) ->
+    Sl1 = collect_meta(Meta, Sl0),
+    collect_attrs(Atts, Sl1);
 collect_module({['define-function',F,_Meta,Def],_}, #slurp{funs=Fs}=Sl) ->
     Ar = function_arity(Def),
     Sl#slurp{funs=[{F,Ar,Def}|Fs]};
 collect_module({_,_}, Sl) ->
     %% Ignore other forms, type and spec defs.
     Sl.
+
+collect_meta(_, St) -> St.
 
 collect_attrs([[import|Is]|Atts], St) ->
     collect_attrs(Atts, collect_imps(Is, St));

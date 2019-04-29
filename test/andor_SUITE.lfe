@@ -372,30 +372,40 @@
    (line (test-pat 'true (COMB 'true 'true 'true)))
 
    ;; This next one crashed the compiler!
-   (line (test-pat (tuple 'EXIT (tuple 'if_clause _))
-           (catch (COMB 'true 'blurf 'false))))
    (line (test-pat 'false (COMB 'false 'blurf 'false)))
    (line (test-pat 'true (COMB 'false 'blurf 'true)))
    (line (test-pat 'true (COMB 'true 'true 'blurf)))
+
+   (test-pat 'false (simple-comb 'false 'false))
+   (test-pat 'false (simple-comb 'false 'true))
+   (test-pat 'false (simple-comb 'true 'false))
+   (test-pat 'true (simple-comb 'true 'true))
 
    'ok))
 
 (defun comb (a b c)
   (let* ((r0 (orelse (andalso a b) c))
-     (r1 (when (=:= r0 r1))
-         (eif (orelse (andalso a b) c) 'true 'true 'false))
-     (n0 (eif (not (orelse (andalso a b) c)) 'true 'true 'false))
-     (n1 (when (=:= n0 n1))
-         (id (not r1)))
-     (r2 (when (=:= r1 r2))
-         (orelse (andalso a b) c))
-     (r3 (when (=:= r2 r3))
-         (eif (orelse (andalso a b) c) 'true 'true 'false))
-     (n2 (when (=:= n1 n2))
-         (id (not r3)))
-     (r4 (when (=:= r3 r4))
-         (eif (orelse (andalso a b) c) 'true 'true 'false)))
+         (r1 (when (=:= r0 r1))
+             (eif (orelse (andalso a b) c) 'true 'true 'false))
+         (n0 (eif (not (orelse (andalso a b) c)) 'true 'true 'false))
+         (n1 (when (=:= n0 n1))
+             (id (not r1)))
+         (r2 (when (=:= r1 r2))
+             (orelse (andalso a b) c))
+         (r3 (when (=:= r2 r3))
+             (eif (orelse (andalso a b) c) 'true 'true 'false))
+         (n2 (when (=:= n1 n2))
+             (id (not r3)))
+         (r4 (when (=:= r3 r4))
+             (eif (orelse (andalso a b) c) 'true 'true 'false)))
     (id r4)))
+
+(defun simple-comb (a b)
+  ;; Use res twice, to ensure that a careless optimization of 'not'
+  ;; doesn't leave res as a free variable.
+  (let* ((res (andalso a b))
+	 (_ (id res)))
+    res))
 
 ;; Test that a boolean expression in a case expression is properly
 ;; optimized (in particular, that the error behaviour is correct).

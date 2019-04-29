@@ -22,9 +22,13 @@
 
 -include_lib("proper/include/proper.hrl").
 
+-include("lfe_doc.hrl").
+
 %%%===================================================================
 %%% Properties
 %%%===================================================================
+
+%% These only test the formats of the saved data.
 
 prop_define_lambda() -> ?FORALL(Def, define_lambda(), validate(Def)).
 
@@ -39,9 +43,13 @@ function_arity([lambda,Args|_]) -> length(Args);
 function_arity(['match-lambda',[Pat|_]|_]) -> length(Pat).
 
 validate_function(Name, Arity, {[_Define,_Name,Meta,_Def],Line}=Func) ->
-    case lfe_doc:extract_module_docs([Func]) of
-        {ok,{[],[Fdoc]}} ->
-            (lfe_doc:collect_docs(Meta, []) =:= lfe_doc:function_doc(Fdoc))
+    Info = [export_all_funcs(),Func],           %Add function export
+    case lfe_doc:make_doc_info(Info, []) of
+        {ok,#lfe_docs_v1{fdocs=[Fdoc],mdocs=[]}} ->
+            %% Must collect multiple doc strings.
+            MetaDocs = lfe_doc:collect_docs(Meta, []),
+            Fdocs = lfe_doc:function_doc(Fdoc),
+            (doc_string(MetaDocs) =:= doc_string(Fdocs))
                 and (Name =:= lfe_doc:function_name(Fdoc))
                 and (Arity =:= lfe_doc:function_arity(Fdoc))
                 and (Line =:= lfe_doc:function_line(Fdoc));
@@ -49,13 +57,24 @@ validate_function(Name, Arity, {[_Define,_Name,Meta,_Def],Line}=Func) ->
     end.
 
 validate_macro(Name, {[_Define,_Name,Meta,_Lambda],Line}=Mac) ->
-    case lfe_doc:extract_module_docs([Mac]) of
-        {ok,{[],[Mdoc]}} ->
-            (lfe_doc:collect_docs(Meta, []) =:= lfe_doc:macro_doc(Mdoc))
+    Info = [export_macro(Name),Mac],            %Add macro export
+    case lfe_doc:make_doc_info(Info, []) of
+        {ok,#lfe_docs_v1{fdocs=[],mdocs=[Mdoc]}} ->
+            %% Must collect multiple doc strings.
+            MetaDocs = lfe_doc:collect_docs(Meta, []),
+            Mdocs = lfe_doc:macro_doc(Mdoc),
+            (doc_string(MetaDocs) =:= doc_string(Mdocs))
                 and (Name =:= lfe_doc:macro_name(Mdoc))
                 and (Line =:= lfe_doc:macro_line(Mdoc));
         _ -> false
     end.
+
+export_all_funcs() -> {['extend-module',[],[[export,all]]],1}.
+
+export_macro(Mac) -> {['extend-module',[],[['export-macro',Mac]]],1}.
+
+doc_string(Docs) ->
+    lists:foldl(fun (D, Acc) -> binary_to_list(D) ++ Acc end, "", Docs).
 
 %%%===================================================================
 %%% Definition shapes
