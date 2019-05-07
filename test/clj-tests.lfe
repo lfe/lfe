@@ -24,7 +24,7 @@
 
 (defmacro ok? (x) `(=:= 'ok ,x))
 
-;; HACK
+;; XXX HACK
 (defmacro IFF-MAPS expr `(andalso (erl_internal:bif 'is_map 1) ,@expr))
 
 ;;; defn
@@ -195,8 +195,9 @@
           (IFF-MAPS (call 'maps 'from_list '(#(a 1) #(b 2)))))
     (is-equal (clj:identity (+ 1 2 3)) (c0 6))
     (is-equal (clj:identity (quote foo)) (c0 'foo)))
-  (let ((asin-result (funcall (clj:comp #'math:sin/1 #'math:asin/1) 0.5)))
-    (is-equal "0.5" (lists:flatten (io_lib:format "~.1f" `(,asin-result)))))
+  (is-equal "0.5" (float_to_list 
+                    (funcall (clj:comp #'math:sin/1 #'math:asin/1) 0.5) 
+                    '(#(decimals 1))))
   (is-equal 1.5
             (funcall (clj:comp `(,(lambda (x) (+ x 1))
                                  ,#'math:sin/1
@@ -204,8 +205,9 @@
   (is-equal '(1 2 3 4)
             (lists:filter (clj:comp #'not/1 #'zero?/1)
               '(0 1 0 2 0 3 0 4)))
-  (let ((asin-result (clj:comp #'math:sin/1 #'math:asin/1 0.5)))
-    (is-equal "0.5" (lists:flatten (io_lib:format "~.1f" `(,asin-result))))))
+  (is-equal "0.5" (float_to_list 
+                    (clj:comp #'math:sin/1 #'math:asin/1 0.5) 
+                    '(#(decimals 1)))))
 
 (deftest partial
   (flet (;; (p0 (x) (funcall (clj:partial inc) x))
