@@ -3,8 +3,10 @@ install: true
 before_script:
   - wget https://s3.amazonaws.com/rebar3/rebar3
   - chmod +x rebar3
-env: PATH=$PATH:.
-script: make travis
+script:
+  - which rebar3
+  - rebar3 --version
+  - make travis
 notifications:
   disabled: true
 otp_release:

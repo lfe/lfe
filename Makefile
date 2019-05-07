@@ -299,7 +299,15 @@ docker-docs-bash:
 	docker run -i -v `pwd`/doc:/docs -t lfex/lfe-docs:latest bash
 
 # For travis
+NEW_TRAVIS_REBAR=./rebar3
+ifeq ($(TRAVIS_OTP_RELEASE),R16B03-1)
+	TRAVIS_REBAR=/usr/local/bin/rebar3
+else
+	TRAVIS_REBAR=$(NEW_TRAVIS_REBAR)
+endif
+
 travis:
 	$(MAKE) $(MFLAGS) install PREFIX=$$(mktemp -d)
-	@rebar3 eunit -m clj-tests,prop_lfe_doc
-	@rebar3 ct
+	@$(TRAVIS_REBAR) eunit -m clj-tests,prop_lfe_doc
+	@$(TRAVIS_REBAR) ct
+
