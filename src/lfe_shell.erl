@@ -259,6 +259,18 @@ make_banner() ->
        ?GRN("    \\   ") ++ ?RED("r") ++ ?GRN("     /") ++  "      |   LFE v~s ~s\n" ++
        ?GRN("     `-") ++ ?RED("E") ++ ?GRN("___.-'") ++ "\n\n", [get_lfe_version(), get_abort_message()])].
 
+display_banner() ->
+    %% When LFE is called with -noshell, we want to skip the banner. Also, there may be
+    %% circumstances where the shell is desired, but the banner needs to be disabled,
+    %% thus we want to support both use cases.
+    case init:get_argument(noshell) of
+        error -> case init:get_argument(nobanner) of
+                    error -> io:put_chars(make_banner());
+                    _ -> false
+                 end;
+        _ -> false
+    end.
+
 get_abort_message() ->
     %% We can update this later to check for env variable settings for
     %% shells that require a different control character to abort, such
