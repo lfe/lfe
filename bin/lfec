@@ -61,7 +61,7 @@
 
 (defun usage ()
   (let ((usage (++ "Usage: lfec [options] file ...\n\n"
-                   "Options:\n"
+                   "Options:\n\n"
                    "-h             Print usage and exit\n"
                    "-I name        Name of include directory\n"
                    "-o name        Name of output directory\n"
@@ -78,7 +78,9 @@
                    "+term          Term will be added to options\n\n"
                    "Terms include:\n\n"
                    "+binary, +no-docs, +to-exp, +to-lint, +to-core0, +to-core, +to-kernel, +to-asm\n"
-                   "+{outdir, Dir}, +report, +return, +debug-print\n")))
+                   "+{outdir, Dir}, +report, +return, +debug-print\n\n"
+                   "Example:\n\n"
+                   "$ lfec -I include -o ebin examples/ring.lfe\n\n")))
     (io:put_chars usage)))
 
 (defun compile-file (file opts)
