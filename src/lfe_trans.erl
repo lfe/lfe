@@ -157,8 +157,6 @@ from_expr({record_field,_,E,R,{atom,_,F}}, Vt0, St0) -> %We KNOW!
     RF = list_to_atom(atom_to_list(R) ++ "-" ++ atom_to_list(F)),
     {Le,Vt1,St1} = from_expr(E, Vt0, St0),
     {[RF,Le],Vt1,St1};
-from_expr({record_field,_,_,_}=M, Vt, St) ->    %Pre R16 packages
-    from_package_module(M, Vt, St);
 %% Function calls.
 from_expr({call,_,{remote,_,M,F},As}, Vt0, St0) -> %Remote function call
     {Lm,Vt1,St1} = from_expr(M, Vt0, St0),
@@ -394,16 +392,6 @@ from_rec_fields([{record_field,_,{var,_,F},E}|Fs], Vt0, St0) -> %special case!!
     {Lfs,Vt2,St2} = from_rec_fields(Fs, Vt1, St1),
     {[F,Le|Lfs],Vt2,St2};
 from_rec_fields([], Vt, St) -> {[],Vt,St}.
-
-%% from_package_module(Module, VarTable, State) -> {Module,VarTable,State}.
-%%  We must handle the special case where in pre-R16 you could have
-%%  packages with a dotted module path. It used a special record_field
-%%  tuple. This does not work in R16 and later!
-
-from_package_module({record_field,_,_,_}=M, Vt, St) ->
-    Segs = erl_parse:package_segments(M),
-    A = list_to_atom(packages:concat(Segs)),
-    {?Q(A),Vt,St}.
 
 from_maybe(_, []) -> [];
 from_maybe(Tag, Es) -> [[Tag|Es]].
