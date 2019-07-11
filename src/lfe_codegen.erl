@@ -43,15 +43,7 @@
                   add_ibinding/5,get_gbinding/3]).
 
 -include("lfe_comp.hrl").
-
-%% Define IS_MAP/1 macro for is_map/1 bif.
--ifdef(HAS_MAPS).
--define(IS_MAP(T), is_map(T)).
--else.
--define(IS_MAP(T), false).
--endif.
-
--define(Q(E), [quote,E]).                       %We do a lot of quoting!
+-include("lfe.hrl").
 
 -record(cg, {module=[],                         %Module name
              exps=[],                           %Exports (ordsets)

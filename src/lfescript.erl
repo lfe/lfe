@@ -34,6 +34,8 @@ script_name() ->
 -define(OK_STATUS, 0).
 -define(ERROR_STATUS, 127).
 
+-include("lfe.hrl").
+
 %% start() -> no_return().
 %% start(Options) -> no_return().
 %% run(CmdLine) -> no_return().
@@ -58,8 +60,7 @@ run([File|Args], Lopts) ->
         throw:Str ->
             lfe_io:format("lfescript: ~s\n", [Str]),
             halt(?ERROR_STATUS);
-        _:Reason ->
-            Stack = erlang:get_stacktrace(),    %Need to get this first
+        ?CATCH(_, Reason, Stack)
             lfe_io:format("lfescript: Internal error: ~p\n", [Reason]),
             lfe_io:format("~p\n", [Stack]),
             halt(?ERROR_STATUS)
@@ -184,8 +185,7 @@ eval_code(Fenv, _, Args, _) ->
         lfe_eval:expr([main,[quote,Args]], Fenv)
     catch
         %% Catch all exceptions in the code.
-        Class:Error ->
-            St = erlang:get_stacktrace(),       %Need to get this first
+        ?CATCH(Class, Error, St)
             Skip = fun (_) -> false end,
             Format = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
             Cs = lfe_lib:format_exception(Class, Error, St, Skip, Format, 1),

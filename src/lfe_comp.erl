@@ -35,6 +35,7 @@
                 map/2,flatmap/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3]).
 
 -include("lfe_comp.hrl").
+-include("lfe.hrl").
 
 %% The main compiler state.
 
@@ -85,8 +86,7 @@ do_compile(Input, Opts) ->
                    Ret = try
                              internal(Input, Opts)
                          catch
-                             error:Reason ->
-                                 St = erlang:get_stacktrace(),
+                             ?CATCH(error, Reason, St)
                                  {error,{Reason,St}}
                          end,
                    exit(Ret)

@@ -49,14 +49,7 @@
                 reverse/1,reverse/2,member/2,concat/1]).
 
 -include("lfe_comp.hrl").
--include("lfe_macro.hrl").
-
-%% Define IS_MAP/1 macro for is_map/1 bif.
--ifdef(HAS_MAPS).
--define(IS_MAP(T), is_map(T)).
--else.
--define(IS_MAP(T), false).
--endif.
+-include("lfe.hrl").
 
 %% Errors
 format_error({bad_form,Type}) ->
@@ -602,8 +595,7 @@ exp_userdef_macro([Mac|Args], Def0, Env, St0) ->
         %% error:Error ->
         %%     Stack = erlang:get_stacktrace(),
         %%     erlang:error({expand_macro,[Mac|Args],{Error,Stack}})
-        error:Error ->
-            Stack = erlang:get_stacktrace(),
+        ?CATCH(error, Error, Stack)
             erlang:raise(error, {expand_macro,[Mac|Args],Error}, Stack)
         %% error:Error ->
         %%     Stack0 = erlang:get_stacktrace(),
@@ -622,8 +614,7 @@ exp_predef_macro(Call, Env, St) ->
         %% error:Error ->
         %%     Stack = erlang:get_stacktrace(),
         %%     erlang:raise({expand_macro,Call,{Error,Stack}})
-        error:Error ->
-            Stack = erlang:get_stacktrace(),
+        ?CATCH(error, Error, Stack)
             erlang:raise(error, {expand_macro,Call,Error}, Stack)
         %% error:Error ->
         %%     Stack0 = erlang:get_stacktrace(),

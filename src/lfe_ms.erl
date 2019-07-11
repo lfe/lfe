@@ -37,7 +37,7 @@
 
 format_error(match_spec_head) -> "Illegal number of head arguments".
 
--define(Q(E), [quote,E]).                       %We do a lot of quoting!
+-include("lfe_macro.hrl").
 
 -record(ms, {dc=1,                              %Dollar variable count from 1
              bs=[],                             %Variable/$var bindings

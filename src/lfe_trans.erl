@@ -31,7 +31,7 @@
 
 -import(lists, [map/2,foldl/3,mapfoldl/3,foldr/3,splitwith/2]).
 
--define(Q(E), [quote,E]).                       %We do a lot of quoting
+-include("lfe_macro.hrl").
 
 -record(from, {vc=0                             %Variable counter
               }).

@@ -22,12 +22,7 @@
 
 %% -compile(export_all).
 
-%% Define IS_MAP/1 macro for is_map/1 bif.
--ifdef(HAS_MAPS).
--define(IS_MAP(T), is_map(T)).
--else.
--define(IS_MAP(T), false).
--endif.
+-include("lfe.hrl").
 
 %% print([IoDevice], Sexpr) -> ok.
 %% print1(Sexpr) -> [char()].
