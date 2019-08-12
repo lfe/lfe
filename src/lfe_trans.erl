@@ -1047,8 +1047,8 @@ to_pat([list|Es], L, Pvs, Vt, St) ->
                   {{cons,L,Ee,Tail},Pvs1,Vt1,St1}
           end,
     foldr(Fun, {{nil,L},Pvs,Vt,St}, Es);
-to_pat(['list*'|Es], L, Pvs, Vt, St) ->
-    to_pats_s(fun to_pat/4, L, Pvs, Vt, St, Es);
+to_pat(['list*'|Es], L, Pvs, Vt, St) ->         %Macro
+    to_pats_s(fun to_pat/5, L, Pvs, Vt, St, Es);
 to_pat([tuple|Es], L, Pvs0, Vt0, St0) ->
     {Ees,Pvs1,Vt1,St1} = to_pats(Es, L, Pvs0, Vt0, St0),
     {{tuple,L,Ees},Pvs1,Vt1,St1};
