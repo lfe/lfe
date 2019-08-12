@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2016 Robert Virding
+%% Copyright (c) 2008-2019 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@
 
 -module(lfe_io).
 
--export([parse_file/1,read_file/1]).
+-export([parse_file/1,parse_file/2,read_file/1,read_file/2]).
 -export([read/0,read/1,read/2,read_line/0,read_line/1,read_line/2]).
 -export([read_string/1]).
 -export([scan_sexpr/2,scan_sexpr/3]).
@@ -45,13 +45,16 @@
 -define(IS_MAP(T), false).
 -endif.
 
-%% parse_file(FileName) -> {ok,[{Sexpr,Line}]} | {error,Error}.
+%% parse_file(FileName|Fd[, Line]) -> {ok,[{Sexpr,Line}]} | {error,Error}.
 %%  Parse a file returning the raw sexprs (as it should be) and line
 %%  numbers of start of each sexpr. Handle errors consistently.
 
-parse_file(Name) ->
+parse_file(Name) -> parse_file(Name, 1).
+
+parse_file(Name, Line) ->
     with_token_file(Name,
-		    fun (Ts, Lline) -> parse_file1(Ts, Lline, [], []) end).
+                    fun (Ts, Lline) -> parse_file1(Ts, Lline, [], []) end,
+                    Line).
 
 parse_file1([_|_]=Ts0, Lline, Pc0, Ss) ->
     case lfe_parse:sexpr(Pc0, Ts0) of
@@ -65,11 +68,15 @@ parse_file1([_|_]=Ts0, Lline, Pc0, Ss) ->
     end;
 parse_file1([], _, _, Ss) -> {ok,reverse(Ss)}.
 
-%% read_file(FileName) -> {ok,[Sexpr]} | {error,Error}.
+%% read_file(FileName|Fd[, Line]) -> {ok,[Sexpr]} | {error,Error}.
 %%  Read a file returning the raw sexprs (as it should be).
 
-read_file(Name) ->
-    with_token_file(Name, fun (Ts, Lline) -> read_file1(Ts, Lline, []) end).
+read_file(Name) -> read_file(Name, 1).
+
+read_file(Name, Line) ->
+    with_token_file(Name,
+                    fun (Ts, Lline) -> read_file1(Ts, Lline, []) end,
+                    Line).
 
 read_file1([_|_]=Ts0, Lline, Ss) ->
     case lfe_parse:sexpr(Ts0) of
@@ -83,24 +90,32 @@ read_file1([_|_]=Ts0, Lline, Ss) ->
     end;
 read_file1([], _, Ss) -> {ok,reverse(Ss)}.
 
-%% with_token_file(FileName, DoFunc)
-%%  Open the file, scan all LFE tokens and apply DoFunc on them.
+%% with_token_file(FileName|Fd, DoFunc, Line)
+%%  Open the file, scan all LFE tokens and apply DoFunc on them. If
+%%  file:open fails with badarg then try assuming it is a fd. Note
+%%  that a new file starts at line 1.
 
-with_token_file(Name, Do) ->
+with_token_file(Name, Do, Line) ->
     case file:open(Name, [read]) of
-        {ok,F} ->
-            Ret = case io:request(F, {get_until,unicode,'',lfe_scan,tokens,[1]}) of
-                      {ok,Ts,Lline} -> Do(Ts, Lline);
-                      {error,Error,_} -> {error,Error}
-                  end,
-            file:close(F),                      %Close the file
-            Ret;                                % and return value
+        {ok,Fd} ->
+            with_token_file_fd(Fd, Do, 1);      %Start at line 1
+        {error,badarg} ->
+            %% Could be a fd so use it as it is one.
+            with_token_file_fd(Name, Do, Line);
         {error,Error} -> {error,{none,file,Error}}
     end.
 
-%% read() -> {ok,Sexpr} | {error,Error}.
-%% read(Prompt) -> {ok,Sexpr} | {error,Error}.
-%% read(IoDevice, Prompt) -> {ok,Sexpr} | {error,Error}.
+with_token_file_fd(Fd, Do, Line) ->             %Called with a file descriptor
+    Ret = case io:request(Fd, {get_until,unicode,'',lfe_scan,tokens,[Line]}) of
+              {ok,Ts,Lline} -> Do(Ts, Lline);
+              {error,Error,_} -> {error,Error}
+          end,
+    file:close(Fd),                             %Close the file
+    Ret.                                        % and return value
+
+%% read() -> {ok,Sexpr} | {error,Error} | eof.
+%% read(Prompt) -> {ok,Sexpr} | {error,Error} | eof.
+%% read(IoDevice, Prompt) -> {ok,Sexpr} | {error,Error} | eof.
 %%  A simple read function. It is not line oriented and stops as soon
 %%  as it has consumed enough.
 
@@ -114,9 +129,9 @@ read(Io, Prompt) ->
         {eof,_} -> eof
     end.
 
-%% read_line() -> {ok,Sexpr} | {error,Error}.
-%% read_line(Prompt) -> {ok,Sexpr} | {error,Error}.
-%% read_line(IoDevice, Prompt) -> {ok,Sexpr} | {error,Error}.
+%% read_line() -> {ok,Sexpr} | {error,Error} | eof.
+%% read_line(Prompt) -> {ok,Sexpr} | {error,Error} | eof.
+%% read_line(IoDevice, Prompt) -> {ok,Sexpr} | {error,Error} | eof.
 %%  A simple read function. It is line oriented and reads whole lines
 %%  until it has consumed enough characters. Left-over characters in
 %%  the last line are discarded.
@@ -134,6 +149,7 @@ read_line_1(Io, P, C0, L0) ->
             case scan_sexpr(C0, Cs0, L0) of
                 {done,{ok,Ret,_L1},_Cs1} -> {ok,Ret};
                 {done,{error,Error,_},_Cs1} -> {error,Error};
+                {done,{eof,_},_} -> eof;
                 {more,C1} ->
                     read_line_1(Io, P, C1, L0)
             end

@@ -1,6 +1,6 @@
 % lfe_io(3)
 % Robert Virding
-% 2008-2016
+% 2008-2019
 
 
 # NAME
@@ -35,13 +35,13 @@ is used by the compiler to give better error information.
 
 # EXPORTS
 
-**read([[IoDevice,] Prompt]) -> {ok,Sexpr} | {error,ErrorInfo}**
+**read([[IoDevice,] Prompt]) -> {ok,Sexpr} | {error,ErrorInfo} | eof**
 
 Read an s-expr from the standard input (``IoDevice``) with a prompt
 (``Prompt``). Note that this is not line-oriented in that it stops as soon
 as it has consumed enough characters.
 
-**read_line([[IoDevice,] Prompt]) -> {ok,Sexpr} | {error,ErrorInfo}**
+**read_line([[IoDevice,] Prompt]) -> {ok,Sexpr} | {error,ErrorInfo} | eof**
 
 Read an s-expr from the standard input (``IoDevice``) with a prompt
 (``Prompt``). Note that this is line-oriented in that it reads whole lines
