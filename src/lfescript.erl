@@ -34,10 +34,10 @@ script_name() ->
 -define(OK_STATUS, 0).
 -define(ERROR_STATUS, 127).
 
-%% start() -> no_return().
-%% start(Options) -> no_return().
-%% run(CmdLine) -> no_return().
-%% run(CmdLine, Options) -> no_return().
+-spec start() -> no_return().
+-spec start(_Options) -> no_return().
+-spec run(_CmdLine) -> no_return().
+-spec run(_CmdLine, _Options) -> no_return().
 %%  Evaluate the LFE script. All errors which are caught here are
 %%  internal errors. Start gets its arguments from the command line
 %%  while run gets them as an argument.
