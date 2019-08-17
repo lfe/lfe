@@ -1,5 +1,5 @@
 #! /bin/sh
-# Copyright (c) 2008-2014 Robert Virding
+# Copyright (c) 2008-2019 Robert Virding
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -52,13 +52,13 @@ e=""                            # Eval flag/value
 # First step over the flag section adding them to the end.
 while [ "$i" -gt 0 ]; do
     case "$1" in
-        -e | -eval)         # We are going to eval
+        -e | -eval | -lfe_eval) # We are going to eval
             e="-lfe_eval"
-            break ;;        # delay removing this
+            break ;;            # delay removing this
         -h | --help)
-            $(show_help)    # Show help
+            $(show_help)        # Show help
             exit 1 ;;
-        -extra | --)        # We are explicitly done
+        -extra | --)            # We are explicitly done
             shift ; i=`expr $i - 1`
             break ;;
         -* | +*)  # Flags
