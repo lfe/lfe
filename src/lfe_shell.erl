@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2018 Robert Virding
+%% Copyright (c) 2008-2019 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -27,7 +27,9 @@
 -module(lfe_shell).
 
 -export([start/0,start/1,server/0,server/1,
-         run_script/2,run_script/3,run_string/2,run_string/3]).
+         run_script/2,run_script/3,
+         run_strings/1,run_strings/2,run_string/1,run_string/2,
+         new_state/2,new_state/3,upd_state/3]).
 
 %% The shell commands which generally callable.
 -export([c/1,c/2,cd/1,doc/1,docs/1,ec/1,ec/2,ep/1,ep/2,epp/1,epp/2,help/0,
@@ -41,12 +43,11 @@
                   get_gbinding/3,add_mbinding/3]).
 
 -import(orddict, [store/3,find/2]).
--import(ordsets, [add_element/2]).
 -import(lists, [reverse/1,foreach/2]).
 
 -include("lfe.hrl").
 
-%% Colours for the LFE banner
+%% Coloured strings for the LFE banner, red, green, yellow and blue.
 -define(RED(Str), "\e[31m" ++ Str ++ "\e[0m").
 -define(GRN(Str), "\e[1;32m" ++ Str ++ "\e[0m").
 -define(YLW(Str), "\e[1;33m" ++ Str ++ "\e[0m").
@@ -65,41 +66,68 @@ foldl(F, Accu, []) when is_function(F, 2) -> Accu.
 -record(state, {curr,save,base,             %Current, save and base env
                 slurp=false}).              %Are we slurped?
 
+%% run_script(File, Args) -> {Value,State}.
+%% run_string(File, Args, State) -> {Value,State}.
+
+-spec run_script(_, _) -> no_return().
+-spec run_script(_, _, _) -> no_return().
+
 run_script(File, Args) ->
-    run_script(File, Args, lfe_env:new()).
+    run_script(File, Args, new_state(File, Args)).
 
-run_script(File, Args, Env) ->
-    St = new_state(File, Args, Env),
-    run([File], St).
+run_script(File, Args, St0) ->
+    St1 = upd_state(File, Args, St0),
+    run_file([File], St1).
 
-run_string(String, Args) ->
-    run_string(String, Args, lfe_env:new()).
+%% run_strings(Strings) -> {Value,State}.
+%% run_strings(Strings, State) -> {Value,State}.
 
-run_string(String, As, Env) ->
-    St = new_state("lfe", As, Env),
+run_strings(Strings) ->
+    run_strings(Strings, new_state("lfe", [])).
+
+run_strings(Strings, St) ->
+    lists:foldl(fun (S, St0) ->
+                        {_,St1} = run_string(S, St0),
+                        St1
+                end, St, Strings).
+
+%% run_string(String) -> {Value,State}.
+%% run_string(String, State) -> {Value,State}.
+
+run_string(String) ->
+    run_string(String, new_state("lfe", [])).
+
+run_string(String, St0) ->
+    St1 = upd_state(String, [], St0),
     case read_script_string(String) of
         {ok,Forms} ->
-            run_loop(Forms, [], St);
+            run_loop([Forms], St1);
         {error,E} ->
             slurp_errors("lfe", [E]),
-            {error,St}
+            {error,St1}
     end.
 
-start() -> start(default).
+%% start() -> Pid.
+%% start(State) -> Pid.
 
-start(Env) ->
-    spawn(fun () -> server(Env) end).
+start() ->
+    spawn(fun () -> server() end).
 
-server() -> server(default).
+start(St) ->
+    spawn(fun () -> server(St) end).
 
-server(default) ->
-    server(lfe_env:new());
-server(Env) ->
-    process_flag(trap_exit, true),              %Must trap exists
-    io:put_chars(make_banner()),
+%% server() -> no_return().
+%% server(State) -> no_return().
+
+server() ->
     %% Create a default base env of predefined shell variables with
     %% default nil bindings and basic shell macros.
-    St = new_state("lfe", [], Env),
+    St = new_state("lfe", []),
+    server(St).
+
+server(St) ->
+    process_flag(trap_exit, true),              %Must trap exists
+    io:put_chars(make_banner()),
     %% Set shell io to use LFE expand in edlin, ignore error.
     io:setopts([{expand_fun,fun (B) -> lfe_edlin_expand:expand(B) end}]),
     Eval = start_eval(St),                      %Start an evaluator
@@ -244,7 +272,8 @@ get_lfe_version() ->
 %%  Generate a new shell state with all the default functions, macros
 %%  and variables.
 
-%% new_state(Script, Args) -> new_state(Script, Args, lfe_env:new()).
+new_state(Script, Args) ->
+    new_state(Script, Args, lfe_env:new()).
 
 new_state(Script, Args, Env0) ->
     Env1 = add_vbinding('script-name', Script, Env0),
@@ -253,6 +282,14 @@ new_state(Script, Args, Env0) ->
     Base1 = add_shell_macros(Base0),
     Base2 = add_shell_vars(Base1),
     #state{curr=Base2,save=Base2,base=Base2,slurp=false}.
+
+upd_state(Script, Args, #state{curr=Curr,save=Save,base=Base}=St) ->
+    %% Update an environment with with script name and args.
+    Upd = fun (E0) ->
+                  E1 = add_vbinding('script-name', Script, E0),
+                  add_vbinding('script-args', Args, E1)
+          end,
+    St#state{curr=Upd(Curr),save=Upd(Save),base=Upd(Base)}.
 
 add_shell_vars(Env0) ->
     %% Add default shell expression variables.
@@ -297,6 +334,7 @@ add_shell_functions(Env0) ->
           {regs,0,[lambda,[],[':',lfe_shell,regs]]},
           {exit,0,[lambda,[],[':',lfe_shell,exit]]}
          ],
+    %% Any errors here will crash shell startup!
     Add = fun ({N,Ar,Def}, E) ->
                   lfe_eval:add_dynamic_func(N, Ar, Def, E)
           end,
@@ -407,7 +445,7 @@ eval_form_1([unslurp|_], St) ->
     %% Forget everything back to before current slurp.
     unslurp(St);
 eval_form_1([run|Args], St0) ->
-    {Value,St1} = run(Args, St0),
+    {Value,St1} = run_file(Args, St0),
     {Value,St1};
 eval_form_1(['reset-environment'], #state{base=Be}=St) ->
     {ok,St#state{curr=Be}};
@@ -605,15 +643,15 @@ slurp_ews(File, Format, Ews) ->
                     lfe_io:format(Format, [File,Line,Cs])
             end, Ews).
 
-%% run(Args, State) -> {Value,State}.
+%% run_file(Args, State) -> {Value,State}.
 %%  Run the shell expressions in a file. Abort on errors and only
 %%  return updated state if there are no errors.
 
-run([File], #state{curr=Ce}=St) ->
+run_file([File], #state{curr=Ce}=St) ->
     Name = lfe_eval:expr(File, Ce),             %Get file name
     case read_script_file(Name) of              %Read the file
         {ok,Forms} ->
-            run_loop(Forms, [], St);
+            run_loop(Forms, St);
         {error,E} ->
             slurp_errors(Name, [E]),
             {error,St}
@@ -626,19 +664,15 @@ run([File], #state{curr=Ce}=St) ->
 
 read_script_file(File) ->
     case file:open(File, [read]) of
-        {ok,F} ->
+        {ok,Fd} ->
             %% Check if first a script line, if so skip it.
-            case io:get_line(F, '') of
-                "#!" ++ _ -> ok;
-                _ -> file:position(F, bof)      %Reset to start of file
-            end,
-            Ret = case io:request(F, {get_until,unicode,'',lfe_scan,tokens,[1]}) of
-                      {ok,Ts,Lline} -> parse_tokens(Ts, Lline, []);
-                      {error,Error,_} -> {error,Error}
-                  end,
-            file:close(F),                      %Close the file
-            Ret;
-        {error,Error} -> {error,{none,file,Error}}
+            case io:get_line(Fd, '') of
+                "#!" ++ _ ->
+                    lfe_io:read_file(Fd, 2);
+                _ -> 
+                    file:position(Fd, bof),    %Reset to start of file
+                    lfe_io:read_file(Fd, 1)
+            end
     end.
 
 %% read_script_string(FileName) -> {ok,[Sexpr]} | {error,Error}.
@@ -646,22 +680,12 @@ read_script_file(File) ->
 %%  lfe_io:read_string except parse all forms.
 
 read_script_string(String) ->
-    case lfe_scan:string(String, 1) of
-        {ok,Ts,Lline} -> parse_tokens(Ts, Lline, []);
-        {error,E,_} -> {error,E}
-    end.
+    lfe_io:read_string(String).
 
-parse_tokens([_|_]=Ts0, Lline, Ss) ->
-    case lfe_parse:sexpr(Ts0) of
-        {ok,_,S,Ts1} -> parse_tokens(Ts1, Lline, [S|Ss]);
-        {more,Pc1} ->
-            %% Need more tokens but there are none, so call again to
-            %% generate an error message.
-            {error,E,_} = lfe_parse:sexpr(Pc1, {eof,Lline}),
-            {error,E};
-        {error,E,_} -> {error,E}
-    end;
-parse_tokens([], _, Ss) -> {ok,reverse(Ss)}.
+%% run_loop(Forms, State) -> {Value,State}.
+%% run_loop(Forms PrevValue, State) -> {Value,State}.
+
+run_loop(Fs, St) -> run_loop(Fs, [], St).
 
 run_loop([F|Fs], _, St0) ->
     Ce1 = add_vbinding('-', F, St0#state.curr),
@@ -848,7 +872,7 @@ print_module(M) ->
 print_md5(Info) ->
     case lists:keyfind(md5, 1, Info) of
         {md5,<<MD5:128>>} -> lfe_io:format("MD5: ~.16b~n", [MD5]);
-        error -> ok
+        false -> ok
     end.
 
 print_compile_time(Info) ->
@@ -877,7 +901,7 @@ print_exports(Info) ->
     lfe_io:format("Exported functions:~n", []),
     Exps = case lists:keyfind(exports, 1, Info) of
                {exports,Es} -> Es;
-               error -> []
+               false -> []
            end,
     print_names(fun ({N,Ar}) -> lfe_io:format1("~w/~w", [N,Ar]) end, Exps).
 
@@ -889,7 +913,7 @@ print_macros(Info) ->
                              (_) -> []
                          end,
                    lists:flatmap(Fun, Attrs);
-               error -> []
+               false -> []
            end,
     print_names(fun (N) -> lfe_io:print1(N) end, Macs).
 
