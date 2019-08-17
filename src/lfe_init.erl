@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2014 Robert Virding
+%% Copyright (c) 2008-2019 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -35,41 +35,53 @@
 %% Start LFE running a script or the shell depending on arguments.
 
 start() ->
-    case init:get_plain_arguments() of
-        ["-lfe_eval"|As] ->                     %Run a command string
-            user:start(),                       %Start user for io
-            run_string(As);
-        [S|As] ->                               %Run a script
-            user:start(),                       %Start user for io
-            run_file([S|As]);
-        [] ->                                   %Run a shell
-            user_drv:start(['tty_sl -c -e',{lfe_shell,start,[]}])
+    case collect_args(init:get_plain_arguments()) of
+        {[],[]} ->                              %Run a shell
+            user_drv:start(['tty_sl -c -e',{lfe_shell,start,[]}]);
+        {Es,Script} ->
+            user:start(),
+            %% io:format("es: ~p\n", [{Es,Script}]),
+            run_evals_script(Es, Script)
     end.
 
-run_file([S|As]) ->
-    Script = fun () -> lfe_shell:run_script(S, As) end,
-    spawn_link(fun () -> run_script(Script) end).
+collect_args([E,S|As]) when E == "-lfe_eval" ; E == "-eval" ; E == "-e" ->
+    {Es,Script} = collect_args(As),
+    {[S] ++ Es,Script};
+collect_args([E]) when E == "-lfe_eval" ; E == "-eval" ; E == "-e" ->
+    {[],[]};
+collect_args(As) -> {[],As}.                    %Remaining become script
 
-run_string([]) -> run_string([], []);           %No command
-run_string(["--"]) -> run_string([], []);       %No command
-run_string([S,"--"|As]) -> run_string(S, As);
-run_string([S|As]) -> run_string(S, As).
+%% run_evals_script(Evals, Script) -> Pid.
+%%  Firat evaluate all the eval strings if any then the script if
+%%  there is one. The state from the string is past into the
+%%  script. We can handle no strings and no script.
 
-run_string([], _) ->                            %No command
-    io:put_chars(user, "eval: missing command\n"),
-    halt(?ERROR_STATUS);
-run_string(S, As) ->
-    Script = fun () -> lfe_shell:run_string(S, As) end,
-    spawn_link(fun () -> run_script(Script) end).
+run_evals_script(Evals, Script) ->
+    S = fun () ->
+                St = lfe_shell:run_strings(Evals),
+                case Script of
+                    [F|As] ->
+                        lfe_shell:run_script(F, As, St);
+                    [] -> {[],St}
+                end
+        end,
+    spawn_link(fun () -> run_script(S) end).
+
+%% run_script(Script)
+%%  Run a script and terminate the erlang process afterwards.
 
 run_script(Script) ->
     try
-        Script(),
+        Script(),                               %Evaluate the script
+        %% For some reason we need to wait a bit before stopping.
+        timer:sleep(1),
         init:stop(?OK_STATUS)
     catch
         Class:Error ->
             St = erlang:get_stacktrace(),       %Need to get this first
-            Sf = fun (_) -> false end,
+            Sf = fun ({M,_F,_A,_L}) ->
+                         M /= lfe_eval
+                 end,
             Ff = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
             Cs = lfe_lib:format_exception(Class, Error, St, Sf, Ff, 1),
             io:put_chars(Cs),

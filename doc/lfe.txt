@@ -201,7 +201,7 @@ STARTING THE LFE SHELL
 
        · -h or --help - provides command line usage help
 
-       · -e or -eval - evaluates a given sexpr
+       · -e or -eval - evaluates a given sexpr in a string
 
        · -prompt  - users may supply a value here to override the default lfe>
          prompt; note that -prompt classic will set the prompt to the original
@@ -212,14 +212,24 @@ STARTING THE LFE SHELL
          taining  the  string ~node (which will be substituted with the actual
          name of the node).
 
+       There can be multiple string expressions to be evaluated; each one must
+       be prefixed with an -e or -eval.  String expressions are run in the LFE
+       repl so shell commands and functions are allowed.  They are all run  in
+       the same invocation of the repl so:
+
+              $ lfe -e "(set aaa 42)" -e "(set bbb 84)" -e "(pp (tuple aaa bbb))"
+              #(42 84)
+
+       If there are string expressions then the LFE repl will not be run.
+
 RUNNING LFE SHELL SCRIPTS
-       The LFE shell can also be directly called  to  run  LFE  shell  scripts
+       The  LFE  shell  can  also  be directly called to run LFE shell scripts
        with:
 
               lfe [flags] file [args]
 
-       This  will  start  the  shell, run a script with LFE shell commands and
-       then terminate the shell.  The following built-in  variables  are  also
+       This will start the shell, run a script with  LFE  shell  commands  and
+       then  terminate  the  shell.  The following built-in variables are also
        bound:
 
        script-name
@@ -231,6 +241,14 @@ RUNNING LFE SHELL SCRIPTS
        A list of the arguments to the script as strings.  If no arguments have
        been given then this will be an empty list.
 
+       Note  that  if  there  are  any string expressions to be evaluated then
+       these must come before the name of the script file and  its  arguments.
+       These  expressions  will  be evaluated before the script and the script
+       will use the environment from the string expressions.
+
+       It is possible to run both string expressions and an LFE  shell  script
+       and they are then run in the same LFE repl.
+
 SEE ALSO
        lfescript(1), lfe_guide(7) lfe_doc(3)
 
@@ -239,4 +257,4 @@ AUTHORS
 
 
 
-                                   2008-2016                            lfe(1)
+                                   2008-2019                            lfe(1)
