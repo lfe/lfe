@@ -1,0 +1,138 @@
+% lfe_io(3)
+% Robert Virding
+% 2008-2016
+
+
+# NAME
+
+lfe_io - Lisp Flavoured Erlang (LFE) io functions
+
+
+# SYNOPSIS
+
+This module provides a standard set of io functions for
+LFE. In the following description, many functions have an
+optional parameter IoDevice. If included, it must be the pid
+of a process which handles the IO protocols such as the
+IoDevice returned by file:open/2.
+
+Two functions in this module are used to generate
+aesthetically attractive representations of abstract forms,
+which are suitable for printing. These functions return
+(possibly deep) lists of characters and generate an error if
+the form is wrong.
+
+
+# DATA TYPES
+
+**chars() = [char() | chars()]**
+
+**filesexpr() = {Sexpr,Line}**
+
+This is the format returned by ``lfe_io:parse_file/1`` and
+is used by the compiler to give better error information.
+
+
+# EXPORTS
+
+**read([[IoDevice,] Prompt]) -> {ok,Sexpr} | {error,ErrorInfo}**
+
+Read an s-expr from the standard input (IoDevice) with a prompt
+(Prompt). Note that this is not line-oriented in that it stops as soon
+as it has consumed enough characters.
+
+**read_line([[IoDevice,] Prompt]) -> {ok,Sexpr} | {error,ErrorInfo}**
+
+Read an s-expr from the standard input (IoDevice) with a prompt
+(Prompt). Note that this is line-oriented in that it reads whole lines
+discarding left-over characters in the last line.
+
+**read_string(String) -> {ok,Sexpr} | {error,ErrorInfo}**
+
+Read an s-expr from String.
+
+**print([IoDevice,] Sexpr) -> ok**
+
+Print the s-expr Sexpr to the standard output (IoDevice).
+
+**print1(Sexpr) -> DeepCharList**
+
+Return the list of characters which represent the s-expr Sexpr.
+
+**prettyprint1(Sexpr) -> DeepCharList**
+
+**prettyprint1(Sexpr, Depth) -> DeepCharList**
+
+**prettyprint1(Sexpr, Depth, Indentation) -> DeepCharList**
+
+**prettyprint1(Sexpr, Depth, Indentation, LineLength) -> DeepCharList**
+
+Return the lost of characters which represents the
+prettyprinted s-expr ``Sexpr``. Assume we start at indentation
+Indentation or 0.
+
+**format([IoDevice,] Format, Args) -> ok**
+
+**fwrite([IoDevice,] Format, Args) -> ok**
+
+**format1(Format, Args) -> DeepCharList**
+
+**fwrite1(Format, Args) -> DeepCharList**
+
+Print formatted output. The following commands are valid in
+the format string:
+
+* **~w, ~W** - print LFE terms
+* **~p, ~P** - prettyprint LFE terms
+* **~s** - print a string
+* **~e, ~f, ~g** - print floats
+* **~b, ~B** - based integers
+* **~x, ~X** - based integers with a prefix
+* **~+, ~#** - based integers in vanilla erlang format
+* **~c, ~n, ~i**
+
+Currently they behave as for vanilla erlang except that ``~w``,
+``~W``, ``~p``, ``~P`` print the terms as LFE sexprs.
+
+**read_file(FileName) -> {ok,[Sexpr]} | {error,ErrorInfo}**
+
+Read the file Filename returning a list of s-exprs (as it
+should be).
+
+**parse_file(FileName) -> {ok,[FileSexpr]} | {error,ErrorInfo}**
+
+where
+
+```
+FileSexpr = filesexpr()
+```
+
+Read the file Filename returning a list of pairs containing
+s-expr and line number of the start of the s-expr.
+
+**scan_sexpr(Cont, Chars [,Line]) -> {done,Ret,RestChars}|{more,Cont1}**
+
+This is a re-entrant call which scans tokens from the input and
+returns a parsed sepxr. If there are enough characters to parse a
+sexpr or it detects and error then it returns ``{done,...}`` otherwise
+it returns ``{more,Cont}`` where ``Cont`` is used in the next call to
+``scan_sexpr`` with more characters to try and parse a sexpr. This is continued until a sexpr has been parsed. ``Cont``  is initially ``[]``.
+
+It is not designed to be called directly by an application but used through the i/o system where it can typically be called in an application by:
+
+``io:request(In, {get_until,unicode,Prompt,Module,scan_sexpr,[Line]})``
+
+
+# ERROR INFORMATION
+
+The ``ErrorInfo`` mentioned above is the standard ``ErrorInfo``
+structure which is returned from all IO modules. It has the
+following format:
+
+**{ErrorLine,Module,ErrorDescriptor}**
+
+A string describing the error is obtained with the following call:
+
+```
+apply(Module, format_error, ErrorDescriptor)
+```

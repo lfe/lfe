@@ -1,4 +1,4 @@
-;; Copyright (c) 2013 Duncan McGreggor <oubiwann@cogitat.io>
+;; Copyright (c) 2013 Duncan McGreggor <oubiwann@gmail.com>
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -26,49 +26,46 @@
 ;;
 ;; To use the code below in LFE, do the following:
 ;;
-;;  $ cd examples
-;;  $ ../bin/lfe -pa ../ebin
+;;  $ .bin/lfe -pa .ebin
 ;;
 ;; Load the file and create a fish-class instance:
 ;;
-;; > (slurp '"object-via-closure.lfe")
-;; #(ok object)
-;; > (set mommy-fish (fish-class '"Carp"))
+;; > (slurp "examples/object-via-closure.lfe")
+;; #(ok object-via-closure)
+;; > (set mommy-fish (fish-class "Carp"))
 ;; #Fun<lfe_eval.10.91765564>
 ;;
 ;; Execute some of the basic methods:
 ;;
-;; > (get-species mommy-fish)
+;; > (send mommy-fish 'species)
 ;; "Carp"
-;; > (move mommy-fish 17)
+;; > (send mommy-fish 'move 17)
 ;; The Carp swam 17 feet!
 ;; ok
-;; > (get-id mommy-fish)
+;; > (send mommy-fish 'id)
 ;; "47eebe91a648f042fc3fb278df663de5"
 ;;
 ;; Now let's look at "modifying" state data (e.g., children counts):
 ;;
-;; > (get-children mommy-fish)
+;; > (send mommy-fish 'children)
 ;; ()
-;; > (get-children-count mommy-fish)
+;; > (send mommy-fish 'children-count)
 ;; 0
-;; > (set (mommy-fish baby-fish-1) (reproduce mommy-fish))
+;; > (set `(,mommy-fish ,baby-fish-1) (send mommy-fish 'reproduce))
 ;; (#Fun<lfe_eval.10.91765564> #Fun<lfe_eval.10.91765564>)
-;; > (get-id mommy-fish)
+;; > (send mommy-fish 'id)
 ;; "47eebe91a648f042fc3fb278df663de5"
-;; > (get-id baby-fish-1)
+;; > (send baby-fish-1 'id)
 ;; "fdcf35983bb496650e558a82e34c9935"
-;; > (get-children-count mommy-fish)
+;; > (send mommy-fish 'children-count)
 ;; 1
-;; > (set (mommy-fish baby-fish-2) (reproduce mommy-fish))
+;; > (set `(,mommy-fish ,baby-fish-2) (send mommy-fish 'reproduce))
 ;; (#Fun<lfe_eval.10.91765564> #Fun<lfe_eval.10.91765564>)
-;; > (get-id mommy-fish)
-;; "47eebe91a648f042fc3fb278df663de5"
-;; > (get-id baby-fish-2)
+;; > (send baby-fish-2 'id)
 ;; "3e64e5c20fb742dd88dac1032749c2fd"
-;; > (get-children-count mommy-fish)
+;; > (send mommy-fish 'children-count)
 ;; 2
-;; > (get-info mommy-fish)
+;; > (send mommy-fish 'info)
 ;; id: "47eebe91a648f042fc3fb278df663de5"
 ;; species: "Carp"
 ;; children: ["fdcf35983bb496650e558a82e34c9935",
@@ -91,16 +88,15 @@
   besides fish-class/1, so it's not strictly necessary.
 
   When the id isn't known, generate one."
-  (let* (((binary (id (size 128))) (: crypto rand_bytes 16))
+  (let* (((binary (id (size 128))) (crypto:rand_bytes 16))
          (formatted-id (car
-                         (: io_lib format
-                           '"~32.16.0b" (list id)))))
+                         (io_lib:format "~32.16.0b" (list id)))))
     (fish-class species children formatted-id)))
 
 (defun fish-class (species children id)
   "This is the constructor used internally, once the children and fish id are
   known."
-  (let ((move-verb '"swam"))
+  (let ((move-verb "swam"))
     (lambda (method-name)
       (case method-name
         ('id
@@ -111,52 +107,32 @@
           (lambda (self) children))
         ('info
           (lambda (self)
-            (: io format
-              '"id: ~p~nspecies: ~p~nchildren: ~p~n"
-              (list (get-id self)
-                    (get-species self)
-                    (get-children self)))))
+            (io:format "id: ~p~nspecies: ~p~nchildren: ~p~n"
+                       `(,(send self 'id)
+                         ,(send self 'species)
+                         ,(send self 'children)))))
         ('move
           (lambda (self distance)
-            (: io format
-              '"The ~s ~s ~p feet!~n"
-              (list species move-verb distance))))
+            (io:format "The ~s ~s ~p feet!~n"
+                       `(,species ,move-verb ,distance))))
         ('reproduce
           (lambda (self)
             (let* ((child (fish-class species))
-                   (child-id (get-id child))
-                   (children-ids (: lists append
-                                   (list children (list child-id))))
-                   (parent-id (get-id self))
+                   (child-id (send child 'id))
+                   (children-ids (lists:append children `(,child-id)))
+                   (parent-id (send self 'id))
                    (parent (fish-class species children-ids parent-id)))
-              (list parent child))))
+              `(,parent ,child))))
         ('children-count
           (lambda (self)
-            (: erlang length children)))))))
+            (length children)))))))
 
-(defun get-method (object method-name)
+(defun send (object method-name)
   "This is a generic function, used to call into the given object (class
   instance)."
-  (funcall object method-name))
+  (funcall (funcall object method-name) object))
 
-(defun get-id (object)
-  "Define object methods."
-  (funcall (get-method object 'id) object))
-
-(defun get-species (object)
-  (funcall (get-method object 'species) object))
-
-(defun get-info (object)
-  (funcall (get-method object 'info) object))
-
-(defun move (object distance)
-  (funcall (get-method object 'move) object distance))
-
-(defun reproduce (object)
-  (funcall (get-method object 'reproduce) object))
-
-(defun get-children (object)
-  (funcall (get-method object 'children) object))
-
-(defun get-children-count (object)
-  (funcall (get-method object 'children-count) object))
+(defun send (object method-name arg)
+  "This is a generic function, used to call into the given object (class
+  instance)."
+  (funcall (funcall object method-name) object arg))

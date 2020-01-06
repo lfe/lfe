@@ -1,0 +1,109 @@
+%% -*- mode: erlang -*-
+%% Copyright (c) 2008-2015 Robert Virding
+%%
+%% Licensed under the Apache License, Version 2.0 (the "License");
+%% you may not use this file except in compliance with the License.
+%% You may obtain a copy of the License at
+%%
+%%     http://www.apache.org/licenses/LICENSE-2.0
+%%
+%% Unless required by applicable law or agreed to in writing, software
+%% distributed under the License is distributed on an "AS IS" BASIS,
+%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%% See the License for the specific language governing permissions and
+%% limitations under the License.
+
+%% We define the grammar with the same form as for yecc.
+
+Terminals
+    symbol number string binary fun '(' ')' '[' ']' '.' '\'' '`' ',' ',@'
+    '#(' '#B(' '#M(' '#.' '#\''.
+
+Nonterminals form sexpr list list_tail proper_list .
+
+Rootsymbol form.
+
+form -> sexpr : '$1'.
+sexpr -> symbol : value('$1').
+sexpr -> number : value('$1').
+sexpr -> string : value('$1').
+sexpr -> binary : value('$1').
+sexpr -> '#\'' : make_fun(value('$1')).
+sexpr -> '#.' sexpr : eval_expr(line('$1'), '$2').
+sexpr -> '\'' sexpr : [quote,'$2'].
+sexpr -> '`' sexpr : [backquote,'$2'].
+sexpr -> ',' sexpr : [comma,'$2'].
+sexpr -> ',@' sexpr : ['comma-at','$2'].
+sexpr -> '(' list ')' : '$2'.
+sexpr -> '[' list ']' : '$2'.
+sexpr -> '#(' proper_list ')' : list_to_tuple('$2').
+sexpr -> '#B(' proper_list ')' :
+        make_bin(line('$1'), '$2').
+sexpr -> '#M(' proper_list ')' :
+        make_map(line('$1'), '$2').
+list -> sexpr list_tail : ['$1'|'$2'].
+list -> '$empty' : [].
+list_tail -> sexpr list_tail : ['$1'|'$2'].
+list_tail -> '.' sexpr : '$2'.
+list_tail -> '$empty' : [].
+proper_list -> sexpr proper_list : ['$1'|'$2'].
+proper_list -> '$empty' : [].
+
+%% Extra Erlang code.
+Erlang code.
+
+-define(CATCH(E, Error), try E catch _:_ -> Error end).
+
+%% For backwards compatibility
+-export([sexpr/1,sexpr/2]).
+
+sexpr(Ts) -> form(Ts).
+sexpr(Cont, Ts) -> form(Cont, Ts).
+
+%% make_fun(String) -> FunList.
+%%  Convert a fun string to a fun sexpr.
+%%    "F/A" -> [function, F, A].
+%%    "M:F/A" -> [function, M, F, A].
+
+make_fun("=:=/2") ->
+    [function,'=:=',2];
+make_fun(FunStr) ->
+    J = string:rchr(FunStr, $/),
+    A = list_to_integer(string:substr(FunStr, J + 1)),
+    case string:chr(FunStr, $:) of
+        0 ->
+            F = list_to_atom(string:substr(FunStr, 1, J - 1)),
+            [function,F,A];
+        I ->
+            F = list_to_atom(string:substr(FunStr, I + 1, J - I - 1)),
+            M = list_to_atom(string:substr(FunStr, 1, I - 1)),
+            [function,M,F,A]
+    end.
+
+%% make_bin(Line, Segments) -> Binary.
+%%  Make a binary from the segments.
+
+make_bin(Line, Segs) ->
+    ?CATCH(lfe_eval:expr([binary|Segs]),
+           return_error(Line, "bad binary")).
+
+%% make_map(Line, Elements) -> Map.
+%%  Make a map from the key/value elements.
+
+make_map(Line, Es) ->
+    ?CATCH(maps:from_list(pair_list(Es)),
+           return_error(Line, "bad map")).
+
+%% pair_list(List) -> [{A,B}].
+%%  Generate a list of tuple pairs from the elements. An error if odd
+%%  number of elements in list.
+
+pair_list([A,B|L]) -> [{A,B}|pair_list(L)];
+pair_list([]) -> [].
+
+%% eval_expr(Line, Expr) -> Val.
+%%  Evaluate #. expression.
+
+eval_expr(Line, Expr) ->
+    ?CATCH(lfe_eval:expr(Expr),
+           return_error(Line, "bad #. expression")).

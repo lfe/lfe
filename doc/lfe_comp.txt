@@ -1,130 +1,141 @@
-MODULE
+lfe_comp(3)                                                        lfe_comp(3)
 
-	lfe_comp
 
-MODULE SUMMARY
 
-	Lisp Flavoured Erlang (LFE) compiler
+NAME
+       lfe_comp - Lisp Flavoured Erlang (LFE) compiler
 
-DESCRIPTION
-
-	This module provides an interface to the standard LFE
-	compiler. It can generate either a new file which contains the
-	object code, or return a binary which can be loaded directly.
+SYNOPSIS
+       This  module  provides  an interface to the standard LFE compiler.  The
+       compiler can handle files which contain multiple modules.  It can  gen‐
+       erate  either  new files which contain the object code, or return bina‐
+       ries which can be loaded directly.
 
 EXPORTS
+       file(FileName) -> CompRet
 
-file(FileName) -> CompRet
+       Is the same as file(FileName, [report]).
 
-	Is the same as file(FileName, [report]).
+       file(FileName, Options) -> CompRet
 
-file(FileName, Options) -> CompRet
+       where
 
-	where
-	  CompRet = ModRet | BinRet | ErrRet
-	  ModRet = {ok,ModuleName} | {ok,ModuleName,Warnings}
-	  BinRet = {ok,ModuleName,Binary} | {ok,ModuleName,Binary,Warnings}
-	  ErrRet = error | {error,Errors,Warnings}
+              CompRet = ModRet | BinRet | ErrRet
+              ModRet = {ok,[ModOk]} | {ok,[ModOk],Warnings}
+              ModOk  = {ok,ModuleName} | {ok,ModuleName,Warnings}
+              BinRet = {ok,[ModBin]} | {ok,[ModBin],Warnings}
+              ModBin = {ok,ModuleName,Binary} | {ok,ModuleName,Binary,Warnings}
+              ErrRet = error | {error,[ModErr],Errors,Warnings}
+              ModErr = {error,Errors,Warnings}
 
-	Compile an LFE file, either writing the generated module to a
-	file or returning it as a binary. The generated module is
-	ready to be loaded into Erlang.
+       Compile an LFE file, either writing the generated modules to  files  or
+       returning  them  as  binaries.   The  generated modules are ready to be
+       loaded into Erlang.
 
-	The currently recognised options are:
+       The currently recognised options are:
 
-	binary
-		Return the binary of the module and do not save it in
-		a file.
+       · binary - Return the binary of the module and do  not  save  it  in  a
+         file.
 
-	to_exp
-		Print a listing of the macro expanded LFE code in the
-		file <File>.expand. No object file is produced. Mainly
-		useful for debugging and interest.
+       · no_docs, no-docs - Do not parse docstrings and write the "LDoc" chunk
+         in the binary of the module.
 
-	to_lint
-		Print a listing of the macro expanded and linted LFE
-		code in the file <File>.lint. No object file is
-		produced. Mainly useful for debugging and interest.
+       · to_expand, to-expand - Print a listing of the macro expanded LFE code
+         in  the file .expand.  No object file is produced.  Mainly useful for
+         debugging and interest.
 
-	to_core0
-	to_core
-		Print a listing of the Core Erlang code before/after
-		being optimised in the file <File>.core. No object
-		file is produced. Mainly useful for debugging and
-		interest.
+       · to_lint, to-lint - Print a listing of the macro expanded  and  linted
+         LFE  code  in the files .lint.  No object files are produced.  Mainly
+         useful for debugging and interest.
 
-	to_kernel
-		Print a listing of the Kernel Erlang code in the file
-		<File>.kernel. No object file is produced. Mainly
-		useful for debugging and interest.
+       · to_core0, to-core0, to_core, to-core - Print a listing  of  the  Core
+         Erlang  code before/after being optimised in the files .core.  No ob‐
+         ject files are produced.  Mainly useful for debugging and interest.
 
-	to_asm
-		Print a listing of the Beam code in the file
-		<File>.S. No object file is produced. Mainly
-		useful for debugging and interest.
+       · to_kernel, to-kernel - Print a listing of the Kernel Erlang  code  in
+         the  files .kernel.  No object files are produced.  Mainly useful for
+         debugging and interest.
 
-	{outdir,Dir}
-		Save the generated files in directory Dir instead of
-		the current directory.
+       · to_asm, to-asm - Print a listing of the Beam code in  the  files  .S.
+         No object files are produced.  Mainly useful for debugging and inter‐
+         est.
 
-	report
-		Print the errors and warnings as they occur.
+       · {outdir,Dir}, [outdir,Dir] - Save the generated files in director Dir
+         instead of the current directory.
 
-	return
-		Return an extra return field containing Warnings on
-		success or the errors and warnings in
-		{error,Errors,Warnings} when there are errors.
+       · {i,Dir},  [i,Dir] - Add dir to the list of directories to be searched
+         when including a file.
 
-	debug_print
-		Causes the compiler to print a lot of debug
-		information.
+       · report - Print the errors and warnings as they occur.
 
-	If the binary option is given then options that produce a
-	listing file will cause the internal format for that compiler
-	pass to be returned.
+       · return - Return an extra return field containing Warnings on  success
+         or  the errors and warnings in {error,Errors,Warnings} when there are
+         errors.
 
-	Both Warnings and Errors have the following format:
+       · debug_print, debug-print - Causes the compiler to print a lot of  de‐
+         bug information.
 
-	[{FileName,[ErrorInfo]}]
+       · warnings_as_errors, warnings-as-errors - Causes warnings to be treat‐
+         ed as errors.
 
-	ErrorInfo is described below. When generating Errors and
-	Warnings the line number is the line of the start of the form
-	in which the error occurred. The file name has been included
-	here to be compatible with the Erlang compiler. As yet there
-	is no extra information about included files.
+       · no_export_macros, no-export-macros - Do not export macros  from  mod‐
+         ules.
 
-forms(Forms) -> CompRet
+       If  the  binary option is given then options that produce listing files
+       will cause the internal formats for that compiler pass to be returned.
 
-	Is the same as forms(Forms, [report]).
+       Both Warnings and Errors have the following format:
 
-forms(Forms, Options) -> CompRet
+              [{FileName,[ErrorInfo]}]
 
-	where
-	  Forms = [sexpr()]
-	  CompRet = BinRet | ErrRet
-	  BinRet = {ok,ModuleName,Binary} | {ok,ModuleName,Binary,Warnings}
-	  ErrRet = error | {error,Errors,Warnings}
+       ErrorInfo is described below.  When generating Errors and Warnings  the
+       line number is the line of the start of the form in which the error oc‐
+       curred.  The file name has been included here to be compatible with the
+       Erlang  compiler.   As yet there is no extra information about included
+       files.
 
-	Compile the forms as an LFE module returning a binary. This
-	function takes the same options as lfe_comp:file/1/2. When
-	generating Errors and Warnings the "line number" is the index
-	of the form in which the error occured.
+       forms(Forms) -> CompRet
 
-format_error(Error) -> Chars
+       Is the same as forms(Forms, [report]).
 
-	Uses an ErrorDescriptor and returns a deep list of characters
-	which describes the error. This function is usually called
-	implicitly when an ErrorInfo structure is processed. See
-	below.
+       forms(Forms, Options) -> CompRet
 
-Error Information
+       where
 
-	The ErrorInfo mentioned above is the standard ErrorInfo
-	structure which is returned from all IO modules. It has the
-	following format:
+              Forms = [sexpr()]
+              CompRet = BinRet | ErrRet
+              BinRet = {ok,[ModBin]} | {ok,[ModBin],Warnings}
+              ModBin = {ok,ModuleName,Binary} | {ok,ModuleName,Binary,Warnings}
+              ErrRet = error | {error,[ModErr],Errors,Warnings}
+              ModErr = {error,Errors,Warnings}
 
-	{ErrorLine,Module,ErrorDescriptor}
-    
-	A string describing the error is obtained with the following call:
+       Compile the forms as an LFE module returning a binary.   This  function
+       takes  the  same  options as lfe_comp:file/1/2.  When generating Errors
+       and Warnings the "line number" is the index of the form  in  which  the
+       error occured.
 
-	apply(Module, format_error, ErrorDescriptor)
+       format_error(Error) -> Chars
+
+       Uses an ErrorDescriptor and returns a deep list of characters which de‐
+       scribes the error.  This function is usually called implicitly when  an
+       ErrorInfo structure is processed.  See below.
+
+ERROR INFORMATION
+       The ErrorInfo mentioned above is the standard ErrorInfo structure which
+       is returned from all IO modules.  It has the following format:
+
+       {ErrorLine,Module,ErrorDescriptor}
+
+       A string describing the error is obtained with the following call:
+
+              Module:format_error(ErrorDescriptor)
+
+SEE ALSO
+       lfe_gen(3), lfe_macro(3)
+
+AUTHORS
+       Robert Virding.
+
+
+
+                                   2008-2016                       lfe_comp(3)

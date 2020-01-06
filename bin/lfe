@@ -1,4 +1,4 @@
-#!/bin/sh
+#! /bin/sh
 # Copyright (c) 2008-2014 Robert Virding
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,18 +13,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Follow symlinks to actual program and set env variables.
+# Follow symlinks to actual program and set env variables.  We have to
+# cd to each directory following symlinks to handle relative symlinks.
 
 follow_symlink () {
-    if [ -h "$1" ]; then
-	follow_symlink $(readlink "$1")
+    cd "$(dirname "$1")" > /dev/null
+    filename="$(basename "$1")"
+    if [ -h "$filename" ]; then
+        follow_symlink "$(readlink "$filename")"
     else
-	echo "$1"
+        echo "$(pwd -P)/$filename"
     fi
 }
 
+show_help () {
+    echo "Usage: `basename $0` [flags] file [args]
+
+    -h | --help              Print this help and exit
+    -e | -eval \"sexp\"        Evaluates the given sexpr
+    -- | -extra \"switches\"   Send misc configuration switches to the Erlang VM
+    -prompt value            Set the LFE prompt to a user-supplied value
+    -flag | +flag            Enables/disables configuration flags to be
+                             used by the Erlang VM" >&2
+}
+
 SELF=$(follow_symlink "$0")
-LFE_PROGNAME=`echo $0 | sed 's/.*\///'`
+LFE_PROGNAME=$(echo "$0" | sed 's/.*\///') # Basically basename
 LFE_BINDIR=$(dirname "$SELF")
 LFE_ROOTDIR=$(dirname "$LFE_BINDIR")
 
@@ -32,56 +46,96 @@ export LFE_ROOTDIR
 export LFE_BINDIR
 export LFE_PROGNAME
 
-i="$#"				# Counter
+i="$#"                          # Counter
+e=""                            # Eval flag/value
 
 # First step over the flag section adding them to the end.
-while [ $i -gt 0 ]; do
+while [ "$i" -gt 0 ]; do
     case "$1" in
-	-eval | -lfe_eval)	# We are going to eval
-	    break ;;		#  delay removing this
-	-extra | --)		# We are explicitly done
-	    shift ; i=`expr $i - 1`
-	    break ;;
-	-* | +*)		# Flags
-	    if [ "$1" = "-erl_eval" ]; then
-		set -- "$@" "-eval"
-	    else
-		set -- "$@" "$1"
-	    fi
-	    shift ; i=`expr $i - 1`
-	    while [ $i -gt 0 ]; do
-		case "$1" in
-		    -* | +*)
-			break ;;
-		    *)
-			set -- "$@" "$1"
-			shift ; i=`expr $i - 1`
-		esac
-	    done ;;
-	*)			# Plain argument
-	    break ;;
+        -e | -eval)         # We are going to eval
+            e="-lfe_eval"
+            break ;;        # delay removing this
+        -h | --help)
+            $(show_help)    # Show help
+            exit 1 ;;
+        -extra | --)        # We are explicitly done
+            shift ; i=`expr $i - 1`
+            break ;;
+        -* | +*)  # Flags
+                if [ "$1" = "-erl_eval" ]; then
+                        set -- "$@" "-eval"
+                else
+                        set -- "$@" "$1"
+                fi
+
+            shift ; i=`expr $i - 1`
+
+            while [ "$i" -gt 0 ]; do
+                case "$1" in
+                    -* | +*)
+                        break ;;
+                    *)
+                        set -- "$@" "$1"
+                        shift ; i=`expr $i - 1`
+                esac
+            done ;;
+            *)  # Plain argument
+            break ;;
     esac
 done
 
-# Add the middle bits to the end, the path and a -noshell flag if
-# there are more arguments.
-set -- "$@" "-pa" "$LFE_ROOTDIR/ebin"
-if [ $i -gt 0 ]; then
+# Add the middle bit to the end, a -noshell flag if there are
+# more arguments.
+if [ "$i" -gt 0 ]; then
     set -- "$@" "-noshell"
 fi
+
 set -- "$@" "-user" "lfe_init" "-extra"
 
 # Check if we are 'eval'ing and add -lfe_eval flag
-if [ "$1" = "-eval" -o "$1" = "-lfe_eval" ]; then
-    shift ; i=`expr $i - 1`	# Now we remove it as it has -noshell'ed
+if [ "$e" != "" ]; then
+    shift ; i=`expr $i - 1`     # Now we remove it as it has -noshell'ed
     set -- "$@" "-lfe_eval"
 fi
 
 # Step over the arg section adding them to the end.
-while [ $i -gt 0 ]; do
+while [ "$i" -gt 0 ]; do
     set -- "$@" "$1"
     shift ; i=`expr $i - 1`
 done
 
-# echo "$@"
-exec erl "$@"
+# The order of precedence for LFE libraries is as follows:
+# 1) The LFE_ROOTDIR for the current bin/lfe being executed is unusurpable;
+#    allowing anything else would leave LFE open to instabilities where it
+#    could be executed with libraries of a different release.
+# 2) A user/developer should be allowed to override anything else by updating
+#    ERL_LIBS as they see fit.
+# 3) A project's libraries (current directory) should be loaded automatically,
+#    if they exist, but not override the previous two.
+# 4) If a default library is installed in ~/.lfe/libs, then that will be added
+#    last, in the event that the sought library is not picked up in any of the
+#    other locations.
+#
+# Note that ERL_LIBS will find *either* an ebin subdir *or* lib subdir
+
+# Find application ebin directories in lib if lib exists.
+
+find_libs () {
+    if [ -d "$1" ]; then
+        echo $(find "$1" -maxdepth 1 -mindepth 1 -exec printf "%s:" {} \;)
+    fi
+}
+
+# The following works for rebar and erl.mk
+PROJ_LIBS=$(find_libs "./deps")
+# The following works for rebar3
+if [ -d "$REBAR_DEPS_DIR" ]; then
+    # Use $REBAR_DEPS_DIR if set...
+    R3_PROJ_LIBS=$(find_libs "$REBAR_DEPS_DIR")
+else
+    # ... otherwise provide a sensible default
+    R3_PROJ_LIBS=$(find_libs "./_build/${REBAR_PROFILE:-default}/deps"):$(find_libs "./_build/${REBAR_PROFILE:-default}/lib")
+fi
+LFE_HOME_LIBS=$(find_libs "$HOME"/.lfe/lib)
+ALL_LIBS="$LFE_ROOTDIR":"$ERL_LIBS":"$PROJ_LIBS""$R3_PROJ_LIBS""$LFE_HOME_LIBS"
+ERL_LIBS="$ALL_LIBS" exec erl "$@"

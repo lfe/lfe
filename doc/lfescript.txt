@@ -1,104 +1,107 @@
-COMMAND
+lfescript(1)                                                      lfescript(1)
 
-        lfescript
 
-COMMAND SUMMARY
 
-        Lisp Flavoured Erlang (LFE) scripting support
+NAME
+       lfescript - Lisp Flavoured Erlang (LFE) scripting support
 
-DESCRIPTION
-
-        lfescript provides support for running short LFE programs
-        without having to compile them first and an easy way to
-        retrieve the command line arguments.
+SYNOPSIS
+       lfescript  provides support for running short LFE programs without hav‐
+       ing to compile them first and an easy way to retrieve the command  line
+       arguments.
 
 EXPORTS
+       script-name script-arg1 script-arg2 ...
 
-script-name script-arg1 script-arg2 ...
-lfescript lfescript-flags script-name script-arg1 script-arg2 ...
+       lfescript lfescript-flags script-name script-arg1 script-arg2 ...
 
-        lfescript runs a script written in LFE.
+       lfescript runs a script written in LFE.
 
-        Here follows an example.
+       lfescript:script_name() -> File
 
-        $ cat factorial
-        #! /usr/bin/env lfescript
-        ;; -*- mode: lfe -*-
-        ;;! -smp enable -sname factorial -mnesia debug verbose
+       Types:
 
-        (defun main
-          ([(list string)]
-           (try
-               (let* ((n (list_to_integer string))
-                      (f (fac n)))
-                 (: lfe_io format '"factorial ~w = ~w\n" (list n f)))
-             (catch
-               ((tuple _ _ _) (usage)))))
-          ([_] (usage)))
+              File = filename()
 
-        (defun fac
-          ([0] 1)
-          ([n] (* n (fac (- n 1)))))
+       The script_name/0 function returns the name of the lfescript being exe‐
+       cuted.  If the function is invoked outside the context of an lfescript,
+       the behavior is undefined.
 
-        (defun usage ()
-          (: lfe_io format '"usage: factorial integer\n" ()))
+EXAMPLE
+       Here follows an example script.
 
-        The header of the LFE script is different from a normal LFE
-        module. The first line is an interpreter line which invokes
-        lfescript if the script is run as in the first command line
-        above. If lfescript is explicitly invoked in the second
-        command line above then this header line will be ignored. On
-        the second or third line it is possible to give arguments to
-        the emulator with the syntax:
+              $ cat factorial
+              #! /usr/bin/env lfescript
+              ;; -*- mode: lfe -*-
+              ;;! -smp enable -sname factorial -mnesia debug verbose
 
-        ;;! -smp enable -sname factorial -mnesia debug verbose
+              (defun main
+                ([(list string)]
+                 (try
+                     (let* ((n (list_to_integer string))
+                            (f (fac n)))
+                       (lfe_io:format "factorial ~w = ~w\n" (list n f)))
+                   (catch
+                     ((tuple _ _ _) (usage)))))
+                ([_] (usage)))
 
-        In the example the second line is an optional directive to
-        Emacs which causes it to enter LFE mode when editing the
-        script file.
+              (defun fac
+                ([0] 1)
+                ([n] (* n (fac (- n 1)))))
 
-        The rest of the file contains LFE source code. It must always
-        the function main/1. When the script is run this function will
-        be called with a list of strings representing the arguments
-        with which the script was called. It is possible to define,
-        include and use macros in the source code.
+              (defun usage ()
+                (lfe_io:format "usage: factorial integer\n" ()))
 
-        The source code is checked and warnings and errors will be
-        printed. If there are errors the script will not run and it
-        will terminate with exit status 127. Otherwise the code will
-        be interpreted. If the function main/1 returns successfully
-        then the exit status for the script will be 0 but if an
-        exception is raised then exit status will be 127.
-       
-lfescript:script_name() -> File
+       The  header  of  the  LFE script is different from a normal LFE module.
+       The first line is an interpreter line which invokes  lfescript  if  the
+       script  is run as in the first command line above.  If lfescript is ex‐
+       plicitly invoked in the second command line above then this header line
+       will  be  ignored.   On the second or third line it is possible to give
+       arguments to the emulator with the syntax:
 
-        Types:
-          File = filename()
+              ;;! -smp enable -sname factorial -mnesia debug verbose
 
-        The script_name/0 function returns the name of the lfescript
-        being executed. If the function is invoked outside the context
-        of an lescript, the behavior is undefined.
+       In the example the second line is an optional directive to Emacs  which
+       causes it to enter LFE mode when editing the script file.
+
+       The  rest  of  the  file  contains LFE source code.  It must always the
+       function main/1.  When the script is run this function will  be  called
+       with a list of strings representing the arguments with which the script
+       was called.  It is possible to define, include and use  macros  in  the
+       source code.
+
+       The source code is checked and warnings and errors will be printed.  If
+       there are errors the script will not run and it will terminate with ex‐
+       it  status  127.  Otherwise the code will be interpreted.  If the func‐
+       tion main/1 returns successfully then the exit status  for  the  script
+       will be 0 but if an exception is raised then exit status will be 127.
+
+OPTIONS
+       The following option is accepted by lfescript
+
+       · -s  - Only perform a syntactic and semantic check of the script file.
+         Warnings and errors (if any) are written to the standard output,  but
+         the  script will not be run.  The exit status will be 0 if there were
+         no errors, and 127 otherwise.
+
+       Unrecognised options are ignored.
+
+ENVIRONMENT VARIABLES
+       LFESCRIPT_EMULATOR
+
+       The command used to start the emulator.  Default is 'erl'.  This can be
+       useful for passing arguments into the emulator, for example
+
+              LFESCRIPT_EMULATOR="erl -pa sune"
+
+       will add the directory sune to the code path.
+
+SEE ALSO
+       lfe(1), lfe_guide(7)
+
+AUTHORS
+       Robert Virding.
 
 
-Options accepted by lfescript
 
-        -s
-            Only perform a syntactic and semantic check of the script
-            file. Warnings and errors (if any) are written to the
-            standard output, but the script will not be run. The exit
-            status will be 0 if there were no errors, and 127
-            otherwise.
-
-        Unrecognised options are ignored.
-
-Environment variables
-
-        LFESCRIPT_EMULATOR
-
-            The command used to start the emulator. Default is
-            'erl'. This can be useful for passing arguments into the
-            emulator, for example
-
-            LFESCRIPT_EMULATOR="erl -pa sune"
-
-            will add the directory sune to the code path.
+                                   2013-2016                      lfescript(1)

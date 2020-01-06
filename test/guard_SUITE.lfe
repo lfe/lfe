@@ -764,9 +764,9 @@
 
 (defun is_function_2
   ([config] (when (is_list config))
-   (line (test-pat 'true (is_function (id (fun guard_SUITE all 1)) 1)))
+   (line (test-pat 'true (is_function (id (function guard_SUITE all 1)) 1)))
    (line (test-pat 'true (is_function (id (lambda () 'ok)) 0)))
-   (line (test-pat 'false (is_function (id (fun guard_SUITE all 1)) 0)))
+   (line (test-pat 'false (is_function (id (function guard_SUITE all 1)) 0)))
    (line (test-pat 'false (is_function (id (lambda () 'ok)) 1)))
 
    (let ((F (lambda (_) 'ok)))
@@ -1270,7 +1270,7 @@
      (: test_server fail))))
 
 (defun fc
-  ([(tuple 'EXIT (tuple 'function_clause))] 'ok)
+  ([(tuple 'EXIT (tuple 'function_clause _))] 'ok)
   ([(tuple 'EXIT (tuple (tuple 'case_clause _) _))] 'ok))
 
 ;;  ([(tuple 'EXIT (tuple (tuple 'case_clause _) _))]
