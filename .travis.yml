@@ -1,5 +1,7 @@
 language: erlang
 install: true
+env:
+  - REBAR_NO_VERIFY_REPO_ORIGIN=1
 before_script:
   - wget https://s3.amazonaws.com/rebar3/rebar3
   - chmod +x rebar3
@@ -7,14 +9,15 @@ before_script:
 script:
   - which rebar3
   - rebar3 --version
+  - rebar3 tree
   - make travis
 notifications:
   disabled: true
 otp_release:
-  - 22.2
-  - 21.3
-  - 20.3
-  - 19.3
-  - 18.3
+  #- 22.2
+  #- 21.3
+  #- 20.3
+  #- 19.3
+  #- 18.3
   - 17.5
   - R16B03-1

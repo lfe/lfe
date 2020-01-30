@@ -308,6 +308,6 @@ endif
 
 travis:
 	$(MAKE) $(MFLAGS) install PREFIX=$$(mktemp -d)
-	@$(TRAVIS_REBAR) eunit -m clj-tests,prop_lfe_doc
-	@$(TRAVIS_REBAR) ct
+	@$(TRAVIS_REBAR) as test eunit -m clj-tests,prop_lfe_doc
+	@$(TRAVIS_REBAR) as test ct
 
