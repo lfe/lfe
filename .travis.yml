@@ -3,6 +3,7 @@ install: true
 before_script:
   - wget https://s3.amazonaws.com/rebar3/rebar3
   - chmod +x rebar3
+  - kerl list installations
 script:
   - which rebar3
   - rebar3 --version
