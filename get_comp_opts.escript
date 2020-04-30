@@ -5,7 +5,6 @@
 
 %% Bloody useful.
 -define(IF(Test,True,False), case Test of true -> True; false -> False end).
-
 %% Define the makefile variables HAS_MAPS and HAS_FULL_KEYS depending
 %% on whether this version of erlang has maps (17) and general map
 %% keys (18), or NEW_CORE_REC for new core definition of records (19).
@@ -49,7 +48,8 @@ comp_opts(Version) ->
                                      {"18","HAS_FULL_KEYS"},
                                      {"19","NEW_REC_CORE"},
                                      {"19","NEW_RAND"},
-                                     {"20","NEW_BOOL_GUARD"}]).
+                                     {"20","NEW_BOOL_GUARD"},
+                                     {"21", "NEW_STACKTRACE"}]).
 
 append_copts(Version, [{Ver,Opt}|Opts]) ->
     Rest = append_copts(Version, Opts),

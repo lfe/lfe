@@ -32,6 +32,8 @@
 -define(OK_STATUS, 0).
 -define(ERROR_STATUS, 127).
 
+-include("lfe.hrl").
+
 %% Start LFE running a script or the shell depending on arguments.
 
 start() ->
@@ -77,8 +79,7 @@ run_script(Script) ->
         timer:sleep(1),
         init:stop(?OK_STATUS)
     catch
-        Class:Error ->
-            St = erlang:get_stacktrace(),       %Need to get this first
+        ?CATCH(Class, Error, St)                %Need to get this first
             Sf = fun ({M,_F,_A,_L}) ->
                          M /= lfe_eval
                  end,

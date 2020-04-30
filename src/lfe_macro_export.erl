@@ -58,16 +58,11 @@
 %%-compile(export_all).
 
 -include("lfe_comp.hrl").
+-include("lfe_macro.hrl").
 
 -export([module/2]).
 
 -import(lists, [reverse/1,reverse/2,member/2,filter/2]).
-
-%% We do a lot of quoting!
--define(Q(E), [quote,E]).
--define(BQ(E), [backquote,E]).
--define(C(E), [comma,E]).
--define(C_A(E), ['comma-at',E]).
 
 -define(NOMETA, []).                            %Empty documentation
 

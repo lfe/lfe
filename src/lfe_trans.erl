@@ -31,19 +31,7 @@
 
 -import(lists, [map/2,foldl/3,mapfoldl/3,foldr/3,splitwith/2]).
 
-
-%% We do a lot of quoting!
--define(Q(E), [quote,E]).
--define(BQ(E), [backquote,E]).
--define(C(E), [comma,E]).
--define(C_A(E), ['comma-at',E]).
-
-%% Define IS_MAP/1 macro for is_map/1 bif.
--ifdef(HAS_MAPS).
--define(IS_MAP(T), is_map(T)).
--else.
--define(IS_MAP(T), false).
--endif.
+-include("lfe.hrl").
 
 -record(from, {vc=0                             %Variable counter
               }).

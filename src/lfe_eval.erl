@@ -43,19 +43,7 @@
 -compile({no_auto_import,[apply/3]}).           %For our apply/3 function
 -deprecated([eval/1,eval/2,eval_list/2]).
 
-%% We do a lot of quoting!
--define(Q(E), [quote,E]).
--define(BQ(E), [backquote,E]).
--define(C(E), [comma,E]).
--define(C_A(E), ['comma-at',E]).
-
-%% Define IS_MAP/1 macro for is_map/1 bif.
--ifdef(HAS_MAPS).
--define(IS_MAP(T), is_map(T)).
--else.
--define(IS_MAP(T), false).
--endif.
-
+-include("lfe.hrl").
 %% -compile([export_all]).
 
 %% Errors.
@@ -730,10 +718,9 @@ eval_try(E, Case, Catch, After, Env) ->
                 no -> Ret
             end
     catch
-        Class:Error ->
+        ?CATCH(Class, Error, Stack)
             %% Try does return the stacktrace here but we can't hit it
             %% so we have to explicitly get it.
-            Stack = erlang:get_stacktrace(),
             case Catch of
                 {yes,Cls} ->
                     eval_catch_clauses({Class,Error,Stack}, Cls, Env);
@@ -789,8 +776,7 @@ eval_guard(Gts, Env) ->
         true -> true;
         _Other -> false                         %Fail guard
     catch
-        error:illegal_guard ->                  %Handle illegal guard
-            St = erlang:get_stacktrace(),
+        ?CATCH(error, illegal_guard, St)        %Handle illegal guard
             erlang:raise(error, illegal_guard, St);
         _:_ -> false                            %Fail guard
     end.

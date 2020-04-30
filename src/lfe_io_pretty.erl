@@ -24,12 +24,7 @@
 
 -import(lists, [reverse/1,reverse/2,flatlength/1]).
 
-%% Define IS_MAP/1 macro for is_map/1 bif.
--ifdef(HAS_MAPS).
--define(IS_MAP(T), is_map(T)).
--else.
--define(IS_MAP(T), false).
--endif.
+-include("lfe.hrl").
 
 %% term(Sexpr [, Depth [, Indentation [, LineLength]]]) -> [char()].
 %%  A relatively simple pretty print function, but with some

@@ -16,8 +16,18 @@
 %% Author  : Robert Virding
 %% Purpose : Common definitions.
 
-%% We do a lot of quoting!
--define(Q(E), [quote,E]).
--define(BQ(E), [backquote,E]).
--define(C(E), [comma,E]).
--define(C_A(E), ['comma-at',E]).
+-include("lfe_macro.hrl").
+
+%% Define CATCH to handle deprecated get_stacktrace/0
+-ifdef(NEW_STACKTRACE).
+-define(CATCH(C, E, S), C:E:S ->).
+-else.
+-define(CATCH(C, E, S), C:E -> S = erlang:get_stacktrace(),).
+-endif.
+
+%% Define IS_MAP/1 macro for is_map/1 bif.
+-ifdef(HAS_MAPS).
+-define(IS_MAP(T), is_map(T)).
+-else.
+-define(IS_MAP(T), false).
+-endif.

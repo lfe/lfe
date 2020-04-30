@@ -35,12 +35,7 @@
                 map/2,flatmap/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3]).
 
 -include("lfe_comp.hrl").
-
-%% We do a lot of quoting!
--define(Q(E), [quote,E]).
--define(BQ(E), [backquote,E]).
--define(C(E), [comma,E]).
--define(C_A(E), ['comma-at',E]).
+-include("lfe.hrl").
 
 %% The main compiler state.
 
@@ -92,8 +87,7 @@ do_compile(Input, Opts) ->
                    Ret = try
                              internal(Input, Opts)
                          catch
-                             error:Reason ->
-                                 St = erlang:get_stacktrace(),
+                             ?CATCH(error, Reason, St)
                                  {error,{Reason,St}}
                          end,
                    exit(Ret)

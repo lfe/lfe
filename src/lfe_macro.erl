@@ -49,14 +49,8 @@
                 reverse/1,reverse/2,member/2,concat/1]).
 
 -include("lfe_comp.hrl").
--include("lfe_macro.hrl").
+-include("lfe.hrl").
 
-%% Define IS_MAP/1 macro for is_map/1 bif.
--ifdef(HAS_MAPS).
--define(IS_MAP(T), is_map(T)).
--else.
--define(IS_MAP(T), false).
--endif.
 
 %% Errors
 format_error({bad_form,Type}) ->
@@ -600,15 +594,14 @@ exp_userdef_macro([Mac|Args], Def0, Env, St0) ->
     catch
         %% error:no_Error -> boom
         %% error:Error ->
-        %%     Stack = erlang:get_stacktrace(),
-        %%     erlang:error({expand_macro,[Mac|Args],{Error,Stack}})
-        error:Error ->
-            Stack = erlang:get_stacktrace(),
+        %%     ?CATCH(error, Error, Stack)
+        %%         erlang:error({expand_macro,[Mac|Args],{Error,Stack}})
+        ?CATCH(error, Error, Stack)
             erlang:raise(error, {expand_macro,[Mac|Args],Error}, Stack)
         %% error:Error ->
-        %%     Stack0 = erlang:get_stacktrace(),
-        %%     Stack1 = trim_stacktrace(Stack0),
-        %%     erlang:error({expand_macro,[Mac|Args],{Error,Stack1}})
+        %%     ?CATCH(error, Error, Stack0)
+        %%         Stack1 = trim_stacktrace(Stack0),
+        %%         erlang:error({expand_macro,[Mac|Args],{Error,Stack1}})
     end.
 
 %% exp_predef_macro(Call, Env, State) -> {yes,Exp,State} | no.
@@ -620,15 +613,14 @@ exp_predef_macro(Call, Env, St) ->
         exp_predef(Call, Env, St)
     catch
         %% error:Error ->
-        %%     Stack = erlang:get_stacktrace(),
-        %%     erlang:raise({expand_macro,Call,{Error,Stack}})
-        error:Error ->
-            Stack = erlang:get_stacktrace(),
+        %%     ?CATCH(error, Error, Stack)
+        %%         erlang:raise({expand_macro,Call,{Error,Stack}})
+        ?CATCH(error, Error, Stack)
             erlang:raise(error, {expand_macro,Call,Error}, Stack)
         %% error:Error ->
-        %%     Stack0 = erlang:get_stacktrace(),
-        %%     Stack1 = trim_stacktrace(Stack0),
-        %%     erlang:error({expand_macro,Call,{Error,Stack1}})
+        %%     ?CATCH(error, Error, Stack0)
+        %%         Stack1 = trim_stacktrace(Stack0),
+        %%         erlang:error({expand_macro,Call,{Error,Stack1}})
     end.
 
 %% trim_stacktrace([{lfe_macro,_,_,_}=S|_]) -> [S];    %R15 and later
