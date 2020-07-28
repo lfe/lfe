@@ -1,4 +1,4 @@
-;; Copyright (c) 2013 Duncan McGreggor <oubiwann@gmail.com>
+;; Copyright (c) 2013-2020 Duncan McGreggor <oubiwann@gmail.com>
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -136,3 +136,4 @@
 (defun gen-id ()
   (let (((binary (id (size 128))) (crypto:strong_rand_bytes 16)))
     (io_lib:format "~32.16.0b" (list id))))
+

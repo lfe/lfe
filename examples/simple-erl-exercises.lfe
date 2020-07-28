@@ -1,4 +1,4 @@
-;; Copyright (c) 2008-2013 Sean Chalmers
+;; Copyright (c) 2008-2020 Sean Chalmers
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.

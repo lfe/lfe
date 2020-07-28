@@ -1,6 +1,6 @@
 ;;; lfe-indent.el --- Lisp Flavoured Erlang indent mode
 
-;; Copyright (c) 2015 Robert Virding
+;; Copyright (c) 2015-2020 Robert Virding
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.

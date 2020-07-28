@@ -1,5 +1,5 @@
 ;; Copyright (c) 2013 Joe Armstrong <joearms@gmail.com>, Original Erlang version
-;; Copyright (c) 2013 Duncan McGreggor <oubiwann@cogitat.io>, LFE version
+;; Copyright (c) 2013-2020 Duncan McGreggor <oubiwann@gmail.com>, LFE version
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
