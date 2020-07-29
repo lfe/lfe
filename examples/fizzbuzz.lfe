@@ -24,10 +24,11 @@
 ;; however I felt this was a good example of using both Pattern Matching and
 ;; Higher Order Functions (lists:map/2) in a very simplistic way.
 (defmodule fizzbuzz
-  (export (buzz 1)
-          (buzz1 1)
-          (buzz2 1)
-          (buzz3 1)))
+  (export 
+    (buzz 1)
+    (buzz1 1)
+    (buzz2 1)
+    (buzz3 1)))
 
 (defun get-fizz (n)
   ;; Request a FizzBuzz result for a given number.
@@ -46,11 +47,11 @@
 (defun buzz (n)
   ;; This is the basic version, takes an argument
   ;; and attempts to create result list of results.
-  (: lists map
+  (lists:map
     ;; Wrap our call to 'get-fizz in a lambda
     (lambda (x) (get-fizz x))
     ;; Create a list of numbers from one to n
-    (: lists seq 1 n)))
+    (lists:seq 1 n)))
 
 (defun buzz1
   ;; This version utilises pattern matching and guard to
@@ -58,7 +59,7 @@
   ;; unwanted arguments.
   ;; Only run the FizzBuzz solution when we have a positive
   ;; whole number that is greater than zero
-  ([n] (when (and (: erlang is_integer n)
+  ([n] (when (and (erlang:is_integer n)
                   (> n 0)))
    ;; woo!
    (buzz n))

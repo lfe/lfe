@@ -88,8 +88,8 @@
       )
   In this example, the value assigned to the arg variable would be a list
   containing the values my-value-1 and my-value-2."
-  (let (((tuple 'ok data) (: init get_argument flag)))
-    (: lists merge data)))
+  (let (((tuple 'ok data) (init:get_argument flag)))
+    (lists:merge data)))
 
 (defun get-pages ()
   "With no argument, assume 'url parameter was passed via command line."
@@ -98,15 +98,15 @@
 
 (defun get-pages (urls)
   "Start inets and make (potentially many) HTTP requests."
-  (: inets start)
-  (: lists map
+  (inets:start)
+  (lists:map
     (lambda (x)
       (get-page x)) urls))
 
 (defun get-page (url)
   "Make a single HTTP request."
-  (case (: httpc request url)
+  (case (httpc:request url)
     ((tuple 'ok result)
-      (: io format '"Result: ~p~n" (list result)))
+      (io:format "Result: ~p~n" (list result)))
     ((tuple 'error reason)
-      (: io format '"Error: ~p~n" (list reason)))))
+      (io:format "Error: ~p~n" (list reason)))))

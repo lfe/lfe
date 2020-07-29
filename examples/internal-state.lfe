@@ -59,23 +59,26 @@
 ;; 939.584
 
 (defmodule internal-state
- (export all))
+  (export all))
 
 (defun new-account (name balance interest-rate)
   (lambda (message)
     (case message
       ('withdraw (lambda (amt)
-                    (if (=< amt balance)
-                        (new-account name (- balance amt) interest-rate)
-                        (error 'insufficient-funds))))
-      ('deposit (lambda (amt) (new-account name (+ balance amt) interest-rate)))
-      ('balance (lambda () balance))
-      ('name (lambda () name))
+                   (if (=< amt balance)
+                     (new-account name (- balance amt) interest-rate)
+                     (error 'insufficient-funds))))
+      ('deposit (lambda (amt) 
+                  (new-account name (+ balance amt) interest-rate)))
+      ('balance (lambda () 
+                  balance))
+      ('name (lambda () 
+               name))
       ('apply-interest (lambda ()
-                    (new-account
-                      name
-                      (+ balance (* balance interest-rate))
-                      interest-rate))))))
+                         (new-account
+                           name
+                           (+ balance (* balance interest-rate))
+                           interest-rate))))))
 
 (defun send (object method-name)
   "This is a generic function, used to call into the given object (class

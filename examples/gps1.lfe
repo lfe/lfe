@@ -58,10 +58,20 @@
 
 ;; Module definition.
 (defmodule gps1
-  (export (gps 2) (gps 3) (school-ops 0))
-  (import (from lists (member 2) (all 2) (any 2))
-      ;; Rename lists functions to be more CL like.
-      (rename lists ((all 2) every) ((any 2) some) ((filter 2) find-all))))
+  (export 
+    (gps 2) 
+    (gps 3)
+    (school-ops 0))
+  (import 
+    (from lists 
+      (member 2) 
+      (all 2) 
+      (any 2))
+    ;; Rename lists functions to be more CL like.
+    (rename lists 
+      ((all 2) every) 
+      ((any 2) some) 
+      ((filter 2) find-all))))
 
 ;; An operation.
 (defrecord op
@@ -95,7 +105,7 @@
 (defun apply-op (op)
   (if (every (fun achieve 1) (op-preconds op))
     (progn
-      (: io fwrite '"executing ~p\n" (list (op-action op)))
+      (io:fwrite "executing ~p\n" (list (op-action op)))
       (setvar *state* (set-difference (getvar *state*) (op-del-list op)))
       (setvar *state* (union (getvar *state*) (op-add-list op)))
       'true)))

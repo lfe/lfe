@@ -73,7 +73,7 @@
 ;; ok
 
 (defmodule object-via-closure
- (export all))
+  (export all))
 
 (defun fish-class (species)
   "This is the constructor that will be used most often, only requiring that

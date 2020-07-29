@@ -69,7 +69,7 @@
 ;;    ("d53a426c732c938f996a1c2520bb621f" "15fede691ab3f96e9e3df248d37b7b55")))
 
 (defmodule object-via-process
- (export all))
+  (export all))
 
 (defun init-fish (species)
   "This is the constructor that will be used most often, only requiring that

@@ -66,7 +66,7 @@
 (defun roundtrip (id pid)
   (receive
     (1
-      (io:fwrite '"Result: ~b~n" (list id))
+      (io:fwrite "Result: ~b~n" (list id))
       (erlang:halt))
     (data
       (! pid (- data 1))

@@ -90,7 +90,6 @@
 (defmodule http-async
   (export all))
 
-
 (defun parse-args (flag)
   "Given one or more command-line arguments, extract the passed values.
 
@@ -105,8 +104,8 @@
       )
   In this example, the value assigned to the arg variable would be a list
   containing the values my-value-1 and my-value-2."
-  (let (((tuple 'ok data) (: init get_argument flag)))
-    (: lists merge data)))
+  (let (((tuple 'ok data) (init:get_argument flag)))
+    (lists:merge data)))
 
 (defun get-pages ()
   "With no argument, assume 'url parameter was passed via command line."
@@ -115,8 +114,8 @@
 
 (defun get-pages (urls)
   "Start inets and make (potentially many) HTTP requests."
-  (: inets start)
-  (: plists map
+  (inets:start)
+  (plists:map
     (lambda (x)
       (get-page x)) urls))
 
@@ -127,9 +126,9 @@
          (request-data (tuple url headers))
          (http-options ())
          (request-options (list (tuple 'sync 'false))))
-    (: httpc request method request-data http-options request-options)
+    (httpc:request method request-data http-options request-options)
     (receive
       ((tuple 'http (tuple request-id (tuple 'error reason)))
-       (: io format '"Error: ~p~n" (list reason)))
+       (io:format "Error: ~p~n" (list reason)))
       ((tuple 'http (tuple request-id result))
-       (: io format '"Result: ~p~n" (list result))))))
+       (io:format "Result: ~p~n" (list result))))))

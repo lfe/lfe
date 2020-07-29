@@ -42,7 +42,6 @@
 (defmodule joes-fav
   (export all))
 
-
 (defun universal-server ()
   (receive
     ((tuple 'become server-function)
