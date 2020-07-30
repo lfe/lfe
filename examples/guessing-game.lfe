@@ -20,8 +20,8 @@
 ;; This file contains a simple demo for guessing a random number, chosen by
 ;; "the computer". To use, do the following:
 ;;
-;;  $ ../bin/lfe -pa ../ebin
-;; > (slurp '"examples/guessing-game.lfe")
+;;  $ ./bin/lfe
+;; > (slurp "examples/guessing-game.lfe")
 ;; #(ok guessing-game)
 ;; > (main)
 ;; Guess the number I have chosen, between 1 and 10.
@@ -36,20 +36,19 @@
 ;; ok
 ;; >
 
-;; XXX Change this to use loop + pattern matching ...
-
 (defmodule guessing-game
-  (export 
+  (export
     (main 0)))
 
 (defun get-player-guess ()
-  (let (((tuple 'ok (list guessed)) (io:fread "Guess number: " '"~d")))
+  (let (((tuple 'ok (list guessed)) (io:fread "Guess number: " "~d")))
     guessed))
 
 (defun check-guess (answer guessed)
     (cond
       ((== answer guessed)
-        (io:format "Well-guessed!!~n"))
+        (io:format "Well-guessed!!~n")
+        'game-over)
       ((/= answer guessed)
         (if (> answer guessed) (io:format "Your guess is too low.~n"))
         (if (< answer guessed) (io:format "Your guess is too high.~n"))
