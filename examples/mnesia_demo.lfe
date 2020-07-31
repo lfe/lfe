@@ -21,12 +21,27 @@
 ;; together with mnesia:match_object, match specifications with
 ;; mnesia:select and Query List Comprehensions.
 
+;; $ ./bin/lfe
+;;
+;; lfe> (c "examples/mnesia_demo.lfe")
+;;
+;; lfe> (set db (mnesia_demo:new))
+;; ok
+;; lfe> (mnesia_demo:by_place 'london)   
+;; #(atomic
+;;   (#(person paul london driver)
+;;    #(person fred london waiter)
+;;    #(person john london painter)
+;;    #(person bert london waiter)))
+
 (defmodule mnesia_demo
   (export 
     (new 0) 
     (by_place 1) 
     (by_place_ms 1) 
-    (by_place_qlc 1)))
+    ;; XXX - Currently broken; see https://github.com/rvirding/lfe/issues/397
+    ;; (by_place_qlc 1)
+    ))
 
 (defrecord person
   name
@@ -82,14 +97,15 @@
                       (tuple n j)))))))
     (mnesia:transaction f)))
 
+;; XXX - Currently broken; see https://github.com/rvirding/lfe/issues/397
 ;; Use Query List Comprehensions to match records
-(defun by_place_qlc (place)
-  (let ((f (lambda ()
-         (let ((q (qlc (lc ((<- person (mnesia:table 'person))
-                (=:= (person-place person) place))
-                 person))))
-           (qlc:e q)))))
-    (mnesia:transaction f)))
+;; (defun by_place_qlc (place)
+;;   (let ((f (lambda ()
+;;          (let ((q (qlc (lc ((<- person (mnesia:table 'person))
+;;                 (=:= (person-place person) place))
+;;                  person))))
+;;            (qlc:e q)))))
+;;     (mnesia:transaction f)))
 
 ;; Ignore this
 ;; (qlc ((<- A (call 'qlc 'q (tuple 'qlc_lc (match-lambda (() (tuple 'simple_v1 'X (match-lambda (() (cons 1 (cons 2 (cons 3 ()))))) 42))) 'undefined)))) A)

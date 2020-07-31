@@ -49,27 +49,30 @@
 
 ;; Here is some example usage from the REPL:
 ;;
-;; > (slurp '"examples/http-sync.lfe")
+;; $ ./bin/lfe
+;;
+;; lfe> (slurp "examples/http-sync.lfe")
 ;; #(ok http-sync)
-;; > (get-pages (list '"http://lfe.github.io/"))
+;; lfe> (get-pages (list "http://lfe.github.io/"))
 ;; Result: {{"HTTP/1.1",200,"OK"},
 ;;       [{"cache-control","max-age=600"},
 ;;        {"connection","keep-alive"},
 ;;        ...
 ;; ok
-;; >
+;; lfe>
 ;;
 ;; The get-pages function starts the inets service for you. If you would like
 ;; to call get-page directly, you'll have to start that yourself:
 ;;
-;; > (: inets start)
-;; > (get-page '"http://lfe.github.io/")
+;; lfe> (inets:start)
+;; lfe> (ssl:start)
+;; lfe> (get-page "http://lfe.github.io/")
 ;; Result: {{"HTTP/1.1",200,"OK"},
 ;;       [{"cache-control","max-age=600"},
 ;;        {"connection","keep-alive"},
 ;;        ...
 ;; ok
-;; >
+;; lfe>
 
 (defmodule http-sync
   (export all))
@@ -99,6 +102,7 @@
 (defun get-pages (urls)
   "Start inets and make (potentially many) HTTP requests."
   (inets:start)
+  (ssl:start)
   (lists:map
     (lambda (x)
       (get-page x)) urls))

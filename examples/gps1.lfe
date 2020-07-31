@@ -12,9 +12,11 @@
 ;;
 ;; Here is some example usage for a successful run:
 ;;
-;; > (slurp '"examples/gps1.lfe")
+;; $ ./bin/lfe
+;; 
+;; lfe> (slurp "examples/gps1.lfe")
 ;; #(ok gps1)
-;; > (gps '(son-at-home car-needs-battery have-money have-phone-book)
+;; lfe> (gps '(son-at-home car-needs-battery have-money have-phone-book)
 ;;        '(son-at-school)
 ;;        (school-ops))
 ;; executing 'look-up-number'
@@ -24,11 +26,11 @@
 ;; executing 'shop-installs-battery'
 ;; executing 'drive-son-to-school'
 ;; solved
-;; >
+;; lfe>
 ;;
 ;; Here is an unsuccessful run:
 ;;
-;; > (gps '(son-at-home car-needs-battery have-money have-phone-book)
+;; lfe> (gps '(son-at-home car-needs-battery have-money have-phone-book)
 ;;        '(son-at-school have-money)
 ;;        (school-ops))
 ;; executing 'look-up-number'
@@ -38,11 +40,11 @@
 ;; executing 'shop-installs-battery'
 ;; executing 'drive-son-to-school'
 ;; false
-;; >
+;; lfe>
 ;;
 ;; And a trivial run (for Saturdays!):
 ;;
-;; > (gps '(son-at-home) '(son-at-home) (school-ops))
+;; lfe> (gps '(son-at-home) '(son-at-home) (school-ops))
 ;; solved
 ;;
 

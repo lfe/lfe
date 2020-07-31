@@ -20,7 +20,8 @@
 ;; This file contains a simple demo for guessing a random number, chosen by
 ;; "the computer". To use, do the following:
 ;;
-;;  $ ./bin/lfe
+;; $ ./bin/lfe
+;;
 ;; > (slurp "examples/guessing-game.lfe")
 ;; #(ok guessing-game)
 ;; > (main)

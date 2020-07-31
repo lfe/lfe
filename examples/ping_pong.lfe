@@ -18,6 +18,19 @@
 ;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 ;; THE SOFTWARE.
 
+;; To use the code below in LFE, do the following:
+;;
+;;  $ ./bin/lfe
+;;
+;; Compile this example and run it:
+;;
+;; lfe> (c "examples/ping_pong.lfe")
+;; (#(module ping_pong))
+;; lfe> (ping_pong:start_link)
+;; #(ok #Pid<0.196.0>)
+;; lfe> (ping_pong:ping)
+;; #(pong 1)
+
 (defmodule ping_pong
   (export 
     (start_link 0)
@@ -33,7 +46,7 @@
 
 (defun start_link ()
   (gen_server:start_link
-    (tuple 'local 'ping_pong) 'ping_pong (list) (list)))
+    #(local ping_pong) 'ping_pong '() '()))
 
 ;; Client API
 
@@ -42,24 +55,25 @@
 
 ;; Gen_server callbacks
 
-(defrecord state (pings 0))
+(defrecord state 
+  (pings 0))
 
 (defun init (args)
-  (tuple 'ok (make-state pings 0)))
+  `#(ok ,(make-state pings 0)))
 
 (defun handle_call (req from state)
   (let* ((new-count (+ (state-pings state) 1))
          (new-state (set-state-pings state new-count)))
-    (tuple 'reply (tuple 'pong new-count) new-state)))
+    `#(reply #(pong ,new-count) ,new-state)))
 
 (defun handle_cast (msg state)
-  (tuple 'noreply state))
+  `#(noreply ,state))
 
 (defun handle_info (info state)
-  (tuple 'noreply state))
+  `#(noreply ,state))
 
 (defun terminate (reason state)
   'ok)
 
 (defun code_change (old-vers state extra)
-  (tuple 'ok state))
+  `#(ok ,state))

@@ -64,28 +64,31 @@
 
 ;; Here is some example usage from the REPL:
 ;;
-;; > (slurp '"examples/http-async.lfe")
+;; $ ./bin/lfe
+;;
+;; lfe> (slurp "examples/http-async.lfe")
 ;; #(ok http-async)
-;; > (get-pages (list '"http://lfe.github.io/"))
+;; lfe> (get-pages (list "http://lfe.io/"))
 ;; Result: {{"HTTP/1.1",200,"OK"},
 ;;       [{"cache-control","max-age=600"},
 ;;        {"connection","keep-alive"},
 ;;        ...
 ;; ok
-;; >
+;; lfe>
 ;;
 ;; The get-pages function starts the inets service for you. If you would like
 ;; to call get-page directly (without first having called get-pages), you'll
 ;; have to start that yourself:
 ;;
-;; > (: inets start)
-;; > (get-page '"http://lfe.github.io/")
+;; lfe> (inets:start)
+;; lfe> (ssl:start)
+;; lfe> (get-page "https://lfe.io/")
 ;; Result: {{"HTTP/1.1",200,"OK"},
 ;;       [{"cache-control","max-age=600"},
 ;;        {"connection","keep-alive"},
 ;;        ...
 ;; ok
-;; >
+;; lfe>
 
 (defmodule http-async
   (export all))
@@ -115,6 +118,7 @@
 (defun get-pages (urls)
   "Start inets and make (potentially many) HTTP requests."
   (inets:start)
+  (ssl:start)
   (plists:map
     (lambda (x)
       (get-page x)) urls))

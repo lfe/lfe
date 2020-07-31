@@ -25,6 +25,15 @@
 ;; recursive more syntax pattern based expansion. This to show
 ;; different styles of doing the same thing.
 
+;; Here is some example usage:
+;;
+;; $ ./bin/lfe
+;;
+;; lfe> (include-file "examples/core-macros.lfe")
+;; ()
+;; lfe> (:: init get_status)         
+;; #(started started)
+
 (defmacro caar (x) `(car (car ,x)))
 (defmacro cadr (x) `(car (cdr ,x)))
 (defmacro cdar (x) `(cdr (car ,x)))
@@ -96,7 +105,7 @@
     (() `'false)))
 
 ;; This version of backquote is almost an exact copy of a quasiquote
-;; expander for Scheme by André van Tonder. It is very compact and
+;; expander for Scheme by AndrÃ© van Tonder. It is very compact and
 ;; with some cons/append optimisations we have added produces quite
 ;; reasonable code.
 

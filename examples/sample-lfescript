@@ -25,6 +25,7 @@
 ;;
 ;; At this point, you can call this script directly:
 ;;
+;;  $ export PATH=$(pwd)/bin:$PATH
 ;;  $ examples/sample-lfescript
 ;;  usage: examples/sample-lfescript <integer>
 ;;

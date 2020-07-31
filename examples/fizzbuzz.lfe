@@ -23,6 +23,22 @@
 ;; There are no doubt more interesting or extensible ways of solving FizzBuzz,
 ;; however I felt this was a good example of using both Pattern Matching and
 ;; Higher Order Functions (lists:map/2) in a very simplistic way.
+
+;; Here is some example usage:
+;; 
+;; $ ./bin/lfe
+;;
+;; lfe> (c "examples/fizzbuzz.lfe")
+;; (#(module fizzbuzz))
+;; lfe> (fizzbuzz:buzz 1) 
+;; (1)
+;; lfe> (fizzbuzz:buzz 2) 
+;; (1 2)
+;; lfe> (fizzbuzz:buzz 5)
+;; (1 2 "Buzz" 4 "Fizz")
+;; lfe> (fizzbuzz:buzz 10)
+;; (1 2 "Buzz" 4 "Fizz" "Buzz" 7 8 "Buzz" "Fizz")
+
 (defmodule fizzbuzz
   (export 
     (buzz 1)

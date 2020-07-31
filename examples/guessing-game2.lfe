@@ -31,6 +31,7 @@
 ;; To use, do the following:
 ;;
 ;; $ ./bin/lfe
+;;
 ;; > (slurp "examples/guessing-game2.lfe")
 ;; #(ok guessing-game)
 ;; lfe> (main)

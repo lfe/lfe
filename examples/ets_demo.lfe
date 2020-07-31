@@ -21,6 +21,21 @@
 ;; with ets:match/match_object and match specifications with
 ;; ets:select.
 
+;; Here is some example usage:
+;; 
+;; $ ./bin/lfe
+;;
+;; lfe> (c "examples/ets_demo.lfe")
+;; (#(module ets_demo))
+;; lfe> (set db (ets_demo:new))
+;; #Ref<0.2772763705.1333133315.72774>
+;; lfe> (ets_demo:by_place db 'london)
+;; #(((paul driver) (fred waiter) (john painter) (bert waiter))
+;;   (#(person paul london driver)
+;;    #(person fred london waiter)
+;;    #(person john london painter)
+;;    #(person bert london waiter)))
+
 (defmodule ets_demo
   (export 
     (new 0) 
