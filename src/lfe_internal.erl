@@ -68,6 +68,12 @@ is_core_form(mupd) -> true;
 is_core_form('map-get') -> true;
 is_core_form('map-set') -> true;
 is_core_form('map-update') -> true;
+%% Core record special forms.
+is_core_form('record-index') -> true;
+is_core_form('make-record') -> true;
+is_core_form('set-record') -> true;
+is_core_form('record-field') -> true;
+%% Function forms.
 is_core_form(function) -> true;
 %% Core closure special forms.
 is_core_form(lambda) -> true;

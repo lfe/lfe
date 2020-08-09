@@ -308,7 +308,8 @@ check_import([rename,Mod|Rs], L, St) when is_atom(Mod) ->
 check_import([prefix,Mod,Pre], L, St) when is_atom(Mod), is_atom(Pre) ->
     Pstr = atom_to_list(Pre),
     case orddict:find(Pstr, St#lint.pref) of
-        {ok,_} -> bad_mdef_error(L, prefix, St);
+        {ok,_} ->
+            bad_mdef_error(L, prefix, St);
         error ->
             Pref = orddict:store(Pstr, Mod, St#lint.pref),
             St#lint{pref=Pref}
@@ -595,16 +596,16 @@ check_expr([function,M,F,Ar], _, L, St) ->
        true -> bad_form_error(L, function, St)
     end;
 %% Check record special forms.
-check_expr(['record-index',R,F], Env, L, St) ->
-    check_record(R, [F,42], Env, L, St);        %Need a dummy value here
-check_expr(['make-record',R|Fs], Env, L, St) ->
-    check_record(R, Fs, Env, L, St);
-check_expr(['set-record',R,E|Fs], Env, L, St0) ->
+check_expr(['record-index',Name,F], Env, L, St) ->
+    check_record(Name, [F,42], Env, L, St);     %Need a dummy value here
+check_expr(['make-record',Name|Fs], Env, L, St) ->
+    check_record(Name, Fs, Env, L, St);
+check_expr(['set-record',E,Name|Fs], Env, L, St0) ->
     St1 = check_expr(E, Env, L, St0),
-    check_record(R, Fs, Env, L, St1);
-check_expr(['record-field',R,E,F], Env, L, St0) ->
+    check_record(Name, Fs, Env, L, St1);
+check_expr(['record-field',E,Name,F], Env, L, St0) ->
     St1 = check_expr(E, Env, L, St0),
-    check_record(R, [F,42], Env, L, St1);       %Need a dummy value here
+    check_record(Name, [F,42], Env, L, St1);    %Need a dummy value here
 %% Special known data type operations.
 check_expr(['andalso'|Es], Env, L, St) ->
     check_args(Es, Env, L, St);
@@ -834,8 +835,9 @@ expr_update_map(_, Ps, _, L, St) ->
 
 check_record(R, Fs, Env, L, #lint{recs=Rs}=St) ->
     case orddict:find(R, Rs) of
-        {ok,Rfs} -> record_fields(Fs, Rfs, Env, L, St);
-        false ->
+        {ok,Rfs} ->
+            record_fields(Fs, Rfs, Env, L, St);
+        error ->
             undefined_record_error(L, R, St)
     end.
 
@@ -1124,11 +1126,11 @@ check_gexpr([tref|[_,_]=As], Env, L, St) -> check_gargs(As, Env, L, St);
 check_gexpr([binary|Segs], Env, L, St) -> gexpr_bitsegs(Segs, Env, L, St);
 %% Map operations are not allowed in guards.
 %% Check record special forms.
-check_gexpr(['record-index',R,F], Env, L, St) ->
-    check_record(R, [F], Env, L, St);
-check_gexpr(['record-field',R,E,F], Env, L, St0) ->
+check_gexpr(['record-index',Name,F], Env, L, St) ->
+    check_record(Name, [F], Env, L, St);
+check_gexpr(['record-field',E,Name,F], Env, L, St0) ->
     St1 = check_gexpr(E, Env, L, St0),
-    check_record(R, [F], Env, L, St1);
+    check_record(Name, [F], Env, L, St1);
 %% Check the Core closure special forms.
 %% check_gexpr(['let'|Let], Env, L, St) ->
 %%     check_glet(Let, Env, L, St);

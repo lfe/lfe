@@ -103,18 +103,18 @@ from_expr({map,_,Map,Assocs}, Vt0, St0) ->      %Update a map
     {Lm,Vt1,St1} = from_expr(Map, Vt0, St0),
     from_map_update(Assocs, nul, Lm, Vt1, St1);
 %% Record special forms.
-from_expr({record_index,_,R,{atom,_,F}}, Vt, St) -> %We KNOW!
-    {['record-index',R,F],Vt,St};
-from_expr({record,_,R,Fs}, Vt0, St0) ->
+from_expr({record_index,_,Name,{atom,_,F}}, Vt, St) -> %We KNOW!
+    {['record-index',Name,F],Vt,St};
+from_expr({record,_,Name,Fs}, Vt0, St0) ->
     {Lfs,Vt1,St1} = from_rec_fields(Fs, Vt0, St0),
-    {['make-record',R|Lfs],Vt1,St1};
-from_expr({record,_,E,R,Fs}, Vt0, St0) ->
+    {['make-record',Name|Lfs],Vt1,St1};
+from_expr({record,_,E,Name,Fs}, Vt0, St0) ->
     {Le,Vt1,St1} = from_expr(E, Vt0, St0),
     {Lfs,Vt2,St2} = from_rec_fields(Fs, Vt1, St1),
-    {['set-record',R,Le|Lfs],Vt2,St2};
-from_expr({record_field,_,E,R,{atom,_,F}}, Vt0, St0) -> %We KNOW!
+    {['set-record',Le,Name|Lfs],Vt2,St2};
+from_expr({record_field,_,E,Name,{atom,_,F}}, Vt0, St0) -> %We KNOW!
     {Le,Vt1,St1} = from_expr(E, Vt0, St0),
-    {['record-field',R,Le,F],Vt1,St1};
+    {['record-field',Le,Name,F],Vt1,St1};
 from_expr({record_field,_,_,_}=M, Vt, St) ->    %Pre R16 packages
     from_package_module(M, Vt, St);
 %% Function special forms.
@@ -674,18 +674,18 @@ to_expr(['map-set',Map|Ps], L, Vt, St) ->
 to_expr(['map-update',Map|Ps], L, Vt, St) ->
     to_expr([mupd,Map|Ps], L, Vt, St);
 %% Record special forms.
-to_expr(['record-index',R,F], L, _, St) ->
-    {{record_index,L,R,{atom,L,F}},St};
-to_expr(['make-record',R|Fs], L, Vt, St0) ->
+to_expr(['record-index',Name,F], L, _, St) ->
+    {{record_index,L,Name,{atom,L,F}},St};
+to_expr(['make-record',Name|Fs], L, Vt, St0) ->
     {Efs,St1} = to_rec_fields(Fs, L, Vt, St0),
-    {{record,L,R,Efs},St1};
-to_expr(['set-record',R,E|Fs], L, Vt, St0) ->
+    {{record,L,Name,Efs},St1};
+to_expr(['set-record',E,Name|Fs], L, Vt, St0) ->
     {Ee,St1} = to_expr(E, L, Vt, St0),
     {Efs,St2} = to_rec_fields(Fs, L, Vt, St1),
-    {{record,L,Ee,R,Efs},St2};
-to_expr(['record-field',R,E,F], L, Vt, St0) ->
+    {{record,L,Ee,Name,Efs},St2};
+to_expr(['record-field',E,Name,F], L, Vt, St0) ->
     {Ee,St1} = to_expr(E, L, Vt, St0),
-    {{record_field,L,Ee,R,{atom,L,F}},St1};
+    {{record_field,L,Ee,Name,{atom,L,F}},St1};
 %% Function forms.
 to_expr([function,F,Ar], L, Vt, St) ->
     %% Must handle the special cases here.

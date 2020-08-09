@@ -227,22 +227,22 @@ expr([binary|Segs0], St0) ->
     {Segs1,St1} = expr_bitsegs(Segs0, St0),
     {[binary|Segs1],St1};
 %% Record special forms.
-expr(['record-index',R,F], St) ->
-    {['record-index',R,F],St};
-expr(['make-record',R|Fs], St0) ->
+expr(['record-index',Name,F], St) ->
+    {['record-index',Name,F],St};
+expr(['make-record',Name|Fs], St0) ->
     %% This is in a term and is going to be used as an expression!
     {Efs,St1} = expr_rec_fields(Fs, St0),
-    {[tuple,['make-record',R|Efs]],St1};        %Must tuple tuples
-expr(['set-record',R,E|Fs], St0) ->
+    {[tuple,['make-record',Name|Efs]],St1};     %Must tuple tuples
+expr(['set-record',E,Name|Fs], St0) ->
     %% We must remove all checks and return simple nested setelement/3 calls.
     {Ee,St1} = expr(E, St0),
     {Efs,St2} = expr_rec_fields(Fs, St1),
-    Set = expr_set_record(Efs, Ee, R),
+    Set = expr_set_record(Efs, Ee, Name),
     {Set,St2};
-expr(['record-field',R,E,F], St0) ->
+expr(['record-field',E,Name,F], St0) ->
     %% We must remove all checks and return simple call to element/2.
     {Ee,St1} = expr(E, St0),
-    {[tuple,?Q(element),['record-index',R,F],Ee],St1};
+    {[tuple,?Q(element),['record-index',Name,F],Ee],St1};
 %% Special match spec calls.
 expr([bindings], St) -> {?Q('$*'),St};          %Special calls
 expr([object], St) -> {?Q('$_'),St};

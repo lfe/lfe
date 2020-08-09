@@ -372,18 +372,18 @@ exp_form(['map-set'|As], Env, St) ->
 exp_form(['map-update'|As], Env, St) ->
     exp_normal_core('map-update', As, Env, St);
 %% Record special forms.
-exp_form(['record-index',R,F], _, St) ->
-    {['record-index',R,F],St};
-exp_form(['make-record',R|Fs], Env, St0) ->
+exp_form(['record-index',Name,F], _, St) ->
+    {['record-index',Name,F],St};
+exp_form(['make-record',Name|Fs], Env, St0) ->
     {Efs,St1} = exp_rec_fields(Fs, Env, St0),
-    {['make-record',R|Efs],St1};
-exp_form(['set-record',R,E|Fs], Env, St0) ->
+    {['make-record',Name|Efs],St1};
+exp_form(['set-record',E,Name|Fs], Env, St0) ->
     {Ee,St1} = exp_form(E, Env, St0),
     {Efs,St2} = exp_rec_fields(Fs, Env, St1),
-    {['set-record',R,Ee|Efs],St2};
-exp_form(['record-field',R,E,F], Env, St0) ->
+    {['set-record',Ee,Name|Efs],St2};
+exp_form(['record-field',E,Name,F], Env, St0) ->
     {Ee,St1} = exp_form(E, Env, St0),
-    {['record-field',R,Ee,F],St1};
+    {['record-field',Ee,Name,F],St1};
 %% Function forms.
 exp_form([function|_]=F, _, St) -> {F,St};
 %% Core closure special forms.

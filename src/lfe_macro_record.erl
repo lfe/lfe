@@ -50,7 +50,8 @@ define(Name, Fdefs, Env, St) ->
     %% Get field names, default values and indices.
     Fields = map(fun ([F,_,_]) when is_atom(F) -> F;
                      ([F,_]) when is_atom(F) -> F;
-                     (F) when is_atom(F) -> F
+                     (F) when is_atom(F) -> F;
+                     (_) -> error({badrecord,Name})
                  end, Fdefs),
     %% Make access macros.
     Macs = [make_macro(Name),                   %make-Name
@@ -107,9 +108,9 @@ field_macros(Name, Fs) ->
                   [[defmacro,Get,
                     [[],?Q(['record-index',Name,F])],
                     [[list,rec],
-                     ?BQ(['record-field',Name,?C(rec),F])]],
+                     ?BQ(['record-field',?C(rec),Name,F])]],
                    [defmacro,Set,[rec,new],
-                    ?BQ(['set-record',Name,?C(rec),F,?C(new)])] |
+                    ?BQ(['set-record',?C(rec),Name,F,?C(new)])] |
                    Fas]
           end,
     lists:foldr(Fun, [], Fs).
