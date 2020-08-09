@@ -393,11 +393,11 @@ func_arity(['match-lambda'|Cls]) ->
 match_lambda_arity([[Pats|_]|_]) -> length(Pats).
 
 %% new_local_fun_name(Name, Arity, State) -> {FunName,State}.
-%%  Create a name for a local function. The name has the samme basic
+%%  Create a name for a local function. The name has a similar basic
 %%  format as those created in Core Erlang, though not overlapping.
 
 new_local_fun_name(Local, Lar, #cl{func=Func,arity=Far,fc=C}=St) ->
-    Name = lists:concat(["-",Func,"/",Far,"-local-",Local,"/",Lar,"-",C,"-"]),
+    Name = lists:concat(["-lfe-",Func,"/",Far,"-local-",Local,"/",Lar,"-",C,"-"]),
     {list_to_atom(Name),St#cl{fc=C+1}}.
 
 new_vars(N) when N > 0 ->
