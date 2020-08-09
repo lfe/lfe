@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2013 Robert Virding
+%% Copyright (c) 2008-2020 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -88,7 +88,7 @@ Rules.
         %% Strip sharpsign single-quote.
         FunStr = string:substr(TokenChars,3),
         {token,{'#\'',TokenLine,FunStr}}.
-%% Atoms
+%% Numbers
 [+-]?{D}+       :
         case catch {ok,list_to_integer(TokenChars)} of
             {ok,I} -> {token,{number,TokenLine,I}};
@@ -99,12 +99,13 @@ Rules.
             {ok,F} -> {token,{number,TokenLine,F}};
             _ -> {error,"illegal float"}
         end.
+%% Symbols
 {SSYM}{SYM}*    :
         symbol_token(TokenChars, TokenLine).
 {WS}+           :    skip_token.
 
 Erlang code.
-%% Copyright (c) 2008-2013 Robert Virding
+%% Copyright (c) 2008-2020 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.

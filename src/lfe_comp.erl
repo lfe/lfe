@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2016 Robert Virding
+%% Copyright (c) 2008-2020 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -35,6 +35,9 @@
                 map/2,flatmap/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3]).
 
 -include("lfe_comp.hrl").
+
+%% Mightn't use all commands in do_passes yet.
+-dialyzer({[no_match],do_passes/2}).
 
 %% We do a lot of quoting!
 -define(Q(E), [quote,E]).
