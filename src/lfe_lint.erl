@@ -47,6 +47,7 @@
                funcs=[],                        %Defined functions
                types=[],                        %Known types
                specs=[],                        %Known func specs
+               recs=[],                         %Known record defs
                env=[],                          %Top-level environment
                func=[],                         %Current function
                file="nofile",                   %File name
@@ -83,7 +84,7 @@ format_error({undefined_func,F}) ->
     lfe_io:format1("function ~w undefined", [F]);
 format_error({multi_var,S}) ->
     lfe_io:format1("variable ~w multiply defined", [S]);
-format_error({redef_fun,F}) ->
+format_error({redef_func,F}) ->
     lfe_io:format1("redefining function ~w", [F]);
 format_error({bad_fdef,F}) ->
     lfe_io:format1("bad definition of function ~w", [F]);
@@ -105,6 +106,14 @@ format_error({deprecated,What}) ->
 format_error(unknown_form) -> "unknown form";
 format_error({bad_record,R}) ->
     lfe_io:format1("bad record definition: ~w", [R]);
+format_error({redef_record,R}) ->
+    lfe_io:format1("record ~w already defined", [R]);
+format_error({undefined_record,R}) ->
+    lfe_io:format1("record ~w undefined", [R]);
+format_error({undefined_field,R,F}) ->
+    lfe_io:format1("field ~w undefined in record ~w", [F,R]);
+format_error({undefined_field,F}) ->
+    lfe_io:format1("field ~w undefined in record", [F]);
 %% Type and spec errors.
 format_error({singleton_typevar,V}) ->
     lfe_io:format1("type variable ~w is only used once", [V]);
@@ -299,7 +308,8 @@ check_import([rename,Mod|Rs], L, St) when is_atom(Mod) ->
 check_import([prefix,Mod,Pre], L, St) when is_atom(Mod), is_atom(Pre) ->
     Pstr = atom_to_list(Pre),
     case orddict:find(Pstr, St#lint.pref) of
-        {ok,_} -> bad_mdef_error(L, prefix, St);
+        {ok,_} ->
+            bad_mdef_error(L, prefix, St);
         error ->
             Pref = orddict:store(Pstr, Mod, St#lint.pref),
             St#lint{pref=Pref}
@@ -425,26 +435,36 @@ check_record_def([Name|Fields], L, St) ->
 check_record_def(_, L, St) ->
     bad_meta_error(L, record, St).
 
-check_record_def(Name, Fds, L, St) when is_atom(Name) ->
-    check_foreach(fun (Fd, S) -> check_record_field(Fd, L, S) end,
-                  fun (S) -> bad_record_error(L, Name, S) end,
-                  St, Fds);
+check_record_def(Name, Fds, L, #lint{recs=Rs}=St0) when is_atom(Name) ->
+    case orddict:is_key(Name, Rs) of
+        true ->
+            add_error(L, {redef_record,Name}, St0);
+        false ->
+            %% Insert the record.
+            St1 = St0#lint{recs=orddict:store(Name, [], Rs)},
+            check_foreach(fun (Fd, S) -> check_record_field(Name, Fd, L, S) end,
+                          fun (S) -> bad_record_error(L, Name, S) end,
+                          St1, Fds)
+    end;
 check_record_def(Name, _, L, St) ->
     bad_record_error(L, Name, St).
 
-check_record_field([F,D,T], L, St0) ->
-    St1 = check_record_field([F,D], L, St0),
+check_record_field(Name, [F,D,T], L, St0) ->
+    St1 = check_record_field(Name, [F,D], L, St0),
     case lfe_types:check_type_def(T, St1#lint.types, []) of
         {ok,Tvs} -> check_type_vars(Tvs, L, St1);
         {error,Error,Tvs} ->
             St2 = add_error(L, Error, St1),
             check_type_vars(Tvs, L, St2)
     end;
-check_record_field([F,_D], L, St) ->            %No need to check default value
-    check_record_field(F, L, St);
-check_record_field(F, L, St) ->
-    if is_atom(F) -> St;
-       true -> bad_record_error(L, F, St)
+check_record_field(Name, [F,_D], L, St) ->
+    %% No need to check default value.
+    check_record_field(Name, F, L, St);
+check_record_field(R, F, L,  #lint{recs=Rs}=St) ->
+    if is_atom(F) ->
+            St#lint{recs=orddict:append(R, F, Rs)};
+       true ->
+            bad_record_error(L, F, St)
     end.
 
 %% collect_function(Name, Meta, Def, Line, Fbs, State) -> {Fbs,State}.
@@ -575,6 +595,22 @@ check_expr([function,M,F,Ar], _, L, St) ->
     if is_atom(M) and is_atom(F) and is_integer(Ar) and (Ar >= 0) -> St;
        true -> bad_form_error(L, function, St)
     end;
+%% Check record special forms.
+check_expr(['record-index',Name,F], Env, L, St) ->
+    check_record(Name, [F,42], Env, L, St);     %Need a dummy value here
+check_expr(['make-record',Name|Fs], Env, L, St) ->
+    check_record(Name, Fs, Env, L, St);
+check_expr(['set-record',E,Name|Fs], Env, L, St0) ->
+    St1 = check_expr(E, Env, L, St0),
+    check_record(Name, Fs, Env, L, St1);
+check_expr(['record-field',E,Name,F], Env, L, St0) ->
+    St1 = check_expr(E, Env, L, St0),
+    check_record(Name, [F,42], Env, L, St1);    %Need a dummy value here
+%% Special known data type operations.
+check_expr(['andalso'|Es], Env, L, St) ->
+    check_args(Es, Env, L, St);
+check_expr(['orelse'|Es], Env, L, St) ->
+    check_args(Es, Env, L, St);
 %% Check the Core closure special forms.
 check_expr(['lambda'|Lambda], Env, L, St) ->
     check_lambda(Lambda, Env, L, St);
@@ -604,9 +640,9 @@ check_expr(['try'|B], Env, L, St) ->
     check_try(B, Env, L, St);
 check_expr(['funcall'|As], Env, L, St) ->
     check_args(As, Env, L, St);
+%% Finally the general cases.
 check_expr(['call'|As], Env, L, St) ->
     check_args(As, Env, L, St);
-%% Finally the general cases.
 check_expr([Fun|As], Env, L, St0) when is_atom(Fun) ->
     St1 = check_args(As, Env, L, St0),          %Check arguments first
     check_func(Fun, safe_length(As), Env, L, St1);
@@ -790,6 +826,32 @@ expr_update_map(_, Ps, _, L, St) ->
     undefined_func_error(L, {'map-update',safe_length(Ps)+1}, St).
 -endif.
 
+%% check_record(Name, Fields, Env, Line, State) -> State.
+%%  Check records.
+
+check_record(R, Fs, Env, L, #lint{recs=Rs}=St) ->
+    case orddict:find(R, Rs) of
+        {ok,Rfs} ->
+            record_fields(Fs, Rfs, Env, L, St);
+        error ->
+            undefined_record_error(L, R, St)
+    end.
+
+record_fields(['_',_Val|Fs], Rfs, Env, L, St) ->
+    %% The _ field is special!
+    record_fields(Fs, Rfs, Env, L, St);
+record_fields([F,Val|Fs], Rfs, Env, L, St0) ->
+    case lists:member(F, Rfs) of
+        true ->
+            St1 = check_expr(Val, Env, L, St0),
+            record_fields(Fs, Rfs, Env, L, St1);
+        false ->
+            undefined_field_error(L, F, St0)
+    end;
+record_fields([], _, _, _, St) -> St;
+record_fields(Pat, _, _, L, St) ->
+    illegal_pattern_error(L, Pat, St).
+
 %% check_lambda(LambdaBody, Env, Line, State) -> State.
 %% Check form (lambda Args ...).
 
@@ -938,7 +1000,7 @@ check_letrec_bindings(Fbs, Env0, St0) ->
 check_fbindings(Fbs0, St0) ->
     AddFb = fun(F, Fs, L, St) ->
                     case member(F, Fs) of
-                        true -> {Fs,add_error(L, {redef_fun,F}, St)};
+                        true -> {Fs,add_error(L, {redef_func,F}, St)};
                         false -> {add_element(F, Fs),St}
                     end
             end,
@@ -1059,12 +1121,23 @@ check_gexpr([tuple|As], Env, L, St) -> check_gargs(As, Env, L, St);
 check_gexpr([tref|[_,_]=As], Env, L, St) -> check_gargs(As, Env, L, St);
 check_gexpr([binary|Segs], Env, L, St) -> gexpr_bitsegs(Segs, Env, L, St);
 %% Map operations are not allowed in guards.
+%% Check record special forms.
+check_gexpr(['record-index',Name,F], Env, L, St) ->
+    check_record(Name, [F], Env, L, St);
+check_gexpr(['record-field',E,Name,F], Env, L, St0) ->
+    St1 = check_gexpr(E, Env, L, St0),
+    check_record(Name, [F], Env, L, St1);
 %% Check the Core closure special forms.
-check_gexpr(['let'|Let], Env, L, St) ->
-    check_glet(Let, Env, L, St);
+%% check_gexpr(['let'|Let], Env, L, St) ->
+%%     check_glet(Let, Env, L, St);
+%% Special known data type operations.
+check_gexpr(['andalso'|Es], Env, L, St) ->
+    check_gargs(Es, Env, L, St);
+check_gexpr(['orelse'|Es], Env, L, St) ->
+    check_gargs(Es, Env, L, St);
 %% Check the Core control special forms.
-check_gexpr(['progn'|B], Env, L, St) -> check_gbody(B, Env, L, St);
-check_gexpr(['if'|B], Env, L, St) -> check_gif(B, Env, L, St);
+%% check_gexpr(['progn'|B], Env, L, St) -> check_gbody(B, Env, L, St);
+%% check_gexpr(['if'|B], Env, L, St) -> check_gif(B, Env, L, St);
 check_gexpr([call,?Q(erlang),?Q(Fun)|As], Env, L, St0) ->
     St1 = check_gargs(As, Env, L, St0),
     %% It must be a legal guard bif here.
@@ -1072,11 +1145,11 @@ check_gexpr([call,?Q(erlang),?Q(Fun)|As], Env, L, St0) ->
         true -> St1;
         false -> illegal_guard_error(L, St1)
     end;
-check_gexpr([call|_], _, L, St) ->              %Other calls not allowed
-    illegal_guard_error(L, St);
 check_gexpr([error,_], _, _, St) -> St;         %Allow calls to error
 check_gexpr([error,_,_], _, _, St) -> St;
 %% Finally the general case.
+check_gexpr([call|_], _, L, St) ->              %Other calls not allowed
+    illegal_guard_error(L, St);
 check_gexpr([Fun|As], Env, L, St0) when is_atom(Fun) ->
     St1 = check_gargs(As, Env, L, St0),
     check_gfunc(Fun, safe_length(As), Env, L, St1);
@@ -1195,6 +1268,11 @@ pattern([binary|Segs], Pvs, Env, L, St) ->
     pat_binary(Segs, Pvs, Env, L, St);
 pattern([map|Ps], Pvs, Env, L, St) ->
     pat_map(Ps, Pvs, Env, L, St);
+%% Check record patterns.
+pattern(['record-index',R,F], Pvs, Env, L, St) ->
+    pat_record(R, [F,42], Pvs, Env, L, St);     %Need a dummyy value here
+pattern(['make-record',R|Fs], Pvs, Env, L, St) ->
+    pat_record(R, Fs, Pvs, Env, L, St);
 %% Check old no contructor list forms.
 pattern([_|_]=List, Pvs0, _, L, St0) ->
     case lfe_lib:is_posint_list(List) of
@@ -1365,6 +1443,32 @@ pat_map(Ps, Pvs, _, L, St) ->
     {Pvs,illegal_pattern_error(L, Ps, St)}.
 -endif.
 
+%% pat_record(Name, Fields, PatVars, Env, Line State) -> {PatVars,State}.
+
+pat_record(R, Fs, Pvs, Env, L, #lint{recs=Rs}=St) ->
+    case orddict:find(R, Rs) of
+        {ok,Rfs} ->
+            pat_record_fields(Fs, Rfs, Pvs, Env, L, St);
+        error ->
+            {Pvs,undefined_record_error(L, R, St)}
+    end.
+
+pat_record_fields([F,Pat|Fs], Rfs, Pvs0, Env, L, St0) ->
+    case lists:member(F, Rfs) of
+        true ->
+            {Pvs1,St1} = if is_atom(Pat) ->
+                                 pat_symb(Pat, Pvs0, L, St0);
+                            true ->
+                                 {Pvs0,literal(Pat, Env, L, St0)}
+                         end,
+            pat_record_fields(Fs, Rfs, Pvs1, Env, L, St1);
+        false ->
+            {Pvs0,undefined_field_error(L, F, St0)}
+    end;
+pat_record_fields([], _, Pvs, _, _, St) -> {Pvs,St};
+pat_record_fields(Pat, _, Pvs, _, L, St) ->
+    {Pvs,illegal_pattern_error(L, Pat, St)}.
+
 %% is_literal(Literal) -> true | false.
 %% literal(Literal, Env, Line, State) -> State.
 %%  Check for legal literals. We have to be extra careful here as the
@@ -1501,6 +1605,12 @@ add_warning(L, W, #lint{warnings=Warns}=St) ->
 add_errors(L, Es, #lint{errors=Errs}=St) ->
     St#lint{errors=Errs ++ [ {L,?MODULE,E} || E <- Es ]}.
 
+bad_attr_error(L, A, St) ->
+    add_error(L, {bad_attribute,A}, St).
+
+bad_meta_error(L, A, St) ->
+    add_error(L, {bad_meta,A}, St).
+
 bad_form_error(L, F, St) ->
     add_error(L, {bad_form,F}, St).
 
@@ -1522,14 +1632,14 @@ illegal_pattern_error(L, P, St) ->
 bad_mdef_error(L, D, St) ->
     add_error(L, {bad_mdef,D}, St).
 
-bad_attr_error(L, A, St) ->
-    add_error(L, {bad_attribute,A}, St).
-
-bad_meta_error(L, A, St) ->
-    add_error(L, {bad_meta,A}, St).
-
 bad_record_error(L, R, St) ->
     add_error(L, {bad_record,R}, St).
+
+undefined_record_error(L, R, St) ->
+    add_error(L, {undefined_record,R}, St).
+
+undefined_field_error(L, F, St) ->
+    add_error(L, {undefined_field,F}, St).
 
 bad_fdef_error(L, D, St) ->
     add_error(L, {bad_fdef,D}, St).

@@ -35,109 +35,63 @@ format_error({missing_field_value,R,F}) ->
     lfe_io:format1("missing value to field ~w in record ~w",[F,R]);
 format_error(_) -> "record error".
 
-%% define([Name|FieldDefs], Env, State) -> {Funs,Macs,Env,State}.
-%% define(Name, FieldDefs, Env, State) -> {Funs,Macs,Env,State}.
+%% define([Name|FieldDefs], Env, State) -> {ok,Form,State}.
+%% define(Name, FieldDefs, Env, State) -> {Forms,Env,State}.
 %%  Define a VERY simple record by generating macros for all accesses.
 %%  (define-record point x y)
 %%    => make-point, is-point, match-point, set-point,
 %%       point-x, set-point-x, point-y, set-point-y.
 
 define([Name|Fdefs], Env, St0) ->
-    {Funs,Forms, _,St1} = define(Name, Fdefs, Env, St0),
-    {yes,[progn,['eval-when-compile'|Funs]|Forms],St1}.
+    {Macs,Type, _,St1} = define(Name, Fdefs, Env, St0),
+    {yes,[progn,['extend-module',[Type],[]]|Macs],St1}.
 
 define(Name, Fdefs, Env, St) ->
     %% Get field names, default values and indices.
     Fields = map(fun ([F,_,_]) when is_atom(F) -> F;
                      ([F,_]) when is_atom(F) -> F;
-                     (F) when is_atom(F) -> F
+                     (F) when is_atom(F) -> F;
+                     (_) -> error({badrecord,Name})
                  end, Fdefs),
-    Defs = map(fun ([F,D,_]) when is_atom(F) -> ?Q(D);
-                   ([F,D]) when is_atom(F) -> ?Q(D);
-                   (F) when is_atom(F) -> ?Q(?Q(undefined))
-               end, Fdefs),
-    Findexs = field_indexes(Fields),
-    %% Make names for helper functions.
-    Fi = list_to_atom(concat([Name,'-',field,'-',index])),
-    Fu = list_to_atom(concat([Name,'-',field,'-',update])),
-    %% Build helper functions.
-    Funs = [index_function(Name, Fi, Findexs),
-            update_function(Name, Fu, Fi)],
     %% Make access macros.
-    Macs = [make_macro(Name, Defs, Fu),         %make-Name
-            match_macro(Name, Fields, Fu),      %match-Name
+    Macs = [make_macro(Name),                   %make-Name
+            match_macro(Name),                  %match-Name
             test_macro(Name, Fields),           %is-Name
-            set_macro(Name, Fields, Fi),        %set-Name
-            emp_macro(Name, Fields, Fu),        %emp-Name
+            set_macro(Name),                    %set-Name
+            emp_macro(Name),                    %emp-Name
             field_macro(Name, Fields),          %fields-Name
             size_macro(Name, Fields)            %size-Name
             |
             field_macros(Name, Fields)],        %Name-F,set-Name-F
     Type = type_information(Name, Fdefs, St),
-    %% We can always add type information here as it is stripped later.
-    Forms = [['extend-module',[Type],[]]|Macs],
-    %% lfe_io:format("~p\n", [{Funs,Forms}]),
-    {Funs,Forms,Env,St}.
+    %% lfe_io:format("~p\n", [{Macs,Type}]),
+    {Macs,Type,Env,St}.
 
-field_indexes(Fs) -> field_indexes(Fs, 2).
-
-field_indexes([F|Fs], N) ->
-    [{F,N}|field_indexes(Fs, N+1)];
-field_indexes([], _) -> [].
-
-index_function(Name, Fi, Fxs) ->                %Get index of field
-    [defun,Fi|
-     map(fun ({F,I}) -> [[?Q(F)],I] end, Fxs) ++
-         [[[f],[':',erlang,error,
-                [tuple,?Q(undefined_record_field),?Q(Name),f]]]]].
-
-update_function(Name, Fu, Fi) ->                %Update field list
-    [defun,Fu,[is,def],
-     %% Convert default list to tuple to make setting easier.
-     [fletrec,[[l,
-                [[[cons,f,[cons,v,is]],i],
-                 [l,is,[setelement,['-',[Fi,f],1],i,v]]],
-                [[[list,f],'_'],
-                 [':',erlang,error,
-                  [tuple,?Q(missing_field_value),?Q(Name),f]]],
-                [[[],i],i]]],
-      ['let',[[i,[l,is,[list_to_tuple,def]]]],
-       [tuple_to_list,i]]]].
-
-make_macro(Name, Defs, Fu) ->
+make_macro(Name) ->
     Make = list_to_atom(concat(['make','-',Name])),
     ['defmacro',Make,fds,
-     ['let',[[def,[list|Defs]]],
-      ?BQ([tuple,?Q(Name),?C_A([Fu,fds,def])])]].
+     ?BQ(['make-record',Name,?C_A(fds)])].
 
-match_macro(Name, Fs, Fu) ->
+match_macro(Name) ->
     Match = list_to_atom(concat(['match','-',Name])),
     ['defmacro',Match,fds,
-     ['let',[[def,[list|lists:duplicate(length(Fs),?Q('_'))]]],
-      ?BQ([tuple,?Q(Name),?C_A([Fu,fds,def])])]].
+     ?BQ(['make-record',Name,?C_A(fds)])].
 
 test_macro(Name, Fs) ->
     Test = list_to_atom(concat(['is','-',Name])),
     ['defmacro',Test,[rec],
      ?BQ(['is_record',?C(rec),?Q(Name),length(Fs)+1])].
 
-set_macro(Name, Fs, Fi) ->
+set_macro(Name) ->
     Set = list_to_atom(concat(['set','-',Name])),
     [defmacro,Set,
      [[cons,rec,fds],
-      ['let',[[[tuple,lets,body],
-               [':',lfe_macro_record,record_set_functions,
-                fds,?Q(Name),[lambda,[f],[Fi,f]],?Q(rec)]]],
-       ?BQ(['let',[[rec,?C(rec)],?C_A(lets)],
-            ['if',[is_record,rec,?Q(Name),length(Fs)+1],
-             ?C(body),
-             [error,{badrecord,Name}]]])]]].
+      ?BQ(['set-record',Name,?C(rec),?C_A(fds)])]].
 
-emp_macro(Name, Fs, Fu) ->
+emp_macro(Name) ->
     EMP = list_to_atom(concat(['emp','-',Name])),
     ['defmacro',EMP,fds,
-     ['let',[[def,[list|lists:duplicate(length(Fs),?Q(?Q('_')))]]],
-      ?BQ([tuple,?Q(Name),?C_A([Fu,fds,def])])]].
+     ?BQ(['make-record',Name,?C_A(fds) | ['_',?Q('_')]])].
 
 field_macro(Name, Fs) ->
     Recfields = list_to_atom(concat(['fields','-',Name])),
@@ -145,32 +99,21 @@ field_macro(Name, Fs) ->
 
 size_macro(Name, Fs) ->
     Recsize = list_to_atom(concat(['size','-',Name])),
-    ['defmacro',Recsize,[],length(Fs)].
+    ['defmacro',Recsize,[],length(Fs)+1].       %Don't forget the record name
 
 field_macros(Name, Fs) ->
-    Fis = field_indexes(Fs),                    %Calculate indexes
-    foldr(fun ({F,N}, Fas) ->
+    Fun = fun (F, Fas) ->
                   Get = list_to_atom(concat([Name,'-',F])),
                   Set = list_to_atom(concat(['set-',Name,'-',F])),
                   [[defmacro,Get,
-                    [[],N],                     %Field index
-                    [[list,rec],                %Field value
-                     ?BQ(test_and_do(Name, Fs, rec, [], [element,N, rec]))]],
-                     %%[[list,rec],?BQ([element,N,?C(rec)])]],
+                    [[],?Q(['record-index',Name,F])],
+                    [[list,rec],
+                     ?BQ(['record-field',?C(rec),Name,F])]],
                    [defmacro,Set,[rec,new],
-                    ?BQ(test_and_do(Name, Fs, rec, [new],
-                                    [setelement,N,rec,new]))] |
-                    %%?BQ([setelement,N,?C(rec),?C(new)])]|
+                    ?BQ(['set-record',?C(rec),Name,F,?C(new)])] |
                    Fas]
-          end, [], Fis).
-
-test_and_do(Name, Fs, Rv, Vs, Do) ->
-    %% Wrap Do inside a 'let' to avoid variable name clashes and an
-    %% 'if' to test record.
-    Ls = [ [V,?C(V)] || V <- [Rv|Vs] ],
-    ['let',Ls,
-     ['if',[is_record,Rv,?Q(Name),length(Fs)+1],Do,
-      [error,{badrecord,Name}]]].
+          end,
+    lists:foldr(Fun, [], Fs).
 
 type_information(Name, Fdefs, _St) ->
     %% We push the problem of generating the right final forms to the

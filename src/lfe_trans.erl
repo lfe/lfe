@@ -102,21 +102,34 @@ from_expr({map,_,Assocs}, Vt0, St0) ->          %Build a map
 from_expr({map,_,Map,Assocs}, Vt0, St0) ->      %Update a map
     {Lm,Vt1,St1} = from_expr(Map, Vt0, St0),
     from_map_update(Assocs, nul, Lm, Vt1, St1);
-%% Core closure special forms.
+%% Record special forms.
+from_expr({record_index,_,Name,{atom,_,F}}, Vt, St) -> %We KNOW!
+    {['record-index',Name,F],Vt,St};
+from_expr({record,_,Name,Fs}, Vt0, St0) ->
+    {Lfs,Vt1,St1} = from_rec_fields(Fs, Vt0, St0),
+    {['make-record',Name|Lfs],Vt1,St1};
+from_expr({record,_,E,Name,Fs}, Vt0, St0) ->
+    {Le,Vt1,St1} = from_expr(E, Vt0, St0),
+    {Lfs,Vt2,St2} = from_rec_fields(Fs, Vt1, St1),
+    {['set-record',Le,Name|Lfs],Vt2,St2};
+from_expr({record_field,_,E,Name,{atom,_,F}}, Vt0, St0) -> %We KNOW!
+    {Le,Vt1,St1} = from_expr(E, Vt0, St0),
+    {['record-field',Le,Name,F],Vt1,St1};
+from_expr({record_field,_,_,_}=M, Vt, St) ->    %Pre R16 packages
+    from_package_module(M, Vt, St);
+%% Function special forms.
 from_expr({'fun',_,{clauses,Cls}}, Vt, St0) ->
     {Lcls,St1} = from_fun_cls(Cls, Vt, St0),
     {['match-lambda'|Lcls],Vt,St1};             %Don't bother using lambda
-from_expr({'fun',_,{function,F,A}}, Vt, St0) ->
-    %% Build a lambda.
-    {Vs,St1} = new_from_vars(A, St0),
-    {[lambda,Vs,[F|Vs]],Vt,St1};
-from_expr({'fun',_,{function,M,F,A}}, Vt0, St0) ->
-    %% Translate to call to erlang:make_fun/3.
-    {Las,Vt1,St1} = from_expr_list([M,F,A], Vt0, St0),
-    {[call,?Q(erlang),?Q(make_fun)|Las],Vt1,St1};
+from_expr({'fun',_,{function,F,A}}, Vt, St) ->
+    %% These are just literal values.
+    {[function,F,A],Vt,St};
+from_expr({'fun',_,{function,M,F,A}}, Vt, St) ->
+    %% These are abstract values.
+    {[function,from_lit(M),from_lit(F),from_lit(A)],Vt,St};
+%% Core control special forms.
 from_expr({match,_,_,_}=Match, Vt, St) ->
     from_match(Match, Vt, St);
-%% Core control special forms.
 from_expr({block,_,Es}, Vt, St) ->
     from_block(Es, Vt, St);
 from_expr({'if',_,Cls}, Vt0, St0) ->            %This is the Erlang if
@@ -144,21 +157,28 @@ from_expr({lc,_,E,Qs}, Vt0, St0) ->
     {Lqs,Vt1,St1} = from_lc_quals(Qs, Vt0, St0),
     {Le,Vt2,St2} = from_expr(E, Vt1, St1),
     {[lc,Lqs,Le],Vt2,St2};
-from_expr({record,_,R,Fs}, Vt0, St0) ->         %Create a record
-    MR = list_to_atom("make-" ++ atom_to_list(R)),
-    {Lfs,Vt1,St1} = from_rec_fields(Fs, Vt0, St0),
-    {[MR|Lfs],Vt1,St1};
-from_expr({record,_,E,R,Fs}, Vt0, St0) ->       %Set fields in record
-    SR = list_to_atom("set-" ++ atom_to_list(R)),
-    {Le,Vt1,St1} = from_expr(E, Vt0, St0),
-    {Lfs,Vt2,St2} = from_rec_fields(Fs, Vt1, St1),
-    {[SR,Le|Lfs],Vt2,St2};
-from_expr({record_field,_,E,R,{atom,_,F}}, Vt0, St0) -> %We KNOW!
-    RF = list_to_atom(atom_to_list(R) ++ "-" ++ atom_to_list(F)),
-    {Le,Vt1,St1} = from_expr(E, Vt0, St0),
-    {[RF,Le],Vt1,St1};
-from_expr({record_field,_,_,_}=M, Vt, St) ->    %Pre R16 packages
-    from_package_module(M, Vt, St);
+%% from_expr({record_index,_,R,{atom,_,F}}, Vt, St) -> %We KNOW!
+%%     %% Record field index.
+%%     IR = list_to_atom(lists:concat([R,"-",F])),
+%%     {[IR],Vt,St};
+%% from_expr({record,_,R,Fs}, Vt0, St0) ->
+%%     %% Create a record.
+%%     MR = list_to_atom("make-" ++ atom_to_list(R)),
+%%     {Lfs,Vt1,St1} = from_rec_fields(Fs, Vt0, St0),
+%%     {[MR|Lfs],Vt1,St1};
+%% from_expr({record,_,E,R,Fs}, Vt0, St0) ->
+%%     %% Set fields in record.
+%%     SR = list_to_atom("set-" ++ atom_to_list(R)),
+%%     {Le,Vt1,St1} = from_expr(E, Vt0, St0),
+%%     {Lfs,Vt2,St2} = from_rec_fields(Fs, Vt1, St1),
+%%     {[SR,Le|Lfs],Vt2,St2};
+%% from_expr({record_field,_,E,R,{atom,_,F}}, Vt0, St0) -> %We KNOW!
+%%     %% Record field value.
+%%     RF = list_to_atom(lists:concat([R,"-",F])),
+%%     {Le,Vt1,St1} = from_expr(E, Vt0, St0),
+%%     {[RF,Le],Vt1,St1};
+%% from_expr({record_field,_,_,_}=M, Vt, St) ->    %Pre R16 packages
+%%     from_package_module(M, Vt, St);
 %% Function calls.
 from_expr({call,_,{remote,_,M,F},As}, Vt0, St0) -> %Remote function call
     {Lm,Vt1,St1} = from_expr(M, Vt0, St0),
@@ -303,6 +323,19 @@ from_map_update([{Assoc,_,Key,Val}|As], Curr, Map0, Vt0, St0) ->
 %%     from_map_update(Fs, Assoc, [Op,Map0,Lk,Lv], Vt2, St2);
 from_map_update([], _, Map, Vt, St) -> {Map,Vt,St}.
 
+%% from_rec_fields(Recfields, VarTable, State) -> {Recfields,VarTable,State}.
+
+from_rec_fields([{record_field,_,{atom,_,F},V}|Fs], Vt0, St0) ->
+    {Lv,Vt1,St1} = from_expr(V, Vt0, St0),
+    {Lfs,Vt2,St2} = from_rec_fields(Fs, Vt1, St1),
+    {[F,Lv|Lfs],Vt2,St2};
+from_rec_fields([{record_field,_,{var,_,F},V}|Fs], Vt0, St0) ->
+    %% Special case!!
+    {Lv,Vt1,St1} = from_expr(V, Vt0, St0),
+    {Lfs,Vt2,St2} = from_rec_fields(Fs, Vt1, St1),
+    {[F,Lv|Lfs],Vt2,St2};
+from_rec_fields([], Vt, St) -> {[],Vt,St}.
+
 %% from_icrt_cls(Clauses, VarTable, State) -> {Clauses,VarTable,State}.
 %% from_icrt_cl(Clause, VarTable, State) -> {Clause,VarTable,State}.
 %%  If/case/receive/try clauses.
@@ -368,46 +401,6 @@ from_cls(Fun, Vt0, St0, [C|Cs]) ->
 
 from_eq_tests(Gs) -> [ ['=:=',V,V1] || {V,V1} <- Gs ].
 
-%% from_lc_quals(Qualifiers, VarTable, State) -> {Qualifiers,VarTable,State}.
-
-from_lc_quals([{generate,_,P,E}|Qs], Vt0, St0) ->
-    {Lp,Eqt,Vt1,St1} = from_pat(P, Vt0, St0),
-    {Le,Vt2,St2} = from_expr(E, Vt1, St1),
-    {Lqs,Vt3,St3} = from_lc_quals(Qs, Vt2, St2),
-    Leg = from_eq_tests(Eqt),
-    Lbody = from_add_guard(Leg, Le),
-    {[['<-',Lp|Lbody]|Lqs],Vt3,St3};
-from_lc_quals([T|Qs], Vt0, St0) ->
-    {Lt,Vt1,St1} = from_expr(T, Vt0, St0),
-    {Lqs,Vt2,St2} = from_lc_quals(Qs, Vt1, St1),
-    {[Lt|Lqs],Vt2,St2};
-from_lc_quals([], Vt, St) -> {[],Vt,St}.
-
-%% from_rec_fields(Recfields, VarTable, State) -> {Recfields,VarTable,State}.
-
-from_rec_fields([{record_field,_,{atom,_,F},E}|Fs], Vt0, St0) ->
-    {Le,Vt1,St1} = from_expr(E, Vt0, St0),
-    {Lfs,Vt2,St2} = from_rec_fields(Fs, Vt1, St1),
-    {[F,Le|Lfs],Vt2,St2};
-from_rec_fields([{record_field,_,{var,_,F},E}|Fs], Vt0, St0) -> %special case!!
-    {Le,Vt1,St1} = from_expr(E, Vt0, St0),
-    {Lfs,Vt2,St2} = from_rec_fields(Fs, Vt1, St1),
-    {[F,Le|Lfs],Vt2,St2};
-from_rec_fields([], Vt, St) -> {[],Vt,St}.
-
-%% from_package_module(Module, VarTable, State) -> {Module,VarTable,State}.
-%%  We must handle the special case where in pre-R16 you could have
-%%  packages with a dotted module path. It used a special record_field
-%%  tuple. This does not work in R16 and later!
-
-from_package_module({record_field,_,_,_}=M, Vt, St) ->
-    Segs = erl_parse:package_segments(M),
-    A = list_to_atom(packages:concat(Segs)),
-    {?Q(A),Vt,St}.
-
-from_maybe(_, []) -> [];
-from_maybe(Tag, Es) -> [[Tag|Es]].
-
 %% from_try(Exprs, CaseClauses, CatchClauses, After, VarTable, State) ->
 %%     {Try,State}.
 
@@ -426,6 +419,34 @@ from_try(Es, Scs, Ccs, As, Vt, St0) ->
       from_maybe('case', Lscs) ++
           from_maybe('catch', Lccs) ++
           from_maybe('after', Las)],Vt,St4}.
+
+from_maybe(_, []) -> [];
+from_maybe(Tag, Es) -> [[Tag|Es]].
+
+%% from_lc_quals(Qualifiers, VarTable, State) -> {Qualifiers,VarTable,State}.
+
+from_lc_quals([{generate,_,P,E}|Qs], Vt0, St0) ->
+    {Lp,Eqt,Vt1,St1} = from_pat(P, Vt0, St0),
+    {Le,Vt2,St2} = from_expr(E, Vt1, St1),
+    {Lqs,Vt3,St3} = from_lc_quals(Qs, Vt2, St2),
+    Leg = from_eq_tests(Eqt),
+    Lbody = from_add_guard(Leg, Le),
+    {[['<-',Lp|Lbody]|Lqs],Vt3,St3};
+from_lc_quals([T|Qs], Vt0, St0) ->
+    {Lt,Vt1,St1} = from_expr(T, Vt0, St0),
+    {Lqs,Vt2,St2} = from_lc_quals(Qs, Vt1, St1),
+    {[Lt|Lqs],Vt2,St2};
+from_lc_quals([], Vt, St) -> {[],Vt,St}.
+
+%% from_package_module(Module, VarTable, State) -> {Module,VarTable,State}.
+%%  We must handle the special case where in pre-R16 you could have
+%%  packages with a dotted module path. It used a special record_field
+%%  tuple. This does not work in R16 and later!
+
+from_package_module({record_field,_,_,_}=M, Vt, St) ->
+    Segs = erl_parse:package_segments(M),
+    A = list_to_atom(packages:concat(Segs)),
+    {?Q(A),Vt,St}.
 
 %% new_from_var(State) -> {VarName,State}.
 %% new_from_vars(Count, State) -> {VarNames,State}.
@@ -471,10 +492,11 @@ from_pat({bin,_,Segs}, Vt0, St0) ->
 from_pat({map,_,Assocs}, Vt0, St0) ->
     {Ps,Eqt,Vt1,St1} = from_pat_map_assocs(Assocs, Vt0, St0),
     {[map|Ps],Eqt,Vt1,St1};
+from_pat({record_index,_,R,{atom,_,F}}, Vt, St) -> %We KNOW!
+    {['record-index',R,F],Vt,St};
 from_pat({record,_,R,Fs}, Vt0, St0) ->          %Match a record
-    MR = list_to_atom("match-" ++ atom_to_list(R)),
     {Sfs,Eqt,Vt1,St1} = from_pat_rec_fields(Fs, Vt0, St0),
-    {[MR|Sfs],Eqt,Vt1,St1};
+    {['make-record',R|Sfs],Eqt,Vt1,St1};
 from_pat({match,_,P1,P2}, Vt0, St0) ->          %Aliases
     {Lp1,Eqt1,Vt1,St1} = from_pat(P1, Vt0, St0),
     {Lp2,Eqt2,Vt2,St2} = from_pat(P2, Vt1, St1),
@@ -490,27 +512,6 @@ from_pats([P|Ps], Vt0, St0) ->
     {Lps,Eqts,Vt2,St2} = from_pats(Ps, Vt1, St1),
     {[Lp|Lps],Eqt++Eqts,Vt2,St2};
 from_pats([], Vt, St) -> {[],[],Vt,St}.
-
-from_pat_map_assocs([{map_field_exact,_,Key,Val}|As], Vt0, St0) ->
-    {Lk,Eqt1,Vt1,St1} = from_pat(Key, Vt0, St0),
-    {Lv,Eqt2,Vt2,St2} = from_pat(Val, Vt1, St1),
-    {Lfs,Eqt3,Vt3,St3} = from_pat_map_assocs(As, Vt2, St2),
-    {[Lk,Lv|Lfs],Eqt1 ++ Eqt2 ++ Eqt3,Vt3,St3};
-from_pat_map_assocs([], Vt, St) -> {[],[],Vt,St}.
-
-%% from_pat_rec_fields(Recfields, VarTable, State) ->
-%%     {Recfields,EqTable,VarTable,State}.
-
-from_pat_rec_fields([{record_field,_,{atom,_,F},P}|Fs], Vt0, St0) ->
-    {Lp,Eqt,Vt1,St1} = from_pat(P, Vt0, St0),
-    {Lfs,Eqts,Vt2,St2} = from_pat_rec_fields(Fs, Vt1, St1),
-    {[F,Lp|Lfs],Eqt++Eqts,Vt2,St2};
-from_pat_rec_fields([{record_field,_,{var,_,F},P}|Fs], Vt0, St0) ->
-    %% Special case!!
-    {Lp,Eqt,Vt1,St1} = from_pat(P, Vt0, St0),
-    {Lfs,Eqts,Vt2,St2} = from_pat_rec_fields(Fs, Vt1, St1),
-    {[F,Lp|Lfs],Eqt++Eqts,Vt2,St2};
-from_pat_rec_fields([], Vt, St) -> {[],[],Vt,St}.
 
 %% from_pat_bitsegs(Segs, VarTable, State) -> {Segs,EqTable,VarTable,State}.
 
@@ -534,6 +535,30 @@ from_pat_bitseg_size({var,_,V}, Vt, St) ->  %Size vars never match
 from_pat_bitseg_size(Size, Vt0, St0) ->
     {Ssize,_,Vt1,St1} = from_pat(Size, Vt0, St0),
     {[[size,Ssize]],Vt1,St1}.
+
+%% from_pat_map_assocs(Fields, VarTable, State) ->
+%%     {Fields,EqTable,VarTable,State}.
+
+from_pat_map_assocs([{map_field_exact,_,Key,Val}|As], Vt0, St0) ->
+    {Lk,Eqt1,Vt1,St1} = from_pat(Key, Vt0, St0),
+    {Lv,Eqt2,Vt2,St2} = from_pat(Val, Vt1, St1),
+    {Lfs,Eqt3,Vt3,St3} = from_pat_map_assocs(As, Vt2, St2),
+    {[Lk,Lv|Lfs],Eqt1 ++ Eqt2 ++ Eqt3,Vt3,St3};
+from_pat_map_assocs([], Vt, St) -> {[],[],Vt,St}.
+
+%% from_pat_rec_fields(Recfields, VarTable, State) ->
+%%     {Recfields,EqTable,VarTable,State}.
+
+from_pat_rec_fields([{record_field,_,{atom,_,F},P}|Fs], Vt0, St0) ->
+    {Lp,Eqt,Vt1,St1} = from_pat(P, Vt0, St0),
+    {Lfs,Eqts,Vt2,St2} = from_pat_rec_fields(Fs, Vt1, St1),
+    {[F,Lp|Lfs],Eqt++Eqts,Vt2,St2};
+from_pat_rec_fields([{record_field,_,{var,_,F},P}|Fs], Vt0, St0) ->
+    %% Special case!!
+    {Lp,Eqt,Vt1,St1} = from_pat(P, Vt0, St0),
+    {Lfs,Eqts,Vt2,St2} = from_pat_rec_fields(Fs, Vt1, St1),
+    {[F,Lp|Lfs],Eqt++Eqts,Vt2,St2};
+from_pat_rec_fields([], Vt, St) -> {[],[],Vt,St}.
 
 %% from_lit(Literal) -> Literal.
 %%  Build a literal value from AST. No quoting here.
@@ -648,12 +673,38 @@ to_expr(['map-set',Map|Ps], L, Vt, St) ->
     to_expr([mset,Map|Ps], L, Vt, St);
 to_expr(['map-update',Map|Ps], L, Vt, St) ->
     to_expr([mupd,Map|Ps], L, Vt, St);
+%% Record special forms.
+to_expr(['record-index',Name,F], L, _, St) ->
+    {{record_index,L,Name,{atom,L,F}},St};
+to_expr(['make-record',Name|Fs], L, Vt, St0) ->
+    {Efs,St1} = to_rec_fields(Fs, L, Vt, St0),
+    {{record,L,Name,Efs},St1};
+to_expr(['set-record',E,Name|Fs], L, Vt, St0) ->
+    {Ee,St1} = to_expr(E, L, Vt, St0),
+    {Efs,St2} = to_rec_fields(Fs, L, Vt, St1),
+    {{record,L,Ee,Name,Efs},St2};
+to_expr(['record-field',E,Name,F], L, Vt, St0) ->
+    {Ee,St1} = to_expr(E, L, Vt, St0),
+    {{record_field,L,Ee,Name,{atom,L,F}},St1};
+%% Function forms.
 to_expr([function,F,Ar], L, Vt, St) ->
-    Args = new_to_vars(Ar),
-    Body = [[F|Args]],
-    to_lambda(Args, Body, L, Vt, St);
-to_expr([function,M,F,A], L, _, St) -> {{'fun',L,{function,M,F,A}},St};
+    %% Must handle the special cases here.
+    case lfe_internal:is_erl_bif(F, Ar) of
+        true -> to_expr([function,erlang,F,Ar], L, Vt, St);
+        false ->
+            case lfe_internal:is_lfe_bif(F, Ar) of
+                true -> to_expr([function,lfe,F,Ar], L, Vt, St);
+                false -> {{'fun',L,{function,F,Ar}},St}
+            end
+    end;
+to_expr([function,M,F,Ar], L, _, St) ->
+    %% Need the abstract values here.
+    {{'fun',L,{function,to_lit(M, L),to_lit(F, L),to_lit(Ar, L)}},St};
 %% Special known data type operations.
+to_expr(['andalso'|Es], L, Vt, St) ->
+    to_lazy_logic(Es, 'andalso', L, Vt, St);
+to_expr(['orelse'|Es], L, Vt, St) ->
+    to_lazy_logic(Es, 'orelse', L, Vt, St);
 %% Core closure special forms.
 to_expr([lambda,Args|Body], L, Vt, St) ->
     to_lambda(Args, Body, L, Vt, St);
@@ -679,13 +730,13 @@ to_expr(['catch'|B], L, Vt, St0) ->
     {Eb,St1} = to_block(B, L, Vt, St0),
     {{'catch',L,Eb},St1};
 to_expr(['try'|Try], L, Vt, St) ->              %Can't do this yet
+    %% lfe_io:format("try ~w\n~p\n", [L,['try'|Try]]),
     to_try(Try, L, Vt, St);
 to_expr([funcall,F|As], L, Vt, St0) ->
     {Ef,St1} = to_expr(F, L, Vt, St0),
     {Eas,St2} = to_exprs(As, L, Vt, St1),
     {{call,L,Ef,Eas},St2};
 %% Special known macros.
-%% No record stuff here as they are macros which have been expanded.
 to_expr([lc,Qs|Es], L, Vt0, St0) ->
     {Eqs,Vt1,St1} = to_lc_quals(Qs, L, Vt0, St0),
     {Ees,St2} = to_block(Es, L, Vt1, St1),
@@ -790,6 +841,7 @@ to_bin_element(Val, Size, {Type,Unit,Sign,End}, L, Vt, St0) ->
     {Esiz,St2} = to_bin_size(Size, L, Vt, St1),
     {{bin_element,L,Eval,Esiz,[Type,to_bin_unit(Unit),Sign,End]},St2}.
 
+to_bin_size(all, _, _, St) -> {default,St};
 to_bin_size(default, _, _, St) -> {default,St};
 to_bin_size(undefined, _, _, St) -> {default,St};
 to_bin_size(Size, L, Vt, St) -> to_expr(Size, L, Vt, St).
@@ -815,6 +867,19 @@ to_map_pairs([K,V|Ps], Field, L, Vt, St0) ->
     {[{Field,L,Ek,Ev}|Eps],St3};
 to_map_pairs([], _, _, _, St) -> {[],St}.
 
+%% to_rec_fields(Fields, LineNumber, VarTable, State) -> {Fields,State}.
+
+to_rec_fields(['_',V|Fs], L, Vt, St0) ->
+    %% Special case!!
+    {Ev,St1} = to_expr(V, L, Vt, St0),
+    {Efs,St2} = to_rec_fields(Fs, L, Vt, St1),
+    {[{record_field,L,{var,L,'_'},Ev}|Efs],St2};
+to_rec_fields([F,V|Fs], L, Vt, St0) ->
+    {Ev,St1} = to_expr(V, L, Vt, St0),
+    {Efs,St2} = to_rec_fields(Fs, L, Vt, St1),
+    {[{record_field,L,{atom,L,F},Ev}|Efs],St2};
+to_rec_fields([], _, _, St) -> {[],St}.
+
 %% to_fun_cls(Clauses, LineNumber) -> Clauses.
 %% to_fun_cl(Clause, LineNumber) -> Clause.
 %%  Function clauses.
@@ -836,6 +901,18 @@ to_fun_cl([As|B], L, Vt0, St0) ->
     {Eas,Vt1,St1} = to_pats(As, L, Vt0, St0),
     {Eb,St2} = to_body(B, L, Vt1, St1),
     {{clause,L,Eas,[],Eb},St2}.
+
+%% to_lazy_logic(Exprs, Type, LineNumber, VarTable, State) -> {Logic,State}.
+%%  These go pairwise right-to-left.
+
+to_lazy_logic([E1,E2], Type, L, Vt, St0) ->
+    {Ee1,St1} = to_expr(E1, L, Vt, St0),
+    {Ee2,St2} = to_expr(E2, L, Vt, St1),
+    {{op,L,Type,Ee1,Ee2},St2};
+to_lazy_logic([E1|Es], Type, L, Vt, St0) ->
+    {Ee1,St1} = to_expr(E1, L, Vt, St0),
+    {Ees,St2} = to_lazy_logic(Es, Type, L, Vt, St1),
+    {{op,L,Type,Ee1,Ees},St2}.
 
 %% to_lambda(Args, Body, LineNumber, VarTable, State) -> {Lambda,State}.
 
@@ -873,12 +950,13 @@ to_let_bindings(Lbs, L, Vt, St) ->
     mapfoldl2(Fun, Vt, St, Lbs).
 
 %% to_block(Expressions, LineNumber, VarTable, State) -> {Block,State}.
-%%  Don't generate {block,...} if only one expression, though
-%%  semantically the same some tools can't handle it (qlc_pt).
+%%  Specially check for empty block and then just return (), and for
+%%  block with one expression and then just return that expression.
 
 to_block(Es, L, Vt, St0) ->
     case to_exprs(Es, L, Vt, St0) of
         {[Ee],St1} -> {Ee,St1};                 %No need to wrap
+        {[],St1} -> {{nil,L},St1};              %Returns ()
         {Ees,St1} -> {{block,L,Ees},St1}        %Must wrap
     end.
 
@@ -1058,6 +1136,11 @@ to_pat([binary|Segs], L, Pvs0, Vt0, St0) ->
 to_pat([map|Pairs], L, Pvs0, Vt0, St0) ->
     {As,Pvs1,Vt1,St1} = to_pat_map_pairs(Pairs, L, Pvs0, Vt0, St0),
     {{map,L,As},Pvs1,Vt1,St1};
+to_pat(['record-index',R,F], L, Pvs, Vt, St) ->
+    {{record_index,L,R,{atom,L,F}},Pvs,Vt,St};
+to_pat(['make-record',R|Fs], L, Pvs0, Vt0, St0) ->
+    {Efs,Pvs1,Vt1,St1} = to_pat_rec_fields(Fs, L, Pvs0, Vt0, St0),
+    {{record,L,R,Efs},Pvs1,Vt1,St1};
 to_pat(['=',P1,P2], L, Pvs0, Vt0, St0) ->       %Alias
     {Ep1,Pvs1,Vt1,St1} = to_pat(P1, L, Pvs0, Vt0, St0),
     {Ep2,Pvs2,Vt2,St2} = to_pat(P2, L, Pvs1, Vt1, St1),
@@ -1121,9 +1204,24 @@ to_pat_bin_element(Val, Size, {Type,Unit,Sign,End}, L, Pvs0, Vt0, St0) ->
     {Esiz,Pvs2,Vt2,St2} = to_pat_bin_size(Size, L, Pvs1, Vt1, St1),
     {{bin_element,L,Eval,Esiz,[Type,to_bin_unit(Unit),Sign,End]},Pvs2,Vt2,St2}.
 
+to_pat_bin_size(all, _, Pvs, Vt, St) -> {default,Pvs,Vt,St};
 to_pat_bin_size(default, _, Pvs, Vt, St) -> {default,Pvs,Vt,St};
 to_pat_bin_size(undefined, _, Pvs, Vt, St) -> {default,Pvs,Vt,St};
 to_pat_bin_size(Size, L, Pvs, Vt, St) -> to_pat(Size, L, Pvs, Vt, St).
+
+%% to_pat_rec_fields(Fields, LineNumber, PatVars, VarTable, State) ->
+%%     {Fields,PatVars,VarTable,State}.
+
+to_pat_rec_fields(['_',P|Fs], L, Pvs0, Vt0, St0) ->
+    %% Special case!!
+    {Ep,Pvs1,Vt1,St1} = to_pat(P, L, Pvs0, Vt0, St0),
+    {Efs,Pvs2,Vt2,St2} = to_pat_rec_fields(Fs, L, Pvs1, Vt1, St1),
+    {[{record_field,L,{var,L,'_'},Ep}|Efs],Pvs2,Vt2,St2};
+to_pat_rec_fields([F,P|Fs], L, Pvs0, Vt0, St0) ->
+    {Ep,Pvs1,Vt1,St1} = to_pat(P, L, Pvs0, Vt0, St0),
+    {Efs,Pvs2,Vt2,St2} = to_pat_rec_fields(Fs, L, Pvs1, Vt1, St1),
+    {[{record_field,L,{atom,L,F},Ep}|Efs],Pvs2,Vt2,St2};
+to_pat_rec_fields([], _, Pvs, Vt, St) -> {[],Pvs,Vt,St}.
 
 %% to_lit(Literal, LineNumber) -> ErlLiteral.
 %%  Convert a literal value. Note that we KNOW it is a literal value.

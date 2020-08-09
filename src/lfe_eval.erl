@@ -181,12 +181,47 @@ eval_expr(['map-set',M|As], Env) ->
     eval_expr([mset,M|As], Env);
 eval_expr(['map-update',M|As], Env) ->
     eval_expr([mupd,M|As], Env);
+%% Record special forms.
+eval_expr(['record-index',Name,F], Env) ->
+    case lfe_env:get_record(Name, Env) of
+	{yes,_Fs} -> undefined_field_error(Name, F);
+	no -> undefined_record_error(Name)
+    end;
+eval_expr(['make-record',Name|_Fs], Env) ->
+    case lfe_env:get_record(Name, Env) of
+	{yes,_Fs} -> undefined_field_error(Name, 'undefined');
+	no -> undefined_record_error(Name)
+    end;
+eval_expr(['set-record',_E,Name|_Fs], Env) ->
+    case lfe_env:get_record(Name, Env) of
+	{yes,_Fs} -> undefined_field_error(Name, 'undefined');
+	no -> undefined_record_error(Name)
+    end;
+eval_expr(['record-field',_E,Name,F], Env) ->
+    case lfe_env:get_record(Name, Env) of
+	{yes,_Fs} -> undefined_field_error(Name, F);
+	no -> undefined_record_error(Name)
+    end;
+%% Function forms.
 eval_expr([function,Fun,Ar], Env) ->
     %% Build a lambda which can be applied.
     Vs = new_vars(Ar),
     eval_lambda([lambda,Vs,[Fun|Vs]], Env);
 eval_expr([function,M,F,Ar], _) ->
     erlang:make_fun(M, F, Ar);
+%% Special known data type operations.
+eval_expr(['andalso'|Es], Env) ->
+    Fun = fun (E, true) -> eval_expr(E, Env);
+              (_, false) -> false;
+              (_, _Other) -> badarg_error()
+          end,
+    lists:foldl(Fun, true, Es);
+eval_expr(['orelse'|Es], Env) ->
+    Fun = fun (_, true) -> true;
+              (E, false) -> eval_expr(E, Env);
+              (_, _Other) -> badarg_error()
+          end,
+    lists:foldl(Fun, false, Es);
 %% Handle the Core closure special forms.
 eval_expr([lambda|_]=Lambda, Env) ->
     eval_lambda(Lambda, Env);
@@ -1177,6 +1212,12 @@ illegal_guard_error() ->
 
 illegal_mapkey_error(Key) ->
     eval_error({illegal_mapkey,Key}).
+
+undefined_record_error(Rec) ->
+    eval_error({undefined_record,Rec}).
+
+undefined_field_error(Rec, F) ->
+    eval_error({undefined_field,Rec,F}).
 
 eval_error(Error) ->
     erlang:raise(error, Error, stacktrace()).

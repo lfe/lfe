@@ -1,6 +1,6 @@
 % lfe_guide(7)
 % Robert Virding
-% 2008-2016
+% 2008-2018
 
 
 # NAME
@@ -374,7 +374,8 @@ while it reads the expression and then be effectively ``2``.
 (list-comp (qual ...) ...)
 (bc (qual ...) ...)
 (binary-comp (qual ...) ...)
-(match-spec ...)
+(ets-ms ...)
+(trace-ms ...)
 ```
 
 ## Common Lisp inspired macros
@@ -959,7 +960,7 @@ List Comprehensions. The syntax for a match specification is the same
 as for match-lambdas:
 
 ```
-(match-spec
+(ets-ms
   ((arg ... ) {{(when e ...)}} ...)             - Matches clauses
   ... )
 ```
@@ -967,14 +968,15 @@ as for match-lambdas:
 For example:
 
 ```
-(ets:select db (match-spec
+(ets:select db (ets-ms
                  ([(tuple _ a b)] (when (> a 3)) (tuple 'ok b))))
 ```
 
 It is a macro which creates the match specification structure which is
-used in ``ets:select`` and ``mnesia:select``. The same ``match-spec``
-macro can also be used with the dbg module. The same restrictions as to
-what can be done apply as for vanilla match specifications:
+used in ``ets:select`` and ``mnesia:select``. For tracing instead of
+the ``ets-ms`` macro there is the ``trace-ms`` macro which is also
+used in conjunction with the ``dbg`` module. The same restrictions as
+to what can be done apply as for vanilla match specifications:
 
 - There is only a limited number of BIFs which are allowed
 - There are some special functions only for use with dbg
