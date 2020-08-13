@@ -338,11 +338,21 @@ while it reads the expression and then be effectively ``2``.
 (funcall func arg ... )
 (call mod func arg ... )        - Call to Mod:Func(Arg, ... )
 
+(define-record name fields)
+(make-record name fields)
+(record-index name field)
+(record-field record name field)
+(record-update record name fields)
+
 (define-module name meta-data attributes)
 (extend-module meta-data attributes)
 
 (define-function name meta-data lambda|match-lambda)
 (define-macro name meta-data lambda|match-lambda)
+
+(define-type type defintion)
+(define-opaque-type type defintion)
+(define-function-spec func spec)
 ```
 
 ## Basic macro forms
@@ -767,7 +777,7 @@ Erlang records the default default value is 'undefined'.
 ```
 
 Will create access functions/macros for creation and accessing
-fields. The ``make-``, ``match-`` and ``set-`` forms takes optional
+fields. The ``make-``, ``match-`` and ``update-`` forms takes optional
 argument pairs field-name value to get non-default values. E.g. for
 
 ```
@@ -785,15 +795,15 @@ the following will be generated:
 (is-person r)
 (fields-person)
 (emp-person {{field value}} ... )
-(set-person r {{field value}} ... )
+(update-person r {{field value}} ... )
 (person-name r)
 (person-name)
-(set-person-name r name)
+(update-person-name r name)
 (person-age r)
 (person-age)
-(set-person-age r age)
+(update-person-age r age)
 (person-address r)
-(set-person-address r address)
+(update-person-address r address)
 ```
 
 * ``(make-person name "Robert" age 54)`` -
@@ -818,12 +828,12 @@ the following will be generated:
 * ``(person-address)`` -
   Return the index of the address field of a person record.
 
-* ``(set-person-address john "back street")`` -
-  Sets the address field of the person record john to
+* ``(update-person-address john "back street")`` -
+  Updates the address field of the person record john to
   "back street".
 
-* ``(set-person john age 35 address "front street")`` -
-  In the person record john set the age field to 35 and the
+* ``(update-person john age 35 address "front street")`` -
+  In the person record john update the age field to 35 and the
   address field to "front street".
 
 * ``(fields-person)`` -
@@ -833,6 +843,9 @@ the following will be generated:
 
 * ``(size-person)`` -
   Returns the size of the record tuple.
+
+Note that the older now deprecated ``set-`` forms are still
+generated.
 
 # Binaries/bitstrings
 

@@ -12,9 +12,13 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 
-%% File    : lfe_macro_record.erl
-%% Author  : Robert Virding
-%% Purpose : Lisp Flavoured Erlang macro expander for records.
+%%% File    : lfe_macro_record.erl
+%%% Author  : Robert Virding
+%%% Purpose : Lisp Flavoured Erlang macro expander for records.
+
+%%% Create macros for defining, creating and accessing records. Note
+%%% we still create the older set-Name macros even though they have
+%%% been deprecated.
 
 -module(lfe_macro_record).
 
@@ -45,6 +49,7 @@ format_error(_) -> "record error".
 define([Name|Fdefs], Env, St0) ->
     {Macs,Type, _,St1} = define(Name, Fdefs, Env, St0),
     {yes,[progn,['extend-module',[Type],[]]|Macs],St1}.
+    %% {yes,[progn,['define-record',Name,Fdefs]|Macs],St1}.
 
 define(Name, Fdefs, Env, St) ->
     %% Get field names, default values and indices.
@@ -57,6 +62,7 @@ define(Name, Fdefs, Env, St) ->
     Macs = [make_macro(Name),                   %make-Name
             match_macro(Name),                  %match-Name
             test_macro(Name, Fields),           %is-Name
+            update_macro(Name),                 %update-Name
             set_macro(Name),                    %set-Name
             emp_macro(Name),                    %emp-Name
             field_macro(Name, Fields),          %fields-Name
@@ -64,34 +70,39 @@ define(Name, Fdefs, Env, St) ->
             |
             field_macros(Name, Fields)],        %Name-F,set-Name-F
     Type = type_information(Name, Fdefs, St),
-    %% lfe_io:format("~p\n", [{Macs,Type}]),
     {Macs,Type,Env,St}.
 
 make_macro(Name) ->
     Make = list_to_atom(concat(['make','-',Name])),
     ['defmacro',Make,fds,
-     ?BQ(['make-record',Name,?C_A(fds)])].
+     ?BQ(['make-record',Name,?C(fds)])].
 
 match_macro(Name) ->
     Match = list_to_atom(concat(['match','-',Name])),
     ['defmacro',Match,fds,
-     ?BQ(['make-record',Name,?C_A(fds)])].
+     ?BQ(['make-record',Name,?C(fds)])].
 
 test_macro(Name, Fs) ->
     Test = list_to_atom(concat(['is','-',Name])),
     ['defmacro',Test,[rec],
      ?BQ(['is_record',?C(rec),?Q(Name),length(Fs)+1])].
 
+update_macro(Name) ->
+    Upd = list_to_atom(concat(['update','-',Name])),
+    [defmacro,Upd,
+     [[cons,rec,fds],
+      ?BQ(['record-update',?C(rec),Name,?C(fds)])]].
+
 set_macro(Name) ->
     Set = list_to_atom(concat(['set','-',Name])),
     [defmacro,Set,
      [[cons,rec,fds],
-      ?BQ(['set-record',Name,?C(rec),?C_A(fds)])]].
+      ?BQ(['record-update',?C(rec),Name,?C(fds)])]].
 
 emp_macro(Name) ->
     EMP = list_to_atom(concat(['emp','-',Name])),
     ['defmacro',EMP,fds,
-     ?BQ(['make-record',Name,?C_A(fds) | ['_',?Q('_')]])].
+     ?BQ(['make-record',Name,['_',?Q('_') | ?C(fds)]])].
 
 field_macro(Name, Fs) ->
     Recfields = list_to_atom(concat(['fields','-',Name])),
@@ -105,12 +116,15 @@ field_macros(Name, Fs) ->
     Fun = fun (F, Fas) ->
                   Get = list_to_atom(concat([Name,'-',F])),
                   Set = list_to_atom(concat(['set-',Name,'-',F])),
+		  Upd = list_to_atom(concat(['update-',Name,'-',F])),
                   [[defmacro,Get,
                     [[],?Q(['record-index',Name,F])],
                     [[list,rec],
                      ?BQ(['record-field',?C(rec),Name,F])]],
+                   [defmacro,Upd,[rec,new],
+                    ?BQ(['record-update',?C(rec),Name,[F,?C(new)]])],
                    [defmacro,Set,[rec,new],
-                    ?BQ(['set-record',?C(rec),Name,F,?C(new)])] |
+                    ?BQ(['record-update',?C(rec),Name,[F,?C(new)]])] |
                    Fas]
           end,
     lists:foldr(Fun, [], Fs).

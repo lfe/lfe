@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2018 Robert Virding
+%% Copyright (c) 2008-2020 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -103,6 +103,8 @@ collect_form({['define-opaque-type',Type,Def],L}, {Fds,St}) ->
     {Fds,collect_meta([opaque,[Type,Def]], L, St)};
 collect_form({['define-function-spec',Func,Spec],L}, {Fds,St}) ->
     {Fds,collect_meta([spec,[Func,Spec]], L, St)};
+collect_form({['define-record',Name,Fields],L}, {Fds,St}) ->
+    {Fds,collect_meta([record,[Name|Fields]], L, St)};
 collect_form({['define-function',Name,Meta,Def],L}, {Fds,St}) ->
     {collect_function(Name, Meta, Def, L, Fds),St};
 %% Ignore macro definitions and eval-when-compile forms.

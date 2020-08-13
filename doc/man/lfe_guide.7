@@ -339,11 +339,21 @@ the expression and then be effectively \f[C]2\f[].
 (funcall\ func\ arg\ ...\ )
 (call\ mod\ func\ arg\ ...\ )\ \ \ \ \ \ \ \ \-\ Call\ to\ Mod:Func(Arg,\ ...\ )
 
+(define\-record\ name\ fields)
+(make\-record\ name\ fields)
+(record\-index\ name\ field)
+(record\-field\ record\ name\ field)
+(record\-update\ record\ name\ fields)
+
 (define\-module\ name\ meta\-data\ attributes)
 (extend\-module\ meta\-data\ attributes)
 
 (define\-function\ name\ meta\-data\ lambda|match\-lambda)
 (define\-macro\ name\ meta\-data\ lambda|match\-lambda)
+
+(define\-type\ type\ defintion)
+(define\-opaque\-type\ type\ defintion)
+(define\-function\-spec\ func\ spec)
 \f[]
 .fi
 .SS Basic macro forms
@@ -818,7 +828,7 @@ As with Erlang records the default default value is \[aq]undefined\[aq].
 .fi
 .PP
 Will create access functions/macros for creation and accessing fields.
-The \f[C]make\-\f[], \f[C]match\-\f[] and \f[C]set\-\f[] forms takes
+The \f[C]make\-\f[], \f[C]match\-\f[] and \f[C]update\-\f[] forms takes
 optional argument pairs field\-name value to get non\-default values.
 E.g.
 for
@@ -841,15 +851,15 @@ the following will be generated:
 (is\-person\ r)
 (fields\-person)
 (emp\-person\ {{field\ value}}\ ...\ )
-(set\-person\ r\ {{field\ value}}\ ...\ )
+(update\-person\ r\ {{field\ value}}\ ...\ )
 (person\-name\ r)
 (person\-name)
-(set\-person\-name\ r\ name)
+(update\-person\-name\ r\ name)
 (person\-age\ r)
 (person\-age)
-(set\-person\-age\ r\ age)
+(update\-person\-age\ r\ age)
 (person\-address\ r)
-(set\-person\-address\ r\ address)
+(update\-person\-address\ r\ address)
 \f[]
 .fi
 .IP \[bu] 2
@@ -873,18 +883,21 @@ person record john.
 \f[C](person\-address)\f[] \- Return the index of the address field of a
 person record.
 .IP \[bu] 2
-\f[C](set\-person\-address\ john\ "back\ street")\f[] \- Sets the
+\f[C](update\-person\-address\ john\ "back\ street")\f[] \- Updates the
 address field of the person record john to "back street".
 .IP \[bu] 2
-\f[C](set\-person\ john\ age\ 35\ address\ "front\ street")\f[] \- In
-the person record john set the age field to 35 and the address field to
-"front street".
+\f[C](update\-person\ john\ age\ 35\ address\ "front\ street")\f[] \- In
+the person record john update the age field to 35 and the address field
+to "front street".
 .IP \[bu] 2
 \f[C](fields\-person)\f[] \- Returns a list of fields for the record.
 This is useful for when using LFE with Mnesia, as the record field names
 don\[aq]t have to be provided manually in the create_table call.
 .IP \[bu] 2
 \f[C](size\-person)\f[] \- Returns the size of the record tuple.
+.PP
+Note that the older now deprecated \f[C]set\-\f[] forms are still
+generated.
 .SH Binaries/bitstrings
 .PP
 A binary is

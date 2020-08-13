@@ -182,24 +182,24 @@ eval_expr(['map-set',M|As], Env) ->
 eval_expr(['map-update',M|As], Env) ->
     eval_expr([mupd,M|As], Env);
 %% Record special forms.
-eval_expr(['record-index',Name,F], Env) ->
-    case lfe_env:get_record(Name, Env) of
-	{yes,_Fs} -> undefined_field_error(Name, F);
-	no -> undefined_record_error(Name)
-    end;
 eval_expr(['make-record',Name|_Fs], Env) ->
     case lfe_env:get_record(Name, Env) of
 	{yes,_Fs} -> undefined_field_error(Name, 'undefined');
 	no -> undefined_record_error(Name)
     end;
-eval_expr(['set-record',_E,Name|_Fs], Env) ->
+eval_expr(['record-index',Name,F], Env) ->
     case lfe_env:get_record(Name, Env) of
-	{yes,_Fs} -> undefined_field_error(Name, 'undefined');
+	{yes,_Fs} -> undefined_field_error(Name, F);
 	no -> undefined_record_error(Name)
     end;
 eval_expr(['record-field',_E,Name,F], Env) ->
     case lfe_env:get_record(Name, Env) of
 	{yes,_Fs} -> undefined_field_error(Name, F);
+	no -> undefined_record_error(Name)
+    end;
+eval_expr(['record-update',_E,Name|_Fs], Env) ->
+    case lfe_env:get_record(Name, Env) of
+	{yes,_Fs} -> undefined_field_error(Name, 'undefined');
 	no -> undefined_record_error(Name)
     end;
 %% Function forms.

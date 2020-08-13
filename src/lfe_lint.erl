@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2017 Robert Virding
+%% Copyright (c) 2008-2020 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -219,6 +219,8 @@ collect_form({['define-opaque-type',Type,Def],L}, {Fbs,St}) ->
     {Fbs,check_type_def(Type, Def, L, St)};
 collect_form({['define-function-spec',Func,Spec],L}, {Fbs,St}) ->
     {Fbs,check_func_spec(Func, Spec, L, St)};
+collect_form({['define-record',Name,Fields],L}, {Fbs,St}) ->
+    {Fbs,check_record_def(Name, Fields, L, St)};
 collect_form({['define-function',Func,Meta,Def],L}, {Fbs,St}) ->
     collect_function(Func, Meta, Def, L, Fbs, St);
 %% Ignore macro definitions and eval-when-compile forms.
@@ -424,6 +426,9 @@ check_type_vars_list(Tvss, L, St) ->
     lists:foldl(fun (Tvs, S) -> check_type_vars(Tvs, L, S) end, St, Tvss).
 
 %% check_record_defs(RecordDefs, Line, State) -> State.
+%% check_record_def(RecordDef, Line, State) -> State.
+%% check_record_def(Record, Fields, Line, State) -> State.
+%%  Check a record definition.
 
 check_record_defs(Rds, L, St) ->
     check_foreach(fun (Rd, S) -> check_record_def(Rd, L, S) end,
@@ -596,16 +601,16 @@ check_expr([function,M,F,Ar], _, L, St) ->
        true -> bad_form_error(L, function, St)
     end;
 %% Check record special forms.
+check_expr(['make-record',Name,Fs], Env, L, St) ->
+    check_record(Name, Fs, Env, L, St);
 check_expr(['record-index',Name,F], Env, L, St) ->
     check_record(Name, [F,42], Env, L, St);     %Need a dummy value here
-check_expr(['make-record',Name|Fs], Env, L, St) ->
-    check_record(Name, Fs, Env, L, St);
-check_expr(['set-record',E,Name|Fs], Env, L, St0) ->
-    St1 = check_expr(E, Env, L, St0),
-    check_record(Name, Fs, Env, L, St1);
 check_expr(['record-field',E,Name,F], Env, L, St0) ->
     St1 = check_expr(E, Env, L, St0),
     check_record(Name, [F,42], Env, L, St1);    %Need a dummy value here
+check_expr(['record-update',E,Name,Fs], Env, L, St0) ->
+    St1 = check_expr(E, Env, L, St0),
+    check_record(Name, Fs, Env, L, St1);
 %% Special known data type operations.
 check_expr(['andalso'|Es], Env, L, St) ->
     check_args(Es, Env, L, St);
@@ -1102,11 +1107,10 @@ check_guard(G, Env, L, St) -> check_gbody(G, Env, L, St).
 %% check_gbody(Body, Env, Line, State) -> State.
 %%  Check guard expressions in a body
 
-check_gbody([E|Es], Env, L, St0) ->
-    St1 = check_gexpr(E, Env, L, St0),
-    check_gbody(Es, Env, L, St1);
-check_gbody([], _, _, St) -> St;
-check_gbody(_, _, L, St) -> add_error(L, bad_guard, St).
+check_gbody(Exprs, Env, L, St) ->
+    check_foreach(fun (E, S) -> check_gexpr(E, Env, L, S) end,
+		  fun (S) -> add_error(L, bad_guard, S) end,
+		  St, Exprs).
 
 %% check_gexpr(Call, Env, Line, State) -> State.
 %%  Check a guard expression. This is a restricted body expression.
@@ -1269,16 +1273,16 @@ pattern([binary|Segs], Pvs, Env, L, St) ->
 pattern([map|Ps], Pvs, Env, L, St) ->
     pat_map(Ps, Pvs, Env, L, St);
 %% Check record patterns.
+pattern(['make-record',R,Fs], Pvs, Env, L, St) ->
+    pat_record(R, Fs, Pvs, Env, L, St);
 pattern(['record-index',R,F], Pvs, Env, L, St) ->
     pat_record(R, [F,42], Pvs, Env, L, St);     %Need a dummyy value here
-pattern(['make-record',R|Fs], Pvs, Env, L, St) ->
-    pat_record(R, Fs, Pvs, Env, L, St);
 %% Check old no contructor list forms.
-pattern([_|_]=List, Pvs0, _, L, St0) ->
+pattern([_|_]=List, Pvs, _, L, St) ->
     case lfe_lib:is_posint_list(List) of
-        true -> {Pvs0,St0};                     %A string
+        true -> {Pvs,St};                       %A string
         false ->                                %Illegal pattern
-            {Pvs0,illegal_pattern_error(L, List, St0)}
+            {Pvs,illegal_pattern_error(L, List, St)}
     end;
 pattern([], Pvs, _, _, St) -> {Pvs,St};
 pattern(Symb, Pvs, _, L, St) when is_atom(Symb) ->
@@ -1602,8 +1606,8 @@ add_error(L, E, #lint{errors=Errs}=St) ->
 add_warning(L, W, #lint{warnings=Warns}=St) ->
     St#lint{warnings=Warns ++ [{L,?MODULE,W}]}.
 
-add_errors(L, Es, #lint{errors=Errs}=St) ->
-    St#lint{errors=Errs ++ [ {L,?MODULE,E} || E <- Es ]}.
+%% add_errors(L, Es, #lint{errors=Errs}=St) ->
+%%     St#lint{errors=Errs ++ [ {L,?MODULE,E} || E <- Es ]}.
 
 bad_attr_error(L, A, St) ->
     add_error(L, {bad_attribute,A}, St).

@@ -137,12 +137,12 @@ pattern(['=',L0,R0], St0) ->                    %General aliasing
     {L1,St1} = pattern(L0, St0),
     {R1,St2} = pattern(R0, St1),
     {['=',L1,R1],St2};
-pattern(['record-index',R,F], St) ->
-    {['record-index',R,F],St};
-pattern(['make-record',R|Fs0], St0) ->
+pattern(['make-record',R,Fs0], St0) ->
     %% This is in a term but is going to be used as a pattern!
     {Fs1,St1} = pat_rec_fields(Fs0, St0),
-    {['make-record',R|Fs1 ++ ['_',?Q('_')]],St1};
+    {['make-record',R,Fs1 ++ ['_',?Q('_')]],St1};
+pattern(['record-index',R,F], St) ->
+    {['record-index',R,F],St};
 %% Support old no constructor style list forms.
 pattern([H0|T0], St0) ->
     {H1,St1} = pattern(H0, St0),
@@ -227,22 +227,22 @@ expr([binary|Segs0], St0) ->
     {Segs1,St1} = expr_bitsegs(Segs0, St0),
     {[binary|Segs1],St1};
 %% Record special forms.
-expr(['record-index',Name,F], St) ->
-    {['record-index',Name,F],St};
-expr(['make-record',Name|Fs], St0) ->
+expr(['make-record',Name,Fs], St0) ->
     %% This is in a term and is going to be used as an expression!
     {Efs,St1} = expr_rec_fields(Fs, St0),
-    {[tuple,['make-record',Name|Efs]],St1};     %Must tuple tuples
-expr(['set-record',E,Name|Fs], St0) ->
+    {[tuple,['make-record',Name,Efs]],St1};     %Must tuple tuples
+expr(['record-index',Name,F], St) ->
+    {['record-index',Name,F],St};
+expr(['record-field',E,Name,F], St0) ->
+    %% We must remove all checks and return simple call to element/2.
+    {Ee,St1} = expr(E, St0),
+    {[tuple,?Q(element),['record-index',Name,F],Ee],St1};
+expr(['record-update',E,Name,Fs], St0) ->
     %% We must remove all checks and return simple nested setelement/3 calls.
     {Ee,St1} = expr(E, St0),
     {Efs,St2} = expr_rec_fields(Fs, St1),
     Set = expr_set_record(Efs, Ee, Name),
     {Set,St2};
-expr(['record-field',E,Name,F], St0) ->
-    %% We must remove all checks and return simple call to element/2.
-    {Ee,St1} = expr(E, St0),
-    {[tuple,?Q(element),['record-index',Name,F],Ee],St1};
 %% Special match spec calls.
 expr([bindings], St) -> {?Q('$*'),St};          %Special calls
 expr([object], St) -> {?Q('$_'),St};
