@@ -48,8 +48,8 @@ format_error(_) -> "record error".
 
 define([Name|Fdefs], Env, St0) ->
     {Macs,Type, _,St1} = define(Name, Fdefs, Env, St0),
-    {yes,[progn,['extend-module',[Type],[]]|Macs],St1}.
-    %% {yes,[progn,['define-record',Name,Fdefs]|Macs],St1}.
+    {yes,[progn,['define-record',Name,Fdefs]|Macs],St1}.
+    %% {yes,[progn,['extend-module',[Type],[]]|Macs],St1}.
 
 define(Name, Fdefs, Env, St) ->
     %% Get field names, default values and indices.

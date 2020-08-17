@@ -58,14 +58,18 @@
 -define(IS_MAP(T), false).
 -endif.
 
-%% Errors
+%% Errors we get, generally in the predefined macros.
 format_error({bad_form,Type}) ->
     lfe_io:format1("bad form: ~w", [Type]);
 format_error({bad_env_form,Type}) ->
     lfe_io:format1("bad environment form: ~w", [Type]);
 format_error({expand_macro,Call,Error}) ->
     %% Can be very big so only print limited depth.
-    lfe_io:format1("error expanding ~P:\n    ~P", [Call,10,Error,10]).
+    lfe_io:format1("error expanding ~P:\n    ~P", [Call,10,Error,10]);
+format_error({missing_field_value,R,F}) ->
+    lfe_io:format1("missing value to field ~w in record ~w",[F,R]);
+format_error(Error) ->
+    lfe_io:format1("macro expansion error: ~P\n", [Error,10]).
 
 %% expand_expr(Form, Env) -> {yes,Exp} | no.
 %% expand_expr_1(Form, Env) -> {yes,Exp} | no.
@@ -372,8 +376,11 @@ exp_form(['map-set'|As], Env, St) ->
 exp_form(['map-update'|As], Env, St) ->
     exp_normal_core('map-update', As, Env, St);
 %% Record special forms.
+exp_form(['define-record',Name,Fds], Env, St0) ->
+    {Efds,St1} = exp_list(Fds, Env, St0),
+    {['define-record',Name,Efds],St1};
 exp_form(['make-record',Name,Fs], Env, St0) ->
-    {Efs,St1} = exp_rec_fields(Fs, Env, St0),
+    {Efs,St1} = exp_rec_fields(Fs, Name, Env, St0),
     {['make-record',Name,Efs],St1};
 exp_form(['record-index',Name,F], _, St) ->
     {['record-index',Name,F],St};
@@ -382,7 +389,7 @@ exp_form(['record-field',E,Name,F], Env, St0) ->
     {['record-field',Ee,Name,F],St1};
 exp_form(['record-update',E,Name,Fs], Env, St0) ->
     {Ee,St1} = exp_form(E, Env, St0),
-    {Efs,St2} = exp_rec_fields(Fs, Env, St1),
+    {Efs,St2} = exp_rec_fields(Fs, Name, Env, St1),
     {['record-update',Ee,Name,Efs],St2};
 %% Function forms.
 exp_form([function|_]=F, _, St) -> {F,St};
@@ -479,14 +486,15 @@ exp_tail(Fun, [E0|Es0], Env, St0) ->
 exp_tail(_, [], _, St) -> {[],St};
 exp_tail(Fun, E, Env, St) -> Fun(E, Env, St).   %Same on improper tail.
 
-%% exp_rec_fields(Fields, Env, State) -> {ExpFields,State}.
+%% exp_rec_fields(Fields, Name, Env, State) -> {ExpFields,State}.
 
-exp_rec_fields([F0,V0|Fs0], Env, St0) ->
+exp_rec_fields([F0,V0|Fs0], Name, Env, St0) ->
     {F1,St1} = exp_form(F0, Env, St0),
     {V1,St2} = exp_form(V0, Env, St1),
-    {Fs1,St3} = exp_rec_fields(Fs0, Env, St2),
+    {Fs1,St3} = exp_rec_fields(Fs0, Name, Env, St2),
     {[F1,V1|Fs1],St3};
-exp_rec_fields([], _, St) -> {[],St}.
+exp_rec_fields([F], Name, _, _) -> error({missing_field_value,Name,F});
+exp_rec_fields([], _, _, St) -> {[],St}.
 
 %% exp_clauses(Clauses, Env, State) -> {ExpCls,State}.
 %% exp_ml_clauses(Clauses, Env, State) -> {ExpCls,State}.
@@ -832,8 +840,6 @@ exp_predef(['define',Head|Body], _, St) ->
                   ['define-function',Head,[],Body]
           end,
     {yes,Exp,St};
-exp_predef(['define-record'|Def], _, St) ->
-    {yes,[defrecord|Def],St};
 exp_predef(['define-syntax',Name,Def], _, St) ->
     {Meta,Mdef} = exp_syntax(Name, Def),
     {yes,['define-macro',Name,Meta,Mdef],St};

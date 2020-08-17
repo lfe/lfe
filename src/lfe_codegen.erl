@@ -57,7 +57,8 @@
              pref=[],                           %Prefixes
              atts=[],                           %Attrubutes
              mets=[],                           %Metadata
-             defs=[],                           %Function definitions.
+             recs=[],                           %Record definitions
+             defs=[],                           %Function definitions
              opts=[],                           %Options
              file=[],                           %File name
              func=[],                           %Current function
@@ -104,7 +105,7 @@ collect_form({['define-opaque-type',Type,Def],L}, {Fds,St}) ->
 collect_form({['define-function-spec',Func,Spec],L}, {Fds,St}) ->
     {Fds,collect_meta([spec,[Func,Spec]], L, St)};
 collect_form({['define-record',Name,Fields],L}, {Fds,St}) ->
-    {Fds,collect_meta([record,[Name|Fields]], L, St)};
+    {Fds,collect_record(Name, Fields, L, St)};
 collect_form({['define-function',Name,Meta,Def],L}, {Fds,St}) ->
     {collect_function(Name, Meta, Def, L, Fds),St};
 %% Ignore macro definitions and eval-when-compile forms.
@@ -113,8 +114,8 @@ collect_form({['eval-when-compile'|_],_}, {Fds,St}) -> {Fds,St}.
 
 %% collect_metas(Metas, Line, State) -> State.
 %%  Collect module metadata which is to be compiled. Only type
-%%  information is to be kept. There can be only one type/spec/record
-%%  per attribute.
+%%  information is to be kept. There can be only one type/spec per
+%%  attribute. Note that record metas are no longerr legal.
 
 collect_metas(Ms, L, St) ->
     foldl(fun (M, S) -> collect_meta(M, L, S) end, St, Ms).
@@ -128,14 +129,12 @@ collect_meta([opaque|Tds], L, #cg{mets=Ms}=St) ->
 collect_meta([spec|Sps], L, #cg{mets=Ms}=St) ->
     Ss = [ {spec,Sp,L} || Sp <- Sps ],
     St#cg{mets=Ms ++ Ss};
-collect_meta([record|Rds], L, #cg{mets=Ms}=St) ->
-    Rs = [ {record,Rd,L} || Rd <- Rds ],
-    St#cg{mets=Ms ++ Rs};
 collect_meta(_M, _L, St) -> St.                 %Ignore the rest
 
 %% collect_attrs(Attributes, Line, State) -> State.
 %%  Collect module attributes and fill in the #cg state record. Need
-%%  to ignore all eventual doc attributes.
+%%  to ignore all eventual doc attributes. Note that record attributes
+%%  are no longer legal here.
 
 collect_attrs(As, L, St) ->
     %% io:format("ca: ~p\n", [As]),
@@ -144,6 +143,7 @@ collect_attrs(As, L, St) ->
 collect_attr([export|Es], _, St) -> collect_exps(Es, St);
 collect_attr([import|Is], _, St) -> collect_imps(Is, St);
 collect_attr([doc|_], _, St) -> St;             %Don't save doc attribute!
+collect_attr([record|_], _, St) -> St;          %Ignore record attribute!
 collect_attr([N,V], L, #cg{atts=As}=St) ->      %Common case
     St#cg{atts=As ++ [{N,V,L}]};
 collect_attr([N|Vs], L, #cg{atts=As}=St) ->
@@ -175,6 +175,9 @@ collect_imp(Fun, Mod, St, Fs) ->
     Imps1 = foldl(Fun, Imps0, Fs),
     St#cg{imps=store(Mod, Imps1, St#cg.imps)}.
 
+collect_record(Name, Fields, L, #cg{recs=Rs}=St) ->
+    St#cg{recs=Rs ++ [{Name,Fields,L}]}.
+
 collect_function(Name, _Meta, Def, L, Fds) ->
     %% Ignore the meta data.
     Fs = lfe_codelift:function(Name, Def, L),   %Lift all local functions
@@ -189,6 +192,7 @@ compile_forms(Fbs0, St0) ->
     Exp = comp_export(Fbs0, St1),
     Imps = comp_imports(St1),
     Atts = comp_attributes(St1),
+    Recs = comp_records(St1),
     Mets = map(fun (Meta) ->
                        %% io:format("cm: ~p\n", [Meta]),
                        comp_metadata(Meta)
@@ -200,7 +204,7 @@ compile_forms(Fbs0, St0) ->
     Erl = [make_attribute(file, {St2#cg.file,Mline}, Mline),
            make_attribute(module, St2#cg.module, Mline),
            Exp|
-           Imps ++ Atts ++ Mets ++ Edefs],
+           Imps ++ Atts ++ Mets ++ Recs ++ Edefs],
     {Erl,St2}.
 
 comp_export(Fbs, #cg{exps=Exps,mline=Line}) ->
@@ -232,8 +236,6 @@ comp_metadata({opaque,Type,Line}) ->
     comp_type_metadata(opaque, Type, Line);
 comp_metadata({spec,Spec,Line}) ->
     comp_spec_metadata(Spec, Line);
-comp_metadata({record,Record,Line}) ->
-    comp_record_metadata(Record, Line);
 comp_metadata({N,V,Line}) ->
     make_attribute(N, V, Line).
 
@@ -247,15 +249,21 @@ comp_spec_metadata([[Name,Ar],Spec], Line) ->
     Sdef = {{Name,Ar},lfe_types:to_func_spec_list(Spec, Line)},
     make_attribute(spec, Sdef, Line).
 
-%% comp_record_metadata(Record, Line) -> Metadata.
+%% comp_records(State) -> [Attribute].
+%% comp_record_def(Record, Line) -> Attribute.
 %%  Format depends on whether 18 and older or newer.
 
+comp_records(#cg{recs=Rs}) ->
+    map(fun ({Name,Fields,Line}) ->
+                comp_record_def(Name, Fields, Line)
+        end, Rs).
+
 -ifdef(NEW_REC_CORE).
-comp_record_metadata([Name|Fields], Line) ->
+comp_record_def(Name, Fields, Line) ->
     Fdefs = [ comp_record_field(Fdef, Line) || Fdef <- Fields ],
     make_attribute(record, {Name,Fdefs}, Line).
 -else.
-comp_record_metadata([Name|Fields], Line) ->
+comp_record_def(Name, Fields, Line) ->
     Fdefs = [ comp_record_field(Fdef, Line) || Fdef <- Fields ],
     make_attribute(type, {{record,Name},Fdefs}, Line).
 -endif.

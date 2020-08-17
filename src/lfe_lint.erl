@@ -59,10 +59,7 @@
 %% Errors.
 format_error({bad_mdef,D}) ->
     lfe_io:format1("bad module definition: ~w", [D]);
-format_error(bad_extends) -> "bad extends";
-format_error(bad_funcs) -> "bad function list";
 format_error(bad_body) -> "bad body";
-format_error(bad_clause) -> "bad clause";
 format_error(bad_guard) -> "bad guard";
 format_error(bad_args) -> "bad argument list";
 format_error(bad_gargs) -> "bad guard argument list";
@@ -95,10 +92,6 @@ format_error({illegal_pattern,Pat}) ->
 format_error(illegal_guard) -> "illegal guard";
 format_error({illegal_mapkey,Key}) ->
     lfe_io:format1("illegal map key ~w", [Key]);
-format_error({undefined_bittype,S}) ->
-    lfe_io:format1("bit type ~w undefined", [S]);
-format_error(bittype_unit) ->
-    "bit unit size can only be specified together with size";
 format_error(illegal_bitseg) -> "illegal bit segment";
 format_error(illegal_bitsize) -> "illegal bit size";
 format_error({deprecated,What}) ->
@@ -108,6 +101,7 @@ format_error({bad_record,R}) ->
     lfe_io:format1("bad record definition: ~w", [R]);
 format_error({redef_record,R}) ->
     lfe_io:format1("record ~w already defined", [R]);
+%% These are also used in lfe_eval.
 format_error({undefined_record,R}) ->
     lfe_io:format1("record ~w undefined", [R]);
 format_error({undefined_field,R,F}) ->
@@ -131,7 +125,12 @@ format_error({type_syntax,T}) ->
 format_error({undefined_type,{T,A}}) ->
     lfe_io:format1("type ~w/~w undefined", [T,A]);
 format_error({bad_spec,S}) ->
-    lfe_io:format1("bad function spec: ~w", [S]).
+    lfe_io:format1("bad function spec: ~w", [S]);
+%% These are signaled from lfe_bits.
+format_error({undefined_bittype,S}) ->
+   lfe_io:format1("bit type ~w undefined", [S]);
+format_error(bittype_unit) ->
+    "bit unit size can only be specified together with size".
 
 %% expr(Expr) -> {ok,[Warning]} | {error,[Error],[Warning]}.
 %% expr(Expr, Env) -> {ok,[Warning]} | {error,[Error],[Warning]}.
@@ -230,6 +229,7 @@ collect_form({_,L}, {Fbs,St}) ->
     {Fbs,add_error(L, unknown_form, St)}.
 
 %% check_mdef(Metadata, Attributes, Line, State) -> State.
+%%  Check a module definition, its metasdata and attributes.
 
 check_mdef(Metas, Atts, L, St0) ->
     St1 = check_mmetas(Metas, L, St0),
@@ -251,8 +251,8 @@ check_mmeta([opaque|Tds], L, St) ->
     check_type_defs(Tds, L, St);
 check_mmeta([spec|Sps], L, St) ->
     check_func_specs(Sps, L, St);
-check_mmeta([record|Rds], L, St) ->
-    check_record_defs(Rds, L, St);
+check_mmeta([record|_Rds], L, St) ->
+    depr_error(L, "record definition meta", St);
 check_mmeta([M|Vals], L, St) ->
     %% Other metadata, must be list and have symbol name.
     ?IF(is_atom(M) and lfe_lib:is_proper_list(Vals),
@@ -260,6 +260,7 @@ check_mmeta([M|Vals], L, St) ->
 check_mmeta(_, L, St) -> bad_mdef_error(L, meta, St).
 
 %% check_attrs(Attributes, Line, State) -> State.
+%%  Check the attributes of the module.
 
 check_attrs(As, L, St) ->
     check_foreach(fun (A, S) -> check_attr(A, L, S) end,
@@ -279,6 +280,8 @@ check_attr([import|Is], L, St) ->
 check_attr([doc|Docs], L, St0) ->
     St1 = depr_warning(L, "documentation string attribute", St0),
     check_doc_attr(Docs, L, St1);
+check_attr([record|_Rds], L, St) ->
+    depr_error(L, "record definition attribute", St);
 %% Note we handle type and spec as normal attributes here.
 check_attr([A|Vals], L, St) ->
     %% Other attributes, must be list and have symbol name.
@@ -373,10 +376,10 @@ check_type_name([T|Args], L, #lint{types=Kts}=St) when is_atom(T) ->
                             {Ts,St#lint{types=[Kt|Kts]}}
                     end
             end;
-        false -> {[],add_error(L, {bad_type,T}, St)}
+        false -> {[],bad_type_error(L, T, St)}
     end;
 check_type_name(T, L, St) ->                    %Type name wrong format
-    {[],add_error(L, {bad_type,T}, St)}.
+    {[],bad_type_error(L, T, St)}.
 
 %% check_type_vars(TypeVars, Line, State) -> State.
 %%  Check for singleton type variables except for _ which we allow.
@@ -425,20 +428,8 @@ check_func_name(F, L, St) ->
 check_type_vars_list(Tvss, L, St) ->
     lists:foldl(fun (Tvs, S) -> check_type_vars(Tvs, L, S) end, St, Tvss).
 
-%% check_record_defs(RecordDefs, Line, State) -> State.
-%% check_record_def(RecordDef, Line, State) -> State.
 %% check_record_def(Record, Fields, Line, State) -> State.
 %%  Check a record definition.
-
-check_record_defs(Rds, L, St) ->
-    check_foreach(fun (Rd, S) -> check_record_def(Rd, L, S) end,
-                  fun (S) -> bad_meta_error(L, record, S) end,
-                  St, Rds).
-
-check_record_def([Name|Fields], L, St) ->
-    check_record_def(Name, Fields, L, St);
-check_record_def(_, L, St) ->
-    bad_meta_error(L, record, St).
 
 check_record_def(Name, Fds, L, #lint{recs=Rs}=St0) when is_atom(Name) ->
     case orddict:is_key(Name, Rs) of
@@ -1109,8 +1100,8 @@ check_guard(G, Env, L, St) -> check_gbody(G, Env, L, St).
 
 check_gbody(Exprs, Env, L, St) ->
     check_foreach(fun (E, S) -> check_gexpr(E, Env, L, S) end,
-		  fun (S) -> add_error(L, bad_guard, S) end,
-		  St, Exprs).
+                  fun (S) -> add_error(L, bad_guard, S) end,
+                  St, Exprs).
 
 %% check_gexpr(Call, Env, Line, State) -> State.
 %%  Check a guard expression. This is a restricted body expression.
@@ -1131,17 +1122,11 @@ check_gexpr(['record-index',Name,F], Env, L, St) ->
 check_gexpr(['record-field',E,Name,F], Env, L, St0) ->
     St1 = check_gexpr(E, Env, L, St0),
     check_record(Name, [F], Env, L, St1);
-%% Check the Core closure special forms.
-%% check_gexpr(['let'|Let], Env, L, St) ->
-%%     check_glet(Let, Env, L, St);
 %% Special known data type operations.
 check_gexpr(['andalso'|Es], Env, L, St) ->
     check_gargs(Es, Env, L, St);
 check_gexpr(['orelse'|Es], Env, L, St) ->
     check_gargs(Es, Env, L, St);
-%% Check the Core control special forms.
-%% check_gexpr(['progn'|B], Env, L, St) -> check_gbody(B, Env, L, St);
-%% check_gexpr(['if'|B], Env, L, St) -> check_gif(B, Env, L, St);
 check_gexpr([call,?Q(erlang),?Q(Fun)|As], Env, L, St0) ->
     St1 = check_gargs(As, Env, L, St0),
     %% It must be a legal guard bif here.
@@ -1189,41 +1174,8 @@ check_gargs(Args, Env, L, St) ->
                   fun (S) -> add_error(L, bad_gargs, S) end,
                   St, Args).
 
-check_gexprs(Es, Env, L, St) ->
-    foldl(fun (E, S) -> check_gexpr(E, Env, L, S) end, St, Es).
-
-%% check_glet(LetBody, Env, Line, State) -> State.
-%%  Allow restricted let in guard with no matching and only guard
-%%  expressions.
-
-check_glet([Vbs|Body], Env, L, St0) ->
-    Check = fun (Vb, Vs, Sta) ->
-                    {Bvs,Stb} = check_glet_vb(Vb, Env, L, Sta),
-                    Stc = case intersection(Bvs, Vs) of
-                              [] -> Stb;
-                              Ivs -> multi_var_error(L, Ivs, Stb)
-                          end,
-                    {union(Bvs, Vs), Stc}
-            end,
-    {Pvs,St1} = foldl_form(Check, 'let', L, [], St0, Vbs),
-    check_gbody(Body, add_vbindings(Pvs, Env), L, St1);
-check_glet(_, _, L, St) ->
-    bad_gform_error(L, 'let', St).
-
-check_glet_vb([V,Expr], Env, L, St) when is_atom(V) ->
-    {[V],check_gexpr(Expr, Env, L, St)};
-check_glet_vb(_, _, L, St) ->
-    {[],bad_gform_error(L, 'let', St)}.
-
-%% check_gif(IfBody, Env, Line, State) -> State.
-%%  Check guard form (if Test True [False]).
-
-check_gif([Test,True,False], Env, L, St) ->
-    check_gexprs([Test,True,False], Env, L, St);
-check_gif([Test,True], Env, L, St) ->
-    check_gexprs([Test,True], Env, L, St);
-check_gif(_, _, L, St) ->
-    bad_gform_error(L, 'if', St).               %Signal as guard error.
+%% check_gexprs(Es, Env, L, St) ->
+%%     foldl(fun (E, S) -> check_gexpr(E, Env, L, S) end, St, Es).
 
 %% gexpr_bitsegs(BitSegs, Env, Line, State) -> State.
 
@@ -1656,6 +1608,12 @@ undefined_func_error(L, F, St) ->
 
 illegal_guard_error(L, St) ->
     add_error(L, illegal_guard, St).
+
+bad_type_error(L, T, St) ->
+    add_error(L, {bad_type,T}, St).
+
+depr_error(L, D, St) ->
+    add_error(L, {deprecated,D}, St).
 
 depr_warning(L, D, St) ->
     add_warning(L, {deprecated,D}, St).
