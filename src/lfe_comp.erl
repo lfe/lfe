@@ -187,7 +187,6 @@ lfe_comp_opts(Opts) ->
     Fun = fun ('to-split') -> to_split;
               ('to-expmac') -> to_expmac;
               ('to-expand') -> to_expand;
-              ('to-exp') -> to_exp;             %Backwards compatibility
               ('to-pmod') -> to_pmod;
               ('to-lint') -> to_lint;
               ('no-docs') -> no_docs;
@@ -251,7 +250,6 @@ passes() ->
      %% Now we expand and trim remaining macros.
      {do,fun do_expand_macros/1},
      {when_flag,to_expand,{done,fun expand_pp/1}},
-     {when_flag,to_exp,{done,fun expand_pp/1}}, %Backwards compatibility
      {do,fun do_lfe_pmod/1},
      {when_flag,to_pmod,{done,fun pmod_pp/1}},
      {do,fun do_lfe_lint/1},
@@ -267,11 +265,13 @@ passes() ->
      {when_flag,to_core,{done,fun erl_core_pp/1}},
      {when_flag,to_kernel,{done,fun erl_kernel_pp/1}},
      {when_flag,to_asm,{done,fun erl_asm_pp/1}},
-     %% Write docs beam chunks.
-     {do,fun add_chunks/1},
+     %% Stop at non-binary returns, either return or drop.
+     {unless_test,fun is_binary_module/1,done},
      %% Now we just write the beam file unless warnings-as-errors is
      %% set and we have warnings.
      {when_test,fun is_werror/1,error},
+     %% Write docs beam chunks.
+     {do,fun add_chunks/1},
      {done,fun beam_write/1}                    %Should be last
     ].
 
@@ -516,10 +516,6 @@ erl_comp_opts(St) ->
     Filter = fun (report) -> false;             %No reporting!
                  (report_warnings) -> false;
                  (report_errors) -> false;
-                 ('S') -> false;                %No stopping early
-                 ('E') -> false;
-                 ('P') -> false;
-                 (dcore) -> false;
                  (warnings_as_errors) -> false; %We handle these ourselves
                  ({source,_}) -> false;
                  (_) -> true                    %Everything else
@@ -649,6 +645,16 @@ beam_write_module(#module{name=M,code=Beam}=Mod, St) ->
 %% fix_erl_errors([{File,Errors}]) -> Errors.
 
 fix_erl_errors(Fes) -> flatmap(fun ({_,Es}) -> Es end, Fes).
+
+%% is_binary_module(State) -> true | false.
+%%  Check whether the module code is a binary or not.
+
+is_binary_module(#comp{code=Mods}) ->
+    case Mods of
+	[#module{code=Code}|_] when is_binary(Code) -> true;
+	_ -> false
+	%% _ -> io:format("ibr: ~p\n", [Mods]), false
+    end.
 
 %% is_werror(State) -> true | false.
 %%  Check if warnings_as_errors is set and we have warnings.
