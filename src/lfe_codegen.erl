@@ -58,7 +58,8 @@
              atts=[],                           %Attrubutes
              mets=[],                           %Metadata
              recs=[],                           %Record definitions
-             defs=[],                           %Function definitions
+             defs=[],                           %Defined top-level functions
+             fncs=[],                           %Function definitions
              opts=[],                           %Options
              file=[],                           %File name
              func=[],                           %Current function
@@ -77,40 +78,39 @@ module(Mfs, #cinfo{opts=Opts,file=File}) ->
 %% compile_module(ModuleForms, State) -> {CoreModule,State}.
 
 compile_module(Mfs, St0) ->
-    {Fbs,St1} = collect_module(Mfs, St0),
-    compile_forms(Fbs, St1).
+    St1 = collect_module(Mfs, St0),
+    compile_forms(St1).
 
 %% collect_module(ModuleForms, State) -> {Fbs,State}.
 %%  Collect forms and module data. Returns function bindings and puts
 %%  module data into state.
 
 collect_module(Mfs, St0) ->
-    {Fds,St1} = lists:foldl(fun collect_form/2, {[],St0}, Mfs),
-    {lists:reverse(Fds),St1}.
+    lists:foldl(fun collect_form/2, St0, Mfs).
 
-%% collect_form(Form, Line, State} -> {FuncDefs,State}.
+%% collect_form(Form, Line, State} -> State.
 %%  Collect valid forms and module data. Returns forms and put module
 %%  data into state.
 
-collect_form({['define-module',Mod,Metas,Atts],L}, {Fds,St0}) ->
+collect_form({['define-module',Mod,Metas,Atts],L}, St0) ->
     St1 = collect_metas(Metas, L, St0#cg{module=Mod,mline=L}),
-    {Fds,collect_attrs(Atts, L, St1)};
-collect_form({['extend-module',Meta,Atts],L}, {Fds,St0}) ->
+    collect_attrs(Atts, L, St1);
+collect_form({['extend-module',Meta,Atts],L}, St0) ->
     St1 = collect_metas(Meta, L, St0),
-    {Fds,collect_attrs(Atts, L, St1)};
-collect_form({['define-type',Type,Def],L}, {Fds,St}) ->
-    {Fds,collect_meta([type,[Type,Def]], L, St)};
-collect_form({['define-opaque-type',Type,Def],L}, {Fds,St}) ->
-    {Fds,collect_meta([opaque,[Type,Def]], L, St)};
-collect_form({['define-function-spec',Func,Spec],L}, {Fds,St}) ->
-    {Fds,collect_meta([spec,[Func,Spec]], L, St)};
-collect_form({['define-record',Name,Fields],L}, {Fds,St}) ->
-    {Fds,collect_record(Name, Fields, L, St)};
-collect_form({['define-function',Name,Meta,Def],L}, {Fds,St}) ->
-    {collect_function(Name, Meta, Def, L, Fds),St};
+    collect_attrs(Atts, L, St1);
+collect_form({['define-type',Type,Def],L}, St) ->
+    collect_meta([type,[Type,Def]], L, St);
+collect_form({['define-opaque-type',Type,Def],L}, St) ->
+    collect_meta([opaque,[Type,Def]], L, St);
+collect_form({['define-function-spec',Func,Spec],L}, St) ->
+    collect_meta([spec,[Func,Spec]], L, St);
+collect_form({['define-record',Name,Fields],L}, St) ->
+    collect_record(Name, Fields, L, St);
+collect_form({['define-function',Name,Meta,Def],L}, St) ->
+    collect_function(Name, Meta, Def, L, St);
 %% Ignore macro definitions and eval-when-compile forms.
-collect_form({['define-macro'|_],_}, {Fds,St}) -> {Fds,St};
-collect_form({['eval-when-compile'|_],_}, {Fds,St}) -> {Fds,St}.
+collect_form({['define-macro'|_],_}, St) -> St;
+collect_form({['eval-when-compile'|_],_}, St) -> St.
 
 %% collect_metas(Metas, Line, State) -> State.
 %%  Collect module metadata which is to be compiled. Only type
@@ -149,6 +149,8 @@ collect_attr([N,V], L, #cg{atts=As}=St) ->      %Common case
 collect_attr([N|Vs], L, #cg{atts=As}=St) ->
     St#cg{atts=As ++ [{N,Vs,L}]}.
 
+%% collect_exps(Exports, State) -> State.
+
 collect_exps([all], St) -> St#cg{exps=all};     %Propagate all
 collect_exps(_, #cg{exps=all}=St) -> St;
 collect_exps(Es, #cg{exps=Exps0}=St) ->
@@ -156,6 +158,8 @@ collect_exps(Es, #cg{exps=Exps0}=St) ->
     Exps1 = foldl(fun ([F,A], E) -> add_element({F,A}, E) end,
                   Exps0, Es),
     St#cg{exps=Exps1}.
+
+%% collect_imps(Imports, State) -> State.
 
 collect_imps(Is, St) ->
     foldl(fun (I, S) -> collect_imp(I, S) end, St, Is).
@@ -178,38 +182,41 @@ collect_imp(Fun, Mod, St, Fs) ->
 collect_record(Name, Fields, L, #cg{recs=Rs}=St) ->
     St#cg{recs=Rs ++ [{Name,Fields,L}]}.
 
-collect_function(Name, _Meta, Def, L, Fds) ->
+%% collect_function(Name, MetaData, Definition, Line, State) -> State.
+%%  Collect a function and its lifted internal functions.
+
+collect_function(Name, _Meta, Def, L, #cg{defs=Defs,fncs=Fncs}=St) ->
     %% Ignore the meta data.
     Fs = lfe_codelift:function(Name, Def, L),   %Lift all local functions
-    Fs ++ Fds.
+    St#cg{defs=Defs ++ [{Name,Def,L}],          %User defined top-level
+          fncs=Fncs ++ Fs}.                     %All funcs
 
-%% compile_forms(Forms, State) -> {ErlForms,State}.
+%% compile_forms(State) -> {ErlForms,State}.
 %%  Compile the forms from the file as stored in the state record.
 
-compile_forms(Fbs0, St0) ->
+compile_forms(St0) ->
     %% Make initial environment and set state.
-    St1 = St0#cg{defs=Fbs0},                    %Save the forms in #cg{}
-    Exp = comp_export(Fbs0, St1),
-    Imps = comp_imports(St1),
-    Atts = comp_attributes(St1),
-    Recs = comp_records(St1),
+    Exp = comp_export(St0),
+    Imps = comp_imports(St0),
+    Atts = comp_attributes(St0),
+    Recs = comp_records(St0),
     Mets = map(fun (Meta) ->
                        %% io:format("cm: ~p\n", [Meta]),
                        comp_metadata(Meta)
-               end, St1#cg.mets),
+               end, St0#cg.mets),
     %% Compile the functions.
-    {Edefs,St2} = mapfoldl(fun (D, St) -> comp_define(D, St) end,
-                           St1, St1#cg.defs),
-    Mline = St2#cg.mline,
-    Erl = [make_attribute(file, {St2#cg.file,Mline}, Mline),
-           make_attribute(module, St2#cg.module, Mline),
+    {Edefs,St1} = mapfoldl(fun (D, St) -> comp_define(D, St) end,
+                           St0, St0#cg.fncs),
+    Mline = St1#cg.mline,
+    Erl = [make_attribute(file, {St1#cg.file,Mline}, Mline),
+           make_attribute(module, St1#cg.module, Mline),
            Exp|
            Imps ++ Atts ++ Mets ++ Recs ++ Edefs],
-    {Erl,St2}.
+    {Erl,St1}.
 
-comp_export(Fbs, #cg{exps=Exps,mline=Line}) ->
+comp_export(#cg{exps=Exps,defs=Defs,mline=Line}) ->
     Es = if Exps =:= all ->
-                 [ {F,func_arity(Def)} || {F,Def,_} <- Fbs ];
+                 [ {F,func_arity(Def)} || {F,Def,_} <- Defs ];
             true -> Exps                        %Already in right format
          end,
     make_attribute(export, Es, Line).
