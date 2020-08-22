@@ -1,6 +1,6 @@
 % lfe_guide(7)
 % Robert Virding
-% 2008-2018
+% 2008-2020
 
 
 # NAME
@@ -428,7 +428,6 @@ while it reads the expression and then be effectively ``2``.
              ...)
   ...)
 (begin ...)
-(define-record name ...)
 ```
 
 # Patterns

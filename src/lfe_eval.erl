@@ -84,6 +84,11 @@ format_error({argument_limit,Arity}) ->
     lfe_io:format1(<<"too many arguments ~w">>, [Arity]);
 format_error({bad_form,Form}) ->
     lfe_io:format1(<<"bad ~w form">>, [Form]);
+%% Records.
+format_error({undefined_record,R}) ->
+    lfe_io:format1(<<"record ~w undefined">>, [R]);
+format_error({undefined_field,R,F}) ->
+    lfe_io:format1(<<"field ~w undefined in record ~w">>, [F,R]);
 %% Everything we don't recognise or know about.
 format_error(Error) ->
     lfe_io:prettyprint1(Error).
@@ -182,25 +187,34 @@ eval_expr(['map-set',M|As], Env) ->
 eval_expr(['map-update',M|As], Env) ->
     eval_expr([mupd,M|As], Env);
 %% Record special forms.
-eval_expr(['make-record',Name|_Fs], Env) ->
+eval_expr(['make-record',Name,Args], Env) ->
     case lfe_env:get_record(Name, Env) of
-	{yes,_Fs} -> undefined_field_error(Name, 'undefined');
-	no -> undefined_record_error(Name)
+        {yes,Fields} ->
+            T = make_record_tuple(Name, Fields, Args),
+            eval_expr(T, Env);
+        no -> undefined_record_error(Name)
     end;
 eval_expr(['record-index',Name,F], Env) ->
     case lfe_env:get_record(Name, Env) of
-	{yes,_Fs} -> undefined_field_error(Name, F);
-	no -> undefined_record_error(Name)
+        {yes,Fields} ->
+            get_field_index(Name, Fields, F);
+        no -> undefined_record_error(Name)
     end;
-eval_expr(['record-field',_E,Name,F], Env) ->
+eval_expr(['record-field',E,Name,F], Env) ->
+    Ev = eval_expr(E, Env),
     case lfe_env:get_record(Name, Env) of
-	{yes,_Fs} -> undefined_field_error(Name, F);
-	no -> undefined_record_error(Name)
+        {yes,Fields} ->
+            Index = get_field_index(Name, Fields, F),
+            element(Index, Ev);                 %Report if Ev not a record
+        no -> undefined_record_error(Name)
     end;
-eval_expr(['record-update',_E,Name|_Fs], Env) ->
+eval_expr(['record-update',E,Name,Args], Env) ->
+    Ev = eval_expr(E, Env),
     case lfe_env:get_record(Name, Env) of
-	{yes,_Fs} -> undefined_field_error(Name, 'undefined');
-	no -> undefined_record_error(Name)
+        {yes,Fields} ->
+            T = update_record_tuple(Name, Fields, Ev, Args),
+            eval_expr(T, Env);
+        no -> undefined_record_error(Name)
     end;
 %% Function forms.
 eval_expr([function,Fun,Ar], Env) ->
@@ -271,6 +285,50 @@ eval_expr(Symb, Env) when is_atom(Symb) ->
         no -> unbound_symb_error(Symb)
     end;
 eval_expr(E, _) -> E.                           %Atomic evaluate to themselves
+
+%% make_record_tuple(Name, Fields, Args) -> TupleList.
+
+make_record_tuple(Name, Fields, Args) ->
+    Es = make_record_elements(Name, Fields, Args),
+    [tuple,?Q(Name)|Es].
+
+make_record_elements(Name, [[F,Def|_]|Fields], Args) ->
+    Val = get_arg_val(F, Args, Def),
+    [Val|make_record_elements(Name, Fields, Args)];
+make_record_elements(Name, [F|Fields], Args) ->
+    Val = get_arg_val(F, Args, ?Q(undefined)),
+    [Val|make_record_elements(Name, Fields, Args)];
+make_record_elements(_Name, [], _Args) -> [].
+
+get_arg_val(F, [F,V|_], _Def) -> V;
+get_arg_val(F, [_,_|Args], Def) -> get_arg_val(F, Args, Def);
+get_arg_val(_, [], Def) -> Def.
+
+%% get_field_index(Name, Fields, Field) -> Index.
+
+get_field_index(Name, Fields, F) ->
+    get_field_index(Name, Fields, F, 2).        %First element record name
+
+get_field_index(_Name, [[F|_]|_Fields], F, I) -> I;
+get_field_index(_Name, [F|_Fields], F, I) -> I;
+get_field_index(Name, [_|Fields], F, I) ->
+    get_field_index(Name, Fields, F, I+1);
+get_field_index(Name, [], F, _I) ->
+    undefined_field_error(Name, F).
+
+%% update_record_tuple(Name, Fields, Record, Args) -> TupleList
+
+update_record_tuple(Name, Fields, Rec, Args) ->
+    Es = update_record_elements(Name, Fields, tl(tuple_to_list(Rec)), Args),
+    [tuple,?Q(Name)|Es].
+
+update_record_elements(Name, [[F|_]|Fields], [Val|Vals], Args) ->
+    [get_arg_val(F, Args, ?Q(Val))|
+     update_record_elements(Name, Fields, Vals, Args)];
+update_record_elements(Name, [F|Fields], [Val|Vals], Args) ->
+    [get_arg_val(F, Args, ?Q(Val))|
+     update_record_elements(Name, Fields, Vals, Args)];
+update_record_elements(_Name, [], [], _Args) -> [].
 
 %% get_fbinding(NAme, Arity, Env) ->
 %%     {yes,Module,Fun} | {yes,Binding} | no.
@@ -765,10 +823,7 @@ eval_try(E, Case, Catch, After, Env) ->
                 no -> Ret
             end
     catch
-        Class:Error ->
-            %% Try does return the stacktrace here but we can't hit it
-            %% so we have to explicitly get it.
-            Stack = erlang:get_stacktrace(),
+        Class:Error:Stack ->
             case Catch of
                 {yes,Cls} ->
                     eval_catch_clauses({Class,Error,Stack}, Cls, Env);
@@ -824,9 +879,8 @@ eval_guard(Gts, Env) ->
         true -> true;
         _Other -> false                         %Fail guard
     catch
-        error:illegal_guard ->                  %Handle illegal guard
-            St = erlang:get_stacktrace(),
-            erlang:raise(error, illegal_guard, St);
+        error:illegal_guard:Stack ->            %Handle illegal guard
+            erlang:raise(error, illegal_guard, Stack);
         _:_ -> false                            %Fail guard
     end.
 

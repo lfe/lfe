@@ -24,19 +24,13 @@
 
 -export([define/3,format_error/1]).
 
--export([record_set_functions/4]).
-
 -import(lists, [map/2,foldr/3,concat/1]).
 
 -include("lfe_macro.hrl").
 
 %% Errors.
-format_error({badrecord,R}) ->
+format_error({bad_record,R}) ->
     lfe_io:format1("bad definition of record ~w",[R]);
-format_error({undefined_record_field,R,F}) ->
-    lfe_io:format1("undefined field ~w in record ~w",[F,R]);
-format_error({missing_field_value,R,F}) ->
-    lfe_io:format1("missing value to field ~w in record ~w",[F,R]);
 format_error(_) -> "record error".
 
 %% define([Name|FieldDefs], Env, State) -> {ok,Form,State}.
@@ -47,16 +41,16 @@ format_error(_) -> "record error".
 %%       point-x, set-point-x, point-y, set-point-y.
 
 define([Name|Fdefs], Env, St0) ->
-    {Macs,Type, _,St1} = define(Name, Fdefs, Env, St0),
-    {yes,[progn,['define-record',Name,Fdefs]|Macs],St1}.
-    %% {yes,[progn,['extend-module',[Type],[]]|Macs],St1}.
+    {Macs,_Type, _,St1} = define(Name, Fdefs, Env, St0),
+    {yes,[progn,['define-record',Name,Fdefs]|Macs],St1};
+define([], _Env, _St) -> no.        	%Undefined macro
 
-define(Name, Fdefs, Env, St) ->
+define(Name, Fdefs, Env, St) when is_atom(Name) ->
     %% Get field names, default values and indices.
     Fields = map(fun ([F,_,_]) when is_atom(F) -> F;
                      ([F,_]) when is_atom(F) -> F;
                      (F) when is_atom(F) -> F;
-                     (_) -> error({badrecord,Name})
+                     (_) -> bad_record_error(Name)
                  end, Fdefs),
     %% Make access macros.
     Macs = [make_macro(Name),                   %make-Name
@@ -70,7 +64,9 @@ define(Name, Fdefs, Env, St) ->
             |
             field_macros(Name, Fields)],        %Name-F,set-Name-F
     Type = type_information(Name, Fdefs, St),
-    {Macs,Type,Env,St}.
+    {Macs,Type,Env,St};
+define(Name, _Fdefs, _Env, _St) ->
+    bad_record_error(Name).
 
 make_macro(Name) ->
     Make = list_to_atom(concat(['make','-',Name])),
@@ -116,7 +112,7 @@ field_macros(Name, Fs) ->
     Fun = fun (F, Fas) ->
                   Get = list_to_atom(concat([Name,'-',F])),
                   Set = list_to_atom(concat(['set-',Name,'-',F])),
-		  Upd = list_to_atom(concat(['update-',Name,'-',F])),
+                  Upd = list_to_atom(concat(['update-',Name,'-',F])),
                   [[defmacro,Get,
                     [[],?Q(['record-index',Name,F])],
                     [[list,rec],
@@ -134,19 +130,4 @@ type_information(Name, Fdefs, _St) ->
     %% code generator which knows about the record attribute.
     [record,[Name|Fdefs]].
 
-%% record_set_functions(FieldUpds, Name, IndexFun, RecordVar) ->
-%%     {LetList,Body}.
-%%  Define list of [V,Val] for let wrapper and the set body. RecordVar
-%%  is the variable of value of the initial record.
-
-record_set_functions(Fds, Name, Index, Rec) ->
-    %% Must eval Lets first as it catches error.
-    Lets = fun ([F,V|Ps], Fun) -> [[F,V]|Fun(Ps, Fun)];
-               ([F], _) -> erlang:error({missing_field_value,Name,F});
-               ([], _) -> []
-           end,
-    Body = fun ([F,_|Ps], I, B, Fun) ->
-                   Fun(Ps, I, [setelement,I(F),B,F], Fun);
-               ([], _, B, _) -> B
-           end,
-    {Lets(Fds, Lets),Body(Fds, Index, Rec, Body)}.
+bad_record_error(Name) -> error({bad_record,Name}).

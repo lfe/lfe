@@ -340,7 +340,6 @@ Supported forms
                            ...)
                 ...)
               (begin ...)
-              (define-record name ...)
 
 Patterns
        Written  as normal data expressions where symbols are variables and use
@@ -923,4 +922,4 @@ AUTHORS
 
 
 
-                                   2008-2018                      lfe_guide(7)
+                                   2008-2020                      lfe_guide(7)

@@ -98,7 +98,9 @@ format_error({deprecated,What}) ->
     lfe_io:format1("deprecated: ~s", [What]);
 format_error(unknown_form) -> "unknown form";
 format_error({bad_record,R}) ->
-    lfe_io:format1("bad record definition: ~w", [R]);
+    lfe_io:format1("bad definition of record ~w", [R]);
+format_error({bad_field,R,F}) ->
+    lfe_io:format1("bad field ~w in record ~w", [F,R]);
 format_error({redef_record,R}) ->
     lfe_io:format1("record ~w already defined", [R]);
 %% These are also used in lfe_eval.
@@ -460,7 +462,7 @@ check_record_field(R, F, L,  #lint{recs=Rs}=St) ->
     if is_atom(F) ->
             St#lint{recs=orddict:append(R, F, Rs)};
        true ->
-            bad_record_error(L, F, St)
+            bad_field_error(L, R, F, St)
     end.
 
 %% collect_function(Name, Meta, Def, Line, Fbs, State) -> {Fbs,State}.
@@ -1590,6 +1592,9 @@ bad_mdef_error(L, D, St) ->
 
 bad_record_error(L, R, St) ->
     add_error(L, {bad_record,R}, St).
+
+bad_field_error(L, R, F, St) ->
+    add_error(L, {bad_field,R,F}, St).
 
 undefined_record_error(L, R, St) ->
     add_error(L, {undefined_record,R}, St).
