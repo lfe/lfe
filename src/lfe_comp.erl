@@ -257,7 +257,6 @@ passes() ->
      {unless_flag,no_docs,{do,fun do_get_docs/1}},
      {do,fun do_lfe_codegen/1},
      {when_flag,to_erlang,{done,fun erlang_pp/1}},
-     {when_flag,debug_info,{do,fun do_get_abstract/1}},
      {do,fun do_erl_comp/1},
      %% These options will have made erlang compiler return internal
      %% form after pass.
@@ -439,7 +438,6 @@ process_forms(Fun, Fs, L, St) ->
 %% do_lint(State) -> {ok,State} | {error,State}.
 %% do_get_docs(State) -> {ok,State} | {error,State}.
 %% do_lfe_codegen(State) -> {ok,State} | {error,State}.
-%% do_get_abstract(State) -> {ok,State} | {error,State}.
 %% do_erl_comp(State) -> {ok,State} | {error,State}.
 %%  The actual compiler passes.
 
@@ -478,14 +476,6 @@ do_lfe_codegen(#comp{cinfo=Ci,code=Ms0}=St) ->
                    Mod#module{code=Core}
            end,
     Ms1 = lists:map(Code, Ms0),
-    {ok,St#comp{code=Ms1}}.
-
-do_get_abstract(#comp{code=Ms0,opts=Opts}=St) ->
-    Abst = fun (#module{code=Core,chunks=Chks}=Mod) ->
-                   {ok,Chunk} = lfe_abstract_code:make_chunk(Core, Opts),
-                   Mod#module{chunks=[Chunk|Chks]}
-           end,
-    Ms1 = lists:map(Abst, Ms0),
     {ok,St#comp{code=Ms1}}.
 
 do_erl_comp(#comp{code=Ms0}=St0) ->
