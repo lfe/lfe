@@ -420,20 +420,6 @@ the expression and then be effectively \f[C]2\f[].
 (defrecord\ name\ ...)
 \f[]
 .fi
-.SS Older Scheme inspired macros
-.IP
-.nf
-\f[C]
-(define\ (name\ arg\ ...)\ ...)
-(define\ name\ lambda|match\-lambda)
-(define\-syntax\ name
-\ \ (syntax\-rules\ (pat\ exp)\ ...)|(macro\ (pat\ body)\ ...))
-(let\-syntax\ ((name\ ...)
-\ \ \ \ \ \ \ \ \ \ \ \ \ ...)
-\ \ ...)
-(begin\ ...)
-\f[]
-.fi
 .SH Patterns
 .PP
 Written as normal data expressions where symbols are variables and use
@@ -730,19 +716,24 @@ is used.
 .PP
 Scheme\[aq]s syntax rules are an easy way to define macros where the
 body is just a simple expansion.
-These are supported with \f[C]defsyntax\f[] and \f[C]syntaxlet\f[].
+The are implmeneted the the module \f[C]scm\f[] and are supported with
+\f[C]scm:define\-syntax\f[] and \f[C]scm:let\-syntax\f[] and the
+equivalent \f[C]scm:defsyntax\f[] and \f[C]scm:syntaxlet\f[].
 Note that the patterns are only the arguments to the macro call and do
 not contain the macro name.
 So using them we would get:
 .IP
 .nf
 \f[C]
-(defsyntax\ andalso
+(scm:defsyntax\ andalso
 \ \ (()\ \[aq]true)
 \ \ ((e)\ e)
 \ \ ((e\ .\ es)\ (case\ e\ (\[aq]true\ (andalso\ .\ es))\ (\[aq]false\ \[aq]false))))
 \f[]
 .fi
+.PP
+There is an include file "include/scm.lfe" which defines macros so the
+names don\[aq]t have to be prefixed with \f[C]scm:\f[].
 .PP
 N.B.
 These are definitely NOT hygienic.

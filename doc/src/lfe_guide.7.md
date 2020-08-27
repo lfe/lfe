@@ -417,19 +417,6 @@ while it reads the expression and then be effectively ``2``.
 (defrecord name ...)
 ```
 
-## Older Scheme inspired macros
-
-```
-(define (name arg ...) ...)
-(define name lambda|match-lambda)
-(define-syntax name
-  (syntax-rules (pat exp) ...)|(macro (pat body) ...))
-(let-syntax ((name ...)
-             ...)
-  ...)
-(begin ...)
-```
-
 # Patterns
 
 Written as normal data expressions where symbols are variables and use
@@ -688,16 +675,21 @@ which are called by macros can defined after the macro but must be
 defined before the macro is used.
 
 Scheme's syntax rules are an easy way to define macros where the body
-is just a simple expansion. These are supported with ``defsyntax`` and
-``syntaxlet``. Note that the patterns are only the arguments to the macro
-call and do not contain the macro name. So using them we would get:
+is just a simple expansion. The are implmeneted the the module `scm`
+and are supported with ``scm:define-syntax`` and ``scm:let-syntax``
+and the equivalent ``scm:defsyntax`` and ``scm:syntaxlet``. Note that
+the patterns are only the arguments to the macro call and do not
+contain the macro name. So using them we would get:
 
 ```
-(defsyntax andalso
+(scm:defsyntax andalso
   (() 'true)
   ((e) e)
   ((e . es) (case e ('true (andalso . es)) ('false 'false))))
 ```
+
+There is an include file "include/scm.lfe" which defines macros so the
+names don't have to be prefixed with ``scm:``.
 
 N.B. These are definitely NOT hygienic.
 

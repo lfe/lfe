@@ -36,9 +36,6 @@
 
 -export([format_error/1]).
 
--export([mbe_syntax_rules_proc/4,mbe_syntax_rules_proc/5,
-         mbe_match_pat/3,mbe_get_bindings/3,mbe_expand_pattern/3]).
-
 %% -compile([export_all]).
 
 -import(lfe_env, [new/0,add_vbinding/3,is_vbound/2,
@@ -828,28 +825,6 @@ exp_predef(['include-file'|Ibody], Env, St) ->
     lfe_macro_include:file(Ibody, Env, St);
 exp_predef(['include-lib'|Ibody], Env, St) ->
     lfe_macro_include:lib(Ibody, Env, St);
-%% Compatibility macros for the older Scheme like syntax.
-exp_predef(['begin'|Body], _, St) ->
-    {yes,['progn'|Body],St};
-exp_predef(['define',Head|Body], _, St) ->
-    %% Let the lint catch errors here.
-    Exp = case lfe_lib:is_symb_list(Head) of
-              true ->
-                  ['define-function',hd(Head),[],[lambda,tl(Head)|Body]];
-              false ->
-                  ['define-function',Head,[],Body]
-          end,
-    {yes,Exp,St};
-exp_predef(['define-syntax',Name,Def], _, St) ->
-    {Meta,Mdef} = exp_syntax(Name, Def),
-    {yes,['define-macro',Name,Meta,Mdef],St};
-exp_predef(['let-syntax',Defs|Body], _, St) ->
-    Fun = fun ([Name,Def]) ->
-                  {_,Def} = exp_syntax(Name, Def),
-                  [Name,Def]
-          end,
-    Mdefs = map(Fun, Defs),
-    {yes,['let-macro',Mdefs|Body],St};
 %% Common Lisp inspired macros.
 exp_predef([defmodule,Name|Rest], _, St) ->
     %% Need to handle parametrised module defs here. Limited checking.
@@ -879,9 +854,6 @@ exp_predef([defmacro,Name|Rest], _, St) ->
     %% or matching (defmacro name (patlist1 ...) (patlist2 ...))
     {Meta,Def} = exp_defmacro(Rest),
     {yes,['define-macro',Name,Meta,Def],St};
-exp_predef([defsyntax,Name|Rules], _, St) ->
-    {Meta,Def} = exp_rules(Name, [], Rules),
-    {yes,['define-macro',Name,Meta,Def],St};
 exp_predef([flet,Defs|Body], _, St) ->
     Fun = fun ([Name|Rest]) ->
                   {_,Def} = exp_defun(Rest),    %Ignore meta data
@@ -899,13 +871,6 @@ exp_predef([fletrec,Defs|Body], _, St) ->
 exp_predef([macrolet,Defs|Body], _, St) ->
     Fun = fun ([Name|Rest]) ->
                   {_,Def} = exp_defmacro(Rest), %Ignore meta data
-                  [Name,Def]
-          end,
-    Mdefs = map(Fun, Defs),
-    {yes,['let-macro',Mdefs|Body],St};
-exp_predef([syntaxlet,Defs|Body], _, St) ->
-    Fun = fun ([Name|Rest]) ->
-                  {_,Def} = exp_rules(Name, [], Rest),
                   [Name,Def]
           end,
     Mdefs = map(Fun, Defs),
@@ -1292,30 +1257,6 @@ exp_match_defmacro(Rest) ->
     {Meta,Cls} = exp_meta(Rest, []),
     {Meta,map(fun ([Head|Body]) -> [[Head,'$ENV']|Body] end, Cls)}.
 
-%% exp_syntax(Name, Def) -> {Meta,Lambda | MatchLambda}.
-%%  N.B. New macro definition is function of 2 arguments, the whole
-%%  argument list of macro call, and the current macro environment.
-
-exp_syntax(Name, Def) ->
-    case Def of
-        [macro|Cls] ->
-            Mcls = map(fun ([Pat|Body]) -> [[Pat,'$ENV']|Body] end, Cls),
-            {[],['match-lambda'|Mcls]};
-        ['syntax-rules'|Rules] ->
-            exp_rules(Name, [], Rules)
-    end.
-
-%% exp_rules(Name, Keywords, Rules) -> {Meta,Lambda}.
-%%  Expand into call function which expands macro an invocation time,
-%%  this saves much space and costs us nothing.
-%%  N.B. New macro definition is function of 2 arguments, the whole
-%%  argument list of macro call, and the current macro environment.
-
-exp_rules(Name, Keywords, Rules) ->
-    {[],[lambda,[args,'$ENV'],
-         [':',lfe_macro,mbe_syntax_rules_proc,
-          [quote,Name],[quote,Keywords],[quote,Rules],args]]}.
-
 %%  By Andr� van Tonder
 %%  Unoptimized.  See Dybvig source for optimized version.
 %%  Resembles one by Richard Kelsey and Jonathan Rees.
@@ -1432,196 +1373,6 @@ new_symbs(0, St, Vs) -> {Vs,St}.
 new_fun_name(Pre, St) ->
     C = St#mac.fc,
     {list_to_atom(Pre ++ "$^" ++ integer_to_list(C)),St#mac{fc=C+1}}.
-
-%% Macro by Example
-%% Proper syntax-rules which can handle ... ellipsis by Dorai Sitaram.
-%%
-%% While we extend patterns to include tuples and binaries as in
-%% normal LFE we leave the keyword handling in even though it is
-%% subsumed by quotes and not really used.
-
-%% To make it more lispy!
--define(car(L), hd(L)).
--define(cdr(L), tl(L)).
--define(cadr(L), hd(tl(L))).
--define(cddr(L), tl(tl(L))).
-
--define(mbe_ellipsis(Car, Cddr), [Car,'...'|Cddr]).
-
-is_mbe_symbol(S) ->
-    is_atom(S) andalso not is_boolean(S).
-
-%% Tests if ellipsis pattern, (p ... . rest)
-%% is_mbe_ellipsis(?mbe_ellipsis(_, _)) -> true;
-%% is_mbe_ellipsis(_) -> false.
-
-mbe_match_pat([quote,P], E, _) -> P =:= E;
-mbe_match_pat([tuple|Ps], [tuple|Es], Ks) ->    %Match tuple constructor
-    mbe_match_pat(Ps, Es, Ks);
-mbe_match_pat([tuple|Ps], E, Ks) ->             %Match literal tuple
-    case is_tuple(E) of
-        true -> mbe_match_pat(Ps, tuple_to_list(E), Ks);
-        false -> false
-    end;
-mbe_match_pat(?mbe_ellipsis(Pcar, _), E, Ks) ->
-    case lfe_lib:is_proper_list(E) of
-        true ->
-            all(fun (X) -> mbe_match_pat(Pcar, X, Ks) end, E);
-        false -> false
-    end;
-mbe_match_pat([Pcar|Pcdr], E, Ks) ->
-    case E of
-        [Ecar|Ecdr] ->
-            mbe_match_pat(Pcar, Ecar, Ks) andalso
-                mbe_match_pat(Pcdr, Ecdr, Ks);
-        _ -> false
-    end;
-mbe_match_pat(Pat, E, Ks) ->
-    case is_mbe_symbol(Pat) of
-        true ->
-            case member(Pat, Ks) of
-                true -> Pat =:= E;
-                false -> true
-            end;
-        false -> Pat =:= E
-    end.
-
-mbe_get_ellipsis_nestings(Pat, Ks) ->
-    m_g_e_n(Pat, Ks).
-
-m_g_e_n([quote,_], _) -> [];
-m_g_e_n([tuple|Ps], Ks) -> m_g_e_n(Ps, Ks);
-m_g_e_n(?mbe_ellipsis(Pcar, Pcddr), Ks) ->
-    [m_g_e_n(Pcar, Ks)|m_g_e_n(Pcddr, Ks)];
-m_g_e_n([Pcar|Pcdr], Ks) ->
-    m_g_e_n(Pcar, Ks) ++ m_g_e_n(Pcdr, Ks);
-m_g_e_n(Pat, Ks) ->
-    case is_mbe_symbol(Pat) of
-        true ->
-            case member(Pat, Ks) of
-                true -> [];
-                false -> [Pat]
-            end;
-        false -> []
-    end.
-
-mbe_ellipsis_sub_envs(Nestings, R) ->
-    ormap(fun (C) ->
-          case mbe_intersect(Nestings, ?car(C)) of
-              true -> ?cdr(C);
-              false -> false
-          end end, R).
-
-%% Return first value of F applied to elements in list which is not false.
-ormap(F, [H|T]) ->
-    case F(H) of
-        false -> ormap(F, T);
-        V -> V
-    end;
-ormap(_, []) -> false.
-
-mbe_intersect(V, Y) ->
-    case is_mbe_symbol(V) orelse is_mbe_symbol(Y) of
-        true -> V =:= Y;
-        false ->
-            any(fun (V0) ->
-                        any(fun (Y0) -> mbe_intersect(V0, Y0) end, Y)
-                end, V)
-    end.
-
-%% mbe_get_bindings(Pattern, Expression, Keywords) -> Bindings.
-
-mbe_get_bindings([quote,_], _, _) -> [];
-mbe_get_bindings([tuple|Ps], [tuple|Es], Ks) ->    %Tuple constructor
-    mbe_get_bindings(Ps, Es, Ks);
-mbe_get_bindings([tuple|Ps], E, Ks) ->        %Literal tuple
-    mbe_get_bindings(Ps, tuple_to_list(E), Ks);
-mbe_get_bindings(?mbe_ellipsis(Pcar, _), E, Ks) ->
-    [[mbe_get_ellipsis_nestings(Pcar, Ks) |
-      map(fun (X) -> mbe_get_bindings(Pcar, X, Ks) end, E)]];
-mbe_get_bindings([Pcar|Pcdr], [Ecar|Ecdr], Ks) ->
-    mbe_get_bindings(Pcar, Ecar, Ks) ++
-        mbe_get_bindings(Pcdr, Ecdr, Ks);
-mbe_get_bindings(Pat, E, Ks) ->
-    case is_mbe_symbol(Pat) of
-        true ->
-            case member(Pat, Ks) of
-                true -> [];
-                false -> [[Pat|E]]
-            end;
-        false -> []
-    end.
-
-%% mbe_expand_pattern(Pattern, Bindings, Keywords) -> Form.
-
-mbe_expand_pattern([quote,P], R, Ks) ->
-    [quote,mbe_expand_pattern(P, R, Ks)];
-mbe_expand_pattern([tuple|Ps], R, Ks) ->
-    [tuple|mbe_expand_pattern(Ps, R, Ks)];
-mbe_expand_pattern(?mbe_ellipsis(Pcar, Pcddr), R, Ks) ->
-    Nestings = mbe_get_ellipsis_nestings(Pcar, Ks),
-    Rr = mbe_ellipsis_sub_envs(Nestings, R),
-    map(fun (R0) -> mbe_expand_pattern(Pcar, R0 ++ R, Ks) end, Rr) ++
-        mbe_expand_pattern(Pcddr, R, Ks);
-mbe_expand_pattern([Pcar|Pcdr], R, Ks) ->
-    [mbe_expand_pattern(Pcar, R, Ks)|
-     mbe_expand_pattern(Pcdr, R, Ks)];
-mbe_expand_pattern(Pat, R, Ks) ->
-    case is_mbe_symbol(Pat) of
-        true ->
-            case member(Pat, Ks) of
-                true -> Pat;
-                false ->
-                    case lfe:assoc(Pat, R) of
-                        [_|Cdr] -> Cdr;
-                        [] -> Pat
-                    end
-            end;
-        false -> Pat
-    end.
-
-%% mbe_syntax_rules_proc(Name, Keywords, Rules, Argsym, Keywordsym) ->
-%%      Sexpr.
-%%  Generate the sexpr to evaluate in a macro from Name and
-%%  Rules. When the sexpr is applied to arguments (in Argsym) and
-%%  evaluated then expansion is returned.
-
-%% Return sexpr to evaluate.
-mbe_syntax_rules_proc(Name, Ks0, Cls, Argsym, Ksym) ->
-    Ks = [Name|Ks0],
-    %% Don't prepend the macro name to the arguments!
-    ['let',[[Ksym,[quote,Ks]]],
-     ['cond'] ++
-         map(fun (C) ->
-                     Inpat = hd(C),
-                     Outpat = hd(tl(C)),
-                     [[':',lfe_macro,mbe_match_pat,[quote,Inpat], Argsym, Ksym],
-                      ['let',
-                       [[r,[':',lfe_macro,mbe_get_bindings,
-                            [quote,Inpat],Argsym,Ksym]]],
-                       [':',lfe_macro,mbe_expand_pattern,
-                        [quote,Outpat],r,Ksym]]]
-             end, Cls) ++
-         [[[quote,true],[':',erlang,error,
-                         [tuple,
-                          [quote,expand_macro],
-                          [cons,[quote,Name],Argsym], %??? Must check this
-                          [quote,macro_clause]]]]]].
-
-%% Do it all directly.
-mbe_syntax_rules_proc(Name, Ks0, Cls, Args) ->
-    Ks = [Name|Ks0],
-    case ormap(fun ([Pat,Exp]) ->
-                       case mbe_match_pat(Pat, Args, Ks) of
-                           true ->
-                               R = mbe_get_bindings(Pat, Args, Ks),
-                               [mbe_expand_pattern(Exp, R, Ks)];
-                           false -> false
-                       end
-               end, Cls) of
-        [Res] -> Res;
-        false -> erlang:error({expand_macro,[Name|Args],macro_clause})
-    end.
 
 %% lc_te(Exprs, Qualifiers, State) -> {Exp,State}.
 %% bc_te(Exprs, Qualifiers, State) -> {Exp,State}.
