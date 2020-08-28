@@ -463,7 +463,7 @@ do_lfe_lint(#comp{cinfo=Ci,code=Ms0}=St0) ->
 
 do_get_docs(#comp{code=Ms0,opts=Opts}=St) ->
     Doc = fun (#module{code=Mfs,chunks=Chks}=Mod) ->
-                  {ok,Chunk} = lfe_doc:make_chunk(Mfs, Opts),
+                  {ok,Chunk} = lfe_docs:make_chunk(Mfs, Opts),
                   Mod#module{chunks=[Chunk|Chks]}
           end,
     Ms1 = lists:map(Doc, Ms0),

@@ -46,6 +46,7 @@
 -import(lists, [reverse/1,foreach/2]).
 
 -include("lfe.hrl").
+-include("lfe_docs.hrl").
 
 %% Coloured strings for the LFE banner, red, green, yellow and blue.
 -define(RED(Str), "\e[31m" ++ Str ++ "\e[0m").
@@ -1002,15 +1003,15 @@ docs(Fs) ->
 doc(What) ->
     [Mod|F] = lfe_lib:split_name(What),
     io:format(?RED("~*c")++"\n", [60,$_]),      %Print a red line
-    case lfe_doc:get_module_docs(Mod) of
-        {ok,Docs} ->
+    case lfe_docs:get_module_docs(Mod) of
+        {ok,#docs_v1{}=Docs} ->
             case F of
                 [] ->                           %Only module name
                     print_module_doc(Mod, Docs);
-                [Mac] ->                        %Macro
-                    print_macro_doc(Mac, Docs);
-                [Fun,Ar] ->                     %Function
-                    print_function_doc(Fun, Ar, Docs)
+                [Name] ->                       %Macro and functions
+                    print_macro_doc(Name, Docs);
+                [Name,Arity] ->                 %Just on function
+                    print_function_doc(Name, Arity, Docs)
             end;
         {error,module} ->
             lfe_io:format("No module ~s\n\n", [Mod]);
@@ -1018,30 +1019,41 @@ doc(What) ->
             lfe_io:format("No module documentation for ~s\n\n", [Mod])
     end.
 
-print_module_doc(Mod, Docs) ->
+%% print_module_doc(Mod, DocsInfo) -> ok.
+%%  Print the module documentation.
+
+print_module_doc(Mod, #docs_v1{module_doc=Md}=_Docs) ->
     lfe_io:format(?BLU("~p")++"\n\n", [Mod]),
-    print_docs(lfe_doc:module_doc(Docs)),
-    io:nl().
+    print_doc(Md).
 
-print_macro_doc(Mac, Docs) ->
-    case lfe_doc:macro_docs(Mac, Docs) of
-        {ok,Md} ->
-            lfe_io:format(?BLU("~p")++"\n", [Mac]),
-            print_docs(lfe_doc:macro_doc(Md)),
-            io:nl();
-        error ->
-            lfe_io:format("No macro ~s defined\n\n", [Mac])
-    end.
+%% print_macro_doc(Name, DocsInfo) -> ok.
+%%  Print the documentation for functions and macros with that
+%%  name. We use the signature.
 
-print_function_doc(Fun, Ar, Docs) ->
-    case lfe_doc:function_docs(Fun, Ar, Docs) of
-        {ok,Fd} ->
-            lfe_io:format(?BLU("~p/~p")++"\n", [Fun,Ar]),
-            print_docs(lfe_doc:function_doc(Fd)),
-            io:nl();
-        error ->
-            lfe_io:format("No function ~s/~p defined\n\n", [Fun,Ar])
-    end.
+print_macro_doc(Mac, #docs_v1{docs=Ds}=_Docs) ->
+    Fns = [ F || {{_,N,_},_,_,_,_}=F <- Ds,
+                 N =:= Mac ],
+    lists:foreach(fun ({{function,_,_},_,Sig,Doc,_}) ->
+                          lfe_io:format(?BLU("defun ~s")++"\n", [Sig]),
+                          print_doc(Doc);
+                      ({{macro,_,_},_,Sig,Doc,_}) ->
+                          lfe_io:format(?BLU("defmacro ~s")++"\n", [Sig]),
+                          print_doc(Doc)
+                  end, Fns).
 
-print_docs(Ds) ->
-    foreach(fun (D) -> lfe_io:format("~s\n", [D]) end, Ds).
+%% print_function_doc(Name, Arity, DocsInfo) -> ok.
+%%  Print the function documentation. We use the signature.
+
+print_function_doc(Name, Arity, #docs_v1{docs=Ds}=_Docs) ->
+    Fns = [ F || {{function,N,A},_,_,_,_}=F <- Ds,
+                 N =:= Name, A =:= Arity ],
+    lists:foreach(fun ({_,_,Sig,Doc,_}) ->
+                          lfe_io:format(?BLU("defun ~s")++"\n", [Sig]),
+                          print_doc(Doc)
+                  end, Fns).
+
+%% print_doc(Doc) -> ok.
+%%  Only print the languages we know.
+
+print_doc(#{<<"en">> := Dv}) -> lfe_io:format("~s\n\n", [Dv]);
+print_doc(_) -> io:nl().
