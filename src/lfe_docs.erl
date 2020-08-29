@@ -37,7 +37,7 @@
 %%              DocValue :: binary() | term()
 
 -module(lfe_docs).
--export([make_chunk/2]).
+-export([make_chunk/2,make_docs_info/2]).
 
 -export([get_module_docs/1]).
 

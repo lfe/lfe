@@ -1,4 +1,4 @@
-%% Copyright (c) 2016 Eric Bailey
+%% Copyright (c) 2016-2020 Eric Bailey
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -12,17 +12,20 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 
-%% File    : prop_lfe_doc.erl
-%% Author  : Eric Bailey
-%% Purpose : PropEr tests for the lfe_doc module.
+%% File    : prop_lfe_docs.erl
+%% Author  : Eric Bailey, Robert Virding
+%% Purpose : PropEr tests for the lfe_docs module.
 
--module(prop_lfe_doc).
+%% This module is a modified version of the older test module for
+%% lfe_doc written by Eric Bailey.
+
+-module(prop_lfe_docs).
 
 -export([prop_define_lambda/0,prop_define_match/0]).
 
 -include_lib("proper/include/proper.hrl").
 
--include("lfe_doc.hrl").
+-include("lfe_docs.hrl").
 
 %%%===================================================================
 %%% Properties
@@ -42,39 +45,27 @@ validate({['define-macro',Name,_Doc,_Def],_}=Mac) ->
 function_arity([lambda,Args|_]) -> length(Args);
 function_arity(['match-lambda',[Pat|_]|_]) -> length(Pat).
 
-validate_function(Name, Arity, {[_Define,_Name,Meta,_Def],Line}=Func) ->
+validate_function(Name, Arity, {[_Define,_Name,_Meta,_Def],Line}=Func) ->
     Info = [export_all_funcs(),Func],           %Add function export
-    case lfe_doc:make_doc_info(Info, []) of
-        {ok,#lfe_docs_v1{fdocs=[Fdoc],mdocs=[]}} ->
-            %% Must collect multiple doc strings.
-            MetaDocs = lfe_doc:collect_docs(Meta, []),
-            Fdocs = lfe_doc:function_doc(Fdoc),
-            (doc_string(MetaDocs) =:= doc_string(Fdocs))
-                and (Name =:= lfe_doc:function_name(Fdoc))
-                and (Arity =:= lfe_doc:function_arity(Fdoc))
-                and (Line =:= lfe_doc:function_line(Fdoc));
+    case lfe_docs:make_docs_info(Info, []) of
+        {ok,#docs_v1{docs=[Fdoc]}} ->
+            {{function,N,A},Anno,_,_,_} = Fdoc,
+            (Line =:= Anno) and (Name =:= N) and (Arity =:= A);
         _ -> false
     end.
 
-validate_macro(Name, {[_Define,_Name,Meta,_Lambda],Line}=Mac) ->
+validate_macro(Name, {[_Define,_Name,_Meta,_Lambda],Line}=Mac) ->
     Info = [export_macro(Name),Mac],            %Add macro export
-    case lfe_doc:make_doc_info(Info, []) of
-        {ok,#lfe_docs_v1{fdocs=[],mdocs=[Mdoc]}} ->
-            %% Must collect multiple doc strings.
-            MetaDocs = lfe_doc:collect_docs(Meta, []),
-            Mdocs = lfe_doc:macro_doc(Mdoc),
-            (doc_string(MetaDocs) =:= doc_string(Mdocs))
-                and (Name =:= lfe_doc:macro_name(Mdoc))
-                and (Line =:= lfe_doc:macro_line(Mdoc));
+    case lfe_docs:make_docs_info(Info, []) of
+        {ok,#docs_v1{docs=[Mdoc]}} ->
+            {{macro,N,_},Anno,_,_,_} = Mdoc,
+            (Line =:= Anno) and Name =:= N;
         _ -> false
     end.
 
 export_all_funcs() -> {['extend-module',[],[[export,all]]],1}.
 
 export_macro(Mac) -> {['extend-module',[],[['export-macro',Mac]]],1}.
-
-doc_string(Docs) ->
-    lists:foldl(fun (D, Acc) -> binary_to_list(D) ++ Acc end, "", Docs).
 
 %%%===================================================================
 %%% Definition shapes
