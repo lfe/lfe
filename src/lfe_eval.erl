@@ -299,7 +299,7 @@ make_record_elements(Fields, Args, Env) ->
 
 make_arg_val(F, [F,V|_], _Def, Env) -> eval_expr(V, Env);
 make_arg_val(F, [_,_|Args], Def, Env) -> make_arg_val(F, Args, Def, Env);
-make_arg_val(_, [], Def, Env) -> eval_expr(Def, Env).
+make_arg_val(_, [], Def, Env) -> expr(Def, Env).
 
 %% get_field_index(Name, Fields, Field) -> Index.
 
