@@ -455,7 +455,9 @@ eval_form_1(['extend-module'|_], St) ->         %Maybe from macro expansion
 eval_form_1(['eval-when-compile'|_], St) ->     %Maybe from macro expansion
     %% We can happily ignore this.
     {[],St};
-eval_form_1(['define-record',Name,Fields], #state{curr=Ce0}=St) ->
+eval_form_1(['define-record',_,_]=RecDef, #state{curr=Ce0}=St) ->
+    %% We need to expand the record definition all the way now.
+    ['define-record',Name,Fields] = lfe_macro:expand_expr_all(RecDef, Ce0),
     Ce1 = lfe_env:add_record(Name, Fields, Ce0),
     {Name,St#state{curr=Ce1}};
 eval_form_1(['define-function',Name,_Meta,Def], #state{curr=Ce0}=St) ->

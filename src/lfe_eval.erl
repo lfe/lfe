@@ -190,8 +190,7 @@ eval_expr(['map-update',M|As], Env) ->
 eval_expr(['make-record',Name,Args], Env) ->
     case lfe_env:get_record(Name, Env) of
         {yes,Fields} ->
-            T = make_record_tuple(Name, Fields, Args),
-            eval_expr(T, Env);
+            make_record_tuple(Name, Fields, Args, Env);
         no -> undefined_record_error(Name)
     end;
 eval_expr(['record-index',Name,F], Env) ->
@@ -212,8 +211,7 @@ eval_expr(['record-update',E,Name,Args], Env) ->
     Ev = eval_expr(E, Env),
     case lfe_env:get_record(Name, Env) of
         {yes,Fields} ->
-            T = update_record_tuple(Name, Fields, Ev, Args),
-            eval_expr(T, Env);
+            update_record_tuple(Name, Fields, Ev, Args, Env);
         no -> undefined_record_error(Name)
     end;
 %% Function forms.
@@ -286,23 +284,22 @@ eval_expr(Symb, Env) when is_atom(Symb) ->
     end;
 eval_expr(E, _) -> E.                           %Atomic evaluate to themselves
 
-%% make_record_tuple(Name, Fields, Args) -> TupleList.
+%% make_record_tuple(Name, Fields, Args, Env) -> TupleList.
+%%  We have to macro expand and evaluate the default values here as well.
 
-make_record_tuple(Name, Fields, Args) ->
-    Es = make_record_elements(Name, Fields, Args),
-    [tuple,?Q(Name)|Es].
+make_record_tuple(Name, Fields, Args, Env) ->
+    Es = make_record_elements(Fields, Args, Env),
+    list_to_tuple([Name|Es]).
 
-make_record_elements(Name, [[F,Def|_]|Fields], Args) ->
-    Val = get_arg_val(F, Args, Def),
-    [Val|make_record_elements(Name, Fields, Args)];
-make_record_elements(Name, [F|Fields], Args) ->
-    Val = get_arg_val(F, Args, ?Q(undefined)),
-    [Val|make_record_elements(Name, Fields, Args)];
-make_record_elements(_Name, [], _Args) -> [].
+make_record_elements(Fields, Args, Env) ->
+    Mfun = fun ([F,Def|_]) -> make_arg_val(F, Args, Def, Env);
+               (F) -> make_arg_val(F, Args, ?Q(undefined), Env)
+           end,
+    lists:map(Mfun, Fields).
 
-get_arg_val(F, [F,V|_], _Def) -> V;
-get_arg_val(F, [_,_|Args], Def) -> get_arg_val(F, Args, Def);
-get_arg_val(_, [], Def) -> Def.
+make_arg_val(F, [F,V|_], _Def, Env) -> eval_expr(V, Env);
+make_arg_val(F, [_,_|Args], Def, Env) -> make_arg_val(F, Args, Def, Env);
+make_arg_val(_, [], Def, Env) -> eval_expr(Def, Env).
 
 %% get_field_index(Name, Fields, Field) -> Index.
 
@@ -316,19 +313,22 @@ get_field_index(Name, [_|Fields], F, I) ->
 get_field_index(Name, [], F, _I) ->
     undefined_field_error(Name, F).
 
-%% update_record_tuple(Name, Fields, Record, Args) -> TupleList
+%% update_record_tuple(Name, Fields, Record, Args, Env) -> TupleList
+%%  Update the Record with the Args.
 
-update_record_tuple(Name, Fields, Rec, Args) ->
-    Es = update_record_elements(Name, Fields, tl(tuple_to_list(Rec)), Args),
-    [tuple,?Q(Name)|Es].
+update_record_tuple(Name, Fields, Rec, Args, Env) ->
+    Es = update_record_elements(Fields, tl(tuple_to_list(Rec)), Args, Env),
+    list_to_tuple([Name|Es]).
 
-update_record_elements(Name, [[F|_]|Fields], [Val|Vals], Args) ->
-    [get_arg_val(F, Args, ?Q(Val))|
-     update_record_elements(Name, Fields, Vals, Args)];
-update_record_elements(Name, [F|Fields], [Val|Vals], Args) ->
-    [get_arg_val(F, Args, ?Q(Val))|
-     update_record_elements(Name, Fields, Vals, Args)];
-update_record_elements(_Name, [], [], _Args) -> [].
+update_record_elements(Fields, Recvs, Args, Env) ->
+    Ufun = fun ([F|_], Rv) ->  update_arg_val(F, Args, Rv, Env);
+               (F, Rv) -> update_arg_val(F, Args, Rv, Env)
+           end,
+    lists:zipwith(Ufun, Fields, Recvs).
+
+update_arg_val(F, [F,V|_], _Recv, Env) -> eval_expr(V, Env);
+update_arg_val(F, [_,_|Args], Recv, Env) -> update_arg_val(F, Args, Recv, Env);
+update_arg_val(_, [], Recv, _Env) -> Recv.
 
 %% get_fbinding(NAme, Arity, Env) ->
 %%     {yes,Module,Fun} | {yes,Binding} | no.

@@ -57,16 +57,16 @@
 
 %% Errors we get, generally in the predefined macros.
 format_error({bad_form,Type}) ->
-    lfe_io:format1("bad form: ~w", [Type]);
+    lfe_io:format1(<<"bad form: ~w">>, [Type]);
 format_error({bad_env_form,Type}) ->
-    lfe_io:format1("bad environment form: ~w", [Type]);
+    lfe_io:format1(<<"bad environment form: ~w">>, [Type]);
 format_error({expand_macro,Call,Error}) ->
     %% Can be very big so only print limited depth.
-    lfe_io:format1("error expanding ~P:\n    ~P", [Call,10,Error,10]);
+    lfe_io:format1(<<"error expanding ~P:\n    ~P">>, [Call,10,Error,10]);
 format_error({missing_field_value,R,F}) ->
-    lfe_io:format1("missing value to field ~w in record ~w",[F,R]);
+    lfe_io:format1(<<"missing value to field ~w in record ~w">>,[F,R]);
 format_error(Error) ->
-    lfe_io:format1("macro expansion error: ~P\n", [Error,10]).
+    lfe_io:format1(<<"macro expansion error: ~P\n">>, [Error,10]).
 
 %% expand_expr(Form, Env) -> {yes,Exp} | no.
 %% expand_expr_1(Form, Env) -> {yes,Exp} | no.
@@ -372,22 +372,23 @@ exp_form(['map-set'|As], Env, St) ->
     exp_normal_core('map-set', As, Env, St);
 exp_form(['map-update'|As], Env, St) ->
     exp_normal_core('map-update', As, Env, St);
-%% Record special forms.
+%% Record special forms. Note that these are used for both the
+%% compiler as well as the evaluator so we can't do too much here.
 exp_form(['define-record',Name,Fds], Env, St0) ->
-    {Efds,St1} = exp_list(Fds, Env, St0),
+    {Efds,St1} = exp_rec_fields(Name, Fds, Env, St0),
     {['define-record',Name,Efds],St1};
-exp_form(['make-record',Name,Fs], Env, St0) ->
-    {Efs,St1} = exp_rec_fields(Fs, Name, Env, St0),
-    {['make-record',Name,Efs],St1};
+exp_form(['make-record',Name,Args], Env, St0) ->
+    {Eas,St1} = exp_rec_args(Name, Args, Env, St0),
+    {['make-record',Name,Eas],St1};
 exp_form(['record-index',Name,F], _, St) ->
     {['record-index',Name,F],St};
 exp_form(['record-field',E,Name,F], Env, St0) ->
     {Ee,St1} = exp_form(E, Env, St0),
     {['record-field',Ee,Name,F],St1};
-exp_form(['record-update',E,Name,Fs], Env, St0) ->
+exp_form(['record-update',E,Name,Args], Env, St0) ->
     {Ee,St1} = exp_form(E, Env, St0),
-    {Efs,St2} = exp_rec_fields(Fs, Name, Env, St1),
-    {['record-update',Ee,Name,Efs],St2};
+    {Eas,St2} = exp_rec_args(Name, Args, Env, St1),
+    {['record-update',Ee,Name,Eas],St2};
 %% Function forms.
 exp_form([function|_]=F, _, St) -> {F,St};
 %% Core closure special forms.
@@ -483,15 +484,29 @@ exp_tail(Fun, [E0|Es0], Env, St0) ->
 exp_tail(_, [], _, St) -> {[],St};
 exp_tail(Fun, E, Env, St) -> Fun(E, Env, St).   %Same on improper tail.
 
-%% exp_rec_fields(Fields, Name, Env, State) -> {ExpFields,State}.
+%% exp_rec_fields(Name, Fields, Env, State) -> {ExpArgs,State}.
+%%  Expand the field definitions for the record.
 
-exp_rec_fields([F0,V0|Fs0], Name, Env, St0) ->
-    {F1,St1} = exp_form(F0, Env, St0),
-    {V1,St2} = exp_form(V0, Env, St1),
-    {Fs1,St3} = exp_rec_fields(Fs0, Name, Env, St2),
-    {[F1,V1|Fs1],St3};
-exp_rec_fields([F], Name, _, _) -> error({missing_field_value,Name,F});
-exp_rec_fields([], _, _, St) -> {[],St}.
+exp_rec_fields(Name, [[_|_]=Fdef|Fs], Env, St0) ->
+    {Edef,St1} = exp_list(Fdef, Env, St0),
+    {Efs,St2} = exp_rec_fields(Name, Fs, Env, St1),
+    {[Edef|Efs],St2};
+exp_rec_fields(Name, [Fdef|Fs], Env, St0) ->
+    {Edef,St1} = exp_form(Fdef, Env, St0),
+    {Efs,St2} = exp_rec_fields(Name, Fs, Env, St1),
+    {[Edef|Efs],St2};
+exp_rec_fields(_, [], _, St) -> {[],St}.
+
+%% exp_rec_args(Args, Name, Env, State) -> {ExpArgs,State}.
+%%  Expand the arguments for the record. Field names are literals.
+
+exp_rec_args(Name, [F,V|As], Env, St0) ->
+    {Ef,St1} = exp_form(F, Env, St0),
+    {Ev,St2} = exp_form(V, Env, St1),
+    {Eas,St3} = exp_rec_args(Name, As, Env, St2),
+    {[Ef,Ev|Eas],St3};
+exp_rec_args(Name, [F], _, _) -> error({missing_field_value,Name,F});
+exp_rec_args(_, [], _, St) -> {[],St}.
 
 %% exp_clauses(Clauses, Env, State) -> {ExpCls,State}.
 %% exp_ml_clauses(Clauses, Env, State) -> {ExpCls,State}.
