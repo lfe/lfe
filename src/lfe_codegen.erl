@@ -179,8 +179,13 @@ collect_imp(Fun, Mod, St, Fs) ->
     Imps1 = foldl(Fun, Imps0, Fs),
     St#cg{imps=store(Mod, Imps1, St#cg.imps)}.
 
-collect_record(Name, Fields, L, #cg{recs=Rs}=St) ->
-    St#cg{recs=Rs ++ [{Name,Fields,L}]}.
+%% collect_record*Name, Fields, Line, State) -> State.
+%%  Collect a record definition and its lifted internal functions.
+
+collect_record(Name, Fields, L, #cg{recs=Rs,fncs=Fncs}=St) ->
+    {Lfields,Fs} = lfe_codelift:record(Name, Fields, L),
+    St#cg{recs=Rs ++ [{Name,Lfields,L}],        %The records
+          fncs=Fncs ++ Fs}.                     %Its lifted function
 
 %% collect_function(Name, MetaData, Definition, Line, State) -> State.
 %%  Collect a function and its lifted internal functions.
@@ -205,7 +210,7 @@ compile_forms(St0) ->
                        comp_metadata(Meta)
                end, St0#cg.mets),
     %% Compile the functions.
-    {Edefs,St1} = mapfoldl(fun (D, St) -> comp_define(D, St) end,
+    {Edefs,St1} = mapfoldl(fun (D, St) -> comp_function(D, St) end,
                            St0, St0#cg.fncs),
     Mline = St1#cg.mline,
     Erl = [make_attribute(file, {St1#cg.file,Mline}, Mline),
@@ -289,10 +294,10 @@ comp_untyped_field([F,D], Ann) ->
 comp_untyped_field(F, Ann) ->
     {record_field,Ann,{atom,Ann,F}}.
 
-%% comp_define(DefForm, State) -> {ErlFunc,State}.
-%%  Compile a top-level define. Sets current function name.
+%% comp_function(DefForm, State) -> {ErlFunc,State}.
+%%  Compile a top-level function definition. Sets current function name.
 
-comp_define({Name,Def,L}, St) ->
+comp_function({Name,Def,L}, St) ->
     {'fun',_,{clauses,Clauses}} = lfe_trans:to_expr(Def, L),
     %% io:format("~p\n", [{Def,Clauses}]),
     {{function,L,Name,func_arity(Def),Clauses},St}.

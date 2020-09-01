@@ -22,7 +22,7 @@
 
 -module(lfe_codelift).
 
--export([function/3]).
+-export([record/3,function/3]).
 
 -export([comp_define/1]).
 -export([lift_func/2,lift_expr/3,ivars_expr/1]).
@@ -47,6 +47,16 @@
 comp_define({Name,Def,Line}) ->
     Fs = [ ['define-function',N,[],D] || {N,D,_} <- function(Name, Def, Line) ],
     [progn|Fs].
+
+%% record(Name, Fields, Line) -> {RecDef,Functions}.
+%%  Lambda lift the record field definitions and return the lifted
+%%  fields and generated functions.
+
+record(Name, Fs, Line) ->
+    St0 = #cl{func=Name,arity=record,line=Line,vc=0,fc=0},
+    {Lfs,Fncs,St1} = lift_rec_fields(Fs, [], St0),
+    {Lfncs,[],_} = lift_loop(Fncs, St1),
+    {Lfs,Lfncs}.
 
 %% function(Name, Def, Line) -> [{Name,Def,Line}].
 %%  Lambda lift all the local functions and return a list of all
@@ -93,7 +103,21 @@ lift_funcs(Defs, St) ->
 %%  Lambda lift the local functions in an expression.
 
 %% Core data special forms.
-lift_expr(?Q(E), Lds, St) -> {?Q(E), Lds,St};
+lift_expr(?Q(E), Lds, St) -> {?Q(E),Lds,St};
+%% Record forms.
+lift_expr(['make-record',Name,Args], Lds0, St0) ->
+    {Largs,Lds1,St1} = lift_rec_args(Args, Lds0, St0),
+    {['make-record',Name,Largs],Lds1,St1};
+lift_expr(['record-index',_Name,_F]=Ri, Lds, St) ->
+    {Ri,Lds,St};
+lift_expr(['record-field',E,Name,F], Lds0, St0) ->
+    {Le,Lds1,St1} = lift_expr(E, Lds0, St0),
+    {['record-field',Le,Name,F],Lds1,St1};
+lift_expr(['record-update',E,Name,Args], Lds0, St0) ->
+    {Le,Lds1,St1} = lift_expr(E, Lds0, St0),
+    {Largs,Lds2,St2} = lift_rec_args(Args, Lds1, St1),
+    {['record-update',Le,Name,Largs],Lds2,St2};
+%% Function forms.
 lift_expr([function,_,_]=Func, Lds, St) ->
     {Func,Lds,St};
 lift_expr([function,_,_,_]=Func, Lds, St) ->
@@ -142,6 +166,21 @@ lift_exprs(Exprs, Lds, St) ->
           end,
     lists:foldr(Fun, {[],Lds,St}, Exprs).
 
+lift_rec_fields([[F,V|Type]|Fs], Lds0, St0) ->
+    {Lv,Lds1,St1} = lift_expr(V, Lds0, St0),
+    {Lfs,Lds2,St2} = lift_rec_fields(Fs, Lds1, St1),
+    {[[F,Lv|Type]|Lfs],Lds2,St2};
+lift_rec_fields([F|Fs], Lds0, St0) ->
+    {Lfs,Lds1,St1} = lift_rec_fields(Fs, Lds0, St0),
+    {[F|Lfs],Lds1,St1};
+lift_rec_fields([], Lds, St) -> {[],Lds,St}.
+
+lift_rec_args([F,V|As], Lds0, St0) ->
+    {Lv,Lds1,St1} = lift_expr(V, Lds0, St0),
+    {Las,Lds2,St2} = lift_rec_args(As, Lds1, St1),
+    {[F,Lv|Las],Lds2,St2};
+lift_rec_args([], Lds, St) -> {[],Lds,St}.
+
 lift_let(Vbs0, Body0, Lds0, St0) ->
     Fun = fun ([Pat,['when'|_]=G,Expr0], {Ldsa,Sta}) ->
                   {Expr1,Ldsb,Stb} = lift_expr(Expr0, Ldsa, Sta),
@@ -165,8 +204,8 @@ lift_let_function(Fbs0, Body0, Lds0, St0) ->
     Nfun = fun ([Name,Def0], Ts, Sta) ->
                    Ar = func_arity(Def0),
                    {New,Stb} = new_local_fun_name(Name, Ar, Sta),
-		   %% Get the imported variables.
-		   Ivs  = ivars_expr(Def0, [], []),
+                   %% Get the imported variables.
+                   Ivs  = ivars_expr(Def0, [], []),
                    Def1 = append_ivars(Def0, Ivs),
                    {{New,Def1,Line},[{trans,Name,Ar,New,Ivs}|Ts],Stb}
            end,
@@ -248,17 +287,31 @@ trans_expr(?Q(E), _, _, _, _) -> ?Q(E);
 trans_expr([binary|Segs0],  Name, Ar, New, Ivars) ->
     Segs1 = trans_bitsegs(Segs0, Name, Ar, New, Ivars),
     [binary|Segs1];
+%% Record forms.
+trans_expr(['make-record',Rname,Args], Name, Ar, New, Ivars) ->
+    Targs = trans_rec_args(Args, Name, Ar, New, Ivars),
+    ['make-record',Rname,Targs];
+trans_expr(['record-index',_Name,_F]=Ri, _, _, _, _) ->
+    Ri;                                         %Nothing to do here
+trans_expr(['record-field',E,Rname,F], Name, Ar, New, Ivars) ->
+    Te = trans_expr(E, Name,  Ar, New, Ivars),
+    ['record-field',Te,Rname,F];
+trans_expr(['record-update',E,Rname,Args], Name, Ar, New, Ivars) ->
+    Te = trans_expr(E, Name,  Ar, New, Ivars),
+    Targs = trans_rec_args(Args, Name, Ar, New, Ivars),
+    ['update-record',Te,Rname,Targs];
+%% Function forms.
 trans_expr([function,F,A]=Func, Name, Ar, New, Ivars) ->
     if F =:= Name, A =:= Ar ->
-	    %% Must return a function of arity A here which calls the
-	    %% lifted functions! Can access the imported variables.
-	    Vars = new_vars(A),
-	    [lambda,Vars,[New|Vars++Ivars]];
+            %% Must return a function of arity A here which calls the
+            %% lifted functions! Can access the imported variables.
+            Vars = new_vars(A),
+            [lambda,Vars,[New|Vars++Ivars]];
        true ->
-	    Func
+            Func
     end;
 trans_expr([function,_,_,_]=Func, _, _, _, _) ->
-    Func;
+    Func;                                       %Nothing to do here
 %% Core closure special forms.
 trans_expr([lambda,Args|Body0], Name, Ar, New, Ivars) ->
     Body1 = trans_exprs(Body0, Name, Ar, New, Ivars),
@@ -315,6 +368,24 @@ trans_bitseg([Val0|Specs0], Name, Ar, New, Ivars) ->
     [Val1|Specs1];
 trans_bitseg(Seg, Name, Ar, New, Ivars) ->
     trans_expr(Seg, Name, Ar, New, Ivars) .
+
+%% trans_rec_fields(Fields, Name, Arity, NewName, ImportedVars) -> Fields.
+%% trans_rec_args(Args, Name, Arity, NewName, ImportedVars) -> Args.
+
+%% trans_rec_fields([[F,V|Type]|Fs], Name, Ar, New, Ivars) ->
+%%     Tv = trans_expr(V, Name, Ar, New, Ivars),
+%%     Tfs = trans_rec_fields(Fs,  Name, Ar, New, Ivars),
+%%     [[F,Tv|Type]|Tfs];
+%% trans_rec_fields([F|Fs], Name, Ar, New, Ivars) ->
+%%     Tfs = trans_rec_fields(Fs,  Name, Ar, New, Ivars),
+%%     [F|Tfs];
+%% trans_rec_fields([], _, _, _, _) -> [].
+
+trans_rec_args([F,V|As], Name, Ar, New, Ivars) ->
+    Tv = trans_expr(V, Name, Ar, New, Ivars),
+    Tas = trans_rec_args(As, Name, Ar, New, Ivars),
+    [F,Tv|Tas];
+trans_rec_args([], _, _, _, _) -> [].
 
 trans_cls(Cls, Name, Ar, New, Ivars) ->
     Fun = fun (Cl) -> trans_cl(Cl, Name, Ar, New, Ivars) end,
@@ -416,6 +487,16 @@ ivars_expr(Core) ->
 ivars_expr(?Q(_), _Kvars, Ivars) -> Ivars;
 ivars_expr([binary|Segs], Kvars, Ivars) ->
     ivars_bitsegs(Segs, Kvars, Ivars);
+%% Record forms.
+ivars_expr(['make-record',_,Args], Kvars, Ivars) ->
+    ivars_rec_args(Args, Kvars, Ivars);
+ivars_expr(['record-index',_,_], _, Ivars) -> Ivars;
+ivars_expr(['record-field',E,_,_], Kvars, Ivars) ->
+    ivars_expr(E, Kvars, Ivars);
+ivars_expr(['record-update',E,_,Args], Kvars, Ivars0) ->
+    Ivars1 = ivars_expr(E, Kvars, Ivars0),
+    ivars_rec_args(Args, Kvars, Ivars1);
+%% Function forms.
 ivars_expr([function,_,_], _, Ivars) -> Ivars;
 ivars_expr([function,_,_,_], _, Ivars) -> Ivars;
 %% Core closure special forms.
@@ -474,6 +555,11 @@ ivars_bitseg([Val|Specs], Kvars, Ivars0) ->
     lists:foldl(Fun, Ivars1, Specs);
 ivars_bitseg(Val, Kvars, Ivars) ->
     ivars_expr(Val, Kvars, Ivars).
+
+ivars_rec_args([_F,V|As], Kvars, Ivars0) ->
+    Ivars1 = ivars_expr(V, Kvars, Ivars0),
+    ivars_rec_args(As, Kvars, Ivars1);
+ivars_rec_args([], _, Ivars) -> Ivars.
 
 ivars_let(Vbs, Body, Kvars0, Ivars0) ->
     Fun = fun ([Pat,['when'|G],Expr], {Kvs0,Ivs0}) ->
