@@ -16,6 +16,11 @@
 %% Author  : Robert Virding
 %% Purpose : Lisp Flavoured Erlang syntax checker.
 
+%%% We get a lot help here from the Erlang linter as our code is
+%%% passed on into it when the erlng code is compiled. This means that
+%%% if we miss anything it will catch it. How much do we really needt
+%%% to do here?
+
 %%% In a fun argument where when matching a binary we import the size
 %%% of bitseg as a variable from the environment not just from earlier
 %%% segments. No other argument variables are imported.
@@ -89,7 +94,7 @@ format_error({illegal_literal,Lit}) ->
     lfe_io:format1("illegal literal value ~w", [Lit]);
 format_error({illegal_pattern,Pat}) ->
     lfe_io:format1("illegal pattern ~w", [Pat]);
-format_error(illegal_guard) -> "illegal guard";
+format_error(illegal_guard) -> "illegal guard expression";
 format_error({illegal_mapkey,Key}) ->
     lfe_io:format1("illegal map key ~w", [Key]);
 format_error(illegal_bitseg) -> "illegal bit segment";
@@ -456,7 +461,7 @@ check_record_field(Name, [F,D,T], L, St0) ->
             check_type_vars(Tvs, L, St2)
     end;
 check_record_field(Name, [F,_D], L, St) ->
-    %% No need to check default value.
+    %% Default value checked when record is made.
     check_record_field(Name, F, L, St);
 check_record_field(R, F, L,  #lint{recs=Rs}=St) ->
     if is_atom(F) ->
@@ -1136,8 +1141,6 @@ check_gexpr([call,?Q(erlang),?Q(Fun)|As], Env, L, St0) ->
         true -> St1;
         false -> illegal_guard_error(L, St1)
     end;
-check_gexpr([error,_], _, _, St) -> St;         %Allow calls to error
-check_gexpr([error,_,_], _, _, St) -> St;
 %% Finally the general case.
 check_gexpr([call|_], _, L, St) ->              %Other calls not allowed
     illegal_guard_error(L, St);

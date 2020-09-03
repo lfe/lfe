@@ -70,7 +70,7 @@ format_error(if_expression) -> <<"non-boolean if test">>;
 format_error(function_clause) -> <<"no function clause matching">>;
 format_error({case_clause,Val}) ->
     lfe_io:format1(<<"no case clause matching ~.P">>, [Val,10]);
-format_error(illegal_guard) -> <<"illegal guard">>;
+format_error(illegal_guard) -> <<"illegal guard expression">>;
 format_error(illegal_bitsize) -> <<"illegal bitsize">>;
 format_error(illegal_bitseg) -> <<"illegal bitsegment">>;
 format_error({illegal_pattern,Pat}) ->

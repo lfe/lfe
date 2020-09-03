@@ -462,8 +462,6 @@ following guard expressions:
 (tuple gexpr ...)
 (tref gexpr gexpr)
 (binary ...)
-(progn gtest ...)           - Sequence of guard tests
-(if gexpr gexpr gexpr)
 (type-test e)
 (guard-bif ...)             - Guard BIFs, arithmetic,
                               boolean and comparison operators
