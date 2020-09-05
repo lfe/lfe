@@ -236,13 +236,14 @@
 
    ;; [{[{t,'$1','$2',foo,'_'}],[{is_list,'$1'}],[{{{hd,'$1'},'$_'}}]},
    ;;  {[{t,'_','_','_','_'}],[{'==',{element,2,{hd,'$_'}},nisse}],[{{'$*'}}]}]
+
    (line
     (test-pat
      '(#(#(t $1 $2 foo _) (#(is_list $1)) (#(#(#(hd $1) $_))))
        #(#(t _ _ _ _) (#(== #(element 2 $_) nisse)) (#(#($*)))))
-     (ets-ms ([(match-t t1 x t2 y t3 'foo)] (when (is_list x))
+     (ets-ms ([(match-t t1 x t2 y t3 'foo _ '_)] (when (is_list x))
               (tuple (hd x) (object)))
-             ([(match-t)] (when (== (t-t1 (object)) 'nisse))
+             ([(match-t _ '_)] (when (== (t-t1 (object)) 'nisse))
               (tuple (bindings))))
      ))
 
@@ -260,7 +261,7 @@
             (#(#(#(element 2 $1)
                  #(#(t $1 foo undefined undefined))
                  #(setelement 5 $1 boooo))))))
-     (ets-ms ([(match-t t1 x t2 y t4 'foo)]
+     (ets-ms ([(match-t t1 x t2 y t4 'foo _ '_)]
               (when (== (t-t3 (object)) 7) (is_list x))
               (tuple (hd x) (object)))
              ([a] (when (is-t a))
@@ -273,9 +274,9 @@
     (test-pat
      '(#((#(t $1 $2 foo _)) (#(is_list $1)) (#(#(#(hd $1) $_))))
        #((#(t _ _ _ _)) (#(== #(element 2 #(hd $_)) nisse)) (#(#($*)))))
-     (trace-ms ([(list (match-t t1 x t2 y t3 'foo))] (when (is_list x))
+     (trace-ms ([(list (match-t t1 x t2 y t3 'foo _ '_))] (when (is_list x))
                 (tuple (hd x) (object)))
-               ([(list (match-t))] (when (== (t-t1 (hd (object))) 'nisse))
+               ([(list (match-t _ '_))] (when (== (t-t1 (hd (object))) 'nisse))
                 (tuple (bindings))))
      ))
 
@@ -297,6 +298,7 @@
 
    'ok))
 
+;; Already defined.
 ;; (defrecord a a b)
 
 (defun top_match
@@ -305,12 +307,9 @@
   ([config] (when (is_list config))
    (line (setup config))
    (line (test-pat '(#(#(a 3 _) () ($_)))
-                   ;; It works!
-                   (compile-and-run "(defrecord a a b)\n"
-                                    "(ets-ms ([(= a (match-a a 3))] a))")))
-                   ;; (ets-ms ([(= a (match-a a 3))] a))))
+                   (ets-ms ([(= (match-a a 3 _ '_) a)] a))))
    (line (test-pat '(#(#(a 3 _) () ($_)))
-                   (ets-ms ([(= (match-a a 3) a)] a))))
+                   (ets-ms ([(= (match-a a 3 _ '_) a)] a))))
    (line (test-pat '(#((a b) () ($_)))
                    (trace-ms ([(= a (list 'a 'b))] a))))
    (line (test-pat '(#((a b) () ($_)))

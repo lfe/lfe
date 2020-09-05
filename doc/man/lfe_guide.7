@@ -838,7 +838,6 @@ the following will be generated:
 (match\-person\ {{field\ value}}\ ...\ )
 (is\-person\ r)
 (fields\-person)
-(emp\-person\ {{field\ value}}\ ...\ )
 (update\-person\ r\ {{field\ value}}\ ...\ )
 (person\-name\ r)
 (person\-name)
@@ -860,10 +859,6 @@ with age 55 and bind the variable name to the name field of the record.
 Can use any variable name here.
 .IP \[bu] 2
 \f[C](is\-person\ john)\f[] \- Test if john is a person record.
-.IP \[bu] 2
-\f[C](emp\-person\ age\ \[aq]$1)\f[] \- Create an Ets Match Pattern for
-record person where the age field is set to $1 and all other fields are
-set to \[aq]_.
 .IP \[bu] 2
 \f[C](person\-address\ john)\f[] \- Return the address field of the
 person record john.
@@ -1020,9 +1015,7 @@ Using a guard is probably not what you want!
 Normal vanilla Erlang does the same thing but does not allow guards.
 .SH ETS and Mnesia
 .PP
-Apart from \f[C](emp\-record\ ...)\f[] macros for ETS Match Patterns,
-which are also valid in Mnesia, LFE also supports match specifications
-and Query List Comprehensions.
+LFE also supports match specifications and Query List Comprehensions.
 The syntax for a match specification is the same as for match\-lambdas:
 .IP
 .nf

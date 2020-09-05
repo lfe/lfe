@@ -140,7 +140,7 @@ pattern(['=',L0,R0], St0) ->                    %General aliasing
 pattern(['make-record',R,Fs0], St0) ->
     %% This is in a term but is going to be used as a pattern!
     {Fs1,St1} = pat_rec_fields(Fs0, St0),
-    {['make-record',R,Fs1 ++ ['_',?Q('_')]],St1};
+    {['make-record',R,Fs1],St1};
 pattern(['record-index',R,F], St) ->
     {['record-index',R,F],St};
 %% Support old no constructor style list forms.

@@ -783,7 +783,6 @@ the following will be generated:
 (match-person {{field value}} ... )
 (is-person r)
 (fields-person)
-(emp-person {{field value}} ... )
 (update-person r {{field value}} ... )
 (person-name r)
 (person-name)
@@ -806,10 +805,6 @@ the following will be generated:
 
 * ``(is-person john)`` -
   Test if john is a person record.
-
-* ``(emp-person age '$1)`` -
-  Create an Ets Match Pattern for record person where the age
-  field is set to $1 and all other fields are set to '_.
 
 * ``(person-address john)`` -
   Return the address field of the person record john.
@@ -956,10 +951,8 @@ Normal vanilla Erlang does the same thing but does not allow guards.
 
 # ETS and Mnesia
 
-Apart from ``(emp-record ...)`` macros for ETS Match Patterns, which are
-also valid in Mnesia, LFE also supports match specifications and Query
-List Comprehensions. The syntax for a match specification is the same
-as for match-lambdas:
+LFE also supports match specifications and Query List Comprehensions.
+The syntax for a match specification is the same as for match-lambdas:
 
 ```
 (ets-ms

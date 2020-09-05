@@ -58,7 +58,6 @@ define(Name, Fdefs, Env, St) when is_atom(Name) ->
             test_macro(Name, Fields),           %is-Name
             update_macro(Name),                 %update-Name
             set_macro(Name),                    %set-Name
-            emp_macro(Name),                    %emp-Name
             field_macro(Name, Fields),          %fields-Name
             size_macro(Name, Fields)            %size-Name
             |
@@ -94,11 +93,6 @@ set_macro(Name) ->
     [defmacro,Set,
      [[cons,rec,fds],
       ?BQ(['record-update',?C(rec),Name,?C(fds)])]].
-
-emp_macro(Name) ->
-    EMP = list_to_atom(concat(['emp','-',Name])),
-    ['defmacro',EMP,fds,
-     ?BQ(['make-record',Name,['_',?Q('_') | ?C(fds)]])].
 
 field_macro(Name, Fs) ->
     Recfields = list_to_atom(concat(['fields','-',Name])),
