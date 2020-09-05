@@ -259,11 +259,21 @@ Supported forms
               (funcall func arg ... )
               (call mod func arg ... )        - Call to Mod:Func(Arg, ... )
 
+              (define-record name fields)
+              (make-record name fields)
+              (record-index name field)
+              (record-field record name field)
+              (record-update record name fields)
+
               (define-module name meta-data attributes)
               (extend-module meta-data attributes)
 
               (define-function name meta-data lambda|match-lambda)
               (define-macro name meta-data lambda|match-lambda)
+
+              (define-type type defintion)
+              (define-opaque-type type defintion)
+              (define-function-spec func spec)
 
    Basic macro forms
               (: mod func arg ... ) =>
@@ -292,7 +302,8 @@ Supported forms
               (list-comp (qual ...) ...)
               (bc (qual ...) ...)
               (binary-comp (qual ...) ...)
-              (match-spec ...)
+              (ets-ms ...)
+              (trace-ms ...)
 
    Common Lisp inspired macros
               (defun name (arg ...) {{doc-string}} ...)
@@ -319,17 +330,6 @@ Supported forms
               (prog2 ...)
               (defmodule name ...)
               (defrecord name ...)
-
-   Older Scheme inspired macros
-              (define (name arg ...) ...)
-              (define name lambda|match-lambda)
-              (define-syntax name
-                (syntax-rules (pat exp) ...)|(macro (pat body) ...))
-              (let-syntax ((name ...)
-                           ...)
-                ...)
-              (begin ...)
-              (define-record name ...)
 
 Patterns
        Written  as normal data expressions where symbols are variables and use
@@ -371,8 +371,6 @@ Guards
               (tuple gexpr ...)
               (tref gexpr gexpr)
               (binary ...)
-              (progn gtest ...)           - Sequence of guard tests
-              (if gexpr gexpr gexpr)
               (type-test e)
               (guard-bif ...)             - Guard BIFs, arithmetic,
                                             boolean and comparison operators
@@ -557,30 +555,35 @@ Macros
        fined before the macro is used.
 
        Scheme's syntax rules are an easy way to define macros where  the  body
-       is  just  a  simple  expansion.  These are supported with defsyntax and
-       syntaxlet.  Note that the patterns are only the arguments to the  macro
-       call and do not contain the macro name.  So using them we would get:
+       is just a simple expansion.  The are implmeneted the the module scm and
+       are supported with scm:define-syntax and scm:let-syntax and the equiva‐
+       lent  scm:defsyntax and scm:syntaxlet.  Note that the patterns are only
+       the arguments to the macro call and do not contain the macro name.   So
+       using them we would get:
 
-              (defsyntax andalso
+              (scm:defsyntax andalso
                 (() 'true)
                 ((e) e)
                 ((e . es) (case e ('true (andalso . es)) ('false 'false))))
 
+       There  is an include file "include/scm.lfe" which defines macros so the
+       names don't have to be prefixed with scm:.
+
        N.B.  These are definitely NOT hygienic.
 
-       CAVEAT  While  it  is  perfectly legal to define a Core form as a macro
+       CAVEAT While it is perfectly legal to define a Core  form  as  a  macro
        these will silently be ignored by the compiler.
 
 Comments in Macro Definitions
-       Inside macros  defined  with  defmacro  LFE  permits  optional  comment
-       strings  in  the  Common Lisp style after the argument list.  So we can
+       Inside  macros  defined  with  defmacro  LFE  permits  optional comment
+       strings in the Common Lisp style after the argument list.   So  we  can
        have:
 
               (defmacro double (a)
                 "Double macro."
                 `(+ ,a ,a))
 
-       Optional comments are also allowed in  match  style  macros  after  the
+       Optional  comments  are  also  allowed  in match style macros after the
        macro name and before the clauses:
 
               (defmacro my-list args
@@ -593,7 +596,7 @@ Comments in Macro Definitions
                 ((cons e es) `(if ,e (andalso ,@es) 'false))
                 (() `'true))
 
-       This  is also possible in a similar style in local functions defined by
+       This is also possible in a similar style in local functions defined  by
        macrolet:
 
               (defun foo (x y)
@@ -605,8 +608,8 @@ Comments in Macro Definitions
 
 Extended cond
        Cond has been extended with the extra test (?= pat expr) which tests if
-       the  result  of  expr matches pat.  If so it binds the variables in pat
-       which can be used in the cond.  A optional guard is allowed  here.   An
+       the result of expr matches pat.  If so it binds the  variables  in  pat
+       which  can  be used in the cond.  A optional guard is allowed here.  An
        example:
 
               (cond ((foo x) ...)
@@ -617,8 +620,8 @@ Extended cond
                     ... )
 
 Records
-       Records  are  tuples with the record name as first element and the rest
-       of the fields in order exactly like "normal" Erlang records.   As  with
+       Records are tuples with the record name as first element and  the  rest
+       of  the  fields in order exactly like "normal" Erlang records.  As with
        Erlang records the default default value is 'undefined'.
 
               (defrecord name
@@ -626,8 +629,8 @@ Records
                 (field default-value)
                 ... )
 
-       Will  create access functions/macros for creation and accessing fields.
-       The  make-,  match-  and  set-  forms  takes  optional  argument  pairs
+       Will create access functions/macros for creation and accessing  fields.
+       The  make-,  match-  and  update-  forms  takes optional argument pairs
        field-name value to get non-default values.  E.g.  for
 
               (defrecord person
@@ -641,29 +644,25 @@ Records
               (match-person {{field value}} ... )
               (is-person r)
               (fields-person)
-              (emp-person {{field value}} ... )
-              (set-person r {{field value}} ... )
+              (update-person r {{field value}} ... )
               (person-name r)
               (person-name)
-              (set-person-name r name)
+              (update-person-name r name)
               (person-age r)
               (person-age)
-              (set-person-age r age)
+              (update-person-age r age)
               (person-address r)
-              (set-person-address r address)
+              (update-person-address r address)
 
-       · (make-person name "Robert" age 54)  - Will create a new person record
-         with the name field set to "Robert", the age field set to 54 and  the
+       · (make-person name "Robert" age 54) - Will create a new person  record
+         with  the name field set to "Robert", the age field set to 54 and the
          address field set to the default "".
 
        · (match-person name name age 55) - Will match a person with age 55 and
-         bind the variable name to the name field of the record.  Can use  any
+         bind  the variable name to the name field of the record.  Can use any
          variable name here.
 
        · (is-person john) - Test if john is a person record.
-
-       · (emp-person age '$1)  - Create an Ets Match Pattern for record person
-         where the age field is set to $1 and all other fields are set to '_.
 
        · (person-address john) - Return the address field of the person record
          john.
@@ -671,18 +670,20 @@ Records
        · (person-address)  - Return the index of the address field of a person
          record.
 
-       · (set-person-address john "back street") - Sets the address  field  of
-         the person record john to "back street".
+       · (update-person-address john "back street")  -  Updates  the   address
+         field of the person record john to "back street".
 
-       · (set-person john age 35 address "front street")   -   In  the  person
-         record john set the age field to 35 and the address field  to  "front
-         street".
+       · (update-person john age 35 address "front street")  -  In  the person
+         record john update the age field to  35  and  the  address  field  to
+         "front street".
 
        · (fields-person)  -  Returns a list of fields for the record.  This is
          useful for when using LFE with Mnesia,  as  the  record  field  names
          don't have to be provided manually in the create_table call.
 
        · (size-person) - Returns the size of the record tuple.
+
+       Note that the older now deprecated set- forms are still generated.
 
 Binaries/bitstrings
        A binary is
@@ -778,47 +779,46 @@ List/binary comprehensions
        Normal vanilla Erlang does the same thing but does not allow guards.
 
 ETS and Mnesia
-       Apart  from  (emp-record ...)  macros for ETS Match Patterns, which are
-       also valid in Mnesia, LFE also supports match specifications and  Query
-       List  Comprehensions.  The syntax for a match specification is the same
-       as for match-lambdas:
+       LFE  also  supports match specifications and Query List Comprehensions.
+       The syntax for a match specification is the same as for match-lambdas:
 
-              (match-spec
+              (ets-ms
                 ((arg ... ) {{(when e ...)}} ...)             - Matches clauses
                 ... )
 
        For example:
 
-              (ets:select db (match-spec
+              (ets:select db (ets-ms
                                ([(tuple _ a b)] (when (> a 3)) (tuple 'ok b))))
 
        It is a macro which creates the match specification structure which  is
-       used  in  ets:select  and mnesia:select.  The same match-spec macro can
-       also be used with the dbg module.  The same restrictions as to what can
-       be done apply as for vanilla match specifications:
+       used  in  ets:select  and  mnesia:select.   For  tracing instead of the
+       ets-ms macro there is the trace-ms macro which is also used in conjunc‐
+       tion with the dbg module.  The same restrictions as to what can be done
+       apply as for vanilla match specifications:
 
        · There is only a limited number of BIFs which are allowed
 
        · There are some special functions only for use with dbg
 
-       · For  ets/mnesia  it  takes a single parameter which must a tuple or a
+       · For ets/mnesia it takes a single parameter which must a  tuple  or  a
          variable
 
        · For dbg it takes a single parameter which must a list or a variable
 
-       N.B.  the current macro neither knows nor cares  whether  it  is  being
+       N.B.   the  current  macro  neither knows nor cares whether it is being
        used in ets/mnesia or in dbg.  It is up to the user to get this right.
 
-       Macros,  especially  record  macros,  can  freely  be used inside match
+       Macros, especially record macros,  can  freely  be  used  inside  match
        specs.
 
-       CAVEAT Some things which are known not to work in the  current  version
+       CAVEAT  Some  things which are known not to work in the current version
        are andalso, orelse and record updates.
 
 Query List Comprehensions
-       LFE  supports  QLCs  for mnesia through the qlc macro.  It has the same
-       structure as a list comprehension and generates a Query Handle  in  the
-       same  way  as  with qlc:q([...]).  The handle can be used together with
+       LFE supports QLCs for mnesia through the qlc macro.  It  has  the  same
+       structure  as  a list comprehension and generates a Query Handle in the
+       same way as with qlc:q([...]).  The handle can be  used  together  with
        all the combination functions in the module qlc.
 
        For example:
@@ -826,10 +826,10 @@ Query List Comprehensions
               (qlc (lc ((<- (tuple k v) (: ets table e2)) (== k i)) v)
                    {{Option}})
 
-       Macros, especially record macros, can freely be used inside query  list
+       Macros,  especially record macros, can freely be used inside query list
        comprehensions.
 
-       CAVEAT  Some  things which are known not to work in the current version
+       CAVEAT Some things which are known not to work in the  current  version
        are nested QLCs and let/case/recieve which shadow variables.
 
 Predefined LFE functions
@@ -838,7 +838,7 @@ Predefined LFE functions
               (<arith_op> expr ...)
               (<comp_op> expr ...)
 
-       The standard arithmentic operators, + - * /, and comparison  operators,
+       The  standard arithmentic operators, + - * /, and comparison operators,
        > >= < =< == /= =:= =/= , can take multiple arguments the same as their
        standard lisp counterparts.  This is still experimental and implemented
        using macros.  They do, however, behave like normal functions and eval‐
@@ -870,28 +870,28 @@ Predefined LFE functions
 
               (macroexpand expr {{environment}})
 
-       Returns the expansion returned  by  calling  macroexpand-1  repeatedly,
+       Returns  the  expansion  returned  by calling macroexpand-1 repeatedly,
        starting with Expr, until the result is no longer a macro call.
 
               (macroexpand-all expr {{environment}})
 
-       Returns  the  expansion  from the expression where all macro calls have
+       Returns the expansion from the expression where all  macro  calls  have
        been expanded with macroexpand.
 
-       NOTE that when no explicit environment is given the  macroexpand  func‐
-       tions  then  only the default built-in macros will be expanded.  Inside
+       NOTE  that  when no explicit environment is given the macroexpand func‐
+       tions then only the default built-in macros will be  expanded.   Inside
        macros and in the shell the variable $ENV is bound to the current macro
        environment.
 
               (eval expr {{environment}})
 
-       Evaluate  the  expression  expr.   Note  that only the pre-defined lisp
-       functions, erlang BIFs and exported functions can be called.   Also  no
+       Evaluate the expression expr.  Note  that  only  the  pre-defined  lisp
+       functions,  erlang  BIFs and exported functions can be called.  Also no
        local variables can be accessed.  To access local variables the expr to
        be evaluated can be wrapped in a let defining these.
 
        For example if the data we wish to evaluate is in the variable expr and
-       it  assumes  there  is  a local variable "foo" which it needs to access
+       it assumes there is a local variable "foo" which  it  needs  to  access
        then we could evaluate it by calling:
 
               (eval `(let ((foo ,foo)) ,expr))
@@ -909,4 +909,4 @@ AUTHORS
 
 
 
-                                   2008-2016                      lfe_guide(7)
+                                   2008-2020                      lfe_guide(7)

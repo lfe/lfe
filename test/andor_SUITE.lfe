@@ -404,7 +404,7 @@
   ;; Use res twice, to ensure that a careless optimization of 'not'
   ;; doesn't leave res as a free variable.
   (let* ((res (andalso a b))
-	 (_ (id res)))
+         (_ (id res)))
     res))
 
 ;; Test that a boolean expression in a case expression is properly

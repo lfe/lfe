@@ -70,7 +70,7 @@ format_error(if_expression) -> <<"non-boolean if test">>;
 format_error(function_clause) -> <<"no function clause matching">>;
 format_error({case_clause,Val}) ->
     lfe_io:format1(<<"no case clause matching ~.P">>, [Val,10]);
-format_error(illegal_guard) -> <<"illegal guard">>;
+format_error(illegal_guard) -> <<"illegal guard expression">>;
 format_error(illegal_bitsize) -> <<"illegal bitsize">>;
 format_error(illegal_bitseg) -> <<"illegal bitsegment">>;
 format_error({illegal_pattern,Pat}) ->
@@ -84,6 +84,11 @@ format_error({argument_limit,Arity}) ->
     lfe_io:format1(<<"too many arguments ~w">>, [Arity]);
 format_error({bad_form,Form}) ->
     lfe_io:format1(<<"bad ~w form">>, [Form]);
+%% Records.
+format_error({undefined_record,R}) ->
+    lfe_io:format1(<<"record ~w undefined">>, [R]);
+format_error({undefined_field,R,F}) ->
+    lfe_io:format1(<<"field ~w undefined in record ~w">>, [F,R]);
 %% Everything we don't recognise or know about.
 format_error(Error) ->
     lfe_io:prettyprint1(Error).
@@ -181,12 +186,54 @@ eval_expr(['map-set',M|As], Env) ->
     eval_expr([mset,M|As], Env);
 eval_expr(['map-update',M|As], Env) ->
     eval_expr([mupd,M|As], Env);
+%% Record special forms.
+eval_expr(['make-record',Name,Args], Env) ->
+    case lfe_env:get_record(Name, Env) of
+        {yes,Fields} ->
+            make_record_tuple(Name, Fields, Args, Env);
+        no -> undefined_record_error(Name)
+    end;
+eval_expr(['record-index',Name,F], Env) ->
+    case lfe_env:get_record(Name, Env) of
+        {yes,Fields} ->
+            get_field_index(Name, Fields, F);
+        no -> undefined_record_error(Name)
+    end;
+eval_expr(['record-field',E,Name,F], Env) ->
+    Ev = eval_expr(E, Env),
+    case lfe_env:get_record(Name, Env) of
+        {yes,Fields} ->
+            Index = get_field_index(Name, Fields, F),
+            element(Index, Ev);                 %Report if Ev not a record
+        no -> undefined_record_error(Name)
+    end;
+eval_expr(['record-update',E,Name,Args], Env) ->
+    Ev = eval_expr(E, Env),
+    case lfe_env:get_record(Name, Env) of
+        {yes,Fields} ->
+            update_record_tuple(Name, Fields, Ev, Args, Env);
+        no -> undefined_record_error(Name)
+    end;
+%% Function forms.
 eval_expr([function,Fun,Ar], Env) ->
     %% Build a lambda which can be applied.
     Vs = new_vars(Ar),
     eval_lambda([lambda,Vs,[Fun|Vs]], Env);
 eval_expr([function,M,F,Ar], _) ->
     erlang:make_fun(M, F, Ar);
+%% Special known data type operations.
+eval_expr(['andalso'|Es], Env) ->
+    Fun = fun (E, true) -> eval_expr(E, Env);
+              (_, false) -> false;
+              (_, _Other) -> badarg_error()
+          end,
+    lists:foldl(Fun, true, Es);
+eval_expr(['orelse'|Es], Env) ->
+    Fun = fun (_, true) -> true;
+              (E, false) -> eval_expr(E, Env);
+              (_, _Other) -> badarg_error()
+          end,
+    lists:foldl(Fun, false, Es);
 %% Handle the Core closure special forms.
 eval_expr([lambda|_]=Lambda, Env) ->
     eval_lambda(Lambda, Env);
@@ -236,6 +283,52 @@ eval_expr(Symb, Env) when is_atom(Symb) ->
         no -> unbound_symb_error(Symb)
     end;
 eval_expr(E, _) -> E.                           %Atomic evaluate to themselves
+
+%% make_record_tuple(Name, Fields, Args, Env) -> TupleList.
+%%  We have to macro expand and evaluate the default values here as well.
+
+make_record_tuple(Name, Fields, Args, Env) ->
+    Es = make_record_elements(Fields, Args, Env),
+    list_to_tuple([Name|Es]).
+
+make_record_elements(Fields, Args, Env) ->
+    Mfun = fun ([F,Def|_]) -> make_arg_val(F, Args, Def, Env);
+               (F) -> make_arg_val(F, Args, ?Q(undefined), Env)
+           end,
+    lists:map(Mfun, Fields).
+
+make_arg_val(F, [F,V|_], _Def, Env) -> eval_expr(V, Env);
+make_arg_val(F, [_,_|Args], Def, Env) -> make_arg_val(F, Args, Def, Env);
+make_arg_val(_, [], Def, Env) -> expr(Def, Env).
+
+%% get_field_index(Name, Fields, Field) -> Index.
+
+get_field_index(Name, Fields, F) ->
+    get_field_index(Name, Fields, F, 2).        %First element record name
+
+get_field_index(_Name, [[F|_]|_Fields], F, I) -> I;
+get_field_index(_Name, [F|_Fields], F, I) -> I;
+get_field_index(Name, [_|Fields], F, I) ->
+    get_field_index(Name, Fields, F, I+1);
+get_field_index(Name, [], F, _I) ->
+    undefined_field_error(Name, F).
+
+%% update_record_tuple(Name, Fields, Record, Args, Env) -> TupleList
+%%  Update the Record with the Args.
+
+update_record_tuple(Name, Fields, Rec, Args, Env) ->
+    Es = update_record_elements(Fields, tl(tuple_to_list(Rec)), Args, Env),
+    list_to_tuple([Name|Es]).
+
+update_record_elements(Fields, Recvs, Args, Env) ->
+    Ufun = fun ([F|_], Rv) ->  update_arg_val(F, Args, Rv, Env);
+               (F, Rv) -> update_arg_val(F, Args, Rv, Env)
+           end,
+    lists:zipwith(Ufun, Fields, Recvs).
+
+update_arg_val(F, [F,V|_], _Recv, Env) -> eval_expr(V, Env);
+update_arg_val(F, [_,_|Args], Recv, Env) -> update_arg_val(F, Args, Recv, Env);
+update_arg_val(_, [], Recv, _Env) -> Recv.
 
 %% get_fbinding(NAme, Arity, Env) ->
 %%     {yes,Module,Fun} | {yes,Binding} | no.
@@ -730,10 +823,7 @@ eval_try(E, Case, Catch, After, Env) ->
                 no -> Ret
             end
     catch
-        Class:Error ->
-            %% Try does return the stacktrace here but we can't hit it
-            %% so we have to explicitly get it.
-            Stack = erlang:get_stacktrace(),
+        Class:Error:Stack ->
             case Catch of
                 {yes,Cls} ->
                     eval_catch_clauses({Class,Error,Stack}, Cls, Env);
@@ -789,9 +879,8 @@ eval_guard(Gts, Env) ->
         true -> true;
         _Other -> false                         %Fail guard
     catch
-        error:illegal_guard ->                  %Handle illegal guard
-            St = erlang:get_stacktrace(),
-            erlang:raise(error, illegal_guard, St);
+        error:illegal_guard:Stack ->            %Handle illegal guard
+            erlang:raise(error, illegal_guard, Stack);
         _:_ -> false                            %Fail guard
     end.
 
@@ -1177,6 +1266,12 @@ illegal_guard_error() ->
 
 illegal_mapkey_error(Key) ->
     eval_error({illegal_mapkey,Key}).
+
+undefined_record_error(Rec) ->
+    eval_error({undefined_record,Rec}).
+
+undefined_field_error(Rec, F) ->
+    eval_error({undefined_field,Rec,F}).
 
 eval_error(Error) ->
     erlang:raise(error, Error, stacktrace()).

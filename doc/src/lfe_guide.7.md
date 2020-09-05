@@ -1,6 +1,6 @@
 % lfe_guide(7)
 % Robert Virding
-% 2008-2016
+% 2008-2020
 
 
 # NAME
@@ -338,11 +338,21 @@ while it reads the expression and then be effectively ``2``.
 (funcall func arg ... )
 (call mod func arg ... )        - Call to Mod:Func(Arg, ... )
 
+(define-record name fields)
+(make-record name fields)
+(record-index name field)
+(record-field record name field)
+(record-update record name fields)
+
 (define-module name meta-data attributes)
 (extend-module meta-data attributes)
 
 (define-function name meta-data lambda|match-lambda)
 (define-macro name meta-data lambda|match-lambda)
+
+(define-type type defintion)
+(define-opaque-type type defintion)
+(define-function-spec func spec)
 ```
 
 ## Basic macro forms
@@ -374,7 +384,8 @@ while it reads the expression and then be effectively ``2``.
 (list-comp (qual ...) ...)
 (bc (qual ...) ...)
 (binary-comp (qual ...) ...)
-(match-spec ...)
+(ets-ms ...)
+(trace-ms ...)
 ```
 
 ## Common Lisp inspired macros
@@ -404,20 +415,6 @@ while it reads the expression and then be effectively ``2``.
 (prog2 ...)
 (defmodule name ...)
 (defrecord name ...)
-```
-
-## Older Scheme inspired macros
-
-```
-(define (name arg ...) ...)
-(define name lambda|match-lambda)
-(define-syntax name
-  (syntax-rules (pat exp) ...)|(macro (pat body) ...))
-(let-syntax ((name ...)
-             ...)
-  ...)
-(begin ...)
-(define-record name ...)
 ```
 
 # Patterns
@@ -465,8 +462,6 @@ following guard expressions:
 (tuple gexpr ...)
 (tref gexpr gexpr)
 (binary ...)
-(progn gtest ...)           - Sequence of guard tests
-(if gexpr gexpr gexpr)
 (type-test e)
 (guard-bif ...)             - Guard BIFs, arithmetic,
                               boolean and comparison operators
@@ -678,16 +673,21 @@ which are called by macros can defined after the macro but must be
 defined before the macro is used.
 
 Scheme's syntax rules are an easy way to define macros where the body
-is just a simple expansion. These are supported with ``defsyntax`` and
-``syntaxlet``. Note that the patterns are only the arguments to the macro
-call and do not contain the macro name. So using them we would get:
+is just a simple expansion. The are implmeneted the the module `scm`
+and are supported with ``scm:define-syntax`` and ``scm:let-syntax``
+and the equivalent ``scm:defsyntax`` and ``scm:syntaxlet``. Note that
+the patterns are only the arguments to the macro call and do not
+contain the macro name. So using them we would get:
 
 ```
-(defsyntax andalso
+(scm:defsyntax andalso
   (() 'true)
   ((e) e)
   ((e . es) (case e ('true (andalso . es)) ('false 'false))))
 ```
+
+There is an include file "include/scm.lfe" which defines macros so the
+names don't have to be prefixed with ``scm:``.
 
 N.B. These are definitely NOT hygienic.
 
@@ -766,7 +766,7 @@ Erlang records the default default value is 'undefined'.
 ```
 
 Will create access functions/macros for creation and accessing
-fields. The ``make-``, ``match-`` and ``set-`` forms takes optional
+fields. The ``make-``, ``match-`` and ``update-`` forms takes optional
 argument pairs field-name value to get non-default values. E.g. for
 
 ```
@@ -783,16 +783,15 @@ the following will be generated:
 (match-person {{field value}} ... )
 (is-person r)
 (fields-person)
-(emp-person {{field value}} ... )
-(set-person r {{field value}} ... )
+(update-person r {{field value}} ... )
 (person-name r)
 (person-name)
-(set-person-name r name)
+(update-person-name r name)
 (person-age r)
 (person-age)
-(set-person-age r age)
+(update-person-age r age)
 (person-address r)
-(set-person-address r address)
+(update-person-address r address)
 ```
 
 * ``(make-person name "Robert" age 54)`` -
@@ -807,22 +806,18 @@ the following will be generated:
 * ``(is-person john)`` -
   Test if john is a person record.
 
-* ``(emp-person age '$1)`` -
-  Create an Ets Match Pattern for record person where the age
-  field is set to $1 and all other fields are set to '_.
-
 * ``(person-address john)`` -
   Return the address field of the person record john.
 
 * ``(person-address)`` -
   Return the index of the address field of a person record.
 
-* ``(set-person-address john "back street")`` -
-  Sets the address field of the person record john to
+* ``(update-person-address john "back street")`` -
+  Updates the address field of the person record john to
   "back street".
 
-* ``(set-person john age 35 address "front street")`` -
-  In the person record john set the age field to 35 and the
+* ``(update-person john age 35 address "front street")`` -
+  In the person record john update the age field to 35 and the
   address field to "front street".
 
 * ``(fields-person)`` -
@@ -832,6 +827,9 @@ the following will be generated:
 
 * ``(size-person)`` -
   Returns the size of the record tuple.
+
+Note that the older now deprecated ``set-`` forms are still
+generated.
 
 # Binaries/bitstrings
 
@@ -953,13 +951,11 @@ Normal vanilla Erlang does the same thing but does not allow guards.
 
 # ETS and Mnesia
 
-Apart from ``(emp-record ...)`` macros for ETS Match Patterns, which are
-also valid in Mnesia, LFE also supports match specifications and Query
-List Comprehensions. The syntax for a match specification is the same
-as for match-lambdas:
+LFE also supports match specifications and Query List Comprehensions.
+The syntax for a match specification is the same as for match-lambdas:
 
 ```
-(match-spec
+(ets-ms
   ((arg ... ) {{(when e ...)}} ...)             - Matches clauses
   ... )
 ```
@@ -967,14 +963,15 @@ as for match-lambdas:
 For example:
 
 ```
-(ets:select db (match-spec
+(ets:select db (ets-ms
                  ([(tuple _ a b)] (when (> a 3)) (tuple 'ok b))))
 ```
 
 It is a macro which creates the match specification structure which is
-used in ``ets:select`` and ``mnesia:select``. The same ``match-spec``
-macro can also be used with the dbg module. The same restrictions as to
-what can be done apply as for vanilla match specifications:
+used in ``ets:select`` and ``mnesia:select``. For tracing instead of
+the ``ets-ms`` macro there is the ``trace-ms`` macro which is also
+used in conjunction with the ``dbg`` module. The same restrictions as
+to what can be done apply as for vanilla match specifications:
 
 - There is only a limited number of BIFs which are allowed
 - There are some special functions only for use with dbg

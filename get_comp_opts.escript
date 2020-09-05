@@ -3,12 +3,9 @@
 %% Define a number of compiler options. We first work out the current
 %% Erlang version and from the we can define the various options.
 
-%% Bloody useful.
--define(IF(Test,True,False), case Test of true -> True; false -> False end).
-
-%% Define the makefile variables HAS_MAPS and HAS_FULL_KEYS depending
-%% on whether this version of erlang has maps (17) and general map
-%% keys (18), or NEW_CORE_REC for new core definition of records (19).
+%% Define the makefile variables HAS_MAPS and HAS_FULL_KEYS
+%% NEW_REC_CORE, NEW_RAND, HAS_FLOOR, HAS_CEIL and NEW_STACKTRACE
+%% depending on version of Erlang.
 
 main(_) ->
     Version = otp_release(),
@@ -44,14 +41,20 @@ otp_release() ->
     end.
 
 comp_opts(Version) ->
-    Copts0 = "-DERLANG_VERSION=\\\"" ++ Version ++ "\\\"",
+    Copts0 = "-DERLANG_VERSION=\\\"" ++ Version ++ "\\\"" ++ " ",
     Copts0 ++ append_copts(Version, [{"17","HAS_MAPS"},
                                      {"18","HAS_FULL_KEYS"},
                                      {"19","NEW_REC_CORE"},
                                      {"19","NEW_RAND"},
-                                     {"20","NEW_BOOL_GUARD"}]).
+                                     {"20","NEW_BOOL_GUARD"},
+                                     {"20","HAS_FLOOR"},
+                                     {"20","HAS_CEIL"},
+                                     {"21","NEW_STACKTRACE"}]).
 
 append_copts(Version, [{Ver,Opt}|Opts]) ->
     Rest = append_copts(Version, Opts),
-    ?IF(Version >= Ver, Rest ++ " " ++ "-D" ++ Opt ++ "=true", Rest);
+    if Version >= Ver ->
+            "-D" ++ Opt ++ "=true" ++ " " ++ Rest;
+       true -> Rest
+    end;
 append_copts(_Version, []) -> [].

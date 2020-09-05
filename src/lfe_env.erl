@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2016 Robert Virding
+%% Copyright (c) 2008-2018 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -21,12 +21,17 @@
 -export([new/0,add_env/2,
          get_vars/1,clr_vars/1,set_vars/2,fold_vars/3,
          get_funs/1,clr_funs/1,set_funs/2,fold_funs/3,fold_macros/3,
-         add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
-         fetch_vbinding/2,del_vbinding/2,
-         add_fbinding/4,add_fbindings/2,
+         get_recs/1,clr_recs/1,set_recs/2,fold_recs/3]).
+
+-export([add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
+         fetch_vbinding/2,del_vbinding/2]).
+
+-export([add_fbinding/4,add_fbindings/2,
          is_fbound/3,get_fbinding/3,add_ibinding/5,
          add_mbinding/3,add_mbindings/2,
          is_mbound/2,get_mbinding/2]).
+
+-export([add_record/3,get_record/2]).
 
 %% Define access macros depending on whether we have maps.
 -ifdef(HAS_MAPS).
@@ -55,7 +60,7 @@
 -endif.
 
 %% The environment structure.
--record(env, {vars=null,funs=null}).
+-record(env, {vars=null,funs=null,recs=null}).
 
 %% -compile([export_all]).
 
@@ -70,6 +75,10 @@
 %% set_funs(Funs, Env) -> Env.
 %% fold_funs(Fun, Acc, Env) -> Acc.
 %% fold_macros(Fun, Acc, Env) -> Acc.
+%% get_recs(Env) -> Recs.
+%% clr_recs(Env) -> Env.
+%% set_recs(Recs, Env) -> Env.
+%% fold_recs(Fun, Acc, Env) -> Acc.
 %% add_vbinding(Name, Val, Env) -> Env.
 %% add_vbindings([{Name,Val}], Env) -> Env.
 %% is_vbound(Symb, Env) -> bool().
@@ -99,17 +108,19 @@
 %%  orddict with the name as key and the value is either the macro
 %%  definition or a dict of arity definition.
 
-new() -> #env{vars=?NEW(),funs=?NEW()}.
+new() -> #env{vars=?NEW(),funs=?NEW(),recs=?NEW()}.
 
 -ifdef(HAS_MAPS).
-add_env(#env{vars=Vs1,funs=Fs1}, #env{vars=Vs2,funs=Fs2}) ->
+add_env(#env{vars=Vs1,funs=Fs1,recs=Rs1}, #env{vars=Vs2,funs=Fs2,recs=Rs2}) ->
     #env{vars=maps:merge(Vs2, Vs1),             %Always take left env
-         funs=maps:merge(Fs2, Fs1)}.
+         funs=maps:merge(Fs2, Fs1),
+         recs=maps:merge(Rs2, Rs1)}.
 -else.
-add_env(#env{vars=Vs1,funs=Fs1}, #env{vars=Vs2,funs=Fs2}) ->
+add_env(#env{vars=Vs1,funs=Fs1,recs=Rs1}, #env{vars=Vs2,funs=Fs2,recs=Rs2}) ->
     Merge = fun (_, V1, _) -> V1 end,           %Always take left env
     #env{vars=orddict:merge(Merge, Vs1, Vs2),
-         funs=orddict:merge(Merge, Fs1, Fs2)}.
+         funs=orddict:merge(Merge, Fs1, Fs2),
+         recs=orddict:merge(Merge, Rs1, Rs2)}.
 -endif.
 
 %% Accessing the variable table.
@@ -144,6 +155,14 @@ fold_macros(Fun, Acc, Env) ->
                (_, _, A) -> A                   %Function
            end,
     ?FOLD(Ofun, Acc, Env#env.funs).
+
+%% Accessing the record table.
+
+get_recs(Env) -> Env#env.recs.
+clr_recs(Env) -> Env#env{recs=?NEW()}.
+set_recs(Recs, Env) -> Env#env{recs=Recs}.
+fold_recs(Fun, Acc, Env) ->
+    ?FOLD(Fun, Acc, Env#env.recs).
 
 %% Variables.
 
@@ -185,7 +204,7 @@ add_fbinding_1(N, A, T, Fs) ->
 
 add_fbindings(Fbs, #env{funs=Fs0}=Env) ->
     Fs1 = lists:foldl(fun ({N,A,V}, Fs) -> add_fbinding_1(N, A, {A,V}, Fs) end,
-		      Fs0, Fbs),
+                      Fs0, Fbs),
     Env#env{funs=Fs1}.
 
 add_ibinding(M, R, A, L, #env{funs=Fs0}=Env) ->
@@ -220,7 +239,7 @@ add_mbinding(N, V, #env{funs=Fs}=Env) ->
 
 add_mbindings(Fbs, #env{funs=Fs0}=Env) ->
     Fs1 = lists:foldl(fun ({N,V}, Fs) -> ?PUT(N, {macro,V}, Fs) end,
-		      Fs0, Fbs),
+                      Fs0, Fbs),
     Env#env{funs=Fs1}.
 
 is_mbound(N, #env{funs=Fs}) ->
@@ -233,4 +252,15 @@ get_mbinding(N, #env{funs=Fs}) ->
     case ?FIND(N, Fs) of
         {ok,{macro,V}} -> {yes,V};
         _ -> no
+    end.
+
+%% Records.
+
+add_record(R, Fs, #env{recs=Rs}=Env) ->
+    Env#env{recs=?PUT(R, Fs, Rs)}.
+
+get_record(R, #env{recs=Rs}) ->
+    case ?FIND(R, Rs) of
+        {ok,Fs} -> {yes,Fs};
+        error -> no
     end.

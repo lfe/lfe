@@ -1,4 +1,4 @@
-;; Copyright (c) 2008-2013 Robert Virding
+;; Copyright (c) 2020 Robert Virding
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -12,21 +12,12 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-;; As close as we can get to a vanilla erlang if, a case with no match.
-(defmacro eif args
-   (fletrec ((r ([(list* t v as)] `((_ (when ,t) ,v) . ,(r as)))
-                ([()] ())))
-     `(case 1 . ,(r args))))
+;; File    : scm.erl
+;; Author  : Robert Virding
+;; Purpose : Lisp Flavoured Erlang scheme include macros
 
-(defmacro test-pat (pat expr)
-  `(let* ((val ,expr)
-          (,pat val))
-     val))
-
-;; Backwards compatibility for test_server test suites only.
-;; DO NOT USE IN NEW TEST SUITES.
-
-(defmacro line (expr) expr)
-
-(defmacro config args
-  `(: test_server lookup_config . ,args))
+(defmacro begin args `(scm:begin ,@args))
+(defmacro define args `(scm:define ,@args))
+(defmacro define-syntax args `(scm:define-syntax ,@args))
+(defmacro let-syntax args `(scm:let-syntax ,@args))
+(defmacro defsyntax args `(scm:defsyntax ,@args))

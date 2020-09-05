@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2016 Robert Virding
+%% Copyright (c) 2008-2020 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -35,6 +35,9 @@
                 map/2,flatmap/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3]).
 
 -include("lfe_comp.hrl").
+
+%% Mightn't use all commands in do_passes yet.
+-dialyzer({[no_match],do_passes/2}).
 
 %% We do a lot of quoting!
 -define(Q(E), [quote,E]).
@@ -184,10 +187,10 @@ lfe_comp_opts(Opts) ->
     Fun = fun ('to-split') -> to_split;
               ('to-expmac') -> to_expmac;
               ('to-expand') -> to_expand;
-              ('to-exp') -> to_exp;             %Backwards compatibility
               ('to-pmod') -> to_pmod;
               ('to-lint') -> to_lint;
               ('no-docs') -> no_docs;
+              ('to-erlang') -> to_erlang;
               ('to-core0') -> to_core0;
               ('to-core') -> to_core;
               ('to-kernel') -> to_kernel;
@@ -247,26 +250,27 @@ passes() ->
      %% Now we expand and trim remaining macros.
      {do,fun do_expand_macros/1},
      {when_flag,to_expand,{done,fun expand_pp/1}},
-     {when_flag,to_exp,{done,fun expand_pp/1}}, %Backwards compatibility
      {do,fun do_lfe_pmod/1},
      {when_flag,to_pmod,{done,fun pmod_pp/1}},
      {do,fun do_lfe_lint/1},
      {when_flag,to_lint,{done,fun lint_pp/1}},
      {unless_flag,no_docs,{do,fun do_get_docs/1}},
      {do,fun do_lfe_codegen/1},
-     {when_flag,to_core0,{done,fun erl_core_pp/1}},
-     {when_flag,debug_info,{do,fun do_get_abstract/1}},
+     {when_flag,to_erlang,{done,fun erlang_pp/1}},
      {do,fun do_erl_comp/1},
      %% These options will have made erlang compiler return internal
      %% form after pass.
+     {when_flag,to_core0,{done,fun erl_core_pp/1}},
      {when_flag,to_core,{done,fun erl_core_pp/1}},
      {when_flag,to_kernel,{done,fun erl_kernel_pp/1}},
      {when_flag,to_asm,{done,fun erl_asm_pp/1}},
-     %% Write docs beam chunks.
-     {do,fun add_chunks/1},
+     %% Stop at non-binary returns, either return or drop.
+     {unless_test,fun is_binary_module/1,done},
      %% Now we just write the beam file unless warnings-as-errors is
      %% set and we have warnings.
      {when_test,fun is_werror/1,error},
+     %% Write docs beam chunks.
+     {do,fun add_chunks/1},
      {done,fun beam_write/1}                    %Should be last
     ].
 
@@ -351,7 +355,7 @@ collect_modules([], Ms, _PreFs, _PreEnv, Mst) ->
 
 %% collect_mod_forms(Forms, Env, MacroState) ->
 %% collect_mod_forms(Forms, Acc, Env, MacroState) ->
-%%     {Modforms,RestForms,Env,MAcroState}.
+%%     {Modforms,RestForms,Env,MacroState}.
 %%  Expand and collect forms upto the next define-module or end. We
 %%  also flatten top-level nested progn code.
 
@@ -434,7 +438,6 @@ process_forms(Fun, Fs, L, St) ->
 %% do_lint(State) -> {ok,State} | {error,State}.
 %% do_get_docs(State) -> {ok,State} | {error,State}.
 %% do_lfe_codegen(State) -> {ok,State} | {error,State}.
-%% do_get_abstract(State) -> {ok,State} | {error,State}.
 %% do_erl_comp(State) -> {ok,State} | {error,State}.
 %%  The actual compiler passes.
 
@@ -460,7 +463,7 @@ do_lfe_lint(#comp{cinfo=Ci,code=Ms0}=St0) ->
 
 do_get_docs(#comp{code=Ms0,opts=Opts}=St) ->
     Doc = fun (#module{code=Mfs,chunks=Chks}=Mod) ->
-                  {ok,Chunk} = lfe_doc:make_chunk(Mfs, Opts),
+                  {ok,Chunk} = lfe_docs:make_chunk(Mfs, Opts),
                   Mod#module{chunks=[Chunk|Chks]}
           end,
     Ms1 = lists:map(Doc, Ms0),
@@ -473,14 +476,6 @@ do_lfe_codegen(#comp{cinfo=Ci,code=Ms0}=St) ->
                    Mod#module{code=Core}
            end,
     Ms1 = lists:map(Code, Ms0),
-    {ok,St#comp{code=Ms1}}.
-
-do_get_abstract(#comp{code=Ms0,opts=Opts}=St) ->
-    Abst = fun (#module{code=Core,chunks=Chks}=Mod) ->
-                   {ok,Chunk} = lfe_abstract_code:make_chunk(Core, Opts),
-                   Mod#module{chunks=[Chunk|Chks]}
-           end,
-    Ms1 = lists:map(Abst, Ms0),
     {ok,St#comp{code=Ms1}}.
 
 do_erl_comp(#comp{code=Ms0}=St0) ->
@@ -511,11 +506,6 @@ erl_comp_opts(St) ->
     Filter = fun (report) -> false;             %No reporting!
                  (report_warnings) -> false;
                  (report_errors) -> false;
-                 ('S') -> false;                %No stopping early
-                 ('E') -> false;
-                 ('P') -> false;
-                 (dcore) -> false;
-                 (to_core0) -> false;
                  (warnings_as_errors) -> false; %We handle these ourselves
                  ({source,_}) -> false;
                  (_) -> true                    %Everything else
@@ -523,11 +513,11 @@ erl_comp_opts(St) ->
     Os1 = filter(Filter, Os0),
     %% Now build options for the erlang compiler. 'no_bopt' turns off
     %% an optimisation in the guard which crashes our code.
-    [from_core,                                 %We are compiling from core
-     {source,St#comp.lfile},                    %Set the source file
+    [{source,St#comp.lfile},                    %Set the source file
      return,                                    %Ensure we return something
      binary,                                    %We want a binary
-     no_bopt|Os1].
+     nowarn_unused_vars|                        %Don't need to know here
+     Os1].
 
 %% split_pp(State) -> {ok,State} | {error,State}.
 %% expmac_pp(State) -> {ok,State} | {error,State}.
@@ -557,21 +547,31 @@ sexpr_pp(St, Ext) ->
     do_list_save_file(Save, Ext, St).
 
 %% These print a list of module structures.
+erlang_pp(#comp{opts=Opts}=St) ->
+    Format = ?IF(member(to_ast, Opts),
+                 fun (F) -> io_lib:format("~p.\n", [F]) end,
+                 fun (F) -> [erl_pp:form(F),$\n] end),
+    Save = fun (File, #module{code=AST}) ->
+                   Chars = [ Format(F) || F <- AST ],
+                   io:put_chars(File, Chars)
+           end,
+    do_list_save_file(Save, "erl", St).
+
 erl_core_pp(#comp{opts=Opts}=St) ->
     Format = ?IF(member(to_ast, Opts),
-                 fun (F) -> io_lib:format("~p\n", [F]) end,
+                 fun (F) -> io_lib:format("~p.\n", [F]) end,
                  fun (F) -> [core_pp:format(F),$\n] end),
     Save = fun (File, #module{code=Core}) ->
-                   io:put_chars(File, [Format(Core),$\n])
+                   io:put_chars(File, Format(Core))
            end,
     do_list_save_file(Save, "core", St).
 
 erl_kernel_pp(#comp{opts=Opts}=St) ->
     Format = ?IF(member(to_ast, Opts),
-                 fun (F) -> io_lib:format("~p\n", [F]) end,
+                 fun (F) -> io_lib:format("~p.\n", [F]) end,
                  fun (F) -> [v3_kernel_pp:format(F),$\n] end),
     Save = fun (File, #module{code=Kern}) ->
-                   io:put_chars(File, [Format(Kern),$\n])
+                   io:put_chars(File, Format(Kern))
            end,
     do_list_save_file(Save, "kernel", St).
 
@@ -635,6 +635,16 @@ beam_write_module(#module{name=M,code=Beam}=Mod, St) ->
 %% fix_erl_errors([{File,Errors}]) -> Errors.
 
 fix_erl_errors(Fes) -> flatmap(fun ({_,Es}) -> Es end, Fes).
+
+%% is_binary_module(State) -> true | false.
+%%  Check whether the module code is a binary or not.
+
+is_binary_module(#comp{code=Mods}) ->
+    case Mods of
+	[#module{code=Code}|_] when is_binary(Code) -> true;
+	_ -> false
+	%% _ -> io:format("ibr: ~p\n", [Mods]), false
+    end.
 
 %% is_werror(State) -> true | false.
 %%  Check if warnings_as_errors is set and we have warnings.
