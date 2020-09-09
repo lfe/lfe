@@ -298,8 +298,3 @@ docker-docs:
 docker-docs-bash:
 	docker run -i -v `pwd`/doc:/docs -t lfex/lfe-docs:latest bash
 
-# For travis
-travis:
-	$(MAKE) $(MFLAGS) install PREFIX=$$(mktemp -d)
-	@rebar3 eunit -m clj-tests,prop_lfe_docs
-	@rebar3 ct
