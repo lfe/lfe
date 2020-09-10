@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2019 Robert Virding
+%% Copyright (c) 2008-2020 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -38,12 +38,7 @@
 
 -import(lists, [flatten/1,reverse/1,reverse/2,map/2,mapfoldl/3,all/2]).
 
-%% Define IS_MAP/1 macro for is_map/1 bif.
--ifdef(HAS_MAPS).
--define(IS_MAP(T), is_map(T)).
--else.
--define(IS_MAP(T), false).
--endif.
+-include("lfe.hrl").
 
 %% parse_file(FileName|Fd[, Line]) -> {ok,[{Sexpr,Line}]} | {error,Error}.
 %%  Parse a file returning the raw sexprs (as it should be) and line

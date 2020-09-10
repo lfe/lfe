@@ -1,4 +1,4 @@
-%% Copyright (c) 2013-2017 Robert Virding
+%% Copyright (c) 2013-2020 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@
 
 %%-compile([export_all]).
 
+-include("lfe.hrl").
 -include("lfe_macro.hrl").
 
 %% Test function to inspect output of parsing functions.
@@ -303,13 +304,13 @@ typed_record_field({record_field,_,F,Def}, Type) ->
 %%  could also contain a typed record definition which we use.
 
 -ifdef(NEW_REC_CORE).
-trans_type(Name, Line, Def, E) ->
+trans_type(Name, _Line, Def, E) ->
     ['define-type',[Name|lfe_types:from_type_defs(E)],
      lfe_types:from_type_def(Def)].
 -else.
 trans_type({record,Name}, Line, Def, _E) ->
     trans_record(Name, Line, Def);
-trans_type(Name, _, Def, E) ->
+trans_type(Name, _Line, Def, E) ->
     ['define-type',[Name|lfe_types:from_type_defs(E)],
      lfe_types:from_type_def(Def)].
 -endif.

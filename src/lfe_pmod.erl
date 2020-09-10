@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2016 Robert Virding
+%% Copyright (c) 2008-2020 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -31,9 +31,8 @@
                   add_fbinding/4,add_fbindings/2,get_fbinding/3,
                   add_ibinding/5,get_gbinding/3]).
 
+-include("lfe.hrl").
 -include("lfe_comp.hrl").
-
--define(Q(E), [quote,E]).                       %For quoting
 
 -record(param, {mod=[],                         %Module name
                 pars=[],                        %Module parameters

@@ -1,4 +1,4 @@
-%% Copyright (c) 2016 Robert Virding
+%% Copyright (c) 2016-2020 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -57,17 +57,11 @@
 
 %%-compile(export_all).
 
--include("lfe_comp.hrl").
+-include("lfe.hrl").
 
 -export([module/2]).
 
 -import(lists, [reverse/1,reverse/2,member/2,filter/2]).
-
-%% We do a lot of quoting!
--define(Q(E), [quote,E]).
--define(BQ(E), [backquote,E]).
--define(C(E), [comma,E]).
--define(C_A(E), ['comma-at',E]).
 
 -define(NOMETA, []).                            %Empty documentation
 

@@ -1,4 +1,4 @@
-%% Copyright (c) 2014-2015 Robert Virding
+%% Copyright (c) 2014-2020 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -29,9 +29,6 @@
                  chunks=[],                     %Extra chunks
                  warnings=[]                    %Module warnings
                 }).
-
-%% Bloody useful
--define(IF(Test,True,False), case Test of true -> True; false -> False end).
 
 %% ?WHEN_OPT(Option, Options, Fun) -> ok.
 %% ?UNLESS_OPT(Option, Options, Fun) -> ok.

@@ -21,3 +21,22 @@
 -define(BQ(E), [backquote,E]).
 -define(C(E), [comma,E]).
 -define(C_A(E), ['comma-at',E]).
+
+%% Some commonly used macros.
+
+%% Define IS_MAP/1 macro for is_map/1 bif.
+-ifdef(HAS_MAPS).
+-define(IS_MAP(T), is_map(T)).
+-else.
+-define(IS_MAP(T), false).
+-endif.
+
+%% Define CATCH to handle deprecated get_stacktrace/0
+-ifdef(NEW_STACKTRACE).
+-define(CATCH(C, E, S), C:E:S ->).
+-else.
+-define(CATCH(C, E, S), C:E -> S = erlang:get_stacktrace(),).
+-endif.
+
+%% Bloody useful
+-define(IF(Test,True,False), case Test of true -> True; false -> False end).

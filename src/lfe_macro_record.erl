@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2016 Robert Virding
+%% Copyright (c) 2008-2020 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@
 
 -import(lists, [map/2,foldr/3,concat/1]).
 
+-include("lfe.hrl").
 -include("lfe_macro.hrl").
 
 %% Errors.
@@ -43,7 +44,7 @@ format_error(_) -> "record error".
 define([Name|Fdefs], Env, St0) ->
     {Macs,_Type, _,St1} = define(Name, Fdefs, Env, St0),
     {yes,[progn,['define-record',Name,Fdefs]|Macs],St1};
-define([], _Env, _St) -> no.        	%Undefined macro
+define([], _Env, _St) -> no.                    %Undefined macro
 
 define(Name, Fdefs, Env, St) when is_atom(Name) ->
     %% Get field names, default values and indices.

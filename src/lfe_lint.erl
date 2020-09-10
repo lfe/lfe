@@ -37,12 +37,7 @@
                   union/1,union/2,intersection/2,subtract/2]).
 
 -include("lfe_comp.hrl").
-
-%% We do a lot of quoting!
--define(Q(E), [quote,E]).
--define(BQ(E), [backquote,E]).
--define(C(E), [comma,E]).
--define(C_A(E), ['comma-at',E]).
+-include("lfe.hrl").
 
 -record(lint, {module=[],                       %Module name
                mline=0,                         %Module definition line

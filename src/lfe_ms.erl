@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2018 Robert Virding
+%% Copyright (c) 2008-2020 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -31,13 +31,13 @@
 
 -import(lists, [foldr/3,mapfoldl/3]).
 
+-include("lfe.hrl").
+
 %% ets:test_ms/2.
 
 %% format_error(Error) -> ErrorString.
 
 format_error(match_spec_head) -> "Illegal number of head arguments".
-
--define(Q(E), [quote,E]).                       %We do a lot of quoting!
 
 -record(ms, {dc=1,                              %Dollar variable count from 1
              bs=[],                             %Variable/$var bindings

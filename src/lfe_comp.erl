@@ -34,16 +34,11 @@
 -import(lists, [member/2,keyfind/3,filter/2,foreach/2,all/2,any/2,
                 map/2,flatmap/2,foldl/3,foldr/3,mapfoldl/3,mapfoldr/3]).
 
+-include("lfe.hrl").
 -include("lfe_comp.hrl").
 
 %% Mightn't use all commands in do_passes yet.
 -dialyzer({[no_match],do_passes/2}).
-
-%% We do a lot of quoting!
--define(Q(E), [quote,E]).
--define(BQ(E), [backquote,E]).
--define(C(E), [comma,E]).
--define(C_A(E), ['comma-at',E]).
 
 %% The main compiler state.
 
@@ -95,8 +90,7 @@ do_compile(Input, Opts) ->
                    Ret = try
                              internal(Input, Opts)
                          catch
-                             error:Reason ->
-                                 St = erlang:get_stacktrace(),
+                             ?CATCH(error, Reason, St)
                                  {error,{Reason,St}}
                          end,
                    exit(Ret)
@@ -641,9 +635,9 @@ fix_erl_errors(Fes) -> flatmap(fun ({_,Es}) -> Es end, Fes).
 
 is_binary_module(#comp{code=Mods}) ->
     case Mods of
-	[#module{code=Code}|_] when is_binary(Code) -> true;
-	_ -> false
-	%% _ -> io:format("ibr: ~p\n", [Mods]), false
+        [#module{code=Code}|_] when is_binary(Code) -> true;
+        _ -> false
+        %% _ -> io:format("ibr: ~p\n", [Mods]), false
     end.
 
 %% is_werror(State) -> true | false.

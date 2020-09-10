@@ -1,4 +1,4 @@
-%% Copyright (c) 2013-2016 Robert Virding
+%% Copyright (c) 2013-2020 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -15,12 +15,6 @@
 %% File    : lfe_macro.erl
 %% Author  : Robert Virding
 %% Purpose : Lisp Flavoured Erlang macro expander.
-
-%% We do a lot of quoting!
--define(Q(E), [quote,E]).
--define(BQ(E), [backquote,E]).
--define(C(E), [comma,E]).
--define(C_A(E), ['comma-at',E]).
 
 %% Macro expander state.
 -record(mac, {deep=true,                        %Deep expand everything

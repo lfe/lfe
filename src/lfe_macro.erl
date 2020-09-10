@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2016 Robert Virding
+%% Copyright (c) 2008-2020 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -45,15 +45,9 @@
 -import(lists, [any/2,all/2,map/2,foldl/3,foldr/3,mapfoldl/3,
                 reverse/1,reverse/2,member/2,concat/1]).
 
+-include("lfe.hrl").
 -include("lfe_comp.hrl").
 -include("lfe_macro.hrl").
-
-%% Define IS_MAP/1 macro for is_map/1 bif.
--ifdef(HAS_MAPS).
--define(IS_MAP(T), is_map(T)).
--else.
--define(IS_MAP(T), false).
--endif.
 
 %% Errors we get, generally in the predefined macros.
 format_error({bad_form,Type}) ->
@@ -642,14 +636,9 @@ exp_userdef_macro([Mac|Args], Def0, Env, St0) ->
         {yes,Exp,St1}
     catch
         %% error:no_Error -> boom
-        %% error:Error ->
-        %%     Stack = erlang:get_stacktrace(),
-        %%     erlang:error({expand_macro,[Mac|Args],{Error,Stack}})
-        error:Error ->
-            Stack = erlang:get_stacktrace(),
+        ?CATCH(error, Error, Stack)
             erlang:raise(error, {expand_macro,[Mac|Args],Error}, Stack)
-        %% error:Error ->
-        %%     Stack0 = erlang:get_stacktrace(),
+        %% ?CATCH(error, Error, Stack0)
         %%     Stack1 = trim_stacktrace(Stack0),
         %%     erlang:error({expand_macro,[Mac|Args],{Error,Stack1}})
     end.
@@ -662,14 +651,9 @@ exp_predef_macro(Call, Env, St) ->
     try
         exp_predef(Call, Env, St)
     catch
-        %% error:Error ->
-        %%     Stack = erlang:get_stacktrace(),
-        %%     erlang:raise({expand_macro,Call,{Error,Stack}})
-        error:Error ->
-            Stack = erlang:get_stacktrace(),
+        ?CATCH(error, Error, Stack)
             erlang:raise(error, {expand_macro,Call,Error}, Stack)
-        %% error:Error ->
-        %%     Stack0 = erlang:get_stacktrace(),
+        %% ?CATCH(error, Error, Stack0)
         %%     Stack1 = trim_stacktrace(Stack0),
         %%     erlang:error({expand_macro,Call,{Error,Stack1}})
     end.
@@ -915,7 +899,7 @@ exp_predef(['trace-ms'|Body], Env, St0) ->
     {yes,MS,St1};
 exp_predef(['ets-ms'|Body], Env, St) ->
     exp_predef(['table-ms'|Body], Env, St);
-exp_predef(['dbg-ms'|Body], Env, St) ->		%Just a synonym
+exp_predef(['dbg-ms'|Body], Env, St) ->         %Just a synonym
     exp_predef(['trace-ms'|Body], Env, St);
 %% (qlc (lc (qual ...) e ...) opts)
 exp_predef([qlc,LC], Env, St) -> exp_qlc(LC, [], Env, St);

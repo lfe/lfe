@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2016 Robert Virding
+%% Copyright (c) 2008-2020 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -24,12 +24,7 @@
 
 -import(lists, [reverse/1,reverse/2,flatlength/1]).
 
-%% Define IS_MAP/1 macro for is_map/1 bif.
--ifdef(HAS_MAPS).
--define(IS_MAP(T), is_map(T)).
--else.
--define(IS_MAP(T), false).
--endif.
+-include("lfe.hrl").
 
 %% term(Sexpr [, Depth [, Indentation [, LineLength]]]) -> [char()].
 %%  A relatively simple pretty print function, but with some

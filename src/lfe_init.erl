@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2019 Robert Virding
+%% Copyright (c) 2008-2020 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -28,6 +28,8 @@
 -module(lfe_init).
 
 -export([start/0]).
+
+-include("lfe.hrl").
 
 -define(OK_STATUS, 0).
 -define(ERROR_STATUS, 127).
@@ -77,13 +79,12 @@ run_script(Script) ->
         timer:sleep(1),
         init:stop(?OK_STATUS)
     catch
-        Class:Error ->
-            St = erlang:get_stacktrace(),       %Need to get this first
+        ?CATCH(Class, Error, Stack)
             Sf = fun ({M,_F,_A,_L}) ->
                          M /= lfe_eval
                  end,
             Ff = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
-            Cs = lfe_lib:format_exception(Class, Error, St, Sf, Ff, 1),
+            Cs = lfe_lib:format_exception(Class, Error, Stack, Sf, Ff, 1),
             io:put_chars(Cs),
             halt(?ERROR_STATUS)
     end.
