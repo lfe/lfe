@@ -18,13 +18,18 @@
 
 -module(lfe_io_pretty).
 
+%% The basic API.
 -export([term/1,term/2,term/3,term/4]).
+%% These might be useful somewhere else.
+-export([newline/1,newline/2,last_length/1,last_length/2]).
 
--compile(export_all).
+%% -compile(export_all).
 
 -import(lists, [reverse/1,reverse/2,flatlength/1]).
 
 -include("lfe.hrl").
+
+-define(MAPVIND, 2).                            %Extra indentation of map value
 
 %% term(Sexpr [, Depth [, Indentation [, LineLength]]]) -> [char()].
 %%  A relatively simple pretty print function, but with some
@@ -80,9 +85,8 @@ term(Tup, D, I, L) when is_tuple(Tup) ->
 term(Bit, D, _, _) when is_bitstring(Bit) ->
     bitstring(Bit, D);                          %First D bytes
 term(Map, D, I, L) when ?IS_MAP(Map) ->
-    %% This will return kv pairs in reverse order to from_list, but
-    %% this dooesn't really matter here.
-    Fun = fun (K, V, Acc) -> [K,V|Acc] end,
+    %% Preserve kv pair ordering, the extra copying is trivial here.
+    Fun = fun (K, V, Acc) -> Acc ++ [K,V] end,
     Mcs = map_body(maps:fold(Fun, [], Map), D, I+3, L),
     ["#M(",Mcs,$)];
 term(Other, _, _, _) ->
@@ -302,7 +306,7 @@ indent_type('binary-comp') -> 1;
 indent_type('match-spec') -> 0;
 indent_type(_) -> none.
 
-%% map(KVs, Depth, Indentation, LineLength).
+%% map_body(KVs, Depth, Indentation, LineLength).
 %% map_body(KVs, CurrentLineIndent, Depth, Indentation, LineLength)
 %%  Don't include the start and end of the map as this is called from
 %%  differenct functions.
@@ -318,16 +322,12 @@ map_body([K,V|KVs], CurL, D, I, L) ->
             [KVcs,map_rest(KVs, I+KVl, D-1, I, L)];
         {sep_lines,Kcs,Vcs} ->                  %On separate lines
             %% Force a break after K/V split.
-            [Kcs,newline(I, Vcs),map_rest(KVs, L, D-1, I, L)]
+            [Kcs,newline(I+?MAPVIND, Vcs),map_rest(KVs, L, D-1, I, L)]
     end;
 map_body(E, CurL, D, I, L) ->
     map_last(E, CurL, D, I, L).
 
-%% map_rest(KVs, Depth, Indentation, LineLength)
 %% map_rest(KVs, CurrentLineIndent, Depth, Indentation, LineLength)
-
-map_rest(KVs, D, I, L) ->
-    map_rest(KVs, I, D, I, L-1).
 
 map_rest(_, _, 0, _, _) -> " ...";              %Reached our depth
 map_rest([K,V|KVs], CurL, D, I, L) ->
@@ -338,7 +338,8 @@ map_rest([K,V|KVs], CurL, D, I, L) ->
             [newline(I, KVcs),map_rest(KVs, I+KVl, D-1, I, L)];
         {sep_lines,Kcs,Vcs} ->                  %On separate lines
             %% Force a break after K/V split.
-            [newline(I, Kcs),newline(I, Vcs),map_rest(KVs, L, D-1, I, L)]
+            [newline(I, Kcs),newline(I+?MAPVIND, Vcs),
+             map_rest(KVs, L, D-1, I, L)]
     end;
 map_rest(E, CurL, D, I, L) ->
     map_last(E, CurL, D, I, L).
@@ -362,7 +363,7 @@ map_assoc(K, V, CurL, D, I, L) ->
                     true -> term(K, D, I, L)
                  end,
             Vs = if I+Vl < L-10 -> Vcs;
-                    true -> term(V, D, I, L)
+                    true -> term(V, D, I+?MAPVIND, L)
                  end,
             {sep_lines,Ks,Vs}
     end.
