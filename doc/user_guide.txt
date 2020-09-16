@@ -251,8 +251,8 @@ Supported forms
                 {{(case ((pat {{(when e ...)}} ... )
                         ... ))}}
                 {{(catch
-                   (((tuple type value ignore) {{(when e ...)}}
-                                              - Must be tuple of length 3!
+                   ((tuple type value stacktrace)|_ {{(when e ...)}}
+                                              - Must be tuple of length 3 or just _!
                     ... )
                    ... )}}
                 {{(after ... )}})
@@ -488,7 +488,7 @@ Macros
        Macro  calls  are expanded in both body and patterns.  This can be very
        useful to have both make and match macros, but be careful with names.
 
-       A macro is function of two argument which is a called with  a  list  of
+       A macro is function of two arguments which is a called with a  list  of
        the  arguments to the macro call and the current macro environment.  It
        can be either a lambda or a match-lambda.  The basic forms for defining
        macros are:

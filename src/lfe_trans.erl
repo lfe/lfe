@@ -145,28 +145,6 @@ from_expr({lc,_,E,Qs}, Vt0, St0) ->
     {Lqs,Vt1,St1} = from_lc_quals(Qs, Vt0, St0),
     {Le,Vt2,St2} = from_expr(E, Vt1, St1),
     {[lc,Lqs,Le],Vt2,St2};
-%% from_expr({record_index,_,R,{atom,_,F}}, Vt, St) -> %We KNOW!
-%%     %% Record field index.
-%%     IR = list_to_atom(lists:concat([R,"-",F])),
-%%     {[IR],Vt,St};
-%% from_expr({record,_,R,Fs}, Vt0, St0) ->
-%%     %% Create a record.
-%%     MR = list_to_atom("make-" ++ atom_to_list(R)),
-%%     {Lfs,Vt1,St1} = from_rec_fields(Fs, Vt0, St0),
-%%     {[MR|Lfs],Vt1,St1};
-%% from_expr({record,_,E,R,Fs}, Vt0, St0) ->
-%%     %% Set fields in record.
-%%     SR = list_to_atom("set-" ++ atom_to_list(R)),
-%%     {Le,Vt1,St1} = from_expr(E, Vt0, St0),
-%%     {Lfs,Vt2,St2} = from_rec_fields(Fs, Vt1, St1),
-%%     {[SR,Le|Lfs],Vt2,St2};
-%% from_expr({record_field,_,E,R,{atom,_,F}}, Vt0, St0) -> %We KNOW!
-%%     %% Record field value.
-%%     RF = list_to_atom(lists:concat([R,"-",F])),
-%%     {Le,Vt1,St1} = from_expr(E, Vt0, St0),
-%%     {[RF,Le],Vt1,St1};
-%% from_expr({record_field,_,_,_}=M, Vt, St) ->    %Pre R16 packages
-%%     from_package_module(M, Vt, St);
 %% Function calls.
 from_expr({call,_,{remote,_,M,F},As}, Vt0, St0) -> %Remote function call
     {Lm,Vt1,St1} = from_expr(M, Vt0, St0),
@@ -391,6 +369,7 @@ from_eq_tests(Gs) -> [ ['=:=',V,V1] || {V,V1} <- Gs ].
 
 %% from_try(Exprs, CaseClauses, CatchClauses, After, VarTable, State) ->
 %%     {Try,State}.
+%%  Only return the parts which have contents.
 
 from_try(Es, Scs, Ccs, As, Vt, St0) ->
     %% Try does not allow any exports!
@@ -437,18 +416,10 @@ from_package_module({record_field,_,_,_}=M, Vt, St) ->
     {?Q(A),Vt,St}.
 
 %% new_from_var(State) -> {VarName,State}.
-%% new_from_vars(Count, State) -> {VarNames,State}.
 
 new_from_var(#from{vc=C}=St) ->
     V = list_to_atom(lists:concat(['-var-',C,'-'])),
     {V,St#from{vc=C+1}}.
-
-new_from_vars(N, St) -> new_from_vars(N, St, []).
-
-new_from_vars(N, St0, Vs) when N > 0 ->
-    {V,St1} = new_from_var(St0),
-    new_from_vars(N-1, St1, [V|Vs]);
-new_from_vars(0, St, Vs) -> {Vs,St}.
 
 %% from_pat(Pattern, VarTable, State) ->
 %%     {Pattern,EqualVar,VarTable,State}.
@@ -959,14 +930,14 @@ to_if(_, L, _, _) ->
 
 to_if(Test, True, False, L, Vt, St0) ->
     {Etest,St1} = to_expr(Test, L, Vt, St0),
-    {Ecls,St2} = to_icrt_cls([[?Q(true),True],[?Q(false),False]], L, Vt, St1),
+    {Ecls,St2} = to_icr_cls([[?Q(true),True],[?Q(false),False]], L, Vt, St1),
     {{'case',L,Etest,Ecls},St2}.
 
 %% to_case(CaseBody, LineNumber, VarTable, State) -> {ErlCase,State}.
 
 to_case([E|Cls], L, Vt, St0) ->
     {Ee,St1} = to_expr(E, L, Vt, St0),
-    {Ecls,St2} = to_icrt_cls(Cls, L, Vt, St1),
+    {Ecls,St2} = to_icr_cls(Cls, L, Vt, St1),
     {{'case',L,Ee,Ecls},St2};
 to_case(_, L, _, _) ->
     illegal_code_error(L, 'case').
@@ -976,7 +947,7 @@ to_case(_, L, _, _) ->
 to_receive(Cls0, L, Vt, St0) ->
     %% Get the right receive form depending on whether there is an after.
     {Cls1,A} = splitwith(fun (['after'|_]) -> false; (_) -> true end, Cls0),
-    {Ecls,St1} = to_icrt_cls(Cls1, L, Vt, St0),
+    {Ecls,St1} = to_icr_cls(Cls1, L, Vt, St0),
     case A of
         [['after',T|B]] ->
             {Et,St2} = to_expr(T, L, Vt, St1),
@@ -986,57 +957,63 @@ to_receive(Cls0, L, Vt, St0) ->
             {{'receive',L,Ecls},St1}
     end.
 
-%% to_icrt_cls(Clauses, LineNumber, VarTable, State) -> {Clauses,State}.
-%% to_icrt_cl(Clause, LineNumber, VarTable, State) -> {Clause,State}.
-%%  If/case/receive/try clauses.
+%% to_icr_cls(Clauses, LineNumber, VarTable, State) -> {Clauses,State}.
+%% to_icr_cl(Clause, LineNumber, VarTable, State) -> {Clause,State}.
+%%  If/case/receive clauses.
 
-to_icrt_cls(Cls, L, Vt, St) ->
-    Fun = fun (Cl, St0) -> to_icrt_cl(Cl, L, Vt, St0) end,
+to_icr_cls(Cls, L, Vt, St) ->
+    Fun = fun (Cl, St0) -> to_icr_cl(Cl, L, Vt, St0) end,
     mapfoldl(Fun, St, Cls).
 
-to_icrt_cl([P,['when']|B], L, Vt0, St0) ->
+to_icr_cl([P,['when']|B], L, Vt0, St0) ->
     {Ep,Vt1,St1} = to_pat(P, L, Vt0, St0),
     {Eb,St2} = to_body(B, L, Vt1, St1),
     {{clause,L,[Ep],[],Eb},St2};
-to_icrt_cl([P,['when'|G]|B], L, Vt0, St0) ->
+to_icr_cl([P,['when'|G]|B], L, Vt0, St0) ->
     {Ep,Vt1,St1} = to_pat(P, L, Vt0, St0),
     {Eg,St2} = to_body(G, L, Vt1, St1),
     {Eb,St3} = to_body(B, L, Vt1, St2),
     {{clause,L,[Ep],[Eg],Eb},St3};
-to_icrt_cl([P|B], L, Vt0, St0) ->
+to_icr_cl([P|B], L, Vt0, St0) ->
     {Ep,Vt1,St1} = to_pat(P, L, Vt0, St0),
     {Eb,St2} = to_body(B, L, Vt1, St1),
     {{clause,L,[Ep],[],Eb},St2}.
 
 %% to_try(Try, LineNumber, VarTable, State) -> {ErlTry,State}.
-%%  Step down the try body doing each section separately.
+%%  Step down the try body doing each section separately then put them
+%%  together. We expand _ catch pattern to {_,_,_}. We remove wrapping
+%%  progn in try expression which is not really necessary.
 
-to_try([E|Rest], L, Vt, St0) ->
-    {Ee,St1} = to_expr(E, L, Vt, St0),
-    {Erest,St2} = to_try_case(Rest, L, Vt, St1),
-    {list_to_tuple(['try',L,[Ee]|Erest]),St2}.
+to_try([E|Try], L, Vt, St0) ->
+    {Ee,St1} = to_try_expr(E, L, Vt, St0),
+    {Ecase,Ecatch,Eafter,St2} = to_try(Try, L, Vt, St1, [], [], []),
+    {{'try',L,Ee,Ecase,Ecatch,Eafter},St2}.
 
-to_try_case([['case'|Cls]|Rest], L, Vt, St0) ->
-    {Ecls,St1} = to_icrt_cls(Cls, L, Vt, St0),
-    {Erest,St2} = to_try_catch(Rest, L, Vt, St1),
-    {[Ecls|Erest],St2};
-to_try_case(Rest, L, Vt, St0) ->
-    {Erest,St1} = to_try_catch(Rest, L, Vt, St0),
-    {[[]|Erest],St1}.
+to_try_expr([progn|Exprs], L, Vt, St) ->
+    to_exprs(Exprs, L, Vt, St);
+to_try_expr(Expr, L, Vt, St) ->
+    to_exprs([Expr], L, Vt, St).
 
-to_try_catch([['catch'|Cls]|Rest], L, Vt, St0) ->
-    {Ecls,St1} = to_icrt_cls(Cls, L, Vt, St0),
-    {Erest,St2} = to_try_after(Rest, L, Vt, St1),
-    {[Ecls|Erest],St2};
-to_try_catch(Rest, L, Vt, St0) ->
-    {Erest,St1} = to_try_after(Rest, L, Vt, St0),
-    {[[]|Erest],St1}.
+to_try([['case'|Case]|Try], L, Vt, St0, _, Ecatch, Eafter) ->
+    {Ecase,St1} = to_icr_cls(Case, L, Vt, St0),
+    to_try(Try, L, Vt, St1, Ecase, Ecatch, Eafter);
+to_try([['catch'|Catch]|Try], L, Vt, St0, Ecase, _, Eafter) ->
+    {Ecatch,St1} = to_try_cls(Catch, L, Vt, St0),
+    to_try(Try, L, Vt, St1, Ecase, Ecatch, Eafter);
+to_try([['after'|After]|Try], L, Vt, St0, Ecase, Ecatch, _) ->
+    {Eafter,St1} = to_exprs(After, L, Vt, St0),
+    to_try(Try, L, Vt, St1, Ecase, Ecatch, Eafter);
+to_try([], _, _, St, Ecase, Ecatch, Eafter) ->
+    {Ecase,Ecatch,Eafter,St}.
 
-to_try_after([['after'|Body]], L, Vt, St0) ->
-    {Eb,St1} = to_exprs(Body, L, Vt, St0),
-    {[Eb],St1};
-to_try_after([], _, _, St) ->
-    {[[]],St}.
+to_try_cls(Cls, L, Vt, St) ->
+    Fun = fun (Cl, St0) -> to_try_cl(Cl, L, Vt, St0) end,
+    lists:mapfoldl(Fun, St, Cls).
+
+to_try_cl(['_'|Body], L, Vt, St) ->
+    to_try_cl([[tuple,'_','_','_']|Body], L, Vt, St);
+to_try_cl(Cl, L, Vt, St) ->
+    to_icr_cl(Cl, L, Vt, St).
 
 %% to_lc_quals(Qualifiers, LineNumber, VarTable, State) ->
 %%     {Qualifiers,VarTable,State}.
@@ -1073,13 +1050,6 @@ new_to_var_loop(Base, C, Vs, Vct, St) ->
         false ->
             {V,St#to{vs=[V|Vs],vc=?VT_PUT(Base, C+1, Vct)}}
     end.
-
-%% new_to_vars(N) -> Vars.
-
-new_to_vars(N) when N > 0 ->
-    V = list_to_atom(integer_to_list(N)),
-    [V|new_to_vars(N-1)];
-new_to_vars(0) -> [].
 
 %% to_pat(Pattern, LineNumber, VarTable, State) -> {Pattern,VarTable,State}.
 %% to_pat(Pattern, LineNumber, PatVars, VarTable, State) ->

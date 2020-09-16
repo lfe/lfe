@@ -215,7 +215,7 @@ report_exception(Class, Reason, Stk) ->
          end,
     Ff = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
     Cs = lfe_lib:format_exception(Class, Reason, Stk, Sf, Ff, 1),
-    io:put_chars(Cs),
+    io:put_chars("** " ++ Cs),                	%Make it more note worthy
     io:nl().
 
 %% read_expression(Prompt, Evaluator, State) -> {Return,Evaluator}.

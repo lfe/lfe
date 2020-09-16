@@ -147,6 +147,8 @@ lift_expr(['case',Expr|Cls], Lds, St) ->
 lift_expr(['catch'|Body0], Lds0, St0) ->
     {Body1,Lds1,St1} = lift_exprs(Body0, Lds0, St0),
     {['catch'|Body1],Lds1,St1};
+lift_expr(['try'|Try], Lds, St) ->
+    lift_try(Try, Lds, St);
 lift_expr([funcall|Body0], Lds0, St0) ->
     {Body1,Lds1,St1} = lift_exprs(Body0, Lds0, St0),
     {[funcall|Body1],Lds1,St1};
@@ -271,12 +273,35 @@ lift_cls(Cls, Lds, St) ->
                   {Body1,Lds1,St1} = lift_exprs(Body0, Lds0, St0),
                   {[[Pats|Body1]|Cls0],Lds1,St1}
           end,
-    lists:foldr(Fun, {[],Lds,St}, Cls).
+    lists:foldr(Fun, {[],Lds,St}, Cls).         %From the right!
 
 lift_case(Expr0, Cls0, Lds0, St0) ->
     {Expr1,Lds1,St1} = lift_expr(Expr0, Lds0, St0),
     {Cls1,Lds2,St2} = lift_cls(Cls0, Lds1, St1),
     {['case',Expr1|Cls1],Lds2,St2}.
+
+%% lift_try(TryBody, LocalDefs, State) -> {TryBody,LocalDefs,State}.
+%%  Step down the try body lifting the local functions.
+
+lift_try(Try0, Lds0, St0) ->
+    Fun = fun (T0, {L0,S0}) ->
+                  {T1,L1,S1} = lift_try_1(T0, L0, S0),
+                  {T1,{L1,S1}}
+          end,
+    {Try1,{Lds1,St1}} = lists:mapfoldl(Fun, {Lds0,St0}, Try0),
+    {['try'|Try1],Lds1,St1}.
+
+lift_try_1(['case'|Case0], Lds0, St0) ->
+    {Case1,Lds1,St1} = lift_cls(Case0, Lds0, St0),
+    {['case'|Case1],Lds1,St1};
+lift_try_1(['catch'|Catch0], Lds0, St0) ->
+    {Catch1,Lds1,St1} = lift_cls(Catch0, Lds0, St0),
+    {['catch'|Catch1],Lds1,St1};
+lift_try_1(['after'|After0], Lds0, St0) ->
+    {After1,Lds1,St1} = lift_exprs(After0, Lds0, St0),
+    {['after'|After1],Lds1,St1};
+lift_try_1(E, Lds, St) ->                       %The try expression.
+    lift_expr(E, Lds, St).
 
 %% trans_expr(Call, Name, Arity, NewName, ImportedVars) -> Expr.
 %%  Translate function call from old Name to New and add imported
@@ -433,42 +458,35 @@ trans_case(Expr0, Cls0, Name, Ar, New, Ivars) ->
 %% trans_try(TryBody, Name, Arity, NewName, ImportedVars) -> Try.
 %%  Step down the try body doing each section separately.
 
-trans_try([E0|Rest0], Name, Ar, New, Ivars) ->
-    E1 = trans_expr(E0, Name, Ar, New, Ivars),
-    Rest1 = trans_try_case(Rest0, Name, Ar, New, Ivars),
-    ['try',E1|Rest1].
+trans_try(Try0, Name, Ar, New, Ivars) ->
+    Fun = fun (T) -> trans_try_1(T, Name, Ar, New, Ivars) end,
+    Try1 = lists:map(Fun, Try0),
+    ['try'|Try1].
 
-trans_try_case([['case'|Cls0]|Rest0], Name, Ar, New, Ivars) ->
-    Cls1 = trans_cls(Cls0, Name, Ar, New, Ivars),
-    Rest1 = trans_try_catch(Rest0, Name, Ar, New, Ivars),
-    [['case'|Cls1]|Rest1];
-trans_try_case(Rest, Name, Ar, New, Ivars) ->
-    trans_try_catch(Rest, Name, Ar, New, Ivars).
-
-trans_try_catch([['catch'|Cls0]|Rest0], Name, Ar, New, Ivars) ->
-    Cls1 = trans_cls(Cls0, Name, Ar, New, Ivars),
-    Rest1 = trans_try_after(Rest0, Name, Ar, New, Ivars),
-    [['catch'|Cls1]|Rest1];
-trans_try_catch(Rest, Name, Ar, New, Ivars) ->
-    trans_try_after(Rest, Name, Ar, New, Ivars).
-
-trans_try_after([['after'|Body0]], Name, Ar, New, Ivars) ->
-    Body1 = trans_exprs(Body0, Name, Ar, New, Ivars),
-    [['after'|Body1]];
-trans_try_after([], _, _, _, _) -> [].
+trans_try_1(['case'|Case0], Name, Ar, New, Ivars) ->
+    Case1 = trans_cls(Case0, Name, Ar, New, Ivars),
+    ['case'|Case1];
+trans_try_1(['catch'|Catch0], Name, Ar, New, Ivars) ->
+    Catch1 = trans_cls(Catch0, Name, Ar, New, Ivars),
+    ['catch'|Catch1];
+trans_try_1(['after'|After0], Name, Ar, New, Ivars) ->
+    After1 = trans_exprs(After0, Name, Ar, New, Ivars),
+    ['after'|After1];
+trans_try_1(E, Name, Ar, New, Ivars) ->         %The try expression.
+    trans_expr(E, Name, Ar, New, Ivars).
                        
 func_arity([lambda,Args|_]) -> length(Args);
-func_arity(['match-lambda'|Cls]) ->
-    match_lambda_arity(Cls).
-
-match_lambda_arity([[Pats|_]|_]) -> length(Pats).
+func_arity(['match-lambda',[Pats|_]|_]) ->
+    length(Pats).
 
 %% new_local_fun_name(Name, Arity, State) -> {FunName,State}.
 %%  Create a name for a local function. The name has a similar basic
 %%  format as those created in Core Erlang, though not overlapping.
 
 new_local_fun_name(Local, Lar, #cl{func=Func,arity=Far,fc=C}=St) ->
-    Name = lists:concat(["-lfe-",Func,"/",Far,"-local-",Local,"/",Lar,"-",C,"-"]),
+    Name = lists:concat(["-lfe-",Func,"/",Far,
+                         "-local-",Local,"/",Lar,
+                         "-",C,"-"]),
     {list_to_atom(Name),St#cl{fc=C+1}}.
 
 new_vars(N) when N > 0 ->
@@ -610,25 +628,18 @@ ivars_cl([Pat|Body], Kvars0, Ivars) ->
 %% trans_try(TryBody, KnownVars, ImportedVars) -> ImportedVars.
 %%  Step down the try body doing each section separately.
 
-ivars_try([E|Rest], Kvars, Ivars0) ->
-    Ivars1 = ivars_expr(E, Kvars, Ivars0),
-    ivars_try_case(Rest, Kvars, Ivars1).
+ivars_try(Try, Kvars, Ivars) ->
+    lists:foldl(fun (T, Ivs) -> ivars_try_1(T, Kvars, Ivs) end,
+                Ivars, Try).
 
-ivars_try_case([['case'|Cls]|Rest], Kvars, Ivars0) ->
-    Ivars1 = ivars_cls(Cls, Kvars, Ivars0),
-    ivars_try_catch(Rest, Kvars, Ivars1);
-ivars_try_case(Rest, Kvars, Ivars) ->
-    ivars_try_catch(Rest, Kvars, Ivars).
-
-ivars_try_catch([['catch'|Cls]|Rest], Kvars, Ivars0) ->
-    Ivars1 = ivars_cls(Cls, Kvars, Ivars0),
-    ivars_try_after(Rest, Kvars, Ivars1);
-ivars_try_catch(Rest, Kvars, Ivars) ->
-    ivars_try_after(Rest, Kvars, Ivars).
-
-ivars_try_after([['after'|Cls]], Kvars, Ivars) ->
-    ivars_cls(Cls, Kvars, Ivars);
-ivars_try_after([], _, Ivars) -> Ivars.
+ivars_try_1(['case'|Case], Kvars, Ivars) ->
+    ivars_cls(Case, Kvars, Ivars);
+ivars_try_1(['catch'|Catch], Kvars, Ivars) ->
+    ivars_cls(Catch, Kvars, Ivars);
+ivars_try_1(['after'|After], Kvars, Ivars) ->
+    ivars_exprs(After, Kvars, Ivars);
+ivars_try_1(E, Kvars, Ivars) ->                 %The try expression.
+    ivars_expr(E, Kvars, Ivars).
 
 %% ivars_pat(Pattern) -> PatternVars.
 %% ivars_pat(Pattern, PatternVars) -> PatternVars.

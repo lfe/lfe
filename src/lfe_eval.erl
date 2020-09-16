@@ -45,6 +45,11 @@
 
 -include("lfe.hrl").
 
+-define(STACKTRACE,
+        element(2, erlang:process_info(self(), current_stacktrace))).
+
+-define(EVAL_ERROR(Error), erlang:raise(error, Error, ?STACKTRACE)).
+
 %% -compile([export_all]).
 
 %% Errors.
@@ -73,6 +78,11 @@ format_error({argument_limit,Arity}) ->
     lfe_io:format1(<<"too many arguments ~w">>, [Arity]);
 format_error({bad_form,Form}) ->
     lfe_io:format1(<<"bad ~w form">>, [Form]);
+%% Try-catches.
+format_error({try_clause,Val}) ->
+    lfe_io:format1(<<"no try clause matching ~.P">>, [Val,10]);
+format_error({illegal_exception,E}) ->
+    lfe_io:format1(<<"illegal exception ~w">>, [E]);
 %% Records.
 format_error({undefined_record,R}) ->
     lfe_io:format1(<<"record ~w undefined">>, [R]);
@@ -343,11 +353,15 @@ get_fbinding(Name, Ar, Env) ->
 eval_list(Es, Env) ->
     map(fun (E) -> eval_expr(E, Env) end, Es).
 
+%% eval_body(Body, Env) -> Value.
+%%  Evaluate the list of expressions and return value of the last one.
+
 eval_body([E], Env) -> eval_expr(E, Env);
 eval_body([E|Es], Env) ->
     eval_expr(E, Env),
     eval_body(Es, Env);
-eval_body([], _) -> [].                         %Empty body
+eval_body([], _) -> [];                         %Empty body
+eval_body(_, _) -> ?EVAL_ERROR({bad_form,body}).%Not a list of expressions
 
 %% eval_binary(Bitsegs, Env) -> Binary.
 %%  Construct a binary from Bitsegs. This code is taken from
@@ -690,11 +704,15 @@ eval_if(Test, True, False, Env) ->
 eval_case([E|Cls], Env) ->
     eval_case_clauses(eval_expr(E, Env), Cls, Env).
 
+%% eval_case_clauses(Value, Clauses, Env) -> Value.
+
 eval_case_clauses(V, Cls, Env) ->
     case match_clause(V, Cls, Env) of
         {yes,B,Vbs} -> eval_body(B, add_vbindings(Vbs, Env));
         no -> eval_error({case_clause,V})
     end.
+
+%% match_clause(Value, Clauses, Env) -> {yes,Body,Bindings} | no.
 
 match_clause(V, [[Pat|B0]|Cls], Env) ->
     case match_when(Pat, V, B0, Env) of
@@ -785,56 +803,62 @@ send_all([], _) -> true.
 %% eval_try(TryBody, Env) -> Value.
 %%  Complicated by checking legal combinations of options.
 
-eval_try([E,['case'|Cls]|Catch], Env) ->
-    eval_try_catch(Catch, E, {yes,Cls}, Env);
+eval_try([E,['case'|Case]|Catch], Env) ->
+    eval_try_catch(Catch, E, Case, Env);
 eval_try([E|Catch], Env) ->
-    eval_try_catch(Catch, E, no, Env);
+    eval_try_catch(Catch, E, [], Env);
 eval_try(_, _) ->
     bad_form_error('try').
 
-eval_try_catch([['catch'|Cls]], E, Case, Env) ->
-    eval_try(E, Case, {yes,Cls}, no, Env);
-eval_try_catch([['catch'|Cls],['after'|B]], E, Case, Env) ->
-    eval_try(E, Case, {yes,Cls}, {yes,B}, Env);
-eval_try_catch([['after'|B]], E, Case, Env) ->
-    eval_try(E, Case, no, {yes,B}, Env);
+eval_try_catch([['catch'|Catch]], E, Case, Env) ->
+    eval_try(E, Case, Catch, [], Env);
+eval_try_catch([['catch'|Catch],['after'|After]], E, Case, Env) ->
+    eval_try(E, Case, Catch, After, Env);
+eval_try_catch([['after'|After]], E, Case, Env) ->
+    eval_try(E, Case, [], After, Env);
 eval_try_catch(_, _, _, _) ->
     bad_form_error('try').
 
 %% We do it all in one, not so efficient but easier.
 eval_try(E, Case, Catch, After, Env) ->
+    check_exceptions(Catch),                    %Check for legal exceptions
     try
         eval_expr(E, Env)
     of
-        Ret ->
-            case Case of
-                {yes,Cls} -> eval_case_clauses(Ret, Cls, Env);
-                no -> Ret
+        Value when Case =:= [] -> Value;
+        Value ->
+            case match_clause(Value, Case, Env) of
+                {yes,Body,Vbs} ->
+                    eval_body(Body, add_vbindings(Vbs, Env));
+                no ->
+                    ?EVAL_ERROR({try_clause,Value})
             end
     catch
         ?CATCH(Class, Error, Stack)
-            %% Try does return the stacktrace here but we can't hit it
-            %% so we have to explicitly get it.
-            case Catch of
-                {yes,Cls} ->
-                    eval_catch_clauses({Class,Error,Stack}, Cls, Env);
+            %% Try returns the stacktrace here so we have to
+            %% explicitly get it here just in case.
+            case match_clause({Class,Error,Stack}, Catch, Env) of
+                {yes,Body,Vbs} ->
+                    eval_body(Body, add_vbindings(Vbs, Env));
                 no ->
                     erlang:raise(Class, Error, Stack)
             end
     after
-        case After of
-            {yes,B} -> eval_body(B, Env);
-            no -> []
-        end
+        eval_body(After, Env)
     end.
 
-eval_catch_clauses(V, [[Pat|B0]|Cls], Env) ->
-    case match_when(Pat, V, B0, Env) of
-        {yes,B1,Vbs} -> eval_body(B1, add_vbindings(Vbs, Env));
-        no -> eval_catch_clauses(V, Cls, Env)
-    end;
-eval_catch_clauses({Class,Error,Stack}, [], _) ->
-    erlang:raise(Class, Error, Stack).
+check_exceptions([Cl|Cls]) ->
+    case Cl of
+	[[tuple,_,_,St]|_] when is_atom(St) -> ok;
+	['_'|_] -> ok;
+	[Other|_] -> ?EVAL_ERROR({illegal_exception,Other})
+    end,
+    check_exceptions(Cls);
+check_exceptions([]) -> ok.
+
+
+%% eval_call([Mod,Func|Args], Env) -> Value.
+%%  Evaluate the module, function and args and then apply the function.
 
 eval_call([M0,F0|As0], Env) ->
     M1 = eval_expr(M0, Env),
@@ -1239,7 +1263,7 @@ eval_lit_map([K,V|As], Env) ->
     [{eval_lit(K, Env),eval_lit(V, Env)}|eval_lit_map(As, Env)];
 eval_lit_map([], _) -> [].
 
-%% Error functions. {?MODULE,eval_expr,2} is the stacktrace.
+%% Error functions.
 
 badarg_error() -> eval_error(badarg).
 
@@ -1265,9 +1289,7 @@ undefined_field_error(Rec, F) ->
     eval_error({undefined_field,Rec,F}).
 
 eval_error(Error) ->
-    erlang:raise(error, Error, stacktrace()).
-
-stacktrace() -> [{?MODULE,eval_expr,2}].
+    erlang:raise(error, Error, ?STACKTRACE).
 
 %%% Helper functions
 

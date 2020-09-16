@@ -330,8 +330,8 @@ while it reads the expression and then be effectively ``2``.
   {{(case ((pat {{(when e ...)}} ... )
           ... ))}}
   {{(catch
-     (((tuple type value ignore) {{(when e ...)}}
-                                - Must be tuple of length 3!
+     ((tuple type value stacktrace)|_ {{(when e ...)}}
+                                - Must be tuple of length 3 or just _!
       ... )
      ... )}}
   {{(after ... )}})
@@ -449,7 +449,7 @@ removed, but later passes of the compiler can't handle this yet.
 # Guards
 
 Wherever a pattern occurs (in let, case, receive, lc, etc.) it can be
-followed by an optional guard which has the form (when test ...).
+followed by an optional guard which has the form ``(when test ...)``.
 Guard tests are the same as in vanilla Erlang and can contain the
 following guard expressions:
 
@@ -528,6 +528,7 @@ bound in the ``let`` while the ``z`` comes from the function
 arguments. In the final ``(zop x y)`` both ``x`` and ``y`` come from
 the function arguments as the ``let`` does not export ``x``.
 
+
 # Function Binding and Scoping
 
 Functions are lexically scoped and bound by the top-level ``defun``
@@ -598,7 +599,7 @@ Erlang. For now avoid defining functions 'new' and 'instance'.
 Macro calls are expanded in both body and patterns. This can be very
 useful to have both make and match macros, but be careful with names.
 
-A macro is function of two argument which is a called with a list of
+A macro is function of two arguments which is a called with a list of
 the arguments to the macro call and the current macro environment. It
 can be either a lambda or a match-lambda. The basic forms for defining
 macros are:

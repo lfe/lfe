@@ -97,19 +97,25 @@ format_error(illegal_bitsize) -> "illegal bit size";
 format_error({deprecated,What}) ->
     lfe_io:format1("deprecated: ~s", [What]);
 format_error(unknown_form) -> "unknown form";
+%% Try-catches.
+format_error({illegal_stacktrace,S}) ->
+    lfe_io:format1(<<"stacktrace ~w must be unbound variable">>, [S]);
+format_error({illegal_exception,E}) ->
+    lfe_io:format1(<<"illegal exception ~w">>, [E]);
+%% Records.
 format_error({bad_record,R}) ->
-    lfe_io:format1("bad definition of record ~w", [R]);
+    lfe_io:format1(<<"bad definition of record ~w">>, [R]);
 format_error({bad_field,R,F}) ->
-    lfe_io:format1("bad field ~w in record ~w", [F,R]);
+    lfe_io:format1(<<"bad field ~w in record ~w">>, [F,R]);
 format_error({redef_record,R}) ->
-    lfe_io:format1("record ~w already defined", [R]);
+    lfe_io:format1(<<"record ~w already defined">>, [R]);
 %% These are also used in lfe_eval.
 format_error({undefined_record,R}) ->
-    lfe_io:format1("record ~w undefined", [R]);
+    lfe_io:format1(<<"record ~w undefined">>, [R]);
 format_error({undefined_field,R,F}) ->
-    lfe_io:format1("field ~w undefined in record ~w", [F,R]);
+    lfe_io:format1(<<"field ~w undefined in record ~w">>, [F,R]);
 format_error({undefined_field,F}) ->
-    lfe_io:format1("field ~w undefined in record", [F]);
+    lfe_io:format1(<<"field ~w undefined in record">>, [F]);
 %% Type and spec errors.
 format_error({singleton_typevar,V}) ->
     lfe_io:format1("type variable ~w is only used once", [V]);
@@ -1069,14 +1075,30 @@ check_try([E|Catch], Env, L, St0) ->
     check_try_catch(Catch, Env, L, St1);
 check_try(_, _, L, St) -> bad_form_error(L, 'try', St).
 
-check_try_catch([['catch'|Cls]], Env, L, St) ->
-    check_case_clauses(Cls, Env, L, St);
-check_try_catch([['catch'|Cls],['after'|B]], Env, L, St0) ->
-    St1 = check_case_clauses(Cls, Env, L, St0),
-    check_body(B, Env, L, St1);
-check_try_catch([['after'|B]], Env, L, St) ->
-    check_body(B, Env, L, St);
+check_try_catch([['catch'|Catch]], Env, L, St) ->
+    check_catch_clauses(Catch, Env, L, St);
+check_try_catch([['catch'|Catch],['after'|After]], Env, L, St0) ->
+    St1 = check_catch_clauses(Catch, Env, L, St0),
+    check_body(After, Env, L, St1);
+check_try_catch([['after'|After]], Env, L, St) ->
+    check_body(After, Env, L, St);
 check_try_catch(_, _, L, St) -> bad_form_error(L, 'try', St).
+
+check_catch_clauses(Cls, Env, L, St) ->
+    foreach_form(fun (C, S) -> check_catch_clause(C, Env, L, S) end,
+                 'try', L, St, Cls).
+
+check_catch_clause(['_'|_]=Cl, Env, L, St) ->
+    check_clause(Cl, Env, L, St);
+check_catch_clause([[tuple,_,_,Stack]|_]=Cl, Env, L, St0) ->
+    %% Stack must be an unbound variable.
+    St1 = case is_atom(Stack) and not lfe_env:is_vbound(Stack, Env) of
+	      true -> St0;
+	      false -> add_error(L, {illegal_stacktrace,Stack}, St0)
+	  end,
+    check_clause(Cl, Env, L, St1);
+check_catch_clause([Other|_], _Env, L, St) ->
+    add_error(L, {illegal_exception,Other}, St).
 
 %% pattern_guard([Pat{,Guard}|Body], Env, L, State) ->
 %%      {Body,PatVars,Env,State}.
