@@ -45,47 +45,66 @@ read_hrl_file_1(Name) ->
     end.
 
 %% Errors.
+format_error({bad_form,Type}) ->
+    lfe_io:format1(<<"bad ~w form">>, [Type]);
+format_error({no_include_file,F}) ->
+    lfe_io:format1(<<"can't find include file ~p">>, [F]);
+format_error({no_include_lib,F}) ->
+    lfe_io:format1(<<"can't find include lib ~p">>, [F]);
 format_error({notrans_function,F,A}) ->
-    io_lib:format("unable to translate function ~w/~w", [F,A]);
+    lfe_io:format1(<<"unable to translate function ~w/~w">>, [F,A]);
 format_error({notrans_record,R}) ->
-    io_lib:format("unable to translate record ~w", [R]);
+    lfe_io:format1(<<"unable to translate record ~w">>, [R]);
 format_error({notrans_type,T}) ->
-    io_lib:format("unable to translate type ~w", [T]);
+    lfe_io:format1(<<"unable to translate type ~w">>, [T]);
 format_error({notrans_macro,M}) ->
-    io_lib:format("unable to translate macro ~w", [M]).
+    lfe_io:format1(<<"unable to translate macro ~w">>, [M]);
+%% File errors are passed on.
+format_error({file_error,E}) ->
+    file:format_error(E).
 
+%% add_error(Error, State) -> State.
+%% add_error(Line, Error, State) -> State.
 %% add_warning(Warning, State) -> State.
 %% add_warning(Line, Warning, State) -> State.
+%%  Add errors and warnings to the state
+
+add_error(E, St) -> add_error(St#mac.line, E, St).
+
+add_error(L, E, St) ->
+    St#mac{errors=St#mac.errors ++ [{L,?MODULE,E}]}.
 
 add_warning(W, St) -> add_warning(St#mac.line, W, St).
 
 add_warning(L, W, St) ->
     St#mac{warnings=St#mac.warnings ++ [{L,?MODULE,W}]}.
 
-%% file([FileName], Env, MacState) ->
-%%     {yes,(progn ...),MacState} | {error,Error}.
+%% file(FileName, Env, MacState) ->
+%%     {yes,(progn ...),MacState} | {error,MacState}.
 %%  Expand the (include-file ...) macro.  This is a VERY simple
 %%  include file macro! We just signal errors.
 
-file(Body, _, #mac{ipath=Path}=St0) ->
-    case include_name(Body) of
+file(IncFile, _, #mac{ipath=Path}=St0) ->
+    case include_name(IncFile) of
         {ok,Name} ->
             case path_read_file(Path, Name, St0) of
                 {ok,Fs,St1} -> {yes,['progn'|Fs],St1};
-                {error,E} -> error(E);
-                not_found -> error(enoent)
+                {error,St1} -> {error,St1};
+                not_found ->
+                    {error,add_error({no_include_file,Name}, St0)}
             end;
-        {error,E} -> error(E)
+        {error,_} ->
+            {error,add_error({bad_form,'include-file'}, St0)}
     end.
 
-%% lib([FileName], Env, MacState) ->
-%%     {yes,(progn ...),MacState} | {error,Error}.
+%% lib(FileName, Env, MacState) ->
+%%     {yes,(progn ...),MacState} | {error,MacState}.
 %%  Expand the (include-lib ...) macro.  This is a VERY simple include
 %%  lib macro! First try to include the file directly else assume
 %%  first directory name is a library name. We just signal errors.
 
-lib(Body, _, St0) ->
-    case include_name(Body) of
+lib(IncFile, _, St0) ->
+    case include_name(IncFile) of
         {ok,Name} ->
             case path_read_file(St0#mac.ipath, Name, St0) of
                 {ok,Fs,St1} -> {yes,['progn'|Fs],St1};
@@ -95,12 +114,14 @@ lib(Body, _, St0) ->
                         {ok,Lfile} ->
                             case read_file(Lfile, St0) of
                                 {ok,Fs,St1} -> {yes,['progn'|Fs],St1};
-                                {error,E} -> error(E)
+                                {error,St1} -> {error,St1}
                             end;
-                        {error,_} -> error(badarg)
+                        {error,_} ->
+                            {error,add_error({bad_form,'include-lib'}, St0)}
                     end
             end;
-        {error,E} -> error(E)
+        {error,_} ->
+            {error,add_error({bad_form,'include-lib'}, St0)}
     end.
 
 %% path_read_file(Path, Name, State) -> {ok,Forms,State} | {error,E} | error.
@@ -119,15 +140,14 @@ path_read_file([P|Ps], Name, St) ->
 path_read_file([], _, _) ->                     %Couldn't find/open the file
     not_found.
 
-%% include_name(Body) -> bool().
-%%  Gets the file name from the include-XXX body.
+%% include_name(FileName) -> bool().
+%%  Gets the file name from the include-XXX FileName.
 
-include_name([Name]) ->
+include_name(Name) ->
     case io_lib:char_list(Name) of
         true -> {ok,Name};
         false -> {error,badarg}
-    end;
-include_name(_) -> {error,badarg}.
+    end.
 
 %% lib_file_name(LibPath) -> {ok,LibFileName} | {error,Error}.
 %%  Construct path to true library file.
@@ -140,7 +160,7 @@ lib_file_name(Lpath) ->
         {error,E} -> {error,E}
     end.
 
-%% read_file(FileName, State) -> {ok,Forms,State} | {error,Error}.
+%% read_file(FileName, State) -> {ok,Forms,State} | {error,State}.
 
 read_file(Name, St) ->
     case lists:suffix(".hrl", Name) of
@@ -148,29 +168,33 @@ read_file(Name, St) ->
         false -> read_lfe_file(Name, St)
     end.
 
-read_lfe_file(Name, St) ->
+%% read_lfe_file(FileName, State) -> {ok,Forms,State} | {error,State}.
+
+read_lfe_file(Name, #mac{errors=Es}=St) ->
     %% Read the file as an LFE file.
     case lfe_io:read_file(Name) of
         {ok,Fs} -> {ok,Fs,St};
-        {error,E} -> {error,E}
+        {error,E} ->
+            {error,St#mac{errors=Es ++ [E]}}
     end.
 
 %% read_hrl_file(FileName, State) -> {ok,Forms,State} | {error,Error}.
 %%  We use two undocumented functions of epp which allow us to get
-%%  inside and get out the macros.
+%%  inside and get out the macros but it must be called after the
+%%  whole file has been processed.
 
 read_hrl_file(Name, St) ->
     case epp:open(Name, []) of
         {ok,Epp} ->
-            %% These are two undocumented functions of epp.
             Fs = epp:parse_file(Epp),           %This must be called first
-            Ms = epp:macro_defs(Epp),           % then this!
+            Ms = epp:macro_defs(Epp),           % then this undocumented!
             epp:close(Epp),                     %Now we close epp
             parse_hrl_file(Fs, Ms, St);
-        {error,E} -> {error,E}
+        {error,E} ->
+            {error,add_error({file_error,E}, St)}
     end.
 
-%% parse_hrl_file(Forms, Macros, State) -> {ok,Forms,State} | {error,Error}.
+%% parse_hrl_file(Forms, Macros, State) -> {ok,Forms,State} | {error,State}.
 %%  All the attributes go in an extend-module form. In 18 and older a
 %%  typed record definition would result in 2 attributes, the bare
 %%  record def and the record type def. We want just the record type

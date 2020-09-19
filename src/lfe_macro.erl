@@ -174,6 +174,18 @@ pass_form(['progn'|Pfs0], Env0, St0) ->
 pass_form(['eval-when-compile'|Efs0], Env0, St0) ->
     {Efs1,Env1,St1} = pass_ewc(Efs0, Env0, St0),
     {['eval-when-compile'|Efs1],Env1,St1};
+pass_form(['include-file',File], Env, St0) ->
+    case lfe_macro_include:file(File, Env, St0) of
+        {yes,Exp,St1} -> pass_form(Exp, Env, St1);
+        {error,St1} ->
+            {['progn'],Env,St1}
+    end;
+pass_form(['include-lib',Lib], Env, St0) ->
+    case lfe_macro_include:lib(Lib, Env, St0) of
+        {yes,Exp,St1} -> pass_form(Exp, Env, St1);
+        {error,St1} ->
+            {['progn'],Env,St1}
+    end;
 pass_form(['define-macro'|Def]=M, Env0, St0) ->
     case pass_define_macro(Def, Env0, St0) of
         {yes,Env1,St1} ->
@@ -819,11 +831,6 @@ exp_predef(['fun',M,F,Ar], _, St0) ->
     {yes,['lambda',Vs,['call',?Q(M),?Q(F)|Vs]],St1};
 exp_predef(['defrecord'|Def], Env, St) ->
     lfe_macro_record:define(Def, Env, St);
-%% Include-XXX as macros for now. Move to top-level forms?
-exp_predef(['include-file'|Ibody], Env, St) ->
-    lfe_macro_include:file(Ibody, Env, St);
-exp_predef(['include-lib'|Ibody], Env, St) ->
-    lfe_macro_include:lib(Ibody, Env, St);
 %% Common Lisp inspired macros.
 exp_predef([defmodule,Name|Rest], _, St) ->
     %% Need to handle parametrised module defs here. Limited checking.
