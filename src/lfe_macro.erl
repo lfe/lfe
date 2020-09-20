@@ -435,8 +435,8 @@ exp_form([call|As], Env, St) ->
 %% Core definition special forms.
 exp_form(['eval-when-compile'|B], Env, St) ->
     exp_normal_core('eval-when-compile', B, Env, St);
-exp_form(['define-function',Head|B], Env, St) ->
-    exp_head_tail('define-function', Head, B, Env, St);
+exp_form(['define-function',Name,Meta,Def], Env, St) ->
+    exp_define_function(Name, Meta, Def, Env, St);
 exp_form(['define-macro',Head|B], Env, St) ->
     exp_head_tail('define-macro', Head, B, Env, St);
 %% These don't expand at all as name clashes are allowed.
@@ -602,6 +602,9 @@ exp_let_macro(Mbs, B0, Env0, St0) ->
     {B1,St1} = exp_tail(B0, Env1, St0),         %Expand the body
     {['progn'|B1],St1}.
 
+%% exp_try(Expression, Body, Env, State) -> {Expansion,State}.
+%%  Expand a try.
+
 exp_try(E0, B0, Env, St0) ->
     {E1,St1} = exp_form(E0, Env, St0),
     {B1,St2} = exp_tail(fun (['case'|Cls0], E, Sta) ->
@@ -616,6 +619,27 @@ exp_try(E0, B0, Env, St0) ->
                             (Other, _, St) -> {Other,St}
                         end, B0, Env, St1),
     {['try',E1|B1],St2}.
+
+%% exp_define_function(Name, Metq, Def, Env, State) -> {Expansion,State}.
+%%  Expand a function definition adding the function local macros:
+%%  (defmacro FUNCTION_NAME () `'name)
+%%  (defmacro FUNCTION_ARITY () arity)
+
+exp_define_function(Name, Meta0, Def0, Env0, St0) ->
+    %% Just get an arity, a bad def will crash later anyway.
+    Arity = case function_arity(Def0) of
+                {yes,A} -> A;
+                no -> 0
+            end,
+    {Meta1,St1} = exp_form(Meta0, Env0, St0),
+    Fun = fun ([Mname|Rest], E) ->
+                  {_,Mdef} = exp_defmacro(Rest),
+                  add_mbinding(Mname, Mdef, E)
+          end,
+    Env1 = foldl(Fun, Env0, [['FUNCTION_NAME',[],?BQ(?Q(Name))],
+                             ['FUNCTION_ARITY',[],Arity]]),
+    {Def1,St2} = exp_form(Def0, Env1, St1),
+    {['define-function',Name,Meta1,Def1],St2}.
 
 %% exp_macro(Call, Env, State) -> {yes,Exp,State} | no.
 %%  Expand the macro in top call, but not if it is a core form.
