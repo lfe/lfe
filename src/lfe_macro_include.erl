@@ -47,10 +47,8 @@ read_hrl_file_1(Name) ->
 %% Errors.
 format_error({bad_form,Type}) ->
     lfe_io:format1(<<"bad ~w form">>, [Type]);
-format_error({no_include_file,F}) ->
-    lfe_io:format1(<<"can't find include file ~p">>, [F]);
-format_error({no_include_lib,F}) ->
-    lfe_io:format1(<<"can't find include lib ~p">>, [F]);
+format_error({no_include,T,F}) ->
+    io_lib:format(<<"can't find include ~w ~ts">>, [T,F]);
 format_error({notrans_function,F,A}) ->
     lfe_io:format1(<<"unable to translate function ~w/~w">>, [F,A]);
 format_error({notrans_record,R}) ->
@@ -91,7 +89,7 @@ file(IncFile, _, #mac{ipath=Path}=St0) ->
                 {ok,Fs,St1} -> {yes,['progn'|Fs],St1};
                 {error,St1} -> {error,St1};
                 not_found ->
-                    {error,add_error({no_include_file,Name}, St0)}
+                    {error,add_error({no_include,file,Name}, St0)}
             end;
         {error,_} ->
             {error,add_error({bad_form,'include-file'}, St0)}
@@ -99,66 +97,72 @@ file(IncFile, _, #mac{ipath=Path}=St0) ->
 
 %% lib(FileName, Env, MacState) ->
 %%     {yes,(progn ...),MacState} | {error,MacState}.
-%%  Expand the (include-lib ...) macro.  This is a VERY simple include
-%%  lib macro! First try to include the file directly else assume
-%%  first directory name is a library name. We just signal errors.
+%%  Expand the (include-lib ...) macro. We do the same as epp so we
+%%  first test if we can find the file through the normal search path,
+%%  if not we assume that the first directory name is a library name,
+%%  find its true directory and try with that.
 
-lib(IncFile, _, St0) ->
+lib(IncFile, _, #mac{ipath=Path}=St0) ->
     case include_name(IncFile) of
         {ok,Name} ->
-            case path_read_file(St0#mac.ipath, Name, St0) of
-                {ok,Fs,St1} -> {yes,['progn'|Fs],St1};
-                {error,E} -> error(E);          %Found contained error
-                not_found ->                    %File not found
+            case path_read_file(Path, Name, St0) of
+                {ok,Forms,St1} ->
+                    {yes,['progn'|Forms],St1};
+                {error,St1} -> {error,St1};
+                not_found ->
                     case lib_file_name(Name) of
-                        {ok,Lfile} ->
-                            case read_file(Lfile, St0) of
-                                {ok,Fs,St1} -> {yes,['progn'|Fs],St1};
+                        {ok,LibName} ->
+                            case read_file(LibName, St0) of
+                                {ok,Forms,St1} ->
+                                    {yes,['progn'|Forms],St1};
                                 {error,St1} -> {error,St1}
                             end;
-                        {error,_} ->
-                            {error,add_error({bad_form,'include-lib'}, St0)}
+                        error ->
+                            {error,add_error({no_include,lib,Name}, St0)}
                     end
             end;
         {error,_} ->
             {error,add_error({bad_form,'include-lib'}, St0)}
     end.
 
-%% path_read_file(Path, Name, State) -> {ok,Forms,State} | {error,E} | error.
-%%  Step down the path trying to read the file. We first test if we
-%%  can open it, if so then this the file we use, if not we go on.
-
-path_read_file([P|Ps], Name, St) ->
-    File = filename:join(P, Name),
-    case file:open(File, [read,raw]) of         %Test if we can open the file
-        {ok,F} ->
-            file:close(F),                      %Close it again
-            read_file(File, St);
-        {error,_} ->
-            path_read_file(Ps, Name, St)
-    end;
-path_read_file([], _, _) ->                     %Couldn't find/open the file
-    not_found.
-
 %% include_name(FileName) -> bool().
 %%  Gets the file name from the include-XXX FileName.
 
 include_name(Name) ->
-    case io_lib:char_list(Name) of
-        true -> {ok,Name};
-        false -> {error,badarg}
+    try
+	{ok,lists:flatten(unicode:characters_to_list(Name, utf8))}
+    catch
+	_:_ -> {error,badarg}
+end.
+
+%% path_read_file(Path, Name, State) ->
+%%     {ok,Forms,State} | {error,State} | not_found.
+%%  Step down the path trying to read the file.
+
+path_read_file(Path, Name, St) ->
+    case file:path_open(Path, Name, [read,raw]) of
+        {ok,F,Pname} ->
+            file:close(F),                      %Close it again
+            read_file(Pname, St);               %Read it
+        {error,_} -> not_found                  %Not found
     end.
 
 %% lib_file_name(LibPath) -> {ok,LibFileName} | {error,Error}.
 %%  Construct path to true library file.
 
-lib_file_name(Lpath) ->
-    [Lname|Rest] = filename:split(Lpath),
-    case code:lib_dir(list_to_atom(Lname)) of
-        Ldir when is_list(Ldir) ->
-            {ok,filename:join([Ldir|Rest])};
-        {error,E} -> {error,E}
+lib_file_name(Name) ->
+    try
+        [App|Path] = filename:split(Name),
+        LibDir = code:lib_dir(list_to_atom(App)),
+        {ok,filename_join([LibDir|Path])}
+    catch
+        _:_ -> error
     end.
+
+filename_join(["." | [_|_]=Rest]) ->
+    filename_join(Rest);
+filename_join(Comp) ->
+    filename:join(Comp).
 
 %% read_file(FileName, State) -> {ok,Forms,State} | {error,State}.
 
