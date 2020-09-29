@@ -301,5 +301,5 @@ docker-docs-bash:
 # For travis
 travis:
 	$(MAKE) $(MFLAGS) install PREFIX=$$(mktemp -d)
-	@rebar3 eunit -m clj-tests,prop_lfe_doc
+	@rebar3 eunit -m clj-tests,prop_lfe_docs
 	@rebar3 ct

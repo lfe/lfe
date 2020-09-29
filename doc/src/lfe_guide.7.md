@@ -610,7 +610,14 @@ macros are:
   ...)
 ```
 
-Macros are definitely NOT hygienic in any form.
+Macros are definitely NOT hygienic in any form. However, variable
+scoping and variable immutability remove most of the things that can
+cause unhygienic macros. It can be done but you are not going to do it
+by mistake. The only real issue is if you happen to be using a
+variable which has the same name as one which the macro generates,
+that can cause problems. The work around for this is to give variables
+created in the macro expansion really weird names like `| - foo - |`
+which no one in their right mind would use.
 
 To simplify writing macros there are a number of predefined macros:
 
@@ -639,7 +646,7 @@ The macro definitions in a macrolet obey the same rules as defmacro.
 
 The macro functions created by defmacro and macrolet automatically add
 the second argument with the current macro environment with the name
-$ENV. This allows explicit expansion of macros inside the macro and
+`$ENV`. This allows explicit expansion of macros inside the macro and
 also manipulation of the macro environment. No changes to the
 environment are exported outside the macro.
 
@@ -689,8 +696,6 @@ contain the macro name. So using them we would get:
 
 There is an include file "include/scm.lfe" which defines macros so the
 names don't have to be prefixed with ``scm:``.
-
-N.B. These are definitely NOT hygienic.
 
 *CAVEAT* While it is perfectly legal to define a Core form as a macro
  these will silently be ignored by the compiler.
