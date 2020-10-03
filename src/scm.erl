@@ -20,7 +20,8 @@
 
 -export(['LFE-EXPAND-EXPORTED-MACRO'/3]).
 
--export([mbe_syntax_rules_proc/4,mbe_syntax_rules_proc/5]).
+-export([mbe_syntax_rules_proc/4,mbe_syntax_rules_proc/5,
+         mbe_match_pat/3,mbe_get_bindings/3,mbe_expand_pattern/3]).
 
 -import(lists, [member/2,map/2,all/2,any/2]).
 
@@ -31,32 +32,32 @@
 
 'LFE-EXPAND-EXPORTED-MACRO'(MacroName, MacroArgs, _Env) ->
     case [MacroName|MacroArgs] of
-	%% These are easy.
-	['begin'|Body] ->
-	    {yes,[progn|Body]};
-	['define',Head|Body] ->
-	    Exp = case lfe_lib:is_symb_list(Head) of
-		      true ->
-			  [hd(Head),[],[lambda,tl(Head)|Body]];
-		      false ->
-			  [Head,[],Body]
-		  end,
-	    {yes,['define-function'|Exp]};
-	%% Now for the syntax macros.
-	['define-syntax',Name,Def] ->
-	    {Meta,Mdef} = exp_syntax(Name, Def),
-	    {yes,['define-macro',Name,Meta,Mdef]};
-	['let-syntax',Defs|Body] ->
-	    Fun = fun ([Name,Def]) ->
-			  {_,Def} = exp_syntax(Name, Def),
-			  [Name,Def]
-		  end,
-	    Mdefs = map(Fun, Defs),
-	    {yes,['let-macro',Mdefs|Body]};
-	[defsyntax,Name|Rules] ->
-	    {Meta,Mdef} = exp_rules(Name, [], Rules),
-	    {yes,['define-macro',Name,Meta,Mdef]};
-	_ -> no
+        %% These are easy.
+        ['begin'|Body] ->
+            {yes,[progn|Body]};
+        ['define',Head|Body] ->
+            Exp = case lfe_lib:is_symb_list(Head) of
+                      true ->
+                          [hd(Head),[],[lambda,tl(Head)|Body]];
+                      false ->
+                          [Head,[],Body]
+                  end,
+            {yes,['define-function'|Exp]};
+        %% Now for the syntax macros.
+        ['define-syntax',Name,Def] ->
+            {Meta,Mdef} = exp_syntax(Name, Def),
+            {yes,['define-macro',Name,Meta,Mdef]};
+        ['let-syntax',Defs|Body] ->
+            Fun = fun ([Name,Def]) ->
+                          {_,Def} = exp_syntax(Name, Def),
+                          [Name,Def]
+                  end,
+            Mdefs = map(Fun, Defs),
+            {yes,['let-macro',Mdefs|Body]};
+        [defsyntax,Name|Rules] ->
+            {Meta,Mdef} = exp_rules(Name, [], Rules),
+            {yes,['define-macro',Name,Meta,Mdef]};
+        _ -> no
     end.
 
 
@@ -244,15 +245,15 @@ mbe_syntax_rules_proc(Name, Ks0, Cls, Argsym, Ksym) ->
     ['let',[[Ksym,[quote,Ks]]],
      ['cond'] ++
          map(fun (C) ->
-		     Inpat = hd(C),
-		     Outpat = hd(tl(C)),
-		     [[':',lfe_macro,mbe_match_pat,[quote,Inpat], Argsym, Ksym],
-		      ['let',
-		       [[r,[':',lfe_macro,mbe_get_bindings,
-			    [quote,Inpat],Argsym,Ksym]]],
-		       [':',lfe_macro,mbe_expand_pattern,
-			[quote,Outpat],r,Ksym]]]
-	     end, Cls) ++
+                     Inpat = hd(C),
+                     Outpat = hd(tl(C)),
+                     [[':',lfe_macro,mbe_match_pat,[quote,Inpat], Argsym, Ksym],
+                      ['let',
+                       [[r,[':',lfe_macro,mbe_get_bindings,
+                            [quote,Inpat],Argsym,Ksym]]],
+                       [':',lfe_macro,mbe_expand_pattern,
+                        [quote,Outpat],r,Ksym]]]
+             end, Cls) ++
          [[[quote,true],[':',erlang,error,
                          [tuple,
                           [quote,expand_macro],
