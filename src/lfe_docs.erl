@@ -41,14 +41,9 @@
 
 -export([get_module_docs/1]).
 
-%% The Docs v1 record.
--record(docs_v1, {anno,
-                  beam_language,
-                  format,
-                  module_doc,
-                  metadata,
-                  docs = []
-                 }).
+-define(CURR_DOC_VERSION, {1,0,0}).
+
+-include("lfe_docs.hrl").
 
 %% Internal lfe_doc records.
 -record(docs, {copts=[],
@@ -94,13 +89,7 @@ make_docs_info(Code, CompilerOpts) ->
     #module{anno=Anno,docs=Mdocs} = DS1#docs.module,
     Funcs = generate_funcs(DS1),
     Macros = generate_macros(DS1),
-    DocInfo = #docs_v1{anno=Anno,
-                       beam_language=lfe,
-                       format= <<"text/markdown">>,
-                       module_doc=#{<<"en">> => iolist_to_binary(Mdocs)},
-                       metadata=#{},
-                       docs=Funcs ++ Macros
-                      },
+    DocInfo = docs_v1(Anno, Mdocs, #{}, Funcs ++ Macros),
     {ok,DocInfo}.
 
 %% collect_forms(Code, DocsState) -> DocsState.
@@ -172,17 +161,32 @@ collect_mac_metas(Metas, Mac) ->
 
 generate_funcs(#docs{module=#module{fexps=Fexps},funcs=Funcs}) ->
     Fdoc = fun (#function{name=Name,arity=Arity,anno=Anno,docs=Docs}=F) ->
-                   {{function,Name,Arity},
-                    Anno,
-                    generate_func_sig(F),
-                    #{<<"en">> => iolist_to_binary(Docs)},
-                    #{}}
+		   Sig = generate_sig(F),
+		   docs_v1_entry(function, Name, Arity, Anno, [Sig], Docs, #{})
            end,
     [ Fdoc(F) || F <- Funcs, exported_func(F, Fexps)].
 
-generate_func_sig(#function{name=Name,arity=Arity,def=Def}) ->
-    BinSig = generate_sig(Name, Arity, Def),
-    [BinSig].
+exported_func(#function{name=N,arity=A}, Fexps) ->
+    lists:member([N,A], Fexps).
+
+%% generate_macros(Docs) -> [MacroDoc].
+
+generate_macros(#docs{module=#module{mexps=Mexps},macs=Macros}) ->
+    Mdoc = fun (#macro{name=Name,arity=Arity,anno=Anno,docs=Docs}=M) ->
+		   Sig = generate_sig(M),
+		   docs_v1_entry(macro, Name, Arity, Anno, [Sig], Docs, #{})
+           end,
+    [ Mdoc(M) || M <- Macros, exported_macro(M, Mexps) ].
+
+exported_macro(#macro{name=N}, Mexps) ->
+    lists:member(N, Mexps).
+
+%% generate_sig(FuncMacro) -> Signature.
+
+generate_sig(#function{name=Name,arity=Arity,def=Def}) ->
+    generate_sig(Name, Arity, Def);
+generate_sig(#macro{name=Name,arity=Arity,def=Def}) ->
+    generate_sig(Name, Arity, Def).
 
 generate_sig(Name, Arity, Def) ->
     Sig = case Def of
@@ -192,36 +196,41 @@ generate_sig(Name, Arity, Def) ->
           end,
     iolist_to_binary(Sig).
 
-exported_func(#function{name=N,arity=A}, Fexps) ->
-    lists:member([N,A], Fexps).
+%% docs_v1(Anno, ModuleDocs, MetaData, Docs) -> #docs_v1{}.
+%% docs_v1_entry(Kind, Name, Arity, Anno, Signature, Doc, MetaData) ->
+%%     Docs_V1_Entry.
 
-%% generate_macros(Docs) -> [MacroDoc].
+docs_v1(Anno, ModDoc, Metadata, Docs) ->
+    Doc = #{<<"en">> => iolist_to_binary(ModDoc)},
+    Meta = maps:merge(Metadata, #{otp_doc_vsn => ?CURR_DOC_VERSION}),
+    #docs_v1{anno=Anno,
+	     beam_language=lfe,
+	     format= <<"text/application">>,
+	     module_doc=Doc,
+	     metadata=Meta,
+	     docs=Docs}.
 
-generate_macros(#docs{module=#module{mexps=Mexps},macs=Macros}) ->
-    Mdoc = fun (#macro{name=Name,arity=Arity,anno=Anno,docs=Docs}=M) ->
-                   {{macro,Name,Arity},
-                    Anno,
-                    generate_macro_sig(M),
-                    #{<<"en">> => iolist_to_binary(Docs)},
-                    #{}}
-           end,
-    [ Mdoc(M) || M <- Macros, exported_macro(M, Mexps) ].
-
-generate_macro_sig(#macro{name=Name,arity=Arity,def=Def}) ->
-    BinSig = generate_sig(Name, Arity, Def),
-    [BinSig].
-
-exported_macro(#macro{name=N}, Mexps) ->
-    lists:member(N, Mexps).
+docs_v1_entry(Kind, Name, Arity, Anno, Sig, DocContent, Meta) ->
+    %% Doc = case DocContent of
+    %% 	      [] -> #{};
+    %% 	      _ -> #{<<"en">> => iolist_to_binary(DocContent)}
+    %% 	  end,
+    Doc = #{<<"en">> => iolist_to_binary(DocContent)},
+    {{Kind,Name,Arity}, Anno, Sig, Doc, Meta}.
 
 %% get_module_docs(Module | Binary) -> {ok,Chunk} | {error,What}.
 
 get_module_docs(Mod) when is_atom(Mod) ->
-    case code:get_object_code(Mod) of
-        {Mod,Bin,_} ->
-            get_module_chunk(Bin);
-        error -> {error,module}                 %Could not find the module
+    case code:get_doc(Mod) of
+	{ok,Doc} -> {ok,Doc};
+	{error,_} -> {error,module}
     end;
+%% get_module_docs(Mod) when is_atom(Mod) ->
+%%     case code:get_object_code(Mod) of
+%%         {Mod,Bin,_} ->
+%%             get_module_chunk(Bin);
+%%         error -> {error,module}                 %Could not find the module
+%%     end;
 get_module_docs(Bin) when is_binary(Bin) ->
     get_module_chunk(Bin).
 

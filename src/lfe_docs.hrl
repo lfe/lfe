@@ -16,6 +16,23 @@
 %% Author  : Robert Virding
 %% Purpose : Common documentation-related definitions.
 
+%% The "Docs" format from EEP 48: Documentation storage and format
+%%
+%% {docs_v1,
+%%  Anno :: erl_anno:anno(),
+%%  BeamLanguage :: atom(),
+%%  Format :: mime_type(),
+%%  ModuleDoc :: #{DocLanguage := DocValue} | none | hidden,
+%%  Metadata :: map(),
+%%  Docs ::
+%%    [{{Kind, Name, Arity},
+%%      Anno :: erl_anno:anno(),
+%%      Signature :: [binary()],
+%%      Doc :: #{DocLanguage := DocValue} | none | hidden,
+%%      Metadata :: map()
+%%     }]} when DocLanguage :: binary(),
+%%              DocValue :: binary() | term()
+
 %% The Docs v1 record.
 -record(docs_v1, {anno,
                   beam_language,
