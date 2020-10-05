@@ -817,7 +817,7 @@ help() ->
                    "(unslurp)                       -- revert back to the state before the last\n"
                    "                                   slurp\n\n"
                    "LFE shell built-in variables\n\n"
-                   "+/++/+++      -- the tree previous expressions\n"
+                   "+/++/+++      -- the three previous expressions\n"
                    "*/**/***      -- the values of the previous expressions\n"
                    "-             -- the current expression output\n"
                    "$ENV          -- the current LFE environment\n\n"
