@@ -1,6 +1,6 @@
 # LFE
 
-[![Travis](https://img.shields.io/travis/rvirding/lfe.svg)](https://travis-ci.org/rvirding/lfe)
+[![Build Status](https://github.com/rvirding/lfe/workflows/ci%2Fcd/badge.svg)](https://github.com/rvirding/lfe/actions)
 [![Hex.pm version](https://img.shields.io/hexpm/v/lfe.svg)](https://hex.pm/packages/lfe)
 [![Hex.pm downloads](https://img.shields.io/hexpm/dt/lfe.svg)](https://hex.pm/packages/lfe)
 [![Hex.pm weekly downloads](https://img.shields.io/hexpm/dw/lfe.svg)](https://hex.pm/packages/lfe)
