@@ -1,6 +1,7 @@
 ;; -*- Mode: LFE; -*-
 ;; Code from Paradigms of Artificial Intelligence Programming
-;; Copyright (c) 1991 Peter Norvig
+;; Copyright (c) 1991 Peter Norvig, Common Lisp version
+;; Copyright (c) 2008-2020 Robert Virding
 
 ;; File    : gps1.lisp
 ;; Author  : Peter Norvig, Robert Virding

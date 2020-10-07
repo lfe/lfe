@@ -1,4 +1,4 @@
-;; Copyright (c) Tim Dysinger tim <[<-on->]> dysinger.net
+;; Copyright (c) 2009-2020 Tim Dysinger tim <[<-on->]> dysinger.net
 
 ;; Permission is hereby granted, free of charge, to any person obtaining a copy
 ;; of this software and associated documentation files (the "Software"), to deal

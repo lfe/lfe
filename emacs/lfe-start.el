@@ -1,6 +1,6 @@
 ;;; lfe-start.el --- Initialise the LFE mode package
 
-;; Copyright (c) 2012-2013 Robert Virding
+;; Copyright (c) 2012-2020 Robert Virding
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
