@@ -22,11 +22,15 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Compile
+    - name: Compile (with make)
       run: make compile
     - name: Install
       run: make install PREFIX=$(mktemp -d)
+    - name: Clean make-based Build
+      run: make clean
+    - name: Compiler (with rebar3)
+      run: rebar3 compile
     - name: Eunit and Prop Tests
-      run: rebar3 eunit -m clj-tests,prop_lfe_doc
+      run: rebar3 as test eunit -m clj-tests,prop_lfe_doc
     - name: CT Suite Tests
-      run: rebar3 ct
+      run: rebar3 as test ct
