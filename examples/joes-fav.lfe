@@ -22,26 +22,27 @@
 ;;
 ;; Here is some example usage:
 ;;
-;; > (slurp '"examples/joes-fav.lfe")
+;; $ ./bin/lfe
+;;
+;; lfe> (slurp "examples/joes-fav.lfe")
 ;; #(ok joes-fav)
 ;;
 ;; Quick sanity check:
 ;;
-;; > (factorial 10)
+;; lfe> (factorial 10)
 ;; 3628800
-;; > (factorial 20)
+;; lfe> (factorial 20)
 ;; 2432902008176640000
-;; > (factorial 50)
+;; lfe> (factorial 50)
 ;; 30414093201713378043612608166064768844377641568960512000000000000
 ;;
 ;; Now, for the real thing:
 ;;
-;; > (run-it)
+;; lfe> (run-it)
 ;; 30414093201713378043612608166064768844377641568960512000000000000
 ;;
 (defmodule joes-fav
   (export all))
-
 
 (defun universal-server ()
   (receive

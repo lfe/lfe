@@ -21,8 +21,27 @@
 ;; together with mnesia:match_object, match specifications with
 ;; mnesia:select and Query List Comprehensions.
 
+;; $ ./bin/lfe
+;;
+;; lfe> (c "examples/mnesia_demo.lfe")
+;;
+;; lfe> (set db (mnesia_demo:new))
+;; ok
+;; lfe> (mnesia_demo:by_place 'london)   
+;; #(atomic
+;;   (#(person paul london driver)
+;;    #(person fred london waiter)
+;;    #(person john london painter)
+;;    #(person bert london waiter)))
+
 (defmodule mnesia_demo
-  (export (new 0) (by_place 1) (by_place_ms 1) (by_place_qlc 1)))
+  (export 
+    (new 0) 
+    (by_place 1) 
+    (by_place_ms 1) 
+    ;; XXX - Currently broken; see https://github.com/rvirding/lfe/issues/397
+    ;; (by_place_qlc 1)
+    ))
 
 (defrecord person
   name
@@ -31,8 +50,8 @@
 
 (defun new ()
   ;; Start mnesia and create a table, we will get an in memory only schema.
-  (: mnesia start)
-  (: mnesia create_table
+  (mnesia:start)
+  (mnesia:create_table
      'person
      `(#(attributes ,(fields-person))))
   ;; Initialise the table.
@@ -55,37 +74,38 @@
           #(fritz berlin painter)
           #(kurt berlin driver)
           #(hans berlin waiter)
-          #(franz berlin waiter)
-          )))
-    (: lists foreach (match-lambda
-               ([(tuple n p j)]
-            (: mnesia transaction
-              (lambda ()
-                (let ((new (make-person name n place p job j)))
-                  (: mnesia write new))))))
-       people)))
+          #(franz berlin waiter))))
+    (lists:foreach 
+      (match-lambda
+        ([(tuple n p j)]
+          (mnesia:transaction
+            (lambda ()
+              (let ((new (make-person name n place p job j)))
+                (mnesia:write new))))))
+      people)))
 
 ;; Match records by place using match_object and the emp-XXXX macro.
 (defun by_place (place)
-  (: mnesia transaction
-    (lambda () (: mnesia match_object (emp-person place place)))))
+  (mnesia:transaction
+    (lambda () (mnesia:match_object (emp-person place place)))))
 
 ;; Use match specifications to match records
 (defun by_place_ms (place)
-  (let ((f (lambda () (: mnesia select 'person
+  (let ((f (lambda () (mnesia:select 'person
              (match-spec ([(match-person name n place p job j)]
                       (when (=:= p place))
                       (tuple n j)))))))
-    (: mnesia transaction f)))
+    (mnesia:transaction f)))
 
+;; XXX - Currently broken; see https://github.com/rvirding/lfe/issues/397
 ;; Use Query List Comprehensions to match records
-(defun by_place_qlc (place)
-  (let ((f (lambda ()
-         (let ((q (qlc (lc ((<- person (: mnesia table 'person))
-                (=:= (person-place person) place))
-                 person))))
-           (: qlc e q)))))
-    (: mnesia transaction f)))
+;; (defun by_place_qlc (place)
+;;   (let ((f (lambda ()
+;;          (let ((q (qlc (lc ((<- person (mnesia:table 'person))
+;;                 (=:= (person-place person) place))
+;;                  person))))
+;;            (qlc:e q)))))
+;;     (mnesia:transaction f)))
 
 ;; Ignore this
 ;; (qlc ((<- A (call 'qlc 'q (tuple 'qlc_lc (match-lambda (() (tuple 'simple_v1 'X (match-lambda (() (cons 1 (cons 2 (cons 3 ()))))) 42))) 'undefined)))) A)

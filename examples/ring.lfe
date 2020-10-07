@@ -31,13 +31,14 @@
 ;;
 ;; To use the code below in LFE, do the following:
 ;;
-;;  $ make compile
-;;  $ cd examples
-;;  $ ../bin/lfe -pa ../ebin -smp disable -noshell -run ring main 503 50000000
+;;  $ ./bin/lfe
 ;;
-;; This should give the following output:
+;; Compile this example and run it:
 ;;
-;;  Result: 292
+;; lfe> (c "examples/ring.lfe")
+;; (#(module ring))
+;; lfe> (ring:main '(503 50000000))
+;; Result:: 292
 ;;
 (defmodule ring
   (export
@@ -45,9 +46,7 @@
     (roundtrip 2)))
 
 (defun main (args)
-  (apply
-    #'start-ring/2
-    (lists:map #'list_to_integer/1 args)))
+  (apply #'start-ring/2 args))
 
 (defun start-ring (process-count traversal-count)
   (let ((batch (make-processes process-count traversal-count)))
@@ -61,12 +60,12 @@
     (lists:seq process-count 2 -1)))
 
 (defun make-process (id pid)
-  (spawn 'ring 'roundtrip (list id pid)))
+  (spawn 'ring 'roundtrip `(,id ,pid)))
 
 (defun roundtrip (id pid)
   (receive
     (1
-      (io:fwrite '"Result: ~b~n" (list id))
+      (io:fwrite "Result: ~b~n" `(,id))
       (erlang:halt))
     (data
       (! pid (- data 1))
