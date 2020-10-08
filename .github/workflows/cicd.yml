@@ -31,7 +31,9 @@ jobs:
       run: make clean
     - name: Compiler (with rebar3)
       run: rebar3 compile
-    - name: Eunit and Prop Tests
-      run: rebar3 as test eunit -m clj-tests,prop_lfe_doc
+    - name: Run eunit Tests
+      run: rebar3 as test eunit
+    - name: Run proper Tests
+      run: rebar3 as test proper
     - name: CT Suite Tests
       run: rebar3 as test ct
