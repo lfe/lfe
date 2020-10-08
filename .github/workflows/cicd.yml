@@ -29,10 +29,11 @@ jobs:
       run: make install PREFIX=$(mktemp -d)
     - name: Clean make-based Build
       run: make clean
-    - name: Compiler (with rebar3)
+    - name: Compile (with rebar3)
       run: rebar3 compile
     - name: Run eunit Tests
-      run: rebar3 as test eunit
+      # XXX for some reason, the first pass of eunit doesn't run the tests?!
+      run: rebar3 as test do compile,eunit,eunit
     - name: Run proper Tests
       run: rebar3 as test proper
     - name: CT Suite Tests
