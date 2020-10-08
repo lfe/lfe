@@ -32,7 +32,7 @@
          new_state/2,new_state/3,upd_state/3]).
 
 %% The shell commands which generally callable.
--export([c/1,c/2,cd/1,doc/1,docs/1,ec/1,ec/2,ep/1,ep/2,epp/1,epp/2,help/0,
+-export([c/1,c/2,cd/1,doc/1,ec/1,ec/2,ep/1,ep/2,epp/1,epp/2,help/0,
          i/0,i/1,l/1,ls/1,clear/0,m/0,m/1,pid/3,p/1,p/2,pp/1,pp/2,pwd/0,
          q/0,flush/0,regs/0,exit/0]).
 
@@ -215,7 +215,7 @@ report_exception(Class, Reason, Stk) ->
          end,
     Ff = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
     Cs = lfe_lib:format_exception(Class, Reason, Stk, Sf, Ff, 1),
-    io:put_chars("** " ++ Cs),                	%Make it more note worthy
+    io:put_chars("** " ++ Cs),                  %Make it more note worthy
     io:nl().
 
 %% read_expression(Prompt, Evaluator, State) -> {Return,Evaluator}.
@@ -342,13 +342,20 @@ add_shell_functions(Env0) ->
     Env1 = foldl(Add, Env0, Fs),
     Env1.
 
+%% Last clause in match-lambda macro to catch-all as undefined function.
+-define(UNDEF_MATCH_FUNC(Name),
+        [[args,'ENV'],?BQ([error,{undefined_func,{Name,?C([length,args])}}])]).
+
 add_shell_macros(Env0) ->
     %% We KNOW how macros are expanded and write them directly in
     %% expanded form here.
     Ms = [{c,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,c,?C_A(args)])]},
-          {describe,[lambda,[args,'$ENV'],
-                     ?BQ([':',lfe_shell,docs,?Q(?C(args))])]},
-          {doc,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,docs,?Q(?C(args))])]},
+          {describe,['match-lambda',
+                     [[[list,mod],'$ENV'],?BQ([':',lfe_shell,doc,?Q(?C(mod))])],
+                     ?UNDEF_MATCH_FUNC(describe)]},
+          {doc,['match-lambda',
+                [[[list,mod],'$ENV'],?BQ([':',lfe_shell,doc,?Q(?C(mod))])],
+                ?UNDEF_MATCH_FUNC(doc)]},
           {ec,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ec,?C_A(args)])]},
           {l,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,l,[list|?C(args)]])]},
           {ls,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ls,[list|?C(args)]])]},
@@ -992,69 +999,140 @@ regs() -> c:regs().
 
 exit() -> c:q().
 
-%% doc(Fun) -> ok.
-%% docs(Funs) -> ok.
+%% doc(Fun) -> ok | {error,Error}.
 %%  Print out documentation of a module/macro/function. Always try to
 %%  find the file and use it as this is the only way to get hold of
 %%  the chunks. This may get a later version than is loaded.
 
-docs(Fs) ->
-    lists:foreach(fun doc/1, Fs).
-
+doc(?Q(What)) -> doc(What);                     %Be kind if they quote it
 doc(What) ->
     [Mod|F] = lfe_lib:split_name(What),
-    io:format(?RED("~*c")++"\n", [60,$_]),      %Print a red line
     case lfe_docs:get_module_docs(Mod) of
         {ok,#docs_v1{}=Docs} ->
-            case F of
-                [] ->                           %Only module name
-                    print_module_doc(Mod, Docs);
-                [Name] ->                       %Macro and functions
-                    print_macro_doc(Name, Docs);
-                [Name,Arity] ->                 %Just on function
-                    print_function_doc(Name, Arity, Docs)
-            end;
-        {error,module} ->
-            lfe_io:format("No module ~s\n\n", [Mod]);
-        {error,docs} ->
-            lfe_io:format("No module documentation for ~s\n\n", [Mod])
+            Ret = case F of
+                      [] ->                     %Only module name
+                          get_module_doc(Mod, Docs);
+                      [Name] ->                 %Macro and functions
+                          get_macro_doc(Mod, Name, Docs);
+                      [Name,Arity] ->           %Just on function
+                          get_function_doc(Mod, Name, Arity, Docs)
+                  end,
+            format_doc(Ret);
+        Error -> Error
     end.
 
-%% print_module_doc(Mod, DocsInfo) -> ok.
-%%  Print the module documentation.
+format_doc({error,_}=Error) -> Error;
+format_doc({ok,Docs}) ->
+    {match,Lines} = re:run(Docs, "(.+\n|\n)",
+                           [unicode,global,{capture,all_but_first,binary}]),
+    Pfun = fun (Line) ->
+                   io:put_chars(Line),
+                   1                            %One line
+           end,
+    io:format(?RED("~*c")++"\n", [60,$_]),
+    paged_output(Pfun, Lines),
+    ok.
 
-print_module_doc(Mod, #docs_v1{module_doc=Md}=_Docs) ->
-    lfe_io:format(?BLU("~p")++"\n\n", [Mod]),
-    print_doc(Md).
 
-%% print_macro_doc(Name, DocsInfo) -> ok.
-%%  Print the documentation for functions and macros with that
-%%  name. We use the signature.
+-ifdef(EEP48).
 
-print_macro_doc(Mac, #docs_v1{docs=Ds}=_Docs) ->
-    Fns = [ F || {{_,N,_},_,_,_,_}=F <- Ds,
-                 N =:= Mac ],
-    lists:foreach(fun ({{function,_,_},_,Sig,Doc,_}) ->
-                          lfe_io:format(?BLU("defun ~s")++"\n", [Sig]),
-                          print_doc(Doc);
-                      ({{macro,_,_},_,Sig,Doc,_}) ->
-                          lfe_io:format(?BLU("defmacro ~s")++"\n", [Sig]),
-                          print_doc(Doc)
-                  end, Fns).
+get_module_doc(Mod, #docs_v1{format = ?NATIVE_FORMAT}=Docs) ->
+    {ok,shell_docs:render(Mod, Docs)};
+get_module_doc(Mod, Docs) ->
+    get_module_lfe_doc(Mod, Docs).
 
-%% print_function_doc(Name, Arity, DocsInfo) -> ok.
-%%  Print the function documentation. We use the signature.
+get_macro_doc(Mod, Name, #docs_v1{format = ?NATIVE_FORMAT}=Docs) ->
+    case shell_docs:render(Mod, Name, Docs) of
+        {error,_}=Error -> Error;
+        Bin -> {ok,[lfe_io:format1(?BLU("defun ~s")++"\n", [Name]),
+                    Bin]}
+    end;
+get_macro_doc(Mod, Name, Docs) ->
+    get_macro_lfe_doc(Mod, Name, Docs).
 
-print_function_doc(Name, Arity, #docs_v1{docs=Ds}=_Docs) ->
-    Fns = [ F || {{function,N,A},_,_,_,_}=F <- Ds,
-                 N =:= Name, A =:= Arity ],
-    lists:foreach(fun ({_,_,Sig,Doc,_}) ->
-                          lfe_io:format(?BLU("defun ~s")++"\n", [Sig]),
-                          print_doc(Doc)
-                  end, Fns).
+get_function_doc(Mod, Name, Arity, #docs_v1{format = ?NATIVE_FORMAT}=Docs) ->
+    case shell_docs:render(Mod, Name, Arity, Docs) of
+        {error,_}=Error -> Error;
+        Bin -> {ok,[lfe_io:format1(?BLU("defun ~s/~w")++"\n", [Name,Arity]),
+                    Bin]}
+    end;
+get_function_doc(Mod, Name, Arity, Docs) ->
+    get_function_lfe_doc(Mod, Name, Arity, Docs).
 
-%% print_doc(Doc) -> ok.
-%%  Only print the languages we know.
+-else.
 
-print_doc(#{<<"en">> := Dv}) -> lfe_io:format("~s\n\n", [Dv]);
-print_doc(_) -> io:nl().
+get_module_doc(Mod, Docs) ->
+    get_module_lfe_doc(Mod, Docs).
+
+get_macro_doc(Mod, Name, Docs) ->
+    get_macro_lfe_doc(Mod, Name, Docs).
+
+get_function_doc(Mod, Name, Arity, Docs) ->
+    get_function_lfe_doc(Mod, Name, Arity, Docs).
+
+-endif.
+
+%% get_module_lfe_doc(Module, Docs)
+%% get_macro_lfe_doc(Module, Name, Docs)
+%% get_function_lfe_doc(Module, Name, Arity, Docs)
+%%  Functions for rendering common LFE/elixir documentation.
+
+get_module_lfe_doc(Mod, #docs_v1{format = ?LFE_FORMAT,module_doc=Mdoc}) ->
+    {ok,[lfe_io:format1(?BLU("~p")++"\n\n", [Mod]),
+         return_doc(Mdoc)]};
+get_module_lfe_doc(_Mod, #docs_v1{format = Enc}) ->
+    {error, {unknown_format, Enc}}.
+
+get_macro_lfe_doc(_Mod, Name, #docs_v1{format = ?LFE_FORMAT, docs = Docs}) ->
+    Fns = [ F || {{_,N,_},_,_,_,_}=F <- Docs, N =:= Name ],
+    Doc = lists:map(fun ({{function,_,_},_,Sig,Doc,_}) ->
+                            [lfe_io:format1(?BLU("defun ~s")++"\n\n", [Sig]),
+                             return_doc(Doc)];
+                        ({{macro,_,_},_,Sig,Doc,_}) ->
+                            [lfe_io:format1(?BLU("defmacro ~s")++"\n\n", [Sig]),
+                             return_doc(Doc)]
+                    end, Fns),
+    {ok,Doc};
+get_macro_lfe_doc(_Mod, _Name, #docs_v1{format = Enc}) ->
+    {error, {unknown_format, Enc}}.
+
+get_function_lfe_doc(_Mod, Name, Arity,
+                     #docs_v1{format = ?LFE_FORMAT, docs = Docs}) ->
+    Fns = [ F || {{function,N,A},_,_,_,_}=F <- Docs, N =:= Name, A =:= Arity ],
+    Doc = lists:map(fun ({{function,_,_},_,Sig,Doc,_}) ->
+                            [lfe_io:format1(?BLU("defun ~s")++"\n\n", [Sig]),
+                             return_doc(Doc)]
+                    end, Fns),
+    {ok,Doc};
+get_function_lfe_doc(_Mod, _Name, _Arity, #docs_v1{format = Enc}) ->
+    {error, {unknown_format, Enc}}.
+
+return_doc(#{<<"en">> := Dv}) -> lfe_io:format1("~s\n\n", [Dv]);
+return_doc(_) -> "\n".
+
+%% paged_output(Lines) -> ok.
+%%  Output lines a page at a time.
+
+paged_output(Pfun, Items) ->
+    %% How many rows per "page", just set it to 30 for now.
+    Limit = 30,
+    paged_output(Pfun, 0, Limit, Items).
+
+paged_output(Pfun, Curr, Limit, Items) when Curr >= Limit ->
+    case more() of
+        more -> paged_output(Pfun, 0, Limit, Items);
+        less -> ok
+    end;
+paged_output(Pfun, Curr, Limit, [I|Is]) ->
+    Lines = Pfun(I),
+    paged_output(Pfun, Curr + Lines, Limit, Is);
+paged_output(_, _, _, []) -> ok.
+
+more() ->
+    case io:get_line('More (y/n)? ') of
+        "y\n" -> more;
+        "c\n" -> more;
+        "n\n" -> less;
+        "q\n" -> less;
+        _ -> more()
+    end.

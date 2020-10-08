@@ -117,7 +117,7 @@ BUILT-IN SHELL COMMANDS
        (reset-environment)
 
        Resets the environment to its initial state.  This will clear all vari‐
-       ables, functions an macros that have been set.
+       ables, functions and macros that have been set.
 
        (run File)
 
@@ -165,7 +165,7 @@ BUILT-IN SHELL VARIABLES
 
        *, **, ***
 
-       The values of the previous 3 expressions.
+       The values of the previous three expressions.
 
        -
 
@@ -257,4 +257,4 @@ AUTHORS
 
 
 
-                                   2008-2019                            lfe(1)
+                                   2008-2020                            lfe(1)

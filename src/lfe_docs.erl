@@ -41,8 +41,6 @@
 
 -export([get_module_docs/1]).
 
--define(CURR_DOC_VERSION, {1,0,0}).
-
 -include("lfe_docs.hrl").
 
 %% Internal lfe_doc records.
@@ -161,8 +159,8 @@ collect_mac_metas(Metas, Mac) ->
 
 generate_funcs(#docs{module=#module{fexps=Fexps},funcs=Funcs}) ->
     Fdoc = fun (#function{name=Name,arity=Arity,anno=Anno,docs=Docs}=F) ->
-		   Sig = generate_sig(F),
-		   docs_v1_entry(function, Name, Arity, Anno, [Sig], Docs, #{})
+                   Sig = generate_sig(F),
+                   docs_v1_entry(function, Name, Arity, Anno, [Sig], Docs, #{})
            end,
     [ Fdoc(F) || F <- Funcs, exported_func(F, Fexps)].
 
@@ -173,8 +171,8 @@ exported_func(#function{name=N,arity=A}, Fexps) ->
 
 generate_macros(#docs{module=#module{mexps=Mexps},macs=Macros}) ->
     Mdoc = fun (#macro{name=Name,arity=Arity,anno=Anno,docs=Docs}=M) ->
-		   Sig = generate_sig(M),
-		   docs_v1_entry(macro, Name, Arity, Anno, [Sig], Docs, #{})
+                   Sig = generate_sig(M),
+                   docs_v1_entry(macro, Name, Arity, Anno, [Sig], Docs, #{})
            end,
     [ Mdoc(M) || M <- Macros, exported_macro(M, Mexps) ].
 
@@ -204,39 +202,48 @@ docs_v1(Anno, ModDoc, Metadata, Docs) ->
     Doc = #{<<"en">> => iolist_to_binary(ModDoc)},
     Meta = maps:merge(Metadata, #{otp_doc_vsn => ?CURR_DOC_VERSION}),
     #docs_v1{anno=Anno,
-	     beam_language=lfe,
-	     format= <<"text/application">>,
-	     module_doc=Doc,
-	     metadata=Meta,
-	     docs=Docs}.
+             beam_language=lfe,
+             format= ?LFE_FORMAT,
+             module_doc=Doc,
+             metadata=Meta,
+             docs=Docs}.
 
 docs_v1_entry(Kind, Name, Arity, Anno, Sig, DocContent, Meta) ->
     %% Doc = case DocContent of
-    %% 	      [] -> #{};
-    %% 	      _ -> #{<<"en">> => iolist_to_binary(DocContent)}
-    %% 	  end,
+    %%        [] -> #{};
+    %%        _ -> #{<<"en">> => iolist_to_binary(DocContent)}
+    %%    end,
     Doc = #{<<"en">> => iolist_to_binary(DocContent)},
     {{Kind,Name,Arity}, Anno, Sig, Doc, Meta}.
 
-%% get_module_docs(Module | Binary) -> {ok,Chunk} | {error,What}.
+%% get_module_doc(Module | Binary) -> {ok,Chunk} | {error,What}.
+%%  Get the module doc chunk. If EEP48 is defined we can use the code
+%%  module to do mosst of the work.
+
+-ifdef(EEP48).
 
 get_module_docs(Mod) when is_atom(Mod) ->
-    case code:get_doc(Mod) of
-	{ok,Doc} -> {ok,Doc};
-	{error,_} -> {error,module}
-    end;
-%% get_module_docs(Mod) when is_atom(Mod) ->
-%%     case code:get_object_code(Mod) of
-%%         {Mod,Bin,_} ->
-%%             get_module_chunk(Bin);
-%%         error -> {error,module}                 %Could not find the module
-%%     end;
+    code:get_doc(Mod);
 get_module_docs(Bin) when is_binary(Bin) ->
     get_module_chunk(Bin).
+
+-else.
+
+get_module_docs(Mod) when is_atom(Mod) ->
+    case code:get_object_code(Mod) of
+        {Mod,Bin,_} ->
+            get_module_chunk(Bin);
+        error -> {error,non_existing}           %Could not find the module
+    end;
+get_module_docs(Bin) when is_binary(Bin) ->
+    get_module_chunk(Bin).
+
+-endif.
 
 get_module_chunk(Bin) ->
     case beam_lib:chunks(Bin, ["Docs"], []) of
         {ok,{_,[{"Docs",Chunk}]}} ->
             {ok,binary_to_term(Chunk)};
-        _ -> {error,docs}                       %Could not find the docs chunk
+        {error,beam_lib,Error} ->
+            {error,Error}
     end.

@@ -49,7 +49,8 @@ comp_opts(Version) ->
                                      {"20","NEW_BOOL_GUARD"},
                                      {"20","HAS_FLOOR"},
                                      {"20","HAS_CEIL"},
-                                     {"21","NEW_STACKTRACE"}]).
+                                     {"21","NEW_STACKTRACE"},
+                                     {"23","EEP48"}]).
 
 append_copts(Version, [{Ver,Opt}|Opts]) ->
     Rest = append_copts(Version, Opts),

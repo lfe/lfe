@@ -1,6 +1,6 @@
 % lfe(1)
 % Robert Virding
-% 2008-2019
+% 2008-2020
 
 
 # NAME
@@ -122,7 +122,7 @@ top-level in shell input. The cannot be redefined.
 **(reset-environment)**
 
 Resets the environment to its initial state. This will clear all
-variables, functions an macros that have been set.
+variables, functions and macros that have been set.
 
 **(run File)**
 
@@ -176,7 +176,7 @@ The three previous expressions input.
 
 **``*``, ``**``, ``***``**
 
-The values of the previous 3 expressions.
+The values of the previous three expressions.
 
 **``-``**
 
@@ -264,9 +264,8 @@ The name of the script file as a string.
 
 **script-args**
 
-A list of the arguments to the script as strings. If
-no arguments have been given then this will be an
-empty list.
+A list of the arguments to the script as strings. If no arguments have
+been given then this will be an empty list.
 
 Note that if there are any string expressions to be evaluated then
 these must come before the name of the script file and its

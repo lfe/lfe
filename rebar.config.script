@@ -69,7 +69,8 @@ Copts = Copts0 ++ AppendCopts(Version,
                                {"20",'NEW_BOOL_GUARD'},
                                {"20",'HAS_FLOOR'},
                                {"20",'HAS_CEIL'},
-                               {"21",'NEW_STACKTRACE'}],
+                               {"21",'NEW_STACKTRACE'},
+                               {"23",'EEP48'}],
                               AppendCopts),
 
 %% Ensure they are in erl_opts.

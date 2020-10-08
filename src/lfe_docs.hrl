@@ -33,6 +33,11 @@
 %%     }]} when DocLanguage :: binary(),
 %%              DocValue :: binary() | term()
 
+-define(NATIVE_FORMAT,<<"application/erlang+html">>).
+-define(LFE_FORMAT,   <<"text/markdown">>).
+
+-define(CURR_DOC_VERSION, {1,0,0}).
+
 %% The Docs v1 record.
 -record(docs_v1, {anno,
                   beam_language,
