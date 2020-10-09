@@ -83,9 +83,8 @@ make_chunk(Code, CompilerOpts) ->
 make_docs_info(Code, CompilerOpts) ->
     DS0 = #docs{copts=CompilerOpts,module=#module{}},
     DS1 = collect_forms(Code, DS0),
-    %% io:format("~p\n", [DS1]),
     #module{anno=Anno,docs=Mdocs} = DS1#docs.module,
-    Funcs = generate_funcs(DS1),
+    Funcs = generate_functions(DS1),
     Macros = generate_macros(DS1),
     DocInfo = docs_v1(Anno, Mdocs, #{}, Funcs ++ Macros),
     {ok,DocInfo}.
@@ -121,13 +120,18 @@ collect_mod_metas(Metas, Mod) ->
 collect_mod_attrs(Attrs, Mod) ->
     Collect = fun ([doc|Ds], M) ->
                       M#module{docs=M#module.docs ++ Ds};
-                  ([export|Es], M) ->
-                      M#module{fexps=M#module.fexps ++ Es};
-                  (['export-macro'|Es], M) ->
-                      M#module{mexps=M#module.mexps ++ Es};
+                  ([export|Es], #module{fexps=Fes}=M) ->
+                      M#module{fexps=collect_mod_exports(Fes, Es)};
+                  (['export-macro'|Es], #module{mexps=Mes}=M) ->
+                      M#module{mexps=collect_mod_exports(Mes, Es)};
                   (_, M) -> M
               end,
     lists:foldl(Collect, Mod, Attrs).
+
+%% Must handle exporting all for functions and macros.
+collect_mod_exports(_Exps, [all]) -> all;
+collect_mod_exports(all, _Es) -> all;
+collect_mod_exports(Exps, Es) -> Exps ++ Es.
 
 collect_function(Name, Meta, Def, Line) ->
     F = #function{name=Name,arity=function_arity(Def),anno=Line,
@@ -155,16 +159,17 @@ collect_mac_metas(Metas, Mac) ->
           end,
     lists:foldl(Collect, Mac, Metas).
 
-%% generate_funcs(Docs) -> [FunctionDoc].
+%% generate_functions(Docs) -> [FunctionDoc].
 
-generate_funcs(#docs{module=#module{fexps=Fexps},funcs=Funcs}) ->
+generate_functions(#docs{module=#module{fexps=Fexps},funcs=Funcs}) ->
     Fdoc = fun (#function{name=Name,arity=Arity,anno=Anno,docs=Docs}=F) ->
                    Sig = generate_sig(F),
                    docs_v1_entry(function, Name, Arity, Anno, [Sig], Docs, #{})
            end,
-    [ Fdoc(F) || F <- Funcs, exported_func(F, Fexps)].
+    [ Fdoc(F) || F <- Funcs, exported_function(F, Fexps)].
 
-exported_func(#function{name=N,arity=A}, Fexps) ->
+exported_function(_F, all) -> true;             %All functions are exported.
+exported_function(#function{name=N,arity=A}, Fexps) ->
     lists:member([N,A], Fexps).
 
 %% generate_macros(Docs) -> [MacroDoc].
@@ -176,6 +181,7 @@ generate_macros(#docs{module=#module{mexps=Mexps},macs=Macros}) ->
            end,
     [ Mdoc(M) || M <- Macros, exported_macro(M, Mexps) ].
 
+exported_macro(_M, all) -> true;                %All macros are exported.
 exported_macro(#macro{name=N}, Mexps) ->
     lists:member(N, Mexps).
 
