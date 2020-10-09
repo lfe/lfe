@@ -59,7 +59,7 @@ validate_macro(Name, {[_Define,_Name,_Meta,_Lambda],Line}=Mac) ->
     case lfe_docs:make_docs_info(Info, []) of
         {ok,#docs_v1{docs=[Mdoc]}} ->
             {{macro,N,_},Anno,_,_,_} = Mdoc,
-            (Line =:= Anno) and Name =:= N;
+            (Line =:= Anno) and (Name =:= N);
         _ -> false
     end.
 
