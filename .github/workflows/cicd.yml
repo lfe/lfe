@@ -39,6 +39,6 @@ jobs:
       #     for the default test count of '100' -- note, however:
       #     * 'prop_lfe_docs:prop_define_lambda' works just fine with 100 tests
       #     * 'prop_lfe_docs:prop_define_match' is the one that crashes the VM
-      run: rebar3 as test proper -n 40
+      run: rebar3 as test proper -n 20
     - name: CT Suite Tests
       run: rebar3 as test ct
