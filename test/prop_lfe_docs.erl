@@ -72,10 +72,10 @@ export_macro(Mac) -> {['extend-module',[],[['export-macro',Mac]]],1}.
 %%%===================================================================
 
 define_lambda() ->
-    {['define-function',atom1(),meta_with_doc(),lambda()],line()}.
+    {['define-function',atom(),meta_with_doc(),lambda()],line()}.
 
 define_match() ->
-    ?LET(D, define(), {[D,atom1(),meta_with_doc(),'match-lambda'(D)],line()}).
+    ?LET(D, define(), {[D,atom(),meta_with_doc(),'match-lambda'(D)],line()}).
 
 
 %%%===================================================================
@@ -93,15 +93,13 @@ lambda() -> [lambda,arglist_simple()|body()].
 'match-lambda'('define-macro') ->
     ['match-lambda'|non_empty(list(macro_pattern_clause()))].
 
-arglist_simple() -> list(atom1()).
-
-atom1() -> oneof([a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,'']).
+arglist_simple() -> list(atom()).
 
 body() -> non_empty(list(form())).
 
-form() -> union([form_elem(),[atom1()|list(form_elem())]]).
+form() -> union([form_elem(),[atom()|list(form_elem())]]).
 
-form_elem() -> union([non_string_term(),printable_string(),atom1()]).
+form_elem() -> union([non_string_term(),printable_string(),atom()]).
 
 meta_with_doc() -> [[doc,docstring()]].
 
@@ -139,7 +137,7 @@ guard() -> ['when'|non_empty(list(union([logical_clause(),comparison()])))].
 %%% Logical clauses
 
 logical_clause() ->
-    X = union([atom1(),comparison()]),
+    X = union([atom(),comparison()]),
     [logical_operator(),X|non_empty(list(X))].
 
 logical_operator() -> oneof(['and','andalso','or','orelse']).
@@ -147,7 +145,7 @@ logical_operator() -> oneof(['and','andalso','or','orelse']).
 
 %%% Comparisons
 
-comparison() -> [comparison_operator(),atom1()|list(atom1())].
+comparison() -> [comparison_operator(),atom()|list(atom())].
 
 comparison_operator() -> oneof(['==','=:=','=/=','<','>','=<','>=']).
 
@@ -155,7 +153,7 @@ comparison_operator() -> oneof(['==','=:=','=/=','<','>','=<','>=']).
 %%% Strings and non-strings
 
 non_string_term() ->
-    union([atom1(),number(),[],bitstring(),binary(),boolean(),tuple()]).
+    union([atom(),number(),[],bitstring(),binary(),boolean(),tuple()]).
 
 printable_char() -> union([integer(32, 126),integer(160, 255)]).
 
