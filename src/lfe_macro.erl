@@ -27,9 +27,9 @@
 -export([expand_expr/2,expand_expr_1/2,expand_expr_all/2]).
 
 %% These work on list of forms in "file format".
--export([expand_forms/4]).
 -export([expand_form_init/2,expand_form_init/3,
          expand_form/4,expand_fileform/3]).
+-export([expand_fileforms/3,expand_fileforms/4]).
 
 %% For creating the macro expansion state.
 -export([default_state/2,default_state/3]).
@@ -99,21 +99,14 @@ expand_expr_all(F, Env) ->
     {Ef,_} = exp_form(F, Env, default_state(true, false)),
     Ef.
 
-%% expand_forms(FileForms, Env, Deep, Keep) ->
-%%     {ok,FileForms,Env,Warnings} | {error,Errors,Warnings}.
-%%  Collect macro definitions in file forms, completely expand all
-%%  macros and only keep all functions.
+%% expand_form_init(Deep, Keep) -> State.
+%% expand_form_init(CompInfo, Deep, Keep) -> State.
 
-expand_forms(Fs, Env, Deep, Keep) ->
-    St = default_state(Deep, Keep),
-    do_forms(Fs, Env, St).
+expand_form_init(Deep, Keep) ->
+    default_state(Deep, Keep).
 
-do_forms(Fs0, Env0, St0) ->
-    {Fs1,Env1,St1} = pass_fileforms(Fs0, Env0, St0),
-    case St1#mac.errors of
-        [] -> {ok,Fs1,Env1,St1#mac.warnings};    %No errors
-        Es -> {error,Es,St1#mac.warnings}
-    end.
+expand_form_init(Ci, Deep, Keep) ->
+    default_state(Ci, Deep, Keep).
 
 default_state(Deep, Keep) ->
     #mac{deep=Deep,keep=Keep,line=1,file="-no-file-",opts=[],ipath=["."]}.
@@ -121,18 +114,10 @@ default_state(Deep, Keep) ->
 default_state(#cinfo{file=File,opts=Os,ipath=Is}, Deep, Keep) ->
     #mac{deep=Deep,keep=Keep,line=1,file=File,opts=Os,ipath=Is}.
 
-%% expand_form_init(Deep, Keep) -> State.
-%% expand_form_init(CompInfo, Deep, Keep) -> State.
-%% expand_form(Form, Line, Env, State) -> {Form,Env,State}.
-%% expand_fileform(Form, Env, State) -> {Form,Env,State}.
+%% expand_form(Form, Line, Env, MacState) -> {Form,Env,MacState}.
+%% expand_fileform(FileForm, Env, MacState) -> {FileForm,Env,MacState}.
 %%  Collect macro definitions in a (file)form, completely expand all
 %%  macros and only keep all functions.
-
-expand_form_init(Deep, Keep) ->
-    default_state(Deep, Keep).
-
-expand_form_init(Ci, Deep, Keep) ->
-    default_state(Ci, Deep, Keep).
 
 expand_form(F0, L, E0, St0) ->
     {F1,E1,St1} = pass_form(F0, E0, St0#mac{line=L}),
@@ -146,6 +131,27 @@ return_status(Ret, Env, #mac{errors=[]}=St) ->
     {ok,Ret,Env,St};
 return_status(_, _, #mac{errors=Es,warnings=Ws}=St) ->
     {error,Es,Ws,St}.
+
+%% expand_fileforms(FileForms, Env, MacState) ->
+%% expand_fileforms(FileForms, Env, Deep, Keep) ->
+%%     {ok,FileForms,Env,Warnings} | {error,Errors,Warnings}.
+%%  Collect macro definitions in file forms, completely expand all
+%%  macros and only keep all functions. This is intended to process a
+%%  whole file so the end macro state is not returned.
+
+expand_fileforms(Fs, Env, St) ->
+    do_forms(Fs, Env, St).
+
+expand_fileforms(Fs, Env, Deep, Keep) ->
+    St = default_state(Deep, Keep),
+    do_forms(Fs, Env, St).
+
+do_forms(Fs0, Env0, St0) ->
+    {Fs1,Env1,St1} = pass_fileforms(Fs0, Env0, St0),
+    case St1#mac.errors of
+        [] -> {ok,Fs1,Env1,St1#mac.warnings};    %No errors
+        Es -> {error,Es,St1#mac.warnings}
+    end.
 
 %% pass_fileforms(FileForms, Env, State) -> {FileForms,Env,State}.
 %% pass_forms(Forms, Env, State) -> {Forms,Env,State}.
@@ -1192,9 +1198,9 @@ exp_andalso([E|Es]) ->
     ['if',E,exp_andalso(Es),?Q(false)];
 exp_andalso([]) -> ?Q(true).
 
-exp_orelse([E]) -> E;                           %Let user check last call
-exp_orelse([E|Es]) -> ['if',E,?Q(true),exp_orelse(Es)];
-exp_orelse([]) -> ?Q(false).
+%% exp_orelse([E]) -> E;                           %Let user check last call
+%% exp_orelse([E|Es]) -> ['if',E,?Q(true),exp_orelse(Es)];
+%% exp_orelse([]) -> ?Q(false).
 
 %% exp_defmodule(Rest) -> {Meta,Attributes}.
 %%  Extract the comment string either if it is first. Ignore 'doc'

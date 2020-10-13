@@ -427,7 +427,7 @@ nocatch(_, Reason) -> Reason.
 eval_form(Form, #state{curr=Ce}=St) ->
     %% Flatten progn nested forms.
     %% Don't deep expand, keep everything.
-    case lfe_macro:expand_forms([{Form,1}], Ce, false, true) of
+    case lfe_macro:expand_fileforms([{Form,1}], Ce, false, true) of
         {ok,Eforms,Ce1,Ws} ->
             list_warnings(Ws),
             St1 = St#state{curr=Ce1},
@@ -576,7 +576,7 @@ slurp_file(Name) ->
     case lfe_comp:file(Name, [binary,to_split,return]) of
         {ok,[{ok,Mod,Fs0,_}|_],Ws} ->           %Only do first module
             %% Deep expand, don't keep everything.
-            case lfe_macro:expand_forms(Fs0, lfe_env:new(), true, false) of
+            case lfe_macro:expand_fileforms(Fs0, lfe_env:new(), true, false) of
                 {ok,Fs1,Env,_} ->
                     %% Flatten and trim away any eval-when-compile.
                     {Fs2,42} = lfe_lib:proc_forms(fun slurp_form/3, Fs1, 42),
