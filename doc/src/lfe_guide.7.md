@@ -1237,6 +1237,93 @@ Non-predicate macros in `lfe/include/cl.lfe` include:
 (dolist ...)
 (vector ...)
 ```
+## Supplemental Clojure Functions
+
+From LFE's earliest days, it's Lisp-cousin Clojure (created around the same time)
+has inspired LFE developers to create similar, BEAM-versions of those functions.
+These were collected in a separate library and then expanded upon, until
+eventually becoming part of the LFE standard library.
+
+Function definition macros:
+
+```
+(clj:defn ...)
+(clj:defn- ...)
+(clj:fn ...)
+```
+
+Threading macros:
+
+```
+(clj:-> ...)
+(clj:->> ...)
+(clj:as-> ...)
+(clj:cond-> ...)
+(clj:cond->> ...)
+(clj:some-> ...)
+(clj:some->> ...)
+(clj:doto ...)
+```
+
+Conditional macros:
+
+```
+(clj:if-let ...)
+(clj:iff-let ...)
+(clj:condp ...)
+(clj:if-not ...)
+(clj:iff-not ...)
+(clj:when-not ...)
+(clj:not= ...)
+```
+
+Predicate macros:
+
+```
+(clj:atom? x)
+(clj:binary? x)
+(clj:bitstring? x)
+(clj:bool? x)
+(clj:boolean? x)
+(clj:even? x)
+(clj:false? x)
+(clj:falsy? x)
+(clj:float? x)
+(clj:func? x)
+(clj:function? x)
+(clj:identical? x)
+(clj:int? x)
+(clj:integer? x)
+(clj:map? x)
+(clj:neg? x)
+(clj:nil? x)
+(clj:number? x)
+(clj:odd? x)
+(clj:pos? x)
+(clj:record? x)
+(clj:reference? x)
+(clj:true? x)
+(clj:tuple? x)
+(clj:undef? x)
+(clj:undefined? x)
+(clj:zero? x)
+```
+
+Other:
+
+```
+(clj:str x)
+(clj:lazy-seq x)
+(clj:conj ...)
+(clj:if ...)
+```
+
+Most of the above mentioned macros are avaialble in the `clj` include file,
+the use of which allows developers to forego the `clj:` prefix in calls:
+
+```
+(include-lib "lfe/include/clj.lfe")
+```
 
 # Notes
 
