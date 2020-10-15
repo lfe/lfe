@@ -49,7 +49,7 @@ format_error(match_spec_head) -> "Illegal number of head arguments".
 %% expand(Dialect, MSBody) -> Expansion.
 %%  Expand the match spec body.
 
-expand(Cls) -> expand(ets, Cls).
+expand(Cls) -> expand(table, Cls).
 
 expand(Dialect, Cls) when Dialect =:= table ; Dialect =:= trace ->
     case catch clauses(Cls, #ms{dialect=Dialect}) of
