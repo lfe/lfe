@@ -202,39 +202,42 @@ check_module(Mfs, St0) ->
 %% collect_module(ModuleForms, State) -> {Fbs,State}.
 %%  Collect valid forms and module data. Returns function bindings and
 %%  puts module data into state. Flag unknown forms and define-module
-%%  not first.
+%%  not first. We use lfe_proc_forms to automatically handle nested
+%%  progn forms for us.
 
-collect_module(Mfs, St0) ->
-    {Fbs,St1} = lists:foldl(fun collect_form/2, {[],St0}, Mfs),
-    {lists:reverse(Fbs),St1}.
+collect_module(Mfs, St) ->
+    lfe_lib:proc_forms(fun collect_form/3, Mfs, St).
 
-collect_form({['define-module',Mod,Meta,Atts],L}, {Fbs,St0}) ->
+%% collect_form(Form, Line, State) -> {Fbs,State}.
+
+collect_form(['define-module',Mod,Meta,Atts], L, St0) ->
     St1 = check_mdef(Meta, Atts, L, St0#lint{module=Mod,mline=L}),
     if is_atom(Mod) ->                  %Normal module
-            {Fbs,St1};
+            {[],St1};
        true ->                          %Bad module name
-            {Fbs,bad_mdef_error(L, name, St1)}
+            {[],bad_mdef_error(L, name, St1)}
     end;
-collect_form({_,L}, {Fbs,#lint{module=[]}=St}) ->
+collect_form(_, L, #lint{module=[]}=St) ->
     %% Set module name so this only triggers once.
-    {Fbs,bad_mdef_error(L, name, St#lint{module='-no-module-'})};
-collect_form({['extend-module',Metas,Atts],L}, {Fbs,St}) ->
-    {Fbs,check_mdef(Metas, Atts, L, St)};
-collect_form({['define-type',Type,Def],L}, {Fbs,St}) ->
-    {Fbs,check_type_def(Type, Def, L, St)};
-collect_form({['define-opaque-type',Type,Def],L}, {Fbs,St}) ->
-    {Fbs,check_type_def(Type, Def, L, St)};
-collect_form({['define-function-spec',Func,Spec],L}, {Fbs,St}) ->
-    {Fbs,check_func_spec(Func, Spec, L, St)};
-collect_form({['define-record',Name,Fields],L}, {Fbs,St}) ->
-    {Fbs,check_record_def(Name, Fields, L, St)};
-collect_form({['define-function',Func,Meta,Def],L}, {Fbs,St}) ->
-    collect_function(Func, Meta, Def, L, Fbs, St);
+    {[],bad_mdef_error(L, name, St#lint{module='-no-module-'})};
+collect_form(['extend-module',Metas,Atts], L, St) ->
+    {[],check_mdef(Metas, Atts, L, St)};
+collect_form(['define-type',Type,Def], L, St) ->
+    {[],check_type_def(Type, Def, L, St)};
+collect_form(['define-opaque-type',Type,Def], L, St) ->
+    {[],check_type_def(Type, Def, L, St)};
+collect_form(['define-function-spec',Func,Spec], L, St) ->
+    {[],check_func_spec(Func, Spec, L, St)};
+collect_form(['define-record',Name,Fields], L, St) ->
+    {[],check_record_def(Name, Fields, L, St)};
+collect_form(['define-function',Func,Meta,Def], L, St) ->
+    collect_function(Func, Meta, Def, L, [], St);
+%% lfe_lib:proc_forms handles nested progn.
 %% Ignore macro definitions and eval-when-compile forms.
-collect_form({['define-macro'|_],_}, {Fbs,St}) -> {Fbs,St};
-collect_form({['eval-when-compile'|_],_}, {Fbs,St}) -> {Fbs,St};
-collect_form({_,L}, {Fbs,St}) ->
-    {Fbs,add_error(L, unknown_form, St)}.
+collect_form(['define-macro'|_], _, St) -> {[],St};
+collect_form(['eval-when-compile'|_], _, St) -> {[],St};
+collect_form(_, L, St) ->
+    {[],add_error(L, unknown_form, St)}.
 
 %% check_mdef(Metadata, Attributes, Line, State) -> State.
 %%  Check a module definition, its metasdata and attributes.
@@ -1093,9 +1096,9 @@ check_catch_clause(['_'|_]=Cl, Env, L, St) ->
 check_catch_clause([[tuple,_,_,Stack]|_]=Cl, Env, L, St0) ->
     %% Stack must be an unbound variable.
     St1 = case is_atom(Stack) and not lfe_env:is_vbound(Stack, Env) of
-	      true -> St0;
-	      false -> add_error(L, {illegal_stacktrace,Stack}, St0)
-	  end,
+              true -> St0;
+              false -> add_error(L, {illegal_stacktrace,Stack}, St0)
+          end,
     check_clause(Cl, Env, L, St1);
 check_catch_clause([Other|_], _Env, L, St) ->
     add_error(L, {illegal_exception,Other}, St).
