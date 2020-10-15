@@ -145,7 +145,7 @@ parse_file1([], _, Ss) -> {ok,lists:reverse(Ss)}.
 %% expand_macros(Forms, File, Args, Lopts) -> {Forms,Fenv}.
 
 expand_macros(Fs0, File, _, _) ->
-    case lfe_macro:expand_forms(Fs0, lfe_env:new(), true, false) of
+    case lfe_macro:expand_fileforms(Fs0, lfe_env:new(), true, false) of
         {ok,Fs1,Fenv,Ws} ->
             list_warnings(File, Ws),
             {Fs1,Fenv};
@@ -166,13 +166,17 @@ check_code(Fs, File, _, _) ->
 
 %% make_env(Forms, File, Args, Lopts) -> FunctionEnv.
 
-make_env(Fs, Fenv, _, _, _) ->
-    {Fbs,null} = lfe_lib:proc_forms(fun collect_form/3, Fs, null),
+make_env(Forms, Fenv, _, _, _) ->
+    {Fbs,null} = lfe_lib:proc_forms(fun collect_function/3, Forms, null),
     lfe_eval:make_letrec_env(Fbs, Fenv).
 
-collect_form(['define-function',F,_Meta,Def], _, St) ->
+collect_function(['define-function',F,_Meta,Def], _, St) ->
     Ar = function_arity(Def),
-    {[{F,Ar,Def}],St}.
+    {[{F,Ar,Def}],St};
+%% Ignore everything else including types and eval-when-compile.
+collect_function(_Form, _, St) ->
+    {[],St}.
+
 
 function_arity([lambda,As|_]) -> length(As);
 function_arity(['match-lambda',[Pats|_]|_]) -> length(Pats).
