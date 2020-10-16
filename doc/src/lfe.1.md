@@ -113,6 +113,13 @@ Quit - shorthand for ``init:stop/0``.
 
 Print information about the registered processes in the system.
 
+**(version)**
+
+Return a data structure of current version information.
+
+**(version App)**
+
+Print information about the registered processes in the system.
 
 # BUILT-IN SHELL COMMANDS
 

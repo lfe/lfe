@@ -1099,6 +1099,246 @@ needs to access then we could evaluate it by calling:
 (eval `(let ((foo ,foo)) ,expr))
 ```
 
+## Supplemental Common Lisp Functions
+
+LFE provides the module cl which contains the following functions
+which closely mirror functions defined in the Common Lisp
+Hyperspec. Note that the following functions use zero-based indices,
+like Common Lisp (unlike Erlang, which start at index '1'). A major
+difference between the LFE versions and the Common Lisp versions of 
+these functions is that the boolean values are
+the LFE `'true` and `'false`. Otherwise the definitions closely follow the
+CL definitions and won't be documented here.
+
+```
+cl:make-lfe-bool cl-value
+cl:make-cl-bool lfe-bool
+
+cl:mapcar  function  list
+cl:maplist  function  list
+cl:mapc  function  list
+cl:mapl  function  list
+
+cl:symbol-plist  symbol
+cl:symbol-name  symbol
+cl:get  symbol  pname
+cl:get  symbol  pname  default
+cl:getl  symbol  pname-list
+cl:putprop  symbol  value  pname
+cl:remprop  symbol  pname
+
+cl:getf  plist  pname
+cl:getf  plist  pname  default
+cl:putf  plist  value  pname  ; This does not exist in CL
+cl:remf  plist  pname
+cl:get-properties  plist  pname-list
+
+cl:elt  index  sequence
+cl:length  sequence
+cl:reverse  sequence
+cl:some  predicate  sequence
+cl:every  predicate  sequence
+cl:notany  predicate  sequence
+cl:notevery  predicate  sequence
+cl:reduce  function  sequence
+cl:reduce  function  sequence  'initial-value  x
+cl:reduce  function  sequence  'from-end  'true
+cl:reduce  function  sequence  'initial-value  x  'from-end  'true
+
+cl:remove  item  sequence
+cl:remove-if  predicate  sequence
+cl:remove-if-not  predicate  sequence
+cl:remove-duplicates  sequence
+
+cl:find  item  sequence
+cl:find-if  predicate  sequence
+cl:find-if-not  predicate  sequence
+cl:find-duplicates  sequence
+cl:position  item  sequence
+cl:position-if  predicate  sequence
+cl:position-if-not  predicate  sequence
+cl:position-duplicates  sequence
+cl:count  item  sequence
+cl:count-if  predicate  sequence
+cl:count-if-not  predicate  sequence
+cl:count-duplicates  sequence
+
+cl:car  list
+cl:first  list
+cl:cdr  list
+cl:rest  list
+cl:nth  index  list
+cl:nthcdr  index  list
+cl:last  list
+cl:butlast  list
+
+cl:subst  new  old  tree
+cl:subst-if  new  test  tree
+cl:subst-if-not  new  test  tree
+cl:sublis  alist  tree
+
+cl:member  item  list
+cl:member-if  predicate  list
+cl:member-if-not  predicate  list
+cl:adjoin  item  list
+cl:union  list  list
+cl:intersection  list  list
+cl:set-difference  list  list
+cl:set-exclusive-or  list  list
+cl:subsetp  list  list
+
+cl:acons  key  data  alist
+cl:pairlis  list  list
+cl:pairlis  list  list  alist
+cl:assoc  key  alist
+cl:assoc-if  predicate  alost
+cl:assoc-if-not  predicate  alost
+cl:rassoc  key  alist
+cl:rassoc-if  predicate  alost
+cl:rassoc-if-not  predicate  alost
+
+cl:type-of  object
+cl:coerce  object  type
+```
+
+Furthmore, there is an include file which developers may which to utilize in
+their LFE programs: `(include-lib "lfe/include/cl.lfe")`. Currently this offers
+Common Lisp predicates, but may include other useful macros and functions in
+the future. The provided predicate macros wrap the various `is_*` Erlang
+functions; since these are expanded at compile time, they are usable in guards.
+The include the following:
+
+```
+(alivep x)
+(atomp x)
+(binaryp x)
+(bitstringp x)
+(boolp x) and (booleanp x)
+(builtinp x)
+(consp x)
+(floatp x)
+(funcp x) and (functionp x)
+(intp x) and (integerp x)
+(listp x)
+(mapp x)
+(numberp x)
+(pidp x)
+(process-alive-p x)
+(recordp x tag)
+(recordp x tag size)
+(refp x) and (referencep x)
+(tuplep x)
+(vectorp x)
+```
+
+Non-predicate macros in `lfe/include/cl.lfe` include:
+
+```
+(dolist ...)
+(vector ...)
+```
+## Supplemental Clojure Functions
+
+From LFE's earliest days, it's Lisp-cousin Clojure (created around the same time)
+has inspired LFE developers to create similar, BEAM-versions of those functions.
+These were collected in a separate library and then expanded upon, until
+eventually becoming part of the LFE standard library.
+
+Function definition macros:
+
+```
+(clj:defn ...)
+(clj:defn- ...)
+(clj:fn ...)
+```
+
+Threading macros:
+
+```
+(clj:-> ...)
+(clj:->> ...)
+(clj:as-> ...)
+(clj:cond-> ...)
+(clj:cond->> ...)
+(clj:some-> ...)
+(clj:some->> ...)
+(clj:doto ...)
+```
+
+Conditional macros:
+
+```
+(clj:if-let ...)
+(clj:iff-let ...)
+(clj:condp ...)
+(clj:if-not ...)
+(clj:iff-not ...)
+(clj:when-not ...)
+(clj:not= ...)
+```
+
+Predicate macros:
+
+```
+(clj:atom? x)
+(clj:binary? x)
+(clj:bitstring? x)
+(clj:bool? x)
+(clj:boolean? x)
+(clj:even? x)
+(clj:false? x)
+(clj:falsy? x)
+(clj:float? x)
+(clj:func? x)
+(clj:function? x)
+(clj:identical? x)
+(clj:int? x)
+(clj:integer? x)
+(clj:map? x)
+(clj:neg? x)
+(clj:nil? x)
+(clj:number? x)
+(clj:odd? x)
+(clj:pos? x)
+(clj:record? x)
+(clj:reference? x)
+(clj:true? x)
+(clj:tuple? x)
+(clj:undef? x)
+(clj:undefined? x)
+(clj:zero? x)
+```
+
+Other:
+
+```
+(clj:str x)
+(clj:lazy-seq x)
+(clj:conj ...)
+(clj:if ...)
+```
+
+Most of the above mentioned macros are avaialble in the `clj` include file,
+the use of which allows developers to forego the `clj:` prefix in calls:
+
+```
+(include-lib "lfe/include/clj.lfe")
+```
+
+## Utility and System Information Functions
+
+```
+lfe_system_info:app_version atom
+lfe_system_info:os_versions
+lfe_system_info:core_versions
+lfe_system_info:tool_versions
+lfe_system_info:version
+lfe_system_info:version atom
+```
+
+Note that an alias is provided for the last two as `version`, accessible both
+from LFE modules and the LFE REPL.
+
 # Notes
 
 * NYI - Not Yet Implemented

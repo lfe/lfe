@@ -24,7 +24,7 @@
 
 (defmacro ok? (x) `(=:= 'ok ,x))
 
-;; HACK
+;; XXX HACK
 (defmacro IFF-MAPS expr `(andalso (erl_internal:bif 'is_map 1) ,@expr))
 
 ;;; defn
