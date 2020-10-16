@@ -219,13 +219,13 @@ docs-txt: docs-man \
 $(DOCDIR)/%.txt: export GROFF_NO_SGR=1
 
 $(DOCDIR)/%.txt: $(MANDIR)/%.1
-	groff -t -e -mandoc -Tutf8 -Kutf8 $< | col -bx > $@
+	groff -t -e -mandoc -Tutf8 $< | col -bx > $@
 
 $(DOCDIR)/%.txt: $(MANDIR)/%.3
-	groff -t -e -mandoc -Tutf8 -Kutf8 $< | col -bx > $@
+	groff -t -e -mandoc -Tutf8 $< | col -bx > $@
 
 $(DOCDIR)/%.txt: $(MANDIR)/%.7
-	groff -t -e -mandoc -Tutf8 -Kutf8 $< | col -bx > $@
+	groff -t -e -mandoc -Tutf8 $< | col -bx > $@
 
 $(PDFDIR):
 	@$(INSTALL_DIR) $(PDFDIR)
