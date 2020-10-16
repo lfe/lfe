@@ -236,13 +236,13 @@ docs-pdf: $(PDFDIR) \
 	$(addprefix $(PDFDIR)/, $(PDF7S))
 
 $(PDFDIR)/%.pdf: $(DOCSRC)/%.1.md
-	pandoc -f markdown --latex-engine=xelatex -o $@ $<
+	pandoc -f markdown --pdf-engine=xelatex -o $@ $<
 
 $(PDFDIR)/%.pdf: $(DOCSRC)/%.3.md
-	pandoc -f markdown --latex-engine=xelatex -o $@ $<
+	pandoc -f markdown --pdf-engine=xelatex -o $@ $<
 
 $(PDFDIR)/%.pdf: $(DOCSRC)/%.7.md
-	pandoc -f markdown --latex-engine=xelatex -o $@ $<
+	pandoc -f markdown --pdf-engine=xelatex -o $@ $<
 
 $(EPUBDIR):
 	@$(INSTALL_DIR) $(EPUBDIR)
