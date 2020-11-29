@@ -1203,12 +1203,24 @@ exp_andalso([]) -> ?Q(true).
 %% exp_orelse([]) -> ?Q(false).
 
 %% exp_defmodule(Rest) -> {Meta,Attributes}.
-%%  Extract the comment string either if it is first. Ignore 'doc'
-%%  attributes. Allow empty module definition.
+%%  Extract the comment string if it is first, then split the rest
+%%  into meta data or attributes deepending on the tag. The order is
+%%  preserved in both cases.
 
-exp_defmodule([]) -> {[],[]};
-exp_defmodule([Doc|Atts]=Rest) ->
-    ?IF(lfe_lib:is_doc_string(Doc), {[[doc,Doc]],Atts}, {[],Rest}).
+exp_defmodule([Doc|Rest]) ->
+    {Meta,Attr} = ?IF(lfe_lib:is_doc_string(Doc), {[[doc,Doc]],[]}, {[],[Doc]}),
+    Fun = fun ([Tag|_]=R, {Me,As}) ->
+		  case is_meta_tag(Tag) of
+		      true -> {Me ++ [R],As};
+		      false -> {Me,As ++ [R]}
+		  end
+	  end,
+    lists:foldl(Fun, {Meta,Attr}, Rest);
+exp_defmodule([]) -> {[],[]}.
+
+is_meta_tag(doc) -> true;
+is_meta_tag(spec) -> true;
+is_meta_tag(Tag) -> lfe_types:is_type_decl(Tag).
 
 %% exp_deftype(Type, Def) -> {Type,Def}.
 %%  Paramterless types to be written as just type name and default
