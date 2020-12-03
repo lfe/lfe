@@ -14,13 +14,16 @@
 
 %% File    : lfe_internal.erl
 %% Author  : Robert Virding
-%% Purpose : Define Lisp Flavoured Erlang internal bifs, guards.
+%% Purpose : Define Lisp Flavoured Erlang internals.
+
+%%% Define LFE internal bifs, guards and other internal stuff.
 
 -module(lfe_internal).
 
 %% General library functions.
 -export([is_bif/2,is_guard_bif/2,is_erl_bif/2,is_lfe_bif/2]).
 -export([is_core_form/1,is_core_func/2]).
+-export([is_type/2]).
 
 %% -compile([export_all]).
 
@@ -145,3 +148,16 @@ is_lfe_bif('macroexpand-1', 2) -> true;
 is_lfe_bif('macroexpand-all', 1) -> true;
 is_lfe_bif('macroexpand-all', 2) -> true;
 is_lfe_bif(_, _) -> false.
+
+%% is_type(NAme, Arity) -> bool().
+%%  Return true if Name/Arity is a predefined type.
+
+is_type('UNION', Ar) -> is_integer(Ar) and (Ar >= 0);
+is_type(call, Ar) -> is_integer(Ar) and (Ar >= 0);
+is_type(lambda, Ar) -> is_integer(Ar) and (Ar >= 0);
+is_type(map, Ar) -> is_integer(Ar) and (Ar >= 0);
+is_type(range, 2) -> true;
+is_type(bitstring, 2) -> true;
+is_type(tuple, Ar) -> is_integer(Ar) and (Ar >= 0);
+is_type(Name, Arity) ->
+    erl_internal:is_type(Name, Arity).
