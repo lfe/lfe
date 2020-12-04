@@ -50,12 +50,13 @@
                  func=[]                        %Current function
             }).
 
-%% module(ModuleForms, CompInfo) -> {ModuleName,ASTModule}
+%% module(ModuleForms, CompInfo) ->
+%%     {ok,ModuleName,ASTModule,[Warning]} | {error,[Error],[Warning]}.
 
 module(Mfs, #cinfo{opts=Opts,file=File}) ->
     St0 = #lfe_cg{opts=Opts,file=File},
     {AST,St1} = compile_module(Mfs, St0),
-    {St1#lfe_cg.module,AST}.
+    {ok,St1#lfe_cg.module,AST,[]}.
 
 compile_module(Mfs, St0) ->
     %% Collect all the module attributes and output them first.
