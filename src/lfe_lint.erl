@@ -263,8 +263,9 @@ check_mod_meta([opaque|Tds], L, St) ->
     check_type_defs(Tds, L, St);
 check_mod_meta([spec|Sps], L, St) ->
     check_func_specs(Sps, L, St);
-check_mod_meta([record|_Rds], L, St) ->
-    deprecated_error(L, <<"module record definition">>, St);
+check_mod_meta([record|Rds], L, St) ->
+    %% deprecated_error(L, <<"module record definition">>, St);
+    check_record_defs(Rds, L, St);
 check_mod_meta(_, L, St) -> bad_mdef_error(L, meta, St).
 
 %% check_attrs(Attributes, Line, State) -> State.
@@ -482,8 +483,20 @@ is_docs_list(Docs) ->
     Fun = fun (D) -> lfe_lib:is_doc_string(D) end,
     lfe_lib:is_proper_list(Docs) andalso lists:all(Fun, Docs).
 
+%% check_record_defs(RecordDefs, Line, State) -> State.
+%% check_record_def(RecordDef, Line, State) -> State.
 %% check_record_def(Record, Fields, Line, State) -> State.
 %%  Check a record definition.
+
+check_record_defs(Rds, L, St) ->
+    check_foreach(fun (Rd, S) -> check_record_def(Rd, L, S) end,
+		  fun (S) -> bad_meta_error(L, record, S) end,
+		  St, Rds).
+
+check_record_def([Rec,Fds], L, St) ->
+    check_record_def(Rec, Fds, L, St);
+check_record_def(_, L, St) ->
+    bad_meta_error(L, record, St).
 
 check_record_def(Rec, Fds, L, #lfe_lint{recs=Rs}=St0) when is_atom(Rec) ->
     case orddict:is_key(Rec, Rs) of

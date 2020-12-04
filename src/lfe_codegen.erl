@@ -184,6 +184,9 @@ comp_mod_meta([opaque|Tdefs], Line) ->
 comp_mod_meta([spec|Fspecs], Line) ->
     Fun = fun (Fspec) -> comp_function_spec(Fspec, Line) end,
     lists:flatmap(Fun, Fspecs);
+comp_mod_meta([record|Rdefs], Line) ->
+    Fun = fun ([Rec,Fds]) -> comp_record_def(Rec, Fds, Line) end,
+    lists:flatmap(Fun, Rdefs);
 comp_mod_meta(_Meta, _Line) -> [].
 
 %% comp_type_def(Attr, TypeDef, Line) -> [AST].
@@ -222,15 +225,9 @@ comp_function_def(Name, Def, Line) ->
 %% comp_record_def(Record, Line) -> [Attribute].
 %%  Format depends on whether 18 and older or newer.
 
--ifdef(NEW_REC_CORE).
 comp_record_def(Name, Fields, Line) ->
     Fdefs = [ comp_record_field(Fdef, Line) || Fdef <- Fields ],
-    [make_attribute(record, {Name,Fdefs}, Line)].
--else.
-comp_record_def(Name, Fields, Line) ->
-    Fdefs = [ comp_record_field(Fdef, Line) || Fdef <- Fields ],
-    [make_attribute(type, {{record,Name},Fdefs}, Line)].
--endif.
+    [make_record_attribute(Name, Fdefs, Line)].
 
 comp_record_field([F,D,T], Ann) ->
     {typed_record_field,
@@ -245,6 +242,14 @@ comp_untyped_field([F,D], Ann) ->
     {record_field,Ann,{atom,Ann,F},lfe_trans:to_expr(D, Ann)};
 comp_untyped_field(F, Ann) ->
     {record_field,Ann,{atom,Ann,F}}.
+
+-ifdef(NEW_REC_CORE).
+make_record_attribute(Name, Fdefs, Line) ->
+    make_attribute(record, {Name,Fdefs}, Line).
+-else.
+make_record_attribute(Name, Fdefs, Line) ->
+    make_attribute(type, {{record,Name},Fdefs}, Line).
+-endif.
 
 %% comp_export(State) -> Attribute.
 %% comp_imports(State) -> [Attribute].
