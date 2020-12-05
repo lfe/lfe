@@ -227,8 +227,8 @@ collect_form(['define-type',Type,Def], L, St) ->
     {[],check_type_def(Type, Def, L, St)};
 collect_form(['define-opaque-type',Type,Def], L, St) ->
     {[],check_type_def(Type, Def, L, St)};
-collect_form(['define-function-spec',Func,Spec], L, St) ->
-    {[],check_func_spec(Func, Spec, L, St)};
+collect_form(['define-function-spec',Func,Specs], L, St) ->
+    {[],check_func_spec(Func, Specs, L, St)};
 collect_form(['define-record',Name,Fields], L, St) ->
     {[],check_record_def(Name, Fields, L, St)};
 collect_form(['define-function',Func,Meta,Def], L, St) ->
@@ -413,7 +413,7 @@ check_type_vars(Tvs, L, St) ->
 
 %% check_func_specs(FuncSpecs, Line, State) -> State.
 %% check_func_spec(FuncSpec, Line, State) -> State.
-%% check_func_spec(Func, Spec, Line, State) -> State.
+%% check_func_spec(Func, Specs, Line, State) -> State.
 %%  Check a function specification.
 
 check_func_specs(Sps, L, St) ->
@@ -421,15 +421,14 @@ check_func_specs(Sps, L, St) ->
                   fun (S) -> bad_meta_error(L, spec, S) end,
                   St, Sps).
 
-check_func_spec([Func|Spec], L, St) ->
-    check_func_spec(Func, Spec, L, St);
+check_func_spec([Func|Specs], L, St) ->
+    check_func_spec(Func, Specs, L, St);
 check_func_spec(_, L, St) ->
     bad_meta_error(L, spec, St).
 
-check_func_spec(Func, Spec, L, St0) ->
+check_func_spec(Func, Specs, L, St0) ->
     {Ar,St1} = check_func_name(Func, L, St0),
-    %% case lfe_types:check_func_spec_list(Spec, Ar, St1#lfe_lint.types) of
-    case lfe_types:check_func_spec_list(Spec, Ar, St1#lfe_lint.recs) of
+    case lfe_types:check_func_spec_list(Specs, Ar, St1#lfe_lint.recs) of
         {ok,Tvss} -> 
             check_type_vars_list(Tvss, L, St1);
         {error,Error,Tvss} ->

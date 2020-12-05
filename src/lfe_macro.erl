@@ -1220,6 +1220,7 @@ exp_defmodule([]) -> {[],[]}.
 
 is_meta_tag(doc) -> true;
 is_meta_tag(spec) -> true;
+is_meta_tag(record) -> true;
 is_meta_tag(Tag) -> lfe_types:is_type_decl(Tag).
 
 %% exp_deftype(Type, Def) -> {Type,Def}.
