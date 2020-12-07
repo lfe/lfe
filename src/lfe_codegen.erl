@@ -30,7 +30,7 @@
 
 -module(lfe_codegen).
 
--export([module/2]).
+-export([module/2,format_error/1]).
 
 %% -compile(export_all).
 
@@ -47,8 +47,14 @@
                  defs=[],                       %Defined top-level functions
                  opts=[],                       %Options
                  file=[],                       %File name
-                 func=[]                        %Current function
+                 func=[],                       %Current function
+                 errors=[],                     %Errors
+                 warnings=[]                    %Warnings
             }).
+
+%% Errors.
+format_error({illegal_code,Code}) ->
+    lfe_io:format1(<<"illegal ~w code">>, [Code]).
 
 %% module(ModuleForms, CompInfo) ->
 %%     {ok,ModuleName,ASTModule,[Warning]} | {error,[Error],[Warning]}.
@@ -56,15 +62,28 @@
 module(Mfs, #cinfo{opts=Opts,file=File}) ->
     St0 = #lfe_cg{opts=Opts,file=File},
     {AST,St1} = compile_module(Mfs, St0),
-    {ok,St1#lfe_cg.module,AST,[]}.
+    return_status(AST, St1).
+
+return_status(AST, #lfe_cg{module=M,errors=[]}=St) ->
+    {ok,M,AST,St#lfe_cg.warnings};
+return_status(_AST, St) ->
+    {error,St#lfe_cg.errors,St#lfe_cg.warnings}.
 
 compile_module(Mfs, St0) ->
     %% Collect all the module attributes and output them first.
     St1 = collect_mod_defs(Mfs, St0),
     Attrs = compile_attributes(St1),
-    %% Now we do the meta, function and record forms in order.
-    Forms = compile_forms(Mfs, St1),
-    {Attrs ++ Forms,St1}.
+    %% Now we do the meta, function and record forms in order. Here we
+    %% can get translation errors.
+    %% Forms = compile_forms(Mfs, St1),
+    {Forms,St2} =
+        try
+            {compile_forms(Mfs, St1),St1}
+        catch
+            error:{illegal_code,Line,Code} ->
+                {[],add_error(Line, {illegal_code,Code}, St1)}
+        end,
+    {Attrs ++ Forms,St2}.
 
 %% collect_mod_defs(ModuleForms, State) -> State.
 %%  Collect the attributee information in define-module and
@@ -230,19 +249,20 @@ comp_record_def(Name, Fields, Line) ->
     Fdefs = [ comp_record_field(Fdef, Line) || Fdef <- Fields ],
     [make_record_attribute(Name, Fdefs, Line)].
 
-comp_record_field([F,D,T], Ann) ->
+comp_record_field([F,D,T], Line) ->
     {typed_record_field,
-     comp_untyped_field([F,D], Ann),
-     lfe_types:to_type_def(T, Ann)};
-comp_record_field(Fd, Ann) ->
-    comp_untyped_field(Fd, Ann).
+     comp_untyped_field([F,D], Line),
+     lfe_types:to_type_def(T, Line)};
+comp_record_field(Fd, Line) ->
+    comp_untyped_field(Fd, Line).
 
-comp_untyped_field([F,?Q(undefined)], Ann) ->   %No need for undefined default
-    {record_field,Ann,{atom,Ann,F}};
-comp_untyped_field([F,D], Ann) ->
-    {record_field,Ann,{atom,Ann,F},lfe_trans:to_expr(D, Ann)};
-comp_untyped_field(F, Ann) ->
-    {record_field,Ann,{atom,Ann,F}}.
+comp_untyped_field([F,?Q(undefined)], Line) ->
+    %% No need for undefined default.
+    {record_field,Line,{atom,Line,F}};
+comp_untyped_field([F,D], Line) ->
+    {record_field,Line,{atom,Line,F},lfe_trans:to_expr(D, Line)};
+comp_untyped_field(F, Line) ->
+    {record_field,Line,{atom,Line,F}}.
 
 -ifdef(NEW_REC_CORE).
 make_record_attribute(Name, Fdefs, Line) ->
@@ -302,3 +322,8 @@ safe_fetch(Key, D, Def) ->
         {ok,Val} -> Val;
         error -> Def
     end.
+
+%% add_error(Line, Error, State) -> State.
+
+add_error(L, E, #lfe_cg{errors=Errs}=St) ->
+    St#lfe_cg{errors=Errs ++ [{L,?MODULE,E}]}.
