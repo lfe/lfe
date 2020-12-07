@@ -445,9 +445,15 @@ exp_form(['define-function',Name,Meta,Def], Env, St) ->
     exp_define_function(Name, Meta, Def, Env, St);
 exp_form(['define-macro',Head|B], Env, St) ->
     exp_head_tail('define-macro', Head, B, Env, St);
-%% These don't expand at all as name clashes are allowed.
+%% Only worry about the module forms off the right size to expand and
+%% don't touch the rest.
+exp_form(['define-module',Mod,Metas,Attrs], Env, St) ->
+    exp_define_module(Mod, Metas, Attrs, Env, St);
+exp_form(['extend-module',Metas,Attrs], Env, St) ->
+    exp_extend_module(Metas, Attrs, Env, St);
 exp_form(['define-module',_Mod|_]=Form, _, St) -> {Form,St};
 exp_form(['extend-module'|_]=Form, _, St) -> {Form,St};
+%% These aren't expanded at all and just passed on as is.
 exp_form(['define-type',_Type|_]=Form, _, St) -> {Form,St};
 exp_form(['define-opaque-type',_Type|_]=Form, _, St) -> {Form,St};
 exp_form(['define-function-spec',_Func|_]=Form, _, St) -> {Form,St};
@@ -499,15 +505,13 @@ exp_tail(Fun, E, Env, St) -> Fun(E, Env, St).   %Same on improper tail.
 %% exp_rec_fields(Name, Fields, Env, State) -> {ExpArgs,State}.
 %%  Expand the field definitions for the record.
 
-exp_rec_fields(Name, [[_|_]=Fdef|Fs], Env, St0) ->
-    {Edef,St1} = exp_list(Fdef, Env, St0),
-    {Efs,St2} = exp_rec_fields(Name, Fs, Env, St1),
-    {[Edef|Efs],St2};
-exp_rec_fields(Name, [Fdef|Fs], Env, St0) ->
-    {Edef,St1} = exp_form(Fdef, Env, St0),
-    {Efs,St2} = exp_rec_fields(Name, Fs, Env, St1),
-    {[Edef|Efs],St2};
-exp_rec_fields(_, [], _, St) -> {[],St}.
+exp_rec_fields(_, Fields, Env, St) ->
+    lists:mapfoldl(fun (F, S) -> exp_rec_field(F, Env, S) end, St, Fields).
+
+exp_rec_field([_|_]=Fdef, Env, St) ->
+    exp_list(Fdef, Env, St);
+exp_rec_field(Fdef, Env, St) ->
+    exp_form(Fdef, Env, St).
 
 %% exp_rec_args(Args, Name, Env, State) -> {ExpArgs,State}.
 %%  Expand the arguments for the record. Field names are literals.
@@ -699,6 +703,35 @@ exp_predef_macro(Call, Env, St) ->
         %%     Stack1 = trim_stacktrace(Stack0),
         %%     erlang:error({expand_macro,Call,{Error,Stack1}})
     end.
+
+%% exp_define_module(Name, Metas, Attrs, Env, State) -> {Expansion,State}.
+%% exp_extend_module(Rest, Env, State) -> {Expansion,State}.
+%%  As record definitions are allowed inmodule definitions in the meta
+%%  data and the defualt values contain code these must be
+%%  macroexpanded. We try and be lenient and pass syntactic errors on
+%%  to the linter.
+
+exp_define_module(Name, Metas, Attrs, Env, St0) ->
+    Fun = fun (Meta, S) -> exp_module_meta(Meta, Env, S) end,
+    {Emetas,St1} = lists:mapfoldl(Fun, St0, Metas),
+    {['define-module',Name,Emetas,Attrs],St1}.
+
+exp_extend_module(Metas, Attrs, Env, St0) ->
+    Fun = fun (Meta, S) -> exp_module_meta(Meta, Env, S) end,
+    {Emetas,St1} = lists:mapfoldl(Fun, St0, Metas),
+    {['extend-module',Emetas,Attrs],St1}.
+
+exp_module_meta([record|Recs], Env, St0) ->
+    {Erecs,St1} = lists:mapfoldl(fun (R, S) -> exp_module_rec(R, Env, S) end,
+				 St0, Recs),
+    {[record|Erecs],St1};
+exp_module_meta(Meta, _Env, St) ->
+    {Meta,St}.
+
+exp_module_rec([Name,Fds], Env, St0) ->
+    {Efds,St1} = exp_rec_fields(Name, Fds, Env, St0),
+    {[Name,Efds],St1};
+exp_module_rec(Other, _Env, St) -> {Other,St}.
 
 %% trim_stacktrace([{lfe_macro,_,_,_}=S|_]) -> [S];    %R15 and later
 %% trim_stacktrace([{lfe_macro,_,_}|_]=S) -> [S];      %Pre R15
