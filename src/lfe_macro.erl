@@ -1046,13 +1046,13 @@ exp_qlc([lc,Qs|Es], Opts, Env, St0) ->
     %% Now translate to vanilla AST, call qlc expand and then convert
     %% back to LFE.  lfe_qlc:expand/2 wants a list of conversions not
     %% a conversion of a list.
-    Vlc = lfe_trans:to_expr([lc,Eqs|Ees], 42),
+    Vlc = lfe_translate:to_expr([lc,Eqs|Ees], 42),
     %% lfe_io:format("~w\n", [Vlc]),
-    Vos = map(fun (O) -> lfe_trans:to_expr(O, 42) end, Opts),
+    Vos = map(fun (O) -> lfe_translate:to_expr(O, 42) end, Opts),
     %% io:put_chars(["E0 = ",erl_pp:expr(Vlc, 5, []),"\n"]),
     {ok,Vexp} = lfe_qlc:expand(Vlc, Vos),
     %% io:put_chars([erl_pp:expr(Vexp),"\n"]),
-    Exp = lfe_trans:from_expr(Vexp),
+    Exp = lfe_translate:from_expr(Vexp),
     %% lfe_io:format("Q1 = ~p\n", [Exp]),
     {yes,Exp,St2}.
 

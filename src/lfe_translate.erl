@@ -24,7 +24,7 @@
 %%% may special case, for example functions call in patterns which
 %%% will become macro expansions.
 
--module(lfe_trans).
+-module(lfe_translate).
 
 -export([from_expr/1,from_expr/2,from_body/1,from_body/2,from_lit/1]).
 -export([to_expr/2,to_exprs/2,to_lit/2]).

@@ -238,7 +238,7 @@ comp_function_def(Name, Def, Line) ->
     %% This also returns the defined top function.
     Lfs = lfe_codelift:function(Name, Def, Line),
     lists:map(fun ({N,D,L}) ->
-                      {'fun',_,{clauses,Clauses}} = lfe_trans:to_expr(D, L),
+                      {'fun',_,{clauses,Clauses}} = lfe_translate:to_expr(D, L),
                       {function,L,N,func_arity(D),Clauses}
               end, Lfs).
 
@@ -260,7 +260,7 @@ comp_untyped_field([F,?Q(undefined)], Line) ->
     %% No need for undefined default.
     {record_field,Line,{atom,Line,F}};
 comp_untyped_field([F,D], Line) ->
-    {record_field,Line,{atom,Line,F},lfe_trans:to_expr(D, Line)};
+    {record_field,Line,{atom,Line,F},lfe_translate:to_expr(D, Line)};
 comp_untyped_field([F], Line) ->
     {record_field,Line,{atom,Line,F}};
 comp_untyped_field(F, Line) ->
