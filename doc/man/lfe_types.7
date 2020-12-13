@@ -148,7 +148,7 @@ An example:
 .SS Type Information in Record Declarations
 .PP
 \f[B](defrecord rec (field1 default1 type1) (field2 default2)
-field3)\f[]
+(field3))\f[]
 .PP
 Fields with type annotations \f[I]MUST\f[] give a default value and
 fields without type annotations get the default type \f[C](any)\f[].
@@ -207,5 +207,20 @@ easier to read.
 .PP
 Note we are using the alternate list form with \f[C][\ ]\f[] instead of
 parentheses to make it easier to see the function arguments.
+.SH Types and function specifications in the module definition
+.PP
+Types can also be defined in the module declaration, for example:
+.IP
+.nf
+\f[C]
+(defmodule\ this\-module
+\ \ ...
+\ \ (type\ ((foo\-type)\ (tuple\ \[aq]foo\ (integer)\ (list)))
+\ \ \ \ \ \ \ \ ((bar\-type)\ (tuple\ \[aq]bar\ (integer)\ (list))))
+\ \ (spec\ ((foo\ 1)\ ([(integer)]\ (foo\-type)))
+\ \ \ \ \ \ \ \ ((id\ 1)\ ([x]\ x\ ((x\ (tuple))))))
+\ \ ...)
+\f[]
+.fi
 .SH AUTHORS
 Robert Virding.

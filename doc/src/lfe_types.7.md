@@ -65,7 +65,7 @@ optional. An example:
 
 ## Type Information in Record Declarations
 
-**(defrecord rec (field1 default1 type1) (field2 default2) field3)**
+**(defrecord rec (field1 default1 type1) (field2 default2) (field3))**
 
 Fields with type annotations *MUST* give a default value and fields
 without type annotations get the default type `(any)`.
@@ -119,3 +119,18 @@ easier to read.
 
 Note we are using the alternate list form with `[ ]` instead of
 parentheses to make it easier to see the function arguments.
+
+# Types and function specifications in the module definition
+
+
+Types can also be defined in the module declaration, for example:
+
+```
+(defmodule this-module
+  ...
+  (type ((foo-type) (tuple 'foo (integer) (list)))
+        ((bar-type) (tuple 'bar (integer) (list))))
+  (spec ((foo 1) ([(integer)] (foo-type)))
+        ((id 1) ([x] x ((x (tuple))))))
+  ...)
+```

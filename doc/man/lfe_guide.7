@@ -587,6 +587,27 @@ These can be shadowed by imports or redefined but the compiler will
 \f[I]always\f[] use the core meaning and never an alternative.
 Silently!
 .SH Module definition
+.PP
+The basic forms for defining a module and extending its metadata and
+attributes are:
+.IP
+.nf
+\f[C]
+(define\-module\ name\ meta\-data\ attributes)
+(extend\-module\ meta\-data\ attributes)
+\f[]
+.fi
+.PP
+The valid meta data is \f[C](type\ typedef\ ...)\f[],
+\f[C](opaque\ typedef\ ...)\f[], \f[C](spec\ function\-spec\ ...)\f[]
+and \f[C](record\ record\-def\ ...)\f[].
+Each can take multuiple definitions in one meta form.
+.PP
+Attributes declarations have the syntax
+\f[C](attribute\ value\-1\ ...)\f[] where the attribute value is a list
+off the values in the declaration
+.PP
+To simplify defining modules there is a predefined macro:
 .IP
 .nf
 \f[C]
@@ -598,11 +619,12 @@ Silently!
 \ \ \ \ \ \ \ \ \ \ (rename\ mod\ ((f1\ 2)\ sune)\ ((f2\ 1)\ kurt)\ ...\ ))
 \ \ (import\ (prefix\ mod\ mod\-prefix))\ \ \ \ \ \ \-\ NYI
 \ \ (attr\-1\ value\-1\ value\-2)
+\ \ {meta\ meta\-data\ ...)
 \ \ ...\ )
 \f[]
 .fi
 .PP
-Can have multiple export and import declarations within module
+We can have multiple export and import declarations within module
 declaration.
 The \f[C](export\ all)\f[] declaration is allowed together with other
 export declarations and overrides them.
@@ -811,17 +833,79 @@ An example:
 Records are tuples with the record name as first element and the rest of
 the fields in order exactly like "normal" Erlang records.
 As with Erlang records the default default value is \[aq]undefined\[aq].
+.PP
+The basic forms for defining a record, creating, accessing and updating
+it are:
+.IP
+.nf
+\f[C]
+(define\-record\ name\ ((field)\ |\ field
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (field\ default\-value)
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (field\ default\-value\ type)\ ...))
+(make\-record\ name\ ((field\ .\ value)\ (field\ .\ value)\ ...))
+(record\-index\ name\ field)
+(record\-field\ record\ name\ field)
+(record\-update\ record\ name\ ((field\ .\ value)\ (field\ .\ value)\ ...))
+\f[]
+.fi
+.PP
+Note that the list of field/value pairs when making or updating a record
+is an a\-list.
+.PP
+We will explain these forms with a simple example.
+To define a record we do:
+.IP
+.nf
+\f[C]
+(define\-record\ person
+\ \ \ \ \ ((name\ "")
+\ \ \ \ \ \ (address\ ""\ (string))
+\ \ \ \ \ \ (age)))
+\f[]
+.fi
+.PP
+which defines a record \f[C]person\f[] with the fields \f[C]name\f[]
+(default value \f[C]""\f[]), \f[C]address\f[] (default value \f[C]""\f[]
+and type \f[C](string)\f[]) and \f[C]age\f[].
+To make an instance of a \f[C]person\f[] record we do:
+.IP
+.nf
+\f[C]
+(make\-record\ person\ ((name\ .\ "Robert")\ (age\ .\ 54)))
+\f[]
+.fi
+.PP
+The \f[C]make\-record\f[] form is also used to define a pattern.
+.PP
+We can get the value of the \f[C]address\f[] field in a person record
+and the set it by doing (the variable \f[C]robert\f[] references a
+\f[C]person\f[] record):
+.IP
+.nf
+\f[C]
+(record\-field\ robert\ person\ address)
+(record\-update\ robert\ person\ ((address\ .\ "my\ home")\ (age\ .\ 55)))
+\f[]
+.fi
+.PP
+Note that we must include the name of the record when accessing it and
+there is no need to quote the record and field names as these are always
+literal atoms.
+.PP
+To simplify defining records there is a predefined macro:
 .IP
 .nf
 \f[C]
 (defrecord\ name
-\ \ field
+\ \ (field)\ |\ field
 \ \ (field\ default\-value)
+\ \ (field\ default\-value\ type)
 \ \ ...\ )
 \f[]
 .fi
 .PP
-Will create access functions/macros for creation and accessing fields.
+This will create access macros for record creation and accessing and
+updating fields.
 The \f[C]make\-\f[], \f[C]match\-\f[] and \f[C]update\-\f[] forms takes
 optional argument pairs field\-name value to get non\-default values.
 E.g.
@@ -831,8 +915,8 @@ for
 \f[C]
 (defrecord\ person
 \ \ (name\ "")
-\ \ (address\ "")
-\ \ age)
+\ \ (address\ ""\ (string))
+\ \ (age))
 \f[]
 .fi
 .PP
@@ -852,6 +936,7 @@ the following will be generated:
 (person\-age)
 (update\-person\-age\ r\ age)
 (person\-address\ r)
+(person\-address)
 (update\-person\-address\ r\ address)
 \f[]
 .fi

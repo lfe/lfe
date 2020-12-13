@@ -461,6 +461,21 @@ Function Binding and Scoping
        core meaning and never an alternative.  Silently!
 
 Module definition
+       The basic forms for defining a module and extending  its  metadata  and
+       attributes are:
+
+              (define-module name meta-data attributes)
+              (extend-module meta-data attributes)
+
+       The   valid  meta  data  is  (type typedef ...),  (opaque typedef ...),
+       (spec function-spec ...)  and (record record-def ...).  Each  can  take
+       multuiple definitions in one meta form.
+
+       Attributes  declarations  have the syntax (attribute value-1 ...) where
+       the attribute value is a list off the values in the declaration
+
+       To simplify defining modules there is a predefined macro:
+
               (defmodule name
                 "This is the module documentation."
                 (export (f 2) (g 1) ... )
@@ -469,11 +484,12 @@ Module definition
                         (rename mod ((f1 2) sune) ((f2 1) kurt) ... ))
                 (import (prefix mod mod-prefix))      - NYI
                 (attr-1 value-1 value-2)
+                {meta meta-data ...)
                 ... )
 
-       Can have multiple export and import declarations within module declara‐
-       tion.   The (export all) declaration is allowed together with other ex‐
-       port declarations and overrides them.  Other attributes which  are  not
+       We can have multiple export and import declarations within module  dec‐
+       laration.   The (export all) declaration is allowed together with other
+       export declarations and overrides them.  Other attributes which are not
        recognised  by the compiler are allowed and are simply passed on to the
        module and can be accessed through module_info/0-1.
 
@@ -629,19 +645,62 @@ Records
        of the fields in order exactly like "normal" Erlang records.   As  with
        Erlang records the default default value is 'undefined'.
 
+       The basic forms for defining a record, creating, accessing and updating
+       it are:
+
+              (define-record name ((field) | field
+                                   (field default-value)
+                                   (field default-value type) ...))
+              (make-record name ((field . value) (field . value) ...))
+              (record-index name field)
+              (record-field record name field)
+              (record-update record name ((field . value) (field . value) ...))
+
+       Note that the list of field/value  pairs  when  making  or  updating  a
+       record is an a-list.
+
+       We  will explain these forms with a simple example.  To define a record
+       we do:
+
+              (define-record person
+                   ((name "")
+                    (address "" (string))
+                    (age)))
+
+       which defines a record person with the fields name (default value  ""),
+       address  (default  value "" and type (string)) and age.  To make an in‐
+       stance of a person record we do:
+
+              (make-record person ((name . "Robert") (age . 54)))
+
+       The make-record form is also used to define a pattern.
+
+       We can get the value of the address field in a person  record  and  the
+       set it by doing (the variable robert references a person record):
+
+              (record-field robert person address)
+              (record-update robert person ((address . "my home") (age . 55)))
+
+       Note  that we must include the name of the record when accessing it and
+       there is no need to quote the record and field names as these  are  al‐
+       ways literal atoms.
+
+       To simplify defining records there is a predefined macro:
+
               (defrecord name
-                field
+                (field) | field
                 (field default-value)
+                (field default-value type)
                 ... )
 
-       Will  create access functions/macros for creation and accessing fields.
-       The make-, match- and  update-  forms  takes  optional  argument  pairs
-       field-name value to get non-default values.  E.g.  for
+       This  will  create  access macros for record creation and accessing and
+       updating fields.  The make-, match- and update-  forms  takes  optional
+       argument pairs field-name value to get non-default values.  E.g.  for
 
               (defrecord person
                 (name "")
-                (address "")
-                age)
+                (address "" (string))
+                (age))
 
        the following will be generated:
 
@@ -657,6 +716,7 @@ Records
               (person-age)
               (update-person-age r age)
               (person-address r)
+              (person-address)
               (update-person-address r address)
 
        · (make-person name "Robert" age 54)  - Will create a new person record
