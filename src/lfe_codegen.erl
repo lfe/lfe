@@ -261,6 +261,8 @@ comp_untyped_field([F,?Q(undefined)], Line) ->
     {record_field,Line,{atom,Line,F}};
 comp_untyped_field([F,D], Line) ->
     {record_field,Line,{atom,Line,F},lfe_trans:to_expr(D, Line)};
+comp_untyped_field([F], Line) ->
+    {record_field,Line,{atom,Line,F}};
 comp_untyped_field(F, Line) ->
     {record_field,Line,{atom,Line,F}}.
 

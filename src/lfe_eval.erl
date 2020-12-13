@@ -84,10 +84,10 @@ format_error({try_clause,Val}) ->
 format_error({illegal_exception,E}) ->
     lfe_io:format1(<<"illegal exception ~w">>, [E]);
 %% Records.
-format_error({undefined_record,R}) ->
-    lfe_io:format1(<<"record ~w undefined">>, [R]);
-format_error({undefined_field,R,F}) ->
-    lfe_io:format1(<<"field ~w undefined in record ~w">>, [F,R]);
+format_error({undefined_record,Name}) ->
+    lfe_io:format1(<<"record ~w undefined">>, [Name]);
+format_error({undefined_field,Name,F}) ->
+    lfe_io:format1(<<"field ~w undefined in record ~w">>, [F,Name]);
 %% Everything we don't recognise or know about.
 format_error(Error) ->
     lfe_io:prettyprint1(Error).
@@ -291,14 +291,16 @@ make_record_tuple(Name, Fields, Args, Env) ->
     list_to_tuple([Name|Es]).
 
 make_record_elements(Fields, Args, Env) ->
-    Mfun = fun ([F,Def|_]) -> make_arg_val(F, Args, Def, Env);
-               (F) -> make_arg_val(F, Args, ?Q(undefined), Env)
+    Mfun = fun ([F,Def|_]) -> make_field_val(F, Args, Def, Env);
+               ([F]) -> make_field_val(F, Args, ?Q(undefined), Env);
+               (F) -> make_field_val(F, Args, ?Q(undefined), Env)
            end,
     lists:map(Mfun, Fields).
 
-make_arg_val(F, [F,V|_], _Def, Env) -> eval_expr(V, Env);
-make_arg_val(F, [_,_|Args], Def, Env) -> make_arg_val(F, Args, Def, Env);
-make_arg_val(_, [], Def, Env) -> expr(Def, Env).
+make_field_val(F, [[F | V]|_], _Def, Env) -> eval_expr(V, Env);
+make_field_val(F, [_|Args], Def, Env) ->
+    make_field_val(F, Args, Def, Env);
+make_field_val(_, [], Def, Env) -> expr(Def, Env).
 
 %% get_field_index(Name, Fields, Field) -> Index.
 
@@ -320,14 +322,15 @@ update_record_tuple(Name, Fields, Rec, Args, Env) ->
     list_to_tuple([Name|Es]).
 
 update_record_elements(Fields, Recvs, Args, Env) ->
-    Ufun = fun ([F|_], Rv) ->  update_arg_val(F, Args, Rv, Env);
-               (F, Rv) -> update_arg_val(F, Args, Rv, Env)
+    Ufun = fun ([F|_], Rv) ->  update_field_val(F, Args, Rv, Env);
+               (F, Rv) -> update_field_val(F, Args, Rv, Env)
            end,
     lists:zipwith(Ufun, Fields, Recvs).
 
-update_arg_val(F, [F,V|_], _Recv, Env) -> eval_expr(V, Env);
-update_arg_val(F, [_,_|Args], Recv, Env) -> update_arg_val(F, Args, Recv, Env);
-update_arg_val(_, [], Recv, _Env) -> Recv.
+update_field_val(F, [[F | V]|_], _Recv, Env) -> eval_expr(V, Env);
+update_field_val(F, [_|Args], Recv, Env) ->
+    update_field_val(F, Args, Recv, Env);
+update_field_val(_, [], Recv, _Env) -> Recv.
 
 %% get_fbinding(NAme, Arity, Env) ->
 %%     {yes,Module,Fun} | {yes,Binding} | no.
@@ -849,9 +852,9 @@ eval_try(E, Case, Catch, After, Env) ->
 
 check_exceptions([Cl|Cls]) ->
     case Cl of
-	[[tuple,_,_,St]|_] when is_atom(St) -> ok;
-	['_'|_] -> ok;
-	[Other|_] -> ?EVAL_ERROR({illegal_exception,Other})
+        [[tuple,_,_,St]|_] when is_atom(St) -> ok;
+        ['_'|_] -> ok;
+        [Other|_] -> ?EVAL_ERROR({illegal_exception,Other})
     end,
     check_exceptions(Cls);
 check_exceptions([]) -> ok.
@@ -1021,6 +1024,21 @@ match([map|Ps], Val, Pbs, Env) ->
         true -> match_map(Ps, Val, Pbs, Env);
         false -> no
     end;
+%% Record patterns.
+match(['make-record',Name,Fs], Val, Pbs, Env) ->
+    case lfe_env:get_record(Name, Env) of
+        {yes,Fields} ->
+            match_record_tuple(Name, Fields, Fs,  Val, Pbs, Env);
+        no -> undefined_record_error(Name)
+    end;
+match(['record-index',Name,F], Val, Pbs, Env) ->
+    case lfe_env:get_record(Name, Env) of
+        {yes,Fields} ->
+            Index = get_field_index(Name, Fields, F),
+            match(Index, Val, Pbs, Env);
+        no -> undefined_record_error(Name)
+    end;
+%% No constructor list forms.
 match([_|_]=List, Val, Pbs, _) ->               %No constructor
     case lfe_lib:is_posint_list(List) of        %Accept strings
         true ->
@@ -1058,6 +1076,22 @@ match_symb(S, Val, Pbs, _) ->
         {ok,_} -> no;                           %Bound to a different value
         error -> {yes,store(S, Val, Pbs)}       %Not yet bound
     end.
+
+%% match_record_tuple(Name, Fields, Pats, Val, Pbs, Env) -> {yes,Pbs} | no.
+
+match_record_tuple(Name, Fields, Pats, Val, Pbs, Env) ->
+    Ps = match_record_patterns(Fields, Pats),
+    match([tuple,Name|Ps], Val, Pbs, Env).
+
+match_record_patterns(Fields, Pats) ->
+    Mfun = fun ([F|_]) -> make_field_pat(F, Pats);
+               (F) -> make_field_pat(F, Pats)
+           end,
+    lists:map(Mfun, Fields).
+
+make_field_pat(F, [[F | P]|_]) -> P;
+make_field_pat(F, [_|Pats]) -> make_field_pat(F, Pats);
+make_field_pat(_, []) -> '_'.                   %Underscore matches anything
 
 %% match_binary(Bitsegs, Binary, PatBindings, Env) -> {yes,PatBindings} | no.
 %%  Match Bitsegs against Binary. This code is taken from

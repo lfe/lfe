@@ -516,11 +516,11 @@ exp_rec_field(Fdef, Env, St) ->
 %% exp_rec_args(Args, Name, Env, State) -> {ExpArgs,State}.
 %%  Expand the arguments for the record. Field names are literals.
 
-exp_rec_args(Name, [F,V|As], Env, St0) ->
+exp_rec_args(Name, [[F | V]|As], Env, St0) ->
     {Ef,St1} = exp_form(F, Env, St0),
     {Ev,St2} = exp_form(V, Env, St1),
     {Eas,St3} = exp_rec_args(Name, As, Env, St2),
-    {[Ef,Ev|Eas],St3};
+    {[[Ef | Ev]|Eas],St3};
 exp_rec_args(Name, [F], _, _) -> error({missing_field_value,Name,F});
 exp_rec_args(_, [], _, St) -> {[],St}.
 
@@ -723,7 +723,7 @@ exp_extend_module(Metas, Attrs, Env, St0) ->
 
 exp_module_meta([record|Recs], Env, St0) ->
     {Erecs,St1} = lists:mapfoldl(fun (R, S) -> exp_module_rec(R, Env, S) end,
-				 St0, Recs),
+                                 St0, Recs),
     {[record|Erecs],St1};
 exp_module_meta(Meta, _Env, St) ->
     {Meta,St}.
@@ -1243,11 +1243,11 @@ exp_andalso([]) -> ?Q(true).
 exp_defmodule([Doc|Rest]) ->
     {Meta,Attr} = ?IF(lfe_lib:is_doc_string(Doc), {[[doc,Doc]],[]}, {[],[Doc]}),
     Fun = fun ([Tag|_]=R, {Me,As}) ->
-		  case is_meta_tag(Tag) of
-		      true -> {Me ++ [R],As};
-		      false -> {Me,As ++ [R]}
-		  end
-	  end,
+                  case is_meta_tag(Tag) of
+                      true -> {Me ++ [R],As};
+                      false -> {Me,As ++ [R]}
+                  end
+          end,
     lists:foldl(Fun, {Meta,Attr}, Rest);
 exp_defmodule([]) -> {[],[]}.
 
