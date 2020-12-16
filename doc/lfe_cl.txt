@@ -7,7 +7,7 @@ NAME
 
 SYNOPSIS
        This  module provides a set of Common Lisp functions and macros for use
-       in LFE.  The definitions closely follow the CL definitions and won't be
+       in LFE.  The definitions closely follow the CL definitions and won’t be
        documented here.
 
 DATA TYPES
@@ -50,10 +50,10 @@ EXPORTS
 
        remprop symbol pname
 
-       Atoms (symbols) in LFE don't have property lists associated with  them.
-       However,  here  we  have  experimented  with  having a global ETS table
-       lfe-symbol-plist which associates an atom with a property  list.   This
-       is very unLFEy, but quite fun.
+       Atoms (symbols) in LFE don’t have property lists associated with  them.
+       However,  here we have experimented with having a global ETS table lfe-
+       symbol-plist which associates an atom with a property  list.   This  is
+       very unLFEy, but quite fun.
 
    Property list functions
        getf plist pname
@@ -87,11 +87,11 @@ EXPORTS
 
        reduce function sequence
 
-       reduce function sequence 'initial-value x
+       reduce function sequence ’initial-value x
 
-       reduce function sequence 'from-end 'true
+       reduce function sequence ’from-end ’true
 
-       reduce function sequence 'initial-value x 'from-end 'true
+       reduce function sequence ’initial-value x ’from-end ’true
 
    Modifying sequences
        remove item sequence

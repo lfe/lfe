@@ -36,7 +36,7 @@ EXPORTS
        Equivalent to lambda.
 
    Threading Macros
-       Note: The original versions were copied from Tim Dysinger's lfesl  repo
+       Note: The original versions were copied from Tim Dysinger’s lfesl  repo
        here:
 
               https://github.com/lfex/lfesl/blob/master/include/thread.lfe
@@ -132,7 +132,7 @@ EXPORTS
 
        Given  an  expression  and  a set of test/sexp pairs, thread x (via ->)
        through each sexp  for  which  the  corresponding  test  expression  is
-       truthy,  i.e.   neither  'false nor 'undefined.  Note that, unlike cond
+       truthy,  i.e. neither  'false  nor  'undefined.  Note that, unlike cond
        branching, cond-> threading does not  short  circuit  after  the  first
        truthy test expression.
 
@@ -140,7 +140,7 @@ EXPORTS
 
        Given  an  expression  and a set of test/sexp pairs, thread x (via ->>)
        through each sexp  for  which  the  corresponding  test  expression  is
-       truthy,  i.e.   neither  'false nor 'undefined.  Note that, unlike cond
+       truthy,  i.e. neither  'false  nor  'undefined.  Note that, unlike cond
        branching, cond->> threading does not short  circuit  after  the  first
        truthy test expression.
 
@@ -176,7 +176,7 @@ EXPORTS
 
               test-expr >> result-fn
 
-       where result-fn is a unary function, if  (pred test-expr expr)  returns
+       where result-fn is a unary function, if (pred test-expr  expr)  returns
        anything other than 'undefined or 'false, the clause is a match.
 
        If  a  binary  clause matches, return result-expr.  If a ternary clause
@@ -196,7 +196,7 @@ EXPORTS
 
        (iff test . body)
 
-       Like Clojure's when.  If test evaluates to anything other  than  'false
+       Like Clojure’s when.  If test evaluates to anything other  than  'false
        or 'undefined, evaluate body in an implicit progn.
 
        (when-not test . body)
@@ -336,8 +336,8 @@ EXPORTS
        of their string representations.
 
        N.B.   Because Erlang characters are represented as integers, this will
-       not work for chars, e.g.  #\a, which will be presented  in  the  return
-       value as its integer value, i.e.  "97".
+       not work for chars, e.g. #\a, which will be  presented  in  the  return
+       value as its integer value, i.e. "97".
 
               > (clj:str #\a "bc")
               "97bc"
@@ -570,18 +570,18 @@ EXPORTS
 
        (drop n lst)
 
-       (drop 'all lst)
+       (drop ’all lst)
 
        Return a list of all but the first n elements in lst.  If n is the atom
        all, return the empty list.
 
        (take n lst)
 
-       (take 'all lst)
+       (take ’all lst)
 
        Given a (possibly lazy) list lst, return a list of the first n elements
        of  lst,  or  all elements if there are fewer than n.  If n is the atom
-       all and lst is a "normal" list, return lst.
+       all and lst is a “normal” list, return lst.
 
        (split-at n lst)
 
@@ -654,8 +654,8 @@ EXPORTS
 
        (constantly x)
 
-       Return a unary function that returns x.  N.B.  This is  like  Haskell's
-       const rather than Clojure's constantly.
+       Return a unary function that returns x.  N.B.  This is  like  Haskell’s
+       const rather than Clojure’s constantly.
 
        (inc x)
 

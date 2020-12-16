@@ -97,9 +97,9 @@ SPECIFICATIONS
               (defspec (remove-if 2)
                 ([pred (list)] (list) [(pred (lambda ((any)) (boolean)))]))
 
-       Note  that  a  constraint  variable  doesn't  need to start with an up‐
-       per-case like an Erlang variable, though in some case it may be  easier
-       to read.
+       Note  that  a  constraint variable doesn’t need to start with an upper-
+       case like an Erlang variable, though in some case it may be  easier  to
+       read.
 
        Note we are using the alternate list form with [ ] instead of parenthe‐
        ses to make it easier to see the function arguments.
