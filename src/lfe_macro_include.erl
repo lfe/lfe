@@ -308,22 +308,22 @@ record_fields(Fs) ->
     [ record_field(F) || F <- Fs ].
 
 record_field({record_field,_,F}) ->             %Just the field name
-    lfe_trans:from_lit(F);
+    lfe_translate:from_lit(F);
 record_field({record_field,_,F,Def}) ->         %Field name and default value
-    Fd = lfe_trans:from_lit(F),
-    Ld = lfe_trans:from_expr(Def),
+    Fd = lfe_translate:from_lit(F),
+    Ld = lfe_translate:from_expr(Def),
     [Fd,Ld];
 record_field({typed_record_field,Rf,Type}) ->
     typed_record_field(Rf, Type).
 
 typed_record_field({record_field,_,F}, Type) ->
     %% Just the field name, set default value to 'undefined.
-    Fd = lfe_trans:from_lit(F),
+    Fd = lfe_translate:from_lit(F),
     Td = lfe_types:from_type_def(Type),
     [Fd,?Q(undefined),Td];
 typed_record_field({record_field,_,F,Def}, Type) ->
-    Fd = lfe_trans:from_lit(F),
-    Ld = lfe_trans:from_expr(Def),
+    Fd = lfe_translate:from_lit(F),
+    Ld = lfe_translate:from_expr(Def),
     Td = lfe_types:from_type_def(Type),
     [Fd,Ld,Td].
 
@@ -360,7 +360,7 @@ trans_spec({Name,Arity}, _, Tl) ->
 
 trans_function(Name, _, Cls) ->
     %% Make it a fun and then drop the match-lambda.
-    ['match-lambda'|Lcs] = lfe_trans:from_expr({'fun',0,{clauses,Cls}}),
+    ['match-lambda'|Lcs] = lfe_translate:from_expr({'fun',0,{clauses,Cls}}),
     [defun,Name|Lcs].
 
 %% trans_macros(MacroDefs, State) -> {LMacroDefs,State}.
@@ -415,11 +415,11 @@ trans_macro_body([], Ts0) ->
     %% io:format("parse: ~p\n",[Ts1 ++ [{dot,0}]]),
     {ok,[E]} = erl_parse:parse_exprs(Ts1 ++ [{dot,0}]),
     %% io:format("result: ~p\n",[E]),
-    [?BQ(lfe_trans:from_expr(E))];
+    [?BQ(lfe_translate:from_expr(E))];
 trans_macro_body(As, Ts0) ->
     Ts1 = trans_qm(Ts0),
     {ok,[E]} = erl_parse:parse_exprs(Ts1 ++ [{dot,0}]),
-    Le0 = lfe_trans:from_expr(E),
+    Le0 = lfe_translate:from_expr(E),
     %% Wrap variables in arg list with an (comma ...) call.
     Alist = [ [A|[comma,A]] || A <- As ],
     Le1 = lfe:sublis(Alist, Le0),
@@ -427,7 +427,7 @@ trans_macro_body(As, Ts0) ->
     [?BQ(Le1)].
 
     %% {ok,[_]=F} = erl_parse:parse_exprs(Ts1 ++ [{dot,0}]),
-    %% backquote_last(lfe_trans:from_body(F)).
+    %% backquote_last(lfe_translate:from_body(F)).
 
 %% unquote_vars(Alist, Expr) -> Expr.
 %%  Special version of sublis which doesn't enter quotes. Specially

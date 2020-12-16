@@ -22,7 +22,7 @@
 
 -module(lfe_macro_record).
 
--export([define/3,format_error/1]).
+-export([define/3,to_alist/1,format_error/1]).
 
 -import(lists, [map/2,foldr/3,concat/1]).
 
@@ -50,6 +50,7 @@ define(Name, Fdefs, Env, St) when is_atom(Name) ->
     %% Get field names, default values and indices.
     Fields = map(fun ([F,_,_]) when is_atom(F) -> F;
                      ([F,_]) when is_atom(F) -> F;
+                     ([F]) when is_atom(F) -> F;
                      (F) when is_atom(F) -> F;
                      (_) -> bad_record_error(Name)
                  end, Fdefs),
@@ -71,12 +72,12 @@ define(Name, _Fdefs, _Env, _St) ->
 make_macro(Name) ->
     Make = list_to_atom(concat(['make','-',Name])),
     ['defmacro',Make,fds,
-     ?BQ(['make-record',Name,?C(fds)])].
+     ?BQ(['make-record',Name,?C([':',lfe_macro_record,to_alist,fds])])].
 
 match_macro(Name) ->
     Match = list_to_atom(concat(['match','-',Name])),
     ['defmacro',Match,fds,
-     ?BQ(['make-record',Name,?C(fds)])].
+     ?BQ(['make-record',Name,?C([':',lfe_macro_record,to_alist,fds])])].
 
 test_macro(Name, Fs) ->
     Test = list_to_atom(concat(['is','-',Name])),
@@ -87,13 +88,15 @@ update_macro(Name) ->
     Upd = list_to_atom(concat(['update','-',Name])),
     [defmacro,Upd,
      [[cons,rec,fds],
-      ?BQ(['record-update',?C(rec),Name,?C(fds)])]].
+      ?BQ(['record-update',?C(rec),Name,
+           ?C([':',lfe_macro_record,to_alist,fds])])]].
 
 set_macro(Name) ->
     Set = list_to_atom(concat(['set','-',Name])),
     [defmacro,Set,
      [[cons,rec,fds],
-      ?BQ(['record-update',?C(rec),Name,?C(fds)])]].
+      ?BQ(['record-update',?C(rec),Name,
+           ?C([':',lfe_macro_record,to_alist,fds])])]].
 
 field_macro(Name, Fs) ->
     Recfields = list_to_atom(concat(['fields','-',Name])),
@@ -113,9 +116,9 @@ field_macros(Name, Fs) ->
                     [[list,rec],
                      ?BQ(['record-field',?C(rec),Name,F])]],
                    [defmacro,Upd,[rec,new],
-                    ?BQ(['record-update',?C(rec),Name,[F,?C(new)]])],
+                    ?BQ(['record-update',?C(rec),Name,[[F | ?C(new)]]])],
                    [defmacro,Set,[rec,new],
-                    ?BQ(['record-update',?C(rec),Name,[F,?C(new)]])] |
+                    ?BQ(['record-update',?C(rec),Name,[[F | ?C(new)]]])] |
                    Fas]
           end,
     lists:foldr(Fun, [], Fs).
@@ -124,5 +127,13 @@ type_information(Name, Fdefs, _St) ->
     %% We push the problem of generating the right final forms to the
     %% code generator which knows about the record attribute.
     [record,[Name|Fdefs]].
+
+%% to_alist(List) -> AList.
+%%  Pack pairs of key and value into an a-list. If it is not a list of
+%%  pairs just return the end and let lint catch the error.
+
+to_alist([K,V|List]) ->
+    [[K | V]|to_alist(List)];
+to_alist(End) -> End.
 
 bad_record_error(Name) -> error({bad_record,Name}).

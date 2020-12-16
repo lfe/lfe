@@ -463,14 +463,18 @@ do_get_docs(#comp{code=Ms0,opts=Opts}=St) ->
     Ms1 = lists:map(Doc, Ms0),
     {ok,St#comp{code=Ms1}}.
 
-do_lfe_codegen(#comp{cinfo=Ci,code=Ms0}=St) ->
-    Code = fun (#module{name=Name,code=Mfs}=Mod) ->
-                   %% Name consistency check!
-                   {Name,Core} = lfe_codegen:module(Mfs, Ci),
-                   Mod#module{code=Core}
+do_lfe_codegen(#comp{cinfo=Ci,code=Ms0}=St0) ->
+    Code = fun (#module{name=Name,code=Mfs,warnings=Ws}=Mod) ->
+		   case lfe_codegen:module(Mfs, Ci) of
+		       {ok,Name,AST,Gws} ->    %Name consistency check!
+			   Mod#module{code=AST,warnings=Ws ++ Gws};
+		       {error,Ges,Gws} ->
+			   {error,Ges,Gws}
+		   end
            end,
     Ms1 = lists:map(Code, Ms0),
-    {ok,St#comp{code=Ms1}}.
+    St1 = St0#comp{code=Ms1},
+    ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
 
 do_erl_comp(#comp{code=Ms0}=St0) ->
     ErlOpts = erl_comp_opts(St0),               %Options to erlang compiler

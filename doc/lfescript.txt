@@ -89,7 +89,7 @@ OPTIONS
 ENVIRONMENT VARIABLES
        LFESCRIPT_EMULATOR
 
-       The command used to start the emulator.  Default is 'erl'.  This can be
+       The command used to start the emulator.  Default is `erl'.  This can be
        useful for passing arguments into the emulator, for example
 
               LFESCRIPT_EMULATOR="erl -pa sune"

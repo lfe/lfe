@@ -24,7 +24,7 @@
 %%% may special case, for example functions call in patterns which
 %%% will become macro expansions.
 
--module(lfe_trans).
+-module(lfe_translate).
 
 -export([from_expr/1,from_expr/2,from_body/1,from_body/2,from_lit/1]).
 -export([to_expr/2,to_exprs/2,to_lit/2]).
@@ -294,12 +294,12 @@ from_map_update([], _, Map, Vt, St) -> {Map,Vt,St}.
 from_rec_fields([{record_field,_,{atom,_,F},V}|Fs], Vt0, St0) ->
     {Lv,Vt1,St1} = from_expr(V, Vt0, St0),
     {Lfs,Vt2,St2} = from_rec_fields(Fs, Vt1, St1),
-    {[F,Lv|Lfs],Vt2,St2};
+    {[[F | Lv]|Lfs],Vt2,St2};
 from_rec_fields([{record_field,_,{var,_,F},V}|Fs], Vt0, St0) ->
     %% Special case!!
     {Lv,Vt1,St1} = from_expr(V, Vt0, St0),
     {Lfs,Vt2,St2} = from_rec_fields(Fs, Vt1, St1),
-    {[F,Lv|Lfs],Vt2,St2};
+    {[[F | Lv]|Lfs],Vt2,St2};
 from_rec_fields([], Vt, St) -> {[],Vt,St}.
 
 %% from_icrt_cls(Clauses, VarTable, State) -> {Clauses,VarTable,State}.
@@ -828,12 +828,12 @@ to_map_pairs([], _, _, _, St) -> {[],St}.
 
 %% to_rec_fields(Fields, LineNumber, VarTable, State) -> {Fields,State}.
 
-to_rec_fields(['_',V|Fs], L, Vt, St0) ->
+to_rec_fields([['_' | V]|Fs], L, Vt, St0) ->
     %% Special case!!
     {Ev,St1} = to_expr(V, L, Vt, St0),
     {Efs,St2} = to_rec_fields(Fs, L, Vt, St1),
     {[{record_field,L,{var,L,'_'},Ev}|Efs],St2};
-to_rec_fields([F,V|Fs], L, Vt, St0) ->
+to_rec_fields([[F | V]|Fs], L, Vt, St0) ->
     {Ev,St1} = to_expr(V, L, Vt, St0),
     {Efs,St2} = to_rec_fields(Fs, L, Vt, St1),
     {[{record_field,L,{atom,L,F},Ev}|Efs],St2};
@@ -1170,12 +1170,12 @@ to_pat_bin_size(Size, L, Pvs, Vt, St) -> to_pat(Size, L, Pvs, Vt, St).
 %% to_pat_rec_fields(Fields, LineNumber, PatVars, VarTable, State) ->
 %%     {Fields,PatVars,VarTable,State}.
 
-to_pat_rec_fields(['_',P|Fs], L, Pvs0, Vt0, St0) ->
+to_pat_rec_fields([['_' | P]|Fs], L, Pvs0, Vt0, St0) ->
     %% Special case!!
     {Ep,Pvs1,Vt1,St1} = to_pat(P, L, Pvs0, Vt0, St0),
     {Efs,Pvs2,Vt2,St2} = to_pat_rec_fields(Fs, L, Pvs1, Vt1, St1),
     {[{record_field,L,{var,L,'_'},Ep}|Efs],Pvs2,Vt2,St2};
-to_pat_rec_fields([F,P|Fs], L, Pvs0, Vt0, St0) ->
+to_pat_rec_fields([[F | P]|Fs], L, Pvs0, Vt0, St0) ->
     {Ep,Pvs1,Vt1,St1} = to_pat(P, L, Pvs0, Vt0, St0),
     {Efs,Pvs2,Vt2,St2} = to_pat_rec_fields(Fs, L, Pvs1, Vt1, St1),
     {[{record_field,L,{atom,L,F},Ep}|Efs],Pvs2,Vt2,St2};

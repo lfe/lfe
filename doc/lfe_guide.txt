@@ -50,22 +50,22 @@ LITERALS AND SPECIAL SYNTACTIC RULES
            #\x1f42d;
 
        In all these forms, the case of the indicating letter is  not  signifi‐
-       cant,  i.e. #b1010 and #B1010 are identical as are #16rf00 and #16Rf00.
+       cant, i.e. #b1010 and #B1010 are identical as are #16rf00 and #16Rf00.
 
-       Similarly, the case is not significant for digits beyond  9  (i.e. ‘a’,
-       ‘b’, ‘c’, ... for number bases larger than 10), e.g. #xabcd is the same
+       Similarly,  the  case is not significant for digits beyond 9 (i.e. `a',
+       `b', `c', ... for number bases larger than 10), e.g. #xabcd is the same
        as #xABCD and can even be mixed in the same number, e.g. #36rHelloWorld
        is valid and the same number as #36Rhelloworld and #36rHELLOWORLD.
 
        The character notation using hexadecimal code representation (#\x....;)
-       is basically the same thing as the regular hexadecimal  notation  #x...
-       except  that  it conveys to the reader that a character is intended and
-       that it does a sanity check on the  value  (e.g. negative  numbers  and
+       is  basically  the same thing as the regular hexadecimal notation #x...
+       except that it conveys to the reader that a character is  intended  and
+       that  it  does  a  sanity check on the value (e.g. negative numbers and
        value outside the Unicode range are not permitted).
 
    Floating point numbers
-       There  is  only one type of floating point numbers and the literals are
-       written in the usual way, e.g. these are all valid floating point  num‐
+       There is only one type of floating point numbers and the  literals  are
+       written  in the usual way, e.g. these are all valid floating point num‐
        bers:
 
               1.0 +1.0 ‐1.0 1.0e10 1.111e‐10
@@ -78,29 +78,29 @@ LITERALS AND SPECIAL SYNTACTIC RULES
        There are two forms of strings: list strings and binary strings.
 
    List Strings
-       List  strings  are  just lists of integers (where the values have to be
+       List strings are just lists of integers (where the values  have  to  be
        from a certain set of numbers that are considered valid characters) but
-       they  have  their  own syntax for literals (which will also be used for
-       integer lists as an output representation if the  list  contents  looks
+       they have their own syntax for literals (which will also  be  used  for
+       integer  lists  as  an output representation if the list contents looks
        like it is meant to be a string): “any text between double quotes where
        " and other special characters like \n can be escaped”.
 
-       As a special case you can also write out the character  number  in  the
-       form  \xHHH;  (where  “HHH”  is  an  integer  in hexadecimal notation),
+       As  a  special  case you can also write out the character number in the
+       form \xHHH; (where  “HHH”  is  an  integer  in  hexadecimal  notation),
        e.g. "\x61;\x62;\x63;" is a complicated way of writing "abc".  This can
        be convenient when writing Unicode letters not easily typeable or view‐
-       able with regular fonts.  E.g.  "Cat: \\x1f639;"  might  be  easier  to
-       type  (and  view  on output devices without a Unicode font) then typing
+       able  with  regular  fonts.   E.g.  "Cat: \\x1f639;" might be easier to
+       type (and view on output devices without a Unicode  font)  then  typing
        the actual unicode letter.
 
    Binary Strings
        Binary strings are just like list strings but they are represented dif‐
-       ferently  in  the  virtual  machine.  The simple syntax is #"...", e.g.
+       ferently in the virtual machine.  The simple  syntax  is  #"...",  e.g.
        #"This  is  a  binary  string  \n  with  some  \"escaped\"  and  quoted
        (\\x1f639;) characters"
 
        You can also use the general format for creating binaries (#B(...), de‐
-       scribed below), e.g. #B("a"), #"a", and #B(97) are all the same  binary
+       scribed  below), e.g. #B("a"), #"a", and #B(97) are all the same binary
        string.
 
    Character Escaping
@@ -119,12 +119,12 @@ LITERALS AND SPECIAL SYNTACTIC RULES
                 | \s           | Space           |
                 | \d           | Delete          |
 
-       Alternatively you can also  use  the  hexadecimal  character  encoding,
+       Alternatively  you  can  also  use  the hexadecimal character encoding,
        e.g. "a\nb" and "a\x0a;b" are the same string.
 
    Binaries
        We have already seen binary strings, but the #B(...) syntax can be used
-       to create binaries with any contents.  Unless the contents is a  simple
+       to  create binaries with any contents.  Unless the contents is a simple
        integer you need to annotate it with a type and/or size.
 
        Example invocations are that show the various annotations:
@@ -141,13 +141,13 @@ LITERALS AND SPECIAL SYNTACTIC RULES
               > #B((#"a" binary) (#"b" binary))
               #"ab"
 
-       Learn  more about “segments” of binary data e.g. in “Learn You Some Er‐
-       lang  (http://learnyousomeerlang.com/starting‐out‐for‐real#bit‐syntax)”
-       <http://learnyousomeerlang.com/starting‐out‐for‐real#bit‐syntax>.
+       Learn more about “segments” of binary data e.g. in “Learn You Some  Er‐
+       lang  (http://learnyousomeerlang.com/starting-out-for-real#bit-syntax)”
+       <http://learnyousomeerlang.com/starting-out-for-real#bit-syntax>.
 
    Lists
-       Lists  are  formed either as ( ... ) or [ ... ] where the optional ele‐
-       ments of the list are separated by some form or whitespace.  For  exam‐
+       Lists are formed either as ( ... ) or [ ... ] where the  optional  ele‐
+       ments  of the list are separated by some form or whitespace.  For exam‐
        ple:
 
               ()
@@ -162,20 +162,20 @@ LITERALS AND SPECIAL SYNTACTIC RULES
        so valid.
 
    Maps
-       Maps are written as #M(key1 value1 key2 value2 ...) The  empty  map  is
+       Maps  are  written  as #M(key1 value1 key2 value2 ...) The empty map is
        also valid and written as #M().
 
    Symbols
        Things that cannot be parsed as any of the above are usually considered
        as a symbol.
 
-       Simple examples are foo, Foo, foo‐bar, :foo.  But  also  somewhat  sur‐
-       prisingly  123foo  and  1.23e4extra (but note that illegal digits don’t
-       make a number a symbol when using the explicit  number  base  notation,
+       Simple  examples  are  foo, Foo, foo-bar, :foo.  But also somewhat sur‐
+       prisingly 123foo and 1.23e4extra (but note that  illegal  digits  don’t
+       make  a  number  a symbol when using the explicit number base notation,
        e.g. #b10foo gives an error).
 
-       Symbol  names can contain a surprising breadth or characters, basically
-       all of the latin‐1 character set without control character, whitespace,
+       Symbol names can contain a surprising breadth or characters,  basically
+       all of the latin-1 character set without control character, whitespace,
        the various brackets, double quotes and semicolon.
 
        Of these, only |, \', ', ,, and # may not be the first character of the
@@ -183,11 +183,11 @@ LITERALS AND SPECIAL SYNTACTIC RULES
 
        I.e.  these are all legal symbols: foo, foo, µ#, ±1, 451°F.
 
-       Symbols can be explicitly constructed by wrapping their name in  verti‐
+       Symbols  can be explicitly constructed by wrapping their name in verti‐
        cal bars, e.g. |foo|, |symbol name with spaces|.  In this case the name
-       can contain any character of in the range from 0 to 255 (or even  none,
-       i.e. ||  is a valid symbol).  The vertical bar in the symbol name needs
-       to be escaped: |symbol with a vertical bar \| in its  name|  (similarly
+       can  contain any character of in the range from 0 to 255 (or even none,
+       i.e. || is a valid symbol).  The vertical bar in the symbol name  needs
+       to  be  escaped: |symbol with a vertical bar \| in its name| (similarly
        you will obviously have to escape the escape character as well).
 
    Comments
@@ -197,7 +197,7 @@ LITERALS AND SPECIAL SYNTACTIC RULES
        line.
 
        Block comments are written as #| comment text |# where the comment text
-       may  span  multiple  lines  but  my  not contain another block comment,
+       may span multiple lines but  my  not  contain  another  block  comment,
        i.e. it may not contain the character sequence #|.
 
    Evaluation While Reading
@@ -331,8 +331,8 @@ Supported forms
               (defrecord name ...)
 
 Patterns
-       Written  as normal data expressions where symbols are variables and use
-       quote to match explicit values.  Binaries and tuples have special  syn‐
+       Written as normal data expressions where symbols are variables and  use
+       quote  to match explicit values.  Binaries and tuples have special syn‐
        tax.
 
               {ok,X}                  ‐> (tuple 'ok x)
@@ -341,25 +341,25 @@ Patterns
               <<34,U:16,F/float>>     ‐> (binary 34 (u (size 16)) (f float))
               [P|Ps]=All              ‐> (= (cons p ps) all)
 
-       Repeated  variables are supported in patterns and there is an automatic
+       Repeated variables are supported in patterns and there is an  automatic
        comparison of values.
 
-       _ as the “don’t care” variable is supported.  This means that the  sym‐
-       bol  _,  which  is a perfectly valid symbol, can never be bound through
+       _  as the “don’t care” variable is supported.  This means that the sym‐
+       bol _, which is a perfectly valid symbol, can never  be  bound  through
        pattern matching.
 
-       Aliases are defined with the (= pattern1 pattern2) pattern.  As in  Er‐
+       Aliases  are defined with the (= pattern1 pattern2) pattern.  As in Er‐
        lang patterns they can be used anywhere in a pattern.
 
        CAVEAT The lint pass of the compiler checks for aliases and if they are
-       possible to match.  If not an error is flagged.  This is not  the  best
-       way.   Instead  there  should be a warning and the offending clause re‐
+       possible  to  match.  If not an error is flagged.  This is not the best
+       way.  Instead there should be a warning and the  offending  clause  re‐
        moved, but later passes of the compiler can’t handle this yet.
 
 Guards
-       Wherever a pattern occurs (in let, case, receive, lc, etc.) it  can  be
-       followed  by  an  optional  guard  which  has the form (when test ...).
-       Guard tests are the same as in vanilla Erlang and can contain the  fol‐
+       Wherever  a  pattern occurs (in let, case, receive, lc, etc.) it can be
+       followed by an optional guard which  has  the  form  (when  test  ...).
+       Guard  tests are the same as in vanilla Erlang and can contain the fol‐
        lowing guard expressions:
 
               (quote e)
@@ -374,19 +374,19 @@ Guards
               (guard‐bif ...)             ‐ Guard BIFs, arithmetic,
                                             boolean and comparison operators
 
-       An  empty  guard,  (when),  always  succeeds  as there is no test which
+       An empty guard, (when), always succeeds  as  there  is  no  test  which
        fails.  This simplifies writing macros which handle guards.
 
 Comments in Function Definitions
-       Inside functions  defined  with  defun  LFE  permits  optional  comment
-       strings  in  the  Common Lisp style after the argument list.  So we can
+       Inside  functions  defined  with  defun  LFE  permits  optional comment
+       strings in the Common Lisp style after the argument list.   So  we  can
        have:
 
               (defun max (x y)
                 "The max function."
                 (if (>= x y) x y))
 
-       Optional comments are also allowed in match style functions  after  the
+       Optional  comments  are also allowed in match style functions after the
        function name and before the clauses:
 
               (defun max
@@ -394,7 +394,7 @@ Comments in Function Definitions
                 ((x y) (when (>= x y)) x)
                 ((x y) y))
 
-       This  is also possible in a similar style in local functions defined by
+       This is also possible in a similar style in local functions defined  by
        flet and fletrec:
 
               (defun foo (x y)
@@ -405,9 +405,9 @@ Comments in Function Definitions
                   (m x y)))
 
 Variable Binding and Scoping
-       Variables are lexically scoped and bound by  lambda,  match‐lambda  and
-       let  forms.   All  variables  which are bound within these forms shadow
-       variables bound outside but other variables occurring in the bodies  of
+       Variables  are  lexically  scoped and bound by lambda, match-lambda and
+       let forms.  All variables which are bound  within  these  forms  shadow
+       variables  bound outside but other variables occurring in the bodies of
        these forms will be imported from the surrounding environments.No vari‐
        ables are exported out of the form.  So for example the following func‐
        tion:
@@ -417,22 +417,22 @@ Variable Binding and Scoping
                   (zap x z))
                 (zop x y))
 
-       The  variable  y in the call (zip y) comes from the function arguments.
+       The variable y in the call (zip y) comes from the  function  arguments.
        However, the x bound in the let will shadow the x from the arguments so
-       in  the call (zap x z) the x is bound in the let while the z comes from
-       the function arguments.  In the final (zop x y) both x and y come  from
+       in the call (zap x z) the x is bound in the let while the z comes  from
+       the  function arguments.  In the final (zop x y) both x and y come from
        the function arguments as the let does not export x.
 
 Function Binding and Scoping
-       Functions  are lexically scoped and bound by the top‐level defun and by
-       the macros flet and fletrec.  LFE is a Lisp‐2 so  functions  and  vari‐
-       ables  have  separate  namespaces  and when searching for function both
+       Functions are lexically scoped and bound by the top-level defun and  by
+       the  macros  flet  and fletrec.  LFE is a Lisp-2 so functions and vari‐
+       ables have separate namespaces and when  searching  for  function  both
        name and arity are used.  This means that when calling a function which
-       has  been  bound  to a variable using (funcall func‐var arg ...) is re‐
-       quired to call lambda/match‐lambda bound to a variable  or  used  as  a
+       has been bound to a variable using (funcall func-var arg  ...)  is  re‐
+       quired  to  call  lambda/match-lambda  bound to a variable or used as a
        value.
 
-       Unqualified  functions shadow as stated above which results in the fol‐
+       Unqualified functions shadow as stated above which results in the  fol‐
        lowing order within a module, outermost to innermost:
 
        · Predefined Erlang BIFs
@@ -447,62 +447,78 @@ Function Binding and Scoping
 
        · Core forms, these can never be shadowed
 
-       This means that it is  perfectly  legal  to  shadow  BIFs  by  imports,
-       BIFs/imports  by top‐level functions and BIFs/imports/top‐level by fle‐
-       trecs.  In this respect there is nothing special about BIfs, they  just
+       This  means  that  it  is  perfectly  legal  to shadow BIFs by imports,
+       BIFs/imports by top-level functions and BIFs/imports/top-level by  fle‐
+       trecs.   In this respect there is nothing special about BIfs, they just
        behave as prefined imported functions, a whopping big (import (from er‐
-       lang ...)).  EXCEPT that we know about guard BIFs and expression  BIFs.
+       lang  ...)).  EXCEPT that we know about guard BIFs and expression BIFs.
        If you want a private version of spawn then define it, there will be no
        warnings.
 
-       CAVEAT This does not hold for the supported core forms.  These  can  be
-       shadowed  by  imports or redefined but the compiler will always use the
+       CAVEAT  This  does not hold for the supported core forms.  These can be
+       shadowed by imports or redefined but the compiler will always  use  the
        core meaning and never an alternative.  Silently!
 
 Module definition
+       The  basic  forms  for defining a module and extending its metadata and
+       attributes are:
+
+              (define-module name meta-data attributes)
+              (extend-module meta-data attributes)
+
+       The valid meta data is (type typedef ...), (opaque typedef ...),  (spec
+       function-spec  ...)  and (record record-def ...).  Each can take multu‐
+       iple definitions in one meta form.
+
+       Attributes declarations have the syntax (attribute value-1  ...)  where
+       the attribute value is a list off the values in the declaration
+
+       To simplify defining modules there is a predefined macro:
+
               (defmodule name
                 "This is the module documentation."
                 (export (f 2) (g 1) ... )
                 (export all)                          ;Export all functions
                 (import (from mod (f1 2) (f2 1) ... )
                         (rename mod ((f1 2) sune) ((f2 1) kurt) ... ))
-                (import (prefix mod mod‐prefix))      ‐ NYI
-                (attr‐1 value‐1 value‐2)
+                (import (prefix mod mod-prefix))      - NYI
+                (attr-1 value-1 value-2)
+                {meta meta-data ...)
                 ... )
 
-       Can have multiple export and import declarations within module declara‐
-       tion.   The (export all) declaration is allowed together with other ex‐
-       port declarations and overrides them.  Other attributes which  are  not
-       recognised  by the compiler are allowed and are simply passed on to the
-       module and can be accessed through module_info/0‐1.
+       We  can have multiple export and import declarations within module dec‐
+       laration.  The (export all) declaration is allowed together with  other
+       export declarations and overrides them.  Other attributes which are not
+       recognised by the compiler are allowed and are simply passed on to  the
+       module and can be accessed through module_info/0-1.
 
 Parameterized modules
               (defmodule (name par1 par2 ... )
                 ... )
 
-       Define a parameterized module which behaves the same way as in  vanilla
-       Erlang.  For now avoid defining functions ‘new’ and ‘instance’.
+       Define  a parameterized module which behaves the same way as in vanilla
+       Erlang.  For now avoid defining functions `new' and `instance'.
 
 Macros
-       Macro  calls  are expanded in both body and patterns.  This can be very
+       Macro calls are expanded in both body and patterns.  This can  be  very
        useful to have both make and match macros, but be careful with names.
 
-       A macro is function of two arguments which is a called with a  list  of
-       the  arguments to the macro call and the current macro environment.  It
-       can be either a lambda or a match‐lambda.  The basic forms for defining
+       A  macro  is function of two arguments which is a called with a list of
+       the arguments to the macro call and the current macro environment.   It
+       can be either a lambda or a match-lambda.  The basic forms for defining
        macros are:
 
               (define‐macro name meta‐data lambda|match‐lambda)
               (let‐macro ((name lambda|match‐lambda)
                 ...)
 
-       Macros  are  definitely  NOT  hygienic  in any form.  However, variable
-       scoping and variable immutability remove most of the  things  that  can
+       Macros are definitely NOT hygienic  in  any  form.   However,  variable
+       scoping  and  variable  immutability remove most of the things that can
        cause unhygienic macros.  It can be done but you are not going to do it
-       by mistake.  The only real issue is if you happen to be using  a  vari‐
+       by  mistake.   The only real issue is if you happen to be using a vari‐
        able which has the same name as one which the macro generates, that can
-       cause problems.  The work around for this is to give variables  created
-       in the macro expansion really weird names like | ‐ foo ‐ | which no one
+       cause  problems.  The work around for this is to give variables created
+       in the macro expansion really weird names like | - foo - | which no one
        in their right mind would use.
 
        To simplify writing macros there are a number of predefined macros:
@@ -512,9 +528,9 @@ Macros
               (defmacro name ((argpat ...) body) ...)
 
        Defmacro can be used for defining simple macros or sequences of matches
-       depending  on whether the arguments are a simple list of symbols or can
-       be interpreted as a list of pattern/body pairs.   In  the  second  case
-       when  the argument is just a symbol it will be bound to the whole argu‐
+       depending on whether the arguments are a simple list of symbols or  can
+       be  interpreted  as  a  list of pattern/body pairs.  In the second case
+       when the argument is just a symbol it will be bound to the whole  argu‐
        ment list.  For example:
 
               (defmacro double (a) `(+ ,a ,a))
@@ -526,21 +542,21 @@ Macros
 
        The macro definitions in a macrolet obey the same rules as defmacro.
 
-       The macro functions created by defmacro and macrolet automatically  add
-       the  second  argument  with the current macro environment with the name
-       $ENV.  This allows explicit expansion of macros inside  the  macro  and
+       The  macro functions created by defmacro and macrolet automatically add
+       the second argument with the current macro environment  with  the  name
+       $ENV.   This  allows  explicit expansion of macros inside the macro and
        also manipulation of the macro environment.  No changes to the environ‐
        ment are exported outside the macro.
 
-       User defined macros shadow the predefined macros so it is  possible  to
-       redefine  the  built‐in macro definitions.  However, see the caveat be‐
+       User  defined  macros shadow the predefined macros so it is possible to
+       redefine the built-in macro definitions.  However, see the  caveat  be‐
        low!
 
-       Yes, we have the backquote.  It is implemented as a macro so it is  ex‐
+       Yes,  we have the backquote.  It is implemented as a macro so it is ex‐
        panded at macro expansion time.
 
-       Local  functions  that  are  only  available at compile time and can be
-       called by macros are defined using eval‐when‐compile:
+       Local functions that are only available at  compile  time  and  can  be
+       called by macros are defined using eval-when-compile:
 
               (defmacro foo (x)
                 ...
@@ -553,18 +569,18 @@ Macros
 
                 )
 
-       There can be many eval‐when‐compile forms.  Functions defined within an
-       eval‐when‐compile  are  mutually recursive but they can only call other
-       local functions defined in an earlier eval‐when‐compile and macros  de‐
-       fined  earlier  in  the  file.   Functions defined in eval‐when‐compile
-       which are called by macros can defined after the macro but must be  de‐
+       There can be many eval-when-compile forms.  Functions defined within an
+       eval-when-compile are mutually recursive but they can only  call  other
+       local  functions defined in an earlier eval-when-compile and macros de‐
+       fined earlier in the  file.   Functions  defined  in  eval-when-compile
+       which  are called by macros can defined after the macro but must be de‐
        fined before the macro is used.
 
-       Scheme’s  syntax  rules are an easy way to define macros where the body
+       Scheme’s syntax rules are an easy way to define macros where  the  body
        is just a simple expansion.  The are implmeneted the the module scm and
-       are supported with scm:define‐syntax and scm:let‐syntax and the equiva‐
-       lent scm:defsyntax and scm:syntaxlet.  Note that the patterns are  only
-       the  arguments to the macro call and do not contain the macro name.  So
+       are supported with scm:define-syntax and scm:let-syntax and the equiva‐
+       lent  scm:defsyntax and scm:syntaxlet.  Note that the patterns are only
+       the arguments to the macro call and do not contain the macro name.   So
        using them we would get:
 
               (scm:defsyntax andalso
@@ -572,22 +588,22 @@ Macros
                 ((e) e)
                 ((e . es) (case e ('true (andalso . es)) ('false 'false))))
 
-       There is an include file “include/scm.lfe” which defines macros so  the
+       There  is an include file “include/scm.lfe” which defines macros so the
        names don’t have to be prefixed with scm:.
 
-       CAVEAT  While  it  is  perfectly legal to define a Core form as a macro
+       CAVEAT While it is perfectly legal to define a Core  form  as  a  macro
        these will silently be ignored by the compiler.
 
 Comments in Macro Definitions
-       Inside macros  defined  with  defmacro  LFE  permits  optional  comment
-       strings  in  the  Common Lisp style after the argument list.  So we can
+       Inside  macros  defined  with  defmacro  LFE  permits  optional comment
+       strings in the Common Lisp style after the argument list.   So  we  can
        have:
 
               (defmacro double (a)
                 "Double macro."
                 `(+ ,a ,a))
 
-       Optional comments are also allowed in  match  style  macros  after  the
+       Optional  comments  are  also  allowed  in match style macros after the
        macro name and before the clauses:
 
               (defmacro my‐list args
@@ -600,7 +616,7 @@ Comments in Macro Definitions
                 ((cons e es) `(if ,e (andalso ,@es) 'false))
                 (() `'true))
 
-       This  is also possible in a similar style in local functions defined by
+       This is also possible in a similar style in local functions defined  by
        macrolet:
 
               (defun foo (x y)
@@ -612,8 +628,8 @@ Comments in Macro Definitions
 
 Extended cond
        Cond has been extended with the extra test (?= pat expr) which tests if
-       the  result  of  expr matches pat.  If so it binds the variables in pat
-       which can be used in the cond.  A optional guard is allowed  here.   An
+       the result of expr matches pat.  If so it binds the  variables  in  pat
+       which  can  be used in the cond.  A optional guard is allowed here.  An
        example:
 
               (cond ((foo x) ...)
@@ -624,46 +640,90 @@ Extended cond
                     ... )
 
 Records
-       Records  are  tuples with the record name as first element and the rest
-       of the fields in order exactly like “normal” Erlang records.   As  with
-       Erlang records the default default value is ‘undefined’.
+       Records are tuples with the record name as first element and  the  rest
+       of  the  fields in order exactly like “normal” Erlang records.  As with
+       Erlang records the default default value is `undefined'.
+
+       The basic forms for defining a record, creating, accessing and updating
+       it are:
+
+              (define-record name ((field) | field
+                                   (field default-value)
+                                   (field default-value type) ...))
+              (make-record name ((field . value) (field . value) ...))
+              (record-index name field)
+              (record-field record name field)
+              (record-update record name ((field . value) (field . value) ...))
+
+       Note  that  the  list  of  field/value  pairs when making or updating a
+       record is an a-list.
+
+       We will explain these forms with a simple example.  To define a  record
+       we do:
+
+              (define-record person
+                   ((name "")
+                    (address "" (string))
+                    (age)))
+
+       which  defines a record person with the fields name (default value ""),
+       address (default value "" and type (string)) and age.  To make  an  in‐
+       stance of a person record we do:
+
+              (make-record person ((name . "Robert") (age . 54)))
+
+       The make-record form is also used to define a pattern.
+
+       We  can  get  the value of the address field in a person record and the
+       set it by doing (the variable robert references a person record):
+
+              (record-field robert person address)
+              (record-update robert person ((address . "my home") (age . 55)))
+
+       Note that we must include the name of the record when accessing it  and
+       there  is  no need to quote the record and field names as these are al‐
+       ways literal atoms.
+
+       To simplify defining records there is a predefined macro:
 
               (defrecord name
-                field
-                (field default‐value)
+                (field) | field
+                (field default-value)
+                (field default-value type)
                 ... )
 
-       Will  create access functions/macros for creation and accessing fields.
-       The make‐, match‐ and  update‐  forms  takes  optional  argument  pairs
-       field‐name value to get non‐default values.  E.g.  for
+       This will create access macros for record creation  and  accessing  and
+       updating  fields.   The  make-, match- and update- forms takes optional
+       argument pairs field-name value to get non-default values.  E.g.  for
 
               (defrecord person
                 (name "")
-                (address "")
-                age)
+                (address "" (string))
+                (age))
 
        the following will be generated:
 
-              (make‐person {{field value}} ... )
-              (match‐person {{field value}} ... )
-              (is‐person r)
-              (fields‐person)
-              (update‐person r {{field value}} ... )
-              (person‐name r)
-              (person‐name)
-              (update‐person‐name r name)
-              (person‐age r)
-              (person‐age)
-              (update‐person‐age r age)
-              (person‐address r)
-              (update‐person‐address r address)
+              (make-person {{field value}} ... )
+              (match-person {{field value}} ... )
+              (is-person r)
+              (fields-person)
+              (update-person r {{field value}} ... )
+              (person-name r)
+              (person-name)
+              (update-person-name r name)
+              (person-age r)
+              (person-age)
+              (update-person-age r age)
+              (person-address r)
+              (person-address)
+              (update-person-address r address)
 
-       · (make‐person  name "Robert" age 54) ‐ Will create a new person record
-         with the name field set to “Robert”, the age field set to 54 and  the
+       · (make-person name "Robert" age 54) - Will create a new person  record
+         with  the name field set to “Robert”, the age field set to 54 and the
          address field set to the default "".
 
-       · (match‐person name name age 55) ‐ Will match a person with age 55 and
-         bind the variable name to the name field of the record.  Can use  any
+       · (match-person name name age 55) - Will match a person with age 55 and
+         bind  the variable name to the name field of the record.  Can use any
          variable name here.
 
        · (is‐person john) ‐ Test if john is a person record.
@@ -671,18 +731,18 @@ Records
        · (person‐address john) ‐ Return the address field of the person record
          john.
 
-       · (person‐address) ‐ Return the index of the address field of a  person
+       · (person-address)  - Return the index of the address field of a person
          record.
 
-       · (update‐person‐address  john  "back  street")  ‐  Updates the address
+       · (update-person-address john "back  street")  -  Updates  the  address
          field of the person record john to “back street”.
 
-       · (update‐person john age 35 address "front street") ‐  In  the  person
-         record  john  update  the  age  field  to 35 and the address field to
+       · (update-person  john  age  35 address "front street") - In the person
+         record john update the age field to  35  and  the  address  field  to
          “front street”.
 
-       · (fields‐person) ‐ Returns a list of fields for the record.   This  is
-         useful  for  when  using  LFE  with Mnesia, as the record field names
+       · (fields-person)  -  Returns a list of fields for the record.  This is
+         useful for when using LFE with Mnesia,  as  the  record  field  names
          don’t have to be provided manually in the create_table call.
 
        · (size‐person) ‐ Returns the size of the record tuple.
@@ -704,8 +764,8 @@ Binaries/bitstrings
                            big|little|native
                            signed|unsigned)
 
-       val can also be a string in which case the specifiers will  be  applied
-       to  every  character in the string.  As strings are just lists of inte‐
+       val  can  also be a string in which case the specifiers will be applied
+       to every character in the string.  As strings are just lists  of  inte‐
        gers these are also valid here.  In a binary constant all literal forms
        are allowed on input but they will always be written as bytes.
 
@@ -720,18 +780,18 @@ Maps
 
        · (map‐set map key val ... ) ‐ Set keys in map to values.
 
-       · (map‐update  map  key val ... ) ‐ Update keys in map to values.  Note
+       · (map-update map key val ... ) - Update keys in map to  values.   Note
          that this form requires all the keys to exist.
 
-       N.B.  This syntax for processing maps has stablized but may  change  in
+       N.B.   This  syntax for processing maps has stablized but may change in
        the future!
 
-       There  is  also  an alternate short form map, mref, mset, mupd based on
-       the Maclisp array reference forms.  They take  the  same  arguments  as
+       There is also an alternate short form map, mref, mset,  mupd  based  on
+       the  Maclisp  array  reference  forms.  They take the same arguments as
        their longer alternatives.
 
 List/binary comprehensions
-       List/binary  comprehensions  are  supported  as macros.  The syntax for
+       List/binary comprehensions are supported as  macros.   The  syntax  for
        list comprehensions is:
 
               (lc (qual  ...) expr ... )
@@ -744,7 +804,7 @@ List/binary comprehensions
               (bc (qual  ...) expr ... )
               (binary‐comp (qual  ...) expr ... )
 
-       where the final expr is a bitseg expr and is used to generate the  ele‐
+       where  the final expr is a bitseg expr and is used to generate the ele‐
        ments of the binary.
 
        The supported qualifiers, in both list/binary comprehensions are:
@@ -760,7 +820,7 @@ List/binary comprehensions
                    (== (rem v 2) 0))
                 v)
 
-       returns  a  list  of  all  the  even  elements of the list l1 which are
+       returns a list of all the even  elements  of  the  list  l1  which  are
        greater than 5.
 
               (bc ((<= (f float (size 32)) b1)        ;Only bitseg needed
@@ -768,23 +828,23 @@ List/binary comprehensions
                 (: io fwrite "~p\n" (list f))
                 (f float (size 64)))                  ;Only bitseg needed
 
-       returns a binary of floats of size 64 of floats which are  larger  than
+       returns  a  binary of floats of size 64 of floats which are larger than
        10.0 from the binary b1 and of size 32.  The returned numbers are first
        printed.
 
        N.B.  A word of warning when using guards when extracting elements from
-       a  binary.  When a match/guard fails for a binary no more attempts will
-       be made to extract data from the binary.  This means  that  even  if  a
-       value  could be extracted from the binary if the guard fails this value
+       a binary.  When a match/guard fails for a binary no more attempts  will
+       be  made  to  extract  data from the binary.  This means that even if a
+       value could be extracted from the binary if the guard fails this  value
        will be lost and extraction will cease.  This is NOT the same as having
-       following  boolean  test  which may remove an element but will not stop
+       following boolean test which may remove an element but  will  not  stop
        extraction.  Using a guard is probably not what you want!
 
        Normal vanilla Erlang does the same thing but does not allow guards.
 
 ETS and Mnesia
-       LFE also supports match specifications and Query  List  Comprehensions.
-       The syntax for a match specification is the same as for match‐lambdas:
+       LFE  also  supports match specifications and Query List Comprehensions.
+       The syntax for a match specification is the same as for match-lambdas:
 
               (ets‐ms
                 ((arg ... ) {{(when e ...)}} ...)             ‐ Matches clauses
@@ -795,23 +855,23 @@ ETS and Mnesia
               (ets:select db (ets‐ms
                                ([(tuple _ a b)] (when (> a 3)) (tuple 'ok b))))
 
-       It  is a macro which creates the match specification structure which is
-       used in ets:select and mnesia:select.  For tracing instead of the  ets‐
-       ms  macro there is the trace‐ms macro which is also used in conjunction
-       with the dbg module.  The same restrictions as to what can be done  ap‐
+       It is a macro which creates the match specification structure which  is
+       used  in ets:select and mnesia:select.  For tracing instead of the ets-
+       ms macro there is the trace-ms macro which is also used in  conjunction
+       with  the dbg module.  The same restrictions as to what can be done ap‐
        ply as for vanilla match specifications:
 
        · There is only a limited number of BIFs which are allowed
 
        · There are some special functions only for use with dbg
 
-       · For  ets/mnesia  it  takes a single parameter which must a tuple or a
+       · For ets/mnesia it takes a single parameter which must a  tuple  or  a
          variable
 
        · For dbg it takes a single parameter which must a list or a variable
 
-       N.B.  the current macro neither knows nor cares  whether  it  is  being
-       used  in ets/mnesia or in dbg.  It is up to the user to get this right.
+       N.B.   the  current  macro  neither knows nor cares whether it is being
+       used in ets/mnesia or in dbg.  It is up to the user to get this right.
 
        Macros, especially record macros,  can  freely  be  used  inside  match
        specs.
@@ -842,7 +902,7 @@ Predefined LFE functions
               (<arith_op> expr ...)
               (<comp_op> expr ...)
 
-       The  standard arithmentic operators, + ‐ * /, and comparison operators,
+       The  standard arithmentic operators, + - * /, and comparison operators,
        > >= < =< == /= =:= =/= , can take multiple arguments the same as their
        standard lisp counterparts.  This is still experimental and implemented
        using macros.  They do, however, behave like normal functions and eval‐
@@ -874,7 +934,7 @@ Predefined LFE functions
 
               (macroexpand expr {{environment}})
 
-       Returns  the  expansion  returned  by calling macroexpand‐1 repeatedly,
+       Returns  the  expansion  returned  by calling macroexpand-1 repeatedly,
        starting with Expr, until the result is no longer a macro call.
 
               (macroexpand‐all expr {{environment}})
@@ -883,13 +943,13 @@ Predefined LFE functions
        been expanded with macroexpand.
 
        NOTE  that  when no explicit environment is given the macroexpand func‐
-       tions then only the default built‐in macros will be  expanded.   Inside
+       tions then only the default built-in macros will be  expanded.   Inside
        macros and in the shell the variable $ENV is bound to the current macro
        environment.
 
               (eval expr {{environment}})
 
-       Evaluate the expression expr.  Note  that  only  the  pre‐defined  lisp
+       Evaluate the expression expr.  Note  that  only  the  pre-defined  lisp
        functions,  erlang  BIFs and exported functions can be called.  Also no
        local variables can be accessed.  To access local variables the expr to
        be evaluated can be wrapped in a let defining these.
