@@ -536,8 +536,8 @@ check_record_field_def_1(Name, Field, L,  #lfe_lint{recs=Rs}=St) ->
 
 %% init_state(State) -> {Predefs,Env,State}.
 %%  Setup the initial predefines and state. Build dummies for
-%%  predefined module_info and parameteried module functions, which
-%%  makes it easier to later check redefines.
+%%  predefined module_info which makes it easier to later check
+%%  redefines.
 
 init_state(St) ->
     %% Add the imports.

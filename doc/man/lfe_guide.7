@@ -628,18 +628,6 @@ export declarations and overrides them.
 Other attributes which are not recognised by the compiler are allowed
 and are simply passed on to the module and can be accessed through
 \f[C]module_info/0-1\f[R].
-.SH Parameterized modules
-.IP
-.nf
-\f[C]
-(defmodule (name par1 par2 ... )
-  ... )
-\f[R]
-.fi
-.PP
-Define a parameterized module which behaves the same way as in vanilla
-Erlang.
-For now avoid defining functions `new' and `instance'.
 .SH Macros
 .PP
 Macro calls are expanded in both body and patterns.

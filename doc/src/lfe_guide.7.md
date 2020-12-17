@@ -600,17 +600,6 @@ other export declarations and overrides them. Other attributes which
 are not recognised by the compiler are allowed and are simply passed
 on to the module and can be accessed through ``module_info/0-1``.
 
-# Parameterized modules
-
-```
-(defmodule (name par1 par2 ... )
-  ... )
-```
-
-Define a parameterized module which behaves the same way as in vanilla
-Erlang. For now avoid defining functions 'new' and 'instance'.
-
-
 # Macros
 
 Macro calls are expanded in both body and patterns. This can be very

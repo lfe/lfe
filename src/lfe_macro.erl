@@ -896,14 +896,10 @@ exp_predef(['defrecord'|Def], Env, St) ->
     lfe_macro_record:define(Def, Env, St);
 %% Common Lisp inspired macros.
 exp_predef([defmodule,Name|Rest], _, St) ->
-    %% Need to handle parametrised module defs here. Limited checking.
-    Mname = case Name of
-                [Mod|_] -> Mod;                 %Parametrised module
-                Mod -> Mod                      %Normal module
-            end,
-    MODULE = [defmacro,'MODULE',[],?BQ(?Q(Mname))],
+    %% Define the MODULE macro.
+    MODULE = [defmacro,'MODULE',[],?BQ(?Q(Name))],
     {Meta,Atts} = exp_defmodule(Rest),
-    {yes,[progn,['define-module',Name,Meta,Atts],MODULE],St#mac{module=Mname}};
+    {yes,[progn,['define-module',Name,Meta,Atts],MODULE],St#mac{module=Name}};
 exp_predef([deftype,Type0|Def0], _, St) ->
     {Type1,Def1} = exp_deftype(Type0, Def0),
     {yes,['define-type',Type1,Def1],St};

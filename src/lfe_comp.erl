@@ -181,7 +181,6 @@ lfe_comp_opts(Opts) ->
     Fun = fun ('to-split') -> to_split;
               ('to-expmac') -> to_expmac;
               ('to-expand') -> to_expand;
-              ('to-pmod') -> to_pmod;
               ('to-lint') -> to_lint;
               ('no-docs') -> no_docs;
               ('to-erlang') -> to_erlang;
@@ -244,8 +243,6 @@ passes() ->
      %% Now we expand and trim remaining macros.
      {do,fun do_expand_macros/1},
      {when_flag,to_expand,{done,fun expand_pp/1}},
-     {do,fun do_lfe_pmod/1},
-     {when_flag,to_pmod,{done,fun pmod_pp/1}},
      {do,fun do_lfe_lint/1},
      {when_flag,to_lint,{done,fun lint_pp/1}},
      {unless_flag,no_docs,{do,fun do_get_docs/1}},
@@ -428,20 +425,11 @@ process_forms(Fun, Fs, L, St) ->
         throw:{expand_form,Error} -> Error
     end.
 
-%% do_lfe_pmod(State) -> {ok,State} | {error,State}.
 %% do_lint(State) -> {ok,State} | {error,State}.
 %% do_get_docs(State) -> {ok,State} | {error,State}.
 %% do_lfe_codegen(State) -> {ok,State} | {error,State}.
 %% do_erl_comp(State) -> {ok,State} | {error,State}.
 %%  The actual compiler passes.
-
-do_lfe_pmod(#comp{cinfo=Ci,code=Ms0}=St) ->
-    Pmod = fun (#module{code=Mfs0}=Mod) ->
-                   {Name,Mfs1} = lfe_pmod:module(Mfs0, Ci),
-                   Mod#module{name=Name,code=Mfs1}
-           end,
-    Ms1 = lists:map(Pmod, Ms0),
-    {ok,St#comp{code=Ms1}}.
 
 do_lfe_lint(#comp{cinfo=Ci,code=Ms0}=St0) ->
     Lint = fun (#module{code=Mfs,warnings=Ws}=Mod) ->
@@ -520,7 +508,6 @@ erl_comp_opts(St) ->
 %% split_pp(State) -> {ok,State} | {error,State}.
 %% expmac_pp(State) -> {ok,State} | {error,State}.
 %% expand_pp(State) -> {ok,State} | {error,State}.
-%% pmod_pp(State) -> {ok,State} | {error,State}.
 %% lint_pp(State) -> {ok,State} | {error,State}.
 %% sexpr_pp(State) -> {ok,State} | {error,State}.
 %% erl_core_pp(State) -> {ok,State} | {error,State}.
@@ -535,7 +522,6 @@ erl_comp_opts(St) ->
 split_pp(St) -> sexpr_pp(St, "split").
 expmac_pp(St) -> sexpr_pp(St, "expmac").
 expand_pp(St) -> sexpr_pp(St, "expand").
-pmod_pp(St) -> sexpr_pp(St, "pmod").
 lint_pp(St) -> sexpr_pp(St, "lint").
 
 sexpr_pp(St, Ext) ->
