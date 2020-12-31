@@ -294,12 +294,14 @@ the expression and then be effectively \f[C]2\f[R].
 (tset tuple index val)
 (binary seg ... )
 (map key val ...)
-(map-get m k) (map-set m k v ...) (map-update m k v ...)
+(map-get map key) (mref m k)
+(map-set map key val ...) (mset m k v ...)
+(map-update map key val ...) (mupd m k v ...)
 (lambda (arg ...) ...)
 (match-lambda
   ((arg ... ) {{(when e ...)}} ...)           - Matches clauses
   ... )
-(function func-name arity)                    - Function references
+(function func-name arity)                    - Function reference
 (function mod-name func-name arity)
 (let ((pat {{(when e ...)}} e)
       ...)
@@ -329,12 +331,12 @@ the expression and then be effectively \f[C]2\f[R].
           ... ))}}
   {{(catch
      ((tuple type value stacktrace)|_ {{(when e ...)}}
-                                - Must be tuple of length 3 or just _!
+                            - Must be tuple of length 3 or just _!
       ... )
      ... )}}
   {{(after ... )}})
 (funcall func arg ... )
-(call mod func arg ... )        - Call to Mod:Func(Arg, ... )
+(call mod func arg ... )    - Call to Mod:Func(Arg, ... )
 
 (define-record name fields)
 (make-record name fields)
@@ -363,8 +365,9 @@ the expression and then be effectively \f[C]2\f[R].
         (call \[aq]mod \[aq]func arg ... )
 (? {{timeout {{default}} }})
 (++ ... )
-(list* ...)
-(let* (...) ... )
+(-- ... )
+(list* ... )
+(let* (... ) ... )
 (flet ((name (arg ...) {{doc-string}} ...)
        ...)
   ...)
@@ -467,7 +470,14 @@ following guard expressions:
 (tuple gexpr ...)
 (tref gexpr gexpr)
 (binary ...)
-(type-test e)
+(make-record ...)           - Also the macro versions
+(record-field ...)
+(record-index ...)
+(map ...)
+(mref ...) (map-get ...)
+(mset ...) (map-set ...)
+(mupd ...) (map-update ...)
+(type-test e)               - Type tests
 (guard-bif ...)             - Guard BIFs, arithmetic,
                               boolean and comparison operators
 \f[R]
