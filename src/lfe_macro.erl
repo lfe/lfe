@@ -777,36 +777,19 @@ exp_predef([cdddar,E], _, St) -> {yes,[cdr,[cdr,[cdr,[car,E]]]],St};
 exp_predef([cddddr,E], _, St) -> {yes,[cdr,[cdr,[cdr,[cdr,E]]]],St};
 
 %% Arithmetic operations and comparison operations.
-%% Be careful to make these behave as if they were a function and
-%% strictly evalated all their arguments.
-exp_predef(['+'|Es], _, St0) ->
-    case Es of
-        [] -> {yes,0,St0};                      %Identity
-        _ ->
-            {Exp,St1} = exp_arith(Es, '+', St0),
-            {yes,Exp,St1}
-    end;
-exp_predef(['-'|Es], _, St0) ->
-    case Es of
-        [_|_] ->                                %Non-empty argument list
-            {Exp,St1} = exp_arith(Es, '-', St0),
-            {yes,Exp,St1}
-    end;
-exp_predef(['*'|Es], _, St0) ->
-    case Es of
-        [] -> {yes,1,St0};                      %Identity
-        [_] -> {yes,exp_bif('*', [1|Es]),St0};  %Check if number
-        _ ->
-            {Exp,St1} = exp_arith(Es, '*', St0),
-            {yes,Exp,St1}
-    end;
-exp_predef(['/'|Es], _, St0) ->
-    case Es of
-        [_] -> {yes,exp_bif('/', [1|Es]),St0};  %According to definition
-        _ ->
-            {Exp,St1} = exp_arith(Es, '/', St0),
-            {yes,Exp,St1}
-    end;
+%%  Don't allow having no arguments and check type with one argument.
+exp_predef(['+'|Es], _, St) ->
+    Exp = exp_arith(Es, '+', 0),
+    {yes,Exp,St};
+exp_predef(['-'|Es], _, St) ->
+    Exp = exp_arith(Es, '-', 0),
+    {yes,Exp,St};
+exp_predef(['*'|Es], _, St) ->
+    Exp = exp_arith(Es, '*', 1),
+    {yes,Exp,St};
+exp_predef(['/'|Es], _, St) ->
+    Exp = exp_arith(Es, '/', 1),
+    {yes,Exp,St};
 %% Logical operators.
 exp_predef([Op|Es], _, St0)
   when Op =:= 'and'; Op =:= 'or'; Op =:= 'xor' ->
@@ -836,7 +819,7 @@ exp_predef(['++*'|Abody], _, St) ->
     Exp = exp_prefix(Abody),
     {yes,Exp,St};
 exp_predef(['?'|As], _, St) ->
-    Omega = [omega,omega],
+    Omega = [omega,omega],                      %Match anything and return it
     Exp = case As of
               [To,Def] -> ['receive',Omega,['after',To,Def]];
               [To] -> ['receive',Omega,['after',To,[exit,?Q(timeout)]]];
@@ -1077,18 +1060,13 @@ exp_bif(B, As) -> [call,?Q(erlang),?Q(B)|As].
 exp_args(As, St) ->
     mapfoldl(fun (A, St0) -> {V,St1} = new_symb(St0), {[V,A],St1} end, St, As).
 
-%% exp_arith(Args, Op, State) -> {Exp,State}.
-%%  Expand arithmetic call strictly forcing evaluation of all
-%%  arguments.  Note that single argument version may need special
-%%  casing.
+%% exp_arith(Args, Op, Identity) -> {Exp,State}.
+%%  Expand arithmetic operation using Identity to type check single
+%%  argument.
 
-exp_arith([A], Op, St) -> {exp_bif(Op, [A]),St};
-exp_arith([A,B], Op, St) -> {exp_bif(Op, [A,B]),St};
-exp_arith(As, Op, St0) ->
-    {Ls,St1} = exp_args(As, St0),
-    Fun = fun ([A,_], Acc) -> exp_bif(Op, [Acc,A]) end,
-    Body = foldl(Fun, hd(hd(Ls)), tl(Ls)),
-    {['let',Ls,Body],St1}.
+exp_arith([A], Op, Id) ->                       %Test type
+    exp_left_assoc([Id,A], Op);
+exp_arith(As, Op, _Id) -> exp_left_assoc(As, Op).
 
 %% {foldl(fun (A, Acc) -> exp_bif(Op, [Acc,A]) end, hd(As), tl(As)),St}.
 
@@ -1127,6 +1105,20 @@ exp_nequal(As, Op, St0) ->
 op_all_pairs([], _) -> [];
 op_all_pairs([[V,_]|Ls], Op) ->
     [ exp_bif(Op, [V,V1]) || [V1,_] <- Ls] ++ op_all_pairs(Ls, Op).
+
+%% exp_left_assoc(List, Op) -> Expansion.
+%%  Expand the left associated operator into sequence of calls.
+
+exp_left_assoc([E1,E2|Es], Op) ->
+    exp_left_assoc([exp_bif(Op, [E1,E2])|Es], Op);
+exp_left_assoc([E], _Op) -> E.
+
+%% exp_right_assoc(List, Op) -> Expansion.
+%%  Expand the right associated operator into sequence of calls.
+
+exp_right_assoc([E], _Op) -> E;
+exp_right_assoc([E|Es], Op) ->
+    exp_bif(Op, [E,exp_right_assoc(Es, Op)]).
 
 %% exp_append(Args) -> Expansion.
 %%  Expand ++ in such a way as to allow its use in patterns. There are
