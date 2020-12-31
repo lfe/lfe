@@ -41,7 +41,7 @@
    (parse-opts as (cons 'debug-print opts)))
   ([(cons "-Werror" as) opts]
    (parse-opts as (cons 'warnings-as-errors opts)))
-  ([(cons (++* "-W" _) as) opts]        ;Ignore this here
+  ([(cons (++ "-W" _) as) opts]         ;Ignore this here
    (parse-opts as opts))
   ([(cons "-D" as) opts]
    (parse-opts as (cons 'debug-print opts)))
@@ -49,7 +49,7 @@
    (parse-opts as opts))
   ([(cons "--" as) opts]
    (tuple as opts))
-  ([(cons (++* "+to" _) as) opts]       ;Ignore this here
+  ([(cons (++ "+to" _) as) opts]        ;Ignore this here
    (parse-opts as opts))
   ([(cons (cons #\+ s) as) opts]
    (let ((`#(ok ,t) (lfe_io:read_string s)))

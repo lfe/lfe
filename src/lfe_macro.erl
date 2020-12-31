@@ -812,11 +812,11 @@ exp_predef([Op|Es], _, St0)
     end;
 exp_predef([backquote,Bq], _, St) ->            %We do this here.
     {yes,exp_backquote(Bq),St};
-exp_predef(['++'|Abody], _, St) ->
+exp_predef(['++'|Abody], _, St) ->              %List append
     Exp = exp_append(Abody),
     {yes,Exp,St};
-exp_predef(['++*'|Abody], _, St) ->
-    Exp = exp_prefix(Abody),
+exp_predef(['--'|Args], _, St) ->               %List subtract
+    Exp = exp_right_assoc(Args, '--'),
     {yes,Exp,St};
 exp_predef(['?'|As], _, St) ->
     Omega = [omega,omega],                      %Match anything and return it
@@ -1125,38 +1125,28 @@ exp_right_assoc([E|Es], Op) ->
 %%  a lot of interesting cases here. Only be smart with proper forms.
 
 exp_append(Args) ->
+    ConsList = fun (E, Cs) -> [cons,E,Cs] end,
     case Args of
         %% Cases with quoted lists.
-        [?Q([A|As])|Es] -> [cons,?Q(A),exp_append([?Q(As)|Es])];
-        [?Q([])|Es] -> exp_append(Es);
+        [?Q([A|Qas])|As] -> [cons,?Q(A),exp_append([?Q(Qas)|As])];
+        [?Q([])|As] -> exp_append(As);
         %% Cases with explicit cons/list/list*.
-        [['list*',A]|Es] -> exp_append([A|Es]);
-        [['list*',A|As]|Es] -> [cons,A,exp_append([['list*'|As]|Es])];
-        [[list,A|As]|Es] -> [cons,A,exp_append([[list|As]|Es])];
-        [[list]|Es] -> exp_append(Es);
-        [[cons,H,T]|Es] -> [cons,H,exp_append([T|Es])];
-        [[]|Es] -> exp_append(Es);
-        %% Cases with lists of numbers (strings).
-        %% [[N|Ns]|Es] when is_number(N) -> [cons,N,exp_append([Ns|Es])];
-        %% Default cases with unquoted arg.
-        [E] -> E;                %Last arg not checked
-        [E|Es] -> exp_bif('++', [E,exp_append(Es)]);
+        [['list*',A]|As] -> exp_append([A|As]);
+        [['list*',A|Las]|As] -> [cons,A,exp_append([['list*'|Las]|As])];
+	[[list|Las]|As] -> lists:foldr(ConsList, exp_append(As), Las);
+        [[cons,H,T]|As] -> [cons,H,exp_append([T|As])];
+        [[]|As] -> exp_append(As);
+	[A|As] ->
+	    case lfe_lib:is_posint_list(A) of
+		true ->
+		    lists:foldr(ConsList, exp_append(As), A);
+		false ->
+		    if As =:= [] -> A;
+		       true -> exp_bif('++', [A,exp_append(As)])
+		    end
+	    end;
         [] -> []
     end.
-
-%% exp_prefix(Args) -> Expansion.
-%%  Expand ++* in such a way as to allow its use in patterns.
-%%  Handle lists of numbers (strings) explicitly, otherwise
-%%  default to exp_append/1.
-
-exp_prefix([['list*',A]|Es]) -> exp_prefix([A|Es]);
-exp_prefix([['list*',A|As]|Es]) -> [cons,A,exp_prefix([['list*'|As]|Es])];
-exp_prefix([[list,A|As]|Es]) -> [cons,A,exp_prefix([[list|As]|Es])];
-exp_prefix([[list]|Es]) -> exp_prefix(Es);
-exp_prefix([[cons,H,T]|Es]) -> [cons,H,exp_prefix([T|Es])];
-exp_prefix([[N|Ns]|Es]) when is_number(N) -> [cons,N,exp_prefix([Ns|Es])];
-exp_prefix([[]|Es]) -> exp_prefix(Es);
-exp_prefix(Args) -> exp_append(Args).
 
 %% exp_list_star(ListBody) -> Cons.
 
