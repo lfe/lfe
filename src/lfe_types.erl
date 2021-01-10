@@ -62,10 +62,11 @@ is_type_decl(_Other) -> false.
 %% Our special cases.
 from_type_def({type,_L,union,Types}) ->         %Special case union
     ['UNION'|from_type_defs(Types)];
-from_type_def({type,_L,tuple,any}) -> [tuple];
+from_type_def({type,_L,tuple,any}) -> [tuple];  %Special case tuple() -> (tuple)
 from_type_def({type,_L,binary,Bits}) when Bits =/= [] ->
      [bitstring|from_type_defs(Bits)];          %Flip binary<->bitstring here
 %% from_type_def({type,_L,bitstring,[]}) -> [bitstring,[]];
+from_type_def({type,_L,map,any}) -> [map];      %Special case map() -> (map)
 from_type_def({type,_L,map,Pairs}) ->
     [map|from_map_pairs(Pairs)];
 from_type_def({type,_L,record,[{atom,_L,Name}|Fields]}) ->
@@ -114,10 +115,12 @@ to_type_def([range,I1,I2], Line) ->
     {type,Line,range,to_type_defs([I1,I2], Line)};
 to_type_def([bitstring,I1,I2], Line) ->         %Flip binary<->bitstring here
     {type,Line,binary,to_type_defs([I1,I2], Line)};
-to_type_def([tuple], Line) ->                   %Undefined tuple
+to_type_def([tuple], Line) ->                   %Special case (tuple) -> tuple()
     {type,Line,tuple,any};
 to_type_def([tuple|Args], Line) ->              %Not a user defined type
     {type,Line,tuple,to_type_defs(Args, Line)};
+to_type_def([map], Line) ->                     %Special case (map) -> map()
+    {type,Line,map,any};
 to_type_def([map|Pairs], Line) ->
     {type,Line,map,to_map_pairs(Pairs, Line)};
 to_type_def([record,Name|Fields], Line) ->
@@ -173,7 +176,9 @@ to_rec_fields(Fs, Line) ->
 to_lambda_args(any, Line) -> {type,Line,any};
 to_lambda_args(Args, Line) -> to_func_prod(Args, Line).
 
-%% check_type_def(Def, KnownTypes, TypeVars) ->
+%% check_type_defs(Defs, KnownRecords, TypeVars) ->
+%%     {ok,TypeVars} | {error,Error,TypeVars}.
+%% check_type_def(Def, KnownRecords, TypeVars) ->
 %%     {ok,TypeVars} | {error,Error,TypeVars}.
 %%  Check a type definition. TypeVars is an orddict of variable names
 %%  and usage counts. Errors returned are:
