@@ -40,14 +40,6 @@ Change the working directory.
 .PP
 Clear the REPL output.
 .PP
-\f[B]([doc | describe] Mod)\f[R]
-.PP
-\f[B]([doc | describe] Mod:Mac)\f[R]
-.PP
-\f[B]([doc | describe] Mod:Fun/Arity)\f[R]
-.PP
-Print out documentation of a module/macro/function.
-.PP
 \f[B](ec File [Options])\f[R]
 .PP
 Compile and load an Erlang file.
@@ -69,11 +61,23 @@ Flush any messages sent to the shell.
 .PP
 Print usage info.
 .PP
+\f[B](h Mod)\f[R]
+.PP
+\f[B](h Mod Mac)\f[R]
+.PP
+\f[B](h Mod Fun Arity)\f[R]
+.PP
+Print out help information of a module/macro/function.
+.PP
 \f[B](i [(list Pid \&...)])\f[R]
 .PP
 Print information about a list of pids.
 If no list is given then print information about currently running
 processes in the system.
+.PP
+\f[B](i x y z)\f[R]
+.PP
+Print information about the about #Pid<x.y.z>
 .PP
 \f[B](l Module \&...)\f[R]
 .PP
@@ -217,6 +221,8 @@ will create a job running the LFE shell and connect to it.
 This also works when starting a remote shell.
 .PP
 Flags that LFE recognizes include the following:
+.IP \[bu] 2
+\f[C]-nobanner\f[R] - starts LFE without showing the banner
 .IP \[bu] 2
 \f[C]-h\f[R] or \f[C]--help\f[R] - provides command line usage help
 .IP \[bu] 2

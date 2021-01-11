@@ -40,14 +40,6 @@ Change the working directory.
 
 Clear the REPL output.
 
-**([doc | describe] Mod)**
-
-**([doc | describe] Mod:Mac)**
-
-**([doc | describe] Mod:Fun/Arity)**
-
-Print out documentation of a module/macro/function.
-
 **(ec File [Options])**
 
 Compile and load an Erlang file.
@@ -69,10 +61,22 @@ Flush any messages sent to the shell.
 
 Print usage info.
 
+**(h Mod)**
+
+**(h Mod Mac)**
+
+**(h Mod Fun Arity)**
+
+Print out help information of a module/macro/function.
+
 **(i [(list Pid ...)])**
 
 Print information about a list of pids. If no list is given then
 print information about currently running processes in the system.
+
+**(i x y z)**
+
+Print information about the about #Pid<x.y.z>
 
 **(l Module ...)**
 
@@ -221,6 +225,7 @@ it. This also works when starting a remote shell.
 
 Flags that LFE recognizes include the following:
 
+* ``-nobanner`` - starts LFE without showing the banner
 * ``-h`` or ``--help`` - provides command line usage help
 * ``-e`` or ``-eval`` - evaluates a given sexpr in a string
 * ``-prompt`` - users may supply a value here to override the

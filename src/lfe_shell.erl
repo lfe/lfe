@@ -32,8 +32,8 @@
          new_state/2,new_state/3,upd_state/3]).
 
 %% The shell commands which generally callable.
--export([c/1,c/2,cd/1,doc/1,ec/1,ec/2,ep/1,ep/2,epp/1,epp/2,help/0,
-         i/0,i/1,l/1,ls/1,clear/0,m/0,m/1,pid/3,p/1,p/2,pp/1,pp/2,pwd/0,
+-export([c/1,c/2,cd/1,ec/1,ec/2,ep/1,ep/2,epp/1,epp/2,help/0,h/1,h/2,h/3,
+         i/0,i/1,i/3,l/1,ls/1,clear/0,m/0,m/1,pid/3,p/1,p/2,pp/1,pp/2,pwd/0,
          q/0,flush/0,regs/0,exit/0]).
 
 -import(lfe_env, [new/0,add_env/2,
@@ -332,9 +332,13 @@ add_shell_functions(Env0) ->
           {epp,1,[lambda,[e],[':',lfe_shell,epp,e]]},
           {epp,2,[lambda,[e,d],[':',lfe_shell,epp,e,d]]},
           {h,0,[lambda,[],[':',lfe_shell,help]]},
+          {h,1,[lambda,[m], [':',lfe_shell,h,m]]},
+          {h,2,[lambda,[m,f], [':',lfe_shell,h,m,f]]},
+          {h,3,[lambda,[m,f,a], [':',lfe_shell,h,m,f,a]]},
           {help,0,[lambda,[],[':',lfe_shell,help]]},
           {i,0,[lambda,[],[':',lfe_shell,i]]},
           {i,1,[lambda,[ps],[':',lfe_shell,i,ps]]},
+          {i,3,[lambda,[x,y,z],[':',lfe_shell,i,x,y,z]]},
           {clear,0,[lambda,[],[':',lfe_shell,clear]]},
           {pid,3,[lambda,[i,j,k],[':',lfe_shell,pid,i,j,k]]},
           {p,1,[lambda,[e],[':',lfe_shell,p,e]]},
@@ -366,7 +370,11 @@ add_shell_macros(Env0) ->
                      [[[list,mod],'$ENV'],?BQ([':',lfe_shell,doc,?Q(?C(mod))])],
                      ?UNDEF_MATCH_FUNC(describe)]},
           {doc,['match-lambda',
-                [[[list,mod],'$ENV'],?BQ([':',lfe_shell,doc,?Q(?C(mod))])],
+                [[[list,mod],'$ENV'],?BQ([':',lfe_shell,h,?Q(?C(mod))])],
+                [[[list,mod,func],'$ENV'],
+                 ?BQ([':',lfe_shell,h,?Q(?C(mod)),?Q(?C(func))])],
+                [[[list,mod,func,arity],'$ENV'],
+                 ?BQ([':',lfe_shell,h,?Q(?C(mod)),?Q(?C(func)),?Q(?C(arity))])],
                 ?UNDEF_MATCH_FUNC(doc)]},
           {ec,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ec,?C_A(args)])]},
           {l,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,l,[list|?C(args)]])]},
@@ -811,9 +819,13 @@ help() ->
                    "(exit)         -- quit - an alias for (q)\n"
                    "(flush)        -- flush any messages sent to the shell\n"
                    "(h)            -- an alias for (help)\n"
+                   "(h m)          -- help about module\n"
+                   "(h m m)        -- help about function and macro in module\n"
+                   "(h m f a)      -- help about function/arity in module\n"
                    "(help)         -- help info\n"
                    "(i)            -- information about the system\n"
                    "(i pids)       -- information about a list of pids\n"
+                   "(i x y z)      -- information about pid #Pid<x.y.z>\n"
                    "(l module)     -- load or reload <module>\n"
                    "(ls)           -- list files in the current directory\n"
                    "(ls dir)       -- list files in directory <dir>\n"
@@ -821,11 +833,12 @@ help() ->
                    "(m mod)        -- information about module <mod>\n"
                    "(p expr)       -- print a term\n"
                    "(pp expr)      -- pretty print a term\n"
-                   "(pid x y z)    -- convert <x>, <y> and <z> to a pid\n"
+                   "(pid x y z)    -- convert x, y, z to a pid\n"
                    "(pwd)          -- print working directory\n"
                    "(q)            -- quit - shorthand for init:stop/0\n"
-                   "(regs)         -- information about registered processes\n\n"
-                   "LFE shell built-in commands\n\n"
+                   "(regs)         -- information about registered processes\n"
+                   "\n"
+                   "LFE shell built-in forms\n\n"
                    "(reset-environment)             -- reset the environment to its initial state\n"
                    "(run file)                      -- execute all the shell commands in a <file>\n"
                    "(set pattern expr)\n"
@@ -847,6 +860,8 @@ help() ->
 i() -> c:i().
 
 i(Pids) -> c:i(Pids).
+
+i(X, Y, Z) -> c:i(X, Y, Z).
 
 %% l(Modules) -> ok.
 %%  Load the modules.
@@ -1011,30 +1026,43 @@ regs() -> c:regs().
 
 exit() -> c:q().
 
-%% doc(Fun) -> ok | {error,Error}.
+%% doc(Mod) -> ok | {error,Error}.
+%% doc(Mod, Func) -> ok | {error,Error}.
+%% doc(Mod, Func, Arity) -> ok | {error,Error}.
 %%  Print out documentation of a module/macro/function. Always try to
 %%  find the file and use it as this is the only way to get hold of
 %%  the chunks. This may get a later version than is loaded.
 
-doc(?Q(What)) -> doc(What);                     %Be kind if they quote it
-doc(What) ->
-    [Mod|F] = lfe_lib:split_name(What),
+%% doc(?Q(What)) -> doc(What);                     %Be kind if they quote it
+%% doc(What) ->
+%%     [Mod|F] = lfe_lib:split_name(What),
+
+h(Mod) ->
     case lfe_docs:get_module_docs(Mod) of
         {ok,#docs_v1{}=Docs} ->
-            Ret = case F of
-                      [] ->                     %Only module name
-                          get_module_doc(Mod, Docs);
-                      [Name] ->                 %Macro and functions
-                          get_macro_doc(Mod, Name, Docs);
-                      [Name,Arity] ->           %Just on function
-                          get_function_doc(Mod, Name, Arity, Docs)
-                  end,
+            Ret = get_module_doc(Mod, Docs),
+            format_doc(Ret);
+        Error -> Error
+    end.
+
+h(Mod, Func) ->
+    case lfe_docs:get_module_docs(Mod) of
+        {ok,#docs_v1{}=Docs} ->
+            Ret = get_macro_doc(Mod, Func, Docs),
+            format_doc(Ret);
+        Error -> Error
+    end.
+
+h(Mod, Func, Arity) ->
+    case lfe_docs:get_module_docs(Mod) of
+        {ok,#docs_v1{}=Docs} ->
+            Ret = get_function_doc(Mod, Func, Arity, Docs),
             format_doc(Ret);
         Error -> Error
     end.
 
 format_doc({error,_}=Error) -> Error;
-format_doc({ok,Docs}) ->
+format_doc(Docs) ->
     {match,Lines} = re:run(Docs, "(.+\n|\n)",
                            [unicode,global,{capture,all_but_first,binary}]),
     Pfun = fun (Line) ->
@@ -1049,78 +1077,44 @@ format_doc({ok,Docs}) ->
 -ifdef(EEP48).
 
 get_module_doc(Mod, #docs_v1{format = ?NATIVE_FORMAT}=Docs) ->
-    {ok,shell_docs:render(Mod, Docs)};
-get_module_doc(Mod, Docs) ->
-    get_module_lfe_doc(Mod, Docs).
+    shell_docs:render(Mod, Docs);
+get_module_doc(Mod, #docs_v1{format = ?LFE_FORMAT}=Docs) ->
+    lfe_shell_docs:render(Mod, Docs);
+get_module_doc(_Mod, #docs_v1{format = Enc}) ->
+    {error, {unknown_format, Enc}}.
 
 get_macro_doc(Mod, Name, #docs_v1{format = ?NATIVE_FORMAT}=Docs) ->
-    case shell_docs:render(Mod, Name, Docs) of
-        {error,_}=Error -> Error;
-        Bin -> {ok,[lfe_io:format1(?BLU("defun ~s")++"\n", [Name]),
-                    Bin]}
-    end;
-get_macro_doc(Mod, Name, Docs) ->
-    get_macro_lfe_doc(Mod, Name, Docs).
+    shell_docs:render(Mod, Name, Docs);
+get_macro_doc(Mod, Name, #docs_v1{format = ?LFE_FORMAT}=Docs) ->
+    lfe_shell_docs:render(Mod, Name, Docs);
+get_macro_doc(_Mod, _Name, #docs_v1{format = Enc}) ->
+    {error, {unknown_format, Enc}}.
 
 get_function_doc(Mod, Name, Arity, #docs_v1{format = ?NATIVE_FORMAT}=Docs) ->
-    case shell_docs:render(Mod, Name, Arity, Docs) of
-        {error,_}=Error -> Error;
-        Bin -> {ok,[lfe_io:format1(?BLU("defun ~s/~w")++"\n", [Name,Arity]),
-                    Bin]}
-    end;
-get_function_doc(Mod, Name, Arity, Docs) ->
-    get_function_lfe_doc(Mod, Name, Arity, Docs).
+    shell_docs:render(Mod, Name, Arity, Docs);
+get_function_doc(Mod, Name, Arity, #docs_v1{format = ?LFE_FORMAT}=Docs) ->
+    lfe_shell_docs:render(Mod, Name, Arity, Docs);
+get_function_doc(_Mod, _Name, _Arity, #docs_v1{format = Enc}) ->
+    {error, {unknown_format, Enc}}.
 
 -else.
 
-get_module_doc(Mod, Docs) ->
-    get_module_lfe_doc(Mod, Docs).
+get_module_doc(Mod, #docs_v1{format = ?LFE_FORMAT}=Docs) ->
+    lfe_shell_docs:render(Mod, Docs);
+get_module_doc(_Mod, #docs_v1{format = Enc}) ->
+    {error, {unknown_format, Enc}}.
 
-get_macro_doc(Mod, Name, Docs) ->
-    get_macro_lfe_doc(Mod, Name, Docs).
+get_macro_doc(Mod, Name, #docs_v1{format = ?LFE_FORMAT}=Docs) ->
+    lfe_shell_docs:render(Mod, Name, Docs);
+get_macro_doc(Mod, Name, #docs_v1{format = Enc}) ->
+    {error, {unknown_format, Enc}}.
 
-get_function_doc(Mod, Name, Arity, Docs) ->
-    get_function_lfe_doc(Mod, Name, Arity, Docs).
+get_function_doc(Mod, Name, Arity, #docs_v1{format = ?LFE_FORMAT}=Docs) ->
+    lfe_shell_docs:render(Mod, Name, Arity, Docs);
+get_function_doc(Mod, Name, Arity, #docs_v1{format = Enc}) ->
+    {error, {unknown_format, Enc}}.
 
 -endif.
-
-%% get_module_lfe_doc(Module, Docs)
-%% get_macro_lfe_doc(Module, Name, Docs)
-%% get_function_lfe_doc(Module, Name, Arity, Docs)
-%%  Functions for rendering common LFE/elixir documentation.
-
-get_module_lfe_doc(Mod, #docs_v1{format = ?LFE_FORMAT,module_doc=Mdoc}) ->
-    {ok,[lfe_io:format1(?BLU("~p")++"\n\n", [Mod]),
-         return_doc(Mdoc)]};
-get_module_lfe_doc(_Mod, #docs_v1{format = Enc}) ->
-    {error, {unknown_format, Enc}}.
-
-get_macro_lfe_doc(_Mod, Name, #docs_v1{format = ?LFE_FORMAT, docs = Docs}) ->
-    Fns = [ F || {{_,N,_},_,_,_,_}=F <- Docs, N =:= Name ],
-    Doc = lists:map(fun ({{function,_,_},_,Sig,Doc,_}) ->
-                            [lfe_io:format1(?BLU("defun ~s")++"\n\n", [Sig]),
-                             return_doc(Doc)];
-                        ({{macro,_,_},_,Sig,Doc,_}) ->
-                            [lfe_io:format1(?BLU("defmacro ~s")++"\n\n", [Sig]),
-                             return_doc(Doc)]
-                    end, Fns),
-    {ok,Doc};
-get_macro_lfe_doc(_Mod, _Name, #docs_v1{format = Enc}) ->
-    {error, {unknown_format, Enc}}.
-
-get_function_lfe_doc(_Mod, Name, Arity,
-                     #docs_v1{format = ?LFE_FORMAT, docs = Docs}) ->
-    Fns = [ F || {{function,N,A},_,_,_,_}=F <- Docs, N =:= Name, A =:= Arity ],
-    Doc = lists:map(fun ({{function,_,_},_,Sig,Doc,_}) ->
-                            [lfe_io:format1(?BLU("defun ~s")++"\n\n", [Sig]),
-                             return_doc(Doc)]
-                    end, Fns),
-    {ok,Doc};
-get_function_lfe_doc(_Mod, _Name, _Arity, #docs_v1{format = Enc}) ->
-    {error, {unknown_format, Enc}}.
-
-return_doc(#{<<"en">> := Dv}) -> lfe_io:format1("~s\n\n", [Dv]);
-return_doc(_) -> "\n".
 
 %% paged_output(Lines) -> ok.
 %%  Output lines a page at a time.
