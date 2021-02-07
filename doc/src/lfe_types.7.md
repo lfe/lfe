@@ -1,6 +1,6 @@
 % lfe_types(7)
 % Robert Virding
-% 2016
+% 2021
 
 # NAME
 
@@ -27,15 +27,21 @@ This is a description of the type syntax.
   | `(lambda () <type>)`           | `fun(() -> <type>)`            |
   | `(lambda (<tlist>) <type>)`    | `fun((<tlist>) -> <type>)`     |
   | `(map)`                        | `map()`                        |
-  | `(map <pairlist>)`             | `#{<pairlist>}`                |
+  | `#M()`                         | `#{}`                          |
+  | `#M(<key> <value> ...)`        | `#{<pairlist>}`                |
   | `(tuple)`                      | `tuple()`                      |
-  | `(tuple <tlist>)`              | `{<tlist>}`                    |
+  | `#()`                          | `{}`                           |
+  | `#(<tlist>)`                   | `{<tlist>}`                    |
   | `(UNION <tlist>)`              | `<type> | <type>`              |
 
 Apart from the predefined types in the Erlang type system we also have
 the following predefined types which cannot be redefined: `UNION`,
 `call`, `lambda` and `range`. The usage of `bitstring`, `tuple` and
 `map` have also been extended.
+
+Note that the type `#M()` is the empty map and the type `#()` is the
+empty tuple. We can still use the older `(map <key valuelist>)` and
+`(tuple <tlist>)` formats when declaring types for maps and tuples.
 
 The general form of bitstrings is `(bitstring m n)` which denotes a
 bitstring which starts with `m` bits and continues with segments of

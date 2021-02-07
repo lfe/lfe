@@ -1,4 +1,4 @@
-%% Copyright (c) 2016-2020 Robert Virding
+%% Copyright (c) 2016-2021 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@
 format_error({bad_type,T}) ->
     lfe_io:format1("bad ~w type definition", [T]);
 format_error({type_syntax,T}) ->
-    lfe_io:format1(<<"bad ~w type">>, [T]);
+    lfe_io:format1(<<"bad ~w type syntax">>, [T]);
 format_error({bad_spec,S}) ->
     lfe_io:format1("bad function spec: ~w", [S]).
 
@@ -62,13 +62,17 @@ is_type_decl(_Other) -> false.
 %% Our special cases.
 from_type_def({type,_L,union,Types}) ->         %Special case union
     ['UNION'|from_type_defs(Types)];
-from_type_def({type,_L,tuple,any}) -> [tuple];  %Special case tuple() -> (tuple)
+from_type_def({type,_L,tuple,any}) ->           %Special case tuple() -> (tuple)
+    [tuple];
+from_type_def({type,_L,tuple,Elems}) ->
+    list_to_tuple(from_type_defs(Elems));
 from_type_def({type,_L,binary,Bits}) when Bits =/= [] ->
-     [bitstring|from_type_defs(Bits)];          %Flip binary<->bitstring here
+    [bitstring|from_type_defs(Bits)];           %Flip binary<->bitstring here
 %% from_type_def({type,_L,bitstring,[]}) -> [bitstring,[]];
-from_type_def({type,_L,map,any}) -> [map];      %Special case map() -> (map)
+from_type_def({type,_L,map,any}) ->             %Special case map() -> (map)
+    [map];
 from_type_def({type,_L,map,Pairs}) ->
-    [map|from_map_pairs(Pairs)];
+    maps:from_list(from_map_pairs(Pairs));
 from_type_def({type,_L,record,[{atom,_L,Name}|Fields]}) ->
     [record,Name|from_rec_fields(Fields)];
 from_type_def({type,_L,'fun',[Args,Ret]}) ->
@@ -83,16 +87,20 @@ from_type_def({ann_type,_L,[_Var,Type]}) ->     %Annotated types lose variable
 from_type_def({remote_type,_L,[{atom,_,M},{atom,_,T},Args]}) ->
     Type = list_to_atom(lists:concat([M,":",T])),
     [Type|from_type_defs(Args)];
+%% Literal values.
 from_type_def({var,_L,Var}) -> Var;             %A type variable
 from_type_def({atom,_L,Atom}) -> ?Q(Atom);      %Literal atom
-from_type_def({integer,_L,Int}) -> Int.         %Literal integer
+from_type_def({integer,_L,Int}) -> Int;         %Literal integer
+from_type_def({float,_L,Float}) -> Float.       %Literal float
 
 from_type_defs(Ts) ->
     lists:map(fun from_type_def/1, Ts).
 
 from_map_pairs(Pairs) ->
     %% Lose distinction between assoc and exact pairs.
-    Fun = fun ({type,_L,_P,Types}) -> from_type_defs(Types) end,
+    Fun = fun ({type,_L,_P,[Kt,Vt]}) ->
+                  {from_type_def(Kt),from_type_def(Vt)}
+          end,
     lists:map(Fun, Pairs).
 
 from_rec_fields(Fields) ->
@@ -121,8 +129,8 @@ to_type_def([tuple|Args], Line) ->              %Not a user defined type
     {type,Line,tuple,to_type_defs(Args, Line)};
 to_type_def([map], Line) ->                     %Special case (map) -> map()
     {type,Line,map,any};
-to_type_def([map|Pairs], Line) ->
-    {type,Line,map,to_map_pairs(Pairs, Line)};
+to_type_def([map|Elems], Line) ->
+    {type,Line,map,to_map_pairs(to_pair_list(Elems), Line)};
 to_type_def([record,Name|Fields], Line) ->
     {type,Line,record,[to_lit(Name, Line)|to_rec_fields(Fields, Line)]};
 to_type_def([lambda,Args,Ret], Line) ->
@@ -148,7 +156,14 @@ to_type_def([Type|Args], Line) ->
                   end,
             {Tag,Line,Type,Dargs}
         end;
+to_type_def(Tup, Line) when is_tuple(Tup) ->
+    {type,Line,tuple,to_type_defs(tuple_to_list(Tup), Line)};
+to_type_def(Map, Line) when ?IS_MAP(Map) ->
+    ToPairs = to_map_pairs(maps:to_list(Map), Line),
+    {type,Line,map,ToPairs};
 to_type_def(Val, Line) when is_integer(Val) ->  %Literal integer value
+    to_lit(Val, Line);
+to_type_def(Val, Line) when is_float(Val) ->    %Literal float value
     to_lit(Val, Line);
 to_type_def(Val, Line) when is_atom(Val) ->     %Variable
     {var,Line,Val}.
@@ -157,12 +172,17 @@ to_type_defs(Ds, Line) ->
     lists:map(fun (D) -> to_type_def(D, Line) end, Ds).
 
 to_lit(Val, Line) when is_atom(Val) -> {atom,Line,Val};
-to_lit(Val, Line) when is_integer(Val) -> {integer,Line,Val}.
+to_lit(Val, Line) when is_integer(Val) -> {integer,Line,Val};
+to_lit(Val, Line) when is_float(Val) -> {float,Line,Val}.
+
+to_pair_list([K,V|Rest]) ->
+    [{K,V}|to_pair_list(Rest)];
+to_pair_list([]) -> [].
 
 to_map_pairs(Pairs, Line) ->
     %% Have lost distinction between assoc and exact pairs.
-    Fun = fun (Pair) ->
-                  {type,Line,map_field_assoc,to_type_defs(Pair, Line)}
+    Fun = fun ({K,V}) ->
+                  {type,Line,map_field_assoc,to_type_defs([K,V], Line)}
           end,
     [ Fun(P) || P <- Pairs ].
 
@@ -218,7 +238,12 @@ check_type_def([call,?Q(M),?Q(T)|Args], Recs, Tvs) when is_atom(M), is_atom(T) -
 %% The standard Erlang types.
 check_type_def([Type|Args], Recs, Tvs0) when is_atom(Type) ->
     check_type_defs(Args, Recs, Tvs0);
-%% Only integers and atoms (type variables) legally left now.
+%% Only literal tuples,  maps, integers and atoms (type variables) left now.
+check_type_def(Tup, Recs, Tvs) when is_tuple(Tup) ->
+    check_type_defs(tuple_to_list(Tup), Recs, Tvs);
+check_type_def(Map, Recs, Tvs) when ?IS_MAP(Map) ->
+    ToPairs = fun ({K,V}) -> [K,V] end,           %Convert to list pairs
+    check_map_pairs(lists:flatmap(ToPairs, maps:to_list(Map)), Recs, Tvs);
 check_type_def(Val, _Recs, Tvs) when is_integer(Val) -> {ok,Tvs};
 check_type_def(Val, _Recs, Tvs) when is_atom(Val) ->
     %% It's a type variable.
@@ -232,16 +257,21 @@ check_type_defs(Defs, Recs, Tvs) ->
 check_type_lit(Val, Tvs) when is_integer(Val) ; is_atom(Val) -> {ok,Tvs};
 check_type_lit(Val, Tvs) -> bad_type_error(Val, Tvs).
 
-check_map_pairs(Pairs, Recs, Tvs) ->
-    check_type_list(fun check_map_pair/3, Pairs, Recs, Tvs).
+check_map_pairs([K,V|Pairs], Recs, Tvs0) ->
+    case check_map_pair(K, V, Recs, Tvs0) of
+        {ok,Tvs1} ->
+            check_map_pairs(Pairs, Recs, Tvs1);
+        Error -> Error
+    end;
+check_map_pairs([], _Recs, Tvs) -> {ok,Tvs};
+check_map_pairs(_Other, _Recs, Tvs) ->
+    type_syntax_error(map, Tvs).
 
-check_map_pair([K,V], Recs, Tvs0) ->
+check_map_pair(K, V, Recs, Tvs0) ->
     case check_type_def(K, Recs, Tvs0) of
         {ok,Tvs1} -> check_type_def(V, Recs, Tvs1);
         Error -> Error
-    end;
-check_map_pair(Other, _Recs, Tvs) ->
-    bad_type_error(Other, Tvs).
+    end.
 
 %% check_record(Record, Fields, KnownRecords, TypeVars) ->
 %%     {ok,TypeVars} | {error,Error,TypeVars}.
@@ -329,8 +359,10 @@ to_func_constraint([Var,Type], Line) ->
     {type,Line,constraint,[{atom,Line,is_subtype},
                            [{var,Line,Var},to_type_def(Type, Line)]]}.
 
-%% check_func_spec_list([FuncType], Arity, KnownTypes, TypeVars) ->
+%% check_func_spec_list([FuncType], Arity, KnownRecords) ->
 %%     {ok,[TypeVars]} | {error,Error,[TypeVars]}.
+%% check_func_spec(FuncType, Arity, KnownRecords) ->
+%%     {ok,TypeVars} | {error,Error,TypeVars}.
 %%  Check a list of function specs. TypeVars is an orddict of variable
 %%  names and usage counts. Errors returned are:
 %%  {bad_spec,Spec}     - error in the type definition
