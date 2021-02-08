@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2020 Robert Virding
+%% Copyright (c) 2008-2021 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ format_error({badmatch,Val}) ->
 format_error({unbound_symb,S}) ->
     lfe_io:format1(<<"symbol ~w is unbound">>, [S]);
 format_error({undefined_func,{F,A}}) ->
-    lfe_io:format1(<<"undefined function ~w/~w">>, [F,A]);
+    lfe_io:format1(<<"function ~w/~w undefined">>, [F,A]);
 format_error(if_expression) -> <<"non-boolean if test">>;
 format_error(function_clause) -> <<"no function clause matching">>;
 format_error({case_clause,Val}) ->
@@ -166,25 +166,20 @@ eval_expr([tset,Tup,I,V], Env) ->
     setelement(eval_expr(I, Env), eval_expr(Tup, Env), eval_expr(V, Env));
 eval_expr([binary|Bs], Env) -> eval_binary(Bs, Env);
 eval_expr([map|As], Env) ->
-    Pairs = map_pairs(As, Env),
+    Pairs = map_pairs(map, As, Env),
     maps:from_list(Pairs);
 eval_expr(['mref',Map,K], Env) ->
-    Key = map_key(K, Env),
-    maps:get(Key, eval_expr(Map, Env));
+    map_get(mref, Map, K, Env);
 eval_expr(['mset',M|As], Env) ->
-    Map   = eval_expr(M, Env),
-    Pairs = map_pairs(As, Env),
-    foldl(fun maps_put/2, Map, Pairs);
+    map_set(mset, M, As, Env);
 eval_expr(['mupd',M|As], Env) ->
-    Map   = eval_expr(M, Env),
-    Pairs = map_pairs(As, Env),
-    foldl(fun maps_update/2, Map, Pairs);
+    map_update(mupd, M, As, Env);
 eval_expr(['map-get',Map,K], Env) ->
-    eval_expr([mref,Map,K], Env);
+    map_get('map-get', Map, K, Env);
 eval_expr(['map-set',M|As], Env) ->
-    eval_expr([mset,M|As], Env);
+    map_set('map-set', M, As, Env);
 eval_expr(['map-update',M|As], Env) ->
-    eval_expr([mupd,M|As], Env);
+    map_update('map-update', M, As, Env);
 %% Record special forms.
 eval_expr(['make-record',Name,Args], Env) ->
     case lfe_env:get_record(Name, Env) of
@@ -471,13 +466,31 @@ eval_float_bitseg(Val, Sz, big) -> <<Val:Sz/float>>;
 eval_float_bitseg(Val, Sz, little) -> <<Val:Sz/float-little>>;
 eval_float_bitseg(Val, Sz, native) -> <<Val:Sz/float-native>>.
 
-%% map_pairs(Args, Env) -> [{K,V}].
+%% map_get(Form, Map, Key, Env) -> Value.
+%% map_set(Form, Map, Args, Env) -> Map.
+%% map_update(Form, Map, Args, Env) -> Map.
 
-map_pairs([K,V|As], Env) ->
+map_get(_Form, Map, K, Env) ->
+    Key = map_key(K, Env),
+    maps:get(Key, eval_expr(Map, Env)).
+
+map_set(Form, M, Args, Env) ->
+    Map = eval_expr(M, Env),
+    Pairs = map_pairs(Form, Args, Env),
+    lists:foldl(fun maps_put/2, Map, Pairs).
+
+map_update(Form, M, Args, Env) ->
+    Map = eval_expr(M, Env),
+    Pairs = map_pairs(Form, Args, Env),
+    lists:foldl(fun maps_update/2, Map, Pairs).
+
+%% map_pairs(Form, Args, Env) -> [{K,V}].
+
+map_pairs(Form, [K,V|As], Env) ->
     P = {map_key(K, Env),eval_expr(V, Env)},
-    [P|map_pairs(As, Env)];
-map_pairs([], _) -> [];
-map_pairs(_, _) -> badarg_error().
+    [P|map_pairs(Form, As, Env)];
+map_pairs(_Form, [], _) -> [];
+map_pairs(Form, _, _) -> bad_form_error(Form).
 
 %% map_key(Key, Env) -> Value.
 %%  A map key can only be a literal in 17 but can be anything in 18..
@@ -495,6 +508,9 @@ map_key([_|_]=L, _) ->
 map_key(E, _) when not is_atom(E) -> E;         %Everything else
 map_key(E, _) -> illegal_mapkey_error(E).
 -endif.
+
+maps_put({K,V}, M) -> maps:put(K, V, M).
+maps_update({K,V}, M) -> maps:update(K, V, M).
 
 %% new_vars(N) -> Vars.
 
@@ -1326,7 +1342,3 @@ eval_error(Error) ->
     erlang:raise(error, Error, ?STACKTRACE).
 
 %%% Helper functions
-
-maps_put({K,V}, M) -> maps:put(K, V, M).
-
-maps_update({K,V}, M) -> maps:update(K, V, M).

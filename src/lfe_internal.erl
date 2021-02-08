@@ -1,4 +1,4 @@
-%% Copyright (c) 2016-2020 Robert Virding
+%% Copyright (c) 2016-2021 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -124,11 +124,11 @@ is_core_func(tset, 3) -> true;
 is_core_func(binary, Ar) when Ar >= 0  -> true;
 is_core_func(map, Ar) when Ar >= 0, (Ar rem 2) =:= 0 -> true;
 is_core_func(mref, 2) -> true;
-is_core_func(mset, Ar) when Ar >= 0, (Ar rem 2) =:= 1 -> true;
-is_core_func(mupd, Ar) when Ar >= 0, (Ar rem 2) =:= 1 -> true;
+is_core_func(mset, Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
+is_core_func(mupd, Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
 is_core_func('map-get', 2) -> true;
-is_core_func('map-set', Ar) when Ar >= 0, (Ar rem 2) =:= 1 -> true;
-is_core_func('map-upd', Ar) when Ar >= 0, (Ar rem 2) =:= 1 -> true;
+is_core_func('map-set', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
+is_core_func('map-update', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
 is_core_func(funcall, Ar) when Ar >= 1 -> true;
 is_core_func(call, Ar) when Ar >= 2 -> true;
 is_core_func(_, _) -> false.

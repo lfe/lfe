@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2020 Robert Virding
+%% Copyright (c) 2008-2021 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -60,26 +60,27 @@
 format_error({bad_mdef,D}) ->
     %% This can handle both atom and string error value.
     lfe_io:format1(<<"bad module ~s definition">>, [D]);
-format_error(bad_body) -> "bad body";
+format_error({bad_body,Form}) ->
+    lfe_io:format1(<<"bad body in ~w">>, [Form]);
 format_error(bad_guard) -> "bad guard";
 format_error(bad_args) -> "bad argument list";
 format_error(bad_gargs) -> "bad guard argument list";
 format_error(bad_alias) -> "bad pattern alias";
 format_error(bad_arity) -> "head arity mismatch";
 format_error({bad_attribute,A}) ->
-    lfe_io:format1("bad attribute: ~w", [A]);
+    lfe_io:format1(<<"bad attribute ~w">>, [A]);
 format_error({bad_meta,M}) ->
-    lfe_io:format1("bad metadata: ~w", [M]);
-format_error({bad_form,Type}) ->
-    lfe_io:format1("bad ~w form", [Type]);
-format_error({bad_gform,Type}) ->
-    lfe_io:format1("bad ~w guard form", [Type]);
-format_error({bad_pat,Type}) ->
-    lfe_io:format1("bad ~w pattern", [Type]);
+    lfe_io:format1(<<"bad metadata ~w">>, [M]);
+format_error({bad_form,Form}) ->
+    lfe_io:format1(<<"bad ~w form">>, [Form]);
+format_error({bad_gform,Form}) ->
+    lfe_io:format1(<<"bad ~w guard form">>, [Form]);
+format_error({bad_pat,Pat}) ->
+    lfe_io:format1(<<"bad ~w pattern">>, [Pat]);
 format_error({unbound_symb,S}) ->
-    lfe_io:format1("symbol ~w unbound", [S]);
-format_error({undefined_func,F}) ->
-    lfe_io:format1("function ~w undefined", [F]);
+    lfe_io:format1(<<"symbol ~w is unbound">>, [S]);
+format_error({undefined_func,{F,A}}) ->
+    lfe_io:format1("function ~w/~w undefined", [F,A]);
 format_error({multi_var,S}) ->
     lfe_io:format1("variable ~w multiply defined", [S]);
 format_error({redefine_function,F}) ->
@@ -87,12 +88,12 @@ format_error({redefine_function,F}) ->
 format_error({bad_fdef,F}) ->
     lfe_io:format1("bad definition of function ~w", [F]);
 format_error({illegal_literal,Lit}) ->
-    lfe_io:format1("illegal literal value ~w", [Lit]);
+    lfe_io:format1(<<"illegal literal value ~w">>, [Lit]);
 format_error({illegal_pattern,Pat}) ->
-    lfe_io:format1("illegal pattern ~w", [Pat]);
-format_error(illegal_guard) -> "illegal guard expression";
+    lfe_io:format1(<<"illegal pattern ~w">>, [Pat]);
+format_error(illegal_guard) -> <<"illegal guard expression">>;
 format_error({illegal_mapkey,Key}) ->
-    lfe_io:format1("illegal map key ~w", [Key]);
+    lfe_io:format1(<<"illegal map key ~w">>, [Key]);
 format_error(illegal_bitseg) -> "illegal bit segment";
 format_error(illegal_bitsize) -> "illegal bit size";
 format_error({deprecated,What}) ->
@@ -110,6 +111,8 @@ format_error({bad_field,Name,Field}) ->
     lfe_io:format1(<<"bad field ~w in record ~w">>, [Field,Name]);
 format_error({redefine_record,Name}) ->
     lfe_io:format1(<<"record ~w already defined">>, [Name]);
+format_error({missing_field_value,Name,Field}) ->
+    lfe_io:format1(<<"missing value to field ~w in record ~w">>,[Field,Name]);
 %% These are also used in lfe_eval.
 format_error({undefined_record,Name}) ->
     lfe_io:format1(<<"record ~w undefined">>, [Name]);
@@ -464,10 +467,13 @@ check_func_metas(N, Ms, L, St) ->
 check_func_meta(N, [doc|Docs], L, St) ->
     ?IF(is_docs_list(Docs), St, bad_meta_error(L, N, St));
 %% Need to get arity in here.
-%% check_func_meta(N, [spec|Specs], L, St) ->
-%%     case lfe_types:check_func_spec_list(Specs, Ar, St#lfe_lint.types) of
-%%         ok -> St1;
-%%         {error,Error} -> add_error(L, Error, St)
+%% check_func_meta(N, [spec|Specs], L, St0) ->
+%%     case lfe_types:check_func_spec_list(Specs, Ar, St#lfe_lint.recs) of
+%%         {ok,Tvss} ->
+%%             check_type_vars_list(Tvss, L, St0);
+%%         {error,Error,Tvss} ->
+%%             St1 = add_error(L, Error, St0),
+%%             check_type_vars_list(Tvss, L, St1)
 %%     end;
 check_func_meta(N, [M|Vals], L, St) ->
     ?IF(is_atom(M) and lfe_lib:is_proper_list(Vals),
@@ -602,19 +608,20 @@ check_expr([tuple|As], Env, L, St) -> check_args(As, Env, L, St);
 check_expr([tref|[_,_]=As], Env, L, St) -> check_args(As, Env, L, St);
 check_expr([tset|[_,_,_]=As], Env, L, St) -> check_args(As, Env, L, St);
 check_expr([binary|Segs], Env, L, St) -> expr_bitsegs(Segs, Env, L, St);
-check_expr([map|As], Env, L, St) -> expr_map(As, Env, L, St);
+check_expr([map|As], Env, L, St) ->
+    expr_map(As, Env, L, St);
 check_expr(['mref',Map,K], Env, L, St) ->
-    expr_get_map(Map, K, Env, L, St);
+    expr_map_get(mref, Map, K, Env, L, St);
 check_expr(['mset',Map|As], Env, L, St) ->
-    expr_set_map(Map, As, Env, L, St);
+    expr_map_set(mset, Map, As, Env, L, St);
 check_expr(['mupd',Map|As], Env, L, St) ->
-    expr_update_map(Map, As, Env, L, St);
+    expr_map_update(mupd, Map, As, Env, L, St);
 check_expr(['map-get',Map,K], Env, L, St) ->
-    check_expr(['mref',Map,K], Env, L, St);
+    expr_map_get('map-get', Map, K, Env, L, St);
 check_expr(['map-set',Map|As], Env, L, St) ->
-    check_expr(['mset',Map|As], Env, L, St);
+    expr_map_set('map-set', Map, As, Env, L, St);
 check_expr(['map-update',Map|As], Env, L, St) ->
-    check_expr(['mupd',Map|As], Env, L, St);
+    expr_map_update('map-update', Map, As, Env, L, St);
 check_expr([function,F,Ar], Env, L, St) ->
     %% Check for the right types.
     if is_atom(F) and is_integer(Ar) and (Ar >= 0) ->
@@ -658,7 +665,7 @@ check_expr(['let-macro'|_], _, L, St) ->
     bad_form_error(L, 'let-macro', St);
 %% Check the Core control special forms.
 check_expr(['progn'|B], Env, L, St) ->
-    check_body(B, Env, L, St);
+    check_body(progn, B, Env, L, St);
 check_expr(['if'|B], Env, L, St) ->
     check_if(B, Env, L, St);
 check_expr(['case'|B], Env, L, St) ->
@@ -666,7 +673,7 @@ check_expr(['case'|B], Env, L, St) ->
 check_expr(['receive'|Cls], Env, L, St) ->
     check_rec_clauses(Cls, Env, L, St);
 check_expr(['catch'|B], Env, L, St) ->
-    check_body(B, Env, L, St);
+    check_body('catch', B, Env, L, St);
 check_expr(['try'|B], Env, L, St) ->
     check_try(B, Env, L, St);
 check_expr(['funcall'|As], Env, L, St) ->
@@ -710,13 +717,13 @@ check_func(F, Ar, Env, L, St) ->
         false -> undefined_func_error(L, {F,Ar}, St)
     end.
 
-%% check_body(Body, Env, Line, State) -> State.
+%% check_body(Form, Body, Env, Line, State) -> State.
 %% Check the calls in a body. A body is a proper list of calls. Env is
 %% the set of known bound variables.
 
-check_body(Body, Env, L, St) ->
+check_body(Form, Body, Env, L, St) ->
     check_foreach(fun (E, S) -> check_expr(E, Env, L, S) end,
-                  fun (S) -> add_error(L, bad_body, S) end,
+                  fun (S) -> add_error(L, {bad_body,Form}, S) end,
                   St, Body).
 
 %% check_body(Body, Env, L, St) ->
@@ -790,34 +797,34 @@ bit_size(undefined, {Ty,_,_,_}, _, L, St, _) ->
 bit_size(Sz, _, Env, L, St, Check) -> Check(Sz, Env, L, St).
 
 %% expr_map(Pairs, Env, Line, State) -> State.
-%% expr_get_map(Map, Key, Env, Line, State) -> State.
-%% expr_set_map(Map, Pairs, Line, State) -> State.
-%% expr_update_map(Args, Pairs, Line, State) -> State.
+%% expr_map_get(Form, Map, Key, Env, Line, State) -> State.
+%% expr_map_set(Form, Map, Pairs, Line, State) -> State.
+%% expr_map_update(Form, Args, Pairs, Line, State) -> State.
 %%  Functions for checking maps, these always return errors if system
 %%  does not support maps.
 
 -ifdef(HAS_MAPS).
 expr_map(Pairs, Env, L, St) ->
-    expr_map_pairs(Pairs, Env, L, St).
+    expr_map_pairs(map, Pairs, Env, L, St).
 
-expr_get_map(Map, Key, Env, L, St0) ->
+expr_map_get(_Form, Map, Key, Env, L, St0) ->
     St1 = check_expr(Map, Env, L, St0),
     map_key(Key, Env, L, St1).
 
-expr_set_map(Map, Pairs, Env, L, St0) ->
+expr_map_set(Form, Map, Pairs, Env, L, St0) ->
     St1 = check_expr(Map, Env, L, St0),
-    expr_map_pairs(Pairs, Env, L, St1).
+    expr_map_pairs(Form, Pairs, Env, L, St1).
 
-expr_update_map(Map, Pairs, Env, L, St0) ->
+expr_map_update(Form, Map, Pairs, Env, L, St0) ->
     St1 = check_expr(Map, Env, L, St0),
-    expr_map_pairs(Pairs, Env, L, St1).
+    expr_map_pairs(Form, Pairs, Env, L, St1).
 
-expr_map_pairs([K,V|As], Env, L, St0) ->
+expr_map_pairs(Form, [K,V|As], Env, L, St0) ->
     St1 = expr_map_assoc(K, V, Env, L, St0),
-    expr_map_pairs(As, Env, L, St1);
-expr_map_pairs([],  _, _, St) -> St;
-expr_map_pairs(_, _, L, St) ->
-    bad_form_error(L, map, St).
+    expr_map_pairs(Form, As, Env, L, St1);
+expr_map_pairs(_, [],  _, _, St) -> St;
+expr_map_pairs(Form, _, _, L, St) ->
+    bad_form_error(L, Form, St).
 
 expr_map_assoc(K, V, Env, L, St0) ->
     St1 = map_key(K, Env, L, St0),
@@ -847,14 +854,14 @@ is_map_key(Lit) -> is_literal(Lit).
 expr_map(Ps, _, L, St) ->
     undefined_func_error(L, {map,safe_length(Ps)}, St).
 
-expr_get_map(_, _, _, L, St) ->
-    undefined_func_error(L, {'map-get',2}, St).
+expr_map_get(Form, _, _, _, L, St) ->
+    undefined_func_error(L, {Form,2}, St).
 
-expr_set_map(_, Ps, _, L, St) ->
-    undefined_func_error(L, {'map-set',safe_length(Ps)+1}, St).
+expr_map_set(Form, _, Ps, _, L, St) ->
+    undefined_func_error(L, {Form,safe_length(Ps)+1}, St).
 
-expr_update_map(_, Ps, _, L, St) ->
-    undefined_func_error(L, {'map-update',safe_length(Ps)+1}, St).
+expr_map_update(Form, _, Ps, _, L, St) ->
+    undefined_func_error(L, {Form,safe_length(Ps)+1}, St).
 -endif.
 
 %% check_record(Record, Fields, Env, Line, State) -> State.
@@ -882,9 +889,12 @@ check_record_fields(Name, [[F | Val]|Fs], Rfs, Env, L, St0) ->
         false ->
             undefined_field_error(L, Name, F, St0)
     end;
+check_record_fields(Name, [F|Fs], Rfs, Env, L, St0) ->
+    St1 = add_error(L, {missing_field_value,Name,F}, St0),
+    check_record_fields(Name, Fs, Rfs, Env, L, St1);
 check_record_fields(_Name, [], _, _, _, St) -> St;
-check_record_fields(Name, _Pat, _Rfs, _, L, St) ->
-    bad_record_error(L, Name, St).
+check_record_fields(Name, Pat, _Rfs, _, L, St) ->
+    bad_field_error(L, Name, Pat, St).
 
 %% check_record_field(Record, Field, Line, State) -> State.
 %%  Check whether record has a field.
@@ -909,7 +919,7 @@ check_record_field(Name, _F, L, St) ->
 
 check_lambda([Args|Body], Env, L, St0) ->
     {Vs,St1} = check_lambda_args(Args, L, St0),
-    check_body(Body, add_vbindings(Vs, Env), L, St1);
+    check_body(lambda, Body, add_vbindings(Vs, Env), L, St1);
 check_lambda(_, _, L, St) -> bad_form_error(L, lambda, St).
 
 check_lambda_args(Args, L, St) ->
@@ -941,7 +951,7 @@ check_ml_clause([Pat|Rest]=C, Ar, Env0, L, St0) ->
               true -> St0;
               false -> add_error(L, bad_arity, St0)
           end,
-    check_clause([[list|Pat]|Rest], Env0, L, St1);
+    check_clause('match-lambda', [[list|Pat]|Rest], Env0, L, St1);
 check_ml_clause(_, _, _, L, St) ->
     bad_form_error(L, clause, St).
 
@@ -963,7 +973,7 @@ check_let([Vbs|Body], Env, L, St0) ->
                     {union(Pv, Pvs), Stc}
             end,
     {Pvs,St1} = foldl_form(Check, 'let', L, [], St0, Vbs),
-    check_body(Body, add_vbindings(Pvs, Env), L, St1);
+    check_body('let', Body, add_vbindings(Pvs, Env), L, St1);
 check_let(_, _, L, St) ->
     bad_form_error(L, 'let', St).
 
@@ -987,7 +997,7 @@ check_let_function([Fbs0|Body], Env0, L, St0) ->
     %% Collect correct function definitions.
     {Fbs1,St1} = collect_let_funcs(Fbs0, 'let-function', L, St0),
     {_,Env1,St2} = check_let_bindings(Fbs1, Env0, St1),
-    check_body(Body, Env1, L, St2).
+    check_body('let-function', Body, Env1, L, St2).
 
 %% check_letrec_function(FletrecBody, Env, Line, State) -> {Env,State}.
 %%  Check a letrec-function form (letrec-function FuncBindings ... ).
@@ -996,7 +1006,7 @@ check_letrec_function([Fbs0|Body], Env0, L, St0) ->
     %% Collect correct function definitions.
     {Fbs1,St1} = collect_let_funcs(Fbs0, 'letrec-function', L, St0),
     {_,Env1,St2} = check_letrec_bindings(Fbs1, Env0, St1),
-    check_body(Body, Env1, L, St2).
+    check_body('letrec-function', Body, Env1, L, St2).
 
 %% collect_let_funcs(FuncDefs, Type, Line, State) -> {Funcbindings,State}.
 %%  Collect the function definitions for a let/letrec-function
@@ -1090,24 +1100,24 @@ check_case(_, _, L, St) ->
     bad_form_error(L, 'case', St).
 
 check_case_clauses(Cls, Env, L, St) ->
-    foreach_form(fun (Cl, S) -> check_clause(Cl, Env, L, S) end,
+    foreach_form(fun (Cl, S) -> check_clause('case', Cl, Env, L, S) end,
                  'case', L, St, Cls).
 
 check_rec_clauses([['after',T|B]], Env, L, St0) ->
     St1 = check_expr(T, Env, L, St0),
-    check_body(B, Env, L, St1);
+    check_body('receive', B, Env, L, St1);
 check_rec_clauses([['after'|_]|Cls], Env, L, St) ->
     %% Only allow after last and with timeout.
     check_rec_clauses(Cls, Env, L, bad_form_error(L, 'receive', St));
 check_rec_clauses([Cl|Cls], Env, L, St) ->
-    check_rec_clauses(Cls, Env, L, check_clause(Cl, Env, L, St));
+    check_rec_clauses(Cls, Env, L, check_clause('receive', Cl, Env, L, St));
 check_rec_clauses([], _, _, St) -> St;
 check_rec_clauses(_, _, L, St) -> bad_form_error(L, 'receive', St).
 
-check_clause([_|_]=Cl, Env0, L, St0) ->
+check_clause(Form, [_|_]=Cl, Env0, L, St0) ->
     {B,_,Env1,St1} = pattern_guard(Cl, Env0, L, St0),
-    check_body(B, Env1, L, St1);
-check_clause(_, _, L, St) -> bad_form_error(L, clause, St).
+    check_body(Form, B, Env1, L, St1);
+check_clause(Form, _, _, L, St) -> bad_form_error(L, Form, St).
 
 %% check_try(TryBody, Env, Line, State) -> State.
 %%  Check a (try ...) form making sure that the right combination of
@@ -1127,9 +1137,9 @@ check_try_catch([['catch'|Catch]], Env, L, St) ->
     check_catch_clauses(Catch, Env, L, St);
 check_try_catch([['catch'|Catch],['after'|After]], Env, L, St0) ->
     St1 = check_catch_clauses(Catch, Env, L, St0),
-    check_body(After, Env, L, St1);
+    check_body('try', After, Env, L, St1);
 check_try_catch([['after'|After]], Env, L, St) ->
-    check_body(After, Env, L, St);
+    check_body('try', After, Env, L, St);
 check_try_catch(_, _, L, St) -> bad_form_error(L, 'try', St).
 
 check_catch_clauses(Cls, Env, L, St) ->
@@ -1137,14 +1147,14 @@ check_catch_clauses(Cls, Env, L, St) ->
                  'try', L, St, Cls).
 
 check_catch_clause(['_'|_]=Cl, Env, L, St) ->
-    check_clause(Cl, Env, L, St);
+    check_clause('catch', Cl, Env, L, St);
 check_catch_clause([[tuple,_,_,Stack]|_]=Cl, Env, L, St0) ->
     %% Stack must be an unbound variable.
     St1 = case is_atom(Stack) and not lfe_env:is_vbound(Stack, Env) of
               true -> St0;
               false -> add_error(L, {illegal_stacktrace,Stack}, St0)
           end,
-    check_clause(Cl, Env, L, St1);
+    check_clause('catch', Cl, Env, L, St1);
 check_catch_clause([Other|_], _Env, L, St) ->
     add_error(L, {illegal_exception,Other}, St).
 
@@ -1187,7 +1197,7 @@ check_gexpr([list|As], Env, L, St) -> check_gargs(As, Env, L, St);
 check_gexpr([tuple|As], Env, L, St) -> check_gargs(As, Env, L, St);
 check_gexpr([tref|[_,_]=As], Env, L, St) -> check_gargs(As, Env, L, St);
 check_gexpr([binary|Segs], Env, L, St) -> gexpr_bitsegs(Segs, Env, L, St);
-%% Map operations are not allowed in guards.
+%% Map operations are not allowed in guards
 %% Check record special forms.
 check_gexpr(['record-index',Name,F], Env, L, St) ->
     check_record(Name, [F], Env, L, St);
@@ -1642,8 +1652,10 @@ bad_form_error(L, F, St) ->
 bad_gform_error(L, F, St) ->
     add_error(L, {bad_gform,F}, St).
 
+-ifdef(HAS_MAPS).
 illegal_mapkey_error(L, K, St) ->
     add_error(L, {illegal_mapkey,K}, St).
+-endif.
 
 illegal_bitsize_error(L, St) ->
     add_error(L, illegal_bitsize, St).

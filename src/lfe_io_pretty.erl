@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2020 Robert Virding
+%% Copyright (c) 2008-2021 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -52,9 +52,6 @@ term([quote,E], D, I, L) -> ["'",term(E, D, I+1, L)];
 term([backquote,E], D, I, L) -> ["`",term(E, D, I+1, L)];
 term([comma,E], D, I, L) -> [",",term(E, D, I+1, L)];
 term(['comma-at',E], D, I, L) -> [",@",term(E, D, I+2, L)];
-term([map|MapBody], D, I, L) ->                 %Special case map form
-    Mcs = map_body(MapBody, D, I+5, L),
-    ["(map ",Mcs,$)];
 term([Car|_]=List, D, I, L) ->
     %% Handle printable lists specially.
     case io_lib:printable_unicode_list(List) of
@@ -86,8 +83,7 @@ term(Bit, D, _, _) when is_bitstring(Bit) ->
     bitstring(Bit, D);                          %First D bytes
 term(Map, D, I, L) when ?IS_MAP(Map) ->
     %% Preserve kv pair ordering, the extra copying is trivial here.
-    Fun = fun (K, V, Acc) -> Acc ++ [K,V] end,
-    Mcs = map_body(maps:fold(Fun, [], Map), D, I+3, L),
+    Mcs = map_body(maps:to_list(Map), D, I+3, L),
     ["#M(",Mcs,$)];
 term(Other, _, _, _) ->
     lfe_io_write:term(Other).                   %Use standard LFE for rest
@@ -314,8 +310,8 @@ indent_type(_) -> none.
 map_body(KVs, D, I, L) ->
     map_body(KVs, I, D, I, L-1).
 
-map_body([K,V|KVs], CurL, D, I, L) ->
-    case map_assoc(K, V, CurL, D, I, L) of
+map_body([KV|KVs], CurL, D, I, L) ->
+    case map_assoc(KV, CurL, D, I, L) of
         {curr_line,KVcs,KVl} ->                 %Both fit on current line
             [KVcs,map_rest(KVs, CurL+KVl, D-1, I, L)];
         {one_line,KVcs,KVl} ->                  %Both fit on one line
@@ -324,14 +320,13 @@ map_body([K,V|KVs], CurL, D, I, L) ->
             %% Force a break after K/V split.
             [Kcs,newline(I+?MAPVIND, Vcs),map_rest(KVs, L, D-1, I, L)]
     end;
-map_body(E, CurL, D, I, L) ->
-    map_last(E, CurL, D, I, L).
+map_body([], _CurL, _D, _I, _L) -> [].
 
 %% map_rest(KVs, CurrentLineIndent, Depth, Indentation, LineLength)
 
 map_rest(_, _, 0, _, _) -> " ...";              %Reached our depth
-map_rest([K,V|KVs], CurL, D, I, L) ->
-    case map_assoc(K, V, CurL+1, D, I, L) of
+map_rest([KV|KVs], CurL, D, I, L) ->
+    case map_assoc(KV, CurL+1, D, I, L) of
         {curr_line,KVcs,KVl} ->                 %Both fit on current line
             [$\s,KVcs,map_rest(KVs, CurL+KVl+1, D-1, I, L)];
         {one_line,KVcs,KVl} ->                  %Both fit on one line
@@ -341,14 +336,9 @@ map_rest([K,V|KVs], CurL, D, I, L) ->
             [newline(I, Kcs),newline(I+?MAPVIND, Vcs),
              map_rest(KVs, L, D-1, I, L)]
     end;
-map_rest(E, CurL, D, I, L) ->
-    map_last(E, CurL, D, I, L).
+map_rest([], _CurL, _D, _I, _L) -> [].
 
-%% Print any remaining element as list element.
-map_last(Tail, CurL, D, I, L) ->
-    list_tail(Tail, CurL, D, I, L).
-
-map_assoc(K, V, CurL, D, I, L) ->
+map_assoc({K,V}, CurL, D, I, L) ->
     Kcs = term(K, D, 0, 99999),                 %Never break the line
     Kl = flatlength(Kcs),
     Vcs = term(V, D, 0, 99999),                 %Never break the line

@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2020 Robert Virding
+%% Copyright (c) 2008-2021 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -616,8 +616,8 @@ to_expr([binary|Segs], L, Vt, St0) ->
 to_expr([map|Pairs], L, Vt, St0) ->
     {Eps,St1} = to_map_pairs(Pairs, map_field_assoc, L, Vt, St0),
     {{map,L,Eps},St1};
-to_expr([mref,Map,K], L, Vt, St) ->
-    to_expr([call,?Q(maps),?Q(get),K,Map], L, Vt, St);
+to_expr([mref,Map,Key], L, Vt, St) ->
+    to_expr([call,?Q(maps),?Q(get),Key,Map], L, Vt, St);
 to_expr([mset,Map|Pairs], L, Vt, St0) ->
     {Em,St1} = to_expr(Map, L, Vt, St0),
     {Eps,St2} = to_map_pairs(Pairs, map_field_assoc, L, Vt, St1),
@@ -626,8 +626,8 @@ to_expr([mupd,Map|Pairs], L, Vt, St0) ->
     {Em,St1} = to_expr(Map, L, Vt, St0),
     {Eps,St2} = to_map_pairs(Pairs, map_field_exact, L, Vt, St1),
     {{map,L,Em,Eps},St2};
-to_expr(['map-get',Map,K], L, Vt, St) ->
-    to_expr([mref,Map,K], L, Vt, St);
+to_expr(['map-get',Map,Key], L, Vt, St) ->
+    to_expr([mref,Map,Key], L, Vt, St);
 to_expr(['map-set',Map|Ps], L, Vt, St) ->
     to_expr([mset,Map|Ps], L, Vt, St);
 to_expr(['map-update',Map|Ps], L, Vt, St) ->
@@ -708,13 +708,13 @@ to_expr([call,?Q(erlang),?Q(F)|As], L, Vt, St0) ->
     case is_erl_op(F, length(As)) of
         true -> {list_to_tuple([op,L,F|Eas]),St1};
         false ->
-            {{call,L,{remote,L,{atom,L,erlang},{atom,L,F}},Eas},St1}
+            to_remote_call({atom,L,erlang}, {atom,L,F}, Eas, L, St1)
     end;
 to_expr([call,M,F|As], L, Vt, St0) ->
     {Em,St1} = to_expr(M, L, Vt, St0),
     {Ef,St2} = to_expr(F, L, Vt, St1),
     {Eas,St3} = to_exprs(As, L, Vt, St2),
-    {{call,L,{remote,L,Em,Ef},Eas},St3};
+    to_remote_call(Em, Ef, Eas, L, St3);
 to_expr([F|As], L, Vt, St0) when is_atom(F) ->  %General function call
     {Eas,St1} = to_exprs(As, L, Vt, St0),
     Ar = length(As),                            %Arity
@@ -723,7 +723,7 @@ to_expr([F|As], L, Vt, St0) when is_atom(F) ->  %General function call
         false ->
             case lfe_internal:is_lfe_bif(F, Ar) of
                 true ->
-                    {{call,L,{remote,L,{atom,L,lfe},{atom,L,F}},Eas},St1};
+                    to_remote_call({atom,L,lfe}, {atom,L,F}, Eas, L, St1);
                 false ->
                     {{call,L,{atom,L,F},Eas},St1}
             end
@@ -742,6 +742,9 @@ to_expr(Lit, L, _, St) ->                       %Everything else is a literal
 to_expr_var(V, L, Vt, St) ->
     Var = ?VT_GET(V, Vt, V),                    %Hmm
     {{var,L,Var},St}.
+
+to_remote_call(M, F, As, L, St) ->
+    {{call,L,{remote,L,M,F},As},St}.
 
 %% is_erl_op(Op, Arity) -> bool().
 %% Is Op/Arity one of the known Erlang operators?
