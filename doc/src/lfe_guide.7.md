@@ -296,9 +296,11 @@ while it reads the expression and then be effectively ``2``.
 (tset tuple index val)
 (binary seg ... )
 (map key val ...)
+(map-size map) (msiz m)
 (map-get map key) (mref m k)
 (map-set map key val ...) (mset m k v ...)
 (map-update map key val ...) (mupd m k v ...)
+(map-remove map key ...) (mrem m k k ...)
 (lambda (arg ...) ...)
 (match-lambda
   ((arg ... ) {{(when e ...)}} ...)           - Matches clauses
@@ -469,6 +471,7 @@ following guard expressions:
 (record-field ...)
 (record-index ...)
 (map ...)
+(msiz ...) (map-size ...)
 (mref ...) (map-get ...)
 (mset ...) (map-set ...)
 (mupd ...) (map-update ...)
@@ -936,7 +939,7 @@ forms are allowed on input but they will always be written as bytes.
 
 # Maps
 
-A map is:
+A map is created with:
 
 ```
 (map key value ... )
@@ -944,22 +947,28 @@ A map is:
 
 To access maps there are the following forms:
 
+* ``(map-size map)`` -
+  Return the size of a map.
+
 * ``(map-get map key)`` -
-  Return the value associated with key in map.
+  Return the value associated with the key in the map.
 
 * ``(map-set map key val ... )`` -
-  Set keys in map to values.
+  Set the keys in the map to values.
 
 * ``(map-update map key val ... )`` -
-  Update keys in map to values. Note that this form requires all
+  Update the keys in the map to values. Note that this form requires all
   the keys to exist.
+
+* ``(map-remove map key ... )`` -
+  Remove the keys in the map.
 
 N.B. This syntax for processing maps has stablized but may change in
 the future!
 
-There is also an alternate short form ``map``, ``mref``, ``mset``,
-``mupd`` based on the Maclisp array reference forms. They take the
-same arguments as their longer alternatives.
+There are also alternate short forms ``msiz``, ``mref``, ``mset``,
+``mupd`` and ``mrem`` based on the Maclisp array reference forms. They
+take the same arguments as their longer alternatives.
 
 
 # List/binary comprehensions

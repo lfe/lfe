@@ -609,19 +609,27 @@ check_expr([tref|[_,_]=As], Env, L, St) -> check_args(As, Env, L, St);
 check_expr([tset|[_,_,_]=As], Env, L, St) -> check_args(As, Env, L, St);
 check_expr([binary|Segs], Env, L, St) -> expr_bitsegs(Segs, Env, L, St);
 check_expr([map|As], Env, L, St) ->
-    expr_map(As, Env, L, St);
-check_expr(['mref',Map,K], Env, L, St) ->
-    expr_map_get(mref, Map, K, Env, L, St);
+    check_map(As, Env, L, St);
+check_expr(['msiz',Map], Env, L, St) ->
+    check_map_size(msiz, Map, Env, L, St);
+check_expr(['mref',Map,Key], Env, L, St) ->
+    check_map_get(mref, Map, Key, Env, L, St);
 check_expr(['mset',Map|As], Env, L, St) ->
-    expr_map_set(mset, Map, As, Env, L, St);
+    check_map_set(mset, Map, As, Env, L, St);
 check_expr(['mupd',Map|As], Env, L, St) ->
-    expr_map_update(mupd, Map, As, Env, L, St);
-check_expr(['map-get',Map,K], Env, L, St) ->
-    expr_map_get('map-get', Map, K, Env, L, St);
+    check_map_update(mupd, Map, As, Env, L, St);
+check_expr(['mrem',Map|Ks], Env, L, St) ->
+    check_map_remove(mrem, Map, Ks, Env, L, St);
+check_expr(['map-size',Map], Env, L, St) ->
+    check_map_size('map-size', Map, Env, L, St);
+check_expr(['map-get',Map,Key], Env, L, St) ->
+    check_map_get('map-get', Map, Key, Env, L, St);
 check_expr(['map-set',Map|As], Env, L, St) ->
-    expr_map_set('map-set', Map, As, Env, L, St);
+    check_map_set('map-set', Map, As, Env, L, St);
 check_expr(['map-update',Map|As], Env, L, St) ->
-    expr_map_update('map-update', Map, As, Env, L, St);
+    check_map_update('map-update', Map, As, Env, L, St);
+check_expr(['map-remove',Map|Ks], Env, L, St) ->
+    check_map_remove('map-remove', Map, Ks, Env, L, St);
 check_expr([function,F,Ar], Env, L, St) ->
     %% Check for the right types.
     if is_atom(F) and is_integer(Ar) and (Ar >= 0) ->
@@ -796,37 +804,46 @@ bit_size(undefined, {Ty,_,_,_}, _, L, St, _) ->
     end;
 bit_size(Sz, _, Env, L, St, Check) -> Check(Sz, Env, L, St).
 
-%% expr_map(Pairs, Env, Line, State) -> State.
-%% expr_map_get(Form, Map, Key, Env, Line, State) -> State.
-%% expr_map_set(Form, Map, Pairs, Line, State) -> State.
-%% expr_map_update(Form, Args, Pairs, Line, State) -> State.
+%% check_map(Pairs, Env, Line, State) -> State.
+%% check_map_size(Form, Map, Env, Line, State) -> State.
+%% check_map_get(Form, Map, Key, Env, Line, State) -> State.
+%% check_map_set(Form, Map, Pairs, Line, State) -> State.
+%% check_map_update(Form, Args, Pairs, Line, State) -> State.
+%% check_map_remove(Form, Args, Keys, Line, State) -> State.
 %%  Functions for checking maps, these always return errors if system
 %%  does not support maps.
 
 -ifdef(HAS_MAPS).
-expr_map(Pairs, Env, L, St) ->
-    expr_map_pairs(map, Pairs, Env, L, St).
+check_map(Pairs, Env, L, St) ->
+    check_map_pairs(map, Pairs, Env, L, St).
 
-expr_map_get(_Form, Map, Key, Env, L, St0) ->
+check_map_size(_Form, Map, Env, L, St) ->
+    check_expr(Map, Env, L, St).
+
+check_map_get(_Form, Map, Key, Env, L, St0) ->
     St1 = check_expr(Map, Env, L, St0),
     map_key(Key, Env, L, St1).
 
-expr_map_set(Form, Map, Pairs, Env, L, St0) ->
+check_map_set(Form, Map, Pairs, Env, L, St0) ->
     St1 = check_expr(Map, Env, L, St0),
-    expr_map_pairs(Form, Pairs, Env, L, St1).
+    check_map_pairs(Form, Pairs, Env, L, St1).
 
-expr_map_update(Form, Map, Pairs, Env, L, St0) ->
+check_map_update(Form, Map, Pairs, Env, L, St0) ->
     St1 = check_expr(Map, Env, L, St0),
-    expr_map_pairs(Form, Pairs, Env, L, St1).
+    check_map_pairs(Form, Pairs, Env, L, St1).
 
-expr_map_pairs(Form, [K,V|As], Env, L, St0) ->
-    St1 = expr_map_assoc(K, V, Env, L, St0),
-    expr_map_pairs(Form, As, Env, L, St1);
-expr_map_pairs(_, [],  _, _, St) -> St;
-expr_map_pairs(Form, _, _, L, St) ->
+check_map_remove(_Form, Map, Keys, Env, L, St0) ->
+    St1 = check_expr(Map, Env, L, St0),
+    check_exprs(Keys, Env, L, St1).
+
+check_map_pairs(Form, [K,V|As], Env, L, St0) ->
+    St1 = check_map_assoc(K, V, Env, L, St0),
+    check_map_pairs(Form, As, Env, L, St1);
+check_map_pairs(_, [],  _, _, St) -> St;
+check_map_pairs(Form, _, _, L, St) ->
     bad_form_error(L, Form, St).
 
-expr_map_assoc(K, V, Env, L, St0) ->
+check_map_assoc(K, V, Env, L, St0) ->
     St1 = map_key(K, Env, L, St0),
     check_expr(V, Env, L, St1).
 
@@ -851,17 +868,23 @@ is_map_key(Lit) -> is_literal(Lit).
 -endif.
 
 -else.
-expr_map(Ps, _, L, St) ->
+check_map(Ps, _, L, St) ->
     undefined_func_error(L, {map,safe_length(Ps)}, St).
 
-expr_map_get(Form, _, _, _, L, St) ->
+check_map_size(Form, _, _, L, St) ->
+    undefined_func_error(L, {Form,1}, St).
+
+check_map_get(Form, _, _, _, L, St) ->
     undefined_func_error(L, {Form,2}, St).
 
-expr_map_set(Form, _, Ps, _, L, St) ->
+check_map_set(Form, _, Ps, _, L, St) ->
     undefined_func_error(L, {Form,safe_length(Ps)+1}, St).
 
-expr_map_update(Form, _, Ps, _, L, St) ->
+check_map_update(Form, _, Ps, _, L, St) ->
     undefined_func_error(L, {Form,safe_length(Ps)+1}, St).
+
+check_map_remove(Form, _, Ks, _, L, St) ->
+    undefined_func_error(L, {Form,safe_length(Ks)+1}, St).
 -endif.
 
 %% check_record(Record, Fields, Env, Line, State) -> State.
@@ -1197,7 +1220,25 @@ check_gexpr([list|As], Env, L, St) -> check_gargs(As, Env, L, St);
 check_gexpr([tuple|As], Env, L, St) -> check_gargs(As, Env, L, St);
 check_gexpr([tref|[_,_]=As], Env, L, St) -> check_gargs(As, Env, L, St);
 check_gexpr([binary|Segs], Env, L, St) -> gexpr_bitsegs(Segs, Env, L, St);
-%% Map operations are not allowed in guards
+%% Check map special forms which translate into legal guard expressions.
+check_gexpr([map|As], Env, L, St) ->
+    check_gmap(As, Env, L, St);
+check_gexpr([msiz,Map], Env, L, St) ->
+    check_gmap_size(msiz, Map, Env, L, St);
+check_gexpr([mref,Map,Key], Env, L, St) ->
+    check_gmap_get(mref, Map, Key, Env, L, St);
+check_gexpr([mset,Map|As], Env, L, St) ->
+    check_gmap_set(mset, Map, As, Env, L, St);
+check_gexpr([mupd,Map|As], Env, L, St) ->
+    check_gmap_update(mupd, Map, As, Env, L, St);
+check_gexpr(['map-size',Map], Env, L, St) ->
+    check_gmap_size('map-size', Map, Env, L, St);
+check_gexpr(['map-get',Map,Key], Env, L, St) ->
+    check_gmap_get('map-get', Map, Key, Env, L, St);
+check_gexpr(['map-set',Map|As], Env, L, St) ->
+    check_gmap_set('map-set', Map, As, Env, L, St);
+check_gexpr(['map-update',Map|As], Env, L, St) ->
+    check_gmap_update('map-update', Map, As, Env, L, St);
 %% Check record special forms.
 check_gexpr(['record-index',Name,F], Env, L, St) ->
     check_record(Name, [F], Env, L, St);
@@ -1262,6 +1303,74 @@ check_gargs(Args, Env, L, St) ->
 gexpr_bitsegs(Segs, Env, L, St0) ->
     check_foreach(fun (S, St) -> bitseg(S, Env, L, St, fun check_gexpr/4) end,
                   fun (St) -> bad_gform_error(L, binary, St) end, St0, Segs).
+
+%% check_gmap_size(Form, Map, Env, Line, State) -> State.
+%% check_gmap_get(Form, Map, Key, Env, Line, State) -> State.
+%% check_gmap_set(Form, Map, Pairs, Line, State) -> State.
+%% check_gmap_update(Form, Args, Pairs, Line, State) -> State.
+%%  Functions for checking maps, these always return errors if system
+%%  does not support maps.
+
+-ifdef(HAS_MAPS).
+check_gmap(Pairs, Env, L, St) ->
+    check_gmap_pairs(map, Pairs, Env, L, St).
+
+check_gmap_size(_Form, Map, Env, L, St) ->
+    check_gexpr(Map, Env, L, St).
+
+check_gmap_get(_Form, Map, Key, Env, L, St0) ->
+    St1 = check_gexpr(Map, Env, L, St0),
+    gmap_key(Key, Env, L, St1).
+
+check_gmap_set(Form, Map, Pairs, Env, L, St0) ->
+    St1 = check_expr(Map, Env, L, St0),
+    check_gmap_pairs(Form, Pairs, Env, L, St1).
+
+check_gmap_update(Form, Map, Pairs, Env, L, St0) ->
+    St1 = check_gexpr(Map, Env, L, St0),
+    check_gmap_pairs(Form, Pairs, Env, L, St1).
+
+check_gmap_pairs(Form, [K,V|As], Env, L, St0) ->
+    St1 = check_gmap_assoc(K, V, Env, L, St0),
+    check_gmap_pairs(Form, As, Env, L, St1);
+check_gmap_pairs(_, [],  _, _, St) -> St;
+check_gmap_pairs(Form, _, _, L, St) ->
+    bad_form_error(L, Form, St).
+
+check_gmap_assoc(K, V, Env, L, St0) ->
+    St1 = gmap_key(K, Env, L, St0),
+    check_gexpr(V, Env, L, St1).
+
+%% gmap_key(Key, Env, L, State) -> State.
+%%  A map key can only be a literal in 17 but can be anything in 18.
+
+-ifdef(HAS_FULL_KEYS).
+gmap_key(Key, Env, L, St) ->
+    check_gexpr(Key, Env, L, St).
+-else.
+gmap_key(Key, _, L, St) ->
+    case is_map_key(Key) of
+        true -> St;
+        false -> illegal_mapkey_error(L, Key, St)
+    end.
+-endif.
+
+-else.
+check_gmap(Ps, _, L, St) ->
+    undefined_func_error(L, {map,safe_length(Ps)}, St).
+
+check_gmap_size(Form, _, _, L, St) ->
+    undefined_func_error(L, {Form,1}, St).
+
+check_gmap_get(Form, _, _, _, L, St) ->
+    undefined_func_error(L, {Form,2}, St).
+
+check_gmap_set(Form, _, Ps, _, L, St) ->
+    gundefined_func_error(L, {Form,safe_length(Ps)+1}, St).
+
+check_gmap_update(Form, _, Ps, _, L, St) ->
+    undefined_func_error(L, {Form,safe_length(Ps)+1}, St).
+-endif.
 
 %% pattern(Pattern, Env, L, State) -> {PatVars,State}.
 %% pattern(Pattern, PatVars, Env, L, State) -> {PatVars,State}.

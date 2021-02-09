@@ -616,22 +616,26 @@ to_expr([binary|Segs], L, Vt, St0) ->
 to_expr([map|Pairs], L, Vt, St0) ->
     {Eps,St1} = to_map_pairs(Pairs, map_field_assoc, L, Vt, St0),
     {{map,L,Eps},St1};
+to_expr([msiz,Map], L, Vt, St) ->
+    to_expr([map_size,Map], L, Vt, St);
 to_expr([mref,Map,Key], L, Vt, St) ->
-    to_expr([call,?Q(maps),?Q(get),Key,Map], L, Vt, St);
-to_expr([mset,Map|Pairs], L, Vt, St0) ->
-    {Em,St1} = to_expr(Map, L, Vt, St0),
-    {Eps,St2} = to_map_pairs(Pairs, map_field_assoc, L, Vt, St1),
-    {{map,L,Em,Eps},St2};
-to_expr([mupd,Map|Pairs], L, Vt, St0) ->
-    {Em,St1} = to_expr(Map, L, Vt, St0),
-    {Eps,St2} = to_map_pairs(Pairs, map_field_exact, L, Vt, St1),
-    {{map,L,Em,Eps},St2};
+    to_expr([map_get,Key,Map], L, Vt, St);
+to_expr([mset,Map|Pairs], L, Vt, St) ->
+    to_map_set(Map, Pairs, L, Vt, St);
+to_expr([mupd,Map|Pairs], L, Vt, St) ->
+    to_map_update(Map, Pairs, L, Vt, St);
+to_expr([mrem,Map|Keys], L, Vt, St) ->
+    to_map_remove(Map, Keys, L, Vt, St);
+to_expr(['map-size',Map], L, Vt, St) ->
+    to_expr([map_size,Map], L, Vt, St);
 to_expr(['map-get',Map,Key], L, Vt, St) ->
-    to_expr([mref,Map,Key], L, Vt, St);
-to_expr(['map-set',Map|Ps], L, Vt, St) ->
-    to_expr([mset,Map|Ps], L, Vt, St);
-to_expr(['map-update',Map|Ps], L, Vt, St) ->
-    to_expr([mupd,Map|Ps], L, Vt, St);
+    to_expr([map_get,Key,Map], L, Vt, St);
+to_expr(['map-set',Map|Pairs], L, Vt, St) ->
+    to_map_set(Map, Pairs, L, Vt, St);
+to_expr(['map-update',Map|Pairs], L, Vt, St) ->
+    to_map_update(Map, Pairs, L, Vt, St);
+to_expr(['map-remove',Map|Keys], L, Vt, St) ->
+    to_map_remove(Map, Keys, L, Vt, St);
 %% Record special forms.
 to_expr(['make-record',Name,Fs], L, Vt, St0) ->
     {Efs,St1} = to_rec_fields(Fs, L, Vt, St0),
@@ -779,7 +783,7 @@ to_pats_s(Fun, L, Pvs0, Vt0, St0, [E|Es]) ->
 to_pats_s(_, L, Pvs, Vt, St, []) -> {{nil,L},Pvs,Vt,St}.
 
 %% to_bitsegs(Segs, LineNumber, VarTable, State) -> {Segs,State}.
-%% This gives a verbose value, but it is correct.
+%%  This gives a verbose value, but it is correct.
 
 to_bitsegs(Ss, L, Vt, St) ->
     Fun = fun (S, St0) -> to_bitseg(S, L, Vt, St0) end,
@@ -819,6 +823,28 @@ to_bitspecs(Ss, L) ->
         {ok,Sz,Ty} -> {Sz,Ty};
         {error,Error} -> illegal_code_error(L, Error)
     end.
+
+%% to_map_set(Map, Pairs, L, Vt, State) -> {MapSet,State}.
+%% to_map_update(Map, Pairs, L, Vt, State) -> {MapUpdate,State}.
+%% to_map_remove(Map, Keys, L, Vt, State) -> {MapRemove,State}.
+
+to_map_set(Map, Pairs, L, Vt, St0) ->
+    {Em,St1} = to_expr(Map, L, Vt, St0),
+    {Eps,St2} = to_map_pairs(Pairs, map_field_assoc, L, Vt, St1),
+    {{map,L,Em,Eps},St2}.
+
+to_map_update(Map, Pairs, L, Vt, St0) ->
+    {Em,St1} = to_expr(Map, L, Vt, St0),
+    {Eps,St2} = to_map_pairs(Pairs, map_field_exact, L, Vt, St1),
+    {{map,L,Em,Eps},St2}.
+
+to_map_remove(Map, Keys, L, Vt, St0) ->
+    {Em,St1} = to_expr(Map, L, Vt, St0),
+    {Eks,St2} = to_exprs(Keys, L, Vt, St1),
+    Fun = fun (K, {F,St}) ->
+		  to_remote_call({atom,L,maps}, {atom,L,remove}, [K,F], L, St)
+	  end,
+    lists:foldl(Fun, {Em,St2}, Eks).
 
 %% to_map_pairs(Pairs, LineNumber, VarTable, State) -> {Fields,State}.
 

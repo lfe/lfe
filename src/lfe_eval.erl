@@ -166,20 +166,27 @@ eval_expr([tset,Tup,I,V], Env) ->
     setelement(eval_expr(I, Env), eval_expr(Tup, Env), eval_expr(V, Env));
 eval_expr([binary|Bs], Env) -> eval_binary(Bs, Env);
 eval_expr([map|As], Env) ->
-    Pairs = map_pairs(map, As, Env),
-    maps:from_list(Pairs);
-eval_expr(['mref',Map,K], Env) ->
-    map_get(mref, Map, K, Env);
-eval_expr(['mset',M|As], Env) ->
-    map_set(mset, M, As, Env);
-eval_expr(['mupd',M|As], Env) ->
-    map_update(mupd, M, As, Env);
-eval_expr(['map-get',Map,K], Env) ->
-    map_get('map-get', Map, K, Env);
-eval_expr(['map-set',M|As], Env) ->
-    map_set('map-set', M, As, Env);
-eval_expr(['map-update',M|As], Env) ->
-    map_update('map-update', M, As, Env);
+    eval_map(As, Env);
+eval_expr(['msiz',Map], Env) ->
+    eval_map_size(msiz, Map, Env);
+eval_expr(['mref',Map,Key], Env) ->
+    eval_map_get(mref, Map, Key, Env);
+eval_expr(['mset',Map|As], Env) ->
+    eval_map_set(mset, Map, As, Env);
+eval_expr(['mupd',Map|As], Env) ->
+    eval_map_update(mupd, Map, As, Env);
+eval_expr(['mrem',Map|Ks], Env) ->
+    eval_map_remove(mrem, Map, Ks, Env);
+eval_expr(['map-size',Map], Env) ->
+    eval_map_size('map-size', Map, Env);
+eval_expr(['map-get',Map,Key], Env) ->
+    eval_map_get('map-get', Map, Key, Env);
+eval_expr(['map-set',Map|As], Env) ->
+    eval_map_set('map-set', Map, As, Env);
+eval_expr(['map-update',Map|As], Env) ->
+    eval_map_update('map-update', Map, As, Env);
+eval_expr(['map-remove',Map|Ks], Env) ->
+    eval_map_remove('map-remove', Map, Ks, Env);
 %% Record special forms.
 eval_expr(['make-record',Name,Args], Env) ->
     case lfe_env:get_record(Name, Env) of
@@ -466,51 +473,67 @@ eval_float_bitseg(Val, Sz, big) -> <<Val:Sz/float>>;
 eval_float_bitseg(Val, Sz, little) -> <<Val:Sz/float-little>>;
 eval_float_bitseg(Val, Sz, native) -> <<Val:Sz/float-native>>.
 
-%% map_get(Form, Map, Key, Env) -> Value.
-%% map_set(Form, Map, Args, Env) -> Map.
-%% map_update(Form, Map, Args, Env) -> Map.
+%% eval_map(Args, Env) -> Map.
+%% eval_map_size(Form, Map, Env) -> Value.
+%% eval_map_get(Form, Map, Key, Env) -> Value.
+%% eval_map_set(Form, Map, Args, Env) -> Map.
+%% eval_map_update(Form, Map, Args, Env) -> Map.
+%% eval_map_remove(Form, Map, Keys, Env) -> Map.
 
-map_get(_Form, Map, K, Env) ->
-    Key = map_key(K, Env),
-    maps:get(Key, eval_expr(Map, Env)).
+eval_map(Args, Env) ->
+    Pairs = eval_map_pairs(map, Args, Env),
+    maps:from_list(Pairs).
 
-map_set(Form, M, Args, Env) ->
+eval_map_size(_Form, Map, Env) ->
+    erlang:map_size(eval_expr(Map, Env)).       %Use the BIF
+
+eval_map_get(_Form, Map, K, Env) ->
+    Key = eval_map_key(K, Env),
+    erlang:map_get(Key, eval_expr(Map, Env)).   %Use the BIF
+
+eval_map_set(Form, M, Args, Env) ->
     Map = eval_expr(M, Env),
-    Pairs = map_pairs(Form, Args, Env),
+    Pairs = eval_map_pairs(Form, Args, Env),
     lists:foldl(fun maps_put/2, Map, Pairs).
 
-map_update(Form, M, Args, Env) ->
+eval_map_update(Form, M, Args, Env) ->
     Map = eval_expr(M, Env),
-    Pairs = map_pairs(Form, Args, Env),
+    Pairs = eval_map_pairs(Form, Args, Env),
     lists:foldl(fun maps_update/2, Map, Pairs).
 
-%% map_pairs(Form, Args, Env) -> [{K,V}].
+eval_map_remove(_Form, M, Keys, Env) ->
+    Map = eval_expr(M, Env),
+    lists:foldl(fun maps_remove/2, Map, eval_list(Keys, Env)).
 
-map_pairs(Form, [K,V|As], Env) ->
-    P = {map_key(K, Env),eval_expr(V, Env)},
-    [P|map_pairs(Form, As, Env)];
-map_pairs(_Form, [], _) -> [];
-map_pairs(Form, _, _) -> bad_form_error(Form).
+%% eval_map_pairs(Form, Args, Env) -> [{K,V}].
 
-%% map_key(Key, Env) -> Value.
+eval_map_pairs(Form, [K,V|As], Env) ->
+    P = {eval_map_key(K, Env),eval_expr(V, Env)},
+    [P|eval_map_pairs(Form, As, Env)];
+eval_map_pairs(_Form, [], _) -> [];
+eval_map_pairs(Form, _, _) -> bad_form_error(Form).
+
+%% eval_map_key(Key, Env) -> Value.
 %%  A map key can only be a literal in 17 but can be anything in 18..
 
+
 -ifdef(HAS_FULL_KEYS).
-map_key(Key, Env) ->
+eval_map_key(Key, Env) ->
     eval_expr(Key, Env).
 -else.
-map_key(?Q(E), _) -> E;
-map_key([_|_]=L, _) ->
+eval_map_key(?Q(E), _) -> E;
+eval_map_key([_|_]=L, _) ->
     case lfe_lib:is_posint_list(L) of
         true -> L;                              %Literal strings only
         false -> illegal_mapkey_error(L)
     end;
-map_key(E, _) when not is_atom(E) -> E;         %Everything else
-map_key(E, _) -> illegal_mapkey_error(E).
+eval_map_key(E, _) when not is_atom(E) -> E;    %Everything else
+eval_map_key(E, _) -> illegal_mapkey_error(E).
 -endif.
 
 maps_put({K,V}, M) -> maps:put(K, V, M).
 maps_update({K,V}, M) -> maps:update(K, V, M).
+maps_remove(K, M) -> maps:remove(K, M).
 
 %% new_vars(N) -> Vars.
 
@@ -938,7 +961,25 @@ eval_gexpr([tuple|Es], Env) -> list_to_tuple(eval_glist(Es, Env));
 eval_gexpr([tref,Tup,I], Env) ->
     element(eval_gexpr(I, Env), eval_gexpr(Tup, Env));
 eval_gexpr([binary|Bs], Env) -> eval_gbinary(Bs, Env);
-%% Map operations are not allowed in guards.
+%% Check map special forms which translate into legal guard expressions.
+eval_gexpr([map|As], Env) ->
+    eval_gmap(As, Env);
+eval_gexpr([msiz,Map], Env) ->
+    eval_gmap_size(msiz, Map, Env);
+eval_gexpr([mref,Map,Key], Env) ->
+    eval_gmap_get(mref, Map, Key, Env);
+eval_gexpr([mset,Map|As], Env) ->
+    eval_gmap_set(mset, Map, As, Env);
+eval_gexpr([mupd,Map|As], Env) ->
+    eval_gmap_update(mupd, Map, As, Env);
+eval_gexpr(['map-size',Map], Env) ->
+    eval_gmap_size('map-size', Map, Env);
+eval_gexpr(['map-get',Map,Key], Env) ->
+    eval_gmap_get('map-get', Map, Key, Env);
+eval_gexpr(['map-set',Map|As], Env) ->
+    eval_gmap_set('map-set', Map, As, Env);
+eval_gexpr(['map-update',Map|As], Env) ->
+    eval_gmap_update('map-update', Map, As, Env);
 %% Handle the Core closure special forms.
 %% Handle the control special forms.
 eval_gexpr(['progn'|Body], Env) -> eval_gbody(Body, Env);
@@ -983,6 +1024,59 @@ get_gbinding(Name, Ar, Env) ->
 
 eval_glist(Es, Env) ->
     map(fun (E) -> eval_gexpr(E, Env) end, Es).
+
+%% eval_gmap(Args, Env) -> Map.
+%% eval_gmap_size(Form, Map, Env) -> Value.
+%% eval_gmap_get(Form, Map, Key, Env) -> Value.
+%% eval_gmap_set(Form, Map, Args, Env) -> Map.
+%% eval_gmap_update(Form, Map, Args, Env) -> Map.
+
+eval_gmap(Args, Env) ->
+    Pairs = eval_gmap_pairs(map, Args, Env),
+    maps:from_list(Pairs).
+
+eval_gmap_size(_Form, Map, Env) ->
+    erlang:map_size(eval_gexpr(Map, Env)).      %Use the BIF
+
+eval_gmap_get(_Form, Map, K, Env) ->
+    Key = eval_gmap_key(K, Env),
+    erlang:map_get(Key, eval_gexpr(Map, Env)).  %Use the BIF
+
+eval_gmap_set(Form, M, Args, Env) ->
+    Map = eval_gexpr(M, Env),
+    Pairs = eval_gmap_pairs(Form, Args, Env),
+    lists:foldl(fun maps_put/2, Map, Pairs).
+
+eval_gmap_update(Form, M, Args, Env) ->
+    Map = eval_gexpr(M, Env),
+    Pairs = eval_gmap_pairs(Form, Args, Env),
+    lists:foldl(fun maps_update/2, Map, Pairs).
+
+%% eval_gmap_pairs(Form, Args, Env) -> [{K,V}].
+
+eval_gmap_pairs(Form, [K,V|As], Env) ->
+    P = {eval_gmap_key(K, Env),eval_gexpr(V, Env)},
+    [P|eval_gmap_pairs(Form, As, Env)];
+eval_gmap_pairs(_Form, [], _) -> [];
+eval_gmap_pairs(Form, _, _) -> bad_form_error(Form).
+
+%% eval_map_key(Key, Env) -> Value.
+%%  A map key can only be a literal in 17 but can be anything in 18..
+
+
+-ifdef(HAS_FULL_KEYS).
+eval_gmap_key(Key, Env) ->
+    eval_gexpr(Key, Env).
+-else.
+eval_gmap_key(?Q(E), _) -> E;
+eval_gmap_key([_|_]=L, _) ->
+    case lfe_lib:is_posint_list(L) of
+        true -> L;                              %Literal strings only
+        false -> illegal_mapkey_error(L)
+    end;
+eval_gmap_key(E, _) when not is_atom(E) -> E;    %Everything else
+eval_gmap_key(E, _) -> illegal_mapkey_error(E).
+-endif.
 
 %% eval_gbinary(Bitsegs, Env) -> Binary.
 %%  Construct a binary from Bitsegs. This code is taken from eval_bits.erl.

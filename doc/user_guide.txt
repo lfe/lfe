@@ -216,9 +216,11 @@ Supported forms
               (tset tuple index val)
               (binary seg ... )
               (map key val ...)
+              (map-size map) (msiz m)
               (map-get map key) (mref m k)
               (map-set map key val ...) (mset m k v ...)
               (map-update map key val ...) (mupd m k v ...)
+              (map-remove map key ...) (mrem m k k ...)
               (lambda (arg ...) ...)
               (match-lambda
                 ((arg ... ) {{(when e ...)}} ...)           - Matches clauses
@@ -377,6 +379,7 @@ Guards
               (record-field ...)
               (record-index ...)
               (map ...)
+              (msiz ...) (map-size ...)
               (mref ...) (map-get ...)
               (mset ...) (map-set ...)
               (mupd ...) (map-update ...)
@@ -773,28 +776,33 @@ Binaries/bitstrings
        are allowed on input but they will always be written as bytes.
 
 Maps
-       A map is:
+       A map is created with:
 
               (map key value ... )
 
        To access maps there are the following forms:
 
-       · (map-get map key) - Return the value associated with key in map.
+       · (map-size map) - Return the size of a map.
 
-       · (map-set map key val ... ) - Set keys in map to values.
+       · (map-get  map  key) - Return the value associated with the key in the
+         map.
 
-       · (map-update  map  key val ... ) - Update keys in map to values.  Note
-         that this form requires all the keys to exist.
+       · (map-set map key val ... ) - Set the keys in the map to values.
 
-       N.B.  This syntax for processing maps has stablized but may  change  in
+       · (map-update map key val ... ) - Update the keys in the map to values.
+         Note that this form requires all the keys to exist.
+
+       · (map-remove map key ... ) - Remove the keys in the map.
+
+       N.B.   This  syntax for processing maps has stablized but may change in
        the future!
 
-       There  is  also  an alternate short form map, mref, mset, mupd based on
-       the Maclisp array reference forms.  They take  the  same  arguments  as
-       their longer alternatives.
+       There are also alternate short forms msiz, mref, mset,  mupd  and  mrem
+       based  on  the Maclisp array reference forms.  They take the same argu‐
+       ments as their longer alternatives.
 
 List/binary comprehensions
-       List/binary  comprehensions  are  supported  as macros.  The syntax for
+       List/binary comprehensions are supported as  macros.   The  syntax  for
        list comprehensions is:
 
               (lc (qual  ...) expr ... )
@@ -807,7 +815,7 @@ List/binary comprehensions
               (bc (qual  ...) expr ... )
               (binary-comp (qual  ...) expr ... )
 
-       where the final expr is a bitseg expr and is used to generate the  ele‐
+       where  the final expr is a bitseg expr and is used to generate the ele‐
        ments of the binary.
 
        The supported qualifiers, in both list/binary comprehensions are:
@@ -823,7 +831,7 @@ List/binary comprehensions
                    (== (rem v 2) 0))
                 v)
 
-       returns  a  list  of  all  the  even  elements of the list l1 which are
+       returns a list of all the even  elements  of  the  list  l1  which  are
        greater than 5.
 
               (bc ((<= (f float (size 32)) b1)        ;Only bitseg needed
@@ -831,22 +839,22 @@ List/binary comprehensions
                 (: io fwrite "~p\n" (list f))
                 (f float (size 64)))                  ;Only bitseg needed
 
-       returns a binary of floats of size 64 of floats which are  larger  than
+       returns  a  binary of floats of size 64 of floats which are larger than
        10.0 from the binary b1 and of size 32.  The returned numbers are first
        printed.
 
        N.B.  A word of warning when using guards when extracting elements from
-       a  binary.  When a match/guard fails for a binary no more attempts will
-       be made to extract data from the binary.  This means  that  even  if  a
-       value  could be extracted from the binary if the guard fails this value
+       a binary.  When a match/guard fails for a binary no more attempts  will
+       be  made  to  extract  data from the binary.  This means that even if a
+       value could be extracted from the binary if the guard fails this  value
        will be lost and extraction will cease.  This is NOT the same as having
-       following  boolean  test  which may remove an element but will not stop
+       following boolean test which may remove an element but  will  not  stop
        extraction.  Using a guard is probably not what you want!
 
        Normal vanilla Erlang does the same thing but does not allow guards.
 
 ETS and Mnesia
-       LFE also supports match specifications and Query  List  Comprehensions.
+       LFE  also  supports match specifications and Query List Comprehensions.
        The syntax for a match specification is the same as for match-lambdas:
 
               (ets-ms
@@ -858,34 +866,34 @@ ETS and Mnesia
               (ets:select db (ets-ms
                                ([(tuple _ a b)] (when (> a 3)) (tuple 'ok b))))
 
-       It  is a macro which creates the match specification structure which is
-       used in ets:select and mnesia:select.  For tracing instead of the  ets-
-       ms  macro there is the trace-ms macro which is also used in conjunction
-       with the dbg module.  The same restrictions as to what can be done  ap‐
+       It is a macro which creates the match specification structure which  is
+       used  in ets:select and mnesia:select.  For tracing instead of the ets-
+       ms macro there is the trace-ms macro which is also used in  conjunction
+       with  the dbg module.  The same restrictions as to what can be done ap‐
        ply as for vanilla match specifications:
 
        · There is only a limited number of BIFs which are allowed
 
        · There are some special functions only for use with dbg
 
-       · For  ets/mnesia  it  takes a single parameter which must a tuple or a
+       · For ets/mnesia it takes a single parameter which must a  tuple  or  a
          variable
 
        · For dbg it takes a single parameter which must a list or a variable
 
-       N.B.  the current macro neither knows nor cares  whether  it  is  being
+       N.B.   the  current  macro  neither knows nor cares whether it is being
        used in ets/mnesia or in dbg.  It is up to the user to get this right.
 
-       Macros,  especially  record  macros,  can  freely  be used inside match
+       Macros, especially record macros,  can  freely  be  used  inside  match
        specs.
 
-       CAVEAT Some things which are known not to work in the  current  version
+       CAVEAT  Some  things which are known not to work in the current version
        are andalso, orelse and record updates.
 
 Query List Comprehensions
-       LFE  supports  QLCs  for mnesia through the qlc macro.  It has the same
-       structure as a list comprehension and generates a Query Handle  in  the
-       same  way  as  with qlc:q([...]).  The handle can be used together with
+       LFE supports QLCs for mnesia through the qlc macro.  It  has  the  same
+       structure  as  a list comprehension and generates a Query Handle in the
+       same way as with qlc:q([...]).  The handle can be  used  together  with
        all the combination functions in the module qlc.
 
        For example:
@@ -893,10 +901,10 @@ Query List Comprehensions
               (qlc (lc ((<- (tuple k v) (: ets table e2)) (== k i)) v)
                    {{Option}})
 
-       Macros, especially record macros, can freely be used inside query  list
+       Macros,  especially record macros, can freely be used inside query list
        comprehensions.
 
-       CAVEAT  Some  things which are known not to work in the current version
+       CAVEAT Some things which are known not to work in the  current  version
        are nested QLCs and let/case/recieve which shadow variables.
 
 Predefined LFE functions
@@ -905,7 +913,7 @@ Predefined LFE functions
               (<arith_op> expr ...)
               (<comp_op> expr ...)
 
-       The standard arithmentic operators, + - * /, and comparison  operators,
+       The  standard arithmentic operators, + - * /, and comparison operators,
        > >= < =< == /= =:= =/= , can take multiple arguments the same as their
        standard lisp counterparts.  This is still experimental and implemented
        using macros.  They do, however, behave like normal functions and eval‐
@@ -937,40 +945,40 @@ Predefined LFE functions
 
               (macroexpand expr {{environment}})
 
-       Returns the expansion returned  by  calling  macroexpand-1  repeatedly,
+       Returns  the  expansion  returned  by calling macroexpand-1 repeatedly,
        starting with Expr, until the result is no longer a macro call.
 
               (macroexpand-all expr {{environment}})
 
-       Returns  the  expansion  from the expression where all macro calls have
+       Returns the expansion from the expression where all  macro  calls  have
        been expanded with macroexpand.
 
-       NOTE that when no explicit environment is given the  macroexpand  func‐
-       tions  then  only the default built-in macros will be expanded.  Inside
+       NOTE  that  when no explicit environment is given the macroexpand func‐
+       tions then only the default built-in macros will be  expanded.   Inside
        macros and in the shell the variable $ENV is bound to the current macro
        environment.
 
               (eval expr {{environment}})
 
-       Evaluate  the  expression  expr.   Note  that only the pre-defined lisp
-       functions, erlang BIFs and exported functions can be called.   Also  no
+       Evaluate the expression expr.  Note  that  only  the  pre-defined  lisp
+       functions,  erlang  BIFs and exported functions can be called.  Also no
        local variables can be accessed.  To access local variables the expr to
        be evaluated can be wrapped in a let defining these.
 
        For example if the data we wish to evaluate is in the variable expr and
-       it  assumes  there  is  a local variable “foo” which it needs to access
+       it assumes there is a local variable “foo” which  it  needs  to  access
        then we could evaluate it by calling:
 
               (eval `(let ((foo ,foo)) ,expr))
 
    Supplemental Common Lisp Functions
        LFE provides the module cl which contains the following functions which
-       closely  mirror  functions  defined in the Common Lisp Hyperspec.  Note
-       that the following functions use zero-based indices, like  Common  Lisp
-       (unlike  Erlang, which start at index `1').  A major difference between
-       the LFE versions and the Common Lisp versions  of  these  functions  is
-       that  the  boolean  values are the LFE 'true and 'false.  Otherwise the
-       definitions closely follow the CL definitions and won’t  be  documented
+       closely mirror functions defined in the Common  Lisp  Hyperspec.   Note
+       that  the  following functions use zero-based indices, like Common Lisp
+       (unlike Erlang, which start at index `1').  A major difference  between
+       the  LFE  versions  and  the Common Lisp versions of these functions is
+       that the boolean values are the LFE 'true and  'false.   Otherwise  the
+       definitions  closely  follow the CL definitions and won’t be documented
        here.
 
               cl:make-lfe-bool cl-value
@@ -1062,11 +1070,11 @@ Predefined LFE functions
               cl:type-of  object
               cl:coerce  object  type
 
-       Furthmore,  there is an include file which developers may which to uti‐
-       lize in their LFE programs: (include-lib  "lfe/include/cl.lfe").   Cur‐
+       Furthmore, there is an include file which developers may which to  uti‐
+       lize  in  their LFE programs: (include-lib "lfe/include/cl.lfe").  Cur‐
        rently this offers Common Lisp predicates, but may include other useful
        macros and functions in the future.  The provided predicate macros wrap
-       the  various is_* Erlang functions; since these are expanded at compile
+       the various is_* Erlang functions; since these are expanded at  compile
        time, they are usable in guards.  The include the following:
 
               (alivep x)
@@ -1096,10 +1104,10 @@ Predefined LFE functions
               (vector ...)
 
    Supplemental Clojure Functions
-       From LFE’s earliest days, it’s Lisp-cousin Clojure (created around  the
+       From  LFE’s earliest days, it’s Lisp-cousin Clojure (created around the
        same time) has inspired LFE developers to create similar, BEAM-versions
-       of those functions.  These were collected in  a  separate  library  and
-       then  expanded upon, until eventually becoming part of the LFE standard
+       of  those  functions.   These  were collected in a separate library and
+       then expanded upon, until eventually becoming part of the LFE  standard
        library.
 
        Function definition macros:
@@ -1166,8 +1174,8 @@ Predefined LFE functions
               (clj:conj ...)
               (clj:if ...)
 
-       Most of the above mentioned macros are avaialble  in  the  clj  include
-       file,  the  use of which allows developers to forego the clj: prefix in
+       Most  of  the  above  mentioned macros are avaialble in the clj include
+       file, the use of which allows developers to forego the clj:  prefix  in
        calls:
 
               (include-lib "lfe/include/clj.lfe")

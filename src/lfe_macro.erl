@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2020 Robert Virding
+%% Copyright (c) 2008-2021 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -372,18 +372,26 @@ exp_form([binary|As], Env, St) ->
     exp_normal_core(binary, As, Env, St);
 exp_form([map|As], Env, St) ->
     exp_normal_core(map, As, Env, St);
+exp_form([msiz|As], Env, St) ->
+    exp_normal_core(msiz, As, Env, St);
 exp_form([mref|As], Env, St) ->
     exp_normal_core(mref, As, Env, St);
 exp_form([mset|As], Env, St) ->
     exp_normal_core(mset, As, Env, St);
 exp_form([mupd|As], Env, St) ->
     exp_normal_core(mupd, As, Env, St);
+exp_form([mrem|As], Env, St) ->
+    exp_normal_core(mrem, As, Env, St);
+exp_form(['map-size'|As], Env, St) ->
+    exp_normal_core('map-size', As, Env, St);
 exp_form(['map-get'|As], Env, St) ->
     exp_normal_core('map-get', As, Env, St);
 exp_form(['map-set'|As], Env, St) ->
     exp_normal_core('map-set', As, Env, St);
 exp_form(['map-update'|As], Env, St) ->
     exp_normal_core('map-update', As, Env, St);
+exp_form(['map-remove'|As], Env, St) ->
+    exp_normal_core('map-remove', As, Env, St);
 %% Record special forms. Note that these are used for both the
 %% compiler as well as the evaluator so we can't do too much here.
 exp_form(['define-record',Name,Fds], Env, St0) ->
