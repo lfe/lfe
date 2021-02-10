@@ -177,10 +177,10 @@ lift_rec_fields([F|Fs], Lds0, St0) ->
     {[F|Lfs],Lds1,St1};
 lift_rec_fields([], Lds, St) -> {[],Lds,St}.
 
-lift_rec_args([[F | V]|As], Lds0, St0) ->
+lift_rec_args([F,V|As], Lds0, St0) ->
     {Lv,Lds1,St1} = lift_expr(V, Lds0, St0),
     {Las,Lds2,St2} = lift_rec_args(As, Lds1, St1),
-    {[[F | Lv]|Las],Lds2,St2};
+    {[F,Lv|Las],Lds2,St2};
 lift_rec_args([], Lds, St) -> {[],Lds,St}.
 
 lift_let(Vbs0, Body0, Lds0, St0) ->

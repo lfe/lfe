@@ -57,8 +57,6 @@ format_error({bad_env_form,Type}) ->
 format_error({expand_macro,Call,Error}) ->
     %% Can be very big so only print limited depth.
     lfe_io:format1(<<"error expanding ~P:\n    ~P">>, [Call,10,Error,10]);
-format_error({missing_field_value,R,F}) ->
-    lfe_io:format1(<<"missing value to field ~w in record ~w">>,[F,R]);
 format_error(Error) ->
     lfe_io:format1(<<"macro expansion error: ~P\n">>, [Error,10]).
 
@@ -398,7 +396,7 @@ exp_form(['define-record',Name,Fds], Env, St0) ->
     {Efds,St1} = exp_rec_fields(Name, Fds, Env, St0),
     {['define-record',Name,Efds],St1};
 exp_form(['make-record',Name,Args], Env, St0) ->
-    {Eas,St1} = exp_rec_args(Name, Args, Env, St0),
+    {Eas,St1} = exp_tail(Args, Env, St0),
     {['make-record',Name,Eas],St1};
 exp_form(['record-index',Name,F], _, St) ->
     {['record-index',Name,F],St};
@@ -407,7 +405,7 @@ exp_form(['record-field',E,Name,F], Env, St0) ->
     {['record-field',Ee,Name,F],St1};
 exp_form(['record-update',E,Name,Args], Env, St0) ->
     {Ee,St1} = exp_form(E, Env, St0),
-    {Eas,St2} = exp_rec_args(Name, Args, Env, St1),
+    {Eas,St2} = exp_tail(Args, Env, St1),
     {['record-update',Ee,Name,Eas],St2};
 %% Function forms.
 exp_form([function|_]=F, _, St) -> {F,St};
@@ -520,17 +518,6 @@ exp_rec_field([_|_]=Fdef, Env, St) ->
     exp_list(Fdef, Env, St);
 exp_rec_field(Fdef, Env, St) ->
     exp_form(Fdef, Env, St).
-
-%% exp_rec_args(Args, Name, Env, State) -> {ExpArgs,State}.
-%%  Expand the arguments for the record. Field names are literals.
-
-exp_rec_args(Name, [[F | V]|As], Env, St0) ->
-    {Ef,St1} = exp_form(F, Env, St0),
-    {Ev,St2} = exp_form(V, Env, St1),
-    {Eas,St3} = exp_rec_args(Name, As, Env, St2),
-    {[[Ef | Ev]|Eas],St3};
-exp_rec_args(Name, [F], _, _) -> error({missing_field_value,Name,F});
-exp_rec_args(_, [], _, St) -> {[],St}.
 
 %% exp_clauses(Clauses, Env, State) -> {ExpCls,State}.
 %% exp_ml_clauses(Clauses, Env, State) -> {ExpCls,State}.

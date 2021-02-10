@@ -154,16 +154,16 @@ pat_list(Ps, St) -> mapfoldl(fun pattern/2, St, Ps).
 
 %% pat_rec_fields(Fields, State) -> {Patterns,State}.
 
-pat_rec_fields([[F | P0]|Fs0], St0) when is_atom(F) ->
+pat_rec_fields([F,P0|Fs0], St0) when is_atom(F) ->
     %% Field names go straight through untouched.
     {P1,St1} = pattern(P0, St0),
     {Fs1,St2} = pat_rec_fields(Fs0, St1),
-    {[[F | P1]|Fs1],St2};
-pat_rec_fields([[F0 | P0]|Fs0], St0) ->
+    {[F,P1|Fs1],St2};
+pat_rec_fields([F0,P0|Fs0], St0) ->
     {F1,St1} = pattern(F0, St0),
     {P1,St2} = pattern(P0, St1),
     {Fs1,St3} = pat_rec_fields(Fs0, St2),
-    {[[F1 | P1]|Fs1],St3};
+    {[F1,P1|Fs1],St3};
 pat_rec_fields([], St) -> {[],St}.
 
 %% pat_binding(Var, Status) -> {DVar,Status}.
@@ -301,21 +301,21 @@ expr_bitspecs(Specs, St) ->
 
 %% expr_rec_fields(Fields, State) -> {Patterns,State}.
 
-expr_rec_fields([[F | V0]|Fs0], St0) when is_atom(F) ->
+expr_rec_fields([F,V0|Fs0], St0) when is_atom(F) ->
     %% Field names go straight through untouched.
     {V1,St1} = expr(V0, St0),
     {Fs1,St2} = expr_rec_fields(Fs0, St1),
-    {[[F | V1]|Fs1],St2};
-expr_rec_fields([[F0 | V0]|Fs0], St0) ->
+    {[F,V1|Fs1],St2};
+expr_rec_fields([F0,V0|Fs0], St0) ->
     {F1,St1} = expr(F0, St0),
     {V1,St2} = expr(V0, St1),
     {Fs1,St3} = expr_rec_fields(Fs0, St2),
-    {[[F1 | V1]|Fs1],St3};
+    {[F1,V1|Fs1],St3};
 expr_rec_fields([], St) -> {[],St}.
 
 %% expr_set_record(Fields, Expr, Record) -> SetRec.
 
-expr_set_record([[F | V]|Fs], E0, R) ->
+expr_set_record([F,V|Fs], E0, R) ->
     E1= [tuple,?Q(setelement),['record-index',R,F],E0,V],
     expr_set_record(Fs, E1, R);
 expr_set_record([], E, _) -> E.

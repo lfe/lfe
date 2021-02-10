@@ -86,8 +86,8 @@ format_error({illegal_exception,E}) ->
 %% Records.
 format_error({undefined_record,Name}) ->
     lfe_io:format1(<<"record ~w undefined">>, [Name]);
-format_error({undefined_field,Name,F}) ->
-    lfe_io:format1(<<"field ~w undefined in record ~w">>, [F,Name]);
+format_error({undefined_field,Name,Field}) ->
+    lfe_io:format1(<<"field ~w undefined in record ~w">>, [Field,Name]);
 %% Everything we don't recognise or know about.
 format_error(Error) ->
     lfe_io:prettyprint1(Error).
@@ -299,8 +299,8 @@ make_record_elements(Fields, Args, Env) ->
            end,
     lists:map(Mfun, Fields).
 
-make_field_val(F, [[F | V]|_], _Def, Env) -> eval_expr(V, Env);
-make_field_val(F, [_|Args], Def, Env) ->
+make_field_val(F, [F,V|_], _Def, Env) -> eval_expr(V, Env);
+make_field_val(F, [_,_|Args], Def, Env) ->
     make_field_val(F, Args, Def, Env);
 make_field_val(_, [], Def, Env) -> expr(Def, Env).
 
@@ -310,7 +310,7 @@ get_field_index(Name, Fields, F) ->
     get_field_index(Name, Fields, F, 2).        %First element record name
 
 get_field_index(_Name, [[F|_]|_Fields], F, I) -> I;
-get_field_index(_Name, [F|_Fields], F, I) -> I;
+get_field_index(_Name, [F|_Fields], F, I) -> I; %Filed can be just name
 get_field_index(Name, [_|Fields], F, I) ->
     get_field_index(Name, Fields, F, I+1);
 get_field_index(Name, [], F, _I) ->
@@ -329,8 +329,8 @@ update_record_elements(Fields, Recvs, Args, Env) ->
            end,
     lists:zipwith(Ufun, Fields, Recvs).
 
-update_field_val(F, [[F | V]|_], _Recv, Env) -> eval_expr(V, Env);
-update_field_val(F, [_|Args], Recv, Env) ->
+update_field_val(F, [F,V|_], _Recv, Env) -> eval_expr(V, Env);
+update_field_val(F, [_,_|Args], Recv, Env) ->
     update_field_val(F, Args, Recv, Env);
 update_field_val(_, [], Recv, _Env) -> Recv.
 
@@ -1199,8 +1199,8 @@ match_record_patterns(Fields, Pats) ->
            end,
     lists:map(Mfun, Fields).
 
-make_field_pat(F, [[F | P]|_]) -> P;
-make_field_pat(F, [_|Pats]) -> make_field_pat(F, Pats);
+make_field_pat(F, [F,P|_]) -> P;
+make_field_pat(F, [_,_|Pats]) -> make_field_pat(F, Pats);
 make_field_pat(_, []) -> '_'.                   %Underscore matches anything
 
 %% match_binary(Bitsegs, Binary, PatBindings, Env) -> {yes,PatBindings} | no.

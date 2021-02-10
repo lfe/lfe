@@ -518,7 +518,6 @@ check_record_def(Name, _, L, St) ->
 
 check_record_field_def(Name, [Field,D,Type], L, St0) ->
     St1 = check_record_field_def(Name, [Field,D], L, St0),
-    %% case lfe_types:check_type_def(Type, St1#lfe_lint.types, []) of
     case lfe_types:check_type_def(Type, St1#lfe_lint.recs, []) of
         {ok,Tvs} -> check_type_vars(Tvs, L, St1);
         {error,Error,Tvs} ->
@@ -901,20 +900,19 @@ check_record(Name, Fields, Env, L, #lfe_lint{recs=Recs}=St)
 check_record(Name, _, _, L, St) ->
     bad_record_error(L, Name, St).
 
-check_record_fields(Name, [['_' | _Val]|Fs], Rfs, Env, L, St) ->
+check_record_fields(Name, ['_',_Val|Fs], Rfs, Env, L, St) ->
     %% The _ field is special!
     check_record_fields(Name, Fs, Rfs, Env, L, St);
-check_record_fields(Name, [[F | Val]|Fs], Rfs, Env, L, St0) ->
-    case lists:member(F, Rfs) of
-        true ->
-            St1 = check_expr(Val, Env, L, St0),
-            check_record_fields(Name, Fs, Rfs, Env, L, St1);
-        false ->
-            undefined_field_error(L, Name, F, St0)
-    end;
-check_record_fields(Name, [F|Fs], Rfs, Env, L, St0) ->
-    St1 = add_error(L, {missing_field_value,Name,F}, St0),
+check_record_fields(Name, [F,Val|Fs], Rfs, Env, L, St0) ->
+    St1 = case lists:member(F, Rfs) of
+              true ->
+                  check_expr(Val, Env, L, St0);
+              false ->
+                  undefined_field_error(L, Name, F, St0)
+          end,
     check_record_fields(Name, Fs, Rfs, Env, L, St1);
+check_record_fields(Name, [F], _Rfs, _Env, L, St) ->
+    missing_field_value_error(L, Name, F, St);
 check_record_fields(_Name, [], _, _, _, St) -> St;
 check_record_fields(Name, Pat, _Rfs, _, L, St) ->
     bad_field_error(L, Name, Pat, St).
@@ -1601,14 +1599,14 @@ check_record_pat(Name, Fields, Pvs, Env, L, #lfe_lint{recs=Recs}=St)
 check_record_pat(Name, _, Pvs, _, L, St) ->
     {Pvs,bad_record_error(L, Name, St)}.
 
-check_record_pat_fields(Name, [[F | Pat]|Fs], Rfs, Pvs0, Env, L, St0) ->
-    case lists:member(F, Rfs) of
-        true ->
-            {Pvs1,St1} = pattern(Pat, Pvs0, Env, L, St0),
-            check_record_pat_fields(Name, Fs, Rfs, Pvs1, Env, L, St1);
-        false ->
-            {Pvs0,undefined_field_error(L, Name, F, St0)}
-    end;
+check_record_pat_fields(Name, [F,Pat|Fs], Rfs, Pvs0, Env, L, St0) ->
+    {Pvs1,St1} = case lists:member(F, Rfs) of
+                     true ->
+                         pattern(Pat, Pvs0, Env, L, St0);
+                     false ->
+                         {Pvs0,undefined_field_error(L, Name, F, St0)}
+                 end,
+    check_record_pat_fields(Name, Fs, Rfs, Pvs1, Env, L, St1);
 check_record_pat_fields(_Name, [], _, Pvs, _, _, St) -> {Pvs,St};
 check_record_pat_fields(Name, _, _, Pvs, _, L, St) ->
     {Pvs,bad_record_error(L, Name, St)}.
@@ -1789,6 +1787,9 @@ undefined_record_error(L, R, St) ->
 
 undefined_field_error(L, R, F, St) ->
     add_error(L, {undefined_field,R,F}, St).
+
+missing_field_value_error(L, R, F, St) ->
+    add_error(L, {missing_field_value,R,F}, St).
 
 bad_fdef_error(L, D, St) ->
     add_error(L, {bad_fdef,D}, St).
