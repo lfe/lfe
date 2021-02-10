@@ -205,7 +205,7 @@ comp_mod_meta([spec|Fspecs], Line) ->
     Fun = fun (Fspec) -> comp_function_spec(Fspec, Line) end,
     lists:flatmap(Fun, Fspecs);
 comp_mod_meta([record|Rdefs], Line) ->
-    Fun = fun ([Rec,Fds]) -> comp_record_def(Rec, Fds, Line) end,
+    Fun = fun (Rdef) -> comp_record_def(Rdef, Line) end,
     lists:flatmap(Fun, Rdefs);
 comp_mod_meta(_Meta, _Line) -> [].
 
@@ -242,8 +242,13 @@ comp_function_def(Name, Def, Line) ->
                       {function,L,N,func_arity(D),Clauses}
               end, Lfs).
 
-%% comp_record_def(Record, Line) -> [Attribute].
-%%  Format depends on whether 18 and older or newer.
+%% comp_record_def(RecordDef, Line) -> [Attribute].
+%% comp_record_def(Name, Fields, Line) -> [Attribute].
+%%  Format depends on whether 18 and older or newer. Meta is not
+%%  passed on.
+
+comp_record_def([Name,Fields], Line) ->
+    comp_record_def(Name, Fields, Line).
 
 comp_record_def(Name, Fields, Line) ->
     Fdefs = [ comp_record_field(Fdef, Line) || Fdef <- Fields ],

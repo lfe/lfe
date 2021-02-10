@@ -395,18 +395,18 @@ exp_form(['map-remove'|As], Env, St) ->
 exp_form(['define-record',Name,Fds], Env, St0) ->
     {Efds,St1} = exp_rec_fields(Name, Fds, Env, St0),
     {['define-record',Name,Efds],St1};
-exp_form(['make-record',Name,Args], Env, St0) ->
+exp_form(['make-record',Name|Args], Env, St0) ->
     {Eas,St1} = exp_tail(Args, Env, St0),
-    {['make-record',Name,Eas],St1};
+    {['make-record',Name|Eas],St1};
 exp_form(['record-index',Name,F], _, St) ->
     {['record-index',Name,F],St};
 exp_form(['record-field',E,Name,F], Env, St0) ->
     {Ee,St1} = exp_form(E, Env, St0),
     {['record-field',Ee,Name,F],St1};
-exp_form(['record-update',E,Name,Args], Env, St0) ->
+exp_form(['record-update',E,Name|Args], Env, St0) ->
     {Ee,St1} = exp_form(E, Env, St0),
     {Eas,St2} = exp_tail(Args, Env, St1),
-    {['record-update',Ee,Name,Eas],St2};
+    {['record-update',Ee,Name|Eas],St2};
 %% Function forms.
 exp_form([function|_]=F, _, St) -> {F,St};
 %% Core closure special forms.

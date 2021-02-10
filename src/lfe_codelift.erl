@@ -105,18 +105,18 @@ lift_funcs(Defs, St) ->
 %% Core data special forms.
 lift_expr(?Q(E), Lds, St) -> {?Q(E),Lds,St};
 %% Record forms.
-lift_expr(['make-record',Name,Args], Lds0, St0) ->
+lift_expr(['make-record',Name|Args], Lds0, St0) ->
     {Largs,Lds1,St1} = lift_rec_args(Args, Lds0, St0),
-    {['make-record',Name,Largs],Lds1,St1};
+    {['make-record',Name|Largs],Lds1,St1};
 lift_expr(['record-index',_Name,_F]=Ri, Lds, St) ->
     {Ri,Lds,St};
 lift_expr(['record-field',E,Name,F], Lds0, St0) ->
     {Le,Lds1,St1} = lift_expr(E, Lds0, St0),
     {['record-field',Le,Name,F],Lds1,St1};
-lift_expr(['record-update',E,Name,Args], Lds0, St0) ->
+lift_expr(['record-update',E,Name|Args], Lds0, St0) ->
     {Le,Lds1,St1} = lift_expr(E, Lds0, St0),
     {Largs,Lds2,St2} = lift_rec_args(Args, Lds1, St1),
-    {['record-update',Le,Name,Largs],Lds2,St2};
+    {['record-update',Le,Name|Largs],Lds2,St2};
 %% Function forms.
 lift_expr([function,_,_]=Func, Lds, St) ->
     {Func,Lds,St};
@@ -303,31 +303,31 @@ lift_try_1(['after'|After0], Lds0, St0) ->
 lift_try_1(E, Lds, St) ->                       %The try expression.
     lift_expr(E, Lds, St).
 
-%% trans_expr(Call, Name, Arity, NewName, ImportedVars) -> Expr.
+%% trans_expr(Call, OldName, Arity, NewName, ImportedVars) -> Expr.
 %%  Translate function call from old Name to New and add imported
 %%  variables.
 
 %% Core data special forms.
 trans_expr(?Q(E), _, _, _, _) -> ?Q(E);
-trans_expr([binary|Segs0],  Name, Ar, New, Ivars) ->
-    Segs1 = trans_bitsegs(Segs0, Name, Ar, New, Ivars),
+trans_expr([binary|Segs0],  Old, Ar, New, Ivars) ->
+    Segs1 = trans_bitsegs(Segs0, Old, Ar, New, Ivars),
     [binary|Segs1];
 %% Record forms.
-trans_expr(['make-record',Rname,Args], Name, Ar, New, Ivars) ->
-    Targs = trans_rec_args(Args, Name, Ar, New, Ivars),
-    ['make-record',Rname,Targs];
+trans_expr(['make-record',Rname|Args], Old, Ar, New, Ivars) ->
+    Targs = trans_rec_args(Args, Old, Ar, New, Ivars),
+    ['make-record',Rname|Targs];
 trans_expr(['record-index',_Name,_F]=Ri, _, _, _, _) ->
     Ri;                                         %Nothing to do here
-trans_expr(['record-field',E,Rname,F], Name, Ar, New, Ivars) ->
-    Te = trans_expr(E, Name,  Ar, New, Ivars),
+trans_expr(['record-field',E,Rname,F], Old, Ar, New, Ivars) ->
+    Te = trans_expr(E, Old,  Ar, New, Ivars),
     ['record-field',Te,Rname,F];
-trans_expr(['record-update',E,Rname,Args], Name, Ar, New, Ivars) ->
-    Te = trans_expr(E, Name,  Ar, New, Ivars),
-    Targs = trans_rec_args(Args, Name, Ar, New, Ivars),
-    ['update-record',Te,Rname,Targs];
+trans_expr(['record-update',E,Rname|Args], Old, Ar, New, Ivars) ->
+    Te = trans_expr(E, Old, Ar, New, Ivars),
+    Targs = trans_rec_args(Args, Old, Ar, New, Ivars),
+    ['record-update',Te,Rname|Targs];
 %% Function forms.
-trans_expr([function,F,A]=Func, Name, Ar, New, Ivars) ->
-    if F =:= Name, A =:= Ar ->
+trans_expr([function,F,A]=Func, Old, Ar, New, Ivars) ->
+    if F =:= Old, A =:= Ar ->
             %% Must return a function of arity A here which calls the
             %% lifted functions! Can access the imported variables.
             Vars = new_vars(A),
@@ -506,12 +506,12 @@ ivars_expr(?Q(_), _Kvars, Ivars) -> Ivars;
 ivars_expr([binary|Segs], Kvars, Ivars) ->
     ivars_bitsegs(Segs, Kvars, Ivars);
 %% Record forms.
-ivars_expr(['make-record',_,Args], Kvars, Ivars) ->
+ivars_expr(['make-record',_|Args], Kvars, Ivars) ->
     ivars_rec_args(Args, Kvars, Ivars);
 ivars_expr(['record-index',_,_], _, Ivars) -> Ivars;
 ivars_expr(['record-field',E,_,_], Kvars, Ivars) ->
     ivars_expr(E, Kvars, Ivars);
-ivars_expr(['record-update',E,_,Args], Kvars, Ivars0) ->
+ivars_expr(['record-update',E,_|Args], Kvars, Ivars0) ->
     Ivars1 = ivars_expr(E, Kvars, Ivars0),
     ivars_rec_args(Args, Kvars, Ivars1);
 %% Function forms.

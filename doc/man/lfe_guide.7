@@ -341,10 +341,10 @@ the expression and then be effectively \f[C]2\f[R].
 (call mod func arg ... )    - Call to Mod:Func(Arg, ... )
 
 (define-record name fields)
-(make-record name fields)
+(make-record name field val ...)
 (record-index name field)
 (record-field record name field)
-(record-update record name fields)
+(record-update record name field val ...)
 
 (define-module name meta-data attributes)
 (extend-module meta-data attributes)
@@ -840,15 +840,15 @@ it are:
 (define-record name ((field) | field
                      (field default-value)
                      (field default-value type) ...))
-(make-record name ((field . value) (field . value) ...))
+(make-record name field value field value ...)
 (record-index name field)
 (record-field record name field)
-(record-update record name ((field . value) (field . value) ...))
+(record-update record name field value field value ...)
 \f[R]
 .fi
 .PP
 Note that the list of field/value pairs when making or updating a record
-is an a-list.
+is a flat list.
 .PP
 We will explain these forms with a simple example.
 To define a record we do:
@@ -856,9 +856,9 @@ To define a record we do:
 .nf
 \f[C]
 (define-record person
-     ((name \[dq]\[dq])
-      (address \[dq]\[dq] (string))
-      (age)))
+               ((name \[dq]\[dq])
+                (address \[dq]\[dq] (string))
+                (age)))
 \f[R]
 .fi
 .PP
@@ -869,7 +869,7 @@ To make an instance of a \f[C]person\f[R] record we do:
 .IP
 .nf
 \f[C]
-(make-record person ((name . \[dq]Robert\[dq]) (age . 54)))
+(make-record person name \[dq]Robert\[dq] age 54)
 \f[R]
 .fi
 .PP
@@ -882,7 +882,7 @@ and the set it by doing (the variable \f[C]robert\f[R] references a
 .nf
 \f[C]
 (record-field robert person address)
-(record-update robert person ((address . \[dq]my home\[dq]) (age . 55)))
+(record-update robert person address \[dq]my home\[dq] age 55)
 \f[R]
 .fi
 .PP

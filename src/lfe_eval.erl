@@ -188,7 +188,7 @@ eval_expr(['map-update',Map|As], Env) ->
 eval_expr(['map-remove',Map|Ks], Env) ->
     eval_map_remove('map-remove', Map, Ks, Env);
 %% Record special forms.
-eval_expr(['make-record',Name,Args], Env) ->
+eval_expr(['make-record',Name|Args], Env) ->
     case lfe_env:get_record(Name, Env) of
         {yes,Fields} ->
             make_record_tuple(Name, Fields, Args, Env);
@@ -208,7 +208,7 @@ eval_expr(['record-field',E,Name,F], Env) ->
             element(Index, Ev);                 %Report if Ev not a record
         no -> undefined_record_error(Name)
     end;
-eval_expr(['record-update',E,Name,Args], Env) ->
+eval_expr(['record-update',E,Name|Args], Env) ->
     Ev = eval_expr(E, Env),
     case lfe_env:get_record(Name, Env) of
         {yes,Fields} ->
@@ -1135,7 +1135,7 @@ match([map|Ps], Val, Pbs, Env) ->
         false -> no
     end;
 %% Record patterns.
-match(['make-record',Name,Fs], Val, Pbs, Env) ->
+match(['make-record',Name|Fs], Val, Pbs, Env) ->
     case lfe_env:get_record(Name, Env) of
         {yes,Fields} ->
             match_record_tuple(Name, Fields, Fs,  Val, Pbs, Env);

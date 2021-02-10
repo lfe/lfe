@@ -42,7 +42,7 @@ format_error(_) -> "record error".
 %%       point-x, set-point-x, point-y, set-point-y.
 
 define([Name|Fdefs], Env, St0) ->
-    {Macs,_Meta,St1} = define(Name, Fdefs, Env, St0),
+    {Macs,St1} = define(Name, Fdefs, Env, St0),
     {yes,[progn,['define-record',Name,Fdefs]|Macs],St1};
 define([], _Env, _St) -> no.                    %Undefined macro
 
@@ -64,18 +64,17 @@ define(Name, Fdefs, _Env, St) when is_atom(Name) ->
             size_macro(Name, Fields)            %size-Name
             |
             field_macros(Name, Fields)],        %Name-F,set-Name-F
-    Meta = [],                                  %Empty meta
-    {Macs,Meta,St};
+    {Macs,St};
 define(Name, _Fdefs, _Env, _St) ->
     bad_record_error(Name).
 
 make_macro(Name) ->
     Make = list_to_atom(concat(['make','-',Name])),
-    ['defmacro',Make,fds,?BQ(['make-record',Name,?C(fds)])].
+    ['defmacro',Make,fds,?BQ(['make-record',Name,?C_A(fds)])].
 
 match_macro(Name) ->
     Match = list_to_atom(concat(['match','-',Name])),
-    ['defmacro',Match,fds,?BQ(['make-record',Name,?C(fds)])].
+    ['defmacro',Match,fds,?BQ(['make-record',Name,?C_A(fds)])].
 
 test_macro(Name, Fs) ->
     Test = list_to_atom(concat(['is','-',Name])),
@@ -86,13 +85,13 @@ update_macro(Name) ->
     Upd = list_to_atom(concat(['update','-',Name])),
     [defmacro,Upd,
      [[cons,rec,fds],
-      ?BQ(['record-update',?C(rec),Name,?C(fds)])]].
+      ?BQ(['record-update',?C(rec),Name,?C_A(fds)])]].
 
 set_macro(Name) ->
     Set = list_to_atom(concat(['set','-',Name])),
     [defmacro,Set,
      [[cons,rec,fds],
-      ?BQ(['record-update',?C(rec),Name,?C(fds)])]].
+      ?BQ(['record-update',?C(rec),Name,?C_A(fds)])]].
 
 field_macro(Name, Fs) ->
     Recfields = list_to_atom(concat(['fields','-',Name])),
@@ -112,9 +111,9 @@ field_macros(Name, Fs) ->
                     [[list,rec],
                      ?BQ(['record-field',?C(rec),Name,F])]],
                    [defmacro,Upd,[rec,new],
-                    ?BQ(['record-update',?C(rec),Name,[F,?C(new)]])],
+                    ?BQ(['record-update',?C(rec),Name,F,?C(new)])],
                    [defmacro,Set,[rec,new],
-                    ?BQ(['record-update',?C(rec),Name,[F,?C(new)]])] |
+                    ?BQ(['record-update',?C(rec),Name,F,?C(new)])] |
                    Fas]
           end,
     lists:foldr(Fun, [], Fs).

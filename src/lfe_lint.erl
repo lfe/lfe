@@ -487,8 +487,8 @@ is_docs_list(Docs) ->
     lfe_lib:is_proper_list(Docs) andalso lists:all(Fun, Docs).
 
 %% check_record_defs(RecordDefs, Line, State) -> State.
-%% check_record_def(RecordDef, Line, State) -> State.
-%% check_record_def(RecordName, Fields, Line, State) -> State.
+%% check_record_def(RecordDef, Meta, Line, State) -> State.
+%% check_record_def(RecordName, Meta, Fields, Line, State) -> State.
 %%  Check a record definition.
 
 check_record_defs(Rdefs, L, St) ->
@@ -501,7 +501,8 @@ check_record_def([Name,Fields], L, St) ->
 check_record_def(_, L, St) ->
     bad_meta_error(L, record, St).
 
-check_record_def(Name, Fds, L, #lfe_lint{recs=Recs}=St0) when is_atom(Name) ->
+check_record_def(Name, Fds, L, #lfe_lint{recs=Recs}=St0)
+  when is_atom(Name) ->
     case orddict:is_key(Name, Recs) of
         true ->
             add_error(L, {redefine_record,Name}, St0);
@@ -641,14 +642,14 @@ check_expr([function,M,F,Ar], _, L, St) ->
        true -> bad_form_error(L, function, St)
     end;
 %% Check record special forms.
-check_expr(['make-record',Name,Fs], Env, L, St) ->
+check_expr(['make-record',Name|Fs], Env, L, St) ->
     check_record(Name, Fs, Env, L, St);
 check_expr(['record-index',Name,F], _Env, L, St) ->
     check_record_field(Name, F, L, St);
 check_expr(['record-field',E,Name,F], Env, L, St0) ->
     St1 = check_expr(E, Env, L, St0),
     check_record_field(Name, F, L, St1);
-check_expr(['record-update',E,Name,Fs], Env, L, St0) ->
+check_expr(['record-update',E,Name|Fs], Env, L, St0) ->
     St1 = check_expr(E, Env, L, St0),
     check_record(Name, Fs, Env, L, St1);
 %% Special known data type operations.
@@ -1412,7 +1413,7 @@ pattern([binary|Segs], Pvs, Env, L, St) ->
 pattern([map|Ps], Pvs, Env, L, St) ->
     pat_map(Ps, Pvs, Env, L, St);
 %% Check record patterns.
-pattern(['make-record',Name,Fs], Pvs, Env, L, St) ->
+pattern(['make-record',Name|Fs], Pvs, Env, L, St) ->
     check_record_pat(Name, Fs, Pvs, Env, L, St);
 pattern(['record-index',Name,F], _Pvs, _Env, L, St) ->
     check_record_field(Name, F, L, St);
