@@ -163,3 +163,7 @@ If you would like to make changes to the LFE documentation and then regenerate
 the docs, you'll want to read the instructions here:
 
 * [Updating LFE Documentation](doc/src/updating_docs.md)
+
+## Join the Community
+
+[LFE on Slack](https://lfe.slack.com), join by requesting an invite [here](https://erlef.org/slack-invite/lfe)
