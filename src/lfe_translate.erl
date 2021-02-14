@@ -733,7 +733,7 @@ to_expr([F|As], L, Vt, St0) when is_atom(F) ->  %General function call
             end
     end;
 to_expr([_|_]=List, L, _, St) ->
-    case is_posint_list(List) of
+    case lfe_lib:is_posint_list(List) of
         true -> {{string,L,List},St};
         false ->
             illegal_code_error(L, list)         %Not right!
@@ -783,46 +783,43 @@ to_pats_s(Fun, L, Pvs0, Vt0, St0, [E|Es]) ->
 to_pats_s(_, L, Pvs, Vt, St, []) -> {{nil,L},Pvs,Vt,St}.
 
 %% to_bitsegs(Segs, LineNumber, VarTable, State) -> {Segs,State}.
-%%  This gives a verbose value, but it is correct.
+%%  We don't do any real checking here but just assume that everything
+%%  is correct and in worst case pass the buck to the Erlang compiler.
+
 
 to_bitsegs(Ss, L, Vt, St) ->
     Fun = fun (S, St0) -> to_bitseg(S, L, Vt, St0) end,
     mapfoldl(Fun, St, Ss).
 
-to_bitseg([Val|Specs]=F, L, Vt, St) ->
-    case is_posint_list(F) of
+to_bitseg([Val|Specs]=Seg, L, Vt, St) ->
+    case lfe_lib:is_posint_list(Seg) of
         true ->
-            {Size,Type} = to_bitspecs([], L),
-            to_bin_element(F, Size, Type, L, Vt, St);
+            {{bin_element,L,{string,L,Seg},default,default},St};
         false ->
-            {Size,Type} = to_bitspecs(Specs, []),
-            to_bin_element(Val, Size, Type, L, Vt, St)
+            to_bin_element(Val, Specs, L, Vt, St)
     end;
 to_bitseg(Val, L, Vt, St) ->
-    {Size,Type} = to_bitspecs([], L),
-    to_bin_element(Val, Size, Type, L, Vt, St).
+    to_bin_element(Val, [], L, Vt, St).
 
-to_bin_element(Val, Size, {Type,Unit,Sign,End}, L, Vt, St0) ->
+to_bin_element(Val, Specs, L, Vt, St0) ->
     {Eval,St1} = to_expr(Val, L, Vt, St0),
+    {Size,Type} = to_bitseg_type(Specs, default, []),
     {Esiz,St2} = to_bin_size(Size, L, Vt, St1),
-    {{bin_element,L,Eval,Esiz,[Type,to_bin_unit(Unit),Sign,End]},St2}.
+    {{bin_element,L,Eval,Esiz,Type},St2}.
+
+to_bitseg_type([[size,Size]|Specs], _, Type) ->
+    to_bitseg_type(Specs, Size, Type);
+to_bitseg_type([[unit,Unit]|Specs], Size, Type) ->
+    to_bitseg_type(Specs, Size, Type ++ [{unit,Unit}]);
+to_bitseg_type([Spec|Specs], Size, Type) ->
+    to_bitseg_type(Specs, Size, Type ++ [Spec]);
+to_bitseg_type([], Size, []) -> {Size,default};
+to_bitseg_type([], Size, Type) -> {Size,Type}.
 
 to_bin_size(all, _, _, St) -> {default,St};
 to_bin_size(default, _, _, St) -> {default,St};
 to_bin_size(undefined, _, _, St) -> {default,St};
 to_bin_size(Size, L, Vt, St) -> to_expr(Size, L, Vt, St).
-
-to_bin_unit(default) -> default;
-to_bin_unit(Unit) -> {unit,Unit}.
-
-%% to_bitspec(Specs, Line) -> {Size,Type}.
-%%  Get the error handling as we want it.
-
-to_bitspecs(Ss, L) ->
-    case lfe_bits:get_bitspecs(Ss) of
-        {ok,Sz,Ty} -> {Sz,Ty};
-        {error,Error} -> illegal_code_error(L, Error)
-    end.
 
 %% to_map_set(Map, Pairs, L, Vt, State) -> {MapSet,State}.
 %% to_map_update(Map, Pairs, L, Vt, State) -> {MapUpdate,State}.
@@ -842,8 +839,8 @@ to_map_remove(Map, Keys, L, Vt, St0) ->
     {Em,St1} = to_expr(Map, L, Vt, St0),
     {Eks,St2} = to_exprs(Keys, L, Vt, St1),
     Fun = fun (K, {F,St}) ->
-		  to_remote_call({atom,L,maps}, {atom,L,remove}, [K,F], L, St)
-	  end,
+                  to_remote_call({atom,L,maps}, {atom,L,remove}, [K,F], L, St)
+          end,
     lists:foldl(Fun, {Em,St2}, Eks).
 
 %% to_map_pairs(Pairs, LineNumber, VarTable, State) -> {Fields,State}.
@@ -1133,7 +1130,7 @@ to_pat(['=',P1,P2], L, Pvs0, Vt0, St0) ->       %Alias
     {Ep2,Pvs2,Vt2,St2} = to_pat(P2, L, Pvs1, Vt1, St1),
     {{match,L,Ep1,Ep2},Pvs2, Vt2,St2};
 to_pat([_|_]=List, L, Pvs, Vt, St) ->
-    case is_posint_list(List) of
+    case lfe_lib:is_posint_list(List) of
         true -> {to_lit(List, L),Pvs,Vt,St};
         false -> illegal_code_error(L, string)
     end.
@@ -1167,29 +1164,28 @@ to_pat_map_pairs([K,V|Ps], L, Pvs0, Vt0, St0) ->
 to_pat_map_pairs([], _, Pvs, Vt, St) -> {[],Pvs,Vt,St}.
 
 %% to_pat_bitsegs(Segs, LineNumber, VarTable, State) -> {Segs,State}.
-%% This gives a verbose value, but it is correct.
+%%  We don't do any real checking here but just assume that everything
+%%  is correct and in worst case pass the buck to the Erlang compiler.
 
 to_pat_bitsegs(Ss, L, Pvs, Vt, St) ->
     Fun = fun (S, Pvs0, Vt0, St0) -> to_pat_bitseg(S, L, Pvs0, Vt0, St0) end,
     mapfoldl3(Fun, Pvs, Vt, St, Ss).
 
-to_pat_bitseg([Val|Specs]=F, L, Pvs, Vt, St) ->
-    case is_posint_list(F) of
+to_pat_bitseg([Val|Specs]=Seg, L, Pvs, Vt, St) ->
+    case lfe_lib:is_posint_list(Seg) of
         true ->
-            {Size,Type} = to_bitspecs([], L),
-            to_pat_bin_element(F, Size, Type, L, Pvs, Vt, St);
+	    {{bin_element,L,{string,L,Seg},default,default},St};
         false ->
-            {Size,Type} = to_bitspecs(Specs, L),
-            to_pat_bin_element(Val, Size, Type, L, Pvs, Vt, St)
+            to_pat_bin_element(Val, Specs, L, Pvs, Vt, St)
     end;
 to_pat_bitseg(Val, L, Pvs, Vt, St) ->
-    {Size,Type} = to_bitspecs([], L),
-    to_pat_bin_element(Val, Size, Type, L, Pvs, Vt, St).
+    to_pat_bin_element(Val, [], L, Pvs, Vt, St).
 
-to_pat_bin_element(Val, Size, {Type,Unit,Sign,End}, L, Pvs0, Vt0, St0) ->
+to_pat_bin_element(Val, Specs, L, Pvs0, Vt0, St0) ->
     {Eval,Pvs1,Vt1,St1} = to_pat(Val, L, Pvs0, Vt0, St0),
+    {Size,Type} = to_bitseg_type(Specs, default, []),
     {Esiz,Pvs2,Vt2,St2} = to_pat_bin_size(Size, L, Pvs1, Vt1, St1),
-    {{bin_element,L,Eval,Esiz,[Type,to_bin_unit(Unit),Sign,End]},Pvs2,Vt2,St2}.
+    {{bin_element,L,Eval,Esiz,Type},Pvs2,Vt2,St2}.
 
 to_pat_bin_size(all, _, Pvs, Vt, St) -> {default,Pvs,Vt,St};
 to_pat_bin_size(default, _, Pvs, Vt, St) -> {default,Pvs,Vt,St};
@@ -1216,11 +1212,6 @@ to_pat_rec_fields([], _, Pvs, Vt, St) -> {[],Pvs,Vt,St}.
 to_lit(Lit, L) ->
     %% This does all the work for us.
     erl_parse:abstract(Lit, L).
-
-is_posint_list([I|Is]) when is_integer(I), I >= 0 ->
-    is_posint_list(Is);
-is_posint_list([]) -> true;
-is_posint_list(_) -> false.
 
 %% mapfoldl2(Fun, Acc1, Acc2, List) -> {List,Acc1,Acc2}.
 %%  Like normal mapfoldl but with 2 accumulators.
