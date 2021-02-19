@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2020 Robert Virding
+%% Copyright (c) 2008-2021 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -93,7 +93,7 @@ from_expr({map,_,Map,Assocs}, Vt0, St0) ->      %Update a map
 %% Record special forms.
 from_expr({record,_,Name,Fs}, Vt0, St0) ->
     {Lfs,Vt1,St1} = from_rec_fields(Fs, Vt0, St0),
-    {['make-record',Name,Lfs],Vt1,St1};
+    {['make-record',Name|Lfs],Vt1,St1};
 from_expr({record_index,_,Name,{atom,_,F}}, Vt, St) -> %We KNOW!
     {['record-index',Name,F],Vt,St};
 from_expr({record_field,_,E,Name,{atom,_,F}}, Vt0, St0) -> %We KNOW!
@@ -102,7 +102,7 @@ from_expr({record_field,_,E,Name,{atom,_,F}}, Vt0, St0) -> %We KNOW!
 from_expr({record,_,E,Name,Fs}, Vt0, St0) ->
     {Le,Vt1,St1} = from_expr(E, Vt0, St0),
     {Lfs,Vt2,St2} = from_rec_fields(Fs, Vt1, St1),
-    {['record-update',Le,Name,Lfs],Vt2,St2};
+    {['record-update',Le,Name|Lfs],Vt2,St2};
 from_expr({record_field,_,_,_}=M, Vt, St) ->    %Pre R16 packages
     from_package_module(M, Vt, St);
 %% Function special forms.
@@ -294,12 +294,12 @@ from_map_update([], _, Map, Vt, St) -> {Map,Vt,St}.
 from_rec_fields([{record_field,_,{atom,_,F},V}|Fs], Vt0, St0) ->
     {Lv,Vt1,St1} = from_expr(V, Vt0, St0),
     {Lfs,Vt2,St2} = from_rec_fields(Fs, Vt1, St1),
-    {[[F | Lv]|Lfs],Vt2,St2};
+    {[F,Lv|Lfs],Vt2,St2};
 from_rec_fields([{record_field,_,{var,_,F},V}|Fs], Vt0, St0) ->
     %% Special case!!
     {Lv,Vt1,St1} = from_expr(V, Vt0, St0),
     {Lfs,Vt2,St2} = from_rec_fields(Fs, Vt1, St1),
-    {[[F | Lv]|Lfs],Vt2,St2};
+    {[F,Lv|Lfs],Vt2,St2};
 from_rec_fields([], Vt, St) -> {[],Vt,St}.
 
 %% from_icrt_cls(Clauses, VarTable, State) -> {Clauses,VarTable,State}.
@@ -451,11 +451,11 @@ from_pat({bin,_,Segs}, Vt0, St0) ->
 from_pat({map,_,Assocs}, Vt0, St0) ->
     {Ps,Eqt,Vt1,St1} = from_pat_map_assocs(Assocs, Vt0, St0),
     {[map|Ps],Eqt,Vt1,St1};
-from_pat({record,_,R,Fs}, Vt0, St0) ->          %Match a record
+from_pat({record,_,Name,Fs}, Vt0, St0) ->          %Match a record
     {Sfs,Eqt,Vt1,St1} = from_pat_rec_fields(Fs, Vt0, St0),
-    {['make-record',R,Sfs],Eqt,Vt1,St1};
-from_pat({record_index,_,R,{atom,_,F}}, Vt, St) -> %We KNOW!
-    {['record-index',R,F],Vt,St};
+    {['make-record',Name|Sfs],Eqt,Vt1,St1};
+from_pat({record_index,_,Name,{atom,_,F}}, Vt, St) -> %We KNOW!
+    {['record-index',Name,F],Vt,St};
 from_pat({match,_,P1,P2}, Vt0, St0) ->          %Aliases
     {Lp1,Eqt1,Vt1,St1} = from_pat(P1, Vt0, St0),
     {Lp2,Eqt2,Vt2,St2} = from_pat(P2, Vt1, St1),
@@ -616,24 +616,28 @@ to_expr([binary|Segs], L, Vt, St0) ->
 to_expr([map|Pairs], L, Vt, St0) ->
     {Eps,St1} = to_map_pairs(Pairs, map_field_assoc, L, Vt, St0),
     {{map,L,Eps},St1};
-to_expr([mref,Map,K], L, Vt, St) ->
-    to_expr([call,?Q(maps),?Q(get),K,Map], L, Vt, St);
-to_expr([mset,Map|Pairs], L, Vt, St0) ->
-    {Em,St1} = to_expr(Map, L, Vt, St0),
-    {Eps,St2} = to_map_pairs(Pairs, map_field_assoc, L, Vt, St1),
-    {{map,L,Em,Eps},St2};
-to_expr([mupd,Map|Pairs], L, Vt, St0) ->
-    {Em,St1} = to_expr(Map, L, Vt, St0),
-    {Eps,St2} = to_map_pairs(Pairs, map_field_exact, L, Vt, St1),
-    {{map,L,Em,Eps},St2};
-to_expr(['map-get',Map,K], L, Vt, St) ->
-    to_expr([mref,Map,K], L, Vt, St);
-to_expr(['map-set',Map|Ps], L, Vt, St) ->
-    to_expr([mset,Map|Ps], L, Vt, St);
-to_expr(['map-update',Map|Ps], L, Vt, St) ->
-    to_expr([mupd,Map|Ps], L, Vt, St);
+to_expr([msiz,Map], L, Vt, St) ->
+    to_expr([map_size,Map], L, Vt, St);
+to_expr([mref,Map,Key], L, Vt, St) ->
+    to_expr([map_get,Key,Map], L, Vt, St);
+to_expr([mset,Map|Pairs], L, Vt, St) ->
+    to_map_set(Map, Pairs, L, Vt, St);
+to_expr([mupd,Map|Pairs], L, Vt, St) ->
+    to_map_update(Map, Pairs, L, Vt, St);
+to_expr([mrem,Map|Keys], L, Vt, St) ->
+    to_map_remove(Map, Keys, L, Vt, St);
+to_expr(['map-size',Map], L, Vt, St) ->
+    to_expr([map_size,Map], L, Vt, St);
+to_expr(['map-get',Map,Key], L, Vt, St) ->
+    to_expr([map_get,Key,Map], L, Vt, St);
+to_expr(['map-set',Map|Pairs], L, Vt, St) ->
+    to_map_set(Map, Pairs, L, Vt, St);
+to_expr(['map-update',Map|Pairs], L, Vt, St) ->
+    to_map_update(Map, Pairs, L, Vt, St);
+to_expr(['map-remove',Map|Keys], L, Vt, St) ->
+    to_map_remove(Map, Keys, L, Vt, St);
 %% Record special forms.
-to_expr(['make-record',Name,Fs], L, Vt, St0) ->
+to_expr(['make-record',Name|Fs], L, Vt, St0) ->
     {Efs,St1} = to_rec_fields(Fs, L, Vt, St0),
     {{record,L,Name,Efs},St1};
 to_expr(['record-index',Name,F], L, _, St) ->
@@ -641,7 +645,7 @@ to_expr(['record-index',Name,F], L, _, St) ->
 to_expr(['record-field',E,Name,F], L, Vt, St0) ->
     {Ee,St1} = to_expr(E, L, Vt, St0),
     {{record_field,L,Ee,Name,{atom,L,F}},St1};
-to_expr(['record-update',E,Name,Fs], L, Vt, St0) ->
+to_expr(['record-update',E,Name|Fs], L, Vt, St0) ->
     {Ee,St1} = to_expr(E, L, Vt, St0),
     {Efs,St2} = to_rec_fields(Fs, L, Vt, St1),
     {{record,L,Ee,Name,Efs},St2};
@@ -708,13 +712,13 @@ to_expr([call,?Q(erlang),?Q(F)|As], L, Vt, St0) ->
     case is_erl_op(F, length(As)) of
         true -> {list_to_tuple([op,L,F|Eas]),St1};
         false ->
-            {{call,L,{remote,L,{atom,L,erlang},{atom,L,F}},Eas},St1}
+            to_remote_call({atom,L,erlang}, {atom,L,F}, Eas, L, St1)
     end;
 to_expr([call,M,F|As], L, Vt, St0) ->
     {Em,St1} = to_expr(M, L, Vt, St0),
     {Ef,St2} = to_expr(F, L, Vt, St1),
     {Eas,St3} = to_exprs(As, L, Vt, St2),
-    {{call,L,{remote,L,Em,Ef},Eas},St3};
+    to_remote_call(Em, Ef, Eas, L, St3);
 to_expr([F|As], L, Vt, St0) when is_atom(F) ->  %General function call
     {Eas,St1} = to_exprs(As, L, Vt, St0),
     Ar = length(As),                            %Arity
@@ -723,13 +727,13 @@ to_expr([F|As], L, Vt, St0) when is_atom(F) ->  %General function call
         false ->
             case lfe_internal:is_lfe_bif(F, Ar) of
                 true ->
-                    {{call,L,{remote,L,{atom,L,lfe},{atom,L,F}},Eas},St1};
+                    to_remote_call({atom,L,lfe}, {atom,L,F}, Eas, L, St1);
                 false ->
                     {{call,L,{atom,L,F},Eas},St1}
             end
     end;
 to_expr([_|_]=List, L, _, St) ->
-    case is_posint_list(List) of
+    case lfe_lib:is_posint_list(List) of
         true -> {{string,L,List},St};
         false ->
             illegal_code_error(L, list)         %Not right!
@@ -742,6 +746,9 @@ to_expr(Lit, L, _, St) ->                       %Everything else is a literal
 to_expr_var(V, L, Vt, St) ->
     Var = ?VT_GET(V, Vt, V),                    %Hmm
     {{var,L,Var},St}.
+
+to_remote_call(M, F, As, L, St) ->
+    {{call,L,{remote,L,M,F},As},St}.
 
 %% is_erl_op(Op, Arity) -> bool().
 %% Is Op/Arity one of the known Erlang operators?
@@ -776,46 +783,65 @@ to_pats_s(Fun, L, Pvs0, Vt0, St0, [E|Es]) ->
 to_pats_s(_, L, Pvs, Vt, St, []) -> {{nil,L},Pvs,Vt,St}.
 
 %% to_bitsegs(Segs, LineNumber, VarTable, State) -> {Segs,State}.
-%% This gives a verbose value, but it is correct.
+%%  We don't do any real checking here but just assume that everything
+%%  is correct and in worst case pass the buck to the Erlang compiler.
+
 
 to_bitsegs(Ss, L, Vt, St) ->
     Fun = fun (S, St0) -> to_bitseg(S, L, Vt, St0) end,
     mapfoldl(Fun, St, Ss).
 
-to_bitseg([Val|Specs]=F, L, Vt, St) ->
-    case is_posint_list(F) of
+to_bitseg([Val|Specs]=Seg, L, Vt, St) ->
+    case lfe_lib:is_posint_list(Seg) of
         true ->
-            {Size,Type} = to_bitspecs([], L),
-            to_bin_element(F, Size, Type, L, Vt, St);
+            {{bin_element,L,{string,L,Seg},default,default},St};
         false ->
-            {Size,Type} = to_bitspecs(Specs, []),
-            to_bin_element(Val, Size, Type, L, Vt, St)
+            to_bin_element(Val, Specs, L, Vt, St)
     end;
 to_bitseg(Val, L, Vt, St) ->
-    {Size,Type} = to_bitspecs([], L),
-    to_bin_element(Val, Size, Type, L, Vt, St).
+    to_bin_element(Val, [], L, Vt, St).
 
-to_bin_element(Val, Size, {Type,Unit,Sign,End}, L, Vt, St0) ->
+to_bin_element(Val, Specs, L, Vt, St0) ->
     {Eval,St1} = to_expr(Val, L, Vt, St0),
+    {Size,Type} = to_bitseg_type(Specs, default, []),
     {Esiz,St2} = to_bin_size(Size, L, Vt, St1),
-    {{bin_element,L,Eval,Esiz,[Type,to_bin_unit(Unit),Sign,End]},St2}.
+    {{bin_element,L,Eval,Esiz,Type},St2}.
+
+to_bitseg_type([[size,Size]|Specs], _, Type) ->
+    to_bitseg_type(Specs, Size, Type);
+to_bitseg_type([[unit,Unit]|Specs], Size, Type) ->
+    to_bitseg_type(Specs, Size, Type ++ [{unit,Unit}]);
+to_bitseg_type([Spec|Specs], Size, Type) ->
+    to_bitseg_type(Specs, Size, Type ++ [Spec]);
+to_bitseg_type([], Size, []) -> {Size,default};
+to_bitseg_type([], Size, Type) -> {Size,Type}.
 
 to_bin_size(all, _, _, St) -> {default,St};
 to_bin_size(default, _, _, St) -> {default,St};
 to_bin_size(undefined, _, _, St) -> {default,St};
 to_bin_size(Size, L, Vt, St) -> to_expr(Size, L, Vt, St).
 
-to_bin_unit(default) -> default;
-to_bin_unit(Unit) -> {unit,Unit}.
+%% to_map_set(Map, Pairs, L, Vt, State) -> {MapSet,State}.
+%% to_map_update(Map, Pairs, L, Vt, State) -> {MapUpdate,State}.
+%% to_map_remove(Map, Keys, L, Vt, State) -> {MapRemove,State}.
 
-%% to_bitspec(Specs, Line) -> {Size,Type}.
-%%  Get the error handling as we want it.
+to_map_set(Map, Pairs, L, Vt, St0) ->
+    {Em,St1} = to_expr(Map, L, Vt, St0),
+    {Eps,St2} = to_map_pairs(Pairs, map_field_assoc, L, Vt, St1),
+    {{map,L,Em,Eps},St2}.
 
-to_bitspecs(Ss, L) ->
-    case lfe_bits:get_bitspecs(Ss) of
-        {ok,Sz,Ty} -> {Sz,Ty};
-        {error,Error} -> illegal_code_error(L, Error)
-    end.
+to_map_update(Map, Pairs, L, Vt, St0) ->
+    {Em,St1} = to_expr(Map, L, Vt, St0),
+    {Eps,St2} = to_map_pairs(Pairs, map_field_exact, L, Vt, St1),
+    {{map,L,Em,Eps},St2}.
+
+to_map_remove(Map, Keys, L, Vt, St0) ->
+    {Em,St1} = to_expr(Map, L, Vt, St0),
+    {Eks,St2} = to_exprs(Keys, L, Vt, St1),
+    Fun = fun (K, {F,St}) ->
+                  to_remote_call({atom,L,maps}, {atom,L,remove}, [K,F], L, St)
+          end,
+    lists:foldl(Fun, {Em,St2}, Eks).
 
 %% to_map_pairs(Pairs, LineNumber, VarTable, State) -> {Fields,State}.
 
@@ -828,12 +854,12 @@ to_map_pairs([], _, _, _, St) -> {[],St}.
 
 %% to_rec_fields(Fields, LineNumber, VarTable, State) -> {Fields,State}.
 
-to_rec_fields([['_' | V]|Fs], L, Vt, St0) ->
+to_rec_fields(['_',V|Fs], L, Vt, St0) ->
     %% Special case!!
     {Ev,St1} = to_expr(V, L, Vt, St0),
     {Efs,St2} = to_rec_fields(Fs, L, Vt, St1),
     {[{record_field,L,{var,L,'_'},Ev}|Efs],St2};
-to_rec_fields([[F | V]|Fs], L, Vt, St0) ->
+to_rec_fields([F,V|Fs], L, Vt, St0) ->
     {Ev,St1} = to_expr(V, L, Vt, St0),
     {Efs,St2} = to_rec_fields(Fs, L, Vt, St1),
     {[{record_field,L,{atom,L,F},Ev}|Efs],St2};
@@ -1094,7 +1120,7 @@ to_pat([binary|Segs], L, Pvs0, Vt0, St0) ->
 to_pat([map|Pairs], L, Pvs0, Vt0, St0) ->
     {As,Pvs1,Vt1,St1} = to_pat_map_pairs(Pairs, L, Pvs0, Vt0, St0),
     {{map,L,As},Pvs1,Vt1,St1};
-to_pat(['make-record',R,Fs], L, Pvs0, Vt0, St0) ->
+to_pat(['make-record',R|Fs], L, Pvs0, Vt0, St0) ->
     {Efs,Pvs1,Vt1,St1} = to_pat_rec_fields(Fs, L, Pvs0, Vt0, St0),
     {{record,L,R,Efs},Pvs1,Vt1,St1};
 to_pat(['record-index',R,F], L, Pvs, Vt, St) ->
@@ -1104,7 +1130,7 @@ to_pat(['=',P1,P2], L, Pvs0, Vt0, St0) ->       %Alias
     {Ep2,Pvs2,Vt2,St2} = to_pat(P2, L, Pvs1, Vt1, St1),
     {{match,L,Ep1,Ep2},Pvs2, Vt2,St2};
 to_pat([_|_]=List, L, Pvs, Vt, St) ->
-    case is_posint_list(List) of
+    case lfe_lib:is_posint_list(List) of
         true -> {to_lit(List, L),Pvs,Vt,St};
         false -> illegal_code_error(L, string)
     end.
@@ -1138,29 +1164,28 @@ to_pat_map_pairs([K,V|Ps], L, Pvs0, Vt0, St0) ->
 to_pat_map_pairs([], _, Pvs, Vt, St) -> {[],Pvs,Vt,St}.
 
 %% to_pat_bitsegs(Segs, LineNumber, VarTable, State) -> {Segs,State}.
-%% This gives a verbose value, but it is correct.
+%%  We don't do any real checking here but just assume that everything
+%%  is correct and in worst case pass the buck to the Erlang compiler.
 
 to_pat_bitsegs(Ss, L, Pvs, Vt, St) ->
     Fun = fun (S, Pvs0, Vt0, St0) -> to_pat_bitseg(S, L, Pvs0, Vt0, St0) end,
     mapfoldl3(Fun, Pvs, Vt, St, Ss).
 
-to_pat_bitseg([Val|Specs]=F, L, Pvs, Vt, St) ->
-    case is_posint_list(F) of
+to_pat_bitseg([Val|Specs]=Seg, L, Pvs, Vt, St) ->
+    case lfe_lib:is_posint_list(Seg) of
         true ->
-            {Size,Type} = to_bitspecs([], L),
-            to_pat_bin_element(F, Size, Type, L, Pvs, Vt, St);
+	    {{bin_element,L,{string,L,Seg},default,default},St};
         false ->
-            {Size,Type} = to_bitspecs(Specs, L),
-            to_pat_bin_element(Val, Size, Type, L, Pvs, Vt, St)
+            to_pat_bin_element(Val, Specs, L, Pvs, Vt, St)
     end;
 to_pat_bitseg(Val, L, Pvs, Vt, St) ->
-    {Size,Type} = to_bitspecs([], L),
-    to_pat_bin_element(Val, Size, Type, L, Pvs, Vt, St).
+    to_pat_bin_element(Val, [], L, Pvs, Vt, St).
 
-to_pat_bin_element(Val, Size, {Type,Unit,Sign,End}, L, Pvs0, Vt0, St0) ->
+to_pat_bin_element(Val, Specs, L, Pvs0, Vt0, St0) ->
     {Eval,Pvs1,Vt1,St1} = to_pat(Val, L, Pvs0, Vt0, St0),
+    {Size,Type} = to_bitseg_type(Specs, default, []),
     {Esiz,Pvs2,Vt2,St2} = to_pat_bin_size(Size, L, Pvs1, Vt1, St1),
-    {{bin_element,L,Eval,Esiz,[Type,to_bin_unit(Unit),Sign,End]},Pvs2,Vt2,St2}.
+    {{bin_element,L,Eval,Esiz,Type},Pvs2,Vt2,St2}.
 
 to_pat_bin_size(all, _, Pvs, Vt, St) -> {default,Pvs,Vt,St};
 to_pat_bin_size(default, _, Pvs, Vt, St) -> {default,Pvs,Vt,St};
@@ -1170,12 +1195,12 @@ to_pat_bin_size(Size, L, Pvs, Vt, St) -> to_pat(Size, L, Pvs, Vt, St).
 %% to_pat_rec_fields(Fields, LineNumber, PatVars, VarTable, State) ->
 %%     {Fields,PatVars,VarTable,State}.
 
-to_pat_rec_fields([['_' | P]|Fs], L, Pvs0, Vt0, St0) ->
+to_pat_rec_fields(['_',P|Fs], L, Pvs0, Vt0, St0) ->
     %% Special case!!
     {Ep,Pvs1,Vt1,St1} = to_pat(P, L, Pvs0, Vt0, St0),
     {Efs,Pvs2,Vt2,St2} = to_pat_rec_fields(Fs, L, Pvs1, Vt1, St1),
     {[{record_field,L,{var,L,'_'},Ep}|Efs],Pvs2,Vt2,St2};
-to_pat_rec_fields([[F | P]|Fs], L, Pvs0, Vt0, St0) ->
+to_pat_rec_fields([F,P|Fs], L, Pvs0, Vt0, St0) ->
     {Ep,Pvs1,Vt1,St1} = to_pat(P, L, Pvs0, Vt0, St0),
     {Efs,Pvs2,Vt2,St2} = to_pat_rec_fields(Fs, L, Pvs1, Vt1, St1),
     {[{record_field,L,{atom,L,F},Ep}|Efs],Pvs2,Vt2,St2};
@@ -1187,11 +1212,6 @@ to_pat_rec_fields([], _, Pvs, Vt, St) -> {[],Pvs,Vt,St}.
 to_lit(Lit, L) ->
     %% This does all the work for us.
     erl_parse:abstract(Lit, L).
-
-is_posint_list([I|Is]) when is_integer(I), I >= 0 ->
-    is_posint_list(Is);
-is_posint_list([]) -> true;
-is_posint_list(_) -> false.
 
 %% mapfoldl2(Fun, Acc1, Acc2, List) -> {List,Acc1,Acc2}.
 %%  Like normal mapfoldl but with 2 accumulators.

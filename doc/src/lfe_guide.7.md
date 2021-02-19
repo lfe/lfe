@@ -296,9 +296,11 @@ while it reads the expression and then be effectively ``2``.
 (tset tuple index val)
 (binary seg ... )
 (map key val ...)
+(map-size map) (msiz m)
 (map-get map key) (mref m k)
 (map-set map key val ...) (mset m k v ...)
 (map-update map key val ...) (mupd m k v ...)
+(map-remove map key ...) (mrem m k k ...)
 (lambda (arg ...) ...)
 (match-lambda
   ((arg ... ) {{(when e ...)}} ...)           - Matches clauses
@@ -341,10 +343,10 @@ while it reads the expression and then be effectively ``2``.
 (call mod func arg ... )    - Call to Mod:Func(Arg, ... )
 
 (define-record name fields)
-(make-record name fields)
+(make-record name field val ...)
 (record-index name field)
 (record-field record name field)
-(record-update record name fields)
+(record-update record name field val ...)
 
 (define-module name meta-data attributes)
 (extend-module meta-data attributes)
@@ -469,6 +471,7 @@ following guard expressions:
 (record-field ...)
 (record-index ...)
 (map ...)
+(msiz ...) (map-size ...)
 (mref ...) (map-get ...)
 (mset ...) (map-set ...)
 (mupd ...) (map-update ...)
@@ -787,23 +790,23 @@ updating it are:
 (define-record name ((field) | field
                      (field default-value)
                      (field default-value type) ...))
-(make-record name ((field . value) (field . value) ...))
+(make-record name field value field value ...)
 (record-index name field)
 (record-field record name field)
-(record-update record name ((field . value) (field . value) ...))
+(record-update record name field value field value ...)
 ```
 
 Note that the list of field/value pairs when making or updating a
-record is an a-list.
+record is a flat list.
 
 We will explain these forms with a simple example. To define a record
 we do:
 
 ```
 (define-record person
-     ((name "")
-      (address "" (string))
-      (age)))
+               ((name "")
+                (address "" (string))
+                (age)))
 ```
 
 which defines a record ``person`` with the fields ``name`` (default
@@ -812,7 +815,7 @@ value ``""``), ``address`` (default value ``""`` and type
 we do:
 
 ```
-(make-record person ((name . "Robert") (age . 54)))
+(make-record person name "Robert" age 54)
 ```
 
 The ``make-record`` form is also used to define a pattern.
@@ -823,7 +826,7 @@ record):
 
 ```
 (record-field robert person address)
-(record-update robert person ((address . "my home") (age . 55)))
+(record-update robert person address "my home" age 55)
 ```
 
 Note that we must include the name of the record when accessing it and
@@ -936,7 +939,7 @@ forms are allowed on input but they will always be written as bytes.
 
 # Maps
 
-A map is:
+A map is created with:
 
 ```
 (map key value ... )
@@ -944,22 +947,28 @@ A map is:
 
 To access maps there are the following forms:
 
+* ``(map-size map)`` -
+  Return the size of a map.
+
 * ``(map-get map key)`` -
-  Return the value associated with key in map.
+  Return the value associated with the key in the map.
 
 * ``(map-set map key val ... )`` -
-  Set keys in map to values.
+  Set the keys in the map to values.
 
 * ``(map-update map key val ... )`` -
-  Update keys in map to values. Note that this form requires all
+  Update the keys in the map to values. Note that this form requires all
   the keys to exist.
+
+* ``(map-remove map key ... )`` -
+  Remove the keys in the map.
 
 N.B. This syntax for processing maps has stablized but may change in
 the future!
 
-There is also an alternate short form ``map``, ``mref``, ``mset``,
-``mupd`` based on the Maclisp array reference forms. They take the
-same arguments as their longer alternatives.
+There are also alternate short forms ``msiz``, ``mref``, ``mset``,
+``mupd`` and ``mrem`` based on the Maclisp array reference forms. They
+take the same arguments as their longer alternatives.
 
 
 # List/binary comprehensions

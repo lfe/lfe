@@ -294,9 +294,11 @@ the expression and then be effectively \f[C]2\f[R].
 (tset tuple index val)
 (binary seg ... )
 (map key val ...)
+(map-size map) (msiz m)
 (map-get map key) (mref m k)
 (map-set map key val ...) (mset m k v ...)
 (map-update map key val ...) (mupd m k v ...)
+(map-remove map key ...) (mrem m k k ...)
 (lambda (arg ...) ...)
 (match-lambda
   ((arg ... ) {{(when e ...)}} ...)           - Matches clauses
@@ -339,10 +341,10 @@ the expression and then be effectively \f[C]2\f[R].
 (call mod func arg ... )    - Call to Mod:Func(Arg, ... )
 
 (define-record name fields)
-(make-record name fields)
+(make-record name field val ...)
 (record-index name field)
 (record-field record name field)
-(record-update record name fields)
+(record-update record name field val ...)
 
 (define-module name meta-data attributes)
 (extend-module meta-data attributes)
@@ -474,6 +476,7 @@ following guard expressions:
 (record-field ...)
 (record-index ...)
 (map ...)
+(msiz ...) (map-size ...)
 (mref ...) (map-get ...)
 (mset ...) (map-set ...)
 (mupd ...) (map-update ...)
@@ -837,15 +840,15 @@ it are:
 (define-record name ((field) | field
                      (field default-value)
                      (field default-value type) ...))
-(make-record name ((field . value) (field . value) ...))
+(make-record name field value field value ...)
 (record-index name field)
 (record-field record name field)
-(record-update record name ((field . value) (field . value) ...))
+(record-update record name field value field value ...)
 \f[R]
 .fi
 .PP
 Note that the list of field/value pairs when making or updating a record
-is an a-list.
+is a flat list.
 .PP
 We will explain these forms with a simple example.
 To define a record we do:
@@ -853,9 +856,9 @@ To define a record we do:
 .nf
 \f[C]
 (define-record person
-     ((name \[dq]\[dq])
-      (address \[dq]\[dq] (string))
-      (age)))
+               ((name \[dq]\[dq])
+                (address \[dq]\[dq] (string))
+                (age)))
 \f[R]
 .fi
 .PP
@@ -866,7 +869,7 @@ To make an instance of a \f[C]person\f[R] record we do:
 .IP
 .nf
 \f[C]
-(make-record person ((name . \[dq]Robert\[dq]) (age . 54)))
+(make-record person name \[dq]Robert\[dq] age 54)
 \f[R]
 .fi
 .PP
@@ -879,7 +882,7 @@ and the set it by doing (the variable \f[C]robert\f[R] references a
 .nf
 \f[C]
 (record-field robert person address)
-(record-update robert person ((address . \[dq]my home\[dq]) (age . 55)))
+(record-update robert person address \[dq]my home\[dq] age 55)
 \f[R]
 .fi
 .PP
@@ -998,7 +1001,7 @@ In a binary constant all literal forms are allowed on input but they
 will always be written as bytes.
 .SH Maps
 .PP
-A map is:
+A map is created with:
 .IP
 .nf
 \f[C]
@@ -1008,21 +1011,27 @@ A map is:
 .PP
 To access maps there are the following forms:
 .IP \[bu] 2
-\f[C](map-get map key)\f[R] - Return the value associated with key in
-map.
+\f[C](map-size map)\f[R] - Return the size of a map.
 .IP \[bu] 2
-\f[C](map-set map key val ... )\f[R] - Set keys in map to values.
+\f[C](map-get map key)\f[R] - Return the value associated with the key
+in the map.
 .IP \[bu] 2
-\f[C](map-update map key val ... )\f[R] - Update keys in map to values.
+\f[C](map-set map key val ... )\f[R] - Set the keys in the map to
+values.
+.IP \[bu] 2
+\f[C](map-update map key val ... )\f[R] - Update the keys in the map to
+values.
 Note that this form requires all the keys to exist.
+.IP \[bu] 2
+\f[C](map-remove map key ... )\f[R] - Remove the keys in the map.
 .PP
 N.B.
 This syntax for processing maps has stablized but may change in the
 future!
 .PP
-There is also an alternate short form \f[C]map\f[R], \f[C]mref\f[R],
-\f[C]mset\f[R], \f[C]mupd\f[R] based on the Maclisp array reference
-forms.
+There are also alternate short forms \f[C]msiz\f[R], \f[C]mref\f[R],
+\f[C]mset\f[R], \f[C]mupd\f[R] and \f[C]mrem\f[R] based on the Maclisp
+array reference forms.
 They take the same arguments as their longer alternatives.
 .SH List/binary comprehensions
 .PP

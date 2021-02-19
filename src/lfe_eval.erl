@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2020 Robert Virding
+%% Copyright (c) 2008-2021 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ format_error({badmatch,Val}) ->
 format_error({unbound_symb,S}) ->
     lfe_io:format1(<<"symbol ~w is unbound">>, [S]);
 format_error({undefined_func,{F,A}}) ->
-    lfe_io:format1(<<"undefined function ~w/~w">>, [F,A]);
+    lfe_io:format1(<<"function ~w/~w undefined">>, [F,A]);
 format_error(if_expression) -> <<"non-boolean if test">>;
 format_error(function_clause) -> <<"no function clause matching">>;
 format_error({case_clause,Val}) ->
@@ -86,8 +86,8 @@ format_error({illegal_exception,E}) ->
 %% Records.
 format_error({undefined_record,Name}) ->
     lfe_io:format1(<<"record ~w undefined">>, [Name]);
-format_error({undefined_field,Name,F}) ->
-    lfe_io:format1(<<"field ~w undefined in record ~w">>, [F,Name]);
+format_error({undefined_field,Name,Field}) ->
+    lfe_io:format1(<<"field ~w undefined in record ~w">>, [Field,Name]);
 %% Everything we don't recognise or know about.
 format_error(Error) ->
     lfe_io:prettyprint1(Error).
@@ -166,27 +166,29 @@ eval_expr([tset,Tup,I,V], Env) ->
     setelement(eval_expr(I, Env), eval_expr(Tup, Env), eval_expr(V, Env));
 eval_expr([binary|Bs], Env) -> eval_binary(Bs, Env);
 eval_expr([map|As], Env) ->
-    Pairs = map_pairs(As, Env),
-    maps:from_list(Pairs);
-eval_expr(['mref',Map,K], Env) ->
-    Key = map_key(K, Env),
-    maps:get(Key, eval_expr(Map, Env));
-eval_expr(['mset',M|As], Env) ->
-    Map   = eval_expr(M, Env),
-    Pairs = map_pairs(As, Env),
-    foldl(fun maps_put/2, Map, Pairs);
-eval_expr(['mupd',M|As], Env) ->
-    Map   = eval_expr(M, Env),
-    Pairs = map_pairs(As, Env),
-    foldl(fun maps_update/2, Map, Pairs);
-eval_expr(['map-get',Map,K], Env) ->
-    eval_expr([mref,Map,K], Env);
-eval_expr(['map-set',M|As], Env) ->
-    eval_expr([mset,M|As], Env);
-eval_expr(['map-update',M|As], Env) ->
-    eval_expr([mupd,M|As], Env);
+    eval_map(As, Env);
+eval_expr(['msiz',Map], Env) ->
+    eval_map_size(msiz, Map, Env);
+eval_expr(['mref',Map,Key], Env) ->
+    eval_map_get(mref, Map, Key, Env);
+eval_expr(['mset',Map|As], Env) ->
+    eval_map_set(mset, Map, As, Env);
+eval_expr(['mupd',Map|As], Env) ->
+    eval_map_update(mupd, Map, As, Env);
+eval_expr(['mrem',Map|Ks], Env) ->
+    eval_map_remove(mrem, Map, Ks, Env);
+eval_expr(['map-size',Map], Env) ->
+    eval_map_size('map-size', Map, Env);
+eval_expr(['map-get',Map,Key], Env) ->
+    eval_map_get('map-get', Map, Key, Env);
+eval_expr(['map-set',Map|As], Env) ->
+    eval_map_set('map-set', Map, As, Env);
+eval_expr(['map-update',Map|As], Env) ->
+    eval_map_update('map-update', Map, As, Env);
+eval_expr(['map-remove',Map|Ks], Env) ->
+    eval_map_remove('map-remove', Map, Ks, Env);
 %% Record special forms.
-eval_expr(['make-record',Name,Args], Env) ->
+eval_expr(['make-record',Name|Args], Env) ->
     case lfe_env:get_record(Name, Env) of
         {yes,Fields} ->
             make_record_tuple(Name, Fields, Args, Env);
@@ -206,7 +208,7 @@ eval_expr(['record-field',E,Name,F], Env) ->
             element(Index, Ev);                 %Report if Ev not a record
         no -> undefined_record_error(Name)
     end;
-eval_expr(['record-update',E,Name,Args], Env) ->
+eval_expr(['record-update',E,Name|Args], Env) ->
     Ev = eval_expr(E, Env),
     case lfe_env:get_record(Name, Env) of
         {yes,Fields} ->
@@ -297,8 +299,8 @@ make_record_elements(Fields, Args, Env) ->
            end,
     lists:map(Mfun, Fields).
 
-make_field_val(F, [[F | V]|_], _Def, Env) -> eval_expr(V, Env);
-make_field_val(F, [_|Args], Def, Env) ->
+make_field_val(F, [F,V|_], _Def, Env) -> eval_expr(V, Env);
+make_field_val(F, [_,_|Args], Def, Env) ->
     make_field_val(F, Args, Def, Env);
 make_field_val(_, [], Def, Env) -> expr(Def, Env).
 
@@ -308,7 +310,7 @@ get_field_index(Name, Fields, F) ->
     get_field_index(Name, Fields, F, 2).        %First element record name
 
 get_field_index(_Name, [[F|_]|_Fields], F, I) -> I;
-get_field_index(_Name, [F|_Fields], F, I) -> I;
+get_field_index(_Name, [F|_Fields], F, I) -> I; %Filed can be just name
 get_field_index(Name, [_|Fields], F, I) ->
     get_field_index(Name, Fields, F, I+1);
 get_field_index(Name, [], F, _I) ->
@@ -327,8 +329,8 @@ update_record_elements(Fields, Recvs, Args, Env) ->
            end,
     lists:zipwith(Ufun, Fields, Recvs).
 
-update_field_val(F, [[F | V]|_], _Recv, Env) -> eval_expr(V, Env);
-update_field_val(F, [_|Args], Recv, Env) ->
+update_field_val(F, [F,V|_], _Recv, Env) -> eval_expr(V, Env);
+update_field_val(F, [_,_|Args], Recv, Env) ->
     update_field_val(F, Args, Recv, Env);
 update_field_val(_, [], Recv, _Env) -> Recv.
 
@@ -367,134 +369,74 @@ eval_body([], _) -> [];                         %Empty body
 eval_body(_, _) -> ?EVAL_ERROR({bad_form,body}).%Not a list of expressions
 
 %% eval_binary(Bitsegs, Env) -> Binary.
-%%  Construct a binary from Bitsegs. This code is taken from
-%%  eval_bits.erl. Pass in an evaluator function to be used when
-%%  evaluating vale and size expression.
+%%  Construct a binary from Bitsegs. Pass in an evaluator function to
+%%  be used when evaluating value and size expression.
 
 eval_binary(Segs, Env) ->
-    Vsps = get_bitsegs(Segs),
-    Eval = fun (S) -> eval_expr(S, Env) end,
-    eval_bitsegs(Vsps, Eval).
+    Eval = fun (E) -> eval_expr(E, Env) end,
+    lfe_eval_bits:expr_bitsegs(Segs, Eval).
 
-get_bitsegs(Segs) ->
-    foldr(fun (S, Vs) -> get_bitseg(S, Vs) end, [], Segs).
+%% eval_map(Args, Env) -> Map.
+%% eval_map_size(Form, Map, Env) -> Value.
+%% eval_map_get(Form, Map, Key, Env) -> Value.
+%% eval_map_set(Form, Map, Args, Env) -> Map.
+%% eval_map_update(Form, Map, Args, Env) -> Map.
+%% eval_map_remove(Form, Map, Keys, Env) -> Map.
 
-%% get_bitseg(Bitseg, ValSpecs) -> ValSpecs.
-%%  A bitseg is either an atomic value, a list of value and specs, or
-%%  a string.
+eval_map(Args, Env) ->
+    Pairs = eval_map_pairs(map, Args, Env),
+    maps:from_list(Pairs).
 
-get_bitseg([Val|Specs]=Seg, Vsps) ->
-    case lfe_lib:is_posint_list(Seg) of         %Is bitseg a string?
-        true ->                                 %A string
-            {Sz,Ty} = get_bitspecs([]),
-            foldr(fun (V, Vs) -> [{V,Sz,Ty}|Vs] end, Vsps, Seg);
-        false ->                                %A value and spec
-            {Sz,Ty} = get_bitspecs(Specs),
-            case lfe_lib:is_posint_list(Val) of %Is Val a string?
-                true -> foldr(fun (V, Vs) -> [{V,Sz,Ty}|Vs] end, Vsps, Val);
-                false -> [{Val,Sz,Ty}|Vsps]     %The default
-            end
-    end;
-get_bitseg(Val, Vsps) ->
-    {Sz,Ty} = get_bitspecs([]),
-    [{Val,Sz,Ty}|Vsps].
+eval_map_size(_Form, Map, Env) ->
+    erlang:map_size(eval_expr(Map, Env)).       %Use the BIF
 
-%% get_bitspec(Specs) -> {Size,Type}.
-%%  Get the error handling as we want it.
+eval_map_get(_Form, Map, K, Env) ->
+    Key = eval_map_key(K, Env),
+    erlang:map_get(Key, eval_expr(Map, Env)).   %Use the BIF
 
-get_bitspecs(Ss) ->
-    case lfe_bits:get_bitspecs(Ss) of
-        {ok,Sz,Ty} -> {Sz,Ty};
-        {error,Error} -> eval_error(Error)
-    end.
+eval_map_set(Form, M, Args, Env) ->
+    Map = eval_expr(M, Env),
+    Pairs = eval_map_pairs(Form, Args, Env),
+    lists:foldl(fun maps_put/2, Map, Pairs).
 
-%% eval_bitsegs(VSTys, Evaluator) -> Binary.
-%%  The evaluator function is use to evaluate the value and size
-%%  fields.
+eval_map_update(Form, M, Args, Env) ->
+    Map = eval_expr(M, Env),
+    Pairs = eval_map_pairs(Form, Args, Env),
+    lists:foldl(fun maps_update/2, Map, Pairs).
 
-eval_bitsegs(Vsps, Eval) ->
-    foldl(fun ({Val,Sz,Ty}, Acc) ->
-                  Bin = eval_bitseg(Val, Sz, Ty, Eval),
-                  <<Acc/bitstring,Bin/bitstring>>
-          end, <<>>, Vsps).
+eval_map_remove(_Form, M, Keys, Env) ->
+    Map = eval_expr(M, Env),
+    lists:foldl(fun maps_remove/2, Map, eval_list(Keys, Env)).
 
-eval_bitseg(Val, Sz, Ty, Eval) ->
-    V = Eval(Val),
-    eval_exp_bitseg(V, Sz, Eval, Ty).
+%% eval_map_pairs(Form, Args, Env) -> [{K,V}].
 
-%% eval_exp_bitseg(Value, Size, EvalSize, {Type,Unit,Sign,Endian}) -> Binary.
+eval_map_pairs(Form, [K,V|As], Env) ->
+    P = {eval_map_key(K, Env),eval_expr(V, Env)},
+    [P|eval_map_pairs(Form, As, Env)];
+eval_map_pairs(_Form, [], _) -> [];
+eval_map_pairs(Form, _, _) -> bad_form_error(Form).
 
-eval_exp_bitseg(Val, Size, Eval, Type) ->
-    case Type of
-        %% Integer types.
-        {integer,Un,Si,En} ->
-            Sz = Eval(Size),
-            eval_int_bitseg(Val, Sz*Un, Si, En);
-        %% Unicode types, ignore unused fields.
-        {utf8,_,_,_} -> <<Val/utf8>>;
-        {utf16,_,_,En} -> eval_utf16_bitseg(Val, En);
-        {utf32,_,_,En} -> eval_utf32_bitseg(Val, En);
-        %% Float types.
-        {float,Un,_,En} ->
-            Sz = Eval(Size),
-            eval_float_bitseg(Val, Sz*Un, En);
-        %% Binary types.
-        {binary,Unit,_,_} ->
-            if Size == all ->
-                    case bit_size(Val) of
-                        Sz when Sz rem Unit =:= 0 ->
-                            <<Val:Sz/bitstring>>;
-                        _ -> badarg_error()
-                    end;
-               true ->
-                    Sz = Eval(Size),
-                    <<Val:(Sz*Unit)/bitstring>>
-            end
-    end.
-
-eval_int_bitseg(Val, Sz, signed, big) -> <<Val:Sz/signed>>;
-eval_int_bitseg(Val, Sz, unsigned, big) -> <<Val:Sz>>;
-eval_int_bitseg(Val, Sz, signed, little) -> <<Val:Sz/little-signed>>;
-eval_int_bitseg(Val, Sz, unsigned, little) -> <<Val:Sz/little>>;
-eval_int_bitseg(Val, Sz, signed, native) -> <<Val:Sz/native-signed>>;
-eval_int_bitseg(Val, Sz, unsigned, native) -> <<Val:Sz/native>>.
-
-eval_utf16_bitseg(Val, big) -> <<Val/utf16-big>>;
-eval_utf16_bitseg(Val, little) -> <<Val/utf16-little>>;
-eval_utf16_bitseg(Val, native) -> <<Val/utf16-native>>.
-
-eval_utf32_bitseg(Val, big) -> <<Val/utf32-big>>;
-eval_utf32_bitseg(Val, little) -> <<Val/utf32-little>>;
-eval_utf32_bitseg(Val, native) -> <<Val/utf32-native>>.
-
-eval_float_bitseg(Val, Sz, big) -> <<Val:Sz/float>>;
-eval_float_bitseg(Val, Sz, little) -> <<Val:Sz/float-little>>;
-eval_float_bitseg(Val, Sz, native) -> <<Val:Sz/float-native>>.
-
-%% map_pairs(Args, Env) -> [{K,V}].
-
-map_pairs([K,V|As], Env) ->
-    P = {map_key(K, Env),eval_expr(V, Env)},
-    [P|map_pairs(As, Env)];
-map_pairs([], _) -> [];
-map_pairs(_, _) -> badarg_error().
-
-%% map_key(Key, Env) -> Value.
+%% eval_map_key(Key, Env) -> Value.
 %%  A map key can only be a literal in 17 but can be anything in 18..
 
+
 -ifdef(HAS_FULL_KEYS).
-map_key(Key, Env) ->
+eval_map_key(Key, Env) ->
     eval_expr(Key, Env).
 -else.
-map_key(?Q(E), _) -> E;
-map_key([_|_]=L, _) ->
+eval_map_key(?Q(E), _) -> E;
+eval_map_key([_|_]=L, _) ->
     case lfe_lib:is_posint_list(L) of
         true -> L;                              %Literal strings only
         false -> illegal_mapkey_error(L)
     end;
-map_key(E, _) when not is_atom(E) -> E;         %Everything else
-map_key(E, _) -> illegal_mapkey_error(E).
+eval_map_key(E, _) when not is_atom(E) -> E;    %Everything else
+eval_map_key(E, _) -> illegal_mapkey_error(E).
 -endif.
+
+maps_put({K,V}, M) -> maps:put(K, V, M).
+maps_update({K,V}, M) -> maps:update(K, V, M).
+maps_remove(K, M) -> maps:remove(K, M).
 
 %% new_vars(N) -> Vars.
 
@@ -922,7 +864,25 @@ eval_gexpr([tuple|Es], Env) -> list_to_tuple(eval_glist(Es, Env));
 eval_gexpr([tref,Tup,I], Env) ->
     element(eval_gexpr(I, Env), eval_gexpr(Tup, Env));
 eval_gexpr([binary|Bs], Env) -> eval_gbinary(Bs, Env);
-%% Map operations are not allowed in guards.
+%% Check map special forms which translate into legal guard expressions.
+eval_gexpr([map|As], Env) ->
+    eval_gmap(As, Env);
+eval_gexpr([msiz,Map], Env) ->
+    eval_gmap_size(msiz, Map, Env);
+eval_gexpr([mref,Map,Key], Env) ->
+    eval_gmap_get(mref, Map, Key, Env);
+eval_gexpr([mset,Map|As], Env) ->
+    eval_gmap_set(mset, Map, As, Env);
+eval_gexpr([mupd,Map|As], Env) ->
+    eval_gmap_update(mupd, Map, As, Env);
+eval_gexpr(['map-size',Map], Env) ->
+    eval_gmap_size('map-size', Map, Env);
+eval_gexpr(['map-get',Map,Key], Env) ->
+    eval_gmap_get('map-get', Map, Key, Env);
+eval_gexpr(['map-set',Map|As], Env) ->
+    eval_gmap_set('map-set', Map, As, Env);
+eval_gexpr(['map-update',Map|As], Env) ->
+    eval_gmap_update('map-update', Map, As, Env);
 %% Handle the Core closure special forms.
 %% Handle the control special forms.
 eval_gexpr(['progn'|Body], Env) -> eval_gbody(Body, Env);
@@ -968,13 +928,65 @@ get_gbinding(Name, Ar, Env) ->
 eval_glist(Es, Env) ->
     map(fun (E) -> eval_gexpr(E, Env) end, Es).
 
+%% eval_gmap(Args, Env) -> Map.
+%% eval_gmap_size(Form, Map, Env) -> Value.
+%% eval_gmap_get(Form, Map, Key, Env) -> Value.
+%% eval_gmap_set(Form, Map, Args, Env) -> Map.
+%% eval_gmap_update(Form, Map, Args, Env) -> Map.
+
+eval_gmap(Args, Env) ->
+    Pairs = eval_gmap_pairs(map, Args, Env),
+    maps:from_list(Pairs).
+
+eval_gmap_size(_Form, Map, Env) ->
+    erlang:map_size(eval_gexpr(Map, Env)).      %Use the BIF
+
+eval_gmap_get(_Form, Map, K, Env) ->
+    Key = eval_gmap_key(K, Env),
+    erlang:map_get(Key, eval_gexpr(Map, Env)).  %Use the BIF
+
+eval_gmap_set(Form, M, Args, Env) ->
+    Map = eval_gexpr(M, Env),
+    Pairs = eval_gmap_pairs(Form, Args, Env),
+    lists:foldl(fun maps_put/2, Map, Pairs).
+
+eval_gmap_update(Form, M, Args, Env) ->
+    Map = eval_gexpr(M, Env),
+    Pairs = eval_gmap_pairs(Form, Args, Env),
+    lists:foldl(fun maps_update/2, Map, Pairs).
+
+%% eval_gmap_pairs(Form, Args, Env) -> [{K,V}].
+
+eval_gmap_pairs(Form, [K,V|As], Env) ->
+    P = {eval_gmap_key(K, Env),eval_gexpr(V, Env)},
+    [P|eval_gmap_pairs(Form, As, Env)];
+eval_gmap_pairs(_Form, [], _) -> [];
+eval_gmap_pairs(Form, _, _) -> bad_form_error(Form).
+
+%% eval_map_key(Key, Env) -> Value.
+%%  A map key can only be a literal in 17 but can be anything in 18..
+
+
+-ifdef(HAS_FULL_KEYS).
+eval_gmap_key(Key, Env) ->
+    eval_gexpr(Key, Env).
+-else.
+eval_gmap_key(?Q(E), _) -> E;
+eval_gmap_key([_|_]=L, _) ->
+    case lfe_lib:is_posint_list(L) of
+        true -> L;                              %Literal strings only
+        false -> illegal_mapkey_error(L)
+    end;
+eval_gmap_key(E, _) when not is_atom(E) -> E;    %Everything else
+eval_gmap_key(E, _) -> illegal_mapkey_error(E).
+-endif.
+
 %% eval_gbinary(Bitsegs, Env) -> Binary.
 %%  Construct a binary from Bitsegs. This code is taken from eval_bits.erl.
 
 eval_gbinary(Segs, Env) ->
-    Vsps = get_bitsegs(Segs),
-    Eval = fun(S) -> eval_gexpr(S, Env) end,
-    eval_bitsegs(Vsps, Eval).
+    Eval = fun (E) -> eval_gexpr(E, Env) end,
+    lfe_eval_bits:expr_bitsegs(Segs, Eval).
 
 %% eval_gif(IfBody, Env) -> Val.
 
@@ -1025,7 +1037,7 @@ match([map|Ps], Val, Pbs, Env) ->
         false -> no
     end;
 %% Record patterns.
-match(['make-record',Name,Fs], Val, Pbs, Env) ->
+match(['make-record',Name|Fs], Val, Pbs, Env) ->
     case lfe_env:get_record(Name, Env) of
         {yes,Fields} ->
             match_record_tuple(Name, Fields, Fs,  Val, Pbs, Env);
@@ -1089,153 +1101,16 @@ match_record_patterns(Fields, Pats) ->
            end,
     lists:map(Mfun, Fields).
 
-make_field_pat(F, [[F | P]|_]) -> P;
-make_field_pat(F, [_|Pats]) -> make_field_pat(F, Pats);
+make_field_pat(F, [F,P|_]) -> P;
+make_field_pat(F, [_,_|Pats]) -> make_field_pat(F, Pats);
 make_field_pat(_, []) -> '_'.                   %Underscore matches anything
 
 %% match_binary(Bitsegs, Binary, PatBindings, Env) -> {yes,PatBindings} | no.
-%%  Match Bitsegs against Binary. This code is taken from
-%%  eval_bits.erl. Bitspec errors generate an error. Bad matches
-%%  result in an error, we use catch to trap it.
+%%  Match Bitsegs against Binary. Bad matches result in an error, we
+%%  use catch to trap it.
 
 match_binary(Segs, Bin, Pbs0, Env) ->
-    Psps = get_bitsegs(Segs),
-    match_bitsegs(Psps, Bin, [], Pbs0, Env).
-
-match_bitsegs([{Pat,Sz,Ty}|Psps], Bin0, Bbs0, Pbs0, Env) ->
-    case match_bitseg(Pat, Sz, Ty, Bin0, Bbs0, Pbs0, Env) of
-        {yes,Bin1,Bbs1,Pbs1} ->
-            match_bitsegs(Psps, Bin1, Bbs1, Pbs1, Env);
-        no -> no
-    end;
-match_bitsegs([], <<>>, _, Pbs, _) -> {yes,Pbs}; %Reached the end of both
-match_bitsegs([], _, _, _, _) -> no.            %More to go
-
-match_bitseg(Pat, Size, Type, Bin0, Bbs0, Pbs0, Env) ->
-    Sz = get_pat_bitsize(Size, Type, Bbs0, Pbs0, Env),
-    case catch {ok,get_pat_bitseg(Bin0, Sz, Type)} of
-        {ok,{Val,Bin1}} ->
-            case match_bitexpr(Pat, Val, Bbs0, Pbs0, Env) of
-                {yes,Bbs1,Pbs1} -> {yes,Bin1,Bbs1,Pbs1};
-                no -> no
-            end;
-        _ -> no
-    end.
-
-get_pat_bitsize(all, {Ty,_,_,_}, _, _, _) ->
-    if Ty =:= binary -> all;
-       true -> eval_error(illegal_bitsize)
-    end;
-get_pat_bitsize(undefined, {Ty,_,_,_}, _, _, _) ->
-    if Ty =:= utf8; Ty =:= utf16; Ty =:= utf32 -> undefined;
-       true -> eval_error(illegal_bitsize)
-    end;
-get_pat_bitsize(S, _, _, _, _) when is_integer(S) -> S;
-get_pat_bitsize(S, _, Bbs, _, Env) when is_atom(S) ->
-    %% Variable either in environment or bound in binary.
-    case get_vbinding(S, Env) of
-        {yes,V} -> V;
-        no ->
-            case find(S, Bbs) of
-                {ok,V} -> V;
-                error -> unbound_symb_error(S)
-            end
-    end.
-
-match_bitexpr(N, Val, Bbs, Pbs, _) when is_number(N) ->
-    if N =:= Val -> {yes,Bbs,Pbs};
-       true -> no
-    end;
-match_bitexpr('_', _, Bbs, Pbs, _) -> {yes,Bbs,Pbs};
-match_bitexpr(S, Val, Bbs, Pbs, _) when is_atom(S) ->
-    %% We know that if variable is in Pbs it will also be in Bbs!
-    case find(S, Pbs) of
-        {ok,Val} -> {yes,Bbs,Pbs};              %Bound to the same value
-        {ok,_} -> no;                           %Bound to a different value
-        error ->                                %Not yet bound
-            {yes,store(S, Val, Bbs),store(S, Val, Pbs)}
-    end;
-match_bitexpr(_, _, _, _, _) -> eval_error(illegal_bitseg).
-
-%% get_pat_bitseg(Binary, Size, {Type,Unit,Sign,Endian}) -> {Value,RestBinary}.
-%%  This function can signal error if impossible to get specified bit
-%%  segment.
-
-get_pat_bitseg(Bin, Size, Type) ->
-    case Type of
-        %% Integer types.
-        {integer,Un,Si,En} ->
-            get_int_bitseg(Bin, Size*Un, Si, En);
-        %% Unicode types, ignore unused bitsegs.
-        {utf8,_,_,_} -> get_utf8_bitseg(Bin);
-        {utf16,_,_,En} -> get_utf16_bitseg(Bin, En);
-        {utf32,_,_,En} -> get_utf32_bitseg(Bin, En);
-        %% Float types.
-        {float,Un,_,En} -> get_float_bitseg(Bin, Size*Un, En);
-        %% Binary types.
-        {binary,Un,_,_} ->
-            if Size == all ->
-                    0 = (bit_size(Bin) rem Un),
-                    {Bin,<<>>};
-               true ->
-                    TotSize = Size * Un,
-                    <<Val:TotSize/bitstring,Rest/bitstring>> = Bin,
-                    {Val,Rest}
-            end
-    end.
-
-get_int_bitseg(Bin, Sz, signed, big) ->
-    <<Val:Sz/big-signed,Rest/bitstring>> = Bin,
-    {Val,Rest};
-get_int_bitseg(Bin, Sz, unsigned, big) ->
-    <<Val:Sz/big-unsigned,Rest/bitstring>> = Bin,
-    {Val,Rest};
-get_int_bitseg(Bin, Sz, signed, little) ->
-    <<Val:Sz/little-signed,Rest/bitstring>> = Bin,
-    {Val,Rest};
-get_int_bitseg(Bin, Sz, unsigned, little) ->
-    <<Val:Sz/little-unsigned,Rest/bitstring>> = Bin,
-    {Val,Rest};
-get_int_bitseg(Bin, Sz, signed, native) ->
-    <<Val:Sz/native-signed,Rest/bitstring>> = Bin,
-    {Val,Rest};
-get_int_bitseg(Bin, Sz, unsigned, native) ->
-    <<Val:Sz/native-unsigned,Rest/bitstring>> = Bin,
-    {Val,Rest}.
-
-get_utf8_bitseg(Bin) ->
-    <<Val/utf8,Rest/bitstring>> = Bin,
-    {Val,Rest}.
-
-get_utf16_bitseg(Bin, big) ->
-    <<Val/utf16-big,Rest/bitstring>> = Bin,
-    {Val,Rest};
-get_utf16_bitseg(Bin, little) ->
-    <<Val/utf16-little,Rest/bitstring>> = Bin,
-    {Val,Rest};
-get_utf16_bitseg(Bin, native) ->
-    <<Val/utf16-native,Rest/bitstring>> = Bin,
-    {Val,Rest}.
-
-get_utf32_bitseg(Bin, big) ->
-    <<Val/utf32-big,Rest/bitstring>> = Bin,
-    {Val,Rest};
-get_utf32_bitseg(Bin, little) ->
-    <<Val/utf32-little,Rest/bitstring>> = Bin,
-    {Val,Rest};
-get_utf32_bitseg(Bin, native) ->
-    <<Val/utf32-native,Rest/bitstring>> = Bin,
-    {Val,Rest}.
-
-get_float_bitseg(Bin, Sz, big) ->
-    <<Val:Sz/float,Rest/bitstring>> = Bin,
-    {Val,Rest};
-get_float_bitseg(Bin, Sz, little) ->
-    <<Val:Sz/float-little,Rest/bitstring>> = Bin,
-    {Val,Rest};
-get_float_bitseg(Bin, Sz, native) ->
-    <<Val:Sz/float-native,Rest/bitstring>> = Bin,
-    {Val,Rest}.
+    lfe_eval_bits:match_bitsegs(Segs, Bin, Pbs0, Env).
 
 %% match_map(Pairs, Map, PatBindings, Env) -> {yes,PatBindings} | no.
 
@@ -1289,9 +1164,8 @@ eval_lit_list(Es, Env) ->
     [ eval_lit(E, Env) || E <- Es ].
 
 eval_lit_binary(Segs, Env) ->
-    Vsps = get_bitsegs(Segs),
     Eval = fun (S) -> eval_lit(S, Env) end,
-    eval_bitsegs(Vsps, Eval).
+    lfe_eval_bits:expr_bitsegs(Segs, Eval).
 
 eval_lit_map([K,V|As], Env) ->
     [{eval_lit(K, Env),eval_lit(V, Env)}|eval_lit_map(As, Env)];
@@ -1326,7 +1200,3 @@ eval_error(Error) ->
     erlang:raise(error, Error, ?STACKTRACE).
 
 %%% Helper functions
-
-maps_put({K,V}, M) -> maps:put(K, V, M).
-
-maps_update({K,V}, M) -> maps:update(K, V, M).

@@ -1,4 +1,4 @@
-%% Copyright (c) 2016-2020 Robert Virding
+%% Copyright (c) 2016-2021 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -65,12 +65,16 @@ is_core_form(tref) -> true;
 is_core_form(tset) -> true;
 is_core_form(binary) -> true;
 is_core_form(map) -> true;
+is_core_form(msiz) -> true;
 is_core_form(mref) -> true;
 is_core_form(mset) -> true;
 is_core_form(mupd) -> true;
+is_core_form(mrem) -> true;
+is_core_form('map-size') -> true;
 is_core_form('map-get') -> true;
 is_core_form('map-set') -> true;
 is_core_form('map-update') -> true;
+is_core_form('map-remove') -> true;
 %% Core record special forms.
 is_core_form('make-record') -> true;
 is_core_form('record-index') -> true;
@@ -123,12 +127,20 @@ is_core_func(tref, 2) -> true;
 is_core_func(tset, 3) -> true;
 is_core_func(binary, Ar) when Ar >= 0  -> true;
 is_core_func(map, Ar) when Ar >= 0, (Ar rem 2) =:= 0 -> true;
+is_core_func(msiz, 1) -> true;
 is_core_func(mref, 2) -> true;
-is_core_func(mset, Ar) when Ar >= 0, (Ar rem 2) =:= 1 -> true;
-is_core_func(mupd, Ar) when Ar >= 0, (Ar rem 2) =:= 1 -> true;
+is_core_func(mset, Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
+is_core_func(mupd, Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
+is_core_func(mrem, Ar) when Ar >= 1 -> true;
+is_core_func('map-size', 1) -> true;
 is_core_func('map-get', 2) -> true;
-is_core_func('map-set', Ar) when Ar >= 0, (Ar rem 2) =:= 1 -> true;
-is_core_func('map-upd', Ar) when Ar >= 0, (Ar rem 2) =:= 1 -> true;
+is_core_func('map-set', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
+is_core_func('map-update', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
+is_core_func('map-remove', Ar) when Ar >= 1 -> true;
+is_core_func('make-record', Ar) when Ar >= 0, (Ar rem 2) =:= 0 -> true;
+is_core_func('record-index', 2) -> true;
+is_core_func('record-field', 3) -> true;
+is_core_func('record-update', Ar) when Ar >= 2, (Ar rem 2) =:= 0 -> true;
 is_core_func(funcall, Ar) when Ar >= 1 -> true;
 is_core_func(call, Ar) when Ar >= 2 -> true;
 is_core_func(_, _) -> false.

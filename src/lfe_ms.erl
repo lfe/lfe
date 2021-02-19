@@ -137,10 +137,10 @@ pattern(['=',L0,R0], St0) ->                    %General aliasing
     {L1,St1} = pattern(L0, St0),
     {R1,St2} = pattern(R0, St1),
     {['=',L1,R1],St2};
-pattern(['make-record',R,Fs0], St0) ->
+pattern(['make-record',R|Fs0], St0) ->
     %% This is in a term but is going to be used as a pattern!
     {Fs1,St1} = pat_rec_fields(Fs0, St0),
-    {['make-record',R,Fs1],St1};
+    {['make-record',R|Fs1],St1};
 pattern(['record-index',R,F], St) ->
     {['record-index',R,F],St};
 %% Support old no constructor style list forms.
@@ -154,16 +154,16 @@ pat_list(Ps, St) -> mapfoldl(fun pattern/2, St, Ps).
 
 %% pat_rec_fields(Fields, State) -> {Patterns,State}.
 
-pat_rec_fields([[F | P0]|Fs0], St0) when is_atom(F) ->
+pat_rec_fields([F,P0|Fs0], St0) when is_atom(F) ->
     %% Field names go straight through untouched.
     {P1,St1} = pattern(P0, St0),
     {Fs1,St2} = pat_rec_fields(Fs0, St1),
-    {[[F | P1]|Fs1],St2};
-pat_rec_fields([[F0 | P0]|Fs0], St0) ->
+    {[F,P1|Fs1],St2};
+pat_rec_fields([F0,P0|Fs0], St0) ->
     {F1,St1} = pattern(F0, St0),
     {P1,St2} = pattern(P0, St1),
     {Fs1,St3} = pat_rec_fields(Fs0, St2),
-    {[[F1 | P1]|Fs1],St3};
+    {[F1,P1|Fs1],St3};
 pat_rec_fields([], St) -> {[],St}.
 
 %% pat_binding(Var, Status) -> {DVar,Status}.
@@ -227,10 +227,10 @@ expr([binary|Segs0], St0) ->
     {Segs1,St1} = expr_bitsegs(Segs0, St0),
     {[binary|Segs1],St1};
 %% Record special forms.
-expr(['make-record',Name,Fs], St0) ->
+expr(['make-record',Name|Fs], St0) ->
     %% This is in a term and is going to be used as an expression!
     {Efs,St1} = expr_rec_fields(Fs, St0),
-    {[tuple,['make-record',Name,Efs]],St1};     %Must tuple tuples
+    {[tuple,['make-record',Name|Efs]],St1};     %Must tuple tuples
 expr(['record-index',Name,F], St) ->
     {['record-index',Name,F],St};
 expr(['record-field',E,Name,F], St0) ->
@@ -238,13 +238,13 @@ expr(['record-field',E,Name,F], St0) ->
     {Ee,St1} = expr(E, St0),
     {[tuple,?Q(element),['record-index',Name,F],Ee],St1};
     %% {[tuple,['record-field',Ee,Name,F]],St1};
-expr(['record-update',E,Name,Fs], St0) ->
+expr(['record-update',E,Name|Fs], St0) ->
     %% We must remove all checks and return simple nested setelement/3 calls.
     {Ee,St1} = expr(E, St0),
     {Efs,St2} = expr_rec_fields(Fs, St1),
     Set = expr_set_record(Efs, Ee, Name),
     {Set,St2};
-    %% {[tuple,['record-update',Ee,Name,Efs]],St2};
+    %% {[tuple,['record-update',Ee,Name|Efs]],St2};
 %% Special match spec calls.
 expr([bindings], St) -> {?Q('$*'),St};          %Special calls
 expr([object], St) -> {?Q('$_'),St};
@@ -301,21 +301,21 @@ expr_bitspecs(Specs, St) ->
 
 %% expr_rec_fields(Fields, State) -> {Patterns,State}.
 
-expr_rec_fields([[F | V0]|Fs0], St0) when is_atom(F) ->
+expr_rec_fields([F,V0|Fs0], St0) when is_atom(F) ->
     %% Field names go straight through untouched.
     {V1,St1} = expr(V0, St0),
     {Fs1,St2} = expr_rec_fields(Fs0, St1),
-    {[[F | V1]|Fs1],St2};
-expr_rec_fields([[F0 | V0]|Fs0], St0) ->
+    {[F,V1|Fs1],St2};
+expr_rec_fields([F0,V0|Fs0], St0) ->
     {F1,St1} = expr(F0, St0),
     {V1,St2} = expr(V0, St1),
     {Fs1,St3} = expr_rec_fields(Fs0, St2),
-    {[[F1 | V1]|Fs1],St3};
+    {[F1,V1|Fs1],St3};
 expr_rec_fields([], St) -> {[],St}.
 
 %% expr_set_record(Fields, Expr, Record) -> SetRec.
 
-expr_set_record([[F | V]|Fs], E0, R) ->
+expr_set_record([F,V|Fs], E0, R) ->
     E1= [tuple,?Q(setelement),['record-index',R,F],E0,V],
     expr_set_record(Fs, E1, R);
 expr_set_record([], E, _) -> E.
