@@ -378,9 +378,11 @@ while it reads the expression and then be effectively ``2``.
 (fletrec ((name (arg ...) {{doc-string}} ...)
           ...)
   ...)
-(cond ...
-      {{(?= pat expr)}}
-      ... )
+(cond (test body ...)
+      ...
+      ((?= pat expr) ...)
+      ...
+      (else ...))
 (andalso ... )
 (orelse ... )
 (fun func arity)
@@ -762,10 +764,16 @@ macrolet:
 
 # Extended cond
 
-Cond has been extended with the extra test (?= pat expr) which tests
-if the result of expr matches pat. If so it binds the variables in pat
-which can be used in the cond. A optional guard is allowed here. An
-example:
+The tests in ``cond`` are Erlang tests in that they should return
+either ``true`` or ``false``. If no test succeeds then the ``cond``
+does not generate an exception but just returns ``false``. There is a
+simple catch-all "test" ``else`` which must last and can be used to
+handle when all tests fail.
+
+Cond has been extended with the extra test ``(?= pat expr)`` which
+tests if the result of ``expr`` matches the pattern ``pat``. If so it
+binds the variables in ``pa``t which can be used in the ``cond``. A optional
+guard is allowed here. An example:
 
 ```
 (cond ((foo x) ...)
@@ -773,7 +781,8 @@ example:
        (fubar xs (baz x)))
       ((?= (tuple 'ok x) (baz y))
        (zipit x))
-      ... )
+      ...
+      (else 'yay))
 ```
 
 

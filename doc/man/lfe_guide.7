@@ -377,9 +377,11 @@ the expression and then be effectively \f[C]2\f[R].
 (fletrec ((name (arg ...) {{doc-string}} ...)
           ...)
   ...)
-(cond ...
-      {{(?= pat expr)}}
-      ... )
+(cond (test body ...)
+      ...
+      ((?= pat expr) ...)
+      ...
+      (else ...))
 (andalso ... )
 (orelse ... )
 (fun func arity)
@@ -810,9 +812,17 @@ macrolet:
 .fi
 .SH Extended cond
 .PP
-Cond has been extended with the extra test (?= pat expr) which tests if
-the result of expr matches pat.
-If so it binds the variables in pat which can be used in the cond.
+The tests in \f[C]cond\f[R] are Erlang tests in that they should return
+either \f[C]true\f[R] or \f[C]false\f[R].
+If no test succeeds then the \f[C]cond\f[R] does not generate an
+exception but just returns \f[C]false\f[R].
+There is a simple catch-all \[lq]test\[rq] \f[C]else\f[R] which must
+last and can be used to handle when all tests fail.
+.PP
+Cond has been extended with the extra test \f[C](?= pat expr)\f[R] which
+tests if the result of \f[C]expr\f[R] matches the pattern \f[C]pat\f[R].
+If so it binds the variables in \f[C]pa\f[R]t which can be used in the
+\f[C]cond\f[R].
 A optional guard is allowed here.
 An example:
 .IP
@@ -823,7 +833,8 @@ An example:
        (fubar xs (baz x)))
       ((?= (tuple \[aq]ok x) (baz y))
        (zipit x))
-      ... )
+      ...
+      (else \[aq]yay))
 \f[R]
 .fi
 .SH Records
