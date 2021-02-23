@@ -137,7 +137,7 @@ is_core_func('map-get', 2) -> true;
 is_core_func('map-set', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
 is_core_func('map-update', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
 is_core_func('map-remove', Ar) when Ar >= 1 -> true;
-is_core_func('make-record', Ar) when Ar >= 0, (Ar rem 2) =:= 0 -> true;
+is_core_func('make-record', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
 is_core_func('record-index', 2) -> true;
 is_core_func('record-field', 3) -> true;
 is_core_func('record-update', Ar) when Ar >= 2, (Ar rem 2) =:= 0 -> true;

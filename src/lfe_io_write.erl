@@ -43,6 +43,8 @@ term(Vec, D) when is_tuple(Vec) ->
     ["#(",list(Es, D-1),")"];
 term(Bit, _) when is_bitstring(Bit) ->
     bitstring(Bit);
+term(Fun, D) when is_function(Fun) ->
+    function(Fun, D);
 term(Map, D) when ?IS_MAP(Map) -> map(Map, D);
 term(Pid, D) when is_pid(Pid) ->
     "#Pid" ++ io_lib:write(Pid, D);
@@ -77,6 +79,22 @@ bytes(Bits, _) ->                               %0 < Size < 8
     N = bit_size(Bits),
     <<B:N>> = Bits,
     io_lib:format("(~w (size ~w))", [B,N]).
+
+%% function(Function, Depth) -> Chars
+%%  We want it all so give it lots of depth!
+
+function(Fun, _) ->
+    {module,M} = erlang:fun_info(Fun, module),
+    {name,F} = erlang:fun_info(Fun, name),
+    {arity,A} = erlang:fun_info(Fun, arity),
+    case erlang:fun_info(Fun, type) of
+	{type,external} ->
+	    term([function,M,F,A], -1);
+	_ ->
+	    %% Having a little bit of fun.
+	    [lists:droplast(erlang:fun_to_list(Fun)),
+	     "/",integer_to_list(A),">"]
+    end.
 
 %% list(List, Depth) -> Chars.
 %%  Print the elements in a list. We handle the empty list and depth=0.
