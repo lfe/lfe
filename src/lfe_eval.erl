@@ -55,7 +55,7 @@
 %% Errors.
 format_error(badarg) -> <<"bad argument">>;
 format_error({badmatch,Val}) ->
-    lfe_io:format1(<<"bad match: ~w">>, [Val]);
+    lfe_io:format1(<<"no match of value ~w">>, [Val]);
 format_error({unbound_symb,S}) ->
     lfe_io:format1(<<"symbol ~w is unbound">>, [S]);
 format_error({undefined_func,{F,A}}) ->
@@ -63,24 +63,24 @@ format_error({undefined_func,{F,A}}) ->
 format_error(if_expression) -> <<"non-boolean if test">>;
 format_error(function_clause) -> <<"no function clause matching">>;
 format_error({case_clause,Val}) ->
-    lfe_io:format1(<<"no case clause matching ~.P">>, [Val,10]);
+    format_value(Val, <<"no case clause matching ">>);
 format_error(illegal_guard) -> <<"illegal guard expression">>;
 format_error(illegal_bitsize) -> <<"illegal bitsize">>;
 format_error(illegal_bitseg) -> <<"illegal bitsegment">>;
 format_error({illegal_pattern,Pat}) ->
-    lfe_io:format1(<<"illegal pattern ~w">>, [Pat]);
+    format_value(Pat, <<"illegal pattern ">>);
 format_error({illegal_literal,Lit}) ->
     lfe_io:format1(<<"illegal literal value ~w">>, [Lit]);
 format_error({illegal_mapkey,Key}) ->
     lfe_io:format1(<<"illegal map key ~w">>, [Key]);
-format_error(bad_arity) -> <<"arity mismatch">>;
+format_error(bad_arity) -> <<"head arity mismatch">>;
 format_error({argument_limit,Arity}) ->
     lfe_io:format1(<<"too many arguments ~w">>, [Arity]);
 format_error({bad_form,Form}) ->
     lfe_io:format1(<<"bad ~w form">>, [Form]);
 %% Try-catches.
 format_error({try_clause,Val}) ->
-    lfe_io:format1(<<"no try clause matching ~.P">>, [Val,10]);
+    format_value(Val, <<"no try clause matching ">>);
 format_error({illegal_exception,E}) ->
     lfe_io:format1(<<"illegal exception ~w">>, [E]);
 %% Records.
@@ -91,6 +91,9 @@ format_error({undefined_field,Name,Field}) ->
 %% Everything we don't recognise or know about.
 format_error(Error) ->
     lfe_io:prettyprint1(Error).
+
+format_value(Val, ErrStr) ->
+    lfe_io:format1(<<"~s~.P">>, [ErrStr,Val,10]).
 
 %% eval(Sexpr) -> Value.
 %% eval(Sexpr, Env) -> Value.
@@ -216,12 +219,13 @@ eval_expr(['record-update',E,Name|Args], Env) ->
         no -> undefined_record_error(Name)
     end;
 %% Function forms.
-eval_expr([function,Fun,Ar], Env) ->
-    %% Build a lambda which can be applied.
-    Vs = new_vars(Ar),
-    eval_lambda([lambda,Vs,[Fun|Vs]], Env);
-eval_expr([function,M,F,Ar], _) ->
-    erlang:make_fun(M, F, Ar);
+eval_expr([function,Mod,Name,Arity], _Env) ->
+    %% Don't evaluate the arguments here.
+    erlang:make_fun(Mod, Name, Arity);
+eval_expr([function,Name,Arity], Env) ->
+    %% Only works for local functions and BIFs without an erlang:.
+    Vs = new_vars(Arity),
+    eval_lambda([lambda,Vs,[Name|Vs]], Env);
 %% Special known data type operations.
 eval_expr(['andalso'|Es], Env) ->
     Fun = fun (E, true) -> eval_expr(E, Env);
@@ -452,7 +456,7 @@ new_vars(0) -> [].
 
 eval_lambda([lambda,Args|Body], Env) ->
     Apply =  fun (Vals) -> apply_lambda(Args, Body, Vals, Env) end,
-    make_lambda(length(Args), Apply);
+    make_lambda(lambda_arity(Args), Apply);
 eval_lambda(_, _) ->
     bad_form_error(lambda).
 
@@ -483,7 +487,23 @@ make_lambda(Arity, Apply) ->
                       Apply([A,B,C,D,E,F,G,H,I,J,K,L,M,N]) end;
         15 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O) ->
                       Apply([A,B,C,D,E,F,G,H,I,J,K,L,M,N,O]) end;
+        16 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P) ->
+                      Apply([A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P]) end;
+        17 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q) ->
+                      Apply([A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q]) end;
+        18 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R) ->
+                      Apply([A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R]) end;
+        19 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S) ->
+                      Apply([A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S]) end;
+        20 -> fun (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T) ->
+                      Apply([A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T]) end;
         _ -> eval_error({argument_limit,Arity})
+    end.
+
+lambda_arity(Args) ->
+    case lfe_lib:is_symb_list(Args) of
+	true -> length(Args);
+	false -> bad_form_error(lambda)
     end.
 
 apply_lambda(Args, Body, Vals, Env0) ->
@@ -494,9 +514,23 @@ bind_args(['_'|As], [_|Es], Env) ->             %Ignore don't care variables
     bind_args(As, Es, Env);
 bind_args([A|As], [E|Es], Env) when is_atom(A) ->
     bind_args(As, Es, add_vbinding(A, E, Env));
-bind_args([], [], Env) -> Env.
+bind_args([], [], Env) -> Env;
+bind_args(_As, _Vs, _Env) ->
+    eval_error(bad_arity).
 
-match_lambda_arity([[Pats|_]|_]) -> length(Pats).
+match_lambda_arity([[Pats|_]|Cls]) ->
+    case lfe_lib:is_proper_list(Pats) of
+	true -> match_lambda_arity(Cls, length(Pats));
+	false -> bad_form_error('match-lambda')
+    end.
+
+match_lambda_arity([[Pats|_]|Cls], Ar) ->
+    case lfe_lib:is_proper_list(Pats) andalso (length(Pats) =:= Ar) of
+	true -> match_lambda_arity(Cls, Ar);
+	false -> bad_form_error('match-lambda')
+    end;
+match_lambda_arity([], Ar) -> Ar;
+match_lambda_arity(_, _) -> bad_form_error('match-lambda').
 
 apply_match_lambda([[Pats|B0]|Cls], Vals, Env) ->
     if length(Vals) == length(Pats) ->
@@ -509,7 +543,7 @@ apply_match_lambda([[Pats|B0]|Cls], Vals, Env) ->
             end;
        true -> eval_error(bad_arity)
     end;
-apply_match_lambda([], Vals, _) -> eval_error({function_clause,Vals});
+apply_match_lambda([], _Vals, _) -> eval_error(function_clause);
 apply_match_lambda(_, _, _) -> bad_form_error('match-lambda').
 
 %% eval_let([PatBindings|Body], Env) -> Value.
@@ -625,9 +659,14 @@ eval_apply({letrec,Body,Fbs,Env}, Es, _) ->
 
 eval_apply_expr(Func, Es, Env) ->
     case lfe_macro:expand_expr_all(Func, Env) of
-        [lambda,Args|Body] -> apply_lambda(Args, Body, Es, Env);
-        ['match-lambda'|Cls] -> apply_match_lambda(Cls, Es, Env);
-        Fun when erlang:is_function(Fun) -> erlang:apply(Fun, Es)
+        [lambda|_]=Lambda ->
+	    Fun = eval_lambda(Lambda, Env),
+	    erlang:apply(Fun, Es);
+        ['match-lambda'|_]=Mlambda ->
+	    Fun = eval_match_lambda(Mlambda, Env),
+	    erlang:apply(Fun, Es);
+        Fun when erlang:is_function(Fun) ->
+	    erlang:apply(Fun, Es)
     end.
 
 %% eval_if(IfBody, Env) -> Value.

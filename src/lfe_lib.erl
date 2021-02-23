@@ -145,20 +145,25 @@ format_exception(Cl, Error0, St0, Skip, Format, I) ->
      format_stacktrace(St1, Skip, Format)].
 
 %% format_reason(Error, Indentation) -> DeepCharList.
-%%  Format an error giving a little better information.
+%%  Format an error giving a little better information. Explicitly
+%%  handle errors known from ERTS here, anything is assumed to come
+%%  from lfe_eval.
 
 %% The ERTS exit codes.
 format_reason(badarg, _I) -> <<"bad argument">>;
+format_reason({badarg,V}, I) ->
+    format_value(V, <<"bad argument ">>, I);
 format_reason(badarith, _I) -> <<"error in arithmetic expression">>;
-format_reason({badarity,{Fun,As}}, _I) ->
+format_reason({badarity,{Fun,As}}, _I)
+  when is_function(Fun) ->
     %% Only display the arity not the arguments.
     lfe_io:format1(<<"~s called with ~s">>,
-		   [erl_error:format_fun(Fun),argss(length(As))]);
+                   [format_fun(Fun),argss(length(As))]);
 format_reason({badmatch,V}, I) ->
-    lfe_io:format1(<<"no match of value ~.*P">>, [I+18,V,10]);
+    format_value(V, <<"no match of value ">>, I);
 format_reason(function_clause, _I) -> <<"no function clause matching">>;
 format_reason({case_clause,V}, I) ->
-    lfe_io:format1(<<"no case clause matching ~.*P">>, [I+24,V,10]);
+    format_value(V, <<"no case clause matching ">>, I);
 format_reason(if_clause, _I) -> <<"no if clause matching">>;
 format_reason(undef, _I) -> <<"undefined function">>;
 %% We now pass the buck to lfe_eval.
@@ -169,6 +174,19 @@ argss(0) -> <<"no arguments">>;
 argss(1) -> <<"one argument">>;
 argss(N) -> lfe_io:format1(<<"~w arguments">>, [N]).
 
+format_fun(Fun) when is_function(Fun) ->
+    {module,M} = erlang:fun_info(Fun, module),
+    %% {name,F} = erlang:fun_info(Fun, name),
+    {arity,A} = erlang:fun_info(Fun, arity),
+    case erlang:fun_info(Fun, type) of
+	{type,local} when M =:= lfe_eval ->
+	    lfe_io:format1(<<"interpreted function with arity ~w">>, [A]);
+	_ -> lfe_io:print1(Fun)
+    end.
+
+format_value(Val, ErrStr, I) ->
+    Sz = I + iolist_size(ErrStr),
+    lfe_io:format1(<<"~s~.*P">>, [ErrStr,Sz,Val,10]).
 
 %% format_stacktrace(Stacktrace, SkipFun, FormatFun) -> DeepCharList.
 %%  Format a stacktrace. SkipFun is used to trim the end of stack;
