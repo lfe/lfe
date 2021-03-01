@@ -9,7 +9,7 @@ lfe_guide - Lisp Flavoured Erlang User Guide
 
 # SYNPOSIS
 
-Note: {{ ... }} is use to denote optional syntax.
+Note: {{ ... }} is used to denote optional syntax.
 
 
 # LITERALS AND SPECIAL SYNTACTIC RULES
@@ -35,7 +35,7 @@ Integers can be written in various forms and number bases:
 * Binary notation (alternative form):
 
 ```
-  #*0 #b*10101 #*-1100
+  #*0 #*10101 #*-1100
 ```
 
 * Octal notation:
@@ -53,7 +53,7 @@ Integers can be written in various forms and number bases:
 * Hexadecimal notation:
 
 ```
-  #xc0ffe 0x-01
+  #xc0ffe #x-01
 ```
 
 * Notation with explicit base (up to 36):
