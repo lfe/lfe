@@ -226,7 +226,7 @@ somewhat surprisingly ``123foo`` and ``1.23e4extra`` (but note that illegal
 digits don't make a number a symbol when using the explicit number base
 notation, e.g. ``#b10foo`` gives an error).
 
-<!-- 
+<!--
 Symbol names can contain a surprising breadth or characters:
 
 ```
@@ -1194,7 +1194,7 @@ LFE provides the module cl which contains the following functions
 which closely mirror functions defined in the Common Lisp
 Hyperspec. Note that the following functions use zero-based indices,
 like Common Lisp (unlike Erlang, which start at index '1'). A major
-difference between the LFE versions and the Common Lisp versions of 
+difference between the LFE versions and the Common Lisp versions of
 these functions is that the boolean values are
 the LFE `'true` and `'false`. Otherwise the definitions closely follow the
 CL definitions and won't be documented here.
@@ -1407,7 +1407,7 @@ Other:
 (clj:if ...)
 ```
 
-Most of the above mentioned macros are avaialble in the `clj` include file,
+Most of the above mentioned macros are available in the `clj` include file,
 the use of which allows developers to forego the `clj:` prefix in calls:
 
 ```
