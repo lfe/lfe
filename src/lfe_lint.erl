@@ -43,7 +43,6 @@
                    mline=0,                     %Module definition line
                    exps=orddict:new(),          %Exported functions
                    imps=orddict:new(),          %Imported functions
-                   pref=[],                     %Prefixes
                    funcs=[],                    %Defined functions
                    types=[],                    %Known types
                    texps=orddict:new(),         %Exported types
@@ -334,15 +333,7 @@ check_import([rename,Mod|Rs], L, St) when is_atom(Mod) ->
             end,
     check_import(Check, Mod, L, St, Rs);
 check_import([prefix,Mod,Pre], L, St0) when is_atom(Mod), is_atom(Pre) ->
-    St1 = deprecated_error(L, <<"import prefix">>, St0),
-    Pstr = atom_to_list(Pre),
-    case orddict:find(Pstr, St1#lfe_lint.pref) of
-        {ok,_} ->
-            bad_mdef_error(L, prefix, St1);
-        error ->
-            Pref = orddict:store(Pstr, Mod, St1#lfe_lint.pref),
-            St1#lfe_lint{pref=Pref}
-    end;
+    deprecated_error(L, <<"import prefix">>, St0);
 check_import(_, L, St) -> import_error(L, St).
 
 check_import(Check, Mod, L, St0, Fs) ->
@@ -1387,7 +1378,7 @@ check_gmap_get(Form, _, _, _, L, St) ->
     undefined_func_error(L, {Form,2}, St).
 
 check_gmap_set(Form, _, Ps, _, L, St) ->
-    gundefined_func_error(L, {Form,safe_length(Ps)+1}, St).
+    undefined_func_error(L, {Form,safe_length(Ps)+1}, St).
 
 check_gmap_update(Form, _, Ps, _, L, St) ->
     undefined_func_error(L, {Form,safe_length(Ps)+1}, St).

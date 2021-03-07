@@ -603,7 +603,6 @@ To simplify defining modules there is a predefined macro:
   (export all)                          ;Export all functions
   (import (from mod (f1 2) (f2 1) ... )
           (rename mod ((f1 2) sune) ((f2 1) kurt) ... ))
-  (import (prefix mod mod-prefix))      - NYI
   (attr-1 value-1 value-2)
   {meta meta-data ...)
   ... )

@@ -41,7 +41,6 @@
                  mline=0,                       %Module definition line
                  exps=ordsets:new(),            %Exports
                  imps=orddict:new(),            %Imports
-                 pref=[],                       %Prefixes
                  atts=[],                       %Attrubutes
                  mets=[],                       %Metadata
                  defs=[],                       %Defined top-level functions
@@ -143,10 +142,7 @@ coll_mdef_imp(['from',Mod|Fs], St) ->
                   Mod, St, Fs);
 coll_mdef_imp(['rename',Mod|Rs], St) ->
     coll_mdef_imp(fun ([[F,A],R], Imps) -> orddict:store({F,A}, R, Imps) end,
-                  Mod, St, Rs);
-coll_mdef_imp(['prefix',Mod,Pre], St) ->
-    Pstr = atom_to_list(Pre),                   %Store prefix as string
-    St#lfe_cg{pref=orddict:store(Pstr, Mod, St#lfe_cg.pref)}.
+                  Mod, St, Rs).
 
 coll_mdef_imp(Fun, Mod, St, Fs) ->
     Imps0 = safe_fetch(Mod, St#lfe_cg.imps, []),
