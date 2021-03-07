@@ -39,8 +39,8 @@
 
 -record(lfe_cg, {module=[],                     %Module name
                  mline=0,                       %Module definition line
-                 exps=[],                       %Exports (ordsets)
-                 imps=[],                       %Imports (orddict)
+                 exps=ordsets:new(),            %Exports
+                 imps=orddict:new(),            %Imports
                  pref=[],                       %Prefixes
                  atts=[],                       %Attrubutes
                  mets=[],                       %Metadata
@@ -86,7 +86,7 @@ compile_module(Mfs, St0) ->
     {Attrs ++ Forms,St2}.
 
 %% collect_mod_defs(ModuleForms, State) -> State.
-%%  Collect the attributee information in define-module and
+%%  Collect the attribute information in define-module and
 %%  extend-module's which must be first in the output file.
 
 collect_mod_defs(Mfs, St) ->
@@ -303,6 +303,9 @@ comp_attributes(#lfe_cg{atts=Atts}) ->
 
 %% comp_attribute({spec,[Func|Spec],Line}) ->
 %%     hd(comp_func_spec(Func, Spec, Line));       %We know!
+comp_attribute({'export-type',Ts,Line}) ->
+    Ets = lists:map(fun ([T,A]) -> {T,A} end, Ts),
+    make_attribute(export_type, Ets, Line);
 comp_attribute({Name,Val,Line}) ->
     make_attribute(Name, Val, Line).
 

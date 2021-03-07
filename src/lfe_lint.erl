@@ -41,11 +41,12 @@
 
 -record(lfe_lint, {module=[],                   %Module name
                    mline=0,                     %Module definition line
-                   exps=orddict:new(),          %Exports
-                   imps=[],                     %Imports
+                   exps=orddict:new(),          %Exported functions
+                   imps=orddict:new(),          %Imported functions
                    pref=[],                     %Prefixes
                    funcs=[],                    %Defined functions
                    types=[],                    %Known types
+                   texps=orddict:new(),         %Exported types
                    specs=[],                    %Known func specs
                    recs=[],                     %Known record defs
                    env=[],                      %Top-level environment
@@ -119,21 +120,21 @@ format_error({undefined_record,Name}) ->
 format_error({undefined_field,Name,Field}) ->
     lfe_io:format1(<<"field ~w undefined in record ~w">>, [Field,Name]);
 %% Type and spec errors.
-format_error({singleton_typevar,V}) ->
-    lfe_io:format1("type variable ~w is only used once", [V]);
+format_error({undefined_type,{T,A}}) ->
+    lfe_io:format1("type ~w/~w undefined", [T,A]);
 format_error({builtin_type,{T,A}}) ->
     lfe_io:format1("type ~w/~w is a builtin type", [T,A]);
 format_error({redefine_type,{T,A}}) ->
     lfe_io:format1("type ~w/~w already defined", [T,A]);
 format_error({redefine_spec,{F,A}}) ->
     lfe_io:format1("spec for ~w/~w is already defined", [F,A]);
+format_error({singleton_typevar,V}) ->
+    lfe_io:format1("type variable ~w is only used once", [V]);
 %% Type and spec errors. These are also returned from lfe_types.
 format_error({bad_type,T}) ->
     lfe_io:format1("bad ~w type definition", [T]);
 format_error({type_syntax,T}) ->
     lfe_io:format1("bad ~w type", [T]);
-format_error({undefined_type,{T,A}}) ->
-    lfe_io:format1("type ~w/~w undefined", [T,A]);
 format_error({bad_spec,S}) ->
     lfe_io:format1("bad function specification: ~w", [S]);
 %% These are signaled from lfe_bits.
@@ -199,7 +200,8 @@ check_module(Mfs, St0) ->
     {Fs,Env1,St3} = check_functions(Fbs1, Env0, St2),
     %% Save functions and environment and test exports.
     St4 = St3#lfe_lint{funcs=Fs,env=Env1},
-    check_valid_exports(St4#lfe_lint.exps, Fs, St4).
+    St5 = check_valid_exports(St4),
+    check_valid_type_exports(St5).
 
 %% collect_module(ModuleForms, State) -> {Fbs,State}.
 %%  Collect valid forms and module data. Returns function bindings and
@@ -282,6 +284,8 @@ check_attr([export|Es], L, St) ->
     check_exports(Es, L, St);
 check_attr([import|Is], L, St) ->
     check_imports(Is, L, St);
+check_attr(['export-type'|Ts], L, St) ->
+    check_export_types(Ts, L, St);
 check_attr([doc|Docs], L, St0) ->
     St1 = deprecated_warning(L, <<"documentation string attribute">>, St0),
     check_doc_attr(Docs, L, St1);
@@ -345,6 +349,15 @@ check_import(Check, Mod, L, St0, Fs) ->
     Imps0 = safe_fetch(Mod, St0#lfe_lint.imps, []),
     {Imps1,St1} = foldl_form(Check, import, L, Imps0, St0, Fs),
     St1#lfe_lint{imps=orddict:store(Mod, Imps1, St1#lfe_lint.imps)}.
+
+check_export_types(Ts, L, St) ->
+    case is_func_list(Ts) of
+        {yes,Fs} ->
+            Texps = add_exports(Fs, L, St#lfe_lint.texps),
+            St#lfe_lint{texps=Texps};
+        no ->
+            bad_mdef_error(L, 'export-type', St)
+    end.
 
 import_error(L, St) -> bad_mdef_error(L, import, St).
 
@@ -578,9 +591,9 @@ check_functions(Fbs, Env0, St0) ->
                 end, St1, Fbs),
     {Fs,Env1,St2}.
 
-%% check_valid_exports(Exports, Funcs, State) -> State.
+%% check_valid_exports(State) -> State.
 
-check_valid_exports(Exps, Fs, St) ->
+check_valid_exports(#lfe_lint{exps=Exps,funcs=Fs}=St) ->
     Fun = fun (E, L, S) ->
                   ?IF(is_element(E, Fs), S, undefined_func_error(L, E, S))
           end,
@@ -594,6 +607,15 @@ add_exports(More, L, Exps) ->
                   orddict:update(F, fun (Old) -> Old end, L, Es)
           end,
     lists:foldl(Fun, Exps, More).
+
+%% check_valid_type_exports(State) -> State.
+
+check_valid_type_exports(#lfe_lint{types=Types,texps=Texps}=St) ->
+    Fun = fun (E, L, S) ->
+                  ?IF(lists:member(E, Types), S,
+                      add_error(L, {undefined_type,E}, S))
+          end,
+    orddict:fold(Fun, St, Texps).
 
 %% check_expr(Expr, Env, Line, State) -> State.
 %% Check an expression.
