@@ -86,7 +86,7 @@ file(IncFile, _, #mac{ipath=Path}=St0) ->
     case include_name(IncFile) of
         {ok,Name} ->
             case path_read_file(Path, Name, St0) of
-                {ok,Fs,St1} -> {yes,['progn'|Fs],St1};
+                {ok,Forms,St1} -> {yes,['progn'|Forms],St1};
                 {error,St1} -> {error,St1};
                 not_found ->
                     {error,add_error({no_include,file,Name}, St0)}
@@ -110,14 +110,10 @@ lib(IncFile, _, #mac{ipath=Path}=St0) ->
                     {yes,['progn'|Forms],St1};
                 {error,St1} -> {error,St1};
                 not_found ->
-                    case lib_file_name(Name) of
-                        {ok,LibName} ->
-                            case read_file(LibName, St0) of
-                                {ok,Forms,St1} ->
-                                    {yes,['progn'|Forms],St1};
-                                {error,St1} -> {error,St1}
-                            end;
-                        error ->
+                    case lib_read_file(Name, St0) of
+                        {ok,Forms,St1} -> {yes,['progn'|Forms],St1};
+                        {error,St1} -> {error,St1};
+                        not_found ->
                             {error,add_error({no_include,lib,Name}, St0)}
                     end
             end;
@@ -130,9 +126,9 @@ lib(IncFile, _, #mac{ipath=Path}=St0) ->
 
 include_name(Name) ->
     try
-	{ok,lists:flatten(unicode:characters_to_list(Name, utf8))}
+        {ok,lists:flatten(unicode:characters_to_list(Name, utf8))}
     catch
-	_:_ -> {error,badarg}
+        _:_ -> {error,badarg}
 end.
 
 %% path_read_file(Path, Name, State) ->
@@ -163,6 +159,23 @@ filename_join(["." | [_|_]=Rest]) ->
     filename_join(Rest);
 filename_join(Comp) ->
     filename:join(Comp).
+
+%% lib_read_file(FileName, State) ->
+%%     {ok,Forms,State} | {error,State} | not_found.
+%%  Try to read the library file. Try to open the file to make sure
+%%  that even if we can find the lirbary the file is there.
+
+lib_read_file(Name, St) ->
+    case lib_file_name(Name) of
+        {ok,LibName} ->
+            case file:open(LibName, [read,raw]) of
+                {ok,F} ->
+                    file:close(F),
+                    read_file(LibName, St);
+                {error,_} -> not_found
+            end;
+        error -> not_found
+    end.
 
 %% read_file(FileName, State) -> {ok,Forms,State} | {error,State}.
 
