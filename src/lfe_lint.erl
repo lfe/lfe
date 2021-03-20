@@ -50,16 +50,22 @@
                    recs=[],                     %Known record defs
                    env=[],                      %Top-level environment
                    func=[],                     %Current function
-                   file="nofile",               %File name
+                   file="no file",              %File name
                    opts=[],                     %Compiler options
                    errors=[],                   %Errors
                    warnings=[]                  %Warnings
                   }).
 
 %% Errors.
-format_error({bad_mdef,D}) ->
+%% Module definition.
+format_error({bad_module,D}) ->
     %% This can handle both atom and string error value.
-    lfe_io:format1(<<"bad module ~s definition">>, [D]);
+    lfe_io:format1(<<"bad ~s in module definition">>, [D]);
+format_error({bad_attribute,A}) ->
+    lfe_io:format1(<<"bad ~w attribute">>, [A]);
+format_error({bad_meta,M}) ->
+    lfe_io:format1(<<"bad ~w metadata">>, [M]);
+%% Forms and code.
 format_error({bad_body,Form}) ->
     lfe_io:format1(<<"bad body in ~w">>, [Form]);
 format_error(bad_guard) -> "bad guard";
@@ -67,22 +73,19 @@ format_error(bad_args) -> "bad argument list";
 format_error(bad_gargs) -> "bad guard argument list";
 format_error(bad_alias) -> "bad pattern alias";
 format_error(bad_arity) -> "head arity mismatch";
-format_error({bad_attribute,A}) ->
-    lfe_io:format1(<<"bad attribute ~w">>, [A]);
-format_error({bad_meta,M}) ->
-    lfe_io:format1(<<"bad metadata ~w">>, [M]);
 format_error({bad_form,Form}) ->
     lfe_io:format1(<<"bad ~w form">>, [Form]);
-format_error({bad_gform,Form}) ->
+format_error({bad_guard_form,Form}) ->
     lfe_io:format1(<<"bad ~w guard form">>, [Form]);
-format_error({bad_pat,Pat}) ->
+format_error({bad_pattern,Pat}) ->
     lfe_io:format1(<<"bad ~w pattern">>, [Pat]);
 format_error({unbound_symb,S}) ->
     lfe_io:format1(<<"symbol ~w is unbound">>, [S]);
-format_error({undefined_func,{F,A}}) ->
+format_error({undefined_function,{F,A}}) ->
     lfe_io:format1("function ~w/~w undefined", [F,A]);
 format_error({multi_var,S}) ->
     lfe_io:format1("variable ~w multiply defined", [S]);
+%% Functions.
 format_error({redefine_function,F}) ->
     lfe_io:format1("function ~w already defined", [F]);
 format_error({bad_fdef,F}) ->
@@ -218,11 +221,11 @@ collect_form(['define-module',Mod,Meta,Atts], L, St0) ->
     if is_atom(Mod) ->                  %Normal module
             {[],St1};
        true ->                          %Bad module name
-            {[],bad_mdef_error(L, name, St1)}
+            {[],bad_module_error(L, name, St1)}
     end;
 collect_form(_, L, #lfe_lint{module=[]}=St) ->
     %% Set module name so this only triggers once.
-    {[],bad_mdef_error(L, name, St#lfe_lint{module='-no-module-'})};
+    {[],bad_module_error(L, name, St#lfe_lint{module='-no-module-'})};
 collect_form(['extend-module',Metas,Atts], L, St) ->
     {[],check_mod_def(Metas, Atts, L, St)};
 collect_form(['define-type',Type,Def], L, St) ->
@@ -254,7 +257,7 @@ check_mod_def(Metas, Atts, L, St0) ->
 
 check_mod_metas(Ms, L, St) ->
     check_foreach(fun (M, S) -> check_mod_meta(M, L, S) end,
-                  fun (S) -> bad_mdef_error(L, form, S) end,
+                  fun (S) -> bad_module_error(L, <<"meta form">>, S) end,
                   St, Ms).
 
 check_mod_meta([doc|Docs], L, St) ->
@@ -268,14 +271,14 @@ check_mod_meta([spec|Sps], L, St) ->
 check_mod_meta([record|Rdefs], L, St) ->
     %% deprecated_error(L, <<"module record definition">>, St);
     check_record_defs(Rdefs, L, St);
-check_mod_meta(_, L, St) -> bad_mdef_error(L, meta, St).
+check_mod_meta(_, L, St) -> bad_module_error(L, meta, St).
 
 %% check_attrs(Attributes, Line, State) -> State.
 %%  Check the attributes of the module.
 
 check_attrs(As, L, St) ->
     check_foreach(fun (A, S) -> check_attr(A, L, S) end,
-                  fun (S) -> bad_mdef_error(L, form, S) end,
+                  fun (S) -> bad_module_error(L, <<"attribute form">>, S) end,
                   St, As).
 
 check_attr([export,all], _, St) -> St;          %Ignore 'all' here
@@ -286,10 +289,10 @@ check_attr([import|Is], L, St) ->
 check_attr(['export-type'|Ts], L, St) ->
     check_export_types(Ts, L, St);
 check_attr([doc|Docs], L, St0) ->
-    St1 = deprecated_warning(L, <<"documentation string attribute">>, St0),
+    St1 = deprecated_warning(L, <<"module documentation attribute">>, St0),
     check_doc_attr(Docs, L, St1);
 check_attr([record|_Rds], L, St) ->
-    deprecated_error(L, <<"module record definition">>, St);
+    deprecated_error(L, <<"module record definition attribute">>, St);
 %% Note we don't allow type and spec as normal attributes here.
 check_attr([A|Vals], L, St) ->
     %% Meta tags are not allowed in attributes.
@@ -297,7 +300,7 @@ check_attr([A|Vals], L, St) ->
         %% Other attributes, must be list and have symbol name.
         ?IF(is_atom(A) and lfe_lib:is_proper_list(Vals),
             St, bad_attr_error(L, A, St)));
-check_attr(_, L, St) -> bad_mdef_error(L, attribute, St).
+check_attr(_, L, St) -> bad_module_error(L, <<"attribute form">>, St).
 
 is_meta_tag(doc) -> true;
 is_meta_tag(spec) -> true;
@@ -311,7 +314,7 @@ check_exports(Es, L, St) ->
         {yes,Fs} ->
             Exps = add_exports(Fs, L, St#lfe_lint.exps),
             St#lfe_lint{exps=Exps};
-        no -> bad_mdef_error(L, export, St)
+        no -> bad_module_error(L, export, St)
     end.
 
 check_imports(Is, L, St) ->
@@ -321,7 +324,7 @@ check_imports(Is, L, St) ->
 check_import([from,Mod|Fs], L, St) when is_atom(Mod) ->
     Check = fun ([F,A], Imps, S) when is_atom(F), is_integer(A) ->
                     {orddict:store({F,A}, F, Imps),S};
-                (_, Imps, S) -> {Imps,bad_mdef_error(L, <<"import from">>, S)}
+                (_, Imps, S) -> {Imps,bad_module_error(L, <<"import from">>, S)}
             end,
     check_import(Check, Mod, L, St, Fs);
 check_import([rename,Mod|Rs], L, St) when is_atom(Mod) ->
@@ -329,7 +332,7 @@ check_import([rename,Mod|Rs], L, St) when is_atom(Mod) ->
                                           is_integer(A),
                                           is_atom(R) ->
                     {orddict:store({F,A}, R, Imps),S};
-                (_, Imps, S) -> {Imps,bad_mdef_error(L, <<"import rename">>, S)}
+                (_, Imps, S) -> {Imps,bad_module_error(L, <<"import rename">>, S)}
             end,
     check_import(Check, Mod, L, St, Rs);
 check_import([prefix,Mod,Pre], L, St0) when is_atom(Mod), is_atom(Pre) ->
@@ -341,16 +344,16 @@ check_import(Check, Mod, L, St0, Fs) ->
     {Imps1,St1} = foldl_form(Check, import, L, Imps0, St0, Fs),
     St1#lfe_lint{imps=orddict:store(Mod, Imps1, St1#lfe_lint.imps)}.
 
+import_error(L, St) -> bad_module_error(L, import, St).
+
 check_export_types(Ts, L, St) ->
     case is_func_list(Ts) of
         {yes,Fs} ->
             Texps = add_exports(Fs, L, St#lfe_lint.texps),
             St#lfe_lint{texps=Texps};
         no ->
-            bad_mdef_error(L, 'export-type', St)
+            bad_module_error(L, 'export-type', St)
     end.
-
-import_error(L, St) -> bad_mdef_error(L, import, St).
 
 is_func_list(Fs) -> is_func_list(Fs, []).
 
@@ -586,7 +589,7 @@ check_functions(Fbs, Env0, St0) ->
 
 check_valid_exports(#lfe_lint{exps=Exps,funcs=Fs}=St) ->
     Fun = fun (E, L, S) ->
-                  ?IF(is_element(E, Fs), S, undefined_func_error(L, E, S))
+                  ?IF(is_element(E, Fs), S, undefined_function_error(L, E, S))
           end,
     orddict:fold(Fun, St, Exps).
 
@@ -735,7 +738,7 @@ check_func(F, Ar, Env, L, St) ->
         lfe_internal:is_lfe_bif(F, Ar) orelse
         lfe_internal:is_erl_bif(F, Ar) of
         true -> St;
-        false -> undefined_func_error(L, {F,Ar}, St)
+        false -> undefined_function_error(L, {F,Ar}, St)
     end.
 
 %% check_body(Form, Body, Env, Line, State) -> State.
@@ -747,13 +750,6 @@ check_body(Form, Body, Env, L, St) ->
                   fun (S) -> add_error(L, {bad_body,Form}, S) end,
                   St, Body).
 
-%% check_body(Body, Env, L, St) ->
-%%     %% check_body(fun check_exprs/4, Env, L, St, Body).
-%%     case lfe_lib:is_proper_list(Body) of
-%%         true -> check_exprs(Body, Env, L, St);
-%%         false -> add_error(L, bad_body, St)
-%%     end.
-
 %% check_args(Args, Env, Line, State) -> State.
 %% Check the expressions in an argument list.
 
@@ -761,12 +757,6 @@ check_args(Args, Env, L, St) ->
     check_foreach(fun (A, S) -> check_expr(A, Env, L, S) end,
                   fun (S) -> add_error(L, bad_args, S) end,
                   St, Args).
-
-%% check_args(Args, Env, L, St) ->
-%%     case lfe_lib:is_proper_list(Args) of
-%%         true -> check_exprs(Args, Env, L, St);
-%%         false -> add_error(L, bad_args, St)
-%%     end.
 
 %% check_exprs(Exprs, Env, Line, State) -> State.
 %% Check a list of expressions. We know it's a proper list.
@@ -882,22 +872,22 @@ is_map_key(Lit) -> is_literal(Lit).
 
 -else.
 check_map(Ps, _, L, St) ->
-    undefined_func_error(L, {map,safe_length(Ps)}, St).
+    undefined_function_error(L, {map,safe_length(Ps)}, St).
 
 check_map_size(Form, _, _, L, St) ->
-    undefined_func_error(L, {Form,1}, St).
+    undefined_function_error(L, {Form,1}, St).
 
 check_map_get(Form, _, _, _, L, St) ->
-    undefined_func_error(L, {Form,2}, St).
+    undefined_function_error(L, {Form,2}, St).
 
 check_map_set(Form, _, Ps, _, L, St) ->
-    undefined_func_error(L, {Form,safe_length(Ps)+1}, St).
+    undefined_function_error(L, {Form,safe_length(Ps)+1}, St).
 
 check_map_update(Form, _, Ps, _, L, St) ->
-    undefined_func_error(L, {Form,safe_length(Ps)+1}, St).
+    undefined_function_error(L, {Form,safe_length(Ps)+1}, St).
 
 check_map_remove(Form, _, Ks, _, L, St) ->
-    undefined_func_error(L, {Form,safe_length(Ks)+1}, St).
+    undefined_function_error(L, {Form,safe_length(Ks)+1}, St).
 -endif.
 
 %% check_record(Record, Fields, Env, Line, State) -> State.
@@ -1280,7 +1270,7 @@ check_gexpr([_|As]=S, Env, L, St0) ->            %Test if literal string
         true -> St0;
         false ->
             %% Function here is an expression, report error and check args.
-            St1 = bad_gform_error(L, application, St0),
+            St1 = bad_guard_form_error(L, application, St0),
             check_gargs(As, Env, L, St1)
     end;
 check_gexpr(Symb, Env, L, St) when is_atom(Symb) ->
@@ -1314,7 +1304,7 @@ check_gargs(Args, Env, L, St) ->
 
 gexpr_bitsegs(Segs, Env, L, St0) ->
     check_foreach(fun (S, St) -> bitseg(S, Env, L, St, fun check_gexpr/4) end,
-                  fun (St) -> bad_gform_error(L, binary, St) end, St0, Segs).
+                  fun (St) -> bad_guard_form_error(L, binary, St) end, St0, Segs).
 
 %% check_gmap_size(Form, Map, Env, Line, State) -> State.
 %% check_gmap_get(Form, Map, Key, Env, Line, State) -> State.
@@ -1369,19 +1359,19 @@ gmap_key(Key, _, L, St) ->
 
 -else.
 check_gmap(Ps, _, L, St) ->
-    undefined_func_error(L, {map,safe_length(Ps)}, St).
+    undefined_function_error(L, {map,safe_length(Ps)}, St).
 
 check_gmap_size(Form, _, _, L, St) ->
-    undefined_func_error(L, {Form,1}, St).
+    undefined_function_error(L, {Form,1}, St).
 
 check_gmap_get(Form, _, _, _, L, St) ->
-    undefined_func_error(L, {Form,2}, St).
+    undefined_function_error(L, {Form,2}, St).
 
 check_gmap_set(Form, _, Ps, _, L, St) ->
-    undefined_func_error(L, {Form,safe_length(Ps)+1}, St).
+    undefined_function_error(L, {Form,safe_length(Ps)+1}, St).
 
 check_gmap_update(Form, _, Ps, _, L, St) ->
-    undefined_func_error(L, {Form,safe_length(Ps)+1}, St).
+    undefined_function_error(L, {Form,safe_length(Ps)+1}, St).
 -endif.
 
 %% pattern(Pattern, Env, L, State) -> {PatVars,State}.
@@ -1517,7 +1507,7 @@ pat_bitsegs(Segs, Bvs0, Pvs, Env, L, St0) ->
         check_foldl(fun (Seg, Bvs, St) ->
                             pat_bitseg(Seg, Bvs, Pvs, Env, L, St)
                     end,
-                    fun (St) -> bad_pat_error(L, binary, St) end,
+                    fun (St) -> bad_pattern_error(L, binary, St) end,
                     Bvs0, St0, Segs),
     {union(Bvs1, Pvs),St1}.                     %Add bitvars to patvars
 
@@ -1685,19 +1675,11 @@ foldr_form(Fun, T, L, Acc, St, Fs) ->
 %%  proper top list. Could easily and clearly be done with a Lisp
 %%  macro.
 
-%% Versions which only check for proper top list.
 check_foreach(Check, Err, St0, [F|Fs]) ->
     St1 = Check(F, St0),
     check_foreach(Check, Err, St1, Fs);
 check_foreach(_, _, St, []) -> St;
 check_foreach(_, Err, St, _) -> Err(St).
-
-%% check_map(Check, Err, St0, [F|Fs]) ->
-%%     {R,St1} = Check(F, St0),
-%%     {Rs,St2} = check_map(Check, Err, St1, Fs),
-%%     {[R|Rs],St2};
-%% check_map(_, _, St, []) -> {[],St};
-%% check_map(_, Err, St, _) -> {[],Err(St)}.
 
 check_foldl(Check, Err, Acc0, St0, [F|Fs]) ->
     {Acc1,St1} = Check(F, Acc0, St0),
@@ -1711,33 +1693,60 @@ check_foldr(Check, Err, Acc0, St0, [F|Fs]) ->
 check_foldr(_, _, Acc, St, []) -> {Acc,St};
 check_foldr(_, Err, Acc, St, _) -> {Acc,Err(St)}.
 
+%% Versions which only check for proper top list.
+%% check_foreach(Check, Err, St, Fs) ->
+%%     case lfe_lib:is_proper_list(Fs) of
+%%         true -> lists:foldl(Check, St, Fs);
+%%         false -> Err(St)
+%%     end.
+
+%% check_map(Check, Err, St, Fs) ->
+%%     case lfe_lib:is_proper_list(Fs) of
+%%         true -> lists:foldl(Check, St, Fs);
+%%         false -> {[],Err(St)}
+%%     end.
+
+%% check_foldl(Check, Err, Acc, St, Fs) ->
+%%     case lfe_lib:is_proper_list(Fs) of
+%%         true ->
+%%             lists:foldl(fun (F, {A,S}) -> Check(F, A, S) end, {Acc,St}, F);
+%%         false -> {Acc,Err(St)}
+%%     end.
+
+%% check_foldr(Check, Err, Acc, St, Fs) ->
+%%     case lfe_lib:is_proper_list(Fs) of
+%%         true ->
+%%             lists:foldl(fun (F, {A,S}) -> Check(F, A, S) end, {Acc,St}, F);
+%%         false -> {Acc,Err(St)}
+%%     end.
+
 %% Versions which completely wrap with a try. These may catch too much!
 %% check_foreach(Fun, Err, St, Fs) ->
 %%     try
-%%     foldl(Fun, St, Fs)
+%%         foldl(Fun, St, Fs)
 %%     catch
-%%     _:_ -> Err(St)
+%%         _:_ -> Err(St)
 %%     end.
 
 %% check_map(Fun, Err, St, Fs) ->
 %%     try
-%%     mapfoldl(Fun, St, Fs)
+%%         mapfoldl(Fun, St, Fs)
 %%     catch
-%%     _:_ -> {[],Err(St)}
+%%         _:_ -> {[],Err(St)}
 %%     end.
 
 %% check_foldl(Fun, Err, Acc, St, Fs) ->
 %%     try
-%%     foldl(fun (F, {A,S}) -> Fun(F, A, S) end, {Acc,St}, Fs)
+%%         foldl(fun (F, {A,S}) -> Fun(F, A, S) end, {Acc,St}, Fs)
 %%     catch
-%%     _:_ -> {Acc,Err(St)}
+%%         _:_ -> {Acc,Err(St)}
 %%     end.
 
 %% check_foldr(Fun, Err, St, Acc, Fs) ->
 %%     try
-%%     foldr(fun (F, {A,S}) -> Fun(F, A, S) end, {Acc,St}, Fs)
+%%         foldr(fun (F, {A,S}) -> Fun(F, A, S) end, {Acc,St}, Fs)
 %%     catch
-%%     _:_ -> {Acc,Err(St)}
+%%         _:_ -> {Acc,Err(St)}
 %%     end.
 
 %% safe_length(List) -> Length.
@@ -1770,8 +1779,8 @@ bad_meta_error(L, A, St) ->
 bad_form_error(L, F, St) ->
     add_error(L, {bad_form,F}, St).
 
-bad_gform_error(L, F, St) ->
-    add_error(L, {bad_gform,F}, St).
+bad_guard_form_error(L, F, St) ->
+    add_error(L, {bad_guard_form,F}, St).
 
 -ifdef(HAS_MAPS).
 illegal_mapkey_error(L, K, St) ->
@@ -1781,14 +1790,14 @@ illegal_mapkey_error(L, K, St) ->
 illegal_bitsize_error(L, St) ->
     add_error(L, illegal_bitsize, St).
 
-bad_pat_error(L, F, St) ->
-    add_error(L, {bad_pat,F}, St).
+bad_pattern_error(L, F, St) ->
+    add_error(L, {bad_pattern,F}, St).
 
 illegal_pattern_error(L, P, St) ->
     add_error(L, {illegal_pattern,P}, St).
 
-bad_mdef_error(L, D, St) ->
-    add_error(L, {bad_mdef,D}, St).
+bad_module_error(L, D, St) ->
+    add_error(L, {bad_module,D}, St).
 
 bad_record_error(L, R, St) ->
     add_error(L, {bad_record,R}, St).
@@ -1811,8 +1820,8 @@ bad_fdef_error(L, D, St) ->
 multi_var_error(L, V, St) ->
     add_error(L, {multi_var,V}, St).
 
-undefined_func_error(L, F, St) ->
-    add_error(L, {undefined_func,F}, St).
+undefined_function_error(L, F, St) ->
+    add_error(L, {undefined_function,F}, St).
 
 illegal_guard_error(L, St) ->
     add_error(L, illegal_guard, St).
