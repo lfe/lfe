@@ -32,22 +32,19 @@
 
 %% -compile(export_all).
 
--import(lists, [member/2,sort/1,all/2,foldl/3,foldr/3,foreach/2,mapfoldl/3]).
--import(ordsets, [add_element/2,from_list/1,is_element/2,
-                  union/1,union/2,intersection/2,subtract/2]).
-
 -include("lfe_comp.hrl").
 -include("lfe.hrl").
 
 -record(lfe_lint, {module=[],                   %Module name
                    mline=0,                     %Module definition line
-                   exps=orddict:new(),          %Exported functions
-                   imps=orddict:new(),          %Imported functions
-                   funcs=[],                    %Defined functions
+                   exports=orddict:new(),       %Exported function-line
+                   imports=orddict:new(),       %Imported function-{module,func}
+                   aliases=orddict:new(),       %Module-alias
+                   funcs=orddict:new(),         %Defined function-line
                    types=[],                    %Known types
                    texps=orddict:new(),         %Exported types
                    specs=[],                    %Known func specs
-                   recs=[],                     %Known record defs
+                   records=orddict:new(),       %Known record defs
                    env=[],                      %Top-level environment
                    func=[],                     %Current function
                    file="no file",              %File name
@@ -81,15 +78,21 @@ format_error({bad_pattern,Pat}) ->
     lfe_io:format1(<<"bad ~w pattern">>, [Pat]);
 format_error({unbound_symb,S}) ->
     lfe_io:format1(<<"symbol ~w is unbound">>, [S]);
-format_error({undefined_function,{F,A}}) ->
-    lfe_io:format1("function ~w/~w undefined", [F,A]);
 format_error({multi_var,S}) ->
     lfe_io:format1("variable ~w multiply defined", [S]);
-%% Functions.
-format_error({redefine_function,F}) ->
-    lfe_io:format1("function ~w already defined", [F]);
+%% Functions, imports and exports
+format_error({undefined_function,{F,Ar}}) ->
+    lfe_io:format1("function ~w/~w undefined", [F,Ar]);
+format_error({redefine_function,{F,Ar}}) ->
+    lfe_io:format1("function ~w/~w already defined", [F,Ar]);
 format_error({bad_fdef,F}) ->
     lfe_io:format1("bad definition of function ~w", [F]);
+format_error({reimport_function,{F,Ar},M1,M2}) ->
+    lfe_io:format1(<<"importing ~w/~w from ~w, already imported from ~w">>,
+                   [F,Ar,M1,M2]);
+format_error({define_imported_function,{F,Ar}}) ->
+    lfe_io:format1(<<"defining imported function ~w/~w">>, [F,Ar]);
+%% Others
 format_error({illegal_literal,Lit}) ->
     lfe_io:format1(<<"illegal literal value ~w">>, [Lit]);
 format_error({illegal_pattern,Pat}) ->
@@ -143,12 +146,15 @@ format_error({bad_spec,S}) ->
 format_error({undefined_bittype,S}) ->
     lfe_io:format1("bit type ~w undefined", [S]);
 format_error(bittype_unit) ->
-    "bit unit size can only be specified together with size".
+    <<"bit unit size can only be specified together with size">>;
+format_error(Error) ->
+    lfe_io:format1("Unknown error ~p", [Error]).
+
 
 %% expr(Expr) -> {ok,[Warning]} | {error,[Error],[Warning]}.
 %% expr(Expr, Env) -> {ok,[Warning]} | {error,[Error],[Warning]}.
 
-expr(E) -> expr(E, lfe_env:new()).
+expr(E) -> expr(E, le_new()).
 
 expr(E, Env) ->
     St0 = #lfe_lint{},
@@ -158,7 +164,7 @@ expr(E, Env) ->
 %% pattern(Pattern) -> {ok,[Warning]} | {error,[Error],[Warning]}.
 %% pattern(Pattern, Env) -> {ok,[Warning]} | {error,[Error],[Warning]}.
 
-pattern(P) -> pattern(P, lfe_env:new()).
+pattern(P) -> pattern(P, le_new()).
 
 pattern(P, Env) ->
     St0 = #lfe_lint{},
@@ -197,13 +203,16 @@ check_module(Mfs, St0) ->
     {Fbs0,St1} = collect_module(Mfs, St0),
     %% Make an initial environment and set up state.
     {Predefs,Env0,St2} = init_state(St1),
+    %% io:format("~p\n", [Env0]),
     Fbs1 = Predefs ++ Fbs0,
     %% Now check definitions.
-    {Fs,Env1,St3} = check_functions(Fbs1, Env0, St2),
+    {Funcs,Env1,St3} = check_functions(Fbs1, Env0, St2),
+    %% io:format("~p\n", [Env1]),
     %% Save functions and environment and test exports.
-    St4 = St3#lfe_lint{funcs=Fs,env=Env1},
+    St4 = St3#lfe_lint{funcs=Funcs,env=Env1},
     St5 = check_valid_exports(St4),
-    check_valid_type_exports(St5).
+    St6 = check_valid_imports(St5),
+    check_valid_type_exports(St6).
 
 %% collect_module(ModuleForms, State) -> {Fbs,State}.
 %%  Collect valid forms and module data. Returns function bindings and
@@ -213,6 +222,11 @@ check_module(Mfs, St0) ->
 
 collect_module(Mfs, St) ->
     lfe_lib:proc_forms(fun collect_form/3, Mfs, St).
+    %% Fun = fun (F, L, S) ->
+    %%            io:format("~p ~w\n", [F,L]),
+    %%            collect_form(F, L, S)
+    %%    end,
+    %% lfe_lib:proc_forms(Fun, Mfs, St).
 
 %% collect_form(Form, Line, State) -> {Fbs,State}.
 
@@ -250,7 +264,7 @@ collect_form(_, L, St) ->
 
 check_mod_def(Metas, Atts, L, St0) ->
     St1 = check_mod_metas(Metas, L, St0),
-    check_attrs(Atts, L, St1).
+    check_mod_attrs(Atts, L, St1).
 
 %% check_mod_metas(Metas, Line, State) -> State.
 %%  Only allow docs and type definitions.
@@ -273,34 +287,34 @@ check_mod_meta([record|Rdefs], L, St) ->
     check_record_defs(Rdefs, L, St);
 check_mod_meta(_, L, St) -> bad_module_error(L, meta, St).
 
-%% check_attrs(Attributes, Line, State) -> State.
+%% check_mod_attrs(Attributes, Line, State) -> State.
 %%  Check the attributes of the module.
 
-check_attrs(As, L, St) ->
-    check_foreach(fun (A, S) -> check_attr(A, L, S) end,
+check_mod_attrs(As, L, St) ->
+    check_foreach(fun (A, S) -> check_mod_attr(A, L, S) end,
                   fun (S) -> bad_module_error(L, <<"attribute form">>, S) end,
                   St, As).
 
-check_attr([export,all], _, St) -> St;          %Ignore 'all' here
-check_attr([export|Es], L, St) ->
-    check_exports(Es, L, St);
-check_attr([import|Is], L, St) ->
-    check_imports(Is, L, St);
-check_attr(['export-type'|Ts], L, St) ->
+check_mod_attr([export,all], _, St) -> St;          %Ignore 'all' here
+check_mod_attr([export|Es], L, St) ->
+    check_export_attr(Es, L, St);
+check_mod_attr([import|Is], L, St) ->
+    check_import_attr(Is, L, St);
+check_mod_attr(['export-type'|Ts], L, St) ->
     check_export_types(Ts, L, St);
-check_attr([doc|Docs], L, St0) ->
+check_mod_attr([doc|Docs], L, St0) ->
     St1 = deprecated_warning(L, <<"module documentation attribute">>, St0),
     check_doc_attr(Docs, L, St1);
-check_attr([record|_Rds], L, St) ->
-    deprecated_error(L, <<"module record definition attribute">>, St);
+check_mod_attr([record|_Rds], L, St) ->
+    deprecated_error(L, <<"module record definition">>, St);
 %% Note we don't allow type and spec as normal attributes here.
-check_attr([A|Vals], L, St) ->
+check_mod_attr([A|Vals], L, St) ->
     %% Meta tags are not allowed in attributes.
     ?IF(is_meta_tag(A), bad_attr_error(L, A, St),
         %% Other attributes, must be list and have symbol name.
         ?IF(is_atom(A) and lfe_lib:is_proper_list(Vals),
             St, bad_attr_error(L, A, St)));
-check_attr(_, L, St) -> bad_module_error(L, <<"attribute form">>, St).
+check_mod_attr(_, L, St) -> bad_module_error(L, <<"attribute form">>, St).
 
 is_meta_tag(doc) -> true;
 is_meta_tag(spec) -> true;
@@ -309,42 +323,58 @@ is_meta_tag(Tag) -> lfe_types:is_type_decl(Tag).
 check_doc_attr(Docs, L, St) ->
     ?IF(is_docs_list(Docs), St, bad_attr_error(L, doc, St)).
 
-check_exports(Es, L, St) ->
+check_export_attr(Es, L, St) ->
     case is_func_list(Es) of
         {yes,Fs} ->
-            Exps = add_exports(Fs, L, St#lfe_lint.exps),
-            St#lfe_lint{exps=Exps};
+            Exps = add_exports(Fs, L, St#lfe_lint.exports),
+            St#lfe_lint{exports=Exps};
         no -> bad_module_error(L, export, St)
     end.
 
-check_imports(Is, L, St) ->
-    check_foreach(fun (I, S) -> check_import(I, L, S) end,
-                  fun (S) -> import_error(L, S) end, St, Is).
+check_import_attr(Imports, L, St) ->
+    check_foreach(fun (Import, S) -> check_imports(Import, L, S) end,
+                  fun (S) -> import_error(L, S) end, St, Imports).
 
-check_import([from,Mod|Fs], L, St) when is_atom(Mod) ->
-    Check = fun ([F,A], Imps, S) when is_atom(F), is_integer(A) ->
-                    {orddict:store({F,A}, F, Imps),S};
-                (_, Imps, S) -> {Imps,bad_module_error(L, <<"import from">>, S)}
-            end,
-    check_import(Check, Mod, L, St, Fs);
-check_import([rename,Mod|Rs], L, St) when is_atom(Mod) ->
-    Check = fun ([[F,A],R], Imps, S) when is_atom(F),
-                                          is_integer(A),
-                                          is_atom(R) ->
-                    {orddict:store({F,A}, R, Imps),S};
-                (_, Imps, S) -> {Imps,bad_module_error(L, <<"import rename">>, S)}
-            end,
-    check_import(Check, Mod, L, St, Rs);
-check_import([prefix,Mod,Pre], L, St0) when is_atom(Mod), is_atom(Pre) ->
+check_imports([from,Mod|Fs], L, St0) when is_atom(Mod) ->
+    Add = fun ([F,Ar], Is, S) when is_atom(F),
+                                   is_integer(Ar), Ar >= 0 ->
+                  check_import(F, Ar, Mod, F, Is, L, S);
+              (_, Is, S) ->
+                  {Is,bad_module_error(L, <<"import from">>, S)}
+          end,
+    {Imps,St1} = check_foldl(Add, fun (S) -> S end,
+                             St0#lfe_lint.imports, St0, Fs),
+    St1#lfe_lint{imports=Imps};
+check_imports([rename,Mod|Fs], L, St0) when is_atom(Mod) ->
+    Add = fun ([[F,Ar],R], Is, S) when is_atom(F),
+                                       is_integer(Ar), Ar >= 0,
+                                       is_atom(R) ->
+                  check_import(R, Ar, Mod, F, Is, L, S);
+              (_, Is, S) ->
+                  {Is,bad_module_error(L, <<"import rename">>, S)}
+          end,
+    {Imps,St1} = check_foldl(Add, fun (S) -> S end,
+                             St0#lfe_lint.imports, St0, Fs),
+    St1#lfe_lint{imports=Imps};
+check_imports([prefix,Mod,Pre], L, St0) when is_atom(Mod), is_atom(Pre) ->
     deprecated_error(L, <<"import prefix">>, St0);
-check_import(_, L, St) -> import_error(L, St).
+check_imports(_, L, St) ->
+    import_error(L, St).
 
-check_import(Check, Mod, L, St0, Fs) ->
-    Imps0 = safe_fetch(Mod, St0#lfe_lint.imps, []),
-    {Imps1,St1} = foldl_form(Check, import, L, Imps0, St0, Fs),
-    St1#lfe_lint{imps=orddict:store(Mod, Imps1, St1#lfe_lint.imps)}.
+%% check_import(LocalName, Arity, Module, RemoteName, Imports, Line, State) ->
+%%     {Imports,State}.
+
+check_import(F, Ar, Mod, Rem, Imps, L, St) ->
+    case orddict:find({F,Ar}, Imps) of
+        {ok,{M,_}} when M =/= Mod ->
+            {Imps,add_error(L, {reimport_function,{F,Ar},Mod,M}, St)};
+        _Other ->
+            {orddict:store({F,Ar}, {Mod,Rem}, Imps),St}
+    end.
 
 import_error(L, St) -> bad_module_error(L, import, St).
+
+%% check_export_types(Types, Line, State) -> State.
 
 check_export_types(Ts, L, St) ->
     case is_func_list(Ts) of
@@ -358,7 +388,7 @@ check_export_types(Ts, L, St) ->
 is_func_list(Fs) -> is_func_list(Fs, []).
 
 is_func_list([[F,Ar]|Fs], Funcs) when is_atom(F), is_integer(Ar), Ar >= 0 ->
-    is_func_list(Fs, add_element({F,Ar}, Funcs));
+    is_func_list(Fs, ordsets:add_element({F,Ar}, Funcs));
 is_func_list([], Funcs) -> {yes,Funcs};
 is_func_list(_, _) -> no.
 
@@ -380,7 +410,7 @@ check_type_def(_, L, St) ->
 check_type_def(Type, Def, L, St0) ->
     {Tvs0,St1} = check_type_name(Type, L, St0),
     %% case lfe_types:check_type_def(Def, St1#lfe_lint.types, Tvs0) of
-    case lfe_types:check_type_def(Def, St1#lfe_lint.recs, Tvs0) of
+    case lfe_types:check_type_def(Def, St1#lfe_lint.records, Tvs0) of
         {ok,Tvs1} -> check_type_vars(Tvs1, L, St1);
         {error,Error,Tvs1} ->
             St2 = add_error(L, Error, St1),
@@ -436,7 +466,7 @@ check_func_spec(_, L, St) ->
 
 check_func_spec(Func, Specs, L, St0) ->
     {Ar,St1} = check_func_name(Func, L, St0),
-    case lfe_types:check_func_spec_list(Specs, Ar, St1#lfe_lint.recs) of
+    case lfe_types:check_func_spec_list(Specs, Ar, St1#lfe_lint.records) of
         {ok,Tvss} -> 
             check_type_vars_list(Tvss, L, St1);
         {error,Error,Tvss} ->
@@ -475,7 +505,7 @@ check_func_meta(N, [doc|Docs], L, St) ->
     ?IF(is_docs_list(Docs), St, bad_meta_error(L, N, St));
 %% Need to get arity in here.
 %% check_func_meta(N, [spec|Specs], L, St0) ->
-%%     case lfe_types:check_func_spec_list(Specs, Ar, St#lfe_lint.recs) of
+%%     case lfe_types:check_func_spec_list(Specs, Ar, St#lfe_lint.records) of
 %%         {ok,Tvss} ->
 %%             check_type_vars_list(Tvss, L, St0);
 %%         {error,Error,Tvss} ->
@@ -508,14 +538,14 @@ check_record_def([Name,Fields], L, St) ->
 check_record_def(_, L, St) ->
     bad_meta_error(L, record, St).
 
-check_record_def(Name, Fds, L, #lfe_lint{recs=Recs}=St0)
+check_record_def(Name, Fds, L, #lfe_lint{records=Recs}=St0)
   when is_atom(Name) ->
     case orddict:is_key(Name, Recs) of
         true ->
             add_error(L, {redefine_record,Name}, St0);
         false ->
             %% Insert the record with no fields yet.
-            St1 = St0#lfe_lint{recs=orddict:store(Name, [], Recs)},
+            St1 = St0#lfe_lint{records=orddict:store(Name, [], Recs)},
             check_foreach(fun (Fd, S) ->
                                   check_record_field_def(Name, Fd, L, S) end,
                           fun (S) -> bad_record_error(L, Name, S) end,
@@ -526,7 +556,7 @@ check_record_def(Name, _, L, St) ->
 
 check_record_field_def(Name, [Field,D,Type], L, St0) ->
     St1 = check_record_field_def(Name, [Field,D], L, St0),
-    case lfe_types:check_type_def(Type, St1#lfe_lint.recs, []) of
+    case lfe_types:check_type_def(Type, St1#lfe_lint.records, []) of
         {ok,Tvs} -> check_type_vars(Tvs, L, St1);
         {error,Error,Tvs} ->
             St2 = add_error(L, Error, St1),
@@ -540,9 +570,9 @@ check_record_field_def(Name, [Field], L, St) ->
 check_record_field_def(Name, Field, L, St) ->
     check_record_field_def_1(Name, Field, L, St).
 
-check_record_field_def_1(Name, Field, L,  #lfe_lint{recs=Rs}=St) ->
+check_record_field_def_1(Name, Field, L,  #lfe_lint{records=Recs}=St) ->
     if is_atom(Field) ->
-            St#lfe_lint{recs=orddict:append(Name, Field, Rs)};
+            St#lfe_lint{records=orddict:append(Name, Field, Recs)};
        true ->
             bad_field_error(L, Name, Field, St)
     end.
@@ -553,18 +583,17 @@ check_record_field_def_1(Name, Field, L,  #lfe_lint{recs=Rs}=St) ->
 %%  redefines.
 
 init_state(St) ->
-    %% Add the imports.
-    Env0 = foldl(fun ({M,Fs}, Env) ->
-                         foldl(fun ({{F,A},R}, E) ->
-                                       lfe_env:add_ibinding(M, F, A, R, E)
-                               end, Env, Fs)
-                 end, lfe_env:new(), St#lfe_lint.imps),
+    Env0 = le_new(),
+    %% Add both original import name to the environment.
+    Env1 = orddict:fold(fun ({F,Ar}, {_Mod,_Ren}, E) ->
+                                le_addf(F, Ar, E)
+                        end, Env0, St#lfe_lint.imports),
     %% Basic predefines
     Predefs0 = [{module_info,[lambda,[],?Q(dummy)],1},
                 {module_info,[lambda,[x],?Q(dummy)],1}],
     Exps0 = [{module_info,0},{module_info,1}],
-    {Predefs0,Env0,
-     St#lfe_lint{exps=add_exports(Exps0, St#lfe_lint.mline, St#lfe_lint.exps)}}.
+    Exps1 = add_exports(Exps0, St#lfe_lint.mline, St#lfe_lint.exports),
+    {Predefs0,Env1,St#lfe_lint{exports=Exps1}}.
 
 %% check_functions(FuncBindings, Env, State) -> {Funcs,Env,State}.
 %%  Check the top-level functions definitions. These have the format
@@ -574,31 +603,45 @@ init_state(St) ->
 check_functions(Fbs, Env0, St0) ->
     {Fs,St1} = check_fbindings(Fbs, St0),
     %% Add to the environment.
-    Env1 = foldl(fun ({F,A}, Env) -> add_fbinding(F, A, Env) end, Env0, Fs),
+    Env1 = lists:foldl(fun ({{F,A},_L}, Env) -> le_addf(F, A, Env) end,
+                       Env0, Fs),
     %% Now check function definitions.
-    St2 = foldl(fun ({_,[lambda|Lambda],L}, St) ->
-                        check_lambda(Lambda, Env1, L, St);
-                    ({_,['match-lambda'|Match],L}, St) ->
-                        check_match_lambda(Match, Env1, L, St);
-                    ({F,_,L}, St) ->            %Flag error here
-                        bad_fdef_error(L, F, St)
+    St2 = lists:foldl(fun ({_,[lambda|Lambda],L}, St) ->
+                              check_lambda(Lambda, Env1, L, St);
+                          ({_,['match-lambda'|Match],L}, St) ->
+                              check_match_lambda(Match, Env1, L, St);
+                          ({F,_,L}, St) ->      %Flag error here
+                              bad_fdef_error(L, F, St)
                 end, St1, Fbs),
     {Fs,Env1,St2}.
 
 %% check_valid_exports(State) -> State.
 
-check_valid_exports(#lfe_lint{exps=Exps,funcs=Fs}=St) ->
-    Fun = fun (E, L, S) ->
-                  ?IF(is_element(E, Fs), S, undefined_function_error(L, E, S))
+check_valid_exports(#lfe_lint{exports=Exps,funcs=Funcs}=St) ->
+    Fun = fun (FAr, L, S) ->
+                  ?IF(orddict:is_key(FAr, Funcs),
+                      S,
+                      undefined_function_error(L, FAr, S))
           end,
     orddict:fold(Fun, St, Exps).
+
+%% check_valid_imports(State) -> State.
+
+check_valid_imports(#lfe_lint{imports=Imps,funcs=Funcs}=St) ->
+    Fun = fun (FAr, {_Mod,_R}, S) ->
+                  ?IF(orddict:is_key(FAr, Funcs),
+                      add_error(orddict:fetch(FAr, Funcs),
+                                {define_imported_function,FAr}, S),
+                      S)
+          end,
+    orddict:fold(Fun, St, Imps).
 
 %% add_exports(More, Line, Exports) -> New.
 %%  Add exports preserving line number of earliest entry.
 
 add_exports(More, L, Exps) ->
-    Fun = fun (F, Es) ->
-                  orddict:update(F, fun (Old) -> Old end, L, Es)
+    Fun = fun (FAr, Es) ->
+                  orddict:update(FAr, fun (Old) -> Old end, L, Es)
           end,
     lists:foldl(Fun, Exps, More).
 
@@ -725,7 +768,8 @@ check_expr(Lit, Env, L, St) ->                  %Everything else is a literal
 %%  Check if Symbol is bound.
 
 check_symb(Symb, Env, L, St) ->
-    case lfe_env:is_vbound(Symb, Env) of
+    %% case lfe_env:is_vbound(Symb, Env) of
+    case le_hasv(Symb, Env) of
         true -> St;
         false -> add_error(L, {unbound_symb,Symb}, St)
     end.
@@ -734,7 +778,8 @@ check_symb(Symb, Env, L, St) ->
 %%  Check if Func/Arity is bound or an auto-imported BIF.
 
 check_func(F, Ar, Env, L, St) ->
-    case lfe_env:is_fbound(F, Ar, Env) orelse
+    %% case lfe_env:is_fbound(F, Ar, Env) orelse
+    case le_hasf(F, Ar, Env) orelse
         lfe_internal:is_lfe_bif(F, Ar) orelse
         lfe_internal:is_erl_bif(F, Ar) of
         true -> St;
@@ -762,7 +807,7 @@ check_args(Args, Env, L, St) ->
 %% Check a list of expressions. We know it's a proper list.
 
 check_exprs(Es, Env, L, St) ->
-    foldl(fun (E, S) -> check_expr(E, Env, L, S) end, St, Es).
+    lists:foldl(fun (E, S) -> check_expr(E, Env, L, S) end, St, Es).
 
 %% expr_bitsegs(BitSegs, Env, Line, State) -> State.
 
@@ -893,7 +938,7 @@ check_map_remove(Form, _, Ks, _, L, St) ->
 %% check_record(Record, Fields, Env, Line, State) -> State.
 %%  Check record usage against its definition.
 
-check_record(Name, Fields, Env, L, #lfe_lint{recs=Recs}=St)
+check_record(Name, Fields, Env, L, #lfe_lint{records=Recs}=St)
   when is_atom(Name) ->
     case orddict:find(Name, Recs) of
         {ok,Rfields} ->
@@ -924,7 +969,7 @@ check_record_fields(Name, Pat, _Rfs, _, L, St) ->
 %% check_record_field(Record, Field, Line, State) -> State.
 %%  Check whether record has a field.
 
-check_record_field(Name, F, L, #lfe_lint{recs=Recs}=St)
+check_record_field(Name, F, L, #lfe_lint{records=Recs}=St)
   when is_atom(Name) ->
     case orddict:find(Name, Recs) of
         {ok,Rfields} ->
@@ -944,7 +989,7 @@ check_record_field(Name, _F, L, St) ->
 
 check_lambda([Args|Body], Env, L, St0) ->
     {Vs,St1} = check_lambda_args(Args, L, St0),
-    check_body(lambda, Body, add_vbindings(Vs, Env), L, St1);
+    check_body(lambda, Body, le_addvs(Vs, Env), L, St1);
 check_lambda(_, _, L, St) -> bad_form_error(L, lambda, St).
 
 check_lambda_args(Args, L, St) ->
@@ -952,7 +997,7 @@ check_lambda_args(Args, L, St) ->
     %% same rules as for pattern symbols.
     Check = fun (A, {As,S}) -> pat_symb(A, As, L, S) end,
     case lfe_lib:is_symb_list(Args) of
-        true -> foldl(Check, {[],St}, Args);
+        true -> lists:foldl(Check, {[],St}, Args);
         false -> {[],bad_form_error(L, lambda, St)}
     end.
 
@@ -991,14 +1036,14 @@ check_ml_clauses(Cls, Ar, Env, L, St) ->
 check_let([Vbs|Body], Env, L, St0) ->
     Check = fun (Vb, Pvs, Sta) ->
                     {Pv,Stb} = check_let_vb(Vb, Env, L, Sta),
-                    Stc = case intersection(Pv, Pvs) of
+                    Stc = case ordsets:intersection(Pv, Pvs) of
                               [] -> Stb;
                               Ivs -> multi_var_error(L, Ivs, Stb)
                           end,
-                    {union(Pv, Pvs), Stc}
+                    {ordsets:union(Pv, Pvs), Stc}
             end,
     {Pvs,St1} = foldl_form(Check, 'let', L, [], St0, Vbs),
-    check_body('let', Body, add_vbindings(Pvs, Env), L, St1);
+    check_body('let', Body, le_addvs(Pvs, Env), L, St1);
 check_let(_, _, L, St) ->
     bad_form_error(L, 'let', St).
 
@@ -1052,16 +1097,17 @@ collect_let_funcs(Fbs0, Type, L, St0) ->
 %%  already be reported. Use explicit line number in element.
 
 check_let_bindings(Fbs, Env0, St0) ->
-    {Fs,St1} = check_fbindings(Fbs, St0),
+    {Funcs,St1} = check_fbindings(Fbs, St0),
     %% Now check function definitions.
-    St2 = foldl(fun ({_,[lambda|Lambda],L}, St) ->
-                        check_lambda(Lambda, Env0, L, St);
-                    ({_,['match-lambda'|Match],L}, St) ->
-                        check_match_lambda(Match, Env0, L, St)
-                end, St1, Fbs),
+    St2 = lists:foldl(fun ({_,[lambda|Lambda],L}, St) ->
+                              check_lambda(Lambda, Env0, L, St);
+                          ({_,['match-lambda'|Match],L}, St) ->
+                              check_match_lambda(Match, Env0, L, St)
+                      end, St1, Fbs),
     %% Add to environment
-    Env1 = foldl(fun ({F,A}, Env) -> add_fbinding(F, A, Env) end, Env0, Fs),
-    {Fs,Env1,St2}.
+    Env1 = lists:foldl(fun ({{F,A},_L}, Env) -> le_addf(F, A, Env) end,
+                       Env0, Funcs),
+    {Funcs,Env1,St2}.
 
 %% check_letrec_bindings(FuncBindings, Env, State) -> {Funcs,Env,State}.
 %%  Check the function bindings and return new environment. We only
@@ -1069,41 +1115,43 @@ check_let_bindings(Fbs, Env0, St0) ->
 %%  already be reported. Use explicit line number in element.
 
 check_letrec_bindings(Fbs, Env0, St0) ->
-    {Fs,St1} = check_fbindings(Fbs, St0),
+    {Funcs,St1} = check_fbindings(Fbs, St0),
     %% Add to the environment.
-    Env1 = foldl(fun ({F,A}, Env) -> add_fbinding(F, A, Env) end, Env0, Fs),
+    Env1 = lists:foldl(fun ({{F,A},_L}, Env) -> le_addf(F, A, Env) end,
+                       Env0, Funcs),
     %% Now check function definitions.
-    St2 = foldl(fun ({_,[lambda|Lambda],L}, St) ->
-                        check_lambda(Lambda, Env1, L, St);
-                    ({_,['match-lambda'|Match],L}, St) ->
-                        check_match_lambda(Match, Env1, L, St)
-                end, St1, Fbs),
-    {Fs,Env1,St2}.
+    St2 = lists:foldl(fun ({_,[lambda|Lambda],L}, St) ->
+                              check_lambda(Lambda, Env1, L, St);
+                          ({_,['match-lambda'|Match],L}, St) ->
+                              check_match_lambda(Match, Env1, L, St)
+                      end, St1, Fbs),
+    {Funcs,Env1,St2}.
 
 %% check_fbindings(FuncBindings, State) -> {Funcs,State}.
 %%  Check function bindings for format and for multiple fucntion
 %%  definitions.
 
 check_fbindings(Fbs0, St0) ->
-    AddFb = fun(F, Fs, L, St) ->
-                    case member(F, Fs) of
-                        true -> {Fs,add_error(L, {redefine_function,F}, St)};
-                        false -> {add_element(F, Fs),St}
+    AddFb = fun(FAr, Funcs, L, St) ->
+                    case orddict:is_key(FAr, Funcs) of
+                        true ->
+                            {Funcs,add_error(L, {redefine_function,FAr}, St)};
+                        false -> {orddict:store(FAr, L, Funcs),St}
                     end
             end,
-    Check = fun ({V,[lambda,Args|_],L}, {Fs,St}) ->
+    Check = fun ({V,[lambda,Args|_],L}, {Funcs,St}) ->
                     case lfe_lib:is_symb_list(Args) of
-                        true -> AddFb({V,length(Args)}, Fs, L, St);
-                        false -> {Fs,bad_form_error(L, lambda, St)}
+                        true -> AddFb({V,length(Args)}, Funcs, L, St);
+                        false -> {Funcs,bad_form_error(L, lambda, St)}
                     end;
-                ({V,['match-lambda',[Pats|_]|_],L}, {Fs,St}) ->
+                ({V,['match-lambda',[Pats|_]|_],L}, {Funcs,St}) ->
                     case lfe_lib:is_proper_list(Pats) of
-                        true -> AddFb({V,length(Pats)}, Fs, L, St);
-                        false -> {Fs,bad_form_error(L, 'match-lambda', St)}
+                        true -> AddFb({V,length(Pats)}, Funcs, L, St);
+                        false -> {Funcs,bad_form_error(L, 'match-lambda', St)}
                     end;
                 (_, Acc) -> Acc                 %Error here flagged elsewhere
             end,
-    foldl(Check, {[],St0}, Fbs0).
+    lists:foldl(Check, {orddict:new(),St0}, Fbs0).
 
 %% check_if(IfBody, Env, Line, State) -> State.
 %% Check form (if Test True [False]).
@@ -1175,7 +1223,8 @@ check_catch_clause(['_'|_]=Cl, Env, L, St) ->
     check_clause('catch', Cl, Env, L, St);
 check_catch_clause([[tuple,_,_,Stack]|_]=Cl, Env, L, St0) ->
     %% Stack must be an unbound variable.
-    St1 = case is_atom(Stack) and not lfe_env:is_vbound(Stack, Env) of
+    %% St1 = case is_atom(Stack) and not lfe_env:is_vbound(Stack, Env) of
+    St1 = case is_atom(Stack) and not le_hasv(Stack, Env) of
               true -> St0;
               false -> add_error(L, {illegal_stacktrace,Stack}, St0)
           end,
@@ -1189,12 +1238,12 @@ check_catch_clause([Other|_], _Env, L, St) ->
 
 pattern_guard([Pat,['when'|G]|Body], Env0, L, St0) ->
     {Pvs,St1} = pattern(Pat, Env0, L, St0),
-    Env1 = add_vbindings(Pvs, Env0),
+    Env1 = le_addvs(Pvs, Env0),
     St2 = check_guard(G, Env1, L, St1),
     {Body,Pvs,Env1,St2};
 pattern_guard([Pat|Body], Env0, L, St0) ->
     {Pvs,St1} = pattern(Pat, Env0, L, St0),
-    Env1 = add_vbindings(Pvs, Env0),
+    Env1 = le_addvs(Pvs, Env0),
     {Body,Pvs,Env1,St1}.
 
 %% check_guard(GuardTests, Env, Line, State) -> State.
@@ -1282,7 +1331,8 @@ check_gexpr(Lit, Env, L, St) ->                 %Everything else is a literal
 %%  Check if Func/Arity is not bound and an auto-imported guard BIF.
 
 check_gfunc(F, Ar, Env, L, St) ->
-    case (not lfe_env:is_fbound(F, Ar, Env)) andalso
+    %% case (not lfe_env:is_fbound(F, Ar, Env)) andalso
+    case (not le_hasf(F, Ar, Env)) andalso
          lfe_internal:is_guard_bif(F, Ar) of
         true -> St;
         false -> illegal_guard_error(L, St)
@@ -1386,11 +1436,11 @@ pattern(Pat, Env, L, St) ->
     %% io:fwrite("pat: ~p\n", [Pat]),
     %% pattern/5 should never fail!
     pattern(Pat, [], Env, L, St).
-%%     try
+%% try
 %%     pattern(Pat, [], Env, L, St)
-%%     catch
+%% catch
 %%     _:_ -> {[],illegal_pattern_error(L, Pat, St)}
-%%     end.
+%% end.
 
 pattern(?Q(Lit), Pvs, Env, L, St) ->
     {Pvs,literal(Lit, Env, L, St)};
@@ -1442,11 +1492,11 @@ pat_list(Pat, Pvs, _, L, St) ->
 
 pat_symb('_', Pvs, _, St) -> {Pvs,St};          %Don't care variable
 pat_symb(Symb, Pvs, _, St) ->
-    {add_element(Symb, Pvs),St}.                %Add that to pattern vars
+    {ordsets:add_element(Symb, Pvs),St}.        %Add that to pattern vars
 
 %% is_pat_alias(Pattern, Pattern) -> true | false.
-%%  Check if two aliases are compatible. Note that binaries can never
-%%  be aliased, this is from erlang.
+%%  Check if two pattern aliases are compatible. Note that binaries
+%%  can never be aliased, this is from erlang.
 
 is_pat_alias(?Q(P1), ?Q(P2)) -> P1 =:= P2;
 is_pat_alias([tuple|Ps1], [tuple|Ps2]) ->
@@ -1509,7 +1559,7 @@ pat_bitsegs(Segs, Bvs0, Pvs, Env, L, St0) ->
                     end,
                     fun (St) -> bad_pattern_error(L, binary, St) end,
                     Bvs0, St0, Segs),
-    {union(Bvs1, Pvs),St1}.                     %Add bitvars to patvars
+    {ordsets:union(Bvs1, Pvs),St1}.             %Add bitvars to patvars
 
 pat_bitseg([Pat|Specs]=Seg, Bvs, Pvs, Env, L, St0) ->
     case lfe_lib:is_posint_list(Seg) of         %Is bitseg a string?
@@ -1544,7 +1594,8 @@ pat_bit_size(undefined, {Ty,_,_,_}, _, _, _, L, St) ->
 pat_bit_size(N, _, _, _, _, _, St) when is_integer(N), N > 0 -> St;
 pat_bit_size(S, _, Bvs, _, Env, L, St) when is_atom(S) ->
     %% Size must be bound here or occur earlier in binary pattern.
-    case is_element(S, Bvs) or lfe_env:is_vbound(S, Env) of
+    %% case is_element(S, Bvs) or lfe_env:is_vbound(S, Env) of
+    case ordsets:is_element(S, Bvs) or le_hasv(S, Env) of
         true -> St;
         false -> add_error(L, {unbound_symb,S}, St)
     end;
@@ -1553,7 +1604,7 @@ pat_bit_size(_, _, _, _, _, L, St) -> illegal_bitsize_error(L, St).
 pat_bit_expr(N, Bvs, _, _, _, St) when is_number(N) -> {Bvs,St};
 pat_bit_expr('_', Bvs, _, _, _, St) -> {Bvs,St};
 pat_bit_expr(S, Bvs, _, _, _, St) when is_atom(S) ->
-    {add_element(S, Bvs),St};
+    {ordsets:add_element(S, Bvs),St};
 pat_bit_expr(_, Bvs, _, _, L, St) ->
     {Bvs,add_error(L, illegal_bitseg, St)}.
 
@@ -1592,7 +1643,7 @@ pat_map(Ps, Pvs, _, L, St) ->
 
 %% check_record_pat(Name, Fields, PatVars, Env, Line State) -> {PatVars,State}.
 
-check_record_pat(Name, Fields, Pvs, Env, L, #lfe_lint{recs=Recs}=St)
+check_record_pat(Name, Fields, Pvs, Env, L, #lfe_lint{records=Recs}=St)
   when is_atom(Name) ->
     case orddict:find(Name, Recs) of
         {ok,Rfields} ->
@@ -1757,6 +1808,15 @@ safe_length(L) -> safe_length(L, 0).
 safe_length([_|L], Acc) -> safe_length(L, Acc+1);
 safe_length(_, Acc) -> Acc.
 
+%% safe_fetch(Key, Dict, Default) -> Value.
+%%  Fetch a value with a default if it doesn't exist.
+
+%% safe_fetch(Key, D, Def) ->
+%%     case orddict:find(Key, D) of
+%%         {ok,Val} -> Val;
+%%         error -> Def
+%%     end.
+
 %% add_error(Line, Error, State) -> State.
 %% add_warning(Line, Warning, State) -> State.
 %% add_errors(Line, Errors, State) -> State.
@@ -1835,19 +1895,22 @@ deprecated_error(L, D, St) ->
 deprecated_warning(L, D, St) ->
     add_warning(L, {deprecated,D}, St).
 
-%% Interface to the binding functions in lfe_lib.
-%% These just add arity as a dummy values as we are not interested in
-%% value but it might be useful.
+%% Accessing our local environment of functions and variables. We just
+%% need to know their existence here so we use ordsets.
 
-add_fbinding(N, A, Env) -> lfe_env:add_fbinding(N, A, A, Env).
+le_new() -> #{funs => ordsets:new(), vars => ordsets:new()}.
 
-add_vbindings(Vs, Env) ->
-    foldl(fun (V, E) -> lfe_env:add_vbinding(V, dummy, E) end, Env, Vs).
+le_addv(V, #{vars := Vars} = LE) ->
+    LE#{vars := ordsets:add_element(V, Vars)}.
 
-%% safe_fetch(Key, Dict, Default) -> Value.
+le_addvs(Vs, Env) ->
+    lists:foldl(fun (V, E) -> le_addv(V, E) end, Env, Vs).
 
-safe_fetch(Key, D, Def) ->
-    case orddict:find(Key, D) of
-        {ok,Val} -> Val;
-        error -> Def
-    end.
+le_hasv(V, #{vars := Vars}) ->
+    ordsets:is_element(V, Vars).
+
+le_addf(F, Ar, #{funs := Funs} = LE) ->
+    LE#{funs := ordsets:add_element({F,Ar}, Funs)}.
+
+le_hasf(F, Ar, #{funs := Funs}) ->
+    ordsets:is_element({F,Ar}, Funs).

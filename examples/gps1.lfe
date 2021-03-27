@@ -49,6 +49,8 @@
 ;; solved
 ;;
 
+(include-lib "lfe/include/scm.lfe")
+
 ;; Define macros for global variable access. This is a hack and very naughty!
 (defsyntax defvar
   ([name val] (let ((v val)) (put 'name v) v)))

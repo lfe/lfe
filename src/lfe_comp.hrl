@@ -34,9 +34,9 @@
 %% ?UNLESS_OPT(Option, Options, Fun) -> ok.
 %%  Call Fun when Option is/is not a member of Options.
 
--define(WHEN_OPT(Opt,Opts,Fun), ?IF(member(Opt, Opts), Fun(), ok)).
+-define(WHEN_OPT(Opt,Opts,Fun), ?IF(lists:member(Opt, Opts), Fun(), ok)).
 
-%% -define(UNLESS_OPT(Opt,Opts,Fun), ?IF(member(Opt, Opts), ok, Fun())).
+%% -define(UNLESS_OPT(Opt,Opts,Fun), ?IF(lists:member(Opt, Opts), ok, Fun())).
 
 -define(DEBUG(Format,Args,Opts),
         ?WHEN_OPT(debug_print, Opts,

@@ -16,7 +16,7 @@
 %%% Author  : Robert Virding
 %%% Purpose : Lisp Flavoured Erlang code generator (to Erlang AST).
 
-%%% We must be careful to generate codee in the right order so as not
+%%% We must be careful to generate code in the right order so as not
 %%% to generate something the Erlang AST compiler won't find errors
 %%% that are due to ordering but don't really exist. We first collect
 %%% and generate all the "real" attributes from the module forms which
@@ -27,6 +27,11 @@
 %%% defined in the module, not any of the lambda lifted
 %%% functions. This means that we cannot generate
 %%% "-compile(export_all)." but must explicitly export the functions.
+%%%
+%%% Having import from and rename forces us to explicitly convert the
+%%% call as we can't use an import attribute to do this properly for
+%%% us. Hence we collect the imports here and pass them into
+%%% lfe_translate.
 
 -module(lfe_codegen).
 
@@ -39,10 +44,10 @@
 
 -record(lfe_cg, {module=[],                     %Module name
                  mline=0,                       %Module definition line
-                 exps=ordsets:new(),            %Exports
-                 imps=orddict:new(),            %Imports
+                 exports=ordsets:new(),         %Exports
+                 imports=orddict:new(),         %Imports
+                 aliases=orddict:new(),         %Aliases
                  atts=[],                       %Attrubutes
-                 mets=[],                       %Metadata
                  defs=[],                       %Defined top-level functions
                  opts=[],                       %Options
                  file=[],                       %File name
@@ -61,6 +66,7 @@ format_error({illegal_code,Code}) ->
 module(Mfs, #cinfo{opts=Opts,file=File}) ->
     St0 = #lfe_cg{opts=Opts,file=File},
     {AST,St1} = compile_module(Mfs, St0),
+    %% io:format("imps ~p\nr", [St1#lfe_cg.imports]),
     return_status(AST, St1).
 
 return_status(AST, #lfe_cg{module=M,errors=[]}=St) ->
@@ -124,30 +130,31 @@ coll_mdef_attr([Name|Vals], Line, #lfe_cg{atts=As}=St) ->
 %% coll_mdef_exps(Export, State) -> State.
 %%  Collect exports special casing 'all'.
 
-coll_mdef_exps([all], St) -> St#lfe_cg{exps=all};
-coll_mdef_exps(_Exps, #lfe_cg{exps=all}=St) -> St;
-coll_mdef_exps(Exps, #lfe_cg{exps=Exps0}=St) ->
+coll_mdef_exps([all], St) -> St#lfe_cg{exports=all};
+coll_mdef_exps(_Exps, #lfe_cg{exports=all}=St) -> St;
+coll_mdef_exps(Exps, #lfe_cg{exports=Exps0}=St) ->
     Exps1 = lists:foldl(fun ([F,A], E) -> ordsets:add_element({F,A}, E) end,
                         Exps0, Exps),
-    St#lfe_cg{exps=Exps1}.
+    St#lfe_cg{exports=Exps1}.
 
 %% coll_mdef_imps(Imports, State) -> State.
-%%  Collect imports.
+%%  Collect imports keeping track of local and imported names.
 
 coll_mdef_imps(Imps, St) ->
     lists:foldl(fun (I, S) -> coll_mdef_imp(I, S) end, St, Imps).
 
 coll_mdef_imp(['from',Mod|Fs], St) ->
-    coll_mdef_imp(fun ([F,A], Imps) -> orddict:store({F,A}, F, Imps) end,
-                  Mod, St, Fs);
-coll_mdef_imp(['rename',Mod|Rs], St) ->
-    coll_mdef_imp(fun ([[F,A],R], Imps) -> orddict:store({F,A}, R, Imps) end,
-                  Mod, St, Rs).
+    Ifun = fun ([F,A], Ifs) -> orddict:store({F,A}, {Mod,F}, Ifs) end,
+    coll_mdef_imp(Ifun, St, Fs);
+coll_mdef_imp(['rename',Mod|Fs], St) ->
+    %% Get it right here, R is the renamed local called function, F is
+    %% the name in the other module.
+    Ifun = fun ([[F,A],R], Ifs) -> orddict:store({R,A}, {Mod,F}, Ifs) end,
+    coll_mdef_imp(Ifun, St, Fs).
 
-coll_mdef_imp(Fun, Mod, St, Fs) ->
-    Imps0 = safe_fetch(Mod, St#lfe_cg.imps, []),
+coll_mdef_imp(Fun, #lfe_cg{imports=Imps0}=St, Fs) ->
     Imps1 = lists:foldl(Fun, Imps0, Fs),
-    St#lfe_cg{imps=orddict:store(Mod, Imps1, St#lfe_cg.imps)}.
+    St#lfe_cg{imports=Imps1}.
 
 %% compile_attributes(State) -> MdefAST.
 %%  Compile the module attributes.
@@ -182,8 +189,8 @@ compile_form({['define-function-spec',Func,Spec],Line}, _St) ->
     comp_function_spec(Func, Spec, Line);
 compile_form({['define-record',Name,Fields],Line}, _St) ->
     comp_record_def(Name, Fields, Line);
-compile_form({['define-function',Name,_Meta,Def],Line}, _St) ->
-    comp_function_def(Name, Def, Line);
+compile_form({['define-function',Name,_Meta,Def],Line}, St) ->
+    comp_function_def(Name, Def, Line, St);
 %% Ignore anything else for now. Hopefully there shouldn't be anything
 %% else.
 compile_form(_Other, _St) -> [].
@@ -227,14 +234,15 @@ comp_function_spec([Name,Ar], Spec, Line) ->
     Sdef = {{Name,Ar},lfe_types:to_func_spec_list(Spec, Line)},
     [make_attribute(spec, Sdef, Line)].
 
-%% comp_function_def(Func, Def, Line) -> [AST].
+%% comp_function_def(Func, Def, Line, State) -> [AST].
 %%  Lambda lift the function returning all the functions.
 
-comp_function_def(Name, Def, Line) ->
+comp_function_def(Name, Def, Line, #lfe_cg{imports=Imps,aliases=Aliases}) ->
     %% This also returns the defined top function.
     Lfs = lfe_codelift:function(Name, Def, Line),
     lists:map(fun ({N,D,L}) ->
-                      {'fun',_,{clauses,Clauses}} = lfe_translate:to_expr(D, L),
+                      {'fun',_,{clauses,Clauses}} =
+                          lfe_translate:to_expr(D, L, {Imps,Aliases}),
                       {function,L,N,func_arity(D),Clauses}
               end, Lfs).
 
@@ -278,21 +286,20 @@ make_record_attribute(Name, Fdefs, Line) ->
 %% comp_export(State) -> Attribute.
 %% comp_imports(State) -> [Attribute].
 %% comp_attributes(State) -> [Attribute].
+%%  Currently we don't add the import attributes.
 
-comp_export(#lfe_cg{exps=Exps,defs=Defs,mline=Line}) ->
+comp_export(#lfe_cg{exports=Exps,defs=Defs,mline=Line}) ->
     Es = if Exps =:= all ->
                  [ {F,func_arity(Def)} || {F,Def,_} <- Defs ];
             true -> Exps                        %Already in right format
          end,
     make_attribute(export, Es, Line).
 
-comp_imports(#lfe_cg{mline=L,imps=Imps}) ->
-    Mfun = fun ({Mod,Imps0}) ->
-                   Ifun = fun ({{N,Ar},N}) -> {N,Ar} end,
-                   Imps1 = lists:map(Ifun, Imps0),
-                   make_attribute(import, {Mod,Imps1}, L)
-           end,
-    lists:map(Mfun, Imps).
+comp_imports(_St) -> [].
+
+%% comp_imports(#lfe_cg{mline=L,imports=Imps}) ->
+%%     Mfun = fun ({Mod,Ifs}) -> make_attribute(import, {Mod,Ifs}, L) end,
+%%     lists:map(Mfun, Imps).
 
 comp_attributes(#lfe_cg{atts=Atts}) ->
     lists:map(fun comp_attribute/1, Atts).
@@ -322,12 +329,13 @@ func_arity(['match-lambda'|Cls]) ->
 match_lambda_arity([[Pats|_]|_]) -> length(Pats).
 
 %% safe_fetch(Key, Dict, Default) -> Value.
+%%  Fetch a value with a default if it doesn't exist.
 
-safe_fetch(Key, D, Def) ->
-    case orddict:find(Key, D) of
-        {ok,Val} -> Val;
-        error -> Def
-    end.
+%% safe_fetch(Key, D, Def) ->
+%%     case orddict:find(Key, D) of
+%%         {ok,Val} -> Val;
+%%         error -> Def
+%%     end.
 
 %% add_error(Line, Error, State) -> State.
 

@@ -602,7 +602,7 @@ To simplify defining modules there is a predefined macro:
   (export (f 2) (g 1) ... )
   (export all)                          ;Export all functions
   (import (from mod (f1 2) (f2 1) ... )
-          (rename mod ((f1 2) sune) ((f2 1) kurt) ... ))
+          (rename mod ((g1 2) m-g1) ((g2 1) m-g2) ... ))
   (attr-1 value-1 value-2)
   {meta meta-data ...)
   ... )
@@ -613,6 +613,13 @@ declaration. The ``(export all)`` declaration is allowed together with
 other export declarations and overrides them. Other attributes which
 are not recognised by the compiler are allowed and are simply passed
 on to the module and can be accessed through ``module_info/0-1``.
+
+In the ``import`` declaration the ``(from mod (f1 2) ...)`` means that
+the call ``(f1 'everything 42)`` will be converted by the compiler to
+``(mod:f1 'everything 42))`` while the ``(rename mod ((g2 2) m-g1) ...)``
+means that the call ``(m-g1 'everything 42)`` will be converted to
+``(mod:g1 'everything 42)``. The ``rename`` form can be used as
+compact way of indicating the imported function's module.
 
 # Macros
 

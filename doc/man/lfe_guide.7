@@ -628,7 +628,7 @@ To simplify defining modules there is a predefined macro:
   (export (f 2) (g 1) ... )
   (export all)                          ;Export all functions
   (import (from mod (f1 2) (f2 1) ... )
-          (rename mod ((f1 2) sune) ((f2 1) kurt) ... ))
+          (rename mod ((g1 2) m-g1) ((g2 1) m-g2) ... ))
   (attr-1 value-1 value-2)
   {meta meta-data ...)
   ... )
@@ -642,6 +642,15 @@ export declarations and overrides them.
 Other attributes which are not recognised by the compiler are allowed
 and are simply passed on to the module and can be accessed through
 \f[C]module_info/0-1\f[R].
+.PP
+In the \f[C]import\f[R] declaration the \f[C](from mod (f1 2) ...)\f[R]
+means that the call \f[C](f1 \[aq]everything 42)\f[R] will be converted
+by the compiler to \f[C](mod:f1 \[aq]everything 42))\f[R] while the
+\f[C](rename mod ((g2 2) m-g1) ...)\f[R] means that the call
+\f[C](m-g1 \[aq]everything 42)\f[R] will be converted to
+\f[C](mod:g1 \[aq]everything 42)\f[R].
+The \f[C]rename\f[R] form can be used as compact way of indicating the
+imported function\[cq]s module.
 .SH Macros
 .PP
 Macro calls are expanded in both body and patterns.

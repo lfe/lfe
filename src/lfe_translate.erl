@@ -23,11 +23,16 @@
 %%% This allows us to accept forms which are actually illegal but we
 %%% may special case, for example functions call in patterns which
 %%% will become macro expansions.
+%%%
+%%% Having import from and rename forces us to explicitly convert the
+%%% call as we can't use an import attribute to do this properly for
+%%% us. Hence we collect the imports in lfe_codegen and pass them onto
+%%% us.
 
 -module(lfe_translate).
 
 -export([from_expr/1,from_expr/2,from_body/1,from_body/2,from_lit/1]).
--export([to_expr/2,to_exprs/2,to_lit/2]).
+-export([to_expr/2,to_expr/3,to_exprs/2,to_exprs/3,to_lit/2]).
 
 -import(lists, [map/2,foldl/3,mapfoldl/3,foldr/3,splitwith/2]).
 
@@ -456,7 +461,7 @@ from_pat({record,_,Name,Fs}, Vt0, St0) ->          %Match a record
     {['make-record',Name|Sfs],Eqt,Vt1,St1};
 from_pat({record_index,_,Name,{atom,_,F}}, Vt, St) -> %We KNOW!
     {['record-index',Name,F],Vt,St};
-from_pat({match,_,P1,P2}, Vt0, St0) ->          %Aliases
+from_pat({match,_,P1,P2}, Vt0, St0) ->          %Pattern aliases
     {Lp1,Eqt1,Vt1,St1} = from_pat(P1, Vt0, St0),
     {Lp2,Eqt2,Vt2,St2} = from_pat(P2, Vt1, St1),
     {['=',Lp1,Lp2],Eqt1++Eqt2,Vt2,St2};
@@ -539,7 +544,7 @@ from_lit(Lit) ->
 %% occurences of variables in an LFE pattern map directly to multiple
 %% occurrences in the Erlang AST.
 
-%% Use macros for variable table if they exist.
+%% Use macros for key-value tables if they exist.
  -ifdef(HAS_FULL_KEYS).
 -define(NEW_VT, #{}).
 -define(VT_GET(K, Vt), maps:get(K, Vt)).
@@ -559,19 +564,38 @@ from_lit(Lit) ->
 -define(VT_PUT(K, V, Vt), orddict:store(K, V, Vt)).
 -endif.
 
+%% safe_fetch(Key, Dict, Default) -> Value.
+%%  Fetch a value with a default if it doesn't exist.
+
+%% safe_fetch(Key, Dict, Def) ->
+%%     case orddict:find(Key, Dict) of
+%%         {ok,Val} -> Val;
+%%         error -> Def
+%%     end.
+
 -record(to, {vs=[],                             %Existing variables
-             vc=?NEW_VT                         %Variable counter
+             vc=?NEW_VT,                        %Variable counter
+             imports=[],                        %Function renames
+             aliases=[]                         %Module aliases
             }).
 
 %% to_expr(Expr, LineNumber) -> ErlExpr.
+%% to_expr(Expr, LineNumber, {Imports, Aliases}) -> ErlExpr.
 %% to_exprs(Expr, LineNumber) -> ErlExprs.
+%% to_exprs(Expr, LineNumber, {Imports, Aliases}) -> ErlExprs.
 
 to_expr(E, L) ->
-    {Ee,_} = to_expr(E, L, ?NEW_VT, #to{}),
+    to_expr(E, L, {[],[]}).
+
+to_expr(E, L, {Imports,Aliases}) ->
+    {Ee,_} = to_expr(E, L, ?NEW_VT, #to{imports=Imports,aliases=Aliases}),
     Ee.
 
 to_exprs(Es, L) ->
-    {Ees,_} = to_exprs(Es, L, ?NEW_VT, #to{}),
+    to_exprs(Es, L, {[],[]}).
+
+to_exprs(Es, L, {Imports,Aliases}) ->
+    {Ees,_} = to_exprs(Es, L, ?NEW_VT, #to{imports=Imports,aliases=Aliases}),
     Ees.
 
 %% to_expr(Expr, LineNumber, VarTable, State) -> {ErlExpr,State}.
@@ -719,18 +743,25 @@ to_expr([call,M,F|As], L, Vt, St0) ->
     {Ef,St2} = to_expr(F, L, Vt, St1),
     {Eas,St3} = to_exprs(As, L, Vt, St2),
     to_remote_call(Em, Ef, Eas, L, St3);
-to_expr([F|As], L, Vt, St0) when is_atom(F) ->  %General function call
+%% General function call.
+to_expr([F|As], L, Vt, St0) when is_atom(F) ->
     {Eas,St1} = to_exprs(As, L, Vt, St0),
     Ar = length(As),                            %Arity
-    case is_erl_op(F, Ar) of
-        true -> {list_to_tuple([op,L,F|Eas]),St1};
-        false ->
-            case lfe_internal:is_lfe_bif(F, Ar) of
-                true ->
-                    to_remote_call({atom,L,lfe}, {atom,L,F}, Eas, L, St1);
-                false ->
-                    {{call,L,{atom,L,F},Eas},St1}
-            end
+    %% Check for import.
+    case orddict:find({F,Ar}, St1#to.imports) of
+	{ok,{Mod,R}} ->				%Imported
+	    to_remote_call({atom,L,Mod}, {atom,L,R}, Eas, L, St1);
+	error ->				%Not imported
+	    case is_erl_op(F, Ar) of
+		true -> {list_to_tuple([op,L,F|Eas]),St1};
+		false ->
+		    case lfe_internal:is_lfe_bif(F, Ar) of
+			true ->
+			    to_remote_call({atom,L,lfe}, {atom,L,F}, Eas, L, St1);
+			false ->
+			    {{call,L,{atom,L,F},Eas},St1}
+		    end
+	    end
     end;
 to_expr([_|_]=List, L, _, St) ->
     case lfe_lib:is_posint_list(List) of
@@ -1174,7 +1205,7 @@ to_pat_bitsegs(Ss, L, Pvs, Vt, St) ->
 to_pat_bitseg([Val|Specs]=Seg, L, Pvs, Vt, St) ->
     case lfe_lib:is_posint_list(Seg) of
         true ->
-	    {{bin_element,L,{string,L,Seg},default,default},St};
+            {{bin_element,L,{string,L,Seg},default,default},St};
         false ->
             to_pat_bin_element(Val, Specs, L, Pvs, Vt, St)
     end;
@@ -1230,4 +1261,3 @@ mapfoldl3(_, A, B, C, []) -> {[],A,B,C}.
 
 illegal_code_error(Line, Error) ->
     error({illegal_code,Line,Error}).
-
