@@ -603,23 +603,34 @@ To simplify defining modules there is a predefined macro:
   (export all)                          ;Export all functions
   (import (from mod (f1 2) (f2 1) ... )
           (rename mod ((g1 2) m-g1) ((g2 1) m-g2) ... ))
+  (module-alias (really-long-module-name rlmn) ...)
   (attr-1 value-1 value-2)
   {meta meta-data ...)
   ... )
 ```
 
-We can have multiple export and import declarations within module
-declaration. The ``(export all)`` declaration is allowed together with
-other export declarations and overrides them. Other attributes which
+We can have multiple export and import attributes within module
+declaration. The ``(export all)`` attribute is allowed together with
+other export attributes and overrides them. Other attributes which
 are not recognised by the compiler are allowed and are simply passed
 on to the module and can be accessed through ``module_info/0-1``.
 
-In the ``import`` declaration the ``(from mod (f1 2) ...)`` means that
+In the ``import`` attribute the ``(from mod (f1 2) ...)`` means that
 the call ``(f1 'everything 42)`` will be converted by the compiler to
-``(mod:f1 'everything 42))`` while the ``(rename mod ((g2 2) m-g1) ...)``
-means that the call ``(m-g1 'everything 42)`` will be converted to
-``(mod:g1 'everything 42)``. The ``rename`` form can be used as
-compact way of indicating the imported function's module.
+``(mod:f1 'everything 42))`` while the ``(rename mod ((g2 2) m-g1)
+...)`` means that the call ``(m-g1 'everything 42)`` will be converted
+to ``(mod:g1 'everything 42)``. The ``rename`` form can be used as
+compact way of indicating the imported function's module. Note that we
+do not really see in the code that we are calling a function in
+another module.
+
+In the ``module-alias`` attribute the ``(really-long-module-name
+rlmn)`` declaration means that the call ``(lrmn:foo 'everything 42)``
+will be converted by the compiler to ``(really-long-module-name:foo
+'everything 42)``. This is often used to write short module names in
+the code when calling functions in modules with long names. It is in
+many ways better than using ``import`` as it does not hide that we are
+calling a function in another module.
 
 # Macros
 

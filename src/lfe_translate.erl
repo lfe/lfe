@@ -28,6 +28,8 @@
 %%% call as we can't use an import attribute to do this properly for
 %%% us. Hence we collect the imports in lfe_codegen and pass them onto
 %%% us.
+%%%
+%%% Module aliases are collected in lfe_codegen and passed on to us.
 
 -module(lfe_translate).
 
@@ -738,6 +740,15 @@ to_expr([call,?Q(erlang),?Q(F)|As], L, Vt, St0) ->
         false ->
             to_remote_call({atom,L,erlang}, {atom,L,F}, Eas, L, St1)
     end;
+to_expr([call,?Q(M0),F|As], L, Vt, St0) ->
+    %% Alias modules are literals.
+    Mod = case orddict:find(M0, St0#to.aliases) of
+              {ok,M1} -> M1;
+              error -> M0
+          end,
+    {Ef,St1} = to_expr(F, L, Vt, St0),
+    {Eas,St2} = to_exprs(As, L, Vt, St1),
+    to_remote_call({atom,L,Mod}, Ef, Eas, L, St2);
 to_expr([call,M,F|As], L, Vt, St0) ->
     {Em,St1} = to_expr(M, L, Vt, St0),
     {Ef,St2} = to_expr(F, L, Vt, St1),
@@ -749,19 +760,19 @@ to_expr([F|As], L, Vt, St0) when is_atom(F) ->
     Ar = length(As),                            %Arity
     %% Check for import.
     case orddict:find({F,Ar}, St1#to.imports) of
-	{ok,{Mod,R}} ->				%Imported
-	    to_remote_call({atom,L,Mod}, {atom,L,R}, Eas, L, St1);
-	error ->				%Not imported
-	    case is_erl_op(F, Ar) of
-		true -> {list_to_tuple([op,L,F|Eas]),St1};
-		false ->
-		    case lfe_internal:is_lfe_bif(F, Ar) of
-			true ->
-			    to_remote_call({atom,L,lfe}, {atom,L,F}, Eas, L, St1);
-			false ->
-			    {{call,L,{atom,L,F},Eas},St1}
-		    end
-	    end
+        {ok,{Mod,R}} ->                         %Imported
+            to_remote_call({atom,L,Mod}, {atom,L,R}, Eas, L, St1);
+        error ->                                %Not imported
+            case is_erl_op(F, Ar) of
+                true -> {list_to_tuple([op,L,F|Eas]),St1};
+                false ->
+                    case lfe_internal:is_lfe_bif(F, Ar) of
+                        true ->
+                            to_remote_call({atom,L,lfe}, {atom,L,F}, Eas, L, St1);
+                        false ->
+                            {{call,L,{atom,L,F},Eas},St1}
+                    end
+            end
     end;
 to_expr([_|_]=List, L, _, St) ->
     case lfe_lib:is_posint_list(List) of

@@ -32,6 +32,9 @@
 %%% call as we can't use an import attribute to do this properly for
 %%% us. Hence we collect the imports here and pass them into
 %%% lfe_translate.
+%%%
+%%% Module aliases are also collected here and passed on to
+%%% lfe_translate.
 
 -module(lfe_codegen).
 
@@ -66,7 +69,7 @@ format_error({illegal_code,Code}) ->
 module(Mfs, #cinfo{opts=Opts,file=File}) ->
     St0 = #lfe_cg{opts=Opts,file=File},
     {AST,St1} = compile_module(Mfs, St0),
-    %% io:format("imps ~p\nr", [St1#lfe_cg.imports]),
+    %% io:format("imps ~p\n", [St1#lfe_cg.imports]),
     return_status(AST, St1).
 
 return_status(AST, #lfe_cg{module=M,errors=[]}=St) ->
@@ -118,6 +121,8 @@ coll_mdef_attr([export|Es], _Line, St) ->
     coll_mdef_exps(Es, St);
 coll_mdef_attr([import|Is], _Line, St) ->
     coll_mdef_imps(Is, St);
+coll_mdef_attr(['module-alias'|As], _Line, St) ->
+    coll_mdef_aliases(As, St);
 %% Explicitly ignore any doc or record information here.
 coll_mdef_attr([doc|_], _Line, St) -> St;
 coll_mdef_attr([record|_], _Line, St) -> St;
@@ -155,6 +160,14 @@ coll_mdef_imp(['rename',Mod|Fs], St) ->
 coll_mdef_imp(Fun, #lfe_cg{imports=Imps0}=St, Fs) ->
     Imps1 = lists:foldl(Fun, Imps0, Fs),
     St#lfe_cg{imports=Imps1}.
+
+%% coll_mdef_aliases(Aliases, State) -> State.
+%%  Collect the module aliases.
+
+coll_mdef_aliases(As, #lfe_cg{aliases=Als0}=St) ->
+    Als1 = lists:foldl(fun ([M,A], Mas) -> orddict:store(A, M, Mas) end,
+                       Als0, As),
+    St#lfe_cg{aliases=Als1}.
 
 %% compile_attributes(State) -> MdefAST.
 %%  Compile the module attributes.
@@ -296,10 +309,6 @@ comp_export(#lfe_cg{exports=Exps,defs=Defs,mline=Line}) ->
     make_attribute(export, Es, Line).
 
 comp_imports(_St) -> [].
-
-%% comp_imports(#lfe_cg{mline=L,imports=Imps}) ->
-%%     Mfun = fun ({Mod,Ifs}) -> make_attribute(import, {Mod,Ifs}, L) end,
-%%     lists:map(Mfun, Imps).
 
 comp_attributes(#lfe_cg{atts=Atts}) ->
     lists:map(fun comp_attribute/1, Atts).

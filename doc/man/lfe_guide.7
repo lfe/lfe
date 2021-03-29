@@ -629,21 +629,22 @@ To simplify defining modules there is a predefined macro:
   (export all)                          ;Export all functions
   (import (from mod (f1 2) (f2 1) ... )
           (rename mod ((g1 2) m-g1) ((g2 1) m-g2) ... ))
+  (module-alias (really-long-module-name rlmn) ...)
   (attr-1 value-1 value-2)
   {meta meta-data ...)
   ... )
 \f[R]
 .fi
 .PP
-We can have multiple export and import declarations within module
+We can have multiple export and import attributes within module
 declaration.
-The \f[C](export all)\f[R] declaration is allowed together with other
-export declarations and overrides them.
+The \f[C](export all)\f[R] attribute is allowed together with other
+export attributes and overrides them.
 Other attributes which are not recognised by the compiler are allowed
 and are simply passed on to the module and can be accessed through
 \f[C]module_info/0-1\f[R].
 .PP
-In the \f[C]import\f[R] declaration the \f[C](from mod (f1 2) ...)\f[R]
+In the \f[C]import\f[R] attribute the \f[C](from mod (f1 2) ...)\f[R]
 means that the call \f[C](f1 \[aq]everything 42)\f[R] will be converted
 by the compiler to \f[C](mod:f1 \[aq]everything 42))\f[R] while the
 \f[C](rename mod ((g2 2) m-g1) ...)\f[R] means that the call
@@ -651,6 +652,17 @@ by the compiler to \f[C](mod:f1 \[aq]everything 42))\f[R] while the
 \f[C](mod:g1 \[aq]everything 42)\f[R].
 The \f[C]rename\f[R] form can be used as compact way of indicating the
 imported function\[cq]s module.
+Note that we do not really see in the code that we are calling a
+function in another module.
+.PP
+In the \f[C]module-alias\f[R] attribute the
+\f[C](really-long-module-name rlmn)\f[R] declaration means that the call
+\f[C](lrmn:foo \[aq]everything 42)\f[R] will be converted by the
+compiler to \f[C](really-long-module-name:foo \[aq]everything 42)\f[R].
+This is often used to write short module names in the code when calling
+functions in modules with long names.
+It is in many ways better than using \f[C]import\f[R] as it does not
+hide that we are calling a function in another module.
 .SH Macros
 .PP
 Macro calls are expanded in both body and patterns.

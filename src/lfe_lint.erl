@@ -78,18 +78,18 @@ format_error({bad_pattern,Pat}) ->
     lfe_io:format1(<<"bad ~w pattern">>, [Pat]);
 format_error({unbound_symb,S}) ->
     lfe_io:format1(<<"symbol ~w is unbound">>, [S]);
+format_error({undefined_function,{F,Ar}}) ->
+    lfe_io:format1("function ~w/~w undefined", [F,Ar]);
 format_error({multi_var,S}) ->
     lfe_io:format1("variable ~w multiply defined", [S]);
 %% Functions, imports and exports
-format_error({undefined_function,{F,Ar}}) ->
-    lfe_io:format1("function ~w/~w undefined", [F,Ar]);
 format_error({redefine_function,{F,Ar}}) ->
     lfe_io:format1("function ~w/~w already defined", [F,Ar]);
 format_error({bad_fdef,F}) ->
     lfe_io:format1("bad definition of function ~w", [F]);
 format_error({reimport_function,{F,Ar},M1,M2}) ->
     lfe_io:format1(<<"importing ~w/~w from ~w, already imported from ~w">>,
-                   [F,Ar,M1,M2]);
+                  [F,Ar,M1,M2]);
 format_error({define_imported_function,{F,Ar}}) ->
     lfe_io:format1(<<"defining imported function ~w/~w">>, [F,Ar]);
 %% Others
@@ -300,6 +300,8 @@ check_mod_attr([export|Es], L, St) ->
     check_export_attr(Es, L, St);
 check_mod_attr([import|Is], L, St) ->
     check_import_attr(Is, L, St);
+check_mod_attr(['module-alias'|As], L, St) ->
+    check_alias_attr(As, L, St);
 check_mod_attr(['export-type'|Ts], L, St) ->
     check_export_types(Ts, L, St);
 check_mod_attr([doc|Docs], L, St0) ->
@@ -323,6 +325,8 @@ is_meta_tag(Tag) -> lfe_types:is_type_decl(Tag).
 check_doc_attr(Docs, L, St) ->
     ?IF(is_docs_list(Docs), St, bad_attr_error(L, doc, St)).
 
+%% check_export_attr(Exports, Line, State) -> State.
+
 check_export_attr(Es, L, St) ->
     case is_func_list(Es) of
         {yes,Fs} ->
@@ -330,6 +334,8 @@ check_export_attr(Es, L, St) ->
             St#lfe_lint{exports=Exps};
         no -> bad_module_error(L, export, St)
     end.
+
+%% check_import_attr(Imports, Line, State) -> State.
 
 check_import_attr(Imports, L, St) ->
     check_foreach(fun (Import, S) -> check_imports(Import, L, S) end,
@@ -373,6 +379,18 @@ check_import(F, Ar, Mod, Rem, Imps, L, St) ->
     end.
 
 import_error(L, St) -> bad_module_error(L, import, St).
+
+%% check_alias_attr(ModAliases, Line, State) -> State.
+
+check_alias_attr(Aliases, L, St) ->
+    check_foreach(fun (Alias, S) -> check_alias(Alias, L, S) end,
+                  fun (S) -> bad_module_error(L, 'module-alias', S) end,
+                  St, Aliases).
+
+check_alias([Mod,Alias], L, St) when is_atom(Mod),
+                                     is_atom(Alias) ->
+    As = orddict:store(Alias, Mod, St#lfe_lint.aliases),
+    St#lfe_lint{aliases=As}.
 
 %% check_export_types(Types, Line, State) -> State.
 
@@ -584,7 +602,7 @@ check_record_field_def_1(Name, Field, L,  #lfe_lint{records=Recs}=St) ->
 
 init_state(St) ->
     Env0 = le_new(),
-    %% Add both original import name to the environment.
+    %% Add original import name to the environment.
     Env1 = orddict:fold(fun ({F,Ar}, {_Mod,_Ren}, E) ->
                                 le_addf(F, Ar, E)
                         end, Env0, St#lfe_lint.imports),
@@ -1896,7 +1914,7 @@ deprecated_warning(L, D, St) ->
     add_warning(L, {deprecated,D}, St).
 
 %% Accessing our local environment of functions and variables. We just
-%% need to know their existence here so we use ordsets.
+%% need to know their existence here here so we use ordsets.
 
 le_new() -> #{funs => ordsets:new(), vars => ordsets:new()}.
 
