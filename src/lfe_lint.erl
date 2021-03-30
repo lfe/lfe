@@ -76,13 +76,13 @@ format_error({bad_guard_form,Form}) ->
     lfe_io:format1(<<"bad ~w guard form">>, [Form]);
 format_error({bad_pattern,Pat}) ->
     lfe_io:format1(<<"bad ~w pattern">>, [Pat]);
-format_error({unbound_symb,S}) ->
+format_error({unbound_symbol,S}) ->
     lfe_io:format1(<<"symbol ~w is unbound">>, [S]);
 format_error({undefined_function,{F,Ar}}) ->
     lfe_io:format1("function ~w/~w undefined", [F,Ar]);
 format_error({multi_var,S}) ->
     lfe_io:format1("variable ~w multiply defined", [S]);
-%% Functions, imports and exports
+%% Functions, imports, exports and aliases.
 format_error({redefine_function,{F,Ar}}) ->
     lfe_io:format1("function ~w/~w already defined", [F,Ar]);
 format_error({bad_fdef,F}) ->
@@ -92,6 +92,10 @@ format_error({reimport_function,{F,Ar},M1,M2}) ->
                   [F,Ar,M1,M2]);
 format_error({define_imported_function,{F,Ar}}) ->
     lfe_io:format1(<<"defining imported function ~w/~w">>, [F,Ar]);
+format_error({redefine_module_alias,A}) ->
+    lfe_io:format1(<<"redefining ~w module alias">>, [A]);
+format_error({circular_module_alias,A}) ->
+    lfe_io:format1(<<"circular module alias for ~w">>, [A]);
 %% Others
 format_error({illegal_literal,Lit}) ->
     lfe_io:format1(<<"illegal literal value ~w">>, [Lit]);
@@ -387,10 +391,21 @@ check_alias_attr(Aliases, L, St) ->
                   fun (S) -> bad_module_error(L, 'module-alias', S) end,
                   St, Aliases).
 
-check_alias([Mod,Alias], L, St) when is_atom(Mod),
-                                     is_atom(Alias) ->
-    As = orddict:store(Alias, Mod, St#lfe_lint.aliases),
-    St#lfe_lint{aliases=As}.
+check_alias([Mod,Alias], L, #lfe_lint{aliases=As0}=St0) when is_atom(Mod),
+                                                             is_atom(Alias) ->
+    %% Test if we redefine alias or get circular aliases.
+    St1 = case orddict:is_key(Alias, As0) of
+              true -> add_error(L, {redefine_module_alias,Alias}, St0);
+              false -> St0
+          end,
+    St2 = case orddict:is_key(Mod, As0) of
+              true -> add_error(L, {circular_module_alias,Alias}, St1);
+              false -> St1
+          end,
+    As1 = orddict:store(Alias, Mod, As0),       %Add the alias
+    St2#lfe_lint{aliases=As1};
+check_alias(_, L, St) ->
+    bad_module_error(L, 'module-alias', St).
 
 %% check_export_types(Types, Line, State) -> State.
 
@@ -485,7 +500,7 @@ check_func_spec(_, L, St) ->
 check_func_spec(Func, Specs, L, St0) ->
     {Ar,St1} = check_func_name(Func, L, St0),
     case lfe_types:check_func_spec_list(Specs, Ar, St1#lfe_lint.records) of
-        {ok,Tvss} -> 
+        {ok,Tvss} ->
             check_type_vars_list(Tvss, L, St1);
         {error,Error,Tvss} ->
             St2 = add_error(L, Error, St1),
@@ -789,7 +804,7 @@ check_symb(Symb, Env, L, St) ->
     %% case lfe_env:is_vbound(Symb, Env) of
     case le_hasv(Symb, Env) of
         true -> St;
-        false -> add_error(L, {unbound_symb,Symb}, St)
+        false -> add_error(L, {unbound_symbol,Symb}, St)
     end.
 
 %% check_func(Func, Arity, Env, Line, State) -> State.
@@ -1615,7 +1630,7 @@ pat_bit_size(S, _, Bvs, _, Env, L, St) when is_atom(S) ->
     %% case is_element(S, Bvs) or lfe_env:is_vbound(S, Env) of
     case ordsets:is_element(S, Bvs) or le_hasv(S, Env) of
         true -> St;
-        false -> add_error(L, {unbound_symb,S}, St)
+        false -> add_error(L, {unbound_symbol,S}, St)
     end;
 pat_bit_size(_, _, _, _, _, L, St) -> illegal_bitsize_error(L, St).
 
