@@ -150,22 +150,42 @@ format_exception(Cl, Error0, St0, Skip, Format, I) ->
 %%  from lfe_eval.
 
 %% The ERTS exit codes.
-format_reason(badarg, _I) -> <<"bad argument">>;
+format_reason(badarg, _I) ->
+    <<"bad argument">>;
 format_reason({badarg,V}, I) ->
     format_value(V, <<"bad argument ">>, I);
-format_reason(badarith, _I) -> <<"error in arithmetic expression">>;
+format_reason(badarith, _I) ->
+    <<"error in arithmetic expression">>;
 format_reason({badarity,{Fun,As}}, _I)
   when is_function(Fun) ->
-    %% Only display the arity not the arguments.
+    %% Only the arity is displayed, not the arguments As.
     lfe_io:format1(<<"~s called with ~s">>,
                    [format_fun(Fun),argss(length(As))]);
+format_reason({badfun,Term}, I) ->
+    format_value(Term, <<"bad function ">>, I);
 format_reason({badmatch,V}, I) ->
     format_value(V, <<"no match of value ">>, I);
-format_reason(function_clause, _I) -> <<"no function clause matching">>;
 format_reason({case_clause,V}, I) ->
+    %% "there is no case clause with a true guard sequence and a
+    %% pattern matching..."
     format_value(V, <<"no case clause matching ">>, I);
-format_reason(if_clause, _I) -> <<"no if clause matching">>;
-format_reason(undef, _I) -> <<"undefined function">>;
+format_reason(function_clause, _I) ->
+    <<"no function clause matching">>;
+format_reason(if_clause, _I) ->
+    <<"no if clause matching">>;
+format_reason(noproc, _I) -> <<"no such process or port">>;
+format_reason(notalive, _I) ->
+    <<"the node cannot be part of a distributed system">>;
+format_reason(system_limit, _I) ->
+    <<"a system limit has been reached">>;
+format_reason(timeout_value, _I) ->
+    <<"bad receive timeout value">>;
+format_reason({try_clause,V}, I) ->
+    %% "there is no try clause with a true guard sequence and a
+    %% pattern matching..."
+    format_value(V, <<"no try clause matching ">>, I);
+format_reason(undef, _I) ->
+    <<"undefined function">>;
 %% We now pass the buck to lfe_eval.
 format_reason(Error, _) ->
     lfe_eval:format_error(Error).
