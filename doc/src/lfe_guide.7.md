@@ -611,18 +611,23 @@ To simplify defining modules there is a predefined macro:
 
 We can have multiple export and import attributes within module
 declaration. The ``(export all)`` attribute is allowed together with
-other export attributes and overrides them. Other attributes which
-are not recognised by the compiler are allowed and are simply passed
-on to the module and can be accessed through ``module_info/0-1``.
+other export attributes and overrides them. Other attributes which are
+not recognised by the compiler are allowed and are simply passed on to
+the module and can be accessed with the ``module_info/0-1`` functions.
 
 In the ``import`` attribute the ``(from mod (f1 2) ...)`` means that
 the call ``(f1 'everything 42)`` will be converted by the compiler to
 ``(mod:f1 'everything 42))`` while the ``(rename mod ((g2 2) m-g1)
 ...)`` means that the call ``(m-g1 'everything 42)`` will be converted
 to ``(mod:g1 'everything 42)``. The ``rename`` form can be used as
-compact way of indicating the imported function's module. Note that we
-do not really see in the code that we are calling a function in
-another module.
+compact way of indicating the imported function's module. Note that
+when importing a module
+
+* the compiler does no checking on that module at all
+* in the ``rename`` above the functions ``g1/2`` and ``g2/1`` aren't
+automatically imported, only the "renamed" functions.
+* we do not really see in the code that we are calling a function in
+another module
 
 In the ``module-alias`` attribute the ``(really-long-module-name
 rlmn)`` declaration means that the call ``(lrmn:foo 'everything 42)``
