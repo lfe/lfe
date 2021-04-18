@@ -974,7 +974,7 @@
                              'true 'error)))
     ;; XXX The following causes this test to fail on Erlang 22; we're not sure
     ;;     why. Here's the ticket:
-    ;;     * https://github.com/rvirding/lfe/issues/386
+    ;;     * https://github.com/lfe/lfe/issues/386
     ;;  (line (test-pat 65 (case ()
     ;;                       (() (andalso (=:= (element 1 t) 'type)
     ;;                                    (=:= (tuple_size t) 4)

@@ -39,7 +39,7 @@
     (new 0) 
     (by_place 1) 
     (by_place_ms 1) 
-    ;; XXX - Currently broken; see https://github.com/rvirding/lfe/issues/397
+    ;; XXX - Currently broken; see https://github.com/lfe/lfe/issues/397
     ;; (by_place_qlc 1)
     ))
 
@@ -97,7 +97,7 @@
                       (tuple n j)))))))
     (mnesia:transaction f)))
 
-;; XXX - Currently broken; see https://github.com/rvirding/lfe/issues/397
+;; XXX - Currently broken; see https://github.com/lfe/lfe/issues/397
 ;; Use Query List Comprehensions to match records
 ;; (defun by_place_qlc (place)
 ;;   (let ((f (lambda ()

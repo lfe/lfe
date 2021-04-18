@@ -332,7 +332,7 @@
 (deftest record?
   (is (clj:record? (make-foo) 'foo))
   (is-not (clj:record? (make-foo) 'barf))
-  ;; This fails due a bug: https://github.com/rvirding/lfe/issues/266
+  ;; This fails due a bug: https://github.com/lfe/lfe/issues/266
   ;; (is-not (clj:record? #(foo) 'foo))
   (is-not (clj:record? [] 'foo))
   (is-not (clj:record? 'a 'foo)))
