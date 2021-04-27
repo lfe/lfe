@@ -43,13 +43,19 @@
 (define-key lfe-mode-map "\C-c\C-z" 'switch-to-lfe)
 
 ;; (defvar inferior-lfe-program "lfe -pa /Users/rv/erlang/lfe/ebin -env TERM vt100"
-(defvar inferior-lfe-program "lfe"
-  "*Program name for invoking an inferior LFE in Inferior LFE mode.")
+(defcustom inferior-lfe-program "lfe"
+  "*Program name for invoking an inferior LFE in Inferior LFE mode."
+  :group 'lfe
+  :type 'string)
 
-(defvar inferior-lfe-program-options '("-pa" "/Users/rv/erlang/lfe/ebin")
+(defcustom inferior-lfe-program-options '("-pa" "/Users/rv/erlang/lfe/ebin")
   "*The options used when activating the LFE shell.
 
-This must be a list of strings.")
+This must be a list of strings.
+You may add the following command line options:
+- \"-nobanner\"."
+  :group 'lfe
+  :type '(repeat string))
 
 (defvar inferior-lfe-prompt "^[^>]*>+ *"
   "*Regexp to recognise prompts in the Inferior LFE mode.")
