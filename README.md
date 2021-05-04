@@ -1,6 +1,6 @@
 # LFE
 
-[![Build Status](https://github.com/lfef/lfe/workflows/ci%2Fcd/badge.svg)](https://github.com/lfe/lfe/actions)
+[![Build Status](https://github.com/lfe/lfe/workflows/ci%2Fcd/badge.svg)](https://github.com/lfe/lfe/actions)
 [![Hex.pm version](https://img.shields.io/hexpm/v/lfe.svg)](https://hex.pm/packages/lfe)
 [![Hex.pm downloads](https://img.shields.io/hexpm/dt/lfe.svg)](https://hex.pm/packages/lfe)
 [![Hex.pm weekly downloads](https://img.shields.io/hexpm/dw/lfe.svg)](https://hex.pm/packages/lfe)
