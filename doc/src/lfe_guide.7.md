@@ -7,7 +7,7 @@
 
 lfe_guide - Lisp Flavoured Erlang User Guide
 
-# SYNPOSIS
+# SYNOPSIS
 
 Note: {{ ... }} is used to denote optional syntax.
 
@@ -100,7 +100,7 @@ numbers:
 1.0 +1.0 -1.0 1.0e10 1.111e-10
 ```
 
-The one thing to watch out for is that you cannot omit the the part
+The one thing to watch out for is that you cannot omit the part
 before or after the decimal point if it is zero.  E.g. the following are
 not valid forms: ``100.`` or ``.125``.
 
@@ -125,7 +125,7 @@ e.g. ``"\x61;\x62;\x63;"`` is a complicated way of writing ``"abc"``.  This can
 be convenient when writing Unicode letters not easily typeable or
 viewable with regular fonts.  E.g. ``"Cat: \\x1f639;"`` might be easier to
 type (and view on output devices without a Unicode font) then typing the
-actual unicode letter.
+actual Unicode letter.
 
 
 ### Binary Strings
@@ -226,7 +226,7 @@ somewhat surprisingly ``123foo`` and ``1.23e4extra`` (but note that illegal
 digits don't make a number a symbol when using the explicit number base
 notation, e.g. ``#b10foo`` gives an error).
 
-<!-- 
+<!--
 Symbol names can contain a surprising breadth or characters:
 
 ```
@@ -354,8 +354,8 @@ while it reads the expression and then be effectively ``2``.
 (define-function name meta-data lambda|match-lambda)
 (define-macro name meta-data lambda|match-lambda)
 
-(define-type type defintion)
-(define-opaque-type type defintion)
+(define-type type definition)
+(define-opaque-type type definition)
 (define-function-spec func spec)
 ```
 
@@ -566,8 +566,8 @@ following order within a module, outermost to innermost:
 
 This means that it is perfectly legal to shadow BIFs by imports,
 BIFs/imports by top-level functions and BIFs/imports/top-level by
-``fletrec``s. In this respect there is nothing special about BIfs, they
-just behave as prefined imported functions, a whopping big ``(import
+``fletrec``s. In this respect there is nothing special about BIFs, they
+just behave as predefined imported functions, a whopping big ``(import
 (from erlang ...))``. EXCEPT that we know about guard BIFs and
 expression BIFs. If you want a private version of ``spawn`` then define
 it, there will be no warnings.
@@ -589,7 +589,7 @@ attributes are:
 
 The valid meta data is ``(type typedef ...)``, ``(opaque typedef ...)``,
 ``(spec function-spec ...)`` and ``(record record-def ...)``.
-Each can take multuiple definitions in one meta form.
+Each can take multiple definitions in one meta form.
 
 Attributes declarations have the syntax ``(attribute value-1 ...)``
 where the attribute value is a list off the values in the declaration
@@ -612,7 +612,7 @@ To simplify defining modules there is a predefined macro:
 We can have multiple export and import attributes within module
 declaration. The ``(export all)`` attribute is allowed together with
 other export attributes and overrides them. Other attributes which are
-not recognised by the compiler are allowed and are simply passed on to
+not recognized by the compiler are allowed and are simply passed on to
 the module and can be accessed with the ``module_info/0-1`` functions.
 
 In the ``import`` attribute the ``(from mod (f1 2) ...)`` means that
@@ -724,7 +724,7 @@ which are called by macros can defined after the macro but must be
 defined before the macro is used.
 
 Scheme's syntax rules are an easy way to define macros where the body
-is just a simple expansion. The are implmeneted the the module `scm`
+is just a simple expansion. The are implemented the the module `scm`
 and are supported with ``scm:define-syntax`` and ``scm:let-syntax``
 and the equivalent ``scm:defsyntax`` and ``scm:syntaxlet``. Note that
 the patterns are only the arguments to the macro call and do not
@@ -994,7 +994,7 @@ To access maps there are the following forms:
 * ``(map-remove map key ... )`` -
   Remove the keys in the map.
 
-N.B. This syntax for processing maps has stablized but may change in
+N.B. This syntax for processing maps has stabilized but may change in
 the future!
 
 There are also alternate short forms ``msiz``, ``mref``, ``mset``,
@@ -1136,7 +1136,7 @@ The following more or less standard lisp functions are predefined:
 (<comp_op> expr ...)
 ```
 
-The standard arithmentic operators, + - * /, and
+The standard arithmetic operators, + - * /, and
 comparison operators, > >= < =< == /= =:= =/= , can take
 multiple arguments the same as their standard lisp
 counterparts. This is still experimental and implemented
@@ -1163,7 +1163,7 @@ The standard association list functions.
 (subst-if-not new test tree)
 (sublis alist tree)
 ```
-The standard substituition functions.
+The standard substitution functions.
 
 ```
 (macroexpand-1 expr {{environment}})
@@ -1216,7 +1216,7 @@ LFE provides the module cl which contains the following functions
 which closely mirror functions defined in the Common Lisp
 Hyperspec. Note that the following functions use zero-based indices,
 like Common Lisp (unlike Erlang, which start at index '1'). A major
-difference between the LFE versions and the Common Lisp versions of 
+difference between the LFE versions and the Common Lisp versions of
 these functions is that the boolean values are
 the LFE `'true` and `'false`. Otherwise the definitions closely follow the
 CL definitions and won't be documented here.
@@ -1312,7 +1312,7 @@ cl:type-of  object
 cl:coerce  object  type
 ```
 
-Furthmore, there is an include file which developers may which to utilize in
+Furthermore, there is an include file which developers may which to utilize in
 their LFE programs: `(include-lib "lfe/include/cl.lfe")`. Currently this offers
 Common Lisp predicates, but may include other useful macros and functions in
 the future. The provided predicate macros wrap the various `is_*` Erlang
@@ -1429,7 +1429,7 @@ Other:
 (clj:if ...)
 ```
 
-Most of the above mentioned macros are avaialble in the `clj` include file,
+Most of the above mentioned macros are available in the `clj` include file,
 the use of which allows developers to forego the `clj:` prefix in calls:
 
 ```
