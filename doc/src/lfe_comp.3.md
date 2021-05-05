@@ -123,7 +123,7 @@ ModErr = {error,Errors,Warnings}
 Compile the forms as an LFE module returning a binary. This
 function takes the same options as ``lfe_comp:file/1/2``. When
 generating Errors and Warnings the "line number" is the index
-of the form in which the error occured.
+of the form in which the error occurred.
 
 **format_error(Error) -> Chars**
 
