@@ -30,25 +30,25 @@ jobs:
       run: wget https://github.com/erlang/rebar3/releases/download/${{ matrix.rebar3-version }}/rebar3 && chmod 755 ./rebar3
     - name: Rebar version check
       run: ./rebar3 -v
-    - name: Compile (with make)
-      run: make compile
-    - name: Install
-      run: make install PREFIX=$(mktemp -d)
-    - name: Clean make-based Build
-      run: make clean
     - name: Compile (with rebar3)
       run: ./rebar3 compile
     - name: Run eunit Tests
       # XXX for some reason, the first pass of eunit doesn't run the tests?!
-      run: ./rebar3 as test do compile,eunit,eunit
+      run: ./rebar3 as test_newer do compile,eunit,eunit
     - name: Run proper Tests
       # XXX this is a hack; we're getting VM crashes due to atom-table filling
       #     for the default test count of '100' -- note, however:
       #     * 'prop_lfe_docs:prop_define_lambda' works just fine with 100 tests
       #     * 'prop_lfe_docs:prop_define_match' is the one that crashes the VM
-      run: ./rebar3 as test proper -n 20
+      run: ./rebar3 as test_newer proper -n 20
     - name: CT Suite Tests
-      run: ./rebar3 as test ct
+      run: ./rebar3 as test_newer ct
+    - name: Clean-up
+      run: make clean
+    - name: Compile (with make)
+      run: make compile
+    - name: Install
+      run: make install PREFIX=$(mktemp -d)
 
   older-builds:
     name: Older builds - OTP ${{ matrix.otp-version }} (rebar3 ${{ matrix.rebar3-version }}) / ${{ matrix.os }}
@@ -72,17 +72,11 @@ jobs:
       run: wget https://github.com/erlang/rebar3/releases/download/${{ matrix.rebar3-version }}/rebar3 && chmod 755 ./rebar3
     - name: Rebar version check
       run: ./rebar3 -v
-    - name: Compile (with make)
-      run: make compile
-    - name: Install
-      run: make install PREFIX=$(mktemp -d)
-    - name: Clean make-based Build
-      run: make clean
     - name: Compile (with rebar3)
       run: ./rebar3 compile
     - name: Run eunit Tests
       # XXX for some reason, the first pass of eunit doesn't run the tests?!
-      run: ./rebar3 as test_older do compile,eunit,eunit
+      run: rm rebar.lock && DEBUG=1 ./rebar3 as test_older do compile,eunit,eunit
     - name: Run proper Tests
       # XXX this is a hack; we're getting VM crashes due to atom-table filling
       #     for the default test count of '100' -- note, however:
@@ -91,3 +85,9 @@ jobs:
       run: ./rebar3 as test_older proper -n 20
     - name: CT Suite Tests
       run: ./rebar3 as test_older ct
+    - name: Clean-up
+      run: make clean
+    - name: Compile (with make)
+      run: make compile
+    - name: Install
+      run: make install PREFIX=$(mktemp -d)
