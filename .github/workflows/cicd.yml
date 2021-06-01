@@ -2,9 +2,9 @@ name: ci/cd
 
 on:
   push:
-    branches: [ master, release/*, develop]
+    branches: [ master, release/*, task/*, feature/*, develop]
   pull_request:
-    branches: [ master, release/*, develop]
+    branches: [ master, release/*, task/*, feature/*, develop]
 
 jobs:
 
@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        otp_version: [19, 20, 21, 22, 23]
+        otp_version: [19, 20, 21, 22, 23, 24]
         os: [ubuntu-latest]
 
     container:
