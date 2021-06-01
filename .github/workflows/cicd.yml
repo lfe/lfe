@@ -8,7 +8,7 @@ on:
 
 jobs:
 
-  build:
+  builds:
     name: Newer builds - OTP ${{ matrix.otp-version }} (rebar3 ${{ matrix.rebar3-version }}) / ${{ matrix.os }}
     runs-on: ubuntu-latest
 
@@ -34,18 +34,19 @@ jobs:
       run: ./rebar3 compile
     - name: Run eunit Tests
       # XXX for some reason, the first pass of eunit doesn't run the tests?!
-      run: ./rebar3 as test_newer do compile,eunit,eunit
+      run: ./rebar3 as test do compile,eunit,eunit
     - name: Run proper Tests
       # XXX this is a hack; we're getting VM crashes due to atom-table filling
       #     for the default test count of '100' -- note, however:
       #     * 'prop_lfe_docs:prop_define_lambda' works just fine with 100 tests
       #     * 'prop_lfe_docs:prop_define_match' is the one that crashes the VM
-      run: ./rebar3 as test_newer proper -n 20
+      run: ./rebar3 as test proper -n 20
     - name: CT Suite Tests
-      run: ./rebar3 as test_newer ct
+      run: ./rebar3 as test ct
 
   installs:
     name: Newer installs - OTP ${{ matrix.otp-version }} / ${{ matrix.os }}
+    needs: builds
     runs-on: ubuntu-latest
 
     strategy:
@@ -69,14 +70,14 @@ jobs:
       
   older-builds:
     name: Older builds - OTP ${{ matrix.otp-version }} (rebar3 ${{ matrix.rebar3-version }}) / ${{ matrix.os }}
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-18.04
 
     strategy:
       fail-fast: false
       matrix:
         otp-version: ['19', '20', '21']
         rebar3-version: ['3.14.4']
-        os: ['ubuntu-16.04']
+        os: ['ubuntu-18.04']
 
     container:
       image: erlang:${{ matrix.otp-version }}
@@ -93,26 +94,27 @@ jobs:
       run: ./rebar3 compile
     - name: Run eunit Tests
       # XXX for some reason, the first pass of eunit doesn't run the tests?!
-      run: rm rebar.lock && DEBUG=1 ./rebar3 as test_older do compile,eunit,eunit
+      run: rm rebar.lock && DEBUG=1 ./rebar3 as test do compile,eunit,eunit
     - name: Run proper Tests
       # XXX this is a hack; we're getting VM crashes due to atom-table filling
       #     for the default test count of '100' -- note, however:
       #     * 'prop_lfe_docs:prop_define_lambda' works just fine with 100 tests
       #     * 'prop_lfe_docs:prop_define_match' is the one that crashes the VM
-      run: ./rebar3 as test_older proper -n 20
+      run: ./rebar3 as test proper -n 20
     - name: CT Suite Tests
-      run: ./rebar3 as test_older ct
+      run: ./rebar3 as test ct
 
   older-installs:
     name: Older installs - OTP ${{ matrix.otp-version }} / ${{ matrix.os }}
-    runs-on: ubuntu-16.04
+    needs: older-builds
+    runs-on: ubuntu-18.04
 
     strategy:
       fail-fast: false
       matrix:
         otp-version: ['19', '20', '21']
         rebar3-version: ['3.14.4']
-        os: ['ubuntu-16.04']
+        os: ['ubuntu-18.04']
 
     container:
       image: erlang:${{ matrix.otp-version }}
