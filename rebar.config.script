@@ -85,9 +85,12 @@ Conf1 = case lists:keyfind(erl_opts, 1, Conf0) of
 
 %% Get the proper dep we will add to profiles-test-deps.
 
-Prop = if Version >= "18" -> proper;            %Take the latest one.
-          true -> {proper,"1.1.1-beta"}
-       end,
+Prop = if 
+    Version =< "17" -> {proper,"1.1.1-beta"};
+    Version =< "21" -> {proper,"1.3.0"};
+    Version =< "23" -> {proper,"1.4.0"};
+    true -> proper
+    end,
 
 %% Ensure we have set the right value of proper dep.
 
