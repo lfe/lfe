@@ -43,13 +43,30 @@ jobs:
       run: ./rebar3 as test_newer proper -n 20
     - name: CT Suite Tests
       run: ./rebar3 as test_newer ct
-    - name: Clean-up
-      run: make clean
+
+  installs:
+    name: Newer installs - OTP ${{ matrix.otp-version }} / ${{ matrix.os }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        otp-version: ['22', '23', '24']
+        os: ['ubuntu-latest']
+
+    container:
+      image: erlang:${{ matrix.otp-version }}
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Erlang version check
+      run: erl -noshell -eval 'erlang:display(erlang:system_info(system_version))' -eval 'init:stop()'
     - name: Compile (with make)
       run: make compile
     - name: Install
       run: make install PREFIX=$(mktemp -d)
 
+      
   older-builds:
     name: Older builds - OTP ${{ matrix.otp-version }} (rebar3 ${{ matrix.rebar3-version }}) / ${{ matrix.os }}
     runs-on: ubuntu-16.04
@@ -85,8 +102,25 @@ jobs:
       run: ./rebar3 as test_older proper -n 20
     - name: CT Suite Tests
       run: ./rebar3 as test_older ct
-    - name: Clean-up
-      run: make clean
+
+  older-installs:
+    name: Older installs - OTP ${{ matrix.otp-version }} / ${{ matrix.os }}
+    runs-on: ubuntu-16.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        otp-version: ['19', '20', '21']
+        rebar3-version: ['3.14.4']
+        os: ['ubuntu-16.04']
+
+    container:
+      image: erlang:${{ matrix.otp-version }}
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Erlang version check
+      run: erl -noshell -eval 'erlang:display(erlang:system_info(system_version))' -eval 'init:stop()'
     - name: Compile (with make)
       run: make compile
     - name: Install
