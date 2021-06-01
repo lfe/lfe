@@ -15,14 +15,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        otp_version: [19, 20, 21, 22, 23, 24]
-        os: [ubuntu-latest]
+        otp-version: ['22', '23', '24']
+        rebar3-version: ['3.16.1']
+        os: ['ubuntu-latest']
 
     container:
-      image: erlang:${{ matrix.otp_version }}
+      image: erlang:${{ matrix.otp-version }}
 
     steps:
     - uses: actions/checkout@v2
+    - name: Erlang version check
+      run: erl -noshell -eval 'erlang:display(erlang:system_info(system_version))' -eval 'init:stop()'
+    - name: Rebar version check
+      run: rebar3 -v
     - name: Compile (with make)
       run: make compile
     - name: Install
@@ -42,3 +47,43 @@ jobs:
       run: rebar3 as test proper -n 20
     - name: CT Suite Tests
       run: rebar3 as test ct
+
+  older-builds:
+    name: Build on OTP ${{ matrix.otp_version }} / ${{ matrix.os }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        otp-version: ['19', '20', '21']
+        rebar3-version: ['3.14.4']
+        os: ['ubuntu-16.04']
+
+    container:
+      image: erlang:${{ matrix.otp-version }}
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Erlang version check
+      run: erl -noshell -eval 'erlang:display(erlang:system_info(system_version))' -eval 'init:stop()'
+    - name: Rebar version check
+      run: rebar3 -v
+    - name: Compile (with make)
+      run: make compile
+    - name: Install
+      run: make install PREFIX=$(mktemp -d)
+    - name: Clean make-based Build
+      run: make clean
+    - name: Compile (with rebar3)
+      run: rebar3 compile
+    - name: Run eunit Tests
+      # XXX for some reason, the first pass of eunit doesn't run the tests?!
+      run: rebar3 as test_older do compile,eunit,eunit
+    - name: Run proper Tests
+      # XXX this is a hack; we're getting VM crashes due to atom-table filling
+      #     for the default test count of '100' -- note, however:
+      #     * 'prop_lfe_docs:prop_define_lambda' works just fine with 100 tests
+      #     * 'prop_lfe_docs:prop_define_match' is the one that crashes the VM
+      run: rebar3 as test_older proper -n 20
+    - name: CT Suite Tests
+      run: rebar3 as test_older ct
