@@ -1,4 +1,4 @@
-;; Copyright (c) 2013, 2015 Duncan McGreggor <oubiwann@gmail.com>
+;; Copyright (c) 2013-2020 Duncan McGreggor <oubiwann@gmail.com>
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -22,60 +22,63 @@
 ;;
 ;; To use the code below in LFE, do the following:
 ;;
-;;  $ ./bin/lfe -pa ./ebin
+;; $ ./bin/lfe
 ;;
-;; > (slurp "examples/internal-state.lfe")
+;; lfe> (slurp "examples/internal-state.lfe")
 ;; #(ok internal-state)
-;; > (set acct (new-account "Alice" 100.00 0.06))
+;; lfe> (set acct (new-account "Alice" 100.00 0.06))
 ;; #Fun<lfe_eval.10.53503600>
-;; > (send acct 'name)
+;; lfe> (send acct 'name)
 ;; "Alice"
-;; > (send acct 'balance)
+;; lfe> (send acct 'balance)
 ;; 100.0
-;; > (set acct (send acct 'apply-interest))
+;; lfe> (set acct (send acct 'apply-interest))
 ;; #Fun<lfe_eval.10.53503600>
-;; > (send acct 'balance)
+;; lfe> (send acct 'balance)
 ;; 106.0
-;; > (set acct (send acct 'withdraw 54.90))
+;; lfe> (set acct (send acct 'withdraw 54.90))
 ;; #Fun<lfe_eval.10.53503600>
-;; > (set acct (send acct 'withdraw 54.90))
+;; lfe> (set acct (send acct 'withdraw 54.90))
 ;; exception error: insufficient-funds
 ;;
-;; > (send acct 'balance)
+;; lfe> (send acct 'balance)
 ;; 51.1
-;; > (set acct (send acct 'deposit 1000))
+;; lfe> (set acct (send acct 'deposit 1000))
 ;; #Fun<lfe_eval.10.53503600>
-;; > (set acct (send acct 'withdraw 54.90))
+;; lfe> (set acct (send acct 'withdraw 54.90))
 ;; #Fun<lfe_eval.10.53503600>
-;; > (set acct (send acct 'withdraw 54.90))
+;; lfe> (set acct (send acct 'withdraw 54.90))
 ;; #Fun<lfe_eval.10.53503600>
-;; > (set acct (send acct 'withdraw 54.90))
+;; lfe> (set acct (send acct 'withdraw 54.90))
 ;; #Fun<lfe_eval.10.53503600>
-;; > (send acct 'balance)
+;; lfe> (send acct 'balance)
 ;; 886.4
-;; > (set acct (send acct 'apply-interest))
+;; lfe> (set acct (send acct 'apply-interest))
 ;; #Fun<lfe_eval.10.53503600>
-;; > (send acct 'balance)
+;; lfe> (send acct 'balance)
 ;; 939.584
 
 (defmodule internal-state
- (export all))
+  (export all))
 
 (defun new-account (name balance interest-rate)
   (lambda (message)
     (case message
       ('withdraw (lambda (amt)
-                    (if (=< amt balance)
-                        (new-account name (- balance amt) interest-rate)
-                        (error 'insufficient-funds))))
-      ('deposit (lambda (amt) (new-account name (+ balance amt) interest-rate)))
-      ('balance (lambda () balance))
-      ('name (lambda () name))
+                   (if (=< amt balance)
+                     (new-account name (- balance amt) interest-rate)
+                     (error 'insufficient-funds))))
+      ('deposit (lambda (amt) 
+                  (new-account name (+ balance amt) interest-rate)))
+      ('balance (lambda () 
+                  balance))
+      ('name (lambda () 
+               name))
       ('apply-interest (lambda ()
-                    (new-account
-                      name
-                      (+ balance (* balance interest-rate))
-                      interest-rate))))))
+                         (new-account
+                           name
+                           (+ balance (* balance interest-rate))
+                           interest-rate))))))
 
 (defun send (object method-name)
   "This is a generic function, used to call into the given object (class
@@ -90,21 +93,21 @@
 ;; It is also possible to create functionally equivalent code using LFE
 ;; processes. The code below would then be used in the following manner:
 ;;
-;; > (set acct (init-account "Alice" 1000 0.1))
+;; lfe> (set acct (init-account "Alice" 1000 0.1))
 ;; <0.37.0>
-;; > (snd acct 'name)
+;; lfe> (snd acct 'name)
 ;; "Alice"
-;; > (snd acct 'balance)
+;; lfe> (snd acct 'balance)
 ;; 1000
-;; > (snd acct 'apply-interest)
+;; lfe> (snd acct 'apply-interest)
 ;; 1.1e3
-;; > (snd acct 'deposit 1000)
+;; lfe> (snd acct 'deposit 1000)
 ;; 2.1e3
-;; > (snd acct 'balance)
+;; lfe> (snd acct 'balance)
 ;; 2.1e3
-;; > (snd acct 'withdraw 2000)
+;; lfe> (snd acct 'withdraw 2000)
 ;; 100.0
-;; > (snd acct 'withdraw 101)
+;; lfe> (snd acct 'withdraw 101)
 ;; #(error insufficient-funds)
 
 (defun account-class (name balance interest-rate)

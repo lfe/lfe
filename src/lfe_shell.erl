@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2016 Robert Virding
+%% Copyright (c) 2008-2020 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -27,12 +27,14 @@
 -module(lfe_shell).
 
 -export([start/0,start/1,server/0,server/1,
-         run_script/2,run_script/3,run_string/2,run_string/3]).
+         run_script/2,run_script/3,
+         run_strings/1,run_strings/2,run_string/1,run_string/2,
+         new_state/2,new_state/3,upd_state/3]).
 
 %% The shell commands which generally callable.
--export([c/1,c/2,cd/1,doc/1,docs/1,ec/1,ec/2,ep/1,ep/2,epp/1,epp/2,help/0,
-	 i/0,i/1,l/1,ls/1,clear/0,m/0,m/1,pid/3,p/1,p/2,pp/1,pp/2,pwd/0,
-	 q/0,flush/0,regs/0,exit/0]).
+-export([c/1,c/2,cd/1,ec/1,ec/2,ep/1,ep/2,epp/1,epp/2,help/0,h/1,h/2,h/3,
+         i/0,i/1,i/3,l/1,ls/1,clear/0,m/0,m/1,pid/3,p/1,p/2,pp/1,pp/2,pwd/0,
+         q/0,flush/0,regs/0,exit/0]).
 
 -import(lfe_env, [new/0,add_env/2,
                   add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
@@ -41,12 +43,12 @@
                   get_gbinding/3,add_mbinding/3]).
 
 -import(orddict, [store/3,find/2]).
--import(ordsets, [add_element/2]).
 -import(lists, [reverse/1,foreach/2]).
 
 -include("lfe.hrl").
+-include("lfe_docs.hrl").
 
-%% Colours for the LFE banner
+%% Coloured strings for the LFE banner, red, green, yellow and blue.
 -define(RED(Str), "\e[31m" ++ Str ++ "\e[0m").
 -define(GRN(Str), "\e[1;32m" ++ Str ++ "\e[0m").
 -define(YLW(Str), "\e[1;33m" ++ Str ++ "\e[0m").
@@ -65,41 +67,68 @@ foldl(F, Accu, []) when is_function(F, 2) -> Accu.
 -record(state, {curr,save,base,             %Current, save and base env
                 slurp=false}).              %Are we slurped?
 
+%% run_script(File, Args) -> {Value,State}.
+%% run_string(File, Args, State) -> {Value,State}.
+
+-spec run_script(_, _) -> no_return().
+-spec run_script(_, _, _) -> no_return().
+
 run_script(File, Args) ->
-    run_script(File, Args, lfe_env:new()).
+    run_script(File, Args, new_state(File, Args)).
 
-run_script(File, Args, Env) ->
-    St = new_state(File, Args, Env),
-    run([File], St).
+run_script(File, Args, St0) ->
+    St1 = upd_state(File, Args, St0),
+    run_file([File], St1).
 
-run_string(String, Args) ->
-    run_string(String, Args, lfe_env:new()).
+%% run_strings(Strings) -> {Value,State}.
+%% run_strings(Strings, State) -> {Value,State}.
 
-run_string(String, As, Env) ->
-    St = new_state("lfe", As, Env),
+run_strings(Strings) ->
+    run_strings(Strings, new_state("lfe", [])).
+
+run_strings(Strings, St) ->
+    lists:foldl(fun (S, St0) ->
+                        {_,St1} = run_string(S, St0),
+                        St1
+                end, St, Strings).
+
+%% run_string(String) -> {Value,State}.
+%% run_string(String, State) -> {Value,State}.
+
+run_string(String) ->
+    run_string(String, new_state("lfe", [])).
+
+run_string(String, St0) ->
+    St1 = upd_state(String, [], St0),
     case read_script_string(String) of
         {ok,Forms} ->
-            run_loop(Forms, [], St);
+            run_loop([Forms], St1);
         {error,E} ->
             slurp_errors("lfe", [E]),
-            {error,St}
+            {error,St1}
     end.
 
-start() -> start(default).
+%% start() -> Pid.
+%% start(State) -> Pid.
 
-start(Env) ->
-    spawn(fun () -> server(Env) end).
+start() ->
+    spawn(fun () -> server() end).
 
-server() -> server(default).
+start(St) ->
+    spawn(fun () -> server(St) end).
 
-server(default) ->
-    server(lfe_env:new());
-server(Env) ->
-    process_flag(trap_exit, true),              %Must trap exists
-    io:put_chars(make_banner()),
+%% server() -> no_return().
+%% server(State) -> no_return().
+
+server() ->
     %% Create a default base env of predefined shell variables with
     %% default nil bindings and basic shell macros.
-    St = new_state("lfe", [], Env),
+    St = new_state("lfe", []),
+    server(St).
+
+server(St) ->
+    process_flag(trap_exit, true),              %Must trap exists
+    display_banner(),
     %% Set shell io to use LFE expand in edlin, ignore error.
     io:setopts([{expand_fun,fun (B) -> lfe_edlin_expand:expand(B) end}]),
     Eval = start_eval(St),                      %Start an evaluator
@@ -186,7 +215,7 @@ report_exception(Class, Reason, Stk) ->
          end,
     Ff = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
     Cs = lfe_lib:format_exception(Class, Reason, Stk, Sf, Ff, 1),
-    io:put_chars(Cs),
+    io:put_chars("** " ++ Cs),                  %Make it more note worthy
     io:nl().
 
 %% read_expression(Prompt, Evaluator, State) -> {Return,Evaluator}.
@@ -225,10 +254,22 @@ make_banner() ->
        ?GRN("  |`-.._") ++ ?YLW("/") ++ ?GRN("_") ++ ?YLW("\\\\") ++ ?GRN("_.-':") ++ "    |   Type " ++ ?GRN("(help)") ++ " for usage info.\n" ++
        ?GRN("  |         ") ++ ?RED("g") ++ ?GRN(" |_ \\") ++  "   |\n" ++
        ?GRN("  |        ") ++ ?RED("n") ++ ?GRN("    | |") ++   "  |   Docs: " ++ ?BLU("http://docs.lfe.io/") ++ "\n" ++
-       ?GRN("  |       ") ++ ?RED("a") ++ ?GRN("    / /") ++   "   |   Source: " ++ ?BLU("http://github.com/rvirding/lfe") ++ "\n" ++
+       ?GRN("  |       ") ++ ?RED("a") ++ ?GRN("    / /") ++   "   |   Source: " ++ ?BLU("http://github.com/lfe/lfe") ++ "\n" ++
        ?GRN("   \\     ") ++ ?RED("l") ++ ?GRN("    |_/") ++  "    |\n" ++
        ?GRN("    \\   ") ++ ?RED("r") ++ ?GRN("     /") ++  "      |   LFE v~s ~s\n" ++
        ?GRN("     `-") ++ ?RED("E") ++ ?GRN("___.-'") ++ "\n\n", [get_lfe_version(), get_abort_message()])].
+
+display_banner() ->
+    %% When LFE is called with -noshell, we want to skip the banner. Also, there may be
+    %% circumstances where the shell is desired, but the banner needs to be disabled,
+    %% thus we want to support both use cases.
+    case init:get_argument(noshell) of
+        error -> case init:get_argument(nobanner) of
+                    error -> io:put_chars(make_banner());
+                    _ -> false
+                 end;
+        _ -> false
+    end.
 
 get_abort_message() ->
     %% We can update this later to check for env variable settings for
@@ -244,7 +285,8 @@ get_lfe_version() ->
 %%  Generate a new shell state with all the default functions, macros
 %%  and variables.
 
-%% new_state(Script, Args) -> new_state(Script, Args, lfe_env:new()).
+new_state(Script, Args) ->
+    new_state(Script, Args, lfe_env:new()).
 
 new_state(Script, Args, Env0) ->
     Env1 = add_vbinding('script-name', Script, Env0),
@@ -253,6 +295,14 @@ new_state(Script, Args, Env0) ->
     Base1 = add_shell_macros(Base0),
     Base2 = add_shell_vars(Base1),
     #state{curr=Base2,save=Base2,base=Base2,slurp=false}.
+
+upd_state(Script, Args, #state{curr=Curr,save=Save,base=Base}=St) ->
+    %% Update an environment with with script name and args.
+    Upd = fun (E0) ->
+                  E1 = add_vbinding('script-name', Script, E0),
+                  add_vbinding('script-args', Args, E1)
+          end,
+    St#state{curr=Upd(Curr),save=Upd(Save),base=Upd(Base)}.
 
 add_shell_vars(Env0) ->
     %% Add default shell expression variables.
@@ -282,9 +332,13 @@ add_shell_functions(Env0) ->
           {epp,1,[lambda,[e],[':',lfe_shell,epp,e]]},
           {epp,2,[lambda,[e,d],[':',lfe_shell,epp,e,d]]},
           {h,0,[lambda,[],[':',lfe_shell,help]]},
+          {h,1,[lambda,[m], [':',lfe_shell,h,m]]},
+          {h,2,[lambda,[m,f], [':',lfe_shell,h,m,f]]},
+          {h,3,[lambda,[m,f,a], [':',lfe_shell,h,m,f,a]]},
           {help,0,[lambda,[],[':',lfe_shell,help]]},
           {i,0,[lambda,[],[':',lfe_shell,i]]},
           {i,1,[lambda,[ps],[':',lfe_shell,i,ps]]},
+          {i,3,[lambda,[x,y,z],[':',lfe_shell,i,x,y,z]]},
           {clear,0,[lambda,[],[':',lfe_shell,clear]]},
           {pid,3,[lambda,[i,j,k],[':',lfe_shell,pid,i,j,k]]},
           {p,1,[lambda,[e],[':',lfe_shell,p,e]]},
@@ -297,19 +351,31 @@ add_shell_functions(Env0) ->
           {regs,0,[lambda,[],[':',lfe_shell,regs]]},
           {exit,0,[lambda,[],[':',lfe_shell,exit]]}
          ],
+    %% Any errors here will crash shell startup!
     Add = fun ({N,Ar,Def}, E) ->
                   lfe_eval:add_dynamic_func(N, Ar, Def, E)
           end,
     Env1 = foldl(Add, Env0, Fs),
     Env1.
 
+%% Last clause in match-lambda macro to catch-all as undefined function.
+-define(UNDEF_MATCH_FUNC(Name),
+        [[args,'ENV'],?BQ([error,{undefined_func,{Name,?C([length,args])}}])]).
+
 add_shell_macros(Env0) ->
     %% We KNOW how macros are expanded and write them directly in
     %% expanded form here.
     Ms = [{c,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,c,?C_A(args)])]},
-          {describe,[lambda,[args,'$ENV'],
-                     ?BQ([':',lfe_shell,docs,?Q(?C(args))])]},
-          {doc,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,docs,?Q(?C(args))])]},
+          {describe,['match-lambda',
+                     [[[list,mod],'$ENV'],?BQ([':',lfe_shell,doc,?Q(?C(mod))])],
+                     ?UNDEF_MATCH_FUNC(describe)]},
+          {doc,['match-lambda',
+                [[[list,mod],'$ENV'],?BQ([':',lfe_shell,h,?Q(?C(mod))])],
+                [[[list,mod,func],'$ENV'],
+                 ?BQ([':',lfe_shell,h,?Q(?C(mod)),?Q(?C(func))])],
+                [[[list,mod,func,arity],'$ENV'],
+                 ?BQ([':',lfe_shell,h,?Q(?C(mod)),?Q(?C(func)),?Q(?C(arity))])],
+                ?UNDEF_MATCH_FUNC(doc)]},
           {ec,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ec,?C_A(args)])]},
           {l,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,l,[list|?C(args)]])]},
           {ls,[lambda,[args,'$ENV'],?BQ([':',lfe_shell,ls,[list|?C(args)]])]},
@@ -362,12 +428,11 @@ eval_form(Form, Shell, St0) ->
         St2
     catch
         exit:normal -> exit(normal);
-        Class:Reason ->
-            Stk = erlang:get_stacktrace(),
+        ?CATCH(Class, Reason, Stack)
             %% We don't want the ERROR REPORT generated by the
             %% emulator. Note: exit(kill) needs nothing special.
             Shell ! {eval_error,self(),Class},
-            E = nocatch(Class, {Reason,Stk}),
+            E = nocatch(Class, {Reason,Stack}),
             exit(E)
     end.
 
@@ -382,7 +447,7 @@ nocatch(_, Reason) -> Reason.
 eval_form(Form, #state{curr=Ce}=St) ->
     %% Flatten progn nested forms.
     %% Don't deep expand, keep everything.
-    case lfe_macro:expand_forms([{Form,1}], Ce, false, true) of
+    case lfe_macro:expand_fileforms([{Form,1}], Ce, false, true) of
         {ok,Eforms,Ce1,Ws} ->
             list_warnings(Ws),
             St1 = St#state{curr=Ce1},
@@ -397,11 +462,6 @@ eval_form(Form, #state{curr=Ce}=St) ->
 eval_form_1([progn|Eforms], St) ->              %Top-level nested progn
     foldl(fun (F, {_,S}) -> eval_form_1(F, S) end,
           {[],St}, Eforms);
-eval_form_1(['extend-module'|_], St) ->         %Maybe from macro expansion
-    {[],St};
-eval_form_1(['eval-when-compile'|_], St) ->     %Maybe from macro expansion
-    %% We can happily ignore this.
-    {[],St};
 eval_form_1([set|Rest], St0) ->
     {Value,St1} = set(Rest, St0),
     {Value,St1};
@@ -412,8 +472,20 @@ eval_form_1([unslurp|_], St) ->
     %% Forget everything back to before current slurp.
     unslurp(St);
 eval_form_1([run|Args], St0) ->
-    {Value,St1} = run(Args, St0),
+    {Value,St1} = run_file(Args, St0),
     {Value,St1};
+eval_form_1(['reset-environment'], #state{base=Be}=St) ->
+    {ok,St#state{curr=Be}};
+eval_form_1(['extend-module'|_], St) ->         %Maybe from macro expansion
+    {[],St};
+eval_form_1(['eval-when-compile'|_], St) ->     %Maybe from macro expansion
+    %% We can happily ignore this.
+    {[],St};
+eval_form_1(['define-record',Name,Fields], #state{curr=Ce0}=St) ->
+    %% Don't fully expand the record definition, push it till its used
+    %% in the same way as function and macro definitions.
+    Ce1 = lfe_env:add_record(Name, Fields, Ce0),
+    {Name,St#state{curr=Ce1}};
 eval_form_1(['define-function',Name,_Meta,Def], #state{curr=Ce0}=St) ->
     Ar = function_arity(Def),
     Ce1 = lfe_eval:add_dynamic_func(Name, Ar, Def, Ce0),
@@ -421,8 +493,6 @@ eval_form_1(['define-function',Name,_Meta,Def], #state{curr=Ce0}=St) ->
 eval_form_1(['define-macro',Name,_Meta,Def], #state{curr=Ce0}=St) ->
     Ce1 = add_mbinding(Name, Def, Ce0),
     {Name,St#state{curr=Ce1}};
-eval_form_1(['reset-environment'], #state{base=Be}=St) ->
-    {ok,St#state{curr=Be}};
 eval_form_1(Expr, St) ->
     %% General case just evaluate the expression.
     {lfe_eval:expr(Expr, St#state.curr),St}.
@@ -526,7 +596,7 @@ slurp_file(Name) ->
     case lfe_comp:file(Name, [binary,to_split,return]) of
         {ok,[{ok,Mod,Fs0,_}|_],Ws} ->           %Only do first module
             %% Deep expand, don't keep everything.
-            case lfe_macro:expand_forms(Fs0, lfe_env:new(), true, false) of
+            case lfe_macro:expand_fileforms(Fs0, lfe_env:new(), true, false) of
                 {ok,Fs1,Env,_} ->
                     %% Flatten and trim away any eval-when-compile.
                     {Fs2,42} = lfe_lib:proc_forms(fun slurp_form/3, Fs1, 42),
@@ -547,14 +617,21 @@ slurp_error_ret(Name, Es, Ws) ->
 slurp_form(['eval-when-compile'|_], _, D) -> {[],D};
 slurp_form(F, L, D) -> {[{F,L}],D}.
 
-collect_module({['define-module',Mod,_Mets,Atts],_}, Sl0) ->
-    Sl1 = collect_attrs(Atts, Sl0),
-    Sl1#slurp{mod=Mod};
-collect_module({['extend-module',_Meta,Atts],_}, Sl) ->
-    collect_attrs(Atts, Sl);
+collect_module({['define-module',Mod,Meta,Atts],_}, Sl0) ->
+    Sl1 = collect_meta(Meta, Sl0),
+    Sl2 = collect_attrs(Atts, Sl1),
+    Sl2#slurp{mod=Mod};
+collect_module({['extend-module',Meta,Atts],_}, Sl0) ->
+    Sl1 = collect_meta(Meta, Sl0),
+    collect_attrs(Atts, Sl1);
 collect_module({['define-function',F,_Meta,Def],_}, #slurp{funs=Fs}=Sl) ->
     Ar = function_arity(Def),
-    Sl#slurp{funs=[{F,Ar,Def}|Fs]}.
+    Sl#slurp{funs=[{F,Ar,Def}|Fs]};
+collect_module({_,_}, Sl) ->
+    %% Ignore other forms, type and spec defs.
+    Sl.
+
+collect_meta(_, St) -> St.
 
 collect_attrs([[import|Is]|Atts], St) ->
     collect_attrs(Atts, collect_imps(Is, St));
@@ -598,15 +675,15 @@ slurp_ews(File, Format, Ews) ->
                     lfe_io:format(Format, [File,Line,Cs])
             end, Ews).
 
-%% run(Args, State) -> {Value,State}.
+%% run_file(Args, State) -> {Value,State}.
 %%  Run the shell expressions in a file. Abort on errors and only
 %%  return updated state if there are no errors.
 
-run([File], #state{curr=Ce}=St) ->
+run_file([File], #state{curr=Ce}=St) ->
     Name = lfe_eval:expr(File, Ce),             %Get file name
     case read_script_file(Name) of              %Read the file
         {ok,Forms} ->
-            run_loop(Forms, [], St);
+            run_loop(Forms, St);
         {error,E} ->
             slurp_errors(Name, [E]),
             {error,St}
@@ -619,19 +696,15 @@ run([File], #state{curr=Ce}=St) ->
 
 read_script_file(File) ->
     case file:open(File, [read]) of
-        {ok,F} ->
+        {ok,Fd} ->
             %% Check if first a script line, if so skip it.
-            case io:get_line(F, '') of
-                "#!" ++ _ -> ok;
-                _ -> file:position(F, bof)      %Reset to start of file
-            end,
-            Ret = case io:request(F, {get_until,unicode,'',lfe_scan,tokens,[1]}) of
-                      {ok,Ts,Lline} -> parse_tokens(Ts, Lline, []);
-                      {error,Error,_} -> {error,Error}
-                  end,
-            file:close(F),                      %Close the file
-            Ret;
-        {error,Error} -> {error,{none,file,Error}}
+            case io:get_line(Fd, '') of
+                "#!" ++ _ ->
+                    lfe_io:read_file(Fd, 2);
+                _ -> 
+                    file:position(Fd, bof),    %Reset to start of file
+                    lfe_io:read_file(Fd, 1)
+            end
     end.
 
 %% read_script_string(FileName) -> {ok,[Sexpr]} | {error,Error}.
@@ -639,22 +712,12 @@ read_script_file(File) ->
 %%  lfe_io:read_string except parse all forms.
 
 read_script_string(String) ->
-    case lfe_scan:string(String, 1) of
-        {ok,Ts,Lline} -> parse_tokens(Ts, Lline, []);
-        {error,E,_} -> {error,E}
-    end.
+    lfe_io:read_string(String).
 
-parse_tokens([_|_]=Ts0, Lline, Ss) ->
-    case lfe_parse:sexpr(Ts0) of
-        {ok,_,S,Ts1} -> parse_tokens(Ts1, Lline, [S|Ss]);
-        {more,Pc1} ->
-            %% Need more tokens but there are none, so call again to
-            %% generate an error message.
-            {error,E,_} = lfe_parse:sexpr(Pc1, {eof,Lline}),
-            {error,E};
-        {error,E,_} -> {error,E}
-    end;
-parse_tokens([], _, Ss) -> {ok,reverse(Ss)}.
+%% run_loop(Forms, State) -> {Value,State}.
+%% run_loop(Forms PrevValue, State) -> {Value,State}.
+
+run_loop(Fs, St) -> run_loop(Fs, [], St).
 
 run_loop([F|Fs], _, St0) ->
     Ce1 = add_vbinding('-', F, St0#state.curr),
@@ -748,17 +811,21 @@ help() ->
                    "(cd dir)       -- change working directory to <dir>\n"
                    "(clear)        -- clear the REPL output\n"
                    "(doc mod)      -- documentation of a module\n"
-                   "(doc mod mac)  -- documentation of a macro\n"
-                   "(doc m f a)    -- documentation of a function\n"
+                   "(doc mod:mac)  -- documentation of a macro\n"
+                   "(doc m:f/a)    -- documentation of a function\n"
                    "(ec file)      -- compile and load code in erlang <file>\n"
                    "(ep expr)      -- print a term in erlang form\n"
                    "(epp expr)     -- pretty print a term in erlang form\n"
                    "(exit)         -- quit - an alias for (q)\n"
                    "(flush)        -- flush any messages sent to the shell\n"
                    "(h)            -- an alias for (help)\n"
+                   "(h m)          -- help about module\n"
+                   "(h m m)        -- help about function and macro in module\n"
+                   "(h m f a)      -- help about function/arity in module\n"
                    "(help)         -- help info\n"
                    "(i)            -- information about the system\n"
                    "(i pids)       -- information about a list of pids\n"
+                   "(i x y z)      -- information about pid #Pid<x.y.z>\n"
                    "(l module)     -- load or reload <module>\n"
                    "(ls)           -- list files in the current directory\n"
                    "(ls dir)       -- list files in directory <dir>\n"
@@ -766,11 +833,12 @@ help() ->
                    "(m mod)        -- information about module <mod>\n"
                    "(p expr)       -- print a term\n"
                    "(pp expr)      -- pretty print a term\n"
-                   "(pid x y z)    -- convert <x>, <y> and <z> to a pid\n"
+                   "(pid x y z)    -- convert x, y, z to a pid\n"
                    "(pwd)          -- print working directory\n"
                    "(q)            -- quit - shorthand for init:stop/0\n"
-                   "(regs)         -- information about registered processes\n\n"
-                   "LFE shell built-in commands\n\n"
+                   "(regs)         -- information about registered processes\n"
+                   "\n"
+                   "LFE shell built-in forms\n\n"
                    "(reset-environment)             -- reset the environment to its initial state\n"
                    "(run file)                      -- execute all the shell commands in a <file>\n"
                    "(set pattern expr)\n"
@@ -781,7 +849,7 @@ help() ->
                    "(unslurp)                       -- revert back to the state before the last\n"
                    "                                   slurp\n\n"
                    "LFE shell built-in variables\n\n"
-                   "+/++/+++      -- the tree previous expressions\n"
+                   "+/++/+++      -- the three previous expressions\n"
                    "*/**/***      -- the values of the previous expressions\n"
                    "-             -- the current expression output\n"
                    "$ENV          -- the current LFE environment\n\n"
@@ -792,6 +860,8 @@ help() ->
 i() -> c:i().
 
 i(Pids) -> c:i(Pids).
+
+i(X, Y, Z) -> c:i(X, Y, Z).
 
 %% l(Modules) -> ok.
 %%  Load the modules.
@@ -841,7 +911,7 @@ print_module(M) ->
 print_md5(Info) ->
     case lists:keyfind(md5, 1, Info) of
         {md5,<<MD5:128>>} -> lfe_io:format("MD5: ~.16b~n", [MD5]);
-        error -> ok
+        false -> ok
     end.
 
 print_compile_time(Info) ->
@@ -870,7 +940,7 @@ print_exports(Info) ->
     lfe_io:format("Exported functions:~n", []),
     Exps = case lists:keyfind(exports, 1, Info) of
                {exports,Es} -> Es;
-               error -> []
+               false -> []
            end,
     print_names(fun ({N,Ar}) -> lfe_io:format1("~w/~w", [N,Ar]) end, Exps).
 
@@ -882,14 +952,14 @@ print_macros(Info) ->
                              (_) -> []
                          end,
                    lists:flatmap(Fun, Attrs);
-               error -> []
+               false -> []
            end,
     print_names(fun (N) -> lfe_io:print1(N) end, Macs).
 
 print_names(Format, Names) ->
     %% Generate flattened list of strings.
     Strs = lists:map(fun (N) -> lists:flatten(Format(N)) end,
-		     lists:sort(Names)),
+                     lists:sort(Names)),
     %% Split into equal length lists and print out.
     {S1,S2} = lists:split(round(length(Strs)/2), Strs),
     print_name_strings(S1, S2).
@@ -956,58 +1026,119 @@ regs() -> c:regs().
 
 exit() -> c:q().
 
-%% doc(Fun) -> ok.
-%% docs(Funs) -> ok.
+%% doc(Mod) -> ok | {error,Error}.
+%% doc(Mod, Func) -> ok | {error,Error}.
+%% doc(Mod, Func, Arity) -> ok | {error,Error}.
 %%  Print out documentation of a module/macro/function. Always try to
 %%  find the file and use it as this is the only way to get hold of
 %%  the chunks. This may get a later version than is loaded.
 
-docs(Fs) ->
-    lists:foreach(fun doc/1, Fs).
+%% doc(?Q(What)) -> doc(What);                     %Be kind if they quote it
+%% doc(What) ->
+%%     [Mod|F] = lfe_lib:split_name(What),
 
-doc(What) ->
-    [Mod|F] = lfe_lib:split_name(What),
-    io:format(?RED("~*c")++"\n", [60,$_]),      %Print a red line
-    case lfe_doc:get_module_docs(Mod) of
-        {ok,Docs} ->
-            case F of
-                [] ->                           %Only module name
-                    print_module_doc(Mod, Docs);
-                [Mac] ->                        %Macro
-                    print_macro_doc(Mac, Docs);
-                [Fun,Ar] ->                     %Function
-                    print_function_doc(Fun, Ar, Docs)
-            end;
-        {error,module} ->
-            lfe_io:format("No module ~s\n\n", [Mod]);
-        {error,docs} ->
-            lfe_io:format("No module documentation for ~s\n\n", [Mod])
+h(Mod) ->
+    case lfe_docs:get_module_docs(Mod) of
+        {ok,#docs_v1{}=Docs} ->
+            Ret = get_module_doc(Mod, Docs),
+            format_doc(Ret);
+        Error -> Error
     end.
 
-print_module_doc(Mod, Docs) ->
-    lfe_io:format(?BLU("~p")++"\n\n", [Mod]),
-    print_docs(lfe_doc:module_doc(Docs)),
-    io:nl().
-
-print_macro_doc(Mac, Docs) ->
-    case lfe_doc:macro_docs(Mac, Docs) of
-        {ok,Md} ->
-            lfe_io:format(?BLU("~p")++"\n", [Mac]),
-            print_docs(lfe_doc:macro_doc(Md)),
-            io:nl();
-        error ->
-            lfe_io:format("No macro ~s defined\n\n", [Mac])
+h(Mod, Func) ->
+    case lfe_docs:get_module_docs(Mod) of
+        {ok,#docs_v1{}=Docs} ->
+            Ret = get_macro_doc(Mod, Func, Docs),
+            format_doc(Ret);
+        Error -> Error
     end.
 
-print_function_doc(Fun, Ar, Docs) ->
-    case lfe_doc:function_docs(Fun, Ar, Docs) of
-        {ok,Fd} ->
-            lfe_io:format(?BLU("~p/~p")++"\n", [Fun,Ar]),
-            print_docs(lfe_doc:function_doc(Fd)),
-            io:nl();
-        error ->
-            lfe_io:format("No function ~s/~p defined\n\n", [Fun,Ar])
+h(Mod, Func, Arity) ->
+    case lfe_docs:get_module_docs(Mod) of
+        {ok,#docs_v1{}=Docs} ->
+            Ret = get_function_doc(Mod, Func, Arity, Docs),
+            format_doc(Ret);
+        Error -> Error
     end.
 
-print_docs(Ds) ->
-    foreach(fun (D) -> lfe_io:format("~s\n", [D]) end, Ds).
+format_doc({error,_}=Error) -> Error;
+format_doc(Docs) ->
+    {match,Lines} = re:run(Docs, "(.+\n|\n)",
+                           [unicode,global,{capture,all_but_first,binary}]),
+    Pfun = fun (Line) ->
+                   io:put_chars(Line),
+                   1                            %One line
+           end,
+    io:format(?RED("~*c")++"\n", [60,$_]),
+    paged_output(Pfun, Lines),
+    ok.
+
+
+-ifdef(EEP48).
+
+get_module_doc(Mod, #docs_v1{format = ?NATIVE_FORMAT}=Docs) ->
+    shell_docs:render(Mod, Docs);
+get_module_doc(Mod, #docs_v1{format = ?LFE_FORMAT}=Docs) ->
+    lfe_shell_docs:render(Mod, Docs);
+get_module_doc(_Mod, #docs_v1{format = Enc}) ->
+    {error, {unknown_format, Enc}}.
+
+get_macro_doc(Mod, Name, #docs_v1{format = ?NATIVE_FORMAT}=Docs) ->
+    shell_docs:render(Mod, Name, Docs);
+get_macro_doc(Mod, Name, #docs_v1{format = ?LFE_FORMAT}=Docs) ->
+    lfe_shell_docs:render(Mod, Name, Docs);
+get_macro_doc(_Mod, _Name, #docs_v1{format = Enc}) ->
+    {error, {unknown_format, Enc}}.
+
+get_function_doc(Mod, Name, Arity, #docs_v1{format = ?NATIVE_FORMAT}=Docs) ->
+    shell_docs:render(Mod, Name, Arity, Docs);
+get_function_doc(Mod, Name, Arity, #docs_v1{format = ?LFE_FORMAT}=Docs) ->
+    lfe_shell_docs:render(Mod, Name, Arity, Docs);
+get_function_doc(_Mod, _Name, _Arity, #docs_v1{format = Enc}) ->
+    {error, {unknown_format, Enc}}.
+
+-else.
+
+get_module_doc(Mod, #docs_v1{format = ?LFE_FORMAT}=Docs) ->
+    lfe_shell_docs:render(Mod, Docs);
+get_module_doc(_Mod, #docs_v1{format = Enc}) ->
+    {error, {unknown_format, Enc}}.
+
+get_macro_doc(Mod, Name, #docs_v1{format = ?LFE_FORMAT}=Docs) ->
+    lfe_shell_docs:render(Mod, Name, Docs);
+get_macro_doc(_Mod, _Name, #docs_v1{format = Enc}) ->
+    {error, {unknown_format, Enc}}.
+
+get_function_doc(Mod, Name, Arity, #docs_v1{format = ?LFE_FORMAT}=Docs) ->
+    lfe_shell_docs:render(Mod, Name, Arity, Docs);
+get_function_doc(_Mod, _Name, _Arity, #docs_v1{format = Enc}) ->
+    {error, {unknown_format, Enc}}.
+
+-endif.
+
+%% paged_output(Lines) -> ok.
+%%  Output lines a page at a time.
+
+paged_output(Pfun, Items) ->
+    %% How many rows per "page", just set it to 30 for now.
+    Limit = 30,
+    paged_output(Pfun, 0, Limit, Items).
+
+paged_output(Pfun, Curr, Limit, Items) when Curr >= Limit ->
+    case more() of
+        more -> paged_output(Pfun, 0, Limit, Items);
+        less -> ok
+    end;
+paged_output(Pfun, Curr, Limit, [I|Is]) ->
+    Lines = Pfun(I),
+    paged_output(Pfun, Curr + Lines, Limit, Is);
+paged_output(_, _, _, []) -> ok.
+
+more() ->
+    case io:get_line('More (y/n)? ') of
+        "y\n" -> more;
+        "c\n" -> more;
+        "n\n" -> less;
+        "q\n" -> less;
+        _ -> more()
+    end.

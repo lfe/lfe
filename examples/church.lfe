@@ -1,4 +1,4 @@
-;; Copyright (c) 2013 Duncan McGreggor <oubiwann@cogitat.io>
+;; Copyright (c) 2013-2020 Duncan McGreggor <oubiwann@gmail.com>
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -21,19 +21,21 @@
 ;;
 ;; Here is some example usage:
 ;;
-;; > (slurp '"church.lfe")
+;; $ ./bin/lfe
+;;
+;; lfe> (slurp "examples/church.lfe")
 ;; #(ok church)
-;; > (zero)
+;; lfe> (zero)
 ;; #Fun<lfe_eval.10.53503600>
-;; > (church->int1 (zero))
+;; lfe> (church->int1 (zero))
 ;; 0
-;; > (church->int1 (three))
+;; lfe> (church->int1 (three))
 ;; 3
-;; > (church->int1 (five))
+;; lfe> (church->int1 (five))
 ;; 5
-;; > (church->int2 #'five/0)
+;; lfe> (church->int2 #'five/0)
 ;; 5
-;; > (church->int2 (lambda () (get-church 25)))
+;; lfe> (church->int2 (lambda () (get-church 25)))
 ;; 25
 
 (defmodule church

@@ -1,6 +1,6 @@
 % lfe(1)
 % Robert Virding
-% 2008-2016
+% 2008-2020
 
 
 # NAME
@@ -40,14 +40,6 @@ Change the working directory.
 
 Clear the REPL output.
 
-**([doc | describe] Mod)**
-
-**([doc | describe] Mod:Mac)**
-
-**([doc | describe] Mod:Fun/Arity)**
-
-Print out documentation of a module/macro/function.
-
 **(ec File [Options])**
 
 Compile and load an Erlang file.
@@ -69,10 +61,22 @@ Flush any messages sent to the shell.
 
 Print usage info.
 
+**(h Mod)**
+
+**(h Mod Mac)**
+
+**(h Mod Fun Arity)**
+
+Print out help information of a module/macro/function.
+
 **(i [(list Pid ...)])**
 
 Print information about a list of pids. If no list is given then
 print information about currently running processes in the system.
+
+**(i x y z)**
+
+Print information about the about #Pid<x.y.z>
 
 **(l Module ...)**
 
@@ -122,7 +126,7 @@ top-level in shell input. The cannot be redefined.
 **(reset-environment)**
 
 Resets the environment to its initial state. This will clear all
-variables, functions an macros that have been set.
+variables, functions and macros that have been set.
 
 **(run File)**
 
@@ -176,7 +180,7 @@ The three previous expressions input.
 
 **``*``, ``**``, ``***``**
 
-The values of the previous 3 expressions.
+The values of the previous three expressions.
 
 **``-``**
 
@@ -221,8 +225,9 @@ it. This also works when starting a remote shell.
 
 Flags that LFE recognizes include the following:
 
+* ``-nobanner`` - starts LFE without showing the banner
 * ``-h`` or ``--help`` - provides command line usage help
-* ``-e`` or ``-eval`` - evaluates a given sexpr
+* ``-e`` or ``-eval`` - evaluates a given sexpr in a string
 * ``-prompt`` - users may supply a value here to override the
   default ``lfe>`` prompt; note that ``-prompt classic`` will set
   the prompt to the original ``>`` and ``-prompt`` with no
@@ -233,6 +238,17 @@ Flags that LFE recognizes include the following:
   prompt value containing the string ``~node`` (which will be
   substituted with the actual name of the node).
 
+There can be multiple string expressions to be evaluated; each one
+must be prefixed with an ``-e`` or ``-eval``. String expressions are
+run in the LFE repl so shell commands and functions are allowed. They
+are all run in the same invocation of the repl so:
+
+```
+$ lfe -e "(set aaa 42)" -e "(set bbb 84)" -e "(pp (tuple aaa bbb))"
+#(42 84)
+```
+
+If there are string expressions then the LFE repl will ``not`` be run.
 
 # RUNNING LFE SHELL SCRIPTS
 
@@ -253,10 +269,16 @@ The name of the script file as a string.
 
 **script-args**
 
-A list of the arguments to the script as strings. If
-no arguments have been given then this will be an
-empty list.
+A list of the arguments to the script as strings. If no arguments have
+been given then this will be an empty list.
 
+Note that if there are any string expressions to be evaluated then
+these must come before the name of the script file and its
+arguments. These expressions will be evaluated before the script and
+the script will use the environment from the string expressions.
+
+It is possible to run both string expressions and an LFE shell script
+and they are then run in the same LFE repl.
 
 # SEE ALSO
 

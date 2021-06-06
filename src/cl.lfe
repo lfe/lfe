@@ -1,4 +1,4 @@
-;; Copyright (c) 2015-2016 Robert Virding
+;; Copyright (c) 2015-2020 Robert Virding
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -48,7 +48,9 @@
    (acons 3) (pairlis 2) (pairlis 3) (assoc 2) (assoc-if 2) (assoc-if-not 2)
    (rassoc 2) (rassoc-if 2) (rassoc-if-not 2)
    ;; Types.
-   (type-of 1) (coerce 2))
+   (type-of 1) (coerce 2)
+   ;; System
+   (posix-argv 0))
   (export-macro
    ;; Export control structure macros.
    do
@@ -74,16 +76,16 @@
 (defmacro do args
   "vars (end-test result) body"
   (let* ((`(,pars (,test ,ret) . ,body) args)
-	 ((tuple vs is cs)
-	  (lists:foldr (match-lambda
-			 ([(list v i c) (tuple vs is cs)]
-			  (tuple (cons v vs) (cons i is) (cons c cs))))
-		       (tuple () () ()) pars)))
+         ((tuple vs is cs)
+          (lists:foldr (match-lambda
+                         ([(list v i c) (tuple vs is cs)]
+                          (tuple (cons v vs) (cons i is) (cons c cs))))
+                       (tuple () () ()) pars)))
     `(letrec-function ((|\|-do-func-\||
-			(lambda ,vs
-			  (if ,test ,ret
-			      (let ((do-state (progn . ,body)))
-				(|\|-do-func-\|| . ,cs))))))
+                        (lambda ,vs
+                          (if ,test ,ret
+                              (let ((do-state (progn . ,body)))
+                                (|\|-do-func-\|| . ,cs))))))
        (|\|-do-func-\|| . ,is))))
 
 (defun mapcar (func list)
@@ -234,7 +236,7 @@
 
 (defun length
   ([seq] (when (is_list seq))
-   (length seq))
+   (erlang:length seq))                 ;To ensure we call system length
   ([seq] (when (is_tuple seq))
    (tuple_size seq)))
 
@@ -683,7 +685,7 @@
    (cond ((io_lib:printable_latin1_list x) 'string)
          ((io_lib:printable_unicode_list x) 'unicode)
          ((?= `(,a . ,b) (when (not (is_list b))) x) 'cons)
-         ('true 'list)))
+         (else 'list)))
   ((x) (when (is_function x))
    'function)
   ((x) (when (is_binary x))

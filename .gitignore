@@ -15,3 +15,8 @@ doc/epub/*
 doc/pdf/*
 ebin/*
 erl_crash.dump
+*~
+\#*\#
+.\#*
+.emacs.desktop
+.emacs.desktop.lock

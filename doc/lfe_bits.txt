@@ -16,7 +16,7 @@ EXPORTS
                 {error,Error}.
 
        Parse a bitspec and return the data.  Unmentioned fields get the  value
-       'default'.
+       `default'.
 
        get_bitspecs(Specs) ->
 
@@ -24,7 +24,7 @@ EXPORTS
                 {error,Error}.
 
        Parse  a  bitspec,  apply  defaults  and  return the data.  Unmentioned
-       fields get the value 'default'.
+       fields get the value `default'.
 
 ERROR INFORMATION
        The following error values are returned:

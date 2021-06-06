@@ -1,6 +1,6 @@
 ;;; lfe-mode.el --- Lisp Flavoured Erlang mode
 
-;; Copyright (c) 2012-2015 Robert Virding
+;; Copyright (c) 2012-2020 Robert Virding
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -208,6 +208,7 @@ Other commands:
                      "match-lambda" "progn" "receive" "try" "when"
                      ;; Core macro forms.
                      "andalso" "bc" "binary-comp" "cond" "do"
+                     "dbg-ms" "ets-ms" "table-ms" "trace-ms"
                      "flet" "flet*" "fletrec"
                      "fun" "lc" "list-comp"
                      "let*" "match-spec" "macrolet" "orelse"

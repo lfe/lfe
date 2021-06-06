@@ -2,7 +2,7 @@
 ;; -*- mode: lfe -*-
 ;;! -smp enable -sname factorial -mnesia debug verbose
 ;;
-;; Copyright (c) 2013 Duncan McGreggor <oubiwann@cogitat.io>
+;; Copyright (c) 2013-2020 Duncan McGreggor <oubiwann@gmail.com>
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@
 ;;
 ;; At this point, you can call this script directly:
 ;;
+;;  $ export PATH=$(pwd)/bin:$PATH
 ;;  $ examples/sample-lfescript
 ;;  usage: examples/sample-lfescript <integer>
 ;;
@@ -41,7 +42,7 @@
    (try
        (let* ((n (list_to_integer string))
               (f (fac n)))
-         (: lfe_io format '"factorial ~w = ~w\n" (list n f)))
+         (lfe_io:format "factorial ~w = ~w\n" (list n f)))
      (catch
        ((tuple _ _ _) (usage)))))
   ([_] (usage)))
@@ -51,5 +52,5 @@
   ([n] (* n (fac (- n 1)))))
 
 (defun usage ()
-  (let ((script-name (: escript script_name)))
-    (: lfe_io format '"usage: ~s <integer>\n" (list script-name))))
+  (let ((script-name (escript:script_name)))
+    (lfe_io:format "usage: ~s <integer>\n" (list script-name))))

@@ -2,7 +2,7 @@
 ;; -*- mode: lfe -*-
 ;;! -smp enable -sname factorial -mnesia debug verbose
 ;;
-;; Copyright (c) 2013 Duncan McGreggor <oubiwann@cogitat.io>
+;; Copyright (c) 2013-2020 Duncan McGreggor <oubiwann@gmail.com>
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -21,10 +21,11 @@
 ;; Purpose : Demonstrating usage of lfe
 
 ;; To use this script make sure you have run "make install" from the
-;; lfe working directory
+;; lfe working directory and then (temporarily) set the PATH:
 ;;
 ;; At this point, you can call this script directly:
 ;;
+;;  $ export PATH=$(pwd)/bin:$PATH
 ;;  $ examples/sample-lfe-shellscript
 ;;  usage: examples/sample-lfescript <integer>
 ;;
@@ -39,7 +40,7 @@
   ([n] (* n (fac (- n 1)))))
 
 (defun usage ()
-  (: lfe_io format "usage: ~s <integer>\n" (list script-name)))
+  (lfe_io:format "usage: ~s <integer>\n" (list script-name)))
 
 ;; Now do it
 (case script-args
@@ -47,7 +48,7 @@
    (try
        (let* ((n (list_to_integer string))
               (f (fac n)))
-         (: lfe_io format '"factorial ~w = ~w\n" (list n f)))
+         (lfe_io:format "factorial ~w = ~w\n" (list n f)))
      (catch
        ((tuple _ _ _) (usage)))))
   (() (usage)))

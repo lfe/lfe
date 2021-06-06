@@ -117,7 +117,7 @@ Parameterized modules.
 Added ``(export all)`` attribute to module definition.
 
 Added new records which allow giving default values as in vanilla Erlang.
-Records are still compatible with vanilla Erlang but now more pratical
+Records are still compatible with vanilla Erlang but now more practical
 to use. NOTE this change is not backwards compatible as syntax for
 ``(make- ...)`` and ``(match- ...)`` have changed. Also added general
 multiple ``(set- ...)`` macro.
@@ -126,13 +126,13 @@ multiple ``(set- ...)`` macro.
 functions to be defined when compiling the forms. These are useful for
 more complex macros.
 
-Better and more documention. The documentation is still normal text
+Better and more documentation. The documentation is still normal text
 files as Edoc and are not in agreement on how things should work.
 
 ## v0.3
 
 This is the first version with the modified internal core forms and
-macro intefaces for the new CL-inspired style and the older Scheme-inspired
+macro interfaces for the new CL-inspired style and the older Scheme-inspired
 style.
 
 Two new modules have been added:
@@ -148,7 +148,7 @@ NOTE order of commands important, must be ``-noshell -noinput``! Add
 ``-pa`` to find modules if necessary.
 
 ``lfe_gen`` is a trial interface for using LFE for dynamic code
-generation. LFE is much easier to generate as an Erkang list than
+generation. LFE is much easier to generate as an Erlang list than
 Erlang forms. This module helps with defining and compiling a module. Note,
 that while it works, this module is very experimental and may change.
 
@@ -161,7 +161,7 @@ name space. The reason for this change is that the ErlangVM does
 keep variables and functions separate and while Core Erlang tries to
 hide this fact it does not fully succeed. In fact, it is actually
 impossible to do this given Erlang's property of being able to have
-many functions of the same name but with different arites.
+many functions of the same name but with different arities.
 
 While this is not as elegant and forces the use of funcall to call
 functions bound to variables it works better.
@@ -187,13 +187,13 @@ or binary. For example:
 ```cl
 
   (tuple 'ok a b)
-  ; this is eqivalent to {ok,A,B}
+  ; this is equivalent to {ok,A,B}
 
   #('ok a b)
-  ; this is eqivalent to {[quote,ok],a,b}
+  ; this is equivalent to {[quote,ok],a,b}
 
   (binary (f float (size 32)) (rest binary))
-  ; this is eqivalent to <<F:32/float,Rest:binary>>
+  ; this is equivalent to <<F:32/float,Rest:binary>>
 
 ```
 
@@ -213,7 +213,7 @@ the file are also available.
 
 It is not yet possible to define functions/macros in the shell but
 that should use soon be possible. You should also then be able to do
-regurgítate which would write all the definitions out to a file.
+regurgitate which would write all the definitions out to a file.
 
 Running a shell other than the standard erlang one is a bit
 difficult so I have included a patched version of user_drv.erl from
@@ -237,4 +237,3 @@ to test linter.
 There is now a lisp prettyprinter in ``lfe_io``. Unfortunately the io
 functions in ``lfe_io`` are not always obviously named from a lisp
 viewpoint.
-

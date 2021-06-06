@@ -1,4 +1,4 @@
-;; Copyright (c) 2008-2013 Robert Virding
+;; Copyright (c) 2008-2020 Robert Virding
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -23,10 +23,10 @@
           (,pat val))
      val))
 
-;; We don't have any sensible line numbers to save so we save form.
-(defmacro line (expr)
-  `(progn (put 'test_server_loc (tuple (MODULE) ',expr))
-          ,expr))
+;; Backwards compatibility for test_server test suites only.
+;; DO NOT USE IN NEW TEST SUITES.
+
+(defmacro line (expr) expr)
 
 (defmacro config args
   `(: test_server lookup_config . ,args))

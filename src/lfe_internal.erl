@@ -1,4 +1,4 @@
-%% Copyright (c) 2016 Robert Virding
+%% Copyright (c) 2016-2021 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -14,13 +14,16 @@
 
 %% File    : lfe_internal.erl
 %% Author  : Robert Virding
-%% Purpose : Define Lisp Flavoured Erlang internal bifs, guards.
+%% Purpose : Define Lisp Flavoured Erlang internals.
+
+%%% Define LFE internal bifs, guards and other internal stuff.
 
 -module(lfe_internal).
 
 %% General library functions.
 -export([is_bif/2,is_guard_bif/2,is_erl_bif/2,is_lfe_bif/2]).
 -export([is_core_form/1,is_core_func/2]).
+-export([is_type/2]).
 
 %% -compile([export_all]).
 
@@ -62,12 +65,22 @@ is_core_form(tref) -> true;
 is_core_form(tset) -> true;
 is_core_form(binary) -> true;
 is_core_form(map) -> true;
+is_core_form(msiz) -> true;
 is_core_form(mref) -> true;
 is_core_form(mset) -> true;
 is_core_form(mupd) -> true;
+is_core_form(mrem) -> true;
+is_core_form('map-size') -> true;
 is_core_form('map-get') -> true;
 is_core_form('map-set') -> true;
 is_core_form('map-update') -> true;
+is_core_form('map-remove') -> true;
+%% Core record special forms.
+is_core_form('make-record') -> true;
+is_core_form('record-index') -> true;
+is_core_form('record-field') -> true;
+is_core_form('record-update') -> true;
+%% Function forms.
 is_core_form(function) -> true;
 %% Core closure special forms.
 is_core_form(lambda) -> true;
@@ -94,6 +107,7 @@ is_core_form('define-opaque-type') -> true;
 is_core_form('define-function-spec') -> true;
 is_core_form('define-function') -> true;
 is_core_form('define-macro') -> true;
+is_core_form('define-record') -> true;
 %% And don't forget when.
 is_core_form('when') -> true;
 %% Everything else is not a core form.
@@ -113,12 +127,20 @@ is_core_func(tref, 2) -> true;
 is_core_func(tset, 3) -> true;
 is_core_func(binary, Ar) when Ar >= 0  -> true;
 is_core_func(map, Ar) when Ar >= 0, (Ar rem 2) =:= 0 -> true;
+is_core_func(msiz, 1) -> true;
 is_core_func(mref, 2) -> true;
-is_core_func(mset, Ar) when Ar >= 0, (Ar rem 2) =:= 1 -> true;
-is_core_func(mupd, Ar) when Ar >= 0, (Ar rem 2) =:= 1 -> true;
+is_core_func(mset, Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
+is_core_func(mupd, Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
+is_core_func(mrem, Ar) when Ar >= 1 -> true;
+is_core_func('map-size', 1) -> true;
 is_core_func('map-get', 2) -> true;
-is_core_func('map-set', Ar) when Ar >= 0, (Ar rem 2) =:= 1 -> true;
-is_core_func('map-upd', Ar) when Ar >= 0, (Ar rem 2) =:= 1 -> true;
+is_core_func('map-set', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
+is_core_func('map-update', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
+is_core_func('map-remove', Ar) when Ar >= 1 -> true;
+is_core_func('make-record', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
+is_core_func('record-index', 2) -> true;
+is_core_func('record-field', 3) -> true;
+is_core_func('record-update', Ar) when Ar >= 2, (Ar rem 2) =:= 0 -> true;
 is_core_func(funcall, Ar) when Ar >= 1 -> true;
 is_core_func(call, Ar) when Ar >= 2 -> true;
 is_core_func(_, _) -> false.
@@ -138,3 +160,16 @@ is_lfe_bif('macroexpand-1', 2) -> true;
 is_lfe_bif('macroexpand-all', 1) -> true;
 is_lfe_bif('macroexpand-all', 2) -> true;
 is_lfe_bif(_, _) -> false.
+
+%% is_type(NAme, Arity) -> bool().
+%%  Return true if Name/Arity is a predefined type.
+
+is_type('UNION', Ar) -> is_integer(Ar) and (Ar >= 0);
+is_type(call, Ar) -> is_integer(Ar) and (Ar >= 0);
+is_type(lambda, Ar) -> is_integer(Ar) and (Ar >= 0);
+is_type(map, Ar) -> is_integer(Ar) and (Ar >= 0);
+is_type(range, 2) -> true;
+is_type(bitstring, 2) -> true;
+is_type(tuple, Ar) -> is_integer(Ar) and (Ar >= 0);
+is_type(Name, Arity) ->
+    erl_internal:is_type(Name, Arity).

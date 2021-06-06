@@ -16,11 +16,11 @@ EXPORTS
        extract_module_docs(Mod,  CompilerInfo)  ->  {ok,ModDocs}  | {error,Er‐
        rors,[]}
 
-       Parse a module's docstrings and return module documentation structure.
+       Parse a module’s docstrings and return module documentation structure.
 
        save_module_docs(Beam, ModDocs, CompilerInfo) -> Beam
 
-       Add the "LDoc" chunk containing ModDocs to a module's .beam binary.
+       Add the "LDoc" chunk containing ModDocs to a module’s .beam binary.
 
        get_module_docs(Module | Binary) -> {ok,DocChunk} | {error,Error}
 

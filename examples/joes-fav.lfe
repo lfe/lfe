@@ -1,5 +1,5 @@
 ;; Copyright (c) 2013 Joe Armstrong <joearms@gmail.com>, Original Erlang version
-;; Copyright (c) 2013 Duncan McGreggor <oubiwann@cogitat.io>, LFE version
+;; Copyright (c) 2013-2020 Duncan McGreggor <oubiwann@gmail.com>, LFE version
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -22,26 +22,27 @@
 ;;
 ;; Here is some example usage:
 ;;
-;; > (slurp '"examples/joes-fav.lfe")
+;; $ ./bin/lfe
+;;
+;; lfe> (slurp "examples/joes-fav.lfe")
 ;; #(ok joes-fav)
 ;;
 ;; Quick sanity check:
 ;;
-;; > (factorial 10)
+;; lfe> (factorial 10)
 ;; 3628800
-;; > (factorial 20)
+;; lfe> (factorial 20)
 ;; 2432902008176640000
-;; > (factorial 50)
+;; lfe> (factorial 50)
 ;; 30414093201713378043612608166064768844377641568960512000000000000
 ;;
 ;; Now, for the real thing:
 ;;
-;; > (run-it)
+;; lfe> (run-it)
 ;; 30414093201713378043612608166064768844377641568960512000000000000
 ;;
 (defmodule joes-fav
   (export all))
-
 
 (defun universal-server ()
   (receive

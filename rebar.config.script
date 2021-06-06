@@ -1,56 +1,99 @@
 %% -*- mode: erlang; indent-tabs-mode: nil -*-
 
-Conf0 = CONFIG,
-HasOpt = {d,'HAS_MAPS',true},
-FullOpt = {d,'HAS_FULL_KEYS',true},
-RecOpt = {d,'NEW_REC_CORE',true},
-RandOpt = {d,'NEW_RAND',true},
+Conf0 = CONFIG,                                 %The original config
+
+%% Do a deep set stepping down a list of keys replacing/adding last
+%% with value. Named funs would be nicer but not always available.
+
+SetConf = fun ([K], Val, Ps, _F) ->
+                  %% Replace the whole K field with Val.
+                  [Val|proplists:delete(K, Ps)];
+              ([K|Ks], Val, Ps, F) ->
+                  %% Step down and build coming up.
+                  case lists:keyfind(K, 1, Ps) of
+                      {K,Kps} ->
+                          lists:keyreplace(K, 1, Ps, {K,F(Ks, Val, Kps, F)});
+                      false -> Ps ++ [{K,F(Ks, Val, [], F)}]
+                  end
+          end,
 
 %% Get the release number.
 %% We have stolen the idea and most of the code from rebar3.
 
-Version = case erlang:system_info(otp_release) of
-              [$R,N1|Rest] when is_integer(N1) ->
-                  %% If OTP <= R16, take the digits.
-                  [N1|Rest];
-              Rel ->
-                  File = filename:join([code:root_dir(),"releases",Rel,"OTP_VERSION"]),
-                  case file:read_file(File) of
-                      {error, _} -> Rel;
-                      {ok, Vsn} ->
-                          Size = byte_size(Vsn),
-                          %% The shortest vsn string consists of at least
-                          %% two digits followed by "\n". Therefore, it's
-                          %% safe to assume Size >= 3.
-                          case binary:part(Vsn, {Size, -3}) of
-                              <<"**\n">> ->
-                                  binary:bin_to_list(Vsn, {0, Size - 3});
-                              _ ->
-                                  binary:bin_to_list(Vsn, {0, Size - 1})
-                          end
-                  end
-          end,
+OTPRelease =
+    fun () ->
+            case erlang:system_info(otp_release) of
+                [$R,N1|Rest] when is_integer(N1) ->
+                    %% If OTP <= R16, take the digits.
+                    [N1|Rest];
+                Rel ->
+                    File = filename:join([code:root_dir(),"releases",Rel,"OTP_VERSION"]),
+                    case file:read_file(File) of
+                        {error, _} -> Rel;
+                        {ok, Vsn} ->
+                            Size = byte_size(Vsn),
+                            %% The shortest vsn string consists of at least
+                            %% two digits followed by "\n". Therefore, it's
+                            %% safe to assume Size >= 3.
+                            case binary:part(Vsn, {Size, -3}) of
+                                <<"**\n">> ->
+                                    binary:bin_to_list(Vsn, {0, Size - 3});
+                                _ ->
+                                    binary:bin_to_list(Vsn, {0, Size - 1})
+                            end
+                    end
+            end
+    end,
 
-%% These are the macros we add to the configuration.
+Version = OTPRelease(),
+
+%% Collect the macro definitions we will add to the compiler options.
+%% Named funs would be nicer but not always available.
+
+AppendCopts = fun (Version, [{Ver,Opt}|Opts], F) ->
+                      Rest = F(Version, Opts, F),
+                      if Version >= Ver ->
+                              [{d,Opt,true}|Rest];
+                         true ->
+                              Rest
+                      end;
+                  (_Version, [], _F) -> []
+              end,
 
 Copts0 = [{d,'ERLANG_VERSION',Version}],
-Copts1 = if Version >= "17" -> Copts0 ++ [HasOpt];
-            true -> Copts0
-         end,
-Copts2 = if Version >= "18" -> Copts1 ++ [FullOpt];
-            true -> Copts1
-         end,
-Copts3 = if Version >= "19" -> Copts2 ++ [RecOpt,RandOpt];
-            true -> Copts2
-         end,
-Copts = Copts3,                                 %This is it
+Copts = Copts0 ++ AppendCopts(Version,
+                              [{"17",'HAS_MAPS'},
+                               {"18",'HAS_FULL_KEYS'},
+                               {"19",'NEW_REC_CORE'},
+                               {"19",'NEW_RAND'},
+                               {"20",'NEW_BOOL_GUARD'},
+                               {"20",'HAS_FLOOR'},
+                               {"20",'HAS_CEIL'},
+                               {"21",'NEW_STACKTRACE'},
+                               {"23",'EEP48'}],
+                              AppendCopts),
 
-%% Now add them.
+%% Ensure they are in erl_opts.
 
-case lists:keyfind(erl_opts, 1, Conf0) of
-    {erl_opts,Opts} ->                          %Existing erl_opts
-        NewOpts = {erl_opts,Opts ++ Copts},
-        lists:keyreplace(erl_opts, 1, Conf0, NewOpts);
-    false ->                                    %No erl_opts
-        Conf0 ++ [{erl_opts,Copts}]
-end.
+Conf1 = case lists:keyfind(erl_opts, 1, Conf0) of
+            {erl_opts,Opts} ->                  %Existing erl_opts
+                NewOpts = {erl_opts,Opts ++ Copts},
+                lists:keyreplace(erl_opts, 1, Conf0, NewOpts);
+            false ->                            %No erl_opts
+                Conf0 ++ [{erl_opts,Copts}]
+        end,
+
+%% Get the proper dep we will add to profiles-test-deps.
+
+Prop = if
+    Version =< "17" -> {proper, "1.1.1-beta"};
+    Version =< "21" -> {proper, "1.3.0"};
+    Version =< "23" -> {proper, "1.4.0"};
+    true -> proper
+    end,
+
+%% Ensure we have set the right value of proper dep.
+
+Conf2 = SetConf([profiles,test,deps,proper], Prop, Conf1, SetConf),
+
+Conf2.

@@ -1,15 +1,15 @@
 % lfe_guide(7)
 % Robert Virding
-% 2008-2016
+% 2008-2020
 
 
 # NAME
 
 lfe_guide - Lisp Flavoured Erlang User Guide
 
-# SYNPOSIS
+# SYNOPSIS
 
-Note: {{ ... }} is use to denote optional syntax.
+Note: {{ ... }} is used to denote optional syntax.
 
 
 # LITERALS AND SPECIAL SYNTACTIC RULES
@@ -35,7 +35,7 @@ Integers can be written in various forms and number bases:
 * Binary notation (alternative form):
 
 ```
-  #*0 #b*10101 #*-1100
+  #*0 #*10101 #*-1100
 ```
 
 * Octal notation:
@@ -53,7 +53,7 @@ Integers can be written in various forms and number bases:
 * Hexadecimal notation:
 
 ```
-  #xc0ffe 0x-01
+  #xc0ffe #x-01
 ```
 
 * Notation with explicit base (up to 36):
@@ -100,7 +100,7 @@ numbers:
 1.0 +1.0 -1.0 1.0e10 1.111e-10
 ```
 
-The one thing to watch out for is that you cannot omit the the part
+The one thing to watch out for is that you cannot omit the part
 before or after the decimal point if it is zero.  E.g. the following are
 not valid forms: ``100.`` or ``.125``.
 
@@ -125,7 +125,7 @@ e.g. ``"\x61;\x62;\x63;"`` is a complicated way of writing ``"abc"``.  This can
 be convenient when writing Unicode letters not easily typeable or
 viewable with regular fonts.  E.g. ``"Cat: \\x1f639;"`` might be easier to
 type (and view on output devices without a Unicode font) then typing the
-actual unicode letter.
+actual Unicode letter.
 
 
 ### Binary Strings
@@ -226,7 +226,7 @@ somewhat surprisingly ``123foo`` and ``1.23e4extra`` (but note that illegal
 digits don't make a number a symbol when using the explicit number base
 notation, e.g. ``#b10foo`` gives an error).
 
-<!-- 
+<!--
 Symbol names can contain a surprising breadth or characters:
 
 ```
@@ -296,12 +296,16 @@ while it reads the expression and then be effectively ``2``.
 (tset tuple index val)
 (binary seg ... )
 (map key val ...)
-(map-get m k) (map-set m k v ...) (map-update m k v ...)
+(map-size map) (msiz m)
+(map-get map key) (mref m k)
+(map-set map key val ...) (mset m k v ...)
+(map-update map key val ...) (mupd m k v ...)
+(map-remove map key ...) (mrem m k k ...)
 (lambda (arg ...) ...)
 (match-lambda
   ((arg ... ) {{(when e ...)}} ...)           - Matches clauses
   ... )
-(function func-name arity)                    - Function references
+(function func-name arity)                    - Function reference
 (function mod-name func-name arity)
 (let ((pat {{(when e ...)}} e)
       ...)
@@ -330,19 +334,29 @@ while it reads the expression and then be effectively ``2``.
   {{(case ((pat {{(when e ...)}} ... )
           ... ))}}
   {{(catch
-     (((tuple type value ignore) {{(when e ...)}}
-                                - Must be tuple of length 3!
+     ((tuple type value stacktrace)|_ {{(when e ...)}}
+                            - Must be tuple of length 3 or just _!
       ... )
      ... )}}
   {{(after ... )}})
 (funcall func arg ... )
-(call mod func arg ... )        - Call to Mod:Func(Arg, ... )
+(call mod func arg ... )    - Call to Mod:Func(Arg, ... )
+
+(define-record name fields)
+(make-record name field val ...)
+(record-index name field)
+(record-field record name field)
+(record-update record name field val ...)
 
 (define-module name meta-data attributes)
 (extend-module meta-data attributes)
 
 (define-function name meta-data lambda|match-lambda)
 (define-macro name meta-data lambda|match-lambda)
+
+(define-type type definition)
+(define-opaque-type type definition)
+(define-function-spec func spec)
 ```
 
 ## Basic macro forms
@@ -354,8 +368,9 @@ while it reads the expression and then be effectively ``2``.
         (call 'mod 'func arg ... )
 (? {{timeout {{default}} }})
 (++ ... )
-(list* ...)
-(let* (...) ... )
+(-- ... )
+(list* ... )
+(let* (... ) ... )
 (flet ((name (arg ...) {{doc-string}} ...)
        ...)
   ...)
@@ -363,9 +378,11 @@ while it reads the expression and then be effectively ``2``.
 (fletrec ((name (arg ...) {{doc-string}} ...)
           ...)
   ...)
-(cond ...
-      {{(?= pat expr)}}
-      ... )
+(cond (test body ...)
+      ...
+      ((?= pat expr) ...)
+      ...
+      (else ...))
 (andalso ... )
 (orelse ... )
 (fun func arity)
@@ -374,7 +391,8 @@ while it reads the expression and then be effectively ``2``.
 (list-comp (qual ...) ...)
 (bc (qual ...) ...)
 (binary-comp (qual ...) ...)
-(match-spec ...)
+(ets-ms ...)
+(trace-ms ...)
 ```
 
 ## Common Lisp inspired macros
@@ -404,20 +422,6 @@ while it reads the expression and then be effectively ``2``.
 (prog2 ...)
 (defmodule name ...)
 (defrecord name ...)
-```
-
-## Older Scheme inspired macros
-
-```
-(define (name arg ...) ...)
-(define name lambda|match-lambda)
-(define-syntax name
-  (syntax-rules (pat exp) ...)|(macro (pat body) ...))
-(let-syntax ((name ...)
-             ...)
-  ...)
-(begin ...)
-(define-record name ...)
 ```
 
 # Patterns
@@ -452,7 +456,7 @@ removed, but later passes of the compiler can't handle this yet.
 # Guards
 
 Wherever a pattern occurs (in let, case, receive, lc, etc.) it can be
-followed by an optional guard which has the form (when test ...).
+followed by an optional guard which has the form ``(when test ...)``.
 Guard tests are the same as in vanilla Erlang and can contain the
 following guard expressions:
 
@@ -465,9 +469,15 @@ following guard expressions:
 (tuple gexpr ...)
 (tref gexpr gexpr)
 (binary ...)
-(progn gtest ...)           - Sequence of guard tests
-(if gexpr gexpr gexpr)
-(type-test e)
+(make-record ...)           - Also the macro versions
+(record-field ...)
+(record-index ...)
+(map ...)
+(msiz ...) (map-size ...)
+(mref ...) (map-get ...)
+(mset ...) (map-set ...)
+(mupd ...) (map-update ...)
+(type-test e)               - Type tests
 (guard-bif ...)             - Guard BIFs, arithmetic,
                               boolean and comparison operators
 ```
@@ -533,6 +543,7 @@ bound in the ``let`` while the ``z`` comes from the function
 arguments. In the final ``(zop x y)`` both ``x`` and ``y`` come from
 the function arguments as the ``let`` does not export ``x``.
 
+
 # Function Binding and Scoping
 
 Functions are lexically scoped and bound by the top-level ``defun``
@@ -555,8 +566,8 @@ following order within a module, outermost to innermost:
 
 This means that it is perfectly legal to shadow BIFs by imports,
 BIFs/imports by top-level functions and BIFs/imports/top-level by
-``fletrec``s. In this respect there is nothing special about BIfs, they
-just behave as prefined imported functions, a whopping big ``(import
+``fletrec``s. In this respect there is nothing special about BIFs, they
+just behave as predefined imported functions, a whopping big ``(import
 (from erlang ...))``. EXCEPT that we know about guard BIFs and
 expression BIFs. If you want a private version of ``spawn`` then define
 it, there will be no warnings.
@@ -568,42 +579,70 @@ the core meaning and never an alternative. Silently!
 
 # Module definition
 
+The basic forms for defining a module and extending its metadata and
+attributes are:
+
+```
+(define-module name meta-data attributes)
+(extend-module meta-data attributes)
+```
+
+The valid meta data is ``(type typedef ...)``, ``(opaque typedef ...)``,
+``(spec function-spec ...)`` and ``(record record-def ...)``.
+Each can take multiple definitions in one meta form.
+
+Attributes declarations have the syntax ``(attribute value-1 ...)``
+where the attribute value is a list off the values in the declaration
+
+To simplify defining modules there is a predefined macro:
+
 ```
 (defmodule name
   "This is the module documentation."
   (export (f 2) (g 1) ... )
   (export all)                          ;Export all functions
   (import (from mod (f1 2) (f2 1) ... )
-          (rename mod ((f1 2) sune) ((f2 1) kurt) ... ))
-  (import (prefix mod mod-prefix))      - NYI
+          (rename mod ((g1 2) m-g1) ((g2 1) m-g2) ... ))
+  (module-alias (really-long-module-name rlmn) ...)
   (attr-1 value-1 value-2)
+  {meta meta-data ...)
   ... )
 ```
 
-Can have multiple export and import declarations within module
-declaration. The ``(export all)`` declaration is allowed together with
-other export declarations and overrides them. Other attributes which
-are not recognised by the compiler are allowed and are simply passed
-on to the module and can be accessed through ``module_info/0-1``.
+We can have multiple export and import attributes within module
+declaration. The ``(export all)`` attribute is allowed together with
+other export attributes and overrides them. Other attributes which are
+not recognized by the compiler are allowed and are simply passed on to
+the module and can be accessed with the ``module_info/0-1`` functions.
 
+In the ``import`` attribute the ``(from mod (f1 2) ...)`` means that
+the call ``(f1 'everything 42)`` will be converted by the compiler to
+``(mod:f1 'everything 42))`` while the ``(rename mod ((g2 2) m-g1)
+...)`` means that the call ``(m-g1 'everything 42)`` will be converted
+to ``(mod:g1 'everything 42)``. The ``rename`` form can be used as
+compact way of indicating the imported function's module. Note that
+when importing a module
 
-# Parameterized modules
+* the compiler does no checking on that module at all
+* in the ``rename`` above the functions ``g1/2`` and ``g2/1`` aren't
+automatically imported, only the "renamed" functions.
+* we do not really see in the code that we are calling a function in
+another module
 
-```
-(defmodule (name par1 par2 ... )
-  ... )
-```
-
-Define a parameterized module which behaves the same way as in vanilla
-Erlang. For now avoid defining functions 'new' and 'instance'.
-
+In the ``module-alias`` attribute the ``(really-long-module-name
+rlmn)`` declaration means that the call ``(lrmn:foo 'everything 42)``
+will be converted by the compiler to ``(really-long-module-name:foo
+'everything 42)``. This is often used to write short module names in
+the code when calling functions in modules with long names. It is in
+many ways better than using ``import`` as it does not hide that we are
+calling a function in another module.
 
 # Macros
 
 Macro calls are expanded in both body and patterns. This can be very
 useful to have both make and match macros, but be careful with names.
 
-A macro is function of two argument which is a called with a list of
+A macro is function of two arguments which is a called with a list of
 the arguments to the macro call and the current macro environment. It
 can be either a lambda or a match-lambda. The basic forms for defining
 macros are:
@@ -614,7 +653,14 @@ macros are:
   ...)
 ```
 
-Macros are definitely NOT hygienic in any form.
+Macros are definitely NOT hygienic in any form. However, variable
+scoping and variable immutability remove most of the things that can
+cause unhygienic macros. It can be done but you are not going to do it
+by mistake. The only real issue is if you happen to be using a
+variable which has the same name as one which the macro generates,
+that can cause problems. The work around for this is to give variables
+created in the macro expansion really weird names like `| - foo - |`
+which no one in their right mind would use.
 
 To simplify writing macros there are a number of predefined macros:
 
@@ -643,7 +689,7 @@ The macro definitions in a macrolet obey the same rules as defmacro.
 
 The macro functions created by defmacro and macrolet automatically add
 the second argument with the current macro environment with the name
-$ENV. This allows explicit expansion of macros inside the macro and
+`$ENV`. This allows explicit expansion of macros inside the macro and
 also manipulation of the macro environment. No changes to the
 environment are exported outside the macro.
 
@@ -678,18 +724,21 @@ which are called by macros can defined after the macro but must be
 defined before the macro is used.
 
 Scheme's syntax rules are an easy way to define macros where the body
-is just a simple expansion. These are supported with ``defsyntax`` and
-``syntaxlet``. Note that the patterns are only the arguments to the macro
-call and do not contain the macro name. So using them we would get:
+is just a simple expansion. The are implemented the the module `scm`
+and are supported with ``scm:define-syntax`` and ``scm:let-syntax``
+and the equivalent ``scm:defsyntax`` and ``scm:syntaxlet``. Note that
+the patterns are only the arguments to the macro call and do not
+contain the macro name. So using them we would get:
 
 ```
-(defsyntax andalso
+(scm:defsyntax andalso
   (() 'true)
   ((e) e)
   ((e . es) (case e ('true (andalso . es)) ('false 'false))))
 ```
 
-N.B. These are definitely NOT hygienic.
+There is an include file "include/scm.lfe" which defines macros so the
+names don't have to be prefixed with ``scm:``.
 
 *CAVEAT* While it is perfectly legal to define a Core form as a macro
  these will silently be ignored by the compiler.
@@ -737,10 +786,16 @@ macrolet:
 
 # Extended cond
 
-Cond has been extended with the extra test (?= pat expr) which tests
-if the result of expr matches pat. If so it binds the variables in pat
-which can be used in the cond. A optional guard is allowed here. An
-example:
+The tests in ``cond`` are Erlang tests in that they should return
+either ``true`` or ``false``. If no test succeeds then the ``cond``
+does not generate an exception but just returns ``false``. There is a
+simple catch-all "test" ``else`` which must last and can be used to
+handle when all tests fail.
+
+Cond has been extended with the extra test ``(?= pat expr)`` which
+tests if the result of ``expr`` matches the pattern ``pat``. If so it
+binds the variables in ``pa``t which can be used in the ``cond``. A optional
+guard is allowed here. An example:
 
 ```
 (cond ((foo x) ...)
@@ -748,7 +803,8 @@ example:
        (fubar xs (baz x)))
       ((?= (tuple 'ok x) (baz y))
        (zipit x))
-      ... )
+      ...
+      (else 'yay))
 ```
 
 
@@ -758,41 +814,95 @@ Records are tuples with the record name as first element and the rest
 of the fields in order exactly like "normal" Erlang records. As with
 Erlang records the default default value is 'undefined'.
 
+The basic forms for defining a record, creating, accessing and
+updating it are:
+
+```
+(define-record name ((field) | field
+                     (field default-value)
+                     (field default-value type) ...))
+(make-record name field value field value ...)
+(record-index name field)
+(record-field record name field)
+(record-update record name field value field value ...)
+```
+
+Note that the list of field/value pairs when making or updating a
+record is a flat list.
+
+We will explain these forms with a simple example. To define a record
+we do:
+
+```
+(define-record person
+               ((name "")
+                (address "" (string))
+                (age)))
+```
+
+which defines a record ``person`` with the fields ``name`` (default
+value ``""``), ``address`` (default value ``""`` and type
+``(string)``) and ``age``. To make an instance of a ``person`` record
+we do:
+
+```
+(make-record person name "Robert" age 54)
+```
+
+The ``make-record`` form is also used to define a pattern.
+
+We can get the value of the ``address`` field in a person record and
+the set it by doing (the variable ``robert`` references a ``person``
+record):
+
+```
+(record-field robert person address)
+(record-update robert person address "my home" age 55)
+```
+
+Note that we must include the name of the record when accessing it and
+there is no need to quote the record and field names as these are
+always literal atoms.
+
+To simplify defining records there is a predefined macro:
+
 ```
 (defrecord name
-  field
+  (field) | field
   (field default-value)
+  (field default-value type)
   ... )
 ```
 
-Will create access functions/macros for creation and accessing
-fields. The ``make-``, ``match-`` and ``set-`` forms takes optional
-argument pairs field-name value to get non-default values. E.g. for
+This will create access macros for record creation and accessing and
+updating fields. The ``make-``, ``match-`` and ``update-`` forms takes
+optional argument pairs field-name value to get non-default values.
+E.g. for
 
 ```
 (defrecord person
   (name "")
-  (address "")
-  age)
+  (address "" (string))
+  (age))
 ```
 
 the following will be generated:
 
 ```
 (make-person {{field value}} ... )
- (match-person {{field value}} ... )
- (is-person r)
- (fields-person)
- (emp-person {{field value}} ... )
- (set-person r {{field value}} ... )
- (person-name r)
- (person-name)
- (set-person-name r name)
- (person-age r)
- (person-age)
- (set-person-age r age)
- (person-address r)
- (set-person-address r address)
+(match-person {{field value}} ... )
+(is-person r)
+(fields-person)
+(update-person r {{field value}} ... )
+(person-name r)
+(person-name)
+(update-person-name r name)
+(person-age r)
+(person-age)
+(update-person-age r age)
+(person-address r)
+(person-address)
+(update-person-address r address)
 ```
 
 * ``(make-person name "Robert" age 54)`` -
@@ -807,22 +917,18 @@ the following will be generated:
 * ``(is-person john)`` -
   Test if john is a person record.
 
-* ``(emp-person age '$1)`` -
-  Create an Ets Match Pattern for record person where the age
-  field is set to $1 and all other fields are set to '_.
-
 * ``(person-address john)`` -
   Return the address field of the person record john.
 
 * ``(person-address)`` -
   Return the index of the address field of a person record.
 
-* ``(set-person-address john "back street")`` -
-  Sets the address field of the person record john to
+* ``(update-person-address john "back street")`` -
+  Updates the address field of the person record john to
   "back street".
 
-* ``(set-person john age 35 address "front street")`` -
-  In the person record john set the age field to 35 and the
+* ``(update-person john age 35 address "front street")`` -
+  In the person record john update the age field to 35 and the
   address field to "front street".
 
 * ``(fields-person)`` -
@@ -832,6 +938,9 @@ the following will be generated:
 
 * ``(size-person)`` -
   Returns the size of the record tuple.
+
+Note that the older now deprecated ``set-`` forms are still
+generated.
 
 # Binaries/bitstrings
 
@@ -861,7 +970,7 @@ forms are allowed on input but they will always be written as bytes.
 
 # Maps
 
-A map is:
+A map is created with:
 
 ```
 (map key value ... )
@@ -869,22 +978,28 @@ A map is:
 
 To access maps there are the following forms:
 
+* ``(map-size map)`` -
+  Return the size of a map.
+
 * ``(map-get map key)`` -
-  Return the value associated with key in map.
+  Return the value associated with the key in the map.
 
 * ``(map-set map key val ... )`` -
-  Set keys in map to values.
+  Set the keys in the map to values.
 
 * ``(map-update map key val ... )`` -
-  Update keys in map to values. Note that this form requires all
+  Update the keys in the map to values. Note that this form requires all
   the keys to exist.
 
-N.B. This syntax for processing maps has stablized but may change in
+* ``(map-remove map key ... )`` -
+  Remove the keys in the map.
+
+N.B. This syntax for processing maps has stabilized but may change in
 the future!
 
-There is also an alternate short form ``map``, ``mref``, ``mset``,
-``mupd`` based on the Maclisp array reference forms. They take the
-same arguments as their longer alternatives.
+There are also alternate short forms ``msiz``, ``mref``, ``mset``,
+``mupd`` and ``mrem`` based on the Maclisp array reference forms. They
+take the same arguments as their longer alternatives.
 
 
 # List/binary comprehensions
@@ -953,13 +1068,11 @@ Normal vanilla Erlang does the same thing but does not allow guards.
 
 # ETS and Mnesia
 
-Apart from ``(emp-record ...)`` macros for ETS Match Patterns, which are
-also valid in Mnesia, LFE also supports match specifications and Query
-List Comprehensions. The syntax for a match specification is the same
-as for match-lambdas:
+LFE also supports match specifications and Query List Comprehensions.
+The syntax for a match specification is the same as for match-lambdas:
 
 ```
-(match-spec
+(ets-ms
   ((arg ... ) {{(when e ...)}} ...)             - Matches clauses
   ... )
 ```
@@ -967,14 +1080,15 @@ as for match-lambdas:
 For example:
 
 ```
-(ets:select db (match-spec
+(ets:select db (ets-ms
                  ([(tuple _ a b)] (when (> a 3)) (tuple 'ok b))))
 ```
 
 It is a macro which creates the match specification structure which is
-used in ``ets:select`` and ``mnesia:select``. The same ``match-spec``
-macro can also be used with the dbg module. The same restrictions as to
-what can be done apply as for vanilla match specifications:
+used in ``ets:select`` and ``mnesia:select``. For tracing instead of
+the ``ets-ms`` macro there is the ``trace-ms`` macro which is also
+used in conjunction with the ``dbg`` module. The same restrictions as
+to what can be done apply as for vanilla match specifications:
 
 - There is only a limited number of BIFs which are allowed
 - There are some special functions only for use with dbg
@@ -1022,7 +1136,7 @@ The following more or less standard lisp functions are predefined:
 (<comp_op> expr ...)
 ```
 
-The standard arithmentic operators, + - * /, and
+The standard arithmetic operators, + - * /, and
 comparison operators, > >= < =< == /= =:= =/= , can take
 multiple arguments the same as their standard lisp
 counterparts. This is still experimental and implemented
@@ -1049,7 +1163,7 @@ The standard association list functions.
 (subst-if-not new test tree)
 (sublis alist tree)
 ```
-The standard substituition functions.
+The standard substitution functions.
 
 ```
 (macroexpand-1 expr {{environment}})
@@ -1094,6 +1208,232 @@ needs to access then we could evaluate it by calling:
 
 ```
 (eval `(let ((foo ,foo)) ,expr))
+```
+
+## Supplemental Common Lisp Functions
+
+LFE provides the module cl which contains the following functions
+which closely mirror functions defined in the Common Lisp
+Hyperspec. Note that the following functions use zero-based indices,
+like Common Lisp (unlike Erlang, which start at index '1'). A major
+difference between the LFE versions and the Common Lisp versions of
+these functions is that the boolean values are
+the LFE `'true` and `'false`. Otherwise the definitions closely follow the
+CL definitions and won't be documented here.
+
+```
+cl:make-lfe-bool cl-value
+cl:make-cl-bool lfe-bool
+
+cl:mapcar  function  list
+cl:maplist  function  list
+cl:mapc  function  list
+cl:mapl  function  list
+
+cl:symbol-plist  symbol
+cl:symbol-name  symbol
+cl:get  symbol  pname
+cl:get  symbol  pname  default
+cl:getl  symbol  pname-list
+cl:putprop  symbol  value  pname
+cl:remprop  symbol  pname
+
+cl:getf  plist  pname
+cl:getf  plist  pname  default
+cl:putf  plist  value  pname  ; This does not exist in CL
+cl:remf  plist  pname
+cl:get-properties  plist  pname-list
+
+cl:elt  index  sequence
+cl:length  sequence
+cl:reverse  sequence
+cl:some  predicate  sequence
+cl:every  predicate  sequence
+cl:notany  predicate  sequence
+cl:notevery  predicate  sequence
+cl:reduce  function  sequence
+cl:reduce  function  sequence  'initial-value  x
+cl:reduce  function  sequence  'from-end  'true
+cl:reduce  function  sequence  'initial-value  x  'from-end  'true
+
+cl:remove  item  sequence
+cl:remove-if  predicate  sequence
+cl:remove-if-not  predicate  sequence
+cl:remove-duplicates  sequence
+
+cl:find  item  sequence
+cl:find-if  predicate  sequence
+cl:find-if-not  predicate  sequence
+cl:find-duplicates  sequence
+cl:position  item  sequence
+cl:position-if  predicate  sequence
+cl:position-if-not  predicate  sequence
+cl:position-duplicates  sequence
+cl:count  item  sequence
+cl:count-if  predicate  sequence
+cl:count-if-not  predicate  sequence
+cl:count-duplicates  sequence
+
+cl:car  list
+cl:first  list
+cl:cdr  list
+cl:rest  list
+cl:nth  index  list
+cl:nthcdr  index  list
+cl:last  list
+cl:butlast  list
+
+cl:subst  new  old  tree
+cl:subst-if  new  test  tree
+cl:subst-if-not  new  test  tree
+cl:sublis  alist  tree
+
+cl:member  item  list
+cl:member-if  predicate  list
+cl:member-if-not  predicate  list
+cl:adjoin  item  list
+cl:union  list  list
+cl:intersection  list  list
+cl:set-difference  list  list
+cl:set-exclusive-or  list  list
+cl:subsetp  list  list
+
+cl:acons  key  data  alist
+cl:pairlis  list  list
+cl:pairlis  list  list  alist
+cl:assoc  key  alist
+cl:assoc-if  predicate  alost
+cl:assoc-if-not  predicate  alost
+cl:rassoc  key  alist
+cl:rassoc-if  predicate  alost
+cl:rassoc-if-not  predicate  alost
+
+cl:type-of  object
+cl:coerce  object  type
+```
+
+Furthermore, there is an include file which developers may which to utilize in
+their LFE programs: `(include-lib "lfe/include/cl.lfe")`. Currently this offers
+Common Lisp predicates, but may include other useful macros and functions in
+the future. The provided predicate macros wrap the various `is_*` Erlang
+functions; since these are expanded at compile time, they are usable in guards.
+The include the following:
+
+```
+(alivep x)
+(atomp x)
+(binaryp x)
+(bitstringp x)
+(boolp x) and (booleanp x)
+(builtinp x)
+(consp x)
+(floatp x)
+(funcp x) and (functionp x)
+(intp x) and (integerp x)
+(listp x)
+(mapp x)
+(numberp x)
+(pidp x)
+(process-alive-p x)
+(recordp x tag)
+(recordp x tag size)
+(refp x) and (referencep x)
+(tuplep x)
+(vectorp x)
+```
+
+Non-predicate macros in `lfe/include/cl.lfe` include:
+
+```
+(dolist ...)
+(vector ...)
+```
+## Supplemental Clojure Functions
+
+From LFE's earliest days, it's Lisp-cousin Clojure (created around the same time)
+has inspired LFE developers to create similar, BEAM-versions of those functions.
+These were collected in a separate library and then expanded upon, until
+eventually becoming part of the LFE standard library.
+
+Function definition macros:
+
+```
+(clj:defn ...)
+(clj:defn- ...)
+(clj:fn ...)
+```
+
+Threading macros:
+
+```
+(clj:-> ...)
+(clj:->> ...)
+(clj:as-> ...)
+(clj:cond-> ...)
+(clj:cond->> ...)
+(clj:some-> ...)
+(clj:some->> ...)
+(clj:doto ...)
+```
+
+Conditional macros:
+
+```
+(clj:if-let ...)
+(clj:iff-let ...)
+(clj:condp ...)
+(clj:if-not ...)
+(clj:iff-not ...)
+(clj:when-not ...)
+(clj:not= ...)
+```
+
+Predicate macros:
+
+```
+(clj:atom? x)
+(clj:binary? x)
+(clj:bitstring? x)
+(clj:bool? x)
+(clj:boolean? x)
+(clj:even? x)
+(clj:false? x)
+(clj:falsy? x)
+(clj:float? x)
+(clj:func? x)
+(clj:function? x)
+(clj:identical? x)
+(clj:int? x)
+(clj:integer? x)
+(clj:map? x)
+(clj:neg? x)
+(clj:nil? x)
+(clj:number? x)
+(clj:odd? x)
+(clj:pos? x)
+(clj:record? x)
+(clj:reference? x)
+(clj:true? x)
+(clj:tuple? x)
+(clj:undef? x)
+(clj:undefined? x)
+(clj:zero? x)
+```
+
+Other:
+
+```
+(clj:str x)
+(clj:lazy-seq x)
+(clj:conj ...)
+(clj:if ...)
+```
+
+Most of the above mentioned macros are available in the `clj` include file,
+the use of which allows developers to forego the `clj:` prefix in calls:
+
+```
+(include-lib "lfe/include/clj.lfe")
 ```
 
 # Notes

@@ -1,4 +1,4 @@
-;; Copyright (c) 2013 Duncan McGreggor <oubiwann@gmail.com>
+;; Copyright (c) 2013-2020 Duncan McGreggor <oubiwann@gmail.com>
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -26,61 +26,61 @@
 ;;
 ;; To use the code below in LFE, do the following:
 ;;
-;;  $ .bin/lfe -pa .ebin
+;; $ ./bin/lfe
 ;;
 ;; Load the file and create a fish-class instance:
 ;;
-;; > (slurp "examples/object-via-closure.lfe")
+;; lfe> (slurp "examples/object-via-closure.lfe")
 ;; #(ok object-via-closure)
-;; > (set mommy-fish (fish-class "Carp"))
+;; lfe> (set mommy-fish (fish-class "Carp"))
 ;; #Fun<lfe_eval.10.91765564>
 ;;
 ;; Execute some of the basic methods:
 ;;
-;; > (send mommy-fish 'species)
+;; lfe> (send mommy-fish 'species)
 ;; "Carp"
-;; > (send mommy-fish 'move 17)
+;; lfe> (send mommy-fish 'move 17)
 ;; The Carp swam 17 feet!
 ;; ok
-;; > (send mommy-fish 'id)
-;; "47eebe91a648f042fc3fb278df663de5"
+;; lfe> (send mommy-fish 'id)
+;; "c0ec94b9de24657c51ba180768542b27"
 ;;
 ;; Now let's look at "modifying" state data (e.g., children counts):
 ;;
-;; > (send mommy-fish 'children)
+;; lfe> (send mommy-fish 'children)
 ;; ()
-;; > (send mommy-fish 'children-count)
+;; lfe> (send mommy-fish 'children-count)
 ;; 0
-;; > (set `(,mommy-fish ,baby-fish-1) (send mommy-fish 'reproduce))
+;; lfe> (set `(,mommy-fish ,baby-fish-1) (send mommy-fish 'reproduce))
 ;; (#Fun<lfe_eval.10.91765564> #Fun<lfe_eval.10.91765564>)
-;; > (send mommy-fish 'id)
-;; "47eebe91a648f042fc3fb278df663de5"
-;; > (send baby-fish-1 'id)
-;; "fdcf35983bb496650e558a82e34c9935"
-;; > (send mommy-fish 'children-count)
+;; lfe> (send mommy-fish 'id)
+;; "c0ec94b9de24657c51ba180768542b27"
+;; lfe> (send baby-fish-1 'id)
+;; "5f31a47f000b5d173faa2793ea2ec876"
+;; lfe> (send mommy-fish 'children-count)
 ;; 1
-;; > (set `(,mommy-fish ,baby-fish-2) (send mommy-fish 'reproduce))
+;; lfe> (set `(,mommy-fish ,baby-fish-2) (send mommy-fish 'reproduce))
 ;; (#Fun<lfe_eval.10.91765564> #Fun<lfe_eval.10.91765564>)
-;; > (send baby-fish-2 'id)
-;; "3e64e5c20fb742dd88dac1032749c2fd"
-;; > (send mommy-fish 'children-count)
+;; lfe> (send baby-fish-2 'id)
+;; "2f40b14a4394f3b7a57d4e9048bbb19e"
+;; lfe> (send mommy-fish 'children-count)
 ;; 2
-;; > (send mommy-fish 'info)
-;; id: "47eebe91a648f042fc3fb278df663de5"
-;; species: "Carp"
-;; children: ["fdcf35983bb496650e558a82e34c9935",
-;;            "3e64e5c20fb742dd88dac1032749c2fd"]
+;; lfe> (send mommy-fish 'info)
+;; (#(id "c0ec94b9de24657c51ba180768542b27")
+;;  #(species "Carp")
+;;  #(children
+;;    ("5f31a47f000b5d173faa2793ea2ec876" "2f40b14a4394f3b7a57d4e9048bbb19e")))
 ;; ok
 
 (defmodule object-via-closure
- (export all))
+  (export all))
 
 (defun fish-class (species)
   "This is the constructor that will be used most often, only requiring that
   one pass a 'species' string.
 
   When the children are not defined, simply use an empty list."
-  (fish-class species ()))
+  (fish-class species '()))
 
 (defun fish-class (species children)
   "This contructor is mostly useful as a way of abstracting out the id
@@ -88,10 +88,7 @@
   besides fish-class/1, so it's not strictly necessary.
 
   When the id isn't known, generate one."
-  (let* (((binary (id (size 128))) (crypto:rand_bytes 16))
-         (formatted-id (car
-                         (io_lib:format "~32.16.0b" (list id)))))
-    (fish-class species children formatted-id)))
+  (fish-class species children (gen-id)))
 
 (defun fish-class (species children id)
   "This is the constructor used internally, once the children and fish id are
@@ -107,10 +104,9 @@
           (lambda (self) children))
         ('info
           (lambda (self)
-            (io:format "id: ~p~nspecies: ~p~nchildren: ~p~n"
-                       `(,(send self 'id)
-                         ,(send self 'species)
-                         ,(send self 'children)))))
+            `(#(id ,(send self 'id))
+              #(species ,(send self 'species))
+              #(children ,(send self 'children)))))
         ('move
           (lambda (self distance)
             (io:format "The ~s ~s ~p feet!~n"
@@ -136,3 +132,8 @@
   "This is a generic function, used to call into the given object (class
   instance)."
   (funcall (funcall object method-name) object arg))
+
+(defun gen-id ()
+  (let (((binary (id (size 128))) (crypto:strong_rand_bytes 16)))
+    (io_lib:format "~32.16.0b" (list id))))
+

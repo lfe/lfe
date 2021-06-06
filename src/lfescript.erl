@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2016 Robert Virding
+%% Copyright (c) 2008-2020 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -25,6 +25,10 @@
 -export([start/0,start/1]).
 -export([run/1,run/2]).
 
+-include("lfe.hrl").
+
+%% External API.
+
 script_name() ->
     [Sname|_] = init:get_plain_arguments(),
     Sname.
@@ -34,10 +38,10 @@ script_name() ->
 -define(OK_STATUS, 0).
 -define(ERROR_STATUS, 127).
 
-%% start() -> no_return().
-%% start(Options) -> no_return().
-%% run(CmdLine) -> no_return().
-%% run(CmdLine, Options) -> no_return().
+-spec start() -> no_return().
+-spec start(_Options) -> no_return().
+-spec run(_CmdLine) -> no_return().
+-spec run(_CmdLine, _Options) -> no_return().
 %%  Evaluate the LFE script. All errors which are caught here are
 %%  internal errors. Start gets its arguments from the command line
 %%  while run gets them as an argument.
@@ -58,8 +62,7 @@ run([File|Args], Lopts) ->
         throw:Str ->
             lfe_io:format("lfescript: ~s\n", [Str]),
             halt(?ERROR_STATUS);
-        _:Reason ->
-            Stack = erlang:get_stacktrace(),    %Need to get this first
+        ?CATCH(_, Reason, Stack)
             lfe_io:format("lfescript: Internal error: ~p\n", [Reason]),
             lfe_io:format("~p\n", [Stack]),
             halt(?ERROR_STATUS)
@@ -142,7 +145,7 @@ parse_file1([], _, Ss) -> {ok,lists:reverse(Ss)}.
 %% expand_macros(Forms, File, Args, Lopts) -> {Forms,Fenv}.
 
 expand_macros(Fs0, File, _, _) ->
-    case lfe_macro:expand_forms(Fs0, lfe_env:new(), true, false) of
+    case lfe_macro:expand_fileforms(Fs0, lfe_env:new(), true, false) of
         {ok,Fs1,Fenv,Ws} ->
             list_warnings(File, Ws),
             {Fs1,Fenv};
@@ -163,13 +166,17 @@ check_code(Fs, File, _, _) ->
 
 %% make_env(Forms, File, Args, Lopts) -> FunctionEnv.
 
-make_env(Fs, Fenv, _, _, _) ->
-    {Fbs,null} = lfe_lib:proc_forms(fun collect_form/3, Fs, null),
+make_env(Forms, Fenv, _, _, _) ->
+    {Fbs,null} = lfe_lib:proc_forms(fun collect_function/3, Forms, null),
     lfe_eval:make_letrec_env(Fbs, Fenv).
 
-collect_form(['define-function',F,_Meta,Def], _, St) ->
+collect_function(['define-function',F,_Meta,Def], _, St) ->
     Ar = function_arity(Def),
-    {[{F,Ar,Def}],St}.
+    {[{F,Ar,Def}],St};
+%% Ignore everything else including types and eval-when-compile.
+collect_function(_Form, _, St) ->
+    {[],St}.
+
 
 function_arity([lambda,As|_]) -> length(As);
 function_arity(['match-lambda',[Pats|_]|_]) -> length(Pats).
@@ -184,11 +191,10 @@ eval_code(Fenv, _, Args, _) ->
         lfe_eval:expr([main,[quote,Args]], Fenv)
     catch
         %% Catch all exceptions in the code.
-        Class:Error ->
-            St = erlang:get_stacktrace(),       %Need to get this first
+        ?CATCH(Class, Error, Stack)
             Skip = fun (_) -> false end,
             Format = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
-            Cs = lfe_lib:format_exception(Class, Error, St, Skip, Format, 1),
+            Cs = lfe_lib:format_exception(Class, Error, Stack, Skip, Format, 1),
             io:put_chars(Cs),
             halt(?ERROR_STATUS)
     end.

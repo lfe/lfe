@@ -1,4 +1,4 @@
-%% Copyright (c) 2016 Eric Bailey
+%% Copyright (c) 2016-2020 Eric Bailey
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -12,19 +12,26 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 
-%% File    : prop_lfe_doc.erl
-%% Author  : Eric Bailey
-%% Purpose : PropEr tests for the lfe_doc module.
+%% File    : prop_lfe_docs.erl
+%% Author  : Eric Bailey, Robert Virding
+%% Purpose : PropEr tests for the lfe_docs module.
 
--module(prop_lfe_doc).
+%% This module is a modified version of the older test module for
+%% lfe_doc written by Eric Bailey.
+
+-module(prop_lfe_docs).
 
 -export([prop_define_lambda/0,prop_define_match/0]).
 
 -include_lib("proper/include/proper.hrl").
 
+-include("lfe_docs.hrl").
+
 %%%===================================================================
 %%% Properties
 %%%===================================================================
+
+%% These only test the formats of the saved data.
 
 prop_define_lambda() -> ?FORALL(Def, define_lambda(), validate(Def)).
 
@@ -38,34 +45,37 @@ validate({['define-macro',Name,_Doc,_Def],_}=Mac) ->
 function_arity([lambda,Args|_]) -> length(Args);
 function_arity(['match-lambda',[Pat|_]|_]) -> length(Pat).
 
-validate_function(Name, Arity, {[_Define,_Name,Meta,_Def],Line}=Func) ->
-    case lfe_doc:extract_module_docs([Func]) of
-        {ok,{[],[Fdoc]}} ->
-            (lfe_doc:collect_docs(Meta, []) =:= lfe_doc:function_doc(Fdoc))
-                and (Name =:= lfe_doc:function_name(Fdoc))
-                and (Arity =:= lfe_doc:function_arity(Fdoc))
-                and (Line =:= lfe_doc:function_line(Fdoc));
+validate_function(Name, Arity, {[_Define,_Name,_Meta,_Def],Line}=Func) ->
+    Info = [export_all_funcs(),Func],           %Add function export
+    case lfe_docs:make_docs_info(Info, []) of
+        {ok,#docs_v1{docs=[Fdoc]}} ->
+            {{function,N,A},Anno,_,_,_} = Fdoc,
+            (Line =:= Anno) and (Name =:= N) and (Arity =:= A);
         _ -> false
     end.
 
-validate_macro(Name, {[_Define,_Name,Meta,_Lambda],Line}=Mac) ->
-    case lfe_doc:extract_module_docs([Mac]) of
-        {ok,{[],[Mdoc]}} ->
-            (lfe_doc:collect_docs(Meta, []) =:= lfe_doc:macro_doc(Mdoc))
-                and (Name =:= lfe_doc:macro_name(Mdoc))
-                and (Line =:= lfe_doc:macro_line(Mdoc));
+validate_macro(Name, {[_Define,_Name,_Meta,_Lambda],Line}=Mac) ->
+    Info = [export_macro(Name),Mac],            %Add macro export
+    case lfe_docs:make_docs_info(Info, []) of
+        {ok,#docs_v1{docs=[Mdoc]}} ->
+            {{macro,N,_},Anno,_,_,_} = Mdoc,
+            (Line =:= Anno) and (Name =:= N);
         _ -> false
     end.
+
+export_all_funcs() -> {['extend-module',[],[[export,all]]],1}.
+
+export_macro(Mac) -> {['extend-module',[],[['export-macro',Mac]]],1}.
 
 %%%===================================================================
 %%% Definition shapes
 %%%===================================================================
 
 define_lambda() ->
-    {['define-function',atom1(),meta_with_doc(),lambda()],line()}.
+    {['define-function',atom(),meta_with_doc(),lambda()],line()}.
 
 define_match() ->
-    ?LET(D, define(), {[D,atom1(),meta_with_doc(),'match-lambda'(D)],line()}).
+    ?LET(D, define(), {[D,atom(),meta_with_doc(),'match-lambda'(D)],line()}).
 
 
 %%%===================================================================
@@ -83,15 +93,13 @@ lambda() -> [lambda,arglist_simple()|body()].
 'match-lambda'('define-macro') ->
     ['match-lambda'|non_empty(list(macro_pattern_clause()))].
 
-arglist_simple() -> list(atom1()).
-
-atom1() -> oneof([a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,'']).
+arglist_simple() -> list(atom()).
 
 body() -> non_empty(list(form())).
 
-form() -> union([form_elem(),[atom1()|list(form_elem())]]).
+form() -> union([form_elem(),[atom()|list(form_elem())]]).
 
-form_elem() -> union([non_string_term(),printable_string(),atom1()]).
+form_elem() -> union([non_string_term(),printable_string(),atom()]).
 
 meta_with_doc() -> [[doc,docstring()]].
 
@@ -129,7 +137,7 @@ guard() -> ['when'|non_empty(list(union([logical_clause(),comparison()])))].
 %%% Logical clauses
 
 logical_clause() ->
-    X = union([atom1(),comparison()]),
+    X = union([atom(),comparison()]),
     [logical_operator(),X|non_empty(list(X))].
 
 logical_operator() -> oneof(['and','andalso','or','orelse']).
@@ -137,7 +145,7 @@ logical_operator() -> oneof(['and','andalso','or','orelse']).
 
 %%% Comparisons
 
-comparison() -> [comparison_operator(),atom1()|list(atom1())].
+comparison() -> [comparison_operator(),atom()|list(atom())].
 
 comparison_operator() -> oneof(['==','=:=','=/=','<','>','=<','>=']).
 
@@ -145,7 +153,7 @@ comparison_operator() -> oneof(['==','=:=','=/=','<','>','=<','>=']).
 %%% Strings and non-strings
 
 non_string_term() ->
-    union([atom1(),number(),[],bitstring(),binary(),boolean(),tuple()]).
+    union([atom(),number(),[],bitstring(),binary(),boolean(),tuple()]).
 
 printable_char() -> union([integer(32, 126),integer(160, 255)]).
 

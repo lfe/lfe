@@ -1,4 +1,4 @@
-;; Copyright (c) 2013 Duncan McGreggor <oubiwann@cogitat.io>
+;; Copyright (c) 2013-2020 Duncan McGreggor <oubiwann@gmail.com>
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -49,27 +49,30 @@
 
 ;; Here is some example usage from the REPL:
 ;;
-;; > (slurp '"examples/http-sync.lfe")
+;; $ ./bin/lfe
+;;
+;; lfe> (slurp "examples/http-sync.lfe")
 ;; #(ok http-sync)
-;; > (get-pages (list '"http://lfe.github.io/"))
+;; lfe> (get-pages (list "http://lfe.github.io/"))
 ;; Result: {{"HTTP/1.1",200,"OK"},
 ;;       [{"cache-control","max-age=600"},
 ;;        {"connection","keep-alive"},
 ;;        ...
 ;; ok
-;; >
+;; lfe>
 ;;
 ;; The get-pages function starts the inets service for you. If you would like
 ;; to call get-page directly, you'll have to start that yourself:
 ;;
-;; > (: inets start)
-;; > (get-page '"http://lfe.github.io/")
+;; lfe> (inets:start)
+;; lfe> (ssl:start)
+;; lfe> (get-page "http://lfe.github.io/")
 ;; Result: {{"HTTP/1.1",200,"OK"},
 ;;       [{"cache-control","max-age=600"},
 ;;        {"connection","keep-alive"},
 ;;        ...
 ;; ok
-;; >
+;; lfe>
 
 (defmodule http-sync
   (export all))
@@ -88,8 +91,8 @@
       )
   In this example, the value assigned to the arg variable would be a list
   containing the values my-value-1 and my-value-2."
-  (let (((tuple 'ok data) (: init get_argument flag)))
-    (: lists merge data)))
+  (let (((tuple 'ok data) (init:get_argument flag)))
+    (lists:merge data)))
 
 (defun get-pages ()
   "With no argument, assume 'url parameter was passed via command line."
@@ -98,15 +101,16 @@
 
 (defun get-pages (urls)
   "Start inets and make (potentially many) HTTP requests."
-  (: inets start)
-  (: lists map
+  (inets:start)
+  (ssl:start)
+  (lists:map
     (lambda (x)
       (get-page x)) urls))
 
 (defun get-page (url)
   "Make a single HTTP request."
-  (case (: httpc request url)
+  (case (httpc:request url)
     ((tuple 'ok result)
-      (: io format '"Result: ~p~n" (list result)))
+      (io:format "Result: ~p~n" (list result)))
     ((tuple 'error reason)
-      (: io format '"Error: ~p~n" (list reason)))))
+      (io:format "Error: ~p~n" (list reason)))))

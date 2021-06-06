@@ -1,4 +1,4 @@
-;; Copyright (c) 2008-2013 Robert Virding
+;; Copyright (c) 2008-2020 Robert Virding
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@
       (from orddict (find 2) (store 3)))
   (deprecated #(eval 1) #(eval 2)))
 
-(defun eval (e) (eval e (: lfe_env new)))
+(defun eval (e) (eval e (lfe_env:new)))
 
 (defun eval (e env) (eval-expr e env))
 
@@ -42,16 +42,16 @@
 ;; expr(Sexpr, Env) -> Value
 ;; Evaluate the sexpr, first expanding all macros.
 
-(defun expr (e) (expr e (: lfe_env new)))
+(defun expr (e) (expr e (lfe_env:new)))
 
 (defun expr (e env)
-  (let ((exp (: lfe_macro expand_expr_all e env)))
+  (let ((exp (lfe_macro:expand_expr_all e env)))
     (eval-expr exp env)))
 
 ;; gexpr(guardtest) -> Value
 ;; gexpr(guardtest, env) -> Value
 
-(defun gexpr (gt) (gexpr gt (: lfe_env new)))
+(defun gexpr (gt) (gexpr gt (lfe_env:new)))
 
 (defun gexpr (gt env) (eval-gexpr gt env))
 
@@ -62,7 +62,7 @@
 ;;  internally. Args should already be evaluated.
 
 (defun apply (f args)
-  (apply f args (: lfe_env new)))
+  (apply f args (lfe_env:new)))
 
 (defun apply (f args env)
   (eval-apply-expr f args env))
@@ -72,11 +72,11 @@
 ;; (guard guard) -> true | false
 ;; (guard guard env) -> true | false
 
-(defun body (b) (body b (: lfe_env new)))
+(defun body (b) (body b (lfe_env:new)))
 
 (defun body (b env) (eval-body b env))
 
-(defun guard (g) (guard g (: lfe_env new)))
+(defun guard (g) (guard g (lfe_env:new)))
 
 (defun guard (g env) (eval-guard g env))
 
@@ -125,7 +125,7 @@
     ((cons 'try body)
      (eval-try body env))
     ((list* 'funcall f as)
-     (: erlang apply (eval-expr f env) (eval-list as env)))
+     (erlang:apply (eval-expr f env) (eval-list as env)))
     ((cons 'call body)
      (eval-call body env))
     ;; General function calls.
@@ -133,19 +133,19 @@
      ;; Note that macros have already been expanded here.
      (let ((ar (length es)))        ;Arity
        (case (get_fbinding fun ar env)
-     ((tuple 'yes m f) (: erlang apply m f (eval-list es env)))
+     ((tuple 'yes m f) (erlang:apply m f (eval-list es env)))
      ((tuple 'yes f) (eval-apply f (eval-list es env) env))
-     ('no (: erlang error (tuple 'unbound_func (tuple fun ar)))))))
+     ('no (erlang:error (tuple 'unbound_func (tuple fun ar)))))))
     ((cons f es)
-     (: erlang error (tuple 'bad_form 'application)))
+     (erlang:error (tuple 'bad_form 'application)))
     (e (if (is_atom e)
      (case (get_vbinding e env)
        ((tuple 'yes val) val)
-       (no (: erlang error (tuple 'unbound_symb e))))
+       (no (erlang:error (tuple 'unbound_symb e))))
      e))))                ;Atoms evaluate to themselves
 
 (defun eval-list (es env)
-  (: lists map (lambda (e) (eval-expr e env)) es))
+  (lists:map (lambda (e) (eval-expr e env)) es))
 
 (defun eval-body (body env)
   (case body
@@ -263,7 +263,7 @@
     ((list 'unit n) (when (is_integer n) (> n 0))
      (set-spec-unit sp n))
     ;; Illegal spec.
-    (_ (: erlang error (tuple 'illegal_bitspec spec)))))
+    (_ (erlang:error (tuple 'illegal_bitspec spec)))))
 
 ;; (eval-exp-bitseg value type size unit sign endian) -> binary().
 
@@ -282,7 +282,7 @@
      (case (bit_size val)
        (size (when (=:= (rem size un) 0))
          (binary (val bitstring (size size))))
-       (_ (: erlang error 'bad_arg))))
+       (_ (erlang:error 'bad_arg))))
     ((tuple 'binary sz un _ _)
      (binary (val bitstring (size (* sz un)))))))
 
@@ -343,8 +343,7 @@
      (14 (lambda (a b c d e f g h i j k l m n)
        (apply-lambda args body (list a b c d e f g h i j k l m n) env)))
      (15 (lambda (a b c d e f g h i j k l m n o)
-       (apply-lambda args body (list a b c d e f g h i j k l m n o) env)))
-     )))
+       (apply-lambda args body (list a b c d e f g h i j k l m n o) env))))))
 
 (defun apply-lambda (args body vals env)
   (fletrec ((bind-args
@@ -386,8 +385,7 @@
     (14 (lambda (a b c d e f g h i j k l m n)
       (apply-match-clauses cls (list a b c d e f g h i j k l m n) env)))
     (15 (lambda (a b c d e f g h i j k l m n o)
-      (apply-match-clauses cls (list a b c d e f g h i j k l m n o) env)))
-    ))
+      (apply-match-clauses cls (list a b c d e f g h i j k l m n o) env)))))
 
 (defun match-lambda-arity (cls) (length (caar cls)))
 
@@ -401,8 +399,8 @@
        (case (match-when (cons 'list pats) as body env)
      ((tuple 'yes body1 vbs) (eval-body body1 (add_vbindings vbs env)))
      ('no (apply-match-clauses cls as env)))
-       (: erlang error 'badarity)))
-    (_ (: erlang error 'function_clause))))
+       (erlang:error 'badarity)))
+    (_ (erlang:error 'function_clause))))
 
 ;; (eval-let (PatBindings . Body) Env) -> Value.
 
@@ -414,13 +412,13 @@
             (let ((val (eval-expr e env0)))
               (case (match pat val env0)
                 ((tuple 'yes bs) (add_vbindings bs env))
-                ('no (: erlang error (tuple 'badmatch val))))))
+                ('no (erlang:error (tuple 'badmatch val))))))
                ([(list pat (= (cons 'when _) g) e) env]
             (let ((val (eval-expr e env0)))
               (case (match-when pat val (list g) env0)
                 ((tuple 'yes '() bs) (add_vbindings bs env))
-                ('no (: erlang error (tuple 'badmatch val))))))
-               ([_ _] (: erlang error (tuple 'bad_form 'let))))
+                ('no (erlang:error (tuple 'badmatch val))))))
+               ([_ _] (erlang:error (tuple 'bad_form 'let))))
              env0 vbs)))
     (eval-body b env)))
 
@@ -437,7 +435,7 @@
              ([(list v (= (list* 'match-lambda (cons pats _) _) f)) e]
               (when (is_atom v))
               (add v (length pats) f env0 e))
-             ([_ _] (: erlang error (tuple 'bad_form 'let-function))))
+             ([_ _] (erlang:error (tuple 'bad_form 'let-function))))
                env0 fbs)))
       (eval-body body env))))
 
@@ -454,8 +452,8 @@
                     ([(list v (= (list* 'match-lambda (cons pats _) _) f))]
                      (when (is_atom v))
                      (tuple v (length pats) f))
-                    ([_] (: erlang error (tuple 'bad_form 'letrec-function)))))
-         (fbs1 (: lists map map-fun fbs0))
+                    ([_] (erlang:error (tuple 'bad_form 'letrec-function)))))
+         (fbs1 (lists:map map-fun fbs0))
          (env1 (make_letrec_env fbs1 env0)))
     (eval-body body env1)))
 
@@ -472,7 +470,7 @@
 (defun init_letrec_env (env) (tuple () env))
 
 (defun make_letrec_env (fbs0 env)
-  (let ((fbs (: lists map (lambda (fb)
+  (let ((fbs (lists:map (lambda (fb)
                             (let (((tuple v ar body) fb))
                               (tuple v ar (tuple 'letrec body fbs0 env))))
                 fbs0)))
@@ -513,10 +511,10 @@
 ;;  Macros are expanded first.
 
 (defun eval-apply-expr (func es env)
-  (case (: lfe_macro expand_expr_all func env)
+  (case (lfe_macro:expand_expr_all func env)
     ((list* 'lambda args body) (apply-lambda args body es env))
     ((cons 'match-lambda cls) (apply-match-clauses cls es env))
-    (fun (when (is_function fun)) (: erlang apply fun es))))
+    (fun (when (is_function fun)) (erlang:apply fun es))))
 
 ;; (eval-if body env) -> value
 
@@ -526,7 +524,7 @@
           (case (eval-expr test env)
             ('true (eval-expr true env))
             ('false (eval-expr false env))
-            (_ (: erlang error 'if_clause)))))
+            (_ (erlang:error 'if_clause)))))
     (case body
       ((list test true) (eval-if test true 'false))
       ((list test true false) (eval-if test true false)))))
@@ -541,7 +539,7 @@
   (case (match-clause v cls env)
     ((tuple 'yes b vbs)
      (eval-body b (add_vbindings vbs env)))
-    ('no (: erlang error (tuple 'case_clause v)))))
+    ('no (erlang:error (tuple 'case_clause v)))))
 
 (defun match-clause (v cls env)
   (case cls
@@ -653,10 +651,10 @@
     (catch
       ((tuple class error _)
        ;; Get stack trace explicitly.
-       (let ((stk (: erlang get_stacktrace)))
+       (let ((stk (erlang:get_stacktrace)))
      (case catch
        ((list cls) (eval-catch-clauses (tuple class error stk) cls env))
-       (() (: erlang raise class error stk))))))
+       (() (erlang:raise class error stk))))))
     (after
     (case after
       ((list b) (eval-body b env))
@@ -668,7 +666,7 @@
      ((tuple 'yes b vbs) (eval-body b (add_vbindings vbs env)))
      ('no (eval-catch-clauses v cls env))))
   ([(tuple class val stk) () _]
-   (: erlang raise class val stk)))
+   (erlang:raise class val stk)))
 
 (defun eval-call (b env)
   (case b
@@ -676,7 +674,7 @@
      (let ((m (eval-expr m env))
        (f (eval-expr f env))
        (as (eval-list as env)))
-       (: erlang apply m f as)))))
+       (erlang:apply m f as)))))
 
 ;; (match-when pattern value body env) -> #('yes restbody bindings) | 'no.
 ;;  Try to match pattern and evaluate guard.
@@ -707,7 +705,7 @@
 ;; A body is a sequence of tests which must all succeed.
 
 (defun eval-gbody (es env)
-  (: lists all (lambda (e) (eval-gexpr e env)) es))
+  (lists:all (lambda (e) (eval-gexpr e env)) es))
 
 ;; (eval-gexpr sexpr environment) -> value.
 ;;  Evaluate a guard sexpr in the current environment.
@@ -733,23 +731,23 @@
      (let ((f (eval-gexpr f env))
        (ar (length as)))
        (case (get_gbinding f ar env)
-     ((tuple 'yes m f) (: erlang apply m f (eval-glist as env)))
-     (_ (: erlang error (tuple 'unbound_func (tuple f (length as))))))))
+     ((tuple 'yes m f) (erlang:apply m f (eval-glist as env)))
+     (_ (erlang:error (tuple 'unbound_func (tuple f (length as))))))))
     ((cons f as) (when (is_atom f))
      (let ((ar (length as)))
        (case (get_gbinding f ar env)
-     ((tuple 'yes m f) (: erlang apply m f (eval-glist as env)))
-     ('no (: erlang error (tuple 'unbound_func (tuple f ar)))))))
+     ((tuple 'yes m f) (erlang:apply m f (eval-glist as env)))
+     ('no (erlang:error (tuple 'unbound_func (tuple f ar)))))))
     ((cons f es)            ;Everything else not allowed
-     (: erlang error 'illegal_guard))
+     (erlang:error 'illegal_guard))
     (e (if (is_atom e)
      (case (get_vbinding e env)
        ((tuple 'yes val) val)
-       (no (: erlang error (tuple 'unbound_symb e))))
+       (no (erlang:error (tuple 'unbound_symb e))))
      e))))                ;Atoms evaluate to themselves
 
 (defun eval-glist (es env)
-  (: lists map (lambda (e) (eval-gexpr e env)) es))
+  (lists:map (lambda (e) (eval-gexpr e env)) es))
 
 ;; (eval-gbinary bitsegs env) -> binary.
 ;;   Construct a binary from bitsegs. This code is taken from eval_bits.erl.

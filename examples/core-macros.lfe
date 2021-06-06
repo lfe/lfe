@@ -1,4 +1,4 @@
-;; Copyright (c) 2008-2015 Robert Virding
+;; Copyright (c) 2008-2020 Robert Virding
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -24,6 +24,15 @@
 ;; For some macros we give two versions, an all-in-one version and a
 ;; recursive more syntax pattern based expansion. This to show
 ;; different styles of doing the same thing.
+
+;; Here is some example usage:
+;;
+;; $ ./bin/lfe
+;;
+;; lfe> (include-file "examples/core-macros.lfe")
+;; ()
+;; lfe> (:: init get_status)         
+;; #(started started)
 
 (defmacro caar (x) `(car (car ,x)))
 (defmacro cadr (x) `(car (cdr ,x)))
@@ -96,7 +105,7 @@
     (() `'false)))
 
 ;; This version of backquote is almost an exact copy of a quasiquote
-;; expander for Scheme by André van Tonder. It is very compact and
+;; expander for Scheme by AndrÃ© van Tonder. It is very compact and
 ;; with some cons/append optimisations we have added produces quite
 ;; reasonable code.
 

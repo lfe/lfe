@@ -1,6 +1,7 @@
 ;; -*- Mode: LFE; -*-
 ;; Code from Paradigms of Artificial Intelligence Programming
-;; Copyright (c) 1991 Peter Norvig
+;; Copyright (c) 1991 Peter Norvig, Common Lisp version
+;; Copyright (c) 2008-2020 Robert Virding
 
 ;; File    : gps1.lisp
 ;; Author  : Peter Norvig, Robert Virding
@@ -12,9 +13,11 @@
 ;;
 ;; Here is some example usage for a successful run:
 ;;
-;; > (slurp '"examples/gps1.lfe")
+;; $ ./bin/lfe
+;; 
+;; lfe> (slurp "examples/gps1.lfe")
 ;; #(ok gps1)
-;; > (gps '(son-at-home car-needs-battery have-money have-phone-book)
+;; lfe> (gps '(son-at-home car-needs-battery have-money have-phone-book)
 ;;        '(son-at-school)
 ;;        (school-ops))
 ;; executing 'look-up-number'
@@ -24,11 +27,11 @@
 ;; executing 'shop-installs-battery'
 ;; executing 'drive-son-to-school'
 ;; solved
-;; >
+;; lfe>
 ;;
 ;; Here is an unsuccessful run:
 ;;
-;; > (gps '(son-at-home car-needs-battery have-money have-phone-book)
+;; lfe> (gps '(son-at-home car-needs-battery have-money have-phone-book)
 ;;        '(son-at-school have-money)
 ;;        (school-ops))
 ;; executing 'look-up-number'
@@ -38,13 +41,15 @@
 ;; executing 'shop-installs-battery'
 ;; executing 'drive-son-to-school'
 ;; false
-;; >
+;; lfe>
 ;;
 ;; And a trivial run (for Saturdays!):
 ;;
-;; > (gps '(son-at-home) '(son-at-home) (school-ops))
+;; lfe> (gps '(son-at-home) '(son-at-home) (school-ops))
 ;; solved
 ;;
+
+(include-lib "lfe/include/scm.lfe")
 
 ;; Define macros for global variable access. This is a hack and very naughty!
 (defsyntax defvar
@@ -58,10 +63,20 @@
 
 ;; Module definition.
 (defmodule gps1
-  (export (gps 2) (gps 3) (school-ops 0))
-  (import (from lists (member 2) (all 2) (any 2))
-      ;; Rename lists functions to be more CL like.
-      (rename lists ((all 2) every) ((any 2) some) ((filter 2) find-all))))
+  (export 
+    (gps 2) 
+    (gps 3)
+    (school-ops 0))
+  (import 
+    (from lists 
+      (member 2) 
+      (all 2) 
+      (any 2))
+    ;; Rename lists functions to be more CL like.
+    (rename lists 
+      ((all 2) every) 
+      ((any 2) some) 
+      ((filter 2) find-all))))
 
 ;; An operation.
 (defrecord op
@@ -95,7 +110,7 @@
 (defun apply-op (op)
   (if (every (fun achieve 1) (op-preconds op))
     (progn
-      (: io fwrite '"executing ~p\n" (list (op-action op)))
+      (io:fwrite "executing ~p\n" (list (op-action op)))
       (setvar *state* (set-difference (getvar *state*) (op-del-list op)))
       (setvar *state* (union (getvar *state*) (op-add-list op)))
       'true)))

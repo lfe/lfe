@@ -1,4 +1,4 @@
-;; Copyright (c) 2015-2016 Robert Virding
+;; Copyright (c) 2015-2020 Robert Virding
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -59,7 +59,8 @@
   `(defun ,@args))
 
 (defmacro fn args
-  "Equivalent to `lambda`."
+  "args
+   Equivalent to `lambda`."
   `(lambda ,@args))
 
 ;;; Threading macros.
@@ -184,7 +185,8 @@
   (some->>* args))
 
 (defmacro doto
-  "Evaluate all given `sexps` and functions in order,
+  "x . sexps
+  Evaluate all given `sexps` and functions in order,
   for their side effects, with the value of `x` as the first argument
   and return `x`."
   (`(,x . ,sexps)
@@ -207,7 +209,8 @@
            `(case ,test
               ('false     ,else)
               ('undefined ,else)
-              (,patt      ,then))))
+              (,patt      ,then)
+              (_          ,else))))
     (case args
       ((list (list patt test) then) (exp-if-let patt test then `'undefined))
       ((list (list patt test) then else) (exp-if-let patt test then else)))))
@@ -221,7 +224,8 @@
    `(case ,test
       ('false     'undefined)
       ('undefined 'undefined)
-      (,patt      ,@body))))
+      (,patt      ,@body)
+      (_          'undefined))))
 
 (defmacro condp args
   "pred expr . clauses
@@ -278,7 +282,8 @@
       (_          'undefined))))
 
 (defmacro not=
-  "Same as `(not (== ...))`."
+  "exp
+  Same as `(not (== ...))`."
   (`(,x)            `'false)
   (`(,x ,y . ,more) `(not (== ,x ,y ,@more))))
 
@@ -344,7 +349,8 @@
   N.B. `record?/2` may yield unexpected results, due to difference between the
   Erlang and LFE compilers. As such, whenever possible, prefer `record?/3`."
   ;; NOTE: record-tag must be an atom
-  (`(,x ,record-tag)       `(is_record ,x ,record-tag))
+  (`(,x ,record-tag)       `(andalso (is_tuple ,x)
+                                     (=:= (tref ,x 1) ,record-tag)))
   (`(,x ,record-tag ,size) `(is_record ,x ,record-tag ,size)))
 
 (defmacro reference? (x)
@@ -389,7 +395,7 @@
 
 (defmacro even? (x)
   "Return `'true` if `x` is even."
-  `(clj:zero? ,(band 1 x)))
+  `(clj:zero? (band 1 ,x)))
 
 (defmacro zero? (x)
   "Return `'true` if `x` is zero."
@@ -574,7 +580,7 @@
      (sets:is_element elem data))
     ((ordsets:is_set data)
      (ordsets:is_element elem data))
-    ('true 'false))))
+    (else 'false))))
 
 
 ;;; Sequence functions.
@@ -777,7 +783,7 @@
          ((dict?     data) (-get-in-dict     data keys not-found))
          ((list?     data) (-get-in-list     data keys not-found))
          ((map?      data) (-get-in-map      data keys not-found))
-         ('true            not-found))))
+         (else             not-found))))
 
 (defn- -get-in
   ([func data `(,key) not-found]

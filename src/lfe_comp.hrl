@@ -1,4 +1,4 @@
-%% Copyright (c) 2014-2015 Robert Virding
+%% Copyright (c) 2014-2020 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -26,20 +26,17 @@
 
 -record(module, {name=[],                       %Module name
                  code=none,                     %Module code
-                 warnings=[],                   %Module warnings
-                 docs=[]                        %Module docs
+                 chunks=[],                     %Extra chunks
+                 warnings=[]                    %Module warnings
                 }).
-
-%% Bloody useful
--define(IF(Test,True,False), case Test of true -> True; false -> False end).
 
 %% ?WHEN_OPT(Option, Options, Fun) -> ok.
 %% ?UNLESS_OPT(Option, Options, Fun) -> ok.
 %%  Call Fun when Option is/is not a member of Options.
 
--define(WHEN_OPT(Opt,Opts,Fun), ?IF(member(Opt, Opts), Fun(), ok)).
+-define(WHEN_OPT(Opt,Opts,Fun), ?IF(lists:member(Opt, Opts), Fun(), ok)).
 
-%% -define(UNLESS_OPT(Opt,Opts,Fun), ?IF(member(Opt, Opts), ok, Fun())).
+%% -define(UNLESS_OPT(Opt,Opts,Fun), ?IF(lists:member(Opt, Opts), ok, Fun())).
 
 -define(DEBUG(Format,Args,Opts),
         ?WHEN_OPT(debug_print, Opts,

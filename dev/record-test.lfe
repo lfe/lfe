@@ -21,6 +21,9 @@
 (defun d (p c)
   (tuple (point-x p) (circle-radius c)))
 
+(defun d2
+  ([p] (when (=:= (point-y p) 99)) 'ok))
+
 (defun e (p c)
   (tuple (case p
            ((match-point x x) x)

@@ -1,4 +1,4 @@
-;; Copyright (c) 2016 Eric Bailey
+;; Copyright (c) 2016-2020 Eric Bailey
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -27,5 +27,6 @@
 (defun compile (config)
   (let* ((dpath (config 'data_dir config))
          (efile (filename:join dpath "example.lfe")))
-    (line (test-pat #(ok (#(ok example ()) #(ok another-example ())) ())
+    ;; We can get warnings from the erlang compiler.
+    (line (test-pat `#(ok (#(ok example ,_) #(ok another-example ,_)) ())
                     (lfe_comp:file efile '(return))))))

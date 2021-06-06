@@ -1,4 +1,4 @@
-%% Copyright (c) 2013-2017 Robert Virding
+%% Copyright (c) 2013-2020 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@
 
 %%-compile([export_all]).
 
+-include("lfe.hrl").
 -include("lfe_macro.hrl").
 
 %% Test function to inspect output of parsing functions.
@@ -44,102 +45,139 @@ read_hrl_file_1(Name) ->
     end.
 
 %% Errors.
+format_error({bad_form,Type}) ->
+    lfe_io:format1(<<"bad ~w form">>, [Type]);
+format_error({no_include,T,F}) ->
+    io_lib:format(<<"can't find include ~w ~ts">>, [T,F]);
 format_error({notrans_function,F,A}) ->
-    io_lib:format("unable to translate function ~w/~w", [F,A]);
+    lfe_io:format1(<<"unable to translate function ~w/~w">>, [F,A]);
 format_error({notrans_record,R}) ->
-    io_lib:format("unable to translate record ~w", [R]);
+    lfe_io:format1(<<"unable to translate record ~w">>, [R]);
 format_error({notrans_type,T}) ->
-    io_lib:format("unable to translate type ~w", [T]);
+    lfe_io:format1(<<"unable to translate type ~w">>, [T]);
 format_error({notrans_macro,M}) ->
-    io_lib:format("unable to translate macro ~w", [M]).
+    lfe_io:format1(<<"unable to translate macro ~w">>, [M]);
+%% File errors are passed on.
+format_error({file_error,E}) ->
+    file:format_error(E).
 
+%% add_error(Error, State) -> State.
+%% add_error(Line, Error, State) -> State.
 %% add_warning(Warning, State) -> State.
 %% add_warning(Line, Warning, State) -> State.
+%%  Add errors and warnings to the state
+
+add_error(E, St) -> add_error(St#mac.line, E, St).
+
+add_error(L, E, St) ->
+    St#mac{errors=St#mac.errors ++ [{L,?MODULE,E}]}.
 
 add_warning(W, St) -> add_warning(St#mac.line, W, St).
 
 add_warning(L, W, St) ->
     St#mac{warnings=St#mac.warnings ++ [{L,?MODULE,W}]}.
 
-%% file([FileName], Env, MacState) ->
-%%     {yes,(progn ...),MacState} | {error,Error}.
+%% file(FileName, Env, MacState) ->
+%%     {yes,(progn ...),MacState} | {error,MacState}.
 %%  Expand the (include-file ...) macro.  This is a VERY simple
 %%  include file macro! We just signal errors.
 
-file(Body, _, #mac{ipath=Path}=St0) ->
-    case include_name(Body) of
+file(IncFile, _, #mac{ipath=Path}=St0) ->
+    case include_name(IncFile) of
         {ok,Name} ->
             case path_read_file(Path, Name, St0) of
-                {ok,Fs,St1} -> {yes,['progn'|Fs],St1};
-                {error,E} -> error(E);
-                not_found -> error(enoent)
+                {ok,Forms,St1} -> {yes,['progn'|Forms],St1};
+                {error,St1} -> {error,St1};
+                not_found ->
+                    {error,add_error({no_include,file,Name}, St0)}
             end;
-        {error,E} -> error(E)
+        {error,_} ->
+            {error,add_error({bad_form,'include-file'}, St0)}
     end.
 
-%% lib([FileName], Env, MacState) ->
-%%     {yes,(progn ...),MacState} | {error,Error}.
-%%  Expand the (include-lib ...) macro.  This is a VERY simple include
-%%  lib macro! First try to include the file directly else assume
-%%  first directory name is a library name. We just signal errors.
+%% lib(FileName, Env, MacState) ->
+%%     {yes,(progn ...),MacState} | {error,MacState}.
+%%  Expand the (include-lib ...) macro. We do the same as epp so we
+%%  first test if we can find the file through the normal search path,
+%%  if not we assume that the first directory name is a library name,
+%%  find its true directory and try with that.
 
-lib(Body, _, St0) ->
-    case include_name(Body) of
+lib(IncFile, _, #mac{ipath=Path}=St0) ->
+    case include_name(IncFile) of
         {ok,Name} ->
-            case path_read_file(St0#mac.ipath, Name, St0) of
-                {ok,Fs,St1} -> {yes,['progn'|Fs],St1};
-                {error,E} -> error(E);          %Found contained error
-                not_found ->                    %File not found
-                    case lib_file_name(Name) of
-                        {ok,Lfile} ->
-                            case read_file(Lfile, St0) of
-                                {ok,Fs,St1} -> {yes,['progn'|Fs],St1};
-                                {error,E} -> error(E)
-                            end;
-                        {error,_} -> error(badarg)
+            case path_read_file(Path, Name, St0) of
+                {ok,Forms,St1} ->
+                    {yes,['progn'|Forms],St1};
+                {error,St1} -> {error,St1};
+                not_found ->
+                    case lib_read_file(Name, St0) of
+                        {ok,Forms,St1} -> {yes,['progn'|Forms],St1};
+                        {error,St1} -> {error,St1};
+                        not_found ->
+                            {error,add_error({no_include,lib,Name}, St0)}
                     end
             end;
-        {error,E} -> error(E)
+        {error,_} ->
+            {error,add_error({bad_form,'include-lib'}, St0)}
     end.
 
-%% path_read_file(Path, Name, State) -> {ok,Forms,State} | {error,E} | error.
-%%  Step down the path trying to read the file. We first test if we
-%%  can open it, if so then this the file we use, if not we go on.
+%% include_name(FileName) -> bool().
+%%  Gets the file name from the include-XXX FileName.
 
-path_read_file([P|Ps], Name, St) ->
-    File = filename:join(P, Name),
-    case file:open(File, [read,raw]) of         %Test if we can open the file
-        {ok,F} ->
+include_name(Name) ->
+    try
+        {ok,lists:flatten(unicode:characters_to_list(Name, utf8))}
+    catch
+        _:_ -> {error,badarg}
+end.
+
+%% path_read_file(Path, Name, State) ->
+%%     {ok,Forms,State} | {error,State} | not_found.
+%%  Step down the path trying to read the file.
+
+path_read_file(Path, Name, St) ->
+    case file:path_open(Path, Name, [read,raw]) of
+        {ok,F,Pname} ->
             file:close(F),                      %Close it again
-            read_file(File, St);
-        {error,_} ->
-            path_read_file(Ps, Name, St)
-    end;
-path_read_file([], _, _) ->                     %Couldn't find/open the file
-    not_found.
-
-%% include_name(Body) -> bool().
-%%  Gets the file name from the include-XXX body.
-
-include_name([Name]) ->
-    case io_lib:char_list(Name) of
-        true -> {ok,Name};
-        false -> {error,badarg}
-    end;
-include_name(_) -> {error,badarg}.
+            read_file(Pname, St);               %Read it
+        {error,_} -> not_found                  %Not found
+    end.
 
 %% lib_file_name(LibPath) -> {ok,LibFileName} | {error,Error}.
 %%  Construct path to true library file.
 
-lib_file_name(Lpath) ->
-    [Lname|Rest] = filename:split(Lpath),
-    case code:lib_dir(list_to_atom(Lname)) of
-        Ldir when is_list(Ldir) ->
-            {ok,filename:join([Ldir|Rest])};
-        {error,E} -> {error,E}
+lib_file_name(Name) ->
+    try
+        [App|Path] = filename:split(Name),
+        LibDir = code:lib_dir(list_to_atom(App)),
+        {ok,filename_join([LibDir|Path])}
+    catch
+        _:_ -> error
     end.
 
-%% read_file(FileName, State) -> {ok,Forms,State} | {error,Error}.
+filename_join(["." | [_|_]=Rest]) ->
+    filename_join(Rest);
+filename_join(Comp) ->
+    filename:join(Comp).
+
+%% lib_read_file(FileName, State) ->
+%%     {ok,Forms,State} | {error,State} | not_found.
+%%  Try to read the library file. Try to open the file to make sure
+%%  that even if we can find the lirbary the file is there.
+
+lib_read_file(Name, St) ->
+    case lib_file_name(Name) of
+        {ok,LibName} ->
+            case file:open(LibName, [read,raw]) of
+                {ok,F} ->
+                    file:close(F),
+                    read_file(LibName, St);
+                {error,_} -> not_found
+            end;
+        error -> not_found
+    end.
+
+%% read_file(FileName, State) -> {ok,Forms,State} | {error,State}.
 
 read_file(Name, St) ->
     case lists:suffix(".hrl", Name) of
@@ -147,29 +185,33 @@ read_file(Name, St) ->
         false -> read_lfe_file(Name, St)
     end.
 
-read_lfe_file(Name, St) ->
+%% read_lfe_file(FileName, State) -> {ok,Forms,State} | {error,State}.
+
+read_lfe_file(Name, #mac{errors=Es}=St) ->
     %% Read the file as an LFE file.
     case lfe_io:read_file(Name) of
         {ok,Fs} -> {ok,Fs,St};
-        {error,E} -> {error,E}
+        {error,E} ->
+            {error,St#mac{errors=Es ++ [E]}}
     end.
 
 %% read_hrl_file(FileName, State) -> {ok,Forms,State} | {error,Error}.
 %%  We use two undocumented functions of epp which allow us to get
-%%  inside and get out the macros.
+%%  inside and get out the macros but it must be called after the
+%%  whole file has been processed.
 
 read_hrl_file(Name, St) ->
     case epp:open(Name, []) of
         {ok,Epp} ->
-            %% These are two undocumented functions of epp.
             Fs = epp:parse_file(Epp),           %This must be called first
-            Ms = epp:macro_defs(Epp),           % then this!
+            Ms = epp:macro_defs(Epp),           % then this undocumented!
             epp:close(Epp),                     %Now we close epp
             parse_hrl_file(Fs, Ms, St);
-        {error,E} -> {error,E}
+        {error,E} ->
+            {error,add_error({file_error,E}, St)}
     end.
 
-%% parse_hrl_file(Forms, Macros, State) -> {ok,Forms,State} | {error,Error}.
+%% parse_hrl_file(Forms, Macros, State) -> {ok,Forms,State} | {error,State}.
 %%  All the attributes go in an extend-module form. In 18 and older a
 %%  typed record definition would result in 2 attributes, the bare
 %%  record def and the record type def. We want just the record type
@@ -220,7 +262,7 @@ trans_forms(Fs, St0) ->
 trans_form({attribute,Line,record,{Name,Fields}}, As, Lfs, St) ->
     case catch {ok,trans_record(Name, Line, Fields)} of
         {ok,Lrec} -> {As,[Lrec|Lfs],St};
-        {'EXIT',_} ->                           %Something went wrong
+        {'EXIT',_E}->                           %Something went wrong
             {As,Lfs,add_warning({notrans_record,Name}, St)}
     end;
 trans_form({attribute,Line,type,{Name,Def,E}}, As, Lfs, St) ->
@@ -255,7 +297,7 @@ trans_form({attribute,_,Name,E}, As, Lfs, St) ->
 trans_form({function,_,Name,Arity,Cls}, As, Lfs, St) ->
     case catch {ok,trans_function(Name, Arity, Cls)} of
         {ok,Lfunc} -> {As,[Lfunc|Lfs],St};
-        {'EXIT',_} ->                           %Something went wrong
+        {'EXIT',_E} ->                          %Something went wrong
             {As,Lfs,add_warning({notrans_function,Name,Arity}, St)}
     end;
 trans_form({error,E}, As, Lfs, #mac{errors=Es}=St) ->
@@ -279,22 +321,22 @@ record_fields(Fs) ->
     [ record_field(F) || F <- Fs ].
 
 record_field({record_field,_,F}) ->             %Just the field name
-    lfe_trans:from_lit(F);
+    lfe_translate:from_lit(F);
 record_field({record_field,_,F,Def}) ->         %Field name and default value
-    Fd = lfe_trans:from_lit(F),
-    Ld = lfe_trans:from_expr(Def),
+    Fd = lfe_translate:from_lit(F),
+    Ld = lfe_translate:from_expr(Def),
     [Fd,Ld];
 record_field({typed_record_field,Rf,Type}) ->
     typed_record_field(Rf, Type).
 
 typed_record_field({record_field,_,F}, Type) ->
     %% Just the field name, set default value to 'undefined.
-    Fd = lfe_trans:from_lit(F),
+    Fd = lfe_translate:from_lit(F),
     Td = lfe_types:from_type_def(Type),
     [Fd,?Q(undefined),Td];
 typed_record_field({record_field,_,F,Def}, Type) ->
-    Fd = lfe_trans:from_lit(F),
-    Ld = lfe_trans:from_expr(Def),
+    Fd = lfe_translate:from_lit(F),
+    Ld = lfe_translate:from_expr(Def),
     Td = lfe_types:from_type_def(Type),
     [Fd,Ld,Td].
 
@@ -303,13 +345,13 @@ typed_record_field({record_field,_,F,Def}, Type) ->
 %%  could also contain a typed record definition which we use.
 
 -ifdef(NEW_REC_CORE).
-trans_type(Name, Line, Def, E) ->
+trans_type(Name, _Line, Def, E) ->
     ['define-type',[Name|lfe_types:from_type_defs(E)],
      lfe_types:from_type_def(Def)].
 -else.
 trans_type({record,Name}, Line, Def, _E) ->
     trans_record(Name, Line, Def);
-trans_type(Name, _, Def, E) ->
+trans_type(Name, _Line, Def, E) ->
     ['define-type',[Name|lfe_types:from_type_defs(E)],
      lfe_types:from_type_def(Def)].
 -endif.
@@ -331,7 +373,7 @@ trans_spec({Name,Arity}, _, Tl) ->
 
 trans_function(Name, _, Cls) ->
     %% Make it a fun and then drop the match-lambda.
-    ['match-lambda'|Lcs] = lfe_trans:from_expr({'fun',0,{clauses,Cls}}),
+    ['match-lambda'|Lcs] = lfe_translate:from_expr({'fun',0,{clauses,Cls}}),
     [defun,Name|Lcs].
 
 %% trans_macros(MacroDefs, State) -> {LMacroDefs,State}.
@@ -341,8 +383,8 @@ trans_function(Name, _, Cls) ->
 trans_macros([{{atom,Mac},Defs}|Ms], St0) ->
     {Lms,St1} = trans_macros(Ms, St0),
     case catch trans_macro(Mac, Defs, St1) of
-        {'EXIT',E} ->                           %It crashed
-            {Lms,add_warning({notrans_macro,Mac,E}, St1)};
+        {'EXIT',_E} ->                          %Something went wrong
+            {Lms,add_warning({notrans_macro,Mac}, St1)};
         {none,St2} -> {Lms,St2};                %No definition, ignore
         {Mdef,St2} -> {[Mdef|Lms],St2}
     end;
@@ -386,11 +428,11 @@ trans_macro_body([], Ts0) ->
     %% io:format("parse: ~p\n",[Ts1 ++ [{dot,0}]]),
     {ok,[E]} = erl_parse:parse_exprs(Ts1 ++ [{dot,0}]),
     %% io:format("result: ~p\n",[E]),
-    [?BQ(lfe_trans:from_expr(E))];
+    [?BQ(lfe_translate:from_expr(E))];
 trans_macro_body(As, Ts0) ->
     Ts1 = trans_qm(Ts0),
     {ok,[E]} = erl_parse:parse_exprs(Ts1 ++ [{dot,0}]),
-    Le0 = lfe_trans:from_expr(E),
+    Le0 = lfe_translate:from_expr(E),
     %% Wrap variables in arg list with an (comma ...) call.
     Alist = [ [A|[comma,A]] || A <- As ],
     Le1 = lfe:sublis(Alist, Le0),
@@ -398,7 +440,7 @@ trans_macro_body(As, Ts0) ->
     [?BQ(Le1)].
 
     %% {ok,[_]=F} = erl_parse:parse_exprs(Ts1 ++ [{dot,0}]),
-    %% backquote_last(lfe_trans:from_body(F)).
+    %% backquote_last(lfe_translate:from_body(F)).
 
 %% unquote_vars(Alist, Expr) -> Expr.
 %%  Special version of sublis which doesn't enter quotes. Specially

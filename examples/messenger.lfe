@@ -1,4 +1,4 @@
-;; Copyright (c) 2013 Duncan McGreggor <oubiwann@cogitat.io>
+;; Copyright (c) 2013-2020 Duncan McGreggor <oubiwann@cogitat.io>
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -19,26 +19,28 @@
 ;; This file contains a simple demo for passing messages to an Erlang process
 ;; in LFE. To use, do the following:
 ;;
-;;  $ ../bin/lfe -pa ../ebin
-;;  > (c '"messenger")
-;;  #(module messenger)
-;;  > (set pid (spawn 'messenger 'print-result ()))
-;;  <0.34.0>
-;;  > (! pid '"Zaphod was here.")
-;;  "Zaphod was here."
-;;  Received message: 'Zaphod was here.'
-;;  > (! pid '"Ford is missing.")
-;;  "Ford is missing."
-;;  Received message: 'Ford is missing.'
-;;  > (! pid '"Arthur is pining for Trillian.")
-;;  "Arthur is pining for Trillian."
-;;  Received message: 'Arthur is pining for Trillian.'
+;; $ ./bin/lfe
+;;
+;; lfe> (c "examples/messenger")
+;; #(module messenger)
+;; lfe> (set pid (spawn 'messenger 'print-result ()))
+;; <0.34.0>
+;; lfe> (! pid "Zaphod was here.")
+;; "Zaphod was here."
+;; Received message: 'Zaphod was here.'
+;; lfe> (! pid "Ford is missing.")
+;; "Ford is missing."
+;; Received message: 'Ford is missing.'
+;; lfe> (! pid "Arthur is pining for Trillian.")
+;; "Arthur is pining for Trillian."
+;; Received message: 'Arthur is pining for Trillian.'
 
 (defmodule messenger
- (export (print-result 0)))
+  (export 
+    (print-result 0)))
 
 (defun print-result ()
   (receive
     (msg
-      (: io format '"Received message: '~s'~n" (list msg))
+      (io:format "Received message: '~s'~n" (list msg))
       (print-result))))

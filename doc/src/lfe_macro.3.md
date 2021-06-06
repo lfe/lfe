@@ -1,6 +1,6 @@
 % lfe_macro(3)
 % Robert Virding
-% 2008-2016
+% 2008-2020
 
 
 # NAME
@@ -32,40 +32,11 @@ is used by the compiler to give better error information.
 This is an macro and evaluation environment as created
 by ``lfe_lib:new_env()``.
 
+**mac_state()**
+
+This is the internal state used by the macro expander.
 
 # EXPORTS
-
-**expand_forms([FileSexpr], Env) -> ExpRet**
-
-where
-
-```
-  FileSexpr = filesexpr()
-  Env = env()
-  ExpRet = {yes,[FileSexpr],Env,Warnings} | {error,Errors,Warnings}
-```
-
-**macro_forms([FileSexpr], Env) -> {[FileSexpr],Env}.**
-
-where
-
-```
-FileSexpr = filesexpr()
-Env = env()
-```
-
-**expand_expr_all(Sexpr, Env) -> Sexpr.**
-
-where
-
-```
-Sexpr = sexpr()
-Env = env()
-```
-
-Expand all macros in Sexpr either using the definitions in Env
-or just the default macros. Note that any eventual new macro
-definitions will be lost.
 
 **expand_expr(Sexpr, Env) -> {yes,Exp} | no.**
 
@@ -84,6 +55,69 @@ expand it and return {yes,Expansion}, if not then return no.
 possible while ``expand_expr_1/2`` will only try it once. These
 functions use the macro definitions in the environment and the
 standard pre-defined macros.
+
+**expand_expr_all(Sexpr, Env) -> Sexpr.**
+
+where
+
+```
+Sexpr = sexpr()
+Env = env()
+```
+
+Expand all macros in Sexpr either using the definitions in Env
+or just the default macros. Note that any eventual new macro
+definitions will be lost.
+
+**expand_form_init(Deep, Keep) -> MacState**
+
+where
+
+```
+  Deep = boolean()
+  Keep = boolean()
+  MacState = mac_state()
+```
+
+Create an internal macro state. ``Deep`` determines whether the form
+is to be expanded internally at depth and ``Keep`` whether macro
+definition forms are to be kept.
+
+**expand_fileforms([FileForm], Env, Deep, Keep) -> ExpRet**
+
+**expand_fileforms([FileForm], Env, MacState) -> ExpRet**
+
+where
+
+```
+  FileForm = filesexpr()
+  Env = env()
+  Deep = boolean()
+  Keep = boolean()
+  MacState = mac_state()
+  ExpRet = {yes,[FileSexpr],Env,Warnings} |
+           {error,Errors,Warnings}
+```
+
+expand a sequence of file forms.
+
+**expand_form(Form, Line, Env, MacState) -> RetState**
+
+**expand_fileform(FileForm, Env, MacState) -> RetState**
+
+where
+
+```
+  Form = sexpr()
+  FileForm = filesexpr()
+  Line = integer()
+  Env = env()
+  MacState = mac_state()
+  RetState = {ok,Form,Env,Macstate} |
+             {error,Errors,Warnings,MacState}
+```
+
+Expand a file form using the environment and macro state.
 
 
 # SEE ALSO

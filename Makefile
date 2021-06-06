@@ -1,4 +1,4 @@
-# Copyright (c) 2016 Robert Virding
+# Copyright (c) 2016-2020 Robert Virding
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,18 +27,18 @@ INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
 INSTALL_BIN = $(INSTALL) -m755
 DESTLIBDIR := $(PREFIX)/lib/lfe
+DESTINCDIR := $(DESTLIBDIR)/$(INCDIR)
 DESTEBINDIR := $(DESTLIBDIR)/$(EBINDIR)
 DESTBINDIR := $(DESTLIBDIR)/$(BINDIR)
 
 VPATH = $(SRCDIR)
 
-MKDIR_P = mkdir -p
 MANDB = $(shell which mandb)
 
-ERLCFLAGS = -W1
+ERLCFLAGS = -W1 +debug_info
 ERLC = erlc
 
-LFECFLAGS = -pa ../lfe
+LFECFLAGS = -pa ../lfe +debug-info
 LFEC = $(BINDIR)/lfe $(BINDIR)/lfec
 APP_DEF = lfe.app
 
@@ -75,7 +75,7 @@ $(BINDIR)/%: $(CSRCDIR)/%.c
 	cc -o $@ $<
 
 $(EBINDIR)/%.beam: $(SRCDIR)/%.erl
-	@$(MKDIR_P) $(EBINDIR)
+	@$(INSTALL_DIR) $(EBINDIR)
 	$(ERLC) -I $(INCDIR) -o $(EBINDIR) $(COMP_OPTS) $(ERLCFLAGS) $<
 
 %.erl: %.xrl
@@ -89,7 +89,7 @@ $(EBINDIR)/%.beam: $(LSRCDIR)/%.lfe
 
 all: compile
 
-.PHONY: compile erlc-compile lfec-compile erlc-lfec emacs install docs clean docker-build docker-push docker update-mandb
+.PHONY: compile erlc-compile lfec-compile erlc-lfec emacs install install-beam install-bin install-man docs clean docker-build docker-push docker update-mandb
 
 compile: comp_opts.mk
 	$(MAKE) $(MFLAGS) erlc-lfec
@@ -117,17 +117,30 @@ comp_opts.mk:
 
 -include comp_opts.mk
 
-$(BINDIR)/lfe%:
-	$(INSTALL_BIN) $@ $(DESTBINDIR)
+install: compile install-include install-beam install-bin install-man
 
-install: compile install-man
+install-include:
+	$(INSTALL_DIR) $(DESTINCDIR)
+	$(INSTALL_DATA) $(INCDIR)/* $(DESTINCDIR)
+
+install-beam:
 	rm -Rf $(DESTEBINDIR)
 	$(INSTALL_DIR) $(DESTEBINDIR)
-	$(INSTALL_DATA) $(EBINDIR)/$(APP_DEF) $(DESTEBINDIR)
-	$(INSTALL_DATA) $(addprefix $(EBINDIR)/, $(EBINS)) $(DESTEBINDIR)
-	$(INSTALL_DATA) $(addprefix $(EBINDIR)/, $(LBINS)) $(DESTEBINDIR)
+	$(INSTALL_DATA) \
+		$(EBINDIR)/$(APP_DEF) \
+		$(addprefix $(EBINDIR)/, $(EBINS)) \
+		$(addprefix $(EBINDIR)/, $(LBINS)) \
+		$(DESTEBINDIR)
+
+install-bin:
 	$(INSTALL_DIR) $(DESTBINDIR)
-	$(MAKE) $(BINDIR)/lfe $(BINDIR)/lfec $(BINDIR)/lfedoc $(BINDIR)/lfescript
+	$(INSTALL_BIN) \
+		$(BINDIR)/lfe \
+		$(BINDIR)/lfec \
+		$(BINDIR)/lfedoc \
+		$(BINDIR)/lfescript \
+		$(DESTBINDIR)
+	$(INSTALL_DIR) $(PREFIX)/bin
 	ln -sf $(DESTBINDIR)/* $(PREFIX)/bin/
 
 clean:
@@ -211,16 +224,16 @@ docs-txt: docs-man \
 $(DOCDIR)/%.txt: export GROFF_NO_SGR=1
 
 $(DOCDIR)/%.txt: $(MANDIR)/%.1
-	groff -t -e -mandoc -Tutf8 -Kutf8 $< | col -bx > $@
+	groff -t -e -mandoc -Tutf8 $< | col -bx > $@
 
 $(DOCDIR)/%.txt: $(MANDIR)/%.3
-	groff -t -e -mandoc -Tutf8 -Kutf8 $< | col -bx > $@
+	groff -t -e -mandoc -Tutf8 $< | col -bx > $@
 
 $(DOCDIR)/%.txt: $(MANDIR)/%.7
-	groff -t -e -mandoc -Tutf8 -Kutf8 $< | col -bx > $@
+	groff -t -e -mandoc -Tutf8 $< | col -bx > $@
 
 $(PDFDIR):
-	@$(MKDIR_P) $(PDFDIR)
+	@$(INSTALL_DIR) $(PDFDIR)
 
 docs-pdf: $(PDFDIR) \
 	$(addprefix $(PDFDIR)/, $(PDF1S)) \
@@ -228,16 +241,16 @@ docs-pdf: $(PDFDIR) \
 	$(addprefix $(PDFDIR)/, $(PDF7S))
 
 $(PDFDIR)/%.pdf: $(DOCSRC)/%.1.md
-	pandoc -f markdown --latex-engine=xelatex -o $@ $<
+	pandoc -f markdown --pdf-engine=xelatex -o $@ $<
 
 $(PDFDIR)/%.pdf: $(DOCSRC)/%.3.md
-	pandoc -f markdown --latex-engine=xelatex -o $@ $<
+	pandoc -f markdown --pdf-engine=xelatex -o $@ $<
 
 $(PDFDIR)/%.pdf: $(DOCSRC)/%.7.md
-	pandoc -f markdown --latex-engine=xelatex -o $@ $<
+	pandoc -f markdown --pdf-engine=xelatex -o $@ $<
 
 $(EPUBDIR):
-	@$(MKDIR_P) $(EPUBDIR)
+	@$(INSTALL_DIR) $(EPUBDIR)
 
 docs-epub: $(EPUBDIR) \
 	$(addprefix $(EPUBDIR)/, $(EPUB1S)) \
@@ -254,7 +267,7 @@ $(EPUBDIR)/%.epub: $(DOCSRC)/%.7.md
 	pandoc -f markdown -t epub -o $@ $<
 
 $(MANINSTDIR)/man%:
-	@$(MKDIR_P) -p $@
+	@$(INSTALL_DIR) $@
 
 ifeq (,$(findstring mandb,$(MANDB)))
 install-man: $(MANINSTDIR)/man1 $(MANINSTDIR)/man3 $(MANINSTDIR)/man7
@@ -290,6 +303,3 @@ docker-docs:
 docker-docs-bash:
 	docker run -i -v `pwd`/doc:/docs -t lfex/lfe-docs:latest bash
 
-travis:
-	@rebar3 ct
-	@rebar3 eunit -m clj-tests,prop_lfe_doc

@@ -1,6 +1,6 @@
 # LFE
 
-[![Travis](https://img.shields.io/travis/rvirding/lfe.svg)](https://travis-ci.org/rvirding/lfe)
+[![Build Status](https://github.com/lfe/lfe/workflows/ci%2Fcd/badge.svg)](https://github.com/lfe/lfe/actions)
 [![Hex.pm version](https://img.shields.io/hexpm/v/lfe.svg)](https://hex.pm/packages/lfe)
 [![Hex.pm downloads](https://img.shields.io/hexpm/dt/lfe.svg)](https://hex.pm/packages/lfe)
 [![Hex.pm weekly downloads](https://img.shields.io/hexpm/dw/lfe.svg)](https://hex.pm/packages/lfe)
@@ -16,7 +16,7 @@ code. An LFE evaluator and shell is also included.
 To compile LFE, simple clone it and compile:
 
 ```shell
-$ git clone https://github.com/rvirding/lfe.git
+$ git clone https://github.com/lfe/lfe.git
 $ cd lfe
 $ make compile
 ```
@@ -163,3 +163,7 @@ If you would like to make changes to the LFE documentation and then regenerate
 the docs, you'll want to read the instructions here:
 
 * [Updating LFE Documentation](doc/src/updating_docs.md)
+
+## Join the Community
+
+[LFE on Slack](https://lfe.slack.com), join by requesting an invite [here](https://erlef.org/slack-invite/lfe)
