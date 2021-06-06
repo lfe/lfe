@@ -1106,12 +1106,12 @@ get_module_doc(_Mod, #docs_v1{format = Enc}) ->
 
 get_macro_doc(Mod, Name, #docs_v1{format = ?LFE_FORMAT}=Docs) ->
     lfe_shell_docs:render(Mod, Name, Docs);
-get_macro_doc(Mod, Name, #docs_v1{format = Enc}) ->
+get_macro_doc(_Mod, _Name, #docs_v1{format = Enc}) ->
     {error, {unknown_format, Enc}}.
 
 get_function_doc(Mod, Name, Arity, #docs_v1{format = ?LFE_FORMAT}=Docs) ->
     lfe_shell_docs:render(Mod, Name, Arity, Docs);
-get_function_doc(Mod, Name, Arity, #docs_v1{format = Enc}) ->
+get_function_doc(_Mod, _Name, _Arity, #docs_v1{format = Enc}) ->
     {error, {unknown_format, Enc}}.
 
 -endif.
