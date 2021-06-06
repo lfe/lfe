@@ -5,7 +5,7 @@ lfe_guide(7)                                                      lfe_guide(7)
 NAME
        lfe_guide - Lisp Flavoured Erlang User Guide
 
-SYNPOSIS
+SYNOPSIS
        Note: {{ ... }} is used to denote optional syntax.
 
 LITERALS AND SPECIAL SYNTACTIC RULES
@@ -70,9 +70,9 @@ LITERALS AND SPECIAL SYNTACTIC RULES
 
               1.0 +1.0 -1.0 1.0e10 1.111e-10
 
-       The one thing to watch out for is that you cannot omit the the part be‐
-       fore or after the decimal point if it is zero.  E.g.  the following are
-       not valid forms: 100. or .125.
+       The one thing to watch out for is that you cannot omit the part  before
+       or  after the decimal point if it is zero.  E.g.  the following are not
+       valid forms: 100. or .125.
 
    Strings
        There are two forms of strings: list strings and binary strings.
@@ -91,7 +91,7 @@ LITERALS AND SPECIAL SYNTACTIC RULES
        be convenient when writing Unicode letters not easily typeable or view‐
        able  with  regular  fonts.   E.g.  "Cat: \\x1f639;" might be easier to
        type (and view on output devices without a Unicode  font)  then  typing
-       the actual unicode letter.
+       the actual Unicode letter.
 
    Binary Strings
        Binary strings are just like list strings but they are represented dif‐
@@ -274,8 +274,8 @@ Supported forms
               (define-function name meta-data lambda|match-lambda)
               (define-macro name meta-data lambda|match-lambda)
 
-              (define-type type defintion)
-              (define-opaque-type type defintion)
+              (define-type type definition)
+              (define-opaque-type type definition)
               (define-function-spec func spec)
 
    Basic macro forms
@@ -464,11 +464,11 @@ Function Binding and Scoping
 
        This  means  that  it  is  perfectly  legal  to shadow BIFs by imports,
        BIFs/imports by top-level functions and BIFs/imports/top-level by  fle‐
-       trecs.   In this respect there is nothing special about BIfs, they just
-       behave as prefined imported functions, a whopping big (import (from er‐
-       lang  ...)).  EXCEPT that we know about guard BIFs and expression BIFs.
-       If you want a private version of spawn then define it, there will be no
-       warnings.
+       trecs.   In this respect there is nothing special about BIFs, they just
+       behave as predefined imported functions, a whopping big  (import  (from
+       erlang  ...)).   EXCEPT  that  we  know about guard BIFs and expression
+       BIFs.  If you want a private version of spawn  then  define  it,  there
+       will be no warnings.
 
        CAVEAT  This  does not hold for the supported core forms.  These can be
        shadowed by imports or redefined but the compiler will always  use  the
@@ -482,8 +482,8 @@ Module definition
               (extend-module meta-data attributes)
 
        The valid meta data is (type typedef ...), (opaque typedef ...),  (spec
-       function-spec  ...)  and (record record-def ...).  Each can take multu‐
-       iple definitions in one meta form.
+       function-spec ...) and (record record-def ...).  Each can take multiple
+       definitions in one meta form.
 
        Attributes declarations have the syntax (attribute value-1  ...)  where
        the attribute value is a list off the values in the declaration
@@ -504,7 +504,7 @@ Module definition
        We  can have multiple export and import attributes within module decla‐
        ration.  The (export all) attribute is allowed together with other  ex‐
        port  attributes  and  overrides  them.  Other attributes which are not
-       recognised by the compiler are allowed and are simply passed on to  the
+       recognized by the compiler are allowed and are simply passed on to  the
        module and can be accessed with the module_info/0-1 functions.
 
        In  the import attribute the (from mod (f1 2) ...)  means that the call
@@ -517,7 +517,7 @@ Module definition
        · the compiler does no checking on that module at all
 
        · in the rename above the functions g1/2 and g2/1 aren’t  automatically
-         imported only the “renamed” functions.
+         imported, only the “renamed” functions.
 
        · we  do  not  really see in the code that we are calling a function in
          another module
@@ -608,7 +608,7 @@ Macros
        fined before the macro is used.
 
        Scheme’s syntax rules are an easy way to define macros where  the  body
-       is just a simple expansion.  The are implmeneted the the module scm and
+       is just a simple expansion.  The are implemented the the module scm and
        are supported with scm:define-syntax and scm:let-syntax and the equiva‐
        lent  scm:defsyntax and scm:syntaxlet.  Note that the patterns are only
        the arguments to the macro call and do not contain the macro name.   So
@@ -825,7 +825,7 @@ Maps
 
        · (map-remove map key ... ) - Remove the keys in the map.
 
-       N.B.   This  syntax for processing maps has stablized but may change in
+       N.B.   This syntax for processing maps has stabilized but may change in
        the future!
 
        There are also alternate short forms msiz, mref, mset,  mupd  and  mrem
@@ -944,8 +944,8 @@ Predefined LFE functions
               (<arith_op> expr ...)
               (<comp_op> expr ...)
 
-       The  standard arithmentic operators, + - * /, and comparison operators,
-       > >= < =< == /= =:= =/= , can take multiple arguments the same as their
+       The standard arithmetic operators, + - * /, and comparison operators, >
+       >= < =< == /= =:= =/= , can take multiple arguments the same  as  their
        standard lisp counterparts.  This is still experimental and implemented
        using macros.  They do, however, behave like normal functions and eval‐
        uate ALL their arguments before doing the arithmetic/comparisons opera‐
@@ -967,7 +967,7 @@ Predefined LFE functions
               (subst-if-not new test tree)
               (sublis alist tree)
 
-       The standard substituition functions.
+       The standard substitution functions.
 
               (macroexpand-1 expr {{environment}})
 
@@ -1101,12 +1101,12 @@ Predefined LFE functions
               cl:type-of  object
               cl:coerce  object  type
 
-       Furthmore, there is an include file which developers may which to  uti‐
-       lize  in  their LFE programs: (include-lib "lfe/include/cl.lfe").  Cur‐
-       rently this offers Common Lisp predicates, but may include other useful
-       macros and functions in the future.  The provided predicate macros wrap
-       the various is_* Erlang functions; since these are expanded at  compile
-       time, they are usable in guards.  The include the following:
+       Furthermore, there is an include file which  developers  may  which  to
+       utilize  in  their  LFE  programs:  (include-lib "lfe/include/cl.lfe").
+       Currently this offers Common Lisp predicates,  but  may  include  other
+       useful  macros  and  functions  in  the future.  The provided predicate
+       macros wrap the various is_* Erlang functions; since these are expanded
+       at compile time, they are usable in guards.  The include the following:
 
               (alivep x)
               (atomp x)
@@ -1205,7 +1205,7 @@ Predefined LFE functions
               (clj:conj ...)
               (clj:if ...)
 
-       Most  of  the  above  mentioned macros are avaialble in the clj include
+       Most  of  the  above  mentioned macros are available in the clj include
        file, the use of which allows developers to forego the clj:  prefix  in
        calls:
 

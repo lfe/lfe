@@ -5,7 +5,7 @@
 .SH NAME
 .PP
 lfe_guide - Lisp Flavoured Erlang User Guide
-.SH SYNPOSIS
+.SH SYNOPSIS
 .PP
 Note: {{ \&... }} is used to denote optional syntax.
 .SH LITERALS AND SPECIAL SYNTACTIC RULES
@@ -114,8 +114,8 @@ numbers:
 \f[R]
 .fi
 .PP
-The one thing to watch out for is that you cannot omit the the part
-before or after the decimal point if it is zero.
+The one thing to watch out for is that you cannot omit the part before
+or after the decimal point if it is zero.
 E.g.
 the following are not valid forms: \f[C]100.\f[R] or \f[C].125\f[R].
 .SS Strings
@@ -141,7 +141,7 @@ or viewable with regular fonts.
 E.g.
 \f[C]\[dq]Cat: \[rs]\[rs]x1f639;\[dq]\f[R] might be easier to type (and
 view on output devices without a Unicode font) then typing the actual
-unicode letter.
+Unicode letter.
 .SS Binary Strings
 .PP
 Binary strings are just like list strings but they are represented
@@ -352,8 +352,8 @@ the expression and then be effectively \f[C]2\f[R].
 (define-function name meta-data lambda|match-lambda)
 (define-macro name meta-data lambda|match-lambda)
 
-(define-type type defintion)
-(define-opaque-type type defintion)
+(define-type type definition)
+(define-opaque-type type definition)
 (define-function-spec func spec)
 \f[R]
 .fi
@@ -587,8 +587,8 @@ Core forms, these can never be shadowed
 This means that it is perfectly legal to shadow BIFs by imports,
 BIFs/imports by top-level functions and BIFs/imports/top-level by
 \f[C]fletrec\f[R]s.
-In this respect there is nothing special about BIfs, they just behave as
-prefined imported functions, a whopping big
+In this respect there is nothing special about BIFs, they just behave as
+predefined imported functions, a whopping big
 \f[C](import (from erlang ...))\f[R].
 EXCEPT that we know about guard BIFs and expression BIFs.
 If you want a private version of \f[C]spawn\f[R] then define it, there
@@ -613,7 +613,7 @@ attributes are:
 The valid meta data is \f[C](type typedef ...)\f[R],
 \f[C](opaque typedef ...)\f[R], \f[C](spec function-spec ...)\f[R] and
 \f[C](record record-def ...)\f[R].
-Each can take multuiple definitions in one meta form.
+Each can take multiple definitions in one meta form.
 .PP
 Attributes declarations have the syntax
 \f[C](attribute value-1 ...)\f[R] where the attribute value is a list
@@ -640,7 +640,7 @@ We can have multiple export and import attributes within module
 declaration.
 The \f[C](export all)\f[R] attribute is allowed together with other
 export attributes and overrides them.
-Other attributes which are not recognised by the compiler are allowed
+Other attributes which are not recognized by the compiler are allowed
 and are simply passed on to the module and can be accessed with the
 \f[C]module_info/0-1\f[R] functions.
 .PP
@@ -657,7 +657,7 @@ Note that when importing a module
 the compiler does no checking on that module at all
 .IP \[bu] 2
 in the \f[C]rename\f[R] above the functions \f[C]g1/2\f[R] and
-\f[C]g2/1\f[R] aren\[cq]t automatically imported only the
+\f[C]g2/1\f[R] aren\[cq]t automatically imported, only the
 \[lq]renamed\[rq] functions.
 .IP \[bu] 2
 we do not really see in the code that we are calling a function in
@@ -773,7 +773,7 @@ is used.
 .PP
 Scheme\[cq]s syntax rules are an easy way to define macros where the
 body is just a simple expansion.
-The are implmeneted the the module \f[C]scm\f[R] and are supported with
+The are implemented the the module \f[C]scm\f[R] and are supported with
 \f[C]scm:define-syntax\f[R] and \f[C]scm:let-syntax\f[R] and the
 equivalent \f[C]scm:defsyntax\f[R] and \f[C]scm:syntaxlet\f[R].
 Note that the patterns are only the arguments to the macro call and do
@@ -1065,7 +1065,7 @@ Note that this form requires all the keys to exist.
 \f[C](map-remove map key ... )\f[R] - Remove the keys in the map.
 .PP
 N.B.
-This syntax for processing maps has stablized but may change in the
+This syntax for processing maps has stabilized but may change in the
 future!
 .PP
 There are also alternate short forms \f[C]msiz\f[R], \f[C]mref\f[R],
@@ -1228,7 +1228,7 @@ The following more or less standard lisp functions are predefined:
 \f[R]
 .fi
 .PP
-The standard arithmentic operators, + - * /, and comparison operators, >
+The standard arithmetic operators, + - * /, and comparison operators, >
 >= < =< == /= =:= =/= , can take multiple arguments the same as their
 standard lisp counterparts.
 This is still experimental and implemented using macros.
@@ -1259,7 +1259,7 @@ The standard association list functions.
 \f[R]
 .fi
 .PP
-The standard substituition functions.
+The standard substitution functions.
 .IP
 .nf
 \f[C]
@@ -1420,7 +1420,7 @@ cl:coerce  object  type
 \f[R]
 .fi
 .PP
-Furthmore, there is an include file which developers may which to
+Furthermore, there is an include file which developers may which to
 utilize in their LFE programs:
 \f[C](include-lib \[dq]lfe/include/cl.lfe\[dq])\f[R].
 Currently this offers Common Lisp predicates, but may include other
@@ -1555,7 +1555,7 @@ Other:
 \f[R]
 .fi
 .PP
-Most of the above mentioned macros are avaialble in the \f[C]clj\f[R]
+Most of the above mentioned macros are available in the \f[C]clj\f[R]
 include file, the use of which allows developers to forego the
 \f[C]clj:\f[R] prefix in calls:
 .IP

@@ -6,7 +6,7 @@ NAME
        clj - LFE Clojure interface library.
 
 SYNOPSIS
-       This  module  provides  Clojure-inpired functions and macros for use in
+       This  module  provides Clojure-inspired functions and macros for use in
        LFE.
 
 EXPORTS
@@ -539,7 +539,7 @@ EXPORTS
        Return  a  nullary  function that returns a cons cell with start as the
        head and a nullary function, (next func (funcall func start step) step)
        as  the  tail.  The result can be treated as a (possibly infinite) lazy
-       list, which only computes subseqeuent values as needed.
+       list, which only computes subsequent values as needed.
 
        (lazy-seq seq)
 
@@ -599,7 +599,7 @@ EXPORTS
 
        Return a list of lists of n items each, at offsets step apart.  Use the
        elements of pad as necessary to complete the last partition up to n el‐
-       ements.  In case there are not enough padding elements, return a  pari‐
+       ements.  In case there are not enough padding elements, return a parti‐
        tion with less than n items.
 
        (partition-all n lst)

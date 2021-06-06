@@ -7,7 +7,7 @@
 clj - LFE Clojure interface library.
 .SH SYNOPSIS
 .PP
-This module provides Clojure-inpired functions and macros for use in
+This module provides Clojure-inspired functions and macros for use in
 LFE.
 .SH EXPORTS
 .PP
@@ -645,7 +645,7 @@ Return a nullary function that returns a cons cell with \f[C]start\f[R]
 as the head and a nullary function,
 \f[C](next func (funcall func start step) step)\f[R] as the tail.
 The result can be treated as a (possibly infinite) lazy list, which only
-computes subseqeuent values as needed.
+computes subsequent values as needed.
 .PP
 \f[B](lazy-seq seq)\f[R]
 .PP
@@ -713,7 +713,7 @@ Return a list of lists of \f[C]n\f[R] items each, at offsets
 \f[C]step\f[R] apart.
 Use the elements of \f[C]pad\f[R] as necessary to complete the last
 partition up to \f[C]n\f[R] elements.
-In case there are not enough padding elements, return a parition with
+In case there are not enough padding elements, return a partition with
 less than \f[C]n\f[R] items.
 .PP
 \f[B](partition-all n lst)\f[R]
