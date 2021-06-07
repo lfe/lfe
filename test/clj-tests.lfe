@@ -16,7 +16,6 @@
 ;; Author  : Eric Bailey
 ;; Purpose : Test clj exports.
 
-
 (defmodule clj-tests
   "Test clj exports.")
 
