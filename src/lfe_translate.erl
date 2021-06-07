@@ -645,7 +645,8 @@ to_expr([map|Pairs], L, Vt, St0) ->
 to_expr([msiz,Map], L, Vt, St) ->
     to_expr([map_size,Map], L, Vt, St);
 to_expr([mref,Map,Key], L, Vt, St) ->
-    to_expr([map_get,Key,Map], L, Vt, St);
+    {As,St1} = to_exprs([Key, Map], L, Vt, St),
+    to_remote_call({atom,L,maps}, {atom,L,get}, As, L, St1);
 to_expr([mset,Map|Pairs], L, Vt, St) ->
     to_map_set(Map, Pairs, L, Vt, St);
 to_expr([mupd,Map|Pairs], L, Vt, St) ->
@@ -655,7 +656,8 @@ to_expr([mrem,Map|Keys], L, Vt, St) ->
 to_expr(['map-size',Map], L, Vt, St) ->
     to_expr([map_size,Map], L, Vt, St);
 to_expr(['map-get',Map,Key], L, Vt, St) ->
-    to_expr([map_get,Key,Map], L, Vt, St);
+    {As,St1} = to_exprs([Key, Map], L, Vt, St),
+    to_remote_call({atom,L,maps}, {atom,L,get}, As, L, St1);
 to_expr(['map-set',Map|Pairs], L, Vt, St) ->
     to_map_set(Map, Pairs, L, Vt, St);
 to_expr(['map-update',Map|Pairs], L, Vt, St) ->
