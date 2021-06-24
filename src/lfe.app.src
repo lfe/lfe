@@ -29,7 +29,8 @@
   {maintainers, ["Robert Virding"]},
   {licenses, ["Apache"]},
   {links, [{"Github", "https://github.com/lfe/lfe"},
-           {"Main site", "http://lfe.io/"},
-           {"Documentation", "http://docs.lfe.io/"}]},
-  {files, ["src", "include", "bin", "rebar.*", "README.md", "LICENSE"]}
+           {"Main site", "https://lfe.io/"},
+           {"Documentation", "https://lfe.io/use/#reference"}]},
+  {files, ["README.md", "LICENSE", "src", "c_src", "include", "bin",
+           "rebar.*",  "*akefile", "*.escript"]}
  ]}.
