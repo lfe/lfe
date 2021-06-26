@@ -645,8 +645,7 @@ to_expr([map|Pairs], L, Vt, St0) ->
 to_expr([msiz,Map], L, Vt, St) ->
     to_expr([map_size,Map], L, Vt, St);
 to_expr([mref,Map,Key], L, Vt, St) ->
-    {As,St1} = to_exprs([Key, Map], L, Vt, St),
-    to_remote_call({atom,L,maps}, {atom,L,get}, As, L, St1);
+    to_map_get(Map, Key, L, Vt, St);
 to_expr([mset,Map|Pairs], L, Vt, St) ->
     to_map_set(Map, Pairs, L, Vt, St);
 to_expr([mupd,Map|Pairs], L, Vt, St) ->
@@ -656,8 +655,7 @@ to_expr([mrem,Map|Keys], L, Vt, St) ->
 to_expr(['map-size',Map], L, Vt, St) ->
     to_expr([map_size,Map], L, Vt, St);
 to_expr(['map-get',Map,Key], L, Vt, St) ->
-    {As,St1} = to_exprs([Key, Map], L, Vt, St),
-    to_remote_call({atom,L,maps}, {atom,L,get}, As, L, St1);
+    to_map_get(Map, Key, L, Vt, St);
 to_expr(['map-set',Map|Pairs], L, Vt, St) ->
     to_map_set(Map, Pairs, L, Vt, St);
 to_expr(['map-update',Map|Pairs], L, Vt, St) ->
@@ -866,6 +864,18 @@ to_bin_size(all, _, _, St) -> {default,St};
 to_bin_size(default, _, _, St) -> {default,St};
 to_bin_size(undefined, _, _, St) -> {default,St};
 to_bin_size(Size, L, Vt, St) -> to_expr(Size, L, Vt, St).
+
+%% to_map_get(Map, Key, L, Vt, State) -> {MapGet, State}.
+%%  Check if there is a BIF and in that case use it as this will also
+%%  work in a guard. The linter has checked if map_get is guardable.
+
+to_map_get(Map, Key, L, Vt, St0) ->
+    {Eas,St1} = to_exprs([Key,Map], L, Vt, St0),
+    case erlang:function_exported(erlang, map_get, 2) of
+	true -> {{call,L,{atom,L,map_get},Eas},St1};
+	false ->
+	    to_remote_call({atom,L,maps}, {atom,L,get}, Eas, L, St1)
+    end.
 
 %% to_map_set(Map, Pairs, L, Vt, State) -> {MapSet,State}.
 %% to_map_update(Map, Pairs, L, Vt, State) -> {MapUpdate,State}.

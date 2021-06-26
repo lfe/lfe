@@ -1394,7 +1394,8 @@ gexpr_bitsegs(Segs, Env, L, St0) ->
 %% check_gmap_set(Form, Map, Pairs, Line, State) -> State.
 %% check_gmap_update(Form, Args, Pairs, Line, State) -> State.
 %%  Functions for checking maps, these always return errors if system
-%%  does not support maps.
+%%  does not support maps. Note the special check if map-get is
+%%  guardable.
 
 -ifdef(HAS_MAPS).
 check_gmap(Pairs, Env, L, St) ->
@@ -1403,9 +1404,14 @@ check_gmap(Pairs, Env, L, St) ->
 check_gmap_size(_Form, Map, Env, L, St) ->
     check_gexpr(Map, Env, L, St).
 
-check_gmap_get(_Form, Map, Key, Env, L, St0) ->
-    St1 = check_gexpr(Map, Env, L, St0),
-    gmap_key(Key, Env, L, St1).
+check_gmap_get(Form, Map, Key, Env, L, St0) ->
+    case lfe_internal:is_guard_bif(map_get, 2) of
+	true ->
+	    St1 = check_gexpr(Map, Env, L, St0),
+	    gmap_key(Key, Env, L, St1);
+	false ->
+	    undefined_function_error(L, {Form,2}, St0)
+    end.
 
 check_gmap_set(Form, Map, Pairs, Env, L, St0) ->
     St1 = check_expr(Map, Env, L, St0),
