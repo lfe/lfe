@@ -645,7 +645,7 @@ to_expr([map|Pairs], L, Vt, St0) ->
 to_expr([msiz,Map], L, Vt, St) ->
     to_expr([map_size,Map], L, Vt, St);
 to_expr([mref,Map,Key], L, Vt, St) ->
-    to_expr([map_get,Key,Map], L, Vt, St);
+    to_map_get(Map, Key, L, Vt, St);
 to_expr([mset,Map|Pairs], L, Vt, St) ->
     to_map_set(Map, Pairs, L, Vt, St);
 to_expr([mupd,Map|Pairs], L, Vt, St) ->
@@ -655,7 +655,7 @@ to_expr([mrem,Map|Keys], L, Vt, St) ->
 to_expr(['map-size',Map], L, Vt, St) ->
     to_expr([map_size,Map], L, Vt, St);
 to_expr(['map-get',Map,Key], L, Vt, St) ->
-    to_expr([map_get,Key,Map], L, Vt, St);
+    to_map_get(Map, Key, L, Vt, St);
 to_expr(['map-set',Map|Pairs], L, Vt, St) ->
     to_map_set(Map, Pairs, L, Vt, St);
 to_expr(['map-update',Map|Pairs], L, Vt, St) ->
@@ -828,10 +828,12 @@ to_pats_s(_, L, Pvs, Vt, St, []) -> {{nil,L},Pvs,Vt,St}.
 %%  We don't do any real checking here but just assume that everything
 %%  is correct and in worst case pass the buck to the Erlang compiler.
 
-
 to_bitsegs(Ss, L, Vt, St) ->
     Fun = fun (S, St0) -> to_bitseg(S, L, Vt, St0) end,
     mapfoldl(Fun, St, Ss).
+
+%% to_bitseg(Seg, LineNumber, VarTable, State) -> {Seg,State}.
+%%  We must specially handle the case where the segment is a string.
 
 to_bitseg([Val|Specs]=Seg, L, Vt, St) ->
     case lfe_lib:is_posint_list(Seg) of
@@ -863,6 +865,18 @@ to_bin_size(default, _, _, St) -> {default,St};
 to_bin_size(undefined, _, _, St) -> {default,St};
 to_bin_size(Size, L, Vt, St) -> to_expr(Size, L, Vt, St).
 
+%% to_map_get(Map, Key, L, Vt, State) -> {MapGet, State}.
+%%  Check if there is a BIF and in that case use it as this will also
+%%  work in a guard. The linter has checked if map_get is guardable.
+
+to_map_get(Map, Key, L, Vt, St0) ->
+    {Eas,St1} = to_exprs([Key,Map], L, Vt, St0),
+    case erlang:function_exported(erlang, map_get, 2) of
+	true -> {{call,L,{atom,L,map_get},Eas},St1};
+	false ->
+	    to_remote_call({atom,L,maps}, {atom,L,get}, Eas, L, St1)
+    end.
+
 %% to_map_set(Map, Pairs, L, Vt, State) -> {MapSet,State}.
 %% to_map_update(Map, Pairs, L, Vt, State) -> {MapUpdate,State}.
 %% to_map_remove(Map, Keys, L, Vt, State) -> {MapRemove,State}.
@@ -885,7 +899,8 @@ to_map_remove(Map, Keys, L, Vt, St0) ->
           end,
     lists:foldl(Fun, {Em,St2}, Eks).
 
-%% to_map_pairs(Pairs, LineNumber, VarTable, State) -> {Fields,State}.
+%% to_map_pairs(Pairs, FieldType, LineNumber, VarTable, State) ->
+%%     {Fields,State}.
 
 to_map_pairs([K,V|Ps], Field, L, Vt, St0) ->
     {Ek,St1} = to_expr(K, L, Vt, St0),
@@ -1198,6 +1213,9 @@ to_pat_var(V, L, Pvs, Vt0, St0) ->
             {{var,L,V1},[V|Pvs],Vt1,St1}
     end.
 
+%% to_pat_map_pairs(MapPairs, LineNumber, PatVars, VarTable, State) ->
+%%     {Args,PatVars,VarTable,State}.
+
 to_pat_map_pairs([K,V|Ps], L, Pvs0, Vt0, St0) ->
     {Ek,Pvs1,Vt1,St1} = to_pat(K, L, Pvs0, Vt0, St0),
     {Ev,Pvs2,Vt2,St2} = to_pat(V, L, Pvs1, Vt1, St1),
@@ -1205,7 +1223,8 @@ to_pat_map_pairs([K,V|Ps], L, Pvs0, Vt0, St0) ->
     {[{map_field_exact,L,Ek,Ev}|Eps],Pvs3,Vt3,St3};
 to_pat_map_pairs([], _, Pvs, Vt, St) -> {[],Pvs,Vt,St}.
 
-%% to_pat_bitsegs(Segs, LineNumber, VarTable, State) -> {Segs,State}.
+%% to_pat_bitsegs(Segs, LineNumber, PatVars, VarTable, State) ->
+%%     {Segs,PatVars,VarTable,State}.
 %%  We don't do any real checking here but just assume that everything
 %%  is correct and in worst case pass the buck to the Erlang compiler.
 
@@ -1213,10 +1232,14 @@ to_pat_bitsegs(Ss, L, Pvs, Vt, St) ->
     Fun = fun (S, Pvs0, Vt0, St0) -> to_pat_bitseg(S, L, Pvs0, Vt0, St0) end,
     mapfoldl3(Fun, Pvs, Vt, St, Ss).
 
+%% to_pat_bitseg(Seg, LineNumber, PatVars, VarTable, State) ->
+%%     {Seg,PatVars,VarTable,State}.
+%%  We must specially handle the case where the segment is a string.
+
 to_pat_bitseg([Val|Specs]=Seg, L, Pvs, Vt, St) ->
     case lfe_lib:is_posint_list(Seg) of
         true ->
-            {{bin_element,L,{string,L,Seg},default,default},St};
+            {{bin_element,L,{string,L,Seg},default,default},Pvs,Vt,St};
         false ->
             to_pat_bin_element(Val, Specs, L, Pvs, Vt, St)
     end;
