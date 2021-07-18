@@ -48,6 +48,10 @@ EXPORTS
          LFE  code  in the files .lint.  No object files are produced.  Mainly
          useful for debugging and interest.
 
+       · to_erlang, to-erlang - Print a listing of the Erlang AST in the  file
+         .erl.  No object files are produced.  Mainly useful for debugging and
+         interest.
+
        · to_core0, to-core0, to_core, to-core - Print a listing  of  the  Core
          Erlang  code before/after being optimised in the files .core.  No ob‐
          ject files are produced.  Mainly useful for debugging and interest.
