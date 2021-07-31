@@ -121,7 +121,14 @@ find_libs () {
 # The following works for rebar and erl.mk
 PROJ_LIBS=$(find_libs "./deps")
 # The following works for rebar3
-R3_PROJ_LIBS=$(find_libs "./_build/${REBAR_PROFILE:-default}/deps"):$(find_libs "./_build/${REBAR_PROFILE:-default}/lib")
+if [ -d "$REBAR_DEPS_DIR" ]; then
+    # Use $REBAR_DEPS_DIR if set...
+    R3_PROJ_LIBS=$(find_libs "$REBAR_DEPS_DIR")
+else
+    # ... otherwise provide a sensible default
+    R3_PROJ_LIBS=$(find_libs "./_build/${REBAR_PROFILE:-default}/deps"):$(find_libs "./_build/${REBAR_PROFILE:-default}/lib")
+fi
 LFE_HOME_LIBS=$(find_libs "$HOME"/.lfe/lib)
 ALL_LIBS="$LFE_ROOTDIR":"$ERL_LIBS":"$PROJ_LIBS""$R3_PROJ_LIBS""$LFE_HOME_LIBS"
+
 ERL_LIBS="$ALL_LIBS" exec "$emulator" +B -boot start_clean $shebangs "-noshell" "-run" "lfescript" "start" "$@"
