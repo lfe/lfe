@@ -64,11 +64,11 @@ EXAMPLE
        In the example the second line is an optional directive to Emacs  which
        causes it to enter LFE mode when editing the script file.
 
-       The  rest  of  the  file  contains LFE source code.  It must always the
-       function main/1.  When the script is run this function will  be  called
-       with a list of strings representing the arguments with which the script
-       was called.  It is possible to define, include and use  macros  in  the
-       source code.
+       The  rest of the file contains LFE source code.  It must always contain
+       the function main/1.  When the script is  run  this  function  will  be
+       called with a list of strings representing the arguments with which the
+       script was called.  It is possible to define, include and use macros in
+       the source code.
 
        The source code is checked and warnings and errors will be printed.  If
        there are errors the script will not run and it will terminate with ex‐
