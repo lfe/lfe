@@ -39,7 +39,7 @@ ERLCFLAGS = -W1 +debug_info
 ERLC = erlc
 
 LFECFLAGS = -pa ../lfe +debug-info
-LFEC = $(BINDIR)/lfe $(BINDIR)/lfec
+LFEC = $(BINDIR)/lfescript $(BINDIR)/lfec
 APP_DEF = lfe.app
 
 LIB=lfe
