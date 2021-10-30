@@ -3,7 +3,7 @@
 %% Define a number of compiler options. We first work out the current
 %% Erlang version and from the we can define the various options.
 
-%% Define the makefile variables HAS_MAPS and HAS_FULL_KEYS
+%% Define the makefile variables HAS_MAPS, HAS_FULL_KEYS,
 %% NEW_REC_CORE, NEW_RAND, HAS_FLOOR, HAS_CEIL and NEW_STACKTRACE
 %% depending on version of Erlang.
 
