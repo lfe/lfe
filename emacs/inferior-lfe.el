@@ -41,6 +41,7 @@
 (define-key lfe-mode-map "\C-x\C-e" 'lfe-eval-last-sexp) ; GNU convention
 (define-key lfe-mode-map "\C-c\C-r" 'lfe-eval-region)
 (define-key lfe-mode-map "\C-c\C-z" 'switch-to-lfe)
+(define-key lfe-mode-map "\C-c\C-k" 'lfe-compile) ; Erlang mode convention
 
 ;; (defvar inferior-lfe-program "lfe -pa /Users/rv/erlang/lfe/ebin -env TERM vt100"
 (defcustom inferior-lfe-program "lfe"
@@ -154,6 +155,14 @@ If `CMD' is given, use it to start the shell, otherwise:
 `AND-GO' means switch to the LFE buffer afterwards."
   (interactive "P")
   (lfe-eval-region (save-excursion (backward-sexp) (point)) (point) and-go))
+
+(defun lfe-compile ()
+  "Compiles the LFE module in the current buffer using the inferior LFE process."
+  (interactive)
+  (let ((file (buffer-file-name)))
+    (comint-send-string (inferior-lfe-proc) "(c \"")
+    (comint-send-string (inferior-lfe-proc) file)
+    (comint-send-string (inferior-lfe-proc) "\")\n")))
 
 (defun switch-to-lfe (eob-p)
   "Switch to the inferior Lisp process buffer.
