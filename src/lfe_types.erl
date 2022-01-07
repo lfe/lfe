@@ -73,7 +73,7 @@ from_type_def({type,_L,map,any}) ->             %Special case map() -> (map)
     [map];
 from_type_def({type,_L,map,Pairs}) ->
     maps:from_list(from_map_pairs(Pairs));
-from_type_def({type,_L,record,[{atom,_L,Name}|Fields]}) ->
+from_type_def({type,_L1,record,[{atom,_L2,Name}|Fields]}) ->
     [record,Name|from_rec_fields(Fields)];
 from_type_def({type,_L,'fun',[Args,Ret]}) ->
     [lambda,from_lambda_args(Args),from_type_def(Ret)];
