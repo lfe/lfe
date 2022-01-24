@@ -29,6 +29,7 @@
     (set-keymap-parent map lisp-mode-shared-map)
     (define-key map "\C-x\C-e" 'lfe-eval-last-sexp)
     (define-key map "\C-c\M-o" 'inferior-lfe-clear-buffer)
+    (define-key map "\C-j" 'lfe-newline-and-indent)
     map)
   "Keymap for inferior LFE mode.")
 
@@ -141,6 +142,14 @@ If `CMD' is given, use it to start the shell, otherwise:
 
 ;;;###autoload
 (defalias 'run-lfe 'inferior-lfe)
+
+(defun lfe-newline-and-indent ()
+  "Sends a newline and indents the line."
+  (interactive)
+  (save-restriction
+    (narrow-to-region comint-last-input-start (point-max))
+    (insert "\n")
+    (lisp-indent-line)))
 
 (defun lfe-eval-region (start end &optional and-go)
   "Send the current region (from `START' to `END') to the inferior LFE process.
