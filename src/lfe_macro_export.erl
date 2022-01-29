@@ -1,4 +1,4 @@
-%% Copyright (c) 2016-2020 Robert Virding
+%% Copyright (c) 2016-2022 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@
 %% also enter all the functions and variables defined inside ewc so
 %% they can be reached from these macros when the L-E-E-M function is
 %% compiled. We do NOT need to save the ewc macros as they will
-%% accessible when he module is compiled.
+%% accessible when the module is compiled.
 %%
 %% The macros will be expanded in the context of the module when it is
 %% later compiled and not in the context of the calling module. This
@@ -70,8 +70,10 @@
 -define(ARGSVAR, '|- CALL ARGS -|').
 
 %% Define the macro data.
--record(umac, {mline=[],expm=[],env=[],
-               leem=false                       %Do we have leem?
+-record(umac, {mline=[],                        %expand-macro on line
+               expm=[],                         %Macros to export
+               env=[],                          %LFE env to store macros
+               uleem=false                      %Do we have user defined LEEM?
               }).
 
 %% module(ModuleForms, CompState) -> {ModuleForms,CompState}.
@@ -103,10 +105,10 @@ collect_macro({['eval-when-compile'|Fs],_}, Mst) ->
 collect_macro({['extend-module',_,Atts],_}, Mst) ->
     collect_attrs(Atts, Mst);
 collect_macro({['define-function',Name,_,Def],_}, Mst) ->
-    %% Check for LFE-EXPAND-EXPORTED-MACRO.
+    %% Check for user defined LFE-EXPAND-EXPORTED-MACRO.
     case {Name,function_arity(Def)} of
         {'LFE-EXPAND-EXPORTED-MACRO',3} ->
-            Mst#umac{leem=true};
+            Mst#umac{uleem=true};
         _ -> Mst                                %Ignore other functions
     end;
 collect_macro(_, Mst) -> Mst.                   %Ignore everything else
@@ -148,7 +150,7 @@ collect_attrs([], Mst) -> Mst.
 %% exported_macro(Name, State) -> true | false.
 
 add_exports(all, _) -> all;
-add_exports(_, all) -> all;
+add_exports(_, [all]) -> all;                   %Note we get a list of macros!
 add_exports(Old, More) ->
     ordsets:union(Old, lists:usort(More)).
 
@@ -161,9 +163,9 @@ exported_macro(Name, #umac{expm=Expm}) ->
 %%  LFE-EXPAND-EXPORTED-MACRO function. In this version we expand the
 %%  macros are compile time.
 
-build_exported_macro(#umac{leem=true}) -> [];   %Already have LEEM
+build_exported_macro(#umac{uleem=true}) -> [];  %Already have user defined LEEM
 build_exported_macro(#umac{mline=L,expm=[]}) -> %No macros to export
-    [{empty_leum(),L}];
+    [{empty_leem(),L}];
 build_exported_macro(#umac{mline=ModLine,env=Env}=Mst) ->
     Vfun = fun (N, V, Acc) -> [[N,V]|Acc] end,
     Sets = lfe_env:fold_vars(Vfun, [], Env),
@@ -184,7 +186,7 @@ build_exported_macro(#umac{mline=ModLine,env=Env}=Mst) ->
            end,
     %% Get the macros to export as case clauses.
     LEEM = case lfe_env:fold_macros(Mfun, [], Env) of
-               [] -> empty_leum();              %No macros to export
+               [] -> empty_leem();              %No macros to export
                Macs ->
                    %% Build case, flet and let.
                    Case = ['case',?NAMEVAR|Macs ++ [['_',?Q(no)]]],
@@ -195,7 +197,7 @@ build_exported_macro(#umac{mline=ModLine,env=Env}=Mst) ->
            end,
     [{LEEM,ModLine}].
 
-empty_leum() ->
+empty_leem() ->
     ['define-function','LFE-EXPAND-EXPORTED-MACRO',?NOMETA,
      [lambda,['_','_','_'],?Q(no)]].
 
