@@ -1,4 +1,4 @@
-%% Copyright (c) 2020 Robert Virding
+%% Copyright (c) 2022 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@
               }).
 
 -record(module, {name=[],                       %Name
-                 anno=[],                       %Annotations
+                 anno=[],                       %Annotations/line
                  docs=[],                       %Documentation
                  meta=[],                       %Metadata
                  atts=[],                       %Attributes
@@ -59,20 +59,22 @@
                  mexps=[]                       %Exported macros
                 }).
 
--record(function, {name=[],
-                   arity=[],
-                   anno=[],
-                   docs=[],
-                   meta=[],
-                   def=[]
+-record(function, {name=[],                     %Name
+                   arity=[],                    %Arity
+                   anno=[],                     %Annotations/line
+                   docs=[],                     %Documentation
+                   spec=none,                   %Spec
+                   meta=[],                     %Meta information
+                   def=[]                       %Definition
                   }).
 
--record(macro, {name=[],
-                arity=[],
-                anno=[],
-                docs=[],
-                meta=[],
-                def=[]
+-record(macro, {name=[],                        %Name
+                arity=[],                       %Arity, always 1 for macros
+                anno=[],                        %Annotations/line
+                docs=[],                        %Documentation
+                spec=none,                      %Spec
+                meta=[],                        %Meta information
+                def=[]                          %Definition
                }).
 
 make_chunk(Code, CompilerOpts) ->
@@ -134,14 +136,19 @@ collect_mod_exports(all, _Es) -> all;
 collect_mod_exports(Exps, Es) -> Exps ++ Es.
 
 collect_function(Name, Meta, Def, Line) ->
-    F = #function{name=Name,arity=function_arity(Def),anno=Line,
-                  meta=Meta,def=Def},
+    F = #function{name=Name,
+                  arity=function_arity(Def),
+                  anno=Line,
+                  meta=Meta,
+                  def=Def},
     collect_fun_metas(Meta, F).
 
 collect_fun_metas(Metas, Fun) ->
     Collect = fun ([doc|Ds], F) ->
-                  F#function{docs=F#function.docs ++ Ds};
-              (_, F) -> F
+                      F#function{docs=F#function.docs ++ Ds};
+                  ([spec|Ss], F) ->
+                      F#function{spec=Ss};
+                  (_, F) -> F
           end,
     lists:foldl(Collect, Fun, Metas).
 
@@ -149,7 +156,11 @@ function_arity([lambda,Args|_]) -> length(Args);
 function_arity(['match-lambda',[Pat|_]|_]) -> length(Pat).
 
 collect_macro(Name, Meta, Def, Line) ->
-    F = #macro{name=Name,arity=1,anno=Line,meta=Meta,def=Def},
+    F = #macro{name=Name,
+               arity=1,                         %Default for all macros
+               anno=Line,
+               meta=Meta,
+               def=Def},
     collect_mac_metas(Meta, F).
 
 collect_mac_metas(Metas, Mac) ->
@@ -164,7 +175,8 @@ collect_mac_metas(Metas, Mac) ->
 generate_functions(#docs{module=#module{fexps=Fexps},funcs=Funcs}) ->
     Fdoc = fun (#function{name=Name,arity=Arity,anno=Anno,docs=Docs}=F) ->
                    Sig = generate_sig(F),
-                   docs_v1_entry(function, Name, Arity, Anno, [Sig], Docs, #{})
+                   Spec = generate_spec(F),
+                   docs_v1_entry(function, Name, Arity, Anno, [Sig], Docs, Spec)
            end,
     [ Fdoc(F) || F <- Funcs, exported_function(F, Fexps)].
 
@@ -177,7 +189,8 @@ exported_function(#function{name=N,arity=A}, Fexps) ->
 generate_macros(#docs{module=#module{mexps=Mexps},macs=Macros}) ->
     Mdoc = fun (#macro{name=Name,arity=Arity,anno=Anno,docs=Docs}=M) ->
                    Sig = generate_sig(M),
-                   docs_v1_entry(macro, Name, Arity, Anno, [Sig], Docs, #{})
+                   Spec = generate_spec(M),
+                   docs_v1_entry(macro, Name, Arity, Anno, [Sig], Docs, Spec)
            end,
     [ Mdoc(M) || M <- Macros, exported_macro(M, Mexps) ].
 
@@ -185,27 +198,37 @@ exported_macro(_M, all) -> true;                %All macros are exported.
 exported_macro(#macro{name=N}, Mexps) ->
     lists:member(N, Mexps).
 
-%% generate_sig(FuncMacro) -> Signature.
+%% generate_sig(FunctionMacro) -> Signature.
 
 generate_sig(#function{name=Name,arity=Arity,def=Def}) ->
     generate_sig(Name, Arity, Def);
 generate_sig(#macro{name=Name,arity=Arity,def=Def}) ->
     generate_sig(Name, Arity, Def).
 
-generate_sig(Name, Arity, Def) ->
-    Sig = case Def of
-              [lambda,Args|_] ->
-                  lfe_io:format1("~w ~w", [Name,Args]);
-              _ -> lists:concat([Name,"/",Arity])
-          end,
+generate_sig(Name, Arity, _Def) ->
+    Sig = lists:concat([Name,"/",Arity]),
     iolist_to_binary(Sig).
+
+%% generate_spec(FunctionMacro) -> ErlangSpec.
+
+generate_spec(#function{name=Name,arity=Arity,anno=Line,spec=Spec}) ->
+    generate_spec(Name, Arity, Line, Spec);
+generate_spec(#macro{name=Name,arity=Arity,anno=Line,spec=Spec}) ->
+    generate_spec(Name, Arity, Line, Spec).
+
+generate_spec(_Name, _Arity, _Line, none) ->
+    #{};
+generate_spec(Name, Arity, Line, Spec) ->
+    %% Translate the LFE spec to Erlang format.
+    Sdef = {{Name,Arity},lfe_types:to_func_spec_list(Spec, Line)},
+    #{signature => [{attribute,Line,spec,Sdef}]}.
 
 %% docs_v1(Anno, ModuleDocs, MetaData, Docs) -> #docs_v1{}.
 %% docs_v1_entry(Kind, Name, Arity, Anno, Signature, Doc, MetaData) ->
 %%     Docs_V1_Entry.
 
 docs_v1(Anno, ModDoc, Metadata, Docs) ->
-    Doc = #{<<"en">> => iolist_to_binary(ModDoc)},
+    Doc = docs_v1_doc(ModDoc),
     Meta = maps:merge(Metadata, #{otp_doc_vsn => ?CURR_DOC_VERSION}),
     #docs_v1{anno=Anno,
              beam_language=lfe,
@@ -215,16 +238,17 @@ docs_v1(Anno, ModDoc, Metadata, Docs) ->
              docs=Docs}.
 
 docs_v1_entry(Kind, Name, Arity, Anno, Sig, DocContent, Meta) ->
-    %% Doc = case DocContent of
-    %%        [] -> #{};
-    %%        _ -> #{<<"en">> => iolist_to_binary(DocContent)}
-    %%    end,
-    Doc = #{<<"en">> => iolist_to_binary(DocContent)},
+    Doc = docs_v1_doc(DocContent),
     {{Kind,Name,Arity}, Anno, Sig, Doc, Meta}.
+
+docs_v1_doc([]) ->
+    none;
+docs_v1_doc(DocContent) ->
+    #{<<"en">> => iolist_to_binary(DocContent)}.
 
 %% get_module_doc(Module | Binary) -> {ok,Chunk} | {error,What}.
 %%  Get the module doc chunk. If EEP48 is defined we can use the code
-%%  module to do mosst of the work.
+%%  module to do most of the work.
 
 -ifdef(EEP48).
 
