@@ -75,6 +75,12 @@ Defaults to a regexp ignoring all inputs of 0, 1, or 2 letters.")
 (defvar inferior-lfe-indent-on-Cj nil
   "*Defines if on C-j the line is indented.")
 
+(defvar inferior-lfe-check-if-rebar-project nil
+  "*Checks if there is a `rebar.config' file within the 4 levels of nested folders.
+If yes, then there will be a prompt on starting inferior-lfe
+to choose whether to run the lfe process using rebar3,
+else lfe will be run as usual.")
+
 ;;;###autoload
 (defun inferior-lfe-mode ()
   "Major mode for interacting with an inferior LFE process.
@@ -109,39 +115,40 @@ Return nil if `STR` matches `inferior-lfe-filter-regexp', otherwise t."
       (backward-sexp)
       (buffer-substring (max (point) (comint-line-beginning-position)) end))))
 
+(defun inferior-lfe--is-rebar-project ()
+  "Return the project root directory."
+  (locate-dominating-file default-directory "rebar.config"))
+
+(defun inferior-lfe--start-rebar-lfe ()
+  (string= (read-answer "Rebar3 project detected. Start lfe repl using rebar3? "
+                        '(("yes" ?y "use rebar3")
+                          ("no" ?n "use regular lfe")))
+           "yes"))
+
 ;;;###autoload
-(defun inferior-lfe (cmd)
+(defun inferior-lfe ()
   "Run an inferior LFE process, input and output via a buffer `*inferior-lfe*'.
-If `CMD' is given, use it to start the shell, otherwise:
-`inferior-lfe-program' `inferior-lfe-program-options' -env TERM vt100."
-  ;; (interactive (list (if current-prefix-arg
-  ;;                        (read-string "Run LFE: " inferior-lfe-program)
-  ;;                      inferior-lfe-program)))
-  ;; (if (not (comint-check-proc "*inferior-lfe*"))
-  ;;     (let ((cmdlist (split-string cmd)))
-  ;;       (set-buffer (apply (function make-comint)
-  ;;                          "inferior-lfe" (car cmdlist) nil (cdr cmdlist)))
-  ;;       (inferior-lfe-mode)))
-  (interactive (list (if current-prefix-arg
-                         (read-string "Run LFE: ")
-                       ())))
-  (let (prog opts)
-    (if cmd
-        (setq prog "sh"
-              opts (list "-i" "-c" cmd))
-      (setq prog inferior-lfe-program
-            opts (append inferior-lfe-program-options
-                         '("-env" "TERM" "vt100"))))
+Start the shell `inferior-lfe-program' `inferior-lfe-program-options' -env TERM vt100.
+If a rebar project is found you are prompted (see `inferior-lfe-check-if-rebar-project')
+and can choose to run lfe using rebar3."
+  (interactive)
+  (let ((prog inferior-lfe-program)
+        (opts (append inferior-lfe-program-options
+                      '("-env" "TERM" "vt100")))
+        (rebar-project-root (inferior-lfe--is-rebar-project)))
+    (when (and inferior-lfe-check-if-rebar-project
+               rebar-project-root
+               (inferior-lfe--start-rebar-lfe))
+      (setq prog "sh"
+            opts (list "-i" "-c" (concat "TERM=\"vt100\";"
+                                         (format "cd %s" rebar-project-root)
+                                         "; rebar3 lfe repl"))))
     (unless (comint-check-proc "*inferior-lfe*")
       (set-buffer (apply (function make-comint)
                          "inferior-lfe" prog nil opts))
       (inferior-lfe-mode))
     (setq inferior-lfe-buffer "*inferior-lfe*")
     (pop-to-buffer "*inferior-lfe*")))
-
-;; (apply (function make-comint)
-;;        "inferior-lfe" "sh" nil
-;;        (quote ("-i" "-c" ". /Users/rv/.bashrc ; lfe -env TERM vt100")))
 
 ;;;###autoload
 (defalias 'run-lfe 'inferior-lfe)
