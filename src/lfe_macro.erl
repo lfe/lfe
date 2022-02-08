@@ -398,6 +398,9 @@ exp_form(['define-record',Name,Fds], Env, St0) ->
 exp_form(['make-record',Name|Args], Env, St0) ->
     {Eas,St1} = exp_tail(Args, Env, St0),
     {['make-record',Name|Eas],St1};
+exp_form(['is-record',E,Name], Env, St0) ->
+    {Ee,St1} = exp_form(E, Env, St0),
+    {['is-record',Ee,Name],St1};
 exp_form(['record-index',Name,F], _, St) ->
     {['record-index',Name,F],St};
 exp_form(['record-field',E,Name,F], Env, St0) ->

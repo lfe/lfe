@@ -200,6 +200,14 @@ eval_expr(['make-record',Name|Args], Env) ->
             make_record_tuple(Name, Fields, Args, Env);
         no -> undefined_record_error(Name)
     end;
+eval_expr(['is-record',E,Name], Env) ->
+    Ev = eval_expr(E, Env),
+    case lfe_env:get_record(Name, Env) of
+        {yes,Fields} ->
+            RecSize = length(Fields) + 1,
+            is_tuple(Ev) andalso (tuple_size(Ev) =:= RecSize);
+        no -> undefined_record_error(Name)
+    end;
 eval_expr(['record-index',Name,F], Env) ->
     case lfe_env:get_record(Name, Env) of
         {yes,Fields} ->
@@ -218,7 +226,7 @@ eval_expr(['record-update',E,Name|Args], Env) ->
     Ev = eval_expr(E, Env),
     case lfe_env:get_record(Name, Env) of
         {yes,Fields} ->
-            update_record_tuple(Name, Fields, Ev, Args, Env);
+            update_record_tuple(Ev, Name, Fields, Args, Env);
         no -> undefined_record_error(Name)
     end;
 %% Function forms.
@@ -323,10 +331,10 @@ get_field_index(Name, [_|Fields], F, I) ->
 get_field_index(Name, [], F, _I) ->
     undefined_field_error(Name, F).
 
-%% update_record_tuple(Name, Fields, Record, Args, Env) -> TupleList
+%% update_record_tuple(Record, Name, Fields, Args, Env) -> TupleList
 %%  Update the Record with the Args.
 
-update_record_tuple(Name, Fields, Rec, Args, Env) ->
+update_record_tuple(Rec, Name, Fields, Args, Env) ->
     Es = update_record_elements(Fields, tl(tuple_to_list(Rec)), Args, Env),
     list_to_tuple([Name|Es]).
 

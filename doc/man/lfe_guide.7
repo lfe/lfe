@@ -342,6 +342,7 @@ the expression and then be effectively \f[C]2\f[R].
 
 (define-record name fields)
 (make-record name field val ...)
+(is-record record name)
 (record-index name field)
 (record-field record name field)
 (record-update record name field val ...)
@@ -475,6 +476,7 @@ following guard expressions:
 (tref gexpr gexpr)
 (binary ...)
 (make-record ...)           - Also the macro versions
+(is-record ...)
 (record-field ...)
 (record-index ...)
 (map ...)
@@ -869,7 +871,8 @@ An example:
 .PP
 Records are tuples with the record name as first element and the rest of
 the fields in order exactly like \[lq]normal\[rq] Erlang records.
-As with Erlang records the default default value is `undefined'.
+As with Erlang records the default default value is the atom
+`undefined'.
 .PP
 The basic forms for defining a record, creating, accessing and updating
 it are:
@@ -880,6 +883,7 @@ it are:
                      (field default-value)
                      (field default-value type) ...))
 (make-record name field value field value ...)
+(is-record record name)
 (record-index name field)
 (record-field record name field)
 (record-update record name field value field value ...)
@@ -915,7 +919,7 @@ To make an instance of a \f[C]person\f[R] record we do:
 The \f[C]make-record\f[R] form is also used to define a pattern.
 .PP
 We can get the value of the \f[C]address\f[R] field in a person record
-and the set it by doing (the variable \f[C]robert\f[R] references a
+and set it by doing (the variable \f[C]robert\f[R] references a
 \f[C]person\f[R] record):
 .IP
 .nf
@@ -929,7 +933,7 @@ Note that we must include the name of the record when accessing it and
 there is no need to quote the record and field names as these are always
 literal atoms.
 .PP
-To simplify defining records there is a predefined macro:
+To simplify defining and using records there is a predefined macro:
 .IP
 .nf
 \f[C]
@@ -1023,13 +1027,14 @@ where \f[C]seg\f[R] is
 .IP
 .nf
 \f[C]
-        byte
-        string
-        (val integer|float|binary|bitstring|bytes|bits
-             (size n) (unit n)
-             big-endian|little-endian|native-endian
-             big|little|native
-             signed|unsigned)
+    byte
+    string
+    (val integer | float | binary | bitstring | bytes | bits |
+         utf8 | utf-8 | utf16 | utf-16 | utf32 | utf-32
+         (size n) (unit n)
+         big-endian | little-endian | native-endian
+         big | little | native
+         signed | unsigned)
 \f[R]
 .fi
 .PP
@@ -1057,16 +1062,14 @@ in the map.
 .IP \[bu] 2
 \f[C](map-set map key val ... )\f[R] - Set the keys in the map to
 values.
+This form can be used to update the values of existing keys and to add
+new keys.
 .IP \[bu] 2
 \f[C](map-update map key val ... )\f[R] - Update the keys in the map to
 values.
-Note that this form requires all the keys to exist.
+Note that this form requires all the keys to already exist in the map.
 .IP \[bu] 2
 \f[C](map-remove map key ... )\f[R] - Remove the keys in the map.
-.PP
-N.B.
-This syntax for processing maps has stabilized but may change in the
-future!
 .PP
 There are also alternate short forms \f[C]msiz\f[R], \f[C]mref\f[R],
 \f[C]mset\f[R], \f[C]mupd\f[R] and \f[C]mrem\f[R] based on the Maclisp

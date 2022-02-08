@@ -736,6 +736,9 @@ check_expr([function,M,F,Ar], _, L, St) ->
 %% Check record special forms.
 check_expr(['make-record',Name|Fs], Env, L, St) ->
     check_record(Name, Fs, Env, L, St);
+check_expr(['is-record',E,Name], Env, L, St0) ->
+    St1 = check_expr(E, Env, L, St0),
+    check_record(Name, L, St1);
 check_expr(['record-index',Name,F], _Env, L, St) ->
     check_record_field(Name, F, L, St);
 check_expr(['record-field',E,Name,F], Env, L, St0) ->
@@ -970,6 +973,15 @@ check_map_remove(Form, _, Ks, _, L, St) ->
 
 %% check_record(Record, Fields, Env, Line, State) -> State.
 %%  Check record usage against its definition.
+
+check_record(Name, L, #lfe_lint{records=Recs}=St) when is_atom(Name) ->
+    case orddict:is_key(Name, Recs) of
+        true -> St;
+        false ->
+            undefined_record_error(L, Name, St)
+    end;
+check_record(Name, L, St) ->
+    bad_record_error(L, Name, St).
 
 check_record(Name, Fields, Env, L, #lfe_lint{records=Recs}=St)
   when is_atom(Name) ->
@@ -1324,6 +1336,9 @@ check_gexpr(['map-set',Map|As], Env, L, St) ->
 check_gexpr(['map-update',Map|As], Env, L, St) ->
     check_gmap_update('map-update', Map, As, Env, L, St);
 %% Check record special forms.
+check_gexpr(['is-record',E,Name], Env, L, St0) ->
+    St1 = check_gexpr(E, Env, L, St0),
+    check_record(Name, L, St1);
 check_gexpr(['record-index',Name,F], Env, L, St) ->
     check_record(Name, [F], Env, L, St);
 check_gexpr(['record-field',E,Name,F], Env, L, St0) ->
@@ -1406,11 +1421,11 @@ check_gmap_size(_Form, Map, Env, L, St) ->
 
 check_gmap_get(Form, Map, Key, Env, L, St0) ->
     case lfe_internal:is_guard_bif(map_get, 2) of
-	true ->
-	    St1 = check_gexpr(Map, Env, L, St0),
-	    gmap_key(Key, Env, L, St1);
-	false ->
-	    undefined_function_error(L, {Form,2}, St0)
+        true ->
+            St1 = check_gexpr(Map, Env, L, St0),
+            gmap_key(Key, Env, L, St1);
+        false ->
+            undefined_function_error(L, {Form,2}, St0)
     end.
 
 check_gmap_set(Form, Map, Pairs, Env, L, St0) ->

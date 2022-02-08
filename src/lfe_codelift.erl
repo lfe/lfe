@@ -108,6 +108,9 @@ lift_expr(?Q(E), Lds, St) -> {?Q(E),Lds,St};
 lift_expr(['make-record',Name|Args], Lds0, St0) ->
     {Largs,Lds1,St1} = lift_rec_args(Args, Lds0, St0),
     {['make-record',Name|Largs],Lds1,St1};
+lift_expr(['is-record',E,Name], Lds0, St0) ->
+    {Le,Lds1,St1} = lift_expr(E, Lds0, St0),
+    {['is-record',Le,Name],Lds1,St1};
 lift_expr(['record-index',_Name,_F]=Ri, Lds, St) ->
     {Ri,Lds,St};
 lift_expr(['record-field',E,Name,F], Lds0, St0) ->
@@ -316,6 +319,9 @@ trans_expr([binary|Segs0],  Old, Ar, New, Ivars) ->
 trans_expr(['make-record',Rname|Args], Old, Ar, New, Ivars) ->
     Targs = trans_rec_args(Args, Old, Ar, New, Ivars),
     ['make-record',Rname|Targs];
+trans_expr(['is-record',E,Rname], Old, Ar, New, Ivars) ->
+    Te = trans_expr(E, Old,  Ar, New, Ivars),
+    ['is-record',Te,Rname];
 trans_expr(['record-index',_Name,_F]=Ri, _, _, _, _) ->
     Ri;                                         %Nothing to do here
 trans_expr(['record-field',E,Rname,F], Old, Ar, New, Ivars) ->
@@ -508,6 +514,8 @@ ivars_expr([binary|Segs], Kvars, Ivars) ->
 %% Record forms.
 ivars_expr(['make-record',_|Args], Kvars, Ivars) ->
     ivars_rec_args(Args, Kvars, Ivars);
+ivars_expr(['is-record',E,_], Kvars, Ivars) ->
+    ivars_expr(E, Kvars, Ivars);
 ivars_expr(['record-index',_,_], _, Ivars) -> Ivars;
 ivars_expr(['record-field',E,_,_], Kvars, Ivars) ->
     ivars_expr(E, Kvars, Ivars);

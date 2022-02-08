@@ -97,10 +97,13 @@ from_expr({map,_,Assocs}, Vt0, St0) ->          %Build a map
 from_expr({map,_,Map,Assocs}, Vt0, St0) ->      %Update a map
     {Lm,Vt1,St1} = from_expr(Map, Vt0, St0),
     from_map_update(Assocs, nul, Lm, Vt1, St1);
-%% Record special forms.
+%% Record special forms, though some are function calls in Erlang.
 from_expr({record,_,Name,Fs}, Vt0, St0) ->
     {Lfs,Vt1,St1} = from_rec_fields(Fs, Vt0, St0),
     {['make-record',Name|Lfs],Vt1,St1};
+from_expr({call,_,{atom,_,is_record},[E,{atom,_,Name}]}, Vt0, St0) ->
+    {Le,Vt1,St1} = from_expr(E, Vt0, St0),
+    {['is-record',Le,Name],Vt1,St1};
 from_expr({record_index,_,Name,{atom,_,F}}, Vt, St) -> %We KNOW!
     {['record-index',Name,F],Vt,St};
 from_expr({record_field,_,E,Name,{atom,_,F}}, Vt0, St0) -> %We KNOW!
@@ -666,6 +669,10 @@ to_expr(['map-remove',Map|Keys], L, Vt, St) ->
 to_expr(['make-record',Name|Fs], L, Vt, St0) ->
     {Efs,St1} = to_rec_fields(Fs, L, Vt, St0),
     {{record,L,Name,Efs},St1};
+to_expr(['is-record',E,Name], L, Vt, St0) ->
+    {Ee,St1} = to_expr(E, L, Vt, St0),
+    %% This expands to a function call.
+    {{call,L,{atom,L,is_record},[Ee,{atom,L,Name}]},St1};
 to_expr(['record-index',Name,F], L, _, St) ->
     {{record_index,L,Name,{atom,L,F}},St};
 to_expr(['record-field',E,Name,F], L, Vt, St0) ->
