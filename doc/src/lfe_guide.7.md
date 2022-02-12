@@ -343,7 +343,7 @@ while it reads the expression and then be effectively ``2``.
 (call mod func arg ... )    - Call to Mod:Func(Arg, ... )
 
 (define-record name fields)
-(make-record name field val ...)
+(record name field val ...)
 (is-record record name)
 (record-index name field)
 (record-field record name field)
@@ -470,7 +470,7 @@ following guard expressions:
 (tuple gexpr ...)
 (tref gexpr gexpr)
 (binary ...)
-(make-record ...)           - Also the macro versions
+(record ...)                - Also the macro versions
 (is-record ...)
 (record-field ...)
 (record-index ...)
@@ -823,7 +823,7 @@ updating it are:
 (define-record name ((field) | field
                      (field default-value)
                      (field default-value type) ...))
-(make-record name field value field value ...)
+(record name field value field value ...)
 (is-record record name)
 (record-index name field)
 (record-field record name field)
@@ -832,6 +832,10 @@ updating it are:
 
 Note that the list of field/value pairs when making or updating a
 record is a flat list.
+
+Note that the old ``make-record`` form has been deprecated and is
+replaced by ``record`` which better matches other constructors like
+``tuple`` and ``map``. It still exists but should not be used.
 
 We will explain these forms with a simple example. To define a record
 we do:
@@ -849,10 +853,10 @@ value ``""``), ``address`` (default value ``""`` and type
 we do:
 
 ```
-(make-record person name "Robert" age 54)
+(record person name "Robert" age 54)
 ```
 
-The ``make-record`` form is also used to define a pattern.
+The ``record`` form is also used to define a pattern.
 
 We can get the value of the ``address`` field in a person record and
 set it by doing (the variable ``robert`` references a ``person``

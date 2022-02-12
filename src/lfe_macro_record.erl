@@ -57,7 +57,7 @@ define(Name, Fdefs, _Env, St) when is_atom(Name) ->
     %% Make access macros.
     Macs = [make_macro(Name),                   %make-Name
             match_macro(Name),                  %match-Name
-            test_macro(Name),                   %is-Name
+            test_macro(Name, Fields),           %is-Name
             update_macro(Name),                 %update-Name
             set_macro(Name),                    %set-Name
             field_macro(Name, Fields),          %fields-Name
@@ -70,15 +70,16 @@ define(Name, _Fdefs, _Env, _St) ->
 
 make_macro(Name) ->
     Make = list_to_atom(concat(['make','-',Name])),
-    ['defmacro',Make,fds,?BQ(['make-record',Name,?C_A(fds)])].
+    ['defmacro',Make,fds,?BQ(['record',Name,?C_A(fds)])].
 
 match_macro(Name) ->
     Match = list_to_atom(concat(['match','-',Name])),
-    ['defmacro',Match,fds,?BQ(['make-record',Name,?C_A(fds)])].
+    ['defmacro',Match,fds,?BQ(['record',Name,?C_A(fds)])].
 
-test_macro(Name) ->
+test_macro(Name, _Fs) ->
     Test = list_to_atom(concat(['is','-',Name])),
     ['defmacro',Test,[rec],?BQ(['is-record',?C(rec),Name])].
+     %% ?BQ(['is_record',?C(rec),?Q(Name),length(Fs)+1])].
 
 update_macro(Name) ->
     Upd = list_to_atom(concat(['update','-',Name])),

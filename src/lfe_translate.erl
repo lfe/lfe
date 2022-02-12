@@ -100,7 +100,7 @@ from_expr({map,_,Map,Assocs}, Vt0, St0) ->      %Update a map
 %% Record special forms, though some are function calls in Erlang.
 from_expr({record,_,Name,Fs}, Vt0, St0) ->
     {Lfs,Vt1,St1} = from_rec_fields(Fs, Vt0, St0),
-    {['make-record',Name|Lfs],Vt1,St1};
+    {['record',Name|Lfs],Vt1,St1};
 from_expr({call,_,{atom,_,is_record},[E,{atom,_,Name}]}, Vt0, St0) ->
     {Le,Vt1,St1} = from_expr(E, Vt0, St0),
     {['is-record',Le,Name],Vt1,St1};
@@ -463,7 +463,7 @@ from_pat({map,_,Assocs}, Vt0, St0) ->
     {[map|Ps],Eqt,Vt1,St1};
 from_pat({record,_,Name,Fs}, Vt0, St0) ->          %Match a record
     {Sfs,Eqt,Vt1,St1} = from_pat_rec_fields(Fs, Vt0, St0),
-    {['make-record',Name|Sfs],Eqt,Vt1,St1};
+    {['record',Name|Sfs],Eqt,Vt1,St1};
 from_pat({record_index,_,Name,{atom,_,F}}, Vt, St) -> %We KNOW!
     {['record-index',Name,F],Vt,St};
 from_pat({match,_,P1,P2}, Vt0, St0) ->          %Pattern aliases
@@ -666,9 +666,12 @@ to_expr(['map-update',Map|Pairs], L, Vt, St) ->
 to_expr(['map-remove',Map|Keys], L, Vt, St) ->
     to_map_remove(Map, Keys, L, Vt, St);
 %% Record special forms.
-to_expr(['make-record',Name|Fs], L, Vt, St0) ->
+to_expr(['record',Name|Fs], L, Vt, St0) ->
     {Efs,St1} = to_rec_fields(Fs, L, Vt, St0),
     {{record,L,Name,Efs},St1};
+%% make-record has been deprecated but we sill accept it for now.
+to_expr(['make-record',Name|Fs], L, Vt, St) ->
+    to_expr(['record',Name|Fs], L, Vt, St);
 to_expr(['is-record',E,Name], L, Vt, St0) ->
     {Ee,St1} = to_expr(E, L, Vt, St0),
     %% This expands to a function call.
@@ -1184,9 +1187,12 @@ to_pat([binary|Segs], L, Pvs0, Vt0, St0) ->
 to_pat([map|Pairs], L, Pvs0, Vt0, St0) ->
     {As,Pvs1,Vt1,St1} = to_pat_map_pairs(Pairs, L, Pvs0, Vt0, St0),
     {{map,L,As},Pvs1,Vt1,St1};
-to_pat(['make-record',R|Fs], L, Pvs0, Vt0, St0) ->
+to_pat(['record',R|Fs], L, Pvs0, Vt0, St0) ->
     {Efs,Pvs1,Vt1,St1} = to_pat_rec_fields(Fs, L, Pvs0, Vt0, St0),
     {{record,L,R,Efs},Pvs1,Vt1,St1};
+%% make-record has been deprecated but we sill accept it for now.
+to_pat(['make-record',R|Fs], L, Pvs, Vt, St) ->
+    to_pat(['record',R|Fs], L, Pvs, Vt, St);
 to_pat(['record-index',R,F], L, Pvs, Vt, St) ->
     {{record_index,L,R,{atom,L,F}},Pvs,Vt,St};
 to_pat(['=',P1,P2], L, Pvs0, Vt0, St0) ->       %Alias

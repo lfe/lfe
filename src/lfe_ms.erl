@@ -94,7 +94,7 @@ head(Pats, St0) ->
             St2 = new_binding(S, '$_', St1),
             head_pattern(Pat, St2);
         [Pat] -> head_pattern(Pat, St1);
-        _ -> throw({error,match_spec_head})     %Wrong size
+        _ -> throw({error,{match_spec_head,Pats}})     %Wrong size
     end.
 
 %% head_pattern(Pattern, State) -> {Pattern,State}.
@@ -108,6 +108,8 @@ check_head(Pat, _) when is_atom(Pat) -> ok;     %Variable
 check_head(Pat, table) when is_tuple(Pat) -> ok;
 check_head(?Q(Pat), table) when is_tuple(Pat) -> ok;
 check_head([tuple|_], table) -> ok;
+check_head(['record'|_], table) -> ok;
+%% make-record has been deprecated but we sill accept it for now.
 check_head(['make-record'|_], table) -> ok;
 check_head(?Q(Pat), trace) when is_list(Pat) -> ok;
 check_head([list|_], trace) -> ok;
@@ -137,6 +139,11 @@ pattern(['=',L0,R0], St0) ->                    %General aliasing
     {L1,St1} = pattern(L0, St0),
     {R1,St2} = pattern(R0, St1),
     {['=',L1,R1],St2};
+pattern(['record',R|Fs0], St0) ->
+    %% This is in a term but is going to be used as a pattern!
+    {Fs1,St1} = pat_rec_fields(Fs0, St0),
+    {['record',R|Fs1],St1};
+%% make-record has been deprecated but we sill accept it for now.
 pattern(['make-record',R|Fs0], St0) ->
     %% This is in a term but is going to be used as a pattern!
     {Fs1,St1} = pat_rec_fields(Fs0, St0),
@@ -227,10 +234,18 @@ expr([binary|Segs0], St0) ->
     {Segs1,St1} = expr_bitsegs(Segs0, St0),
     {[binary|Segs1],St1};
 %% Record special forms.
+expr(['record',Name|Fs], St0) ->
+    %% This is in a term and is going to be used as an expression!
+    {Efs,St1} = expr_rec_fields(Fs, St0),
+    {[tuple,['record',Name|Efs]],St1};          %Must tuple tuples
+%% make-record has been deprecated but we sill accept it for now.
 expr(['make-record',Name|Fs], St0) ->
     %% This is in a term and is going to be used as an expression!
     {Efs,St1} = expr_rec_fields(Fs, St0),
     {[tuple,['make-record',Name|Efs]],St1};     %Must tuple tuples
+expr(['is-record',E,Name], St0) ->
+    {Ee,St1} = expr(E, St0),
+    {[tuple,['is-record',Ee,Name]],St1};
 expr(['record-index',Name,F], St) ->
     {['record-index',Name,F],St};
 expr(['record-field',E,Name,F], St0) ->

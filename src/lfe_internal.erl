@@ -76,6 +76,8 @@ is_core_form('map-set') -> true;
 is_core_form('map-update') -> true;
 is_core_form('map-remove') -> true;
 %% Core record special forms.
+is_core_form('record') -> true;
+%% make-record has been deprecated but we sill accept it for now.
 is_core_form('make-record') -> true;
 is_core_form('is-record') -> true;
 is_core_form('record-index') -> true;
@@ -138,6 +140,8 @@ is_core_func('map-get', 2) -> true;
 is_core_func('map-set', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
 is_core_func('map-update', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
 is_core_func('map-remove', Ar) when Ar >= 1 -> true;
+is_core_func('record', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
+%% make-record has been deprecated but we sill accept it for now.
 is_core_func('make-record', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
 is_core_func('is-record', 2) -> true;
 is_core_func('record-index', 2) -> true;

@@ -105,6 +105,10 @@ lift_funcs(Defs, St) ->
 %% Core data special forms.
 lift_expr(?Q(E), Lds, St) -> {?Q(E),Lds,St};
 %% Record forms.
+lift_expr(['record',Name|Args], Lds0, St0) ->
+    {Largs,Lds1,St1} = lift_rec_args(Args, Lds0, St0),
+    {['record',Name|Largs],Lds1,St1};
+%% make-record has been deprecated but we sill accept it for now.
 lift_expr(['make-record',Name|Args], Lds0, St0) ->
     {Largs,Lds1,St1} = lift_rec_args(Args, Lds0, St0),
     {['make-record',Name|Largs],Lds1,St1};
@@ -316,16 +320,20 @@ trans_expr([binary|Segs0],  Old, Ar, New, Ivars) ->
     Segs1 = trans_bitsegs(Segs0, Old, Ar, New, Ivars),
     [binary|Segs1];
 %% Record forms.
+trans_expr(['record',Rname|Args], Old, Ar, New, Ivars) ->
+    Targs = trans_rec_args(Args, Old, Ar, New, Ivars),
+    ['record',Rname|Targs];
+%% make-record has been deprecated but we sill accept it for now.
 trans_expr(['make-record',Rname|Args], Old, Ar, New, Ivars) ->
     Targs = trans_rec_args(Args, Old, Ar, New, Ivars),
     ['make-record',Rname|Targs];
 trans_expr(['is-record',E,Rname], Old, Ar, New, Ivars) ->
-    Te = trans_expr(E, Old,  Ar, New, Ivars),
+    Te = trans_expr(E, Old, Ar, New, Ivars),
     ['is-record',Te,Rname];
 trans_expr(['record-index',_Name,_F]=Ri, _, _, _, _) ->
     Ri;                                         %Nothing to do here
 trans_expr(['record-field',E,Rname,F], Old, Ar, New, Ivars) ->
-    Te = trans_expr(E, Old,  Ar, New, Ivars),
+    Te = trans_expr(E, Old, Ar, New, Ivars),
     ['record-field',Te,Rname,F];
 trans_expr(['record-update',E,Rname|Args], Old, Ar, New, Ivars) ->
     Te = trans_expr(E, Old, Ar, New, Ivars),
@@ -512,6 +520,9 @@ ivars_expr(?Q(_), _Kvars, Ivars) -> Ivars;
 ivars_expr([binary|Segs], Kvars, Ivars) ->
     ivars_bitsegs(Segs, Kvars, Ivars);
 %% Record forms.
+ivars_expr(['record',_|Args], Kvars, Ivars) ->
+    ivars_rec_args(Args, Kvars, Ivars);
+%% make-record has been deprecated but we sill accept it for now.
 ivars_expr(['make-record',_|Args], Kvars, Ivars) ->
     ivars_rec_args(Args, Kvars, Ivars);
 ivars_expr(['is-record',E,_], Kvars, Ivars) ->

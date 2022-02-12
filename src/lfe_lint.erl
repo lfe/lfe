@@ -734,6 +734,9 @@ check_expr([function,M,F,Ar], _, L, St) ->
        true -> bad_form_error(L, function, St)
     end;
 %% Check record special forms.
+check_expr(['record',Name|Fs], Env, L, St) ->
+    check_record(Name, Fs, Env, L, St);
+%% make-record has been deprecated but we sill accept it for now.
 check_expr(['make-record',Name|Fs], Env, L, St) ->
     check_record(Name, Fs, Env, L, St);
 check_expr(['is-record',E,Name], Env, L, St0) ->
@@ -971,6 +974,7 @@ check_map_remove(Form, _, Ks, _, L, St) ->
     undefined_function_error(L, {Form,safe_length(Ks)+1}, St).
 -endif.
 
+%% check_record(Record, Line, State) -> State.
 %% check_record(Record, Fields, Env, Line, State) -> State.
 %%  Check record usage against its definition.
 
@@ -1520,6 +1524,9 @@ pattern([binary|Segs], Pvs, Env, L, St) ->
 pattern([map|Ps], Pvs, Env, L, St) ->
     pat_map(Ps, Pvs, Env, L, St);
 %% Check record patterns.
+pattern(['record',Name|Fs], Pvs, Env, L, St) ->
+    check_record_pat(Name, Fs, Pvs, Env, L, St);
+%% make-record has been deprecated but we sill accept it for now.
 pattern(['make-record',Name|Fs], Pvs, Env, L, St) ->
     check_record_pat(Name, Fs, Pvs, Env, L, St);
 pattern(['record-index',Name,F], _Pvs, _Env, L, St) ->

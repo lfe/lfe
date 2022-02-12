@@ -194,12 +194,15 @@ eval_expr(['map-update',Map|As], Env) ->
 eval_expr(['map-remove',Map|Ks], Env) ->
     eval_map_remove('map-remove', Map, Ks, Env);
 %% Record special forms.
-eval_expr(['make-record',Name|Args], Env) ->
+eval_expr(['record',Name|As], Env) ->
     case lfe_env:get_record(Name, Env) of
         {yes,Fields} ->
-            make_record_tuple(Name, Fields, Args, Env);
+            make_record_tuple(Name, Fields, As, Env);
         no -> undefined_record_error(Name)
     end;
+%% make-record has been deprecated but we sill accept it for now.
+eval_expr(['make-record',Name|As], Env) ->
+    eval_expr(['record',Name|As], Env);
 eval_expr(['is-record',E,Name], Env) ->
     Ev = eval_expr(E, Env),
     case lfe_env:get_record(Name, Env) of
@@ -1087,12 +1090,15 @@ match([map|Ps], Val, Pbs, Env) ->
         false -> no
     end;
 %% Record patterns.
-match(['make-record',Name|Fs], Val, Pbs, Env) ->
+match(['record',Name|Fs], Val, Pbs, Env) ->
     case lfe_env:get_record(Name, Env) of
         {yes,Fields} ->
             match_record_tuple(Name, Fields, Fs,  Val, Pbs, Env);
         no -> undefined_record_error(Name)
     end;
+%% make-record has been deprecated but we sill accept it for now.
+match(['make-record',Name|Fs], Val, Pbs, Env) ->
+    match(['record',Name|Fs], Val, Pbs, Env);
 match(['record-index',Name,F], Val, Pbs, Env) ->
     case lfe_env:get_record(Name, Env) of
         {yes,Fields} ->
