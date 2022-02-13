@@ -349,6 +349,13 @@ while it reads the expression and then be effectively ``2``.
 (record-field record name field)
 (record-update record name field val ...)
 
+(define-struct fields)
+(struct field val ...)
+(is-struct struct)
+(is-struct struct name)
+(struct-field struct name field)
+(struct-update struct name field val ...)
+
 (define-module name meta-data attributes)
 (extend-module meta-data attributes)
 
@@ -423,6 +430,7 @@ while it reads the expression and then be effectively ``2``.
 (prog2 ...)
 (defmodule name ...)
 (defrecord name ...)
+(defstruct ...)
 ```
 
 # Patterns
@@ -820,8 +828,8 @@ The basic forms for defining a record, creating, accessing and
 updating it are:
 
 ```
-(define-record name ((field) | field
-                     (field default-value)
+(define-record name (field | (field) |
+                     (field default-value) |
                      (field default-value type) ...))
 (record name field value field value ...)
 (is-record record name)
@@ -948,6 +956,24 @@ the following will be generated:
 
 Note that the older now deprecated ``set-`` forms are still
 generated.
+
+# Structs
+
+Structs in LFE are the same as Elixir structs which have been defined
+in the same way so to be truly compatible. This means that you can use
+structs defined in Elixr from LFE and structs defined in LFE from
+Elixir.
+
+```
+(define-struct (field | (field) |
+                (field default-value) |
+		(field default-value type) ...))
+(struct name field value field value ...)
+(is-struct struct)
+(is-struct struct name)
+(struct-field struct name field)
+(struct-update struct name field value field value ...)
+```
 
 # Binaries/bitstrings
 

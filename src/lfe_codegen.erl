@@ -105,6 +105,9 @@ collect_mod_def({['define-module',Mod,_Metas,Attrs],Line}, St0) ->
     St1#lfe_cg{module=Mod,mline=Line};
 collect_mod_def({['extend-module',_Metas,Attrs],Line}, St0) ->
     coll_mdef_attrs(Attrs, Line, St0);
+collect_mod_def({['define-struct',_Fields],Line}, St) ->
+    %% Export the struct functions.
+    coll_mdef_attr([export,['__struct__',0],['__struct__',1]], Line, St);
 collect_mod_def({['define-function',Name,_Meta,Def],Line},
                 #lfe_cg{defs=Defs}=St) ->
     %% Must save all functions for export all.
@@ -202,6 +205,8 @@ compile_form({['define-function-spec',Func,Spec],Line}, _St) ->
     comp_function_spec(Func, Spec, Line);
 compile_form({['define-record',Name,Fields],Line}, _St) ->
     comp_record_def(Name, Fields, Line);
+compile_form({['define-struct',Fields],Line}, St) ->
+    comp_struct_def(Fields, Line, St);
 compile_form({['define-function',Name,_Meta,Def],Line}, St) ->
     comp_function_def(Name, Def, Line, St);
 %% Ignore anything else for now. Hopefully there shouldn't be anything
@@ -295,6 +300,32 @@ make_record_attribute(Name, Fdefs, Line) ->
 make_record_attribute(Name, Fdefs, Line) ->
     make_attribute(type, {{record,Name},Fdefs}, Line).
 -endif.
+
+%% comp_struct_def(Fields, Line, State) -> [Forms].
+%%  Create the struct definition function
+
+comp_struct_def(Fields, Line, #lfe_cg{module=Mod}=St) ->
+    %% The default struct.
+    DefStr = comp_struct_map(Mod, Fields),
+    %% The default __struct__/0/1 functions.
+    Str0 = comp_function_def('__struct__', [lambda,[],DefStr], Line, St),
+    Str1 = comp_function_def(
+	     '__struct__',
+             [lambda,[assocs],
+              [call,?Q(lists),?Q(foldl),
+               ['match-lambda',[[[tuple,x,y],acc],
+                                [call,?Q(maps),?Q(update),x,y,acc]]],
+               DefStr,assocs]],
+             Line, St),
+    Str0 ++ Str1.
+
+comp_struct_map(Mod, Fields) ->
+    Fun = fun ([F,D|_]) -> {F,D};
+       ([F]) -> {F,'nil'};
+       (F) -> {F,'nil'}
+   end,
+    Args = lists:map(Fun, Fields),
+    maps:from_list([{'__struct__',Mod}|Args]).
 
 %% comp_export(State) -> Attribute.
 %% comp_imports(State) -> [Attribute].

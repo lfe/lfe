@@ -83,10 +83,25 @@ term(Bit, D, _, _) when is_bitstring(Bit) ->
     bitstring(Bit, D);                          %First D bytes
 term(Map, D, I, L) when ?IS_MAP(Map) ->
     %% Preserve kv pair ordering, the extra copying is trivial here.
-    Mcs = map_body(maps:to_list(Map), D, I+3, L),
-    ["#M(",Mcs,$)];
+    map(Map, D, I, L);
 term(Other, _, _, _) ->
     lfe_io_write:term(Other).                   %Use standard LFE for rest
+
+%% map(Map, Depth, Indentation, LineLength) -> string().
+%%  Print a map butt specially handle structs.
+
+map(Map, D, I, L) ->
+    %% Preserve kv pair ordering, the extra copying is trivial here.
+    Mkvs = maps:to_list(Map),
+    case lists:keyfind('__struct__', 1, Mkvs) of
+	{'__struct__',Struct} ->
+	    Skvs = lists:keydelete('__struct__', 1, Mkvs),
+	    Scs = map_body(Skvs, D, I+3, L),
+	    ["#S(",lfe_io_write:symbol(Struct),newline(I+3),Scs,$)];
+	false ->
+	    Mcs = map_body(Mkvs, D, I+3, L),
+	    ["#M(",Mcs,$)]
+    end.
 
 %% bitstring(Bitstring, Depth) -> [char()]
 %%  Print the bytes in a bitstring. Print bytes except for last which

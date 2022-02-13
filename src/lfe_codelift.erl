@@ -104,7 +104,7 @@ lift_funcs(Defs, St) ->
 
 %% Core data special forms.
 lift_expr(?Q(E), Lds, St) -> {?Q(E),Lds,St};
-%% Record forms.
+%% Record special forms.
 lift_expr(['record',Name|Args], Lds0, St0) ->
     {Largs,Lds1,St1} = lift_rec_args(Args, Lds0, St0),
     {['record',Name|Largs],Lds1,St1};
@@ -124,6 +124,23 @@ lift_expr(['record-update',E,Name|Args], Lds0, St0) ->
     {Le,Lds1,St1} = lift_expr(E, Lds0, St0),
     {Largs,Lds2,St2} = lift_rec_args(Args, Lds1, St1),
     {['record-update',Le,Name|Largs],Lds2,St2};
+%% Struct special forms.
+lift_expr(['struct',Name|Args], Lds0, St0) ->
+    {Largs,Lds1,St1} = lift_rec_args(Args, Lds0, St0),
+    {['struct',Name|Largs],Lds1,St1};
+lift_expr(['is-struct',E], Lds0, St0) ->
+    {Le,Lds1,St1} = lift_expr(E, Lds0, St0),
+    {['is-struct',Le],Lds1,St1};
+lift_expr(['is-struct',E,Name], Lds0, St0) ->
+    {Le,Lds1,St1} = lift_expr(E, Lds0, St0),
+    {['is-struct',Le,Name],Lds1,St1};
+lift_expr(['struct-field',E, Name,F], Lds0, St0) ->
+    {Le,Lds1,St1} = lift_expr(E, Lds0, St0),
+    {['struct-field',Le,Name,F],Lds1,St1};
+lift_expr(['struct-update',E,Name|Args], Lds0, St0) ->
+    {Le,Lds1,St1} = lift_expr(E, Lds0, St0),
+    {Largs,Lds2,St2} = lift_rec_args(Args, Lds1, St1),
+    {['struct-update',Le,Name|Largs],Lds2,St2};
 %% Function forms.
 lift_expr([function,_,_]=Func, Lds, St) ->
     {Func,Lds,St};
@@ -383,7 +400,7 @@ trans_expr([call|Body], Name, Ar, New, Ivars) ->
     [call|trans_exprs(Body, Name, Ar, New, Ivars)];
 %% General cases.
 trans_expr([Fun|Args0], Name, Ar, New, Ivars) when is_atom(Fun) ->
-    %% Most of the coe data special forms can be handled here as well.
+    %% Most of the core data special forms can be handled here as well.
     Far = length(Args0),
     Args1 = trans_exprs(Args0, Name, Ar, New, Ivars),
     if Fun =:= Name,
@@ -521,10 +538,10 @@ ivars_expr([binary|Segs], Kvars, Ivars) ->
     ivars_bitsegs(Segs, Kvars, Ivars);
 %% Record forms.
 ivars_expr(['record',_|Args], Kvars, Ivars) ->
-    ivars_rec_args(Args, Kvars, Ivars);
+    ivars_record_args(Args, Kvars, Ivars);
 %% make-record has been deprecated but we sill accept it for now.
 ivars_expr(['make-record',_|Args], Kvars, Ivars) ->
-    ivars_rec_args(Args, Kvars, Ivars);
+    ivars_record_args(Args, Kvars, Ivars);
 ivars_expr(['is-record',E,_], Kvars, Ivars) ->
     ivars_expr(E, Kvars, Ivars);
 ivars_expr(['record-index',_,_], _, Ivars) -> Ivars;
@@ -532,7 +549,19 @@ ivars_expr(['record-field',E,_,_], Kvars, Ivars) ->
     ivars_expr(E, Kvars, Ivars);
 ivars_expr(['record-update',E,_|Args], Kvars, Ivars0) ->
     Ivars1 = ivars_expr(E, Kvars, Ivars0),
-    ivars_rec_args(Args, Kvars, Ivars1);
+    ivars_record_args(Args, Kvars, Ivars1);
+%% Struct special forms.
+ivars_expr(['struct',_Name|Args], Kvars, Ivars) ->
+    ivars_struct_args(Args, Kvars, Ivars);
+ivars_expr(['is-struct',E], Kvars, Ivars) ->
+    ivars_expr(E, Kvars, Ivars);
+ivars_expr(['is-struct',E,_], Kvars, Ivars) ->
+    ivars_expr(E, Kvars, Ivars);
+ivars_expr(['struct-field',E,_Name,_Field], Kvars, Ivars) ->
+    ivars_expr(E, Kvars, Ivars);
+ivars_expr(['struct-update',E,_Name|Args], Kvars, Ivars0) ->
+    Ivars1 = ivars_expr(E, Kvars, Ivars0),
+    ivars_struct_args(Args, Kvars, Ivars1);
 %% Function forms.
 ivars_expr([function,_,_], _, Ivars) -> Ivars;
 ivars_expr([function,_,_,_], _, Ivars) -> Ivars;
@@ -556,7 +585,7 @@ ivars_expr(['case',Expr|Cls], Kvars, Ivars0) ->
     Ivars1 = ivars_expr(Expr, Kvars, Ivars0),
     ivars_cls(Cls, Kvars, Ivars1);
 ivars_expr(['receive'|Cls], Kvars, Ivars) ->
-    ivars_rec_cls(Cls, Kvars, Ivars);
+    ivars_receive_cls(Cls, Kvars, Ivars);
 ivars_expr(['catch'|Body], Kvars, Ivars) ->
     ivars_exprs(Body, Kvars, Ivars);
 ivars_expr(['try'|Body], Kvars, Ivars) ->
@@ -593,10 +622,22 @@ ivars_bitseg([Val|Specs], Kvars, Ivars0) ->
 ivars_bitseg(Val, Kvars, Ivars) ->
     ivars_expr(Val, Kvars, Ivars).
 
-ivars_rec_args([_F,V|As], Kvars, Ivars0) ->
+%% ivars_record_args(Args, Kvars, Ivars) -> Ivars.
+%% ivars_struct_args(Args, Kvars, Ivars) -> Ivars.
+%%  Get the Ivars form record/struct argument lists.
+
+ivars_record_args([_F,V|As], Kvars, Ivars0) ->
     Ivars1 = ivars_expr(V, Kvars, Ivars0),
-    ivars_rec_args(As, Kvars, Ivars1);
-ivars_rec_args([], _, Ivars) -> Ivars.
+    ivars_record_args(As, Kvars, Ivars1);
+ivars_record_args([], _, Ivars) -> Ivars.
+
+ivars_struct_args([_F,V|As], Kvars, Ivars0) ->
+    Ivars1 = ivars_expr(V, Kvars, Ivars0),
+    ivars_struct_args(As, Kvars, Ivars1);
+ivars_struct_args([], _, Ivars) -> Ivars.
+
+%% ivars_let(VariableBindings, Body, Kvars, Ivars) -> Ivars.
+%%  Get Ivars from a let form.
 
 ivars_let(Vbs, Body, Kvars0, Ivars0) ->
     Fun = fun ([Pat,['when'|G],Expr], {Kvs0,Ivs0}) ->
@@ -612,6 +653,9 @@ ivars_let(Vbs, Body, Kvars0, Ivars0) ->
     {Kvars1,Ivars1} = lists:foldl(Fun, {Kvars0,Ivars0}, Vbs),
     ivars_exprs(Body, Kvars1, Ivars1).
 
+%% ivars_let_function(FunctionBindings, Body, Kvars, Ivars) -> Ivars.
+%%  Get the Ivars from a let-function/letrec-function form.
+
 ivars_let_function(Fbs, Body, Kvars, Ivars0) ->
     Fun = fun ([_,Def], Ivs) -> ivars_expr(Def, Kvars, Ivs) end,
     Ivars1 = lists:foldl(Fun, Ivars0, Fbs),
@@ -622,24 +666,27 @@ ivars_fun_cls(Cls, Kvars, Ivars) ->
     lists:foldl(Fun, Ivars, Cls).
 
 ivars_fun_cl([Pats|Body], Kvars, Ivars) ->
-    ivars_cl([[list|Pats]|Body], Kvars, Ivars).
+    ivars_clause([[list|Pats]|Body], Kvars, Ivars).
 
 ivars_cls(Cls, Kvars, Ivars) ->
-    Fun = fun (Cl, Ivs) -> ivars_cl(Cl, Kvars, Ivs) end,
+    Fun = fun (Cl, Ivs) -> ivars_clause(Cl, Kvars, Ivs) end,
     lists:foldl(Fun, Ivars, Cls).
 
-ivars_rec_cls(Cls, Kvars, Ivars) ->
+ivars_receive_cls(Cls, Kvars, Ivars) ->
     Fun = fun (['after'|Body], Ivs) -> ivars_exprs(Body, Kvars, Ivs);
-              (Cl, Ivs) -> ivars_cl(Cl, Kvars, Ivs)
+              (Cl, Ivs) -> ivars_clause(Cl, Kvars, Ivs)
           end,
     lists:foldl(Fun, Ivars, Cls).
 
-ivars_cl([Pat,['when'|G]|Body], Kvars0, Ivars0) ->
+%% ivars_clause(Clause, Kvars, Ivars) -> Ivars.
+%%  Get the Ivars from a function/case/receive clause.
+
+ivars_clause([Pat,['when'|G]|Body], Kvars0, Ivars0) ->
     Pvs = ivars_pat(Pat),
     Kvars1 = ordsets:union(Pvs, Kvars0),
     Ivars1 = ivars_exprs(G, Kvars1, Ivars0),
     ivars_exprs(Body, Kvars1, Ivars1);
-ivars_cl([Pat|Body], Kvars0, Ivars) ->
+ivars_clause([Pat|Body], Kvars0, Ivars) ->
     Pvs = ivars_pat(Pat),
     Kvars1 = ordsets:union(Pvs, Kvars0),
     ivars_exprs(Body, Kvars1, Ivars).

@@ -347,6 +347,13 @@ the expression and then be effectively \f[C]2\f[R].
 (record-field record name field)
 (record-update record name field val ...)
 
+(define-struct fields)
+(struct field val ...)
+(is-struct struct)
+(is-struct struct name)
+(struct-field struct name field)
+(struct-update struct name field val ...)
+
 (define-module name meta-data attributes)
 (extend-module meta-data attributes)
 
@@ -423,6 +430,7 @@ the expression and then be effectively \f[C]2\f[R].
 (prog2 ...)
 (defmodule name ...)
 (defrecord name ...)
+(defstruct ...)
 \f[R]
 .fi
 .SH Patterns
@@ -879,8 +887,8 @@ it are:
 .IP
 .nf
 \f[C]
-(define-record name ((field) | field
-                     (field default-value)
+(define-record name (field | (field) |
+                     (field default-value) |
                      (field default-value type) ...))
 (record name field value field value ...)
 (is-record record name)
@@ -1018,6 +1026,25 @@ don\[cq]t have to be provided manually in the create_table call.
 .PP
 Note that the older now deprecated \f[C]set-\f[R] forms are still
 generated.
+.SH Structs
+.PP
+Structs in LFE are the same as Elixir structs which have been defined in
+the same way so to be truly compatible.
+This means that you can use structs defined in Elixr from LFE and
+structs defined in LFE from Elixir.
+.IP
+.nf
+\f[C]
+(define-struct (field | (field) |
+                (field default-value) |
+        (field default-value type) ...))
+(struct name field value field value ...)
+(is-struct struct)
+(is-struct struct name)
+(struct-field struct name field)
+(struct-update struct name field value field value ...)
+\f[R]
+.fi
 .SH Binaries/bitstrings
 .PP
 A binary is
