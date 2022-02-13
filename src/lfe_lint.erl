@@ -55,21 +55,21 @@
 
 %% Errors.
 %% Module definition.
-format_error({bad_module,D}) ->
+format_error({bad_module_def,D}) ->
     %% This can handle both atom and string error value.
     lfe_io:format1(<<"bad ~s in module definition">>, [D]);
 format_error({bad_attribute,A}) ->
     lfe_io:format1(<<"bad ~w attribute">>, [A]);
-format_error({bad_meta,M}) ->
-    lfe_io:format1(<<"bad ~w metadata">>, [M]);
+format_error({bad_meta_def,M}) ->
+    lfe_io:format1(<<"bad ~w metadata definition">>, [M]);
 %% Forms and code.
-format_error({bad_body,Form}) ->
+format_error({bad_body_def,Form}) ->
     lfe_io:format1(<<"bad body in ~w">>, [Form]);
-format_error(bad_guard) -> "bad guard";
+format_error(bad_guard_def) -> "bad guard definition";
 format_error(bad_args) -> "bad argument list";
 format_error(bad_gargs) -> "bad guard argument list";
-format_error(bad_alias) -> "bad pattern alias";
-format_error(bad_arity) -> "head arity mismatch";
+format_error(bad_pat_alias) -> "bad pattern alias";
+format_error(bad_head_arity) -> "function head arity mismatch";
 format_error({bad_form,Form}) ->
     lfe_io:format1(<<"bad ~w form">>, [Form]);
 format_error({bad_guard_form,Form}) ->
@@ -115,18 +115,18 @@ format_error({illegal_stacktrace,S}) ->
 format_error({illegal_exception,E}) ->
     lfe_io:format1(<<"illegal exception ~w">>, [E]);
 %% Records.
-format_error({bad_record,Name}) ->
+format_error({bad_record_def,Name}) ->
     lfe_io:format1(<<"bad definition of record ~w">>, [Name]);
-format_error({bad_field,Name,Field}) ->
+format_error({bad_record_field,Name,Field}) ->
     lfe_io:format1(<<"bad field ~w in record ~w">>, [Field,Name]);
 format_error({redefine_record,Name}) ->
     lfe_io:format1(<<"record ~w already defined">>, [Name]);
-format_error({missing_field_value,Name,Field}) ->
+format_error({missing_record_field_value,Name,Field}) ->
     lfe_io:format1(<<"missing value to field ~w in record ~w">>,[Field,Name]);
 %% These are also used in lfe_eval.
 format_error({undefined_record,Name}) ->
     lfe_io:format1(<<"record ~w undefined">>, [Name]);
-format_error({undefined_field,Name,Field}) ->
+format_error({undefined_record_field,Name,Field}) ->
     lfe_io:format1(<<"field ~w undefined in record ~w">>, [Field,Name]);
 %% Type and spec errors.
 format_error({undefined_type,{T,A}}) ->
@@ -140,11 +140,11 @@ format_error({redefine_spec,{F,A}}) ->
 format_error({singleton_typevar,V}) ->
     lfe_io:format1("type variable ~w is only used once", [V]);
 %% Type and spec errors. These are also returned from lfe_types.
-format_error({bad_type,T}) ->
+format_error({bad_type_def,T}) ->
     lfe_io:format1("bad ~w type definition", [T]);
-format_error({type_syntax,T}) ->
-    lfe_io:format1("bad ~w type", [T]);
-format_error({bad_spec,S}) ->
+format_error({bad_type_syntax,T}) ->
+    lfe_io:format1("bad ~w type syntax", [T]);
+format_error({bad_function_spec,S}) ->
     lfe_io:format1("bad function specification: ~w", [S]);
 %% These are signaled from lfe_bits.
 format_error({undefined_bittype,S}) ->
@@ -239,11 +239,11 @@ collect_form(['define-module',Mod,Meta,Atts], L, St0) ->
     if is_atom(Mod) ->                  %Normal module
             {[],St1};
        true ->                          %Bad module name
-            {[],bad_module_error(L, name, St1)}
+            {[],bad_module_def_error(L, name, St1)}
     end;
 collect_form(_, L, #lfe_lint{module=[]}=St) ->
     %% Set module name so this only triggers once.
-    {[],bad_module_error(L, name, St#lfe_lint{module='-no-module-'})};
+    {[],bad_module_def_error(L, name, St#lfe_lint{module='-no-module-'})};
 collect_form(['extend-module',Metas,Atts], L, St) ->
     {[],check_mod_def(Metas, Atts, L, St)};
 collect_form(['define-type',Type,Def], L, St) ->
@@ -275,11 +275,11 @@ check_mod_def(Metas, Atts, L, St0) ->
 
 check_mod_metas(Ms, L, St) ->
     check_foreach(fun (M, S) -> check_mod_meta(M, L, S) end,
-                  fun (S) -> bad_module_error(L, <<"meta form">>, S) end,
+                  fun (S) -> bad_module_def_error(L, <<"meta form">>, S) end,
                   St, Ms).
 
 check_mod_meta([doc|Docs], L, St) ->
-    ?IF(is_docs_list(Docs), St, bad_meta_error(L, doc, St));
+    ?IF(is_docs_list(Docs), St, bad_meta_def_error(L, doc, St));
 check_mod_meta([type|Tds], L, St) ->
     check_type_defs(Tds, L, St);
 check_mod_meta([opaque|Tds], L, St) ->
@@ -289,14 +289,14 @@ check_mod_meta([spec|Sps], L, St) ->
 check_mod_meta([record|Rdefs], L, St) ->
     %% deprecated_error(L, <<"module record definition">>, St);
     check_record_defs(Rdefs, L, St);
-check_mod_meta(_, L, St) -> bad_module_error(L, meta, St).
+check_mod_meta(_, L, St) -> bad_module_def_error(L, meta, St).
 
 %% check_mod_attrs(Attributes, Line, State) -> State.
 %%  Check the attributes of the module.
 
 check_mod_attrs(As, L, St) ->
     check_foreach(fun (A, S) -> check_mod_attr(A, L, S) end,
-                  fun (S) -> bad_module_error(L, <<"attribute form">>, S) end,
+                  fun (S) -> bad_module_def_error(L, <<"attribute form">>, S) end,
                   St, As).
 
 check_mod_attr([export,all], _, St) -> St;          %Ignore 'all' here
@@ -320,7 +320,7 @@ check_mod_attr([A|Vals], L, St) ->
         %% Other attributes, must be list and have symbol name.
         ?IF(is_atom(A) and lfe_lib:is_proper_list(Vals),
             St, bad_attr_error(L, A, St)));
-check_mod_attr(_, L, St) -> bad_module_error(L, <<"attribute form">>, St).
+check_mod_attr(_, L, St) -> bad_module_def_error(L, <<"attribute form">>, St).
 
 is_meta_tag(doc) -> true;
 is_meta_tag(spec) -> true;
@@ -336,7 +336,7 @@ check_export_attr(Es, L, St) ->
         {yes,Fs} ->
             Exps = add_exports(Fs, L, St#lfe_lint.exports),
             St#lfe_lint{exports=Exps};
-        no -> bad_module_error(L, export, St)
+        no -> bad_module_def_error(L, export, St)
     end.
 
 %% check_import_attr(Imports, Line, State) -> State.
@@ -350,7 +350,7 @@ check_imports([from,Mod|Fs], L, St0) when is_atom(Mod) ->
                                    is_integer(Ar), Ar >= 0 ->
                   check_import(F, Ar, Mod, F, Is, L, S);
               (_, Is, S) ->
-                  {Is,bad_module_error(L, <<"import from">>, S)}
+                  {Is,bad_module_def_error(L, <<"import from">>, S)}
           end,
     {Imps,St1} = check_foldl(Add, fun (S) -> S end,
                              St0#lfe_lint.imports, St0, Fs),
@@ -361,7 +361,7 @@ check_imports([rename,Mod|Fs], L, St0) when is_atom(Mod) ->
                                        is_atom(R) ->
                   check_import(R, Ar, Mod, F, Is, L, S);
               (_, Is, S) ->
-                  {Is,bad_module_error(L, <<"import rename">>, S)}
+                  {Is,bad_module_def_error(L, <<"import rename">>, S)}
           end,
     {Imps,St1} = check_foldl(Add, fun (S) -> S end,
                              St0#lfe_lint.imports, St0, Fs),
@@ -382,13 +382,13 @@ check_import(F, Ar, Mod, Rem, Imps, L, St) ->
             {orddict:store({F,Ar}, {Mod,Rem}, Imps),St}
     end.
 
-import_error(L, St) -> bad_module_error(L, import, St).
+import_error(L, St) -> bad_module_def_error(L, import, St).
 
 %% check_alias_attr(ModAliases, Line, State) -> State.
 
 check_alias_attr(Aliases, L, St) ->
     check_foreach(fun (Alias, S) -> check_alias(Alias, L, S) end,
-                  fun (S) -> bad_module_error(L, 'module-alias', S) end,
+                  fun (S) -> bad_module_def_error(L, 'module-alias', S) end,
                   St, Aliases).
 
 check_alias([Mod,Alias], L, #lfe_lint{aliases=As0}=St0) when is_atom(Mod),
@@ -405,7 +405,7 @@ check_alias([Mod,Alias], L, #lfe_lint{aliases=As0}=St0) when is_atom(Mod),
     As1 = orddict:store(Alias, Mod, As0),       %Add the alias
     St2#lfe_lint{aliases=As1};
 check_alias(_, L, St) ->
-    bad_module_error(L, 'module-alias', St).
+    bad_module_def_error(L, 'module-alias', St).
 
 %% check_export_types(Types, Line, State) -> State.
 
@@ -415,7 +415,7 @@ check_export_types(Ts, L, St) ->
             Texps = add_exports(Fs, L, St#lfe_lint.texps),
             St#lfe_lint{texps=Texps};
         no ->
-            bad_module_error(L, 'export-type', St)
+            bad_module_def_error(L, 'export-type', St)
     end.
 
 is_func_list(Fs) -> is_func_list(Fs, []).
@@ -432,13 +432,13 @@ is_func_list(_, _) -> no.
 
 check_type_defs(Tds, L, St) ->
     check_foreach(fun (Td, S) -> check_type_def(Td, L, S) end,
-                  fun (S) -> bad_meta_error(L, type, S) end,
+                  fun (S) -> bad_meta_def_error(L, type, S) end,
                   St, Tds).
 
 check_type_def([Type,Def], L, St) ->
     check_type_def(Type, Def, L, St);
 check_type_def(_, L, St) ->
-    bad_meta_error(L, type, St).
+    bad_meta_def_error(L, type, St).
 
 check_type_def(Type, Def, L, St0) ->
     {Tvs0,St1} = check_type_name(Type, L, St0),
@@ -467,10 +467,10 @@ check_type_name([T|Args], L, #lfe_lint{types=Kts}=St) when is_atom(T) ->
                             {Tvs,St#lfe_lint{types=[Kt|Kts]}}
                     end
             end;
-        false -> {[],bad_type_error(L, T, St)}
+        false -> {[],bad_type_def_error(L, T, St)}
     end;
 check_type_name(T, L, St) ->                    %Type name wrong format
-    {[],bad_type_error(L, T, St)}.
+    {[],bad_type_def_error(L, T, St)}.
 
 %% check_type_vars(TypeVars, Line, State) -> State.
 %%  Check for singleton type variables except for _ which we allow.
@@ -489,13 +489,13 @@ check_type_vars(Tvs, L, St) ->
 
 check_func_specs(Sps, L, St) ->
     check_foreach(fun (Sp, S) -> check_func_spec(Sp, L, S) end,
-                  fun (S) -> bad_meta_error(L, spec, S) end,
+                  fun (S) -> bad_meta_def_error(L, spec, S) end,
                   St, Sps).
 
 check_func_spec([Func|Specs], L, St) ->
     check_func_spec(Func, Specs, L, St);
 check_func_spec(_, L, St) ->
-    bad_meta_error(L, spec, St).
+    bad_meta_def_error(L, spec, St).
 
 check_func_spec(Func, Specs, L, St0) ->
     {Ar,St1} = check_func_name(Func, L, St0),
@@ -515,7 +515,7 @@ check_func_name([F,Ar], L, #lfe_lint{specs=Kss}=St)
         false -> {Ar,St#lfe_lint{specs=[Ks|Kss]}}
     end;
 check_func_name(F, L, St) ->
-    {0,add_error(L, {bad_spec,F}, St)}.
+    {0,add_error(L, {bad_function_spec,F}, St)}.
 
 check_type_vars_list(Tvss, L, St) ->
     lists:foldl(fun (Tvs, S) -> check_type_vars(Tvs, L, S) end, St, Tvss).
@@ -535,7 +535,7 @@ check_func_metas(N, Ms, L, St) ->
                   St, Ms).
 
 check_func_meta(N, [doc|Docs], L, St) ->
-    ?IF(is_docs_list(Docs), St, bad_meta_error(L, N, St));
+    ?IF(is_docs_list(Docs), St, bad_meta_def_error(L, N, St));
 %% Need to get arity in here.
 %% check_func_meta(N, [spec|Specs], L, St0) ->
 %%     case lfe_types:check_func_spec_list(Specs, Ar, St#lfe_lint.records) of
@@ -547,8 +547,8 @@ check_func_meta(N, [doc|Docs], L, St) ->
 %%     end;
 check_func_meta(N, [M|Vals], L, St) ->
     ?IF(is_atom(M) and lfe_lib:is_proper_list(Vals),
-        St, bad_meta_error(L, N, St));
-check_func_meta(N, _, L, St) -> bad_meta_error(L, N, St).
+        St, bad_meta_def_error(L, N, St));
+check_func_meta(N, _, L, St) -> bad_meta_def_error(L, N, St).
 
 %% is_docs_list(Docs) -> boolean().
 
@@ -563,13 +563,13 @@ is_docs_list(Docs) ->
 
 check_record_defs(Rdefs, L, St) ->
     check_foreach(fun (Rdef, S) -> check_record_def(Rdef, L, S) end,
-                  fun (S) -> bad_meta_error(L, record, S) end,
+                  fun (S) -> bad_meta_def_error(L, record, S) end,
                   St, Rdefs).
 
 check_record_def([Name,Fields], L, St) ->
     check_record_def(Name, Fields, L, St);
 check_record_def(_, L, St) ->
-    bad_meta_error(L, record, St).
+    bad_meta_def_error(L, record, St).
 
 check_record_def(Name, Fds, L, #lfe_lint{records=Recs}=St0)
   when is_atom(Name) ->
@@ -581,11 +581,11 @@ check_record_def(Name, Fds, L, #lfe_lint{records=Recs}=St0)
             St1 = St0#lfe_lint{records=orddict:store(Name, [], Recs)},
             check_foreach(fun (Fd, S) ->
                                   check_record_field_def(Name, Fd, L, S) end,
-                          fun (S) -> bad_record_error(L, Name, S) end,
+                          fun (S) -> bad_record_def_error(L, Name, S) end,
                           St1, Fds)
     end;
 check_record_def(Name, _, L, St) ->
-    bad_record_error(L, Name, St).
+    bad_record_def_error(L, Name, St).
 
 check_record_field_def(Name, [Field,D,Type], L, St0) ->
     St1 = check_record_field_def(Name, [Field,D], L, St0),
@@ -607,7 +607,7 @@ check_record_field_def_1(Name, Field, L,  #lfe_lint{records=Recs}=St) ->
     if is_atom(Field) ->
             St#lfe_lint{records=orddict:append(Name, Field, Recs)};
        true ->
-            bad_field_error(L, Name, Field, St)
+            bad_record_field_error(L, Name, Field, St)
     end.
 
 %% init_state(State) -> {Predefs,Env,State}.
@@ -831,7 +831,7 @@ check_func(F, Ar, Env, L, St) ->
 
 check_body(Form, Body, Env, L, St) ->
     check_foreach(fun (E, S) -> check_expr(E, Env, L, S) end,
-                  fun (S) -> add_error(L, {bad_body,Form}, S) end,
+                  fun (S) -> add_error(L, {bad_body_def,Form}, S) end,
                   St, Body).
 
 %% check_args(Args, Env, Line, State) -> State.
@@ -985,7 +985,7 @@ check_record(Name, L, #lfe_lint{records=Recs}=St) when is_atom(Name) ->
             undefined_record_error(L, Name, St)
     end;
 check_record(Name, L, St) ->
-    bad_record_error(L, Name, St).
+    bad_record_def_error(L, Name, St).
 
 check_record(Name, Fields, Env, L, #lfe_lint{records=Recs}=St)
   when is_atom(Name) ->
@@ -996,7 +996,7 @@ check_record(Name, Fields, Env, L, #lfe_lint{records=Recs}=St)
             undefined_record_error(L, Name, St)
     end;
 check_record(Name, _, _, L, St) ->
-    bad_record_error(L, Name, St).
+    bad_record_def_error(L, Name, St).
 
 check_record_fields(Name, ['_',_Val|Fs], Rfs, Env, L, St) ->
     %% The _ field is special!
@@ -1006,14 +1006,14 @@ check_record_fields(Name, [F,Val|Fs], Rfs, Env, L, St0) ->
               true ->
                   check_expr(Val, Env, L, St0);
               false ->
-                  undefined_field_error(L, Name, F, St0)
+                  undefined_record_field_error(L, Name, F, St0)
           end,
     check_record_fields(Name, Fs, Rfs, Env, L, St1);
 check_record_fields(Name, [F], _Rfs, _Env, L, St) ->
-    missing_field_value_error(L, Name, F, St);
+    missing_record_field_value_error(L, Name, F, St);
 check_record_fields(_Name, [], _, _, _, St) -> St;
 check_record_fields(Name, Pat, _Rfs, _, L, St) ->
-    bad_field_error(L, Name, Pat, St).
+    bad_record_field_error(L, Name, Pat, St).
 
 %% check_record_field(Record, Field, Line, State) -> State.
 %%  Check whether record has a field.
@@ -1025,13 +1025,13 @@ check_record_field(Name, F, L, #lfe_lint{records=Recs}=St)
             case lists:member(F, Rfields) of
                 true -> St;
                 false ->
-                    undefined_field_error(L, Name, F, St)
+                    undefined_record_field_error(L, Name, F, St)
             end;
         error ->
             undefined_record_error(L, Name, St)
     end;
 check_record_field(Name, _F, L, St) ->
-    bad_record_error(L, Name, St).
+    bad_record_def_error(L, Name, St).
 
 %% check_lambda(LambdaBody, Env, Line, State) -> State.
 %% Check form (lambda Args ...).
@@ -1068,7 +1068,7 @@ ml_arity(_) -> -1.
 check_ml_clause([Pat|Rest]=C, Ar, Env0, L, St0) ->
     St1 = case ml_arity(C) =:= Ar of
               true -> St0;
-              false -> add_error(L, bad_arity, St0)
+              false -> add_error(L, bad_head_arity, St0)
           end,
     check_clause('match-lambda', [[list|Pat]|Rest], Env0, L, St1);
 check_ml_clause(_, _, _, L, St) ->
@@ -1305,7 +1305,7 @@ check_guard(G, Env, L, St) -> check_gbody(G, Env, L, St).
 
 check_gbody(Exprs, Env, L, St) ->
     check_foreach(fun (E, S) -> check_gexpr(E, Env, L, S) end,
-                  fun (S) -> add_error(L, bad_guard, S) end,
+                  fun (S) -> add_error(L, bad_guard_def, S) end,
                   St, Exprs).
 
 %% check_gexpr(Call, Env, Line, State) -> State.
@@ -1509,7 +1509,7 @@ pattern(['=',P1,P2], Pvs0, Env, L, St0) ->
     {Pvs2,St2} = pattern(P2, Pvs1, Env, L, St1),
     St3 = case is_pat_alias(P1, P2) of
               true -> St2;                      %Union of variables now visible
-              false -> add_error(L, bad_alias, St2)
+              false -> add_error(L, bad_pat_alias, St2)
           end,
     {Pvs2,St3};
 pattern([cons,H,T], Pvs0, Env, L, St0) ->       %Explicit cons constructor
@@ -1713,19 +1713,19 @@ check_record_pat(Name, Fields, Pvs, Env, L, #lfe_lint{records=Recs}=St)
             {Pvs,undefined_record_error(L, Name, St)}
     end;
 check_record_pat(Name, _, Pvs, _, L, St) ->
-    {Pvs,bad_record_error(L, Name, St)}.
+    {Pvs,bad_record_def_error(L, Name, St)}.
 
 check_record_pat_fields(Name, [F,Pat|Fs], Rfs, Pvs0, Env, L, St0) ->
     {Pvs1,St1} = case lists:member(F, Rfs) of
                      true ->
                          pattern(Pat, Pvs0, Env, L, St0);
                      false ->
-                         {Pvs0,undefined_field_error(L, Name, F, St0)}
+                         {Pvs0,undefined_record_field_error(L, Name, F, St0)}
                  end,
     check_record_pat_fields(Name, Fs, Rfs, Pvs1, Env, L, St1);
 check_record_pat_fields(_Name, [], _, Pvs, _, _, St) -> {Pvs,St};
 check_record_pat_fields(Name, _, _, Pvs, _, L, St) ->
-    {Pvs,bad_record_error(L, Name, St)}.
+    {Pvs,bad_record_def_error(L, Name, St)}.
 
 %% is_literal(Literal) -> true | false.
 %% literal(Literal, Env, Line, State) -> State.
@@ -1894,8 +1894,8 @@ add_warning(L, W, #lfe_lint{warnings=Warns}=St) ->
 bad_attr_error(L, A, St) ->
     add_error(L, {bad_attribute,A}, St).
 
-bad_meta_error(L, A, St) ->
-    add_error(L, {bad_meta,A}, St).
+bad_meta_def_error(L, A, St) ->
+    add_error(L, {bad_meta_def,A}, St).
 
 bad_form_error(L, F, St) ->
     add_error(L, {bad_form,F}, St).
@@ -1917,23 +1917,23 @@ bad_pattern_error(L, F, St) ->
 illegal_pattern_error(L, P, St) ->
     add_error(L, {illegal_pattern,P}, St).
 
-bad_module_error(L, D, St) ->
-    add_error(L, {bad_module,D}, St).
+bad_module_def_error(L, D, St) ->
+    add_error(L, {bad_module_def,D}, St).
 
-bad_record_error(L, R, St) ->
-    add_error(L, {bad_record,R}, St).
+bad_record_def_error(L, R, St) ->
+    add_error(L, {bad_record_def,R}, St).
 
-bad_field_error(L, R, F, St) ->
-    add_error(L, {bad_field,R,F}, St).
+bad_record_field_error(L, R, F, St) ->
+    add_error(L, {bad_record_field,R,F}, St).
 
 undefined_record_error(L, R, St) ->
     add_error(L, {undefined_record,R}, St).
 
-undefined_field_error(L, R, F, St) ->
-    add_error(L, {undefined_field,R,F}, St).
+undefined_record_field_error(L, R, F, St) ->
+    add_error(L, {undefined_record_field,R,F}, St).
 
-missing_field_value_error(L, R, F, St) ->
-    add_error(L, {missing_field_value,R,F}, St).
+missing_record_field_value_error(L, R, F, St) ->
+    add_error(L, {missing_record_field_value,R,F}, St).
 
 bad_fdef_error(L, D, St) ->
     add_error(L, {bad_fdef,D}, St).
@@ -1947,8 +1947,8 @@ undefined_function_error(L, F, St) ->
 illegal_guard_error(L, St) ->
     add_error(L, illegal_guard, St).
 
-bad_type_error(L, T, St) ->
-    add_error(L, {bad_type,T}, St).
+bad_type_def_error(L, T, St) ->
+    add_error(L, {bad_type_def,T}, St).
 
 deprecated_error(L, D, St) ->
     add_error(L, {deprecated,D}, St).

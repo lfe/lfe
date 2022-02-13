@@ -76,7 +76,7 @@ format_error({illegal_literal,Lit}) ->
     format_value(Lit, <<"illegal literal value ">>);
 format_error({illegal_mapkey,Key}) ->
     lfe_io:format1(<<"illegal map key ~w">>, [Key]);
-format_error(bad_arity) -> <<"head arity mismatch">>;
+format_error(bad_head_arity) -> <<"function head arity mismatch">>;
 format_error({argument_limit,Arity}) ->
     lfe_io:format1(<<"too many arguments ~w">>, [Arity]);
 format_error({bad_form,Form}) ->
@@ -530,7 +530,7 @@ bind_args([A|As], [E|Es], Env) when is_atom(A) ->
     bind_args(As, Es, add_vbinding(A, E, Env));
 bind_args([], [], Env) -> Env;
 bind_args(_As, _Vs, _Env) ->
-    eval_error(bad_arity).
+    eval_error(bad_head_arity).
 
 match_lambda_arity([[Pats|_]|Cls]) ->
     case lfe_lib:is_proper_list(Pats) of
@@ -555,7 +555,7 @@ apply_match_lambda([[Pats|B0]|Cls], Vals, Env) ->
                 {yes,B1,Vbs} -> eval_body(B1, add_vbindings(Vbs, Env));
                 no -> apply_match_lambda(Cls, Vals, Env)
             end;
-       true -> eval_error(bad_arity)
+       true -> eval_error(bad_head_arity)
     end;
 apply_match_lambda([], _Vals, _) -> eval_error(function_clause);
 apply_match_lambda(_, _, _) -> bad_form_error('match-lambda').
