@@ -106,7 +106,7 @@ is_core_form('catch') -> true;
 is_core_form('try') -> true;
 is_core_form('funcall') -> true;
 is_core_form(call) -> true;
-%% Lit/binary comprehensions.
+%% List/binary comprehensions.
 is_core_form('lc') -> true;
 is_core_form('list-comp') -> true;
 is_core_form('bc') -> true;
@@ -160,15 +160,15 @@ is_core_func('record-index', 2) -> true;
 is_core_func('record-field', 3) -> true;
 is_core_func('record-update', Ar) when Ar >= 2, (Ar rem 2) =:= 0 -> true;
 %% Core struct special functions.
-is_core_func('struct', Ar) when Ar >= 1, (Ar rem 2) -> true;
+is_core_func('struct', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
 is_core_func('is-struct', Ar) when Ar =:= 1; Ar =:= 2 -> true;
 is_core_func('struct-field', 3) -> true;
 is_core_func('struct-update', Ar) when Ar >= 2, (Ar rem 2) =:= 0 -> true;
-%% Lit/binary comprehensions.
-is_core_func('lc', 2) -> true;
-is_core_func('list-comp', 2) -> true;
-is_core_func('bc', 2) -> true;
-is_core_func('binary-comp', 2) -> true;
+%% List/binary comprehensions.
+is_core_func('lc', Ar) when Ar >= 2 -> true;
+is_core_func('list-comp', Ar) when Ar >= 2 -> true;
+is_core_func('bc', Ar) when Ar >= 2 -> true;
+is_core_func('binary-comp', Ar) when Ar >= 2 -> true;
 %% Core control special functions.
 is_core_func(funcall, Ar) when Ar >= 1 -> true;
 is_core_func(call, Ar) when Ar >= 2 -> true;

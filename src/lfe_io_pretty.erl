@@ -94,13 +94,13 @@ map(Map, D, I, L) ->
     %% Preserve kv pair ordering, the extra copying is trivial here.
     Mkvs = maps:to_list(Map),
     case lists:keyfind('__struct__', 1, Mkvs) of
-	{'__struct__',Struct} ->
-	    Skvs = lists:keydelete('__struct__', 1, Mkvs),
-	    Scs = map_body(Skvs, D, I+3, L),
-	    ["#S(",lfe_io_write:symbol(Struct),newline(I+3),Scs,$)];
-	false ->
-	    Mcs = map_body(Mkvs, D, I+3, L),
-	    ["#M(",Mcs,$)]
+        {'__struct__',Struct} ->
+            Skvs = lists:keydelete('__struct__', 1, Mkvs),
+            Scs = map_body(Skvs, D, I+3, L),
+            ["#S(",lfe_io_write:symbol(Struct),newline(I+3),Scs,$)];
+        false ->
+            Mcs = map_body(Mkvs, D, I+3, L),
+            ["#M(",Mcs,$)]
     end.
 
 %% bitstring(Bitstring, Depth) -> [char()]

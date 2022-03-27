@@ -34,7 +34,8 @@
 -module(lfe_translate).
 
 -export([from_expr/1,from_expr/2,from_body/1,from_body/2,from_lit/1]).
--export([to_expr/2,to_expr/3,to_exprs/2,to_exprs/3,to_lit/2]).
+-export([to_expr/2,to_expr/3,to_exprs/2,to_exprs/3]).
+-export([to_gexpr/2,to_gexpr/3,to_gexprs/2,to_gexprs/3,to_lit/2]).
 
 -import(lists, [map/2,foldl/3,mapfoldl/3,foldr/3,splitwith/2]).
 
@@ -150,11 +151,11 @@ from_expr({'catch',_,E}, Vt0, St0) ->
     {['catch',Le],Vt1,St1};
 from_expr({'try',_,Es,Scs,Ccs,As}, Vt, St) ->
     from_try(Es, Scs, Ccs, As, Vt, St);
-%% More complex special forms. These become LFE macros.
-from_expr({lc,_,E,Qs}, Vt0, St0) ->
-    {Lqs,Vt1,St1} = from_lc_quals(Qs, Vt0, St0),
-    {Le,Vt2,St2} = from_expr(E, Vt1, St1),
-    {[lc,Lqs,Le],Vt2,St2};
+%% List/binary comprensions.
+from_expr({lc,_,E,Qs}, Vt, St) ->
+    from_listcomp(E, Qs, Vt, St);
+from_expr({bc,_,Seg,Qs}, Vt, St) ->
+    from_binarycomp(Seg, Qs, Vt, St);
 %% Function calls.
 from_expr({call,_,{remote,_,M,F},As}, Vt0, St0) -> %Remote function call
     {Lm,Vt1,St1} = from_expr(M, Vt0, St0),
@@ -237,6 +238,9 @@ from_bitsegs([{bin_element,_,Seg,Size,Type}|Segs], Vt0, St0) ->
     {Ss,Vt2,St2} = from_bitsegs(Segs, Vt1, St1),
     {[S|Ss],Vt2,St2};
 from_bitsegs([], Vt, St) -> {[],Vt,St}.
+
+from_bitseg({bin_element,_,Seg,Size,Type}, Vt, St) ->
+    from_bitseg(Seg, Size, Type, Vt, St).
 
 %% So it won't get confused with strings.
 from_bitseg({integer,_,I}, default, default, Vt, St) -> {I,Vt,St};
@@ -400,20 +404,49 @@ from_try(Es, Scs, Ccs, As, Vt, St0) ->
 from_maybe(_, []) -> [];
 from_maybe(Tag, Es) -> [[Tag|Es]].
 
+%% from_listcomp(Expr, Qualifiers, VarTable, State) -> {Listcomp,State}.
+
+from_listcomp(E, Qs, Vt0, St0) ->
+    {Lqs,Vt1,St1} = from_comp_quals(Qs, Vt0, St0),
+    {Le,Vt2,St2} = from_expr(E, Vt1, St1),
+    {['list-comp',Lqs,Le],Vt2,St2}.
+
+%% from_binarycomp(Seg, Qualifiers, VarTable, State) -> {Listcomp,State}.
+
+from_binarycomp({bin,_,[Seg]}, Qs, Vt0, St0) ->
+    {Lqs,Vt1,St1} = from_comp_quals(Qs, Vt0, St0),
+    {Lseg,Vt2,St2} = from_bitseg(Seg, Vt1, St1),
+    {['binary-comp',Lqs,Lseg],Vt2,St2}.
+
 %% from_lc_quals(Qualifiers, VarTable, State) -> {Qualifiers,VarTable,State}.
 
-from_lc_quals([{generate,_,P,E}|Qs], Vt0, St0) ->
+from_comp_quals([{generate,_,P,E}|Qs], Vt0, St0) ->
     {Lp,Eqt,Vt1,St1} = from_pat(P, Vt0, St0),
     {Le,Vt2,St2} = from_expr(E, Vt1, St1),
-    {Lqs,Vt3,St3} = from_lc_quals(Qs, Vt2, St2),
+    {Lqs,Vt3,St3} = from_comp_quals(Qs, Vt2, St2),
     Leg = from_eq_tests(Eqt),
     Lbody = from_add_guard(Leg, Le),
     {[['<-',Lp|Lbody]|Lqs],Vt3,St3};
-from_lc_quals([T|Qs], Vt0, St0) ->
+%% from_comp_quals([{b_generate,_,P,E}|Qs], Vt0, St0) ->
+%%     {Gen,Vt1,St1} = from_comp_binarygen(P, E, Vt0, St0),
+%%     {Lqs,Vt2,St2} = from_comp_quals(Qs, Vt1, St1),
+%%     {[Gen|Lqs],Vt2,St2};
+from_comp_quals([T|Qs], Vt0, St0) ->
     {Lt,Vt1,St1} = from_expr(T, Vt0, St0),
-    {Lqs,Vt2,St2} = from_lc_quals(Qs, Vt1, St1),
+    {Lqs,Vt2,St2} = from_comp_quals(Qs, Vt1, St1),
     {[Lt|Lqs],Vt2,St2};
-from_lc_quals([], Vt, St) -> {[],Vt,St}.
+from_comp_quals([], Vt, St) -> {[],Vt,St}.
+
+%% from_comp_listgen(Pat, Exp, Vt0, St0) ->
+%%     {Le,Vt1,St1} = from_expr(Exp, Vt0, St0),
+%%     {Lp,Vt2,St2} = from_expr(Pat, Vt1, St1),
+%%     {['<-',Lp,Le],Vt2,St2}.
+
+%% from_comp_binarygen(Pat, Exp, Vt0, St0) ->
+%%     {Le,Vt1,St1} = from_expr(Exp, Vt0, St0),
+%%     {Lp,Vt2,St2} = from_expr(Pat, Vt1, St1),
+%%     [binary,Lseg] = Lp,
+%%     {['<=',Lseg,Le],Vt2,St2}.
 
 %% from_package_module(Module, VarTable, State) -> {Module,VarTable,State}.
 %%  We must handle the special case where in pre-R16 you could have
@@ -434,15 +467,8 @@ new_from_var(#from{vc=C}=St) ->
 %% from_pat(Pattern, VarTable, State) ->
 %%     {Pattern,EqualVar,VarTable,State}.
 
-from_pat({var,_,'_'}, Vt, St) -> {'_',[],Vt,St};    %Special case _
-from_pat({var,_,V}, Vt, St0) ->                     %Unquoted atom
-    case ordsets:is_element(V, Vt) of               %Is variable bound?
-        true ->
-            {V1,St1} = new_from_var(St0),       %New var for pattern
-            {V1,[{V,V1}],Vt,St1};               %Add to guard tests
-        false ->
-            {V,[],ordsets:add_element(V, Vt),St0}
-    end;
+from_pat({var,_,_}=V, Vt, St) ->
+    from_pat_var(V, Vt, St);
 from_pat({nil,_}, Vt, St) -> {[],[],Vt,St};
 from_pat({integer,_,I}, Vt, St) -> {I,[],Vt,St};
 from_pat({float,_,F}, Vt, St) -> {F,[],Vt,St};
@@ -482,13 +508,27 @@ from_pats([P|Ps], Vt0, St0) ->
     {[Lp|Lps],Eqt++Eqts,Vt2,St2};
 from_pats([], Vt, St) -> {[],[],Vt,St}.
 
+from_pat_var({var,_,'_'}, Vt, St) ->       %Don't need to handle _
+    {'_',[],Vt,St};
+from_pat_var({var,_,V}, Vt, St0) ->
+    case ordsets:is_element(V, Vt) of           %Is variable bound?
+        true ->
+            {V1,St1} = new_from_var(St0),       %New var for pattern
+            {V1,[{V,V1}],Vt,St1};               %Add to guard tests
+        false ->
+            {V,[],ordsets:add_element(V, Vt),St0}
+    end.
+
 %% from_pat_bitsegs(Segs, VarTable, State) -> {Segs,EqTable,VarTable,State}.
 
-from_pat_bitsegs([{bin_element,_,Seg,Size,Type}|Segs], Vt0, St0) ->
-    {S,Eqt,Vt1,St1} = from_pat_bitseg(Seg, Size, Type, Vt0, St0),
+from_pat_bitsegs([Seg|Segs], Vt0, St0) ->
+    {S,Eqt,Vt1,St1} = from_pat_bitseg(Seg, Vt0, St0),
     {Ss,Eqts,Vt2,St2} = from_pat_bitsegs(Segs, Vt1, St1),
     {[S|Ss],Eqt++Eqts,Vt2,St2};
 from_pat_bitsegs([], Vt, St) -> {[],[],Vt,St}.
+
+from_pat_bitseg({bin_element,_,Seg,Size,Type}, Vt, St) ->
+    from_pat_bitseg(Seg, Size, Type, Vt, St).
 
 from_pat_bitseg({string,_,S}, Size, Type, Vt0, St0) ->
     {Lsize,Vt1,St1} = from_pat_bitseg_size(Size, Vt0, St0),
@@ -581,8 +621,7 @@ from_lit(Lit) ->
 -record(to, {vs=[],                             %Existing variables
              vc=?NEW_VT,                        %Variable counter
              imports=[],                        %Function renames
-             aliases=[],                        %Module aliases
-             where=guard                        %Where in spec head/guard/body
+             aliases=[]                         %Module aliases
             }).
 
 %% to_expr(Expr, LineNumber) -> ErlExpr.
@@ -594,7 +633,7 @@ to_expr(E, L) ->
     to_expr(E, L, {[],[]}).
 
 to_expr(E, L, {Imports,Aliases}) ->
-    ToSt = #to{imports=Imports,aliases=Aliases,where=body},
+    ToSt = #to{imports=Imports,aliases=Aliases},
     {Ee,_} = to_expr(E, L, ?NEW_VT, ToSt),
     Ee.
 
@@ -602,14 +641,31 @@ to_exprs(Es, L) ->
     to_exprs(Es, L, {[],[]}).
 
 to_exprs(Es, L, {Imports,Aliases}) ->
-    ToSt = #to{imports=Imports,aliases=Aliases,where=body},
+    ToSt = #to{imports=Imports,aliases=Aliases},
     {Ees,_} = to_exprs(Es, L, ?NEW_VT, ToSt),
+    Ees.
+
+to_gexpr(E, L) ->
+    to_gexpr(E, L, {[],[]}).
+
+to_gexpr(E, L, {Imports,Aliases}) ->
+    ToSt = #to{imports=Imports,aliases=Aliases},
+    {Ee,_} = to_gexpr(E, L, ?NEW_VT, ToSt),
+    Ee.
+
+to_gexprs(Es, L) ->
+    to_gexprs(Es, L, {[],[]}).
+
+to_gexprs(Es, L, {Imports,Aliases}) ->
+    ToSt = #to{imports=Imports,aliases=Aliases},
+    {Ees,_} = to_gexprs(Es, L, ?NEW_VT, ToSt),
     Ees.
 
 %% to_expr(Expr, LineNumber, VarTable, State) -> {ErlExpr,State}.
 
 %% Core data special forms.
-to_expr(?Q(Lit), L, _, St) -> {to_lit(Lit, L),St};
+to_expr(?Q(Lit), L, _, St) ->
+    {to_lit(Lit, L),St};
 to_expr([cons,H,T], L, Vt, St0) ->
     {Eh,St1} = to_expr(H, L, Vt, St0),
     {Et,St2} = to_expr(T, L, Vt, St1),
@@ -689,6 +745,7 @@ to_expr(['record-update',E,Name|Fs], L, Vt, St0) ->
     {Efs,St2} = to_record_fields(Fs, L, Vt, St1),
     {{record,L,Ee,Name,Efs},St2};
 %% Struct special forms.
+%% We try and do the same as Elixir 1.13.3 when we can.
 to_expr(['struct',Name|Fs], L, Vt, St) ->
     %% Need the right format to call the predefined mod:__struct_ function.
     %% Call mod:__struct__ at runtime so we know ours is loaded, BAD!
@@ -696,15 +753,15 @@ to_expr(['struct',Name|Fs], L, Vt, St) ->
     Make = [call,?Q(Name),?Q('__struct__'),[list|Pairs]],
     to_expr(Make, L, Vt, St);
 to_expr(['is-struct',E], L, Vt, St) ->
-    %% Play safe here for now and make it guard permissible.
     Is = ['case',E,
-	  [[map,?Q('__struct__'),'_'],?Q(true)],
-	  ['_',?Q(false)]],
+          [[map,?Q('__struct__'),'|-struct-|'],
+           ['when',[is_atom,'|-struct-|']],?Q(true)],
+          ['_',?Q(false)]],
     to_expr(Is, L, Vt, St);
 to_expr(['is-struct',E,Name], L, Vt, St) ->
     Is = ['case',E,
-	  [[map,?Q('__struct__'),?Q(Name)],?Q(true)],
-	  ['_',?Q(false)]],
+          [[map,?Q('__struct__'),?Q(Name)],?Q(true)],
+          ['_',?Q(false)]],
     to_expr(Is, L, Vt, St);
 to_expr(['struct-field',E,Name,F], L, Vt, St) ->
     Field = ['case',E,
@@ -715,7 +772,7 @@ to_expr(['struct-field',E,Name,F], L, Vt, St) ->
     to_expr(Field, L, Vt, St);
 to_expr(['struct-update',E,Name|Fs], L, Vt, St) ->
     Update = ['case',E,
-              [['=','|-struct-|',[map,?Q('__struct__'),?Q(Name)]],
+              [['=',[map,?Q('__struct__'),?Q(Name)],'|-struct-|'],
                ['map-update','|-struct-|'|to_struct_fields(Fs)]],
               ['|-struct-|',
                [call,?Q(erlang),?Q(error),
@@ -852,13 +909,17 @@ is_erl_op(Op, Ar) ->
     orelse erl_internal:list_op(Op, Ar)
     orelse erl_internal:send_op(Op, Ar).
 
+to_guard(Es, L, Vt, St) ->
+    Fun = fun (E, St0) -> to_gexpr(E, L, Vt, St0) end,
+    lists:mapfoldl(Fun, St, Es).
+
 to_body(Es, L, Vt, St) ->
     Fun = fun (E, St0) -> to_expr(E, L, Vt, St0) end,
-    mapfoldl(Fun, St, Es).
+    lists:mapfoldl(Fun, St, Es).
 
 to_exprs(Es, L, Vt, St) ->
     Fun = fun (E, St0) -> to_expr(E, L, Vt, St0) end,
-    mapfoldl(Fun, St, Es).
+    lists:mapfoldl(Fun, St, Es).
 
 to_exprs_s(Fun, L, Vt, St, [E]) -> Fun(E, L, Vt, St);
 to_exprs_s(Fun, L, Vt, St0, [E|Es]) ->
@@ -880,7 +941,7 @@ to_pats_s(_, L, Pvs, Vt, St, []) -> {{nil,L},Pvs,Vt,St}.
 
 to_bitsegs(Segs, L, Vt, St) ->
     Fun = fun (Seg, St0) -> to_bitseg(Seg, L, Vt, St0) end,
-    mapfoldl(Fun, St, Segs).
+    lists:mapfoldl(Fun, St, Segs).
 
 %% to_bitseg(Seg, LineNumber, VarTable, State) -> {Seg,State}.
 %%  We must specially handle the case where the segment is a string.
@@ -989,7 +1050,7 @@ to_struct_pairs([]) -> [].
 
 to_fun_cls(Cls, L, Vt, St) ->
     Fun = fun (Cl, St0) -> to_fun_cl(Cl, L, Vt, St0) end,
-    mapfoldl(Fun, St, Cls).
+    lists:mapfoldl(Fun, St, Cls).
 
 to_fun_cl([As,['when']|B], L, Vt0, St0) ->
     %% Skip empty guards.
@@ -998,7 +1059,7 @@ to_fun_cl([As,['when']|B], L, Vt0, St0) ->
     {{clause,L,Eas,[],Eb},St2};
 to_fun_cl([As,['when'|G]|B], L, Vt0, St0) ->
     {Eas,Vt1,St1} = to_pats(As, L, Vt0, St0),
-    {Eg,St2} = to_body(G, L, Vt1, St1),
+    {Eg,St2} = to_guard(G, L, Vt1, St1),
     {Eb,St3} = to_body(B, L, Vt1, St2),
     {{clause,L,Eas,[Eg],Eb},St3};
 to_fun_cl([As|B], L, Vt0, St0) ->
@@ -1048,7 +1109,7 @@ to_let_bindings(Lbs, L, Vt, St) ->
                   {{match,L,Ep,Ee},Vt1,St2};
               ([P,['when'|G],E], Vt0, St0) ->
                   {Ep,Vt1,St1} = to_pat(P, L, Vt0, St0),
-                  {Eg,St2} = to_body(G, L, Vt1, St1),
+                  {Eg,St2} = to_guard(G, L, Vt1, St1),
                   {Ee,St3} = to_expr(E, L, Vt1, St2),
                   {{'case',L,Ee,[{clause,L,[Ep],[Eg],[Ep]}]},Vt1,St3}
           end,
@@ -1109,7 +1170,7 @@ to_receive(Cls0, L, Vt, St0) ->
 
 to_icr_cls(Cls, L, Vt, St) ->
     Fun = fun (Cl, St0) -> to_icr_cl(Cl, L, Vt, St0) end,
-    mapfoldl(Fun, St, Cls).
+    lists:mapfoldl(Fun, St, Cls).
 
 to_icr_cl([P,['when']|B], L, Vt0, St0) ->
     %% Skip empty guards.
@@ -1118,7 +1179,7 @@ to_icr_cl([P,['when']|B], L, Vt0, St0) ->
     {{clause,L,[Ep],[],Eb},St2};
 to_icr_cl([P,['when'|G]|B], L, Vt0, St0) ->
     {Ep,Vt1,St1} = to_pat(P, L, Vt0, St0),
-    {Eg,St2} = to_body(G, L, Vt1, St1),
+    {Eg,St2} = to_guard(G, L, Vt1, St1),
     {Eb,St3} = to_body(B, L, Vt1, St2),
     {{clause,L,[Ep],[Eg],Eb},St3};
 to_icr_cl([P|B], L, Vt0, St0) ->
@@ -1179,20 +1240,20 @@ to_binarycomp(Qs, Seg, L, Vt0, St0) ->
     {Eqs,Vt1,St1} = to_comp_quals(Qs, L, Vt0, St0),
     {Eseg,St2} = to_bitseg(Seg, L, Vt1, St1),
     {{bc,L,{bin,L,[Eseg]},Eqs},St2}.
-    
+
 %% to_comp_quals(Qualifiers, LineNumber, VarTable, State) ->
 %%     {Qualifiers,VarTable,State}.
 %%  Can't use mapfoldl2 as guard handling modifies Qualifiers.
 
 to_comp_quals([['<-',P,E]|Qs], L, Vt0, St0) ->
-    {Gen,Vt1,St1} = to_listcomp_gen(P, E, L, Vt0, St0),
+    {Gen,Vt1,St1} = to_comp_listgen(P, E, L, Vt0, St0),
     {Eqs,Vt2,St2} = to_comp_quals(Qs, L, Vt1, St1),
     {[Gen|Eqs],Vt2,St2};
 to_comp_quals([['<-',P,['when'|G],E]|Qs], L, Vt, St) ->
     %% Move guards to qualifiers as tests.
     to_comp_quals([['<-',P,E]|G ++ Qs], L, Vt, St);
 to_comp_quals([['<=',P,E]|Qs], L, Vt0, St0) ->
-    {Gen,Vt1,St1} = to_binarycomp_gen(P, E, L, Vt0, St0),
+    {Gen,Vt1,St1} = to_comp_binarygen(P, E, L, Vt0, St0),
     {Eqs,Vt2,St2} = to_comp_quals(Qs, L, Vt1, St1),
     {[Gen|Eqs],Vt2,St2};
 to_comp_quals([['<=',P,['when'|G],E]|Qs], L, Vt, St) ->
@@ -1204,22 +1265,22 @@ to_comp_quals([Test|Qs], L, Vt0, St0) ->
     {[Etest|Eqs],Vt1,St2};
 to_comp_quals([], _, Vt, St) -> {[],Vt,St}.
 
-%% to_listcomp_gen(Pattern, Expression, LineNumber, VarTable, State) ->
+%% to_comp_listgen(Pattern, Expression, LineNumber, VarTable, State) ->
 %%     {Generator,VarTable,State}.
-%% to_binarycomp_gen(Pattern, BitSeg, LineNumber, VarTable, State) ->
+%% to_comp_binarygen(Pattern, BitSeg, LineNumber, VarTable, State) ->
 %%     {Generator,VarTable,State}.
 %%  Must be careful in a generator to do the Expression first as the
 %%  Pattern may update variables in it and changes should only be seen
 %%  AFTER the generator.
 
-to_listcomp_gen(Pat, Exp, L, Vt0, St0) ->
-    {Epat,Vt1,St1} = to_pat(Pat, L, Vt0, St0),
-    {Eexp,St2} = to_expr(Exp, L, Vt1, St1),
+to_comp_listgen(Pat, Exp, L, Vt0, St0) ->
+    {Eexp,St1} = to_expr(Exp, L, Vt0, St0),
+    {Epat,Vt1,St2} = to_pat(Pat, L, Vt0, St1),
     {{generate,L,Epat,Eexp},Vt1,St2}.
 
-to_binarycomp_gen(Pat, Exp, L, Vt0, St0) ->
-    {Epat,_Pva,Vt1,St1} = to_pat_bitseg(Pat, L, [], Vt0, St0),
-    {Eexp,St2} = to_expr(Exp, L, Vt1, St1),
+to_comp_binarygen(Pat, Exp, L, Vt0, St0) ->
+    {Eexp,St1} = to_expr(Exp, L, Vt0, St0),
+    {Epat,_Pva,Vt1,St2} = to_pat_bitseg(Pat, L, [], Vt0, St1),
     %% The pattern is a whole binary.
     {{b_generate,L,{bin,L,[Epat]},Eexp},Vt1,St2}.
 
@@ -1239,6 +1300,182 @@ new_to_var_loop(Base, C, Vs, Vct, St) ->
         false ->
             {V,St#to{vs=[V|Vs],vc=?VT_PUT(Base, C+1, Vct)}}
     end.
+
+%% to_gexpr(Expr, LineNumber, VarTable, State) -> {ErlExpr,State}.
+
+to_gexpr(?Q(Lit), L, _, St) ->
+    {to_lit(Lit, L),St};
+to_gexpr([cons,H,T], L, Vt, St0) ->
+    {Eh,St1} = to_gexpr(H, L, Vt, St0),
+    {Et,St2} = to_gexpr(T, L, Vt, St1),
+    {{cons,L,Eh,Et},St2};
+to_gexpr([car,E], L, Vt, St0) ->
+    {Ee,St1} = to_gexpr(E, L, Vt, St0),
+    {{call,L,{atom,L,hd},[Ee]},St1};
+to_gexpr([cdr,E], L, Vt, St0) ->
+    {Ee,St1} = to_gexpr(E, L, Vt, St0),
+    {{call,L,{atom,L,tl},[Ee]},St1};
+to_gexpr([list|Es], L, Vt, St) ->
+    Fun = fun (E, {Tail,St0}) ->
+                  {Ee,St1} = to_gexpr(E, L, Vt, St0),
+                  {{cons,L,Ee,Tail},St1}
+          end,
+    foldr(Fun, {{nil,L},St}, Es);
+to_gexpr([tuple|Es], L, Vt, St0) ->
+    {Ees,St1} = to_gexprs(Es, L, Vt, St0),
+    {{tuple,L,Ees},St1};
+to_gexpr([tref,T,I], L, Vt, St0) ->
+    {Et,St1} = to_gexpr(T, L, Vt, St0),
+    {Ei,St2} = to_gexpr(I, L, Vt, St1),
+    %% Get the argument order correct.
+    {{call,L,{atom,L,element},[Ei,Et]},St2};
+to_gexpr([binary|Segs], L, Vt, St0) ->
+    {Esegs,St1} = to_bitsegs(Segs, L, Vt, St0),
+    {{bin,L,Esegs},St1};
+to_gexpr([map|Pairs], L, Vt, St0) ->
+    {Eps,St1} = to_gmap_pairs(Pairs, map_field_assoc, L, Vt, St0),
+    {{map,L,Eps},St1};
+to_gexpr([msiz,Map], L, Vt, St) ->
+    to_gexpr([map_size,Map], L, Vt, St);
+to_gexpr([mref,Map,Key], L, Vt, St) ->
+    to_gmap_get(Map, Key, L, Vt, St);
+to_gexpr([mset,Map|Pairs], L, Vt, St) ->
+    to_gmap_set(Map, Pairs, L, Vt, St);
+to_gexpr([mupd,Map|Pairs], L, Vt, St) ->
+    to_gmap_update(Map, Pairs, L, Vt, St);
+to_gexpr(['map-size',Map], L, Vt, St) ->
+    to_gexpr([map_size,Map], L, Vt, St);
+to_gexpr(['map-get',Map,Key], L, Vt, St) ->
+    to_gmap_get(Map, Key, L, Vt, St);
+to_gexpr(['map-set',Map|Pairs], L, Vt, St) ->
+    to_gmap_set(Map, Pairs, L, Vt, St);
+to_gexpr(['map-update',Map|Pairs], L, Vt, St) ->
+    to_gmap_update(Map, Pairs, L, Vt, St);
+%% Record special forms.
+to_gexpr(['record',Name|Fs], L, Vt, St0) ->
+    {Efs,St1} = to_grecord_fields(Fs, L, Vt, St0),
+    {{record,L,Name,Efs},St1};
+to_gexpr(['is-record',E,Name], L, Vt, St0) ->
+    {Ee,St1} = to_gexpr(E, L, Vt, St0),
+    %% This expands to a function call.
+    {{call,L,{atom,L,is_record},[Ee,{atom,L,Name}]},St1};
+to_gexpr(['record-index',Name,F], L, _, St) ->
+    {{record_index,L,Name,{atom,L,F}},St};
+to_gexpr(['record-field',E,Name,F], L, Vt, St0) ->
+    {Ee,St1} = to_gexpr(E, L, Vt, St0),
+    {{record_field,L,Ee,Name,{atom,L,F}},St1};
+%% Struct special forms.
+%% We try and do the same as Elixir 1.13.3 when we can.
+to_gexpr(['is-struct',E], L, Vt, St) ->
+    Is = ['andalso',
+          [is_map,E],
+          [call,?Q(erlang),?Q(is_map_key),?Q('__struct__'),E],
+          [is_atom,[mref,E,?Q('__struct__')]]],
+    to_gexpr(Is, L, Vt, St);
+to_gexpr(['is-struct',E,Name], L, Vt, St) ->
+    Is = ['andalso',
+          [is_map,E],
+          [call,?Q(erlang),?Q(is_map_key),?Q('__struct__'),E],
+          ['=:=',[mref,E,?Q('__struct__')],?Q(Name)]],
+    to_gexpr(Is, L, Vt, St);
+to_gexpr(['struct-field',E,Name,F], L, Vt, St) ->
+    Field = ['andalso',
+             [is_map,E],['=:=',[mref,E,?Q('__struct__')],?Q(Name)],
+             [mref,E,?Q(F)]],
+    to_gexpr(Field, L, Vt, St);
+%% Special known data type operations.
+to_gexpr(['andalso'|Es], L, Vt, St) ->
+    to_glazy_logic(Es, 'andalso', L, Vt, St);
+to_gexpr(['orelse'|Es], L, Vt, St) ->
+    to_glazy_logic(Es, 'orelse', L, Vt, St);
+%% General function call.
+to_gexpr([call,?Q(erlang),?Q(F)|As], L, Vt, St0) ->
+    {Eas,St1} = to_gexprs(As, L, Vt, St0),
+    case is_erl_op(F, length(As)) of
+        true -> {list_to_tuple([op,L,F|Eas]),St1};
+        false ->
+            to_remote_call({atom,L,erlang}, {atom,L,F}, Eas, L, St1)
+    end;
+to_gexpr([call|_], L, _Vt, _St) ->
+    illegal_code_error(L, call);
+to_gexpr([F|As], L, Vt, St0) when is_atom(F) ->
+    {Eas,St1} = to_gexprs(As, L, Vt, St0),
+    Ar =  length(As),
+    case is_erl_op(F, Ar) of
+        true -> {list_to_tuple([op,L,F|Eas]),St1};
+        false ->
+            {{call,L,{atom,L,F},Eas},St1}
+    end;
+to_gexpr([_|_]=List, L, _, St) ->
+    case lfe_lib:is_posint_list(List) of
+        true -> {{string,L,List},St};
+        false ->
+            illegal_code_error(L, list)         %Not right!
+    end;
+to_gexpr(V, L, Vt, St) when is_atom(V) ->       %Unquoted atom
+    to_gexpr_var(V, L, Vt, St);
+to_gexpr(Lit, L, _, St) ->                      %Everything else is a literal
+    {to_lit(Lit, L),St}.
+
+to_gexprs(Es, L, Vt, St) ->
+    Fun = fun (E, St0) -> to_gexpr(E, L, Vt, St0) end,
+    mapfoldl(Fun, St, Es).
+
+to_gexpr_var(V, L, Vt, St) ->
+    Var = ?VT_GET(V, Vt, V),                    %Hmm
+    {{var,L,Var},St}.
+
+%% to_gmap_set(Map, Pairs, L, Vt, State) -> {MapSet,State}.
+%% to_gmap_update(Map, Pairs, L, Vt, State) -> {MapUpdate,State}.
+
+to_gmap_get(Map, Key, L, Vt, St0) ->
+    {Eas,St1} = to_gexprs([Key,Map], L, Vt, St0),
+    {{call,L,{atom,L,map_get},Eas},St1}.
+
+to_gmap_set(Map, Pairs, L, Vt, St0) ->
+    {Em,St1} = to_gexpr(Map, L, Vt, St0),
+    {Eps,St2} = to_gmap_pairs(Pairs, map_field_assoc, L, Vt, St1),
+    {{map,L,Em,Eps},St2}.
+
+to_gmap_update(Map, Pairs, L, Vt, St0) ->
+    {Em,St1} = to_gexpr(Map, L, Vt, St0),
+    {Eps,St2} = to_gmap_pairs(Pairs, map_field_exact, L, Vt, St1),
+    {{map,L,Em,Eps},St2}.
+
+%% to_gmap_pairs(Pairs, FieldType, LineNumber, VarTable, State) ->
+%%     {Fields,State}.
+
+to_gmap_pairs([K,V|Ps], Field, L, Vt, St0) ->
+    {Ek,St1} = to_gexpr(K, L, Vt, St0),
+    {Ev,St2} = to_gexpr(V, L, Vt, St1),
+    {Eps,St3} = to_gmap_pairs(Ps, Field, L, Vt, St2),
+    {[{Field,L,Ek,Ev}|Eps],St3};
+to_gmap_pairs([], _, _, _, St) -> {[],St}.
+
+%% to_grecord_fields(Fields, LineNumber, VarTable, State) -> {Fields,State}.
+
+to_grecord_fields(['_',V|Fs], L, Vt, St0) ->
+    %% Special case!!
+    {Ev,St1} = to_gexpr(V, L, Vt, St0),
+    {Efs,St2} = to_grecord_fields(Fs, L, Vt, St1),
+    {[{record_field,L,{var,L,'_'},Ev}|Efs],St2};
+to_grecord_fields([F,V|Fs], L, Vt, St0) ->
+    {Ev,St1} = to_gexpr(V, L, Vt, St0),
+    {Efs,St2} = to_grecord_fields(Fs, L, Vt, St1),
+    {[{record_field,L,{atom,L,F},Ev}|Efs],St2};
+to_grecord_fields([], _, _, St) -> {[],St}.
+
+%% to_glazy_logic(Exprs, Type, LineNumber, VarTable, State) -> {Logic,State}.
+%%  These go pairwise right-to-left.
+
+to_glazy_logic([E1,E2], Type, L, Vt, St0) ->
+    {Ee1,St1} = to_gexpr(E1, L, Vt, St0),
+    {Ee2,St2} = to_gexpr(E2, L, Vt, St1),
+    {{op,L,Type,Ee1,Ee2},St2};
+to_glazy_logic([E1|Es], Type, L, Vt, St0) ->
+    {Ee1,St1} = to_gexpr(E1, L, Vt, St0),
+    {Ees,St2} = to_glazy_logic(Es, Type, L, Vt, St1),
+    {{op,L,Type,Ee1,Ees},St2}.
 
 %% to_pat(Pattern, LineNumber, VarTable, State) -> {Pattern,VarTable,State}.
 %% to_pat(Pattern, LineNumber, PatVars, VarTable, State) ->
@@ -1346,8 +1583,8 @@ to_pat_map_pairs([], _, Pvs, Vt, St) -> {[],Pvs,Vt,St}.
 
 to_pat_bitsegs(Segs, L, Pvs, Vt, St) ->
     Fun = fun (Seg, Pvs0, Vt0, St0) ->
-		  to_pat_bitseg(Seg, L, Pvs0, Vt0, St0)
-	  end,
+                  to_pat_bitseg(Seg, L, Pvs0, Vt0, St0)
+          end,
     mapfoldl3(Fun, Pvs, Vt, St, Segs).
 
 %% to_pat_bitseg(Seg, LineNumber, PatVars, VarTable, State) ->

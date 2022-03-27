@@ -310,7 +310,7 @@ comp_struct_def(Fields, Line, #lfe_cg{module=Mod}=St) ->
     %% The default __struct__/0/1 functions.
     Str0 = comp_function_def('__struct__', [lambda,[],DefStr], Line, St),
     Str1 = comp_function_def(
-	     '__struct__',
+             '__struct__',
              [lambda,[assocs],
               [call,?Q(lists),?Q(foldl),
                ['match-lambda',[[[tuple,x,y],acc],
@@ -321,9 +321,9 @@ comp_struct_def(Fields, Line, #lfe_cg{module=Mod}=St) ->
 
 comp_struct_map(Mod, Fields) ->
     Fun = fun ([F,D|_]) -> {F,D};
-       ([F]) -> {F,'nil'};
-       (F) -> {F,'nil'}
-   end,
+              ([F]) -> {F,'nil'};
+              (F) -> {F,'nil'}
+          end,
     Args = lists:map(Fun, Fields),
     maps:from_list([{'__struct__',Mod}|Args]).
 

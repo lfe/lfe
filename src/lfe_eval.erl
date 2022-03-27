@@ -245,7 +245,7 @@ eval_expr(['is-struct',E], Env) ->
         #{'__struct__' := StrName} when is_atom(StrName) ->
             true;
         _ ->
-	    false
+            false
     end;
 eval_expr(['is-struct',E,Name], Env) ->
     Ev = eval_expr(E, Env),
@@ -683,12 +683,12 @@ eval_let_function([Fbs|Body], Env0) ->
                   add_lexical_func(F, Ar, Def, Lenv, Env)
           end,
     Fun = fun ([V,[lambda,Args|_]=Lambda], E) when is_atom(V) ->
-                         Add(V, length(Args), Lambda, Env0, E);
-                     ([V,['match-lambda',[Pats|_]|_]=Match], E)
-                       when is_atom(V) ->
-                        Add(V, length(Pats), Match, Env0, E);
-                     (_, _) -> bad_form_error('let-function')
-                 end,
+                  Add(V, length(Args), Lambda, Env0, E);
+              ([V,['match-lambda',[Pats|_]|_]=Match], E)
+                when is_atom(V) ->
+                  Add(V, length(Pats), Match, Env0, E);
+              (_, _) -> bad_form_error('let-function')
+          end,
     Env1 = lists:foldl(Fun, Env0, Fbs),
     %% io:fwrite("elf: ~p\n", [{Body,Env1}]),
     eval_body(Body, Env1).
@@ -1040,12 +1040,15 @@ eval_gexpr(['map-update',Map|As], Env) ->
 eval_gexpr(['is-struct',E0], Env) ->
     E1 = eval_gexpr(E0, Env),
     is_map(E1) andalso is_map_key('__struct__', E1)
-	andalso is_atom(map_get('__struct__', E1));
+        andalso is_atom(map_get('__struct__', E1));
 eval_gexpr(['is-struct',E0,Name], Env) ->
     E1 = eval_gexpr(E0, Env),
     is_atom(Name) andalso 
-	is_map(E1) andalso is_map_key('__struct__', E1)
-	andalso (map_get('__struct__', E1) =:= Name);
+        is_map(E1) andalso is_map_key('__struct__', E1)
+        andalso (map_get('__struct__', E1) =:= Name);
+eval_gexpr(['struct-field',E,Name,F], Env) ->
+    Ev = eval_gexpr(E, Env),
+    get_struct_field(Ev, Name, F);
 %% Handle the Core closure special forms.
 %% Handle the control special forms.
 eval_gexpr(['progn'|Body], Env) -> eval_gbody(Body, Env);

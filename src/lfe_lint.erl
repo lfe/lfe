@@ -1543,6 +1543,9 @@ check_gexpr(['is-struct',E], Env, L, St) ->
 check_gexpr(['is-struct',E,Name], Env, L, St0) ->
     St1 = check_gexpr(E, Env, L, St0),
     check_struct(Name, L, St1);
+check_gexpr(['struct-field',E,Name,F], Env, L, St0) ->
+    St1 = check_gexpr(E, Env, L, St0),
+    check_struct_field(Name, F, L, St1);
 %% Special known data type operations.
 check_gexpr(['andalso'|Es], Env, L, St) ->
     check_gargs(Es, Env, L, St);
