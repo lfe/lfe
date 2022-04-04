@@ -931,46 +931,46 @@ check_exprs(Es, Env, L, St) ->
 %% expr_bitsegs(BitSegs, Env, Line, State) -> State.
 
 expr_bitsegs(Segs, Env, L, St0) ->
-    BitSeg = fun (S, St) -> check_bitseg(S, Env, L, St, fun check_expr/4) end,
+    BitSeg = fun (S, St) -> check_bitseg(fun check_expr/4, S, Env, L, St) end,
     foreach_form(BitSeg, binary, L, St0, Segs).
 
-%% check_bitseg(BitSeg, Env, Line, State) -> State.
-%% bitspecs(BitSpecs, Env, Line, State) -> State.
-%% bit_size(Size, Type, Env, Line, State) -> State.
-%% Functions for checking expression bitsegments.
+%% check_bitseg(CheckFun, BitSeg, Env, Line, State) -> State.
+%% bitspecs(CheckFun, BitSpecs, Env, Line, State) -> State.
+%% bit_size(CheckFun, Size, Type, Env, Line, State) -> State.
+%%  Functions for checking expression bitsegments.
 
-check_bitseg([Val|Specs]=Seg, Env, L, St0, Check) ->
+check_bitseg(Check, [Val|Specs]=Seg, Env, L, St0) ->
     %% io:format("cb ~p\n", [Seg]),
     case lfe_lib:is_posint_list(Seg) of         %Is bitseg a string?
         true -> St0;                            %A string
         false ->                                %A value and spec
-            St1 = bitspecs(Specs, Env, L, St0, Check),
+            St1 = bitspecs(Check, Specs, Env, L, St0),
             case lfe_lib:is_posint_list(Val) of %Is Val a string?
                 true -> St1;
                 false -> Check(Val, Env, L, St1)
             end
     end;
-check_bitseg(Val, Env, L, St, Check) ->
+check_bitseg(Check, Val, Env, L, St) ->
     Check(Val, Env, L, St).
 
-bitspecs(Specs, Env, L, St, Check) ->
+bitspecs(Check, Specs, Env, L, St) ->
     case lfe_bits:get_bitspecs(Specs) of
-        {ok,Sz,Ty} -> bit_size(Sz, Ty, Env, L, St, Check);
+        {ok,Sz,Ty} -> bit_size(Check, Sz, Ty, Env, L, St);
         {error,E} -> add_error(L, E, St)
     end.
 
 %% Catch the case where size was explicitly given as 'undefined' or
 %% 'all' for the wrong type.
 
-bit_size(all, {Ty,_,_,_}, _, L, St, _) ->
+bit_size(_Check, all, {Ty,_,_,_}, _, L, St) ->
     if Ty =:= binary -> St;
        true -> illegal_bitsize_error(L, St)
     end;
-bit_size(undefined, {Ty,_,_,_}, _, L, St, _) ->
+bit_size(_Check, undefined, {Ty,_,_,_}, _, L, St) ->
     if Ty =:= utf8; Ty =:= utf16; Ty =:= utf32 -> St;
        true -> illegal_bitsize_error(L, St)
     end;
-bit_size(Sz, _, Env, L, St, Check) -> Check(Sz, Env, L, St).
+bit_size(Check, Sz, _, Env, L, St) -> Check(Sz, Env, L, St).
 
 %% check_map(Pairs, Env, Line, State) -> State.
 %% check_map_size(Form, Map, Env, Line, State) -> State.
@@ -1443,7 +1443,7 @@ check_listcomp(Qs, E, Env0, L, St0) ->
 check_binarycomp(Qs, Seg, Env0, L, St0) ->
     %% io:format("~p ~p\n", [Qs,BS]),
     {Env1,St1} = check_comp_quals(Qs, Env0, L, St0),
-    check_bitseg(Seg, Env1, L, St1, fun check_expr/4).
+    check_bitseg(fun check_expr/4, Seg, Env1, L, St1).
 
 %% check_comp_quals(Qualifiers, Exprs, Env, LineNumber, State) ->
 %%     State.
@@ -1603,7 +1603,7 @@ check_gargs(Args, Env, L, St) ->
 %% gexpr_bitsegs(BitSegs, Env, Line, State) -> State.
 
 gexpr_bitsegs(Segs, Env, L, St0) ->
-    BitSeg = fun (S, St) -> check_bitseg(S, Env, L, St, fun check_gexpr/4) end,
+    BitSeg = fun (S, St) -> check_bitseg(fun check_gexpr/4, S, Env, L, St) end,
     check_foreach(BitSeg,
                   fun (St) -> bad_guard_form_error(L, binary, St) end,
                   St0, Segs).

@@ -967,7 +967,7 @@ Elixir.
 ```
 (define-struct (field | (field) |
                 (field default-value) |
-		(field default-value type) ...))
+                (field default-value type) ...))
 (struct name field value field value ...)
 (is-struct struct)
 (is-struct struct name)
