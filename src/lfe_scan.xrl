@@ -99,6 +99,11 @@ Rules.
             {ok,F} -> {token,{number,TokenLine,F}};
             _ -> {error,"illegal float"}
         end.
+%% Elixir alias symbol
+#[eE]{SSYM}{SYM}* :
+        %% Strip sharpsign e | E.
+        AliasStr = string:substr(TokenChars,3),
+        symbol_token("Elixir." ++ AliasStr, TokenLine).
 %% Symbols
 {SSYM}{SYM}*    :
         symbol_token(TokenChars, TokenLine).

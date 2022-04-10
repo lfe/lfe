@@ -349,6 +349,13 @@ while it reads the expression and then be effectively ``2``.
 (record-field record name field)
 (record-update record name field val ...)
 
+(define-struct fields)
+(struct field val ...)
+(is-struct struct)
+(is-struct struct name)
+(struct-field struct name field)
+(struct-update struct name field val ...)
+
 (define-module name meta-data attributes)
 (extend-module meta-data attributes)
 
@@ -423,6 +430,7 @@ while it reads the expression and then be effectively ``2``.
 (prog2 ...)
 (defmodule name ...)
 (defrecord name ...)
+(defstruct ...)
 ```
 
 # Patterns
@@ -820,8 +828,8 @@ The basic forms for defining a record, creating, accessing and
 updating it are:
 
 ```
-(define-record name ((field) | field
-                     (field default-value)
+(define-record name (field | (field) |
+                     (field default-value) |
                      (field default-value type) ...))
 (record name field value field value ...)
 (is-record record name)
@@ -948,6 +956,60 @@ the following will be generated:
 
 Note that the older now deprecated ``set-`` forms are still
 generated.
+
+# Structs
+
+Structs in LFE are the same as Elixir structs and have been defined
+in the same way so to be truly compatible. This means that you can use
+structs defined in Elixr from LFE and structs defined in LFE from
+Elixir.
+
+```
+(define-struct (field | (field) |
+                (field default-value) |
+                (field default-value type) ...))
+(struct name field value field value ...)
+(is-struct struct)
+(is-struct struct name)
+(struct-field struct name field)
+(struct-update struct name field value field value ...)
+```
+
+We will explain these forms with a simple example. To define a struct
+we do:
+
+```
+(define-struct ((name "")
+                (address "" (string))
+                (age)))
+```
+
+which defines a struct with the name of the current module with the
+fields ``name`` (default value ``""``), ``address`` (default value
+``""`` and type ``(string)``) and ``age``. To make an instance of
+struct we do:
+
+```
+(struct mod-name name "Robert" age 54)
+```
+
+The ``struct`` form is also used to define a pattern.
+
+We can get the value of the ``address`` field in the struct and set it
+by doing (the variable ``robert`` references a struct):
+
+```
+(struct-field robert mod-name address)
+(struct-update robert mod-name address "my home" age 55)
+```
+
+Note that a struct automatically gets the name of the module in which
+it is defined so that there can only be one struct defined in a
+module. This mirrors how structs are implemented in Elixir.
+
+Note that we must include the name of the struct when accessing it and
+there is no need to quote the struct and field names as these are
+always literal atoms.
 
 # Binaries/bitstrings
 
