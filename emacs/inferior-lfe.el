@@ -103,7 +103,7 @@ Return nil if `STR` matches `inferior-lfe-filter-regexp', otherwise t."
   (save-excursion
     (let ((end (point)))
       (backward-sexp)
-      (buffer-substring (point) end))))
+      (buffer-substring (max (point) (comint-line-beginning-position)) end))))
 
 ;;;###autoload
 (defun inferior-lfe (cmd)
