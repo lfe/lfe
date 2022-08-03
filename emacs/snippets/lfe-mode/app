@@ -1,0 +1,27 @@
+# -*- mode: snippet -*-
+# contributor: Wade Mealing
+# key : app
+# expand-env: ((yas-indent-line 'fixed) (yas-wrap-around-region 'nil))
+
+# name : Skeleton application for lfe 
+# --
+
+(defmodule ${1:name}-app
+  (behaviour application)$>
+  ;; app implementation$>
+  (export$>
+   (start 2))$>
+   (stop  1)))$>
+
+;;; --------------------------
+;;; application implementation
+;;; --------------------------
+
+(defun start (_type _args)$>
+  (logger:set_application_level '$1' 'all)$>
+  (logger:info "Starting $1 application ...")$>
+  ($1-sup:start_link))$>
+
+(defun stop ()$>
+  ($1-sup:stop)$>
+  'ok)$>

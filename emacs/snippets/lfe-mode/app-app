@@ -1,0 +1,14 @@
+{application, '${1:name}', [
+    {description, "${2:description}"},
+    {vsn, git},
+    {registered, []},
+    {mod, {'$1-app', []}},
+    {applications, [
+        kernel,
+        stdlib
+    ]},
+    {env,[]},
+    {modules, []},
+    {licenses, ["Apache 2.0"]},
+    {links, []}
+ ]}.

@@ -1,0 +1,4 @@
+-sname '${1:name}'
+-setcookie '${1:name}_cookie'
++K true
++A30
