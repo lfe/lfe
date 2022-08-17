@@ -29,6 +29,7 @@
     (set-keymap-parent map lisp-mode-shared-map)
     (define-key map "\C-x\C-e" 'lfe-eval-last-sexp)
     (define-key map "\C-c\M-o" 'inferior-lfe-clear-buffer)
+    (define-key map "\C-j" 'inferior-lfe-newline-and-maybe-indent)
     map)
   "Keymap for inferior LFE mode.")
 
@@ -70,6 +71,9 @@ You may add the following command line options:
 (defvar inferior-lfe-filter-regexp "\\`\\s *\\S ?\\S ?\\s *\\'"
   "*Input matching this regexp are not saved on the history list.
 Defaults to a regexp ignoring all inputs of 0, 1, or 2 letters.")
+
+(defvar inferior-lfe-indent-on-Cj nil
+  "*Defines if on C-j the line is indented.")
 
 ;;;###autoload
 (defun inferior-lfe-mode ()
@@ -141,6 +145,15 @@ If `CMD' is given, use it to start the shell, otherwise:
 
 ;;;###autoload
 (defalias 'run-lfe 'inferior-lfe)
+
+(defun inferior-lfe-newline-and-maybe-indent ()
+  "Sends a newline and indents the line when `inferior-lfe-indent-on-Cj' is true."
+  (interactive)
+  (save-restriction
+    (narrow-to-region comint-last-input-start (point-max))
+    (insert "\n")
+    (when inferior-lfe-indent-on-Cj
+      (lisp-indent-line))))
 
 (defun lfe-eval-region (start end &optional and-go)
   "Send the current region (from `START' to `END') to the inferior LFE process.
