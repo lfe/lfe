@@ -257,14 +257,16 @@
     (test-pat
      '(#(#(t $1 $2 _ foo) (#(== #(element 4 $_) 7) #(is_list $1))
          (#(#(#(hd $1) $_))))
-       #($1 (#(is_record $1 t 5))
-            (#(#(#(element 2 $1)
-                 #(#(t $1 foo undefined undefined))
-                 #(setelement 5 $1 boooo))))))
+       #($1
+         (#(is_record $1 t))
+         (#(#(#(element 2 $1)
+              #(#(t $1 foo undefined undefined))
+              #(setelement 5 $1 boooo))))))
      (ets-ms ([(match-t t1 x t2 y t4 'foo _ '_)]
               (when (== (t-t3 (object)) 7) (is_list x))
               (tuple (hd x) (object)))
-             ([a] (when (is-t a))
+             ([a]
+              (when (is-t a))
               (tuple (t-t1 a) (make-t t1 a) (set-t-t4 a 'boooo))))
      ))
 
