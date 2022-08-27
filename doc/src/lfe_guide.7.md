@@ -395,10 +395,10 @@ while it reads the expression and then be effectively ``2``.
 (orelse ... )
 (fun func arity)
 (fun mod func arity)
-(lc (qual ...) ...)
-(list-comp (qual ...) ...)
-(bc (qual ...) ...)
-(binary-comp (qual ...) ...)
+(lc (qual ...) expr)
+(list-comp (qual ...) expr)
+(bc (qual ...) bitstringexpr)
+(binary-comp (qual ...) bitstringexpr)
 (ets-ms ...)
 (trace-ms ...)
 ```
@@ -1076,29 +1076,28 @@ List/binary comprehensions are supported as macros. The syntax for
 list comprehensions is:
 
 ```
-(lc (qual  ...) expr ... )
-(list-comp (qual  ...) expr ... )
+(lc (qual  ...) expr)
+(list-comp (qual  ...) expr)
 ```
 
-where the final expr is used to generate the elements of the list.
+where the last expr is used to generate the elements of the list.
 
 The syntax for binary comprehensions is:
 
 ```
-(bc (qual  ...) expr ... )
-(binary-comp (qual  ...) expr ... )
+(bc (qual  ...) bitstringexpr )
+(binary-comp (qual  ...) bitstringexpr)
 ```
 
-where the final expr is a bitseg expr and is used to generate the
-elements of the binary.
+where the final expr is a bitstring expression and is used to generate
+the elements of the binary.
 
 The supported qualifiers, in both list/binary comprehensions are:
 
 ```
 (<- pat {{guard}} list-expr)        - Extract elements from list
 (<= bin-pat {{guard}} binary-expr)  - Extract elements from binary
-(?= pat {{guard}} expr)  - Match test and bind variables in pat
-expr                     - Normal boolean test
+expr                                - Normal boolean test
 ```
 
 Some examples:
@@ -1113,15 +1112,16 @@ returns a list of all the even elements of the list ``l1`` which are
 greater than 5.
 
 ```
-(bc ((<= (f float (size 32)) b1)        ;Only bitseg needed
+(bc ((<= (binary (f float (size 32))) b1)
      (> f 10.0))
-  (: io fwrite "~p\n" (list f))
-  (f float (size 64)))                  ;Only bitseg needed
+  (progn
+    (: io fwrite "~p\n" (list f))
+    (binary (f float (size 64)))))
 ```
 
-returns a binary of floats of size 64 of floats which are larger than
-10.0 from the binary b1 and of size 32. The returned numbers are first
-printed.
+returns a binary of floats of size 64 bits which are from the binary
+b1 where they are of size 32 bits and larger than 10.0. The returned
+numbers are first printed.
 
 N.B. A word of warning when using guards when extracting elements from
 a binary.  When a match/guard fails for a binary no more attempts will

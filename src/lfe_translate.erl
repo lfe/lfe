@@ -152,9 +152,9 @@ from_expr({'try',_,Es,Scs,Ccs,As}, Vt, St) ->
     from_try(Es, Scs, Ccs, As, Vt, St);
 %% List/binary comprensions.
 from_expr({lc,_,E,Qs}, Vt, St) ->
-    from_listcomp(E, Qs, Vt, St);
+    from_list_comp(E, Qs, Vt, St);
 from_expr({bc,_,Seg,Qs}, Vt, St) ->
-    from_binarycomp(Seg, Qs, Vt, St);
+    from_binary_comp(Seg, Qs, Vt, St);
 %% Function calls.
 from_expr({call,_,{remote,_,M,F},As}, Vt0, St0) -> %Remote function call
     {Lm,Vt1,St1} = from_expr(M, Vt0, St0),
@@ -237,9 +237,6 @@ from_bitsegs([{bin_element,_,Seg,Size,Type}|Segs], Vt0, St0) ->
     {Ss,Vt2,St2} = from_bitsegs(Segs, Vt1, St1),
     {[S|Ss],Vt2,St2};
 from_bitsegs([], Vt, St) -> {[],Vt,St}.
-
-from_bitseg({bin_element,_,Seg,Size,Type}, Vt, St) ->
-    from_bitseg(Seg, Size, Type, Vt, St).
 
 %% So it won't get confused with strings.
 from_bitseg({integer,_,I}, default, default, Vt, St) -> {I,Vt,St};
@@ -403,49 +400,47 @@ from_try(Es, Scs, Ccs, As, Vt, St0) ->
 from_maybe(_, []) -> [];
 from_maybe(Tag, Es) -> [[Tag|Es]].
 
-%% from_listcomp(Expr, Qualifiers, VarTable, State) -> {Listcomp,State}.
+%% from_list_comp(Expr, Qualifiers, VarTable, State) -> {Listcomp,State}.
 
-from_listcomp(E, Qs, Vt0, St0) ->
+from_list_comp(E, Qs, Vt0, St0) ->
     {Lqs,Vt1,St1} = from_comp_quals(Qs, Vt0, St0),
     {Le,Vt2,St2} = from_expr(E, Vt1, St1),
     {['list-comp',Lqs,Le],Vt2,St2}.
 
-%% from_binarycomp(Seg, Qualifiers, VarTable, State) -> {Listcomp,State}.
+%% from_binary_comp(BitStringExpr, Qualifiers, VarTable, State) ->
+%%     {BinaryComp,State}.
 
-from_binarycomp({bin,_,[Seg]}, Qs, Vt0, St0) ->
+from_binary_comp(E, Qs, Vt0, St0) ->
     {Lqs,Vt1,St1} = from_comp_quals(Qs, Vt0, St0),
-    {Lseg,Vt2,St2} = from_bitseg(Seg, Vt1, St1),
-    {['binary-comp',Lqs,Lseg],Vt2,St2}.
+    {Le,Vt2,St2} = from_expr(E, Vt1, St1),
+    {['binary-comp',Lqs,Le],Vt2,St2}.
 
-%% from_lc_quals(Qualifiers, VarTable, State) -> {Qualifiers,VarTable,State}.
+%% from_comp_quals(Qualifiers, VarTable, State) -> {Qualifiers,VarTable,State}.
+%% from_comp_qual(Pattern, Expr, VarTable, State) -> {Qualifier,VarTable,State}.
+%%  Qualifiers, all variables in the patterns are new variables which
+%%  shadow existing variables without equality tests.
 
 from_comp_quals([{generate,_,P,E}|Qs], Vt0, St0) ->
-    {Lp,Eqt,Vt1,St1} = from_pat(P, Vt0, St0),
-    {Le,Vt2,St2} = from_expr(E, Vt1, St1),
-    {Lqs,Vt3,St3} = from_comp_quals(Qs, Vt2, St2),
-    Leg = from_eq_tests(Eqt),
-    Lbody = from_add_guard(Leg, Le),
-    {[['<-',Lp|Lbody]|Lqs],Vt3,St3};
-%% from_comp_quals([{b_generate,_,P,E}|Qs], Vt0, St0) ->
-%%     {Gen,Vt1,St1} = from_comp_binarygen(P, E, Vt0, St0),
-%%     {Lqs,Vt2,St2} = from_comp_quals(Qs, Vt1, St1),
-%%     {[Gen|Lqs],Vt2,St2};
-from_comp_quals([T|Qs], Vt0, St0) ->
-    {Lt,Vt1,St1} = from_expr(T, Vt0, St0),
+    {Lp,Lbody,Vt1,St1} = from_comp_qual(P, E, Vt0, St0),
     {Lqs,Vt2,St2} = from_comp_quals(Qs, Vt1, St1),
-    {[Lt|Lqs],Vt2,St2};
+    {[['<-',Lp|Lbody]|Lqs],Vt2,St2};
+from_comp_quals([{b_generate,_,P,E}|Qs], Vt0, St0) ->
+    {Lp,Lbody,Vt1,St1} = from_comp_qual(P, E, Vt0, St0),
+    {Lqs,Vt2,St2} = from_comp_quals(Qs, Vt1, St1),
+    {[['<=',Lp|Lbody]|Lqs],Vt2,St2};
+from_comp_quals([Test|Qs], Vt0, St0) ->
+    {Ltest,Vt1,St1} = from_expr(Test, Vt0, St0),
+    {Lqs,Vt2,St2} = from_comp_quals(Qs, Vt1, St1),
+    {[Ltest|Lqs],Vt2,St2};
 from_comp_quals([], Vt, St) -> {[],Vt,St}.
 
-%% from_comp_listgen(Pat, Exp, Vt0, St0) ->
-%%     {Le,Vt1,St1} = from_expr(Exp, Vt0, St0),
-%%     {Lp,Vt2,St2} = from_expr(Pat, Vt1, St1),
-%%     {['<-',Lp,Le],Vt2,St2}.
-
-%% from_comp_binarygen(Pat, Exp, Vt0, St0) ->
-%%     {Le,Vt1,St1} = from_expr(Exp, Vt0, St0),
-%%     {Lp,Vt2,St2} = from_expr(Pat, Vt1, St1),
-%%     [binary,Lseg] = Lp,
-%%     {['<=',Lseg,Le],Vt2,St2}.
+from_comp_qual(Pat, Exp, Vt0, St0) ->
+    {Lpat,Eqt,Vtp,St1} = from_pat(Pat, [], St0),
+    Vt1 = ordsets:union(Vtp, Vt0),
+    {Lexp,Vt2,St2} = from_expr(Exp, Vt1, St1),
+    Leg = from_eq_tests(Eqt),
+    Lbody = from_add_guard(Leg, [Lexp]),
+    {Lpat,Lbody,Vt2,St2}.
 
 %% from_package_module(Module, VarTable, State) -> {Module,VarTable,State}.
 %%  We must handle the special case where in pre-R16 you could have
@@ -824,13 +819,13 @@ to_expr([funcall,F|As], L, Vt, St0) ->
     {{call,L,Ef,Eas},St2};
 %% List/binary comprehensions.
 to_expr([lc,Qs,E], L, Vt, St) ->
-    to_listcomp(Qs, E, L, Vt, St);
+    to_list_comp(Qs, E, L, Vt, St);
 to_expr(['list-comp',Qs,E], L, Vt, St) ->
-    to_listcomp(Qs, E, L, Vt, St);
+    to_list_comp(Qs, E, L, Vt, St);
 to_expr([bc,Qs,BS], L, Vt, St) ->
-    to_binarycomp(Qs, BS, L, Vt, St);
+    to_binary_comp(Qs, BS, L, Vt, St);
 to_expr(['binary-comp',Qs,BS], L, Vt, St) ->
-    to_binarycomp(Qs, BS, L, Vt, St);
+    to_binary_comp(Qs, BS, L, Vt, St);
 %% General function calls.
 to_expr([call,?Q(erlang),?Q(F)|As], L, Vt, St0) ->
     %% This is semantically the same but some tools behave differently
@@ -944,20 +939,21 @@ to_expr_bitsegs(Segs, L, Vt, St) ->
 
 %% to_bitseg(ExprFun, Seg, LineNumber, VarTable, State) -> {Seg,State}.
 %%  We must specially handle the case where the segment is a string.
+%%  ExprFun translates the segment Value.
 
-to_bitseg(Expr, [Val|Specs]=Seg, L, Vt, St) ->
+to_bitseg(ExprFun, [Val|Specs]=Seg, L, Vt, St) ->
     %% io:format("tbs ~p ~p\n    ~p\n", [Seg,Vt,St]),
     case lfe_lib:is_posint_list(Seg) of
         true ->
             {{bin_element,L,{string,L,Seg},default,default},St};
         false ->
-            to_bin_element(Expr, Val, Specs, L, Vt, St)
+            to_bin_element(ExprFun, Val, Specs, L, Vt, St)
     end;
-to_bitseg(Expr, Val, L, Vt, St) ->
-    to_bin_element(Expr, Val, [], L, Vt, St).
+to_bitseg(ExprFun, Val, L, Vt, St) ->
+    to_bin_element(ExprFun, Val, [], L, Vt, St).
 
-to_bin_element(Expr, Val, Specs, L, Vt, St0) ->
-    {Eval,St1} = Expr(Val, L, Vt, St0),
+to_bin_element(ExprFun, Val, Specs, L, Vt, St0) ->
+    {Eval,St1} = ExprFun(Val, L, Vt, St0),
     {Size,Type} = to_bitseg_type(Specs, default, []),
     {Esiz,St2} = to_bit_size(Size, L, Vt, St1),
     {{bin_element,L,Eval,Esiz,Type},St2}.
@@ -1117,7 +1113,9 @@ to_let_bindings(Lbs, L, Vt, St) ->
               ([P,['when'|G],E], Vt0, St0) ->
                   {Ep,Vt1,St1} = to_pat(P, L, Vt0, St0),
                   {Eg,St2} = to_guard(G, L, Vt1, St1),
-                  {Ee,St3} = to_expr(E, L, Vt1, St2),
+		  %% Vt1 -> Vt0
+		  %% ****** Maybe go from E -> P which is how it is evaluated!
+                  {Ee,St3} = to_expr(E, L, Vt0, St2),
                   {{'case',L,Ee,[{clause,L,[Ep],[Eg],[Ep]}]},Vt1,St3}
           end,
     mapfoldl2(Fun, Vt, St, Lbs).
@@ -1233,23 +1231,21 @@ to_try_catch_cl(['_'|Body], L, Vt, St) ->
 to_try_catch_cl(Cl, L, Vt, St) ->
     to_icr_cl(Cl, L, Vt, St).
 
-%% to_listcomp(Qualifiers, Expr, LineNumber, VarTable. State) ->
+%% to_list_comp(Qualifiers, Expr, LineNumber, VarTable. State) ->
 %%     {ListComprehension,State}.
 
-to_listcomp(Qs, E, L, Vt0, St0) ->
+to_list_comp(Qs, Expr, L, Vt0, St0) ->
     {Eqs,Vt1,St1} = to_comp_quals(Qs, L, Vt0, St0),
-    {Ee,St2} = to_expr(E, L, Vt1, St1),
-    {{lc,L,Ee,Eqs},St2}.
+    {Eexpr,St2} = to_expr(Expr, L, Vt1, St1),
+    {{lc,L,Eexpr,Eqs},St2}.
 
-%% to_binarycomp(Qualifiers, BitSeg, LineNumber, VarTable. State) ->
-%%     {ListComprehension,State}.
-%%  The expression must be bitsegment as this is what will go into the
-%%  binary and it must be wrapped as a binary.
+%% to_binary_comp(Qualifiers, BitStringExpr, LineNumber, VarTable. State) ->
+%%     {BinaryComprehension,State}.
 
-to_binarycomp(Qs, Seg, L, Vt0, St0) ->
+to_binary_comp(Qs, Expr, L, Vt0, St0) ->
     {Eqs,Vt1,St1} = to_comp_quals(Qs, L, Vt0, St0),
-    {Eseg,St2} = to_bitseg(fun to_expr/4, Seg, L, Vt1, St1),
-    {{bc,L,{bin,L,[Eseg]},Eqs},St2}.
+    {Eexpr,St2} = to_expr(Expr, L, Vt1, St1),
+    {{bc,L,Eexpr,Eqs},St2}.
 
 %% to_comp_quals(Qualifiers, LineNumber, VarTable, State) ->
 %%     {Qualifiers,VarTable,State}.
@@ -1275,24 +1271,23 @@ to_comp_quals([Test|Qs], L, Vt0, St0) ->
     {[Etest|Eqs],Vt1,St2};
 to_comp_quals([], _, Vt, St) -> {[],Vt,St}.
 
-%% to_comp_listgen(Pattern, Expression, LineNumber, VarTable, State) ->
+%% to_comp_listgen(Pattern, ListExpr, LineNumber, VarTable, State) ->
 %%     {Generator,VarTable,State}.
-%% to_comp_binarygen(Pattern, BitSeg, LineNumber, VarTable, State) ->
+%% to_comp_binarygen(BitStringPattern, BitStringExpr, LineNumber, VarTable, State) ->
 %%     {Generator,VarTable,State}.
 %%  Must be careful in a generator to do the Expression first as the
 %%  Pattern may update variables in it and changes should only be seen
 %%  AFTER the generator.
 
-to_comp_listgen(Pat, Exp, L, Vt0, St0) ->
-    {Eexp,St1} = to_expr(Exp, L, Vt0, St0),
+to_comp_listgen(Pat, Expr, L, Vt0, St0) ->
+    {Eexpr,St1} = to_expr(Expr, L, Vt0, St0),
     {Epat,Vt1,St2} = to_pat(Pat, L, Vt0, St1),
-    {{generate,L,Epat,Eexp},Vt1,St2}.
+    {{generate,L,Epat,Eexpr},Vt1,St2}.
 
-to_comp_binarygen(Pat, Exp, L, Vt0, St0) ->
-    {Eexp,St1} = to_expr(Exp, L, Vt0, St0),
-    {Epat,_Pva,Vt1,St2} = to_pat_bitseg(Pat, L, [], Vt0, St1),
-    %% The pattern is a whole binary.
-    {{b_generate,L,{bin,L,[Epat]},Eexp},Vt1,St2}.
+to_comp_binarygen([binary|Segs], Expr, L, Vt0, St0) ->
+    {Eexpr,St1} = to_expr(Expr, L, Vt0, St0),
+    {Ebin,_Pva,Vt1,St2} = to_pat_binary(Segs, L, [], Vt0, St1),
+    {{b_generate,L,Ebin,Eexpr},Vt1,St2}.
 
 %% new_to_var(Base, State) -> {VarName, State}.
 %%  Each base has it's own counter which makes it easier to keep track

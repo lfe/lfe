@@ -857,13 +857,13 @@ check_expr(['funcall'|As], Env, L, St) ->
     check_args(As, Env, L, St);
 %% List/binary comprehensions.
 check_expr(['lc',Qs,E], Env, L, St) ->
-    check_listcomp(Qs, E, Env, L, St);
+    check_comp(Qs, E, Env, L, St);
 check_expr(['list-comp',Qs,E], Env, L, St) ->
-    check_listcomp(Qs, E, Env, L, St);
+    check_comp(Qs, E, Env, L, St);
 check_expr(['bc',Qs,BS], Env, L, St) ->
-    check_binarycomp(Qs, BS, Env, L, St);
+    check_comp(Qs, BS, Env, L, St);
 check_expr(['binary-comp',Qs,BS], Env, L, St) ->
-    check_binarycomp(Qs, BS, Env, L, St);
+    check_comp(Qs, BS, Env, L, St);
 %% Finally the general cases.
 check_expr(['call'|As], Env, L, St) ->
     check_args(As, Env, L, St);
@@ -1430,23 +1430,18 @@ check_catch_clause([[tuple,_,_,Stack]|_]=Cl, Env, L, St0) ->
 check_catch_clause([Other|_], _Env, L, St) ->
     add_error(L, {illegal_exception,Other}, St).
 
-%% check_listcomp(Qualifiers, Expr, Env,  LineNumber, State) ->
-%%     State.
+%% check_comp(Qualifiers, Expr, Env, LineNumber, State) -> State.
+%%  Check a comprehension. We can use the same function for both list
+%%  and binary comprehensions here and push any extra tests to the
+%%  Erlang compiler.
 
-check_listcomp(Qs, E, Env0, L, St0) ->
+check_comp(Qs, Expr, Env0, L, St0) ->
+    %% io:format("~p ~p ~p\n", [L,Qs,BitExpr]),
     {Env1,St1} = check_comp_quals(Qs, Env0, L, St0),
-    check_expr(E, Env1, L, St1).
+    check_expr(Expr, Env1, L, St1).
 
-%% check_binarycomp(Qualifiers, Segment, Env,  LineNumber, State) ->
-%%     State.
-
-check_binarycomp(Qs, Seg, Env0, L, St0) ->
-    %% io:format("~p ~p\n", [Qs,BS]),
-    {Env1,St1} = check_comp_quals(Qs, Env0, L, St0),
-    check_bitseg(fun check_expr/4, Seg, Env1, L, St1).
-
-%% check_comp_quals(Qualifiers, Exprs, Env, LineNumber, State) ->
-%%     State.
+%% check_comp_quals(Qualifiers, Env, LineNumber, State) ->
+%%     {Env,State}.
 
 check_comp_quals([['<-',Pat,E]|Qs], Env0, L, St0) ->
     {Pvs,St1} = pattern(Pat, Env0, L, St0),
@@ -1457,7 +1452,7 @@ check_comp_quals([['<-',Pat,['when'|G],E]|Qs], Env, L, St) ->
     %% Move guards to qualifiers as tests.
     check_comp_quals([['<-',Pat,E]|G ++ Qs], Env, L, St);
 check_comp_quals([['<=',Pat,E]|Qs], Env0, L, St0) ->
-    {Pvs,St1} = pat_bitseg(Pat, [], [], Env0, L, St0),
+    {Pvs,St1} = check_bitstring_pattern(Pat, Env0, L, St0),
     Env1 = le_addvs(Pvs, Env0),
     St2 = check_expr(E, Env1, L, St1),
     check_comp_quals(Qs, Env1, L, St2);
@@ -1469,6 +1464,16 @@ check_comp_quals([Test|Qs], Env, L, St0) ->
     check_comp_quals(Qs, Env, L, St1);
 check_comp_quals([], Env, _L, St) ->
     {Env,St}.
+
+%% check_bitstring_pattern(Pattern, Env, LineNumber, State) -> {PatVars,State}.
+%%  The bitstring pattern must be a binary.
+
+check_bitstring_pattern(Pat, Env, L, St) ->
+    pattern(Pat, Env, L, St).
+%% check_bitstring_pattern([binary|Segs], Env, L, St) ->
+%%     pat_binary(Segs, [], Env, L, St);
+%% check_bitstring_pattern(Pat, _Env, L, St) ->
+%%     {[],illegal_pattern_error(L, Pat, St)}.
 
 %% pattern_guard([Pat{,Guard}|Body], Env, L, State) ->
 %%      {Body,PatVars,Env,State}.
@@ -1801,17 +1806,18 @@ is_pat_alias_list(_, _) -> false.
 
 %% pat_binary(BitSegs, PatVars, Env, Line, State) -> {PatVars,State}.
 %% pat_bitsegs(BitSegs, BitVars, PatVars, Env, Line, State) ->
-%%     {BitVars,PatVars,State}.
+%%     {PatVars,State}.
 %% pat_bitseg(BitSeg, BitVars, PatVars, Env, Line, State) ->
-%%     {BitVars,PatVars,State}.
+%%     {BitVars,State}.
 %% pat_bitspecs(BitSpecs, BitVars, PatVars, Env, Line, State) -> State.
 %% pat_bit_size(Size, Type, BitVars, PatVars, Env, Line, State) -> State.
 %% pat_bit_expr(BitElement, BitVars, PatVars, Env, Line, State) ->
-%%     {BitVars,PatVars,State}.
+%%     {BitVars,State}.
 %%  Functions for checking pattern bitsegments. This gets a bit
-%%  complex as we allow using values from left but only as sizes, no
-%%  implicit equality checks so multiple pattern variables are an
-%%  error. We only update BitVars during the match.
+%%  complex as we allow using values from left to right within the
+%%  binary pattern but only as sizes, no implicit equality checks so
+%%  multiple pattern variables are an error. We only update BitVars
+%%  during the match.
 
 pat_binary(Segs, Pvs, Env, L, St) ->
     pat_bitsegs(Segs, [], Pvs, Env, L, St).

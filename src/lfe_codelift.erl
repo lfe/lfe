@@ -176,10 +176,19 @@ lift_expr(['try'|Try], Lds, St) ->
 lift_expr([funcall|Body0], Lds0, St0) ->
     {Body1,Lds1,St1} = lift_exprs(Body0, Lds0, St0),
     {[funcall|Body1],Lds1,St1};
+%% List/binary comprehensions.
+lift_expr(['lc',Qs,E], Lds, St) ->
+    lift_comp('lc', Qs, E, Lds, St);
+lift_expr(['list-comp',Qs,E], Lds, St) ->
+    lift_comp('list-comp', Qs, E, Lds, St);
+lift_expr(['bc',Qs,E], Lds, St) ->
+    lift_comp('bc', Qs, E, Lds, St);
+lift_expr(['binary-comp',Qs,E], Lds, St) ->
+    lift_comp('binary-comp', Qs, E, Lds, St);
+%% Finally the general cases.
 lift_expr([call|Body0], Lds0, St0) ->
     {Body1,Lds1,St1} = lift_exprs(Body0, Lds0, St0),
     {[call|Body1],Lds1,St1};
-%% General cases.
 lift_expr([Func|Args0], Lds0, St0) when is_atom(Func) ->
     {Args1,Lds1,St1} = lift_exprs(Args0, Lds0, St0),
     {[Func|Args1],Lds1,St1};
@@ -327,6 +336,38 @@ lift_try_1(['after'|After0], Lds0, St0) ->
 lift_try_1(E, Lds, St) ->                       %The try expression.
     lift_expr(E, Lds, St).
 
+%% lift_comp(Commprehension, Qualifiers, Expr, LocalDefs, State) ->
+%%   {Comprehension,LocalDefs,State}.
+%%  Lift comprehensions. Only the expressions in the comprehensions
+%%  need to be lifted, no guards or patterns.
+
+lift_comp(Comp, Qs0, E0, Lds0, St0) ->
+    %% io:format("lc ~p\n", [[Comp,Qs0,E0]]),
+    {Qs1,Lds1,St1} = lift_comp_quals(Qs0, Lds0, St0),
+    {E1,Lds2,St2} = lift_expr(E0, Lds1, St1),
+    {[Comp,Qs1,E1],Lds2,St2}.
+
+lift_comp_quals(Qs, Lds, St) ->
+    lists:foldr(fun (Q0, {Qs0,Lds0,St0}) ->
+			{Q1,Lds1,St1} = lift_comp_qual(Q0, Lds0, St0),
+			{[Q1|Qs0],Lds1,St1}
+		end, {[],Lds,St}, Qs).
+
+lift_comp_qual(['<-',Pat,E0], Lds0, St0) ->
+    {E1,Lds1,St1} = lift_expr(E0, Lds0, St0),
+    {['<-',Pat,E1],Lds1,St1};
+lift_comp_qual(['<-',Pat,G,E0], Lds0, St0) ->
+    {E1,Lds1,St1} = lift_expr(E0, Lds0, St0),
+    {['<-',Pat,G,E1],Lds1,St1};
+lift_comp_qual(['<=',Pat,E0], Lds0, St0) ->
+    {E1,Lds1,St1} = lift_expr(E0, Lds0, St0),
+    {['<=',Pat,E1],Lds1,St1};
+lift_comp_qual(['<=',Pat,G,E0], Lds0, St0) ->
+    {E1,Lds1,St1} = lift_expr(E0, Lds0, St0),
+    {['<=',Pat,G,E1],Lds1,St1};
+lift_comp_qual(Test, Lds, St) ->
+    lift_expr(Test, Lds, St).
+
 %% trans_expr(Call, OldName, Arity, NewName, ImportedVars) -> Expr.
 %%  Translate function call from old Name to New and add imported
 %%  variables.
@@ -396,9 +437,18 @@ trans_expr(['try'|Body],  Name, Ar, New, Ivars) ->
     trans_try(Body, Name, Ar, New, Ivars);
 trans_expr([funcall|Body], Name, Ar, New, Ivars) ->
     [funcall|trans_exprs(Body, Name, Ar, New, Ivars)];
+%% List/binary comprehensions.
+trans_expr(['lc',Qs,E], Name, Ar, New, Ivars) ->
+    trans_comp('lc', Qs, E, Name, Ar, New, Ivars);
+trans_expr(['list-comp',Qs,E], Name, Ar, New, Ivars) ->
+    trans_comp('list-comp', Qs, E, Name, Ar, New, Ivars);
+trans_expr(['bc',Qs,E], Name, Ar, New, Ivars) ->
+    trans_comp('bc', Qs, E, Name, Ar, New, Ivars);
+trans_expr(['binary-comp',Qs,E], Name, Ar, New, Ivars) ->
+    trans_comp('binary-comp', Qs, E, Name, Ar, New, Ivars);
+%% General cases.
 trans_expr([call|Body], Name, Ar, New, Ivars) ->
     [call|trans_exprs(Body, Name, Ar, New, Ivars)];
-%% General cases.
 trans_expr([Fun|Args0], Name, Ar, New, Ivars) when is_atom(Fun) ->
     %% Most of the core data special forms can be handled here as well.
     Far = length(Args0),
@@ -510,6 +560,37 @@ func_arity([lambda,Args|_]) -> length(Args);
 func_arity(['match-lambda',[Pats|_]|_]) ->
     length(Pats).
 
+%% trans_comp(Comprehension, Qualifiers, Expr,
+%%            OldName, Arity, NewName, ImportedVars) ->
+%%      Expr.
+%%  Translate a list/binary comprehenesion.
+
+trans_comp(Comp, Qs0, E0, Name, Ar, New, Ivars) ->
+    E1 = trans_expr(E0, Name, Ar, New, Ivars),
+    Qs1 = trans_comp_quals(Qs0, Name, Ar, New, Ivars),
+    [Comp,Qs1,E1].
+
+trans_comp_quals(Qs, Name, Ar, New, Ivars) ->
+    lists:map(fun (Q) ->
+		      trans_comp_qual(Q, Name, Ar, New, Ivars)
+	      end, Qs).
+
+trans_comp_qual(['<-',Pat,E0], Name, Ar, New, Ivars) ->
+    E1 = trans_expr(E0, Name, Ar, New, Ivars),
+    io:format("tcq ~p ~p\n", [E0,E1]),
+    ['<-',Pat,E1];
+trans_comp_qual(['<-',Pat,Guard,E0], Name, Ar, New, Ivars) ->
+    E1 = trans_expr(E0, Name, Ar, New, Ivars),
+    ['<-',Pat,Guard,E1];
+trans_comp_qual(['<=',Pat,E0], Name, Ar, New, Ivars) ->
+    E1 = trans_expr(E0, Name, Ar, New, Ivars),
+    ['<=',Pat,E1];
+trans_comp_qual(['<=',Pat,Guard,E0], Name, Ar, New, Ivars) ->
+    E1 = trans_expr(E0, Name, Ar, New, Ivars),
+    ['<=',Pat,Guard,E1];
+trans_comp_qual(Test, Name, Ar, New, Ivars) ->
+    trans_expr(Test, Name, Ar, New, Ivars).
+
 %% new_local_fun_name(Name, Arity, State) -> {FunName,State}.
 %%  Create a name for a local function. The name has a similar basic
 %%  format as those created in Core Erlang, though not overlapping.
@@ -594,6 +675,15 @@ ivars_expr([funcall|Args], Kvars, Ivars) ->
     ivars_exprs(Args, Kvars, Ivars);
 ivars_expr([call|Args], Kvars, Ivars) ->
     ivars_exprs(Args, Kvars, Ivars);
+%% List/binary comprehensions.
+ivars_expr(['lc',Qs,E], Kvars, Ivars) ->
+    ivars_comp(Qs, E, Kvars, Ivars);
+ivars_expr(['list-comp',Qs,E], Kvars, Ivars) ->
+    ivars_comp(Qs, E, Kvars, Ivars);
+ivars_expr(['bc',Qs,E], Kvars, Ivars) ->
+    ivars_comp(Qs, E, Kvars, Ivars);
+ivars_expr(['binary-comp',Qs,E], Kvars, Ivars) ->
+    ivars_comp(Qs, E, Kvars, Ivars);
 %% General cases.
 ivars_expr([Fun|Args], Kvars, Ivars) when is_atom(Fun) ->
     ivars_exprs(Args, Kvars, Ivars);
@@ -691,8 +781,9 @@ ivars_clause([Pat|Body], Kvars0, Ivars) ->
     Kvars1 = ordsets:union(Pvs, Kvars0),
     ivars_exprs(Body, Kvars1, Ivars).
 
-%% trans_try(TryBody, KnownVars, ImportedVars) -> ImportedVars.
-%%  Step down the try body doing each section separately.
+%% ivars_try(TryBody, KnownVars, ImportedVars) -> ImportedVars.
+%%  Get the Ivars from a try. Step down the try body doing each
+%%  section separately.
 
 ivars_try(Try, Kvars, Ivars) ->
     lists:foldl(fun (T, Ivs) -> ivars_try_1(T, Kvars, Ivs) end,
@@ -706,6 +797,37 @@ ivars_try_1(['after'|After], Kvars, Ivars) ->
     ivars_exprs(After, Kvars, Ivars);
 ivars_try_1(E, Kvars, Ivars) ->                 %The try expression.
     ivars_expr(E, Kvars, Ivars).
+
+%% ivars_comp(Qualifiers, Expr, KnownVars, ImportedVars) -> ImportedVars,
+%%  Get the Ivars from a list/binary comprehension.
+
+ivars_comp(Qs, E, Kvars0, Ivars0) ->
+    {Kvars1,Ivars1} = ivars_comp_quals(Qs, Kvars0, Ivars0),
+    ivars_expr(E, Kvars1, Ivars1).
+
+ivars_comp_quals(Qs, Kvars, Ivars) ->
+    lists:foldl(fun (Q, {Kvars0,Ivars0}) ->
+			{Kvars1,Ivars1} = ivars_comp_qual(Q, Kvars0, Ivars0),
+			{Kvars1,Ivars1}
+		end, {Kvars,Ivars}, Qs).
+
+ivars_comp_qual(['<-',Pat,Gen], Kvars, Ivars) ->
+    ivars_comp_qual(Pat, [], Gen, Kvars, Ivars);
+ivars_comp_qual(['<-',Pat,['when'|G],Gen], Kvars, Ivars) ->
+    ivars_comp_qual(Pat, G, Gen, Kvars, Ivars);
+ivars_comp_qual(['<=',Pat,Gen], Kvars, Ivars) ->
+    ivars_comp_qual(Pat, [], Gen, Kvars, Ivars);
+ivars_comp_qual(['<=',Pat,['when'|G],Gen], Kvars, Ivars) ->
+    ivars_comp_qual(Pat, G, Gen, Kvars, Ivars);
+ivars_comp_qual(Test, Kvars, Ivars) ->
+    {Kvars,ivars_expr(Test, Kvars, Ivars)}.
+
+ivars_comp_qual(Pat, G, Gen, Kvars0, Ivars0) ->
+    Pvs = ivars_pat(Pat),
+    Kvars1 = ordsets:union(Pvs, Kvars0),
+    Ivars1 = ivars_exprs(G, Kvars1, Ivars0),
+    Ivars2 = ivars_expr(Gen, Kvars1, Ivars1),
+    {Kvars1,Ivars2}.
 
 %% ivars_pat(Pattern) -> PatternVars.
 %% ivars_pat(Pattern, PatternVars) -> PatternVars.

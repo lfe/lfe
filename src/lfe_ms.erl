@@ -245,7 +245,9 @@ expr(['make-record',Name|Fs], St0) ->
     {[tuple,['make-record',Name|Efs]],St1};     %Must tuple tuples
 expr(['is-record',E,Name], St0) ->
     {Ee,St1} = expr(E, St0),
-    {[tuple,['is-record',Ee,Name]],St1};
+    %% io:format(user, "is-record ~p ~p\n", [E,Name]),
+    {[tuple,?Q('is_record'),Ee,?Q(Name)],St1};
+    %% {[tuple,['is-record',Ee,Name]],St1};
 expr(['record-index',Name,F], St) ->
     {['record-index',Name,F],St};
 expr(['record-field',E,Name,F], St0) ->

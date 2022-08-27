@@ -474,17 +474,13 @@ exp_form([call|As], Env, St) ->
     exp_normal_core(call, As, Env, St);
 %% List/binary comprehensions.
 exp_form([lc,Qs,Exp], Env, St0) ->
-    {Qs1,Exp1,St1} = exp_listcomp(Qs, Exp, Env, St0),
-    {[lc,Qs1,Exp1],St1};
-exp_form(['list-comp',Qs,Exp], Env, St0) ->
-    {Qs1,Exp1,St1} = exp_listcomp(Qs, Exp, Env, St0),
-    {['list-comp',Qs1,Exp1],St1};
-exp_form([bc,Qs,Seg], Env, St0) ->
-    {Qs1,Seg1,St1} = exp_binarycomp(Qs, Seg, Env, St0),
-    {[bc,Qs1,Seg1],St1};
-exp_form(['binary-comp',Qs,Seg], Env, St0) ->
-    {Qs1,Seg1,St1} = exp_binarycomp(Qs, Seg, Env, St0),
-    {['binary-comp',Qs1,Seg1],St1};
+    exp_list_comp('lc', Qs, Exp, Env, St0);
+exp_form(['list-comp',Qs,Exp], Env, St) ->
+    exp_list_comp('list-comp', Qs, Exp, Env, St);
+exp_form([bc,Qs,Exp], Env, St) ->
+    exp_binary_comp('bc', Qs, Exp, Env, St);
+exp_form(['binary-comp',Qs,Exp], Env, St) ->
+    exp_binary_comp('binary-comp', Qs, Exp, Env, St);
 %% Core definition special forms.
 exp_form(['eval-when-compile'|B], Env, St) ->
     exp_normal_core('eval-when-compile', B, Env, St);
@@ -677,44 +673,49 @@ exp_try(E0, B0, Env, St0) ->
                         end, B0, Env, St1),
     {['try',E1|B1],St2}.
 
-%% exp_listcomp(Qualifiers, Expr, Env, State) -> {Qualifiers,Exp,State}.
-%% exp_binarycomp(Qualifiers, Segment, Env, State) ->
-%%     {Qualifiers,Segment,State}.
+%% exp_list_comp(Comp, Qualifiers, Expr, Env, State) -> {Qualifiers,Exp,State}.
+%% exp_binary_comp(Comp, Qualifiers, BitStringExpr, Env, State) ->
+%%     {Qualifiers,BitStringExpr,State}.
 %%  Don't do much yet.
 
-exp_listcomp(Qs0, Exp0, Env, St0) ->
-    {Exp1,St1} = exp_form(Exp0, Env, St0),
+exp_list_comp(Comp, Qs0, Expr0, Env, St0) ->
+    {Expr1,St1} = exp_form(Expr0, Env, St0),
+    %% io:format("lml ~p\n    ~p\n", [Expr0,Expr1]),
     {Qs1,St2} = exp_comp_quals(Qs0, Env, St1),
-    {Qs1,Exp1,St2}.
+    {[Comp,Qs1,Expr1],St2}.
 
-exp_binarycomp(Qs0, Seg, Env, St0) ->
-    %% We leave the segment as is so it doesn't get really mixed up.
-    {Qs1,St1} = exp_comp_quals(Qs0, Env, St0),
-    {Qs1,Seg,St1}.
+exp_binary_comp(Comp, Qs0, BitExpr0, Env, St0) ->
+    {BitExpr1,St1} = exp_form(BitExpr0, Env, St0),
+    %% io:format("lmb ~p\n   ~p\n", [BitExpr0,BitExpr1]),
+    {Qs1,St2} = exp_comp_quals(Qs0, Env, St1),
+    {[Comp,Qs1,BitExpr1],St2}.
 
 %% exp_comp_quals(Qualifiers, Env, State) -> {Qualifiers,State}.
 %%  We accept improper qualifier list here as the tail might expand
-%%  into a proper list. We will let the linter catch any errors. We
-%%  don't expand segments as they can get really mixed up.
+%%  into a proper list. We will let the linter catch any errors.
 
-exp_comp_quals([['<-',Pat,Exp0]|Qs0], Env, St0) ->
-    {Exp1,St1} = exp_form(Exp0, Env, St0),
-    {Qs1,St2} = exp_comp_quals(Qs0, Env, St1),
-    {[['<-',Pat,Exp1]|Qs1],St2};
-exp_comp_quals([['<-',Pat,['when'|G0],Exp0]|Qs0], Env, St0) ->
-    {Exp1,St1} = exp_form(Exp0, Env, St0),
-    {G1,St2} = exp_tail(G0, Env, St1),
+exp_comp_quals([['<-',Pat0,Exp0]|Qs0], Env, St0) ->
+    {Pat1,St1} = exp_form(Pat0, Env, St0),
+    {Exp1,St2} = exp_form(Exp0, Env, St1),
     {Qs1,St3} = exp_comp_quals(Qs0, Env, St2),
-    {[['<-',Pat,['when'|G1],Exp1]|Qs1],St3};
-exp_comp_quals([['<=',Seg,Exp0]|Qs0], Env, St0) ->
-    {Exp1,St1} = exp_form(Exp0, Env, St0),
-    {Qs1,St2} = exp_comp_quals(Qs0, Env, St1),
-    {[['<=',Seg,Exp1]|Qs1],St2};
-exp_comp_quals([['<=',Seg,['when'|G0],Exp0]|Qs0], Env, St0) ->
-    {Exp1,St1} = exp_form(Exp0, Env, St0),
+    {[['<-',Pat1,Exp1]|Qs1],St3};
+exp_comp_quals([['<-',Pat0,['when'|G0],Exp0]|Qs0], Env, St0) ->
+    {Pat1,St1} = exp_form(Pat0, Env, St0),
     {G1,St2} = exp_tail(G0, Env, St1),
+    {Exp1,St3} = exp_form(Exp0, Env, St2),
+    {Qs1,St4} = exp_comp_quals(Qs0, Env, St3),
+    {[['<-',Pat1,['when'|G1],Exp1]|Qs1],St4};
+exp_comp_quals([['<=',Pat0,Exp0]|Qs0], Env, St0) ->
+    {Pat1,St1} = exp_form(Pat0, Env, St0),
+    {Exp1,St2} = exp_form(Exp0, Env, St1),
     {Qs1,St3} = exp_comp_quals(Qs0, Env, St2),
-    {[['<=',Seg,['when'|G1],Exp1]|Qs1],St3};
+    {[['<=',Pat1,Exp1]|Qs1],St3};
+exp_comp_quals([['<=',Pat0,['when'|G0],Exp0]|Qs0], Env, St0) ->
+    {Pat1,St1} = exp_form(Pat0, Env, St0),
+    {G1,St2} = exp_tail(G0, Env, St1),
+    {Exp1,St3} = exp_form(Exp0, Env, St2),
+    {Qs1,St4} = exp_comp_quals(Qs0, Env, St3),
+    {[['<=',Pat1,['when'|G1],Exp1]|Qs1],St4};
 exp_comp_quals([Test0|Qs0], Env, St0) ->
     {Test1,St1} = exp_form(Test0, Env, St0),
     {Qs1,St2} = exp_comp_quals(Qs0, Env, St1),
