@@ -40,6 +40,7 @@
                    exports=orddict:new(),       %Exported function-line
                    imports=orddict:new(),       %Imported function-{module,func}
                    aliases=orddict:new(),       %Module-alias
+                   onload=[],                   %Onload
                    funcs=orddict:new(),         %Defined function-line
                    types=[],                    %Known types
                    texps=orddict:new(),         %Exported types
@@ -83,7 +84,7 @@ format_error({undefined_function,{F,Ar}}) ->
     lfe_io:format1("function ~w/~w undefined", [F,Ar]);
 format_error({multi_var,S}) ->
     lfe_io:format1("variable ~w multiply defined", [S]);
-%% Functions, imports, exports and aliases.
+%% Functions, imports, exports, on_loads and aliases.
 format_error({redefine_function,{F,Ar}}) ->
     lfe_io:format1("function ~w/~w already defined", [F,Ar]);
 format_error({bad_fdef,F}) ->
@@ -93,6 +94,8 @@ format_error({reimport_function,{F,Ar},M1,M2}) ->
                   [F,Ar,M1,M2]);
 format_error({define_imported_function,{F,Ar}}) ->
     lfe_io:format1(<<"defining imported function ~w/~w">>, [F,Ar]);
+format_error({undefined_onload_function,{F,Ar}}) ->
+    lfe_io:format1("on_load function ~w/~w undefined", [F,Ar]);
 format_error({redefine_module_alias,A}) ->
     lfe_io:format1(<<"redefining ~w module alias">>, [A]);
 format_error({circular_module_alias,A}) ->
@@ -118,6 +121,8 @@ format_error({illegal_exception,E}) ->
 %% Records.
 format_error({bad_record_def,Name}) ->
     lfe_io:format1(<<"bad definition of record ~w">>, [Name]);
+format_error({bad_record_name,Name}) ->
+    lfe_io:format1(<<"bad record name ~w">>, [Name]);
 format_error({bad_record_field,Name,Field}) ->
     lfe_io:format1(<<"bad field ~w in record ~w">>, [Field,Name]);
 format_error({redefine_record,Name}) ->
@@ -230,11 +235,18 @@ check_module(Mfs, St0) ->
     %% Now check definitions.
     {Funcs,Env1,St3} = check_functions(Fbs1, Env0, St2),
     %% io:format("~p\n", [Env1]),
-    %% Save functions and environment and test exports.
+    %% Save functions and environment and post check.
     St4 = St3#lfe_lint{funcs=Funcs,env=Env1},
-    St5 = check_valid_exports(St4),
-    St6 = check_valid_imports(St5),
-    check_valid_type_exports(St6).
+    post_check_module(St4).
+
+%% post_check_module(State) -> State.
+%%  Ru checks which can only be done when everything has been collected.
+
+post_check_module(St0) ->
+    St1 = check_valid_exports(St0),
+    St2 = check_valid_imports(St1),
+    St3 = check_valid_onload(St2),
+    check_valid_type_exports(St3).
 
 %% collect_module(ModuleForms, State) -> {Fbs,State}.
 %%  Collect valid forms and module data. Returns function bindings and
@@ -333,6 +345,8 @@ check_mod_attr([doc|Docs], L, St0) ->
     check_doc_attr(Docs, L, St1);
 check_mod_attr([record|_Rds], L, St) ->
     deprecated_error(L, <<"module record definition">>, St);
+check_mod_attr([on_load|Onload], L, St) ->
+    check_onload_attr(Onload, L, St);
 %% Note we don't allow type and spec as normal attributes here.
 check_mod_attr([A|Vals], L, St) ->
     %% Meta tags are not allowed in attributes.
@@ -345,6 +359,9 @@ check_mod_attr(_, L, St) -> bad_module_def_error(L, <<"attribute form">>, St).
 is_meta_tag(doc) -> true;
 is_meta_tag(spec) -> true;
 is_meta_tag(Tag) -> lfe_types:is_type_decl(Tag).
+
+%% check_doc_attr(Doc, Line, State) -> State.
+%%  Check the format of the docimentation.
 
 check_doc_attr(Docs, L, St) ->
     ?IF(is_docs_list(Docs), St, bad_attr_error(L, doc, St)).
@@ -438,12 +455,30 @@ check_export_types(Ts, L, St) ->
             bad_module_def_error(L, 'export-type', St)
     end.
 
-is_func_list(Fs) -> is_func_list(Fs, []).
+%% is_func_ref([Name,Arity]) ->
+%%     is_atom(Name) and is_integer(Arity) and Arity >= 0;
+%% is_func_ref(_Other) -> false.
+
+is_func_list(Fs) -> is_func_list(Fs, ordsets:new()).
 
 is_func_list([[F,Ar]|Fs], Funcs) when is_atom(F), is_integer(Ar), Ar >= 0 ->
     is_func_list(Fs, ordsets:add_element({F,Ar}, Funcs));
 is_func_list([], Funcs) -> {yes,Funcs};
 is_func_list(_, _) -> no.
+
+%% check_onload_attr(Onload, Line, State) -> State.
+%%  Check the onl_load attribute that it is a valid function reference
+%%  and that there is only one.
+
+check_onload_attr([[F,Ar]=LoadF], L, St) when is_atom(F), is_integer(Ar) ->
+    Onload = St#lfe_lint.onload,
+    if (Onload =:= []) or (Onload =:= LoadF) ->
+	    St#lfe_lint{onload=LoadF};
+       true ->
+	    bad_attr_error(L, on_load, St)
+    end;
+check_onload_attr(_Onload, L, St) ->
+    bad_attr_error(L, on_load, St).
 
 %% check_type_defs(TypeDefs, Line, State) -> State.
 %% check_type_def(TypeDef, Line, State) -> State.
@@ -706,6 +741,7 @@ check_functions(Fbs, Env0, St0) ->
     {Fs,Env1,St2}.
 
 %% check_valid_exports(State) -> State.
+%%  Check that all the exports are defined functions.
 
 check_valid_exports(#lfe_lint{exports=Exps,funcs=Funcs}=St) ->
     Fun = fun (FAr, L, S) ->
@@ -734,6 +770,18 @@ add_exports(More, L, Exps) ->
                   orddict:update(FAr, fun (Old) -> Old end, L, Es)
           end,
     lists:foldl(Fun, Exps, More).
+
+%% check_valid_onload(State) -> State.
+%%  Check that the on_load function is a defined function.
+
+check_valid_onload(#lfe_lint{mline=L,onload=[F,Ar],env=Env}=St) ->
+    case le_hasf(F, Ar, Env) of
+	true -> St;
+	false ->
+	    add_error(L, {undefined_onload_function,{F,Ar}}, St)
+    end;
+check_valid_onload(#lfe_lint{onload=[]}=St) ->
+     St.
 
 %% check_valid_type_exports(State) -> State.
 
@@ -1066,7 +1114,7 @@ check_record(Name, L, #lfe_lint{records=Recs}=St) when is_atom(Name) ->
             undefined_record_error(L, Name, St)
     end;
 check_record(Name, L, St) ->
-    bad_record_def_error(L, Name, St).
+    bad_record_name_error(L, Name, St).
 
 check_record(Name, Fields, Env, L, #lfe_lint{records=Recs}=St)
   when is_atom(Name) ->
@@ -1077,7 +1125,7 @@ check_record(Name, Fields, Env, L, #lfe_lint{records=Recs}=St)
             undefined_record_error(L, Name, St)
     end;
 check_record(Name, _, _, L, St) ->
-    bad_record_def_error(L, Name, St).
+    bad_record_name_error(L, Name, St).
 
 %% check_record_fields(RecordName, RecordFields, Fields, Env, Line, State) ->
 %%     State.
@@ -1100,7 +1148,7 @@ check_record_fields(Name, _Rfs, Pat, _Env, L, St) ->
     bad_record_field_error(L, Name, Pat, St).
 
 %% check_record_field(RecordName, Field, Line, State) -> State.
-%%  Check whether record has a field.
+%%  Check whether record has beeen defined and has a field.
 
 check_record_field(Name, F, L, #lfe_lint{records=Recs}=St)
   when is_atom(Name) ->
@@ -1115,7 +1163,7 @@ check_record_field(Name, F, L, #lfe_lint{records=Recs}=St)
             undefined_record_error(L, Name, St)
     end;
 check_record_field(Name, _F, L, St) ->
-    bad_record_def_error(L, Name, St).
+    bad_record_name_error(L, Name, St).
 
 %% check_struct(StructName, Line, State) -> State.
 %% check_struct(StructName, Fields, Env, Line, State) -> State.
@@ -1537,11 +1585,11 @@ check_gexpr(['map-update',Map|As], Env, L, St) ->
 check_gexpr(['is-record',E,Name], Env, L, St0) ->
     St1 = check_gexpr(E, Env, L, St0),
     check_record(Name, L, St1);
-check_gexpr(['record-index',Name,F], Env, L, St) ->
-    check_record(Name, [F], Env, L, St);
+check_gexpr(['record-index',Name,F], _Env, L, St) ->
+    check_record_field(Name, F, L, St);
 check_gexpr(['record-field',E,Name,F], Env, L, St0) ->
     St1 = check_gexpr(E, Env, L, St0),
-    check_record(Name, [F], Env, L, St1);
+    check_record_field(Name, F, L, St1);
 %% Check struct special forms.
 check_gexpr(['is-struct',E], Env, L, St) ->
     check_gexpr(E, Env, L, St);
@@ -2154,6 +2202,9 @@ bad_module_def_error(L, D, St) ->
 
 bad_record_def_error(L, R, St) ->
     add_error(L, {bad_record_def,R}, St).
+
+bad_record_name_error(L, R, St) ->
+    add_error(L, {bad_record_name,R}, St).
 
 bad_record_field_error(L, R, F, St) ->
     add_error(L, {bad_record_field,R,F}, St).

@@ -24,9 +24,9 @@
 %%% same relative place as in the original file.
 %%%
 %%% Note that for (export all) we only export the top-level functions
-%%% defined in the module, not any of the lambda lifted
-%%% functions. This means that we cannot generate
-%%% "-compile(export_all)." but must explicitly export the functions.
+%%% defined in the module, not any of the lambda lifted functions.
+%%% This means that we cannot generate "-compile(export_all)." but
+%%% must explicitly export the functions.
 %%%
 %%% Having import from and rename forces us to explicitly convert the
 %%% call as we can't use an import attribute to do this properly for
@@ -50,6 +50,7 @@
                  exports=ordsets:new(),         %Exports
                  imports=orddict:new(),         %Imports
                  aliases=orddict:new(),         %Aliases
+                 onload=[],                     %Onload
                  atts=[],                       %Attrubutes
                  defs=[],                       %Defined top-level functions
                  opts=[],                       %Options
@@ -126,6 +127,8 @@ coll_mdef_attr([import|Is], _Line, St) ->
     coll_mdef_imps(Is, St);
 coll_mdef_attr(['module-alias'|As], _Line, St) ->
     coll_mdef_aliases(As, St);
+coll_mdef_attr([on_load,Onload], _Line, St) ->
+    coll_mdef_onload(Onload, St);
 %% Explicitly ignore any doc or record information here.
 coll_mdef_attr([doc|_], _Line, St) -> St;
 coll_mdef_attr([record|_], _Line, St) -> St;
@@ -172,19 +175,26 @@ coll_mdef_aliases(As, #lfe_cg{aliases=Als0}=St) ->
                        Als0, As),
     St#lfe_cg{aliases=Als1}.
 
+%% coll_mdef_onload(Onload, State) ->
+%%  Collect the on_load function name.
+
+coll_mdef_onload([Name,Ar], St) ->
+    St#lfe_cg{onload={Name,Ar}}.
+
 %% compile_attributes(State) -> MdefAST.
 %%  Compile the module attributes.
 
 compile_attributes(St) ->
     Exp = comp_export(St),
     Imps = comp_imports(St),
+    Onload = comp_onload(St),
     Atts = comp_attributes(St),
     Mline = St#lfe_cg.mline,
     %% Collect all the attributes.
     AST = [make_attribute(file, {St#lfe_cg.file,Mline}, Mline),
            make_attribute(module, St#lfe_cg.module, Mline),
            Exp |
-           Imps ++ Atts],
+           Onload ++ Imps ++ Atts],
     AST.
 
 %% compile_forms(ModuleForms, State) -> [AST].
@@ -329,6 +339,7 @@ comp_struct_map(Mod, Fields) ->
 
 %% comp_export(State) -> Attribute.
 %% comp_imports(State) -> [Attribute].
+%% comp_on_load(State) -> Attribute.
 %% comp_attributes(State) -> [Attribute].
 %%  Currently we don't add the import attributes.
 
@@ -340,6 +351,10 @@ comp_export(#lfe_cg{exports=Exps,defs=Defs,mline=Line}) ->
     make_attribute(export, Es, Line).
 
 comp_imports(_St) -> [].
+
+comp_onload(#lfe_cg{onload={Func,Ar},mline=Line}) ->
+    [make_attribute(on_load, {Func,Ar}, Line)];
+comp_onload(#lfe_cg{onload=[]}) -> [].
 
 comp_attributes(#lfe_cg{atts=Atts}) ->
     lists:map(fun comp_attribute/1, Atts).
