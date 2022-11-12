@@ -142,7 +142,7 @@ with LFE, be sure to read the
 
 ## Documentation
 
-* [Quick Start](https://lfe.gitbooks.io/quick-start/content/)
+* [Quick Start](https://lfe.gitbooks.io/quick-start/content/index.html)
 * LFE [user guide](doc/user_guide.txt)
 * [version history](doc/src/version_history.md)
 
