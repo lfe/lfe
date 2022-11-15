@@ -1,6 +1,7 @@
 name: ci/cd
 
 on:
+  workflow_dispatch:
   push:
     branches: [ master, release/*, task/*, feature/*, bugfix/*, develop]
   pull_request:
