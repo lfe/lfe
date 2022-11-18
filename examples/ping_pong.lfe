@@ -30,10 +30,14 @@
 ;; #(ok #Pid<0.196.0>)
 ;; lfe> (ping_pong:ping)
 ;; #(pong 1)
+;; lfe> (ping_pong:stop)
+;; ok
 
 (defmodule ping_pong
   (export 
     (start_link 0)
+    (start 0)
+    (stop 0)
     (ping 0))
   (export 
     (init 1) 
@@ -44,9 +48,18 @@
     (code_change 3))
   (behaviour gen_server))        ; Just indicates intent
 
+;; Management API
+
 (defun start_link ()
   (gen_server:start_link
     #(local ping_pong) 'ping_pong '() '()))
+
+(defun start ()
+  (gen_server:start
+    #(local ping_pong) 'ping_pong '() '()))
+
+(defun stop ()
+  (gen_server:stop 'ping_pong))
 
 ;; Client API
 
