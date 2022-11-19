@@ -241,20 +241,10 @@ eval_expr(['struct',Name|Fs], Env) ->
     make_struct_map(Name, Fs, Env);
 eval_expr(['is-struct',E], Env) ->
     Ev = eval_expr(E, Env),
-    case Ev of
-        #{'__struct__' := StrName} when is_atom(StrName) ->
-            true;
-        _ ->
-            false
-    end;
+    test_is_struct(Ev);
 eval_expr(['is-struct',E,Name], Env) ->
     Ev = eval_expr(E, Env),
-    case Ev of
-        #{'__struct__' := StrName} when is_atom(StrName) ->
-            StrName =:= Name;
-        _ ->
-            false
-    end;
+    test_is_struct(Ev, Name);
 eval_expr(['struct-field',E,Name,F], Env) ->
     Ev = eval_expr(E, Env),
     get_struct_field(Ev, Name, F);
@@ -425,6 +415,17 @@ make_struct_fields([Key,Val|Kvs], Env) ->
 make_struct_fields([Key], _Env) ->
     eval_error({missing_struct_field_value,Key});
 make_struct_fields([], _Env) ->  [].
+
+%% test_is_struct(Struct) -> boolean().
+%% test_is_struct(Struct, Name) -> boolean().
+%%  Test whether term is a struct.
+
+test_is_struct(#{'__struct__' := StrName}) when is_atom(StrName) -> true;
+test_is_struct(_Other) -> false.
+
+test_is_struct(#{'__struct__' := StrName}, Name) when is_atom(StrName) ->
+    StrName =:= Name;
+test_is_struct(_Other, _Name) -> false.
 
 %% get_struct_field(Struct, Name, Field) -> Value.
 
@@ -1038,14 +1039,11 @@ eval_gexpr(['map-update',Map|As], Env) ->
     eval_gmap_update('map-update', Map, As, Env);
 %% Struct special forms.
 eval_gexpr(['is-struct',E0], Env) ->
-    E1 = eval_gexpr(E0, Env),
-    is_map(E1) andalso is_map_key('__struct__', E1)
-        andalso is_atom(map_get('__struct__', E1));
+    Ev = eval_gexpr(E0, Env),
+    test_is_struct(Ev);
 eval_gexpr(['is-struct',E0,Name], Env) ->
-    E1 = eval_gexpr(E0, Env),
-    is_atom(Name) andalso 
-        is_map(E1) andalso is_map_key('__struct__', E1)
-        andalso (map_get('__struct__', E1) =:= Name);
+    Ev = eval_gexpr(E0, Env),
+    test_is_struct(Ev, Name);
 eval_gexpr(['struct-field',E,Name,F], Env) ->
     Ev = eval_gexpr(E, Env),
     get_struct_field(Ev, Name, F);
