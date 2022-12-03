@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        otp-version: ['22', '23', '24']
+        otp-version: ['22', '23', '24', '25']
         rebar3-version: ['3.16.1']
         os: ['ubuntu-latest']
 
@@ -53,7 +53,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        otp-version: ['22', '23', '24']
+        otp-version: ['22', '23', '24', '25']
         os: ['ubuntu-latest']
 
     container:
