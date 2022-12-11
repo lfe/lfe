@@ -36,7 +36,7 @@ VPATH = $(SRCDIR)
 MANDB = $(shell which mandb)
 
 ERLCFLAGS = -W1 +debug_info
-ERLC = erlc
+ERLC ?= erlc
 
 LFECFLAGS = -pa ../lfe +debug-info
 LFEC = $(BINDIR)/lfescript $(BINDIR)/lfec
