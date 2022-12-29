@@ -31,16 +31,11 @@ jobs:
     - name: Compile (with rebar3)
       run: rebar3 compile
     - name: Run eunit Tests
-      # XXX for some reason, the first pass of eunit doesn't run the tests?!
-      run: rebar3 as test do compile,eunit,eunit
+      run: make eunit
     - name: Run proper Tests
-      # XXX this is a hack; we're getting VM crashes due to atom-table filling
-      #     for the default test count of '100' -- note, however:
-      #     * 'prop_lfe_docs:prop_define_lambda' works just fine with 100 tests
-      #     * 'prop_lfe_docs:prop_define_match' is the one that crashes the VM
-      run: rebar3 as test proper -n 20
+      run: make proper
     - name: CT Suite Tests
-      run: rebar3 as test ct
+      run: make ct
 
   installs:
     name: Newer installs - OTP ${{ matrix.otp-version }} / ${{ matrix.os }}
@@ -88,16 +83,11 @@ jobs:
     - name: Compile (with rebar3)
       run: rebar3 compile
     - name: Run eunit Tests
-      # XXX for some reason, the first pass of eunit doesn't run the tests?!
-      run: rm rebar.lock && DEBUG=1 rebar3 as test do compile,eunit,eunit
+      run: make eunit
     - name: Run proper Tests
-      # XXX this is a hack; we're getting VM crashes due to atom-table filling
-      #     for the default test count of '100' -- note, however:
-      #     * 'prop_lfe_docs:prop_define_lambda' works just fine with 100 tests
-      #     * 'prop_lfe_docs:prop_define_match' is the one that crashes the VM
-      run: rebar3 as test proper -n 20
+      run: make proper
     - name: CT Suite Tests
-      run: rebar3 as test ct
+      run: make ct
 
   older-installs:
     name: Older installs - OTP ${{ matrix.otp-version }} / ${{ matrix.os }}
