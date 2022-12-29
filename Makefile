@@ -173,11 +173,17 @@ regenerate-parser:
 eunit:
 	@rebar3 as test do compile,eunit,eunit
 
+# XXX We've had to limit 'n' to 20, since the default count of 100 was
+# causing VM crashes due to atom-table filling. Note, however:
+#  * 'prop_lfe_docs:prop_define_lambda' works just fine with 100 tests
+#  * 'prop_lfe_docs:prop_define_match' is the one that crashes the VM
 proper:
 	@rebar3 as test do compile,proper -n 20
 
 common-test:
 	@rebar3 as test do compile,ct
+
+ct: common-test
 
 tests:
 	@rebar3 as test do compile,eunit,eunit,proper -n 20,ct
