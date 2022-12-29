@@ -166,6 +166,27 @@ get-version:
 regenerate-parser:
 	erl -noshell -eval 'spell1:file("src/lfe_parse", [report,verbose,{outdir,"./src/"},{includefile,code:lib_dir(spell1,include) ++ "/spell1inc.hrl"}]), init:stop().'
 
+###############
+### TESTING ###
+###############
+
+# XXX for some reason, the first pass of eunit doesn't run the tests?!
+eunit:
+	@rebar3 as test do compile,eunit,eunit
+
+proper:
+	@rebar3 as test do compile,proper -n 20
+
+common-test:
+	@rebar3 as test do compile,ct
+
+tests:
+	@rebar3 as test do compile,eunit,eunit,proper -n 20,ct
+
+#####################
+### DOCUMENTATION ###
+#####################
+
 # Targets for generating docs and man pages
 DOCDIR = doc
 DOCSRC = $(DOCDIR)/src
