@@ -395,9 +395,16 @@ exp_form(['map-remove'|As], Env, St) ->
 exp_form(['define-record',Name,Fds], Env, St0) ->
     {Efds,St1} = exp_rec_fields(Name, Fds, Env, St0),
     {['define-record',Name,Efds],St1};
+exp_form(['record',Name|Args], Env, St0) ->
+    {Eas,St1} = exp_tail(Args, Env, St0),
+    {['record',Name|Eas],St1};
+%% make-record has been deprecated but we sill accept it for now.
 exp_form(['make-record',Name|Args], Env, St0) ->
     {Eas,St1} = exp_tail(Args, Env, St0),
     {['make-record',Name|Eas],St1};
+exp_form(['is-record',E,Name], Env, St0) ->
+    {Ee,St1} = exp_form(E, Env, St0),
+    {['is-record',Ee,Name],St1};
 exp_form(['record-index',Name,F], _, St) ->
     {['record-index',Name,F],St};
 exp_form(['record-field',E,Name,F], Env, St0) ->
@@ -407,6 +414,27 @@ exp_form(['record-update',E,Name|Args], Env, St0) ->
     {Ee,St1} = exp_form(E, Env, St0),
     {Eas,St2} = exp_tail(Args, Env, St1),
     {['record-update',Ee,Name|Eas],St2};
+%% Struct special forms. Note that these are used for both the
+%% compiler as well as the evaluator so we can't do too much here.
+exp_form(['define-struct',Fds], Env, St0) ->
+    {Efds,St1} = exp_struct_fields(Fds, Env, St0),
+    {['define-struct',Efds],St1};
+exp_form(['struct',Name|Args], Env, St0) ->
+    {Eas,St1} = exp_tail(Args, Env, St0),
+    {['struct',Name|Eas],St1};
+exp_form(['is-struct',E], Env, St0) ->
+    {Ee,St1} = exp_form(E, Env, St0),
+    {['is-struct',Ee],St1};
+exp_form(['is-struct',E,Name], Env, St0) ->
+    {Ee,St1} = exp_form(E, Env, St0),
+    {['is-struct',Ee,Name],St1};
+exp_form(['struct-field',E,Name,F], Env, St0) ->
+    {Ee,St1} = exp_form(E, Env, St0),
+    {['struct-field',Ee,Name,F],St1};
+exp_form(['struct-update',E,Name|Args], Env, St0) ->
+    {Ee,St1} = exp_form(E, Env, St0),
+    {Eas,St2} = exp_tail(Args, Env, St1),
+    {['struct-update',Ee,Name|Eas],St2};
 %% Function forms.
 exp_form([function|_]=F, _, St) -> {F,St};
 %% Core closure special forms.
@@ -444,6 +472,15 @@ exp_form([funcall|As], Env, St) ->
     exp_normal_core(funcall, As, Env, St);
 exp_form([call|As], Env, St) ->
     exp_normal_core(call, As, Env, St);
+%% List/binary comprehensions.
+exp_form([lc,Qs,Exp], Env, St0) ->
+    exp_list_comp('lc', Qs, Exp, Env, St0);
+exp_form(['list-comp',Qs,Exp], Env, St) ->
+    exp_list_comp('list-comp', Qs, Exp, Env, St);
+exp_form([bc,Qs,Exp], Env, St) ->
+    exp_binary_comp('bc', Qs, Exp, Env, St);
+exp_form(['binary-comp',Qs,Exp], Env, St) ->
+    exp_binary_comp('binary-comp', Qs, Exp, Env, St);
 %% Core definition special forms.
 exp_form(['eval-when-compile'|B], Env, St) ->
     exp_normal_core('eval-when-compile', B, Env, St);
@@ -517,6 +554,17 @@ exp_rec_fields(_, Fields, Env, St) ->
 exp_rec_field([_|_]=Fdef, Env, St) ->
     exp_list(Fdef, Env, St);
 exp_rec_field(Fdef, Env, St) ->
+    exp_form(Fdef, Env, St).
+
+%% exp_struct_fields(Fields, Env, State) -> {ExpArgs,State}.
+%%  Expand the field definitions for the struct.
+
+exp_struct_fields(Fields, Env, St) ->
+    lists:mapfoldl(fun (F, S) -> exp_struct_field(F, Env, S) end, St, Fields).
+
+exp_struct_field([_|_]=Fdef, Env, St) ->
+    exp_list(Fdef, Env, St);
+exp_struct_field(Fdef, Env, St) ->
     exp_form(Fdef, Env, St).
 
 %% exp_clauses(Clauses, Env, State) -> {ExpCls,State}.
@@ -625,6 +673,58 @@ exp_try(E0, B0, Env, St0) ->
                         end, B0, Env, St1),
     {['try',E1|B1],St2}.
 
+%% exp_list_comp(Comp, Qualifiers, Expr, Env, State) -> {Qualifiers,Exp,State}.
+%% exp_binary_comp(Comp, Qualifiers, BitStringExpr, Env, State) ->
+%%     {Qualifiers,BitStringExpr,State}.
+%%  Don't do much yet.
+
+exp_list_comp(Comp, Qs0, Expr0, Env, St0) ->
+    {Expr1,St1} = exp_form(Expr0, Env, St0),
+    %% io:format("lml ~p\n    ~p\n", [Expr0,Expr1]),
+    {Qs1,St2} = exp_comp_quals(Qs0, Env, St1),
+    {[Comp,Qs1,Expr1],St2}.
+
+exp_binary_comp(Comp, Qs0, BitExpr0, Env, St0) ->
+    {BitExpr1,St1} = exp_form(BitExpr0, Env, St0),
+    %% io:format("lmb ~p\n   ~p\n", [BitExpr0,BitExpr1]),
+    {Qs1,St2} = exp_comp_quals(Qs0, Env, St1),
+    {[Comp,Qs1,BitExpr1],St2}.
+
+%% exp_comp_quals(Qualifiers, Env, State) -> {Qualifiers,State}.
+%%  We accept improper qualifier list here as the tail might expand
+%%  into a proper list. We will let the linter catch any errors.
+
+exp_comp_quals([['<-',Pat0,Exp0]|Qs0], Env, St0) ->
+    {Pat1,St1} = exp_form(Pat0, Env, St0),
+    {Exp1,St2} = exp_form(Exp0, Env, St1),
+    {Qs1,St3} = exp_comp_quals(Qs0, Env, St2),
+    {[['<-',Pat1,Exp1]|Qs1],St3};
+exp_comp_quals([['<-',Pat0,['when'|G0],Exp0]|Qs0], Env, St0) ->
+    {Pat1,St1} = exp_form(Pat0, Env, St0),
+    {G1,St2} = exp_tail(G0, Env, St1),
+    {Exp1,St3} = exp_form(Exp0, Env, St2),
+    {Qs1,St4} = exp_comp_quals(Qs0, Env, St3),
+    {[['<-',Pat1,['when'|G1],Exp1]|Qs1],St4};
+exp_comp_quals([['<=',Pat0,Exp0]|Qs0], Env, St0) ->
+    {Pat1,St1} = exp_form(Pat0, Env, St0),
+    {Exp1,St2} = exp_form(Exp0, Env, St1),
+    {Qs1,St3} = exp_comp_quals(Qs0, Env, St2),
+    {[['<=',Pat1,Exp1]|Qs1],St3};
+exp_comp_quals([['<=',Pat0,['when'|G0],Exp0]|Qs0], Env, St0) ->
+    {Pat1,St1} = exp_form(Pat0, Env, St0),
+    {G1,St2} = exp_tail(G0, Env, St1),
+    {Exp1,St3} = exp_form(Exp0, Env, St2),
+    {Qs1,St4} = exp_comp_quals(Qs0, Env, St3),
+    {[['<=',Pat1,['when'|G1],Exp1]|Qs1],St4};
+exp_comp_quals([Test0|Qs0], Env, St0) ->
+    {Test1,St1} = exp_form(Test0, Env, St0),
+    {Qs1,St2} = exp_comp_quals(Qs0, Env, St1),
+    {[Test1|Qs1],St2};
+exp_comp_quals(Other0, Env, St0) ->
+    %% This also catches [].
+    {Other1,St1} = exp_form(Other0, Env, St0),
+    {Other1,St1}.
+
 %% exp_define_function(Name, Metq, Def, Env, State) -> {Expansion,State}.
 %%  Expand a function definition adding the function local macros:
 %%  (defmacro FUNCTION_NAME () `'name)
@@ -678,6 +778,7 @@ exp_userdef_macro([Mac|Args], Def0, Env, St0) ->
     catch
         %% error:no_Error -> boom
         ?CATCH(error, Error, Stack)
+            %% io:format("Userdef stack ~p\n", [Stack]),
             erlang:raise(error, {expand_macro,[Mac|Args],Error}, Stack)
         %% ?CATCH(error, Error, Stack0)
         %%     Stack1 = trim_stacktrace(Stack0),
@@ -693,6 +794,7 @@ exp_predef_macro(Call, Env, St) ->
         exp_predef(Call, Env, St)
     catch
         ?CATCH(error, Error, Stack)
+            %% io:format("Predef stack ~p\n", [Stack]),
             erlang:raise(error, {expand_macro,Call,Error}, Stack)
         %% ?CATCH(error, Error, Stack0)
         %%     Stack1 = trim_stacktrace(Stack0),
@@ -720,6 +822,9 @@ exp_module_meta([record|Recs], Env, St0) ->
     {Erecs,St1} = lists:mapfoldl(fun (R, S) -> exp_module_rec(R, Env, S) end,
                                  St0, Recs),
     {[record|Erecs],St1};
+exp_module_meta([struct|Fds], Env, St0) ->
+    {Efds,St1} = exp_struct_fields(Fds, Env, St0),
+    {[struct|Efds],St1};
 exp_module_meta(Meta, _Env, St) ->
     {Meta,St}.
 
@@ -836,26 +941,6 @@ exp_predef(['cond'|Cbody], _, St) ->
 exp_predef(['do'|Dbody], _, St0) ->
     {Exp,St1} = exp_do(Dbody, St0),
     {yes,Exp,St1};
-exp_predef([lc|Lbody], _, St0) ->
-    %% (lc (qual ...) e ...)
-    [Qs|Es] = Lbody,
-    {Exp,St1} = lc_te(Es, Qs, St0),
-    {yes,Exp,St1};
-%% Add an alias for lc.
-exp_predef(['list-comp'|Lbody], _, St0) ->
-    [Qs|Es] = Lbody,
-    {Exp,St1} = lc_te(Es, Qs, St0),
-    {yes,Exp,St1};
-exp_predef([bc|Bbody], _, St0) ->
-    %% (bc (qual ...) e ...)
-    [Qs|Es] = Bbody,
-    {Exp,St1} = bc_te(Es, Qs, St0),
-    {yes,Exp,St1};
-%% Add an alias for bc.
-exp_predef(['binary-comp'|Bbody], _, St0) ->
-    [Qs|Es] = Bbody,
-    {Exp,St1} = bc_te(Es, Qs, St0),
-    {yes,Exp,St1};
 %% exp_predef(['andalso'|Abody], _, St) ->
 %%     Exp = exp_andalso(Abody),
 %%     {yes,Exp,St};
@@ -872,6 +957,8 @@ exp_predef(['fun',M,F,Ar], _, St0) ->
     {yes,['lambda',Vs,['call',?Q(M),?Q(F)|Vs]],St1};
 exp_predef(['defrecord'|Def], Env, St) ->
     lfe_macro_record:define(Def, Env, St);
+exp_predef(['defstruct'|Def], Env, St) ->
+    lfe_macro_struct:define(Def, Env, St);
 %% Common Lisp inspired macros.
 exp_predef([defmodule,Name|Rest], _, St) ->
     %% Define the MODULE macro.
@@ -1428,101 +1515,6 @@ new_symbs(0, St, Vs) -> {Vs,St}.
 new_fun_name(Pre, St) ->
     C = St#mac.fc,
     {list_to_atom(Pre ++ "$^" ++ integer_to_list(C)),St#mac{fc=C+1}}.
-
-%% lc_te(Exprs, Qualifiers, State) -> {Exp,State}.
-%% bc_te(Exprs, Qualifiers, State) -> {Exp,State}.
-%%  Expand a list/binary comprehension. Algorithm straight out of
-%%  Simon PJs book.
-
-%% lc_te(Es, Qs, St) -> lc_tq(Es, Qs, [], St).
-lc_te(Es, Qs, St) -> lc_te(Es, Qs, [], St).
-
-lc_te(Es, Qs, End, St) ->
-    c_tq(fun (E, S) -> {[cons,['progn'|Es],E],S} end, Qs, End, St).
-
-%%bc_te(Es, Qs, St) -> bc_tq(Es, Qs, <<>>, St).
-bc_te(Es, Qs, St) ->
-    c_tq(fun (E, S) ->
-                 %% Separate last form to be binary segment.
-                 case reverse(Es) of
-                     [R] -> {[binary,R,[E,bitstring]],S};
-                     [R|Rs] -> {['progn'|reverse(Rs)] ++
-                                    [[binary,R,[E,bitstring]]],S};
-                     [] -> {E,S}
-                 end
-         end, Qs, <<>>, St).
-
-%% c_tq(BuildExp, Qualifiers, End, State) -> {Exp,State}.
-
-c_tq(Exp, [['<-',P,Gen]|Qs], End, St) ->                %List generator
-    c_l_tq(Exp, P, [], Gen, Qs, End, St);
-c_tq(Exp, [['<-',P,['when'|G],Gen]|Qs], End, St) ->     %List generator
-    c_l_tq(Exp, P, G, Gen, Qs, End, St);
-c_tq(Exp, [['<=',P,Gen]|Qs], End, St) ->                %Bits generator
-    c_b_tq(Exp, P, [], Gen, Qs, End, St);
-c_tq(Exp, [['<=',P,['when'|G],Gen]|Qs], End, St) ->     %Bits generator
-    c_b_tq(Exp, P, G, Gen, Qs, End, St);
-c_tq(Exp, [['?=',P,E]|Qs], End, St0) ->                 %Test match
-    {Rest,St1} = c_tq(Exp, Qs, End, St0),
-    {['case',E,[P,Rest],['_',End]],St1};
-c_tq(Exp, [['?=',P,['when'|_]=G,E]|Qs], End, St0) ->    %Test match
-    {Rest,St1} = c_tq(Exp, Qs, End, St0),
-    {['case',E,[P,G,Rest],['_',End]],St1};
-c_tq(Exp, [T|Qs], End, St0) ->                          %Test
-    {Rest,St1} = c_tq(Exp, Qs, End, St0),
-    {['if',T,Rest,End],St1};
-c_tq(Exp, [], End, St) ->                               %End of qualifiers
-    Exp(End, St).
-
-c_l_tq(Exp, P, G, Gen, Qs, End, St0) ->
-    {H,St1} = new_fun_name("lc", St0),          %Function name
-    {Us,St2} = new_symb(St1),                   %Tail variable
-    {Rest,St3} = c_tq(Exp, Qs, [H,Us], St2),    %Do rest of qualifiers
-    %% Build the match, no match and end clauses, no nomatch clause if
-    %% pattern and guard guaranteed to match. Keeps compiler quiet.
-    Cs0 = [ [[[]],End] ],                       %End of list
-    Cs1 = case is_atom(P) and (G == []) of      %No match, skip
-              true -> Cs0;
-              false -> [ [[[cons,'_',Us]],[H,Us]] |Cs0]
-          end,
-    Cs2 = [ [[[cons,P,Us]],['when'|G],Rest] |Cs1], %Matches pattern and guard
-    {['letrec-function',
-      [[H,['match-lambda'|Cs2]]],
-      [H,Gen]],St3}.
-
-c_b_tq(Exp, P, G, Gen, Qs, End, St0) ->
-    {H,St1} = new_fun_name("bc", St0),          %Function name
-    {B,St2} = new_symb(St1),                    %Bin variable
-    {Rest,St3} = c_tq(Exp, Qs, [H,B], St2),     %Do rest of qualifiers
-    Brest = [B,bitstring,'big-endian',unsigned,[unit,1]], %,[size,all]
-    %% Build the match and nomatch/end clauses.
-    MatchC = [[[binary,P,Brest]],['when'|G],Rest],  %Matches pattern and guard
-    EndC = [[[binary,Brest]],End],                  %No match
-    {['letrec-function',
-      [[H,['match-lambda',MatchC,EndC]]],
-      [H,Gen]],St3}.
-
-%% c_tq(Exp, [['<-',P,Gen]|Qs], End, St0) ->        %List generator
-%%     {H,St1} = new_fun_name("lc", St0),           %Function name
-%%     {Us,St2} = new_symb(St1),                    %Tail variable
-%%     {Rest,St3} = c_tq(Exp, Qs, [H,Us], St2),     %Do rest of qualifiers
-%%     {['letrec-function',
-%%       [[H,['match-lambda',
-%%        [[[P|Us]],Rest],                          %Matches pattern
-%%        [[['_'|Us]],[H,Us]],                      %No match
-%%        [[[]],End]]]],                            %End of list
-%%       [H,Gen]],St3};
-
-%% c_tq(Exp, [['<=',P,Gen]|Qs], End, St0) ->        %Bits generator
-%%     {H,St1} = new_fun_name("bc", St0),           %Function name
-%%     {B,St2} = new_symb(St1),                     %Bin variable
-%%     {Rest,St3} = c_tq(Exp, Qs, [H,B], St2),      %Do rest of qualifiers
-%%     Brest = [B,bitstring,'big-endian',unsigned,[unit,1]], %,[size,all]
-%%     {['letrec-function',
-%%       [[H,['match-lambda',
-%%        [[[binary,P,Brest]],Rest],                %Matches pattern
-%%        [[[binary,Brest]],End]]]],                %No match
-%%       [H,Gen]],St3};
 
 %% mapfoldl2(Fun, Acc1, Acc2, List) -> {List,Acc1,Acc2}.
 %%  Like normal mapfoldl but with 2 accumulators.

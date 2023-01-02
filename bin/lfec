@@ -1,5 +1,5 @@
-#! /usr/bin/env lfe
-;; -*- mode: lfe; -*-
+#! /usr/bin/env lfescript
+;; -*- mode: lfe -*-
 ;; Copyright (c) 2008-2020 Robert Virding.
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,9 +44,11 @@
   ([(cons "-D" as) opts]
    (parse-opts as (cons 'debug-print opts)))
   ([(cons "-E" as) opts]
-   (parse-opts as (cons 'to-exp opts)))
+   (parse-opts as (cons 'to-expand opts)))
   ([(cons "-L" as) opts]
    (parse-opts as (cons 'to-lint opts)))
+  ([(cons "-A" as) opts]
+   (parse-opts as (cons 'to-erlang opts)))
   ([(cons "-S" as) opts]
    (parse-opts as (cons 'to-asm opts)))
   ([(cons "-P" as) opts]                ;Ignore as no LFE counterpart
@@ -71,14 +73,15 @@
                    "-Werror        Make all warnings into errors\n"
                    "-Wnumber       Set warning level (ignored)\n"
                    "-D             Equivalent to +debug-print\n"
+                   "-E             Equivalent to +to-expand\n"
                    "-L             Equivalent to +to-lint\n"
-                   "-E             Equivalent to +to-exp\n"
+                   "-A             Equivalent to +to-erlang\n"
                    "-S             Equivalent to +to-asm\n"
                    "--             No more options, only file names follow\n"
                    "+term          Term will be added to options\n\n"
                    "Terms include:\n\n"
-                   "+binary, +no-docs, +to-exp, +to-lint, +to-core0, +to-core, +to-kernel, +to-asm\n"
-                   "+{outdir, Dir}, +report, +return, +debug-print\n\n"
+                   "+binary, +no-docs, +to-exp, +to-lint, +to-core0, +to-core, +to-kernel,\n"
+                   "+to-asm, +{outdir, Dir}, +report, +return, +debug-print\n\n"
                    "Example:\n\n"
                    "$ lfec -I include -o ebin examples/ring.lfe\n\n")))
     (io:put_chars usage)))
@@ -98,11 +101,12 @@
   ([() _] 'ok))
 
 ;; Parse the arguments and compile the files.
-(case script-args
-  (() (usage))
-  (as0
-   (fix-code-path)
-   (let ((`#(,files ,opts1) (parse-opts as0 ())))
-     (case (compile-files files (list* 'verbose 'report opts1))
-       ('error (halt 1))
-       ('ok 'ok)))))
+(defun main (script-args)
+  (case script-args
+    (() (usage))
+    (as0
+     (fix-code-path)
+     (let ((`#(,files ,opts1) (parse-opts as0 ())))
+       (case (compile-files files (list* 'verbose 'report opts1))
+         ('error (halt 1))
+         ('ok 'ok))))))

@@ -70,16 +70,16 @@ define(Name, _Fdefs, _Env, _St) ->
 
 make_macro(Name) ->
     Make = list_to_atom(concat(['make','-',Name])),
-    ['defmacro',Make,fds,?BQ(['make-record',Name,?C_A(fds)])].
+    ['defmacro',Make,fds,?BQ(['record',Name,?C_A(fds)])].
 
 match_macro(Name) ->
     Match = list_to_atom(concat(['match','-',Name])),
-    ['defmacro',Match,fds,?BQ(['make-record',Name,?C_A(fds)])].
+    ['defmacro',Match,fds,?BQ(['record',Name,?C_A(fds)])].
 
-test_macro(Name, Fs) ->
+test_macro(Name, _Fs) ->
     Test = list_to_atom(concat(['is','-',Name])),
-    ['defmacro',Test,[rec],
-     ?BQ(['is_record',?C(rec),?Q(Name),length(Fs)+1])].
+    ['defmacro',Test,[rec],?BQ(['is-record',?C(rec),Name])].
+     %% ?BQ(['is_record',?C(rec),?Q(Name),length(Fs)+1])].
 
 update_macro(Name) ->
     Upd = list_to_atom(concat(['update','-',Name])),

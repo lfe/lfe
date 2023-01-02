@@ -21,6 +21,7 @@ CSRCDIR = c_src
 LSRCDIR = src
 INCDIR = include
 EMACSDIR = emacs
+HOSTCC ?= $(CC)
 PREFIX ?= /usr/local
 INSTALL = install
 INSTALL_DIR = $(INSTALL) -m755 -d
@@ -36,10 +37,10 @@ VPATH = $(SRCDIR)
 MANDB = $(shell which mandb)
 
 ERLCFLAGS = -W1 +debug_info
-ERLC = erlc
+ERLC ?= erlc
 
 LFECFLAGS = -pa ../lfe +debug-info
-LFEC = $(BINDIR)/lfe $(BINDIR)/lfec
+LFEC = $(BINDIR)/lfescript $(BINDIR)/lfec
 APP_DEF = lfe.app
 
 LIB=lfe
@@ -72,7 +73,7 @@ ELCS = $(EMACSRCS:.el=.elc)
 .SUFFIXES: .erl .beam
 
 $(BINDIR)/%: $(CSRCDIR)/%.c
-	cc -o $@ $<
+	$(HOSTCC) -o $@ $<
 
 $(EBINDIR)/%.beam: $(SRCDIR)/%.erl
 	@$(INSTALL_DIR) $(EBINDIR)
@@ -164,6 +165,33 @@ get-version:
 # installed somewhere in your $ERL_LIBS path.
 regenerate-parser:
 	erl -noshell -eval 'spell1:file("src/lfe_parse", [report,verbose,{outdir,"./src/"},{includefile,code:lib_dir(spell1,include) ++ "/spell1inc.hrl"}]), init:stop().'
+
+###############
+### TESTING ###
+###############
+
+# XXX for some reason, the first pass of eunit doesn't run the tests?!
+eunit:
+	@rebar3 as test do compile,eunit,eunit
+
+# XXX We've had to limit 'n' to 20, since the default count of 100 was
+# causing VM crashes due to atom-table filling. Note, however:
+#  * 'prop_lfe_docs:prop_define_lambda' works just fine with 100 tests
+#  * 'prop_lfe_docs:prop_define_match' is the one that crashes the VM
+proper:
+	@rebar3 as test do compile,proper -n 20
+
+common-test:
+	@rebar3 as test do compile,ct
+
+ct: common-test
+
+tests:
+	@rebar3 as test do compile,eunit,eunit,proper -n 20,ct
+
+#####################
+### DOCUMENTATION ###
+#####################
 
 # Targets for generating docs and man pages
 DOCDIR = doc

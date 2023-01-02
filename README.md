@@ -167,3 +167,5 @@ the docs, you'll want to read the instructions here:
 ## Join the Community
 
 [LFE on Slack](https://lfe.slack.com), join by requesting an invite [here](https://erlef.org/slack-invite/lfe)
+
+[LFE Forum - Erlang Forums](https://erlangforums.com/lfe)

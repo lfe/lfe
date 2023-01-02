@@ -76,10 +76,18 @@ is_core_form('map-set') -> true;
 is_core_form('map-update') -> true;
 is_core_form('map-remove') -> true;
 %% Core record special forms.
+is_core_form('record') -> true;
+%% make-record has been deprecated but we sill accept it for now.
 is_core_form('make-record') -> true;
+is_core_form('is-record') -> true;
 is_core_form('record-index') -> true;
 is_core_form('record-field') -> true;
 is_core_form('record-update') -> true;
+%% Core struct special forms.
+is_core_form('struct') -> true;
+is_core_form('is-struct') -> true;
+is_core_form('struct-field') -> true;
+is_core_form('struct-update') -> true;
 %% Function forms.
 is_core_form(function) -> true;
 %% Core closure special forms.
@@ -98,6 +106,11 @@ is_core_form('catch') -> true;
 is_core_form('try') -> true;
 is_core_form('funcall') -> true;
 is_core_form(call) -> true;
+%% List/binary comprehensions.
+is_core_form('lc') -> true;
+is_core_form('list-comp') -> true;
+is_core_form('bc') -> true;
+is_core_form('binary-comp') -> true;
 %% Core definition special forms.
 is_core_form('eval-when-compile') -> true;
 is_core_form('define-module') -> true;
@@ -108,6 +121,7 @@ is_core_form('define-function-spec') -> true;
 is_core_form('define-function') -> true;
 is_core_form('define-macro') -> true;
 is_core_form('define-record') -> true;
+is_core_form('define-struct') -> true;
 %% And don't forget when.
 is_core_form('when') -> true;
 %% Everything else is not a core form.
@@ -137,10 +151,25 @@ is_core_func('map-get', 2) -> true;
 is_core_func('map-set', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
 is_core_func('map-update', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
 is_core_func('map-remove', Ar) when Ar >= 1 -> true;
+%% Core record special functions.
+is_core_func('record', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
+%% make-record has been deprecated but we sill accept it for now.
 is_core_func('make-record', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
+is_core_func('is-record', 2) -> true;
 is_core_func('record-index', 2) -> true;
 is_core_func('record-field', 3) -> true;
 is_core_func('record-update', Ar) when Ar >= 2, (Ar rem 2) =:= 0 -> true;
+%% Core struct special functions.
+is_core_func('struct', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
+is_core_func('is-struct', Ar) when Ar =:= 1; Ar =:= 2 -> true;
+is_core_func('struct-field', 3) -> true;
+is_core_func('struct-update', Ar) when Ar >= 2, (Ar rem 2) =:= 0 -> true;
+%% List/binary comprehensions.
+is_core_func('lc', 2) -> true;
+is_core_func('list-comp', 2) -> true;
+is_core_func('bc', 2) -> true;
+is_core_func('binary-comp', 2) -> true;
+%% Core control special functions.
 is_core_func(funcall, Ar) when Ar >= 1 -> true;
 is_core_func(call, Ar) when Ar >= 2 -> true;
 is_core_func(_, _) -> false.

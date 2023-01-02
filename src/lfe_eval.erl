@@ -37,7 +37,6 @@
                   add_fbinding/4,add_fbindings/2,
                   add_ibinding/5]).
 
--import(lists, [reverse/1,all/2,map/2,foldl/3,foldr/3]).
 -import(orddict, [find/2,fetch/2,store/3,is_key/2]).
 
 -compile({no_auto_import,[apply/3]}).           %For our apply/3 function
@@ -76,7 +75,7 @@ format_error({illegal_literal,Lit}) ->
     format_value(Lit, <<"illegal literal value ">>);
 format_error({illegal_mapkey,Key}) ->
     lfe_io:format1(<<"illegal map key ~w">>, [Key]);
-format_error(bad_arity) -> <<"head arity mismatch">>;
+format_error(bad_head_arity) -> <<"function head arity mismatch">>;
 format_error({argument_limit,Arity}) ->
     lfe_io:format1(<<"too many arguments ~w">>, [Arity]);
 format_error({bad_form,Form}) ->
@@ -89,8 +88,17 @@ format_error({illegal_exception,E}) ->
 %% Records.
 format_error({undefined_record,Name}) ->
     lfe_io:format1(<<"record ~w undefined">>, [Name]);
-format_error({undefined_field,Name,Field}) ->
+format_error({undefined_record_field,Name,Field}) ->
     lfe_io:format1(<<"field ~w undefined in record ~w">>, [Field,Name]);
+format_error({missing_record_field_value,Field}) ->
+    lfe_io:format1(<<"missing value to field ~w in record">>, [Field]);
+%% Structs.
+format_error({undefined_struct,Name}) ->
+    lfe_io:format1(<<"struct ~w undefined">>, [Name]);
+format_error({undefined_struct_field,Name,Field}) ->
+    lfe_io:format1(<<"field ~w undefined in struct ~w">>, [Field,Name]);
+format_error({missing_struct_field_value,Field}) ->
+    lfe_io:format1(<<"missing value to field ~w in struct">>, [Field]);
 %% Everything we don't recognise or know about.
 format_error(Error) ->
     lfe_io:prettyprint1(Error).
@@ -194,10 +202,16 @@ eval_expr(['map-update',Map|As], Env) ->
 eval_expr(['map-remove',Map|Ks], Env) ->
     eval_map_remove('map-remove', Map, Ks, Env);
 %% Record special forms.
-eval_expr(['make-record',Name|Args], Env) ->
+eval_expr(['record',Name|Fs], Env) ->
+    make_record_tuple(Name, Fs, Env);
+%% make-record has been deprecated but we sill accept it for now.
+eval_expr(['make-record',Name|As], Env) ->
+    eval_expr(['record',Name|As], Env);
+eval_expr(['is-record',E,Name], Env) ->
+    Ev = eval_expr(E, Env),
     case lfe_env:get_record(Name, Env) of
         {yes,Fields} ->
-            make_record_tuple(Name, Fields, Args, Env);
+            is_valid_record(Ev, Name, Fields);
         no -> undefined_record_error(Name)
     end;
 eval_expr(['record-index',Name,F], Env) ->
@@ -210,17 +224,33 @@ eval_expr(['record-field',E,Name,F], Env) ->
     Ev = eval_expr(E, Env),
     case lfe_env:get_record(Name, Env) of
         {yes,Fields} ->
-            Index = get_field_index(Name, Fields, F),
-            element(Index, Ev);                 %Report if Ev not a record
+            case is_valid_record(Ev, Name, Fields) of
+                true ->
+                    Index = get_field_index(Name, Fields, F),
+                    element(Index, Ev);
+                false ->
+                    eval_error({badrecord,Name,Ev})
+            end;
         no -> undefined_record_error(Name)
     end;
 eval_expr(['record-update',E,Name|Args], Env) ->
     Ev = eval_expr(E, Env),
-    case lfe_env:get_record(Name, Env) of
-        {yes,Fields} ->
-            update_record_tuple(Name, Fields, Ev, Args, Env);
-        no -> undefined_record_error(Name)
-    end;
+    update_record_tuple(Ev, Name, Args, Env);
+%% Struct special forms.
+eval_expr(['struct',Name|Fs], Env) ->
+    make_struct_map(Name, Fs, Env);
+eval_expr(['is-struct',E], Env) ->
+    Ev = eval_expr(E, Env),
+    test_is_struct(Ev);
+eval_expr(['is-struct',E,Name], Env) ->
+    Ev = eval_expr(E, Env),
+    test_is_struct(Ev, Name);
+eval_expr(['struct-field',E,Name,F], Env) ->
+    Ev = eval_expr(E, Env),
+    get_struct_field(Ev, Name, F);
+eval_expr(['struct-update',E,Name|Args], Env) ->
+    Ev = eval_expr(E, Env),
+    update_struct_map(Ev, Name, Args, Env);
 %% Function forms.
 eval_expr([function,Mod,Name,Arity], _Env) ->
     %% Don't evaluate the arguments here.
@@ -292,12 +322,26 @@ eval_expr(Symb, Env) when is_atom(Symb) ->
     end;
 eval_expr(E, _) -> E.                           %Atomic evaluate to themselves
 
-%% make_record_tuple(Name, Fields, Args, Env) -> TupleList.
-%%  We have to macro expand and evaluate the default values here as well.
+%% is_valid_record(Value, Name, Fields) -> boolean().
+%%  Check if Value is a valid record tuple.
 
-make_record_tuple(Name, Fields, Args, Env) ->
-    Es = make_record_elements(Fields, Args, Env),
-    list_to_tuple([Name|Es]).
+is_valid_record(Value, Name, Fields) ->
+    RecSize = length(Fields) + 1,
+    is_tuple(Value)
+        andalso (tuple_size(Value) =:= RecSize)
+        andalso (element(1, Value) =:= Name).
+
+%% make_record_tuple(Name, Args, Env) -> Record.
+%%  We have to macro expand and evaluate the default values here as
+%%  well. Make sure to build the tuple in the right order.
+
+make_record_tuple(Name, Args, Env) ->
+    case lfe_env:get_record(Name, Env) of
+        {yes,Fields} ->
+            Es = make_record_elements(Fields, Args, Env),
+            list_to_tuple([Name|Es]);
+        no -> undefined_record_error(Name)
+    end.
 
 make_record_elements(Fields, Args, Env) ->
     Mfun = fun ([F,Def|_]) -> make_field_val(F, Args, Def, Env);
@@ -309,6 +353,8 @@ make_record_elements(Fields, Args, Env) ->
 make_field_val(F, [F,V|_], _Def, Env) -> eval_expr(V, Env);
 make_field_val(F, [_,_|Args], Def, Env) ->
     make_field_val(F, Args, Def, Env);
+make_field_val(_F, [ArgF], _Def, _Env) ->
+    eval_error({missing_record_field_value,ArgF});
 make_field_val(_, [], Def, Env) -> expr(Def, Env).
 
 %% get_field_index(Name, Fields, Field) -> Index.
@@ -317,18 +363,28 @@ get_field_index(Name, Fields, F) ->
     get_field_index(Name, Fields, F, 2).        %First element record name
 
 get_field_index(_Name, [[F|_]|_Fields], F, I) -> I;
-get_field_index(_Name, [F|_Fields], F, I) -> I; %Filed can be just name
+get_field_index(_Name, [F|_Fields], F, I) -> I; %Field can be just name
 get_field_index(Name, [_|Fields], F, I) ->
     get_field_index(Name, Fields, F, I+1);
 get_field_index(Name, [], F, _I) ->
-    undefined_field_error(Name, F).
+    undefined_record_field_error(Name, F).
 
-%% update_record_tuple(Name, Fields, Record, Args, Env) -> TupleList
+%% update_record_tuple(Record, Name, Args, Env) -> Record.
 %%  Update the Record with the Args.
 
-update_record_tuple(Name, Fields, Rec, Args, Env) ->
-    Es = update_record_elements(Fields, tl(tuple_to_list(Rec)), Args, Env),
-    list_to_tuple([Name|Es]).
+update_record_tuple(Rec, Name, Args, Env) ->
+    case lfe_env:get_record(Name, Env) of
+        {yes,Fields} ->
+            case is_valid_record(Rec, Name, Fields) of
+                true ->
+                    Es0 =  tl(tuple_to_list(Rec)),
+                    Es1 = update_record_elements(Fields, Es0, Args, Env),
+                    list_to_tuple([Name|Es1]);
+                false ->
+                    eval_error({badrecord,Name,Rec})
+            end;
+        no -> undefined_record_error(Name)
+    end.
 
 update_record_elements(Fields, Recvs, Args, Env) ->
     Ufun = fun ([F|_], Rv) ->  update_field_val(F, Args, Rv, Env);
@@ -340,6 +396,57 @@ update_field_val(F, [F,V|_], _Recv, Env) -> eval_expr(V, Env);
 update_field_val(F, [_,_|Args], Recv, Env) ->
     update_field_val(F, Args, Recv, Env);
 update_field_val(_, [], Recv, _Env) -> Recv.
+
+%% make_struct_map(Name, Fields, Env) -> Struct.
+%%  We have to macro expand and evaluate the values in the fields. Use
+%%  the __struct__/1 check and build the new struct.
+
+make_struct_map(Name, Fields, Env) ->
+    Efs = make_struct_fields(Fields, Env),
+    try
+        Name:'__struct__'(Efs)
+    catch
+        _:_ ->
+            eval_error({undefined_struct,Name})
+    end.
+
+make_struct_fields([Key,Val|Kvs], Env) ->
+    [{Key,eval_expr(Val, Env)}|make_struct_fields(Kvs, Env)];
+make_struct_fields([Key], _Env) ->
+    eval_error({missing_struct_field_value,Key});
+make_struct_fields([], _Env) ->  [].
+
+%% test_is_struct(Struct) -> boolean().
+%% test_is_struct(Struct, Name) -> boolean().
+%%  Test whether term is a struct.
+
+test_is_struct(#{'__struct__' := StrName}) when is_atom(StrName) -> true;
+test_is_struct(_Other) -> false.
+
+test_is_struct(#{'__struct__' := StrName}, Name) when is_atom(StrName) ->
+    StrName =:= Name;
+test_is_struct(_Other, _Name) -> false.
+
+%% get_struct_field(Struct, Name, Field) -> Value.
+
+get_struct_field(Str, Name, Field) ->
+    case Str of
+        #{'__struct__' := Name, Field := Val} -> Val;
+         _ ->
+             eval_error({badstruct,Name,Str})
+    end.
+
+%% update_struct_map(Struct, Name, Fields) -> Struct.
+%%  Update the Record with the Args.
+
+update_struct_map(Str, Name, Fields, Env) ->
+    case Str of
+        #{'__struct__' := Name} ->
+            Assocs = make_struct_fields(Fields, Env),
+            lists:foldl(fun maps_update/2, Str, Assocs);
+        _ ->
+            eval_error({badstruct,Name,Str})
+    end.
 
 %% get_fbinding(NAme, Arity, Env) ->
 %%     {yes,Module,Fun} | {yes,Binding} | no.
@@ -363,7 +470,7 @@ get_fbinding(Name, Ar, Env) ->
     end.
 
 eval_list(Es, Env) ->
-    map(fun (E) -> eval_expr(E, Env) end, Es).
+    lists:map(fun (E) -> eval_expr(E, Env) end, Es).
 
 %% eval_body(Body, Env) -> Value.
 %%  Evaluate the list of expressions and return value of the last one.
@@ -519,7 +626,7 @@ bind_args([A|As], [E|Es], Env) when is_atom(A) ->
     bind_args(As, Es, add_vbinding(A, E, Env));
 bind_args([], [], Env) -> Env;
 bind_args(_As, _Vs, _Env) ->
-    eval_error(bad_arity).
+    eval_error(bad_head_arity).
 
 match_lambda_arity([[Pats|_]|Cls]) ->
     case lfe_lib:is_proper_list(Pats) of
@@ -544,7 +651,7 @@ apply_match_lambda([[Pats|B0]|Cls], Vals, Env) ->
                 {yes,B1,Vbs} -> eval_body(B1, add_vbindings(Vbs, Env));
                 no -> apply_match_lambda(Cls, Vals, Env)
             end;
-       true -> eval_error(bad_arity)
+       true -> eval_error(bad_head_arity)
     end;
 apply_match_lambda([], _Vals, _) -> eval_error(function_clause);
 apply_match_lambda(_, _, _) -> bad_form_error('match-lambda').
@@ -553,20 +660,21 @@ apply_match_lambda(_, _, _) -> bad_form_error('match-lambda').
 
 eval_let([Vbs|Body], Env0) ->
     %% Make sure we use the right environment.
-    Env1 = foldl(fun ([Pat,E], Env) ->
-                         Val = eval_expr(E, Env0),
-                         case match(Pat, Val, Env0) of
-                             {yes,Bs} -> add_vbindings(Bs, Env);
-                             no -> eval_error({badmatch,Val})
-                         end;
-                     ([Pat,['when'|_]=G,E], Env) ->
-                         Val = eval_expr(E, Env0),
-                         case match_when(Pat, Val, [G], Env0) of
-                             {yes,[],Bs} -> add_vbindings(Bs, Env);
-                             no -> eval_error({badmatch,Val})
-                         end;
-                     (_, _) -> bad_form_error('let')
-                 end, Env0, Vbs),
+    Fun = fun ([Pat,E], Env) ->
+                  Val = eval_expr(E, Env0),
+                  case match(Pat, Val, Env0) of
+                      {yes,Bs} -> add_vbindings(Bs, Env);
+                      no -> eval_error({badmatch,Val})
+                  end;
+              ([Pat,['when'|_]=G,E], Env) ->
+                  Val = eval_expr(E, Env0),
+                  case match_when(Pat, Val, [G], Env0) of
+                      {yes,[],Bs} -> add_vbindings(Bs, Env);
+                      no -> eval_error({badmatch,Val})
+                  end;
+              (_, _) -> bad_form_error('let')
+          end,
+    Env1 = lists:foldl(Fun, Env0, Vbs),
     eval_body(Body, Env1).
 
 %% eval_let_function([FuncBindings|Body], Env) -> Value.
@@ -575,13 +683,14 @@ eval_let_function([Fbs|Body], Env0) ->
     Add = fun (F, Ar, Def, Lenv, Env) ->
                   add_lexical_func(F, Ar, Def, Lenv, Env)
           end,
-    Env1 = foldl(fun ([V,[lambda,Args|_]=Lambda], E) when is_atom(V) ->
-                         Add(V, length(Args), Lambda, Env0, E);
-                     ([V,['match-lambda',[Pats|_]|_]=Match], E)
-                       when is_atom(V) ->
-                         Add(V, length(Pats), Match, Env0, E);
-                     (_, _) -> bad_form_error('let-function')
-                 end, Env0, Fbs),
+    Fun = fun ([V,[lambda,Args|_]=Lambda], E) when is_atom(V) ->
+                  Add(V, length(Args), Lambda, Env0, E);
+              ([V,['match-lambda',[Pats|_]|_]=Match], E)
+                when is_atom(V) ->
+                  Add(V, length(Pats), Match, Env0, E);
+              (_, _) -> bad_form_error('let-function')
+          end,
+    Env1 = lists:foldl(Fun, Env0, Fbs),
     %% io:fwrite("elf: ~p\n", [{Body,Env1}]),
     eval_body(Body, Env1).
 
@@ -591,12 +700,13 @@ eval_let_function([Fbs|Body], Env0) ->
 
 eval_letrec_function([Fbs0|Body], Env0) ->
     %% Check and abstract out function bindings.
-    Fbs1 = map(fun ([V,[lambda,Args|_]=Lambda]) when is_atom(V) ->
-                       {V,length(Args),Lambda};
-                   ([V,['match-lambda',[Pats|_]|_]=Match]) when is_atom(V) ->
-                       {V,length(Pats),Match};
-                   (_) -> bad_form_error('letrec-function')
-               end, Fbs0),
+    Fun = fun ([V,[lambda,Args|_]=Lambda]) when is_atom(V) ->
+                  {V,length(Args),Lambda};
+              ([V,['match-lambda',[Pats|_]|_]=Match]) when is_atom(V) ->
+                  {V,length(Pats),Match};
+              (_) -> bad_form_error('letrec-function')
+          end,
+    Fbs1 = lists:map(Fun, Fbs0),
     Env1 = make_letrec_env(Fbs1, Env0),
     %% io:fwrite("elrf: ~p\n", [{Env0,Env1}]),
     eval_body(Body, Env1).
@@ -617,7 +727,8 @@ eval_letrec_function([Fbs0|Body], Env0) ->
 %% init_letrec_env(Env) -> {[],Env}.
 
 make_letrec_env(Fbs0, Env) ->
-    Fbs1 = map(fun ({V,Ar,Body}) -> {V,Ar,{letrec,Body,Fbs0,Env}} end, Fbs0),
+    Fbs1 = lists:map(fun ({V,Ar,Body}) -> {V,Ar,{letrec,Body,Fbs0,Env}} end,
+                     Fbs0),
     add_fbindings(Fbs1, Env).
 
 %% extend_letrec_env(Lete0, Fbs0, Env0) ->
@@ -650,9 +761,10 @@ eval_apply({lexical_expr,Func,Env}, Es, _) ->
     eval_apply_expr(Func, Es, Env);
 eval_apply({letrec,Body,Fbs,Env}, Es, _) ->
     %% A function created by/for letrec-function.
-    NewEnv = foldl(fun ({V,Ar,Lambda}, E) ->
-                           add_fbinding(V, Ar, {letrec,Lambda,Fbs,Env}, E)
-                   end, Env, Fbs),
+    Fun = fun ({V,Ar,Lambda}, E) ->
+                  add_fbinding(V, Ar, {letrec,Lambda,Fbs,Env}, E)
+          end,
+    NewEnv = lists:foldl(Fun, Env, Fbs),
     %% io:fwrite("la: ~p\n", [{Body,NewEnv}]),
     eval_apply_expr(Body, Es, NewEnv).
 
@@ -719,11 +831,11 @@ eval_receive(Body, Env) ->
     end.
 
 split_receive([['after',T|B]], Rcls) ->
-    {reverse(Rcls),T,B};
+    {lists:reverse(Rcls),T,B};
 split_receive([Cl|Cls], Rcls) ->
     split_receive(Cls, [Cl|Rcls]);
 split_receive([], Rcls) ->
-    {reverse(Rcls),?Q(infinity),[]}.    %No timeout, return 'infinity.
+    {lists:reverse(Rcls),?Q(infinity),[]}.    %No timeout, return 'infinity.
 
 %% receive_clauses(Clauses, Env) -> Value.
 %%  Recurse down message queue. We are only called with timeout value
@@ -779,7 +891,7 @@ recv_all(Xs) ->
     receive
         X -> recv_all([X|Xs])
     after 0 ->
-            reverse(Xs)
+            lists:reverse(Xs)
     end.
 
 send_all([X|Xs], Self) ->
@@ -890,7 +1002,7 @@ eval_guard(Gts, Env) ->
 %% A body is a sequence of tests which must all succeed.
 
 eval_gbody(Gts, Env) ->
-    all(fun (Gt) -> eval_gexpr(Gt, Env) end, Gts).
+    lists:all(fun (Gt) -> eval_gexpr(Gt, Env) end, Gts).
 
 %% eval_gexpr(Sexpr, Environment) -> Value.
 %%  Evaluate a guard sexpr in the current environment.
@@ -925,6 +1037,16 @@ eval_gexpr(['map-set',Map|As], Env) ->
     eval_gmap_set('map-set', Map, As, Env);
 eval_gexpr(['map-update',Map|As], Env) ->
     eval_gmap_update('map-update', Map, As, Env);
+%% Struct special forms.
+eval_gexpr(['is-struct',E0], Env) ->
+    Ev = eval_gexpr(E0, Env),
+    test_is_struct(Ev);
+eval_gexpr(['is-struct',E0,Name], Env) ->
+    Ev = eval_gexpr(E0, Env),
+    test_is_struct(Ev, Name);
+eval_gexpr(['struct-field',E,Name,F], Env) ->
+    Ev = eval_gexpr(E, Env),
+    get_struct_field(Ev, Name, F);
 %% Handle the Core closure special forms.
 %% Handle the control special forms.
 eval_gexpr(['progn'|Body], Env) -> eval_gbody(Body, Env);
@@ -968,7 +1090,7 @@ get_gbinding(Name, Ar, Env) ->
     end.
 
 eval_glist(Es, Env) ->
-    map(fun (E) -> eval_gexpr(E, Env) end, Es).
+    lists:map(fun (E) -> eval_gexpr(E, Env) end, Es).
 
 %% eval_gmap(Args, Env) -> Map.
 %% eval_gmap_size(Form, Map, Env) -> Value.
@@ -1079,12 +1201,15 @@ match([map|Ps], Val, Pbs, Env) ->
         false -> no
     end;
 %% Record patterns.
-match(['make-record',Name|Fs], Val, Pbs, Env) ->
+match(['record',Name|Fs], Val, Pbs, Env) ->
     case lfe_env:get_record(Name, Env) of
         {yes,Fields} ->
             match_record_tuple(Name, Fields, Fs,  Val, Pbs, Env);
         no -> undefined_record_error(Name)
     end;
+%% make-record has been deprecated but we sill accept it for now.
+match(['make-record',Name|Fs], Val, Pbs, Env) ->
+    match(['record',Name|Fs], Val, Pbs, Env);
 match(['record-index',Name,F], Val, Pbs, Env) ->
     case lfe_env:get_record(Name, Env) of
         {yes,Fields} ->
@@ -1092,6 +1217,9 @@ match(['record-index',Name,F], Val, Pbs, Env) ->
             match(Index, Val, Pbs, Env);
         no -> undefined_record_error(Name)
     end;
+%% Struct patterns.
+match(['struct',Name|Fs], Val, Pbs, Env) ->
+    match_struct_map(Name, Fs, Val, Pbs, Env);
 %% No constructor list forms.
 match([_|_]=List, Val, Pbs, _) ->               %No constructor
     case lfe_lib:is_posint_list(List) of        %Accept strings
@@ -1146,6 +1274,17 @@ match_record_patterns(Fields, Pats) ->
 make_field_pat(F, [F,P|_]) -> P;
 make_field_pat(F, [_,_|Pats]) -> make_field_pat(F, Pats);
 make_field_pat(_, []) -> '_'.                   %Underscore matches anything
+
+%% match_struct_map(Name, Pats, Val, Pbs, Env) -> {yes,Pbs} | no.
+
+match_struct_map(Name, Pats, Val, Pbs, Env) ->
+    Str = [map,?Q('__struct__'),?Q(Name)|match_struct_fields(Pats)],
+    match(Str, Val, Pbs, Env).
+
+match_struct_fields([Key,Val|Kvs]) ->
+    [?Q(Key),Val|match_struct_fields(Kvs)];
+match_struct_fields([Key]) -> eval_error({missing_struct_field_value,Key});
+match_struct_fields([]) ->  [].
 
 %% match_binary(Bitsegs, Binary, PatBindings, Env) -> {yes,PatBindings} | no.
 %%  Match Bitsegs against Binary. Bad matches result in an error, we
@@ -1235,8 +1374,8 @@ illegal_mapkey_error(Key) ->
 undefined_record_error(Rec) ->
     eval_error({undefined_record,Rec}).
 
-undefined_field_error(Rec, F) ->
-    eval_error({undefined_field,Rec,F}).
+undefined_record_field_error(Rec, F) ->
+    eval_error({undefined_record_field,Rec,F}).
 
 eval_error(Error) ->
     erlang:raise(error, Error, ?STACKTRACE).

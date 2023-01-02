@@ -56,6 +56,10 @@ The currently recognised options are:
   linted LFE code in the files <Module>.lint. No object files are
   produced. Mainly useful for debugging and interest.
 
+* ``to_erlang``, ``to-erlang`` - Print a listing of the Erlang AST in
+  the file <Module>.erl. No object files are produced. Mainly useful
+  for debugging and interest.
+
 * ``to_core0``, ``to-core0``, ``to_core``, ``to-core`` - Print a listing
   of the Core Erlang code before/after being optimised in the files
   <Module>.core. No object files are produced. Mainly useful for debugging

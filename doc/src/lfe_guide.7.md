@@ -343,10 +343,18 @@ while it reads the expression and then be effectively ``2``.
 (call mod func arg ... )    - Call to Mod:Func(Arg, ... )
 
 (define-record name fields)
-(make-record name field val ...)
+(record name field val ...)
+(is-record record name)
 (record-index name field)
 (record-field record name field)
 (record-update record name field val ...)
+
+(define-struct fields)
+(struct field val ...)
+(is-struct struct)
+(is-struct struct name)
+(struct-field struct name field)
+(struct-update struct name field val ...)
 
 (define-module name meta-data attributes)
 (extend-module meta-data attributes)
@@ -387,10 +395,10 @@ while it reads the expression and then be effectively ``2``.
 (orelse ... )
 (fun func arity)
 (fun mod func arity)
-(lc (qual ...) ...)
-(list-comp (qual ...) ...)
-(bc (qual ...) ...)
-(binary-comp (qual ...) ...)
+(lc (qual ...) expr)
+(list-comp (qual ...) expr)
+(bc (qual ...) bitstringexpr)
+(binary-comp (qual ...) bitstringexpr)
 (ets-ms ...)
 (trace-ms ...)
 ```
@@ -422,6 +430,7 @@ while it reads the expression and then be effectively ``2``.
 (prog2 ...)
 (defmodule name ...)
 (defrecord name ...)
+(defstruct ...)
 ```
 
 # Patterns
@@ -469,7 +478,8 @@ following guard expressions:
 (tuple gexpr ...)
 (tref gexpr gexpr)
 (binary ...)
-(make-record ...)           - Also the macro versions
+(record ...)                - Also the macro versions
+(is-record ...)
 (record-field ...)
 (record-index ...)
 (map ...)
@@ -812,16 +822,17 @@ guard is allowed here. An example:
 
 Records are tuples with the record name as first element and the rest
 of the fields in order exactly like "normal" Erlang records. As with
-Erlang records the default default value is 'undefined'.
+Erlang records the default default value is the atom 'undefined'.
 
 The basic forms for defining a record, creating, accessing and
 updating it are:
 
 ```
-(define-record name ((field) | field
-                     (field default-value)
+(define-record name (field | (field) |
+                     (field default-value) |
                      (field default-value type) ...))
-(make-record name field value field value ...)
+(record name field value field value ...)
+(is-record record name)
 (record-index name field)
 (record-field record name field)
 (record-update record name field value field value ...)
@@ -829,6 +840,10 @@ updating it are:
 
 Note that the list of field/value pairs when making or updating a
 record is a flat list.
+
+Note that the old ``make-record`` form has been deprecated and is
+replaced by ``record`` which better matches other constructors like
+``tuple`` and ``map``. It still exists but should not be used.
 
 We will explain these forms with a simple example. To define a record
 we do:
@@ -846,13 +861,13 @@ value ``""``), ``address`` (default value ``""`` and type
 we do:
 
 ```
-(make-record person name "Robert" age 54)
+(record person name "Robert" age 54)
 ```
 
-The ``make-record`` form is also used to define a pattern.
+The ``record`` form is also used to define a pattern.
 
 We can get the value of the ``address`` field in a person record and
-the set it by doing (the variable ``robert`` references a ``person``
+set it by doing (the variable ``robert`` references a ``person``
 record):
 
 ```
@@ -864,7 +879,7 @@ Note that we must include the name of the record when accessing it and
 there is no need to quote the record and field names as these are
 always literal atoms.
 
-To simplify defining records there is a predefined macro:
+To simplify defining and using records there is a predefined macro:
 
 ```
 (defrecord name
@@ -942,6 +957,60 @@ the following will be generated:
 Note that the older now deprecated ``set-`` forms are still
 generated.
 
+# Structs
+
+Structs in LFE are the same as Elixir structs and have been defined
+in the same way so to be truly compatible. This means that you can use
+structs defined in Elixr from LFE and structs defined in LFE from
+Elixir.
+
+```
+(define-struct (field | (field) |
+                (field default-value) |
+                (field default-value type) ...))
+(struct name field value field value ...)
+(is-struct struct)
+(is-struct struct name)
+(struct-field struct name field)
+(struct-update struct name field value field value ...)
+```
+
+We will explain these forms with a simple example. To define a struct
+we do:
+
+```
+(define-struct ((name "")
+                (address "" (string))
+                (age)))
+```
+
+which defines a struct with the name of the current module with the
+fields ``name`` (default value ``""``), ``address`` (default value
+``""`` and type ``(string)``) and ``age``. To make an instance of
+struct we do:
+
+```
+(struct mod-name name "Robert" age 54)
+```
+
+The ``struct`` form is also used to define a pattern.
+
+We can get the value of the ``address`` field in the struct and set it
+by doing (the variable ``robert`` references a struct):
+
+```
+(struct-field robert mod-name address)
+(struct-update robert mod-name address "my home" age 55)
+```
+
+Note that a struct automatically gets the name of the module in which
+it is defined so that there can only be one struct defined in a
+module. This mirrors how structs are implemented in Elixir.
+
+Note that we must include the name of the struct when accessing it and
+there is no need to quote the struct and field names as these are
+always literal atoms.
+
 # Binaries/bitstrings
 
 A binary is
@@ -953,13 +1022,14 @@ A binary is
 where ``seg`` is
 
 ```
-        byte
-        string
-        (val integer|float|binary|bitstring|bytes|bits
-             (size n) (unit n)
-             big-endian|little-endian|native-endian
-             big|little|native
-             signed|unsigned)
+    byte
+    string
+    (val integer | float | binary | bitstring | bytes | bits |
+         utf8 | utf-8 | utf16 | utf-16 | utf32 | utf-32
+         (size n) (unit n)
+         big-endian | little-endian | native-endian
+         big | little | native
+         signed | unsigned)
 ```
 
 ``val`` can also be a string in which case the specifiers will be applied
@@ -985,17 +1055,15 @@ To access maps there are the following forms:
   Return the value associated with the key in the map.
 
 * ``(map-set map key val ... )`` -
-  Set the keys in the map to values.
+  Set the keys in the map to values. This form can be used to update
+  the values of existing keys and to add new keys.
 
 * ``(map-update map key val ... )`` -
   Update the keys in the map to values. Note that this form requires all
-  the keys to exist.
+  the keys to already exist in the map.
 
 * ``(map-remove map key ... )`` -
   Remove the keys in the map.
-
-N.B. This syntax for processing maps has stabilized but may change in
-the future!
 
 There are also alternate short forms ``msiz``, ``mref``, ``mset``,
 ``mupd`` and ``mrem`` based on the Maclisp array reference forms. They
@@ -1008,29 +1076,28 @@ List/binary comprehensions are supported as macros. The syntax for
 list comprehensions is:
 
 ```
-(lc (qual  ...) expr ... )
-(list-comp (qual  ...) expr ... )
+(lc (qual  ...) expr)
+(list-comp (qual  ...) expr)
 ```
 
-where the final expr is used to generate the elements of the list.
+where the last expr is used to generate the elements of the list.
 
 The syntax for binary comprehensions is:
 
 ```
-(bc (qual  ...) expr ... )
-(binary-comp (qual  ...) expr ... )
+(bc (qual  ...) bitstringexpr )
+(binary-comp (qual  ...) bitstringexpr)
 ```
 
-where the final expr is a bitseg expr and is used to generate the
-elements of the binary.
+where the final expr is a bitstring expression and is used to generate
+the elements of the binary.
 
 The supported qualifiers, in both list/binary comprehensions are:
 
 ```
 (<- pat {{guard}} list-expr)        - Extract elements from list
 (<= bin-pat {{guard}} binary-expr)  - Extract elements from binary
-(?= pat {{guard}} expr)  - Match test and bind variables in pat
-expr                     - Normal boolean test
+expr                                - Normal boolean test
 ```
 
 Some examples:
@@ -1045,15 +1112,16 @@ returns a list of all the even elements of the list ``l1`` which are
 greater than 5.
 
 ```
-(bc ((<= (f float (size 32)) b1)        ;Only bitseg needed
+(bc ((<= (binary (f float (size 32))) b1)
      (> f 10.0))
-  (: io fwrite "~p\n" (list f))
-  (f float (size 64)))                  ;Only bitseg needed
+  (progn
+    (: io fwrite "~p\n" (list f))
+    (binary (f float (size 64)))))
 ```
 
-returns a binary of floats of size 64 of floats which are larger than
-10.0 from the binary b1 and of size 32. The returned numbers are first
-printed.
+returns a binary of floats of size 64 bits which are from the binary
+b1 where they are of size 32 bits and larger than 10.0. The returned
+numbers are first printed.
 
 N.B. A word of warning when using guards when extracting elements from
 a binary.  When a match/guard fails for a binary no more attempts will

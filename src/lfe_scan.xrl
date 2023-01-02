@@ -64,7 +64,7 @@ Rules.
 #{D}*[xX]{SYM}+ :    base_token(skip_past(TokenChars, $x, $X), 16, TokenLine).
 #{D}*[rR]{SYM}+ :
         %% Scan over digit chars to get base.
-        {Base,[_|Ds]} = base1(tl(TokenChars), 10, 0),
+        {Base,[_|Ds]} = base_collect(tl(TokenChars), 10, 0),
         base_token(Ds, Base, TokenLine).
 
 %% String
@@ -99,6 +99,11 @@ Rules.
             {ok,F} -> {token,{number,TokenLine,F}};
             _ -> {error,"illegal float"}
         end.
+%% Elixir alias symbol
+#[eE]{SSYM}{SYM}* :
+        %% Strip sharpsign e | E.
+        AliasStr = string:substr(TokenChars,3),
+        symbol_token("Elixir." ++ AliasStr, TokenLine).
 %% Symbols
 {SSYM}{SYM}*    :
         symbol_token(TokenChars, TokenLine).
@@ -168,22 +173,25 @@ base_token([$-|Cs], B, L) -> base_token(Cs, B, -1, L);
 base_token(Cs, B, L) -> base_token(Cs, B, +1, L).
 
 base_token(Cs, B, S, L) ->
-    case base1(Cs, B, 0) of
+    case base_collect(Cs, B, 0) of
         {N,[]} -> {token,{number,L,S*N}};
         {_,_} -> {error,"illegal based number"}
     end.
 
-base1([C|Cs], Base, SoFar) when C >= $0, C =< $9, C < Base + $0 ->
+%% base_collect(Chars, Base, SoFar) -> {Number,RestChars}.
+%%  Collect all numeric characters of base Base.
+
+base_collect([C|Cs], Base, SoFar) when C >= $0, C =< $9, C < Base + $0 ->
     Next = SoFar * Base + (C - $0),
-    base1(Cs, Base, Next);
-base1([C|Cs], Base, SoFar) when C >= $a, C =< $z, C < Base + $a - 10 ->
+    base_collect(Cs, Base, Next);
+base_collect([C|Cs], Base, SoFar) when C >= $a, C =< $z, C < Base + $a - 10 ->
     Next = SoFar * Base + (C - $a + 10),
-    base1(Cs, Base, Next);
-base1([C|Cs], Base, SoFar) when C >= $A, C =< $Z, C < Base + $A - 10 ->
+    base_collect(Cs, Base, Next);
+base_collect([C|Cs], Base, SoFar) when C >= $A, C =< $Z, C < Base + $A - 10 ->
     Next = SoFar * Base + (C - $A + 10),
-    base1(Cs, Base, Next);
-base1([C|Cs], _Base, SoFar) -> {SoFar,[C|Cs]};
-base1([], _Base, N) -> {N,[]}.
+    base_collect(Cs, Base, Next);
+base_collect([C|Cs], _Base, SoFar) -> {SoFar,[C|Cs]};
+base_collect([], _Base, N) -> {N,[]}.
 
 -define(IS_UNICODE(C), ((C >= 0) and (C =< 16#10FFFF))).
 
@@ -193,7 +201,7 @@ base1([], _Base, N) -> {N,[]}.
 %%  unicode range.
 
 char_token([$x,C|Cs], L) ->
-    case base1([C|Cs], 16, 0) of
+    case base_collect([C|Cs], 16, 0) of
         {N,[]} when ?IS_UNICODE(N) -> {token,{number,L,N}};
         _ -> {error,"illegal character"}
     end;
@@ -204,9 +212,9 @@ char_token([C], L) -> {token,{number,L,C}}.
 %%  We know that the input string is correct.
 
 chars([$\\,$x,C|Cs0]) ->
-    case hex_char(C) of
+    case is_hex_char(C) of
         true ->
-            case base1([C|Cs0], 16, 0) of
+            case base_collect([C|Cs0], 16, 0) of
                 {N,[$;|Cs1]} -> [N|chars(Cs1)];
                 _Other -> [escape_char($x)|chars([C|Cs0])]
             end;
@@ -216,10 +224,10 @@ chars([$\\,C|Cs]) -> [escape_char(C)|chars(Cs)];
 chars([C|Cs]) -> [C|chars(Cs)];
 chars([]) -> [].
 
-hex_char(C) when C >= $0, C =< $9 -> true;
-hex_char(C) when C >= $a, C =< $f -> true;
-hex_char(C) when C >= $A, C =< $F -> true;
-hex_char(_) -> false.
+is_hex_char(C) when C >= $0, C =< $9 -> true;
+is_hex_char(C) when C >= $a, C =< $f -> true;
+is_hex_char(C) when C >= $A, C =< $F -> true;
+is_hex_char(_) -> false.
 
 escape_char($b) -> $\b;                %\b = BS
 escape_char($t) -> $\t;                %\t = TAB
@@ -230,7 +238,7 @@ escape_char($r) -> $\r;                %\r = CR
 escape_char($e) -> $\e;                %\e = ESC
 escape_char($s) -> $\s;                %\s = SPC
 escape_char($d) -> $\d;                %\d = DEL
-escape_char(C) -> C.
+escape_char(C) -> C.                   %\Other = Other
 
 %% Block Comment:
 %%  Provide a sensible error when people attempt to include nested
@@ -246,11 +254,14 @@ block_comment(TokenChars) ->
     end.
 
 %% skip_until(String, Char1, Char2) -> String.
-%% skip_past(String, Char1, Char2) -> String.
+%%  Skip characters until we get a C1 or C2.
 
 %% skip_until([C|_]=Cs, C1, C2) when C =:= C1 ; C =:= C2 -> Cs;
 %% skip_until([_|Cs], C1, C2) -> skip_until(Cs, C1, C2);
 %% skip_until([], _, _) -> [].
+
+%% skip_past(String, Char1, Char2) -> String.
+%%  Skip characters until we get a C1 or C2 and then skip past it.
 
 skip_past([C|Cs], C1, C2) when C =:= C1 ; C =:= C2 -> Cs;
 skip_past([_|Cs], C1, C2) -> skip_past(Cs, C1, C2);

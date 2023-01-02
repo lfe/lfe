@@ -1,6 +1,7 @@
 name: ci/cd
 
 on:
+  workflow_dispatch:
   push:
     branches: [ master, release/*, task/*, feature/*, bugfix/*, develop]
   pull_request:
@@ -9,14 +10,13 @@ on:
 jobs:
 
   builds:
-    name: Newer builds - OTP ${{ matrix.otp-version }} (rebar3 ${{ matrix.rebar3-version }}) / ${{ matrix.os }}
+    name: Newer builds - OTP ${{ matrix.otp-version }} / ${{ matrix.os }}
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
-        otp-version: ['22', '23', '24']
-        rebar3-version: ['3.16.1']
+        otp-version: ['22', '23', '24', '25']
         os: ['ubuntu-latest']
 
     container:
@@ -26,23 +26,16 @@ jobs:
     - uses: actions/checkout@v2
     - name: Erlang version check
       run: erl -noshell -eval 'erlang:display(erlang:system_info(system_version))' -eval 'init:stop()'
-    - name: Download rebar3
-      run: wget https://github.com/erlang/rebar3/releases/download/${{ matrix.rebar3-version }}/rebar3 && chmod 755 ./rebar3
     - name: Rebar version check
-      run: ./rebar3 -v
+      run: rebar3 -v
     - name: Compile (with rebar3)
-      run: ./rebar3 compile
+      run: rebar3 compile
     - name: Run eunit Tests
-      # XXX for some reason, the first pass of eunit doesn't run the tests?!
-      run: ./rebar3 as test do compile,eunit,eunit
+      run: make eunit
     - name: Run proper Tests
-      # XXX this is a hack; we're getting VM crashes due to atom-table filling
-      #     for the default test count of '100' -- note, however:
-      #     * 'prop_lfe_docs:prop_define_lambda' works just fine with 100 tests
-      #     * 'prop_lfe_docs:prop_define_match' is the one that crashes the VM
-      run: ./rebar3 as test proper -n 20
+      run: make proper
     - name: CT Suite Tests
-      run: ./rebar3 as test ct
+      run: make ct
 
   installs:
     name: Newer installs - OTP ${{ matrix.otp-version }} / ${{ matrix.os }}
@@ -52,7 +45,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        otp-version: ['22', '23', '24']
+        otp-version: ['22', '23', '24', '25']
         os: ['ubuntu-latest']
 
     container:
@@ -67,16 +60,15 @@ jobs:
     - name: Install
       run: make install PREFIX=$(mktemp -d)
 
-      
+
   older-builds:
-    name: Older builds - OTP ${{ matrix.otp-version }} (rebar3 ${{ matrix.rebar3-version }}) / ${{ matrix.os }}
+    name: Older builds - OTP ${{ matrix.otp-version }} / ${{ matrix.os }}
     runs-on: ubuntu-18.04
 
     strategy:
       fail-fast: false
       matrix:
         otp-version: ['19', '20', '21']
-        rebar3-version: ['3.14.4']
         os: ['ubuntu-18.04']
 
     container:
@@ -86,23 +78,16 @@ jobs:
     - uses: actions/checkout@v2
     - name: Erlang version check
       run: erl -noshell -eval 'erlang:display(erlang:system_info(system_version))' -eval 'init:stop()'
-    - name: Download rebar3
-      run: wget https://github.com/erlang/rebar3/releases/download/${{ matrix.rebar3-version }}/rebar3 && chmod 755 ./rebar3
     - name: Rebar version check
-      run: ./rebar3 -v
+      run: rebar3 -v
     - name: Compile (with rebar3)
-      run: ./rebar3 compile
+      run: rebar3 compile
     - name: Run eunit Tests
-      # XXX for some reason, the first pass of eunit doesn't run the tests?!
-      run: rm rebar.lock && DEBUG=1 ./rebar3 as test do compile,eunit,eunit
+      run: make eunit
     - name: Run proper Tests
-      # XXX this is a hack; we're getting VM crashes due to atom-table filling
-      #     for the default test count of '100' -- note, however:
-      #     * 'prop_lfe_docs:prop_define_lambda' works just fine with 100 tests
-      #     * 'prop_lfe_docs:prop_define_match' is the one that crashes the VM
-      run: ./rebar3 as test proper -n 20
+      run: make proper
     - name: CT Suite Tests
-      run: ./rebar3 as test ct
+      run: make ct
 
   older-installs:
     name: Older installs - OTP ${{ matrix.otp-version }} / ${{ matrix.os }}
@@ -113,7 +98,6 @@ jobs:
       fail-fast: false
       matrix:
         otp-version: ['19', '20', '21']
-        rebar3-version: ['3.14.4']
         os: ['ubuntu-18.04']
 
     container:

@@ -40,11 +40,11 @@
 %% format_error(Error) -> String.
 %%  Do we really need this here?
 
-format_error({bad_type,T}) ->
+format_error({bad_type_def,T}) ->
     lfe_io:format1("bad ~w type definition", [T]);
-format_error({type_syntax,T}) ->
+format_error({bad_type_syntax,T}) ->
     lfe_io:format1(<<"bad ~w type syntax">>, [T]);
-format_error({bad_spec,S}) ->
+format_error({bad_function_spec,S}) ->
     lfe_io:format1("bad function spec: ~w", [S]).
 
 %% is_type_decl(Tag) -> boolean().
@@ -73,7 +73,7 @@ from_type_def({type,_L,map,any}) ->             %Special case map() -> (map)
     [map];
 from_type_def({type,_L,map,Pairs}) ->
     maps:from_list(from_map_pairs(Pairs));
-from_type_def({type,_L,record,[{atom,_L,Name}|Fields]}) ->
+from_type_def({type,_L1,record,[{atom,_L2,Name}|Fields]}) ->
     [record,Name|from_rec_fields(Fields)];
 from_type_def({type,_L,'fun',[Args,Ret]}) ->
     [lambda,from_lambda_args(Args),from_type_def(Ret)];
@@ -202,8 +202,8 @@ to_lambda_args(Args, Line) -> to_func_prod(Args, Line).
 %%     {ok,TypeVars} | {error,Error,TypeVars}.
 %%  Check a type definition. TypeVars is an orddict of variable names
 %%  and usage counts. Errors returned are:
-%%  {type_syntax,Type}  - error in the type syntax
-%%  {bad_type,Type}     - error in the type definition
+%%  {bad_type_syntax,Type}  - error in the type syntax
+%%  {bad_type_def,Type}     - error in the type definition
 
 %% Our special cases.
 check_type_def(['UNION'|Types], Recs, Tvs) ->
@@ -211,21 +211,21 @@ check_type_def(['UNION'|Types], Recs, Tvs) ->
 check_type_def([range,I1,I2], _Recs, Tvs) ->
     if is_integer(I1) and is_integer(I2) and (I1 =< I2) ->
             {ok,Tvs};
-       true -> type_syntax_error(range, Tvs)
+       true -> bad_type_syntax_error(range, Tvs)
     end;
 check_type_def([tuple|Ts], Recs, Tvs) ->
     check_type_defs(Ts, Recs, Tvs);
 check_type_def([bitstring,I1,I2], _Recs, Tvs) ->
     if is_integer(I1) and is_integer(I2) and (I1 >= 0) and (I2 >= 0) ->
             {ok,Tvs};
-       true -> type_syntax_error(bitstring, Tvs)
+       true -> bad_type_syntax_error(bitstring, Tvs)
     end;
 check_type_def([map|Pairs], Recs, Tvs) ->
     check_map_pairs(Pairs, Recs, Tvs);
 check_type_def([record,Name|Fields], Recs, Tvs) ->
     check_record(Name, Fields, Recs, Tvs);
     %% if is_atom(Name) -> check_record_fields(Fields, Recs, Tvs);
-    %%    true -> type_syntax_error(record, Tvs)
+    %%    true -> bad_type_syntax_error(record, Tvs)
     %% end;
 check_type_def([lambda,Args,Ret], Recs, Tvs0) ->
     case check_lambda_args(Args, Recs, Tvs0) of
@@ -249,13 +249,13 @@ check_type_def(Val, _Recs, Tvs) when is_atom(Val) ->
     %% It's a type variable.
     {ok,orddict:update_counter(Val, 1, Tvs)};
 check_type_def(Def, _Recs, Tvs) ->
-    bad_type_error(Def, Tvs).
+    bad_type_def_error(Def, Tvs).
 
 check_type_defs(Defs, Recs, Tvs) ->
     check_type_list(fun check_type_def/3, Defs, Recs, Tvs).
 
 check_type_lit(Val, Tvs) when is_integer(Val) ; is_atom(Val) -> {ok,Tvs};
-check_type_lit(Val, Tvs) -> bad_type_error(Val, Tvs).
+check_type_lit(Val, Tvs) -> bad_type_def_error(Val, Tvs).
 
 check_map_pairs([K,V|Pairs], Recs, Tvs0) ->
     case check_map_pair(K, V, Recs, Tvs0) of
@@ -265,7 +265,7 @@ check_map_pairs([K,V|Pairs], Recs, Tvs0) ->
     end;
 check_map_pairs([], _Recs, Tvs) -> {ok,Tvs};
 check_map_pairs(_Other, _Recs, Tvs) ->
-    type_syntax_error(map, Tvs).
+    bad_type_syntax_error(map, Tvs).
 
 check_map_pair(K, V, Recs, Tvs0) ->
     case check_type_def(K, Recs, Tvs0) of
@@ -283,7 +283,7 @@ check_record(Name, Fields, Recs, Tvs) ->
         false ->
             if is_atom(Name) ->
                     undefined_record_error(Name, Tvs);
-               true -> type_syntax_error(record, Tvs)
+               true -> bad_type_syntax_error(record, Tvs)
             end
     end.
 
@@ -293,7 +293,7 @@ check_record_fields(Fs, Recs, Tvs) ->
 check_record_field([F,T], Recs, Tvs) when is_atom(F) ->
     check_type_def(T, Recs, Tvs);
 check_record_field(Other, _Recs, Tvs) ->
-    bad_type_error(Other, Tvs).
+    bad_type_def_error(Other, Tvs).
 
 check_lambda_args(any, _Recs, Tvs) -> {ok,Tvs};
 check_lambda_args(Args, Recs, Tvs) ->
@@ -306,7 +306,7 @@ check_type_list(Check, [E|Es], Recs, Tvs0) ->
     end;
 check_type_list(_Check, [], _Recs, Tvs) -> {ok,Tvs};
 check_type_list(_Check, Other, _Recs, Tvs) ->     %Not a proper list
-    bad_type_error(Other, Tvs).
+    bad_type_def_error(Other, Tvs).
 
 %% from_func_spec_list([FuncType]) -> Type.
 
@@ -365,7 +365,7 @@ to_func_constraint([Var,Type], Line) ->
 %%     {ok,TypeVars} | {error,Error,TypeVars}.
 %%  Check a list of function specs. TypeVars is an orddict of variable
 %%  names and usage counts. Errors returned are:
-%%  {bad_spec,Spec}     - error in the type definition
+%%  {bad_function_spec,Spec}     - error in the type definition
 
 check_func_spec_list(Ss, Ar, Recs) ->
     check_spec_list(fun check_func_spec/3, Ss, Ar, Recs).
@@ -384,14 +384,14 @@ check_func_spec([Prod,Ret,Cs], Ar, Recs) ->
         Error -> Error
     end;
 check_func_spec(Other, _Ar, _Recs) ->
-    bad_spec_error(Other, []).
+    bad_function_spec_error(Other, []).
 
 check_func_prod(Args, Ar, Recs, Tvs0) ->
     %% This checks both the list and the types.
     case check_type_defs(Args, Recs, Tvs0) of
         {ok,Tvs1} ->
             if length(Args) =:= Ar -> {ok,Tvs1};
-               true -> bad_spec_error(Args, Tvs1)
+               true -> bad_function_spec_error(Args, Tvs1)
             end;
         Error -> Error
     end.
@@ -404,7 +404,7 @@ check_func_constraints([[Var,Type]|Cs], Recs, Tvs0) when is_atom(Var) ->
     end;
 check_func_constraints([], _Recs, Tvs) -> {ok,Tvs};
 check_func_constraints(Other, _Recs, Tvs) ->
-    bad_spec_error(Other, Tvs).
+    bad_function_spec_error(Other, Tvs).
 
 check_spec_list(Check, Es, Ar, Recs) ->
     check_spec_list(Check, Es, Ar, Recs, []).
@@ -417,14 +417,14 @@ check_spec_list(Check, [E|Es], Ar, Recs, Tvss) ->
 check_spec_list(_Check, [], _Ar, _Recs, Tvss) -> {ok,Tvss};
 check_spec_list(_Check, Other, _Ar, _Recs, Tvss) ->
     %% Not a proper list.
-    bad_spec_error(Other, Tvss).
+    bad_function_spec_error(Other, Tvss).
 
 %% Return errors.
 
-bad_spec_error(Val, Tvs) -> {error,{bad_spec,Val},Tvs}.
+bad_function_spec_error(Val, Tvs) -> {error,{bad_function_spec,Val},Tvs}.
 
-bad_type_error(Type, Tvs) -> {error,{bad_type,Type},Tvs}.
+bad_type_def_error(Type, Tvs) -> {error,{bad_type_def,Type},Tvs}.
 
-type_syntax_error(Type, Tvs) -> {error,{type_syntax,Type},Tvs}.
+bad_type_syntax_error(Type, Tvs) -> {error,{bad_type_syntax,Type},Tvs}.
 
 undefined_record_error(Rec, Tvs) -> {error,{undefined_record,Rec},Tvs}.

@@ -1,21 +1,16 @@
+%% Copyright (c) 2008-2022 Robert Virding
 %%
-%% %CopyrightBegin%
+%% Licensed under the Apache License, Version 2.0 (the "License");
+%% you may not use this file except in compliance with the License.
+%% You may obtain a copy of the License at
 %%
-%% Copyright Ericsson AB 2005-2010. All Rights Reserved.
+%%     http://www.apache.org/licenses/LICENSE-2.0
 %%
-%% The contents of this file are subject to the Erlang Public License,
-%% Version 1.1, (the "License"); you may not use this file except in
-%% compliance with the License. You should have received a copy of the
-%% Erlang Public License along with this software. If not, it can be
-%% retrieved online at http://www.erlang.org/.
-%%
-%% Software distributed under the License is distributed on an "AS IS"
-%% basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See
-%% the License for the specific language governing rights and limitations
-%% under the License.
-%%
-%% %CopyrightEnd%
-%%
+%% Unless required by applicable law or agreed to in writing, software
+%% distributed under the License is distributed on an "AS IS" BASIS,
+%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%% See the License for the specific language governing permissions and
+%% limitations under the License.
 
 -module(lfe_edlin_expand).
 
@@ -39,9 +34,9 @@ expand(Bef0) ->
     case Bef1 of
         [$:|Bef2] ->                            %After a ':'
             {Bef3,S2,_} = over_symbol(Bef2, [], 0),
-            need_lparen(Bef3, fun () -> expand_function_name(S2, S1) end);
+            need_lparen(Bef3, fun () -> expand_function_name(S2, S1, " ") end);
         Bef2 ->
-            need_lparen(Bef2, fun () -> expand_module_name(S1) end)
+            need_lparen(Bef2, fun () -> expand_module_name(S1, ":") end)
     end.
 
 need_lparen(Bef, Do) ->
@@ -61,26 +56,35 @@ need_lparen(Bef, Do) ->
 %%             expand_module_name(Word)
 %%     end.
 
-expand_module_name(Prefix) ->
-    match(Prefix, code:all_loaded(), ":").
+expand_module_name("", _) ->
+    {no, [], []};
+expand_module_name(Prefix, CompleteChar) ->
+    ModPaths = [ {list_to_atom(M),P} || {M,P,_} <- code:all_available() ],
+    match(Prefix, ModPaths, CompleteChar).
 
-expand_function_name(ModStr, FuncPrefix) ->
+expand_function_name(ModStr, FuncPrefix, CompleteChar) ->
     case to_symbol(ModStr) of
-        {ok,Mod} ->
-            case erlang:module_loaded(Mod) of
-                true ->
-                    L = Mod:module_info(),
-                    case lists:keyfind(exports, 1, L) of
-                        {_, Exports} ->
-                            match(FuncPrefix, Exports, " ");
-                        _ ->
-                            {no,[],[]}
-                    end;
-                false ->
-                    {no,[],[]}
+        {ok, Mod} ->
+            Exports =
+                case erlang:module_loaded(Mod) of
+                    true ->
+                        Mod:module_info(exports);
+                    false ->
+                        case beam_lib:chunks(code:which(Mod), [exports]) of
+                            {ok, {Mod, [{exports,E}]}} ->
+                                E;
+                            _ ->
+                                {no, [], []}
+                        end
+                end,
+            case Exports of
+                {no, [], []} ->
+                    {no, [], []};
+                Exports ->
+                    match(FuncPrefix, Exports, CompleteChar)
             end;
         error ->
-            {no,[],[]}
+            {no, [], []}
     end.
 
 %% If it's a quoted symbol, atom_to_list/1 will do the wrong thing.

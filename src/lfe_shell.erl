@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2020 Robert Virding
+%% Copyright (c) 2008-2022 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -36,12 +36,6 @@
          i/0,i/1,i/3,l/1,ls/1,clear/0,m/0,m/1,pid/3,p/1,p/2,pp/1,pp/2,pwd/0,
          q/0,flush/0,regs/0,exit/0]).
 
--import(lfe_env, [new/0,add_env/2,
-                  add_vbinding/3,add_vbindings/2,is_vbound/2,get_vbinding/2,
-                  fetch_vbinding/2,del_vbinding/2,
-                  add_fbinding/4,add_fbindings/2,get_fbinding/3,add_ibinding/5,
-                  get_gbinding/3,add_mbinding/3]).
-
 -import(orddict, [store/3,find/2]).
 -import(lists, [reverse/1,foreach/2]).
 
@@ -53,6 +47,7 @@
 -define(GRN(Str), "\e[1;32m" ++ Str ++ "\e[0m").
 -define(YLW(Str), "\e[1;33m" ++ Str ++ "\e[0m").
 -define(BLU(Str), "\e[1;34m" ++ Str ++ "\e[0m").
+-define(BOLD(Str), "\e[1m" ++ Str ++ "\e[0m").
 
 %% -compile([export_all]).
 
@@ -289,8 +284,8 @@ new_state(Script, Args) ->
     new_state(Script, Args, lfe_env:new()).
 
 new_state(Script, Args, Env0) ->
-    Env1 = add_vbinding('script-name', Script, Env0),
-    Env2 = add_vbinding('script-args', Args, Env1),
+    Env1 = lfe_env:add_vbinding('script-name', Script, Env0),
+    Env2 = lfe_env:add_vbinding('script-args', Args, Env1),
     Base0 = add_shell_functions(Env2),
     Base1 = add_shell_macros(Base0),
     Base2 = add_shell_vars(Base1),
@@ -299,30 +294,30 @@ new_state(Script, Args, Env0) ->
 upd_state(Script, Args, #state{curr=Curr,save=Save,base=Base}=St) ->
     %% Update an environment with with script name and args.
     Upd = fun (E0) ->
-                  E1 = add_vbinding('script-name', Script, E0),
-                  add_vbinding('script-args', Args, E1)
+                  E1 = lfe_env:add_vbinding('script-name', Script, E0),
+                  lfe_env:add_vbinding('script-args', Args, E1)
           end,
     St#state{curr=Upd(Curr),save=Upd(Save),base=Upd(Base)}.
 
 add_shell_vars(Env0) ->
     %% Add default shell expression variables.
-    Env1 = foldl(fun (Symb, E) -> add_vbinding(Symb, [], E) end, Env0,
+    Env1 = foldl(fun (Symb, E) -> lfe_env:add_vbinding(Symb, [], E) end, Env0,
                  ['+','++','+++','-','*','**','***']),
-    add_vbinding('$ENV', Env1, Env1).        %This gets it all
+    lfe_env:add_vbinding('$ENV', Env1, Env1).   %This gets it all
 
 update_shell_vars(Form, Value, Env0) ->
-    Env1 = foldl(fun ({Symb,Val}, E) -> add_vbinding(Symb, Val, E) end,
+    Env1 = foldl(fun ({Symb,Val}, E) -> lfe_env:add_vbinding(Symb, Val, E) end,
                  Env0,
-                 [{'+++',fetch_vbinding('++', Env0)},
-                  {'++',fetch_vbinding('+', Env0)},
+                 [{'+++',lfe_env:fetch_vbinding('++', Env0)},
+                  {'++',lfe_env:fetch_vbinding('+', Env0)},
                   {'+',Form},
-                  {'***',fetch_vbinding('**', Env0)},
-                  {'**',fetch_vbinding('*', Env0)},
+                  {'***',lfe_env:fetch_vbinding('**', Env0)},
+                  {'**',lfe_env:fetch_vbinding('*', Env0)},
                   {'*',Value}]),
     %% Be cunning with $ENV, remove self references so it doesn't grow
     %% indefinitely.
-    Env2 = del_vbinding('$ENV', Env1),
-    add_vbinding('$ENV', Env2, Env2).
+    Env2 = lfe_env:del_vbinding('$ENV', Env1),
+    lfe_env:add_vbinding('$ENV', Env2, Env2).
 
 add_shell_functions(Env0) ->
     Fs = [
@@ -414,7 +409,7 @@ eval_loop(Shell, St0) ->
 
 eval_form(Form, Shell, St0) ->
     try
-        Ce1 = add_vbinding('-', Form, St0#state.curr),
+        Ce1 = lfe_env:add_vbinding('-', Form, St0#state.curr),
         %% Macro expand and evaluate it.
         {Value,St1} = eval_form(Form, St0#state{curr=Ce1}),
         %% Print the result, but only to depth 30.
@@ -491,7 +486,7 @@ eval_form_1(['define-function',Name,_Meta,Def], #state{curr=Ce0}=St) ->
     Ce1 = lfe_eval:add_dynamic_func(Name, Ar, Def, Ce0),
     {Name,St#state{curr=Ce1}};
 eval_form_1(['define-macro',Name,_Meta,Def], #state{curr=Ce0}=St) ->
-    Ce1 = add_mbinding(Name, Def, Ce0),
+    Ce1 = lfe_env:add_mbinding(Name, Def, Ce0),
     {Name,St#state{curr=Ce1}};
 eval_form_1(Expr, St) ->
     %% General case just evaluate the expression.
@@ -529,7 +524,7 @@ set_1(Pat, Guard, Exp, #state{curr=Ce0}=St) ->
     Val = lfe_eval:expr(Exp, Ce0),              %Evaluate expression
     case lfe_eval:match_when(Pat, Val, Guard, Ce0) of
         {yes,_,Bs} ->
-            Ce1 = foldl(fun ({N,V}, E) -> add_vbinding(N, V, E) end,
+            Ce1 = foldl(fun ({N,V}, E) -> lfe_env:add_vbinding(N, V, E) end,
                         Ce0, Bs),
             {Val,St#state{curr=Ce1}};
         no -> erlang:error({badmatch,Val})
@@ -571,16 +566,17 @@ slurp_1(Name, Ce) ->
             Sl0 = #slurp{mod=Mod,funs=[],imps=[]},
             Sl1 = lists:foldl(fun collect_module/2, Sl0, Fs),
             %% Add imports to environment.
-            Env1 = foldl(fun ({M,Is}, Env) ->
-                                 foldl(fun ({{F,A},R}, E) ->
-                                               add_ibinding(M, F, A, R, E)
-                                       end, Env, Is)
-                         end, Env0, Sl1#slurp.imps),
+            Ifun = fun ({M,Is}, Env) ->
+                           foldl(fun ({{F,A},R}, E) ->
+                                         lfe_env:add_ibinding(M, F, A, R, E)
+                                 end, Env, Is)
+                   end,
+            Env1 = foldl(Ifun, Env0, Sl1#slurp.imps),
             %% Add functions to environment.
             Env2 = foldl(fun ({N,Ar,Def}, Env) ->
                                  lfe_eval:add_dynamic_func(N, Ar, Def, Env)
                          end, Env1, Sl1#slurp.funs),
-            {ok,Mod,add_env(Env2, Ce)};
+            {ok,Mod,lfe_env:add_env(Env2, Ce)};
         {error,Mews,Es,Ws} ->
             slurp_errors(Es),
             slurp_warnings(Ws),
@@ -720,7 +716,7 @@ read_script_string(String) ->
 run_loop(Fs, St) -> run_loop(Fs, [], St).
 
 run_loop([F|Fs], _, St0) ->
-    Ce1 = add_vbinding('-', F, St0#state.curr),
+    Ce1 = lfe_env:add_vbinding('-', F, St0#state.curr),
     {Value,St1} = eval_form(F, St0#state{curr=Ce1}),
     Ce2 = update_shell_vars(F, Value, St1#state.curr),
     run_loop(Fs, Value, St1#state{curr=Ce2});
@@ -1065,12 +1061,11 @@ format_doc({error,_}=Error) -> Error;
 format_doc(Docs) ->
     {match,Lines} = re:run(Docs, "(.+\n|\n)",
                            [unicode,global,{capture,all_but_first,binary}]),
-    Pfun = fun (Line) ->
-                   io:put_chars(Line),
-                   1                            %One line
+    Pline = fun (Line) ->
+                    io:put_chars(Line),
+                    1                           %Output one line
            end,
-    io:format(?RED("~*c")++"\n", [60,$_]),
-    paged_output(Pfun, Lines),
+    paged_output(Pline, Lines),
     ok.
 
 
@@ -1116,22 +1111,23 @@ get_function_doc(_Mod, _Name, _Arity, #docs_v1{format = Enc}) ->
 
 -endif.
 
-%% paged_output(Lines) -> ok.
-%%  Output lines a page at a time.
+%% paged_output(PrintItem, Items) -> ok.
+%%  Output item lines a page at a time. This can handle an item
+%%  returning multiple lines.
 
-paged_output(Pfun, Items) ->
+paged_output(Pitem, Items) ->
     %% How many rows per "page", just set it to 30 for now.
     Limit = 30,
-    paged_output(Pfun, 0, Limit, Items).
+    paged_output(Pitem, 0, Limit, Items).
 
-paged_output(Pfun, Curr, Limit, Items) when Curr >= Limit ->
+paged_output(Pitem, Curr, Limit, Items) when Curr >= Limit ->
     case more() of
-        more -> paged_output(Pfun, 0, Limit, Items);
+        more -> paged_output(Pitem, 0, Limit, Items);
         less -> ok
     end;
-paged_output(Pfun, Curr, Limit, [I|Is]) ->
-    Lines = Pfun(I),
-    paged_output(Pfun, Curr + Lines, Limit, Is);
+paged_output(Pitem, Curr, Limit, [Item|Items]) ->
+    Olines = Pitem(Item),
+    paged_output(Pitem, Curr + Olines, Limit, Items);
 paged_output(_, _, _, []) -> ok.
 
 more() ->
