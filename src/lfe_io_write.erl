@@ -151,7 +151,7 @@ symbol_chars(Cs) -> lists:all(fun lfe_scan:symbol_char/1, Cs).
 %%  Generate the list of characters needed to print a string.
 
 string(S, Q) ->
-    [Q,string_chars(S, Q)].
+    [Q | string_chars(S, Q)].
 
 string_chars([], Q) -> [Q];
 string_chars([C|Cs], Q) ->

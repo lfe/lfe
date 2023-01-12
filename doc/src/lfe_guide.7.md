@@ -216,6 +216,13 @@ Maps are written as ``#M(key1 value1 key2 value2 ...)`` The empty
 map is also valid and written as ``#M()``.
 
 
+## Structs
+
+Structs are written as ``#S(struct-name key1 value1 key2 value2 ...)``.
+
+Note that structs cannot be created with the literal syntax, the ``(struct mod-name ...)`` form must be used.
+
+
 ## Symbols
 
 Things that cannot be parsed as any of the above are usually considered
@@ -350,7 +357,7 @@ while it reads the expression and then be effectively ``2``.
 (record-update record name field val ...)
 
 (define-struct fields)
-(struct field val ...)
+(struct mod-name field val ...)
 (is-struct struct)
 (is-struct struct name)
 (struct-field struct name field)
