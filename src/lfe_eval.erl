@@ -209,30 +209,12 @@ eval_expr(['make-record',Name|As], Env) ->
     eval_expr(['record',Name|As], Env);
 eval_expr(['is-record',E,Name], Env) ->
     Ev = eval_expr(E, Env),
-    case lfe_env:get_record(Name, Env) of
-        {yes,Fields} ->
-            is_valid_record(Ev, Name, Fields);
-        no -> undefined_record_error(Name)
-    end;
+    test_is_record(Ev, Name, Env);
 eval_expr(['record-index',Name,F], Env) ->
-    case lfe_env:get_record(Name, Env) of
-        {yes,Fields} ->
-            get_field_index(Name, Fields, F);
-        no -> undefined_record_error(Name)
-    end;
+    get_record_index(Name, F, Env);
 eval_expr(['record-field',E,Name,F], Env) ->
     Ev = eval_expr(E, Env),
-    case lfe_env:get_record(Name, Env) of
-        {yes,Fields} ->
-            case is_valid_record(Ev, Name, Fields) of
-                true ->
-                    Index = get_field_index(Name, Fields, F),
-                    element(Index, Ev);
-                false ->
-                    eval_error({badrecord,Name,Ev})
-            end;
-        no -> undefined_record_error(Name)
-    end;
+    get_record_field(Ev, Name, F, Env);
 eval_expr(['record-update',E,Name|Args], Env) ->
     Ev = eval_expr(E, Env),
     update_record_tuple(Ev, Name, Args, Env);
@@ -396,6 +378,42 @@ update_field_val(F, [F,V|_], _Recv, Env) -> eval_expr(V, Env);
 update_field_val(F, [_,_|Args], Recv, Env) ->
     update_field_val(F, Args, Recv, Env);
 update_field_val(_, [], Recv, _Env) -> Recv.
+
+%% test_is_record(Record, Name, Env) -> boolean().
+%%  Test whether term is a record.
+
+test_is_record(Record, Name, Env) ->
+    case lfe_env:get_record(Name, Env) of
+        {yes,Fields} ->
+            is_valid_record(Record, Name, Fields);
+        no -> undefined_record_error(Name)
+    end.
+
+%% get_record_index(Name, Field) -> Index.
+%%  Get the index of a fiedl in the record.
+
+get_record_index(Name, Field, Env) ->
+    case lfe_env:get_record(Name, Env) of
+        {yes,Fields} ->
+            get_field_index(Name, Fields, Field);
+        no -> undefined_record_error(Name)
+    end.
+
+%% get_record_field(Record, Name, Field, Env) -> Value.
+%%  Get the field from the record Name.
+
+get_record_field(Record, Name, Field, Env) ->
+    case lfe_env:get_record(Name, Env) of
+        {yes,Fields} ->
+            case is_valid_record(Record, Name, Fields) of
+                true ->
+                    Index = get_field_index(Name, Fields, Field),
+                    element(Index, Record);
+                false ->
+                    eval_error({badrecord,Name,Record})
+            end;
+        no -> undefined_record_error(Name)
+    end.
 
 %% make_struct_map(Name, Fields, Env) -> Struct.
 %%  We have to macro expand and evaluate the values in the fields. Use
@@ -1037,6 +1055,15 @@ eval_gexpr(['map-set',Map|As], Env) ->
     eval_gmap_set('map-set', Map, As, Env);
 eval_gexpr(['map-update',Map|As], Env) ->
     eval_gmap_update('map-update', Map, As, Env);
+%% Record special forms.
+eval_gexpr(['is-record',E,Name], Env) ->
+    Ev = eval_gexpr(E, Env),
+    test_is_record(Ev, Name, Env);
+eval_gexpr(['record-index',Name,F], Env) ->
+    get_record_index(Name, F, Env);
+eval_gexpr(['record-field',E,Name,F], Env) ->
+    Ev = eval_gexpr(E, Env),
+    get_record_field(Ev, Name, F, Env);
 %% Struct special forms.
 eval_gexpr(['is-struct',E0], Env) ->
     Ev = eval_gexpr(E0, Env),
