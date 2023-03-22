@@ -153,7 +153,7 @@ Files with more technical details:
 * [lfe_bits.txt](doc/lfe_bits.txt)
 * [lfe_clj.txt](doc/lfe_clj.txt)
 * [lfe_comp.txt](doc/lfe_comp.txt)
-* [lfe_doc.txt](doc/lfe_doc.txt)
+* [lfe_docs.txt](doc/lfe_docs.txt)
 * [lfe_gen.txt](doc/lfe_gen.txt)
 * [lfe_io.txt](doc/lfe_io.txt)
 * [lfe_lib.txt](doc/lfe_lib.txt)
