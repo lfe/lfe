@@ -315,29 +315,59 @@ is_valid_record(Value, Name, Fields) ->
 
 %% make_record_tuple(Name, Args, Env) -> Record.
 %%  We have to macro expand and evaluate the default values here as
-%%  well. Make sure to build the tuple in the right order.
+%%  well. Make sure to build the tuple and evaluate the tuple elements
+%%  in the right order.  'undefined' is the default value for
+%%  unspecified field values.
 
 make_record_tuple(Name, Args, Env) ->
     case lfe_env:get_record(Name, Env) of
         {yes,Fields} ->
             Es = make_record_elements(Fields, Args, Env),
-            list_to_tuple([Name|Es]);
+            %% io:format("make\n    ~p\n    ~p\n    ~p\n", [Fields,Args,Es]),
+            eval_expr([tuple,?Q(Name)|Es], Env);
         no -> undefined_record_error(Name)
     end.
 
 make_record_elements(Fields, Args, Env) ->
-    Mfun = fun ([F,Def|_]) -> make_field_val(F, Args, Def, Env);
-               ([F]) -> make_field_val(F, Args, ?Q(undefined), Env);
-               (F) -> make_field_val(F, Args, ?Q(undefined), Env)
+    %% Mke sure we do it left to right.
+    DefDef = default_record_value(Args),
+    Mfun = fun ([F,Def|_]) ->
+                   UseDef = record_or_field_def(DefDef, Def),
+                   make_field_val(F, Args, UseDef, Env);
+               ([F]) ->
+                   UseDef = record_or_field_def(DefDef, ?Q(undefined)),
+                   make_field_val(F, Args, UseDef, Env);
+               (F) ->
+                   UseDef = record_or_field_def(DefDef, ?Q(undefined)),
+                   make_field_val(F, Args, UseDef, Env)
            end,
     lists:map(Mfun, Fields).
 
-make_field_val(F, [F,V|_], _Def, Env) -> eval_expr(V, Env);
+%% record_or_field_def(DefDef, Def) -> Def.
+
+record_or_field_def({yes,DefDef}, _Def) -> DefDef;
+record_or_field_def(no, Def) -> Def.
+
+%% default_record_value(Args) -> {yes, DefaultValue} | no.
+
+default_record_value(['_',Val|_Args]) -> {yes,Val};
+default_record_value([_,_|Args]) ->
+    default_record_value(Args);
+default_record_value([ArgF]) ->
+    eval_error({missing_record_field_value,ArgF});
+default_record_value([]) -> no.
+
+%% make_field_val(Field, Args, Default, Env) -> Val
+
+make_field_val(F, [F,Val|_], _Def, _Env) ->
+    Val;
 make_field_val(F, [_,_|Args], Def, Env) ->
     make_field_val(F, Args, Def, Env);
 make_field_val(_F, [ArgF], _Def, _Env) ->
     eval_error({missing_record_field_value,ArgF});
-make_field_val(_, [], Def, Env) -> expr(Def, Env).
+make_field_val(_, [], Def, Env) ->
+    %% We must expand all macros in the default value used.
+    lfe_macro:expand_expr_all(Def, Env).
 
 %% get_field_index(Name, Fields, Field) -> Index.
 
@@ -1228,15 +1258,11 @@ match([map|Ps], Val, Pbs, Env) ->
         false -> no
     end;
 %% Record patterns.
-match(['record',Name|Fs], Val, Pbs, Env) ->
-    case lfe_env:get_record(Name, Env) of
-        {yes,Fields} ->
-            match_record_tuple(Name, Fields, Fs,  Val, Pbs, Env);
-        no -> undefined_record_error(Name)
-    end;
+match(['record',Name|Ps], Val, Pbs, Env) ->
+    match_record_tuple(Name, Ps, Val, Pbs, Env);
 %% make-record has been deprecated but we sill accept it for now.
-match(['make-record',Name|Fs], Val, Pbs, Env) ->
-    match(['record',Name|Fs], Val, Pbs, Env);
+match(['make-record',Name|Ps], Val, Pbs, Env) ->
+    match(['record',Name|Ps], Val, Pbs, Env);
 match(['record-index',Name,F], Val, Pbs, Env) ->
     case lfe_env:get_record(Name, Env) of
         {yes,Fields} ->
@@ -1286,21 +1312,37 @@ match_symb(S, Val, Pbs, _) ->
         error -> {yes,store(S, Val, Pbs)}       %Not yet bound
     end.
 
-%% match_record_tuple(Name, Fields, Pats, Val, Pbs, Env) -> {yes,Pbs} | no.
+ %% match_record_tuple(Name, Val, Pbs, Env) -> {yes,Pbs} | no.
+%%  '_' is the default value for unspecified field values.
 
-match_record_tuple(Name, Fields, Pats, Val, Pbs, Env) ->
-    Ps = match_record_patterns(Fields, Pats),
-    match([tuple,Name|Ps], Val, Pbs, Env).
+match_record_tuple(Name, Pats, Val, Pbs, Env) ->
+    case lfe_env:get_record(Name, Env) of
+        {yes,Fields} ->
+            Ps = match_record_patterns(Fields, Pats),
+            %% io:format("pat\n   ~p\n   ~p\n   ~p\n", [Val,Fields,Ps]),
+            match([tuple,Name|Ps], Val, Pbs, Env);
+        no -> undefined_record_error(Name)
+    end.
 
 match_record_patterns(Fields, Pats) ->
-    Mfun = fun ([F|_]) -> make_field_pat(F, Pats);
-               (F) -> make_field_pat(F, Pats)
-           end,
+    DefDef = default_record_value(Pats),
+    Mfun = fun ([F|_]) ->
+                   UseDef = record_or_field_def(DefDef, '_'),
+                   make_field_pat(F, Pats, UseDef);
+               (F) ->
+                   UseDef = record_or_field_def(DefDef, '_'),
+                   make_field_pat(F, Pats, UseDef)
+               end,
     lists:map(Mfun, Fields).
 
-make_field_pat(F, [F,P|_]) -> P;
-make_field_pat(F, [_,_|Pats]) -> make_field_pat(F, Pats);
-make_field_pat(_, []) -> '_'.                   %Underscore matches anything
+%% make_field_pat(Field, Pats, UseDef) -> Pat.
+
+make_field_pat(F, [F,P|_], _Def) -> P;
+make_field_pat(F, [_,_|Pats], Def) ->
+    make_field_pat(F, Pats, Def);
+make_field_pat(_F, [PatF], _Def) ->
+    eval_error({missing_record_field_value,PatF});
+make_field_pat(_, [], Def) -> Def.
 
 %% match_struct_map(Name, Pats, Val, Pbs, Env) -> {yes,Pbs} | no.
 
