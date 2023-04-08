@@ -33,12 +33,6 @@
 %% Deprecated exports.
 -export([eval/1,eval/2,eval_list/2]).
 
--import(lfe_env, [add_vbinding/3,add_vbindings/2,get_vbinding/2,
-                  add_fbinding/4,add_fbindings/2,
-                  add_ibinding/5]).
-
--import(orddict, [find/2,fetch/2,store/3,is_key/2]).
-
 -compile({no_auto_import,[apply/3]}).           %For our apply/3 function
 -deprecated([eval/1,eval/2,eval_list/2]).
 
@@ -298,7 +292,7 @@ eval_expr([_|_]=S, _) ->                        %Test if string literal
             bad_form_error(application)
     end;
 eval_expr(Symb, Env) when is_atom(Symb) ->
-    case get_vbinding(Symb, Env) of
+    case lfe_env:get_vbinding(Symb, Env) of
         {yes,Val} -> Val;
         no -> unbound_symbol_error(Symb)
     end;
@@ -671,7 +665,7 @@ apply_lambda(Args, Body, Vals, Env0) ->
 bind_args(['_'|As], [_|Es], Env) ->             %Ignore don't care variables
     bind_args(As, Es, Env);
 bind_args([A|As], [E|Es], Env) when is_atom(A) ->
-    bind_args(As, Es, add_vbinding(A, E, Env));
+    bind_args(As, Es, lfe_env:add_vbinding(A, E, Env));
 bind_args([], [], Env) -> Env;
 bind_args(_As, _Vs, _Env) ->
     eval_error(bad_head_arity).
@@ -696,7 +690,7 @@ apply_match_lambda([[Pats|B0]|Cls], Vals, Env) ->
             %% and pass in as one pattern. Have already checked a
             %% proper list.
             case match_when([list|Pats], Vals, B0, Env) of
-                {yes,B1,Vbs} -> eval_body(B1, add_vbindings(Vbs, Env));
+                {yes,B1,Vbs} -> eval_body(B1, lfe_env:add_vbindings(Vbs, Env));
                 no -> apply_match_lambda(Cls, Vals, Env)
             end;
        true -> eval_error(bad_head_arity)
@@ -711,13 +705,13 @@ eval_let([Vbs|Body], Env0) ->
     Fun = fun ([Pat,E], Env) ->
                   Val = eval_expr(E, Env0),
                   case match(Pat, Val, Env0) of
-                      {yes,Bs} -> add_vbindings(Bs, Env);
+                      {yes,Bs} -> lfe_env:add_vbindings(Bs, Env);
                       no -> eval_error({badmatch,Val})
                   end;
               ([Pat,['when'|_]=G,E], Env) ->
                   Val = eval_expr(E, Env0),
                   case match_when(Pat, Val, [G], Env0) of
-                      {yes,[],Bs} -> add_vbindings(Bs, Env);
+                      {yes,[],Bs} -> lfe_env:add_vbindings(Bs, Env);
                       no -> eval_error({badmatch,Val})
                   end;
               (_, _) -> bad_form_error('let')
@@ -777,7 +771,7 @@ eval_letrec_function([Fbs0|Body], Env0) ->
 make_letrec_env(Fbs0, Env) ->
     Fbs1 = lists:map(fun ({V,Ar,Body}) -> {V,Ar,{letrec,Body,Fbs0,Env}} end,
                      Fbs0),
-    add_fbindings(Fbs1, Env).
+    lfe_env:add_fbindings(Fbs1, Env).
 
 %% extend_letrec_env(Lete0, Fbs0, Env0) ->
 %%     {Lete0,Env0}.
@@ -789,13 +783,13 @@ make_letrec_env(Fbs0, Env) ->
 %%  environment.
 
 add_lexical_func(Name, Ar, Def, Fenv, Env) ->
-    add_fbinding(Name, Ar, {lexical_expr,Def,Fenv}, Env).
+    lfe_env:add_fbinding(Name, Ar, {lexical_expr,Def,Fenv}, Env).
 
 add_lexical_func(Name, Ar, Def, Env) ->
-    add_fbinding(Name, Ar, {lexical_expr,Def,Env}, Env).
+    lfe_env:add_fbinding(Name, Ar, {lexical_expr,Def,Env}, Env).
 
 add_dynamic_func(Name, Ar, Def, Env) ->
-    add_fbinding(Name, Ar, {dynamic_expr,Def}, Env).
+    lfe_env:add_fbinding(Name, Ar, {dynamic_expr,Def}, Env).
 
 %% eval_apply(Function, Args, Env) -> Value.
 %%  This is used to evaluate interpreted functions. Macros are
@@ -810,7 +804,7 @@ eval_apply({lexical_expr,Func,Env}, Es, _) ->
 eval_apply({letrec,Body,Fbs,Env}, Es, _) ->
     %% A function created by/for letrec-function.
     Fun = fun ({V,Ar,Lambda}, E) ->
-                  add_fbinding(V, Ar, {letrec,Lambda,Fbs,Env}, E)
+                  lfe_env:add_fbinding(V, Ar, {letrec,Lambda,Fbs,Env}, E)
           end,
     NewEnv = lists:foldl(Fun, Env, Fbs),
     %% io:fwrite("la: ~p\n", [{Body,NewEnv}]),
@@ -855,7 +849,7 @@ eval_case([E|Cls], Env) ->
 
 eval_case_clauses(V, Cls, Env) ->
     case match_clause(V, Cls, Env) of
-        {yes,B,Vbs} -> eval_body(B, add_vbindings(Vbs, Env));
+        {yes,B,Vbs} -> eval_body(B, lfe_env:add_vbindings(Vbs, Env));
         no -> eval_error({case_clause,V})
     end.
 
@@ -897,7 +891,7 @@ receive_clauses(Cls, Env, Ms) ->
             case match_clause(Msg, Cls, Env) of
                 {yes,B,Vbs} ->
                     merge_queue(Ms),
-                    eval_body(B, add_vbindings(Vbs, Env));
+                    eval_body(B, lfe_env:add_vbindings(Vbs, Env));
                 no -> receive_clauses(Cls, Env, [Msg|Ms])
             end
     end.
@@ -917,7 +911,7 @@ receive_clauses(T, Tb, Cls, Env, Ms) ->
             case match_clause(Msg, Cls, Env) of
                 {yes,B,Vbs} ->
                     merge_queue(Ms),
-                    eval_body(B, add_vbindings(Vbs, Env));
+                    eval_body(B, lfe_env:add_vbindings(Vbs, Env));
                 no ->
                     %% Check how much time left and recurse correctly.
                     {_,T1} = statistics(runtime),
@@ -976,7 +970,7 @@ eval_try(E, Case, Catch, After, Env) ->
         Value ->
             case match_clause(Value, Case, Env) of
                 {yes,Body,Vbs} ->
-                    eval_body(Body, add_vbindings(Vbs, Env));
+                    eval_body(Body, lfe_env:add_vbindings(Vbs, Env));
                 no ->
                     ?EVAL_ERROR({try_clause,Value})
             end
@@ -986,7 +980,7 @@ eval_try(E, Case, Catch, After, Env) ->
             %% explicitly get it here just in case.
             case match_clause({Class,Error,Stack}, Catch, Env) of
                 {yes,Body,Vbs} ->
-                    eval_body(Body, add_vbindings(Vbs, Env));
+                    eval_body(Body, lfe_env:add_vbindings(Vbs, Env));
                 no ->
                     erlang:raise(Class, Error, Stack)
             end
@@ -1022,7 +1016,7 @@ match_when(Pat, V, B0, Env) ->
         {yes,Vbs} ->
             case B0 of
                 [['when'|G]|B1] ->
-                    case eval_guard(G, add_vbindings(Vbs, Env)) of
+                    case eval_guard(G, lfe_env:add_vbindings(Vbs, Env)) of
                         true -> {yes,B1,Vbs};
                         false -> no
                     end;
@@ -1126,7 +1120,7 @@ eval_gexpr([_|_]=S, _) ->                       %Test is literal string
         false -> illegal_guard_error()          %It is a bad application form
     end;
 eval_gexpr(Symb, Env) when is_atom(Symb) ->
-    case get_vbinding(Symb, Env) of
+    case lfe_env:get_vbinding(Symb, Env) of
         {yes,Val} -> Val;
         no -> unbound_symbol_error(Symb)
     end;
@@ -1306,10 +1300,11 @@ match_list(_, _, _, _) -> no.
 match_symb('_', _, Pbs, _) -> {yes,Pbs};        %Don't care variable.
 match_symb(S, Val, Pbs, _) ->
     %% Check if Symb already bound.
-    case find(S, Pbs) of
+    case orddict:find(S, Pbs) of
         {ok,Val} -> {yes,Pbs};                  %Bound to the same value
         {ok,_} -> no;                           %Bound to a different value
-        error -> {yes,store(S, Val, Pbs)}       %Not yet bound
+        error ->
+            {yes,orddict:store(S, Val, Pbs)}    %Not yet bound
     end.
 
  %% match_record_tuple(Name, Val, Pbs, Env) -> {yes,Pbs} | no.
@@ -1404,7 +1399,7 @@ eval_lit([map|As], Env) ->
 eval_lit([_|_]=Lit, _) ->                       %All other lists illegal
     eval_error({illegal_literal,Lit});
 eval_lit(Symb, Env) when is_atom(Symb) ->
-    case get_vbinding(Symb, Env) of
+    case lfe_env:get_vbinding(Symb, Env) of
         {yes,Val} -> Val;
         no -> unbound_symbol_error(Symb)
     end;
