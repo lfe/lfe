@@ -43,7 +43,8 @@
                   add_mbinding/3,is_mbound/2,get_mbinding/2]).
 
 -import(lists, [any/2,all/2,map/2,foldl/3,foldr/3,mapfoldl/3,
-                reverse/1,reverse/2,member/2,concat/1]).
+                reverse/1,reverse/2,member/2,concat/1,
+                droplast/1,zip/2]).
 
 -include("lfe.hrl").
 -include("lfe_comp.hrl").
@@ -1169,8 +1170,11 @@ exp_logical(As, Op, St) ->
 exp_comp([A], _, St) ->            %Force evaluation
     {[progn,A,?Q(true)],St};
 exp_comp([A,B], Op, St) -> {exp_bif(Op, [A,B]),St};
-exp_comp(As, Op, St) ->
-    {foldl(fun (A, Acc) -> exp_bif(Op, [Acc,A]) end, hd(As), tl(As)),St}.
+exp_comp(As, Op, St0) ->
+    {Vs,St1} = new_symbs(length(As), St0),
+    Vbs = [[V,E] || {V,E} <- zip(Vs, As)],
+    B = ['and'|[exp_bif(Op, [A,B]) || {A,B} <- zip(droplast(Vs), tl(Vs))]],
+    {['let',Vbs,B],St1}.
 
 %% exp_nequal(Args, Op, State) -> {Exp,State}.
 %%  Expand not equal test strictly forcing evaluation of all
