@@ -43,8 +43,7 @@
                   add_mbinding/3,is_mbound/2,get_mbinding/2]).
 
 -import(lists, [any/2,all/2,map/2,foldl/3,foldr/3,mapfoldl/3,
-                reverse/1,reverse/2,member/2,concat/1,
-                droplast/1,zip/2]).
+                reverse/1,reverse/2,member/2,concat/1]).
 
 -include("lfe.hrl").
 -include("lfe_comp.hrl").
@@ -1176,7 +1175,8 @@ exp_comp(As, Op, St0) ->
     {exp_let_star([Ls,exp_andalso(Ts)]),St1}.
 
 op_pairs(Ls, Op) ->
-    [exp_bif(Op, [V1,V2]) || {[V1,_],[V2,_]} <- zip(droplast(Ls), tl(Ls))].
+    Ps = lists:zip(lists:droplast(Ls),tl(Ls)),
+    [exp_bif(Op, [V1,V2]) || {[V1,_],[V2,_]} <- Ps].
 
 %% exp_nequal(Args, Op, State) -> {Exp,State}.
 %%  Expand not equal test strictly forcing evaluation of all
