@@ -1171,10 +1171,12 @@ exp_comp([A], _, St) ->            %Force evaluation
     {[progn,A,?Q(true)],St};
 exp_comp([A,B], Op, St) -> {exp_bif(Op, [A,B]),St};
 exp_comp(As, Op, St0) ->
-    {Vs,St1} = new_symbs(length(As), St0),
-    Vbs = [[V,E] || {V,E} <- zip(Vs, As)],
-    B = ['and'|[exp_bif(Op, [A,B]) || {A,B} <- zip(droplast(Vs), tl(Vs))]],
-    {['let',Vbs,B],St1}.
+    {Ls,St1} = exp_args(As, St0),
+    Ts = op_pairs(Ls, Op),
+    {exp_let_star([Ls,exp_andalso(Ts)]),St1}.
+
+op_pairs(Ls, Op) ->
+    [exp_bif(Op, [V1,V2]) || {[V1,_],[V2,_]} <- zip(droplast(Ls), tl(Ls))].
 
 %% exp_nequal(Args, Op, State) -> {Exp,State}.
 %%  Expand not equal test strictly forcing evaluation of all
