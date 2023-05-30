@@ -41,7 +41,7 @@ start() ->
         {[],[]} ->                              %Run a shell
             user_drv:start(['tty_sl -c -e',{lfe_shell,start,[]}]);
         {Es,Script} ->
-            user:start(),
+            user_drv:start(),
             %% io:format("es: ~p\n", [{Es,Script}]),
             run_evals_script(Es, Script)
     end.
