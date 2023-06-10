@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        otp-version: ['22', '23', '24', '25']
+        otp-version: ['22', '23', '24', '25', '26']
         os: ['ubuntu-latest']
 
     container:
@@ -45,7 +45,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        otp-version: ['22', '23', '24', '25']
+        otp-version: ['22', '23', '24', '25', '26']
         os: ['ubuntu-latest']
 
     container:
