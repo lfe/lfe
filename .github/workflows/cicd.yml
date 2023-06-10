@@ -65,7 +65,7 @@ jobs:
 
   older-builds:
     name: Older builds - OTP ${{ matrix.otp-version }} / ${{ matrix.os }}
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
 
     strategy:
       fail-fast: false
@@ -100,7 +100,7 @@ jobs:
       fail-fast: false
       matrix:
         otp-version: ['19', '20', '21']
-        os: ['ubuntu-18.04']
+        os: ['ubuntu-20.04']
 
     container:
       image: erlang:${{ matrix.otp-version }}
