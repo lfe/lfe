@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2020 Robert Virding
+%% Copyright (c) 2008-2023 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -25,6 +25,12 @@
 %%%
 %%% Thanks to Attila Babo for showing me how to do this.
 
+%%% The calls needed to start user/user_drv have changed from OTP
+%%% 26. In the release after 26 the module user no longer exists and
+%%% user_drv has a different interface. Note that this is sort of
+%%% documented but these modules are not included in the standard
+%%% Erlang documentation.
+
 -module(lfe_init).
 
 -export([start/0]).
@@ -37,12 +43,24 @@
 %% Start LFE running a script or the shell depending on arguments.
 
 start() ->
+    OTPRelease = erlang:system_info(otp_release),
     case collect_args(init:get_plain_arguments()) of
         {[],[]} ->                              %Run a shell
-            user_drv:start(['tty_sl -c -e',{lfe_shell,start,[]}]);
+	    if OTPRelease >= "26" ->
+		    %% The new way 26 and later.
+		    user_drv:start(#{initial_shell => {lfe_shell,start,[]}});
+	       true ->
+		    %% The old way before 26.
+		    user_drv:start(['tty_sl -c -e',{lfe_shell,start,[]}])
+	    end;
         {Es,Script} ->
-            user:start(),
-            %% io:format("es: ~p\n", [{Es,Script}]),
+	    if OTPRelease >= "26" ->
+		    %% The new way 26 and later)
+		    user_drv:start(#{initial_shell => noshell});
+	       true ->
+		    %% The old way before 26.
+		    user:start()
+	    end,
             run_evals_script(Es, Script)
     end.
 
