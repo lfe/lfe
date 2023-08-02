@@ -24,6 +24,7 @@
 
 -module(lfe_io).
 
+-export([get_line/0,get_line/1,get_line/2,collect_line/2]).
 -export([parse_file/1,parse_file/2,read_file/1,read_file/2]).
 -export([read/0,read/1,read/2,read_line/0,read_line/1,read_line/2]).
 -export([read_string/1]).
@@ -39,6 +40,31 @@
 -import(lists, [flatten/1,reverse/1,reverse/2,map/2,mapfoldl/3,all/2]).
 
 -include("lfe.hrl").
+
+%% get_line() -> Data | {error,Error} | eof.
+%% get_line(Prompt) -> Data | {error,Error} | eof.
+%% get_line(IoDevice, Prompt) -> Data | {error,Error} | eof.
+%%  Reads a line from the standard input (IoDevice), prompting it with
+%%  Prompt. It saves the input in history.
+
+get_line() ->
+    get_line(standard_io, '').
+
+get_line(Prompt) ->
+    get_line(standard_io, Prompt).
+
+get_line(IoDevice, Prompt) ->
+    io:request(IoDevice, {get_until,unicode,Prompt,lfe_io,collect_line,[]}).
+
+%% collect_line(OldStack, Data) -> {done,Result,Rest} | {more,NewStack}.
+
+collect_line(Stack, Data) ->
+    case io_lib:collect_line(start, Data, unicode, ignored) of
+        {stop,Result,Rest} ->
+            {done,lists:reverse(Stack, Result),Rest};
+        MoreStack ->
+            {more,MoreStack ++ Stack}
+    end.
 
 %% parse_file(FileName|Fd[, Line]) -> {ok,[{Sexpr,Line}]} | {error,Error}.
 %%  Parse a file returning the raw sexprs (as it should be) and line
@@ -129,7 +155,9 @@ read(Io, Prompt) ->
 %% read_line(IoDevice, Prompt) -> {ok,Sexpr} | {error,Error} | eof.
 %%  A simple read function. It is line oriented and reads whole lines
 %%  until it has consumed enough characters. Left-over characters in
-%%  the last line are discarded.
+%%  the last line are discarded. We use lfe_io:get_line so we are
+%%  certain to save the input history, which makes it nice for the
+%%  repl.
 
 read_line() -> read_line(standard_io, '').
 read_line(Prompt) -> read_line(standard_io, Prompt).
@@ -138,7 +166,7 @@ read_line(Io, Prompt) ->
     read_line_1(Io, Prompt, [], 1).
 
 read_line_1(Io, P, C0, L0) ->
-    case io:get_line(Io, P) of
+    case lfe_io:get_line(Io, P) of
         {error,Error} -> {error,{L0,io,Error}};
         Cs0 ->
             case scan_sexpr(C0, Cs0, L0) of

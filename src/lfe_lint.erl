@@ -1972,6 +1972,9 @@ check_record_pat(Name, Fields, Pvs, Env, L, #lfe_lint{records=Recs}=St)
 check_record_pat(Name, _, Pvs, _, L, St) ->
     {Pvs,bad_record_def_error(L, Name, St)}.
 
+check_record_pat_fields(Name, ['_',_Val|Fs], Rfs, Pvs, Env, L, St) ->
+    %% The _ field is special!
+    check_record_pat_fields(Name, Fs, Rfs, Pvs, Env, L, St);
 check_record_pat_fields(Name, [F,Pat|Fs], Rfs, Pvs0, Env, L, St0) ->
     {Pvs1,St1} = case lists:member(F, Rfs) of
                      true ->

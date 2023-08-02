@@ -35,6 +35,12 @@ is used by the compiler to give better error information.
 
 # EXPORTS
 
+**get_line([[IoDevice,] Prompt]) -> Data | {error,ErrorInfo} | eof**
+
+Reads a line from the standard input (``IoDevice``), prompting it with
+prompt (``Prompt``). Note that this call guarantees that the input is
+saved in the input hisotry.
+
 **read([[IoDevice,] Prompt]) -> {ok,Sexpr} | {error,ErrorInfo} | eof**
 
 Read an s-expr from the standard input (``IoDevice``) with a prompt

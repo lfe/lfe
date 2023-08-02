@@ -247,6 +247,13 @@ The empty tuple \f[V]#()\f[R] is also valid.
 .PP
 Maps are written as \f[V]#M(key1 value1 key2 value2 ...)\f[R] The empty
 map is also valid and written as \f[V]#M()\f[R].
+.SS Structs
+.PP
+Structs are written as
+\f[V]#S(struct-name key1 value1 key2 value2 ...)\f[R].
+.PP
+Note that structs cannot be created with the literal syntax, the
+\f[V](struct mod-name ...)\f[R] form must be used.
 .SS Symbols
 .PP
 Things that cannot be parsed as any of the above are usually considered
@@ -364,7 +371,7 @@ the expression and then be effectively \f[V]2\f[R].
 (record-update record name field val ...)
 
 (define-struct fields)
-(struct field val ...)
+(struct mod-name field val ...)
 (is-struct struct)
 (is-struct struct name)
 (struct-field struct name field)

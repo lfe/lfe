@@ -6,6 +6,8 @@ on:
     branches: [ master, release/*, task/*, feature/*, bugfix/*, develop]
   pull_request:
     branches: [ master, release/*, task/*, feature/*, bugfix/*, develop]
+  schedule:
+  - cron: "17 3 * * *"
 
 jobs:
 
@@ -16,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        otp-version: ['22', '23', '24', '25']
+        otp-version: ['22', '23', '24', '25', '26']
         os: ['ubuntu-latest']
 
     container:
@@ -45,7 +47,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        otp-version: ['22', '23', '24', '25']
+        otp-version: ['22', '23', '24', '25', '26']
         os: ['ubuntu-latest']
 
     container:
@@ -63,13 +65,13 @@ jobs:
 
   older-builds:
     name: Older builds - OTP ${{ matrix.otp-version }} / ${{ matrix.os }}
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
 
     strategy:
       fail-fast: false
       matrix:
         otp-version: ['19', '20', '21']
-        os: ['ubuntu-18.04']
+        os: ['ubuntu-20.04']
 
     container:
       image: erlang:${{ matrix.otp-version }}
@@ -92,13 +94,13 @@ jobs:
   older-installs:
     name: Older installs - OTP ${{ matrix.otp-version }} / ${{ matrix.os }}
     needs: older-builds
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
 
     strategy:
       fail-fast: false
       matrix:
         otp-version: ['19', '20', '21']
-        os: ['ubuntu-18.04']
+        os: ['ubuntu-20.04']
 
     container:
       image: erlang:${{ matrix.otp-version }}

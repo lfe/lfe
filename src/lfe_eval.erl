@@ -33,12 +33,6 @@
 %% Deprecated exports.
 -export([eval/1,eval/2,eval_list/2]).
 
--import(lfe_env, [add_vbinding/3,add_vbindings/2,get_vbinding/2,
-                  add_fbinding/4,add_fbindings/2,
-                  add_ibinding/5]).
-
--import(orddict, [find/2,fetch/2,store/3,is_key/2]).
-
 -compile({no_auto_import,[apply/3]}).           %For our apply/3 function
 -deprecated([eval/1,eval/2,eval_list/2]).
 
@@ -209,30 +203,12 @@ eval_expr(['make-record',Name|As], Env) ->
     eval_expr(['record',Name|As], Env);
 eval_expr(['is-record',E,Name], Env) ->
     Ev = eval_expr(E, Env),
-    case lfe_env:get_record(Name, Env) of
-        {yes,Fields} ->
-            is_valid_record(Ev, Name, Fields);
-        no -> undefined_record_error(Name)
-    end;
+    test_is_record(Ev, Name, Env);
 eval_expr(['record-index',Name,F], Env) ->
-    case lfe_env:get_record(Name, Env) of
-        {yes,Fields} ->
-            get_field_index(Name, Fields, F);
-        no -> undefined_record_error(Name)
-    end;
+    get_record_index(Name, F, Env);
 eval_expr(['record-field',E,Name,F], Env) ->
     Ev = eval_expr(E, Env),
-    case lfe_env:get_record(Name, Env) of
-        {yes,Fields} ->
-            case is_valid_record(Ev, Name, Fields) of
-                true ->
-                    Index = get_field_index(Name, Fields, F),
-                    element(Index, Ev);
-                false ->
-                    eval_error({badrecord,Name,Ev})
-            end;
-        no -> undefined_record_error(Name)
-    end;
+    get_record_field(Ev, Name, F, Env);
 eval_expr(['record-update',E,Name|Args], Env) ->
     Ev = eval_expr(E, Env),
     update_record_tuple(Ev, Name, Args, Env);
@@ -316,7 +292,7 @@ eval_expr([_|_]=S, _) ->                        %Test if string literal
             bad_form_error(application)
     end;
 eval_expr(Symb, Env) when is_atom(Symb) ->
-    case get_vbinding(Symb, Env) of
+    case lfe_env:get_vbinding(Symb, Env) of
         {yes,Val} -> Val;
         no -> unbound_symbol_error(Symb)
     end;
@@ -333,29 +309,59 @@ is_valid_record(Value, Name, Fields) ->
 
 %% make_record_tuple(Name, Args, Env) -> Record.
 %%  We have to macro expand and evaluate the default values here as
-%%  well. Make sure to build the tuple in the right order.
+%%  well. Make sure to build the tuple and evaluate the tuple elements
+%%  in the right order.  'undefined' is the default value for
+%%  unspecified field values.
 
 make_record_tuple(Name, Args, Env) ->
     case lfe_env:get_record(Name, Env) of
         {yes,Fields} ->
             Es = make_record_elements(Fields, Args, Env),
-            list_to_tuple([Name|Es]);
+            %% io:format("make\n    ~p\n    ~p\n    ~p\n", [Fields,Args,Es]),
+            eval_expr([tuple,?Q(Name)|Es], Env);
         no -> undefined_record_error(Name)
     end.
 
 make_record_elements(Fields, Args, Env) ->
-    Mfun = fun ([F,Def|_]) -> make_field_val(F, Args, Def, Env);
-               ([F]) -> make_field_val(F, Args, ?Q(undefined), Env);
-               (F) -> make_field_val(F, Args, ?Q(undefined), Env)
+    %% Mke sure we do it left to right.
+    DefDef = default_record_value(Args),
+    Mfun = fun ([F,Def|_]) ->
+                   UseDef = record_or_field_def(DefDef, Def),
+                   make_field_val(F, Args, UseDef, Env);
+               ([F]) ->
+                   UseDef = record_or_field_def(DefDef, ?Q(undefined)),
+                   make_field_val(F, Args, UseDef, Env);
+               (F) ->
+                   UseDef = record_or_field_def(DefDef, ?Q(undefined)),
+                   make_field_val(F, Args, UseDef, Env)
            end,
     lists:map(Mfun, Fields).
 
-make_field_val(F, [F,V|_], _Def, Env) -> eval_expr(V, Env);
+%% record_or_field_def(DefDef, Def) -> Def.
+
+record_or_field_def({yes,DefDef}, _Def) -> DefDef;
+record_or_field_def(no, Def) -> Def.
+
+%% default_record_value(Args) -> {yes, DefaultValue} | no.
+
+default_record_value(['_',Val|_Args]) -> {yes,Val};
+default_record_value([_,_|Args]) ->
+    default_record_value(Args);
+default_record_value([ArgF]) ->
+    eval_error({missing_record_field_value,ArgF});
+default_record_value([]) -> no.
+
+%% make_field_val(Field, Args, Default, Env) -> Val
+
+make_field_val(F, [F,Val|_], _Def, _Env) ->
+    Val;
 make_field_val(F, [_,_|Args], Def, Env) ->
     make_field_val(F, Args, Def, Env);
 make_field_val(_F, [ArgF], _Def, _Env) ->
     eval_error({missing_record_field_value,ArgF});
-make_field_val(_, [], Def, Env) -> expr(Def, Env).
+make_field_val(_, [], Def, Env) ->
+    %% We must expand all macros in the default value used.
+    lfe_macro:expand_expr_all(Def, Env).
 
 %% get_field_index(Name, Fields, Field) -> Index.
 
@@ -396,6 +402,42 @@ update_field_val(F, [F,V|_], _Recv, Env) -> eval_expr(V, Env);
 update_field_val(F, [_,_|Args], Recv, Env) ->
     update_field_val(F, Args, Recv, Env);
 update_field_val(_, [], Recv, _Env) -> Recv.
+
+%% test_is_record(Record, Name, Env) -> boolean().
+%%  Test whether term is a record.
+
+test_is_record(Record, Name, Env) ->
+    case lfe_env:get_record(Name, Env) of
+        {yes,Fields} ->
+            is_valid_record(Record, Name, Fields);
+        no -> undefined_record_error(Name)
+    end.
+
+%% get_record_index(Name, Field) -> Index.
+%%  Get the index of a fiedl in the record.
+
+get_record_index(Name, Field, Env) ->
+    case lfe_env:get_record(Name, Env) of
+        {yes,Fields} ->
+            get_field_index(Name, Fields, Field);
+        no -> undefined_record_error(Name)
+    end.
+
+%% get_record_field(Record, Name, Field, Env) -> Value.
+%%  Get the field from the record Name.
+
+get_record_field(Record, Name, Field, Env) ->
+    case lfe_env:get_record(Name, Env) of
+        {yes,Fields} ->
+            case is_valid_record(Record, Name, Fields) of
+                true ->
+                    Index = get_field_index(Name, Fields, Field),
+                    element(Index, Record);
+                false ->
+                    eval_error({badrecord,Name,Record})
+            end;
+        no -> undefined_record_error(Name)
+    end.
 
 %% make_struct_map(Name, Fields, Env) -> Struct.
 %%  We have to macro expand and evaluate the values in the fields. Use
@@ -623,7 +665,7 @@ apply_lambda(Args, Body, Vals, Env0) ->
 bind_args(['_'|As], [_|Es], Env) ->             %Ignore don't care variables
     bind_args(As, Es, Env);
 bind_args([A|As], [E|Es], Env) when is_atom(A) ->
-    bind_args(As, Es, add_vbinding(A, E, Env));
+    bind_args(As, Es, lfe_env:add_vbinding(A, E, Env));
 bind_args([], [], Env) -> Env;
 bind_args(_As, _Vs, _Env) ->
     eval_error(bad_head_arity).
@@ -648,7 +690,7 @@ apply_match_lambda([[Pats|B0]|Cls], Vals, Env) ->
             %% and pass in as one pattern. Have already checked a
             %% proper list.
             case match_when([list|Pats], Vals, B0, Env) of
-                {yes,B1,Vbs} -> eval_body(B1, add_vbindings(Vbs, Env));
+                {yes,B1,Vbs} -> eval_body(B1, lfe_env:add_vbindings(Vbs, Env));
                 no -> apply_match_lambda(Cls, Vals, Env)
             end;
        true -> eval_error(bad_head_arity)
@@ -663,13 +705,13 @@ eval_let([Vbs|Body], Env0) ->
     Fun = fun ([Pat,E], Env) ->
                   Val = eval_expr(E, Env0),
                   case match(Pat, Val, Env0) of
-                      {yes,Bs} -> add_vbindings(Bs, Env);
+                      {yes,Bs} -> lfe_env:add_vbindings(Bs, Env);
                       no -> eval_error({badmatch,Val})
                   end;
               ([Pat,['when'|_]=G,E], Env) ->
                   Val = eval_expr(E, Env0),
                   case match_when(Pat, Val, [G], Env0) of
-                      {yes,[],Bs} -> add_vbindings(Bs, Env);
+                      {yes,[],Bs} -> lfe_env:add_vbindings(Bs, Env);
                       no -> eval_error({badmatch,Val})
                   end;
               (_, _) -> bad_form_error('let')
@@ -729,7 +771,7 @@ eval_letrec_function([Fbs0|Body], Env0) ->
 make_letrec_env(Fbs0, Env) ->
     Fbs1 = lists:map(fun ({V,Ar,Body}) -> {V,Ar,{letrec,Body,Fbs0,Env}} end,
                      Fbs0),
-    add_fbindings(Fbs1, Env).
+    lfe_env:add_fbindings(Fbs1, Env).
 
 %% extend_letrec_env(Lete0, Fbs0, Env0) ->
 %%     {Lete0,Env0}.
@@ -741,13 +783,13 @@ make_letrec_env(Fbs0, Env) ->
 %%  environment.
 
 add_lexical_func(Name, Ar, Def, Fenv, Env) ->
-    add_fbinding(Name, Ar, {lexical_expr,Def,Fenv}, Env).
+    lfe_env:add_fbinding(Name, Ar, {lexical_expr,Def,Fenv}, Env).
 
 add_lexical_func(Name, Ar, Def, Env) ->
-    add_fbinding(Name, Ar, {lexical_expr,Def,Env}, Env).
+    lfe_env:add_fbinding(Name, Ar, {lexical_expr,Def,Env}, Env).
 
 add_dynamic_func(Name, Ar, Def, Env) ->
-    add_fbinding(Name, Ar, {dynamic_expr,Def}, Env).
+    lfe_env:add_fbinding(Name, Ar, {dynamic_expr,Def}, Env).
 
 %% eval_apply(Function, Args, Env) -> Value.
 %%  This is used to evaluate interpreted functions. Macros are
@@ -762,7 +804,7 @@ eval_apply({lexical_expr,Func,Env}, Es, _) ->
 eval_apply({letrec,Body,Fbs,Env}, Es, _) ->
     %% A function created by/for letrec-function.
     Fun = fun ({V,Ar,Lambda}, E) ->
-                  add_fbinding(V, Ar, {letrec,Lambda,Fbs,Env}, E)
+                  lfe_env:add_fbinding(V, Ar, {letrec,Lambda,Fbs,Env}, E)
           end,
     NewEnv = lists:foldl(Fun, Env, Fbs),
     %% io:fwrite("la: ~p\n", [{Body,NewEnv}]),
@@ -807,7 +849,7 @@ eval_case([E|Cls], Env) ->
 
 eval_case_clauses(V, Cls, Env) ->
     case match_clause(V, Cls, Env) of
-        {yes,B,Vbs} -> eval_body(B, add_vbindings(Vbs, Env));
+        {yes,B,Vbs} -> eval_body(B, lfe_env:add_vbindings(Vbs, Env));
         no -> eval_error({case_clause,V})
     end.
 
@@ -849,7 +891,7 @@ receive_clauses(Cls, Env, Ms) ->
             case match_clause(Msg, Cls, Env) of
                 {yes,B,Vbs} ->
                     merge_queue(Ms),
-                    eval_body(B, add_vbindings(Vbs, Env));
+                    eval_body(B, lfe_env:add_vbindings(Vbs, Env));
                 no -> receive_clauses(Cls, Env, [Msg|Ms])
             end
     end.
@@ -869,7 +911,7 @@ receive_clauses(T, Tb, Cls, Env, Ms) ->
             case match_clause(Msg, Cls, Env) of
                 {yes,B,Vbs} ->
                     merge_queue(Ms),
-                    eval_body(B, add_vbindings(Vbs, Env));
+                    eval_body(B, lfe_env:add_vbindings(Vbs, Env));
                 no ->
                     %% Check how much time left and recurse correctly.
                     {_,T1} = statistics(runtime),
@@ -928,7 +970,7 @@ eval_try(E, Case, Catch, After, Env) ->
         Value ->
             case match_clause(Value, Case, Env) of
                 {yes,Body,Vbs} ->
-                    eval_body(Body, add_vbindings(Vbs, Env));
+                    eval_body(Body, lfe_env:add_vbindings(Vbs, Env));
                 no ->
                     ?EVAL_ERROR({try_clause,Value})
             end
@@ -938,7 +980,7 @@ eval_try(E, Case, Catch, After, Env) ->
             %% explicitly get it here just in case.
             case match_clause({Class,Error,Stack}, Catch, Env) of
                 {yes,Body,Vbs} ->
-                    eval_body(Body, add_vbindings(Vbs, Env));
+                    eval_body(Body, lfe_env:add_vbindings(Vbs, Env));
                 no ->
                     erlang:raise(Class, Error, Stack)
             end
@@ -974,7 +1016,7 @@ match_when(Pat, V, B0, Env) ->
         {yes,Vbs} ->
             case B0 of
                 [['when'|G]|B1] ->
-                    case eval_guard(G, add_vbindings(Vbs, Env)) of
+                    case eval_guard(G, lfe_env:add_vbindings(Vbs, Env)) of
                         true -> {yes,B1,Vbs};
                         false -> no
                     end;
@@ -1037,6 +1079,15 @@ eval_gexpr(['map-set',Map|As], Env) ->
     eval_gmap_set('map-set', Map, As, Env);
 eval_gexpr(['map-update',Map|As], Env) ->
     eval_gmap_update('map-update', Map, As, Env);
+%% Record special forms.
+eval_gexpr(['is-record',E,Name], Env) ->
+    Ev = eval_gexpr(E, Env),
+    test_is_record(Ev, Name, Env);
+eval_gexpr(['record-index',Name,F], Env) ->
+    get_record_index(Name, F, Env);
+eval_gexpr(['record-field',E,Name,F], Env) ->
+    Ev = eval_gexpr(E, Env),
+    get_record_field(Ev, Name, F, Env);
 %% Struct special forms.
 eval_gexpr(['is-struct',E0], Env) ->
     Ev = eval_gexpr(E0, Env),
@@ -1069,7 +1120,7 @@ eval_gexpr([_|_]=S, _) ->                       %Test is literal string
         false -> illegal_guard_error()          %It is a bad application form
     end;
 eval_gexpr(Symb, Env) when is_atom(Symb) ->
-    case get_vbinding(Symb, Env) of
+    case lfe_env:get_vbinding(Symb, Env) of
         {yes,Val} -> Val;
         no -> unbound_symbol_error(Symb)
     end;
@@ -1201,15 +1252,11 @@ match([map|Ps], Val, Pbs, Env) ->
         false -> no
     end;
 %% Record patterns.
-match(['record',Name|Fs], Val, Pbs, Env) ->
-    case lfe_env:get_record(Name, Env) of
-        {yes,Fields} ->
-            match_record_tuple(Name, Fields, Fs,  Val, Pbs, Env);
-        no -> undefined_record_error(Name)
-    end;
+match(['record',Name|Ps], Val, Pbs, Env) ->
+    match_record_tuple(Name, Ps, Val, Pbs, Env);
 %% make-record has been deprecated but we sill accept it for now.
-match(['make-record',Name|Fs], Val, Pbs, Env) ->
-    match(['record',Name|Fs], Val, Pbs, Env);
+match(['make-record',Name|Ps], Val, Pbs, Env) ->
+    match(['record',Name|Ps], Val, Pbs, Env);
 match(['record-index',Name,F], Val, Pbs, Env) ->
     case lfe_env:get_record(Name, Env) of
         {yes,Fields} ->
@@ -1253,27 +1300,44 @@ match_list(_, _, _, _) -> no.
 match_symb('_', _, Pbs, _) -> {yes,Pbs};        %Don't care variable.
 match_symb(S, Val, Pbs, _) ->
     %% Check if Symb already bound.
-    case find(S, Pbs) of
+    case orddict:find(S, Pbs) of
         {ok,Val} -> {yes,Pbs};                  %Bound to the same value
         {ok,_} -> no;                           %Bound to a different value
-        error -> {yes,store(S, Val, Pbs)}       %Not yet bound
+        error ->
+            {yes,orddict:store(S, Val, Pbs)}    %Not yet bound
     end.
 
-%% match_record_tuple(Name, Fields, Pats, Val, Pbs, Env) -> {yes,Pbs} | no.
+ %% match_record_tuple(Name, Val, Pbs, Env) -> {yes,Pbs} | no.
+%%  '_' is the default value for unspecified field values.
 
-match_record_tuple(Name, Fields, Pats, Val, Pbs, Env) ->
-    Ps = match_record_patterns(Fields, Pats),
-    match([tuple,Name|Ps], Val, Pbs, Env).
+match_record_tuple(Name, Pats, Val, Pbs, Env) ->
+    case lfe_env:get_record(Name, Env) of
+        {yes,Fields} ->
+            Ps = match_record_patterns(Fields, Pats),
+            %% io:format("pat\n   ~p\n   ~p\n   ~p\n", [Val,Fields,Ps]),
+            match([tuple,Name|Ps], Val, Pbs, Env);
+        no -> undefined_record_error(Name)
+    end.
 
 match_record_patterns(Fields, Pats) ->
-    Mfun = fun ([F|_]) -> make_field_pat(F, Pats);
-               (F) -> make_field_pat(F, Pats)
-           end,
+    DefDef = default_record_value(Pats),
+    Mfun = fun ([F|_]) ->
+                   UseDef = record_or_field_def(DefDef, '_'),
+                   make_field_pat(F, Pats, UseDef);
+               (F) ->
+                   UseDef = record_or_field_def(DefDef, '_'),
+                   make_field_pat(F, Pats, UseDef)
+               end,
     lists:map(Mfun, Fields).
 
-make_field_pat(F, [F,P|_]) -> P;
-make_field_pat(F, [_,_|Pats]) -> make_field_pat(F, Pats);
-make_field_pat(_, []) -> '_'.                   %Underscore matches anything
+%% make_field_pat(Field, Pats, UseDef) -> Pat.
+
+make_field_pat(F, [F,P|_], _Def) -> P;
+make_field_pat(F, [_,_|Pats], Def) ->
+    make_field_pat(F, Pats, Def);
+make_field_pat(_F, [PatF], _Def) ->
+    eval_error({missing_record_field_value,PatF});
+make_field_pat(_, [], Def) -> Def.
 
 %% match_struct_map(Name, Pats, Val, Pbs, Env) -> {yes,Pbs} | no.
 
@@ -1335,7 +1399,7 @@ eval_lit([map|As], Env) ->
 eval_lit([_|_]=Lit, _) ->                       %All other lists illegal
     eval_error({illegal_literal,Lit});
 eval_lit(Symb, Env) when is_atom(Symb) ->
-    case get_vbinding(Symb, Env) of
+    case lfe_env:get_vbinding(Symb, Env) of
         {yes,Val} -> Val;
         no -> unbound_symbol_error(Symb)
     end;

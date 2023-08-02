@@ -1169,8 +1169,14 @@ exp_logical(As, Op, St) ->
 exp_comp([A], _, St) ->            %Force evaluation
     {[progn,A,?Q(true)],St};
 exp_comp([A,B], Op, St) -> {exp_bif(Op, [A,B]),St};
-exp_comp(As, Op, St) ->
-    {foldl(fun (A, Acc) -> exp_bif(Op, [Acc,A]) end, hd(As), tl(As)),St}.
+exp_comp(As, Op, St0) ->
+    {Ls,St1} = exp_args(As, St0),
+    Ts = op_pairs(Ls, Op),
+    {exp_let_star([Ls,exp_andalso(Ts)]),St1}.
+
+op_pairs(Ls, Op) ->
+    Ps = lists:zip(lists:droplast(Ls),tl(Ls)),
+    [exp_bif(Op, [V1,V2]) || {[V1,_],[V2,_]} <- Ps].
 
 %% exp_nequal(Args, Op, State) -> {Exp,State}.
 %%  Expand not equal test strictly forcing evaluation of all
