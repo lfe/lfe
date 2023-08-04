@@ -246,7 +246,7 @@ read_expression_1(Rdr, Eval, St) ->
     end.
 
 banner() ->
-    banner(lfe_version()).
+    banner(lfe:version()).
 
 banner(Vsn) ->
     banner(Vsn, quit_message()).
@@ -280,10 +280,6 @@ quit_message() ->
     %% shells that require a different control character to abort, such
     %% as jlfe.
     "(abort with ^G)".
-
-lfe_version() ->
-    {ok, [App]} = file:consult(code:where_is_file("lfe.app")),
-    proplists:get_value(vsn, element(3, App)).
 
 %% new_state(ScriptName, Args [,Env]) -> State.
 %%  Generate a new shell state with all the default functions, macros
