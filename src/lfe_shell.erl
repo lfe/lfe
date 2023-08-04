@@ -31,6 +31,9 @@
          run_strings/1,run_strings/2,run_string/1,run_string/2,
          new_state/2,new_state/3,upd_state/3]).
 
+%% Useful for the LFE rebar3 plugin
+-export([banner/0,banner/1,banner/2]).
+
 %% The shell commands which generally callable.
 -export([c/1,c/2,cd/1,ec/1,ec/2,ep/1,ep/2,epp/1,epp/2,help/0,h/1,h/2,h/3,
          i/0,i/1,i/3,l/1,ls/1,clear/0,m/0,m/1,pid/3,p/1,p/2,pp/1,pp/2,pwd/0,
@@ -242,17 +245,23 @@ read_expression_1(Rdr, Eval, St) ->
             read_expression_1(Rdr, start_eval(St), St)
     end.
 
-make_banner() ->
-    [io_lib:format(
-       ?GRN("   ..-~~") ++ ?YLW(".~~_") ++ ?GRN("~~---..") ++ "\n" ++
+banner() ->
+    banner(lfe_version()).
+
+banner(Vsn) ->
+    banner(Vsn, quit_message()).
+
+banner(Vsn, QuitMsg) ->
+    ?GRN("   ..-~") ++ ?YLW(".~_") ++ ?GRN("~---..") ++ "\n" ++
        ?GRN("  (      ") ++ ?YLW("\\\\") ++ ?GRN("     )") ++ "    |   A Lisp-2+ on the Erlang VM\n" ++
        ?GRN("  |`-.._") ++ ?YLW("/") ++ ?GRN("_") ++ ?YLW("\\\\") ++ ?GRN("_.-':") ++ "    |   Type " ++ ?GRN("(help)") ++ " for usage info.\n" ++
        ?GRN("  |         ") ++ ?RED("g") ++ ?GRN(" |_ \\") ++  "   |\n" ++
        ?GRN("  |        ") ++ ?RED("n") ++ ?GRN("    | |") ++   "  |   Docs: " ++ ?BLU("http://docs.lfe.io/") ++ "\n" ++
        ?GRN("  |       ") ++ ?RED("a") ++ ?GRN("    / /") ++   "   |   Source: " ++ ?BLU("http://github.com/lfe/lfe") ++ "\n" ++
        ?GRN("   \\     ") ++ ?RED("l") ++ ?GRN("    |_/") ++  "    |\n" ++
-       ?GRN("    \\   ") ++ ?RED("r") ++ ?GRN("     /") ++  "      |   LFE v~s ~s\n" ++
-       ?GRN("     `-") ++ ?RED("E") ++ ?GRN("___.-'") ++ "\n\n", [get_lfe_version(), get_abort_message()])].
+       ?GRN("    \\   ") ++ ?RED("r") ++ ?GRN("     /") ++  "      |   LFE v" ++
+        Vsn ++ " " ++  QuitMsg ++ "\n" ++
+       ?GRN("     `-") ++ ?RED("E") ++ ?GRN("___.-'") ++ "\n\n".
 
 display_banner() ->
     %% When LFE is called with -noshell, we want to skip the banner. Also, there may be
@@ -260,19 +269,19 @@ display_banner() ->
     %% thus we want to support both use cases.
     case init:get_argument(noshell) of
         error -> case init:get_argument(nobanner) of
-                    error -> io:put_chars(make_banner());
+                    error -> io:put_chars(banner());
                     _ -> false
                  end;
         _ -> false
     end.
 
-get_abort_message() ->
+quit_message() ->
     %% We can update this later to check for env variable settings for
     %% shells that require a different control character to abort, such
     %% as jlfe.
     "(abort with ^G)".
 
-get_lfe_version() ->
+lfe_version() ->
     {ok, [App]} = file:consult(code:where_is_file("lfe.app")),
     proplists:get_value(vsn, element(3, App)).
 
