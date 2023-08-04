@@ -333,3 +333,12 @@ docker-docs:
 docker-docs-bash:
 	docker run -i -v `pwd`/doc:/docs -t lfex/lfe-docs:latest bash
 
+# Targets for releases
+
+hex-publish: clean compile
+	rebar3 hex publish
+
+tags:
+	git tag $(shell erl -eval $(GET_VERSION)|tr -d '"')
+	git tag v$(shell erl -eval $(GET_VERSION)|tr -d '"')
+	git push --tags
