@@ -22,6 +22,8 @@ LSRCDIR = src
 INCDIR = include
 EMACSDIR = emacs
 HOSTCC ?= $(CC)
+CFLAGS ?= -Wall -Wextra
+LDFLAGS ?= -Wl,--as-needed
 PREFIX ?= /usr/local
 INSTALL = install
 INSTALL_DIR = $(INSTALL) -m755 -d
@@ -73,7 +75,7 @@ ELCS = $(EMACSRCS:.el=.elc)
 .SUFFIXES: .erl .beam
 
 $(BINDIR)/%: $(CSRCDIR)/%.c
-	$(HOSTCC) -o $@ $<
+	$(HOSTCC) $(CFLAGS) $(LDFLAGS) -o $@ $<
 
 $(EBINDIR)/%.beam: $(SRCDIR)/%.erl
 	@$(INSTALL_DIR) $(EBINDIR)
