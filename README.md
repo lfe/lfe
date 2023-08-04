@@ -67,6 +67,8 @@ like so after compiling:
 
 ```shell
 $ ./bin/lfe
+```
+```text
 Erlang/OTP 26 [erts-14.0.2] [source] [64-bit] [smp:10:10] [ds:10:10:10] [async-threads:1] [jit] [dtrace]
 
    ..-~.~_~---..
