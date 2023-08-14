@@ -29,7 +29,7 @@
   {applications, [kernel,stdlib,compiler]},
 
   %% Project metadata
-  {licenses, ["Apache"]},
+  {licenses, ["Apache 2.0"]},
   {links, [{"Github", "https://github.com/lfe/lfe"},
            {"Main site", "https://lfe.io/"},
            {"Documentation", "https://lfe.io/use/#reference"}]},
