@@ -27,7 +27,8 @@
             lfe_types,lfescript,scm]},
   {registered, []},
   {applications, [kernel,stdlib,compiler]},
-  {maintainers, ["Robert Virding"]},
+
+  %% Project metadata
   {licenses, ["Apache"]},
   {links, [{"Github", "https://github.com/lfe/lfe"},
            {"Main site", "https://lfe.io/"},
