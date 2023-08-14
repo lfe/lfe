@@ -345,7 +345,7 @@ docker-docs-bash:
 ################
 
 hex-publish: clean-all compile
-	rebar3 hex publish
+	rebar3 hex publish package
 
 tags:
 	git tag $(shell erl -eval $(GET_VERSION)|tr -d '"')
