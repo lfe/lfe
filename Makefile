@@ -149,6 +149,9 @@ install-bin:
 clean:
 	rm -rf $(EBINDIR)/*.beam erl_crash.dump comp_opts.mk
 
+clean-all: clean
+	rm -rf _build
+
 echo:
 	@ echo $(ESRCS)
 	@ echo $(XSRCS)
@@ -312,6 +315,10 @@ update-mandb:
 	@echo "Updating man page database ..."
 	$(MANDB) $(MANINSTDIR)
 
+##############
+### DOCKER ###
+##############
+
 # Targets for working with Docker
 docker-build:
 	docker build -t lfex/lfe:latest .
@@ -333,9 +340,11 @@ docker-docs:
 docker-docs-bash:
 	docker run -i -v `pwd`/doc:/docs -t lfex/lfe-docs:latest bash
 
-# Targets for releases
+################
+### RELEASES ###
+################
 
-hex-publish: clean compile
+hex-publish: clean-all compile
 	rebar3 hex publish
 
 tags:
