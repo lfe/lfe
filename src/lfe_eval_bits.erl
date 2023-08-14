@@ -1,4 +1,4 @@
-%% Copyright (c) 2021 Robert Virding
+%% Copyright (c) 2021-2023 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@
 
 -module(lfe_eval_bits).
 
--export([expr_bitsegs/2,match_bitsegs/4]).
+-export([expr_bitsegs/2,match_bitsegs/4,format_error/1]).
 
 -import(lists, [foldl/3,foldr/3]).
 
@@ -39,6 +39,10 @@
         element(2, erlang:process_info(self(), current_stacktrace))).
 
 -define(EVAL_ERROR(Error), erlang:raise(error, Error, ?STACKTRACE)).
+
+%% Pass errors on to lfe_eval.
+format_error(Error) ->
+    lfe_eval:format_error(Error).
 
 %% expr_bitsegs(Bitsegs, EvalFun) -> Binary.
 %%  Construct a binary from Bitsegs. This code is taken from
@@ -174,12 +178,16 @@ match_bitseg(Pat, Size, Type, Bin0, Bbs0, Pbs0, Env) ->
     end.
 
 get_pat_bitsize(all, {Ty,_,_,_}, _, _, _) ->
-    if Ty =:= binary -> all;
-       true -> eval_error(illegal_bitsize)
+    if Ty =:= binary ->
+            all;
+       true ->
+            eval_error(illegal_bitsize)
     end;
 get_pat_bitsize(undefined, {Ty,_,_,_}, _, _, _) ->
-    if Ty =:= utf8; Ty =:= utf16; Ty =:= utf32 -> undefined;
-       true -> eval_error(illegal_bitsize)
+    if Ty =:= utf8; Ty =:= utf16; Ty =:= utf32 ->
+            undefined;
+       true ->
+            eval_error(illegal_bitsize)
     end;
 get_pat_bitsize(S, _, _, _, _) when is_integer(S) -> S;
 get_pat_bitsize(S, _, Bbs, _, Env) when is_atom(S) ->
@@ -206,7 +214,8 @@ match_bitexpr(S, Val, Bbs, Pbs, _) when is_atom(S) ->
         error ->                                %Not yet bound
             {yes,store(S, Val, Bbs),store(S, Val, Pbs)}
     end;
-match_bitexpr(_, _, _, _, _) -> eval_error(illegal_bitseg).
+match_bitexpr(_, _, _, _, _) ->
+    eval_error(illegal_bitseg).
 
 %% get_pat_bitseg(Binary, Size, {Type,Unit,Sign,Endian}) -> {Value,RestBinary}.
 %%  This function can signal error if impossible to get specified bit

@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2021 Robert Virding
+%% Copyright (c) 2008-2023 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -61,8 +61,6 @@ format_error(function_clause) -> <<"no function clause matching">>;
 format_error({case_clause,Val}) ->
     format_value(Val, <<"no case clause matching ">>);
 format_error(illegal_guard) -> <<"illegal guard expression">>;
-format_error(illegal_bitsize) -> <<"illegal bit size">>;
-format_error(illegal_bitseg) -> <<"illegal bit segment">>;
 format_error({illegal_pattern,Pat}) ->
     format_value(Pat, <<"illegal pattern ">>);
 format_error({illegal_literal,Lit}) ->
@@ -74,6 +72,9 @@ format_error({argument_limit,Arity}) ->
     lfe_io:format1(<<"too many arguments ~w">>, [Arity]);
 format_error({bad_form,Form}) ->
     lfe_io:format1(<<"bad ~w form">>, [Form]);
+%% Binaries
+format_error(illegal_bitsize) -> <<"illegal bit size">>;
+format_error(illegal_bitseg) -> <<"illegal bit segment">>;
 %% Try-catches.
 format_error({try_clause,V}) ->
     format_value(V, <<"no try clause matching ">>);
@@ -93,6 +94,9 @@ format_error({undefined_struct_field,Name,Field}) ->
     lfe_io:format1(<<"field ~w undefined in struct ~w">>, [Field,Name]);
 format_error({missing_struct_field_value,Field}) ->
     lfe_io:format1(<<"missing value to field ~w in struct">>, [Field]);
+%% Comprehensions
+format_error({bad_generator,Gen}) ->
+    format_value(Gen, <<"bad generator ">>);
 %% Everything we don't recognise or know about.
 format_error(Error) ->
     lfe_io:prettyprint1(Error).
@@ -274,9 +278,14 @@ eval_expr(['try'|Body], Env) ->
     eval_try(Body, Env);
 eval_expr([funcall,F|As], Env) ->
     eval_apply_expr(eval_expr(F, Env), eval_list(As, Env), Env);
-eval_expr([call|Body], Env) ->
-    eval_call(Body, Env);
+%% List/binary comprehensions.
+eval_expr(['lc',Qs,E], Env) ->
+    eval_list_comp(Qs, E, Env);
+eval_expr(['list-comp',Qs,E], Env) ->
+    eval_list_comp(Qs, E, Env);
 %% General functions calls.
+eval_expr(['call'|Body], Env) ->
+    eval_call(Body, Env);
 eval_expr([Fun|Es], Env) when is_atom(Fun) ->
     %% Note that macros have already been expanded here.
     Ar = length(Es),                            %Arity
@@ -997,6 +1006,46 @@ check_exceptions([Cl|Cls]) ->
     check_exceptions(Cls);
 check_exceptions([]) -> ok.
 
+%% eval_list_comp(Qualifiers, Expression, Env) -> Value.
+%%  Evaluate list comprehensions.
+
+eval_list_comp(Qs, Expr, Env) ->
+    EVals = eval_lc_qual_loop(Qs, Expr, Env, []),
+    lists:reverse(EVals).
+
+eval_lc_qual_loop([['<-',Pat,Gen]|Qs], Expr, Env, Evals) ->
+    GenVals = eval_lc_gen(Gen, Env),
+    eval_lc_gen_loop(Pat, GenVals, Qs, Expr, Env, Evals);
+eval_lc_qual_loop([['<-',Pat,['when'|G],Gen]|Qs], Expr, Env, Evals) ->
+    %% Move guards to qualifiers as tests.
+    eval_lc_qual_loop([['<-',Pat,Gen] | G ++ Qs], Expr, Env, Evals);
+eval_lc_qual_loop([Test|Qs], Expr, Env, Evals) ->
+    case eval_expr(Test, Env) of
+	true ->
+	    eval_lc_qual_loop(Qs, Expr, Env, Evals);
+	_Other ->
+	    Evals
+    end;
+eval_lc_qual_loop([], Expr, Env, Evals) ->
+    [eval_expr(Expr, Env) | Evals].
+
+eval_lc_gen_loop(Pat, [Val|GenVals], Qs, Expr, Env0, EVals0) ->
+    case lfe_eval:match(Pat, Val, Env0) of
+	{yes,Vbs} ->
+	    Env1 = lfe_env:add_vbindings(Vbs, Env0),
+	    EVals1 = eval_lc_qual_loop(Qs, Expr, Env1, EVals0),
+	    eval_lc_gen_loop(Pat, GenVals, Qs, Expr, Env1, EVals1);
+	no ->
+	    eval_lc_gen_loop(Pat, GenVals, Qs, Expr, Env0, EVals0)
+    end;
+eval_lc_gen_loop(_Pat, [], _Qs, _Expr, _Env, Evals) ->
+    Evals;
+eval_lc_gen_loop(_Pat, Other, _Qs, _Expr, _Env, _Evals) ->
+    %% This should be a list.
+    eval_error({bad_generator,Other}).
+
+eval_lc_gen(Gen, Env) ->
+    eval_expr(Gen, Env).
 
 %% eval_call([Mod,Func|Args], Env) -> Value.
 %%  Evaluate the module, function and args and then apply the function.
