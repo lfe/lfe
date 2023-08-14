@@ -168,3 +168,36 @@ the docs, you'll want to read the instructions here:
 [LFE on Slack](https://lfe.slack.com), join by requesting an invite [here](https://erlef.org/slack-invite/lfe)
 
 [LFE Forum - Erlang Forums](https://erlangforums.com/lfe)
+
+## Maintainers
+
+### Cutting Releases
+
+Steps:
+
+1. Update the version in `src/lfe.app.src`
+1. Create the release tags
+1. Create a release on Github
+1. Publish to hex.pm
+
+Once the `app.src` has been updated with the version for the release, you can create and push the tags (to Github) with the following:
+
+``` shell
+make tags
+```
+
+That will create the number-only version as well as the "v"-prefixed version.
+
+For now, the process of creating a release on Github is manual:
+
+1. Go to https://github.com/lfe/lfe/releases
+1. Click "Draft new release"
+1. Select the correct tag from the drop-down "Choose a tag"
+1. Click "Generate release notes"
+1. Click "Publish release"
+
+Lastly, to publish LFE to hex.pm, you need to have rebar3 installed on our system and an entry for the hex plugin in your system `rebar.config` file. With that in place, publish a new release to hex.pm requires only the following:
+
+``` shell
+make hex-publish
+```
