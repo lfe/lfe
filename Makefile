@@ -222,6 +222,10 @@ TXT7S = $(MAN7_SRCS:.7.md=.txt)
 PDF7S = $(MAN7_SRCS:.7.md=.pdf)
 EPUB7S = $(MAN7_SRCS:.7.md=.epub)
 
+# For pandoc for generating PDFs as it omly accepts a few options.
+# xelatex is a reasonable default.
+PANDOCPDF ?= xelatex
+
 # Just generate the docs that are tracked in git
 docs: docs-txt
 
@@ -274,13 +278,13 @@ docs-pdf: $(PDFDIR) \
 	$(addprefix $(PDFDIR)/, $(PDF7S))
 
 $(PDFDIR)/%.pdf: $(DOCSRC)/%.1.md
-	pandoc -f markdown --pdf-engine=xelatex -o $@ $<
+	pandoc -f markdown --pdf-engine=$(PANDOCPDF) -o $@ $<
 
 $(PDFDIR)/%.pdf: $(DOCSRC)/%.3.md
-	pandoc -f markdown --pdf-engine=xelatex -o $@ $<
+	pandoc -f markdown --pdf-engine=$(PANDOCPDF) -o $@ $<
 
 $(PDFDIR)/%.pdf: $(DOCSRC)/%.7.md
-	pandoc -f markdown --pdf-engine=xelatex -o $@ $<
+	pandoc -f markdown --pdf-engine=$(PANDOCPDF) -o $@ $<
 
 $(EPUBDIR):
 	@$(INSTALL_DIR) $(EPUBDIR)
