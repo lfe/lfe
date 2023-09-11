@@ -106,13 +106,17 @@ collect_mod_def({['define-module',Mod,_Metas,Attrs],Line}, St0) ->
     St1#lfe_cg{module=Mod,mline=Line};
 collect_mod_def({['extend-module',_Metas,Attrs],Line}, St0) ->
     coll_mdef_attrs(Attrs, Line, St0);
-collect_mod_def({['define-struct',_Fields],Line}, St) ->
+collect_mod_def({['define-struct',_Fields],Line}, #lfe_cg{defs=Defs}=St0) ->
+    %% Save them for export all.
+    St1 = St0#lfe_cg{defs=Defs ++ [{'__struct__',0,Line},
+                                   {'__struct__',1,Line}]},
     %% Export the struct functions.
-    coll_mdef_attr([export,['__struct__',0],['__struct__',1]], Line, St);
+    coll_mdef_attr([export,['__struct__',0],['__struct__',1]], Line, St1);
 collect_mod_def({['define-function',Name,_Meta,Def],Line},
                 #lfe_cg{defs=Defs}=St) ->
     %% Must save all functions for export all.
-    St#lfe_cg{defs=Defs ++ [{Name,Def,Line}]};
+    Arity = func_arity(Def),
+    St#lfe_cg{defs=Defs ++ [{Name,Arity,Line}]};
 collect_mod_def(_Form, St) -> St.               %Ignore everything else here
 
 %% coll_mdef_attrs(Attributes, Line, State) -> State.
@@ -318,15 +322,10 @@ comp_struct_def(Fields, Line, #lfe_cg{module=Mod}=St) ->
     %% The default struct.
     DefStr = comp_struct_map(Mod, Fields),
     %% The default __struct__/0/1 functions.
-    Str0 = comp_function_def('__struct__', [lambda,[],DefStr], Line, St),
-    Str1 = comp_function_def(
-             '__struct__',
-             [lambda,[assocs],
-              [call,?Q(lists),?Q(foldl),
-               ['match-lambda',[[[tuple,x,y],acc],
-                                [call,?Q(maps),?Q(update),x,y,acc]]],
-               DefStr,assocs]],
-             Line, St),
+    StrFun_0 = struct_fun_0(DefStr),
+    StrFun_1 = struct_fun_1(DefStr),
+    Str0 = comp_function_def('__struct__', StrFun_0, Line, St),
+    Str1 = comp_function_def('__struct__', StrFun_1, Line, St),
     Str0 ++ Str1.
 
 comp_struct_map(Mod, Fields) ->
@@ -337,6 +336,16 @@ comp_struct_map(Mod, Fields) ->
     Args = lists:map(Fun, Fields),
     maps:from_list([{'__struct__',Mod}|Args]).
 
+struct_fun_0(DefStr) ->
+    [lambda,[],DefStr].
+
+struct_fun_1(DefStr) ->
+    [lambda,[assocs],
+     [call,?Q(lists),?Q(foldl),
+      ['match-lambda',[[[tuple,x,y],acc],
+                       [call,?Q(maps),?Q(update),x,y,acc]]],
+      DefStr,assocs]].
+
 %% comp_export(State) -> Attribute.
 %% comp_imports(State) -> [Attribute].
 %% comp_on_load(State) -> Attribute.
@@ -345,7 +354,7 @@ comp_struct_map(Mod, Fields) ->
 
 comp_export(#lfe_cg{exports=Exps,defs=Defs,mline=Line}) ->
     Es = if Exps =:= all ->
-                 [ {F,func_arity(Def)} || {F,Def,_} <- Defs ];
+                 [ {F,Arity} || {F,Arity,_} <- Defs ];
             true -> Exps                        %Already in right format
          end,
     make_attribute(export, Es, Line).
