@@ -54,6 +54,11 @@
 (defvar lfe-mode-hook nil
   "*Hook for customizing Inferior LFE mode.")
 
+(defvar lfe-snippets-dir
+  (let ((current (or load-file-name (buffer-file-name))))
+    (expand-file-name "snippets" (file-name-directory current)))
+  "The directory containing lfe snippets.")
+
 (defun lfe-insert-brackets (&optional arg)
   "Enclose following `ARG' sexps in brackets.
 Leave point after open-bracket."
@@ -286,6 +291,17 @@ Other commands:
 ;; file completion.
 (dolist (lfe-ext '(".beam" ".jam" ".vee"))
   (add-to-list 'completion-ignored-extensions lfe-ext))
+
+(defun lfe-install-snippets ()
+  "Add `lfeq-snippets-dir' to `yas-snippet-dirs' and load snippets from it."
+  (require 'yasnippet)
+  (defvar yas-snippet-dirs)
+  (add-to-list 'yas-snippet-dirs lfe-snippets-dir t)
+  (yas-load-directory lfe-snippets-dir))
+
+;; not sure this is something done in modules or by user config.
+(eval-after-load 'lfe-mode
+  '(lfe-install-snippets))
 
 ;; The end.
 (provide 'lfe-mode)
