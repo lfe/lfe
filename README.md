@@ -202,4 +202,3 @@ Lastly, to publish LFE to hex.pm, you need to have rebar3 installed on our syste
 make hex-publish
 ```
 
-<!-- GH webhook test for Discord ... --/>
