@@ -42,9 +42,9 @@
              fc=0                               %Local function index
             }).
 
--record(lift, {type,
-               name,
-               ivars}).
+-record(lift, {type,                            %Lift type
+               name,                            %New lifted name
+               ivars}).                         %Imported variables
 
 %% comp_define(DefForm) -> Funcs
 
@@ -154,7 +154,7 @@ lift_expr(['struct-update',E,Name|Args], Lifts, Lds0, St0) ->
     {['struct-update',Le,Name|Largs],Lds2,St2};
 %% Function forms.
 lift_expr([function,Name,Arity], Lifts, Lds, St) ->
-    lift_function(Name, Arity, Lifts, Lds, St);
+    lift_function_ref(Name, Arity, Lifts, Lds, St);
 lift_expr([function,_,_,_]=Func, _Lifts, Lds, St) ->
     {Func,Lds,St};
 %% Core closure special forms.
@@ -210,9 +210,9 @@ lift_func_call(Name, Args0, Lifts, Lds0, St0) ->
     {Args1,Lds1,St1} = lift_exprs(Args0, Lifts, Lds0, St0),
     Arity = length(Args1),
     Call = case lifted_function(Name, Arity, Lifts) of
-               {yes,{call,NewName,Ivars}} ->
+               {yes,#lift{type=call,name=NewName,ivars=Ivars}} ->
                    [NewName | Args1 ++ Ivars];
-               {yes,{apply,NewName,Ivars}} ->
+               {yes,#lift{type=apply,name=NewName,ivars=Ivars}} ->
                    [funcall,NewName | Args1 ++ Ivars];
                no ->
                    [Name | Args1]
@@ -241,9 +241,14 @@ lift_rec_args([F,V|As], Lifts, Lds0, St0) ->
     {[F,Lv|Las],Lds2,St2};
 lift_rec_args([], _Lifts, Lds, St) -> {[],Lds,St}.
 
-lift_function(Name, Arity, Lifts, Lds, St) ->
+%% lift_function_ref(Name, Arity, Lifts, LocalDefs, State) ->
+%%     {Lifted,LocalDefs,State}.
+%%  Check if [function,Name,Arity] needs to tbe lifted and whether
+%%  Ivars force it to become a lambda.
+
+lift_function_ref(Name, Arity, Lifts, Lds, St) ->
     Lfunc = case lifted_function(Name, Arity, Lifts) of
-                {yes,{_Type,NewName,Ivars}} ->
+                {yes,#lift{name=NewName,ivars=Ivars}} ->
                     if length(Ivars) > 0 ->
                             Vars = new_vars(Arity),
                             [lambda,Vars,[funcall,?Q(NewName) | Vars ++ Ivars]];
@@ -254,6 +259,9 @@ lift_function(Name, Arity, Lifts, Lds, St) ->
                     [function,Name,Arity]
             end,
     {Lfunc,Lds,St}.
+
+%% lift_let(VarBindings, Body, LiftedFuncs, LocalDefines, State) ->
+%%     {Let,LocalDefines,State}.
 
 lift_let(Vbs0, Body0, Lifts, Lds0, St0) ->
     Fun = fun ([Pat,['when'|_]=G,Expr0], {Ldsa,Sta}) ->
@@ -321,12 +329,13 @@ lift_letrec_function(Fbs0, Body, Lifts0, Lds0, St0) ->
 
 %% lift_function(Name, Arity, LiftType, Ivars, Lifts, State) ->
 %%     {NewName,Lifts,State}.
-%% lifted_function(Name, Arity, Lifts) -> Value | unlifted.
-%%  We know the value is never unlifted.
+%% lifted_function(Name, Arity, Lifts) -> {yes,Lift} | no.
+%%  Lift a function, and check whether a function has been liftes and
+%%  return irs lift data.
 
 lift_function(Name, Arity, Type, Ivars, Lifts0, St0) ->
     {NewName,St1} = new_local_fun_name(Name, Arity, St0),
-    Lift = {Type,NewName,Ivars},
+    Lift = #lift{type=Type,name=NewName,ivars=Ivars},
     Lifts1 = orddict:store({Name,Arity}, Lift, Lifts0),
     {NewName,Lifts1,St1}.
     
