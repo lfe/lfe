@@ -1,7 +1,5 @@
 lfe(1)                                                                  lfe(1)
 
-
-
 NAME
        lfe - Lisp Flavoured Erlang (LFE) shell
 
@@ -15,7 +13,7 @@ SYNOPSIS
 
 BUILT-IN SHELL FUNCTIONS
        These are defined as normal functions and macros and can be called from
-       anywhere  in  the shell.  They can even be redefined.  They can also be
+       anywhere in the shell.  They can even be redefined.  They can  also  be
        explicitly called (: lfe_shell ...).
 
        (c File [Options])
@@ -26,7 +24,7 @@ BUILT-IN SHELL FUNCTIONS
 
        (c:Command Arg ...)
 
-       All the commands in the standard Erlang shell can be  reached  in  this
+       All  the  commands  in the standard Erlang shell can be reached in this
        way.
 
        (cd Dir)
@@ -45,7 +43,7 @@ BUILT-IN SHELL FUNCTIONS
 
        (epp Expr [Depth])
 
-       Print/prettyprint  a value in Erlang form to either the specified depth
+       Print/prettyprint a value in Erlang form to either the specified  depth
        or if no value is given the full depth.
 
        (flush)
@@ -88,8 +86,15 @@ BUILT-IN SHELL FUNCTIONS
 
        (m [Module ...])
 
-       Print out module information.  If no modules are given then  print  in‐
+       Print  out  module information.  If no modules are given then print in‐
        formation about all modules.
+
+       (memory)
+
+       **(memory type)
+
+       Returns the memory allocation information.  If a  type  or  a  list  of
+       types is given then only for those types.
 
        (p Expr [Depth])
 
@@ -114,6 +119,14 @@ BUILT-IN SHELL FUNCTIONS
 
        Print information about the registered processes in the system.
 
+       (nregs)
+
+       Print information about all the registered processes in the system.
+
+       (uptime)
+
+       Print the node uptime.
+
 BUILT-IN SHELL COMMANDS
        These are special forms which are only recognised at the  top-level  in
        shell input.  The cannot be redefined.
@@ -125,27 +138,27 @@ BUILT-IN SHELL COMMANDS
 
        (run File)
 
-       Execute all the shell commands in File.  All defined  variables,  func‐
-       tions  and  macros will be saved in the environment if there are no er‐
+       Execute  all  the shell commands in File.  All defined variables, func‐
+       tions and macros will be saved in the environment if there are  no  er‐
        rors.
 
        (set Pattern Expr)
 
        (set Pattern (when Guard) Expr)
 
-       Evaluate Expr and match the result with Pattern  binding  variables  in
-       it.   These variables can then be used in the shell and also rebound in
+       Evaluate  Expr  and  match the result with Pattern binding variables in
+       it.  These variables can then be used in the shell and also rebound  in
        another set.
 
        (slurp File)
 
-       Slurp in a source LFE file and makes all functions and  macros  defined
-       in  the file available in the shell.  Only one file can be slurped at a
+       Slurp  in  a source LFE file and makes all functions and macros defined
+       in the file available in the shell.  Only one file can be slurped at  a
        time and slurping a new file basically does an unslurp first.
 
        (unslurp)
 
-       Revert back to the state before the last slurp  removing  all  function
+       Revert  back  to  the state before the last slurp removing all function
        and macro definitions both in the slurped file and defined in the shell
        since then.
 
@@ -188,7 +201,7 @@ STARTING THE LFE SHELL
 
               lfe [flags]
 
-       From  a normal Erlang shell the best way to start the shell is by call‐
+       From a normal Erlang shell the best way to start the shell is by  call‐
        ing:
 
               17> lfe_shell:server().
@@ -198,18 +211,18 @@ STARTING THE LFE SHELL
               --> s lfe_shell
               --> c
 
-       will create a job running the LFE shell and connect to it.   This  also
+       will  create  a job running the LFE shell and connect to it.  This also
        works when starting a remote shell.
 
        Flags that LFE recognizes include the following:
 
-       · -nobanner - starts LFE without showing the banner
+       • -nobanner - starts LFE without showing the banner
 
-       · -h or --help - provides command line usage help
+       • -h or --help - provides command line usage help
 
-       · -e or -eval - evaluates a given sexpr in a string
+       • -e or -eval - evaluates a given sexpr in a string
 
-       · -prompt  - users may supply a value here to override the default lfe>
+       • -prompt - users may supply a value here to override the default  lfe>
          prompt; note that -prompt classic will set the prompt to the original
          >  and  -prompt  with  no associated value will cause no prompt to be
          displayed at all.  These also work when node names are provided (with
@@ -247,12 +260,12 @@ RUNNING LFE SHELL SCRIPTS
        A list of the arguments to the script as strings.  If no arguments have
        been given then this will be an empty list.
 
-       Note  that  if  there  are  any string expressions to be evaluated then
-       these must come before the name of the script file and  its  arguments.
-       These  expressions  will  be evaluated before the script and the script
+       Note that if there are any string  expressions  to  be  evaluated  then
+       these  must  come before the name of the script file and its arguments.
+       These expressions will be evaluated before the script  and  the  script
        will use the environment from the string expressions.
 
-       It is possible to run both string expressions and an LFE  shell  script
+       It  is  possible to run both string expressions and an LFE shell script
        and they are then run in the same LFE repl.
 
 SEE ALSO
@@ -260,7 +273,5 @@ SEE ALSO
 
 AUTHORS
        Robert Virding.
-
-
 
                                    2008-2020                            lfe(1)

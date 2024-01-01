@@ -35,9 +35,9 @@
 -export([banner/0,banner/1,banner/2]).
 
 %% The shell commands which generally callable.
--export([c/1,c/2,cd/1,ec/1,ec/2,ep/1,ep/2,epp/1,epp/2,help/0,h/1,h/2,h/3,
-         i/0,i/1,i/3,l/1,ls/1,clear/0,m/0,m/1,pid/3,p/1,p/2,pp/1,pp/2,pwd/0,
-         q/0,flush/0,regs/0,exit/0]).
+-export([c/1,c/2,cd/1,ec/1,ec/2,ep/1,ep/2,epp/1,epp/2,flush/0,help/0,
+         h/1,h/2,h/3,i/0,i/1,i/3,l/1,ls/1,clear/0,m/0,m/1,memory/0,memory/1,
+         nregs/0,pid/3,p/1,p/2,pp/1,pp/2,pwd/0,q/0,regs/0,uptime/0,exit/0]).
 
 -import(orddict, [store/3,find/2]).
 -import(lists, [reverse/1,foreach/2]).
@@ -335,6 +335,7 @@ add_shell_functions(Env0) ->
           {h,1,[lambda,[m], [':',lfe_shell,h,m]]},
           {h,2,[lambda,[m,f], [':',lfe_shell,h,m,f]]},
           {h,3,[lambda,[m,f,a], [':',lfe_shell,h,m,f,a]]},
+
           {help,0,[lambda,[],[':',lfe_shell,help]]},
           {i,0,[lambda,[],[':',lfe_shell,i]]},
           {i,1,[lambda,[ps],[':',lfe_shell,i,ps]]},
@@ -349,6 +350,10 @@ add_shell_functions(Env0) ->
           {q,0,[lambda,[],[':',lfe_shell,exit]]},
           {flush,0,[lambda,[],[':',lfe_shell,flush]]},
           {regs,0,[lambda,[],[':',lfe_shell,regs]]},
+          {nregs,0,[lambda,[],[':',lfe_shell,nregs]]},
+          {memory,0,[lambda,[],[':',lfe_shell,memory]]},
+          {memory,1,[lambda,[t],[':',lfe_shell,memory,t]]},
+          {uptime,0,[lambda,[],[':',lfe_shell,uptime]]},
           {exit,0,[lambda,[],[':',lfe_shell,exit]]}
          ],
     %% Any errors here will crash shell startup!
@@ -832,12 +837,16 @@ help() ->
                    "(ls dir)       -- list files in directory <dir>\n"
                    "(m)            -- which modules are loaded\n"
                    "(m mod)        -- information about module <mod>\n"
+                   "(memory)       -- memory allocation information\n"
+                   "(memory t)     -- memory allocation information of type <t>\n"
                    "(p expr)       -- print a term\n"
                    "(pp expr)      -- pretty print a term\n"
                    "(pid x y z)    -- convert x, y, z to a pid\n"
                    "(pwd)          -- print working directory\n"
                    "(q)            -- quit - shorthand for init:stop/0\n"
                    "(regs)         -- information about registered processes\n"
+                   "(nregs)        -- information about all registered processes\n"
+                   "(uptime)       -- print node uptime\n"
                    "\n"
                    "LFE shell built-in forms\n\n"
                    "(reset-environment)             -- reset the environment to its initial state\n"
@@ -1023,9 +1032,25 @@ flush() -> c:flush().
 
 regs() -> c:regs().
 
+%% nregs() -> ok.
+
+nregs() -> c:nregs().
+
 %% exit() -> ok.
 
 exit() -> c:q().
+
+%% memory() -> ok.
+
+memory() -> c:memory().
+
+%% memory(Type) -> ok.
+
+memory(Type) -> c:memory(Type).
+
+%% uptime() -> ok.
+
+uptime() -> c:uptime().
 
 %% doc(Mod) -> ok | {error,Error}.
 %% doc(Mod, Func) -> ok | {error,Error}.

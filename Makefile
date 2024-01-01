@@ -223,7 +223,7 @@ PDF7S = $(MAN7_SRCS:.7.md=.pdf)
 EPUB7S = $(MAN7_SRCS:.7.md=.epub)
 
 # For pandoc for generating PDFs as it omly accepts a few options.
-# xelatex is a reasonable default.
+# xelatex is a reasonable default or wkhtmltopdf.
 PANDOCPDF ?= xelatex
 
 # Just generate the docs that are tracked in git

@@ -94,6 +94,13 @@ files in the current directory.
 Print out module information. If no modules are given then print
 information about all modules.
 
+**(memory)**
+
+**(memory type)
+
+Returns the memory allocation information. If a type or a list of
+types is given then only for those types.
+
 **(p Expr [Depth])**
 
 **(pp Expr [Depth])**
@@ -117,6 +124,13 @@ Quit - shorthand for ``init:stop/0``.
 
 Print information about the registered processes in the system.
 
+**(nregs)**
+
+Print information about all the registered processes in the system.
+
+**(uptime)**
+
+Print the node uptime.
 
 # BUILT-IN SHELL COMMANDS
 
