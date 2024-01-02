@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2021 Robert Virding
+%% Copyright (c) 2008-2023 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -1495,23 +1495,30 @@ check_comp(Qs, Expr, Env0, L, St0) ->
 
 %% check_comp_quals(Qualifiers, Env, LineNumber, State) ->
 %%     {Env,State}.
+%%  Note that the explicit guards are now tested as guards.
 
 check_comp_quals([['<-',Pat,E]|Qs], Env0, L, St0) ->
     {Pvs,St1} = pattern(Pat, Env0, L, St0),
     Env1 = le_addvs(Pvs, Env0),
     St2 = check_expr(E, Env1, L, St1),
     check_comp_quals(Qs, Env1, L, St2);
-check_comp_quals([['<-',Pat,['when'|G],E]|Qs], Env, L, St) ->
-    %% Move guards to qualifiers as tests.
-    check_comp_quals([['<-',Pat,E]|G ++ Qs], Env, L, St);
+check_comp_quals([['<-',Pat,['when'|G],E]|Qs], Env0, L, St0) ->
+    {Pvs,St1} = pattern(Pat, Env0, L, St0),
+    Env1 = le_addvs(Pvs, Env0),
+    St2 = check_guard(G, Env1, L, St1),
+    St3 = check_expr(E, Env1, L, St2),
+    check_comp_quals(Qs, Env1, L, St3);
 check_comp_quals([['<=',Pat,E]|Qs], Env0, L, St0) ->
     {Pvs,St1} = check_bitstring_pattern(Pat, Env0, L, St0),
     Env1 = le_addvs(Pvs, Env0),
     St2 = check_expr(E, Env1, L, St1),
     check_comp_quals(Qs, Env1, L, St2);
-check_comp_quals([['<=',Pat,['when'|G],E]|Qs], Env, L, St) ->
-    %% Move guards to qualifiers as tests.
-    check_comp_quals([['<=',Pat,E]|G ++ Qs], Env, L, St);
+check_comp_quals([['<=',Pat,['when'|G],E]|Qs], Env0, L, St0) ->
+    {Pvs,St1} = check_bitstring_pattern(Pat, Env0, L, St0),
+    Env1 = le_addvs(Pvs, Env0),
+    St2 = check_guard(G, Env1, L, St1),
+    St3 = check_expr(E, Env1, L, St2),
+    check_comp_quals(Qs, Env1, L, St3);
 check_comp_quals([Test|Qs], Env, L, St0) ->
     St1 = check_expr(Test, Env, L, St0),
     check_comp_quals(Qs, Env, L, St1);

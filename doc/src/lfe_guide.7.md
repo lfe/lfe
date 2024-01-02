@@ -1130,16 +1130,14 @@ returns a binary of floats of size 64 bits which are from the binary
 b1 where they are of size 32 bits and larger than 10.0. The returned
 numbers are first printed.
 
-N.B. A word of warning when using guards when extracting elements from
-a binary.  When a match/guard fails for a binary no more attempts will
-be made to extract data from the binary. This means that even if a
-value could be extracted from the binary if the guard fails this value
-will be lost and extraction will cease. This is *NOT* the same as
-having following boolean test which may remove an element but will not
-stop extraction. Using a guard is probably not what you want!
+This could also be written using a guard for the test:
 
-Normal vanilla Erlang does the same thing but does not allow guards.
-
+```
+(bc ((<= (binary (f float (size 32))) (when (> f 10.0)) b1))
+  (progn
+    (: io fwrite "~p\n" (list f))
+    (binary (f float (size 64)))))
+```
 
 # ETS and Mnesia
 

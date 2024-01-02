@@ -40,9 +40,14 @@
 
 -define(EVAL_ERROR(Error), erlang:raise(error, Error, ?STACKTRACE)).
 
-%% Pass errors on to lfe_eval.
+%% Pass most errors on to lfe_eval.
+format_error({bad_binary_argument,Arg}) ->
+    format_value(Arg, <<"bad binary argument ">>);
 format_error(Error) ->
     lfe_eval:format_error(Error).
+
+format_value(Val, ErrStr) ->
+    lfe_io:format1(<<"~s~.P">>, [ErrStr,Val,10]).
 
 %% expr_bitsegs(Bitsegs, EvalFun) -> Binary.
 %%  Construct a binary from Bitsegs. This code is taken from
@@ -97,7 +102,12 @@ eval_bitsegs(Vsps, Eval) ->
 
 eval_bitseg(Val, Sz, Ty, Eval) ->
     V = Eval(Val),
-    eval_exp_bitseg(V, Sz, Eval, Ty).
+    try
+	eval_exp_bitseg(V, Sz, Eval, Ty)
+    catch
+	_:_ ->
+	    eval_error({bad_binary_argument,V})
+    end.
 
 %% eval_exp_bitseg(Value, Size, EvalSize, {Type,Unit,Sign,Endian}) -> Binary.
 
