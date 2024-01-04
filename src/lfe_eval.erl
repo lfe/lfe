@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2021 Robert Virding
+%% Copyright (c) 2008-2023 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -61,8 +61,6 @@ format_error(function_clause) -> <<"no function clause matching">>;
 format_error({case_clause,Val}) ->
     format_value(Val, <<"no case clause matching ">>);
 format_error(illegal_guard) -> <<"illegal guard expression">>;
-format_error(illegal_bitsize) -> <<"illegal bit size">>;
-format_error(illegal_bitseg) -> <<"illegal bit segment">>;
 format_error({illegal_pattern,Pat}) ->
     format_value(Pat, <<"illegal pattern ">>);
 format_error({illegal_literal,Lit}) ->
@@ -74,6 +72,11 @@ format_error({argument_limit,Arity}) ->
     lfe_io:format1(<<"too many arguments ~w">>, [Arity]);
 format_error({bad_form,Form}) ->
     lfe_io:format1(<<"bad ~w form">>, [Form]);
+%% Binaries
+format_error(illegal_bitsize) -> <<"illegal bit size">>;
+format_error(illegal_bitseg) -> <<"illegal bit segment">>;
+format_error({bad_binary_argument,Arg}) ->
+    format_value(Arg, <<"bad binary argument ">>);
 %% Try-catches.
 format_error({try_clause,V}) ->
     format_value(V, <<"no try clause matching ">>);
@@ -93,6 +96,9 @@ format_error({undefined_struct_field,Name,Field}) ->
     lfe_io:format1(<<"field ~w undefined in struct ~w">>, [Field,Name]);
 format_error({missing_struct_field_value,Field}) ->
     lfe_io:format1(<<"missing value to field ~w in struct">>, [Field]);
+%% Comprehensions
+format_error({bad_generator,Gen}) ->
+    format_value(Gen, <<"bad generator ">>);
 %% Everything we don't recognise or know about.
 format_error(Error) ->
     lfe_io:prettyprint1(Error).
@@ -274,9 +280,18 @@ eval_expr(['try'|Body], Env) ->
     eval_try(Body, Env);
 eval_expr([funcall,F|As], Env) ->
     eval_apply_expr(eval_expr(F, Env), eval_list(As, Env), Env);
-eval_expr([call|Body], Env) ->
-    eval_call(Body, Env);
+%% List/binary comprehensions.
+eval_expr(['lc',Qs,E], Env) ->
+    eval_list_comp(Qs, E, Env);
+eval_expr(['list-comp',Qs,E], Env) ->
+    eval_list_comp(Qs, E, Env);
+eval_expr(['bc',Qs,E], Env) ->
+    eval_bin_comp(Qs, E, Env);
+eval_expr(['binary-comp',Qs,E], Env) ->
+    eval_bin_comp(Qs, E, Env);
 %% General functions calls.
+eval_expr(['call'|Body], Env) ->
+    eval_call(Body, Env);
 eval_expr([Fun|Es], Env) when is_atom(Fun) ->
     %% Note that macros have already been expanded here.
     Ar = length(Es),                            %Arity
@@ -997,6 +1012,159 @@ check_exceptions([Cl|Cls]) ->
     check_exceptions(Cls);
 check_exceptions([]) -> ok.
 
+%% eval_list_comp(Qualifiers, Expression, Env) -> Value.
+%%  Evaluate list comprehensions.
+
+eval_list_comp(Qs, Expr, Env) ->
+    QualFun = fun eval_lc_qual_loop/5,
+    ValAcc = QualFun(Qs, Expr, Env, [], QualFun),
+    lists:reverse(ValAcc).
+
+%% eval_bin_comp(Qualifiers, Expression, Env) -> Value.
+%%  Evaluate binary comprehensions.
+
+eval_bin_comp(Qs, Expr, Env) ->
+    QualFun = fun eval_bc_qual_loop/5,
+    ValAcc = QualFun(Qs, Expr, Env, <<>>, QualFun),
+    ValAcc.
+
+%% eval_lc_qual_loop(Qualifiers, Expression, Env, ValAcc, QualFun) -> [Val].
+
+eval_lc_qual_loop([Q|Qs], Expr, Env, Vacc, QualFun) ->
+    case is_comp_generator(Q) of
+	true ->
+	    eval_comp_generate(Q, Qs, Expr, Env, Vacc, QualFun);
+	false ->
+	    %% We have a test so see if it succeeds.
+	    case eval_expr(Q, Env) of
+		true ->
+		    eval_lc_qual_loop(Qs, Expr, Env, Vacc, QualFun);
+		_Other ->
+		    Vacc
+	    end
+    end;
+eval_lc_qual_loop([], Expr, Env, Vacc, _QualFun) ->
+    Val = eval_expr(Expr, Env),
+    [Val | Vacc].
+
+%% eval_lc_gen_loop(Pattern, Guard, Generator, Qualifiers, Expression, Env,
+%%                  ValAcc, QualFun) -> ValAcc.
+
+eval_lc_gen_loop(Pat, Guard, [Val|GenVals], Qs, Expr, Env0, Vacc0, QualFun) ->
+    case match_when(Pat, Val, [Guard], Env0) of
+	{yes,_,Vbs} ->
+	    Env1 = lfe_env:add_vbindings(Vbs, Env0),
+	    Vacc1 = QualFun(Qs, Expr, Env1, Vacc0, QualFun),
+	    eval_lc_gen_loop(Pat, Guard, GenVals, Qs, Expr,
+			     Env1, Vacc1, QualFun);
+	no ->
+	    eval_lc_gen_loop(Pat, Guard, GenVals, Qs, Expr,
+			     Env0, Vacc0, QualFun)
+    end;
+eval_lc_gen_loop(_Pat, _Guard, [], _Qs, _Expr, _Env, Vacc, _QualFun) ->
+    %% No more elements so we are done with this generator.
+    Vacc;
+eval_lc_gen_loop(_Pat, _Guard, Other, _Qs, _Expr, _Env, _Vacc, _QualFun) ->
+    %% This should be a list.
+    eval_error({bad_generator,Other}).
+
+%% eval_bc_qual_loop(Qualifiers, Expression, Env, ValAcc, QualFun) -> ValAcc.
+
+eval_bc_qual_loop([Q|Qs], Expr, Env, Vacc, QualFun) ->
+    case is_comp_generator(Q) of
+	true ->
+	    eval_comp_generate(Q, Qs, Expr, Env, Vacc, QualFun);
+	false ->
+	    %% We have a test so see if it succeeds.
+	    case eval_expr(Q, Env) of
+		true ->
+		    eval_bc_qual_loop(Qs, Expr, Env, Vacc, QualFun);
+		_Other ->
+		    Vacc
+	    end
+	end;
+eval_bc_qual_loop([], Expr, Env, Vacc, _QualFun) ->
+    Val = eval_expr(Expr, Env),
+    << Vacc/bitstring, Val/bitstring >>.
+
+%% eval_bc_gen_loop(Pattern, Guard, Generator, Qualifiers, Expression, Env,
+%%                  ValAcc, QualFun) -> ValAcc.
+%%  Do a simple test here for the format of the pattern. Match will do
+%%  more test. We calculate the size of the segment patterns in bits
+%%  here so we can step over them without having to do it each time.
+
+eval_bc_gen_loop([binary|SegPats], Guard, GenBin, Qs, Expr,
+		 Env, Vacc, QualFun) ->
+    SegsSize = get_segs_size(SegPats),
+    eval_bc_gen_loop_1(SegPats, SegsSize, Guard, GenBin, Qs, Expr,
+		       Env, Vacc, QualFun);
+eval_bc_gen_loop(Pat, _Guard, _GenBin, _Qs, _Expr, _Env, _Vacc, _QualFun) ->
+    eval_error({illegal_pattern,Pat}).
+
+%% eval_bc_gen_loop(SegPats, PatSize, Guard, Generator, Qualifiers, Expression,
+%%                  Env, ValAcc, QualFun) -> ValAcc.
+
+eval_bc_gen_loop_1(SegPats, SegsSize, Guard, GenBin0, Qs, Expr, Env0, Vacc0, QualFun)
+  when is_bitstring(GenBin0) ->
+    case GenBin0 of
+	<< PatBin:SegsSize/bitstring,GenBin1/bitstring >> ->
+	    %% Get the generator bits for matching and the remaining generator.
+	    case match_when([binary|SegPats], PatBin, [Guard], Env0) of
+		{yes,_,Vbs} ->
+		    Env1 = lfe_env:add_vbindings(Vbs, Env0),
+		    Vacc1 = QualFun(Qs, Expr, Env1, Vacc0, QualFun),
+		    eval_bc_gen_loop_1(SegPats, SegsSize, Guard, GenBin1, Qs,
+				       Expr, Env1, Vacc1, QualFun);
+		no ->
+		    %% Didn't match, just step over this part of the generator.
+		    eval_bc_gen_loop_1(SegPats, SegsSize, Guard, GenBin1, Qs,
+				       Expr, Env0, Vacc0, QualFun)
+	    end;
+	 _ ->
+	    %% Not enough bits so we are done with this generator.
+	    Vacc0
+    end;
+eval_bc_gen_loop_1(_SegPats, _SegsSize, _Guard, GenBin, _Qs, _Expr,
+		   _Env, _Vacc, _QualFun) ->
+    %% This should be a binary/bitstring.
+    eval_error({bad_generator,GenBin}).
+
+get_segs_size(SegPats) ->
+    SizeFun = fun ([_|Specs], Acc) ->
+		      {ok,Size,_} = lfe_bits:get_bitspecs(Specs),
+		      Acc + Size;
+		  (_, Acc) ->			%Default is integer
+		      Acc + 8
+	      end,
+    lists:foldl(SizeFun, 0, SegPats).
+
+is_comp_generator(['<-',_,_]) -> true;
+is_comp_generator(['<-',_,['when'|_],_]) -> true;
+is_comp_generator(['<=',_,_]) -> true;
+is_comp_generator(['<=',_,['when'|_],_]) -> true;
+is_comp_generator(_Other) -> false.
+
+%% eval_comp_generate(Pattern, Qualifiers, Expression, Env, ValAcc, Qualfun) ->
+%%     ValAcc.
+
+eval_comp_generate(['<-',Pat,Gen], Qs, Expr, Env, Vacc, QualFun) ->
+    GenVals = eval_list_gen(Gen, Env),
+    eval_lc_gen_loop(Pat, [], GenVals, Qs, Expr, Env, Vacc, QualFun);
+eval_comp_generate(['<-',Pat,['when'|_]=Guard,Gen], Qs, Expr, Env, Vacc, QualFun) ->
+    GenVals = eval_list_gen(Gen, Env),
+    eval_lc_gen_loop(Pat, Guard, GenVals, Qs, Expr, Env, Vacc, QualFun);
+eval_comp_generate(['<=',Pat,Gen], Qs, Expr, Env, Vacc, QualFun) ->
+    GenBin = eval_bin_gen(Gen, Env),
+    eval_bc_gen_loop(Pat, [], GenBin, Qs, Expr, Env, Vacc, QualFun);
+eval_comp_generate(['<=',Pat,['when'|_]=Guard,Gen], Qs, Expr, Env, Vacc, QualFun) ->
+    GenBin = eval_bin_gen(Gen, Env),
+    eval_bc_gen_loop(Pat, Guard, GenBin, Qs, Expr, Env, Vacc, QualFun).
+
+eval_list_gen(Gen, Env) ->
+    eval_expr(Gen, Env).
+
+eval_bin_gen(Gen, Env) ->
+    eval_expr(Gen, Env).
 
 %% eval_call([Mod,Func|Args], Env) -> Value.
 %%  Evaluate the module, function and args and then apply the function.

@@ -24,6 +24,13 @@ $ make compile
 LFE requires Erlang be installed on the system and that the ``erl`` binary is
 in ``$PATH``.
 
+## Running the Tests
+
+To run the full suite of tests for LFE, simply use the following:
+
+```sh
+make tests
+```
 
 ## Installation
 
@@ -60,20 +67,27 @@ like so after compiling:
 
 ```shell
 $ ./bin/lfe
-Erlang 17 (erts-6.0) [source] [64-bit] [smp:8:8] ...
+```
+```text
+Erlang/OTP 26 [erts-14.0.2] [source] [64-bit] [smp:10:10] [ds:10:10:10] [async-threads:1] [jit] [dtrace]
 
-LFE Shell V6.0 (abort with ^G)
->
+   ..-~.~_~---..
+  (      \\     )    |   A Lisp-2+ on the Erlang VM
+  |`-.._/_\\_.-':    |   Type (help) for usage info.
+  |         g |_ \   |
+  |        n    | |  |   Docs: http://docs.lfe.io/
+  |       a    / /   |   Source: http://github.com/lfe/lfe
+   \     l    |_/    |
+    \   r     /      |   LFE v2.1.2 (abort with ^G)
+     `-E___.-'
+
+lfe>
 ```
 
 If you have installed LFE, then you may start the REPL from any location:
 
 ```shell
 $ lfe
-Erlang 17 (erts-6.0) [source] [64-bit] [smp:8:8] ...
-
-LFE Shell V6.0 (abort with ^G)
->
 ```
 
 Likewise, you may run an LFE shell script in the same style as shell scripts
@@ -97,9 +111,9 @@ that will show you how to start using LFE. However, here's a quick taste:
 * start up an LFE REPL as demonstrated above
 * then, do something like this:
 ```cl
-> (* 2 (+ 1 2 3 4 5 6))
+lfe> (* 2 (+ 1 2 3 4 5 6))
 42
-> (* 2 (lists:foldl #'+/2 0 (lists:seq 1 6)))
+lfe> (* 2 (lists:foldl #'+/2 0 (lists:seq 1 6)))
 42
 ```
 
@@ -119,26 +133,11 @@ $ cd lfe
 $ docker build .
 ```
 
-Here are a couple of simple usage examples:
+To bring up the LFE REPL:
 
 ```bash
-$ docker run lfex/lfe
-42
+$ docker run -it lfex/lfe
 ```
-
-```bash
-$ docker run -i -t lfex/lfe lfe
-Erlang/OTP 18 [erts-7.0] [source-4d83b58] [64-bit] [smp:8:8] ...
-
-LFE Shell V7.0 (abort with ^G)
->
-```
-
-That last command will dump you into the LFE REPL on a running container
-of the ``lfex/lfe`` Docker image. For more information on using Docker
-with LFE, be sure to read the
-[tutorial](http://blog.lfe.io/tutorials/2014/12/07/1837-running-lfe-in-docker/).
-
 
 ## Documentation
 
@@ -169,3 +168,37 @@ the docs, you'll want to read the instructions here:
 [LFE on Slack](https://lfe.slack.com), join by requesting an invite [here](https://erlef.org/slack-invite/lfe)
 
 [LFE Forum - Erlang Forums](https://erlangforums.com/lfe)
+
+## Maintainers
+
+### Cutting Releases
+
+Steps:
+
+1. Update the version in `src/lfe.app.src`
+1. Create the release tags
+1. Create a release on Github
+1. Publish to hex.pm
+
+Once the `app.src` has been updated with the version for the release, you can create and push the tags (to Github) with the following:
+
+``` shell
+make tags
+```
+
+That will create the number-only version as well as the "v"-prefixed version.
+
+For now, the process of creating a release on Github is manual:
+
+1. Go to https://github.com/lfe/lfe/releases
+1. Click "Draft new release"
+1. Select the correct tag from the drop-down "Choose a tag"
+1. Click "Generate release notes"
+1. Click "Publish release"
+
+Lastly, to publish LFE to hex.pm, you need to have rebar3 installed on our system and an entry for the hex plugin in your system `rebar.config` file. With that in place, publish a new release to hex.pm requires only the following:
+
+``` shell
+make hex-publish
+```
+

@@ -20,3 +20,5 @@ erl_crash.dump
 .\#*
 .emacs.desktop
 .emacs.desktop.lock
+*.*code-workspace
+/workbench

@@ -22,6 +22,8 @@ LSRCDIR = src
 INCDIR = include
 EMACSDIR = emacs
 HOSTCC ?= $(CC)
+CFLAGS ?= -Wall -Wextra
+LDFLAGS ?= -Wl,--as-needed
 PREFIX ?= /usr/local
 INSTALL = install
 INSTALL_DIR = $(INSTALL) -m755 -d
@@ -73,7 +75,7 @@ ELCS = $(EMACSRCS:.el=.elc)
 .SUFFIXES: .erl .beam
 
 $(BINDIR)/%: $(CSRCDIR)/%.c
-	$(HOSTCC) -o $@ $<
+	$(HOSTCC) $(CFLAGS) $(LDFLAGS) -o $@ $<
 
 $(EBINDIR)/%.beam: $(SRCDIR)/%.erl
 	@$(INSTALL_DIR) $(EBINDIR)
@@ -147,6 +149,9 @@ install-bin:
 clean:
 	rm -rf $(EBINDIR)/*.beam erl_crash.dump comp_opts.mk
 
+clean-all: clean
+	rm -rf _build
+
 echo:
 	@ echo $(ESRCS)
 	@ echo $(XSRCS)
@@ -217,6 +222,10 @@ TXT7S = $(MAN7_SRCS:.7.md=.txt)
 PDF7S = $(MAN7_SRCS:.7.md=.pdf)
 EPUB7S = $(MAN7_SRCS:.7.md=.epub)
 
+# For pandoc for generating PDFs as it omly accepts a few options.
+# xelatex is a reasonable default or wkhtmltopdf.
+PANDOCPDF ?= xelatex
+
 # Just generate the docs that are tracked in git
 docs: docs-txt
 
@@ -269,13 +278,13 @@ docs-pdf: $(PDFDIR) \
 	$(addprefix $(PDFDIR)/, $(PDF7S))
 
 $(PDFDIR)/%.pdf: $(DOCSRC)/%.1.md
-	pandoc -f markdown --pdf-engine=xelatex -o $@ $<
+	pandoc -f markdown --pdf-engine=$(PANDOCPDF) -o $@ $<
 
 $(PDFDIR)/%.pdf: $(DOCSRC)/%.3.md
-	pandoc -f markdown --pdf-engine=xelatex -o $@ $<
+	pandoc -f markdown --pdf-engine=$(PANDOCPDF) -o $@ $<
 
 $(PDFDIR)/%.pdf: $(DOCSRC)/%.7.md
-	pandoc -f markdown --pdf-engine=xelatex -o $@ $<
+	pandoc -f markdown --pdf-engine=$(PANDOCPDF) -o $@ $<
 
 $(EPUBDIR):
 	@$(INSTALL_DIR) $(EPUBDIR)
@@ -310,6 +319,10 @@ update-mandb:
 	@echo "Updating man page database ..."
 	$(MANDB) $(MANINSTDIR)
 
+##############
+### DOCKER ###
+##############
+
 # Targets for working with Docker
 docker-build:
 	docker build -t lfex/lfe:latest .
@@ -331,3 +344,14 @@ docker-docs:
 docker-docs-bash:
 	docker run -i -v `pwd`/doc:/docs -t lfex/lfe-docs:latest bash
 
+################
+### RELEASES ###
+################
+
+hex-publish: clean-all compile
+	rebar3 hex publish package
+
+tags:
+	git tag $(shell erl -eval $(GET_VERSION)|tr -d '"')
+	git tag v$(shell erl -eval $(GET_VERSION)|tr -d '"')
+	git push --tags

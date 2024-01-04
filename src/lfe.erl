@@ -31,6 +31,9 @@
 
 -export(['LFE-EXPAND-EXPORTED-MACRO'/3]).
 
+%% Metadata
+-export([version/0]).
+
 %% 'LFE-EXPAND-EXPORTED-MACRO'(Name, Args, Env) -> {yes,Expansion} | no.
 %%  A smart implementation of this where we call the lfe_macro module
 %%  to expand and check for us. Using an empty environment ensures
@@ -166,3 +169,9 @@ macroexpand(Form, Env) ->
 
 'macroexpand-all'(Form) -> 'macroexpand-all'(Form, lfe_env:new()).
 'macroexpand-all'(Form, Env) -> lfe_macro:expand_expr_all(Form, Env).
+
+%% Metadata
+
+version() ->
+    {ok, [App]} = file:consult(code:where_is_file("lfe.app")),
+    proplists:get_value(vsn, element(3, App)).

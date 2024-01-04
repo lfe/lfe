@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2021 Robert Virding
+%% Copyright (c) 2008-2023 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -473,9 +473,9 @@ is_func_list(_, _) -> no.
 check_onload_attr([[F,Ar]=LoadF], L, St) when is_atom(F), is_integer(Ar) ->
     Onload = St#lfe_lint.onload,
     if (Onload =:= []) or (Onload =:= LoadF) ->
-	    St#lfe_lint{onload=LoadF};
+            St#lfe_lint{onload=LoadF};
        true ->
-	    bad_attr_error(L, on_load, St)
+            bad_attr_error(L, on_load, St)
     end;
 check_onload_attr(_Onload, L, St) ->
     bad_attr_error(L, on_load, St).
@@ -715,8 +715,13 @@ init_state(St) ->
                         end, Env0, St#lfe_lint.imports),
     %% Basic predefines
     Predefs0 = [{module_info,[lambda,[],?Q(dummy)],1},
-                {module_info,[lambda,[x],?Q(dummy)],1}],
-    Exps0 = [{module_info,0},{module_info,1}],
+                {module_info,[lambda,[x],?Q(dummy)],1},
+                {'__info__',[lambda,[x],?Q(dummy)],1},
+                {'__struct__',[lambda,[],?Q(dummy)],1},
+                {'__struct__',[lambda,[x],?Q(dummy)],1}
+               ],
+    Exps0 = [{module_info,0},{module_info,1},
+             {'__info__',1},{'__struct__',0},{'__struct__',1}],
     Exps1 = add_exports(Exps0, St#lfe_lint.mline, St#lfe_lint.exports),
     {Predefs0,Env1,St#lfe_lint{exports=Exps1}}.
 
@@ -776,9 +781,9 @@ add_exports(More, L, Exps) ->
 
 check_valid_onload(#lfe_lint{mline=L,onload=[F,Ar],env=Env}=St) ->
     case le_hasf(F, Ar, Env) of
-	true -> St;
-	false ->
-	    add_error(L, {undefined_onload_function,{F,Ar}}, St)
+        true -> St;
+        false ->
+            add_error(L, {undefined_onload_function,{F,Ar}}, St)
     end;
 check_valid_onload(#lfe_lint{onload=[]}=St) ->
      St.
@@ -1490,23 +1495,30 @@ check_comp(Qs, Expr, Env0, L, St0) ->
 
 %% check_comp_quals(Qualifiers, Env, LineNumber, State) ->
 %%     {Env,State}.
+%%  Note that the explicit guards are now tested as guards.
 
 check_comp_quals([['<-',Pat,E]|Qs], Env0, L, St0) ->
     {Pvs,St1} = pattern(Pat, Env0, L, St0),
     Env1 = le_addvs(Pvs, Env0),
     St2 = check_expr(E, Env1, L, St1),
     check_comp_quals(Qs, Env1, L, St2);
-check_comp_quals([['<-',Pat,['when'|G],E]|Qs], Env, L, St) ->
-    %% Move guards to qualifiers as tests.
-    check_comp_quals([['<-',Pat,E]|G ++ Qs], Env, L, St);
+check_comp_quals([['<-',Pat,['when'|G],E]|Qs], Env0, L, St0) ->
+    {Pvs,St1} = pattern(Pat, Env0, L, St0),
+    Env1 = le_addvs(Pvs, Env0),
+    St2 = check_guard(G, Env1, L, St1),
+    St3 = check_expr(E, Env1, L, St2),
+    check_comp_quals(Qs, Env1, L, St3);
 check_comp_quals([['<=',Pat,E]|Qs], Env0, L, St0) ->
     {Pvs,St1} = check_bitstring_pattern(Pat, Env0, L, St0),
     Env1 = le_addvs(Pvs, Env0),
     St2 = check_expr(E, Env1, L, St1),
     check_comp_quals(Qs, Env1, L, St2);
-check_comp_quals([['<=',Pat,['when'|G],E]|Qs], Env, L, St) ->
-    %% Move guards to qualifiers as tests.
-    check_comp_quals([['<=',Pat,E]|G ++ Qs], Env, L, St);
+check_comp_quals([['<=',Pat,['when'|G],E]|Qs], Env0, L, St0) ->
+    {Pvs,St1} = check_bitstring_pattern(Pat, Env0, L, St0),
+    Env1 = le_addvs(Pvs, Env0),
+    St2 = check_guard(G, Env1, L, St1),
+    St3 = check_expr(E, Env1, L, St2),
+    check_comp_quals(Qs, Env1, L, St3);
 check_comp_quals([Test|Qs], Env, L, St0) ->
     St1 = check_expr(Test, Env, L, St0),
     check_comp_quals(Qs, Env, L, St1);
