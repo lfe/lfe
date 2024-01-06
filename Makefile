@@ -14,6 +14,8 @@
 
 # Makefile for LFE
 
+OS_NAME := $(shell uname -s | tr '[:upper:]' '[:lower:]')
+
 BINDIR = bin
 EBINDIR = ebin
 SRCDIR = src
@@ -23,7 +25,9 @@ INCDIR = include
 EMACSDIR = emacs
 HOSTCC ?= $(CC)
 CFLAGS ?= -Wall -Wextra
-LDFLAGS ?= -Wl,--as-needed
+ifeq ($(OS_NAME),linux)
+	LDFLAGS ?= -Wl,--as-needed
+endif
 PREFIX ?= /usr/local
 INSTALL = install
 INSTALL_DIR = $(INSTALL) -m755 -d
