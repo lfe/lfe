@@ -547,7 +547,7 @@ set_1(Pat, Guard, Exp, #state{curr=Ce0}=St) ->
 %%  to get hold of the macros. We call the compiler directly but don't
 %%  make the LFE-EXPAND-EXPORTED-MACRO/3 function.
 
--record(slurp, {mod,funs=[],imps=[]}).          %For slurping
+-record(slurp, {mod,funs=[],imps=[],recs=[]}).  %For slurping
 
 unslurp(St0) ->
     St1 = case St0#state.slurp of
@@ -573,7 +573,7 @@ slurp_1(Name, Ce) ->
         {ok,Mod,Fs,Env0,Ws} ->
             slurp_warnings(Ws),
             %% Collect functions and imports.
-            Sl0 = #slurp{mod=Mod,funs=[],imps=[]},
+            Sl0 = #slurp{mod=Mod,funs=[],imps=[],recs=[]},
             Sl1 = lists:foldl(fun collect_module/2, Sl0, Fs),
             %% Add imports to environment.
             Ifun = fun ({M,Is}, Env) ->
@@ -586,7 +586,11 @@ slurp_1(Name, Ce) ->
             Env2 = foldl(fun ({N,Ar,Def}, Env) ->
                                  lfe_eval:add_dynamic_func(N, Ar, Def, Env)
                          end, Env1, Sl1#slurp.funs),
-            {ok,Mod,lfe_env:add_env(Env2, Ce)};
+            %% Add records to the environment.
+            Env3 = foldl(fun ({R,Rfs}, Env) ->
+                                 lfe_env:add_record(R, Rfs, Env)
+                         end, Env2, Sl1#slurp.recs),
+            {ok,Mod,lfe_env:add_env(Env3, Ce)};
         {error,Mews,Es,Ws} ->
             slurp_errors(Es),
             slurp_warnings(Ws),
@@ -633,8 +637,10 @@ collect_module({['extend-module',Meta,Atts],_}, Sl0) ->
 collect_module({['define-function',F,_Meta,Def],_}, #slurp{funs=Fs}=Sl) ->
     Ar = function_arity(Def),
     Sl#slurp{funs=[{F,Ar,Def}|Fs]};
+collect_module({['define-record',R,Fs],_}, #slurp{recs=Rs}=Sl) ->
+    Sl#slurp{recs=[{R,Fs}|Rs]};
+%% Ignore other forms, type and spec defs.
 collect_module({_,_}, Sl) ->
-    %% Ignore other forms, type and spec defs.
     Sl.
 
 collect_meta(_, St) -> St.
