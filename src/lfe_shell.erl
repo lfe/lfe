@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2022 Robert Virding
+%% Copyright (c) 2008-2024 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -161,9 +161,9 @@ shell_eval(Form, Eval0, St0) ->
             report_exception(Class, Reason, StackTrace),
             Eval1 = start_eval(St0),
             {Eval1,St0};
-        {'EXIT',Eval0,Error} ->
+        {'EXIT',Eval0,Reason} ->
             %% Eval exited or was killed
-            report_exception(error, Error, []),
+            report_exception(exit, Reason, []),
             Eval1 = start_eval(St0),
             {Eval1,St0}
     end.
