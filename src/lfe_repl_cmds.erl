@@ -12,23 +12,79 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 
-%% File    : lfe_repl_bifs.erl
+%% File    : lfe_repl_cmds.erl
 %% Author  : Robert Virding
-%% Purpose : A simple Lisp Flavoured Erlang REPL built in functions.
+%% Purpose : A simple Lisp Flavoured Erlang REPL commands.
 
 %% These are the standard known built-in functions for the REPL. They
 %% are modelled on the ones in the Erlang shell as these give a lot of
 %% useful inteofmation about the system.
 
--module(lfe_repl_bifs).
+-module(lfe_repl_cmds).
 
 -include("lfe.hrl").
 -include("lfe_docs.hrl").
 
-%% The shell functions which generally callable.
--export([c/1,c/2,cd/1,ec/1,ec/2,ep/1,ep/2,epp/1,epp/2,flush/0,help/0,
+%% The REPL functions which generally callable.
+-export([help/0,c/1,c/2,cd/1,ec/1,ec/2,ep/1,ep/2,epp/1,epp/2,flush/0,
          h/1,h/2,h/3,i/0,i/1,i/3,l/1,ls/1,clear/0,m/0,m/1,memory/0,memory/1,
          nregs/0,pid/3,p/1,p/2,pp/1,pp/2,pwd/0,q/0,regs/0,uptime/0,exit/0]).
+
+%% help() -> ok.
+
+help() ->
+    io:put_chars(<<"\nLFE repl built-in functions\n\n"
+                   "(c file)       -- compile and load code in <file>\n"
+                   "(cd dir)       -- change working directory to <dir>\n"
+                   "(clear)        -- clear the REPL output\n"
+                   "(doc mod)      -- documentation of a module\n"
+                   "(doc mod:mac)  -- documentation of a macro\n"
+                   "(doc m:f/a)    -- documentation of a function\n"
+                   "(ec file)      -- compile and load code in erlang <file>\n"
+                   "(ep expr)      -- print a term in erlang form\n"
+                   "(epp expr)     -- pretty print a term in erlang form\n"
+                   "(exit)         -- quit - an alias for (q)\n"
+                   "(flush)        -- flush any messages sent to the repl\n"
+                   "(h)            -- an alias for (help)\n"
+                   "(h m)          -- help about module\n"
+                   "(h m m)        -- help about function and macro in module\n"
+                   "(h m f a)      -- help about function/arity in module\n"
+                   "(help)         -- help info\n"
+                   "(i)            -- information about the system\n"
+                   "(i pids)       -- information about a list of pids\n"
+                   "(i x y z)      -- information about pid #Pid<x.y.z>\n"
+                   "(l module)     -- load or reload <module>\n"
+                   "(ls)           -- list files in the current directory\n"
+                   "(ls dir)       -- list files in directory <dir>\n"
+                   "(m)            -- which modules are loaded\n"
+                   "(m mod)        -- information about module <mod>\n"
+                   "(memory)       -- memory allocation information\n"
+                   "(memory t)     -- memory allocation information of type <t>\n"
+                   "(p expr)       -- print a term\n"
+                   "(pp expr)      -- pretty print a term\n"
+                   "(pid x y z)    -- convert x, y, z to a pid\n"
+                   "(pwd)          -- print working directory\n"
+                   "(q)            -- quit - shorthand for init:stop/0\n"
+                   "(regs)         -- information about registered processes\n"
+                   "(nregs)        -- information about all registered processes\n"
+                   "(uptime)       -- print node uptime\n"
+                   "\n"
+                   "LFE repl built-in forms\n\n"
+                   "(reset-environment)             -- reset the environment to its initial state\n"
+                   "(run file)                      -- execute all the repl commands in a <file>\n"
+                   "(set pattern expr)\n"
+                   "(set pattern (when guard) expr) -- evaluate <expr> and match the result with\n"
+                   "                                   pattern binding\n"
+                   "(slurp file)                    -- slurp in a LFE source <file> and makes\n"
+                   "                                   everything available in the repl\n"
+                   "(unslurp)                       -- revert back to the state before the last\n"
+                   "                                   slurp\n\n"
+                   "LFE repl built-in variables\n\n"
+                   "+/++/+++      -- the three previous expressions\n"
+                   "*/**/***      -- the values of the previous expressions\n"
+                   "-             -- the current expression output\n"
+                   "$ENV          -- the current LFE environment\n\n"
+                 >>).
 
 %% c(File [,Args]) -> {ok,Module} | error.
 %%  Compile and load an LFE file.
@@ -40,7 +96,7 @@ c(File, Opts0) ->
     case lfe_comp:file(File, Opts1) of
         Ok when element(1, Ok) =:= ok ->        %Compilation successful
             Return = lists:member(return, Opts1),
-            Binary = lists:member(binary, Opts1),
+           Binary = lists:member(binary, Opts1),
             OutDir = outdir(Opts1),
             load_files(Ok, Return, Binary, OutDir);
         Error -> Error
@@ -95,62 +151,6 @@ epp(E) ->
 epp(E, D) ->
     Cs = io_lib:format("~P", [E,D]),
     io:put_chars([Cs,$\n]).
-
-%% help() -> ok.
-
-help() ->
-    io:put_chars(<<"\nLFE shell built-in functions\n\n"
-                   "(c file)       -- compile and load code in <file>\n"
-                   "(cd dir)       -- change working directory to <dir>\n"
-                   "(clear)        -- clear the REPL output\n"
-                   "(doc mod)      -- documentation of a module\n"
-                   "(doc mod:mac)  -- documentation of a macro\n"
-                   "(doc m:f/a)    -- documentation of a function\n"
-                   "(ec file)      -- compile and load code in erlang <file>\n"
-                   "(ep expr)      -- print a term in erlang form\n"
-                   "(epp expr)     -- pretty print a term in erlang form\n"
-                   "(exit)         -- quit - an alias for (q)\n"
-                   "(flush)        -- flush any messages sent to the shell\n"
-                   "(h)            -- an alias for (help)\n"
-                   "(h m)          -- help about module\n"
-                   "(h m m)        -- help about function and macro in module\n"
-                   "(h m f a)      -- help about function/arity in module\n"
-                   "(help)         -- help info\n"
-                   "(i)            -- information about the system\n"
-                   "(i pids)       -- information about a list of pids\n"
-                   "(i x y z)      -- information about pid #Pid<x.y.z>\n"
-                   "(l module)     -- load or reload <module>\n"
-                   "(ls)           -- list files in the current directory\n"
-                   "(ls dir)       -- list files in directory <dir>\n"
-                   "(m)            -- which modules are loaded\n"
-                   "(m mod)        -- information about module <mod>\n"
-                   "(memory)       -- memory allocation information\n"
-                   "(memory t)     -- memory allocation information of type <t>\n"
-                   "(p expr)       -- print a term\n"
-                   "(pp expr)      -- pretty print a term\n"
-                   "(pid x y z)    -- convert x, y, z to a pid\n"
-                   "(pwd)          -- print working directory\n"
-                   "(q)            -- quit - shorthand for init:stop/0\n"
-                   "(regs)         -- information about registered processes\n"
-                   "(nregs)        -- information about all registered processes\n"
-                   "(uptime)       -- print node uptime\n"
-                   "\n"
-                   "LFE shell built-in forms\n\n"
-                   "(reset-environment)             -- reset the environment to its initial state\n"
-                   "(run file)                      -- execute all the shell commands in a <file>\n"
-                   "(set pattern expr)\n"
-                   "(set pattern (when guard) expr) -- evaluate <expr> and match the result with\n"
-                   "                                   pattern binding\n"
-                   "(slurp file)                    -- slurp in a LFE source <file> and makes\n"
-                   "                                   everything available in the shell\n"
-                   "(unslurp)                       -- revert back to the state before the last\n"
-                   "                                   slurp\n\n"
-                   "LFE shell built-in variables\n\n"
-                   "+/++/+++      -- the three previous expressions\n"
-                   "*/**/***      -- the values of the previous expressions\n"
-                   "-             -- the current expression output\n"
-                   "$ENV          -- the current LFE environment\n\n"
-                 >>).
 
 %% i([Pids]) -> ok.
 
@@ -391,38 +391,38 @@ format_doc(Docs) ->
 get_module_doc(Mod, #docs_v1{format = ?NATIVE_FORMAT}=Docs) ->
     shell_docs:render(Mod, Docs);
 get_module_doc(Mod, #docs_v1{format = ?LFE_FORMAT}=Docs) ->
-    lfe_shell_docs:render(Mod, Docs);
+    lfe_repl_docs:render(Mod, Docs);
 get_module_doc(_Mod, #docs_v1{format = Enc}) ->
     {error, {unknown_format, Enc}}.
 
 get_macro_doc(Mod, Name, #docs_v1{format = ?NATIVE_FORMAT}=Docs) ->
     shell_docs:render(Mod, Name, Docs);
 get_macro_doc(Mod, Name, #docs_v1{format = ?LFE_FORMAT}=Docs) ->
-    lfe_shell_docs:render(Mod, Name, Docs);
+    lfe_repl_docs:render(Mod, Name, Docs);
 get_macro_doc(_Mod, _Name, #docs_v1{format = Enc}) ->
     {error, {unknown_format, Enc}}.
 
 get_function_doc(Mod, Name, Arity, #docs_v1{format = ?NATIVE_FORMAT}=Docs) ->
     shell_docs:render(Mod, Name, Arity, Docs);
 get_function_doc(Mod, Name, Arity, #docs_v1{format = ?LFE_FORMAT}=Docs) ->
-    lfe_shell_docs:render(Mod, Name, Arity, Docs);
+    lfe_repl_docs:render(Mod, Name, Arity, Docs);
 get_function_doc(_Mod, _Name, _Arity, #docs_v1{format = Enc}) ->
     {error, {unknown_format, Enc}}.
 
 -else.
 
 get_module_doc(Mod, #docs_v1{format = ?LFE_FORMAT}=Docs) ->
-    lfe_shell_docs:render(Mod, Docs);
+    lfe_repl_docs:render(Mod, Docs);
 get_module_doc(_Mod, #docs_v1{format = Enc}) ->
     {error, {unknown_format, Enc}}.
 
 get_macro_doc(Mod, Name, #docs_v1{format = ?LFE_FORMAT}=Docs) ->
-    lfe_shell_docs:render(Mod, Name, Docs);
+    lfe_repl_docs:render(Mod, Name, Docs);
 get_macro_doc(_Mod, _Name, #docs_v1{format = Enc}) ->
     {error, {unknown_format, Enc}}.
 
 get_function_doc(Mod, Name, Arity, #docs_v1{format = ?LFE_FORMAT}=Docs) ->
-    lfe_shell_docs:render(Mod, Name, Arity, Docs);
+    lfe_repl_docs:render(Mod, Name, Arity, Docs);
 get_function_doc(_Mod, _Name, _Arity, #docs_v1{format = Enc}) ->
     {error, {unknown_format, Enc}}.
 
