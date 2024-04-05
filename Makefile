@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2020 Robert Virding
+# Copyright (c) 2016-2024 Robert Virding
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ SRCDIR = src
 CSRCDIR = c_src
 LSRCDIR = src
 INCDIR = include
+TESTDIR = test
 EMACSDIR = emacs
 HOSTCC ?= $(CC)
 CFLAGS ?= -Wall -Wextra
@@ -152,6 +153,7 @@ install-bin:
 
 clean:
 	rm -rf $(EBINDIR)/*.beam erl_crash.dump comp_opts.mk
+	rm -rf $(TESTDIR)/*.beam
 
 clean-all: clean
 	rm -rf _build
