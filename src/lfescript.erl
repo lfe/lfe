@@ -194,7 +194,7 @@ eval_code(Fenv, _, Args, _) ->
         ?CATCH(Class, Error, Stack)
             Skip = fun (_) -> false end,
             Format = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
-            Cs = lfe_lib:format_exception(Class, Error, Stack, Skip, Format, 1),
+            Cs = lfe_error:format_exception(Class, Error, Stack, Skip, Format, 1),
             io:put_chars(Cs),
             halt(?ERROR_STATUS)
     end.

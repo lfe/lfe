@@ -212,7 +212,7 @@ report_exception(Class, Reason, Stk) ->
                  (M == lfe_eval) or (M == ?MODULE)
          end,
     Ff = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
-    Cs = lfe_lib:format_exception(Class, Reason, Stk, Sf, Ff, 1),
+    Cs = lfe_error:format_exception(Class, Reason, Stk, Sf, Ff, 1),
     io:put_chars("** " ++ Cs),                  %Make it more note worthy
     io:nl().
 
