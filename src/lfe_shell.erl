@@ -1170,10 +1170,22 @@ paged_output(Pitem, Curr, Limit, [Item|Items]) ->
 paged_output(_, _, _, []) -> ok.
 
 more() ->
-    case io:get_line('More (y/n)? ') of
+    case get_line('More (y/n)? (y)', "y\n") of
         "y\n" -> more;
         "c\n" -> more;
         "n\n" -> less;
         "q\n" -> less;
         _ -> more()
     end.
+
+get_line(P, Default) ->
+    case line_string(io:get_line(P)) of
+	"\n" -> Default;
+	L -> L
+    end.
+
+%% If the standard input is set to binary mode
+%% convert it to a list so we can properly match.
+line_string(Binary) when is_binary(Binary) ->
+    unicode:characters_to_list(Binary);
+line_string(Other) -> Other.
