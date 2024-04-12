@@ -49,14 +49,13 @@ as it has consumed enough characters.
 
 **read_line([[IoDevice,] Prompt]) -> {ok,Sexpr} | {error,ErrorInfo} | eof**
 
-Read an s-expr from the standard input (``IoDevice``) with a prompt
+Read the first s-expr from the standard input (``IoDevice``) with a prompt
 (``Prompt``). Note that this is line-oriented in that it reads whole lines
 discarding left-over characters in the last line.
 
-**read_string(String) -> {ok,Sexpr} | {error,ErrorInfo}**
+**read_string(String) -> {ok,[Sexpr]} | {error,ErrorInfo}**
 
-Read an s-expr from ``String``. Note that this only reads from ``String``
-discarding left-over characters at the end of the string.
+Read all the s-exprs from ``String``.
 
 **print([IoDevice,] Sexpr) -> ok**
 

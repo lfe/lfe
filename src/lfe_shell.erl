@@ -98,9 +98,9 @@ run_string(String) ->
 
 run_string(String, St0) ->
     St1 = upd_state(String, [], St0),
-    case read_script_string(String) of
+    case lfe_io:read_string(String) of
         {ok,Forms} ->
-            run_loop([Forms], St1);
+            run_loop(Forms, St1);
         {error,E} ->
             slurp_errors("lfe", [E]),
             {error,St1}
@@ -721,13 +721,6 @@ read_script_file(File) ->
                     lfe_io:read_file(Fd, 1)
             end
     end.
-
-%% read_script_string(FileName) -> {ok,[Sexpr]} | {error,Error}.
-%%  Read a file returning the sexprs. Almost the same as
-%%  lfe_io:read_string except parse all forms.
-
-read_script_string(String) ->
-    lfe_io:read_string(String).
 
 %% run_loop(Forms, State) -> {Value,State}.
 %% run_loop(Forms PrevValue, State) -> {Value,State}.
