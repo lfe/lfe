@@ -28,8 +28,9 @@
 
 -export([start/0,start/1,server/0,server/1,
          run_script/2,run_script/3,
-         run_strings/1,run_strings/2,run_string/1,run_string/2,
-         new_state/2,new_state/3,upd_state/3]).
+         run_strings/1,run_strings/2,run_string/1,run_string/2]).
+
+-export([new_state/0,new_state/2,new_state/3,upd_state/3]).
 
 %% Useful for the LFE rebar3 plugin
 -export([banner/0,banner/1,banner/2]).
@@ -204,11 +205,7 @@ user_prompt () ->
 report_exception(Class, Reason, Stk) ->
     %% Use LFE's simplified version of erlang shell's error
     %% reporting but which LFE prettyprints data.
-    Sf = fun ({M,_F,_A}) ->                     %Pre R15
-                 %% Don't want to see these in stacktrace.
-                 (M == lfe_eval) or (M == ?MODULE);
-             ({M,_F,_A,_L}) ->                  %R15 and later
-                 %% Don't want to see these in stacktrace.
+    Sf = fun (M, _F, _A) ->
                  (M == lfe_eval) or (M == ?MODULE)
          end,
     Ff = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
@@ -281,9 +278,13 @@ quit_message() ->
     %% as jlfe.
     "(abort with ^G)".
 
+%% new_state() -> State.
 %% new_state(ScriptName, Args [,Env]) -> State.
 %%  Generate a new shell state with all the default functions, macros
 %%  and variables.
+
+new_state() ->
+    new_state("lfe", []).
 
 new_state(Script, Args) ->
     new_state(Script, Args, lfe_env:new()).
@@ -1173,8 +1174,8 @@ more() ->
 
 get_line(P, Default) ->
     case line_string(io:get_line(P)) of
-	"\n" -> Default;
-	L -> L
+        "\n" -> Default;
+        L -> L
     end.
 
 %% If the standard input is set to binary mode
