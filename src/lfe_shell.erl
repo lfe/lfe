@@ -100,7 +100,7 @@ run_string(String, St0) ->
     St1 = upd_state(String, [], St0),
     case read_script_string(String) of
         {ok,Forms} ->
-            run_loop([Forms], St1);
+            run_loop(Forms, St1);
         {error,E} ->
             slurp_errors("lfe", [E]),
             {error,St1}
@@ -729,7 +729,9 @@ read_script_string(String) ->
 %% run_loop(Forms, State) -> {Value,State}.
 %% run_loop(Forms PrevValue, State) -> {Value,State}.
 
-run_loop(Fs, St) -> run_loop(Fs, [], St).
+run_loop(Fs, St) ->
+    run_loop(Fs, [], St).
+
 
 run_loop([F|Fs], _, St0) ->
     Ce1 = lfe_env:add_vbinding('-', F, St0#state.curr),
