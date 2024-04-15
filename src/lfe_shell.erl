@@ -201,18 +201,15 @@ user_prompt () ->
         _ -> ["lfe> "]
     end.
 
-report_exception(Class, Reason, Stk) ->
+report_exception(Class, Reason, Stack) ->
     %% Use LFE's simplified version of erlang shell's error
     %% reporting but which LFE prettyprints data.
-    Sf = fun ({M,_F,_A}) ->                     %Pre R15
-                 %% Don't want to see these in stacktrace.
-                 (M == lfe_eval) or (M == ?MODULE);
-             ({M,_F,_A,_L}) ->                  %R15 and later
+    Skip = fun (M, _F, _A) ->
                  %% Don't want to see these in stacktrace.
                  (M == lfe_eval) or (M == ?MODULE)
-         end,
-    Ff = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
-    Cs = lfe_lib:format_exception(Class, Reason, Stk, Sf, Ff, 1),
+           end,
+    Format = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
+    Cs = lfe_error:format_exception(Class, Reason, Stack, Skip, Format, 1),
     io:put_chars("** " ++ Cs),                  %Make it more note worthy
     io:nl().
 
@@ -1180,8 +1177,8 @@ more() ->
 
 get_line(P, Default) ->
     case line_string(io:get_line(P)) of
-	"\n" -> Default;
-	L -> L
+        "\n" -> Default;
+        L -> L
     end.
 
 %% If the standard input is set to binary mode
