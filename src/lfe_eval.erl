@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2023 Robert Virding
+%% Copyright (c) 2008-2024 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -243,17 +243,9 @@ eval_expr([function,Name,Arity], Env) ->
     eval_lambda([lambda,Vs,[Name|Vs]], Env);
 %% Special known data type operations.
 eval_expr(['andalso'|Es], Env) ->
-    Fun = fun (E, true) -> eval_expr(E, Env);
-              (_, false) -> false;
-              (_, _Other) -> badarg_error()
-          end,
-    lists:foldl(Fun, true, Es);
+    eval_andalso(Es, Env);
 eval_expr(['orelse'|Es], Env) ->
-    Fun = fun (_, true) -> true;
-              (E, false) -> eval_expr(E, Env);
-              (_, _Other) -> badarg_error()
-          end,
-    lists:foldl(Fun, false, Es);
+    eval_orelse(Es, Env);
 %% Handle the Core closure special forms.
 eval_expr([lambda|_]=Lambda, Env) ->
     eval_lambda(Lambda, Env);
@@ -456,7 +448,7 @@ get_record_field(Record, Name, Field, Env) ->
 
 %% make_struct_map(Name, Fields, Env) -> Struct.
 %%  We have to macro expand and evaluate the values in the fields. Use
-%%  the __struct__/1 check and build the new struct.
+%%  the __struct__/1 to check and build the new struct.
 
 make_struct_map(Name, Fields, Env) ->
     Efs = make_struct_fields(Fields, Env),
@@ -464,7 +456,7 @@ make_struct_map(Name, Fields, Env) ->
         Name:'__struct__'(Efs)
     catch
         _:_ ->
-            eval_error({undefined_struct,Name})
+            undefined_struct_error(Name)
     end.
 
 make_struct_fields([Key,Val|Kvs], Env) ->
@@ -526,8 +518,15 @@ get_fbinding(Name, Ar, Env) ->
             end
     end.
 
-eval_list(Es, Env) ->
-    lists:map(fun (E) -> eval_expr(E, Env) end, Es).
+%% eval_list(Exprs, Env) -> [Value].
+%%  Evaluate the list of expressions and return value of the last one.
+
+eval_list([E | Es], Env) ->
+    [eval_expr(E, Env) | eval_list(Es, Env)];
+eval_list([], _Env) ->
+    [];
+eval_list(_Other, _Env) ->
+    badarg_error().
 
 %% eval_body(Body, Env) -> Value.
 %%  Evaluate the list of expressions and return value of the last one.
@@ -537,7 +536,7 @@ eval_body([E|Es], Env) ->
     eval_expr(E, Env),
     eval_body(Es, Env);
 eval_body([], _) -> [];                         %Empty body
-eval_body(_, _) -> ?EVAL_ERROR({bad_form,body}).%Not a list of expressions
+eval_body(_, _) -> bad_form_error(body).        %Not a list of expressions
 
 %% eval_binary(Bitsegs, Env) -> Binary.
 %%  Construct a binary from Bitsegs. Pass in an evaluator function to
@@ -608,6 +607,38 @@ eval_map_key(E, _) -> illegal_mapkey_error(E).
 maps_put({K,V}, M) -> maps:put(K, V, M).
 maps_update({K,V}, M) -> maps:update(K, V, M).
 maps_remove(K, M) -> maps:remove(K, M).
+
+%% eval_andalso(Exprs, Env) -> Value.
+%% eval_orelse(Exprs, Env) -> Value.
+%%  We do these ourselves.
+
+eval_andalso(Es, Env) ->
+    eval_andalso(Es, true, Env).
+
+eval_andalso([E | Es], Value, Env) ->
+    case Value of
+        true -> eval_andalso(Es, eval_expr(E, Env), Env);
+        false -> false;                         %We're done
+        _Other -> badarg_error()
+    end;
+eval_andalso([], Value, _Env) ->
+    Value;
+eval_andalso(_Other, _V, _Env) ->
+    badarg_error().
+
+eval_orelse(Es, Env) ->
+    eval_orelse(Es, false, Env).
+
+eval_orelse([E | Es], Value, Env) ->
+    case Value of
+        true -> true;                           %We're done
+        false -> eval_orelse(Es, eval_expr(E, Env), Env);
+        _Other -> badarg_error()
+    end;
+eval_orelse([], Value, _Env) ->
+    Value;
+eval_orelse(_Other, _V, _Env) ->
+    badarg_error().
 
 %% new_vars(N) -> Vars.
 
@@ -987,7 +1018,7 @@ eval_try(E, Case, Catch, After, Env) ->
                 {yes,Body,Vbs} ->
                     eval_body(Body, lfe_env:add_vbindings(Vbs, Env));
                 no ->
-                    ?EVAL_ERROR({try_clause,Value})
+                    eval_error({try_clause,Value})
             end
     catch
         ?CATCH(Class, Error, Stack)
@@ -1007,7 +1038,7 @@ check_exceptions([Cl|Cls]) ->
     case Cl of
         [[tuple,_,_,St]|_] when is_atom(St) -> ok;
         ['_'|_] -> ok;
-        [Other|_] -> ?EVAL_ERROR({illegal_exception,Other})
+        [Other|_] -> eval_error({illegal_exception,Other})
     end,
     check_exceptions(Cls);
 check_exceptions([]) -> ok.
@@ -1032,16 +1063,16 @@ eval_bin_comp(Qs, Expr, Env) ->
 
 eval_lc_qual_loop([Q|Qs], Expr, Env, Vacc, QualFun) ->
     case is_comp_generator(Q) of
-	true ->
-	    eval_comp_generate(Q, Qs, Expr, Env, Vacc, QualFun);
-	false ->
-	    %% We have a test so see if it succeeds.
-	    case eval_expr(Q, Env) of
-		true ->
-		    eval_lc_qual_loop(Qs, Expr, Env, Vacc, QualFun);
-		_Other ->
-		    Vacc
-	    end
+        true ->
+            eval_comp_generate(Q, Qs, Expr, Env, Vacc, QualFun);
+        false ->
+            %% We have a test so see if it succeeds.
+            case eval_expr(Q, Env) of
+                true ->
+                    eval_lc_qual_loop(Qs, Expr, Env, Vacc, QualFun);
+                _Other ->
+                    Vacc
+            end
     end;
 eval_lc_qual_loop([], Expr, Env, Vacc, _QualFun) ->
     Val = eval_expr(Expr, Env),
@@ -1052,14 +1083,14 @@ eval_lc_qual_loop([], Expr, Env, Vacc, _QualFun) ->
 
 eval_lc_gen_loop(Pat, Guard, [Val|GenVals], Qs, Expr, Env0, Vacc0, QualFun) ->
     case match_when(Pat, Val, [Guard], Env0) of
-	{yes,_,Vbs} ->
-	    Env1 = lfe_env:add_vbindings(Vbs, Env0),
-	    Vacc1 = QualFun(Qs, Expr, Env1, Vacc0, QualFun),
-	    eval_lc_gen_loop(Pat, Guard, GenVals, Qs, Expr,
-			     Env1, Vacc1, QualFun);
-	no ->
-	    eval_lc_gen_loop(Pat, Guard, GenVals, Qs, Expr,
-			     Env0, Vacc0, QualFun)
+        {yes,_,Vbs} ->
+            Env1 = lfe_env:add_vbindings(Vbs, Env0),
+            Vacc1 = QualFun(Qs, Expr, Env1, Vacc0, QualFun),
+            eval_lc_gen_loop(Pat, Guard, GenVals, Qs, Expr,
+                             Env1, Vacc1, QualFun);
+        no ->
+            eval_lc_gen_loop(Pat, Guard, GenVals, Qs, Expr,
+                             Env0, Vacc0, QualFun)
     end;
 eval_lc_gen_loop(_Pat, _Guard, [], _Qs, _Expr, _Env, Vacc, _QualFun) ->
     %% No more elements so we are done with this generator.
@@ -1072,17 +1103,17 @@ eval_lc_gen_loop(_Pat, _Guard, Other, _Qs, _Expr, _Env, _Vacc, _QualFun) ->
 
 eval_bc_qual_loop([Q|Qs], Expr, Env, Vacc, QualFun) ->
     case is_comp_generator(Q) of
-	true ->
-	    eval_comp_generate(Q, Qs, Expr, Env, Vacc, QualFun);
-	false ->
-	    %% We have a test so see if it succeeds.
-	    case eval_expr(Q, Env) of
-		true ->
-		    eval_bc_qual_loop(Qs, Expr, Env, Vacc, QualFun);
-		_Other ->
-		    Vacc
-	    end
-	end;
+        true ->
+            eval_comp_generate(Q, Qs, Expr, Env, Vacc, QualFun);
+        false ->
+            %% We have a test so see if it succeeds.
+            case eval_expr(Q, Env) of
+                true ->
+                    eval_bc_qual_loop(Qs, Expr, Env, Vacc, QualFun);
+                _Other ->
+                    Vacc
+            end
+        end;
 eval_bc_qual_loop([], Expr, Env, Vacc, _QualFun) ->
     Val = eval_expr(Expr, Env),
     << Vacc/bitstring, Val/bitstring >>.
@@ -1094,10 +1125,10 @@ eval_bc_qual_loop([], Expr, Env, Vacc, _QualFun) ->
 %%  here so we can step over them without having to do it each time.
 
 eval_bc_gen_loop([binary|SegPats], Guard, GenBin, Qs, Expr,
-		 Env, Vacc, QualFun) ->
+                 Env, Vacc, QualFun) ->
     SegsSize = get_segs_size(SegPats),
     eval_bc_gen_loop_1(SegPats, SegsSize, Guard, GenBin, Qs, Expr,
-		       Env, Vacc, QualFun);
+                       Env, Vacc, QualFun);
 eval_bc_gen_loop(Pat, _Guard, _GenBin, _Qs, _Expr, _Env, _Vacc, _QualFun) ->
     eval_error({illegal_pattern,Pat}).
 
@@ -1107,35 +1138,35 @@ eval_bc_gen_loop(Pat, _Guard, _GenBin, _Qs, _Expr, _Env, _Vacc, _QualFun) ->
 eval_bc_gen_loop_1(SegPats, SegsSize, Guard, GenBin0, Qs, Expr, Env0, Vacc0, QualFun)
   when is_bitstring(GenBin0) ->
     case GenBin0 of
-	<< PatBin:SegsSize/bitstring,GenBin1/bitstring >> ->
-	    %% Get the generator bits for matching and the remaining generator.
-	    case match_when([binary|SegPats], PatBin, [Guard], Env0) of
-		{yes,_,Vbs} ->
-		    Env1 = lfe_env:add_vbindings(Vbs, Env0),
-		    Vacc1 = QualFun(Qs, Expr, Env1, Vacc0, QualFun),
-		    eval_bc_gen_loop_1(SegPats, SegsSize, Guard, GenBin1, Qs,
-				       Expr, Env1, Vacc1, QualFun);
-		no ->
-		    %% Didn't match, just step over this part of the generator.
-		    eval_bc_gen_loop_1(SegPats, SegsSize, Guard, GenBin1, Qs,
-				       Expr, Env0, Vacc0, QualFun)
-	    end;
-	 _ ->
-	    %% Not enough bits so we are done with this generator.
-	    Vacc0
+        << PatBin:SegsSize/bitstring,GenBin1/bitstring >> ->
+            %% Get the generator bits for matching and the remaining generator.
+            case match_when([binary|SegPats], PatBin, [Guard], Env0) of
+                {yes,_,Vbs} ->
+                    Env1 = lfe_env:add_vbindings(Vbs, Env0),
+                    Vacc1 = QualFun(Qs, Expr, Env1, Vacc0, QualFun),
+                    eval_bc_gen_loop_1(SegPats, SegsSize, Guard, GenBin1, Qs,
+                                       Expr, Env1, Vacc1, QualFun);
+                no ->
+                    %% Didn't match, just step over this part of the generator.
+                    eval_bc_gen_loop_1(SegPats, SegsSize, Guard, GenBin1, Qs,
+                                       Expr, Env0, Vacc0, QualFun)
+            end;
+         _ ->
+            %% Not enough bits so we are done with this generator.
+            Vacc0
     end;
 eval_bc_gen_loop_1(_SegPats, _SegsSize, _Guard, GenBin, _Qs, _Expr,
-		   _Env, _Vacc, _QualFun) ->
+                   _Env, _Vacc, _QualFun) ->
     %% This should be a binary/bitstring.
     eval_error({bad_generator,GenBin}).
 
 get_segs_size(SegPats) ->
     SizeFun = fun ([_|Specs], Acc) ->
-		      {ok,Size,_} = lfe_bits:get_bitspecs(Specs),
-		      Acc + Size;
-		  (_, Acc) ->			%Default is integer
-		      Acc + 8
-	      end,
+                      {ok,Size,_} = lfe_bits:get_bitspecs(Specs),
+                      Acc + Size;
+                  (_, Acc) ->                   %Default is integer
+                      Acc + 8
+              end,
     lists:foldl(SizeFun, 0, SegPats).
 
 is_comp_generator(['<-',_,_]) -> true;
@@ -1608,6 +1639,9 @@ undefined_record_error(Rec) ->
 
 undefined_record_field_error(Rec, F) ->
     eval_error({undefined_record_field,Rec,F}).
+
+undefined_struct_error(Str) ->
+    eval_error({undefined_struct,Str}).
 
 eval_error(Error) ->
     erlang:raise(error, Error, ?STACKTRACE).
