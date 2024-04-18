@@ -138,4 +138,11 @@ else
 fi
 LFE_HOME_LIBS=$(find_libs "$HOME"/.lfe/lib)
 ALL_LIBS="$LFE_ROOTDIR":"$ERL_LIBS":"$PROJ_LIBS""$R3_PROJ_LIBS""$LFE_HOME_LIBS"
-ERL_LIBS="$ALL_LIBS" exec erl "$@"
+## ERL_LIBS="$ALL_LIBS" exec erl "$@"
+
+if [ -n "$LFE_CLI_DRY_RUN" ]; then
+    echo "ERL_LIBS=$ALL_LIBS"
+    echo exec erl "$@"
+else
+    ERL_LIBS="$ALL_LIBS" exec erl "$@"
+fi
