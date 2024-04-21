@@ -116,23 +116,21 @@ read_tokens([_|_]=Ts0, LastLine, Ss) ->
 read_tokens([], _, Ss) -> {ok,lists:reverse(Ss)}.
 
 %% with_token_file(FileName|Fd, DoFunc, Line)
-%%  Open the file, scan all LFE tokens and apply DoFunc on them. If
-%%  file:open fails with badarg then try assuming it is a fd. Note
+%%  Open the file, scan all LFE tokens and apply DoFunc on them. Note
 %%  that a new file starts at line 1.
 
-with_token_file(Name, Do, Line) ->
+with_token_file(Fd, Do, Line) when is_pid(Fd) ->
+    with_token_file_fd(Fd, Do, Line);
+with_token_file(Name, Do, _Line) ->
     case file:open(Name, [read]) of
         {ok,Fd} ->
             with_token_file_fd(Fd, Do, 1);      %Start at line 1
-        {error,badarg} ->
-            %% Could be a fd so use it as it is one.
-            with_token_file_fd(Name, Do, Line);
         {error,Error} -> {error,{none,file,Error}}
     end.
 
 with_token_file_fd(Fd, Do, Line) ->             %Called with a file descriptor
     Ret = case io:request(Fd, {get_until,unicode,'',lfe_scan,tokens,[Line]}) of
-              {ok,Ts,Lline} -> Do(Ts, Lline);
+              {ok,Ts,LastLine} -> Do(Ts, LastLine);
               {error,Error,_} -> {error,Error}
           end,
     file:close(Fd),                             %Close the file

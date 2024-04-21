@@ -105,12 +105,12 @@ the format string:
 Currently they behave as for vanilla erlang except that ``~w``,
 ``~W``, ``~p``, ``~P`` print the terms as LFE sexprs.
 
-**read_file(FileName) -> {ok,[Sexpr]} | {error,ErrorInfo}**
+**read_file(FileName | Fd[, Line]) -> {ok,[Sexpr]} | {error,ErrorInfo}**
 
-Read the file ``Filename`` returning a list of s-exprs (as it
-should be).
+Read the file ``Filename`` or the already opened file's file descriptor
+``Fd`` returning a list of s-exprs.
 
-**parse_file(FileName) -> {ok,[FileSexpr]} | {error,ErrorInfo}**
+**parse_file(FileName | Fd[, Line]) -> {ok,[FileSexpr]} | {error,ErrorInfo}**
 
 where
 
@@ -118,10 +118,11 @@ where
 FileSexpr = filesexpr()
 ```
 
-Read the file ``Filename`` returning a list of pairs containing
-s-expr and line number of the start of the s-expr.
+Read the file ``Filename`` or the already opened file's file descriptor ``Fd``
+returning a list of pairs containing s-expr and line number of the
+start of the s-expr.
 
-**scan_sexpr(Cont, Chars [,Line]) -> {done,Ret,RestChars}|{more,Cont1}**
+**scan_sexpr(Cont, Chars [,Line]) -> {done,Ret,RestChars} | {more,Cont1}**
 
 This is a re-entrant call which scans tokens from the input and
 returns a parsed sepxr. If there are enough characters to parse a
