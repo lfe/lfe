@@ -24,9 +24,9 @@
 
 -module(lfe_eval).
 
--export([expr/1,expr/2,literal/1,literal/2,body/1,body/2,
-         gexpr/1,gexpr/2,guard/1,guard/2,match/3,match_when/4,
-         apply/2,apply/3,
+-export([expr/1,expr/2,exprs/1,exprs/2,
+         literal/1,literal/2,body/1,body/2,gexpr/1,gexpr/2,guard/1,guard/2,
+         match/3,match_when/4,apply/2,apply/3,
          make_letrec_env/2,add_lexical_func/4,add_dynamic_func/4,
          format_error/1]).
 
@@ -121,8 +121,21 @@ expr(E) -> expr(E, lfe_env:new()).
 
 expr(E, Env) ->
     Exp = lfe_macro:expand_expr_all(E, Env),
-    %% lfe_io:fwrite("e: ~p\n", [{E,Exp,Env}]),
     eval_expr(Exp, Env).
+
+%% exprs([Sexpr]) -> Value.
+%% exprs([Sexpr], Env) -> Value.
+%%  Evaluate the sexprs in order, first expanding all macros.
+
+exprs(Es) ->
+    exprs(Es, lfe_env:new()).
+
+exprs([E | Es], Env) ->
+    Exp = lfe_macro:expand_expr_all(E, Env),
+    Value = eval_expr(Exp, Env),
+    [Value | exprs(Es, Env)];
+exprs([], _Env) ->
+    [].
 
 %% literal(Literal) -> Value.
 %% literal(Literal, Env) -> Value.
@@ -132,6 +145,8 @@ expr(E, Env) ->
 %% gexpr(GuardTest, Env) -> Value.
 %% guard(Guard) -> true | false.
 %% guard(Guard, Env) -> true | false.
+%%  These do NOT expand macros. Note that match and match_when in the
+%%  same way but have suitable names.
 
 literal(L) -> literal(L, lfe_env:new()).
 
