@@ -37,23 +37,32 @@
 
 -include("lfe.hrl").
 
+%% Exit status.
 -define(OK_STATUS, 0).
 -define(ERROR_STATUS, 127).
+
+%% Default repl to use when none is given.
+-define(DEFAULT_REPL, lfe_shell).
 
 %% Start LFE running a script or the shell depending on arguments.
 
 start() ->
     OTPRelease = erlang:system_info(otp_release),
+    %% Find out which repl/shell we want to use.
+    Repl = case init:get_argument(repl) of
+               {ok, [[R|_]]} -> list_to_atom(R);
+               _Other -> ?DEFAULT_REPL
+           end,
     case collect_args(init:get_plain_arguments()) of
         {[],[]} ->                              %Run a shell
             if OTPRelease >= "26" ->
                     %% The new way 26 and later.
-                    user_drv:start(#{initial_shell => {lfe_shell,start,[]}});
+                    user_drv:start(#{initial_shell => {Repl,start,[]}});
                true ->
                     %% The old way before 26.
-                    user_drv:start(['tty_sl -c -e',{lfe_shell,start,[]}])
+                    user_drv:start(['tty_sl -c -e',{Repl,start,[]}])
             end;
-        {Es,Script} ->
+        {Evals,Script} ->
             if OTPRelease >= "26" ->
                     %% The new way 26 and later)
                     user_drv:start(#{initial_shell => noshell});
@@ -61,7 +70,7 @@ start() ->
                     %% The old way before 26.
                     user:start()
             end,
-            run_evals_script(Es, Script)
+            run_evals_script(Repl, Evals, Script)
     end.
 
 collect_args([E,S|Args]) when E == "-lfe_eval" ; E == "-eval" ; E == "-e" ->
@@ -71,28 +80,28 @@ collect_args([E]) when E == "-lfe_eval" ; E == "-eval" ; E == "-e" ->
     {[],[]};
 collect_args(Args) -> {[],Args}.                %Remaining become script
 
-%% run_evals_script(Evals, Script) -> Pid.
+%% run_evals_script(Repl, Evals, Script) -> Pid.
 %%  Firat evaluate all the eval strings if any then the script if
 %%  there is one. The state from the string is past into the
 %%  script. We can handle no strings and no script.
 
-run_evals_script(Evals, Script) ->
-    S = fun () ->
-                St = lfe_shell:run_strings(Evals),
-                case Script of
-                    [F|As] ->
-                        lfe_shell:run_script(F, As, St);
-                    [] -> {[],St}
-                end
-        end,
-    spawn_link(fun () -> run_script(S) end).
+run_evals_script(Repl, Evals, Script) ->
+    Run = fun () ->
+                  St = Repl:run_strings(Evals),
+                  case Script of
+                      [F|As] ->
+                          Repl:run_script(F, As, St);
+                      [] -> {[],St}
+                  end
+          end,
+    spawn_link(fun () -> run_script(Repl, Run) end).
 
-%% run_script(Script)
+%% run_script(Repl, Run)
 %%  Run a script and terminate the erlang process afterwards.
 
-run_script(Script) ->
+run_script(_Repl, Run) ->
     try
-        Script(),                               %Evaluate the script
+        Run(),                                  %Evaluate the evals and script
         %% For some reason we need to wait a bit before stopping.
         timer:sleep(1),
         init:stop(?OK_STATUS)
