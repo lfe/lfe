@@ -196,7 +196,7 @@ common-test:
 ct: common-test
 
 tests:
-	@rebar3 as test do compile,eunit,eunit,proper -n 20,ct
+	@rebar3 as test do compile,eunit,eunit,proper -n 20, ct
 
 #####################
 ### DOCUMENTATION ###
