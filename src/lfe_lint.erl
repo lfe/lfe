@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2023 Robert Virding
+%% Copyright (c) 2008-2024 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -542,12 +542,12 @@ check_type_vars(Tvs, L, St) ->
 %% check_func_spec(Func, Specs, Line, State) -> State.
 %%  Check a function specification.
 
-check_func_specs(Sps, L, St) ->
-    check_foreach(fun (Sp, S) -> check_func_spec(Sp, L, S) end,
+check_func_specs(Specs, L, St) ->
+    check_foreach(fun (Spec, S) -> check_func_spec(Spec, L, S) end,
                   fun (S) -> bad_meta_def_error(L, spec, S) end,
-                  St, Sps).
+                  St, Specs).
 
-check_func_spec([Func|Specs], L, St) ->
+check_func_spec([Func,Specs], L, St) ->
     check_func_spec(Func, Specs, L, St);
 check_func_spec(_, L, St) ->
     bad_meta_def_error(L, spec, St).
