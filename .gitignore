@@ -8,7 +8,6 @@
 /_build/
 /c_src/*.d
 /priv/
-/src/lfe_scan.erl
 bin/lfeexec
 comp_opts.mk
 doc/epub/*
