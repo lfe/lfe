@@ -146,6 +146,7 @@ token1(Cs0, Line0, Col0, St0, Extra0, Fun0) ->
 
 %% tokens(Continuation, String) ->
 %% tokens(Continuation, String, StartLine) ->
+%% tokens(Continuation, String, StartLine, Options) ->
 %%     {more,Continuation} | {done,ReturnVal,RestChars}.
 %%  Scan all tokens in the repeated calls threading the continuation
 %%  through the calls.
@@ -659,6 +660,7 @@ scan_tqstring_lines([$\n|Cs], Line, _Col, Sline, Scol, Lcs, Lines, Type, St) ->
 scan_tqstring_lines([$"|Cs], Line, Col, Sline, Scol, Lcs, Lines, Type, St) -> 
     scan_tqstring_tq(Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St);
 scan_tqstring_lines([C|Cs], Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
+    %% io:format("stl ~w\n", [{c,[C|Cs],Lcs ++ [C]}]),
     scan_tqstring_lines(Cs, Line, Col, Sline, Scol, Lcs ++ [C], Lines, Type, St);
 scan_tqstring_lines([]=Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
     {more,{Cs,Line,Col,St,{Sline,Scol,Lcs,Lines,Type},
@@ -666,11 +668,16 @@ scan_tqstring_lines([]=Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
 scan_tqstring_lines(eof=Cs, Line, Col, Sline, Scol, _Lcs, _Lines, _Type, _St) ->
     scan_error(tq_string, Line, Col, Sline, Scol, Cs).
 
-scan_tqstring_tq_fun(Cs, Line, Col, St, {Sline,Scol,Lcs,Lines,Type}) ->
-    scan_tqstring_tq(Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St).
+%% scan_tqstring_tq(Chars, Line, Col, StartLine, StartCol, LineChars, Lines,
+%%                  Type, State) ->
+%%      {ok,Token,Char,Line,Column,State} | {more,Continuation} | ScanError.
+%%  Check if we have valid end of the """ or whether we must go on.
+
+%% scan_tqstring_tq_fun(Cs, Line, Col, St, {Sline,Scol,Lcs,Lines,Type}) ->
+%%     scan_tqstring_tq(Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St).
 
 scan_tqstring_tq([$",$"|Cs], Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
-    %% Check if this is a valid end line.
+    %% This is a triple quote, check if this is a valid end line.
     case blank_line(Lcs) of
         true ->
             scan_tqstring_end(Cs, Line, Col+3, Sline, Scol,
@@ -679,17 +686,11 @@ scan_tqstring_tq([$",$"|Cs], Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
             scan_tqstring_lines(Cs, Line, Col+3, Sline, Scol, 
                                 Lcs ++ [$",$",$"], Lines, Type, St)
     end;
-scan_tqstring_tq([$",C|Cs], Line, Col, Sline, Scol, Lcs, Lines, Type, St) when
-      C =/= $" ->
-    %% This is not a triple quote here, so it is a normal line.
-    scan_tqstring_lines(Cs, Line, Col, Sline, Scol, Lcs ++ [$",C], Lines, Type, St);
-%% scan_tqstring_tq([$"]=Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
-scan_tqstring_tq(Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St) when
-      Cs =/= eof ->
-    {more,{Cs,Line,Col,St,{Sline,Scol,Lcs,Lines,Type},
-           fun scan_tqstring_tq_fun/5}};
-scan_tqstring_tq(eof=Cs, Line, Col, Sline, Scol, _Lcs, _Lines, _Type, _St) ->
-    scan_error(tq_string, Line, Col, Sline, Scol, Cs).
+scan_tqstring_tq(Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
+    %% This is not a triple quote here, it is a normal line. So we
+    %% pass the buck, but don't forget the ".
+    scan_tqstring_lines(Cs, Line, Col, Sline, Scol,
+                        Lcs ++ [$"], Lines, Type, St).
 
 %% scan_tqstring_end(Chars, Line, Col, StartLine, StartCol, Prefix, Lines,
 %%                   Type, State) ->
