@@ -173,7 +173,7 @@ tokens({lfe_scan_tokens,Cs,Line,Col,Toks,St,Extra,Fun},
 %%  more characters or there is an error.
 
 tokens1(eof, Line, _Col, Toks, _St, _Extra, _Fun) ->
-    %% io:format("ts1 ~p\n", [{done,Line,length(Toks)}]),
+    %% io:format("ts1 ~p\n", [{done,Line,Toks}]),
     {done,{ok,lists:reverse(Toks),anno(Line)},[]};
 tokens1([], Line, Col, Toks, St, Extra, Fun) ->
     %% io:format("ts1 ~p\n", [{[],Line,length(Toks)}]),
@@ -553,7 +553,7 @@ scan_binary_string(Cs, Line, Col, St) ->
 
 %% scan_string(Chars, Line, Column, Type, State) ->
 %%     {ok,Token,Chars,Line,Column} | {more,Continuation} | ScanError.
-%%  Find which string type to use. Note the first " has been has been
+%%  Find which string type to use. Note the first " has already been
 %%  scanned. Here we work out if is a normal string or a triple quote
 %%  string and then pass the buck.
 
@@ -579,7 +579,8 @@ scan_string1(Cs, Line, Col, Type, St) ->
 %% scan_qstring(Chars, Line, Column, StartLine, StartColumn,
 %%              Type, State) ->
 %%     {ok,Token,Chars,Line,Column} | ScanError | ScanMore.
-%%  Single quote "normal" strings.
+%%  Single quote "normal" strings. Note that the first " has already
+%%  been scanned.
 
 scan_qstring(Chars, Line, Column, Sline, Scol, Type, State) ->
     scan_qstring1(Chars, Line, Column, Sline, Scol, [], Type, State).
@@ -625,7 +626,8 @@ string_token(String, StartLine, Type) ->
 
 %% scan_tqstring(Chars, Line, Column, StartLine, StartCol, Type, State) ->
 %%     {ok,Token,Char,Line,Column} | {more,Continuation} | ScanError.
-%%  Scan triple quoted strings.
+%%  Scan triple quoted strings. Note that the first """ has already
+%%  been scanned.
 
 scan_tqstring(Chars, Line, Column, StartLine, StartCol, Type, State) ->
     scan_tqstring_1(Chars, Line, Column, StartLine, StartCol, Type, State).
@@ -644,6 +646,7 @@ scan_tqstring_1([$\n|Cs], Line, _Col, Sline, Scol, Type, St) ->
 scan_tqstring_1([]=Cs, Line, Col, Sline, Scol, Type, St) ->
     {more,{Cs,Line,Col,St,{Sline,Scol,Type},fun scan_tqstring_1_fun/5}};
 scan_tqstring_1(Cs, Line, Col, Sline, Scol, _Type, _St) ->
+    %% io:format("ls ~p\n", [{st1,Cs}]),
     %% An error for illegal character or eof.
     scan_error(tq_string, Line, Col, Sline, Scol, Cs).
 
@@ -660,32 +663,53 @@ scan_tqstring_lines([$\n|Cs], Line, _Col, Sline, Scol, Lcs, Lines, Type, St) ->
 scan_tqstring_lines([$"|Cs], Line, Col, Sline, Scol, Lcs, Lines, Type, St) -> 
     scan_tqstring_tq(Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St);
 scan_tqstring_lines([C|Cs], Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
-    %% io:format("stl ~w\n", [{c,[C|Cs],Lcs ++ [C]}]),
     scan_tqstring_lines(Cs, Line, Col, Sline, Scol, Lcs ++ [C], Lines, Type, St);
 scan_tqstring_lines([]=Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
     {more,{Cs,Line,Col,St,{Sline,Scol,Lcs,Lines,Type},
            fun scan_tqstring_lines_fun/5}};
 scan_tqstring_lines(eof=Cs, Line, Col, Sline, Scol, _Lcs, _Lines, _Type, _St) ->
+    %% io:format("ls ~w\n", [{stl,Cs,Sline,Line,_Lcs,_Lines}]),
     scan_error(tq_string, Line, Col, Sline, Scol, Cs).
 
 %% scan_tqstring_tq(Chars, Line, Col, StartLine, StartCol, LineChars, Lines,
 %%                  Type, State) ->
 %%      {ok,Token,Char,Line,Column,State} | {more,Continuation} | ScanError.
-%%  Check if we have valid end of the """ or whether we must go on.
+%%  Check if we have valid end of the """ or whether we must go
+%%  on. Note that the first " has already been scanned.
 
-%% scan_tqstring_tq_fun(Cs, Line, Col, St, {Sline,Scol,Lcs,Lines,Type}) ->
-%%     scan_tqstring_tq(Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St).
+scan_tqstring_tq_fun(Cs, Line, Col, St, {Sline,Scol,Lcs,Lines,Type}) ->
+    %%  io:format("ls ~p\n\n", [{sttf,Cs,Sline,Line,Lcs,Lines}]),
+    scan_tqstring_tq(Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St).
 
 scan_tqstring_tq([$",$"|Cs], Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
     %% This is a triple quote, check if this is a valid end line.
     case blank_line(Lcs) of
         true ->
+	    %% io:format("ls ~p\n\n", [{stt1,Cs,Sline,Line,Lcs,Lines}]),
             scan_tqstring_end(Cs, Line, Col+3, Sline, Scol,
                               Lcs, Lines, Type, St);
         false ->
+	    %% io:format("ls ~p\n", [{stt2,Cs,Sline,Line,Lcs ++ [$",$",$"],Lines}]),
             scan_tqstring_lines(Cs, Line, Col+3, Sline, Scol, 
                                 Lcs ++ [$",$",$"], Lines, Type, St)
     end;
+scan_tqstring_tq([$",C|Cs], Line, Col, Sline, Scol, Lcs, Lines, Type, St) when
+      C =/= $" ->
+    io:format("ls ~p\n", [{stt3,[C|Cs],Sline,Line,Lcs ++ [$"],Lines}]),
+    %% This is not a triple quote here, it is a normal line. So we
+    %% pass the buck, but don't forget the ".
+    scan_tqstring_lines([C|Cs], Line, Col, Sline, Scol,
+                        Lcs ++ [$"], Lines, Type, St);
+scan_tqstring_tq([$"]=Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
+    %% io:format("ls ~p\n", [{stt4,Cs,Sline,Line,Lcs,Lines}]),
+    {more,{Cs,Line,Col,St,{Sline,Scol,Lcs,Lines,Type},
+	   fun scan_tqstring_tq_fun/5}};
+scan_tqstring_tq([]=Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
+    %% io:format("ls ~p\n", [{stt5,Cs,Sline,Line,Lcs,Lines}]),
+    {more,{Cs,Line,Col,St,{Sline,Scol,Lcs,Lines,Type},
+	   fun scan_tqstring_tq_fun/5}};
+scan_tqstring_tq(eof, Line, Col, Sline, Scol, _Lcs, _Lines, _Type, _St) ->
+    scan_error(tq_string, Line, Col, Sline, Scol, eof);
 scan_tqstring_tq(Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
     %% This is not a triple quote here, it is a normal line. So we
     %% pass the buck, but don't forget the ".
@@ -695,7 +719,7 @@ scan_tqstring_tq(Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
 %% scan_tqstring_end(Chars, Line, Col, StartLine, StartCol, Prefix, Lines,
 %%                   Type, State) ->
 %%      {ok,Token,Char,Line,Column,State} | ScanError.
-%% Check if we have a valid end line.
+%%  Check if we have a valid end line.
 
 scan_tqstring_end(Cs, Line, Col, Sline, _Scol, _Prefix, [], Type, St) ->
     %% No lines so it just is empty.
@@ -706,11 +730,13 @@ scan_tqstring_end(Cs, Line, Col, Sline, Scol, Prefix, Lines, Type, St) ->
     case collect_tqstring_lines(Lines, Prefix, []) of
         {yes,CheckedLines} ->
             %% Skip the leading newline added by the fold.
-            [_|String] = lists:foldr(fun (Lcs, Scs) -> [$\n|Lcs] ++ Scs end,
+            [_Lc|String] = lists:foldr(fun (Lcs, Scs) -> [$\n|Lcs] ++ Scs end,
                                      [], CheckedLines),
+	    %% io:format("ls ~p\n", [{ste,Prefix,Lines,CheckedLines,String}]),
             Token = string_token(String, Sline, Type),
             {ok,Token,Cs,Line,Col,St};
         no ->
+	    %% io:format("ls ~p\n", [{ste,Cs,Sline,Line,Lines,Prefix}]),
             scan_error(tq_string, Line, Col, Sline, Scol, Cs)
     end.
 

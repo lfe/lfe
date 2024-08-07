@@ -1,4 +1,4 @@
-lfe_io(3)                                                            lfe_io(3)
+lfe_io(3)                  Library Functions Manual                  lfe_io(3)
 
 NAME
        lfe_io - Lisp Flavoured Erlang (LFE) io functions
@@ -174,4 +174,4 @@ ERROR INFORMATION
 AUTHORS
        Robert Virding.
 
-                                   2008-2019                         lfe_io(3)
+                                   2008-2024                         lfe_io(3)
