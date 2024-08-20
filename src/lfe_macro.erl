@@ -1350,6 +1350,11 @@ exp_defspec(Name, Def) ->
 %%  Just return the length of the first arg list and let lint check
 %%  properly later.
 
+defspec_arity([#{'arg-types' := Args}|_]) ->
+    case lfe_lib:is_proper_list(Args) of
+        true -> length(Args);
+        false -> 0
+    end;
 defspec_arity([[Args|_]|_]) ->
     case lfe_lib:is_proper_list(Args) of
         true -> length(Args);

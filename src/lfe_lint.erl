@@ -264,8 +264,8 @@ collect_module(Mfs, St) ->
 
 %% collect_form(Form, Line, State) -> {Fbs,State}.
 
-collect_form(['define-module',Mod,Meta,Atts], L, St0) ->
-    St1 = check_mod_def(Meta, Atts, L, St0#lfe_lint{module=Mod,mline=L}),
+collect_form(['define-module',Mod,Metas,Atts], L, St0) ->
+    St1 = check_mod_def(Metas, Atts, L, St0#lfe_lint{module=Mod,mline=L}),
     if is_atom(Mod) ->                  %Normal module
             {[],St1};
        true ->                          %Bad module name
@@ -281,6 +281,7 @@ collect_form(['define-type',Type,Def], L, St) ->
 collect_form(['define-opaque-type',Type,Def], L, St) ->
     {[],check_type_def(Type, Def, L, St)};
 collect_form(['define-function-spec',Func,Specs], L, St) ->
+    %% io:format("ll ~p\n", [{dfs,Func,Specs}]),
     {[],check_func_spec(Func, Specs, L, St)};
 collect_form(['define-record',Name,Fields], L, St) ->
     {[],check_record_def(Name, Fields, L, St)};
@@ -553,7 +554,9 @@ check_func_spec(_, L, St) ->
     bad_meta_def_error(L, spec, St).
 
 check_func_spec(Func, Specs, L, St0) ->
+    %% io:format("ll ~p\n", [{cfs,Func,Specs,St0#lfe_lint.specs}]),
     {Ar,St1} = check_func_name(Func, L, St0),
+    %% io:format("ll ~p\n", [{cfs,Ar}]),
     case lfe_types:check_func_spec_list(Specs, Ar, St1#lfe_lint.records) of
         {ok,Tvss} ->
             check_type_vars_list(Tvss, L, St1);

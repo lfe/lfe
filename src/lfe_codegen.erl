@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2023 Robert Virding
+%% Copyright (c) 2008-2024 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -118,8 +118,9 @@ collect_mod_def({['define-type',Type,Def],Line}, St) ->
     coll_mdef_meta([type,[Type,Def]], Line, St);
 collect_mod_def({['define-opaque-type',Type,Def],Line}, St) ->
     coll_mdef_meta([opaque,[Type,Def]], Line, St);
-collect_mod_def({['define-function-spec',Func,Spec],Line}, St) ->
-    coll_mdef_meta([spec,[Func,Spec]], Line, St);
+collect_mod_def({['define-function-spec',Func,Specs],Line}, St) ->
+    %% io:format("lc ~p\n", [{cmd,Func,Specs}]),
+    coll_func_spec(Func, Specs, Line, St);
 collect_mod_def({['define-record',Name,Fields],Line}, St) ->
     %% io:format("cmd ~p\n", [[record,[Name,Fields]]]),
     coll_mdef_meta([record,[Name,Fields]], Line, St);
@@ -219,13 +220,20 @@ coll_mdef_meta([type|Tdefs], Line, #lfe_cg{metas=Metas}=St) ->
     St#lfe_cg{metas=Metas ++ [{type,Tdefs,Line}]};
 coll_mdef_meta([opaque|Tdefs], Line, #lfe_cg{metas=Metas}=St) ->
     St#lfe_cg{metas=Metas ++ [{opaque,Tdefs,Line}]};
-coll_mdef_meta([spec|Fspecs], Line, #lfe_cg{metas=Metas}=St) ->
-    St#lfe_cg{metas=Metas ++ [{spec,Fspecs,Line}]};
+coll_mdef_meta([spec|Specs], Line, St) ->
+    coll_mdef_specs(Specs, Line, St);
 coll_mdef_meta([record|Rdefs], Line, #lfe_cg{metas=Metas}=St) ->
     St#lfe_cg{metas=Metas ++ [{record,Rdefs,Line}]};
 %% Ignore other metas.
 coll_mdef_meta(_Meta, _Line, St) ->
     St.
+
+coll_mdef_specs(Specs, Line, St) ->
+    Coll = fun ([Func,Spec], S) -> coll_func_spec(Func, Spec, Line, S) end,
+    lists:foldl(Coll, St, Specs).
+
+coll_func_spec(Func, Specs, Line, #lfe_cg{metas=Metas}=St) ->
+    St#lfe_cg{metas=Metas ++ [{spec,[Func,Specs],Line}]}.
 
 %% build_struct_def(State) -> State.
 %% build_info_func(State) -> State.
@@ -354,7 +362,7 @@ comp_attribute({Name,Val,Line}) ->
     make_attribute(Name, Val, Line).
 
 comp_metas(#lfe_cg{metas=Metas,mline=Line}) ->
-    %% io:format("cm ~p\n", [Metas]),
+    %% io:format("lc ~p\n", [{cms,Metas}]),
     Ms = lists:flatmap(fun (M) -> comp_meta(M, Line) end, Metas),
     %% io:format("cm ~p\n", [Ms]),
     Ms.
@@ -363,9 +371,9 @@ comp_meta({type,Tdefs,_}, Line) ->
     lists:flatmap(fun (Tdef) -> comp_type_def(type, Tdef, Line) end, Tdefs);
 comp_meta({opaque,Tdefs,_}, Line) ->
     lists:flatmap(fun (Tdef) -> comp_type_def(opaque, Tdef, Line) end, Tdefs);
-comp_meta({spec,Fspecs,_}, Line) ->
-    Fun = fun (Fspec) -> comp_function_spec(Fspec, Line) end,
-    lists:flatmap(Fun, Fspecs);
+comp_meta({spec,[Func,Specs],Line}, _Line) ->
+    %% io:format("lc ~p\n", [{cm,Func,Specs}]),
+    comp_function_specs(Func, Specs, Line);
 comp_meta({record,Rdefs,_}, Line) ->
     Fun = fun (Rdef) -> comp_record_def(Rdef, Line) end,
     As = lists:flatmap(Fun, Rdefs),
@@ -395,15 +403,17 @@ comp_type_def(Attr, [Type|Args], Def, Line) ->
             lfe_types:to_type_defs(Args, Line)},
     [make_attribute(Attr, Tdef, Line)].
 
-%% comp_function_spec(FuncSpec, Line) -> [AST].
-%% comp_function_spec(Func, Spec, Line) -> [AST].
+%% comp_function_specs(FuncSpecs, Line) -> [AST].
+%% comp_function_specs(Func, Spec, Line) -> [AST].
 %%  Compile a function specification to an attribute.
 
-comp_function_spec([Func|Spec], Line) ->
-    comp_function_spec(Func, Spec, Line).
+%% comp_function_specs([Func,Specs], Line) ->
+%%     %% io:format("lc ~p\n", [{cfs1,Func,Specs}]),
+%%     comp_function_specs(Func, Specs, Line).
 
-comp_function_spec([Name,Ar], Spec, Line) ->
-    Sdef = {{Name,Ar},lfe_types:to_func_spec_list(Spec, Line)},
+comp_function_specs([Name,Ar], Specs, Line) ->
+    %% io:format("lc ~p\n", [{cfs2,Name,Ar,Specs}]),
+    Sdef = {{Name,Ar},lfe_types:to_func_spec_list(Specs, Line)},
     [make_attribute(spec, Sdef, Line)].
 
 %% comp_function_def(Func, Def, Line, State) -> [AST].
