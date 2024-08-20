@@ -1,0 +1,11 @@
+;; Note that here there is a blank after the """
+
+  """
+   abc \t: bert \n\t
+  Not escaped: "\t \r \xFF " and """ 
+"""
+
+ """
+   abc \t: bert \n\t
+  Not escaped: "\t \r \xFF " and """
+  """

@@ -1,0 +1,3 @@
+"   abc \\t: bert \\n\\t\n  Not escaped: \"\\t \\r \\xFF \" and \"\"\" "
+
+" abc \\t: bert \\n\\t\nNot escaped: \"\\t \\r \\xFF \" and \"\"\""
