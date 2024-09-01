@@ -488,7 +488,7 @@ exp_form(['define-function',Name,Meta,Def], Env, St) ->
     exp_define_function(Name, Meta, Def, Env, St);
 exp_form(['define-macro',Head|B], Env, St) ->
     exp_head_tail('define-macro', Head, B, Env, St);
-%% Only worry about the module forms off the right size to expand and
+%% Only worry about the module forms of the right size to expand and
 %% don't touch the rest.
 exp_form(['define-module',Mod,Metas,Attrs], Env, St) ->
     exp_define_module(Mod, Metas, Attrs, Env, St);
@@ -803,20 +803,20 @@ exp_predef_macro(Call, Env, St) ->
 
 %% exp_define_module(Name, Metas, Attrs, Env, State) -> {Expansion,State}.
 %% exp_extend_module(Rest, Env, State) -> {Expansion,State}.
-%%  As record definitions are allowed inmodule definitions in the meta
-%%  data and the defualt values contain code these must be
+%%  As record definitions are allowed in module definitions in the
+%%  meta data and the default values contain code these must be
 %%  macroexpanded. We try and be lenient and pass syntactic errors on
 %%  to the linter.
 
 exp_define_module(Name, Metas, Attrs, Env, St0) ->
     Fun = fun (Meta, S) -> exp_module_meta(Meta, Env, S) end,
     {Emetas,St1} = lists:mapfoldl(Fun, St0, Metas),
-    {['define-module',Name,Emetas,Attrs],St1}.
+    {['define-module',Name,[],Attrs ++ Emetas],St1}.
 
 exp_extend_module(Metas, Attrs, Env, St0) ->
     Fun = fun (Meta, S) -> exp_module_meta(Meta, Env, S) end,
     {Emetas,St1} = lists:mapfoldl(Fun, St0, Metas),
-    {['extend-module',Emetas,Attrs],St1}.
+    {['extend-module',[],Attrs ++ Emetas],St1}.
 
 exp_module_meta([record|Recs], Env, St0) ->
     {Erecs,St1} = lists:mapfoldl(fun (R, S) -> exp_module_rec(R, Env, S) end,
@@ -1302,33 +1302,33 @@ exp_andalso([]) -> ?Q(true).
 %% exp_orelse([]) -> ?Q(false).
 
 %% exp_defmodule(Rest) -> {Meta,Attributes}.
-%%  Extract the comment string if it is first, then split the rest
-%%  into meta data or attributes deepending on the tag. The order is
-%%  preserved in both cases. We do the same expansion of the specs as
-%%  is done in defspec.
+%%  Extract the comment string if it is first and make it the 'doc' or
+%%  'moduledoc' depending on version, then move the rest to
+%%  attributes. The order is preserved. We still return both metas and
+%%  attributes as this is the defined form.
 
 exp_defmodule([Doc|More]=Rest0) ->
-    Rest1 = ?IF(lfe_lib:is_doc_string(Doc), [[doc,Doc]|More], Rest0),
-    Fun = fun ([spec|Specs0], {Me,As}) ->
-                  Sfun = fun ([Func|Spec]) ->
-                                 {Sfunc,Def} = exp_defspec(Func, Spec),
-                                 [Sfunc,Def]
-                         end,
-                  Specs1 = lists:map(Sfun, Specs0),
-                  {Me ++ [[spec|Specs1]],As};
-              ([Tag|_]=R, {Me,As}) ->
-                  case is_meta_tag(Tag) of
-                      true -> {Me ++ [R],As};
-                      false -> {Me,As ++ [R]}
-                  end
+    Rest1 = ?IF(lfe_lib:is_doc_string(Doc),
+		[defmodule_doc(Doc)|More],
+		Rest0),
+    Fun = fun ([spec|Specs], {Me,As}) ->
+                  {Me,As ++ [[spec|Specs]]};
+              (R, {Me,As}) ->
+		  {Me,As ++ [R]}
           end,
     lists:foldl(Fun, {[],[]}, Rest1);
 exp_defmodule([]) -> {[],[]}.
 
-is_meta_tag(doc) -> true;
-is_meta_tag(spec) -> true;
-is_meta_tag(record) -> true;
-is_meta_tag(Tag) -> lfe_types:is_type_decl(Tag).
+-ifdef(OTP27_DOCS).
+defmodule_doc(Doc) -> [moduledoc,Doc].
+-else.
+defmodule_doc(Doc) -> [doc,Doc].
+-endif.
+
+%% is_meta_tag(doc) -> true;
+%% is_meta_tag(spec) -> true;
+%% is_meta_tag(record) -> true;
+%% is_meta_tag(Tag) -> lfe_types:is_type_decl(Tag).
 
 %% exp_deftype(Type, Def) -> {Type,Def}.
 %%  Paramterless types to be written as just type name and default
@@ -1374,21 +1374,21 @@ exp_defun([Args|Body]=Rest) ->
     end.
 
 exp_lambda_defun(Args, Body) ->
-    {Meta,Def} = exp_meta(Body, []),
+    {Meta,Def} = exp_function_meta(Body, []),
     {Meta,['lambda',Args|Def]}.
 
 exp_match_defun(Rest) ->
-    {Meta,Cls} = exp_meta(Rest, []),
+    {Meta,Cls} = exp_function_meta(Rest, []),
     {Meta,['match-lambda'|Cls]}.
 
-exp_meta([[spec|Spec]|Rest], Meta) ->
-    exp_meta(Rest, Meta ++ [[spec|Spec]]);
-exp_meta([Doc|Rest], Meta) ->
+exp_function_meta([[spec|Spec]|Rest], Meta) ->
+    exp_function_meta(Rest, Meta ++ [[spec|Spec]]);
+exp_function_meta([String|Rest], Meta) ->
     %% The untagged doc string but not at the end.
-    ?IF(lfe_lib:is_doc_string(Doc) and (Rest =/= []),
-        exp_meta(Rest, Meta ++ [[doc,Doc]]),
-        {Meta,[Doc|Rest]});
-exp_meta([], Meta) -> {Meta,[]}.
+    ?IF(lfe_lib:is_doc_string(String) and (Rest =/= []),
+        exp_function_meta(Rest, Meta ++ [[doc,String]]),
+        {Meta,[String|Rest]});
+exp_function_meta([], Meta) -> {Meta,[]}.
 
 %% exp_defmacro(Rest) -> {Meta,MatchLambda}.
 %%  Educated guess whether traditional (defmacro name (a1 a2 ...) ...)
@@ -1411,12 +1411,18 @@ exp_defmacro([Args|Body]=Rest) ->
     {Meta,['match-lambda'|Cls]}.
 
 exp_lambda_defmacro(Args, Body) ->
-    {Meta,Def} = exp_meta(Body, []),
+    {Meta,Def} = exp_macro_meta(Body),
     {Meta,[[[Args,'$ENV']|Def]]}.
 
 exp_match_defmacro(Rest) ->
-    {Meta,Cls} = exp_meta(Rest, []),
+    {Meta,Cls} = exp_macro_meta(Rest),
     {Meta,map(fun ([Head|Body]) -> [[Head,'$ENV']|Body] end, Cls)}.
+
+exp_macro_meta([String|Rest]) ->
+    %% The untagged doc string but not at the end.
+    ?IF(lfe_lib:is_doc_string(String) and (Rest =/= []),
+        {[[doc,String]],Rest},
+        {[],[String|Rest]}).
 
 %%  By Andr� van Tonder
 %%  Unoptimized.  See Dybvig source for optimized version.

@@ -47,7 +47,8 @@ function_arity(['match-lambda',[Pat|_]|_]) -> length(Pat).
 
 validate_function(Name, Arity, {[_Define,_Name,_Meta,_Def],Line}=Func) ->
     Info = [export_all_funcs(),Func],           %Add function export
-    case lfe_docs:make_docs_info(Info, []) of
+    {Norms,_} = lfe_normalise:forms(Info),	%Normalise the info
+    case lfe_docs:make_docs_info(Norms, []) of
         {ok,#docs_v1{docs=[Fdoc]}} ->
             {{function,N,A},Anno,_,_,_} = Fdoc,
             (Line =:= Anno) and (Name =:= N) and (Arity =:= A);
@@ -56,7 +57,8 @@ validate_function(Name, Arity, {[_Define,_Name,_Meta,_Def],Line}=Func) ->
 
 validate_macro(Name, {[_Define,_Name,_Meta,_Lambda],Line}=Mac) ->
     Info = [export_macro(Name),Mac],            %Add macro export
-    case lfe_docs:make_docs_info(Info, []) of
+    {Norms,_} = lfe_normalise:forms(Info),	%Normalise the info
+    case lfe_docs:make_docs_info(Norms, []) of
         {ok,#docs_v1{docs=[Mdoc]}} ->
             {{macro,N,_},Anno,_,_,_} = Mdoc,
             (Line =:= Anno) and (Name =:= N);

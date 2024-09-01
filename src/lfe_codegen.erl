@@ -16,12 +16,17 @@
 %%% Author  : Robert Virding
 %%% Purpose : Lisp Flavoured Erlang code generator (to Erlang AST).
 
-%%% We must be careful to generate code in the right order so as not
-%%% to generate something the Erlang AST compiler won't find errors
-%%% that are due to ordering but don't really exist. We first collect
-%%% and generate all the "real" attributes from the module forms which
-%%% must be first but we keep type/spec/record declarations in the
-%%% same relative place as in the original file.
+%%% Note that we are careful when generating the Erlang code. We don't
+%%% try to be too helpful here. We separate the code into the
+%%% predefined Erlang attributes which must be first and we output
+%%% them first. For the other forms we keep their order output them in
+%%% that order. This will result in somethings coming in the way that
+%%% Erlang expects like keeping 'doc' and 'spec' before the functions
+%%% they refer to.
+%%%
+%%% However it also means that there can come attributes inbetween
+%%% functions which Erlang does not allow. This is an issue which the
+%%% users must be aware of.
 %%%
 %%% Note that for (export all) we only export the top-level functions
 %%% defined in the module, not any of the lambda lifted functions.
@@ -46,19 +51,16 @@
 -include("lfe_comp.hrl").
 
 -record(lfe_cg, {module=[],                     %Module name
-                 mline=0,                       %Module definition line
+                 modline=0,                     %Module definition line
                  exports=ordsets:new(),         %Exports
                  imports=orddict:new(),         %Imports
                  aliases=orddict:new(),         %Aliases
-                 onload=[],                     %Onload
-                 records=[],                    %Records
+                 attributes=[],                 %Attributes
+                 functions=[],                  %Functions
+                 on_load=[],                    %On_Load
                  struct=undefined,              %Struct definition
-                 attrs=[],                      %Attrubutes
-                 metas=[],                      %Meta data
-                 funcs=orddict:new(),           %Defined top-level functions
                  opts=[],                       %Compiler options
                  file=[],                       %File name
-                 func=[],                       %Current function
                  errors=[],                     %Errors
                  warnings=[]                    %Warnings
             }).
@@ -73,7 +75,8 @@ format_error({illegal_code,Code}) ->
 module(Mfs, #cinfo{opts=Opts,file=File}) ->
     St0 = #lfe_cg{opts=Opts,file=File},
     {AST,St1} = compile_module(Mfs, St0),
-    %% io:format("st1 ~p\n", [St1]),
+    %% io:format("ast ~p\n", [AST]),
+    %% io:format("st ~p\n", [St1]),
     return_status(AST, St1).
 
 return_status(AST, #lfe_cg{module=M,errors=[]}=St) ->
@@ -82,320 +85,131 @@ return_status(_AST, St) ->
     {error,St#lfe_cg.errors,St#lfe_cg.warnings}.
 
 compile_module(Mfs, St0) ->
-    %% Collect all the module attributes and output them first.
-    St1 = collect_mod_defs(Mfs, St0),
-    %% Build the struct functions then __info__ function last.
-    St2 = build_struct_def(St1),
-    St3 = build_info_func(St2),                 %Must be last!
-    Attrs = compile_attributes(St3),
-    %% Now we do the meta, function and record forms in order. Here we
-    %% can get translation errors.
-    %% Forms = compile_functions(St1),
-    {Functions,St4} =
-        try
-            {compile_functions(St3),St3}
-        catch
-            error:{illegal_code,Line,Code} ->
-                {[],add_error(Line, {illegal_code,Code}, St3)}
-        end,
-    {Attrs ++ Functions,St4}.
+    {PreDef,Rest,St1} = compile_forms(Mfs, St0),
+    {StrFuncs,St2} = build_struct_def(St1),
+    {InfoFuncs,St3} = build_info_function(St2), %Must be last!
+    Exp = compile_export(St3),                  %Make export
+    %% io:format("ex ~p\n", [{St3#lfe_cg.exports,Exp}]),
+    %% Add the leading file and module attributes.
+    Modline = St3#lfe_cg.modline,
+    {[make_attribute(file, {St3#lfe_cg.file,Modline},Modline),
+      make_attribute(module, St3#lfe_cg.module, Modline),
+      Exp |
+      PreDef] ++ Rest ++ StrFuncs ++ InfoFuncs,St3}.
 
-%% collect_mod_defs(ModuleForms, State) -> State.
-%%  Collect all the information in the module deinition for processing.
+%% compile_forms(Forms, State) -> {Predefs,Rest,State}.
+%% compile_form(Forms, State) -> {Predefs,Rest,State}.
+%%  Compile the forms into Erlang separating the PreDefs, those which
+%%  must be first in the module definition, and the others which can
+%%  be anywhere. Apart from this separation we preserve the order of
+%%  the forms.
 
-collect_mod_defs(Mfs, St) ->
-    lists:foldl(fun collect_mod_def/2, St, Mfs).
+%% compile_forms(Forms, St0) ->
+%%     Compile = fun (F, {Fs0,Rs0,S0}) ->
+%%                       {Fs,Rs,S1} = compile_form(F, S0),
+%%                       {Fs0 ++ Fs,Rs0 ++ Rs,S1}
+%%               end,
+%%     {PreDef,Rest,St1} = lists:foldl(Compile, {[],[],St0}, Forms),
+%%     {PreDef,Rest,St1}.
 
-collect_mod_def({['define-module',Mod,Metas,Attrs],Line}, St0) ->
-    %% And now add the rest of the attributes and metas.
-    St1 = coll_mdef_attrs(Attrs, Line, St0),
-    St2 = coll_mdef_metas(Metas, Line, St1),
-    St2#lfe_cg{module=Mod,mline=Line};
-collect_mod_def({['extend-module',Metas,Attrs],Line}, St0) ->
-    St1 = coll_mdef_attrs(Attrs, Line, St0),
-    coll_mdef_metas(Metas, Line, St1);
-collect_mod_def({['define-type',Type,Def],Line}, St) ->
-    coll_mdef_meta([type,[Type,Def]], Line, St);
-collect_mod_def({['define-opaque-type',Type,Def],Line}, St) ->
-    coll_mdef_meta([opaque,[Type,Def]], Line, St);
-collect_mod_def({['define-function-spec',Func,Specs],Line}, St) ->
-    %% io:format("lc ~p\n", [{cmd,Func,Specs}]),
-    coll_func_spec(Func, Specs, Line, St);
-collect_mod_def({['define-record',Name,Fields],Line}, St) ->
-    %% io:format("cmd ~p\n", [[record,[Name,Fields]]]),
-    coll_mdef_meta([record,[Name,Fields]], Line, St);
-collect_mod_def({['define-struct',Fields],Line}, St) ->
-    St#lfe_cg{struct={Fields,Line}};
-collect_mod_def({['define-function',Name,_Meta,Def],Line},
-                #lfe_cg{funcs=Funcs0}=St) ->
-    %% Must save all the functions.
+compile_forms(Forms, St) ->
+    compile_forms(Forms, [], [], St).
+
+compile_forms([Form|Forms], PreDef, Rest, St0) ->
+    {Ps,Rs,St1} = compile_form(Form, Forms, St0),
+    compile_forms(Forms, PreDef ++ Ps, Rest ++ Rs, St1);
+compile_forms([], PreDef, Rest, St) ->
+    {PreDef,Rest,St}.
+
+%% The predefs which must come first in the module. The module,
+%% exports and imports will be added later when we have enough
+%% information.
+compile_form(['module',Line,Name], _Forms, St0) ->
+    St1 = St0#lfe_cg{module=Name,modline=Line}, %Save the module name and line.
+    {[],[],St1};
+compile_form(['export',Line,Exports], _Forms, St) ->
+    {[],[],collect_exports(Exports, Line, St)};
+compile_form(['import',Line,Imports], _Forms, St) ->
+    {[],[],collect_imports(Imports, Line, St)};
+compile_form(['moduledoc',Line,Doc], _Forms, St) ->
+    {[make_attribute(moduledoc, Doc, Line)],[],St};
+compile_form(['vsn',Line,Vsn], _Forms, St) ->
+    {[make_attribute(vsn, Vsn, Line)],[],St};
+compile_form(['on_load',Line,[[Func,Ar]]], _Forms, St) ->
+    {[make_attribute(on_load, {Func,Ar}, Line)],[],St};
+compile_form(['nifs',Line,Nifs], _Forms, St) ->
+    Ns = lists:map(fun ([Func,Ar]) -> {Func,Ar} end, Nifs),
+    {[make_attribute(nifs, Ns, Line)],[],St};
+%% Normal attributes and functions.
+compile_form(['export-macro',Line,Exports], _Forms, St) ->
+    {[],[make_attribute('export-macro', Exports, Line)],St};
+compile_form(['type',Line,Type,Def], _Forms, St) ->
+    {[],comp_type_def('type', Type, Def, Line),St};
+compile_form(['opaque',Line,Type,Def], _Forms, St) ->
+    {[],comp_type_def('opaque', Type, Def, Line),St};
+compile_form(['module-alias',Line,Aliases], _Forms, St) ->
+    {[],[],collect_aliases(Aliases, Line, St)};
+compile_form(['record',Line,Name,Fields], _Forms, St) ->
+    {[],comp_record_def(Name, Fields, Line), St};
+compile_form(['struct',Line,Fields], _Forms, St) ->
+    {[],[],St#lfe_cg{struct={Fields,Line}}};
+compile_form(['spec',Line,Func,Specs], _Forms, St) ->
+    {[],comp_function_specs(Func, Specs, Line),St};
+compile_form(['function',Line,Name,Def], _Forms, #lfe_cg{functions=Funcs}=St) ->
+    Fs = comp_function_def(Name, Def, Line, St),
     Arity = func_arity(Def),
-    Funcs1 =  orddict:store({Name,Arity}, {Def,Line}, Funcs0),
-    St#lfe_cg{funcs=Funcs1};
-collect_mod_def(_Form, St) -> St.               %Ignore everything else here
+    {[],Fs,St#lfe_cg{functions=[{Name,Arity}|Funcs]}};
+compile_form(['doc',_Line,_Docs], [['macro'|_]|_], St) ->
+    %% Assume doc refers to macro so drop it completely.
+    {[],[],St};
+compile_form(['doc',Line,Docs], _Forms, St) ->
+    make_doc_attribute(Docs, Line, St);
+%% The general attribute.
+compile_form(['attribute',Line,Name,Value], _Forms, St) ->
+    {[],[make_attribute(Name, Value, Line)],St};
+%% Ignore everything else here.
+compile_form(_Other, _Forms, St) ->
+    {[],[],St}.
 
-%% coll_mdef_attrs(Attributes, Line, State) -> State.
-%%  Collect all the module attributes. Keep the attributes in order.
+%% collect_exports(Exports, Line, State) -> State.
+%%  We have to save all the export info and build the info later. We
+%%  cannot just use export_all as this will export all the lambda
+%%  lifted fuctions.
 
-coll_mdef_attrs(Attrs, Line, St) ->
-    lists:foldl(fun (A, S) -> coll_mdef_attr(A, Line, S) end, St, Attrs).
+collect_exports(Exports, _Line, St) ->
+    collect_exports(Exports, St).
 
-coll_mdef_attr([export|Es], _Line, St) ->
-    coll_mdef_exports(Es, St);
-coll_mdef_attr([import|Is], _Line, St) ->
-    coll_mdef_imports(Is, St);
-coll_mdef_attr(['module-alias'|As], _Line, St) ->
-    coll_mdef_aliases(As, St);
-coll_mdef_attr([on_load,Onload], _Line, St) ->
-    coll_mdef_onload(Onload, St);
-%% Explicitly ignore any doc here.
-coll_mdef_attr([doc|_], _Line, St) -> St;
-coll_mdef_attr([record|Recs], Line, St) ->
-    coll_mdef_records(Recs, Line, St);
-%% Save anything else and get the format right.
-coll_mdef_attr([Name,Val], Line, #lfe_cg{attrs=Attrs}=St) ->
-    St#lfe_cg{attrs=Attrs ++ [{Name,Val,Line}]};
-coll_mdef_attr([Name|Vals], Line, #lfe_cg{attrs=Attrs}=St) ->
-    St#lfe_cg{attrs=Attrs ++ [{Name,Vals,Line}]}.
-
-%% coll_mdef_exports(Export, State) -> State.
+%% collect_exports(Export, State) -> State.
 %%  Collect exports special casing 'all'.
 
-coll_mdef_exports([all], St) -> St#lfe_cg{exports=all};
-coll_mdef_exports(_Exps, #lfe_cg{exports=all}=St) -> St;
-coll_mdef_exports(Exps, #lfe_cg{exports=Exps0}=St) ->
+collect_exports(all, St) -> St#lfe_cg{exports=all};
+collect_exports(_Exps, #lfe_cg{exports=all}=St) -> St;
+collect_exports(Exps, #lfe_cg{exports=Exps0}=St) ->
     Exps1 = lists:foldl(fun ([F,A], E) -> ordsets:add_element({F,A}, E) end,
                         Exps0, Exps),
     St#lfe_cg{exports=Exps1}.
 
-%% coll_mdef_imports(Imports, State) -> State.
+%% collect_imports(Imports, Line, State) -> State.
 %%  Collect imports keeping track of local and imported names.
 
-coll_mdef_imports(Imps, St) ->
-    lists:foldl(fun (I, S) -> coll_mdef_import(I, S) end, St, Imps).
+collect_imports(Imps, _Line, St) ->
+    lists:foldl(fun (I, S) -> collect_import(I, S) end, St, Imps).
 
-coll_mdef_import(['from',Mod|Fs], St) ->
-    Ifun = fun ([F,A], Ifs) -> orddict:store({F,A}, {Mod,F}, Ifs) end,
-    coll_mdef_import(Ifun, St, Fs);
-coll_mdef_import(['rename',Mod|Fs], St) ->
+collect_import(['from',Mod|Fs], St) ->
+    From = fun ([F,A], Ifs) -> orddict:store({F,A}, {Mod,F}, Ifs) end,
+    collect_import(From, St, Fs);
+collect_import(['rename',Mod|Fs], St) ->
     %% Get it right here, R is the renamed local called function, F is
     %% the name in the other module.
-    Ifun = fun ([[F,A],R], Ifs) -> orddict:store({R,A}, {Mod,F}, Ifs) end,
-    coll_mdef_import(Ifun, St, Fs).
+    Rename = fun ([[F,A],R], Ifs) -> orddict:store({R,A}, {Mod,F}, Ifs) end,
+    collect_import(Rename, St, Fs).
 
-coll_mdef_import(Fun, #lfe_cg{imports=Imps0}=St, Fs) ->
+collect_import(Fun, #lfe_cg{imports=Imps0}=St, Fs) ->
     Imps1 = lists:foldl(Fun, Imps0, Fs),
     St#lfe_cg{imports=Imps1}.
 
-%% coll_mdef_aliases(Aliases, State) -> State.
-%%  Collect the module aliases.
-
-coll_mdef_aliases(As, #lfe_cg{aliases=Als0}=St) ->
-    Als1 = lists:foldl(fun ([M,A], Mas) -> orddict:store(A, M, Mas) end,
-                       Als0, As),
-    St#lfe_cg{aliases=Als1}.
-
-%% coll_mdef_onload(Onload, State) -> State.
-%%  Collect the on_load function name.
-
-coll_mdef_onload([Name,Ar], St) ->
-    St#lfe_cg{onload={Name,Ar}}.
-
-%% coll_mdef_records(Records, Line, State) -> State.
-%%  Collect the record definitions.
-
-coll_mdef_records(RecordDefs, Line, St) ->
-    Fun = fun ([Name,Fields], #lfe_cg{records=Recs}=S) ->
-                  S#lfe_cg{records=Recs ++ [{Name,Fields,Line}]}
-          end,
-    lists:foldl(Fun, St, RecordDefs).
-
-%% coll_mdef_metas(Metas, Line, State) -> State.
-%%  Collect all the module metas. Keep the metas in order.
-
-coll_mdef_metas(Metas, Line, St) ->
-    lists:foldl(fun (M, S) -> coll_mdef_meta(M, Line, S) end, St, Metas).
-
-coll_mdef_meta([type|Tdefs], Line, #lfe_cg{metas=Metas}=St) ->
-    St#lfe_cg{metas=Metas ++ [{type,Tdefs,Line}]};
-coll_mdef_meta([opaque|Tdefs], Line, #lfe_cg{metas=Metas}=St) ->
-    St#lfe_cg{metas=Metas ++ [{opaque,Tdefs,Line}]};
-coll_mdef_meta([spec|Specs], Line, St) ->
-    coll_mdef_specs(Specs, Line, St);
-coll_mdef_meta([record|Rdefs], Line, #lfe_cg{metas=Metas}=St) ->
-    St#lfe_cg{metas=Metas ++ [{record,Rdefs,Line}]};
-%% Ignore other metas.
-coll_mdef_meta(_Meta, _Line, St) ->
-    St.
-
-coll_mdef_specs(Specs, Line, St) ->
-    Coll = fun ([Func,Spec], S) -> coll_func_spec(Func, Spec, Line, S) end,
-    lists:foldl(Coll, St, Specs).
-
-coll_func_spec(Func, Specs, Line, #lfe_cg{metas=Metas}=St) ->
-    St#lfe_cg{metas=Metas ++ [{spec,[Func,Specs],Line}]}.
-
-%% build_struct_def(State) -> State.
-%% build_info_func(State) -> State.
-%%  Create functions which are built from the data collected from the
-%%  file. Here the __info__ function and the struct definition
-%%  functions.
-
-build_struct_def(#lfe_cg{struct=undefined}=St) ->
-    %% No struct has been defined.
-    St;
-build_struct_def(#lfe_cg{module=Mod,struct={Fields,Line},funcs=Funcs0}=St0) ->
-    %% The default struct.
-    DefStr = comp_struct_map(Mod, Fields),
-    %% The default __struct__/0/1 functions.
-    StrFun_0 = struct_fun_0(DefStr),
-    StrFun_1 = struct_fun_1(DefStr),
-    Funcs1 = orddict:store({'__struct__',0}, {StrFun_0,Line}, Funcs0),
-    Funcs2 = orddict:store({'__struct__',1}, {StrFun_1,Line}, Funcs1),
-    St1 = coll_mdef_exports([['__struct__',0],['__struct__',1]], St0),
-    St1#lfe_cg{funcs=Funcs2}.
-
-comp_struct_map(Mod, Fields) ->
-    Fun = fun ([F,D|_]) -> {F,D};
-              ([F]) -> {F,'nil'};
-              (F) -> {F,'nil'}
-          end,
-    KeyVals = lists:map(Fun, Fields),
-    maps:from_list([{'__struct__',Mod}|KeyVals]).
-
-%% struct_fun_0(DefStr) -> FuncDef.
-%% struct_fun_1(DefStr) -> FuncDef.
-%%  Create the bodies __struct__/0/1 functions.
-
-struct_fun_0(DefStr) ->
-    [lambda,[],DefStr].
-
-struct_fun_1(DefStr) ->
-    [lambda,[assocs],
-     [call,?Q(lists),?Q(foldl),
-      ['match-lambda',[[[tuple,x,y],acc],
-                       [call,?Q(maps),?Q(update),x,y,acc]]],
-      DefStr,assocs]].
-
-build_info_func(#lfe_cg{module=Mod,mline=Line,funcs=Funcs0}=St0) ->
-    %% The default clauses.
-    InfoCls = [[[?Q(module)],?Q(Mod)],
-               [[?Q(functions)],?Q(info_functions(St0))],
-               [[?Q(macros)],[]],
-               [[?Q(deprecated)],[]],
-               [[?Q(attributes)],
-                [call,?Q(erlang),?Q(get_module_info),?Q(Mod),?Q(attributes)]],
-               [[?Q(compile)],
-                [call,?Q(erlang),?Q(get_module_info),?Q(Mod),?Q(compile)]],
-               [[?Q(md5)],
-                [call,?Q(erlang),?Q(get_module_info),?Q(Mod),?Q(md5)]]
-              ],
-    %% The struct clause if relevant.
-    StrCls = struct_info_clause(St0),
-    %% The function body.
-    InfoFun = ['match-lambda' | InfoCls ++ StrCls ],
-    Funcs1 = orddict:store({'__info__',1}, {InfoFun,Line}, Funcs0),
-    St1 = coll_mdef_exports([['__info__',1]], St0),
-    St1#lfe_cg{funcs=Funcs1}.
-
-info_functions(#lfe_cg{exports=Exps,funcs=Funcs}) ->
-    if Exps =:= all ->
-            orddict:fetch_keys(Funcs);
-       true -> Exps
-    end.
-
-struct_info_clause(St) ->
-    case St#lfe_cg.struct of
-        undefined -> [];                        %No struct def, no clause
-        {Fields,_Line} ->
-            Fun = fun ([F|_]) -> #{field => F, required => false};
-                      (F) -> #{field => F, required => false}
-                  end,
-            KeyVals = lists:map(Fun, Fields),
-            [ [[?Q(struct)],[list | KeyVals]] ]
-    end.
-
-%% compile_attributes(State) -> MdefAST.
-%%  Compile the module attributes, metas, records and structs
-
-compile_attributes(St) ->
-    Exp = comp_export(St),
-    Imps = comp_imports(St),
-    Onload = comp_onload(St),
-    Attrs = comp_attributes(St),
-    Metas = comp_metas(St),
-    Mline = St#lfe_cg.mline,
-    %% Collect all the attributes.
-    AST = [make_attribute(file, {St#lfe_cg.file,Mline}, Mline),
-           make_attribute(module, St#lfe_cg.module, Mline),
-           Exp |
-           Onload ++ Imps ++ Attrs ++ Metas],
-    AST.
-
-%% comp_export(State) -> Attribute.
-%% comp_imports(State) -> [Attribute].
-%% comp_on_load(State) -> Attribute.
-%% comp_attributes(State) -> [Attribute].
-%% comp_metas(State) -> [Attribute]
-%%  Currently we don't add the import attributes.
-
-comp_export(#lfe_cg{exports=Exps,funcs=Funcs,mline=Line}) ->
-    Es = if Exps =:= all ->
-                 orddict:fetch_keys(Funcs);
-            true -> Exps                        %Already in right format
-         end,
-    make_attribute(export, Es, Line).
-
-comp_imports(_St) -> [].
-
-comp_onload(#lfe_cg{onload={Func,Ar},mline=Line}) ->
-    [make_attribute(on_load, {Func,Ar}, Line)];
-comp_onload(#lfe_cg{onload=[]}) -> [].
-
-comp_attributes(#lfe_cg{attrs=Atts}) ->
-    lists:map(fun comp_attribute/1, Atts).
-
-comp_attribute({'export-type',Ts,Line}) ->
-    Ets = lists:map(fun ([T,A]) -> {T,A} end, Ts),
-    make_attribute(export_type, Ets, Line);
-comp_attribute({Name,Val,Line}) ->
-    make_attribute(Name, Val, Line).
-
-comp_metas(#lfe_cg{metas=Metas,mline=Line}) ->
-    %% io:format("lc ~p\n", [{cms,Metas}]),
-    Ms = lists:flatmap(fun (M) -> comp_meta(M, Line) end, Metas),
-    %% io:format("cm ~p\n", [Ms]),
-    Ms.
-
-comp_meta({type,Tdefs,_}, Line) ->
-    lists:flatmap(fun (Tdef) -> comp_type_def(type, Tdef, Line) end, Tdefs);
-comp_meta({opaque,Tdefs,_}, Line) ->
-    lists:flatmap(fun (Tdef) -> comp_type_def(opaque, Tdef, Line) end, Tdefs);
-comp_meta({spec,[Func,Specs],Line}, _Line) ->
-    %% io:format("lc ~p\n", [{cm,Func,Specs}]),
-    comp_function_specs(Func, Specs, Line);
-comp_meta({record,Rdefs,_}, Line) ->
-    Fun = fun (Rdef) -> comp_record_def(Rdef, Line) end,
-    As = lists:flatmap(Fun, Rdefs),
-    %% io:format("cmr ~p\n", [As]),
-    As;
-comp_meta(_Meta, _Line) -> [].
-
-%% compile_functions(State) -> [AST].
-
-compile_functions(#lfe_cg{funcs=Funcs0}=St) ->
-    Fun = fun (F, B, Fs) -> Fs ++ compile_function(F, B, St) end,
-    orddict:fold(Fun, [], Funcs0).
-
-compile_function({Name,_Arity}, {Def,Line}, St) ->
-    comp_function_def(Name, Def, Line,St).
-
-%% comp_type_def(Attr, TypeDef, Line) -> [AST].
 %% comp_type_def(Attr, Type, Def, Line) -> [AST].
 %%  Compile a type definition to an attribute.
-
-comp_type_def(Attr, [Type,Def], Line) ->
-    comp_type_def(Attr, Type, Def, Line).
 
 comp_type_def(Attr, [Type|Args], Def, Line) ->
     Tdef = {Type,
@@ -403,38 +217,19 @@ comp_type_def(Attr, [Type|Args], Def, Line) ->
             lfe_types:to_type_defs(Args, Line)},
     [make_attribute(Attr, Tdef, Line)].
 
-%% comp_function_specs(FuncSpecs, Line) -> [AST].
-%% comp_function_specs(Func, Spec, Line) -> [AST].
-%%  Compile a function specification to an attribute.
+%% collect_alias(Aliases, Line, State) -> State.
+%%  Collect the module aliases.
 
-%% comp_function_specs([Func,Specs], Line) ->
-%%     %% io:format("lc ~p\n", [{cfs1,Func,Specs}]),
-%%     comp_function_specs(Func, Specs, Line).
+collect_aliases(As, _L, #lfe_cg{aliases=Als0}=St) ->
+    Als1 = lists:foldl(fun ([M,A], Mas) -> orddict:store(A, M, Mas) end,
+                       Als0, As),
+    St#lfe_cg{aliases=Als1}.
 
-comp_function_specs([Name,Ar], Specs, Line) ->
-    %% io:format("lc ~p\n", [{cfs2,Name,Ar,Specs}]),
-    Sdef = {{Name,Ar},lfe_types:to_func_spec_list(Specs, Line)},
-    [make_attribute(spec, Sdef, Line)].
+%% comp_record(Name, Fields, Line) -> [AST].
 
-%% comp_function_def(Func, Def, Line, State) -> [AST].
-%%  Lambda lift the function returning all the functions.
-
-comp_function_def(Name, Def, Line, #lfe_cg{imports=Imps,aliases=Aliases}) ->
-    %% This also returns the defined top function.
-    Lfs = lfe_codelift:function(Name, Def, Line),
-    lists:map(fun ({N,D,L}) ->
-                      {'fun',_,{clauses,Clauses}} =
-                          lfe_translate:to_expr(D, L, {Imps,Aliases}),
-                      {function,L,N,func_arity(D),Clauses}
-              end, Lfs).
-
-%% comp_record_def(RecordDef, Line) -> [Attribute].
 %% comp_record_def(Name, Fields, Line) -> [Attribute].
 %%  Format depends on whether 18 and older or newer. Meta is not
 %%  passed on.
-
-comp_record_def([Name,Fields], Line) ->
-    comp_record_def(Name, Fields, Line).
 
 comp_record_def(Name, Fields, Line) ->
     %% io:format("crd ~p ~p\n", [Name,Fields]),
@@ -467,6 +262,126 @@ make_record_attribute(Name, Fdefs, Line) ->
     make_attribute(type, {{record,Name},Fdefs}, Line).
 -endif.
 
+%% comp_function_specs(Func, Spec, Line) -> [AST].
+%%  Compile a function specification to an attribute.
+
+comp_function_specs([Name,Ar], Specs, Line) ->
+    %% io:format("lc ~p\n", [{cfs2,Name,Ar,Specs}]),
+    Sdef = {{Name,Ar},lfe_types:to_func_spec_list(Specs, Line)},
+    [make_attribute(spec, Sdef, Line)].
+
+
+%% comp_function_def(Name, Def, Line, State) -> [AST].
+%%  Lambda lift the function returning all the functions.
+
+comp_function_def(Name, Def, Line,
+		  #lfe_cg{imports=Imps,aliases=Aliases}) ->
+    %% This also returns the defined top function.
+    Lfs = lfe_codelift:function(Name, Def, Line),
+    lists:map(fun ({N,D,L}) ->
+		      {'fun',_,{clauses,Clauses}} =
+			  lfe_translate:to_expr(D, L, {Imps,Aliases}),
+		      {function,L,N,func_arity(D),Clauses}
+	      end, Lfs).
+
+%% compile_export(St) -> Attribute,
+
+compile_export(#lfe_cg{modline=Line}=St) ->
+    Es = export_functions(St),
+    make_attribute(export, Es, Line).
+
+export_functions(#lfe_cg{exports=all,functions=Funcs}) ->
+    Funcs;
+export_functions(#lfe_cg{exports=Exps}) ->
+    Exps.                                       %Already in right format
+
+%% make_doc_attribute(Docs, Line, State) -> {PreDef,Rest,State}.
+%%  Where we add the doc depends on whether we are running OTP 27 and
+%%  later or not as this affects how the doc is interpreted.
+
+-ifdef(OTP27_DOCS).
+make_doc_attribute(Docs, Line, St) ->
+    {[],[make_attribute(doc, Docs, Line)],St}.
+-else.
+make_doc_attribute(Docs, Line, St) ->
+    {[make_attribute(doc, Docs, Line)],[],St}.
+-endif.
+
+%% build_struct_def(State) -> State.
+%% build_info_func(State) -> State.
+%%  Create functions which are built from the data collected from the
+%%  file. Here the __info__ function and the struct definition
+%%  functions.
+
+build_struct_def(#lfe_cg{struct=undefined}=St) ->
+    %% No struct has been defined.
+    {[],St};
+build_struct_def(#lfe_cg{module=Mod,struct={Fields,Line},functions=Funcs0}=St0) ->
+    %% The default struct.
+    DefStr = comp_struct_map(Mod, Fields),
+    %% The default __struct__/0/1 functions.
+    StrFun_0 = struct_fun_0(DefStr),
+    StrFun_1 = struct_fun_1(DefStr),
+    StrFs0 = comp_function_def('__struct__', StrFun_0, Line, St0),
+    StrFs1 = comp_function_def('__struct__', StrFun_1, Line, St0),
+    St1 = collect_exports([['__struct__',0],['__struct__',1]], St0),
+    Funcs1 = [{'__struct__',0},{'__struct__',1}|Funcs0],
+    {StrFs0 ++ StrFs1,St1#lfe_cg{functions=Funcs1}}.
+
+comp_struct_map(Mod, Fields) ->
+    Fun = fun ([F,D|_]) -> {F,D};
+              ([F]) -> {F,'nil'};
+              (F) -> {F,'nil'}
+          end,
+    KeyVals = lists:map(Fun, Fields),
+    maps:from_list([{'__struct__',Mod}|KeyVals]).
+
+%% struct_fun_0(DefStr) -> FuncDef.
+%% struct_fun_1(DefStr) -> FuncDef.
+%%  Create the bodies __struct__/0/1 functions.
+
+struct_fun_0(DefStr) ->
+    [lambda,[],DefStr].
+
+struct_fun_1(DefStr) ->
+    [lambda,[assocs],
+     [call,?Q(lists),?Q(foldl),
+      ['match-lambda',[[[tuple,x,y],acc],
+                       [call,?Q(maps),?Q(update),x,y,acc]]],
+      DefStr,assocs]].
+
+build_info_function(#lfe_cg{module=Mod,modline=Line,functions=Funcs}=St0) ->
+    %% The default clauses.
+    InfoCls = [[[?Q(module)],?Q(Mod)],
+               [[?Q(functions)],?Q(export_functions(St0))],
+               [[?Q(macros)],[]],
+               [[?Q(deprecated)],[]],
+               [[?Q(attributes)],
+                [call,?Q(erlang),?Q(get_module_info),?Q(Mod),?Q(attributes)]],
+               [[?Q(compile)],
+                [call,?Q(erlang),?Q(get_module_info),?Q(Mod),?Q(compile)]],
+               [[?Q(md5)],
+                [call,?Q(erlang),?Q(get_module_info),?Q(Mod),?Q(md5)]]
+              ],
+    %% The struct clause if relevant.
+    StrCls = struct_info_clause(St0),
+    %% The function body.
+    InfoFun = ['match-lambda' | InfoCls ++ StrCls ],
+    InfoFuncs = comp_function_def('__info__', InfoFun, Line, St0),
+    St1 = collect_exports([['__info__',1]], St0),
+    {InfoFuncs,St1#lfe_cg{functions=[{'__info__',1}|Funcs]}}.
+
+struct_info_clause(St) ->
+    case St#lfe_cg.struct of
+        undefined -> [];                        %No struct def, no clause
+        {Fields,_Line} ->
+            Fun = fun ([F|_]) -> #{field => F, required => false};
+                      (F) -> #{field => F, required => false}
+                  end,
+            KeyVals = lists:map(Fun, Fields),
+            [ [[?Q(struct)],[list | KeyVals]] ]
+    end.
+
 %% make_attribute(Name, Value, Line) -> Atttribute.
 
 make_attribute(Name, Val, Line) ->
@@ -494,5 +409,5 @@ match_lambda_arity([[Pats|_]|_]) -> length(Pats).
 
 %% add_error(Line, Error, State) -> State.
 
-add_error(L, E, #lfe_cg{errors=Errs}=St) ->
-    St#lfe_cg{errors=Errs ++ [{L,?MODULE,E}]}.
+%% add_error(L, E, #lfe_cg{errors=Errs}=St) ->
+%%     St#lfe_cg{errors=Errs ++ [{L,?MODULE,E}]}.

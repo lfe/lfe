@@ -176,7 +176,7 @@ Other commands:
       (concat
        "("
        (regexp-opt '("define-module" "define-type" "define-opaque-type"
-                     "define-function-spec" "define-record") t)
+                     "define-function-spec" "define-record" "define-struct") t)
        "\\>"
        ;; Any whitespace and declared object.
        "[ \t]*(?"

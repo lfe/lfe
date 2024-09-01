@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2020 Robert Virding
+%% Copyright (c) 2008-2024 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -181,6 +181,7 @@ lfe_comp_opts(Opts) ->
     Fun = fun ('to-split') -> to_split;
               ('to-expmac') -> to_expmac;
               ('to-expand') -> to_expand;
+              ('to-normalise') -> to_normalise;
               ('to-lint') -> to_lint;
               ('no-docs') -> no_docs;
               ('to-erlang') -> to_erlang;
@@ -243,6 +244,8 @@ passes() ->
      %% Now we expand and trim remaining macros.
      {do,fun do_expand_macros/1},
      {when_flag,to_expand,{done,fun expand_pp/1}},
+     {do,fun do_lfe_normalise/1},
+     {when_flag,to_normalise,{done,fun normalise_pp/1}},
      {do,fun do_lfe_lint/1},
      {when_flag,to_lint,{done,fun lint_pp/1}},
      {unless_flag,no_docs,{do,fun do_get_docs/1}},
@@ -261,8 +264,8 @@ passes() ->
      %% set and we have warnings.
      {when_test,fun is_werror/1,error},
      %% Write docs beam chunks.
-     {do,fun add_chunks/1},
-     {done,fun beam_write/1}                    %Should be last
+     {do,fun do_add_chunks/1},
+     {done,fun do_beam_write/1}                 %Should be last
     ].
 
 do_passes([{when_flag,Flag,Cmd}|Ps], #comp{opts=Opts}=St) ->
@@ -425,11 +428,27 @@ process_forms(Fun, Fs, L, St) ->
         throw:{expand_form,Error} -> Error
     end.
 
-%% do_lint(State) -> {ok,State} | {error,State}.
+%% do_lfe_normalise(State) -> {ok,State} | {error,State}.
+%% do_lfe_lint(State) -> {ok,State} | {error,State}.
 %% do_get_docs(State) -> {ok,State} | {error,State}.
 %% do_lfe_codegen(State) -> {ok,State} | {error,State}.
 %% do_erl_comp(State) -> {ok,State} | {error,State}.
 %%  The actual compiler passes.
+%%  We don't get the docs when we OTP 27 which does it for us, so
+%%  there will be no doc chunks to add later on.
+
+do_lfe_normalise(#comp{cinfo=Ci,code=Ms0}=St0) ->
+    Norm = fun (#module{code=Mfs0,warnings=Ws}=Mod) ->
+                   case lfe_normalise:module(Mfs0, Ci) of
+                       {ok,Name,Mfs1,Lws} ->
+                           Mod#module{name=Name,code=Mfs1,warnings=Ws++Lws};
+                       {error,Les,Lws} -> {error,Les,Ws++Lws}
+                   end
+           end,
+    %% Normalise the modules, then check if all are ok.
+    Ms1 = lists:map(Norm, Ms0),
+    St1 = St0#comp{code=Ms1},
+    ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
 
 do_lfe_lint(#comp{cinfo=Ci,code=Ms0}=St0) ->
     Lint = fun (#module{code=Mfs,warnings=Ws}=Mod) ->
@@ -443,6 +462,10 @@ do_lfe_lint(#comp{cinfo=Ci,code=Ms0}=St0) ->
     St1 = St0#comp{code=Ms1},
     ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
 
+-ifdef(OTP27_DOCS).
+do_get_docs(St) ->
+    {ok,St}.
+-else.
 do_get_docs(#comp{code=Ms0,opts=Opts}=St) ->
     Doc = fun (#module{code=Mfs,chunks=Chks}=Mod) ->
                   {ok,Chunk} = lfe_docs:make_chunk(Mfs, Opts),
@@ -450,15 +473,16 @@ do_get_docs(#comp{code=Ms0,opts=Opts}=St) ->
           end,
     Ms1 = lists:map(Doc, Ms0),
     {ok,St#comp{code=Ms1}}.
+-endif.
 
 do_lfe_codegen(#comp{cinfo=Ci,code=Ms0}=St0) ->
     Code = fun (#module{name=Name,code=Mfs,warnings=Ws}=Mod) ->
-		   case lfe_codegen:module(Mfs, Ci) of
-		       {ok,Name,AST,Gws} ->    %Name consistency check!
-			   Mod#module{code=AST,warnings=Ws ++ Gws};
-		       {error,Ges,Gws} ->
-			   {error,Ges,Gws}
-		   end
+                   case lfe_codegen:module(Mfs, Ci) of
+                       {ok,Name,AST,Gws} ->    %Name consistency check!
+                           Mod#module{code=AST,warnings=Ws ++ Gws};
+                       {error,Ges,Gws} ->
+                           {error,Ges,Gws}
+                   end
            end,
     Ms1 = lists:map(Code, Ms0),
     St1 = St0#comp{code=Ms1},
@@ -508,12 +532,13 @@ erl_comp_opts(St) ->
 %% split_pp(State) -> {ok,State} | {error,State}.
 %% expmac_pp(State) -> {ok,State} | {error,State}.
 %% expand_pp(State) -> {ok,State} | {error,State}.
+%% normalise_pp(State) -> {ok,State} | {error,State}.
 %% lint_pp(State) -> {ok,State} | {error,State}.
 %% sexpr_pp(State) -> {ok,State} | {error,State}.
 %% erl_core_pp(State) -> {ok,State} | {error,State}.
 %% erl_kernel_pp(State) -> {ok,State} | {error,State}.
 %% erl_asm_pp(State) -> {ok,State} | {error,State}.
-%% beam_write(State) -> {ok,State} | {error,State}.
+%% do_beam_write(State) -> {ok,State} | {error,State}.
 %%  Output the various file types. The XXX_pp functions output with
 %%  the same name as the input file while beam_write outputs to the
 %%  module name.
@@ -522,6 +547,7 @@ erl_comp_opts(St) ->
 split_pp(St) -> sexpr_pp(St, "split").
 expmac_pp(St) -> sexpr_pp(St, "expmac").
 expand_pp(St) -> sexpr_pp(St, "expand").
+normalise_pp(St) -> sexpr_pp(St, "normalise").
 lint_pp(St) -> sexpr_pp(St, "lint").
 
 sexpr_pp(St, Ext) ->
@@ -589,7 +615,7 @@ do_save_file(SaveAll, Ext, St) ->
             {error,St#comp{errors=[{lfe_comp,write_file}]}}
     end.
 
-add_chunks(#comp{code=Ms0}=St) ->
+do_add_chunks(#comp{code=Ms0}=St) ->
     Add = fun (#module{name=Name,code=Beam0,chunks=Chks}=Mod) ->
                   if Chks =:= [] -> Mod;        %Nothing to do
                      true ->
@@ -601,13 +627,13 @@ add_chunks(#comp{code=Ms0}=St) ->
     Ms1 = lists:map(Add, Ms0),
     {ok,St#comp{code=Ms1}}.
 
-beam_write(St0) ->
-    Ms1 = lists:map(fun (M) -> beam_write_module(M, St0) end, St0#comp.code),
+do_beam_write(St0) ->
+    Ms1 = lists:map(fun (M) -> do_beam_write_module(M, St0) end, St0#comp.code),
     St1 = St0#comp{code=Ms1},
     %% Check return status.
     ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
 
-beam_write_module(#module{name=M,code=Beam}=Mod, St) ->
+do_beam_write_module(#module{name=M,code=Beam}=Mod, St) ->
     Name = filename:join(St#comp.odir, lists:concat([M,".beam"])),
     case file:write_file(Name, Beam) of
         ok -> Mod;

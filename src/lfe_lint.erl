@@ -36,19 +36,23 @@
 -include("lfe.hrl").
 
 -record(lfe_lint, {module=[],                   %Module name
-                   mline=0,                     %Module definition line
+                   modline=0,                   %Module definition line
+                   moduledoc=false,             %Do we have a moduledoc
                    exports=orddict:new(),       %Exported function-line
                    imports=orddict:new(),       %Imported function-{module,func}
                    aliases=orddict:new(),       %Module-alias
                    onload=[],                   %Onload
-                   funcs=orddict:new(),         %Defined function-line
+
+                   nifs=ordsets:new(),          %Nifs
+                   functions=orddict:new(),     %Defined function-line
+                   environment=le_new(),        %Environment
+
                    types=[],                    %Known types
                    texps=orddict:new(),         %Exported types
                    specs=[],                    %Known func specs
                    records=orddict:new(),       %Known record definitions
                    struct=undefined,            %Struct definition
                    env=[],                      %Top-level environment
-                   func=[],                     %Current function
                    file="no file",              %File name
                    opts=[],                     %Compiler options
                    errors=[],                   %Errors
@@ -60,10 +64,12 @@
 format_error({bad_module_def,D}) ->
     %% This can handle both atom and string error value.
     lfe_io:format1(<<"bad ~s in module definition">>, [D]);
+format_error(redefine_moduledoc) ->
+    <<"moduledoc already defined">>;
 format_error({bad_attribute,A}) ->
     lfe_io:format1(<<"bad ~w attribute">>, [A]);
-format_error({bad_meta_def,M}) ->
-    lfe_io:format1(<<"bad ~w metadata definition">>, [M]);
+%% format_error({bad_meta_def,M}) ->
+%%     lfe_io:format1(<<"bad ~w metadata definition">>, [M]);
 %% Forms and code.
 format_error({bad_body_def,Form}) ->
     lfe_io:format1(<<"bad body in ~w">>, [Form]);
@@ -87,7 +93,7 @@ format_error({multi_var,S}) ->
 %% Functions, imports, exports, on_loads and aliases.
 format_error({redefine_function,{F,Ar}}) ->
     lfe_io:format1("function ~w/~w already defined", [F,Ar]);
-format_error({bad_fdef,F}) ->
+format_error({bad_function_def,F}) ->
     lfe_io:format1("bad definition of function ~w", [F]);
 format_error({reimport_function,{F,Ar},M1,M2}) ->
     lfe_io:format1(<<"importing ~w/~w from ~w, already imported from ~w">>,
@@ -96,6 +102,8 @@ format_error({define_imported_function,{F,Ar}}) ->
     lfe_io:format1(<<"defining imported function ~w/~w">>, [F,Ar]);
 format_error({undefined_onload_function,{F,Ar}}) ->
     lfe_io:format1("on_load function ~w/~w undefined", [F,Ar]);
+format_error({undefined_nifs_function,{F,Ar}}) ->
+    lfe_io:format1("nifs function ~w/~w undefined", [F,Ar]);
 format_error({redefine_module_alias,A}) ->
     lfe_io:format1(<<"redefining ~w module alias">>, [A]);
 format_error({circular_module_alias,A}) ->
@@ -112,7 +120,10 @@ format_error(illegal_bitseg) -> "illegal bit segment";
 format_error(illegal_bitsize) -> "illegal bit size";
 format_error({deprecated,What}) ->
     lfe_io:format1("~s is deprecated", [What]);
-format_error(unknown_form) -> "unknown form";
+format_error(unknown_form) ->
+    <<"unknown form">>;
+format_error({unknown_form,Form}) ->
+    lfe_io:format1(<<"unknown form ~w">>, [Form]) ;
 %% Try-catches.
 format_error({illegal_stacktrace,S}) ->
     lfe_io:format1(<<"stacktrace ~w must be unbound variable">>, [S]);
@@ -224,162 +235,149 @@ return_status(St) ->
     {error,St#lfe_lint.errors,St#lfe_lint.warnings}.
 
 %% check_module(ModuleForms, State) -> State.
-%%  Do all the actual work checking a module.
+%%  Do all the actual work checking a module. The state s basically
+%%  empty here.
 
 check_module(Mfs, St0) ->
-    {Fbs0,St1} = collect_module(Mfs, St0),
-    %% Make an initial environment and set up state.
-    {Predefs,Env0,St2} = init_state(St1),
-    %% io:format("~p\n", [Env0]),
-    Fbs1 = Predefs ++ Fbs0,
-    %% Now check definitions.
-    {Funcs,Env1,St3} = check_functions(Fbs1, Env0, St2),
-    %% io:format("~p\n", [Env1]),
-    %% Save functions and environment and post check.
-    St4 = St3#lfe_lint{funcs=Funcs,env=Env1},
+    {Predefs,St1} = add_predefined_functions(St0),
+    {Fbs0,St2} = collect_module(Mfs, St1),
+    St3 = add_imports(St2),
+    St4 = check_functions(Predefs ++ Fbs0, St3),
+    %% io:format("fs ~p\n", [{Fbs0,St3#lfe_lint.functions,St4#lfe_lint.functions}]),
     post_check_module(St4).
 
 %% post_check_module(State) -> State.
-%%  Ru checks which can only be done when everything has been collected.
+%%  Run checks which can only be done when everything has been collected.
 
 post_check_module(St0) ->
     St1 = check_valid_exports(St0),
     St2 = check_valid_imports(St1),
     St3 = check_valid_onload(St2),
-    check_valid_type_exports(St3).
+    St4 = check_valid_nifs(St3),
+    check_valid_type_exports(St4).
+
+%% add_predefined_functions(State) -> State
+%%  Add module_info/0/1 and the predefined Elixir functions
+%%  __info__/1,__struct__/0/1 to check if use defines them.
+
+add_predefined_functions(#lfe_lint{modline=L,exports=Exps0}=St) ->
+    Predefs = [{module_info,[lambda,[],?Q(dummy)],1},
+               {module_info,[lambda,[x],?Q(dummy)],1},
+               {'__info__',[lambda,[x],?Q(dummy)],1},
+               {'__struct__',[lambda,[],?Q(dummy)],1},
+               {'__struct__',[lambda,[x],?Q(dummy)],1}
+              ],
+    Exps = [{module_info,0},{module_info,1},
+            {'__info__',1},{'__struct__',0},{'__struct__',1}],
+    Exps1 = add_exports(Exps, L, Exps0),
+    {Predefs,St#lfe_lint{exports=Exps1}}.
+
+add_imports(#lfe_lint{imports=Imps,environment=Env0}=St) ->
+    %% Add original import name to the environment.
+    Env1 = orddict:fold(fun ({F,Ar}, {_Mod,_Ren}, E) ->
+                                le_addf(F, Ar, E)
+                        end, Env0, Imps),
+    St#lfe_lint{environment=Env1}.
 
 %% collect_module(ModuleForms, State) -> {Fbs,State}.
 %%  Collect valid forms and module data. Returns function bindings and
-%%  puts module data into state. Flag unknown forms and define-module
-%%  not first. We use lfe_proc_forms to automatically handle nested
-%%  progn forms for us.
+%%  puts module data into state. Flag unknown forms and 'module' not
+%%  first.
 
 collect_module(Mfs, St) ->
-    lfe_lib:proc_forms(fun collect_form/3, Mfs, St).
-    %% Fun = fun (F, L, S) ->
-    %%            io:format("~p ~w\n", [F,L]),
-    %%            collect_form(F, L, S)
-    %%    end,
-    %% lfe_lib:proc_forms(Fun, Mfs, St).
+    Collect = fun (F, {Fs0,S0}) ->
+                      {Fs,S1} = collect_form(F, S0),
+                      {Fs0 ++ Fs,S1}
+              end,
+    lists:foldl(Collect, {[],St}, Mfs).
 
-%% collect_form(Form, Line, State) -> {Fbs,State}.
+%% collect_form(Form, State) -> {Fbs,State}.
 
-collect_form(['define-module',Mod,Metas,Atts], L, St0) ->
-    St1 = check_mod_def(Metas, Atts, L, St0#lfe_lint{module=Mod,mline=L}),
-    if is_atom(Mod) ->                  %Normal module
-            {[],St1};
-       true ->                          %Bad module name
-            {[],bad_module_def_error(L, name, St1)}
-    end;
-collect_form(_, L, #lfe_lint{module=[]}=St) ->
+collect_form(['module',Line,Name], St) ->
+    {[],check_module_def(Name, Line, St)};
+%% No longer used.
+%% collect_form(['extend-module',Metas,Atts], L, St) ->
+%%     {[],check_mod_def(Metas, Atts, L, St)};
+collect_form(_, #lfe_lint{module=[]}=St) ->
     %% Set module name so this only triggers once.
-    {[],bad_module_def_error(L, name, St#lfe_lint{module='-no-module-'})};
-collect_form(['extend-module',Metas,Atts], L, St) ->
-    {[],check_mod_def(Metas, Atts, L, St)};
-collect_form(['define-type',Type,Def], L, St) ->
-    {[],check_type_def(Type, Def, L, St)};
-collect_form(['define-opaque-type',Type,Def], L, St) ->
-    {[],check_type_def(Type, Def, L, St)};
-collect_form(['define-function-spec',Func,Specs], L, St) ->
+    {[],bad_module_def_error(1, name, St#lfe_lint{module='-no-module-'})};
+collect_form(['export',_Line,all], St) ->       %Ignore all here.
+    {[],St};
+collect_form(['export',Line,Exports], St) ->
+    {[],check_export(Exports, Line, St)};
+collect_form(['export-macro',_Line,_Exports], St) ->
+    {[],St};                                    %Just pass this on
+collect_form(['import',Line,Imports], St) ->
+    {[],check_import(Imports, Line, St)};
+collect_form(['moduledoc',Line,Docs], St) ->
+    {[],check_moduledoc(Docs, Line, St)};
+collect_form(['compile',_Line,_Options], St) ->
+    {[],St};                                    %Just pass this on
+collect_form(['on_load',Line,Onload], St) ->
+    {[],check_onload(Onload, Line, St)};
+collect_form(['nifs',Line,Nifs], St) ->
+    {[],check_nifs(Nifs, Line, St)};
+collect_form(['type',Line,Type,Def], St) ->
+    {[],check_type_def(Type, Def, Line, St)};
+collect_form(['opaque',Line,Type,Def], St) ->
+    {[],check_type_def(Type, Def, Line, St)};
+collect_form(['export-type',Line,Types], St) ->
+    {[],check_export_types(Types, Line, St)};
+collect_form(['module-alias',Line,Aliases], St) ->
+    {[],check_aliases(Aliases, Line, St)};
+collect_form(['spec',Line,Func,Specs], St) ->
     %% io:format("ll ~p\n", [{dfs,Func,Specs}]),
-    {[],check_func_spec(Func, Specs, L, St)};
-collect_form(['define-record',Name,Fields], L, St) ->
-    {[],check_record_def(Name, Fields, L, St)};
-collect_form(['define-struct',Fields], L, St) ->
-    {[],check_struct_def(Fields, L, St)};
-collect_form(['define-function',Func,Meta,Def], L, St) ->
-    collect_function(Func, Meta, Def, L, [], St);
-%% lfe_lib:proc_forms handles nested progn.
+    {[],check_spec(Func, Specs, Line, St)};
+collect_form(['record',Line,Name,Fields], St) ->
+    {[],check_record_def(Name, Fields, Line, St)};
+collect_form(['struct',Line,Fields], St) ->
+    {[],check_struct_def(Fields, Line, St)};
+collect_form(['function',Line,Func,Def], St) ->
+    collect_function(Func, Def, Line, St);
+collect_form(['doc',Line,Doc], St) ->
+    {[],check_doc(Doc, Line, St)};
+%% General attributes.
+collect_form(['attribute',Line,Name,Value], St) ->
+    {[],check_attribute(Name, Value, Line, St)};
 %% Ignore macro definitions and eval-when-compile forms.
-collect_form(['define-macro'|_], _, St) -> {[],St};
-collect_form(['eval-when-compile'|_], _, St) -> {[],St};
-collect_form(_, L, St) ->
-    {[],add_error(L, unknown_form, St)}.
+collect_form(['macro'|_], St) -> {[],St};
+collect_form(['eval-when-compile'|_], St) -> {[],St};
+collect_form([Form,Line], St) ->
+    {[],add_error(Line, {unknown_form,Form}, St)}.
 
-%% check_mod_def(Metadata, Attributes, Line, State) -> State.
-%%  Check a module definition, its metasdata and attributes.
+check_module_def(Name, Line, St) ->
+    if is_atom(Name) ->                 %Normal module
+            St#lfe_lint{module=Name};
+       true ->                          %Bad module name
+            bad_module_def_error(Line, name, St)
+    end.
 
-check_mod_def(Metas, Atts, L, St0) ->
-    St1 = check_mod_metas(Metas, L, St0),
-    check_mod_attrs(Atts, L, St1).
+%% check_moduledoc(DocString, Line, State) -> State.
 
-%% check_mod_metas(Metas, Line, State) -> State.
-%%  Only allow docs and type definitions.
+check_moduledoc(Doc, L, St0) ->
+    if St0#lfe_lint.moduledoc ->
+            add_error(L, redefine_moduledoc, St0);
+       true ->
+            St1 = St0#lfe_lint{moduledoc=true},
+            ?IF(lfe_lib:is_doc_string(Doc), St1,
+                bad_attr_error(L, moduledoc, St1))
+    end.
 
-check_mod_metas(Ms, L, St) ->
-    check_foreach(fun (M, S) -> check_mod_meta(M, L, S) end,
-                  fun (S) -> bad_module_def_error(L, <<"meta form">>, S) end,
-                  St, Ms).
+%% check_export(Exports, Line, State) -> State.
 
-check_mod_meta([doc|Docs], L, St) ->
-    ?IF(is_docs_list(Docs), St, bad_meta_def_error(L, doc, St));
-check_mod_meta([type|Tds], L, St) ->
-    check_type_defs(Tds, L, St);
-check_mod_meta([opaque|Tds], L, St) ->
-    check_type_defs(Tds, L, St);
-check_mod_meta([spec|Sps], L, St) ->
-    check_func_specs(Sps, L, St);
-check_mod_meta([record|Rdefs], L, St) ->
-    %% deprecated_error(L, <<"module record definition">>, St);
-    check_record_defs(Rdefs, L, St);
-check_mod_meta(_, L, St) -> bad_module_def_error(L, meta, St).
-
-%% check_mod_attrs(Attributes, Line, State) -> State.
-%%  Check the attributes of the module.
-
-check_mod_attrs(As, L, St) ->
-    check_foreach(fun (A, S) -> check_mod_attr(A, L, S) end,
-                  fun (S) -> bad_module_def_error(L, <<"attribute form">>, S) end,
-                  St, As).
-
-check_mod_attr([export,all], _, St) -> St;          %Ignore 'all' here
-check_mod_attr([export|Es], L, St) ->
-    check_export_attr(Es, L, St);
-check_mod_attr([import|Is], L, St) ->
-    check_import_attr(Is, L, St);
-check_mod_attr(['module-alias'|As], L, St) ->
-    check_alias_attr(As, L, St);
-check_mod_attr(['export-type'|Ts], L, St) ->
-    check_export_types(Ts, L, St);
-check_mod_attr([doc|Docs], L, St0) ->
-    St1 = deprecated_warning(L, <<"module documentation attribute">>, St0),
-    check_doc_attr(Docs, L, St1);
-check_mod_attr([record|_Rds], L, St) ->
-    deprecated_error(L, <<"module record definition">>, St);
-check_mod_attr([on_load|Onload], L, St) ->
-    check_onload_attr(Onload, L, St);
-%% Note we don't allow type and spec as normal attributes here.
-check_mod_attr([A|Vals], L, St) ->
-    %% Meta tags are not allowed in attributes.
-    ?IF(is_meta_tag(A), bad_attr_error(L, A, St),
-        %% Other attributes, must be list and have symbol name.
-        ?IF(is_atom(A) and lfe_lib:is_proper_list(Vals),
-            St, bad_attr_error(L, A, St)));
-check_mod_attr(_, L, St) -> bad_module_def_error(L, <<"attribute form">>, St).
-
-is_meta_tag(doc) -> true;
-is_meta_tag(spec) -> true;
-is_meta_tag(Tag) -> lfe_types:is_type_decl(Tag).
-
-%% check_doc_attr(Doc, Line, State) -> State.
-%%  Check the format of the docimentation.
-
-check_doc_attr(Docs, L, St) ->
-    ?IF(is_docs_list(Docs), St, bad_attr_error(L, doc, St)).
-
-%% check_export_attr(Exports, Line, State) -> State.
-
-check_export_attr(Es, L, St) ->
+check_export(Es, L, St) ->
     case is_func_list(Es) of
         {yes,Fs} ->
+            %% io:format("ce ~p\n", [{Fs,L,St}]),
             Exps = add_exports(Fs, L, St#lfe_lint.exports),
             St#lfe_lint{exports=Exps};
         no -> bad_module_def_error(L, export, St)
     end.
 
-%% check_import_attr(Imports, Line, State) -> State.
+%% check_import(Imports, Line, State) -> State.
 
-check_import_attr(Imports, L, St) ->
+check_import(Imports, L, St) ->
+    %% io:format("im ~p\n", [Imports]),
     check_foreach(fun (Import, S) -> check_imports(Import, L, S) end,
                   fun (S) -> import_error(L, S) end, St, Imports).
 
@@ -422,79 +420,36 @@ check_import(F, Ar, Mod, Rem, Imps, L, St) ->
 
 import_error(L, St) -> bad_module_def_error(L, import, St).
 
-%% check_alias_attr(ModAliases, Line, State) -> State.
+%% check_doc(DocString, Line, State) -> State.
 
-check_alias_attr(Aliases, L, St) ->
-    check_foreach(fun (Alias, S) -> check_alias(Alias, L, S) end,
-                  fun (S) -> bad_module_def_error(L, 'module-alias', S) end,
-                  St, Aliases).
+check_doc(Doc, Line, St) ->
+    ?IF(lfe_lib:is_doc_string(Doc), St, bad_attr_error(Line, doc, St)).
 
-check_alias([Mod,Alias], L, #lfe_lint{aliases=As0}=St0) when is_atom(Mod),
-                                                             is_atom(Alias) ->
-    %% Test if we redefine alias or get circular aliases.
-    St1 = case orddict:is_key(Alias, As0) of
-              true -> add_error(L, {redefine_module_alias,Alias}, St0);
-              false -> St0
-          end,
-    St2 = case orddict:is_key(Mod, As0) of
-              true -> add_error(L, {circular_module_alias,Alias}, St1);
-              false -> St1
-          end,
-    As1 = orddict:store(Alias, Mod, As0),       %Add the alias
-    St2#lfe_lint{aliases=As1};
-check_alias(_, L, St) ->
-    bad_module_def_error(L, 'module-alias', St).
+%% check_onload(Function, Line, State) -> State.
 
-%% check_export_types(Types, Line, State) -> State.
-
-check_export_types(Ts, L, St) ->
-    case is_func_list(Ts) of
-        {yes,Fs} ->
-            Texps = add_exports(Fs, L, St#lfe_lint.texps),
-            St#lfe_lint{texps=Texps};
-        no ->
-            bad_module_def_error(L, 'export-type', St)
-    end.
-
-%% is_func_ref([Name,Arity]) ->
-%%     is_atom(Name) and is_integer(Arity) and Arity >= 0;
-%% is_func_ref(_Other) -> false.
-
-is_func_list(Fs) -> is_func_list(Fs, ordsets:new()).
-
-is_func_list([[F,Ar]|Fs], Funcs) when is_atom(F), is_integer(Ar), Ar >= 0 ->
-    is_func_list(Fs, ordsets:add_element({F,Ar}, Funcs));
-is_func_list([], Funcs) -> {yes,Funcs};
-is_func_list(_, _) -> no.
-
-%% check_onload_attr(Onload, Line, State) -> State.
-%%  Check the onl_load attribute that it is a valid function reference
-%%  and that there is only one.
-
-check_onload_attr([[F,Ar]=LoadF], L, St) when is_atom(F), is_integer(Ar) ->
-    Onload = St#lfe_lint.onload,
-    if (Onload =:= []) or (Onload =:= LoadF) ->
-            St#lfe_lint{onload=LoadF};
-       true ->
+check_onload([[F,Ar]], L, St) when is_atom(F), is_integer(Ar) ->
+    case St#lfe_lint.onload of
+        {{F,Ar},_} -> St;                       %Already there
+        []  ->                                  %Nothing yet
+            St#lfe_lint{onload={{F,Ar},L}};
+        _Other ->                               %New on_load function
             bad_attr_error(L, on_load, St)
     end;
-check_onload_attr(_Onload, L, St) ->
+check_onload(_Onload, L, St) ->
     bad_attr_error(L, on_load, St).
 
-%% check_type_defs(TypeDefs, Line, State) -> State.
-%% check_type_def(TypeDef, Line, State) -> State.
+%% check_nifs(Functions, Line, State) -> State.
+
+check_nifs(Nifs, L, #lfe_lint{nifs=Lns0}=St) ->
+    case is_func_list(Nifs, Lns0) of
+        {yes,Lns1} ->
+            St#lfe_lint{nifs=Lns1};
+        no ->
+            bad_attr_error(L, nifs, St)
+    end.
+
 %% check_type_def(Type, Def, Line, State) -> State.
 %%  Check a type definition.
-
-check_type_defs(Tds, L, St) ->
-    check_foreach(fun (Td, S) -> check_type_def(Td, L, S) end,
-                  fun (S) -> bad_meta_def_error(L, type, S) end,
-                  St, Tds).
-
-check_type_def([Type,Def], L, St) ->
-    check_type_def(Type, Def, L, St);
-check_type_def(_, L, St) ->
-    bad_meta_def_error(L, type, St).
 
 check_type_def(Type, Def, L, St0) ->
     {Tvs0,St1} = check_type_name(Type, L, St0),
@@ -538,22 +493,44 @@ check_type_vars(Tvs, L, St) ->
             end,
     orddict:fold(Check, St, Tvs).
 
-%% check_func_specs(FuncSpecs, Line, State) -> State.
-%% check_func_spec(FuncSpec, Line, State) -> State.
-%% check_func_spec(Func, Specs, Line, State) -> State.
+%% check_export_types(Types, Line, State) -> State.
+
+check_export_types(Ts, L, St) ->
+    case is_func_list(Ts) of
+        {yes,Fs} ->
+            Texps = add_exports(Fs, L, St#lfe_lint.texps),
+            St#lfe_lint{texps=Texps};
+        no ->
+            bad_module_def_error(L, 'export-type', St)
+    end.
+
+%% check_aliases(ModAliases, Line, State) -> State.
+
+check_aliases(Aliases, L, St) ->
+    check_foreach(fun (Alias, S) -> check_alias(Alias, L, S) end,
+                  fun (S) -> bad_module_def_error(L, 'module-alias', S) end,
+                  St, Aliases).
+
+check_alias([Mod,Alias], L, #lfe_lint{aliases=As0}=St0) when
+      is_atom(Mod), is_atom(Alias) ->
+    %% Test if we redefine alias or get circular aliases.
+    St1 = case orddict:is_key(Alias, As0) of
+              true -> add_error(L, {redefine_module_alias,Alias}, St0);
+              false -> St0
+          end,
+    St2 = case orddict:is_key(Mod, As0) of
+              true -> add_error(L, {circular_module_alias,Alias}, St1);
+              false -> St1
+          end,
+    As1 = orddict:store(Alias, Mod, As0),       %Add the alias
+    St2#lfe_lint{aliases=As1};
+check_alias(_, L, St) ->
+    bad_module_def_error(L, 'module-alias', St).
+
+%% check_spec(Func, Specs, Line, State) -> State.
 %%  Check a function specification.
 
-check_func_specs(Specs, L, St) ->
-    check_foreach(fun (Spec, S) -> check_func_spec(Spec, L, S) end,
-                  fun (S) -> bad_meta_def_error(L, spec, S) end,
-                  St, Specs).
-
-check_func_spec([Func,Specs], L, St) ->
-    check_func_spec(Func, Specs, L, St);
-check_func_spec(_, L, St) ->
-    bad_meta_def_error(L, spec, St).
-
-check_func_spec(Func, Specs, L, St0) ->
+check_spec(Func, Specs, L, St0) ->
     %% io:format("ll ~p\n", [{cfs,Func,Specs,St0#lfe_lint.specs}]),
     {Ar,St1} = check_func_name(Func, L, St0),
     %% io:format("ll ~p\n", [{cfs,Ar}]),
@@ -565,12 +542,12 @@ check_func_spec(Func, Specs, L, St0) ->
             check_type_vars_list(Tvss, L, St2)
     end.
 
-check_func_name([F,Ar], L, #lfe_lint{specs=Kss}=St)
+check_func_name([F,Ar], L, #lfe_lint{specs=Specs}=St)
   when is_atom(F), is_integer(Ar), Ar >= 0 ->
-    Ks = {F,Ar},
-    case lists:member(Ks, Kss) of
+    Spec = {F,Ar},
+    case lists:member(Spec, Specs) of
         true -> {Ar,add_error(L, {redefine_spec,{F,Ar}}, St)};
-        false -> {Ar,St#lfe_lint{specs=[Ks|Kss]}}
+        false -> {Ar,St#lfe_lint{specs=[Spec|Specs]}}
     end;
 check_func_name(F, L, St) ->
     {0,add_error(L, {bad_function_spec,F}, St)}.
@@ -578,56 +555,9 @@ check_func_name(F, L, St) ->
 check_type_vars_list(Tvss, L, St) ->
     lists:foldl(fun (Tvs, S) -> check_type_vars(Tvs, L, S) end, St, Tvss).
 
-%% collect_function(Name, Meta, Def, Line, Fbs, State) -> {Fbs,State}.
-%%  Collect function and do some basic checks.
-
-collect_function(Name, Meta, Def, L, Fbs, St0) ->
-    St1 = check_func_metas(Name, Meta, L, St0),
-    {[{Name,Def,L}|Fbs],St1}.
-
-%% check_func_metas(Name, Metas, Line, State) -> State.
-
-check_func_metas(N, Ms, L, St) ->
-    check_foreach(fun (M, S) -> check_func_meta(N, M, L, S) end,
-                  fun (S) -> bad_form_error(L, 'define-function', S) end,
-                  St, Ms).
-
-check_func_meta(N, [doc|Docs], L, St) ->
-    ?IF(is_docs_list(Docs), St, bad_meta_def_error(L, N, St));
-%% Need to get arity in here.
-%% check_func_meta(N, [spec|Specs], L, St0) ->
-%%     case lfe_types:check_func_spec_list(Specs, Ar, St#lfe_lint.records) of
-%%         {ok,Tvss} ->
-%%             check_type_vars_list(Tvss, L, St0);
-%%         {error,Error,Tvss} ->
-%%             St1 = add_error(L, Error, St0),
-%%             check_type_vars_list(Tvss, L, St1)
-%%     end;
-check_func_meta(N, [M|Vals], L, St) ->
-    ?IF(is_atom(M) and lfe_lib:is_proper_list(Vals),
-        St, bad_meta_def_error(L, N, St));
-check_func_meta(N, _, L, St) -> bad_meta_def_error(L, N, St).
-
-%% is_docs_list(Docs) -> boolean().
-
-is_docs_list(Docs) ->
-    Fun = fun (D) -> lfe_lib:is_doc_string(D) end,
-    lfe_lib:is_proper_list(Docs) andalso lists:all(Fun, Docs).
-
-%% check_record_defs(RecordDefs, Line, State) -> State.
-%% check_record_def(RecordDef, Line, State) -> State.
+%%
 %% check_record_def(RecordName, Fields, Line, State) -> State.
 %%  Check a record definition.
-
-check_record_defs(Rdefs, L, St) ->
-    check_foreach(fun (Rdef, S) -> check_record_def(Rdef, L, S) end,
-                  fun (S) -> bad_meta_def_error(L, record, S) end,
-                  St, Rdefs).
-
-check_record_def([Name,Fields], L, St) ->
-    check_record_def(Name, Fields, L, St);
-check_record_def(_, L, St) ->
-    bad_meta_def_error(L, record, St).
 
 check_record_def(Name, Fds, L, #lfe_lint{records=Recs}=St0)
   when is_atom(Name) ->
@@ -705,35 +635,40 @@ check_struct_field_def_1(Field, L,  #lfe_lint{struct=Fs}=St) ->
             bad_struct_field_error(L, Field, St)
     end.
 
-%% init_state(State) -> {Predefs,Env,State}.
-%%  Setup the initial predefines and state. Build dummies for
-%%  predefined module_info which makes it easier to later check
-%%  redefines.
+%% collect_function(Name, Def, Line, State) -> {Fbs,State}.
+%%  Collect function.
 
-init_state(St) ->
-    Env0 = le_new(),
-    %% Add original import name to the environment.
-    Env1 = orddict:fold(fun ({F,Ar}, {_Mod,_Ren}, E) ->
-                                le_addf(F, Ar, E)
-                        end, Env0, St#lfe_lint.imports),
-    %% Basic predefines
-    Predefs0 = [{module_info,[lambda,[],?Q(dummy)],1},
-                {module_info,[lambda,[x],?Q(dummy)],1},
-                {'__info__',[lambda,[x],?Q(dummy)],1},
-                {'__struct__',[lambda,[],?Q(dummy)],1},
-                {'__struct__',[lambda,[x],?Q(dummy)],1}
-               ],
-    Exps0 = [{module_info,0},{module_info,1},
-             {'__info__',1},{'__struct__',0},{'__struct__',1}],
-    Exps1 = add_exports(Exps0, St#lfe_lint.mline, St#lfe_lint.exports),
-    {Predefs0,Env1,St#lfe_lint{exports=Exps1}}.
+collect_function(Name, Def, L, St0) ->
+    {[{Name,Def,L}],St0}.
 
-%% check_functions(FuncBindings, Env, State) -> {Funcs,Env,State}.
+%% check_attribute(Name, Value, Line, State) -> State.
+%%  Some "general" attributes need checking. Move to collect?
+
+check_attribute(doc, Doc, Line, St) ->
+    check_doc(Doc, Line, St);
+check_attribute(Name, Value, Line, St0) ->
+    St1 = ?IF(is_atom(Name), St0, bad_attr_error(Line, Name, St0)),
+    literal(Value, not_used, Line, St1).
+
+%% is_func_ref([Name,Arity]) ->
+%%     is_atom(Name) and is_integer(Arity) and Arity >= 0;
+%% is_func_ref(_Other) -> false.
+
+%% is_func_list(Funcs) -> {yes,Funcs} | no.
+
+is_func_list(Fs) -> is_func_list(Fs, ordsets:new()).
+
+is_func_list([[F,Ar]|Fs], Funcs) when is_atom(F), is_integer(Ar), Ar >= 0 ->
+    is_func_list(Fs, ordsets:add_element({F,Ar}, Funcs));
+is_func_list([], Funcs) -> {yes,Funcs};
+is_func_list(_, _) -> no.
+
+%% check_functions(FuncBindings, State) -> State.
 %%  Check the top-level functions definitions. These have the format
 %%  as in letrec but the environment only contains explicit imports
 %%  and the module info functions.
 
-check_functions(Fbs, Env0, St0) ->
+check_functions(Fbs, #lfe_lint{environment=Env0}=St0) ->
     {Fs,St1} = check_fbindings(Fbs, St0),
     %% Add to the environment.
     Env1 = lists:foldl(fun ({{F,A},_L}, Env) -> le_addf(F, A, Env) end,
@@ -744,45 +679,36 @@ check_functions(Fbs, Env0, St0) ->
                           ({_,['match-lambda'|Match],L}, St) ->
                               check_match_lambda(Match, Env1, L, St);
                           ({F,_,L}, St) ->      %Flag error here
-                              bad_fdef_error(L, F, St)
+                              bad_function_def_error(L, F, St)
                 end, St1, Fbs),
-    {Fs,Env1,St2}.
+    St2#lfe_lint{functions=Fs,environment=Env1}.
 
 %% check_valid_exports(State) -> State.
 %%  Check that all the exports are defined functions.
 
-check_valid_exports(#lfe_lint{exports=Exps,funcs=Funcs}=St) ->
-    Fun = fun (FAr, L, S) ->
-                  ?IF(orddict:is_key(FAr, Funcs),
+check_valid_exports(#lfe_lint{exports=Exps,functions=Funcs}=St) ->
+    Fun = fun (FuncAr, L, S) ->
+                  ?IF(orddict:is_key(FuncAr, Funcs),
                       S,
-                      undefined_function_error(L, FAr, S))
+                      undefined_function_error(L, FuncAr, S))
           end,
     orddict:fold(Fun, St, Exps).
 
 %% check_valid_imports(State) -> State.
 
-check_valid_imports(#lfe_lint{imports=Imps,funcs=Funcs}=St) ->
-    Fun = fun (FAr, {_Mod,_R}, S) ->
-                  ?IF(orddict:is_key(FAr, Funcs),
-                      add_error(orddict:fetch(FAr, Funcs),
-                                {define_imported_function,FAr}, S),
+check_valid_imports(#lfe_lint{imports=Imps,functions=Funcs}=St) ->
+    Fun = fun (FuncAr, {_Mod,_R}, S) ->
+                  ?IF(orddict:is_key(FuncAr, Funcs),
+                      add_error(orddict:fetch(FuncAr, Funcs),
+                                {define_imported_function,FuncAr}, S),
                       S)
           end,
     orddict:fold(Fun, St, Imps).
 
-%% add_exports(More, Line, Exports) -> New.
-%%  Add exports preserving line number of earliest entry.
-
-add_exports(More, L, Exps) ->
-    Fun = fun (FAr, Es) ->
-                  orddict:update(FAr, fun (Old) -> Old end, L, Es)
-          end,
-    lists:foldl(Fun, Exps, More).
-
 %% check_valid_onload(State) -> State.
-%%  Check that the on_load function is a defined function.
+%%  Check that the on_load function is defined.
 
-check_valid_onload(#lfe_lint{mline=L,onload=[F,Ar],env=Env}=St) ->
+check_valid_onload(#lfe_lint{onload={{F,Ar},L},environment=Env}=St) ->
     case le_hasf(F, Ar, Env) of
         true -> St;
         false ->
@@ -790,6 +716,19 @@ check_valid_onload(#lfe_lint{mline=L,onload=[F,Ar],env=Env}=St) ->
     end;
 check_valid_onload(#lfe_lint{onload=[]}=St) ->
      St.
+
+%% check_valid_nifs(State) -> State.
+%%  Check that the nif functions are defined.
+
+check_valid_nifs(#lfe_lint{modline=L,nifs=Nifs,environment=Env}=St) ->
+    Check = fun ({F,Ar}, S) ->
+                    case le_hasf(F, Ar, Env) of
+                        true -> S;
+                        false ->
+                            add_error(L, {undefined_nifs_function,{F,Ar}}, S)
+                    end
+            end,
+    lists:foldl(Check, St, Nifs).
 
 %% check_valid_type_exports(State) -> State.
 
@@ -799,6 +738,15 @@ check_valid_type_exports(#lfe_lint{types=Types,texps=Texps}=St) ->
                       add_error(L, {undefined_type,E}, S))
           end,
     orddict:fold(Fun, St, Texps).
+
+%% add_exports(More, Line, Exports) -> New.
+%%  Add exports preserving line number of earliest entry.
+
+add_exports(More, L, Exps) ->
+    Fun = fun (FuncAr, Es) ->
+                  orddict:update(FuncAr, fun (Old) -> Old end, L, Es)
+          end,
+    lists:foldl(Fun, Exps, More).
 
 %% check_expr(Expr, Env, Line, State) -> State.
 %% Check an expression.
@@ -1386,11 +1334,11 @@ check_letrec_bindings(Fbs, Env0, St0) ->
 %%  definitions.
 
 check_fbindings(Fbs0, St0) ->
-    AddFb = fun(FAr, Funcs, L, St) ->
-                    case orddict:is_key(FAr, Funcs) of
+    AddFb = fun(FuncAr, Funcs, L, St) ->
+                    case orddict:is_key(FuncAr, Funcs) of
                         true ->
-                            {Funcs,add_error(L, {redefine_function,FAr}, St)};
-                        false -> {orddict:store(FAr, L, Funcs),St}
+                            {Funcs,add_error(L, {redefine_function,FuncAr}, St)};
+                        false -> {orddict:store(FuncAr, L, Funcs),St}
                     end
             end,
     Check = fun ({V,[lambda,Args|_],L}, {Funcs,St}) ->
@@ -2190,8 +2138,8 @@ add_warning(L, W, #lfe_lint{warnings=Warns}=St) ->
 bad_attr_error(L, A, St) ->
     add_error(L, {bad_attribute,A}, St).
 
-bad_meta_def_error(L, A, St) ->
-    add_error(L, {bad_meta_def,A}, St).
+%% bad_meta_def_error(L, A, St) ->
+%%     add_error(L, {bad_meta_def,A}, St).
 
 bad_form_error(L, F, St) ->
     add_error(L, {bad_form,F}, St).
@@ -2256,8 +2204,8 @@ undefined_struct_field_error(L, Name, F, St) ->
 missing_struct_field_value_error(L, Name, F, St) ->
     add_error(L, {missing_struct_field_value,Name,F}, St).
 
-bad_fdef_error(L, D, St) ->
-    add_error(L, {bad_fdef,D}, St).
+bad_function_def_error(L, D, St) ->
+    add_error(L, {bad_function_def,D}, St).
 
 multi_var_error(L, V, St) ->
     add_error(L, {multi_var,V}, St).

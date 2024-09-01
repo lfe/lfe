@@ -1,23 +1,31 @@
-*.beam
-*.elc
+.eunit
 *.o
-*~
-.DS_Store
-.rebar/*
+*.beam
+*.plt
+erl_crash.dump
+.concrete/DEV_MODE
+
+# rebar 2.x
+.rebar
+rel/example_project
+ebin/*.beam
+deps
+
+# rebar 3
 .rebar3
-/_build/
-/c_src/*.d
-/priv/
+_build/
+_checkouts/
+
+# Mac
+.DS_Store
+
+# Emacs
+*~
+\#*\#
+
+# LFE
 bin/lfeexec
 comp_opts.mk
 doc/epub/*
 doc/pdf/*
-ebin/*
-erl_crash.dump
-*~
-\#*\#
-.\#*
-.emacs.desktop
-.emacs.desktop.lock
-*.*code-workspace
-/workbench
+work

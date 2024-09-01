@@ -19,6 +19,14 @@
 %% This module takes a lot of input from an older module written by
 %% Eric Bailey.
 %%
+%% The module documentation now comes from 'moduledoc' attributes. We
+%% accept many of them and all their docs are appended. Function and
+%% macro documentation come from 'doc' attributes before them which is
+%% kept in the new #docs doc field. This is unset (set to [] which is
+%% the blank docs field in function and macro) for every form except
+%% for 'spec' which can come together with a 'doc' before a 'function'
+%% or 'macro'.
+%%
 %% The "Docs" format from EEP 48: Documentation storage and format
 %%
 %% {docs_v1,
@@ -46,6 +54,7 @@
 %% Internal lfe_doc records.
 -record(docs, {copts=[],
                module=[],
+               doc=[],                         %Last doc before something
                macs=[],
                funcs=[]
               }).
@@ -87,88 +96,112 @@ make_docs_info(Code, CompilerOpts) ->
     DS1 = collect_forms(Code, DS0),
     #module{anno=Anno,docs=Mdocs} = DS1#docs.module,
     Funcs = generate_functions(DS1),
+    %% io:format("fs ~p\n", [Funcs]),
     Macros = generate_macros(DS1),
+    %% io:format("ms ~p\n", [Macros]),
     DocInfo = docs_v1(Anno, Mdocs, #{}, Funcs ++ Macros),
     {ok,DocInfo}.
 
 %% collect_forms(Code, DocsState) -> DocsState.
+%%  Note that this collects the normalise forms, the norms.
 
 collect_forms(Code, DS) -> lists:foldl(fun collect_form/2, DS, Code).
 
-collect_form({['define-module',Name,Meta,Atts],Line}, #docs{module=M0}=DS) ->
+collect_form(['module',Line,Name], #docs{module=M0}=DS) ->
     M1 = M0#module{name=Name,anno=Line},
-    M2 = collect_mod_attrs(Atts, M1),
-    M3 = collect_mod_metas(Meta, M2),
-    DS#docs{module=M3};
-collect_form({['extend-module',Meta,Atts],_Line}, #docs{module=M0}=DS) ->
-    M1 = collect_mod_attrs(Atts, M0),
-    M2 = collect_mod_metas(Meta, M1),
-    DS#docs{module=M2};
-collect_form({['define-function',Name,Meta,Def],Line}, #docs{funcs=Fs}=DS) ->
-    F = collect_function(Name, Meta, Def, Line),
-    DS#docs{funcs=Fs ++ [F]};
-collect_form({['define-macro',Name,Meta,Def],Line}, #docs{macs=Ms}=DS) ->
-    M = collect_macro(Name, Meta, Def, Line),
-    DS#docs{macs=Ms ++ [M]};
-collect_form(_, DS) -> DS.
+    DS#docs{module=M1,doc=[]};
+collect_form(['moduledoc',_Line,Doc], #docs{module=M0}=DS) ->
+    %% io:format("do ~p\n", [{M0#module.docs,Doc}]),
+    M1 = M0#module{docs=M0#module.docs ++ Doc},
+    DS#docs{module=M1,doc=[]};
+collect_form(['doc',_Line,Doc], DS) ->
+    DS#docs{doc=Doc};
+collect_form(['export',_Line,Exports], #docs{module=M0}=DS) ->
+    M1 = M0#module{fexps=collect_mod_exports(M0#module.fexps, Exports)},
+    DS#docs{module=M1,doc=[]};
+collect_form(['export-macro',_Line,Exports], #docs{module=M0}=DS) ->
+    M1 = M0#module{mexps=collect_mod_exports(M0#module.mexps, Exports)},
+    DS#docs{module=M1,doc=[]};
+collect_form([spec,Line,[Name,Arity],Spec], #docs{funcs=Funcs0}=DS) ->
+    Funcs1 = collect_func_spec(Funcs0, Name, Arity, Line, Spec),
+    %% Leave doc as function def can follow.
+    DS#docs{funcs=Funcs1};
+collect_form(['function',Line,Name,Def], #docs{funcs=Funcs0,doc=Doc}=DS) ->
+    Arity = function_arity(Def),
+    Funcs1 = collect_func_def(Funcs0, Name, Arity, Line, Doc, Def),
+    DS#docs{funcs=Funcs1,doc=[]};
+collect_form(['macro',Line,Name,Def], #docs{macs=Macs,doc=Doc}=DS) ->
+    M = collect_macro(Name, Line, Doc, Def),
+    DS#docs{macs=Macs ++ [M],doc=[]};
 
-collect_mod_metas(Metas, Mod) ->
-    Collect = fun ([doc|Ds], M) ->
-                  M#module{docs=M#module.docs ++ Ds};
-              (_, M) -> M
-          end,
-    lists:foldl(Collect, Mod, Metas).
+%% collect_form({['define-module',Name,Meta,Atts],Line}, #docs{module=M0}=DS) ->
+%%     M1 = M0#module{name=Name,anno=Line},
+%%     M2 = collect_mod_attrs(Atts, M1),
+%%     M3 = collect_mod_metas(Meta, M2),
+%%     DS#docs{module=M3};
+%% collect_form({['extend-module',Meta,Atts],_Line}, #docs{module=M0}=DS) ->
+%%     M1 = collect_mod_attrs(Atts, M0),
+%%     M2 = collect_mod_metas(Meta, M1),
+%%     DS#docs{module=M2};
+%% collect_form({['define-function',Name,Meta,Def],Line}, #docs{funcs=Fs}=DS) ->
+%%     F = collect_function(Name, Meta, Def, Line),
+%%     DS#docs{funcs=Fs ++ [F]};
+%% collect_form({['define-macro',Name,Meta,Def],Line}, #docs{macs=Ms}=DS) ->
+%%     M = collect_macro(Name, Meta, Def, Line),
+%%     DS#docs{macs=Ms ++ [M]};
 
-collect_mod_attrs(Attrs, Mod) ->
-    Collect = fun ([doc|Ds], M) ->
-                      M#module{docs=M#module.docs ++ Ds};
-                  ([export|Es], #module{fexps=Fes}=M) ->
-                      M#module{fexps=collect_mod_exports(Fes, Es)};
-                  (['export-macro'|Es], #module{mexps=Mes}=M) ->
-                      M#module{mexps=collect_mod_exports(Mes, Es)};
-                  (_, M) -> M
-              end,
-    lists:foldl(Collect, Mod, Attrs).
+collect_form(_, DS) -> DS#docs{doc=[]}.
+
+%% collect_mod_metas(Metas, Mod) ->
+%%     Collect = fun ([doc|Ds], M) ->
+%%                   M#module{docs=M#module.docs ++ Ds};
+%%               (_, M) -> M
+%%           end,
+%%     lists:foldl(Collect, Mod, Metas).
+
+%% collect_mod_attrs(Attrs, Mod) ->
+%%     Collect = fun ([doc|Ds], M) ->
+%%                       M#module{docs=M#module.docs ++ Ds};
+%%                   ([export|Es], #module{fexps=Fes}=M) ->
+%%                       M#module{fexps=collect_mod_exports(Fes, Es)};
+%%                   (['export-macro'|Es], #module{mexps=Mes}=M) ->
+%%                       M#module{mexps=collect_mod_exports(Mes, Es)};
+%%                   (_, M) -> M
+%%               end,
+%%     lists:foldl(Collect, Mod, Attrs).
 
 %% Must handle exporting all for functions and macros.
-collect_mod_exports(_Exps, [all]) -> all;
+collect_mod_exports(_Exps, all) -> all;
 collect_mod_exports(all, _Es) -> all;
 collect_mod_exports(Exps, Es) -> Exps ++ Es.
 
-collect_function(Name, Meta, Def, Line) ->
-    F = #function{name=Name,
-                  arity=function_arity(Def),
-                  anno=Line,
-                  meta=Meta,
-                  def=Def},
-    collect_fun_metas(Meta, F).
+%% collect_func_def(Functions, Name, Arity, Line, Docs, Def) -> Functions.
+%% collect_func_spec(Functions, Name, Arity, Line, Spec) -> Functions.
+%%  Find or create the function definition and add the given field.
 
-collect_fun_metas(Metas, Fun) ->
-    Collect = fun ([doc|Ds], F) ->
-                      F#function{docs=F#function.docs ++ Ds};
-                  ([spec|Ss], F) ->
-                      F#function{spec=Ss};
-                  (_, F) -> F
-          end,
-    lists:foldl(Collect, Fun, Metas).
+collect_func_def([#function{name=Name,arity=Arity}=F|Funcs],
+                 Name, Arity, Line, Docs, Def) ->
+    [F#function{anno=Line,docs=Docs,def=Def}|Funcs];
+collect_func_def([F|Funcs], Name, Arity, Line, Docs, Def) ->
+    [F|collect_func_def(Funcs, Name, Arity, Line, Docs, Def)];
+collect_func_def([], Name, Arity, Line, Docs, Def) ->
+    [#function{name=Name,arity=Arity,anno=Line,docs=Docs,def=Def}].
+
+collect_func_spec([#function{name=Name,arity=Arity}=F|Funcs],
+                  Name, Arity, _Line, Spec) ->
+    [F#function{spec=Spec}|Funcs];
+collect_func_spec([F|Funcs], Name, Arity, Line, Spec) ->
+    [F|collect_func_spec(Funcs, Name, Arity, Line, Spec)];
+collect_func_spec([], Name, Arity, Line, Spec) ->
+    [#function{name=Name,arity=Arity,anno=Line,spec=Spec}].
 
 function_arity([lambda,Args|_]) -> length(Args);
 function_arity(['match-lambda',[Pat|_]|_]) -> length(Pat).
 
-collect_macro(Name, Meta, Def, Line) ->
-    F = #macro{name=Name,
-               arity=1,                         %Default for all macros
-               anno=Line,
-               meta=Meta,
-               def=Def},
-    collect_mac_metas(Meta, F).
+%% collect_macro(Name, Line, Docs, Def) -> Macro.
 
-collect_mac_metas(Metas, Mac) ->
-    Collect = fun ([doc|Ds], M) ->
-                  M#macro{docs=M#macro.docs ++ Ds};
-              (_, M) -> M
-          end,
-    lists:foldl(Collect, Mac, Metas).
+collect_macro(Name, Line, Docs, Def) ->
+    #macro{name=Name,arity=1,anno=Line,docs=Docs,def=Def}.
 
 %% generate_functions(Docs) -> [FunctionDoc].
 

@@ -223,11 +223,18 @@ Types can also be defined in the module declaration, for example:
 .EX
 (defmodule this\-module
   ...
-  (type ((foo\-type) (tuple \[aq]foo (integer) (list)))
-        ((bar\-type) (tuple \[aq]bar (integer) (list))))
-  (spec ((foo 1) ([(integer)] (foo\-type)))
-        ((id 1) ([x] x ((x (tuple))))))
+  (type foo\-type (tuple \[aq]foo (integer) (list)))
+  (opaque bar\-type (tuple \[aq]bar (integer) (list)))
+  (spec foo ([(integer)] (foo\-type)))
+  (spec (bar 1) ([(atom)] (list))
+                ([(list)] (atom)))
   ...)
 .EE
+.SH DEPRECATION OF OLD FORMS
+These older forms are being deprecated so the forms shown inside
+\f[CR]defmodule\f[R] can now can be written at the top level.
+Using them inside \f[CR]defmodule\f[R] and with the current macros
+\f[CR]deftype\f[R], \f[CR]defopaque\f[R] and \f[CR]defspec\f[R] will
+still be allowed and work as expects.
 .SH AUTHORS
 Robert Virding.
