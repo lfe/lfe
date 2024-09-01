@@ -184,11 +184,31 @@ module_attributes(Metas, Attrs, Line, St) ->
 	   end,
     lists:foldl(Attr, {[],St}, Metas ++ Attrs).
 
-module_attribute([doc,Docs], Line, St0) ->
-    St1 = add_warning(Line, {deprecated,<<"module attribute doc">>}, St0),
-    {[[doc,Line,Docs]],St1};
+%% module_attribute([doc,Docs], Line, St0) ->
+%%     St1 = add_warning(Line, {deprecated,<<"module attribute doc">>}, St0),
+%%     {[[doc,Line,Docs]],St1};
+module_attribute([type|TypeDefs], Line, St) ->
+    module_type(type, TypeDefs, Line, St);
+module_attribute([opaque|TypeDefs], Line, St) ->
+    module_type(opaque, TypeDefs, Line, St);
+module_attribute([spec|SpecDefs], Line, St) ->
+    module_spec(SpecDefs, Line, St);
 module_attribute(Attr, Line, St) ->
     attribute(Attr, Line, St).
+
+module_type(Attr, TypeDefs, Line, St) ->
+    TypeFunc = fun (TypeDef, {As0,S0}) ->
+		       {As,S1} = attribute_type(Attr, TypeDef, Line, S0),
+		       {As0 ++ As,S1}
+	       end,
+    lists:foldl(TypeFunc, {[],St}, TypeDefs).
+
+module_spec(SpecDefs, Line, St) ->
+    SpecFunc = fun (SpecDef, {As0,S0}) ->
+		       {As,S1} = attribute_spec(SpecDef, Line, S0),
+		       {As0 ++ As,S1}
+	       end,
+    lists:foldl(SpecFunc, {[],St}, SpecDefs).
 
 %% attribute(Attribute, Line, State) -> {[Norm],State}.
 %%  These "attributes" can both occur in the define/extend-module

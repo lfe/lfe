@@ -137,16 +137,32 @@ Types can also be defined in the module declaration, for example:
 ```
 (defmodule this-module
   ...
-  (type foo-type (tuple 'foo (integer) (list)))
-  (opaque bar-type (tuple 'bar (integer) (list)))
-  (spec foo ([(integer)] (foo-type)))
-  (spec (bar 1) ([(atom)] (list))
-                ([(list)] (atom)))
+  (type ((foo-type) (tuple 'foo (integer) (list)))
+        ((bar-type) (tuple 'bar (integer) (list))))
+  (spec ((foo 1) ([(integer)] (foo-type)))
+        ((bar 1) ([(atom)] (list))
+                ([(list)] (atom))))
   ...)
 ```
 # DEPRECATION OF OLD FORMS
 
 These older forms are being deprecated so the forms shown inside
-`defmodule` can now can be written at the top level. Using them inside
-`defmodule` and with the current macros `deftype`, `defopaque` and
-`defspec` will still be allowed and work as expects.
+`defmodule` can now can be written at the top level in a more basic
+form. The examples shown in `defmodule` can now be written at the
+top-level like:
+
+```
+(defmodule this-module)
+...
+(type foo-type (tuple 'foo (integer) (list)))
+(type (bar-type) (tuple 'bar (integer) (list)))
+
+(spec (foo 1) ([(integer)] (foo-type)))
+(spec (bar 1) ([(atom)] (list))
+              ([(list)] (atom)))
+...
+```
+These forms are equivalent to using `deftype` and `defspec`.
+
+The current `defmodule` and with the current macros `deftype`, `defopaque` and
+`defspec` will still be allowed and work as expected.

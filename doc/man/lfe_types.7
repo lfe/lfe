@@ -223,18 +223,37 @@ Types can also be defined in the module declaration, for example:
 .EX
 (defmodule this\-module
   ...
-  (type foo\-type (tuple \[aq]foo (integer) (list)))
-  (opaque bar\-type (tuple \[aq]bar (integer) (list)))
-  (spec foo ([(integer)] (foo\-type)))
-  (spec (bar 1) ([(atom)] (list))
-                ([(list)] (atom)))
+  (type ((foo\-type) (tuple \[aq]foo (integer) (list)))
+        ((bar\-type) (tuple \[aq]bar (integer) (list))))
+  (spec ((foo 1) ([(integer)] (foo\-type)))
+        ((bar 1) ([(atom)] (list))
+                ([(list)] (atom))))
   ...)
 .EE
 .SH DEPRECATION OF OLD FORMS
 These older forms are being deprecated so the forms shown inside
-\f[CR]defmodule\f[R] can now can be written at the top level.
-Using them inside \f[CR]defmodule\f[R] and with the current macros
+\f[CR]defmodule\f[R] can now can be written at the top level in a more
+basic form.
+The examples shown in \f[CR]defmodule\f[R] can now be written at the
+top\-level like:
+.IP
+.EX
+(defmodule this\-module)
+\&...
+(type foo\-type (tuple \[aq]foo (integer) (list)))
+(type (bar\-type) (tuple \[aq]bar (integer) (list)))
+
+(spec (foo 1) ([(integer)] (foo\-type)))
+(spec (bar 1) ([(atom)] (list))
+              ([(list)] (atom)))
+\&...
+.EE
+.PP
+These forms are equivalent to using \f[CR]deftype\f[R] and
+\f[CR]defspec\f[R].
+.PP
+The current \f[CR]defmodule\f[R] and with the current macros
 \f[CR]deftype\f[R], \f[CR]defopaque\f[R] and \f[CR]defspec\f[R] will
-still be allowed and work as expects.
+still be allowed and work as expected.
 .SH AUTHORS
 Robert Virding.
