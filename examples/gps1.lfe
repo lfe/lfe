@@ -1,4 +1,4 @@
-;; -*- Mode: LFE; -*-
+;; -*- mode: LFE; indent-tabs-mode: nil -*-
 ;; Code from Paradigms of Artificial Intelligence Programming
 ;; Copyright (c) 1991 Peter Norvig, Common Lisp version
 ;; Copyright (c) 2008-2020 Robert Virding
@@ -62,21 +62,13 @@
   ([name] (get 'name)))
 
 ;; Module definition.
-(defmodule gps1
-  (export 
-    (gps 2) 
-    (gps 3)
-    (school-ops 0))
-  (import 
-    (from lists 
-      (member 2) 
-      (all 2) 
-      (any 2))
-    ;; Rename lists functions to be more CL like.
-    (rename lists 
-      ((all 2) every) 
-      ((any 2) some) 
-      ((filter 2) find-all))))
+(defmodule gps1)
+
+(export (gps 2) (gps 3) (school-ops 0))
+
+(import (from lists (member 2) (all 2) (any 2))
+        ;; Rename lists functions to be more CL like.
+        (rename lists ((all 2) every) ((any 2) some) ((filter 2) find-all)))
 
 ;; An operation.
 (defrecord op
