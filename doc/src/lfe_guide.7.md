@@ -139,7 +139,6 @@ You can also use the general format for creating binaries (``#B(...)``,
 described below), e.g. ``#B("a")``, ``#"a"``, and ``#B(97)`` are all the same binary
 string.
 
-
 ### Character Escaping
 
 Certain control characters can be more readably included by using their
@@ -162,6 +161,81 @@ escaped name:
 Alternatively you can also use the hexadecimal character encoding,
 e.g. ``"a\nb"`` and ``"a\x0a;b"`` are the same string.
 
+### Triple-quoted Strings
+
+LFE's triple-quote strings are modelled on those in Erlang so we will
+use their description of them.
+
+Strings, both list strings and binary strings, can also be written as
+triple-quoted strings, which can be indented over multiple lines to
+follow the indentation of the surrounding code. They are also
+verbatim, that is, they do not allow escape sequences, and thereby do
+not need double quote characters to be escaped.
+
+Example, with verbatim double quote characters:
+
+```
+"""
+  Line "1"
+  Line "2"
+  """
+```
+
+That is equivalent to the normal single quoted string (which also
+allows newlines):
+
+```
+"Line \"1\"
+Line \"2\""
+```
+
+The opening and the closing lines have the delimiters: the """
+characters. The lines between them are the content lines. The newline
+on the opening line is not regarded as string content, nor is the
+newline on the last content line.
+
+The indentation is defined by the white space character sequence
+preceding the delimiter on the closing line. That character sequence
+is stripped from all content lines. There can only be white space
+before the delimiter on the closing line, or else it is regarded as a
+content line.
+
+The opening line is not allowed to have any characters other than
+white space after the delimiter, and all content lines must start with
+the defined indentation character sequence, otherwise the string has a
+syntax error.
+
+Here is a larger example:
+
+```
+"""
+      First line starting with two spaces
+    Not escaped: "\t \r \xFF" and """
+
+    """
+```
+
+That corresponds to the normal string:
+
+```
+"  First line starting with two spaces
+Not escaped: \"\\t \\r \\xFF\" and \"\"\"
+"
+```
+
+Binary strings can also be written as triple-quoted strings:
+
+```
+#"""
+  Line "1"
+  Line "2"
+  """
+```
+which correspnds to the binary:
+
+```
+#"Line \"1\"\nLine \"2\""
+```
 
 ## Binaries
 
