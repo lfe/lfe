@@ -332,22 +332,27 @@ from_func_constraints(Cs) ->
 
 from_subtype([{var,_,Var},Type]) -> [Var,from_type_def(Type)].
 
-%% to_func_spec_list(Type, Line) -> AST.
+%% to_func_spec_list(Specs, Line) -> AST.
+%%  Take a list of function type specs and generate the ASTs for them.
 
-to_func_spec_list(Fts, Line) ->
-    lists:map(fun (Ft) -> to_func_spec(Ft, Line) end, Fts).
+to_func_spec_list(Specs, Line) ->
+    %% io:format("ty ~p\n", [{tfs,Specs,Line}]),
+    lists:map(fun (Spec) -> to_func_spec(Spec, Line) end, Specs).
 
 to_func_spec([Prod,Ret], Line) ->
-    to_func_spec(Prod, Ret, Line);
-to_func_spec([Prod,Ret,[]], Line) ->            %Future proof
-    to_func_spec(Prod, Ret, Line);
-to_func_spec([Prod,Ret,Cs], Line) ->
-    Fun = to_func_spec(Prod, Ret, Line),
+    to_func_spec(Prod, Ret, [], Line);
+to_func_spec([Prod,Ret,Cs], Line) ->            %Future proof
+    to_func_spec(Prod, Ret, Cs, Line);
+to_func_spec(#{'arg-types' := Prod, 'ret-type' := Ret}=Spec, Line) ->
+    Cs = maps:get(constraints, Spec, []),
+    to_func_spec(Prod, Ret, Cs, Line).
+
+to_func_spec(Prod, Ret, [], Line) ->
+    {type,Line,'fun',[to_func_prod(Prod, Line),to_type_def(Ret, Line)]};
+to_func_spec(Prod, Ret, Cs, Line) ->
+    Fun = to_func_spec(Prod, Ret, [], Line),
     Constr = to_func_constraints(Cs, Line),
     {type,Line,bounded_fun,[Fun,Constr]}.
-
-to_func_spec(Prod, Ret, Line) ->
-    {type,Line,'fun',[to_func_prod(Prod, Line),to_type_def(Ret, Line)]}.
 
 to_func_prod(Args, Line) ->
     {type,Line,product,to_type_defs(Args, Line)}.
@@ -368,11 +373,21 @@ to_func_constraint([Var,Type], Line) ->
 %%  {bad_function_spec,Spec}     - error in the type definition
 
 check_func_spec_list(Ss, Ar, Recs) ->
+    %% io:format("ty ~p\n", [{cfsl,Ss}]),
     check_spec_list(fun check_func_spec/3, Ss, Ar, Recs).
 
 check_func_spec([Prod,Ret], Ar, Recs) ->
-    check_func_spec([Prod,Ret,[]], Ar, Recs);
+    check_func_spec(Prod, Ret, [], Ar, Recs);
 check_func_spec([Prod,Ret,Cs], Ar, Recs) ->
+    check_func_spec(Prod, Ret, Cs, Ar, Recs);
+check_func_spec(#{'arg-types' := Prod, 'ret-type' := Ret}=Spec, Ar, Recs) ->
+    Constr = maps:get(constraints, Spec, []),
+    check_func_spec(Prod, Ret, Constr, Ar, Recs);
+check_func_spec(Other, _Ar, _Recs) ->
+    %% io:format("ty ~p\n", [{cfs,Other,_Ar}]),
+    bad_function_spec_error(Other, []).
+
+check_func_spec(Prod, Ret, Cs, Ar, Recs) ->
     Tvs0 = [],
     case check_func_prod(Prod, Ar, Recs, Tvs0) of
         {ok,Tvs1} ->
@@ -382,9 +397,7 @@ check_func_spec([Prod,Ret,Cs], Ar, Recs) ->
                 Error -> Error
             end;
         Error -> Error
-    end;
-check_func_spec(Other, _Ar, _Recs) ->
-    bad_function_spec_error(Other, []).
+    end.
 
 check_func_prod(Args, Ar, Recs, Tvs0) ->
     %% This checks both the list and the types.
@@ -411,7 +424,8 @@ check_spec_list(Check, Es, Ar, Recs) ->
 
 check_spec_list(Check, [E|Es], Ar, Recs, Tvss) ->
     case Check(E, Ar, Recs) of
-        {ok,Tvs} -> check_spec_list(Check, Es, Ar, Recs, Tvss ++ [Tvs]);
+        {ok,Tvs} ->
+            check_spec_list(Check, Es, Ar, Recs, Tvss ++ [Tvs]);
         Error -> Error
     end;
 check_spec_list(_Check, [], _Ar, _Recs, Tvss) -> {ok,Tvss};

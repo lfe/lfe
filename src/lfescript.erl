@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2020 Robert Virding
+%% Copyright (c) 2008-2024 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -192,9 +192,11 @@ eval_code(Fenv, _, Args, _) ->
     catch
         %% Catch all exceptions in the code.
         ?CATCH(Class, Error, Stack)
-            Skip = fun (_) -> false end,
+            %% Report all errors.
+            Skip = fun (_M, _F, _A) -> false end,
             Format = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
-            Cs = lfe_lib:format_exception(Class, Error, Stack, Skip, Format, 1),
+            Cs = lfe_error:format_exception(Class, Error, Stack, 
+                                            Skip, Format, 1),
             io:put_chars(Cs),
             halt(?ERROR_STATUS)
     end.

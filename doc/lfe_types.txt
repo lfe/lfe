@@ -1,6 +1,4 @@
-lfe_types(7)                                                      lfe_types(7)
-
-
+lfe_types(7)           Miscellaneous Information Manual           lfe_types(7)
 
 NAME
        lfe_types - LFE Types and Functions Specifications
@@ -10,8 +8,8 @@ TYPES
 
        LFE type                    Erlang type
        ─────────────────────────────────────────────────────
-       (none)                      none()
        (any)                       any()
+       (none)                      none()
        (atom)                      atom()
        (integer)                   integer()
        (range i1 i2)               I1..I2
@@ -19,6 +17,7 @@ TYPES
        (bitstring m n)             <<_:M,_:_*N>>
        (binary)                    <<_:0,_:_*8>>
        (bitstring)                 <<_:0,_:_*1>>
+       (nil)                       []                %% nil
        ...                         ...
        (lambda any <type>)         fun((...) -> <type>)
        (lambda () <type>)          fun(() -> <type>)
@@ -36,12 +35,12 @@ TYPES
        lambda and range.  The usage of bitstring, tuple and map have also been
        extended.
 
-       Note that the type #M() is the empty map and the type #() is the  empty
-       tuple.   We  can  still  use the older (map <key valuelist>) and (tuple
+       Note  that the type #M() is the empty map and the type #() is the empty
+       tuple.  We can still use the older (map  <key  valuelist>)  and  (tuple
        <tlist>) formats when declaring types for maps and tuples.
 
-       The general form of bitstrings is (bitstring m n) which denotes a  bit‐
-       string  which starts with m bits and continues with segments of n bits.
+       The  general form of bitstrings is (bitstring m n) which denotes a bit‐
+       string which starts with m bits and continues with segments of n  bits.
        (binary) is a short form for a sequence of bytes while (bitstring) is a
        short  form  for  a sequence of bits.  There is currently no short form
        for an empty binary, (bitstring 0 0) must be used.
@@ -76,6 +75,9 @@ SPECIFICATIONS
 
               function-spec = (arg-type-list ret-type)
               function-spec = (arg-type-list ret-type constraint-list)
+              function-spec = #M(arg-types arg-type-list ret-type ret-type)
+              function-spec = #M(arg-types arg-type-list ret-type ret-type
+                                 contraints constraint-list)
               arg-type-list = (arg-type ...)
               constraint-list = (constraint ...)
               constraint = (var var-type)
@@ -103,9 +105,9 @@ SPECIFICATIONS
               (defspec (remove-if 2)
                 ([pred (list)] (list) [(pred (lambda ((any)) (boolean)))]))
 
-       Note  that  a  constraint variable doesn’t need to start with an upper-
-       case like an Erlang variable, though in some case it may be  easier  to
-       read.
+       Note  that  a  constraint  variable  doesn’t  need to start with an up‐
+       per-case like an Erlang variable, though in some case it may be  easier
+       to read.
 
        Note we are using the alternate list form with [ ] instead of parenthe‐
        ses to make it easier to see the function arguments.
@@ -123,7 +125,5 @@ Types and function specifications in the module definition
 
 AUTHORS
        Robert Virding.
-
-
 
                                      2021                         lfe_types(7)

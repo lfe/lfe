@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2020 Robert Virding
+%% Copyright (c) 2008-2024 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -37,8 +37,6 @@
 
 %% -compile(export_all).
 
--import(lists, [flatten/1,reverse/1,reverse/2,map/2,mapfoldl/3,all/2]).
-
 -include("lfe.hrl").
 
 %% get_line() -> Data | {error,Error} | eof.
@@ -74,61 +72,65 @@ parse_file(Name) -> parse_file(Name, 1).
 
 parse_file(Name, Line) ->
     with_token_file(Name,
-                    fun (Ts, Lline) -> parse_file1(Ts, Lline, [], []) end,
+                    fun (Ts, LastLine) -> parse_tokens(Ts, LastLine, []) end,
                     Line).
 
-parse_file1([_|_]=Ts0, Lline, Pc0, Ss) ->
-    case lfe_parse:sexpr(Pc0, Ts0) of
-        {ok,L,S,Ts1} -> parse_file1(Ts1, Lline, [], [{S,L}|Ss]);
-        {more,Pc1} ->
+%% parse_tokens(Tokens, LastLine, Sexprs) ->
+%%     {ok, [{Sexpr,Line}]} | {error, Error}.
+
+parse_tokens([_|_]=Ts0, LastLine, Ss) ->
+    case lfe_parse:sexpr(Ts0) of
+        {ok,L,S,Ts1} -> parse_tokens(Ts1, LastLine, [{S,L}|Ss]);
+        {more,Cont} ->
             %% Need more tokens but there are none, so call again to
             %% generate an error message.
-            {error,E,_} = lfe_parse:sexpr(Pc1, {eof,Lline}),
+            {error,E,_} = lfe_parse:sexpr(Cont, {eof,LastLine}),
             {error,E};
         {error,E,_} -> {error,E}
     end;
-parse_file1([], _, _, Ss) -> {ok,reverse(Ss)}.
+parse_tokens([], _, Ss) -> {ok,lists:reverse(Ss)}.
 
 %% read_file(FileName|Fd[, Line]) -> {ok,[Sexpr]} | {error,Error}.
-%%  Read a file returning the raw sexprs (as it should be).
+%%  Read a file returning the raw sexprs (as it should be). Handle
+%%  errors consistently.
 
 read_file(Name) -> read_file(Name, 1).
 
 read_file(Name, Line) ->
     with_token_file(Name,
-                    fun (Ts, Lline) -> read_file1(Ts, Lline, []) end,
+                    fun (Ts, LastLine) -> read_tokens(Ts, LastLine, []) end,
                     Line).
 
-read_file1([_|_]=Ts0, Lline, Ss) ->
+%% read_tokens(Tokens, LastLine, Sexprs) -> {ok,[Sexpr]} | {error, Error}.
+
+read_tokens([_|_]=Ts0, LastLine, Ss) ->
     case lfe_parse:sexpr(Ts0) of
-        {ok,_,S,Ts1} -> read_file1(Ts1, Lline, [S|Ss]);
-        {more,Pc1} ->
+        {ok,_,S,Ts1} -> read_tokens(Ts1, LastLine, [S|Ss]);
+        {more,Cont} ->
             %% Need more tokens but there are none, so call again to
             %% generate an error message.
-            {error,E,_} = lfe_parse:sexpr(Pc1, {eof,Lline}),
+            {error,E,_} = lfe_parse:sexpr(Cont, {eof,LastLine}),
             {error,E};
         {error,E,_} -> {error,E}
     end;
-read_file1([], _, Ss) -> {ok,reverse(Ss)}.
+read_tokens([], _, Ss) -> {ok,lists:reverse(Ss)}.
 
 %% with_token_file(FileName|Fd, DoFunc, Line)
-%%  Open the file, scan all LFE tokens and apply DoFunc on them. If
-%%  file:open fails with badarg then try assuming it is a fd. Note
+%%  Open the file, scan all LFE tokens and apply DoFunc on them. Note
 %%  that a new file starts at line 1.
 
-with_token_file(Name, Do, Line) ->
+with_token_file(Fd, Do, Line) when is_pid(Fd) ->
+    with_token_file_fd(Fd, Do, Line);
+with_token_file(Name, Do, _Line) ->
     case file:open(Name, [read]) of
         {ok,Fd} ->
             with_token_file_fd(Fd, Do, 1);      %Start at line 1
-        {error,badarg} ->
-            %% Could be a fd so use it as it is one.
-            with_token_file_fd(Name, Do, Line);
         {error,Error} -> {error,{none,file,Error}}
     end.
 
 with_token_file_fd(Fd, Do, Line) ->             %Called with a file descriptor
     Ret = case io:request(Fd, {get_until,unicode,'',lfe_scan,tokens,[Line]}) of
-              {ok,Ts,Lline} -> Do(Ts, Lline);
+              {ok,Ts,LastLine} -> Do(Ts, LastLine);
               {error,Error,_} -> {error,Error}
           end,
     file:close(Fd),                             %Close the file
@@ -212,16 +214,13 @@ scan_sexpr_1(Sc0, Pc0, Cs0, L0) ->
             {more,{Sc1,Pc0}}
     end.
 
-%% read_string(String) -> {ok,Sexpr} | {error,Error}.
+%% read_string(String) -> {ok,[Sexpr]} | {error,Error}.
 %%  Read a string.
 
 read_string(Cs) ->
     case lfe_scan:string(Cs, 1) of
         {ok,Ts,L} ->
-            case lfe_parse:sexpr(Ts ++ {eof,L}) of
-                {ok,_,S,_} -> {ok,S};
-                {error,E,_} -> {error,E}
-            end;
+	    read_tokens(Ts, L, []);
         {error,E,_} -> {error,E}
     end.
 

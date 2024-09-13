@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2023 Robert Virding
+%% Copyright (c) 2008-2024 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -37,72 +37,82 @@
 
 -include("lfe.hrl").
 
+%% Exit status.
 -define(OK_STATUS, 0).
 -define(ERROR_STATUS, 127).
+
+%% Default repl to use when none is given.
+-define(DEFAULT_REPL, lfe_shell).
 
 %% Start LFE running a script or the shell depending on arguments.
 
 start() ->
     OTPRelease = erlang:system_info(otp_release),
+    %% Find out which repl/shell we want to use.
+    Repl = case init:get_argument(repl) of
+               {ok, [[R|_]]} -> list_to_atom(R);
+               _Other -> ?DEFAULT_REPL
+           end,
     case collect_args(init:get_plain_arguments()) of
         {[],[]} ->                              %Run a shell
-	    if OTPRelease >= "26" ->
-		    %% The new way 26 and later.
-		    user_drv:start(#{initial_shell => {lfe_shell,start,[]}});
-	       true ->
-		    %% The old way before 26.
-		    user_drv:start(['tty_sl -c -e',{lfe_shell,start,[]}])
-	    end;
-        {Es,Script} ->
-	    if OTPRelease >= "26" ->
-		    %% The new way 26 and later)
-		    user_drv:start(#{initial_shell => noshell});
-	       true ->
-		    %% The old way before 26.
-		    user:start()
-	    end,
-            run_evals_script(Es, Script)
+            if OTPRelease >= "26" ->
+                    %% The new way 26 and later.
+                    user_drv:start(#{initial_shell => {Repl,start,[]}});
+               true ->
+                    %% The old way before 26.
+                    user_drv:start(['tty_sl -c -e',{Repl,start,[]}])
+            end;
+        {Evals,Script} ->
+            if OTPRelease >= "26" ->
+                    %% The new way 26 and later)
+                    user_drv:start(#{initial_shell => noshell});
+               true ->
+                    %% The old way before 26.
+                    user:start()
+            end,
+            run_evals_script(Repl, Evals, Script)
     end.
 
-collect_args([E,S|As]) when E == "-lfe_eval" ; E == "-eval" ; E == "-e" ->
-    {Es,Script} = collect_args(As),
-    {[S] ++ Es,Script};
+collect_args([E,S|Args]) when E == "-lfe_eval" ; E == "-eval" ; E == "-e" ->
+    {Evals,Script} = collect_args(Args),
+    {[S] ++ Evals,Script};
 collect_args([E]) when E == "-lfe_eval" ; E == "-eval" ; E == "-e" ->
     {[],[]};
-collect_args(As) -> {[],As}.                    %Remaining become script
+collect_args(Args) -> {[],Args}.                %Remaining become script
 
-%% run_evals_script(Evals, Script) -> Pid.
+%% run_evals_script(Repl, Evals, Script) -> Pid.
 %%  Firat evaluate all the eval strings if any then the script if
 %%  there is one. The state from the string is past into the
 %%  script. We can handle no strings and no script.
 
-run_evals_script(Evals, Script) ->
-    S = fun () ->
-                St = lfe_shell:run_strings(Evals),
-                case Script of
-                    [F|As] ->
-                        lfe_shell:run_script(F, As, St);
-                    [] -> {[],St}
-                end
-        end,
-    spawn_link(fun () -> run_script(S) end).
+run_evals_script(Repl, Evals, Script) ->
+    Run = fun () ->
+                  St = Repl:run_strings(Evals),
+                  case Script of
+                      [F|As] ->
+                          Repl:run_script(F, As, St);
+                      [] -> {[],St}
+                  end
+          end,
+    spawn_link(fun () -> run_script(Repl, Run) end).
 
-%% run_script(Script)
+%% run_script(Repl, Run)
 %%  Run a script and terminate the erlang process afterwards.
 
-run_script(Script) ->
+run_script(_Repl, Run) ->
     try
-        Script(),                               %Evaluate the script
+        Run(),                                  %Evaluate the evals and script
         %% For some reason we need to wait a bit before stopping.
         timer:sleep(1),
         init:stop(?OK_STATUS)
     catch
         ?CATCH(Class, Error, Stack)
-            Sf = fun ({M,_F,_A,_L}) ->
-                         M /= lfe_eval
-                 end,
-            Ff = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
-            Cs = lfe_lib:format_exception(Class, Error, Stack, Sf, Ff, 1),
+            Skip = fun (M, _F, _A) ->
+                           M =/= lfe_eval
+                   end,
+            Format = fun (T, I) -> lfe_io:prettyprint1(T, 15, I, 80) end,
+            Cs = lfe_error:format_exception(Class, Error, Stack,
+                                            Skip, Format, 1),
             io:put_chars(Cs),
             halt(?ERROR_STATUS)
     end.

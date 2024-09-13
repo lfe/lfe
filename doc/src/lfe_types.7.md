@@ -11,10 +11,10 @@ lfe_types - LFE Types and Functions Specifications
 This is a description of the type syntax.
 
 
-  | LFE type                     | Erlang type                  |
-  |------------------------------|------------------------------|
-  | `(none)`                       | `none()`                       |
+  | LFE type                       | Erlang type                    |
+  |--------------------------------|--------------------------------|
   | `(any)`                        | `any()`                        |
+  | `(none)`                       | `none()`                       |
   | `(atom)`                       | `atom()`                       |
   | `(integer)`                    | `integer()`                    |
   | `(range i1 i2)`                | `I1..I2`                       |
@@ -22,6 +22,7 @@ This is a description of the type syntax.
   | `(bitstring m n)`              | `<<_:M,_:_*N>>`                |
   | `(binary)`                     | `<<_:0,_:_*8>>`                |
   | `(bitstring)`                  | `<<_:0,_:_*1>>`                |
+  | `(nil)`                        | `[]                %% nil`   |
   | `...`                          | `...`                          |
   | `(lambda any <type>)`          | `fun((...) -> <type>)`         |
   | `(lambda () <type>)`           | `fun(() -> <type>)`            |
@@ -52,13 +53,13 @@ used.
 
 ## Type Declarations of User-Defined Types
 
-**(deftype (type-name) type-def)**
+**`(deftype (type-name) type-def)`**
 
-**(defopaque (type-name) type-def)**
+**`(defopaque (type-name) type-def)`**
 
-**(deftype (type-name par1 par2) type-def)**
+**`(deftype (type-name par1 par2) type-def)`**
 
-**(defopaque (type-name par1 par2) type-def)**
+**`(defopaque (type-name par1 par2) type-def)`**
 
 For unparameterised types the parentheses around the type name are
 optional. An example:
@@ -71,7 +72,7 @@ optional. An example:
 
 ## Type Information in Record Declarations
 
-**(defrecord rec (field1 default1 type1) (field2 default2) (field3))**
+**`(defrecord rec (field1 default1 type1) (field2 default2) (field3))`**
 
 Fields with type annotations *MUST* give a default value and fields
 without type annotations get the default type `(any)`.
@@ -80,13 +81,16 @@ without type annotations get the default type `(any)`.
 
 ## Type specifications of User-Defined Functions
 
-**(defspec (func-name arity) function-spec ...)**
+**`(defspec (func-name arity) function-spec ...)`**
 
 where
 
 ```
 function-spec = (arg-type-list ret-type)
 function-spec = (arg-type-list ret-type constraint-list)
+function-spec = #M(arg-types arg-type-list ret-type ret-type)
+function-spec = #M(arg-types arg-type-list ret-type ret-type
+                   contraints constraint-list)
 arg-type-list = (arg-type ...)
 constraint-list = (constraint ...)
 constraint = (var var-type)

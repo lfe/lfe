@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2021 Robert Virding
+%% Copyright (c) 2008-2024 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -1221,18 +1221,18 @@ exp_append(Args) ->
         %% Cases with explicit cons/list/list*.
         [['list*',A]|As] -> exp_append([A|As]);
         [['list*',A|Las]|As] -> [cons,A,exp_append([['list*'|Las]|As])];
-	[[list|Las]|As] -> lists:foldr(ConsList, exp_append(As), Las);
+        [[list|Las]|As] -> lists:foldr(ConsList, exp_append(As), Las);
         [[cons,H,T]|As] -> [cons,H,exp_append([T|As])];
         [[]|As] -> exp_append(As);
-	[A|As] ->
-	    case lfe_lib:is_posint_list(A) of
-		true ->
-		    lists:foldr(ConsList, exp_append(As), A);
-		false ->
-		    if As =:= [] -> A;
-		       true -> exp_bif('++', [A,exp_append(As)])
-		    end
-	    end;
+        [A|As] ->
+            case lfe_lib:is_posint_list(A) of
+                true ->
+                    lists:foldr(ConsList, exp_append(As), A);
+                false ->
+                    if As =:= [] -> A;
+                       true -> exp_bif('++', [A,exp_append(As)])
+                    end
+            end;
         [] -> []
     end.
 
@@ -1304,17 +1304,25 @@ exp_andalso([]) -> ?Q(true).
 %% exp_defmodule(Rest) -> {Meta,Attributes}.
 %%  Extract the comment string if it is first, then split the rest
 %%  into meta data or attributes deepending on the tag. The order is
-%%  preserved in both cases.
+%%  preserved in both cases. We do the same expansion of the specs as
+%%  is done in defspec.
 
-exp_defmodule([Doc|Rest]) ->
-    {Meta,Attr} = ?IF(lfe_lib:is_doc_string(Doc), {[[doc,Doc]],[]}, {[],[Doc]}),
-    Fun = fun ([Tag|_]=R, {Me,As}) ->
+exp_defmodule([Doc|More]=Rest0) ->
+    Rest1 = ?IF(lfe_lib:is_doc_string(Doc), [[doc,Doc]|More], Rest0),
+    Fun = fun ([spec|Specs0], {Me,As}) ->
+                  Sfun = fun ([Func|Spec]) ->
+                                 {Sfunc,Def} = exp_defspec(Func, Spec),
+                                 [Sfunc,Def]
+                         end,
+                  Specs1 = lists:map(Sfun, Specs0),
+                  {Me ++ [[spec|Specs1]],As};
+              ([Tag|_]=R, {Me,As}) ->
                   case is_meta_tag(Tag) of
                       true -> {Me ++ [R],As};
                       false -> {Me,As ++ [R]}
                   end
           end,
-    lists:foldl(Fun, {Meta,Attr}, Rest);
+    lists:foldl(Fun, {[],[]}, Rest1);
 exp_defmodule([]) -> {[],[]}.
 
 is_meta_tag(doc) -> true;
@@ -1342,6 +1350,11 @@ exp_defspec(Name, Def) ->
 %%  Just return the length of the first arg list and let lint check
 %%  properly later.
 
+defspec_arity([#{'arg-types' := Args}|_]) ->
+    case lfe_lib:is_proper_list(Args) of
+        true -> length(Args);
+        false -> 0
+    end;
 defspec_arity([[Args|_]|_]) ->
     case lfe_lib:is_proper_list(Args) of
         true -> length(Args);

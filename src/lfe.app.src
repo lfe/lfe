@@ -15,12 +15,12 @@
 
 {application, lfe,
  [{description, "Lisp Flavored Erlang (LFE)"},
-  {vsn, "2.1.4"},
+  {vsn, "2.1.5"},
   {modules,[cl,clj,lfe,lfe_abstract_code,lfe_bits,lfe_codegen,
             lfe_codelift,lfe_comp,lfe_docs,lfe_edlin_expand,
-            lfe_env,lfe_eval,lfe_eval_bits,lfe_gen,lfe_init,
-            lfe_internal,lfe_io,lfe_io_format,lfe_io_pretty,
-            lfe_io_write,lfe_lib,lfe_lint,lfe_macro,
+            lfe_env,lfe_error,lfe_eval,lfe_eval_bits,lfe_gen,
+            lfe_init,lfe_internal,lfe_io,lfe_io_format,
+            lfe_io_pretty,lfe_io_write,lfe_lib,lfe_lint,lfe_macro,
             lfe_macro_export,lfe_macro_include,lfe_macro_record,
             lfe_macro_struct,lfe_ms,lfe_parse,lfe_qlc,lfe_scan,
             lfe_shell,lfe_shell_docs,lfe_struct,lfe_translate,
@@ -29,10 +29,11 @@
   {applications, [kernel,stdlib,compiler]},
 
   %% Project metadata
-  {licenses, ["Apache 2.0"]},
+  {licenses, ["Apache-2.0"]},
   {links, [{"Github", "https://github.com/lfe/lfe"},
            {"Main site", "https://lfe.io/"},
            {"Documentation", "https://lfe.io/use/#reference"}]},
-  {files, ["README.md", "LICENSE", "src", "c_src", "include", "bin",
+  {files, ["README.md", "LICENSE", "src", "doc", "include", "test",
+           "examples", "bin", "c_src",
            "rebar.*",  "*akefile", "*.escript"]}
  ]}.

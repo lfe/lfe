@@ -25,7 +25,7 @@ jobs:
       image: erlang:${{ matrix.otp-version }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Erlang version check
       run: erl -noshell -eval 'erlang:display(erlang:system_info(system_version))' -eval 'init:stop()'
     - name: Rebar version check
@@ -54,7 +54,7 @@ jobs:
       image: erlang:${{ matrix.otp-version }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Erlang version check
       run: erl -noshell -eval 'erlang:display(erlang:system_info(system_version))' -eval 'init:stop()'
     - name: Compile (with make)
@@ -70,14 +70,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        otp-version: ['19', '20', '21']
+        #otp-version: ['19', '20', '21']
+        otp-version: ['20', '21']
         os: ['ubuntu-20.04']
 
     container:
       image: erlang:${{ matrix.otp-version }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Erlang version check
       run: erl -noshell -eval 'erlang:display(erlang:system_info(system_version))' -eval 'init:stop()'
     - name: Rebar version check
@@ -99,14 +100,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        otp-version: ['19', '20', '21']
+        #otp-version: ['19', '20', '21']
+        otp-version: ['20', '21']
         os: ['ubuntu-20.04']
 
     container:
       image: erlang:${{ matrix.otp-version }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Erlang version check
       run: erl -noshell -eval 'erlang:display(erlang:system_info(system_version))' -eval 'init:stop()'
     - name: Compile (with make)
