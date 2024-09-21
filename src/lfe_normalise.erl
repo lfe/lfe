@@ -41,6 +41,8 @@
 %% [on_load,Line,Function]
 %% [nifs,Line,Nifs]
 %%
+%% The other predefined norms can come anywhere.
+%%
 %% ['export-type',Line,Types]
 %% ['module-alias',Line,Aliases]
 %% [struct,Line,Fields]
@@ -49,16 +51,15 @@
 %% ['eval-when-compile',Body]
 %% ['export-macro',Line,all | Exports]
 %%
-%% [attribute,Line,Name,Value]          General attribute norm
+%% And the attributes, predefined and general
 %%
-%% The predefined attributes which can come together with functions.
-%%
-%% [doc,Line,Docs]                      27?
+%% [doc,Line,Docs]                      Special handling in 27+
 %% [type,Line,Type,Def]
 %% [opaque,Line,Type,Def]
 %% [spec,Line,Function,Specs]
 %% [record,Line,Name,Fields]
-%% [define,Line,Macro,Definition]       Erlang macro definition?
+%%
+%% [attribute,Line,Name,Value]          General attribute norm
 
 -module(lfe_normalise).
 
@@ -134,7 +135,10 @@ form({['define-module',Name,Metas,Attrs],Line}, St0) ->
 form({['extend-module',Metas,Attrs],Line}, St0) ->
     {AttrDefs,St1} = module_attributes(Metas, Attrs, Line, St0),
     {AttrDefs,St1};
-%% export and import are handled in the attributes.
+%% We even allow an explicit module form here.
+form({['module',Name],Line}, St) ->
+    {[['module',Line,Name]],St#lfe_norm{module=Name}};
+%% Export and import are handled in the attributes.
 form({['define-type',Type,Def],Line},St) ->
     {[['type',Line,Type,Def]],St};
 form({['define-opaque-type',Type,Def],Line}, St) ->

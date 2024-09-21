@@ -97,7 +97,7 @@ compile_module(Mfs, St0) ->
       Exp |
       PreDef] ++ Rest ++ StrFuncs ++ InfoFuncs,St3}.
 
-%% compile_forms(Forms, State) -> {Predefs,Rest,State}.
+%% compile_forms(Form, Forms, State) -> {Predefs,Rest,State}.
 %% compile_form(Forms, State) -> {Predefs,Rest,State}.
 %%  Compile the forms into Erlang separating the PreDefs, those which
 %%  must be first in the module definition, and the others which can
@@ -111,6 +111,9 @@ compile_module(Mfs, St0) ->
 %%               end,
 %%     {PreDef,Rest,St1} = lists:foldl(Compile, {[],[],St0}, Forms),
 %%     {PreDef,Rest,St1}.
+
+%% This version of compile_forms/compile_form can handle special cases
+%% where would like to check the following form.
 
 compile_forms(Forms, St) ->
     compile_forms(Forms, [], [], St).
@@ -296,16 +299,12 @@ export_functions(#lfe_cg{exports=Exps}) ->
     Exps.                                       %Already in right format
 
 %% make_doc_attribute(Docs, Line, State) -> {PreDef,Rest,State}.
-%%  Where we add the doc depends on whether we are running OTP 27 and
-%%  later or not as this affects how the doc is interpreted.
+%%  We always leave the doc where it is.
+%%  (Where we add the doc depends on whether we are running OTP 27 and
+%%   later or not as this affects how the doc is interpreted.)
 
--ifdef(OTP27_DOCS).
 make_doc_attribute(Docs, Line, St) ->
     {[],[make_attribute(doc, Docs, Line)],St}.
--else.
-make_doc_attribute(Docs, Line, St) ->
-    {[make_attribute(doc, Docs, Line)],[],St}.
--endif.
 
 %% build_struct_def(State) -> State.
 %% build_info_func(State) -> State.
