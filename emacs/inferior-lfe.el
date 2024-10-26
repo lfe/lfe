@@ -81,6 +81,12 @@ If yes, then there will be a prompt on starting inferior-lfe
 to choose whether to run the lfe process using rebar3,
 else lfe will be run as usual.")
 
+(defvar inferior-lfe-check-if-mix-project nil
+  "*Checks if there is a `mix.exs' file within the directory.
+If yes, then there will be a prompt on starting `inferior-lfe'
+to choose whether to run the LFE process using Mix,
+else LFE will be run as usual.")
+
 ;;;###autoload
 (defun inferior-lfe-mode ()
   "Major mode for interacting with an inferior LFE process.
@@ -125,6 +131,17 @@ Return nil if `STR` matches `inferior-lfe-filter-regexp', otherwise t."
                           ("no" ?n "use regular lfe")))
            "yes"))
 
+(defun inferior-lfe--is-mix-project ()
+  "Return the project root directory if a mix.exs file is found."
+  (locate-dominating-file default-directory "mix.exs"))
+
+(defun inferior-lfe--start-mix-lfe ()
+  "Prompt the user whether to start LFE using Mix."
+  (string= (read-answer "Mix project detected. Start LFE REPL using Mix? "
+                        '(("yes" ?y "use mix")
+                          ("no" ?n "use regular LFE")))
+           "yes"))
+
 ;;;###autoload
 (defun inferior-lfe ()
   "Run an inferior LFE process, input and output via a buffer `*inferior-lfe*'.
@@ -135,14 +152,23 @@ and can choose to run lfe using rebar3."
   (let ((prog inferior-lfe-program)
         (opts (append inferior-lfe-program-options
                       '("-env" "TERM" "vt100")))
-        (rebar-project-root (inferior-lfe--is-rebar-project)))
-    (when (and inferior-lfe-check-if-rebar-project
-               rebar-project-root
-               (inferior-lfe--start-rebar-lfe))
+        (rebar-project-root (inferior-lfe--is-rebar-project))
+        (mix-project-root (inferior-lfe--is-mix-project)))
+    (cond
+     ((and inferior-lfe-check-if-rebar-project
+           rebar-project-root
+           (inferior-lfe--start-rebar-lfe))
       (setq prog "sh"
             opts (list "-i" "-c" (concat "TERM=\"vt100\";"
                                          (format "cd %s" rebar-project-root)
                                          "; rebar3 lfe repl"))))
+     ((and inferior-lfe-check-if-mix-project
+           mix-project-root
+           (inferior-lfe--start-mix-lfe))
+      (setq prog "sh"
+            opts (list "-i" "-c" (concat "TERM=\"vt100\";"
+                                         (format "cd %s" mix-project-root)
+                                         "; mix lfe repl")))))
     (unless (comint-check-proc "*inferior-lfe*")
       (set-buffer (apply (function make-comint)
                          "inferior-lfe" prog nil opts))
