@@ -70,7 +70,7 @@
 -define(ARGSVAR, '|- CALL ARGS -|').
 
 %% Define the macro data.
--record(umac, {mline=[],                        %expand-macro on line
+-record(umac, {mline=[],                        %Module define line
                expm=[],                         %Macros to export
                env=[],                          %LFE env to store macros
                uleem=false                      %Do we have user defined LEEM?

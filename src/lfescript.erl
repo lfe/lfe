@@ -81,9 +81,10 @@ run([], _) ->
 parse_check_run(File, Args, Lopts) ->
     Fs0 = parse_file(File, Args, Lopts),
     {Fs1,Fenv0} = expand_macros(Fs0, File, Args, Lopts),
-    check_code(Fs1, File, Args, Lopts),
+    Norms = normalise_code(Fs1, File, Args, Lopts),
+    check_code(Norms, File, Args, Lopts),
     lists:member("s", Lopts) andalso halt(?OK_STATUS),
-    Fenv1 = make_env(Fs1, Fenv0, File, Args, Lopts),
+    Fenv1 = make_env(Norms, Fenv0, File, Args, Lopts),
     eval_code(Fenv1, File, Args, Lopts),
     halt(?OK_STATUS).                %Everything worked, just exit
 
@@ -118,29 +119,12 @@ parse_file(File, _, _) ->
 
 parse_file(File) ->
     case file:open(File, [read]) of
-        {ok,F} ->
-            io:get_line(F, ''),                 %Skip first line
-            case io:request(F, {get_until,unicode,'',lfe_scan,tokens,[2]}) of
-                {ok,Ts,_} ->
-                    Ret = parse_file1(Ts, [], []),
-                    file:close(F),
-                    Ret;
-                {error,Error,_} -> {error,Error}
-            end;
-        {error,Error} -> {error,{none,file,Error}}
+        {ok,Fd} ->
+            io:get_line(Fd, ''),                %Skip first line
+            lfe_io:parse_file(Fd, 2);
+        {error,Error} ->
+            {error,{none,file,Error}}
     end.
-
-parse_file1([_|_]=Ts0, Pc0, Ss) ->
-    case lfe_parse:sexpr(Pc0, Ts0) of
-        {ok,L,S,Ts1} -> parse_file1(Ts1, [], [{S,L}|Ss]);
-        {more,Pc1} ->
-            %% Need more tokens but there are none, so call again to
-            %% generate an error message.
-            {error,E,_} = lfe_parse:sexpr(Pc1, {eof,99999}),
-            {error,E};
-        {error,E,_} -> {error,E}
-    end;
-parse_file1([], _, Ss) -> {ok,lists:reverse(Ss)}.
 
 %% expand_macros(Forms, File, Args, Lopts) -> {Forms,Fenv}.
 
@@ -152,13 +136,24 @@ expand_macros(Fs0, File, _, _) ->
         {error,Es,Ws} -> error_exit(File, Es, Ws)
     end.
 
-%% check_code(Forms, File, Args, Lopts) -> ok.
+%% normalise_code(Forms, File, Args, Lopts) -> Norms.
+
+normalise_code(Forms, File, _Args, _Lopts) ->
+    Module = [{['define-module',dummy,[],[[export,[main,1]]]],1} | Forms],
+    case lfe_normalise:module(Module) of
+        {ok,dummy,Norms,Ws} ->
+            list_warnings(File, Ws),
+            Norms;
+        {error,Es,Ws} ->
+            error_exit(File, Es, Ws)
+    end.
+
+%% check_code(Norms, File, Args, Lopts) -> ok.
 %%  Call lfe_lint to check the code. Must create a dummy module to
 %%  make lfe_lint happy.
 
-check_code(Fs, File, _, _) ->
-    Module = [{['define-module',dummy,[],[[export,[main,1]]]],1}|Fs],
-    case lfe_lint:module(Module) of
+check_code(Norms, File, _, _) ->
+    case lfe_lint:module(Norms) of
         {ok,dummy,Ws} ->
             list_warnings(File, Ws);
         {error,Es,Ws} -> error_exit(File, Es, Ws)
@@ -167,20 +162,17 @@ check_code(Fs, File, _, _) ->
 %% make_env(Forms, File, Args, Lopts) -> FunctionEnv.
 
 make_env(Forms, Fenv, _, _, _) ->
-    {Fbs,null} = lfe_lib:proc_forms(fun collect_function/3, Forms, null),
+    F = fun ([function,_Line,Name,Def], Fs) ->
+                Ar = function_arity(Def),
+                Fs ++ [{Name,Ar,Def}];
+            (_Other, Fs) ->
+                Fs
+        end,
+    Fbs = lists:foldl(F, [], Forms),
     lfe_eval:make_letrec_env(Fbs, Fenv).
-
-collect_function(['define-function',F,_Meta,Def], _, St) ->
-    Ar = function_arity(Def),
-    {[{F,Ar,Def}],St};
-%% Ignore everything else including types and eval-when-compile.
-collect_function(_Form, _, St) ->
-    {[],St}.
-
 
 function_arity([lambda,As|_]) -> length(As);
 function_arity(['match-lambda',[Pats|_]|_]) -> length(Pats).
-
 
 %% eval_code(Fenv, File, Args, Lopts) -> Res.
 %%  Evaluate the code. We must explicitly catch and handle errors in
