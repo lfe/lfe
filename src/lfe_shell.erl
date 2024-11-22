@@ -570,8 +570,8 @@ slurp([File], St0) ->
 
 slurp_1(Name, Ce) ->
     case slurp_file(Name) of
-        {ok,Mod,Fs,Env0,Ws} ->
-            slurp_warnings(Ws),
+        {ok,Mod,Fs,Env0,Mws} ->
+            slurp_warnings(Mws),
             %% Collect functions and imports.
             Sl0 = #slurp{mod=Mod,funs=[],imps=[],recs=[]},
             Sl1 = lists:foldl(fun collect_module/2, Sl0, Fs),
@@ -591,9 +591,9 @@ slurp_1(Name, Ce) ->
                                  lfe_env:add_record(R, Rfs, Env)
                          end, Env2, Sl1#slurp.recs),
             {ok,Mod,lfe_env:add_env(Env3, Ce)};
-        {error,Mews,Es,Ws} ->
-            slurp_errors(Es),
-            slurp_warnings(Ws),
+        {error,Mews,Fes,Fws} ->
+            slurp_errors(Fes),
+            slurp_warnings(Fws),
             %% Now the errors and warnings for each module.
             foreach(fun ({error,Mes,Mws}) ->
                             slurp_errors(Mes),
@@ -602,67 +602,45 @@ slurp_1(Name, Ce) ->
             error
     end.
 
+%% slurp_file(FileName) ->
+%%     {ok,Mod,Forms,Env,Warnings} | {error,[ModErrsWarns],Errors,Warnings}.
+%%  We are only interested in the code from the first module but
+%%  errors from the whole file.
+
 slurp_file(Name) ->
-    case lfe_comp:file(Name, [binary,to_split,return]) of
-        {ok,[{ok,Mod,Fs0,_}|_],Ws} ->           %Only do first module
-            %% Deep expand, don't keep everything.
-            case lfe_macro:expand_fileforms(Fs0, lfe_env:new(), true, false) of
-                {ok,Fs1,Env,_} ->
-                    %% Flatten and trim away any eval-when-compile.
-                    {Fs2,42} = lfe_lib:proc_forms(fun slurp_form/3, Fs1, 42),
-                    case lfe_lint:module(Fs2) of
-                        {ok,_,Lws} -> {ok,Mod,Fs2,Env,Ws ++ Lws};
-                        {error,Les,Lws} ->
-                            slurp_error_ret(Name, Les, Ws ++ Lws)
-                    end;
-                {error,Ees,Ews} ->
-                    slurp_error_ret(Name, Ees, Ws ++ Ews)
-            end;
-        Error -> Error
+    case lfe_comp:file(Name, [binary,to_lint,return]) of
+	{ok,[{ok,Mod,Forms,Mws} | _],_Warns} ->
+            Env = lfe_env:new(),
+	    {ok,Mod,Forms,Env,Mws};
+        Error ->
+            Error
     end.
 
-slurp_error_ret(Name, Es, Ws) ->
-    {error,[],[{Name,Es}],[{Name,Ws}]}.
-
-slurp_form(['eval-when-compile'|_], _, D) -> {[],D};
-slurp_form(F, L, D) -> {[{F,L}],D}.
-
-collect_module({['define-module',Mod,Meta,Atts],_}, Sl0) ->
-    Sl1 = collect_meta(Meta, Sl0),
-    Sl2 = collect_attrs(Atts, Sl1),
-    Sl2#slurp{mod=Mod};
-collect_module({['extend-module',Meta,Atts],_}, Sl0) ->
-    Sl1 = collect_meta(Meta, Sl0),
-    collect_attrs(Atts, Sl1);
-collect_module({['define-function',F,_Meta,Def],_}, #slurp{funs=Fs}=Sl) ->
+collect_module([module,_Line,Mod], Sl) ->
+    Sl#slurp{mod=Mod};
+collect_module([record,_Line,Rec,Fields], #slurp{recs=Recs}=Sl) ->
+    Sl#slurp{recs=[{Rec,Fields}|Recs]};
+collect_module([import,_Line,Imports], Sl) ->
+    collect_imports(Imports, Sl);
+collect_module([function,_Line,Func,Def], #slurp{funs=Funcs}=Sl) ->
     Ar = function_arity(Def),
-    Sl#slurp{funs=[{F,Ar,Def}|Fs]};
-collect_module({['define-record',R,Fs],_}, #slurp{recs=Rs}=Sl) ->
-    Sl#slurp{recs=[{R,Fs}|Rs]};
+    Sl#slurp{funs=[{Func,Ar,Def}|Funcs]};
 %% Ignore other forms, type and spec defs.
-collect_module({_,_}, Sl) ->
+collect_module(_Form, Sl) ->
     Sl.
 
-collect_meta(_, St) -> St.
+collect_imports(Is, St) ->
+    foldl(fun (I, S) -> collect_import(I, S) end, St, Is).
 
-collect_attrs([[import|Is]|Atts], St) ->
-    collect_attrs(Atts, collect_imps(Is, St));
-collect_attrs([_|Atts], St) ->                  %Ignore everything else
-    collect_attrs(Atts, St);
-collect_attrs([], St) -> St.
-
-collect_imps(Is, St) ->
-    foldl(fun (I, S) -> collect_imp(I, S) end, St, Is).
-
-collect_imp(['from',Mod|Fs], St) ->
-    collect_imp(fun ([F,A], Imps) -> store({F,A}, F, Imps) end,
+collect_import(['from',Mod|Fs], St) ->
+    collect_import(fun ([F,A], Imps) -> store({F,A}, F, Imps) end,
                 Mod, St, Fs);
-collect_imp(['rename',Mod|Rs], St) ->
-    collect_imp(fun ([[F,A],R], Imps) -> store({F,A}, R, Imps) end,
+collect_import(['rename',Mod|Rs], St) ->
+    collect_import(fun ([[F,A],R], Imps) -> store({F,A}, R, Imps) end,
                 Mod, St, Rs);
-collect_imp(_, St) -> St.                       %Ignore everything else
+collect_import(_, St) -> St.                       %Ignore everything else
 
-collect_imp(Fun, Mod, St, Fs) ->
+collect_import(Fun, Mod, St, Fs) ->
     Imps0 = safe_fetch(Mod, St#slurp.imps, []),
     Imps1 = foldl(Fun, Imps0, Fs),
     St#slurp{imps=store(Mod, Imps1, St#slurp.imps)}.

@@ -237,7 +237,7 @@ Other commands:
        (regexp-opt '("is_atom" "is_binary" "is_bitstring" "is_boolean"
                      "is_float" "is_function" "is_integer" "is_list"
                      "is_map" "is_number" "is_pid" "is_port"
-                     "is_record" "is_reference" "is_tuple") t)
+                     "is_record" "is_reference" "is_tuple" "is_struct") t)
        "\\>")
       1 'font-lock-builtin-face)
 
@@ -257,7 +257,10 @@ Other commands:
                      "cdaar" "cddar" "cdadr" "cdddr"
                      "function" "list" "list*"
                      "map" "mref" "mset" "mupd"
-                     "map-get" "map-set" "map-update") t)
+                     "map-get" "map-set" "map-update"
+                     "record" "make-record" "record-index"
+                     "record-field" "record-update"
+                     "struct" "struct-field" "struct-update") t)
        "\\>")
       1 'font-lock-builtin-face)
      ))

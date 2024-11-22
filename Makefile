@@ -119,7 +119,7 @@ emacs:
 	cd $(EMACSDIR) ; \
 	emacs -L . -batch -f batch-byte-compile inferior-lfe.el lfe-mode.el lfe-indent.el
 
-comp_opts.mk:
+comp_opts.mk: get_comp_opts.escript
 	escript get_comp_opts.escript
 
 -include comp_opts.mk
