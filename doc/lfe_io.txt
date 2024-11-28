@@ -9,10 +9,10 @@ SYNOPSIS
        vice.   If  included, it must be the pid of a process which handles the
        IO protocols such as the IoDevice returned by file:open/2.
 
-       Two functions in this module are used to  generateÅ  aesthetically  at‐
-       tractive  representations  of  abstract  forms,  which are suitable for
-       printing.  These functions return (possibly deep) lists  of  characters
-       and generate an error if the form is wrong.
+       Two functions in this module are used to generate aesthetically attrac‐
+       tive representations of abstract forms, which are suitable  for  print‐
+       ing.   These  functions  return (possibly deep) lists of characters and
+       generate an error if the form is wrong.
 
 DATA TYPES
        chars() = [char() | chars()]
@@ -21,7 +21,7 @@ DATA TYPES
 
        filesexpr() = {Sexpr,Line}
 
-       This  is  the format returned by lfe_io:parse_file/1 and is used by the
+       This is the format returned by lfe_io:parse_file/1 and is used  by  the
        compiler to give better error information.
 
 EXPORTS
@@ -31,8 +31,8 @@ EXPORTS
 
        get_line(IoDevice, Prompt) -> Data | {error, ErrorInfo} | eof
 
-       Reads a line from the standard  input  (IoDevice),  prompting  it  with
-       prompt  (Prompt).   Note  that  this  call guarantees that the input is
+       Reads  a  line  from  the  standard input (IoDevice), prompting it with
+       prompt (Prompt).  Note that this call  guarantees  that  the  input  is
        saved in the input hisotry.
 
        read() -> {ok, Sexpr} | {error, ErrorInfo} | eof
@@ -41,7 +41,7 @@ EXPORTS
 
        read(IoDevice, Prompt) -> {ok, Sexpr} | {error, ErrorInfo} | eof
 
-       Read an s-expr  from  the  standard  input  (IoDevice)  with  a  prompt
+       Read  an  s-expr  from  the  standard  input  (IoDevice)  with a prompt
        (Prompt).  Note that this is not line-oriented in that it stops as soon
        as it has consumed enough characters.
 
@@ -51,7 +51,7 @@ EXPORTS
 
        read_line(IoDevice, Prompt) -> {ok, Sexpr} | {error, ErrorInfo} | eof
 
-       Read  the first s-expr from the standard input (IoDevice) with a prompt
+       Read the first s-expr from the standard input (IoDevice) with a  prompt
        (Prompt).  Note that this is line-oriented in that it reads whole lines
        discarding left-over characters in the last line.
 
@@ -116,7 +116,7 @@ EXPORTS
 
        • ~c, ~n, ~i
 
-       Currently they behave as for vanilla erlang except that ~w, ~W, ~p,  ~P
+       Currently  they behave as for vanilla erlang except that ~w, ~W, ~p, ~P
        print the terms as LFE sexprs.
 
        format1(Format, Args) -> DeepCharList
@@ -129,7 +129,7 @@ EXPORTS
 
        read_file(FileName|Fd, Line) -> {ok, [Sexpr]} | {error, ErrorInfo}
 
-       Read  the file Filename or the already opened file’s file descriptor Fd
+       Read the file Filename or the already opened file’s file descriptor  Fd
        returning a list of s-exprs.
 
        parse_file(FileName|Fd) -> {ok, [FileSexpr]} | {error, ErrorInfo}
@@ -140,8 +140,8 @@ EXPORTS
 
        FileSexpr = filesexpr()
 
-       Read the file Filename or the already opened file’s file descriptor  Fd
-       returning  a  list  of  pairs  containing s-expr and line number of the
+       Read  the file Filename or the already opened file’s file descriptor Fd
+       returning a list of pairs containing s-expr  and  line  number  of  the
        start of the s-expr.
 
        scan_sexpr(Cont, Chars) -> {done, Ret, RestChars} | {more, Cont1}
@@ -149,14 +149,14 @@ EXPORTS
        scan_sexpr(Cont, Chars, Line) -> {done, Ret, RestChars} | {more, Cont1}
 
        This is a re-entrant call which scans tokens from the input and returns
-       a parsed sepxr.  If there are enough characters to parse a sexpr or  it
-       detects  and  error  then  it  returns  {done,...} otherwise it returns
+       a  parsed sepxr.  If there are enough characters to parse a sexpr or it
+       detects and error then  it  returns  {done,...}  otherwise  it  returns
        {more,Cont} where Cont is used in the next call to scan_sexpr with more
-       characters to try and parse a sexpr.  This is continued until  a  sexpr
+       characters  to  try and parse a sexpr.  This is continued until a sexpr
        has been parsed.  Cont is initially [].
 
-       It  is  not  designed  to be called directly by an application but used
-       through the i/o system where it can typically be called in an  applica‐
+       It is not designed to be called directly by  an  application  but  used
+       through  the i/o system where it can typically be called in an applica‐
        tion by:
 
        io:request(In, {get_until,unicode,Prompt,Module,scan_sexpr,[Line]})

@@ -1,6 +1,6 @@
 % lfe_guide(7)
 % Robert Virding
-% 2008-2020
+% 2008-2024
 
 
 # NAME
@@ -366,6 +366,9 @@ while it reads the expression and then be effectively ``2``.
 # Supported forms
 ## Core forms
 
+The ``define-XXX`` and ``extend-XXX`` forms are only valid when used
+at the top-level in a file.
+
 ```
 (quote e)
 (cons head tail)
@@ -423,14 +426,14 @@ while it reads the expression and then be effectively ``2``.
 (funcall func arg ... )
 (call mod func arg ... )    - Call to Mod:Func(Arg, ... )
 
-(define-record name fields)
+(define-record name fields)                   - Defines a record
 (record name field val ...)
 (is-record record name)
 (record-index name field)
 (record-field record name field)
 (record-update record name field val ...)
 
-(define-struct fields)
+(define-struct fields)                        - Defines a struct
 (struct mod-name field val ...)
 (is-struct struct)
 (is-struct struct name)

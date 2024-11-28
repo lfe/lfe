@@ -1,6 +1,6 @@
 % lfe_types(7)
 % Robert Virding
-% 2021
+% 2024
 
 # NAME
 
@@ -64,11 +64,9 @@ used.
 For unparameterised types the parentheses around the type name are
 optional. An example:
 
-```
-(deftype foo (tuple 'foo (integer) (list)))
+**`(deftype foo (tuple 'foo (integer) (list)))`**
 
-(deftype bar (tuple 'bar (integer) (list)))
-```
+**`(deftype bar (tuple 'bar (integer) (list)))`**
 
 ## Type Information in Record Declarations
 
@@ -132,7 +130,6 @@ parentheses to make it easier to see the function arguments.
 
 # Types and function specifications in the module definition
 
-
 Types can also be defined in the module declaration, for example:
 
 ```
@@ -141,6 +138,30 @@ Types can also be defined in the module declaration, for example:
   (type ((foo-type) (tuple 'foo (integer) (list)))
         ((bar-type) (tuple 'bar (integer) (list))))
   (spec ((foo 1) ([(integer)] (foo-type)))
-        ((id 1) ([x] x ((x (tuple))))))
+        ((bar 1) ([(atom)] (list))
+                 ([(list)] (atom))))
   ...)
 ```
+# NEW FORMS
+
+This older style of `defmodule` can now be written in a new style
+with the type and spec forms at the top level in a more basic
+form. The examples shown in `defmodule` can now be written at the
+top-level like:
+
+```
+(module this-module)
+...
+(type foo-type (tuple 'foo (integer) (list)))
+(type (bar-type) (tuple 'bar (integer) (list)))
+
+(spec (foo 1) ([(integer)] (foo-type)))
+(spec (bar 1) ([(atom)] (list))
+              ([(list)] (atom)))
+...
+```
+These forms are equivalent to using `deftype` and `defspec`.
+
+The current `defmodule` with its definitions of types and function
+specs and the current macros `deftype`, `defopaque` and `defspec` are
+still allowed and work as expected.
