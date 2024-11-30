@@ -1,3 +1,4 @@
+%% -*- mode: erlang; indent-tabs-mode: nil -*-
 %% Copyright (c) 2008-2024 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
@@ -100,6 +101,8 @@ format_error({missing_struct_field_value,Field}) ->
 format_error({bad_generator,Gen}) ->
     format_value(Gen, <<"bad generator ">>);
 %% Everything we don't recognise or know about.
+format_error({not_yet_implemented,Form}) ->
+    lfe_io:format1(<<"not yet implemented ~w">>, [Form]);
 format_error(Error) ->
     lfe_io:prettyprint1(Error).
 
@@ -279,6 +282,8 @@ eval_expr(['if'|Body], Env) ->
     eval_if(Body, Env);
 eval_expr(['case'|Body], Env) ->
     eval_case(Body, Env);
+eval_expr(['maybe'|Body], Env) ->
+    eval_maybe(Body, Env);
 eval_expr(['receive'|Body], Env) ->
     eval_receive(Body, Env);
 eval_expr(['catch'|Body], Env) ->
@@ -731,6 +736,8 @@ bind_args([], [], Env) -> Env;
 bind_args(_As, _Vs, _Env) ->
     eval_error(bad_head_arity).
 
+%% match_lambda_arity(Clauses) -> Arity.
+
 match_lambda_arity([[Pats|_]|Cls]) ->
     case lfe_lib:is_proper_list(Pats) of
         true -> match_lambda_arity(Cls, length(Pats));
@@ -744,6 +751,8 @@ match_lambda_arity([[Pats|_]|Cls], Ar) ->
     end;
 match_lambda_arity([], Ar) -> Ar;
 match_lambda_arity(_, _) -> bad_form_error('match-lambda').
+
+%% apply_match_lambda(Clauses, Values, Env) -> Value.
 
 apply_match_lambda([[Pats|B0]|Cls], Vals, Env) ->
     if length(Vals) == length(Pats) ->
@@ -762,23 +771,26 @@ apply_match_lambda(_, _, _) -> bad_form_error('match-lambda').
 %% eval_let([PatBindings|Body], Env) -> Value.
 
 eval_let([Vbs|Body], Env0) ->
+    Env1 = eval_let_vbs(Vbs, Env0),
+    eval_body(Body, Env1).
+
+eval_let_vbs(Vbs, Env0) ->
     %% Make sure we use the right environment.
     Fun = fun ([Pat,E], Env) ->
                   Val = eval_expr(E, Env0),
                   case match(Pat, Val, Env0) of
                       {yes,Bs} -> lfe_env:add_vbindings(Bs, Env);
-                      no -> eval_error({badmatch,Val})
+                      no -> badmatch_error(Val)
                   end;
               ([Pat,['when'|_]=G,E], Env) ->
                   Val = eval_expr(E, Env0),
                   case match_when(Pat, Val, [G], Env0) of
                       {yes,[],Bs} -> lfe_env:add_vbindings(Bs, Env);
-                      no -> eval_error({badmatch,Val})
+                      no -> badmatch_error(Val)
                   end;
               (_, _) -> bad_form_error('let')
           end,
-    Env1 = lists:foldl(Fun, Env0, Vbs),
-    eval_body(Body, Env1).
+   lists:foldl(Fun, Env0, Vbs).
 
 %% eval_let_function([FuncBindings|Body], Env) -> Value.
 
@@ -922,6 +934,61 @@ match_clause(V, [[Pat|B0]|Cls], Env) ->
         no -> match_clause(V, Cls, Env)
     end;
 match_clause(_, [], _) -> no.
+
+%% eval_maybe(Body, Env) -> Value.
+%%  We need to handle ?= in nested lets as well as LFE only supports
+%%  binding variables in let.
+
+eval_maybe(Body, Env0) ->
+    %% Check the basic list format here.
+    lfe_lib:is_proper_list(Body) orelse bad_form_error('maybe'),
+    {Mes,Else} = eval_maybe_else(Body),
+    Env1 = lfe_env:add_vbinding('-else-', Else, Env0),
+    eval_maybe_body(Mes, Env1).
+
+eval_maybe_body([['?=',Pat,E] | Mes], Env) ->
+    eval_maybe_match(Pat, E, Mes, Env);
+eval_maybe_body([['let',Vbs|Body] | Mes], Env) ->
+    %% We must handle the let ourselves.
+    eval_maybe_let(Vbs, Body, Mes, Env);
+eval_maybe_body([E], Env) ->
+    %% Must return value of last expression.
+    eval_expr(E, Env);
+eval_maybe_body([E | Mes], Env) ->
+    eval_expr(E, Env),
+    eval_maybe_body(Mes, Env);
+eval_maybe_body([], _Env) -> [].
+
+eval_maybe_match(Pat, E, Mes0, Env0) ->
+    Val = eval_expr(E, Env0),
+    %% Can we match the pattern?
+    case match(['=',Pat,'-match-value-'], Val, Env0) of
+        {yes,Vbs} ->
+            %% Evaluate the rest of the body.
+            Env1 = lfe_env:add_vbindings(Vbs, Env0),
+            Mes1 = if Mes0 =:= [] -> ['-match-value-'];
+                      true -> Mes0
+                   end,
+            eval_maybe_body(Mes1, Env1);
+        no ->
+            %% No then call the else function.
+            eval_expr([funcall,'-else-',?Q(Val)], Env0)
+    end.
+
+eval_maybe_let(Vbs, Body, Mes, Env0) ->
+    Env1 = eval_let_vbs(Vbs, Env0),
+    eval_maybe_body(Body ++ Mes, Env1).
+
+eval_maybe_else(Body) ->
+    Split = fun (X) -> X =/= 'else' end,
+    case lists:splitwith(Split, Body) of
+        {Mes,[]} ->
+            {Mes,['lambda',[x],x]};
+        {Mes,['else'|Tests]} ->
+            Cls = Tests ++ [[['-else-other-'],
+                             [error,[tuple,?Q(else_clause),'-else-other-']]]],
+            {Mes,['match-lambda' | Cls]}
+    end.
 
 %% eval_receive(Body, Env) -> Value
 %%  (receive (pat . body) ... [(after timeout . body)])
@@ -1145,7 +1212,7 @@ eval_bc_gen_loop([binary|SegPats], Guard, GenBin, Qs, Expr,
     eval_bc_gen_loop_1(SegPats, SegsSize, Guard, GenBin, Qs, Expr,
                        Env, Vacc, QualFun);
 eval_bc_gen_loop(Pat, _Guard, _GenBin, _Qs, _Expr, _Env, _Vacc, _QualFun) ->
-    eval_error({illegal_pattern,Pat}).
+    illegal_pattern_error(Pat).
 
 %% eval_bc_gen_loop(SegPats, PatSize, Guard, Generator, Qualifiers, Expression,
 %%                  Env, ValAcc, QualFun) -> ValAcc.
@@ -1488,7 +1555,7 @@ match([_|_]=List, Val, Pbs, _) ->               %No constructor
             if List =:= Val -> {yes,Pbs};
                true -> no
             end;
-        false -> eval_error({illegal_pattern,List})
+        false -> illegal_pattern_error(List)
     end;
 match([], [], Pbs, _) -> {yes,Pbs};
 match(Symb, Val, Pbs, Env) when is_atom(Symb) ->
@@ -1584,7 +1651,7 @@ match_map([K,V|Ps], Map, Pbs0, Env) ->
         false -> no
     end;
 match_map([], _, Pbs, _) -> {yes,Pbs};
-match_map(Ps, _, _, _) -> eval_error({illegal_pattern,Ps}).
+match_map(Ps, _, _, _) -> illegal_pattern_error(Ps).
 
 pat_map_key(?Q(E)) -> E;
 pat_map_key([_|_]=L) ->
@@ -1634,6 +1701,9 @@ eval_lit_map([], _) -> [].
 
 badarg_error() -> eval_error(badarg).
 
+badmatch_error(Val) ->
+    eval_error({badmatch,Val}).
+
 unbound_symbol_error(Sym) ->
     eval_error({unbound_symbol,Sym}).
 
@@ -1645,6 +1715,9 @@ bad_form_error(Form) ->
 
 illegal_guard_error() ->
     eval_error(illegal_guard).
+
+illegal_pattern_error(Pat) ->
+    eval_error({illegal_pattern,Pat}).
 
 illegal_mapkey_error(Key) ->
     eval_error({illegal_mapkey,Key}).

@@ -45,7 +45,7 @@ is used by the compiler to give better error information.
 
 Reads a line from the standard input (``IoDevice``), prompting it with
 prompt (``Prompt``). Note that this call guarantees that the input is
-saved in the input hisotry.
+saved in the input history.
 
 **`read() -> {ok, Sexpr} | {error, ErrorInfo} | eof`**
 

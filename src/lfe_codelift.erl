@@ -179,6 +179,8 @@ lift_expr(['if'|Body0], Lifts, Lds0, St0) ->
     {['if'|Body1],Lds1,St1};
 lift_expr(['case',Expr|Cls], Lifts, Lds, St) ->
     lift_case(Expr, Cls, Lifts, Lds, St);
+lift_expr(['maybe'|Body], Lifts, Lds, St) ->
+    lift_maybe(Body, Lifts, Lds, St);
 lift_expr(['catch'|Body0], Lifts, Lds0, St0) ->
     {Body1,Lds1,St1} = lift_exprs(Body0, Lifts, Lds0, St0),
     {['catch'|Body1],Lds1,St1};
@@ -264,6 +266,11 @@ lift_function_ref(Name, Arity, Lifts, Lds, St) ->
 %%     {Let,LocalDefines,State}.
 
 lift_let(Vbs0, Body0, Lifts, Lds0, St0) ->
+    {Vbs1,Lds1,St1} = lift_let_bindings(Vbs0, Lifts, Lds0, St0),
+    {Body1,Lds2,St2} = lift_exprs(Body0, Lifts, Lds1, St1),
+    {['let',Vbs1|Body1],Lds2,St2}.
+
+lift_let_bindings(Vbs0, Lifts, Lds0, St0) ->
     Fun = fun ([Pat,['when'|_]=G,Expr0], {Ldsa,Sta}) ->
                   {Expr1,Ldsb,Stb} = lift_expr(Expr0, Lifts, Ldsa, Sta),
                   {[Pat,G,Expr1],{Ldsb,Stb}};
@@ -272,8 +279,7 @@ lift_let(Vbs0, Body0, Lifts, Lds0, St0) ->
                   {[Pat,Expr1],{Ldsb,Stb}}
           end,
     {Vbs1,{Lds1,St1}} = lists:mapfoldl(Fun, {Lds0,St0}, Vbs0),
-    {Body1,Lds2,St2} = lift_exprs(Body0, Lifts, Lds1, St1),
-    {['let',Vbs1|Body1],Lds2,St2}.
+    {Vbs1,Lds1,St1}.
 
 %% lift_let_function(FuncBindings, Body, LiftedFuncs, LocalDefines, State) ->
 %%     {LocalBody,LocalDefines,State}.
@@ -370,6 +376,38 @@ lift_case(Expr0, Cls0, Lifts, Lds0, St0) ->
     {Expr1,Lds1,St1} = lift_expr(Expr0, Lifts, Lds0, St0),
     {Cls1,Lds2,St2} = lift_cls(Cls0, Lifts, Lds1, St1),
     {['case',Expr1|Cls1],Lds2,St2}.
+
+%% lift_maybe(Body, LifteFuncs, LocalDefines, State) ->
+%%     {Maybe,LocalDefines,State}.
+%%  We must also explicitly handle let and explicitly lift their
+%%  bodies as maybe bodies.
+
+lift_maybe(Body0, Lifts, Lds0, St0) ->
+    {Body1,Lds1,St1} = lift_maybe_body(Body0, Lifts, Lds0, St0),
+    {['maybe'|Body1],Lds1,St1}.
+
+lift_maybe_body([['?=',Pat,Expr0]|Mes0], Lifts, Lds0, St0) ->
+    {Expr1,Lds1,St1} = lift_expr(Expr0, Lifts, Lds0, St0),
+    {Mes1,Lds2,St2} = lift_maybe_body(Mes0, Lifts, Lds1, St1),
+    {[['?=',Pat,Expr1]|Mes1],Lds2,St2};
+lift_maybe_body([['let',Vbs|Body]|Mes0], Lifts, Lds0, St0) ->
+    {Let,Lds1,St1} = lift_maybe_let(Vbs, Body, Lifts, Lds0, St0),
+    {Mes1,Lds2,St2} = lift_maybe_body(Mes0, Lifts, Lds1, St1),
+    {[Let|Mes1],Lds2,St2};
+lift_maybe_body(['else'|Cls0], Lifts, Lds0, St0) ->
+    {Cls1,Lds1,St1} = lift_cls(Cls0, Lifts, Lds0, St0),
+    {['else'|Cls1],Lds1,St1};
+lift_maybe_body([Expr0|Mes0], Lifts, Lds0, St0) ->
+    {Expr1,Lds1,St1} = lift_expr(Expr0, Lifts, Lds0, St0),
+    {Mes1,Lds2,St2} = lift_maybe_body(Mes0, Lifts, Lds1, St1),
+    {[Expr1|Mes1],Lds2,St2};
+lift_maybe_body([], _Lift, Lds, St) ->
+    {[],Lds,St}.
+
+lift_maybe_let(Vbs0, Body0, Lifts, Lds0, St0) ->
+    {Vbs1,Lds1,St1} = lift_let_bindings(Vbs0, Lifts, Lds0, St0),
+    {Body1,Lds2,St2} = lift_maybe_body(Body0, Lifts, Lds1, St1),
+    {['let',Vbs1|Body1],Lds2,St2}.
 
 %% lift_try(TryBody, LiftedFuncs, LocalDefs, State) ->
 %%     {TryBody,LocalDefs,State}.

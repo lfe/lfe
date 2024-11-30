@@ -187,6 +187,7 @@ lfe-indent-{function,hook} and it uses `lfe-body-indent'."
   (macrolet 1)
   (match-lambda 0)
   (match-spec 0)
+  (maybe 0)
   (prog1 1)
   (prog2 2)
   (progn 0)

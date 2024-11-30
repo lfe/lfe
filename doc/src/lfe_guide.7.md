@@ -364,6 +364,7 @@ while it reads the expression and then be effectively ``2``.
 
 
 # Supported forms
+
 ## Core forms
 
 ```
@@ -405,6 +406,10 @@ while it reads the expression and then be effectively ``2``.
 (case e
   (pat {{(when e ...)}} ...)
   ... ))
+(maybe
+  ...
+  {{else ((pat) {{(when e ...)}} ... )        - Else clauses
+         ...}})
 (receive
   (pat {{(when e ...)}} ... )
   ...
@@ -875,30 +880,6 @@ macrolet:
 ```
 
 
-# Extended cond
-
-The tests in ``cond`` are Erlang tests in that they should return
-either ``true`` or ``false``. If no test succeeds then the ``cond``
-does not generate an exception but just returns ``false``. There is a
-simple catch-all "test" ``else`` which must last and can be used to
-handle when all tests fail.
-
-Cond has been extended with the extra test ``(?= pat expr)`` which
-tests if the result of ``expr`` matches the pattern ``pat``. If so it
-binds the variables in ``pa``t which can be used in the ``cond``. A optional
-guard is allowed here. An example:
-
-```
-(cond ((foo x) ...)
-      ((?= (cons x xs) (when (is_atom x)) (bar y))
-       (fubar xs (baz x)))
-      ((?= (tuple 'ok x) (baz y))
-       (zipit x))
-      ...
-      (else 'yay))
-```
-
-
 # Records
 
 Records are tuples with the record name as first element and the rest
@@ -1118,7 +1099,6 @@ to every character in the string. As strings are just lists of
 integers these are also valid here. In a binary constant all literal
 forms are allowed on input but they will always be written as bytes.
 
-
 # Maps
 
 A map is created with:
@@ -1150,8 +1130,113 @@ There are also alternate short forms ``msiz``, ``mref``, ``mset``,
 ``mupd`` and ``mrem`` based on the Maclisp array reference forms. They
 take the same arguments as their longer alternatives.
 
+# Core forms
 
-# List/binary comprehensions
+## If
+
+The LFE `if` is more like a classic if than the Erlang `if`. For the
+test it allows any Erlang boolean expression which must return either
+`true` or `false`. The false expression is optional and if it not
+included the `if` returns `false`. Some examples:
+
+```
+(if (our-test) (it-was-true))
+
+(if (our-test) (it-was-true) (it-was-false))
+```
+
+## Cond
+
+The LFE `cond` is similar to ``if`` and tests in ``cond`` are Erlang
+tests in that they should return either ``true`` or ``false``. If no
+test succeeds then the ``cond`` does not generate an exception but
+just returns ``false``. There is a simple catch-all "test" ``else``
+which must last and can be used to handle the case when all tests
+fail.
+
+Cond has been extended with the extra test ``(?= pat expr)`` which
+tests if the result of ``expr`` matches the pattern ``pat``. If so it
+binds the variables in ``pat`` which can be used in the ``cond`` test
+body expression. A optional guard is allowed here. An example:
+
+```
+(cond ((foo x) ...)
+      ((?= (cons x xs) (when (is_atom x)) (bar y))
+       (fubar xs (baz x)))
+      ((?= (tuple 'ok x) (baz y))
+       (zipit x))
+      ...
+      (else 'yay))
+```
+
+
+## Maybe
+
+LFE has an Erlang compatible ``maybe``. It has the same features as
+the Erlang ``maybe`` with the ``?=`` operator and ``else``. The
+expressions in the `maybe` block are evaluated sequentially:
+
+```
+(maybe
+  expr-1
+  expr-2
+  ...
+  expr-n)
+```
+
+If all the expressions succeed then `maybe` block returns the value of
+`expr-n`. The conditional match
+
+```
+(?= pattern expr)
+```
+
+can short circuit this. If the match succeeds then the variables in
+`pattern` become bound. The `?=` match returns the value of the
+expressions. If the match fails then the rest of the expressions in
+the `maybe` block are skipped and `maybe` returns the value of the
+`expr`.
+
+The `maybe` block can be augmented with `else` clauses:
+```
+(maybe
+  expr-1
+  ...
+  expr-n
+  else
+  ((pattern-1) body-1)
+  ...
+  ((pattern-n) (when guard-test) body-n)
+  )
+```
+
+If a conditional match fails then the value of the expression is
+matched against the patterns and if one matches then its body is
+evaluated. Guard tests are allowed. If no pattern matches then an
+`else-clause` run-time error occurs.
+
+An example:
+
+```
+(maybe
+  (foo g)
+  (?= `#(ok ,a) (a g))
+  (bar g)
+  (?= `#(ok ,b) (b g))
+  (+ a b)
+  else
+  (('error) 1 #(got error))
+  (('wrong) 2 #(got wrong))
+  )
+```
+
+The `maybe` body can include ``?=`` forms which behave in the same way
+as in the Erlang `maybe`. As LFE cannot bind variables in the same way
+as in Erlang we allow ``let`` in the body to bind variables. These
+variables are only local in the let body so this body is "lifted" upto
+the top level `maybe` body and so can contain ``?=`` forms as well.
+
+## List/binary comprehensions
 
 List/binary comprehensions are supported as macros. The syntax for
 list comprehensions is:
@@ -1253,7 +1338,7 @@ specs.
  version are andalso, orelse and record updates.
 
 
-# Query List Comprehensions
+## Query List Comprehensions
 
 LFE supports QLCs for mnesia through the qlc macro. It has the same
 structure as a list comprehension and generates a Query Handle in the

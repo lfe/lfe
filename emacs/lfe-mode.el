@@ -205,7 +205,8 @@ Other commands:
                      "eval-when-compile" "extend-module"
                      "funcall" "if" "lambda"
                      "let" "let-function" "letrec-function" "let-macro"
-                     "match-lambda" "progn" "receive" "try" "when"
+                     "match-lambda" "maybe" "progn" "receive" "try"
+                     "when"
                      ;; Core macro forms.
                      "andalso" "bc" "binary-comp" "cond" "do"
                      "dbg-ms" "ets-ms" "table-ms" "trace-ms"
@@ -246,7 +247,7 @@ Other commands:
       (concat
        "("
        (regexp-opt '("abs" "float" "round" "trunc" "+" "-" "*" "/"
-                     "==" "/=" "=:=" "=/=" ">" ">=" "<" "=<"
+                     "==" "/=" "=:=" "=/=" ">" ">=" "<" "=<" "?="
                      "iolist_size" "length" "make_ref" ;;"size"
                      "binary" "bit_size" "byte_size"
                      "tuple" "tuple_size" "tref" "tset" "element" "setelement"
