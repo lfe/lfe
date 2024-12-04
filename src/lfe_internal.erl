@@ -101,6 +101,7 @@ is_core_form('let-macro') -> true;
 is_core_form('progn') -> true;
 is_core_form('if') -> true;
 is_core_form('case') -> true;
+is_core_form('maybe') -> true;
 is_core_form('receive') -> true;
 is_core_form('catch') -> true;
 is_core_form('try') -> true;
