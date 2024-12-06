@@ -369,8 +369,8 @@ the expression and then be effectively \f[CR]2\f[R].
   ... ))
 (maybe
   ...
-  {{else ((pat) {{(when e ...)}} ... )        \- Else clauses
-         ...}})
+  {{(else ((pat) {{(when e ...)}} ... )       \- Else clauses
+         ...)}})
 (receive
   (pat {{(when e ...)}} ... )
   ...
@@ -1179,15 +1179,16 @@ clauses:
   expr\-1
   ...
   expr\-n
-  else
-  ((pattern\-1) body\-1)
-  ...
-  ((pattern\-n) (when guard\-test) body\-n)
-  )
+  (else
+    ((pattern\-1) body\-1)
+    ...
+    ((pattern\-n) (when guard\-test) body\-n)
+  ))
 .EE
 .PP
 If a conditional match fails then the value of the expression is matched
-against the patterns and if one matches then its body is evaluated.
+against the patterns in the \f[CR]else\f[R] claueses and if one matches
+then its body is evaluated.
 Guard tests are allowed.
 If no pattern matches then an \f[CR]else\-clause\f[R] run\-time error
 occurs.
@@ -1201,10 +1202,10 @@ An example:
   (bar g)
   (?= \[ga]#(ok ,b) (b g))
   (+ a b)
-  else
-  ((\[aq]error) 1 #(got error))
-  ((\[aq]wrong) 2 #(got wrong))
-  )
+  (else
+    ((\[aq]error) 1 #(got error))
+    ((\[aq]wrong) 2 #(got wrong))
+  ))
 .EE
 .PP
 The \f[CR]maybe\f[R] body can include \f[CR]?=\f[R] forms which behave

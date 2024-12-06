@@ -394,9 +394,9 @@ lift_maybe_body([['let',Vbs|Body]|Mes0], Lifts, Lds0, St0) ->
     {Let,Lds1,St1} = lift_maybe_let(Vbs, Body, Lifts, Lds0, St0),
     {Mes1,Lds2,St2} = lift_maybe_body(Mes0, Lifts, Lds1, St1),
     {[Let|Mes1],Lds2,St2};
-lift_maybe_body(['else'|Cls0], Lifts, Lds0, St0) ->
+lift_maybe_body([['else'|Cls0]], Lifts, Lds0, St0) ->
     {Cls1,Lds1,St1} = lift_cls(Cls0, Lifts, Lds0, St0),
-    {['else'|Cls1],Lds1,St1};
+    {[['else'|Cls1]],Lds1,St1};
 lift_maybe_body([Expr0|Mes0], Lifts, Lds0, St0) ->
     {Expr1,Lds1,St1} = lift_expr(Expr0, Lifts, Lds0, St0),
     {Mes1,Lds2,St2} = lift_maybe_body(Mes0, Lifts, Lds1, St1),

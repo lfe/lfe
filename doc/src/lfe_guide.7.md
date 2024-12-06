@@ -408,8 +408,8 @@ while it reads the expression and then be effectively ``2``.
   ... ))
 (maybe
   ...
-  {{else ((pat) {{(when e ...)}} ... )        - Else clauses
-         ...}})
+  {{(else ((pat) {{(when e ...)}} ... )       - Else clauses
+         ...)}})
 (receive
   (pat {{(when e ...)}} ... )
   ...
@@ -1203,17 +1203,17 @@ The `maybe` block can be augmented with `else` clauses:
   expr-1
   ...
   expr-n
-  else
-  ((pattern-1) body-1)
-  ...
-  ((pattern-n) (when guard-test) body-n)
-  )
+  (else
+    ((pattern-1) body-1)
+    ...
+    ((pattern-n) (when guard-test) body-n)
+  ))
 ```
 
 If a conditional match fails then the value of the expression is
-matched against the patterns and if one matches then its body is
-evaluated. Guard tests are allowed. If no pattern matches then an
-`else-clause` run-time error occurs.
+matched against the patterns in the `else` claueses and if one matches
+then its body is evaluated. Guard tests are allowed. If no pattern
+matches then an `else-clause` run-time error occurs.
 
 An example:
 
@@ -1224,10 +1224,10 @@ An example:
   (bar g)
   (?= `#(ok ,b) (b g))
   (+ a b)
-  else
-  (('error) 1 #(got error))
-  (('wrong) 2 #(got wrong))
-  )
+  (else
+    (('error) 1 #(got error))
+    (('wrong) 2 #(got wrong))
+  ))
 ```
 
 The `maybe` body can include ``?=`` forms which behave in the same way

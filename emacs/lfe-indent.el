@@ -171,6 +171,7 @@ lfe-indent-{function,hook} and it uses `lfe-body-indent'."
   (define-module 1)
   (extend-module 0)
   (do 2)
+  (else 0)
   (eval-when-compile 0)
   (flet 1)
   (flet* 1)

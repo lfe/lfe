@@ -82,7 +82,7 @@
 
 (defun test-3
   (['suite] ())
-  (['doc] "Testing t2")
+  (['doc] "Testing t3")
   ([config] (when (is_list config))
    (test-pat #(ok 99) (maybe-tests:t3 'good))
    (test-pat error (maybe-tests:t3 'bada))
@@ -91,7 +91,7 @@
 
 (defun test-4
   (['suite] ())
-  (['doc] "Testing t2")
+  (['doc] "Testing t4")
   ([config] (when (is_list config))
    (test-pat #(ok 99) (maybe-tests:t4 'good))
    (test-pat #(got error) (maybe-tests:t4 'bada))
@@ -100,7 +100,7 @@
 
 (defun testl-1
   (['suite] ())
-  (['doc] "Testing t1")
+  (['doc] "Testing tl1")
   ([config] (when (is_list config))
    (test-pat 141 (maybe-tests:tl1a 'good))
    (test-pat error (maybe-tests:tl1a 'bada))
@@ -112,7 +112,7 @@
 
 (defun testl-2
   (['suite] ())
-  (['doc] "Testing t1")
+  (['doc] "Testing tl2")
   ([config] (when (is_list config))
    (test-pat 141 (maybe-tests:tl2a 'good))
    (test-pat #(got error) (maybe-tests:tl2a 'bada))
@@ -124,7 +124,7 @@
 
 (defun testl-3
   (['suite] ())
-  (['doc] "Testing t2")
+  (['doc] "Testing tl3")
   ([config] (when (is_list config))
    (test-pat #(ok 99) (maybe-tests:tl3a 'good))
    (test-pat error (maybe-tests:tl3a 'bada))
@@ -136,7 +136,7 @@
 
 (defun testl-4
   (['suite] ())
-  (['doc] "Testing t2")
+  (['doc] "Testing tl4")
   ([config] (when (is_list config))
    (test-pat #(ok 99) (maybe-tests:tl4a 'good))
    (test-pat #(got error) (maybe-tests:tl4a 'bada))
@@ -148,7 +148,7 @@
 
 (defun eval-1
   (['suite] ())
-  (['doc] "Testing t1")
+  (['doc] "Testing basic maybe")
   ([config] (when (is_list config))
    (test-pat #(ok 141) (eval-expr "(maybe (?= a 42) (?= b 99) (+ a b))"))
    (test-pat #(ok error)
@@ -166,7 +166,7 @@
 
 (defun evall-1
   (['suite] ())
-  (['doc] "Testing t1")
+  (['doc] "Testing maybe with let")
   ([config] (when (is_list config))
    (test-pat #(ok 141)
              (eval-expr "(maybe (?= a 42)

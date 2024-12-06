@@ -36,9 +36,9 @@
     ;; (bar g)
     (?= `#(ok ,b) (b g))
     (+ a b)
-    else
-    (['error] #(got error))
-    (['wrong] 2 #(got wrong))           ;This will generate a warning
+    (else
+      (['error] #(got error))
+      (['wrong] 2 #(got wrong)))        ;This will generate a warning
     )
   )
 
@@ -79,9 +79,9 @@
     (?= `#(ok ,a) (a g))                ;This will generate a warning
     ;; (bar g)
     (?= `#(ok ,b) (b g))                ;This value should be returned
-    else
-    (['error] #(got error))
-    (['wrong] 2 #(got wrong))           ;This will generate a warning
+    (else
+      (['error] #(got error))
+      (['wrong] 2 #(got wrong)))        ;This will generate a warning
     )
   )
 
@@ -160,9 +160,9 @@
       (a x))
     (?= `#(ok ,b) (b g))
     (+ a b)
-    else
-    (['error] #(got error))
-    (['wrong] 2 #(got wrong))           ;This will generate a warning
+    (else
+      (['error] #(got error))
+      (['wrong] 2 #(got wrong)))        ;This will generate a warning
     )
   )
 
@@ -189,9 +189,9 @@
       (a x)
       (?= `#(ok ,b) (b g))    
       (+ a b))
-    else
-    (['error] #(got error))
-    (['wrong] 2 #(got wrong))           ;This will generate a warning
+    (else
+      (['error] #(got error))
+      (['wrong] 2 #(got wrong)))        ;This will generate a warning
     )
   )
 
@@ -255,9 +255,9 @@
           (`#(blah ,y) (bar g)))
       (a x))
     (?= `#(ok ,b) (b g))                ;This value should be returned
-    else
-    (['error] #(got error))
-    (['wrong] 2 #(got wrong))           ;This will generate a warning
+    (else
+      (['error] #(got error))
+      (['wrong] 2 #(got wrong)))        ;This will generate a warning
     )
   )
 
@@ -282,9 +282,9 @@
           (`#(blah ,y) (bar g)))
       (a x)
       (?= `#(ok ,b) (b g)))             ;This value should be returned
-    else
-    (['error] #(got error))
-    (['wrong] 2 #(got wrong))           ;This will generate a warning
+    (else
+      (['error] #(got error))
+      (['wrong] 2 #(got wrong)))        ;This will generate a warning
     )
   )
 

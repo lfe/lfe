@@ -1,3 +1,4 @@
+%% -*- mode: erlang; indent-tabs-mode: nil -*-
 %% Copyright (c) 2008-2024 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
@@ -1441,49 +1442,55 @@ check_case_clauses(Cls, Env, L, St) ->
 %%  yet.
 
 check_maybe(Body, Env, L, St) ->
-    check_maybe_exprs(Body, Env, L, St).
+    check_maybe_body(Body, Env, L, St).
 
-%% check_maybe_exprs([['?='|Test]|Es], Env0, L, St0) ->
-check_maybe_exprs([['?=',Pat,Body]|Es], Env0, L, St0) ->
+check_maybe_body([['else'|Cls]], Env, L, St) ->
+    check_maybe_else(Cls, Env, L, St);
+check_maybe_body([['else'|_]|_], _Env, L, St) ->
+    bad_form_error(L, 'maybe', St);
+check_maybe_body([E|Es], Env0, L, St0) ->
+    {Env1,St1} = check_maybe_expr(E, Env0, L, St0),
+    check_maybe_body(Es, Env1, L, St1);
+check_maybe_body([], _Env, _L, St) ->
+    St.
+
+check_maybe_let_body([['else'|_]|_], _Env, L, St) ->
+    bad_form_error(L, 'maybe', St);
+check_maybe_let_body([E|Es], Env0, L, St0) ->
+    {Env1,St1} = check_maybe_expr(E, Env0, L, St0),
+    check_maybe_let_body(Es, Env1, L, St1);
+check_maybe_let_body([], _Env, _L, St) ->
+    St.
+
+check_maybe_expr(['?=',Pat,Body], Env0, L, St0) ->
     Test = [Pat,Body],
     %% Get the environments right here!
-    {Env1,St1} = case pattern_guard(Test, Env0, L, St0) of
-		     {[Val],_,E,S} ->
-			 %% One value expression only
-			 {E,check_expr(Val, Env0, L, S)};
-		     {_,_,E,S} ->
-			 {E,bad_form_error(L, 'maybe', S)}
-		 end,
-    check_maybe_exprs(Es, Env1, L, St1);
-check_maybe_exprs([['let',Vbs|Body]|Es], Env0, L, St0) ->
+    case pattern_guard(Test, Env0, L, St0) of
+        {[Val],_,Env1,St1} ->                   %One value expression only
+            {Env1,check_expr(Val, Env0, L, St1)};
+        {_,_,Env1,St1} ->
+            {Env1,bad_form_error(L, 'maybe', St1)}
+    end;
+check_maybe_expr(['let',Vbs|Body], Env0, L, St0) ->
     {Env1,St1} = check_let_vbs(Vbs, Env0, L, St0),
-    St2 = check_maybe_exprs(Body, Env1, L, St1),
-    check_maybe_exprs(Es, Env0, L, St2);
-check_maybe_exprs(['else'|Cls], Env, L, St) ->
-    check_maybe_else(Cls, Env, L, St);
-check_maybe_exprs([E|Es], Env, L, St0) ->
+    St2 = check_maybe_let_body(Body, Env1, L, St1),
+    {Env0,St2};
+check_maybe_expr(E, Env, L, St0) ->
     St1 = check_expr(E, Env, L, St0),
-    check_maybe_exprs(Es, Env, L, St1);
-check_maybe_exprs([], _Env, _L, St) -> St.
+    {Env,St1}.
 
 check_maybe_else(Cls, Env, L, St) ->
     foreach_form(fun (Cl, S) -> check_maybe_else_clause(Cl, Env, L, S) end,
-		 'maybe', L, St, Cls).
+                 'else', L, St, Cls).
 
 check_maybe_else_clause([Pat|Rest], Env0, L, St0) ->
     St1 = case safe_length(Pat) of
-	      1 -> St0;
-	      _Other -> bad_form_error(L, 'maybe', St0)
-	  end,
+              1 -> St0;
+              _Other -> bad_form_error(L, 'else', St0)
+          end,
     check_clause('maybe', [[list|Pat]|Rest], Env0, L, St1);
 check_maybe_else_clause(_, _, L, St) ->
-    bad_form_error(L, 'maybe', St).
-
-%% sl(L) -> sl(L, 0).
-
-%% sl([_|L], Acc) -> sl(L, Acc+1);
-%% sl([], Acc) -> {yes,Acc};
-%% sl(_, _) -> no.
+    bad_form_error(L, 'else', St).
 
 %% check_receive(Clauses, Env, Line, State) -> State.
 %%  Check the receive.
@@ -1562,6 +1569,7 @@ check_comp(Qs, Expr, Env0, L, St0) ->
 %%  Note that the explicit guards are now tested as guards.
 
 check_comp_quals([['<-',Pat,E]|Qs], Env0, L, St0) ->
+    %% {E,_,Env1,St1} = pattern_guard([Pat,E], Env0, L, St0),
     {Pvs,St1} = pattern(Pat, Env0, L, St0),
     Env1 = le_addvs(Pvs, Env0),
     St2 = check_expr(E, Env1, L, St1),

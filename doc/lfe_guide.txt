@@ -315,8 +315,8 @@ Supported forms
                 ... ))
               (maybe
                 ...
-                {{else ((pat) {{(when e ...)}} ... )        - Else clauses
-                       ...}})
+                {{(else ((pat) {{(when e ...)}} ... )       - Else clauses
+                       ...)}})
               (receive
                 (pat {{(when e ...)}} ... )
                 ...
@@ -1004,16 +1004,16 @@ Core forms
                 expr-1
                 ...
                 expr-n
-                else
-                ((pattern-1) body-1)
-                ...
-                ((pattern-n) (when guard-test) body-n)
-                )
+                (else
+                  ((pattern-1) body-1)
+                  ...
+                  ((pattern-n) (when guard-test) body-n)
+                ))
 
        If  a  conditional  match  fails  then  the  value of the expression is
-       matched against the patterns and if one matches then its body is evalu‐
-       ated.  Guard  tests  are  allowed.   If  no  pattern  matches  then  an
-       else-clause run-time error occurs.
+       matched against the patterns in the else claueses and  if  one  matches
+       then  its  body  is evaluated.  Guard tests are allowed.  If no pattern
+       matches then an else-clause run-time error occurs.
 
        An example:
 
@@ -1023,19 +1023,19 @@ Core forms
                 (bar g)
                 (?= `#(ok ,b) (b g))
                 (+ a b)
-                else
-                (('error) 1 #(got error))
-                (('wrong) 2 #(got wrong))
-                )
+                (else
+                  (('error) 1 #(got error))
+                  (('wrong) 2 #(got wrong))
+                ))
 
-       The  maybe body can include ?= forms which behave in the same way as in
-       the Erlang maybe.  As LFE cannot bind variables in the same way  as  in
+       The maybe body can include ?= forms which behave in the same way as  in
+       the  Erlang  maybe.  As LFE cannot bind variables in the same way as in
        Erlang we allow let in the body to bind variables.  These variables are
-       only  local in the let body so this body is “lifted” upto the top level
+       only local in the let body so this body is “lifted” upto the top  level
        maybe body and so can contain ?= forms as well.
 
    List/binary comprehensions
-       List/binary comprehensions are supported as  macros.   The  syntax  for
+       List/binary  comprehensions  are  supported  as macros.  The syntax for
        list comprehensions is:
 
               (lc (qual  ...) expr)
@@ -1048,7 +1048,7 @@ Core forms
               (bc (qual  ...) bitstringexpr )
               (binary-comp (qual  ...) bitstringexpr)
 
-       where  the final expr is a bitstring expression and is used to generate
+       where the final expr is a bitstring expression and is used to  generate
        the elements of the binary.
 
        The supported qualifiers, in both list/binary comprehensions are:
@@ -1063,7 +1063,7 @@ Core forms
                    (== (rem v 2) 0))
                 v)
 
-       returns a list of all the even  elements  of  the  list  l1  which  are
+       returns  a  list  of  all  the  even  elements of the list l1 which are
        greater than 5.
 
               (bc ((<= (binary (f float (size 32))) b1)
@@ -1084,7 +1084,7 @@ Core forms
                   (binary (f float (size 64)))))
 
 ETS and Mnesia
-       LFE  also  supports match specifications and Query List Comprehensions.
+       LFE also supports match specifications and Query  List  Comprehensions.
        The syntax for a match specification is the same as for match-lambdas:
 
               (ets-ms
@@ -1096,8 +1096,8 @@ ETS and Mnesia
               (ets:select db (ets-ms
                                ([(tuple _ a b)] (when (> a 3)) (tuple 'ok b))))
 
-       It is a macro which creates the match specification structure which  is
-       used  in  ets:select  and  mnesia:select.   For  tracing instead of the
+       It  is a macro which creates the match specification structure which is
+       used in ets:select and  mnesia:select.   For  tracing  instead  of  the
        ets-ms macro there is the trace-ms macro which is also used in conjunc‐
        tion with the dbg module.  The same restrictions as to what can be done
        apply as for vanilla match specifications:
@@ -1106,24 +1106,24 @@ ETS and Mnesia
 
        • There are some special functions only for use with dbg
 
-       • For ets/mnesia it takes a single parameter which must a  tuple  or  a
+       • For  ets/mnesia  it  takes a single parameter which must a tuple or a
          variable
 
        • For dbg it takes a single parameter which must a list or a variable
 
-       N.B.   the  current  macro  neither knows nor cares whether it is being
+       N.B.  the current macro neither knows nor cares  whether  it  is  being
        used in ets/mnesia or in dbg.  It is up to the user to get this right.
 
-       Macros, especially record macros,  can  freely  be  used  inside  match
+       Macros,  especially  record  macros,  can  freely  be used inside match
        specs.
 
-       CAVEAT  Some  things which are known not to work in the current version
+       CAVEAT Some things which are known not to work in the  current  version
        are andalso, orelse and record updates.
 
    Query List Comprehensions
-       LFE supports QLCs for mnesia through the qlc macro.  It  has  the  same
-       structure  as  a list comprehension and generates a Query Handle in the
-       same way as with qlc:q([...]).  The handle can be  used  together  with
+       LFE  supports  QLCs  for mnesia through the qlc macro.  It has the same
+       structure as a list comprehension and generates a Query Handle  in  the
+       same  way  as  with qlc:q([...]).  The handle can be used together with
        all the combination functions in the module qlc.
 
        For example:
@@ -1131,10 +1131,10 @@ ETS and Mnesia
               (qlc (lc ((<- (tuple k v) (: ets table e2)) (== k i)) v)
                    {{Option}})
 
-       Macros,  especially record macros, can freely be used inside query list
+       Macros, especially record macros, can freely be used inside query  list
        comprehensions.
 
-       CAVEAT Some things which are known not to work in the  current  version
+       CAVEAT  Some  things which are known not to work in the current version
        are nested QLCs and let/case/recieve which shadow variables.
 
 Predefined LFE functions
@@ -1144,7 +1144,7 @@ Predefined LFE functions
               (<comp_op> expr ...)
 
        The standard arithmetic operators, + - * /, and comparison operators, >
-       >=  <  =< == /= =:= =/= , can take multiple arguments the same as their
+       >= < =< == /= =:= =/= , can take multiple arguments the same  as  their
        standard lisp counterparts.  This is still experimental and implemented
        using macros.  They do, however, behave like normal functions and eval‐
        uate ALL their arguments before doing the arithmetic/comparisons opera‐
@@ -1175,40 +1175,40 @@ Predefined LFE functions
 
               (macroexpand expr {{environment}})
 
-       Returns the expansion returned  by  calling  macroexpand-1  repeatedly,
+       Returns  the  expansion  returned  by calling macroexpand-1 repeatedly,
        starting with Expr, until the result is no longer a macro call.
 
               (macroexpand-all expr {{environment}})
 
-       Returns  the  expansion  from the expression where all macro calls have
+       Returns the expansion from the expression where all  macro  calls  have
        been expanded with macroexpand.
 
-       NOTE that when no explicit environment is given the  macroexpand  func‐
-       tions  then  only the default built-in macros will be expanded.  Inside
+       NOTE  that  when no explicit environment is given the macroexpand func‐
+       tions then only the default built-in macros will be  expanded.   Inside
        macros and in the shell the variable $ENV is bound to the current macro
        environment.
 
               (eval expr {{environment}})
 
-       Evaluate the expression expr.  Note  that  only  the  pre-defined  lisp
-       functions,  erlang  BIFs and exported functions can be called.  Also no
+       Evaluate  the  expression  expr.   Note  that only the pre-defined lisp
+       functions, erlang BIFs and exported functions can be called.   Also  no
        local variables can be accessed.  To access local variables the expr to
        be evaluated can be wrapped in a let defining these.
 
        For example if the data we wish to evaluate is in the variable expr and
-       it assumes there is a local variable “foo” which  it  needs  to  access
+       it  assumes  there  is  a local variable “foo” which it needs to access
        then we could evaluate it by calling:
 
               (eval `(let ((foo ,foo)) ,expr))
 
    Supplemental Common Lisp Functions
        LFE provides the module cl which contains the following functions which
-       closely  mirror  functions  defined in the Common Lisp Hyperspec.  Note
-       that the following functions use zero-based indices, like  Common  Lisp
-       (unlike  Erlang, which start at index ‘1’).  A major difference between
-       the LFE versions and the Common Lisp versions  of  these  functions  is
-       that  the  boolean  values are the LFE 'true and 'false.  Otherwise the
-       definitions closely follow the CL definitions and won’t  be  documented
+       closely mirror functions defined in the Common  Lisp  Hyperspec.   Note
+       that  the  following functions use zero-based indices, like Common Lisp
+       (unlike Erlang, which start at index ‘1’).  A major difference  between
+       the  LFE  versions  and  the Common Lisp versions of these functions is
+       that the boolean values are the LFE 'true and  'false.   Otherwise  the
+       definitions  closely  follow the CL definitions and won’t be documented
        here.
 
               cl:make-lfe-bool cl-value
@@ -1300,10 +1300,10 @@ Predefined LFE functions
               cl:type-of  object
               cl:coerce  object  type
 
-       Furthermore,  there  is  an  include file which developers may which to
-       utilize in  their  LFE  programs:  (include-lib  "lfe/include/cl.lfe").
-       Currently  this  offers  Common  Lisp predicates, but may include other
-       useful macros and functions in  the  future.   The  provided  predicate
+       Furthermore, there is an include file which  developers  may  which  to
+       utilize  in  their  LFE  programs:  (include-lib "lfe/include/cl.lfe").
+       Currently this offers Common Lisp predicates,  but  may  include  other
+       useful  macros  and  functions  in  the future.  The provided predicate
        macros wrap the various is_* Erlang functions; since these are expanded
        at compile time, they are usable in guards.  The include the following:
 
@@ -1334,10 +1334,10 @@ Predefined LFE functions
               (vector ...)
 
    Supplemental Clojure Functions
-       From  LFE’s earliest days, it’s Lisp-cousin Clojure (created around the
+       From LFE’s earliest days, it’s Lisp-cousin Clojure (created around  the
        same time) has inspired LFE developers to create similar, BEAM-versions
-       of those functions.  These were collected in  a  separate  library  and
-       then  expanded upon, until eventually becoming part of the LFE standard
+       of  those  functions.   These  were collected in a separate library and
+       then expanded upon, until eventually becoming part of the LFE  standard
        library.
 
        Function definition macros:
@@ -1404,8 +1404,8 @@ Predefined LFE functions
               (clj:conj ...)
               (clj:if ...)
 
-       Most of the above mentioned macros are available  in  the  clj  include
-       file,  the  use of which allows developers to forego the clj: prefix in
+       Most  of  the  above  mentioned macros are available in the clj include
+       file, the use of which allows developers to forego the clj:  prefix  in
        calls:
 
               (include-lib "lfe/include/clj.lfe")

@@ -980,14 +980,18 @@ eval_maybe_let(Vbs, Body, Mes, Env0) ->
     eval_maybe_body(Body ++ Mes, Env1).
 
 eval_maybe_else(Body) ->
-    Split = fun (X) -> X =/= 'else' end,
+    Split = fun (['else'|_Cls]) -> false;
+                (_Other) -> true
+            end,
     case lists:splitwith(Split, Body) of
         {Mes,[]} ->
             {Mes,['lambda',[x],x]};
-        {Mes,['else'|Tests]} ->
-            Cls = Tests ++ [[['-else-other-'],
+        {Mes,[['else'|Cls0]]} ->
+            Cls1 = Cls0 ++ [[['-else-other-'],
                              [error,[tuple,?Q(else_clause),'-else-other-']]]],
-            {Mes,['match-lambda' | Cls]}
+            {Mes,['match-lambda' | Cls1]};
+        _Other ->                               %If the else isn't last
+            bad_form_error('maybe')
     end.
 
 %% eval_receive(Body, Env) -> Value

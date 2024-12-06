@@ -1235,7 +1235,7 @@ to_maybe(Body, L, Vt, St0) ->
           end,
     {Emb,St2}.
 
-to_maybe_body(['else'|_Es], _L, _Vt, St) ->
+to_maybe_body([['else'|_Cls]], _L, _Vt, St) ->
     %% Already done else elsewhere.
     {[],St};
 to_maybe_body([['?=',Pat,E]|Mes], L, Vt0, St0) ->
@@ -1255,9 +1255,12 @@ to_maybe_body([], _L, _Vt, St) ->
     {[],St}.
 
 to_maybe_else(Es, L, Vt, St) ->
-    case lists:dropwhile(fun (X) -> X =/= 'else' end, Es) of
+    Drop = fun (['else'|_Cls]) -> false;
+               (_Other) -> true
+           end,
+    case lists:dropwhile(Drop, Es) of
         [] -> {[],St};
-        ['else'|Cls] ->
+        [['else'|Cls]] ->
             to_fun_cls(Cls, L, Vt, St)
     end.
 
@@ -1379,14 +1382,16 @@ to_maybe_match(Pat, E, Mes) ->
       ['other',['funcall','-else-','other']]]].
 
 to_maybe_else(Body) ->
-    Split = fun (X) -> X =/= 'else' end,
+    Split = fun (['else'|_Cls]) -> false;
+                (_Other) -> true
+            end ,
     case lists:splitwith(Split, Body) of
         {Mes,[]} ->
             {Mes,['lambda',[x],x]};
-        {Mes,['else'|Tests]} ->
-            Cls = Tests ++ [[['-else-other-'],
+        {Mes,[['else'|Cls0]]} ->
+            Cls1 = Cls0 ++ [[['-else-other-'],
                              [error,[tuple,?Q(else_clause),'-else-other-']]]],
-            {Mes,['match-lambda' | Cls]}
+            {Mes,['match-lambda' | Cls1]}
     end.
 
 -endif.
