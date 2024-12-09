@@ -1,3 +1,4 @@
+%% -*- mode: erlang; indent-tabs-mode: nil -*-
 %% Copyright (c) 2008-2024 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,6 +55,8 @@ format_error({bad_form,Type}) ->
     lfe_io:format1(<<"bad form: ~w">>, [Type]);
 format_error({bad_env_form,Type}) ->
     lfe_io:format1(<<"bad environment form: ~w">>, [Type]);
+format_error({defining_core_form,Name}) ->
+    lfe_io:format1(<<"defining core form ~w as macro">>, [Name]);
 format_error({expand_macro,Call,Error}) ->
     %% Can be very big so only print limited depth.
     lfe_io:format1(<<"error expanding ~P:\n    ~P">>, [Call,10,Error,10]);
@@ -112,8 +115,10 @@ default_state(Deep, Keep) ->
 default_state(#cinfo{file=File,opts=Os,ipath=Is}, Deep, Keep) ->
     #mac{deep=Deep,keep=Keep,line=1,file=File,opts=Os,ipath=Is}.
 
-%% expand_form(Form, Line, Env, MacState) -> {Form,Env,MacState}.
-%% expand_fileform(FileForm, Env, MacState) -> {FileForm,Env,MacState}.
+%% expand_form(Form, Line, Env, MacState) ->
+%%      {ok,Form,Env,MacState} | {error,Errors,Warnings,MacState}.
+%% expand_fileform(FileForm, Env, MacState) ->
+%%      {ok,FileForm,Env,MacState} | {error,Errors,Warnings,MacState}.
 %%  Collect macro definitions in a (file)form, completely expand all
 %%  macros and only keep all functions.
 
@@ -195,8 +200,7 @@ pass_form(['define-macro'|Def]=M, Env0, St0) ->
         {yes,Env1,St1} ->
             Ret = ?IF(St1#mac.keep, M, [progn]),
             {Ret,Env1,St1};                     %Must return a valid form
-        no ->
-            St1 = add_error({bad_form,macro}, St0),
+        {no,St1} ->
             {['progn'],Env0,St1}                %Must return a valid form
     end;
 pass_form(F, Env, St0) ->
@@ -231,8 +235,7 @@ pass_ewc_form(['define-macro'|Def]=M, Env0, St0) ->
         {yes,Env1,St1} ->
             Ret = ?IF(St1#mac.keep, M, [progn]),
             {Ret,Env1,St1};                     %Don't macro expand now
-        no ->
-            St1 = add_error({bad_env_form,macro}, St0),
+        {no,St1} ->
             {[progn],Env0,St1}                  %Just throw it away
     end;
 pass_ewc_form(['define-function',Name,_,Def]=F, Env0, St0) ->
@@ -314,15 +317,20 @@ pass_expand_expr([_|_]=E0, Env, St0, Deep) ->
 pass_expand_expr(E, _, St, _) -> {no,E,St}.
 
 %% pass_define_macro([Name,Meta,Def], Env, State) ->
-%%     {yes,Env,State} | no.
+%%     {yes,Env,State} | {no,State}.
 %%  Add the macro definition to the environment. We do a small format
 %%  check.
 
 pass_define_macro([Name,_,Def], Env, St) ->
-    case Def of
-        ['lambda'|_] -> {yes,add_mbinding(Name, Def, Env),St};
-        ['match-lambda'|_] -> {yes,add_mbinding(Name, Def, Env),St};
-        _ -> no
+    case lfe_internal:is_core_form(Name) of
+        true ->
+            {no,add_warning({defining_core_form,Name}, St)};
+        false ->
+            case Def of
+                ['lambda'|_] -> {yes,add_mbinding(Name, Def, Env),St};
+                ['match-lambda'|_] -> {yes,add_mbinding(Name, Def, Env),St};
+                _ -> {no,add_error({bad_env_form,macro}, St)}
+            end
     end.
 
 %% add_error(Error, State) -> State.
@@ -335,9 +343,10 @@ add_error(E, St) -> add_error(St#mac.line, E, St).
 add_error(L, E, St) ->
     St#mac{errors=St#mac.errors ++ [{L,?MODULE,E}]}.
 
-%% add_warning(W, St) -> add_warning(St#mac.line, W, St).
-%% add_warning(L, W, St) ->
-%%     St#mac{warnings=St#mac.warnings ++ [{L,?MODULE,W}]}.
+add_warning(W, St) -> add_warning(St#mac.line, W, St).
+
+add_warning(L, W, St) ->
+    St#mac{warnings=St#mac.warnings ++ [{L,?MODULE,W}]}.
 
 %% exp_form(Form, Env, State) -> {Form,State}.
 %%  Completely expand a form using expansions in Env and pre-defined
@@ -1005,17 +1014,6 @@ exp_predef([macrolet,Defs|Body], _, St) ->
           end,
     Mdefs = map(Fun, Defs),
     {yes,['let-macro',Mdefs|Body],St};
-exp_predef([prog1|Body], _, St0) ->
-    %% We do a simple optimisation here.
-    case Body of                                %Catch bad form here
-        [Expr] -> {yes,Expr,St0};
-        [First|Rest] ->
-            {V,St1} = new_symb(St0),
-            {yes,['let',[[V,First]]|Rest ++ [V]],St1}
-    end;
-exp_predef([prog2|Body], _, St) ->
-    [First|Rest] = Body,                        %Catch bad form here
-    {yes,[progn,First,[prog1|Rest]],St};
 %% Handle match specifications both ets and tracing (dbg).
 %% This has to go here so as to be able to macro expand body.
 exp_predef(['match-spec'|Cls], Env, St) ->      %The old interface.

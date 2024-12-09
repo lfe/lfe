@@ -68,11 +68,11 @@ format_error({bad_meta_def,M}) ->
 %% Forms and code.
 format_error({bad_body_def,Form}) ->
     lfe_io:format1(<<"bad body in ~w">>, [Form]);
-format_error(bad_guard_def) -> "bad guard definition";
-format_error(bad_args) -> "bad argument list";
-format_error(bad_gargs) -> "bad guard argument list";
-format_error(bad_pat_alias) -> "bad pattern alias";
-format_error(bad_head_arity) -> "function head arity mismatch";
+format_error(bad_guard_def) -> <<"bad guard definition">>;
+format_error(bad_args) -> <<"bad argument list">>;
+format_error(bad_gargs) -> <<"bad guard argument list">>;
+format_error(bad_pat_alias) -> <<"bad pattern alias">>;
+format_error(bad_head_arity) -> <<"function head arity mismatch">>;
 format_error({bad_form,Form}) ->
     lfe_io:format1(<<"bad ~w form">>, [Form]);
 format_error({bad_guard_form,Form}) ->
@@ -82,21 +82,25 @@ format_error({bad_pattern,Pat}) ->
 format_error({unbound_symbol,S}) ->
     lfe_io:format1(<<"symbol ~w is unbound">>, [S]);
 format_error({undefined_function,{F,Ar}}) ->
-    lfe_io:format1("function ~w/~w undefined", [F,Ar]);
+    lfe_io:format1(<<"function ~w/~w undefined">>, [F,Ar]);
 format_error({multi_var,S}) ->
-    lfe_io:format1("variable ~w multiply defined", [S]);
+    lfe_io:format1(<<"variable ~w multiply defined">>, [S]);
 %% Functions, imports, exports, on_loads and aliases.
 format_error({redefine_function,{F,Ar}}) ->
-    lfe_io:format1("function ~w/~w already defined", [F,Ar]);
+    lfe_io:format1(<<"function ~w/~w already defined">>, [F,Ar]);
+format_error({redefine_core_form,Name}) ->
+    lfe_io:format1(<<"redefining core form ~w">>, [Name]);
+format_error({redefine_core_function,{Name,Ar}}) ->
+    lfe_io:format1(<<"redefining core function ~w/~w">>, [Name,Ar]);
 format_error({bad_fdef,F}) ->
-    lfe_io:format1("bad definition of function ~w", [F]);
+    lfe_io:format1(<<"bad definition of function ~w">>, [F]);
 format_error({reimport_function,{F,Ar},M1,M2}) ->
     lfe_io:format1(<<"importing ~w/~w from ~w, already imported from ~w">>,
                   [F,Ar,M1,M2]);
 format_error({define_imported_function,{F,Ar}}) ->
     lfe_io:format1(<<"defining imported function ~w/~w">>, [F,Ar]);
 format_error({undefined_onload_function,{F,Ar}}) ->
-    lfe_io:format1("on_load function ~w/~w undefined", [F,Ar]);
+    lfe_io:format1(<<"on_load function ~w/~w undefined">>, [F,Ar]);
 format_error({redefine_module_alias,A}) ->
     lfe_io:format1(<<"redefining ~w module alias">>, [A]);
 format_error({circular_module_alias,A}) ->
@@ -109,11 +113,11 @@ format_error({illegal_pattern,Pat}) ->
 format_error(illegal_guard) -> <<"illegal guard expression">>;
 format_error({illegal_mapkey,Key}) ->
     lfe_io:format1(<<"illegal map key ~w">>, [Key]);
-format_error(illegal_bitseg) -> "illegal bit segment";
-format_error(illegal_bitsize) -> "illegal bit size";
+format_error(illegal_bitseg) -> <<"illegal bit segment">>;
+format_error(illegal_bitsize) -> <<"illegal bit size">>;
 format_error({deprecated,What}) ->
-    lfe_io:format1("~s is deprecated", [What]);
-format_error(unknown_form) -> "unknown form";
+    lfe_io:format1(<<"~s is deprecated">>, [What]);
+format_error(unknown_form) -> <<"unknown form">>;
 %% Try-catches.
 format_error({illegal_stacktrace,S}) ->
     lfe_io:format1(<<"stacktrace ~w must be unbound variable">>, [S]);
@@ -154,30 +158,29 @@ format_error({undefined_struct_field,Name,Field}) ->
     lfe_io:format1(<<"field ~w undefined in struct ~w">>, [Field,Name]);
 %% Type and spec errors.
 format_error({undefined_type,{T,A}}) ->
-    lfe_io:format1("type ~w/~w undefined", [T,A]);
+    lfe_io:format1(<<"type ~w/~w undefined">>, [T,A]);
 format_error({builtin_type,{T,A}}) ->
-    lfe_io:format1("type ~w/~w is a builtin type", [T,A]);
+    lfe_io:format1(<<"type ~w/~w is a builtin type">>, [T,A]);
 format_error({redefine_type,{T,A}}) ->
-    lfe_io:format1("type ~w/~w already defined", [T,A]);
+    lfe_io:format1(<<"type ~w/~w already defined">>, [T,A]);
 format_error({redefine_spec,{F,A}}) ->
-    lfe_io:format1("spec for ~w/~w is already defined", [F,A]);
+    lfe_io:format1(<<"spec for ~w/~w is already defined">>, [F,A]);
 format_error({singleton_typevar,V}) ->
-    lfe_io:format1("type variable ~w is only used once", [V]);
+    lfe_io:format1(<<"type variable ~w is only used once">>, [V]);
 %% Type and spec errors. These are also returned from lfe_types.
 format_error({bad_type_def,T}) ->
-    lfe_io:format1("bad ~w type definition", [T]);
+    lfe_io:format1(<<"bad ~w type definition">>, [T]);
 format_error({bad_type_syntax,T}) ->
-    lfe_io:format1("bad ~w type syntax", [T]);
+    lfe_io:format1(<<"bad ~w type syntax">>, [T]);
 format_error({bad_function_spec,S}) ->
-    lfe_io:format1("bad function specification: ~w", [S]);
+    lfe_io:format1(<<"bad function specification: ~w">>, [S]);
 %% These are signaled from lfe_bits.
 format_error({undefined_bittype,S}) ->
-    lfe_io:format1("bit type ~w undefined", [S]);
+    lfe_io:format1(<<"bit type ~w undefined">>, [S]);
 format_error(bittype_unit) ->
     <<"bit unit size can only be specified together with size">>;
 format_error(Error) ->
-    lfe_io:format1("Unknown error ~p", [Error]).
-
+    lfe_io:format1(<<"Unknown error ~p">>, [Error]).
 
 %% expr(Expr) -> {ok,[Warning]} | {error,[Error],[Warning]}.
 %% expr(Expr, Env) -> {ok,[Warning]} | {error,[Error],[Warning]}.
@@ -729,25 +732,78 @@ init_state(St) ->
     Exps1 = add_exports(Exps0, St#lfe_lint.mline, St#lfe_lint.exports),
     {Predefs0,Env1,St#lfe_lint{exports=Exps1}}.
 
-%% check_functions(FuncBindings, Env, State) -> {Funcs,Env,State}.
+%% check_functions(FuncBindings, Env, State) ->
+%%     {Funcs,Env,State}.
 %%  Check the top-level functions definitions. These have the format
 %%  as in letrec but the environment only contains explicit imports
-%%  and the module info functions.
+%%  and the module info functions. The returned Funcs is an orddict of
+%%  the form {{Name,Arity},Line}.
 
-check_functions(Fbs, Env0, St0) ->
-    {Fs,St1} = check_fbindings(Fbs, St0),
-    %% Add to the environment.
+check_functions(Fdefs, Env0, St0) ->
+    {Fbs,St1} = check_function_defs(Fdefs, St0),
+    {Fs,St2} = check_function_bindings(Fbs, St1),
+    St3 = check_core_functions(Fs, St2),
     Env1 = lists:foldl(fun ({{F,A},_L}, Env) -> le_addf(F, A, Env) end,
                        Env0, Fs),
-    %% Now check function definitions.
-    St2 = lists:foldl(fun ({_,[lambda|Lambda],L}, St) ->
-                              check_lambda(Lambda, Env1, L, St);
-                          ({_,['match-lambda'|Match],L}, St) ->
-                              check_match_lambda(Match, Env1, L, St);
-                          ({F,_,L}, St) ->      %Flag error here
-                              bad_fdef_error(L, F, St)
-                end, St1, Fbs),
-    {Fs,Env1,St2}.
+    St4 = check_function_bodies(Fbs, Env1, St3),
+    {Fs,Env1,St4}.
+
+%% check_functions_defs(FuncDefs, Line, State) -> {FuncBindings,State}.
+%%  Skip functions with an error. FuncBindings is a list of
+%%  {{Name,Arity},Def,Line} in the same order as the original list.
+
+check_function_defs(Fdefs, St0) ->
+    Check = fun ({Name,['lambda',Args|_Body]=Def,L}, {Fbs,St})
+                  when is_atom(Name) ->
+                    case lfe_lib:is_symb_list(Args) of
+                        true -> {[{{Name,length(Args)}, Def, L} | Fbs],St};
+                        false -> {Fbs,bad_form_error(L, lambda, St)}
+                    end;
+                ({Name,['match-lambda',[Pats|_Body]|_Cls]=Def,L}, {Fbs,St})
+                  when is_atom(Name) ->
+                    case lfe_lib:is_proper_list(Pats) of
+                        true -> {[{{Name,length(Pats)}, Def, L} | Fbs], St};
+                        false -> {Fbs,bad_form_error(L, 'match-lambda', St)}
+                    end;
+                ({Name,_Def,L}, {Fbs,St}) ->
+                    {Fbs,bad_fdef_error(L, Name, St)}
+            end,
+    %% Preserve the function ordering for let-function and letrec-function!
+    lists:foldr(Check, {[],St0}, Fdefs).
+
+check_function_bindings(Fbs0, St0) ->
+    Check = fun ({FAr,_Def,L}, {Fs,St}) ->
+                    case orddict:is_key(FAr, Fs) of
+                        true ->
+                            {Fs,add_error(L, {redefine_function,FAr}, St)};
+                        false -> {orddict:store(FAr, L, Fs),St}
+                    end
+            end,
+    lists:foldl(Check, {orddict:new(),St0}, Fbs0).
+
+%% check_core_forms(Fs, St) ->
+%%     Check = fun ({Name,_Ar}, L, St0) ->
+%%                     ?IF(lfe_internal:is_core_form(Name),
+%%                         add_warning(L, {redefine_core_form,Name}, St0),
+%%                         St0)
+%%             end,
+%%     orddict:fold(Check, St, Fs).
+
+check_core_functions(Fs, St) ->
+    Check = fun ({Name,Ar}, L, St0) ->
+                    ?IF(lfe_internal:is_core_func(Name, Ar),
+                        add_warning(L, {redefine_core_function,{Name,Ar}}, St0),
+                        St0)
+            end,
+    orddict:fold(Check, St, Fs).
+
+check_function_bodies(Fbs, Env, St0) ->
+    Check = fun ({_FAr,[lambda,Args|Body],L}, St) ->
+                    check_lambda([Args|Body], Env, L, St);
+                ({_FAr,['match-lambda'|Cls],L}, St) ->
+                    check_match_lambda(Cls, Env, L, St)
+            end,
+    lists:foldl(Check, St0, Fbs).
 
 %% check_valid_exports(State) -> State.
 %%  Check that all the exports are defined functions.
@@ -1324,95 +1380,53 @@ check_let_vb(_, _, L, St) -> {[],bad_form_error(L, 'let', St)}.
 %% check_let_function(FletBody, Env, Line, State) -> {Env,State}.
 %%  Check a let-function form (let-function FuncBindings ... ).
 
-check_let_function([Fbs0|Body], Env0, L, St0) ->
-    %% Collect correct function definitions.
-    {Fbs1,St1} = collect_let_funcs(Fbs0, 'let-function', L, St0),
-    {_,Env1,St2} = check_let_bindings(Fbs1, Env0, St1),
-    check_body('let-function', Body, Env1, L, St2).
+check_let_function([Fdefs|Body], Env0, L, St0) ->
+    {Fbs,St1} = check_let_function_defs('let-function', Fdefs, L, St0),
+    {Fs,St2} = check_function_bindings(Fbs, St1),
+    St3 = check_core_functions(Fs, St2),
+    {Env1,St4} = check_let_function_bodies(Fbs, Env0, St3),
+    check_body('let-function', Body, Env1, L, St4).
+
+check_let_function_bodies(Fbs, Env0, St0) ->
+    St1 = check_function_bodies(Fbs, Env0, St0),
+    Env1 = lists:foldl(fun ({{F,A},_Def,_L}, Env) -> le_addf(F, A, Env) end,
+                       Env0, Fbs),
+    {Env1, St1}.
 
 %% check_letrec_function(FletrecBody, Env, Line, State) -> {Env,State}.
 %%  Check a letrec-function form (letrec-function FuncBindings ... ).
 
-check_letrec_function([Fbs0|Body], Env0, L, St0) ->
-    %% Collect correct function definitions.
-    {Fbs1,St1} = collect_let_funcs(Fbs0, 'letrec-function', L, St0),
-    {_,Env1,St2} = check_letrec_bindings(Fbs1, Env0, St1),
-    check_body('letrec-function', Body, Env1, L, St2).
+check_letrec_function([Fdefs|Body], Env0, L, St0) ->
+    {Fbs,St1} = check_let_function_defs('let-function', Fdefs, L, St0),
+    {Fs,St2} = check_function_bindings(Fbs, St1),
+    St3 = check_core_functions(Fs, St2),
+    {Env1,St4} = check_letrec_function_bodies(Fbs, Env0, St3),
+    check_body('let-function', Body, Env1, L, St4).
 
-%% collect_let_funcs(FuncDefs, Type, Line, State) -> {Funcbindings,State}.
-%%  Collect the function definitions for a let/letrec-function
-%%  checking right types. Returns same format as top-level collect.
+check_letrec_function_bodies(Fbs, Env0, St0) ->
+    Env1 = lists:foldl(fun ({{F,A},_Def,_L}, Env) -> le_addf(F, A, Env) end,
+                       Env0, Fbs),
+    St1 = check_function_bodies(Fbs, Env1, St0),
+    {Env1, St1}.
 
-collect_let_funcs(Fbs0, Type, L, St0) ->
-    Check = fun ([V,['lambda'|_]=Lambda], Fbs, St) when is_atom(V) ->
-                    {[{V,Lambda,L}|Fbs],St};
-                ([V,['match-lambda'|_]=Match], Fbs, St) when is_atom(V) ->
-                    {[{V,Match,L}|Fbs],St};
-                (_, Fbs, St) -> {Fbs,bad_form_error(L, Type, St)}
-            end,
-    foldr_form(Check, Type, L, [], St0, Fbs0).  %Preserve order
-
-%% check_let_bindings(FuncBindings, Env, State) -> {Funcs,Env,State}.
-%%  Check the function bindings and return new environment. We only
-%%  have to worry about checking for the valid forms as the rest will
-%%  already be reported. Use explicit line number in element.
-
-check_let_bindings(Fbs, Env0, St0) ->
-    {Funcs,St1} = check_fbindings(Fbs, St0),
-    %% Now check function definitions.
-    St2 = lists:foldl(fun ({_,[lambda|Lambda],L}, St) ->
-                              check_lambda(Lambda, Env0, L, St);
-                          ({_,['match-lambda'|Match],L}, St) ->
-                              check_match_lambda(Match, Env0, L, St)
-                      end, St1, Fbs),
-    %% Add to environment
-    Env1 = lists:foldl(fun ({{F,A},_L}, Env) -> le_addf(F, A, Env) end,
-                       Env0, Funcs),
-    {Funcs,Env1,St2}.
-
-%% check_letrec_bindings(FuncBindings, Env, State) -> {Funcs,Env,State}.
-%%  Check the function bindings and return new environment. We only
-%%  have to worry about checking for the valid forms as the rest will
-%%  already be reported. Use explicit line number in element.
-
-check_letrec_bindings(Fbs, Env0, St0) ->
-    {Funcs,St1} = check_fbindings(Fbs, St0),
-    %% Add to the environment.
-    Env1 = lists:foldl(fun ({{F,A},_L}, Env) -> le_addf(F, A, Env) end,
-                       Env0, Funcs),
-    %% Now check function definitions.
-    St2 = lists:foldl(fun ({_,[lambda|Lambda],L}, St) ->
-                              check_lambda(Lambda, Env1, L, St);
-                          ({_,['match-lambda'|Match],L}, St) ->
-                              check_match_lambda(Match, Env1, L, St)
-                      end, St1, Fbs),
-    {Funcs,Env1,St2}.
-
-%% check_fbindings(FuncBindings, State) -> {Funcs,State}.
-%%  Check function bindings for format and for multiple fucntion
-%%  definitions.
-
-check_fbindings(Fbs0, St0) ->
-    AddFb = fun(FAr, Funcs, L, St) ->
-                    case orddict:is_key(FAr, Funcs) of
-                        true ->
-                            {Funcs,add_error(L, {redefine_function,FAr}, St)};
-                        false -> {orddict:store(FAr, L, Funcs),St}
-                    end
-            end,
-    Check = fun ({V,[lambda,Args|_],L}, {Funcs,St}) ->
+check_let_function_defs(Type, Fdefs, L, St0) ->
+    Check = fun ([Name,['lambda',Args|_Body]=Def], {Fbs,St})
+                  when is_atom(Name) ->
                     case lfe_lib:is_symb_list(Args) of
-                        true -> AddFb({V,length(Args)}, Funcs, L, St);
-                        false -> {Funcs,bad_form_error(L, lambda, St)}
+                        true -> {[{{Name,length(Args)}, Def, L} | Fbs],St};
+                        false -> {Fbs,bad_form_error(L, Type, St)}
                     end;
-                ({V,['match-lambda',[Pats|_]|_],L}, {Funcs,St}) ->
+                ([Name,['match-lambda',[Pats|_Body]|_Cls]=Def], {Fbs,St})
+                  when is_atom(Name) ->
                     case lfe_lib:is_proper_list(Pats) of
-                        true -> AddFb({V,length(Pats)}, Funcs, L, St);
-                        false -> {Funcs,bad_form_error(L, 'match-lambda', St)}
+                        true -> {[{{Name,length(Pats)}, Def, L} | Fbs],St};
+                        false -> {Fbs,bad_form_error(L, Type, St)}
                     end;
-                (_, Acc) -> Acc                 %Error here flagged elsewhere
+                (_, {Fbs,St}) ->
+                    {Fbs,bad_fdef_error(L, Type, St)}
             end,
-    lists:foldl(Check, {orddict:new(),St0}, Fbs0).
+    %% Preserve the function ordering for let-function and letrec-function!
+    lists:foldr(Check, {[],St0}, Fdefs).
 
 %% check_if(IfBody, Env, Line, State) -> State.
 %% Check form (if Test True [False]).
@@ -2141,8 +2155,8 @@ foreach_form(Check, T, L, St, Fs) ->
 foldl_form(Fun, T, L, Acc, St, Fs) ->
     check_foldl(Fun, fun (S) -> bad_form_error(L, T, S) end, Acc, St, Fs).
 
-foldr_form(Fun, T, L, Acc, St, Fs) ->
-    check_foldr(Fun, fun (S) -> bad_form_error(L, T, S) end, Acc, St, Fs).
+%% foldr_form(Fun, T, L, Acc, St, Fs) ->
+%%     check_foldr(Fun, fun (S) -> bad_form_error(L, T, S) end, Acc, St, Fs).
 
 %% check_foreach(Check, Err, State, Forms) -> State.
 %% check_map(Check, Err, State, Forms) -> {Results,State}.
@@ -2164,11 +2178,11 @@ check_foldl(Check, Err, Acc0, St0, [F|Fs]) ->
 check_foldl(_, _, Acc, St, []) -> {Acc,St};
 check_foldl(_, Err, Acc, St, _) -> {Acc,Err(St)}.
 
-check_foldr(Check, Err, Acc0, St0, [F|Fs]) ->
-    {Acc1,St1} = check_foldr(Check, Err, Acc0, St0, Fs),
-    Check(F, Acc1, St1);
-check_foldr(_, _, Acc, St, []) -> {Acc,St};
-check_foldr(_, Err, Acc, St, _) -> {Acc,Err(St)}.
+%% check_foldr(Check, Err, Acc0, St0, [F|Fs]) ->
+%%     {Acc1,St1} = check_foldr(Check, Err, Acc0, St0, Fs),
+%%     Check(F, Acc1, St1);
+%% check_foldr(_, _, Acc, St, []) -> {Acc,St};
+%% check_foldr(_, Err, Acc, St, _) -> {Acc,Err(St)}.
 
 %% Versions which only check for proper top list.
 %% check_foreach(Check, Err, St, Fs) ->

@@ -1,4 +1,5 @@
-%% Copyright (c) 2016-2021 Robert Virding
+%% -*- mode: erlang; indent-tabs-mode: nil -*-
+%% Copyright (c) 2016-2024 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -99,14 +100,17 @@ is_core_form('letrec-function') -> true;
 is_core_form('let-macro') -> true;
 %% Core control special forms.
 is_core_form('progn') -> true;
+%% is_core_form('prog1') -> true;
+%% is_core_form('prog2') -> true;
 is_core_form('if') -> true;
 is_core_form('case') -> true;
+%% is_core_form('cond') -> true;
 is_core_form('maybe') -> true;
 is_core_form('receive') -> true;
 is_core_form('catch') -> true;
 is_core_form('try') -> true;
 is_core_form('funcall') -> true;
-is_core_form(call) -> true;
+is_core_form('call') -> true;
 %% List/binary comprehensions.
 is_core_form('lc') -> true;
 is_core_form('list-comp') -> true;
@@ -123,8 +127,9 @@ is_core_form('define-function') -> true;
 is_core_form('define-macro') -> true;
 is_core_form('define-record') -> true;
 is_core_form('define-struct') -> true;
-%% And don't forget when.
+%% And don't forget when and else.
 is_core_form('when') -> true;
+is_core_form('else') -> true;
 %% Everything else is not a core form.
 is_core_form(_) -> false.
 
@@ -133,6 +138,8 @@ is_core_form(_) -> false.
 %%  false. For those which can take multiple arguments we accept any
 %%  number and push checking to run time.
 
+%% Core data special functions.
+is_core_func(quote, 1) -> true;
 is_core_func(cons, 2) -> true;
 is_core_func(car, 1) -> true;
 is_core_func(cdr, 1) -> true;
@@ -173,6 +180,7 @@ is_core_func('binary-comp', 2) -> true;
 %% Core control special functions.
 is_core_func(funcall, Ar) when Ar >= 1 -> true;
 is_core_func(call, Ar) when Ar >= 2 -> true;
+%% Everything else is not a core function.
 is_core_func(_, _) -> false.
 
 %% is_lfe_bif(Name, Arity) -> bool().
