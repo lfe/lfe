@@ -383,6 +383,8 @@ while it reads the expression and then be effectively ``2``.
 (map-set map key val ...) (mset m k v ...)
 (map-update map key val ...) (mupd m k v ...)
 (map-remove map key ...) (mrem m k k ...)
+(andalso ... )
+(orelse ... )
 (lambda (arg ...) ...)
 (match-lambda
   ((arg ... ) {{(when e ...)}} ...)           - Matches clauses
@@ -402,10 +404,17 @@ while it reads the expression and then be effectively ``2``.
             ...)
   ...)
 (progn ... )
+(prog1 ...)
+(prog2 ...)
 (if test true-expr {{false-expr}})
 (case e
   (pat {{(when e ...)}} ...)
   ... ))
+(cond (test body ...)
+      ...
+      ((?= pat expr) ...)
+      ...
+      (else ...))
 (maybe
   ...
   {{(else ((pat) {{(when e ...)}} ... )       - Else clauses
@@ -472,14 +481,7 @@ while it reads the expression and then be effectively ``2``.
 (fletrec ((name (arg ...) {{doc-string}} ...)
           ...)
   ...)
-(cond (test body ...)
-      ...
-      ((?= pat expr) ...)
-      ...
-      (else ...))
-(andalso ... )
-(orelse ... )
-(fun func arity)
+(fun func arity)                              - Expand to lambdas
 (fun mod func arity)
 (lc (qual ...) expr)
 (list-comp (qual ...) expr)
@@ -512,8 +514,6 @@ while it reads the expression and then be effectively ``2``.
 (syntaxlet ((name (pat exp) ...)
             ...)
   ...)
-(prog1 ...)
-(prog2 ...)
 (defmodule name ...)
 (defrecord name ...)
 (defstruct ...)
@@ -564,15 +564,17 @@ following guard expressions:
 (tuple gexpr ...)
 (tref gexpr gexpr)
 (binary ...)
-(record ...)                - Also the macro versions
-(is-record ...)
-(record-field ...)
-(record-index ...)
 (map ...)
 (msiz ...) (map-size ...)
 (mref ...) (map-get ...)
 (mset ...) (map-set ...)
 (mupd ...) (map-update ...)
+(record ...)                - Also the macro versions
+(is-record ...)
+(record-index ...)
+(record-field ...)
+(is-struct ...)
+(struct-field ...)
 (type-test e)               - Type tests
 (guard-bif ...)             - Guard BIFs, arithmetic,
                               boolean and comparison operators
@@ -670,7 +672,8 @@ it, there will be no warnings.
 
 *CAVEAT* This does not hold for the supported core forms. These can be
 shadowed by imports or redefined but the compiler will *always* use
-the core meaning and never an alternative. Silently!
+the core meaning and never an alternative. The compiler will warn when
+core forms are redefined but it is not an error.
 
 
 # Module definition

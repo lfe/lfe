@@ -526,7 +526,8 @@ lint_pp(St) -> sexpr_pp(St, "lint").
 
 sexpr_pp(St, Ext) ->
     Save = fun (File, #module{code=Code}) ->
-                   lfe_io:prettyprint(File, Code), io:nl(File)
+		   io:format(File, "~p\n", [Code])
+                   %% lfe_io:prettyprint(File, Code), io:nl(File)
            end,
     do_list_save_file(Save, Ext, St).
 
@@ -567,6 +568,7 @@ erl_asm_pp(St) ->
 
 do_list_save_file(SaveOne, Ext, St) ->
     SaveAll = fun (File, Code) ->
+
                       lists:foreach(fun (C) -> SaveOne(File, C) end, Code)
               end,
     do_save_file(SaveAll, Ext, St).

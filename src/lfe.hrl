@@ -40,3 +40,21 @@
 
 %% Bloody useful
 -define(IF(Test,True,False), case Test of true -> True; false -> False end).
+
+-define(COND(__Conds, __Else),
+	begin
+	    ((fun () ->
+		      __Loop =
+			  fun __Loop([{__Test,__Body}|__Cs]) ->
+				     case __Test() of
+					 true ->
+					     __Body();
+					 false ->
+					     __Loop(__Cs)
+				     end;
+			      __Loop([]) ->
+				  __Else()
+			     end,
+		      __Loop(__Conds)
+	      end)())
+	end).

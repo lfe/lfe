@@ -1,3 +1,4 @@
+%% -*- mode: erlang; indent-tabs-mode: nil -*-
 %% Copyright (c) 2008-2024 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,9 +39,6 @@
 -export([c/1,c/2,cd/1,ec/1,ec/2,ep/1,ep/2,epp/1,epp/2,flush/0,help/0,
          h/1,h/2,h/3,i/0,i/1,i/3,l/1,ls/1,clear/0,m/0,m/1,memory/0,memory/1,
          nregs/0,pid/3,p/1,p/2,pp/1,pp/2,pwd/0,q/0,regs/0,uptime/0,exit/0]).
-
--import(orddict, [store/3,find/2]).
--import(lists, [reverse/1,foreach/2]).
 
 -include("lfe.hrl").
 -include("lfe_docs.hrl").
@@ -512,10 +510,10 @@ list_errors(Es) -> list_ews("~w: ~s\n", Es).
 list_warnings(Ws) -> list_ews("~w: Warning: ~s\n", Ws).
 
 list_ews(Format, Ews) ->
-    foreach(fun ({L,M,E}) ->
-                    Cs = M:format_error(E),
-                    lfe_io:format(Format, [L,Cs])
-            end, Ews).
+    lists:foreach(fun ({L,M,E}) ->
+                          Cs = M:format_error(E),
+                          lfe_io:format(Format, [L,Cs])
+                  end, Ews).
 
 %% set(Args, State) -> {Result,State}.
 
@@ -595,10 +593,10 @@ slurp_1(Name, Ce) ->
             slurp_errors(Es),
             slurp_warnings(Ws),
             %% Now the errors and warnings for each module.
-            foreach(fun ({error,Mes,Mws}) ->
-                            slurp_errors(Mes),
-                            slurp_warnings(Mws)
-                    end, Mews),
+            lists:foreach(fun ({error,Mes,Mws}) ->
+                                  slurp_errors(Mes),
+                                  slurp_warnings(Mws)
+                          end, Mews),
             error
     end.
 
@@ -655,37 +653,37 @@ collect_imps(Is, St) ->
     foldl(fun (I, S) -> collect_imp(I, S) end, St, Is).
 
 collect_imp(['from',Mod|Fs], St) ->
-    collect_imp(fun ([F,A], Imps) -> store({F,A}, F, Imps) end,
+    collect_imp(fun ([F,A], Imps) -> orddict:store({F,A}, F, Imps) end,
                 Mod, St, Fs);
 collect_imp(['rename',Mod|Rs], St) ->
-    collect_imp(fun ([[F,A],R], Imps) -> store({F,A}, R, Imps) end,
+    collect_imp(fun ([[F,A],R], Imps) -> orddict:store({F,A}, R, Imps) end,
                 Mod, St, Rs);
 collect_imp(_, St) -> St.                       %Ignore everything else
 
 collect_imp(Fun, Mod, St, Fs) ->
     Imps0 = safe_fetch(Mod, St#slurp.imps, []),
     Imps1 = foldl(Fun, Imps0, Fs),
-    St#slurp{imps=store(Mod, Imps1, St#slurp.imps)}.
+    St#slurp{imps=orddict:store(Mod, Imps1, St#slurp.imps)}.
 
 %% slurp_errors([File, ]Errors) -> ok.
 %% slurp_warnings([File, ]Warnings) -> ok.
 %%  Print errors and warnings.
 
 slurp_errors(Errors) ->
-    foreach(fun ({File,Es}) -> slurp_errors(File, Es) end, Errors).
+    lists:foreach(fun ({File,Es}) -> slurp_errors(File, Es) end, Errors).
 
 slurp_errors(File, Es) -> slurp_ews(File, "~s:~w: ~s\n", Es).
 
 slurp_warnings(Warnings) ->
-    foreach(fun ({File,Ws}) -> slurp_warnings(File, Ws) end, Warnings).
+    lists:foreach(fun ({File,Ws}) -> slurp_warnings(File, Ws) end, Warnings).
 
 slurp_warnings(File, Es) -> slurp_ews(File, "~s:~w: Warning: ~s\n", Es).
 
 slurp_ews(File, Format, Ews) ->
-    foreach(fun ({Line,Mod,Error}) ->
-                    Cs = Mod:format_error(Error),
-                    lfe_io:format(Format, [File,Line,Cs])
-            end, Ews).
+    lists:foreach(fun ({Line,Mod,Error}) ->
+                          Cs = Mod:format_error(Error),
+                          lfe_io:format(Format, [File,Line,Cs])
+                  end, Ews).
 
 %% run_file(Args, State) -> {Value,State}.
 %%  Run the shell expressions in a file. Abort on errors and only
@@ -743,7 +741,7 @@ run_loop([], Value, St) -> {Value,St}.
 %% safe_fetch(Key, Dict, Default) -> Value.
 
 safe_fetch(Key, D, Def) ->
-    case find(Key, D) of
+    case orddict:find(Key, D) of
         {ok,Val} -> Val;
         error -> Def
     end.
@@ -885,7 +883,7 @@ i(X, Y, Z) -> c:i(X, Y, Z).
 %%  Load the modules.
 
 l(Ms) ->
-    foreach(fun (M) -> c:l(M) end, Ms).
+    lists:map(fun (M) -> c:l(M) end, Ms).
 
 %% ls(Dir) -> ok.
 
@@ -914,7 +912,7 @@ mformat(S1, S2) ->
     lfe_io:format(Fstr, [S1,S2]).
 
 m(Ms) ->
-    foreach(fun (M) -> print_module(M) end, Ms).
+    lists:foreach(fun (M) -> print_module(M) end, Ms).
 
 print_module(M) ->
     Info = M:module_info(),
