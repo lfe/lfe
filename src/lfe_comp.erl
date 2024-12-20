@@ -1,3 +1,4 @@
+%% -*- mode: erlang; indent-tabs-mode: nil -*-
 %% Copyright (c) 2008-2020 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
@@ -453,12 +454,12 @@ do_get_docs(#comp{code=Ms0,opts=Opts}=St) ->
 
 do_lfe_codegen(#comp{cinfo=Ci,code=Ms0}=St0) ->
     Code = fun (#module{name=Name,code=Mfs,warnings=Ws}=Mod) ->
-		   case lfe_codegen:module(Mfs, Ci) of
-		       {ok,Name,AST,Gws} ->    %Name consistency check!
-			   Mod#module{code=AST,warnings=Ws ++ Gws};
-		       {error,Ges,Gws} ->
-			   {error,Ges,Gws}
-		   end
+                   case lfe_codegen:module(Mfs, Ci) of
+                       {ok,Name,AST,Gws} ->    %Name consistency check!
+                           Mod#module{code=AST,warnings=Ws ++ Gws};
+                       {error,Ges,Gws} ->
+                           {error,Ges,Gws}
+                   end
            end,
     Ms1 = lists:map(Code, Ms0),
     St1 = St0#comp{code=Ms1},
@@ -526,8 +527,7 @@ lint_pp(St) -> sexpr_pp(St, "lint").
 
 sexpr_pp(St, Ext) ->
     Save = fun (File, #module{code=Code}) ->
-		   io:format(File, "~p\n", [Code])
-                   %% lfe_io:prettyprint(File, Code), io:nl(File)
+                   lfe_io:prettyprint(File, Code), io:nl(File)
            end,
     do_list_save_file(Save, Ext, St).
 
@@ -579,7 +579,7 @@ do_save_file(SaveAll, Ext, St) ->
     case file:open(Name, [write]) of
         {ok,File} ->
             Ret = SaveAll(File, St#comp.code),
-            ok = file:close(File),
+	    ok = file:close(File),
             case Ret of
                 ok -> {ok,St};
                 {error,_} ->

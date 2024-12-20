@@ -1,3 +1,4 @@
+%% -*- mode: erlang; indent-tabs-mode: nil -*-
 %% Copyright (c) 2008-2024 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
@@ -220,7 +221,7 @@ scan_sexpr_1(Sc0, Pc0, Cs0, L0) ->
 read_string(Cs) ->
     case lfe_scan:string(Cs, 1) of
         {ok,Ts,L} ->
-	    read_tokens(Ts, L, []);
+           read_tokens(Ts, L, []);
         {error,E,_} -> {error,E}
     end.
 
@@ -237,10 +238,14 @@ print1(S, D) -> lfe_io_write:term(S, D).
 
 %% prettyprint([IoDevice], Sexpr) -> ok.
 %% prettyprint1(Sexpr, Depth, Indentation, LineLength) -> [char()].
-%%  External interface to the prettyprint functions.
+%%  External interface to the prettyprint functions. We need to handle
+%%  unicode characters here.
 
 prettyprint(S) -> prettyprint(standard_io, S).
-prettyprint(Io, S) -> io:put_chars(Io, prettyprint1(S, -1)).
+prettyprint(Io, S) ->
+    Pp = prettyprint1(S, -1),
+    Pb = unicode:characters_to_binary(Pp),
+    file:write(Io, Pb).
 
 prettyprint1(S) -> lfe_io_pretty:term(S).
 prettyprint1(S, D) -> lfe_io_pretty:term(S, D, 0, 80).

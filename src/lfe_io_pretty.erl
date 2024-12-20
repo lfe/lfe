@@ -1,3 +1,4 @@
+%% -*- mode: erlang; indent-tabs-mode: nil -*-
 %% Copyright (c) 2008-2021 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
@@ -287,21 +288,27 @@ indent_type('defmacro') -> defun;
 indent_type('defsyntax') -> 1;
 indent_type('defrecord') -> 1;
 indent_type('deftest') -> 1;
-%% Core forms.
-indent_type('progn') -> 0;
+%% Core closure special forms.
 indent_type('lambda') -> 1;
 indent_type('match-lambda') -> 0;
 indent_type('let') -> 1;
 indent_type('let-function') -> 1;
 indent_type('letrec-function') -> 1;
 indent_type('let-macro') -> 1;
+%% Core control special forms.
+indent_type('progn') -> 0;
+indent_type('prog1') -> 0;
+indent_type('prog2') -> 0;
 indent_type('if') -> 1;
 indent_type('case') -> 1;
+indent_type('cond') -> 999;                     %All following forms?
+indent_type('maybe') -> 0;
 indent_type('receive') -> 0;
 indent_type('catch') -> 0;
 indent_type('try') -> 1;
 indent_type('funcall') -> 1;
 indent_type('call') -> 2;
+%% Core definition special forms.
 indent_type('eval-when-compile') -> 0;
 indent_type('define-function') -> 1;
 indent_type('define-macro') -> 1;
@@ -312,7 +319,6 @@ indent_type('define-opaque-type') -> 1;
 indent_type('define-function-spec') -> 1;
 %% Core macros.
 indent_type(':') -> 2;
-indent_type('cond') -> 999;                     %All following forms
 indent_type('let*') -> 1;
 indent_type('flet') -> 1;
 indent_type('flet*') -> 1;
