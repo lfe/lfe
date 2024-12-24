@@ -1,3 +1,4 @@
+%% -*- mode: erlang; indent-tabs-mode: nil -*-
 %% Copyright (c) 2024 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,10 +17,13 @@
 %% Author  : Robert Virding
 %% Purpose : Token scanner for the Lisp Flavoured Erlang language.
 
-%%% Much of the basic structure has been taken from erl_scan.
+%%% Much of the basic structure has been taken from erl_scan. A core
+%%% difference is that we need to handle both the cases of only one
+%%% token and many tokens. For this reason we have added the 'none'
+%%% return.
 %%%
 %%% We chain a state, #lfe_scan{}, through the scanner but we never
-%%% use it for anything. I was inherited from erl_scan and we left it
+%%% use it for anything. It was inherited from erl_scan and we left it
 %%% just in case we might need it.
 
 -module(lfe_scan).
@@ -29,7 +33,7 @@
 
 -export([start_symbol_char/1,symbol_char/1]).
 
--export([token_test/1,token_test/2]).
+-export([token_test/1,token_test/2,tokens_test/1,tokens_test/2]).
 
 format_error({illegal,S}) ->
     ["illegal characters in ",io_lib:write_string(S)];
@@ -84,6 +88,8 @@ string1(Cs0, Line0, Col0, Toks0, St0) ->
                 %% What to do when we get more here.
                 {more,{Cs2,Line2,Col2,St2,Extra2,Fun2}} ->
                     Fun2(Cs2, Line2, Col2, St2, Extra2);
+                {none,Rest,Line2,Col2,St2} ->
+                    string1(Rest, Line2, Col2, Toks0, St2);
                 {ok,Tok,_Rest,Line2,_Col2, _St2} ->
                     %% It worked and all is done.
                     {ok,lists:reverse([Tok|Toks0]),anno(Line2)};
@@ -133,11 +139,12 @@ token1(Cs0, Line0, Col0, St0, Extra0, Fun0) ->
     %% io:format("t11 ~p\n", [{Cs0,Fun0,fun scan/5]),
     case Fun0(Cs0, Line0, Col0, St0, Extra0) of
         {more,{Cs1,Line1,Col1,St1,Extra1,Fun1}} ->
+            Cont = {lfe_scan_token,Cs1,Line1,Col1,St1,Extra1,Fun1},
             %% io:format("tf1 ~p\n", [{Cs1,Line1,Col1,Fun1,fun scan/5}]),
-            {more,{lfe_scan_token,Cs1,Line1,Col1,St1,Extra1,Fun1}};
+            {more,Cont};
         {none,Rest,Line1,Col1,St1} ->
             %% Nothing from this call so try again.
-            token1(Rest, Line1, Col1, St1, Extra0, Fun0);
+            token1(Rest, Line1, Col1, St1, Extra0, fun scan/5);
         {ok,Token,Rest,Line1,_Col1,_St1} ->
             {done,{ok,Token,Line1},Rest};
         {{error,_,_}=Error,Rest} ->
@@ -160,11 +167,11 @@ tokens(Cont, Chars, StartLine) ->
     tokens(Cont, Chars, StartLine, []).
 
 tokens([], Chars, Line, _Options) ->
-    %% io:format("ts4 ~p\n", [{[],Chars,Line,_Options}]),
+    %% io:format("ts4 ~p\n", [{[],Chars}]),
     tokens1(Chars, Line, 1, [], #lfe_scan{}, [], fun scan/5); 
 tokens({lfe_scan_tokens,Cs,Line,Col,Toks,St,Extra,Fun},
        Chars, _Line, _Options) ->
-    %% io:format("ts4 ~p\n", [{lfe_scan_tokens,Cs,Chars,Toks,Extra,_Line,_Options}]),
+    %% io:format("ts4 ~p\n", [{Cont,Chars}]),
     tokens1(Cs ++ Chars, Line, Col, Toks, St, Extra, Fun).
 
 %% tokens1(Chars, Line, Column, State, Extra, Fun) ->
@@ -172,25 +179,23 @@ tokens({lfe_scan_tokens,Cs,Line,Col,Toks,St,Extra,Fun},
 %%  We loop inside this function for as long as we can until we need
 %%  more characters or there is an error.
 
-tokens1(eof, Line, _Col, Toks, _St, _Extra, _Fun) ->
-    %% io:format("ts1 ~p\n", [{done,Line,Toks}]),
-    {done,{ok,lists:reverse(Toks),anno(Line)},[]};
-tokens1([], Line, Col, Toks, St, Extra, Fun) ->
-    %% io:format("ts1 ~p\n", [{[],Line,length(Toks)}]),
-    {more,{lfe_scan_tokens,[],Line,Col,Toks,St,Extra,Fun}};
 tokens1(Cs, Line0, Col0, Toks, St0, Extra0, Fun0) ->
-    %% io:format("ts1 ~p\n", [{cs,Line0,length(Toks0)}]),
     case Fun0(Cs, Line0, Col0, St0, Extra0) of
         {more,{Cs1,Line1,Col1,St1,Extra1,Fun1}} ->
-            %% io:format("more here\n", []),
-            {more,{lfe_scan_tokens,Cs1,Line1,Col1,Toks,St1,Extra1,Fun1}};
+            Cont = {lfe_scan_tokens,Cs1,Line1,Col1,Toks,St1,Extra1,Fun1},
+            {more,Cont};
         {none,Rest,Line1,Col1,St1} ->
-            %% Nothing from this call so try again.
-            tokens1(Rest, Line1, Col1, Toks, St1, Extra0, fun scan/5);
+            if Rest =:= eof ->
+                    {done,{ok,lists:reverse(Toks),anno(Line1)},eof};
+               true ->
+                    tokens1(Rest, Line1, Col1, Toks, St1, Extra0, fun scan/5)
+            end;
         {ok,Tok,Rest,Line1,Col1,St1} ->
-            %% io:format("ok ~p\n", [{Tok,Rest}]),
-            %% We have a token so now we "restart" a new one with scan.
-            tokens1(Rest, Line1, Col1, [Tok|Toks], St1, [], fun scan/5);
+            if Rest =:= eof ->
+                    {done,{ok,lists:reverse([Tok|Toks]),anno(Line1)},eof};
+               true ->
+                    tokens1(Rest, Line1, Col1, [Tok|Toks], St1, [], fun scan/5)
+            end;
         {{error,_,_}=Error,Rest} ->
             {done,Error,Rest}
     end.
@@ -199,7 +204,7 @@ tokens1(Cs, Line0, Col0, Toks, St0, Extra0, Fun0) ->
 %% Now to the actual scanning and collecting tokens.
 %%
 
-%% scan(Chars, Line, Column, St, Extra) ->
+%% scan(Chars, Line, Column, State, Extra) ->
 %%     {ok,Token,Chars,Line,Column} | {more,Continuation} | ScanError.
 %%  Scan one token.
 
@@ -209,8 +214,8 @@ scan(Chars, Line, Col, St, _Extra) ->
 %% scan1(Chars, Line, Column, State) ->
 %%     {ok,Token,Chars,Line,Column} | {more,Continuation} | None|  ScanError.
 
-%% scan1_fun(Cs, Line, Col, St, _Extra) ->
-%%     scan1(Cs, Line, Col, St).
+scan1_fun(Cs, Line, Col, St, _Extra) ->
+    scan1(Cs, Line, Col, St).
 
 %% Strings
 scan1([$"|Cs], Line, Col, St) ->
@@ -224,13 +229,11 @@ scan1([C|Cs], Line, Col, St) when ?WHITE_SPACE(C) ->
 %% Comments.
 scan1([$;|Cs], Line, Col, St) ->
     scan_line_comment(Cs, Line, Col+1, St);
-scan1([$#,$||Cs], Line, Col, St) ->
-    scan_block_comment(Cs, Line, Col+2, St); 
 %% These not start symbol chars must be handled specially.
 scan1([$||Cs], Line, Col, St) ->
     scan_qsymbol(Cs, Line, Col, St);
 scan1([$#|Cs], Line, Col, St) ->
-    scan_hash(Cs, Line, Col, St);
+    scan_hash(Cs, Line, Col+1, St);
 %% We do the one character separators which are also start symbol chars.
 scan1([$'|Cs], Line, Col, St) ->
     {ok,{'\'',anno(Line)},Cs,Line,Col+1,St};
@@ -252,15 +255,19 @@ scan1([C|Cs], Line, Col, St) ->
             Tok = {list_to_atom([C]),anno(Line)},
             {ok,Tok,Cs,Line,Col,St}
     end;
-scan1(Cs, Line, Col, St) when Cs =:= [] orelse Cs =:= eof ->
-    {none,Cs,Line,Col,St}.
+scan1([], Line, Col, St) ->
+    %% Need more here.
+    {more,{[],Line,Col,St,[],fun scan1_fun/5}};
+scan1(eof, Line, Col, St) ->
+    %% We didn't get anything and nothing left.
+    {none,eof,Line,Col,St}.
 
 %% scan_line_comment(Chars, Line, Column, State) ->
 %%     {ok,Tokens,Chars,Line,Column} | {more,Continuation} | ScanError.
 %%  Skip to the end of the line.
     
-scan_line_comment_fun(Chars, Line, Col, St, _Extra) -> 
-    scan_line_comment(Chars, Line, Col, St).
+scan_line_comment_fun(Cs, Line, Col, St, _Extra) -> 
+    scan_line_comment(Cs, Line, Col, St).
 
 scan_line_comment([$\n|Cs], Line, _Col, St) ->
     {none,Cs,Line+1,0,St};
@@ -273,81 +280,135 @@ scan_line_comment(eof=Cs, Line, Col, St) ->
 
 %% scan_block_comment(Chars, Line, Column, State) ->
 %%     {ok,Tokens,Chars,Line,Column} | {more,Continuation} |  | ScanError.
-%%  Skip to the end of the block comment.
+%%  Skip to the end of the block comment. The first # has already been
+%%  scanned.
 
-scan_block_comment_fun(Chars, Line, Col, St, _Extra) ->
-    scan_block_comment(Chars, Line, Col, St).
+scan_block_comment_fun(Cs, Line, Col, St, _Extra) ->
+    scan_block_comment(Cs, Line, Col, St).
 
 scan_block_comment("|#" ++ Cs, Line, Col, St) ->
     {none,Cs,Line,Col,St};
-scan_block_comment([$\n|Cs], Line, _Col, St) ->
-    scan_block_comment(Cs, Line+1, 0, St);
 scan_block_comment("#|" ++ Cs, Line, Col, _St) ->
     scan_error({illegal,"nested block comment"}, Line, Col, Line, Col, Cs);
+scan_block_comment([C]=Cs, Line, Col, St) when C =:= $|; C =:= $# ->
+    %% Need next character to work these out.
+    {more,{Cs,Line,Col,St,[],fun scan_block_comment_fun/5}};
+scan_block_comment([$\n|Cs], Line, _Col, St) ->
+    scan_block_comment(Cs, Line+1, 0, St);
 scan_block_comment([_C|Cs], Line, Col, St) ->
     scan_block_comment(Cs, Line, Col+1, St);
+%% [], we need more to know.
 scan_block_comment([]=Cs, Line, Col, St) ->
     {more,{Cs,Line,Col,St,[],fun scan_block_comment_fun/5}};
+%% Eof so we are really done!
 scan_block_comment(eof=Cs, Line, Col, _St) ->
-    %% No ending.
     scan_error({illegal,"block comment"}, Line, Col, Line, Col, Cs).
 
-%% scan_hash(Chars, Line, Column, St) ->
+%% scan_hash(Chars, Line, Column, State) ->
 %%     {ok,Token,Chars,Line,Column} | {more,Continuation} | ScanError.
-%%  Scan a hash character symbol.
+%%  Scan a hash character symbol. We collect digits before the command
+%%  character as some forms need this.
 
-scan_hash(Cs0, Line, Col, St) ->
-    %% Skip over any leading digits which we ignore here.
-    Cs1 = lists:dropwhile(fun (C) -> ?DIGIT(C) end, Cs0),
-    scan_hash1(Cs1, Line, Col, St).
+scan_hash(Cs, Line, Col, St) ->
+    scan_hash_digits(Cs, Line, Col, [], St).
 
-scan_hash1_fun(Cs, Line, Col, St, _Extra) ->
-    scan_hash1(Cs, Line, Col, St).
+scan_hash_digits_fun(Cs, Line, Col, St, Digits) ->
+    scan_hash_digits(Cs, Line, Col, Digits, St).
 
-scan_hash1([$\\,C|Cs], Line, Col, St) ->
-    {ok,{number,Line,C},Cs,Line,Col,St};
-scan_hash1([$\(|Cs], Line, Col, St) ->
+scan_hash_digits([C|Cs], Line, Col, Digits, St) when ?DIGIT(C) ->
+    scan_hash_digits(Cs, Line, Col+1, Digits ++ [C], St);
+%% [], we need more to know.
+scan_hash_digits([]=Cs, Line, Col, Digits, St) ->
+    {more,{Cs,Line,Col,St,Digits,fun scan_hash_digits_fun/5}};
+scan_hash_digits(Cs, Line, Col, Digits, St) ->
+    %% We know there is 
+    scan_hash1(Cs, Line, Col, Digits, St).
+
+%% scan_hash1_fun(Cs, Line, Col, St, Digits) ->
+%%     scan_hash1(Cs, Line, Col, Digits, St).
+
+%% First the tokens which only need one character.
+scan_hash1([$\(|Cs], Line, Col, [], St) ->
     {ok,{'#(',Line},Cs,Line,Col,St};
-scan_hash1([$.|Cs], Line, Col, St) ->
+scan_hash1([$.|Cs], Line, Col, [], St) ->
     {ok,{'#.',Line},Cs,Line,Col,St};
-scan_hash1([$`|Cs], Line, Col, St) ->
+scan_hash1([$`|Cs], Line, Col, [], St) ->
     {ok,{'#`',Line},Cs,Line,Col,St};
-scan_hash1([$;|Cs], Line, Col, St) ->
+scan_hash1([$;|Cs], Line, Col, [], St) ->
     {ok,{'#;',Line},Cs,Line,Col,St};
-scan_hash1([$,,$@|Cs], Line, Col, St) ->        %Get this before #,
-    {ok,{'#,@',Line},Cs,Line,Col,St};
-scan_hash1([$,|Cs], Line, Col, St) ->
-    {ok,{'#,',Line},Cs,Line,Col,St};
-scan_hash1([$"|Cs], Line, Col, St) ->
+scan_hash1([$||Cs], Line, Col, [], St) ->
+    scan_block_comment(Cs, Line, Col+1, St); 
+scan_hash1([$"|Cs], Line, Col, [], St) ->
     scan_binary_string(Cs, Line, Col+1, St);
-scan_hash1([$'|Cs], Line, Col, St) ->
+scan_hash1([$'|Cs], Line, Col, [], St) ->
     scan_fun(Cs, Line, Col+1, St);
-%% Scan binary and map tokens, these must come before the based number.
-scan_hash1([C,$\(|Cs], Line, Col, St) when (C =:= $b) or (C =:= $B) ->
-    {ok,{'#B(',Line},Cs,Line,Col,St};
-scan_hash1([C,$\(|Cs], Line, Col, St) when (C =:= $m) or (C =:= $M) ->
-    {ok,{'#M(',Line},Cs,Line,Col,St};
-%% Scan based numbers, these must come after binary and map tokens.
-scan_hash1([$*|Cs], Line, Col, St) ->
+scan_hash1([$*|Cs], Line, Col, [], St) ->
     scan_bnumber(Cs, 2, Line, Col+1, St);
-scan_hash1([C,C1|Cs], Line, Col, St) when       %Must not clash with #b(
-      (C =:= $b) or (C =:= $B) andalso C1 =/= $( ->
-    scan_bnumber([C1|Cs], 2, Line, Col+1, St);
-scan_hash1([C|Cs], Line, Col, St) when (C =:= $o) or (C =:= $O) ->
+%% The #B binary number needs to be checked in hash2.
+scan_hash1([C|Cs], Line, Col, [], St) when (C =:= $o) or (C =:= $O) ->
     scan_bnumber(Cs, 8, Line, Col+1, St);
-scan_hash1([C|Cs], Line, Col, St) when (C =:= $d) or (C =:= $D) ->
+scan_hash1([C|Cs], Line, Col, [], St) when (C =:= $d) or (C =:= $D) ->
     scan_bnumber(Cs, 10, Line, Col+1, St);
-scan_hash1([C|Cs], Line, Col, St) when (C =:= $x) or (C =:= $X) ->
+scan_hash1([C|Cs], Line, Col, [], St) when (C =:= $x) or (C =:= $X) ->
     scan_bnumber(Cs, 16, Line, Col+1, St);
-%% scan_hash1([C|Cs], Line, Col, St) when (C =:= $r) or (C =:= $R) ->
-%%     scan_bnumber(Cs, 2, Line, Col+1, St);
-%% Eof, [] or other chars, so we are really done!
-scan_hash1(Cs, Line, Col, St) when Cs =/= eof ->
-    {more,{Cs,Line,Col,St,[],fun scan_hash1_fun/5}};
-scan_hash1(eof=Cs, Line, Col, _St) when Cs =/= eof ->
+scan_hash1([C|Cs], Line, Col, Digits, St) when (C =:= $r) or (C =:= $R) ->
+    Base = list_to_integer([$0|Digits]),
+    if Base >=2, Base =< 36 ->
+            scan_bnumber(Cs, Base, Line, Col+1, St);
+       true ->
+            scan_error({illegal,"#r"}, Line, Col, Line, Col+1, Cs)
+    end;
+scan_hash1(Cs, Line, Col, Digits, St) ->
+    %% Pass the buck!
+    scan_hash2(Cs, Line, Col, Digits, St).
+
+%% scan_hash1([_,_|_]=Cs, Line, Col, Digits, St) ->
+%%     %% We have two characters and can now go on.
+%%     scan_hash2(Cs, Line, Col, Digits, St);
+%% scan_hash1([_]=Cs, Line, Col, Digits, St) ->
+%%     %% We now need more characters to go on.
+%%     {more,{Cs,Line,Col,St,Digits,fun scan_hash2_fun/5}};
+
+%% scan_hash1(eof=Cs, Line, Col, _Digits, _St) ->
+%%     scan_error({illegal,"#"}, Line, Col, Line, Col+1, Cs).
+
+scan_hash2_fun(Cs, Line, Col, St, Digits) ->
+    scan_hash2(Cs, Line, Col, Digits, St).
+
+%% scan_hash2_fun([_,_|_]=Cs, Line, Col, St, Digits) ->
+%%     scan_hash2(Cs, Line, Col, Digits, St);
+%% scan_hash2_fun([_|eof]=Cs, Line, Col, _St, _Digits) ->
+%%     scan_error({illegal,"#"}, Line, Col, Line, Col+1, Cs);
+%% scan_hash2_fun(eof=Cs, Line, Col, _St, _Digits) ->
+%%     scan_error({illegal,"#"}, Line, Col, Line, Col+1, Cs).
+
+%% Check that we don't just have one character.
+scan_hash2([_]=Cs, Line, Col, Digits, St) ->
+    {more,{Cs,Line,Col,St,Digits,fun scan_hash2_fun/5}};
+%% The tokens where we need two characters.
+scan_hash2([$\\,C|Cs], Line, Col, [], St) ->
+    {ok,{number,Line,C},Cs,Line,Col+2,St};
+scan_hash2([$,,$@|Cs], Line, Col, [], St) ->    %Get this before #,
+    {ok,{'#,@',Line},Cs,Line,Col+2,St};
+scan_hash2([$,|Cs], Line, Col, [], St) ->
+    {ok,{'#,',Line},Cs,Line,Col+1,St};
+scan_hash2([C,$\(|Cs], Line, Col, [], St) when (C =:= $s) or (C =:= $S) ->
+    {ok,{'#S(',Line},Cs,Line,Col+2,St};
+scan_hash2([C,$\(|Cs], Line, Col, [], St) when (C =:= $m) or (C =:= $M) ->
+    {ok,{'#M(',Line},Cs,Line,Col+2,St};
+%% Scan binary tokens, these must come before the based number.
+scan_hash2([C,$\(|Cs], Line, Col, [], St) when (C =:= $b) or (C =:= $B) ->
+    {ok,{'#B(',Line},Cs,Line,Col,St};
+%% Scan based numbers, these must come after binary tokens.
+scan_hash2([C,C1|Cs], Line, Col, [], St) when
+      (C =:= $b) or (C =:= $B) andalso C1 =/= $( ->
+    %% Must not clash with #b(
+    scan_bnumber([C1|Cs], 2, Line, Col+1, St);
+%% Eof, other chars or illegal digits, so we are really done!
+scan_hash2(Cs, Line, Col, _Digits, _St) ->
     scan_error({illegal,"#"}, Line, Col, Line, Col+1, Cs).
 
-%% scan_fun(Chars, Line, Column, St) ->
+%% scan_fun(Chars, Line, Column, State) ->
 %%     {ok,Token,Chars,Line,Column} | {more,Continuation} | ScanError.
 %%  Scan a fun symbol.
 
@@ -393,60 +454,71 @@ split_fun_chars([C|Cs], Pre, After) when After =/= [] ->
 split_fun_chars([], Pre, After) ->
     {Pre,After}.
 
-%% scan_bnumber(Chars, Base, Line, Column, St) ->
+%% scan_bnumber(Chars, Base, Line, Column, State) ->
 %%     {ok,Token,Chars,Line,Column} | {more,Continuation} | ScanError.
-%%  Scan a based number.
+%%  Scan a based number. We stay compatible and scan all symbol
+%%  characters then check then build and check.
 
 scan_bnumber(Cs, Base, Line, Col, St) ->
     scan_bnumber_sign(Cs, Line, Col, Base, St).
 
+scan_bnumber_sign_fun(Cs, Line, Col, St, Base) ->
+    scan_bnumber_sign(Cs, Line, Col, Base, St).
+    
 scan_bnumber_sign([$+|Cs], Line, Col, Base, St) ->
-    scan_bnumber_digits(Cs, Line, Col, 0, Base, +1, St);
+    scan_bnumber_digits(Cs, Line, Col, [], Base, +1, St);
 scan_bnumber_sign([$-|Cs], Line, Col, Base, St) ->
-    scan_bnumber_digits(Cs, Line, Col, 0, Base, -1, St);
+    scan_bnumber_digits(Cs, Line, Col, [], Base, -1, St);
+scan_bnumber_sign([], Line, Col, Base, St) ->
+    {more,{[],Line,Col,St,Base,fun scan_bnumber_sign_fun/5}};
 scan_bnumber_sign(Cs, Line, Col, Base, St) ->
-    %% Pass the buck!
-    scan_bnumber_digits(Cs, Line, Col, 0, Base, +1, St).
+    scan_bnumber_digits(Cs, Line, Col, [], Base, +1, St).
 
-%% scan_bnumber_1((Cs, Line, Col, Base, St) ->
-%%     {more,{Cs,Line,Col,St,Base,fun scan_bnumber1_fun/5};
-%% scan_bnumber_1(eof=Cs, Line, Col, _Base, St) ->
-%%     scan_error({illegal,"based number"}, Line, Col, Line, Col, Cs);
+scan_bnumber_digits_fun(Cs, Line, Col, St, {Digits,Base,Sign}) ->
+    scan_bnumber_digits(Cs, Line, Col, Digits, Base, Sign, St).
 
-scan_bnumber_digits_fun(Cs, Line, Col, St, {Number,Base,Sign}) ->
-    scan_bnumber_digits(Cs, Line, Col, Number, Base, Sign, St).
+scan_bnumber_digits([C|Cs], Line, Col, Digits, Base, Sign, St) ->
+    case symbol_char(C) of
+        true ->
+            scan_bnumber_digits(Cs, Line, Col+1, Digits++[C], Base, Sign, St);
+        false ->
+            scan_bnumber_check([C|Cs], Line, Col, Digits, Base, Sign, St)
+    end;
+scan_bnumber_digits([]=Cs, Line, Col, Digits, Base, Sign, St) ->
+    {more,{Cs,Line,Col,St,{Digits,Base,Sign},fun scan_bnumber_digits_fun/5}};
+scan_bnumber_digits(eof=Cs, Line, Col, Digits, Base, Sign, St) ->
+    scan_bnumber_check(Cs, Line, Col, Digits, Base, Sign, St).
 
-scan_bnumber_digits([C|Cs], Line, Col, Number0, Base, Sign, St) ->
-    %% io:format("sbt ~p\n",
-    %%           [{C,Base,Number0,base_collect_char(C, Base, Number0)}]),
-   case symbol_char(C) andalso base_collect_char(C, Base, Number0) of
-       {yes,Number1} ->
-           scan_bnumber_digits(Cs, Line, Col+1, Number1, Base, Sign, St);
-       no -> 
-           %% Illegal based number.
-           scan_error({illegal,"based number"}, Line, Col, Line, Col, [C|Cs]);
-       false ->
-           %% Done here.
-           Token = {number,Line,Sign*Number0},
-           {ok,Token,[C|Cs],Line,Col,St}
-   end;
-scan_bnumber_digits([]=Cs, Line, Col, Number, Base, Sign, St) ->
-    {more,{Cs,Line,Col,St,{Number,Base,Sign},fun scan_bnumber_digits_fun/5}};
-scan_bnumber_digits(eof=Cs, Line, Col, Number, _Base, Sign, St) ->
-    Token = {number,Line,Sign*Number},
-    {ok,Token,Cs,Line,Col,St}.
+scan_bnumber_check(Cs, Line, Col, [], _Base, _Sign, _St) ->
+    scan_error({illegal,"based number"}, Line, Col, Line, Col, Cs);
+scan_bnumber_check(Cs, Line, Col, Digits, Base, Sign, St) ->
+    case base_collect_chars(Digits, Base, 0) of
+        {yes,Number} ->
+            Token = {number,Line,Sign*Number},
+            {ok,Token,Cs,Line,Col,St};
+        no ->
+            scan_error({illegal,"based number"}, Line, Col, Line, Col, Cs)
+    end.
 
-%% base_collect(Chars, Base, Number) -> {Number,RestChars}.
-%%  Collect all numeric characters of base Base.
+%% base_collect_chars(Chars, Base, NumberSoFar) -> {yes,Number} | no.
+%% base_collect_char(Char, Base, NumberSoFar) -> {yes,Number} | no.
+%%  Check if Char is number of valid base and if so build new number
+%%  with SoFar.
 
-base_collect_char(C, Base, SoFar) when C >= $0, C =< $9, C < Base + $0 ->
-    {yes,SoFar * Base + (C - $0)};
-base_collect_char(C, Base, SoFar) when C >= $a, C =< $z, C < Base + $a - 10 ->
-    {yes,SoFar * Base + (C - $a + 10)};
-base_collect_char(C, Base, SoFar) when C >= $A, C =< $Z, C < Base + $A - 10 ->
-    {yes,SoFar * Base + (C - $A + 10)};
-base_collect_char(_C, _Base, _SoFar) ->
-    no.
+base_collect_chars([C|Cs], Base, SoFar) ->
+    if C >= $0, C =< $9, C < Base + $0 ->
+            Next = SoFar * Base + (C - $0),
+            base_collect_chars(Cs, Base, Next);
+       C >= $a, C =< $z, C < Base + $a - 10 ->
+            Next = SoFar * Base + (C - $a + 10),
+            base_collect_chars(Cs, Base, Next);
+       C >= $A, C =< $Z, C < Base + $A - 10 ->
+            Next = SoFar * Base + (C - $A + 10),
+            base_collect_chars(Cs, Base, Next);
+       true -> no
+    end;
+base_collect_chars([], _Base, SoFar) ->
+    {yes,SoFar}.
 
 %% scan_symbol(Chars, Line, Column, State) ->
 %%     {ok,Token,Chars,Line,Column} | {more,Continuation} | ScanError.
@@ -459,7 +531,6 @@ scan_symbol(Cs, Line, Col, St) ->
     scan_symbol1(Cs, Line, Col, [], St).
 
 scan_symbol1_fun(Cs, Line, Col, St, Symcs) ->
-    %% io:format("ssf ~p\n", [{Cs,Symcs}]),
     scan_symbol1(Cs, Line, Col, Symcs, St).
 
 scan_symbol1([C|Cs], Line, Col, Symcs, St) ->
@@ -543,7 +614,7 @@ scan_qsymbol1(eof, Line, Col, Sline, Scol, Symcs, _St) ->
 %%     {ok,Token,Chars,Line,Column} | {more,Continuation} | ScanError.
 %% scan_binary_string(Chars, Line, Column, State) ->
 %%     {ok,Token,Chars,Line,Column} | {more,Continuation} | ScanError.
-%%  Scan strings.
+%%  Scan strings. We have not incremented Col.
 
 scan_string(Cs, Line, Col, St) ->
     scan_string(Cs, Line, Col, string, St).
@@ -563,46 +634,54 @@ scan_string(Cs, Line, Col, Type, St) ->
 scan_string1_fun(Cs, Line, Col, St, Type) ->
     scan_string1(Cs, Line, Col, Type, St).
 
+scan_string1([C|_]=Cs, Line, Col, Type, St) when C =/= $" ->
+    %% Scan a normal single quote string.
+    scan_sq_string(Cs, Line, Col, Type, St);
 scan_string1([$",$"|Cs], Line, Col, Type, St) ->
     %% This is a triple quoted string.
-    scan_tqstring(Cs, Line, Col+3, Line, Col, Type, St);
+    scan_tq_string(Cs, Line, Col+3, Line, Col, Type, St);
 scan_string1([$",C|_]=Cs, Line, Col, Type, St) when C =/= $" ->
     %% This is a empty normal string which we pass on.
-    scan_qstring(Cs, Line, Col+1, Line, Col, Type, St);
+    scan_sq_string(Cs, Line, Col, Type, St);
 scan_string1([$"]=Cs, Line, Col, Type, St) ->
     %% We don't know yet.
     {more,{Cs,Line,Col,St,Type,fun scan_string1_fun/5}};
-scan_string1(Cs, Line, Col, Type, St) ->
-    %% This is a normal string which we pass on.
-    scan_qstring1(Cs, Line, Col+1, Line, Col, [], Type, St).
+scan_string1([], Line, Col, Type, St) ->
+    %% We need more to decide what to do.
+    {more,{[],Line,Col,St,Type,fun scan_string1_fun/5}};
+scan_string1(Cs, Line, Col, _Type, _St) ->
+    scan_error({illegal,[$"]}, Line, Col, Line, Col, Cs).
 
-%% scan_qstring(Chars, Line, Column, StartLine, StartColumn,
-%%              Type, State) ->
+    %% This is a normal string which we pass on.
+    %% scan_sq_string(Cs, Line, Col, Type, St).
+
+%% scan_sq_string(Chars, Line, Column, Type, State) ->
 %%     {ok,Token,Chars,Line,Column} | ScanError | ScanMore.
 %%  Single quote "normal" strings. Note that the first " has already
 %%  been scanned.
 
-scan_qstring(Chars, Line, Column, Sline, Scol, Type, State) ->
-    scan_qstring1(Chars, Line, Column, Sline, Scol, [], Type, State).
+scan_sq_string(Chars, Line, Col, Type, St) ->
+    scan_sq_string1(Chars, Line, Col+1, Line, Col, [], Type, St).
 
-scan_qstring1_fun(Cs, Line, Col, St, {Sline,Scol,Symcs,Type}) ->
-    scan_qstring1(Cs, Line, Col, Sline, Scol, Symcs, Type, St).
+scan_sq_string1_fun(Cs, Line, Col, St, {Sline,Scol,Symcs,Type}) ->
+    scan_sq_string1(Cs, Line, Col, Sline, Scol, Symcs, Type, St).
 
-scan_qstring1([$\\,C|Cs], Line, Col, Sline, Scol, Symcs, Type, St) ->
-    scan_qstring1(Cs, Line, Col+2, Sline, Scol, 
-                 Symcs ++ [escape_char(C)], Type, St);
-scan_qstring1([$"|Cs], Line, Col, Sline, _Scol, Symcs, Type, St) ->
+scan_sq_string1([$\\,C|Cs], Line, Col, Sline, Scol, Symcs, Type, St) ->
+    scan_sq_string1(Cs, Line, Col+2, Sline, Scol, 
+                    Symcs ++ [escape_char(C)], Type, St);
+scan_sq_string1([$\\]=Cs, Line, Col, Sline, Scol, Symcs, Type, St) ->
+    {more,{Cs,Line,Col,St,{Sline,Scol,Symcs,Type},fun scan_sq_string1_fun/5}};
+scan_sq_string1([$"|Cs], Line, Col, Sline, _Scol, Symcs, Type, St) ->
+    %% We have the string.
     Token = string_token(Symcs, Sline, Type),
     {ok,Token,Cs,Line,Col+1,St};
-scan_qstring1([$\n|Cs], Line, _Col, Sline, Scol, Symcs, Type, St) ->
-    scan_qstring1(Cs, Line+1, 1, Sline, Scol, Symcs ++ [$\n], Type, St);
-scan_qstring1([$\\], Line, Col, Sline, Scol, Symcs, Type, St) ->
-    {more,{[$\\],Line,Col,St,{Sline,Scol,Symcs,Type},fun scan_qstring1_fun/5}};
-scan_qstring1([C|Cs], Line, Col, Sline, Scol, Symcs, Type, St) ->
-    scan_qstring1(Cs, Line, Col+1, Sline, Scol, Symcs ++ [C], Type, St);
-scan_qstring1([]=Cs, Line, Col, Sline, Scol, Symcs, Type, St) ->
-    {more,{Cs,Line,Col,St,{Sline,Scol,Symcs,Type},fun scan_qstring1_fun/5}};
-scan_qstring1(eof=Cs, Line, Col, Sline, Scol, Symcs, _Type, _St) ->
+scan_sq_string1([$\n|Cs], Line, _Col, Sline, Scol, Symcs, Type, St) ->
+    scan_sq_string1(Cs, Line+1, 1, Sline, Scol, Symcs ++ [$\n], Type, St);
+scan_sq_string1([C|Cs], Line, Col, Sline, Scol, Symcs, Type, St) ->
+    scan_sq_string1(Cs, Line, Col+1, Sline, Scol, Symcs ++ [C], Type, St);
+scan_sq_string1([]=Cs, Line, Col, Sline, Scol, Symcs, Type, St) ->
+    {more,{Cs,Line,Col,St,{Sline,Scol,Symcs,Type},fun scan_sq_string1_fun/5}};
+scan_sq_string1(eof=Cs, Line, Col, Sline, Scol, Symcs, _Type, _St) ->
     scan_error({illegal,[$" | Symcs]}, Line, Col, Sline, Scol, Cs).
 
 escape_char($b) -> $\b;                %\b = BS
@@ -624,120 +703,114 @@ string_token(String, StartLine, Type) ->
             {binary,StartLine,Binary}
     end.
 
-%% scan_tqstring(Chars, Line, Column, StartLine, StartCol, Type, State) ->
+%% scan_tq_string(Chars, Line, Column, StartLine, StartCol, Type, State) ->
 %%     {ok,Token,Char,Line,Column} | {more,Continuation} | ScanError.
 %%  Scan triple quoted strings. Note that the first """ has already
 %%  been scanned.
 
-scan_tqstring(Chars, Line, Column, StartLine, StartCol, Type, State) ->
-    scan_tqstring_1(Chars, Line, Column, StartLine, StartCol, Type, State).
+scan_tq_string(Chars, Line, Col, StartLine, StartCol, Type, State) ->
+    scan_tq_string_1(Chars, Line, Col, StartLine, StartCol, Type, State).
 
-%% scan_tqstring_1(Chars, Line, Column, StartLine, StartCol, Type, State) ->
+%% scan_tq_string_1(Chars, Line, Column, StartLine, StartCol, Type, State) ->
 %%     {ok,Token,Char,Line,Column} | {more,Continuation} | ScanError.
 %%  Scan the first line and check the format.
 
-scan_tqstring_1_fun(Cs, Line, Col, St, {Sline,Scol,Type}) ->
-    scan_tqstring_1(Cs, Line, Col, Sline, Scol, Type, St).
+scan_tq_string_1_fun(Cs, Line, Col, St, {Sline,Scol,Type}) ->
+    scan_tq_string_1(Cs, Line, Col, Sline, Scol, Type, St).
     
-scan_tqstring_1([$\s|Cs], Line, Col, Sline, Scol, Type, St) ->
-    scan_tqstring_1(Cs, Line, Col, Sline, Scol, Type, St);
-scan_tqstring_1([$\n|Cs], Line, _Col, Sline, Scol, Type, St) ->
-    scan_tqstring_lines(Cs, Line+1, 1, Sline, Scol, [], [], Type, St);
-scan_tqstring_1([]=Cs, Line, Col, Sline, Scol, Type, St) ->
-    {more,{Cs,Line,Col,St,{Sline,Scol,Type},fun scan_tqstring_1_fun/5}};
-scan_tqstring_1(Cs, Line, Col, Sline, Scol, _Type, _St) ->
-    %% io:format("ls ~p\n", [{st1,Cs}]),
+scan_tq_string_1([$\s|Cs], Line, Col, Sline, Scol, Type, St) ->
+    scan_tq_string_1(Cs, Line, Col, Sline, Scol, Type, St);
+scan_tq_string_1([$\n|Cs], Line, _Col, Sline, Scol, Type, St) ->
+    scan_tq_string_lines(Cs, Line+1, 1, Sline, Scol, [], [], Type, St);
+scan_tq_string_1([]=Cs, Line, Col, Sline, Scol, Type, St) ->
+    {more,{Cs,Line,Col,St,{Sline,Scol,Type},fun scan_tq_string_1_fun/5}};
+scan_tq_string_1(Cs, Line, Col, Sline, Scol, _Type, _St) ->
     %% An error for illegal character or eof.
-    scan_error(tq_string, Line, Col, Sline, Scol, Cs).
+    scan_error({illegal,[$",$",$"]}, Line, Col, Sline, Scol, Cs).
 
-%% scan_tqstring_lines(Chars, Line, Col, StartLine, StartCol, LineChars, Lines,
-%%                     Type, State) ->
+%% scan_tq_string_lines(Chars, Line, Col, StartLine, StartCol, LineChars, Lines,
+%%                      Type, State) ->
 %%      {ok,Token,Char,Line,Column,State} | {more,Continuation} | ScanError.
 %%  Scan and collect the following lines up to a valid end """.
 
-scan_tqstring_lines_fun(Chars, Line, Col, St, {Sline,Scol,Lcs,Lines,Type}) ->
-    scan_tqstring_lines(Chars, Line, Col, Sline, Scol, Lcs, Lines, Type, St).
+scan_tq_string_lines_fun(Chars, Line, Col, St, {Sline,Scol,Lcs,Lines,Type}) ->
+    scan_tq_string_lines(Chars, Line, Col, Sline, Scol, Lcs, Lines, Type, St).
 
-scan_tqstring_lines([$\n|Cs], Line, _Col, Sline, Scol, Lcs, Lines, Type, St) ->
-    scan_tqstring_lines(Cs, Line+1, 0, Sline, Scol, [], Lines ++ [Lcs], Type, St);
-scan_tqstring_lines([$"|Cs], Line, Col, Sline, Scol, Lcs, Lines, Type, St) -> 
-    scan_tqstring_tq(Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St);
-scan_tqstring_lines([C|Cs], Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
-    scan_tqstring_lines(Cs, Line, Col, Sline, Scol, Lcs ++ [C], Lines, Type, St);
-scan_tqstring_lines([]=Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
+scan_tq_string_lines([$\n|Cs], Line, _Col, Sline, Scol, Lcs, Lines, Type, St) ->
+    scan_tq_string_lines(Cs, Line+1, 0, Sline, Scol,
+                         [], Lines ++ [Lcs], Type, St);
+scan_tq_string_lines([$"|Cs], Line, Col, Sline, Scol, Lcs, Lines, Type, St) -> 
+    scan_tq_string_tq(Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St);
+scan_tq_string_lines([C|Cs], Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
+    scan_tq_string_lines(Cs, Line, Col, Sline, Scol,
+                         Lcs ++ [C], Lines, Type, St);
+scan_tq_string_lines([]=Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
     {more,{Cs,Line,Col,St,{Sline,Scol,Lcs,Lines,Type},
-           fun scan_tqstring_lines_fun/5}};
-scan_tqstring_lines(eof=Cs, Line, Col, Sline, Scol, _Lcs, _Lines, _Type, _St) ->
-    %% io:format("ls ~w\n", [{stl,Cs,Sline,Line,_Lcs,_Lines}]),
-    scan_error(tq_string, Line, Col, Sline, Scol, Cs).
+           fun scan_tq_string_lines_fun/5}};
+scan_tq_string_lines(eof=Cs, Line, Col, Sline, Scol,
+                     _Lcs, _Lines, _Type, _St) ->
+    scan_error({illegal,[$",$",$"]}, Line, Col, Sline, Scol, Cs).
 
-%% scan_tqstring_tq(Chars, Line, Col, StartLine, StartCol, LineChars, Lines,
-%%                  Type, State) ->
+%% scan_tq_string_tq(Chars, Line, Col, StartLine, StartCol, LineChars, Lines,
+%%                   Type, State) ->
 %%      {ok,Token,Char,Line,Column,State} | {more,Continuation} | ScanError.
 %%  Check if we have valid end of the """ or whether we must go
 %%  on. Note that the first " has already been scanned.
 
-scan_tqstring_tq_fun(Cs, Line, Col, St, {Sline,Scol,Lcs,Lines,Type}) ->
-    %%  io:format("ls ~p\n\n", [{sttf,Cs,Sline,Line,Lcs,Lines}]),
-    scan_tqstring_tq(Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St).
+scan_tq_string_tq_fun(Cs, Line, Col, St, {Sline,Scol,Lcs,Lines,Type}) ->
+    scan_tq_string_tq(Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St).
 
-scan_tqstring_tq([$",$"|Cs], Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
+scan_tq_string_tq([$",$"|Cs], Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
     %% This is a triple quote, check if this is a valid end line.
     case blank_line(Lcs) of
         true ->
-	    %% io:format("ls ~p\n\n", [{stt1,Cs,Sline,Line,Lcs,Lines}]),
-            scan_tqstring_end(Cs, Line, Col+3, Sline, Scol,
-                              Lcs, Lines, Type, St);
+            scan_tq_string_end(Cs, Line, Col+3, Sline, Scol,
+                               Lcs, Lines, Type, St);
         false ->
-	    %% io:format("ls ~p\n", [{stt2,Cs,Sline,Line,Lcs ++ [$",$",$"],Lines}]),
-            scan_tqstring_lines(Cs, Line, Col+3, Sline, Scol, 
-                                Lcs ++ [$",$",$"], Lines, Type, St)
+            scan_tq_string_lines(Cs, Line, Col+3, Sline, Scol, 
+                                 Lcs ++ [$",$",$"], Lines, Type, St)
     end;
-scan_tqstring_tq([$",C|Cs], Line, Col, Sline, Scol, Lcs, Lines, Type, St) when
+scan_tq_string_tq([$",C|Cs], Line, Col, Sline, Scol, Lcs, Lines, Type, St) when
       C =/= $" ->
-    io:format("ls ~p\n", [{stt3,[C|Cs],Sline,Line,Lcs ++ [$"],Lines}]),
     %% This is not a triple quote here, it is a normal line. So we
     %% pass the buck, but don't forget the ".
-    scan_tqstring_lines([C|Cs], Line, Col, Sline, Scol,
-                        Lcs ++ [$"], Lines, Type, St);
-scan_tqstring_tq([$"]=Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
-    %% io:format("ls ~p\n", [{stt4,Cs,Sline,Line,Lcs,Lines}]),
+    scan_tq_string_lines([C|Cs], Line, Col, Sline, Scol,
+                         Lcs ++ [$"], Lines, Type, St);
+scan_tq_string_tq([$"]=Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
     {more,{Cs,Line,Col,St,{Sline,Scol,Lcs,Lines,Type},
-	   fun scan_tqstring_tq_fun/5}};
-scan_tqstring_tq([]=Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
-    %% io:format("ls ~p\n", [{stt5,Cs,Sline,Line,Lcs,Lines}]),
+           fun scan_tq_string_tq_fun/5}};
+scan_tq_string_tq([]=Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
     {more,{Cs,Line,Col,St,{Sline,Scol,Lcs,Lines,Type},
-	   fun scan_tqstring_tq_fun/5}};
-scan_tqstring_tq(eof, Line, Col, Sline, Scol, _Lcs, _Lines, _Type, _St) ->
-    scan_error(tq_string, Line, Col, Sline, Scol, eof);
-scan_tqstring_tq(Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
+           fun scan_tq_string_tq_fun/5}};
+scan_tq_string_tq(eof, Line, Col, Sline, Scol, _Lcs, _Lines, _Type, _St) ->
+    scan_error({illegal,[$",$",$"]}, Line, Col, Sline, Scol, eof);
+scan_tq_string_tq(Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
     %% This is not a triple quote here, it is a normal line. So we
     %% pass the buck, but don't forget the ".
-    scan_tqstring_lines(Cs, Line, Col, Sline, Scol,
-                        Lcs ++ [$"], Lines, Type, St).
+    scan_tq_string_lines(Cs, Line, Col, Sline, Scol,
+                         Lcs ++ [$"], Lines, Type, St).
 
-%% scan_tqstring_end(Chars, Line, Col, StartLine, StartCol, Prefix, Lines,
-%%                   Type, State) ->
+%% scan_tq_string_end(Chars, Line, Col, StartLine, StartCol, Prefix, Lines,
+%%                    Type, State) ->
 %%      {ok,Token,Char,Line,Column,State} | ScanError.
 %%  Check if we have a valid end line.
 
-scan_tqstring_end(Cs, Line, Col, Sline, _Scol, _Prefix, [], Type, St) ->
+scan_tq_string_end(Cs, Line, Col, Sline, _Scol, _Prefix, [], Type, St) ->
     %% No lines so it just is empty.
     Token = string_token([], Sline, Type),
     {ok,Token,Cs,Line,Col,St};
-scan_tqstring_end(Cs, Line, Col, Sline, Scol, Prefix, Lines, Type, St) ->
+scan_tq_string_end(Cs, Line, Col, Sline, Scol, Prefix, Lines, Type, St) ->
     %% Here we will check what we have.
     case collect_tqstring_lines(Lines, Prefix, []) of
         {yes,CheckedLines} ->
             %% Skip the leading newline added by the fold.
             [_Lc|String] = lists:foldr(fun (Lcs, Scs) -> [$\n|Lcs] ++ Scs end,
-                                     [], CheckedLines),
-	    %% io:format("ls ~p\n", [{ste,Prefix,Lines,CheckedLines,String}]),
+                                       [], CheckedLines),
             Token = string_token(String, Sline, Type),
             {ok,Token,Cs,Line,Col,St};
         no ->
-	    %% io:format("ls ~p\n", [{ste,Cs,Sline,Line,Lines,Prefix}]),
-            scan_error(tq_string, Line, Col, Sline, Scol, Cs)
+            %% io:format("ls ~p\n", [{ste,Cs,Sline,Line,Lines,Prefix}]),
+            scan_error({illegal,[$",$",$"]}, Line, Col, Sline, Scol, Cs)
     end.
 
 blank_line(Cs) ->
@@ -781,22 +854,38 @@ scan_error(Error, ErrorLoc, EndLoc, Rest) ->
 anno(Location) ->
     erl_anno:new(Location).
 
-token_test(String) ->
-    token_test([], String).
+%% token_test(Chars) -> {done,Done,Rest}.
+%% token_test(Continuation, Chars) -> {done,Done,Rest}.
+%% tokens_test(Chars) -> {done,Done,Rest}.
+%% tokens_test(Continuation, Chars) -> {done,Done,Rest}.
+%%  Carefully test the token(s) by steping over them one character at
+%%  a time. This guarantees that they can handle the input string
+%%  safely and correctly.
 
-token_test(Cont0, [C1,C2,C3,C4,C5|String]) ->
-    case lfe_scan:token(Cont0, [C1,C2,C3,C4,C5]) of
-        {more,Cont1} ->
-            token_test(Cont1, String);
-        Other ->
-            {Other,String}                      %So we can see what is left
-    end;
-token_test(Cont0, [C|String]) ->
+token_test(Cs) ->
+    token_test([], Cs).
+
+token_test(Cont0, [C|Cs]) ->
     case lfe_scan:token(Cont0, [C]) of
         {more,Cont1} ->
-            token_test(Cont1, String);
-        Other ->
-            {Other,String}                      %So we can see what is left
+            token_test(Cont1, Cs);
+        {done,_Done,_Rest}=Done ->
+            Done
     end;
 token_test(Cont, []) ->
+    io:format("tt ~p\n", [Cont]),
     lfe_scan:token(Cont, eof).
+
+tokens_test(Cs) ->
+    tokens_test([], Cs).
+
+tokens_test(Cont0, [C|Cs]) -> 
+    case lfe_scan:tokens(Cont0, [C]) of
+        {more,Cont1} ->
+            tokens_test(Cont1, Cs);
+        {done,_Done,_Rest}=Done ->
+            Done
+    end;
+tokens_test(Cont, []) ->
+    io:format("tst ~p\n", [Cont]),
+    lfe_scan:tokens(Cont, eof).
