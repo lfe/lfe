@@ -237,6 +237,27 @@ which correspnds to the binary:
 #"Line \"1\"\nLine \"2\""
 ```
 
+## Function References
+
+The function references are the forms:
+
+```
+(function func-name arity)
+(function mod-name func-name arity)
+```
+
+These forms evaluate to function references which can be used with
+``funcall`` to call the functions.
+
+There is also a special syntax:
+
+```
+#'func-name/arity
+#'mod-name:func-name/arity
+```
+
+which is still supported but is deprecated.
+
 ## Binaries
 
 We have already seen binary strings, but the ``#B(...)`` syntax can be used

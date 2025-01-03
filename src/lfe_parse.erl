@@ -1,4 +1,4 @@
-%% Copyright (c) 2009-2020 Robert Virding
+%% Copyright (c) 2009-2025 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -94,9 +94,10 @@ parse1(#spell1{line=L,st=St0,vs=Vs0}, Ts) ->
         parse2(Ts, St0, Vs0) of
         {done,Rest,[],[V]} -> {ok,L,V,Rest};
         {more,[],St1,Vs1} -> {more,#spell1{line=L,st=St1,vs=Vs1}};
-        {error,Line,Error,Rest,_,_} ->
-            %% Can't really continue from errors here.
-            {error,{Line,?MODULE,Error},Rest}
+        {error,_,Error,Rest,_,_} ->
+            %% Can't really continue from errors here. Give line
+            %% number of start of uncompleted form.
+            {error,{L,?MODULE,Error},Rest}
     catch
         throw:{spell1_error,Error} ->
             {error,Error,[]}
@@ -169,21 +170,22 @@ table(list_tail, binary) -> [sexpr,list_tail,{reduce,18}];
 table(list_tail, number) -> [sexpr,list_tail,{reduce,18}];
 table(list_tail, string) -> [sexpr,list_tail,{reduce,18}];
 table(list_tail, symbol) -> [sexpr,list_tail,{reduce,18}];
-table(sexpr, '#\'') -> ['#\'',{reduce,5}];
-table(sexpr, '#(') -> ['#(',proper_list,')',{reduce,13}];
-table(sexpr, '#.') -> ['#.',sexpr,{reduce,6}];
-table(sexpr, '#B(') -> ['#B(',proper_list,')',{reduce,14}];
-table(sexpr, '#M(') -> ['#M(',proper_list,')',{reduce,15}];
-table(sexpr, '\'') -> ['\'',sexpr,{reduce,7}];
-table(sexpr, '(') -> ['(',list,')',{reduce,11}];
-table(sexpr, ',') -> [',',sexpr,{reduce,9}];
-table(sexpr, ',@') -> [',@',sexpr,{reduce,10}];
-table(sexpr, '[') -> ['[',list,']',{reduce,12}];
-table(sexpr, '`') -> ['`',sexpr,{reduce,8}];
-table(sexpr, binary) -> [binary,{reduce,4}];
-table(sexpr, number) -> [number,{reduce,2}];
-table(sexpr, string) -> [string,{reduce,3}];
-table(sexpr, symbol) -> [symbol,{reduce,1}];
+table(proper_list, '#\'') -> [sexpr,proper_list,{reduce,21}];
+table(proper_list, '#(') -> [sexpr,proper_list,{reduce,21}];
+table(proper_list, '#.') -> [sexpr,proper_list,{reduce,21}];
+table(proper_list, '#B(') -> [sexpr,proper_list,{reduce,21}];
+table(proper_list, '#M(') -> [sexpr,proper_list,{reduce,21}];
+table(proper_list, ')') -> [{reduce,22}];
+table(proper_list, '\'') -> [sexpr,proper_list,{reduce,21}];
+table(proper_list, '(') -> [sexpr,proper_list,{reduce,21}];
+table(proper_list, ',') -> [sexpr,proper_list,{reduce,21}];
+table(proper_list, ',@') -> [sexpr,proper_list,{reduce,21}];
+table(proper_list, '[') -> [sexpr,proper_list,{reduce,21}];
+table(proper_list, '`') -> [sexpr,proper_list,{reduce,21}];
+table(proper_list, binary) -> [sexpr,proper_list,{reduce,21}];
+table(proper_list, number) -> [sexpr,proper_list,{reduce,21}];
+table(proper_list, string) -> [sexpr,proper_list,{reduce,21}];
+table(proper_list, symbol) -> [sexpr,proper_list,{reduce,21}];
 table(list, '#\'') -> [sexpr,list_tail,{reduce,16}];
 table(list, '#(') -> [sexpr,list_tail,{reduce,16}];
 table(list, '#.') -> [sexpr,list_tail,{reduce,16}];
@@ -216,22 +218,21 @@ table(form, binary) -> [sexpr,{reduce,0}];
 table(form, number) -> [sexpr,{reduce,0}];
 table(form, string) -> [sexpr,{reduce,0}];
 table(form, symbol) -> [sexpr,{reduce,0}];
-table(proper_list, '#\'') -> [sexpr,proper_list,{reduce,21}];
-table(proper_list, '#(') -> [sexpr,proper_list,{reduce,21}];
-table(proper_list, '#.') -> [sexpr,proper_list,{reduce,21}];
-table(proper_list, '#B(') -> [sexpr,proper_list,{reduce,21}];
-table(proper_list, '#M(') -> [sexpr,proper_list,{reduce,21}];
-table(proper_list, ')') -> [{reduce,22}];
-table(proper_list, '\'') -> [sexpr,proper_list,{reduce,21}];
-table(proper_list, '(') -> [sexpr,proper_list,{reduce,21}];
-table(proper_list, ',') -> [sexpr,proper_list,{reduce,21}];
-table(proper_list, ',@') -> [sexpr,proper_list,{reduce,21}];
-table(proper_list, '[') -> [sexpr,proper_list,{reduce,21}];
-table(proper_list, '`') -> [sexpr,proper_list,{reduce,21}];
-table(proper_list, binary) -> [sexpr,proper_list,{reduce,21}];
-table(proper_list, number) -> [sexpr,proper_list,{reduce,21}];
-table(proper_list, string) -> [sexpr,proper_list,{reduce,21}];
-table(proper_list, symbol) -> [sexpr,proper_list,{reduce,21}];
+table(sexpr, '#\'') -> ['#\'',{reduce,5}];
+table(sexpr, '#(') -> ['#(',proper_list,')',{reduce,13}];
+table(sexpr, '#.') -> ['#.',sexpr,{reduce,6}];
+table(sexpr, '#B(') -> ['#B(',proper_list,')',{reduce,14}];
+table(sexpr, '#M(') -> ['#M(',proper_list,')',{reduce,15}];
+table(sexpr, '\'') -> ['\'',sexpr,{reduce,7}];
+table(sexpr, '(') -> ['(',list,')',{reduce,11}];
+table(sexpr, ',') -> [',',sexpr,{reduce,9}];
+table(sexpr, ',@') -> [',@',sexpr,{reduce,10}];
+table(sexpr, '[') -> ['[',list,']',{reduce,12}];
+table(sexpr, '`') -> ['`',sexpr,{reduce,8}];
+table(sexpr, binary) -> [binary,{reduce,4}];
+table(sexpr, number) -> [number,{reduce,2}];
+table(sexpr, string) -> [string,{reduce,3}];
+table(sexpr, symbol) -> [symbol,{reduce,1}];
 table(_, _) -> error.
 
 %% The reductions, we are naive and straight forward here.

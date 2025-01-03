@@ -36,9 +36,15 @@
 -export([token_test/1,token_test/2,tokens_test/1,tokens_test/2]).
 
 format_error({illegal,S}) ->
-    ["illegal characters in ",io_lib:write_string(S)];
-format_error(tq_string) ->
-    "bad triple-quoted string";
+    io_lib:format(<<"illegal ~s">>, [S]);
+format_error({illegal_token,S}) ->
+    io_lib:format(<<"illegal token ~s">>, [S]);
+format_error({illegal_chars,S}) ->
+    io_lib:format(<<"illegal characters in ~s">>, [S]);
+format_error({bad_format,S}) ->
+    io_lib:format(<<"bad of format of ~s">>, [S]);
+format_error(bad_tq_string) ->
+    "bad format of triple-quoted string";
 format_error({user,S}) -> S;
 format_error(Other) ->
     lists:flatten(io_lib:write(Other)).
@@ -229,11 +235,16 @@ scan1([C|Cs], Line, Col, St) when ?WHITE_SPACE(C) ->
 %% Comments.
 scan1([$;|Cs], Line, Col, St) ->
     scan_line_comment(Cs, Line, Col+1, St);
-%% These not start symbol chars must be handled specially.
+%% These start symbol chars must be handled specially.
 scan1([$||Cs], Line, Col, St) ->
     scan_qsymbol(Cs, Line, Col, St);
 scan1([$#|Cs], Line, Col, St) ->
     scan_hash(Cs, Line, Col+1, St);
+%% Non-existent test tokens which can be useful for testing the parser.
+%% scan1([$^|Cs], Line, Col, St) ->
+%%     {ok,{'^',anno(Line)},Cs,Line,Col+1,St};
+%% scan1([$&|Cs], Line, Col, St) ->
+%%     {ok,{'&',anno(Line)},Cs,Line,Col+1,St};
 %% We do the one character separators which are also start symbol chars.
 scan1([$'|Cs], Line, Col, St) ->
     {ok,{'\'',anno(Line)},Cs,Line,Col+1,St};
@@ -302,7 +313,7 @@ scan_block_comment([]=Cs, Line, Col, St) ->
     {more,{Cs,Line,Col,St,[],fun scan_block_comment_fun/5}};
 %% Eof so we are really done!
 scan_block_comment(eof=Cs, Line, Col, _St) ->
-    scan_error({illegal,"block comment"}, Line, Col, Line, Col, Cs).
+    scan_error({bad_format,"block comment"}, Line, Col, Line, Col, Cs).
 
 %% scan_hash(Chars, Line, Column, State) ->
 %%     {ok,Token,Chars,Line,Column} | {more,Continuation} | ScanError.
@@ -356,7 +367,7 @@ scan_hash1([C|Cs], Line, Col, Digits, St) when (C =:= $r) or (C =:= $R) ->
     if Base >=2, Base =< 36 ->
             scan_bnumber(Cs, Base, Line, Col+1, St);
        true ->
-            scan_error({illegal,"#r"}, Line, Col, Line, Col+1, Cs)
+            scan_error({bad_format,"#r"}, Line, Col, Line, Col+1, Cs)
     end;
 scan_hash1(Cs, Line, Col, Digits, St) ->
     %% Pass the buck!
@@ -370,17 +381,10 @@ scan_hash1(Cs, Line, Col, Digits, St) ->
 %%     {more,{Cs,Line,Col,St,Digits,fun scan_hash2_fun/5}};
 
 %% scan_hash1(eof=Cs, Line, Col, _Digits, _St) ->
-%%     scan_error({illegal,"#"}, Line, Col, Line, Col+1, Cs).
+%%     scan_error({illegal_chars,"#"}, Line, Col, Line, Col+1, Cs).
 
 scan_hash2_fun(Cs, Line, Col, St, Digits) ->
     scan_hash2(Cs, Line, Col, Digits, St).
-
-%% scan_hash2_fun([_,_|_]=Cs, Line, Col, St, Digits) ->
-%%     scan_hash2(Cs, Line, Col, Digits, St);
-%% scan_hash2_fun([_|eof]=Cs, Line, Col, _St, _Digits) ->
-%%     scan_error({illegal,"#"}, Line, Col, Line, Col+1, Cs);
-%% scan_hash2_fun(eof=Cs, Line, Col, _St, _Digits) ->
-%%     scan_error({illegal,"#"}, Line, Col, Line, Col+1, Cs).
 
 %% Check that we don't just have one character.
 scan_hash2([_]=Cs, Line, Col, Digits, St) ->
@@ -392,10 +396,12 @@ scan_hash2([$,,$@|Cs], Line, Col, [], St) ->    %Get this before #,
     {ok,{'#,@',Line},Cs,Line,Col+2,St};
 scan_hash2([$,|Cs], Line, Col, [], St) ->
     {ok,{'#,',Line},Cs,Line,Col+1,St};
-scan_hash2([C,$\(|Cs], Line, Col, [], St) when (C =:= $s) or (C =:= $S) ->
-    {ok,{'#S(',Line},Cs,Line,Col+2,St};
 scan_hash2([C,$\(|Cs], Line, Col, [], St) when (C =:= $m) or (C =:= $M) ->
     {ok,{'#M(',Line},Cs,Line,Col+2,St};
+scan_hash2([C,$\(|Cs], Line, Col, [], St) when (C =:= $s) or (C =:= $S) ->
+    {ok,{'#S(',Line},Cs,Line,Col+2,St};
+%% scan_hash2([C,$\(|Cs], Line, Col, [], St) when (C =:= $f) or (C =:= $F) ->
+%%     {ok,{'#F(',Line},Cs,Line,Col+2,St};
 %% Scan binary tokens, these must come before the based number.
 scan_hash2([C,$\(|Cs], Line, Col, [], St) when (C =:= $b) or (C =:= $B) ->
     {ok,{'#B(',Line},Cs,Line,Col,St};
@@ -405,8 +411,10 @@ scan_hash2([C,C1|Cs], Line, Col, [], St) when
     %% Must not clash with #b(
     scan_bnumber([C1|Cs], 2, Line, Col+1, St);
 %% Eof, other chars or illegal digits, so we are really done!
-scan_hash2(Cs, Line, Col, _Digits, _St) ->
-    scan_error({illegal,"#"}, Line, Col, Line, Col+1, Cs).
+scan_hash2([C|Cs], Line, Col, _Digits, _St) ->
+    scan_error({illegal_token,[$#,C]}, Line, Col, Line, Col+1, Cs);
+scan_hash2(eof, Line, Col, _Digits, _St) ->
+    scan_error({illegal_token,"#"}, Line, Col, Line, Col+1, eof).
 
 %% scan_fun(Chars, Line, Column, State) ->
 %%     {ok,Token,Chars,Line,Column} | {more,Continuation} | ScanError.
@@ -431,28 +439,21 @@ scan_fun1(eof, Line, Col, Symcs, St) ->
     scan_fun_ret(Symcs, eof, Line, Col, St).
 
 scan_fun_ret(Symcs, Cs, Line, Col, St) ->
-    case split_fun_chars(Symcs, [], []) of
-        {Pre,[]} ->
-            scan_error({illegal,[$#,$'|Pre]}, Line, Col, Line, Col, Symcs);
+    case lists:splitwith(fun (C) -> C =/= $/ end, Symcs) of
+        {_Pre,[]} ->
+            scan_error({bad_format,[$#,$'|Symcs]}, Line, Col, Line, Col, Cs);
         {Pre,[$/|Ds]=After} ->
             Field = Pre ++ After,
-            Token = case lists:any(fun (C) -> not ?DIGIT(C) end, Ds) of
-                        true -> {symbol,Line,list_to_atom(Field)};
-                        false -> {'#\'',Line,Field}
-                    end,
-            {ok,Token,Cs,Line,Col,St}
+            %% io:format("sfr ~p\n", [{Symcs,Field}]),
+            case lists:any(fun (C) -> not ?DIGIT(C) end, Ds) of
+                true ->
+                    scan_error({bad_format,[$#,$'|Symcs]},
+                               Line, Col, Line, Col, Cs);
+                false ->
+                    Token = {'#\'',Line,Field},
+                    {ok,Token,Cs,Line,Col,St}
+            end
     end.
-
-%% split_fun_chars(Chars, Pre, After) -> {Pre,After}.
-
-split_fun_chars([$/|Cs], Pre, After) ->
-    split_fun_chars(Cs, Pre ++ After, [$/]);
-split_fun_chars([C|Cs], Pre, After) when After =:= [] ->
-    split_fun_chars(Cs, Pre ++ [C], After);
-split_fun_chars([C|Cs], Pre, After) when After =/= [] ->
-    split_fun_chars(Cs, Pre, After ++ [C]);
-split_fun_chars([], Pre, After) ->
-    {Pre,After}.
 
 %% scan_bnumber(Chars, Base, Line, Column, State) ->
 %%     {ok,Token,Chars,Line,Column} | {more,Continuation} | ScanError.
@@ -490,14 +491,14 @@ scan_bnumber_digits(eof=Cs, Line, Col, Digits, Base, Sign, St) ->
     scan_bnumber_check(Cs, Line, Col, Digits, Base, Sign, St).
 
 scan_bnumber_check(Cs, Line, Col, [], _Base, _Sign, _St) ->
-    scan_error({illegal,"based number"}, Line, Col, Line, Col, Cs);
+    scan_error({bad_format,"based number"}, Line, Col, Line, Col, Cs);
 scan_bnumber_check(Cs, Line, Col, Digits, Base, Sign, St) ->
     case base_collect_chars(Digits, Base, 0) of
         {yes,Number} ->
             Token = {number,Line,Sign*Number},
             {ok,Token,Cs,Line,Col,St};
         no ->
-            scan_error({illegal,"based number"}, Line, Col, Line, Col, Cs)
+            scan_error({illegal_chars,"based number"}, Line, Col, Line, Col, Cs)
     end.
 
 %% base_collect_chars(Chars, Base, NumberSoFar) -> {yes,Number} | no.
@@ -568,6 +569,8 @@ make_symbol_token(Chars, Line) ->
 %% symbol_char(Char) -> true | false.
 %%  Define start symbol chars and symbol chars.
 
+%% start_symbol_char($^) -> false;                 %These 2 are for test cases
+%% start_symbol_char($&) -> false;
 start_symbol_char($#) -> false;
 start_symbol_char($`) -> false;
 start_symbol_char($') -> false;                 %'
@@ -608,7 +611,7 @@ scan_qsymbol1([C|Cs], Line, Col, Sline, Scol, Symcs, St) when C =/= $\\ ->
 scan_qsymbol1(Cs, Line, Col, Sline, Scol, Symcs, St) when Cs =/= eof ->
     {more,{Cs,Line,Col,St,{Sline,Scol,Symcs},fun scan_qsymbol1_fun/5}};
 scan_qsymbol1(eof, Line, Col, Sline, Scol, Symcs, _St) ->
-    scan_error({illegal,[$| | Symcs]}, Line, Col, Sline, Scol, eof).
+    scan_error({illegal_chars,[$| | Symcs]}, Line, Col, Sline, Scol, eof).
 
 %% scan_string(Chars, Line, Column, State) ->
 %%     {ok,Token,Chars,Line,Column} | {more,Continuation} | ScanError.
@@ -650,7 +653,7 @@ scan_string1([], Line, Col, Type, St) ->
     %% We need more to decide what to do.
     {more,{[],Line,Col,St,Type,fun scan_string1_fun/5}};
 scan_string1(Cs, Line, Col, _Type, _St) ->
-    scan_error({illegal,[$"]}, Line, Col, Line, Col, Cs).
+    scan_error({illegal_chars,[$"]}, Line, Col, Line, Col, Cs).
 
     %% This is a normal string which we pass on.
     %% scan_sq_string(Cs, Line, Col, Type, St).
@@ -682,7 +685,7 @@ scan_sq_string1([C|Cs], Line, Col, Sline, Scol, Symcs, Type, St) ->
 scan_sq_string1([]=Cs, Line, Col, Sline, Scol, Symcs, Type, St) ->
     {more,{Cs,Line,Col,St,{Sline,Scol,Symcs,Type},fun scan_sq_string1_fun/5}};
 scan_sq_string1(eof=Cs, Line, Col, Sline, Scol, Symcs, _Type, _St) ->
-    scan_error({illegal,[$" | Symcs]}, Line, Col, Sline, Scol, Cs).
+    scan_error({illegal_chars,[$" | Symcs]}, Line, Col, Sline, Scol, Cs).
 
 escape_char($b) -> $\b;                %\b = BS
 escape_char($t) -> $\t;                %\t = TAB
@@ -726,7 +729,7 @@ scan_tq_string_1([]=Cs, Line, Col, Sline, Scol, Type, St) ->
     {more,{Cs,Line,Col,St,{Sline,Scol,Type},fun scan_tq_string_1_fun/5}};
 scan_tq_string_1(Cs, Line, Col, Sline, Scol, _Type, _St) ->
     %% An error for illegal character or eof.
-    scan_error({illegal,[$",$",$"]}, Line, Col, Sline, Scol, Cs).
+    scan_error(bad_tq_string, Line, Col, Sline, Scol, Cs).
 
 %% scan_tq_string_lines(Chars, Line, Col, StartLine, StartCol, LineChars, Lines,
 %%                      Type, State) ->
@@ -749,7 +752,7 @@ scan_tq_string_lines([]=Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
            fun scan_tq_string_lines_fun/5}};
 scan_tq_string_lines(eof=Cs, Line, Col, Sline, Scol,
                      _Lcs, _Lines, _Type, _St) ->
-    scan_error({illegal,[$",$",$"]}, Line, Col, Sline, Scol, Cs).
+    scan_error(bad_tq_string, Line, Col, Sline, Scol, Cs).
 
 %% scan_tq_string_tq(Chars, Line, Col, StartLine, StartCol, LineChars, Lines,
 %%                   Type, State) ->
@@ -783,7 +786,7 @@ scan_tq_string_tq([]=Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
     {more,{Cs,Line,Col,St,{Sline,Scol,Lcs,Lines,Type},
            fun scan_tq_string_tq_fun/5}};
 scan_tq_string_tq(eof, Line, Col, Sline, Scol, _Lcs, _Lines, _Type, _St) ->
-    scan_error({illegal,[$",$",$"]}, Line, Col, Sline, Scol, eof);
+    scan_error(bad_tq_string, Line, Col, Sline, Scol, eof);
 scan_tq_string_tq(Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
     %% This is not a triple quote here, it is a normal line. So we
     %% pass the buck, but don't forget the ".
@@ -810,7 +813,7 @@ scan_tq_string_end(Cs, Line, Col, Sline, Scol, Prefix, Lines, Type, St) ->
             {ok,Token,Cs,Line,Col,St};
         no ->
             %% io:format("ls ~p\n", [{ste,Cs,Sline,Line,Lines,Prefix}]),
-            scan_error({illegal,[$",$",$"]}, Line, Col, Sline, Scol, Cs)
+            scan_error(bad_tq_string, Line, Col, Sline, Scol, Cs)
     end.
 
 blank_line(Cs) ->

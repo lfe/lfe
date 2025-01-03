@@ -1,4 +1,4 @@
-# Copyright (c) 2016-2020 Robert Virding
+# Copyright (c) 2016-2025 Robert Virding
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -96,7 +96,7 @@ $(EBINDIR)/%.beam: $(LSRCDIR)/%.lfe
 
 all: compile
 
-.PHONY: compile erlc-compile lfec-compile erlc-lfec emacs install install-beam install-bin install-man docs clean docker-build docker-push docker update-mandb
+.PHONY: compile erlc-compile lfec-compile erlc-lfec emacs install install-beam install-bin install-man docs clean clean-all docker-build docker-push docker update-mandb
 
 compile: comp_opts.mk
 	$(MAKE) $(MFLAGS) erlc-lfec
@@ -227,7 +227,7 @@ PDF7S = $(MAN7_SRCS:.7.md=.pdf)
 EPUB7S = $(MAN7_SRCS:.7.md=.epub)
 
 # For pandoc for generating PDFs as it omly accepts a few options.
-# xelatex is a reasonable default or wkhtmltopdf.
+# xelatex is a reasonable default or prince.
 PANDOCPDF ?= xelatex
 
 # Just generate the docs that are tracked in git
