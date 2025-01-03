@@ -1,5 +1,5 @@
 %% -*- mode: erlang; indent-tabs-mode: nil -*-
-%% Copyright (c) 2008-2024 Robert Virding
+%% Copyright (c) 2008-2025 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -316,14 +316,25 @@ eval_expr(['++'|Es], Env) ->
 %% General functions calls.
 eval_expr(['call'|Body], Env) ->
     eval_call(Body, Env);
-eval_expr([Fun|Es], Env) when is_atom(Fun) ->
+eval_expr([Fun|As], Env) when is_atom(Fun) ->
     %% Note that macros have already been expanded here.
-    Ar = length(Es),                            %Arity
-    case get_fbinding(Fun, Ar, Env) of
-        {yes,M,F} -> erlang:apply(M, F, eval_list(Es, Env));
-        {yes,F} -> eval_apply(F, eval_list(Es, Env), Env);
-        no -> undefined_function_error(Fun, Ar)
-    end;
+    Arity = length(As),                         %Arity
+    Vs = eval_list(As, Env),
+    %% Check if it is an operator function in which case handle it
+    %% specifically here.
+    ?COND([{fun () -> lfe_internal:is_arith_func(Fun, Arity) end,
+            fun () -> eval_arith_func(Fun, Arity, Vs, Env) end},
+           {fun () -> lfe_internal:is_bit_func(Fun, Arity) end,
+            fun () -> eval_bit_func(Fun, Arity, Vs, Env) end},
+           {fun () -> lfe_internal:is_bool_func(Fun, Arity) end,
+            fun () -> eval_bool_func(Fun, Arity, Vs, Env) end},
+           {fun () -> lfe_internal:is_list_func(Fun, Arity) end,
+            fun () -> eval_list_func(Fun, Arity, Vs, Env) end},
+           {fun () -> lfe_internal:is_comp_func(Fun, Arity) end,
+            fun () -> eval_comp_func(Fun, Arity, Vs, Env) end}
+          ],
+          %% And the catch-all cond else clause.
+          fun () -> eval_fun_call(Fun, Arity, Vs, Env) end);
 eval_expr([_|_]=S, _) ->                        %Test if string literal
     case lfe_lib:is_posint_list(S) of
         true -> S;                              %It is an "atomic" type
@@ -336,6 +347,56 @@ eval_expr(Symb, Env) when is_atom(Symb) ->
         no -> unbound_symbol_error(Symb)
     end;
 eval_expr(E, _) -> E.                           %Atomic evaluate to themselves
+
+%% eval_arith_func(ArithOperator, Arity, Args, Environment) ->
+%% eval_bit_func(BitOperator, Arity, Args, Environment) ->
+%% eval_bool_func(BoolOperator, Arity, Args, Environment) ->
+%% eval_list_func(ListOperator, Arity, Args, Environment) ->
+%% eval_comp_func(CompOperator, Arity, Args, Environment) ->
+%%     {OpExpr,State}.
+
+eval_arith_func(Op, 1, As, Env) ->
+    eval_fun_call(Op, 1, As, Env);
+eval_arith_func(Op, _Ar, As, Env) ->
+    eval_left(Op, As, Env).
+
+eval_bit_func(Op, _Ar, As, Env) ->
+    eval_left(Op, As, Env).
+
+eval_bool_func(Op, 1, As, Env) ->
+    eval_fun_call(Op, 1, As, Env);
+eval_bool_func(Op, _Ar, As, Env) ->
+    eval_left(Op, As, Env).
+
+eval_list_func(Op, 1, As, Env) ->
+    eval_fun_call(Op, 1, As, Env);
+eval_list_func(Op, _Ar, As, Env) ->
+    eval_right(Op, As, Env).
+
+eval_comp_func(Op, _Ar, As, Env) ->
+    eval_left(Op, As, Env).
+
+%% eval_gleft(Op, Values, Environment) -> Value.
+%% eval_gright(Op, Values, Environment) -> Value.
+
+eval_left(_Op, [V], _Env) -> V;
+eval_left(Op, [V1,V2|Vs], Env) ->
+    V = eval_fun_call(Op, 2, [V1,V2], Env),
+    eval_left(Op, [V|Vs], Env).
+
+eval_right(_Op, [V], _Env) -> V;
+eval_right(Op, [V1|Vs], Env) ->
+    V2 = eval_right(Op, Vs, Env),
+    eval_fun_call(Op, 2, [V1,V2], Env).
+
+%% eval_fun_call(Fun, Arity, Arguments, Environment) -> Value.
+
+eval_fun_call(Fun, Ar, As, Env) ->
+    case get_fbinding(Fun, Ar, Env) of
+        {yes,M,F} -> erlang:apply(M, F, As);
+        {yes,F} -> eval_apply(F, As, Env);
+        no -> undefined_function_error(Fun, Ar)
+    end.
 
 %% is_valid_record(Value, Name, Fields) -> boolean().
 %%  Check if Value is a valid record tuple.
@@ -1365,7 +1426,7 @@ eval_bin_gen(Gen, Env) ->
 
 eval_append(Es, Env) ->
     eval_append_args(Es, Env).
-    
+
 eval_append_args([E], Env) ->
     eval_expr(E, Env);
 eval_append_args([E1|Es], Env) ->
@@ -1379,7 +1440,7 @@ eval_append_args([E1|Es], Env) ->
 %% to_right_assoc_args(Op, [E1|Es], _Extra, L) ->
 %%     Opes = to_right_assoc_args(Op, Es, Extra, L),
 %%     {op,L,Op,E1,Opes}.
-%% to_right_assoc_args(Op, 
+%% to_right_assoc_args(Op,
 
 %% eval_call([Mod,Func|Args], Env) -> Value.
 %%  Evaluate the module, function and args and then apply the function.
@@ -1496,11 +1557,23 @@ eval_gexpr([call,?Q(erlang),?Q(Fun)|As], Env) ->
         false -> illegal_guard_error()
     end;
 eval_gexpr([Fun|Es], Env) when is_atom(Fun), Fun =/= call ->
-    Ar = length(Es),
-    case get_gbinding(Fun, Ar, Env) of
-        {yes,M,F} -> erlang:apply(M, F, eval_glist(Es, Env));
-        no -> illegal_guard_error()
-    end;
+    Arity = length(Es),
+    Vs = eval_list(Es, Env),
+    %% Check if it is an operator function in which case handle it
+    %% specifically here.
+    ?COND([{fun () -> lfe_internal:is_arith_func(Fun, Arity) end,
+            fun () -> eval_arith_gfunc(Fun, Arity, Vs, Env) end},
+           {fun () -> lfe_internal:is_bit_func(Fun, Arity) end,
+            fun () -> eval_bit_gfunc(Fun, Arity, Vs, Env) end},
+           {fun () -> lfe_internal:is_bool_func(Fun, Arity) end,
+            fun () -> eval_bool_gfunc(Fun, Arity, Vs, Env) end},
+           {fun () -> lfe_internal:is_list_func(Fun, Arity) end,
+            fun () -> eval_list_gfunc(Fun, Arity, Vs, Env) end},
+           {fun () -> lfe_internal:is_comp_func(Fun, Arity) end,
+            fun () -> eval_comp_gfunc(Fun, Arity, Vs, Env) end}
+          ],
+          %% And the catch-all cond else clause.
+          fun () -> eval_gfun_call(Fun, Arity, Vs, Env) end);
 eval_gexpr([_|_]=S, _) ->                       %Test is literal string
     case lfe_lib:is_posint_list(S) of
         true -> S;                              %It is an "atomic" type
@@ -1512,6 +1585,55 @@ eval_gexpr(Symb, Env) when is_atom(Symb) ->
         no -> unbound_symbol_error(Symb)
     end;
 eval_gexpr(E, _) -> E.                          %Atoms evaluate to themselves.
+
+%% eval_arith_gfunc(ArithOperator, Arity, Args, Environment) ->
+%% eval_bit_gfunc(BitOperator, Arity, Args, Environment) ->
+%% eval_bool_gfunc(BoolOperator, Arity, Args, Environment) ->
+%% eval_list_gfunc(ListOperator, Arity, Args, Environment) ->
+%% eval_comp_gfunc(CompOperator, Arity, Args, Environment) ->
+%%     {OpExpr,State}.
+
+eval_arith_gfunc(Op, 1, As, Env) ->
+    eval_gfun_call(Op, 1, As, Env);
+eval_arith_gfunc(Op, _Ar, As, Env) ->
+    eval_gleft(Op, As, Env).
+
+eval_bit_gfunc(Op, _Ar, As, Env) ->
+    eval_gleft(Op, As, Env).
+
+eval_bool_gfunc(Op, 1, As, Env) ->
+    eval_gfun_call(Op, 1, As, Env);
+eval_bool_gfunc(Op, _Ar, As, Env) ->
+    eval_gleft(Op, As, Env).
+
+eval_list_gfunc(Op, 1, As, Env) ->
+    eval_gfun_call(Op, 1, As, Env);
+eval_list_gfunc(Op, _Ar, As, Env) ->
+    eval_gright(Op, As, Env).
+
+eval_comp_gfunc(Op, _Ar, As, Env) ->
+    eval_gleft(Op, As, Env).
+
+%% eval_gleft(Op, Values, Environment) -> Value.
+%% eval_gright(Op, Values, Environment) -> Value.
+
+eval_gleft(_Op, [V], _Env) -> V;
+eval_gleft(Op, [V1,V2|Vs], Env) ->
+    V = eval_gfun_call(Op, 2, [V1,V2], Env),
+    eval_gleft(Op, [V|Vs], Env).
+
+eval_gright(_Op, [V], _Env) -> V;
+eval_gright(Op, [V1|Vs], Env) ->
+    V2 = eval_gright(Op, Vs, Env),
+    eval_gfun_call(Op, 2, [V1,V2], Env).
+
+%% eval_gfun_call(Fun, Arity, Arguments, Environment) -> Value.
+
+eval_gfun_call(Fun, Ar, As, Env) ->
+    case get_gbinding(Fun, Ar, Env) of
+        {yes,M,F} -> erlang:apply(M, F, As);
+        no -> illegal_guard_error()
+    end.
 
 %% get_gbinding(NAme, Arity, Env) -> {yes,Module,Fun} | no.
 %%  Get the guard function binding. Locally bound function cannot be
@@ -1609,7 +1731,7 @@ eval_gif(Test, True, False, Env) ->
 
 eval_gappend(Es, Env) ->
     eval_gappend_args(Es, Env).
-    
+
 eval_gappend_args([E], Env) ->
     eval_gexpr(E, Env);
 eval_gappend_args([E1|Es], Env) ->

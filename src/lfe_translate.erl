@@ -1,5 +1,5 @@
 %% -*- mode: erlang; indent-tabs-mode: nil -*-
-%% Copyright (c) 2008-2024 Robert Virding
+%% Copyright (c) 2008-2025 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -826,9 +826,9 @@ to_expr([function,M,F,Ar], L, _, St) ->
     {{'fun',L,{function,to_lit(M, L),to_lit(F, L),to_lit(Ar, L)}},St};
 %% Special known data type operations.
 to_expr(['andalso'|Es], L, Vt, St) ->
-    to_lazy_logic(fun to_expr/4, Es, 'andalso', L, Vt, St);
+    to_short_circuit(fun to_expr/4, Es, 'andalso', L, Vt, St);
 to_expr(['orelse'|Es], L, Vt, St) ->
-    to_lazy_logic(fun to_expr/4, Es, 'orelse', L, Vt, St);
+    to_short_circuit(fun to_expr/4, Es, 'orelse', L, Vt, St);
 %% Core closure special forms.
 to_expr([lambda,Args|Body], L, Vt, St) ->
     to_lambda(Args, Body, L, Vt, St);
@@ -911,10 +911,10 @@ to_expr([Fun|As], L, Vt, St0) when is_atom(Fun) ->
             fun () -> to_bit_func(Fun, Arity, As, L, Vt, St0) end},
            {fun () -> lfe_internal:is_bool_func(Fun, Arity) end,
             fun () -> to_bool_func(Fun, Arity, As, L, Vt, St0) end},
-           {fun () -> lfe_internal:is_comp_func(Fun, Arity) end,
-            fun () -> to_comp_func(Fun, Arity, As, L, Vt, St0) end},
            {fun () -> lfe_internal:is_list_func(Fun, Arity) end,
-            fun () -> to_list_func(Fun, Arity, As, L, Vt, St0) end}        
+            fun () -> to_list_func(Fun, Arity, As, L, Vt, St0) end},
+           {fun () -> lfe_internal:is_comp_func(Fun, Arity) end,
+            fun () -> to_comp_func(Fun, Arity, As, L, Vt, St0) end}
           ],
           %% And the catch-all cond else clause.
           fun () -> to_fun_call(Fun, Arity, As, L, Vt, St0) end);
@@ -933,15 +933,20 @@ to_expr(Lit, L, _, St) ->                       %Everything else is a literal
 %% to_bit_func(BitOperator, Arity, Args, LineNumber, VarTable, State) ->
 %% to_bool_func(BoolOperator, Arity, Args, LineNumber, VarTable, State) ->
 %% to_list_func(ListOperator, Arity, Args, LineNumber, VarTable, State) ->
+%% to_comp_func(CompOperator, Arity, Args, LineNumber, VarTable, State) ->
 %%     {OpExpr,State}.
+%%  These need to evaluate all their arguments first. The comparison
+%%  operators is a bit more complex as they must test against multiple
+%%  arguments. Especially the boolean comparisons in which all must
+%%  test against all.
 
 to_arith_func(Op, 1, [A], L, Vt, St0) ->
     {Ea,St1} = to_expr(A, L, Vt, St0),
     {{op,L,Op,Ea},St1};
-to_arith_func(Op, _Ar, As, L, Vt, St0) ->
-    {Eas,St1} = to_expr_list(As, L, Vt, St0),
-    ArithCall = to_left_assoc_op(Op, Eas, L),
-    {ArithCall,St1}.
+to_arith_func(Op, Ar, As, L, Vt, St0) ->
+    {Evs,Evbs,St1} = to_op_args(Op, Ar, fun to_expr/4, As, L, Vt, St0),
+    ArithCall = to_left_assoc_op(Op, Evs, L),
+    {{block,L,Evbs ++ [ArithCall]},St1}.
 
 to_bit_func(Op, _Ar, As, L, Vt, St0) ->
     %% These don't need to associated.
@@ -953,52 +958,40 @@ to_bool_func(Op, 1, [A], L, Vt, St0) ->
     {Ea,St1} = to_expr(A, L, Vt, St0),
     BoolCall = {op,L,Op,Ea},
     {BoolCall,St1};
-to_bool_func(Op, _Ar, As, L, Vt, St0) ->
-    {Eas,St1} = to_expr_list(As, L, Vt, St0),
-    BoolCall = to_left_assoc_op(Op, Eas, L),
-    {BoolCall,St1}.
+to_bool_func(Op, Ar, As, L, Vt, St0) ->
+    {Evs,Evbs,St1} = to_op_args(Op, Ar, fun to_expr/4, As, L, Vt, St0),
+    BoolCall = to_left_assoc_op(Op, Evs, L),
+    {{block,L,Evbs ++ [BoolCall]},St1}.
 
-to_list_func(Op, _Ar, As, L, Vt, St0) ->
-    {Eas,St1} = to_expr_list(As, L, Vt, St0),
-    FunCall = to_right_assoc_op(Op, Eas, L),
-    {FunCall,St1}.
+to_list_func(Op, Ar, As, L, Vt, St0) ->
+    {Evs,Evbs,St1} = to_op_args(Op, Ar, fun to_expr/4, As, L, Vt, St0),
+    ListCall = to_right_assoc_op(Op, Evs, L),
+    {{block,L,Evbs ++ [ListCall]},St1}.
 
-%% to_comp_func(CompOperator, Arity, Args, LineNumber, VarTable, State) ->
-%%     {CompExpr,State}.
-%%  Build a comp op expression. These are a bit more complex as we
-%%  need to evaluate to the args first as they will be used many
-%%  times. This because we must compare the arguments with each other.
+to_comp_func(Op, Ar, As, L, Vt0, St0) ->
+    {Evs,Evbs,St1} = to_op_args(Op, Ar, fun to_expr/4, As, L, Vt0, St0),
+    OpList = if Op =:= '=/='; Op =:= '/=' ->
+                     to_all_pairs_op(Op, Evs, L);
+                true ->
+                     to_pairs_op(Op, Evs, L)
+             end,
+    {{block,L,Evbs ++ OpList},St1}.
 
-%% to_comp_func(_Op, 1, [A], L, Vt, St) ->
-%%     to_block([A,?Q(true)], L, Vt, St);
-to_comp_func(Op, 2, As, L, Vt, St0) ->
-    {[Ea1,Ea2],St1} = to_expr_list(As, L, Vt, St0),
-    {{op,L,Op,Ea1,Ea2},St1};
-to_comp_func(Op, Ar, As, L, Vt, St) ->
+%% to_op_args(Op, Arity, Exprfun, Args, LineNumber, VarTable, State) ->
+%%     {Varlist,Matches,State}.
+%%  Generate a list of variables and binding operations {match,..} for
+%%  these variables to their value expressions.
+
+to_op_args(Op, Ar, Expr, As, L, Vt0, St0) ->
     Vs = [ list_to_atom(lists:concat([Op,"-",Vi])) || Vi <- lists:seq(1, Ar) ],
-    LetVbs = lists:zipwith(fun (V, A) -> [V,A] end, Vs, As),
-    Tests = if Op =:= '=/='; Op =:= '/=' ->
-                    to_comp_all_pairs(Op, Vs);
-               true ->
-                    to_comp_pairs(Op, Vs)
+    Vas = lists:zipwith(fun (V, A) -> {V,A} end, Vs, As),
+    VbFun = fun ({V,A}, {Evs,Ms,Vta,Sta}) ->
+                    {Ea,Stb} = Expr(A, L, Vta, Sta),
+                    {Ev,_,Vtb,Stc} = to_pat_var(V, L, [], Vta, Stb),
+                    {Evs ++ [Ev],Ms ++ [{match,L,Ev,Ea}],Vtb,Stc}
             end,
-    LetBody = to_comp_all_tests('and', Tests),
-    to_let(LetVbs, [LetBody], L, Vt, St).
-
-to_comp_pairs(Op, [E1,E2]) ->
-    [[Op,E1,E2]];
-to_comp_pairs(Op, [E1,E2|Es]) ->
-    Ees = to_comp_pairs(Op, [E2|Es]),
-    [[Op,E1,E2]|Ees].
-
-to_comp_all_pairs(_Op, []) -> [];
-to_comp_all_pairs(Op, [E1|Es]) ->
-    [ [Op,E1,E2] || E2 <- Es ] ++ to_comp_all_pairs(Op, Es).
-
-to_comp_all_tests(_AndOp, [T]) -> T;
-to_comp_all_tests(AndOp, [T1|Ts]) ->
-    Rest = to_comp_all_tests(AndOp, Ts),
-    [AndOp,T1,Rest].
+    {Evs,Matches,_Vt1,St1} = lists:foldl(VbFun, {[],[],Vt0,St0}, Vas),
+    {Evs,Matches,St1}.
 
 %% to_left_assoc_op(Op, Args, Line) -> OpCall.
 %% to_right_assoc_op(Op, Args, Line) -> OpCall.
@@ -1019,42 +1012,39 @@ to_right_assoc_op(Op, [E1|Es], L) ->
     OpCall = to_right_assoc_op(Op, Es, L),
     {op,L,Op,E1,OpCall}.
 
-%% to_comp_func(Op, Ar, As, L, Vt0, St0) ->
-%%     {Eas,St1} = to_expr_list(As, L, Vt0, St0),
-%%     Vfun = fun (Vi, Sta) ->
-%%                    V = list_to_atom(lists:concat([Op,"-",Vi])),
-%%                    {Ev,Stb} = new_to_var(V, Sta),
-%%                    {{var,L,Ev},Stb}
-%%            end,
-%%     {Evs,St2} = lists:mapfoldl(Vfun, St1, lists:seq(1, Ar)),
-%%     Vbs = lists:zipwith(fun (Ev, Ea) -> {match,L,Ev,Ea} end, Evs, Eas),
-%%     Tests = if Op =:= '=/=' ; Op =:= '/=' ->
-%%                     to_comp_all_pairs(Op, Evs, L);
-%%                true ->
-%%                     to_comp_pairs(Op, Evs, L)
-%%             end,
-%%     Body = to_comp_all_tests('and', Tests, L),
-%%     lfe_io:format("tcf ~p\n", [{block,L,Vbs ++ Body}]),
-%%     {{block,L,Vbs ++ [Body]},St2}.
+%% to_pairs_op(Op, Args, Line) -> OpList.
+%% to_all_pairs_op(Op, Args, Line) -> OpList.
+%%   Generate a list of comparisons between pairs or all pairs of the
+%%   arguments.
 
-%% to_comp_pairs(Op, [E1,E2], L) ->
-%%     [{op,L,Op,E1,E2}];
-%% to_comp_pairs(Op, [E1,E2|Es], L) ->
-%%     Ees = to_comp_pairs(Op, [E2|Es], L),
-%%     [{op,L,Op,E1,E2}|Ees].
+to_pairs_op(Op, [E1,E2], L) ->
+    [{op,L,Op,E1,E2}];
+to_pairs_op(Op, [E1,E2|Es], L) ->
+    Ops = to_pairs_op(Op, [E2|Es], L),
+    [{op,L,Op,E1,E2}|Ops].
 
-%% to_comp_all_pairs(_Op, [], _L) -> [];
-%% to_comp_all_pairs(Op, [E1|Es], L) ->
-%%     [ {op,L,Op,E1,E2} || E2 <- Es ] ++ to_comp_all_pairs(Op, Es, L).
+to_all_pairs_op(_Op, [], _L) -> [];
+to_all_pairs_op(Op, [E1|Es], L) ->
+    [ {op,L,Op,E1,E2} || E2 <- Es ] ++ to_all_pairs_op(Op, Es, L).
 
-%% to_comp_all_tests(_AndOp, [T], _L) -> T;
-%% to_comp_all_tests(AndOp, [T1|Ts], L) ->
-%%     Rest = to_comp_all_tests(AndOp, Ts, L),
-%%     {op,L,AndOp,T1,Rest}.
+%% to_comp_pairs(Op, Args, Line) -> OpList.
+%% to_comp_all_pairs(Op, Args, Line) -> OpList.
+%%   Generate a list of comparisons between pairs or all pairs of the
+%%   arguments.
+
+to_comp_pairs(Op, [E1,E2]) ->
+    [[Op,E1,E2]];
+to_comp_pairs(Op, [E1,E2|Es]) ->
+    Ees = to_comp_pairs(Op, [E2|Es]),
+    [[Op,E1,E2]|Ees].
+
+to_comp_all_pairs(_Op, []) -> [];
+to_comp_all_pairs(Op, [E1|Es]) ->
+    [ [Op,E1,E2] || E2 <- Es ] ++ to_comp_all_pairs(Op, Es).
 
 %% to_fun_call(Name, Arity, Args, LineNumber, VarTable, State) ->
 %%     {FunExpr,State}.
-%%  All the arguments have already been converted. 
+%%  All the arguments have already been converted.
 
 to_fun_call(Fun, Ar, As, L, Vt, St0) ->
     {Eas,St1} = to_expr_list(As, L, Vt, St0),
@@ -1268,31 +1258,19 @@ to_fun_cl([As|B], L, Vt0, St0) ->
     {Eb,St2} = to_body(B, L, Vt1, St1),
     {{clause,L,Eas,[],Eb},St2}.
 
-%% to_lazy_logic(ExprFun, Exprs, Type, LineNumber, VarTable, State) ->
+%% to_short_circuit(ExprFun, Exprs, Type, LineNumber, VarTable, State) ->
 %%     {Logic,State}.
-%%  These go pairwise right-to-left.
+%%  These are right associative so the evaluation steps from left to
+%%  right.
 
-to_lazy_logic(Expr, [E1,E2], Type, L, Vt, St0) ->
+to_short_circuit(Expr, [E1,E2], Type, L, Vt, St0) ->
     {Ee1,St1} = Expr(E1, L, Vt, St0),
     {Ee2,St2} = Expr(E2, L, Vt, St1),
     {{op,L,Type,Ee1,Ee2},St2};
-to_lazy_logic(Expr, [E1|Es], Type, L, Vt, St0) ->
+to_short_circuit(Expr, [E1|Es], Type, L, Vt, St0) ->
     {Ee1,St1} = Expr(E1, L, Vt, St0),
-    {Ees,St2} = to_lazy_logic(Expr, Es, Type, L, Vt, St1),
+    {Ees,St2} = to_short_circuit(Expr, Es, Type, L, Vt, St1),
     {{op,L,Type,Ee1,Ees},St2}.
-
-%% to_eager_logic(ExprFun, Exprs, Type, LineNumber, VarTable, State) ->
-%%     {Logic,State}.
-%%  These go pairwise left-to-right.
-
-%% to_eager_logic(Expr, [E1,E2], Type, L, Vt, St0) ->
-%%     {Ee1,St1} = Expr(E1, L, Vt, St0),
-%%     {Ee2,St2} = Expr(E2, L, Vt, St1),
-%%     {{op,L,Type,Ee1,Ee2},St2};
-%% to_eager_logic(Expr, [E1|Es], Type, L, Vt, St0) ->
-%%     {Ee1,St1} = Expr(E1, L, Vt, St0),
-%%     {Ees,St2} = to_lazy_logic(Expr, Es, Type, L, Vt, St1),
-%%     {{op,L,Type,Ees,Ee1},St2}.
 
 %% to_lambda(Args, Body, LineNumber, VarTable, State) -> {Fun,State}.
 
@@ -1853,9 +1831,9 @@ to_gexpr(['struct-field',E,Name,F], L, Vt, St) ->
     to_gexpr(Field, L, Vt, St);
 %% Special known data type operations.
 to_gexpr(['andalso'|Es], L, Vt, St) ->
-    to_lazy_logic(fun to_gexpr/4, Es, 'andalso', L, Vt, St);
+    to_short_circuit(fun to_gexpr/4, Es, 'andalso', L, Vt, St);
 to_gexpr(['orelse'|Es], L, Vt, St) ->
-    to_lazy_logic(fun to_gexpr/4, Es, 'orelse', L, Vt, St);
+    to_short_circuit(fun to_gexpr/4, Es, 'orelse', L, Vt, St);
 %% General function call.
 to_gexpr([call,?Q(erlang),?Q(F)|As], L, Vt, St0) ->
     {Eas,St1} = to_gexpr_list(As, L, Vt, St0),
@@ -1878,10 +1856,10 @@ to_gexpr([Fun|As], L, Vt, St0) when is_atom(Fun) ->
             fun () -> to_bit_gfunc(Fun, Arity, As, L, Vt, St0) end},
            {fun () -> lfe_internal:is_bool_func(Fun, Arity) end,
             fun () -> to_bool_gfunc(Fun, Arity, As, L, Vt, St0) end},
-           {fun () -> lfe_internal:is_comp_func(Fun, Arity) end,
-            fun () -> to_comp_gfunc(Fun, Arity, As, L, Vt, St0) end},
            {fun () -> lfe_internal:is_list_func(Fun, Arity) end,
-            fun () -> to_list_gfunc(Fun, Arity, As, L, Vt, St0) end}        
+            fun () -> to_list_gfunc(Fun, Arity, As, L, Vt, St0) end},
+           {fun () -> lfe_internal:is_comp_func(Fun, Arity) end,
+            fun () -> to_comp_gfunc(Fun, Arity, As, L, Vt, St0) end}
           ],
           %% And the catch-all cond else clause.
           fun () -> to_gfun_call(Fun, Arity, As, L, Vt, St0) end);
@@ -1901,9 +1879,10 @@ to_gexpr(Lit, L, _, St) ->                      %Everything else is a literal
 %% to_bool_gfunc(BoolOperator, Arity, Args, LineNumber, VarTable, State) ->
 %% to_list_gfunc(ListOperator, Arity, Args, LineNumber, VarTable, State) ->
 %%     {OpExpr,State}.
+%%  These cannot evaluate their arguments first as they are in a guard.
 
 to_arith_gfunc(Op, 1, [A], L, Vt, St0) ->
-    {Ea,St1} = to_expr(A, L, Vt, St0),
+    {Ea,St1} = to_gexpr(A, L, Vt, St0),
     {{op,L,Op,Ea},St1};
 to_arith_gfunc(Op, _Ar, As, L, Vt, St0) ->
     {Eas,St1} = to_gexpr_list(As, L, Vt, St0),
@@ -1917,7 +1896,7 @@ to_bit_gfunc(Op, _Ar, As, L, Vt, St0) ->
     {BitCall,St1}.
 
 to_bool_gfunc(Op, 1, [A], L, Vt, St0) ->
-    {Ea,St1} = to_expr(A, L, Vt, St0),
+    {Ea,St1} = to_gexpr(A, L, Vt, St0),
     {{op,L,Op,Ea},St1};
 to_bool_gfunc(Op, _Ar, As, L, Vt, St0) ->
     {Eas,St1} = to_gexpr_list(As, L, Vt, St0),
@@ -1928,7 +1907,6 @@ to_list_gfunc(Op, _Ar, As, L, Vt, St0) ->
     {Eas,St1} = to_gexpr_list(As, L, Vt, St0),
     FunCall = to_right_assoc_op(Op, Eas, L),
     {FunCall,St1}.
-
 
 %% to_comp_gfunc(CompOperator, Arity, Args, LineNumber, VarTable, State) ->
 %%     {CompExpr,State}.
