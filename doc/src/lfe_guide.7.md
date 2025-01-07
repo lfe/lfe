@@ -237,6 +237,27 @@ which correspnds to the binary:
 #"Line \"1\"\nLine \"2\""
 ```
 
+## Function References
+
+The function references are the forms:
+
+```
+(function func-name arity)
+(function mod-name func-name arity)
+```
+
+These forms evaluate to function references which can be used with
+``funcall`` to call the functions.
+
+There is also a special syntax:
+
+```
+#'func-name/arity
+#'mod-name:func-name/arity
+```
+
+which is still supported but is deprecated.
+
 ## Binaries
 
 We have already seen binary strings, but the ``#B(...)`` syntax can be used
@@ -364,6 +385,7 @@ while it reads the expression and then be effectively ``2``.
 
 
 # Supported forms
+
 ## Core forms
 
 ```
@@ -382,6 +404,8 @@ while it reads the expression and then be effectively ``2``.
 (map-set map key val ...) (mset m k v ...)
 (map-update map key val ...) (mupd m k v ...)
 (map-remove map key ...) (mrem m k k ...)
+(andalso ... )
+(orelse ... )
 (lambda (arg ...) ...)
 (match-lambda
   ((arg ... ) {{(when e ...)}} ...)           - Matches clauses
@@ -401,10 +425,21 @@ while it reads the expression and then be effectively ``2``.
             ...)
   ...)
 (progn ... )
+(prog1 ...)
+(prog2 ...)
 (if test true-expr {{false-expr}})
 (case e
   (pat {{(when e ...)}} ...)
   ... ))
+(cond (test body ...)
+      ...
+      ((?= pat expr) ...)
+      ...
+      (else ...))
+(maybe
+  ...
+  {{(else ((pat) {{(when e ...)}} ... )       - Else clauses
+         ...)}})
 (receive
   (pat {{(when e ...)}} ... )
   ...
@@ -467,14 +502,7 @@ while it reads the expression and then be effectively ``2``.
 (fletrec ((name (arg ...) {{doc-string}} ...)
           ...)
   ...)
-(cond (test body ...)
-      ...
-      ((?= pat expr) ...)
-      ...
-      (else ...))
-(andalso ... )
-(orelse ... )
-(fun func arity)
+(fun func arity)                              - Expand to lambdas
 (fun mod func arity)
 (lc (qual ...) expr)
 (list-comp (qual ...) expr)
@@ -507,8 +535,6 @@ while it reads the expression and then be effectively ``2``.
 (syntaxlet ((name (pat exp) ...)
             ...)
   ...)
-(prog1 ...)
-(prog2 ...)
 (defmodule name ...)
 (defrecord name ...)
 (defstruct ...)
@@ -559,15 +585,17 @@ following guard expressions:
 (tuple gexpr ...)
 (tref gexpr gexpr)
 (binary ...)
-(record ...)                - Also the macro versions
-(is-record ...)
-(record-field ...)
-(record-index ...)
 (map ...)
 (msiz ...) (map-size ...)
 (mref ...) (map-get ...)
 (mset ...) (map-set ...)
 (mupd ...) (map-update ...)
+(record ...)                - Also the macro versions
+(is-record ...)
+(record-index ...)
+(record-field ...)
+(is-struct ...)
+(struct-field ...)
 (type-test e)               - Type tests
 (guard-bif ...)             - Guard BIFs, arithmetic,
                               boolean and comparison operators
@@ -665,7 +693,8 @@ it, there will be no warnings.
 
 *CAVEAT* This does not hold for the supported core forms. These can be
 shadowed by imports or redefined but the compiler will *always* use
-the core meaning and never an alternative. Silently!
+the core meaning and never an alternative. The compiler will warn when
+core forms are redefined but it is not an error.
 
 
 # Module definition
@@ -872,30 +901,6 @@ macrolet:
                "Poor macro definition."
                `(if (>= ,a ,b) ,a ,b)))
     (m x y)))
-```
-
-
-# Extended cond
-
-The tests in ``cond`` are Erlang tests in that they should return
-either ``true`` or ``false``. If no test succeeds then the ``cond``
-does not generate an exception but just returns ``false``. There is a
-simple catch-all "test" ``else`` which must last and can be used to
-handle when all tests fail.
-
-Cond has been extended with the extra test ``(?= pat expr)`` which
-tests if the result of ``expr`` matches the pattern ``pat``. If so it
-binds the variables in ``pa``t which can be used in the ``cond``. A optional
-guard is allowed here. An example:
-
-```
-(cond ((foo x) ...)
-      ((?= (cons x xs) (when (is_atom x)) (bar y))
-       (fubar xs (baz x)))
-      ((?= (tuple 'ok x) (baz y))
-       (zipit x))
-      ...
-      (else 'yay))
 ```
 
 
@@ -1118,7 +1123,6 @@ to every character in the string. As strings are just lists of
 integers these are also valid here. In a binary constant all literal
 forms are allowed on input but they will always be written as bytes.
 
-
 # Maps
 
 A map is created with:
@@ -1150,8 +1154,113 @@ There are also alternate short forms ``msiz``, ``mref``, ``mset``,
 ``mupd`` and ``mrem`` based on the Maclisp array reference forms. They
 take the same arguments as their longer alternatives.
 
+# Core forms
 
-# List/binary comprehensions
+## If
+
+The LFE `if` is more like a classic if than the Erlang `if`. For the
+test it allows any Erlang boolean expression which must return either
+`true` or `false`. The false expression is optional and if it not
+included the `if` returns `false`. Some examples:
+
+```
+(if (our-test) (it-was-true))
+
+(if (our-test) (it-was-true) (it-was-false))
+```
+
+## Cond
+
+The LFE `cond` is similar to ``if`` and tests in ``cond`` are Erlang
+tests in that they should return either ``true`` or ``false``. If no
+test succeeds then the ``cond`` does not generate an exception but
+just returns ``false``. There is a simple catch-all "test" ``else``
+which must last and can be used to handle the case when all tests
+fail.
+
+Cond has been extended with the extra test ``(?= pat expr)`` which
+tests if the result of ``expr`` matches the pattern ``pat``. If so it
+binds the variables in ``pat`` which can be used in the ``cond`` test
+body expression. A optional guard is allowed here. An example:
+
+```
+(cond ((foo x) ...)
+      ((?= (cons x xs) (when (is_atom x)) (bar y))
+       (fubar xs (baz x)))
+      ((?= (tuple 'ok x) (baz y))
+       (zipit x))
+      ...
+      (else 'yay))
+```
+
+
+## Maybe
+
+LFE has an Erlang compatible ``maybe``. It has the same features as
+the Erlang ``maybe`` with the ``?=`` operator and ``else``. The
+expressions in the `maybe` block are evaluated sequentially:
+
+```
+(maybe
+  expr-1
+  expr-2
+  ...
+  expr-n)
+```
+
+If all the expressions succeed then `maybe` block returns the value of
+`expr-n`. The conditional match
+
+```
+(?= pattern expr)
+```
+
+can short circuit this. If the match succeeds then the variables in
+`pattern` become bound. The `?=` match returns the value of the
+expressions. If the match fails then the rest of the expressions in
+the `maybe` block are skipped and `maybe` returns the value of the
+`expr`.
+
+The `maybe` block can be augmented with `else` clauses:
+```
+(maybe
+  expr-1
+  ...
+  expr-n
+  (else
+    ((pattern-1) body-1)
+    ...
+    ((pattern-n) (when guard-test) body-n)
+  ))
+```
+
+If a conditional match fails then the value of the expression is
+matched against the patterns in the `else` claueses and if one matches
+then its body is evaluated. Guard tests are allowed. If no pattern
+matches then an `else-clause` run-time error occurs.
+
+An example:
+
+```
+(maybe
+  (foo g)
+  (?= `#(ok ,a) (a g))
+  (bar g)
+  (?= `#(ok ,b) (b g))
+  (+ a b)
+  (else
+    (('error) 1 #(got error))
+    (('wrong) 2 #(got wrong))
+  ))
+```
+
+The `maybe` body can include ``?=`` forms which behave in the same way
+as in the Erlang `maybe`. As LFE cannot bind variables in the same way
+as in Erlang we allow ``let`` in the body to bind variables. These
+variables are only local in the let body so this body is "lifted" upto
+the top level `maybe` body and so can contain ``?=`` forms as well.
+
+## List/binary comprehensions
 
 List/binary comprehensions are supported as macros. The syntax for
 list comprehensions is:
@@ -1253,7 +1362,7 @@ specs.
  version are andalso, orelse and record updates.
 
 
-# Query List Comprehensions
+## Query List Comprehensions
 
 LFE supports QLCs for mnesia through the qlc macro. It has the same
 structure as a list comprehension and generates a Query Handle in the

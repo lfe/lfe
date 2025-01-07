@@ -1,3 +1,4 @@
+%% -*- mode: erlang; indent-tabs-mode: nil -*-
 %% Copyright (c) 2008-2024 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
@@ -67,11 +68,11 @@ format_error({bad_meta_def,M}) ->
 %% Forms and code.
 format_error({bad_body_def,Form}) ->
     lfe_io:format1(<<"bad body in ~w">>, [Form]);
-format_error(bad_guard_def) -> "bad guard definition";
-format_error(bad_args) -> "bad argument list";
-format_error(bad_gargs) -> "bad guard argument list";
-format_error(bad_pat_alias) -> "bad pattern alias";
-format_error(bad_head_arity) -> "function head arity mismatch";
+format_error(bad_guard_def) -> <<"bad guard definition">>;
+format_error(bad_args) -> <<"bad argument list">>;
+format_error(bad_gargs) -> <<"bad guard argument list">>;
+format_error(bad_pat_alias) -> <<"bad pattern alias">>;
+format_error(bad_head_arity) -> <<"function head arity mismatch">>;
 format_error({bad_form,Form}) ->
     lfe_io:format1(<<"bad ~w form">>, [Form]);
 format_error({bad_guard_form,Form}) ->
@@ -81,25 +82,32 @@ format_error({bad_pattern,Pat}) ->
 format_error({unbound_symbol,S}) ->
     lfe_io:format1(<<"symbol ~w is unbound">>, [S]);
 format_error({undefined_function,{F,Ar}}) ->
-    lfe_io:format1("function ~w/~w undefined", [F,Ar]);
+    lfe_io:format1(<<"function ~w/~w undefined">>, [F,Ar]);
 format_error({multi_var,S}) ->
-    lfe_io:format1("variable ~w multiply defined", [S]);
+    lfe_io:format1(<<"variable ~w multiply defined">>, [S]);
 %% Functions, imports, exports, on_loads and aliases.
 format_error({redefine_function,{F,Ar}}) ->
-    lfe_io:format1("function ~w/~w already defined", [F,Ar]);
+    lfe_io:format1(<<"function ~w/~w already defined">>, [F,Ar]);
+format_error({redefine_core_form,Name}) ->
+    lfe_io:format1(<<"redefining core form ~w">>, [Name]);
+format_error({redefine_core_function,{Name,Ar}}) ->
+    lfe_io:format1(<<"redefining core function ~w/~w">>, [Name,Ar]);
 format_error({bad_fdef,F}) ->
-    lfe_io:format1("bad definition of function ~w", [F]);
+    lfe_io:format1(<<"bad definition of function ~w">>, [F]);
 format_error({reimport_function,{F,Ar},M1,M2}) ->
     lfe_io:format1(<<"importing ~w/~w from ~w, already imported from ~w">>,
                   [F,Ar,M1,M2]);
 format_error({define_imported_function,{F,Ar}}) ->
     lfe_io:format1(<<"defining imported function ~w/~w">>, [F,Ar]);
 format_error({undefined_onload_function,{F,Ar}}) ->
-    lfe_io:format1("on_load function ~w/~w undefined", [F,Ar]);
+    lfe_io:format1(<<"on_load function ~w/~w undefined">>, [F,Ar]);
 format_error({redefine_module_alias,A}) ->
     lfe_io:format1(<<"redefining ~w module alias">>, [A]);
 format_error({circular_module_alias,A}) ->
     lfe_io:format1(<<"circular module alias for ~w">>, [A]);
+%% Operators.
+format_error({illegal_operator_call,Op}) ->
+    lfe_io:format1(<<"illegal operator ~w call">>, [Op]);
 %% Others
 format_error({illegal_literal,Lit}) ->
     lfe_io:format1(<<"illegal literal value ~w">>, [Lit]);
@@ -108,11 +116,11 @@ format_error({illegal_pattern,Pat}) ->
 format_error(illegal_guard) -> <<"illegal guard expression">>;
 format_error({illegal_mapkey,Key}) ->
     lfe_io:format1(<<"illegal map key ~w">>, [Key]);
-format_error(illegal_bitseg) -> "illegal bit segment";
-format_error(illegal_bitsize) -> "illegal bit size";
+format_error(illegal_bitseg) -> <<"illegal bit segment">>;
+format_error(illegal_bitsize) -> <<"illegal bit size">>;
 format_error({deprecated,What}) ->
-    lfe_io:format1("~s is deprecated", [What]);
-format_error(unknown_form) -> "unknown form";
+    lfe_io:format1(<<"~s is deprecated">>, [What]);
+format_error(unknown_form) -> <<"unknown form">>;
 %% Try-catches.
 format_error({illegal_stacktrace,S}) ->
     lfe_io:format1(<<"stacktrace ~w must be unbound variable">>, [S]);
@@ -153,30 +161,29 @@ format_error({undefined_struct_field,Name,Field}) ->
     lfe_io:format1(<<"field ~w undefined in struct ~w">>, [Field,Name]);
 %% Type and spec errors.
 format_error({undefined_type,{T,A}}) ->
-    lfe_io:format1("type ~w/~w undefined", [T,A]);
+    lfe_io:format1(<<"type ~w/~w undefined">>, [T,A]);
 format_error({builtin_type,{T,A}}) ->
-    lfe_io:format1("type ~w/~w is a builtin type", [T,A]);
+    lfe_io:format1(<<"type ~w/~w is a builtin type">>, [T,A]);
 format_error({redefine_type,{T,A}}) ->
-    lfe_io:format1("type ~w/~w already defined", [T,A]);
+    lfe_io:format1(<<"type ~w/~w already defined">>, [T,A]);
 format_error({redefine_spec,{F,A}}) ->
-    lfe_io:format1("spec for ~w/~w is already defined", [F,A]);
+    lfe_io:format1(<<"spec for ~w/~w is already defined">>, [F,A]);
 format_error({singleton_typevar,V}) ->
-    lfe_io:format1("type variable ~w is only used once", [V]);
+    lfe_io:format1(<<"type variable ~w is only used once">>, [V]);
 %% Type and spec errors. These are also returned from lfe_types.
 format_error({bad_type_def,T}) ->
-    lfe_io:format1("bad ~w type definition", [T]);
+    lfe_io:format1(<<"bad ~w type definition">>, [T]);
 format_error({bad_type_syntax,T}) ->
-    lfe_io:format1("bad ~w type syntax", [T]);
+    lfe_io:format1(<<"bad ~w type syntax">>, [T]);
 format_error({bad_function_spec,S}) ->
-    lfe_io:format1("bad function specification: ~w", [S]);
+    lfe_io:format1(<<"bad function specification: ~w">>, [S]);
 %% These are signaled from lfe_bits.
 format_error({undefined_bittype,S}) ->
-    lfe_io:format1("bit type ~w undefined", [S]);
+    lfe_io:format1(<<"bit type ~w undefined">>, [S]);
 format_error(bittype_unit) ->
     <<"bit unit size can only be specified together with size">>;
 format_error(Error) ->
-    lfe_io:format1("Unknown error ~p", [Error]).
-
+    lfe_io:format1(<<"Unknown error ~p">>, [Error]).
 
 %% expr(Expr) -> {ok,[Warning]} | {error,[Error],[Warning]}.
 %% expr(Expr, Env) -> {ok,[Warning]} | {error,[Error],[Warning]}.
@@ -728,25 +735,77 @@ init_state(St) ->
     Exps1 = add_exports(Exps0, St#lfe_lint.mline, St#lfe_lint.exports),
     {Predefs0,Env1,St#lfe_lint{exports=Exps1}}.
 
-%% check_functions(FuncBindings, Env, State) -> {Funcs,Env,State}.
+%% check_functions(FuncBindings, Env, State) ->
+%%     {Funcs,Env,State}.
 %%  Check the top-level functions definitions. These have the format
 %%  as in letrec but the environment only contains explicit imports
-%%  and the module info functions.
+%%  and the module info functions. The returned Funcs is an orddict of
+%%  the form {{Name,Arity},Line}.
 
-check_functions(Fbs, Env0, St0) ->
-    {Fs,St1} = check_fbindings(Fbs, St0),
-    %% Add to the environment.
+check_functions(Fdefs, Env0, St0) ->
+    {Fbs,St1} = check_function_defs(Fdefs, St0),
+    {Fs,St2} = check_function_bindings(Fbs, St1),
+    St3 = check_core_functions(Fs, St2),
     Env1 = lists:foldl(fun ({{F,A},_L}, Env) -> le_addf(F, A, Env) end,
                        Env0, Fs),
-    %% Now check function definitions.
-    St2 = lists:foldl(fun ({_,[lambda|Lambda],L}, St) ->
-                              check_lambda(Lambda, Env1, L, St);
-                          ({_,['match-lambda'|Match],L}, St) ->
-                              check_match_lambda(Match, Env1, L, St);
-                          ({F,_,L}, St) ->      %Flag error here
-                              bad_fdef_error(L, F, St)
-                end, St1, Fbs),
-    {Fs,Env1,St2}.
+    St4 = check_function_bodies(Fbs, Env1, St3),
+    {Fs,Env1,St4}.
+
+%% check_functions_defs(FuncDefs, Line, State) -> {FuncBindings,State}.
+%%  Skip functions with an error. FuncBindings is a list of
+%%  {{Name,Arity},Def,Line} in the same order as the original list.
+
+check_function_defs(Fdefs, St0) ->
+    Check = fun ({Name,['lambda',Args|_Body]=Def,L}, {Fbs,St})
+                  when is_atom(Name) ->
+                    case lfe_lib:is_symb_list(Args) of
+                        true -> {[{{Name,length(Args)}, Def, L} | Fbs],St};
+                        false -> {Fbs,bad_form_error(L, lambda, St)}
+                    end;
+                ({Name,['match-lambda',[Pats|_Body]|_Cls]=Def,L}, {Fbs,St})
+                  when is_atom(Name) ->
+                    case lfe_lib:is_proper_list(Pats) of
+                        true -> {[{{Name,length(Pats)}, Def, L} | Fbs], St};
+                        false -> {Fbs,bad_form_error(L, 'match-lambda', St)}
+                    end;
+                ({Name,_Def,L}, {Fbs,St}) ->
+                    {Fbs,bad_fdef_error(L, Name, St)}
+            end,
+    %% Preserve the function ordering for let-function and letrec-function!
+    lists:foldr(Check, {[],St0}, Fdefs).
+
+check_function_bindings(Fbs0, St0) ->
+    Check = fun ({FAr,_Def,L}, {Fs,St}) ->
+                    case orddict:is_key(FAr, Fs) of
+                        true ->
+                            {Fs,add_error(L, {redefine_function,FAr}, St)};
+                        false -> {orddict:store(FAr, L, Fs),St}
+                    end
+            end,
+    lists:foldl(Check, {orddict:new(),St0}, Fbs0).
+
+%% check_core_functions(Funcs, State) -> State.
+%%  Check if the functions in the Funcs orddict are core forms, which
+%%  is an error, or core functions which is just a warning.
+
+check_core_functions(Fs, St) ->
+    Check =
+        fun ({Name,Ar}, L, St0) ->
+                ?IF(lfe_internal:is_core_form(Name),
+                    add_error(L, {redefine_core_form,Name}, St0),
+                    ?IF(lfe_internal:is_core_func(Name, Ar),
+                        add_warning(L, {redefine_core_function,{Name,Ar}}, St0),
+                        St0))
+            end,
+    orddict:fold(Check, St, Fs).
+
+check_function_bodies(Fbs, Env, St0) ->
+    Check = fun ({_FAr,[lambda,Args|Body],L}, St) ->
+                    check_lambda([Args|Body], Env, L, St);
+                ({_FAr,['match-lambda'|Cls],L}, St) ->
+                    check_match_lambda(Cls, Env, L, St)
+            end,
+    lists:foldl(Check, St0, Fbs).
 
 %% check_valid_exports(State) -> State.
 %%  Check that all the exports are defined functions.
@@ -813,18 +872,9 @@ check_expr([tuple|As], Env, L, St) -> check_args(As, Env, L, St);
 check_expr([tref|[_,_]=As], Env, L, St) -> check_args(As, Env, L, St);
 check_expr([tset|[_,_,_]=As], Env, L, St) -> check_args(As, Env, L, St);
 check_expr([binary|Segs], Env, L, St) -> expr_bitsegs(Segs, Env, L, St);
+%% Check map special forms.
 check_expr([map|As], Env, L, St) ->
     check_map(As, Env, L, St);
-check_expr(['msiz',Map], Env, L, St) ->
-    check_map_size(msiz, Map, Env, L, St);
-check_expr(['mref',Map,Key], Env, L, St) ->
-    check_map_get(mref, Map, Key, Env, L, St);
-check_expr(['mset',Map|As], Env, L, St) ->
-    check_map_set(mset, Map, As, Env, L, St);
-check_expr(['mupd',Map|As], Env, L, St) ->
-    check_map_update(mupd, Map, As, Env, L, St);
-check_expr(['mrem',Map|Ks], Env, L, St) ->
-    check_map_remove(mrem, Map, Ks, Env, L, St);
 check_expr(['map-size',Map], Env, L, St) ->
     check_map_size('map-size', Map, Env, L, St);
 check_expr(['map-get',Map,Key], Env, L, St) ->
@@ -835,17 +885,16 @@ check_expr(['map-update',Map|As], Env, L, St) ->
     check_map_update('map-update', Map, As, Env, L, St);
 check_expr(['map-remove',Map|Ks], Env, L, St) ->
     check_map_remove('map-remove', Map, Ks, Env, L, St);
-check_expr([function,F,Ar], Env, L, St) ->
-    %% Check for the right types.
-    if is_atom(F) and is_integer(Ar) and (Ar >= 0) ->
-            check_func(F, Ar, Env, L, St);
-       true -> bad_form_error(L, function, St)
-    end;
-check_expr([function,M,F,Ar], _, L, St) ->
-    %% Just need the right types here.
-    if is_atom(M) and is_atom(F) and is_integer(Ar) and (Ar >= 0) -> St;
-       true -> bad_form_error(L, function, St)
-    end;
+check_expr([msiz,Map], Env, L, St) ->
+    check_map_size(msiz, Map, Env, L, St);
+check_expr(['mref',Map,Key], Env, L, St) ->
+    check_map_get(mref, Map, Key, Env, L, St);
+check_expr(['mset',Map|As], Env, L, St) ->
+    check_map_set(mset, Map, As, Env, L, St);
+check_expr(['mupd',Map|As], Env, L, St) ->
+    check_map_update(mupd, Map, As, Env, L, St);
+check_expr(['mrem',Map|Ks], Env, L, St) ->
+    check_map_remove(mrem, Map, Ks, Env, L, St);
 %% Check record special forms.
 check_expr(['record',Name|Fs], Env, L, St) ->
     check_record(Name, Fs, Env, L, St);
@@ -877,6 +926,18 @@ check_expr(['struct-field',E,Name,F], Env, L, St0) ->
 check_expr(['struct-update',E,Name|Fs], Env, L, St0) ->
     St1 = check_expr(E, Env, L, St0),
     check_struct(Name, Fs, Env, L, St1);
+%% Function forms.
+check_expr([function,F,Ar], Env, L, St) ->
+    %% Check for the right types.
+    if is_atom(F) and is_integer(Ar) and (Ar >= 0) ->
+            check_func(F, Ar, Env, L, St);
+       true -> bad_form_error(L, function, St)
+    end;
+check_expr([function,M,F,Ar], _, L, St) ->
+    %% Just need the right types here.
+    if is_atom(M) and is_atom(F) and is_integer(Ar) and (Ar >= 0) -> St;
+       true -> bad_form_error(L, function, St)
+    end;
 %% Special known data type operations.
 check_expr(['andalso'|Es], Env, L, St) ->
     check_args(Es, Env, L, St);
@@ -898,13 +959,21 @@ check_expr(['let-macro'|_], _, L, St) ->
     bad_form_error(L, 'let-macro', St);
 %% Check the Core control special forms.
 check_expr(['progn'|B], Env, L, St) ->
-    check_body(progn, B, Env, L, St);
+    check_progn(B, Env, L, St);
+check_expr(['prog1'|B], Env, L, St) ->
+    check_prog1(B, Env, L, St);
+check_expr(['prog2'|B], Env, L, St) ->
+    check_prog2(B, Env, L, St);
 check_expr(['if'|B], Env, L, St) ->
     check_if(B, Env, L, St);
 check_expr(['case'|B], Env, L, St) ->
     check_case(B, Env, L, St);
+check_expr(['cond'|B], Env, L, St) ->
+    check_cond(B, Env, L, St);
+check_expr(['maybe'|B], Env, L, St) ->
+    check_maybe(B, Env, L, St);
 check_expr(['receive'|Cls], Env, L, St) ->
-    check_rec_clauses(Cls, Env, L, St);
+    check_receive(Cls, Env, L, St);
 check_expr(['catch'|B], Env, L, St) ->
     check_body('catch', B, Env, L, St);
 check_expr(['try'|B], Env, L, St) ->
@@ -913,19 +982,35 @@ check_expr(['funcall'|As], Env, L, St) ->
     check_args(As, Env, L, St);
 %% List/binary comprehensions.
 check_expr(['lc',Qs,E], Env, L, St) ->
-    check_comp(Qs, E, Env, L, St);
+    check_comprehension(Qs, E, Env, L, St);
 check_expr(['list-comp',Qs,E], Env, L, St) ->
-    check_comp(Qs, E, Env, L, St);
+    check_comprehension(Qs, E, Env, L, St);
 check_expr(['bc',Qs,BS], Env, L, St) ->
-    check_comp(Qs, BS, Env, L, St);
+    check_comprehension(Qs, BS, Env, L, St);
 check_expr(['binary-comp',Qs,BS], Env, L, St) ->
-    check_comp(Qs, BS, Env, L, St);
+    check_comprehension(Qs, BS, Env, L, St);
 %% Finally the general cases.
 check_expr(['call'|As], Env, L, St) ->
     check_args(As, Env, L, St);
 check_expr([Fun|As], Env, L, St0) when is_atom(Fun) ->
-    St1 = check_args(As, Env, L, St0),          %Check arguments first
-    check_func(Fun, safe_length(As), Env, L, St1);
+    %% St1 = check_args(As, Env, L, St0),          %Check arguments first
+    Arity = safe_length(As),
+    %% io:format("cf ~p\n", [{[Fun|As],Fun,Arity}]),
+    %% Check if it is an operator function in which case handle it
+    %% specifically here.
+    ?COND([{fun () -> lfe_internal:is_arith_func(Fun, Arity) end,
+            fun () -> check_arith_func(Fun, As, Env, L, St0) end},
+           {fun ()-> lfe_internal:is_bit_func(Fun, Arity) end,
+            fun () -> check_bit_func(Fun, As, Env, L, St0) end},
+           {fun ()-> lfe_internal:is_bool_func(Fun, Arity) end,
+            fun () -> check_bool_func(Fun, As, Env, L, St0) end},
+           {fun ()-> lfe_internal:is_comp_func(Fun, Arity) end,
+            fun () -> check_comp_func(Fun, As, Env, L, St0) end},
+           {fun () -> lfe_internal:is_list_func(Fun, Arity) end,
+            fun () -> check_list_func(Fun, As, Env, L, St0) end}
+          ],
+          %% And the catch-all cond else clause.
+          fun () -> check_func(Fun, Arity, As, Env, L, St0) end);
 check_expr([_|As]=S, Env, L, St0) ->            %Test if literal string
     case lfe_lib:is_posint_list(S) of
         true -> St0;
@@ -939,6 +1024,27 @@ check_expr(Symb, Env, L, St) when is_atom(Symb) ->
 check_expr(Lit, Env, L, St) ->                  %Everything else is a literal
     literal(Lit, Env, L, St).
 
+%% check_arith_func(ArithOperator, Args, Env, L, State) -> State.
+%% check_bit_func(BitOperator, Args, Env, L, State) -> State.
+%% check_bool_func(BoolOperator, Args, Env, L, State) -> State.
+%% check_comp_func(CompOperator, Args, Env, L, State) -> State.
+%% check_list_func(ListOperator, Args, Env, L, State) -> State.
+
+check_arith_func(_Op, As, Env, L, St) ->
+    check_args(As, Env, L, St).
+
+check_bit_func(_Op, As, Env, L, St) ->
+    check_args(As, Env, L, St).
+
+check_bool_func(_Op, As, Env, L, St) ->
+    check_args(As, Env, L, St).
+
+check_comp_func(_Op, As, Env, L, St) ->
+    check_args(As, Env, L, St).
+
+check_list_func(_Op, As, Env, L, St) ->
+    check_args(As, Env, L, St).
+
 %% check_symb(Symbol, Env, Line, State) -> State.
 %%  Check if Symbol is bound.
 
@@ -949,11 +1055,24 @@ check_symb(Symb, Env, L, St) ->
         false -> add_error(L, {unbound_symbol,Symb}, St)
     end.
 
+%% check_op(Op, Arity, Env, L, State) -> State.
+%%  Check if the op has at least one argument.
+
+%% check_op(Op, Arity, _Env, L, St) ->
+%%     if Arity >= 1 -> St;
+%%        true ->
+%%             add_error(L, {illegal_operator_call,Op}, St)
+%%     end.
+
+%% check_func(Func, Arity, Args, Env, Line, State) -> State.
 %% check_func(Func, Arity, Env, Line, State) -> State.
 %%  Check if Func/Arity is bound or an auto-imported BIF.
 
+check_func(F, Ar, As, Env, L, St0) ->
+    St1 = check_args(As, Env, L, St0),
+    check_func(F, Ar, Env, L, St1).
+
 check_func(F, Ar, Env, L, St) ->
-    %% case lfe_env:is_fbound(F, Ar, Env) orelse
     case le_hasf(F, Ar, Env) orelse
         lfe_internal:is_lfe_bif(F, Ar) orelse
         lfe_internal:is_erl_bif(F, Ar) of
@@ -1270,8 +1389,8 @@ ml_arity([Pat|_]) ->
     safe_length(Pat, -1);
 ml_arity(_) -> -1.
 
-check_ml_clause([Pat|Rest]=C, Ar, Env0, L, St0) ->
-    St1 = case ml_arity(C) =:= Ar of
+check_ml_clause([Pat|Rest]=Cl, Ar, Env0, L, St0) ->
+    St1 = case ml_arity(Cl) =:= Ar of
               true -> St0;
               false -> add_error(L, bad_head_arity, St0)
           end,
@@ -1287,9 +1406,15 @@ check_ml_clauses(Cls, Ar, Env, L, St) ->
 %%  Check let variable bindings and then body. Must be careful to use
 %%  correct bindings.
 
-check_let([Vbs|Body], Env, L, St0) ->
+check_let([Vbs|Body], Env0, L, St0) ->
+    {Env1,St1} = check_let_vbs(Vbs, Env0, L, St0),
+    check_body('let', Body, Env1, L, St1);
+check_let(_, _, L, St) ->
+    bad_form_error(L, 'let', St).
+
+check_let_vbs(Vbs, Env, L, St0) ->
     Check = fun (Vb, Pvs, Sta) ->
-                    {Pv,Stb} = check_let_vb(Vb, Env, L, Sta),
+                    {Pv,Stb} = check_let_vb('let', Vb, Env, L, Sta),
                     Stc = case ordsets:intersection(Pv, Pvs) of
                               [] -> Stb;
                               Ivs -> multi_var_error(L, Ivs, Stb)
@@ -1297,118 +1422,92 @@ check_let([Vbs|Body], Env, L, St0) ->
                     {ordsets:union(Pv, Pvs), Stc}
             end,
     {Pvs,St1} = foldl_form(Check, 'let', L, [], St0, Vbs),
-    check_body('let', Body, le_addvs(Pvs, Env), L, St1);
-check_let(_, _, L, St) ->
-    bad_form_error(L, 'let', St).
+    {le_addvs(Pvs, Env),St1}.
 
-%% check_let_vb(VarBind, Env, Line, State) -> {Env,State}.
+%% check_let_vb(Type, VarBind, Env, Line, State) -> {Env,State}.
 %%  Check a variable binding of form [Pat,[when,Guard],Val] or
-%%  [Pat,Val].
+%%  [Pat,Val]. We can use this in different forms.
 
-check_let_vb([_|_]=Vb, Env, L, St0) ->
+check_let_vb(Type, [_|_]=Vb, Env, L, St0) ->
     %% Get the environments right here!
     case pattern_guard(Vb, Env, L, St0) of
         {[Val],Pvs,_,St1} ->                    %One value expression only
             {Pvs,check_expr(Val, Env, L, St1)};
-        {_,_,_,St1} -> {[],bad_form_error(L, 'let', St1)}
+        {_,_,_,St1} -> {[],bad_form_error(L, Type, St1)}
     end;
-check_let_vb(_, _, L, St) -> {[],bad_form_error(L, 'let', St)}.
+check_let_vb(Type, _, _, L, St) -> {[],bad_form_error(L, Type, St)}.
 
 %% check_let_function(FletBody, Env, Line, State) -> {Env,State}.
 %%  Check a let-function form (let-function FuncBindings ... ).
 
-check_let_function([Fbs0|Body], Env0, L, St0) ->
-    %% Collect correct function definitions.
-    {Fbs1,St1} = collect_let_funcs(Fbs0, 'let-function', L, St0),
-    {_,Env1,St2} = check_let_bindings(Fbs1, Env0, St1),
-    check_body('let-function', Body, Env1, L, St2).
+check_let_function([Fdefs|Body], Env0, L, St0) ->
+    {Fbs,St1} = check_let_function_defs('let-function', Fdefs, L, St0),
+    {Fs,St2} = check_function_bindings(Fbs, St1),
+    St3 = check_core_functions(Fs, St2),
+    {Env1,St4} = check_let_function_bodies(Fbs, Env0, St3),
+    check_body('let-function', Body, Env1, L, St4).
+
+check_let_function_bodies(Fbs, Env0, St0) ->
+    St1 = check_function_bodies(Fbs, Env0, St0),
+    Env1 = lists:foldl(fun ({{F,A},_Def,_L}, Env) -> le_addf(F, A, Env) end,
+                       Env0, Fbs),
+    {Env1, St1}.
 
 %% check_letrec_function(FletrecBody, Env, Line, State) -> {Env,State}.
 %%  Check a letrec-function form (letrec-function FuncBindings ... ).
 
-check_letrec_function([Fbs0|Body], Env0, L, St0) ->
-    %% Collect correct function definitions.
-    {Fbs1,St1} = collect_let_funcs(Fbs0, 'letrec-function', L, St0),
-    {_,Env1,St2} = check_letrec_bindings(Fbs1, Env0, St1),
-    check_body('letrec-function', Body, Env1, L, St2).
+check_letrec_function([Fdefs|Body], Env0, L, St0) ->
+    {Fbs,St1} = check_let_function_defs('let-function', Fdefs, L, St0),
+    {Fs,St2} = check_function_bindings(Fbs, St1),
+    St3 = check_core_functions(Fs, St2),
+    {Env1,St4} = check_letrec_function_bodies(Fbs, Env0, St3),
+    check_body('let-function', Body, Env1, L, St4).
 
-%% collect_let_funcs(FuncDefs, Type, Line, State) -> {Funcbindings,State}.
-%%  Collect the function definitions for a let/letrec-function
-%%  checking right types. Returns same format as top-level collect.
+check_letrec_function_bodies(Fbs, Env0, St0) ->
+    Env1 = lists:foldl(fun ({{F,A},_Def,_L}, Env) -> le_addf(F, A, Env) end,
+                       Env0, Fbs),
+    St1 = check_function_bodies(Fbs, Env1, St0),
+    {Env1, St1}.
 
-collect_let_funcs(Fbs0, Type, L, St0) ->
-    Check = fun ([V,['lambda'|_]=Lambda], Fbs, St) when is_atom(V) ->
-                    {[{V,Lambda,L}|Fbs],St};
-                ([V,['match-lambda'|_]=Match], Fbs, St) when is_atom(V) ->
-                    {[{V,Match,L}|Fbs],St};
-                (_, Fbs, St) -> {Fbs,bad_form_error(L, Type, St)}
-            end,
-    foldr_form(Check, Type, L, [], St0, Fbs0).  %Preserve order
-
-%% check_let_bindings(FuncBindings, Env, State) -> {Funcs,Env,State}.
-%%  Check the function bindings and return new environment. We only
-%%  have to worry about checking for the valid forms as the rest will
-%%  already be reported. Use explicit line number in element.
-
-check_let_bindings(Fbs, Env0, St0) ->
-    {Funcs,St1} = check_fbindings(Fbs, St0),
-    %% Now check function definitions.
-    St2 = lists:foldl(fun ({_,[lambda|Lambda],L}, St) ->
-                              check_lambda(Lambda, Env0, L, St);
-                          ({_,['match-lambda'|Match],L}, St) ->
-                              check_match_lambda(Match, Env0, L, St)
-                      end, St1, Fbs),
-    %% Add to environment
-    Env1 = lists:foldl(fun ({{F,A},_L}, Env) -> le_addf(F, A, Env) end,
-                       Env0, Funcs),
-    {Funcs,Env1,St2}.
-
-%% check_letrec_bindings(FuncBindings, Env, State) -> {Funcs,Env,State}.
-%%  Check the function bindings and return new environment. We only
-%%  have to worry about checking for the valid forms as the rest will
-%%  already be reported. Use explicit line number in element.
-
-check_letrec_bindings(Fbs, Env0, St0) ->
-    {Funcs,St1} = check_fbindings(Fbs, St0),
-    %% Add to the environment.
-    Env1 = lists:foldl(fun ({{F,A},_L}, Env) -> le_addf(F, A, Env) end,
-                       Env0, Funcs),
-    %% Now check function definitions.
-    St2 = lists:foldl(fun ({_,[lambda|Lambda],L}, St) ->
-                              check_lambda(Lambda, Env1, L, St);
-                          ({_,['match-lambda'|Match],L}, St) ->
-                              check_match_lambda(Match, Env1, L, St)
-                      end, St1, Fbs),
-    {Funcs,Env1,St2}.
-
-%% check_fbindings(FuncBindings, State) -> {Funcs,State}.
-%%  Check function bindings for format and for multiple fucntion
-%%  definitions.
-
-check_fbindings(Fbs0, St0) ->
-    AddFb = fun(FAr, Funcs, L, St) ->
-                    case orddict:is_key(FAr, Funcs) of
-                        true ->
-                            {Funcs,add_error(L, {redefine_function,FAr}, St)};
-                        false -> {orddict:store(FAr, L, Funcs),St}
-                    end
-            end,
-    Check = fun ({V,[lambda,Args|_],L}, {Funcs,St}) ->
+check_let_function_defs(Type, Fdefs, L, St0) ->
+    Check = fun ([Name,['lambda',Args|_Body]=Def], {Fbs,St})
+                  when is_atom(Name) ->
                     case lfe_lib:is_symb_list(Args) of
-                        true -> AddFb({V,length(Args)}, Funcs, L, St);
-                        false -> {Funcs,bad_form_error(L, lambda, St)}
+                        true -> {[{{Name,length(Args)}, Def, L} | Fbs],St};
+                        false -> {Fbs,bad_form_error(L, Type, St)}
                     end;
-                ({V,['match-lambda',[Pats|_]|_],L}, {Funcs,St}) ->
+                ([Name,['match-lambda',[Pats|_Body]|_Cls]=Def], {Fbs,St})
+                  when is_atom(Name) ->
                     case lfe_lib:is_proper_list(Pats) of
-                        true -> AddFb({V,length(Pats)}, Funcs, L, St);
-                        false -> {Funcs,bad_form_error(L, 'match-lambda', St)}
+                        true -> {[{{Name,length(Pats)}, Def, L} | Fbs],St};
+                        false -> {Fbs,bad_form_error(L, Type, St)}
                     end;
-                (_, Acc) -> Acc                 %Error here flagged elsewhere
+                (_, {Fbs,St}) ->
+                    {Fbs,bad_fdef_error(L, Type, St)}
             end,
-    lists:foldl(Check, {orddict:new(),St0}, Fbs0).
+    %% Preserve the function ordering for let-function and letrec-function!
+    lists:foldr(Check, {[],St0}, Fdefs).
+
+%% check_progn(Body, Env, Line, State) -> State.
+%% check_prog1(Body, Env, Line, State) -> State.
+%% check_prog2(Body, Env, Line, State) -> State.
+%%  Check the progs.
+
+check_progn(Body, Env, L, St) ->
+    check_body(progn, Body, Env, L, St).
+
+check_prog1([_E|_Es]=Body, Env, L, St) ->
+    check_body(prog1, Body, Env, L, St);
+check_prog1(_Body, _Env, L, St) ->
+    bad_form_error(L, 'prog1', St).
+
+check_prog2([_E1,_E2|_Es]=Body, Env, L, St) ->
+    check_body(prog2, Body, Env, L, St);
+check_prog2(_Body, _Env, L, St) ->
+    bad_form_error(L, 'prog2', St).
 
 %% check_if(IfBody, Env, Line, State) -> State.
-%% Check form (if Test True [False]).
+%%  Check form (if Test True [False]).
 
 check_if([Test,True,False], Env, L, St) ->
     check_exprs([Test,True,False], Env, L, St);
@@ -1429,6 +1528,103 @@ check_case(_, _, L, St) ->
 check_case_clauses(Cls, Env, L, St) ->
     foreach_form(fun (Cl, S) -> check_clause('case', Cl, Env, L, S) end,
                  'case', L, St, Cls).
+
+%% check_cond(CondBody, Env, Line, State) -> State.
+%%  Check form (cond Test ...), an empty cond is allowed.
+
+check_cond(Cls, Env, L, St) ->
+    check_cond_clauses(Cls, Env, L, St).
+
+check_cond_clauses([['else'|Body]], Env, L, St) ->
+    check_body('cond', Body, Env, L, St);
+check_cond_clauses([['else'|_]|_], _Env, L, St) ->
+    bad_form_error(L, 'cond', St);
+check_cond_clauses([Cl|Cls], Env, L, St0) ->
+    St1 = check_cond_clause(Cl, Env, L, St0),
+    check_cond_clauses(Cls, Env, L, St1);
+check_cond_clauses([], _Env, _L, St) ->
+    St;
+check_cond_clauses(_Other, _Env, L, St) ->
+    bad_form_error(L, 'cond', St).
+
+check_cond_clause([['?='|TestPat]|Body], Env, L, St) ->
+    check_cond_testpat(TestPat, Body, Env, L, St);
+check_cond_clause([Test|Body], Env, L, St0) ->
+    St1 = check_expr(Test, Env, L, St0),
+    check_body('cond', Body, Env, L, St1);
+check_cond_clause(_Other, _Env, L, St) ->
+    bad_form_error(L, 'cond', St).
+
+check_cond_testpat(TestPat, Body, Env0, L, St0) ->
+    %% Get the environments right here!
+    case pattern_guard(TestPat, Env0, L, St0) of
+        {[Val],_,Env1,St1} ->                   %One value expression only
+            St2 = check_expr(Val, Env0, L, St1),
+            check_body('cond', Body, Env1, L, St2);
+        {_,_,_,St1} ->
+            bad_form_error(L, 'cond', St1)
+    end.
+
+%% check_maybe(MaybeBody, Env, Line, State) -> State.
+%%  Check the maybe body. We don't allow guards in the ?= forms as
+%%  yet.
+
+check_maybe(Body, Env, L, St) ->
+    check_maybe_body(Body, Env, L, St).
+
+check_maybe_body([['else'|Cls]], Env, L, St) ->
+    check_maybe_else(Cls, Env, L, St);
+check_maybe_body([['else'|_]|_], _Env, L, St) ->
+    bad_form_error(L, 'maybe', St);
+check_maybe_body([E|Es], Env0, L, St0) ->
+    {Env1,St1} = check_maybe_expr(E, Env0, L, St0),
+    check_maybe_body(Es, Env1, L, St1);
+check_maybe_body([], _Env, _L, St) ->
+    St.
+
+check_maybe_let_body([['else'|_]|_], _Env, L, St) ->
+    bad_form_error(L, 'maybe', St);
+check_maybe_let_body([E|Es], Env0, L, St0) ->
+    {Env1,St1} = check_maybe_expr(E, Env0, L, St0),
+    check_maybe_let_body(Es, Env1, L, St1);
+check_maybe_let_body([], _Env, _L, St) ->
+    St.
+
+check_maybe_expr(['?=',Pat,Body], Env0, L, St0) ->
+    Test = [Pat,Body],
+    %% Get the environments right here!
+    case pattern_guard(Test, Env0, L, St0) of
+        {[Val],_,Env1,St1} ->                   %One value expression only
+            {Env1,check_expr(Val, Env0, L, St1)};
+        {_,_,Env1,St1} ->
+            {Env1,bad_form_error(L, 'maybe', St1)}
+    end;
+check_maybe_expr(['let',Vbs|Body], Env0, L, St0) ->
+    {Env1,St1} = check_let_vbs(Vbs, Env0, L, St0),
+    St2 = check_maybe_let_body(Body, Env1, L, St1),
+    {Env0,St2};
+check_maybe_expr(E, Env, L, St0) ->
+    St1 = check_expr(E, Env, L, St0),
+    {Env,St1}.
+
+check_maybe_else(Cls, Env, L, St) ->
+    foreach_form(fun (Cl, S) -> check_maybe_else_clause(Cl, Env, L, S) end,
+                 'else', L, St, Cls).
+
+check_maybe_else_clause([Pat|Rest], Env0, L, St0) ->
+    Arity = safe_length(Pat),
+    St1 = if Arity =:= 1 -> St0;
+             true -> bad_form_error(L, 'else', St0)
+          end,
+    check_clause('maybe', [[list|Pat]|Rest], Env0, L, St1);
+check_maybe_else_clause(_, _, L, St) ->
+    bad_form_error(L, 'else', St).
+
+%% check_receive(Clauses, Env, Line, State) -> State.
+%%  Check the receive.
+
+check_receive(Cls, Env, L, St) ->
+    check_rec_clauses(Cls, Env, L, St).
 
 check_rec_clauses([['after',T|B]], Env, L, St0) ->
     St1 = check_expr(T, Env, L, St0),
@@ -1486,12 +1682,12 @@ check_catch_clause([[tuple,_,_,Stack]|_]=Cl, Env, L, St0) ->
 check_catch_clause([Other|_], _Env, L, St) ->
     add_error(L, {illegal_exception,Other}, St).
 
-%% check_comp(Qualifiers, Expr, Env, LineNumber, State) -> State.
+%% check_comprehension(Qualifiers, Expr, Env, LineNumber, State) -> State.
 %%  Check a comprehension. We can use the same function for both list
 %%  and binary comprehensions here and push any extra tests to the
 %%  Erlang compiler.
 
-check_comp(Qs, Expr, Env0, L, St0) ->
+check_comprehension(Qs, Expr, Env0, L, St0) ->
     %% io:format("~p ~p ~p\n", [L,Qs,BitExpr]),
     {Env1,St1} = check_comp_quals(Qs, Env0, L, St0),
     check_expr(Expr, Env1, L, St1).
@@ -1500,39 +1696,33 @@ check_comp(Qs, Expr, Env0, L, St0) ->
 %%     {Env,State}.
 %%  Note that the explicit guards are now tested as guards.
 
-check_comp_quals([['<-',Pat,E]|Qs], Env0, L, St0) ->
-    {Pvs,St1} = pattern(Pat, Env0, L, St0),
-    Env1 = le_addvs(Pvs, Env0),
-    St2 = check_expr(E, Env1, L, St1),
-    check_comp_quals(Qs, Env1, L, St2);
-check_comp_quals([['<-',Pat,['when'|G],E]|Qs], Env0, L, St0) ->
-    {Pvs,St1} = pattern(Pat, Env0, L, St0),
-    Env1 = le_addvs(Pvs, Env0),
-    St2 = check_guard(G, Env1, L, St1),
-    St3 = check_expr(E, Env1, L, St2),
-    check_comp_quals(Qs, Env1, L, St3);
-check_comp_quals([['<=',Pat,E]|Qs], Env0, L, St0) ->
-    {Pvs,St1} = check_bitstring_pattern(Pat, Env0, L, St0),
-    Env1 = le_addvs(Pvs, Env0),
-    St2 = check_expr(E, Env1, L, St1),
-    check_comp_quals(Qs, Env1, L, St2);
-check_comp_quals([['<=',Pat,['when'|G],E]|Qs], Env0, L, St0) ->
-    {Pvs,St1} = check_bitstring_pattern(Pat, Env0, L, St0),
-    Env1 = le_addvs(Pvs, Env0),
-    St2 = check_guard(G, Env1, L, St1),
-    St3 = check_expr(E, Env1, L, St2),
-    check_comp_quals(Qs, Env1, L, St3);
-check_comp_quals([Test|Qs], Env, L, St0) ->
-    St1 = check_expr(Test, Env, L, St0),
-    check_comp_quals(Qs, Env, L, St1);
-check_comp_quals([], Env, _L, St) ->
-    {Env,St}.
+check_comp_qual(['<-'|Test], Env0, L, St0) ->
+    case pattern_guard(Test, Env0, L, St0) of
+        {[Exp],_,Env1,St1} ->
+            {Env1,check_expr(Exp, Env0, L, St1)};
+        {_,_,_,St1} ->
+            {Env0,bad_form_error(L, comprehension, St1)}
+    end;
+check_comp_qual(['<='|Test], Env0, L, St0) ->
+    case pattern_guard(Test, Env0, L, St0) of
+        {[Exp],_,Env1,St1} ->
+            {Env1,check_expr(Exp, Env0, L, St1)};
+        {_,_,_,St1} ->
+            {Env0,bad_form_error(L, comprehension, St1)}
+    end;
+check_comp_qual(Test, Env, L, St) ->
+    {Env,check_expr(Test, Env, L, St)}.
+
+check_comp_quals(Qs, Env, L, St) ->
+    check_foldl(fun (Q, E0, S) -> check_comp_qual(Q, E0, L, S) end,
+                fun (S) -> bad_form_error(L, comprehension, S) end,
+                Env, St, Qs).
 
 %% check_bitstring_pattern(Pattern, Env, LineNumber, State) -> {PatVars,State}.
 %%  The bitstring pattern must be a binary.
 
-check_bitstring_pattern(Pat, Env, L, St) ->
-    pattern(Pat, Env, L, St).
+%% check_bitstring_pattern(Pat, Env, L, St) ->
+%%     pattern(Pat, Env, L, St).
 %% check_bitstring_pattern([binary|Segs], Env, L, St) ->
 %%     pat_binary(Segs, [], Env, L, St);
 %% check_bitstring_pattern(Pat, _Env, L, St) ->
@@ -1621,8 +1811,9 @@ check_gexpr(['orelse'|Es], Env, L, St) ->
     check_gargs(Es, Env, L, St);
 check_gexpr([call,?Q(erlang),?Q(Fun)|As], Env, L, St0) ->
     St1 = check_gargs(As, Env, L, St0),
+    Arity = safe_length(As),
     %% It must be a legal guard bif here.
-    case lfe_internal:is_guard_bif(Fun, safe_length(As)) of
+    case lfe_internal:is_guard_bif(Fun, Arity) of
         true -> St1;
         false -> illegal_guard_error(L, St1)
     end;
@@ -1630,25 +1821,61 @@ check_gexpr([call,?Q(erlang),?Q(Fun)|As], Env, L, St0) ->
 check_gexpr([call|_], _, L, St) ->              %Other calls not allowed
     illegal_guard_error(L, St);
 check_gexpr([Fun|As], Env, L, St0) when is_atom(Fun) ->
-    St1 = check_gargs(As, Env, L, St0),
-    check_gfunc(Fun, safe_length(As), Env, L, St1);
+    %% St1 = check_gargs(As, Env, L, St0),
+    Arity = safe_length(As),
+    %% Check if it is an operator function in which case handle it
+    %% specifically here.
+    ?COND([{fun () -> lfe_internal:is_arith_func(Fun, Arity) end,
+            fun () -> check_arith_gfunc(Fun, As, Env, L, St0) end},
+           {fun ()-> lfe_internal:is_bit_func(Fun, Arity) end,
+            fun () -> check_bit_gfunc(Fun, As, Env, L, St0) end},
+           {fun ()-> lfe_internal:is_bool_func(Fun, Arity) end,
+            fun () -> check_bool_gfunc(Fun, As, Env, L, St0) end},
+           {fun ()-> lfe_internal:is_comp_func(Fun, Arity) end,
+            fun () -> check_comp_gfunc(Fun, As, Env, L, St0) end},
+           {fun () -> lfe_internal:is_list_func(Fun, Arity) end,
+            fun () -> check_list_gfunc(Fun, As, Env, L, St0) end}
+          ],
+          %% And the catch-all cond else clause.
+          fun () -> check_gfunc(Fun, Arity, As, Env, L, St0) end);
 check_gexpr([_|As]=S, Env, L, St0) ->            %Test if literal string
     case lfe_lib:is_posint_list(S) of
         true -> St0;
         false ->
             %% Function here is an expression, report error and check args.
-            St1 = bad_guard_form_error(L, application, St0),
-            check_gargs(As, Env, L, St1)
+            St1 = bad_form_error(L, application, St0),
+            check_args(As, Env, L, St1)
     end;
 check_gexpr(Symb, Env, L, St) when is_atom(Symb) ->
     check_symb(Symb, Env, L, St);
-check_gexpr(Lit, Env, L, St) ->                 %Everything else is a literal
+check_gexpr(Lit, Env, L, St) ->                  %Everything else is a literal
     literal(Lit, Env, L, St).
 
-%% check_gfunc(Func, Arity, Env, Line, State) -> State.
+%% check_arith_gfunc(ArithOperator, Args, Env, L, State) -> State.
+%% check_bit_gfunc(BitOperator, Args, Env, L, State) -> State.
+%% check_bool_gfunc(BoolOperator, Args, Env, L, State) -> State.
+%% check_comp_gfunc(CompOperator, Args, Env, L, State) -> State.
+%% check_list_gfunc(ListOperator, Args, Env, L, State) -> State.
+
+check_arith_gfunc(_Op, As, Env, L, St) ->
+    check_gargs(As, Env, L, St).
+
+check_bit_gfunc(_Op, As, Env, L, St) ->
+    check_gargs(As, Env, L, St).
+
+check_bool_gfunc(_Op, As, Env, L, St) ->
+    check_gargs(As, Env, L, St).
+
+check_comp_gfunc(_Op, As, Env, L, St) ->
+    check_gargs(As, Env, L, St).
+
+check_list_gfunc(_Op, As, Env, L, St) ->
+    check_gargs(As, Env, L, St).
+
+%% check_gfunc(Func, Arity, Args, Env, Line, State) -> State.
 %%  Check if Func/Arity is not bound and an auto-imported guard BIF.
 
-check_gfunc(F, Ar, Env, L, St) ->
+check_gfunc(F, Ar, _As, Env, L, St) ->
     %% case (not lfe_env:is_fbound(F, Ar, Env)) andalso
     case (not le_hasf(F, Ar, Env)) andalso
          lfe_internal:is_guard_bif(F, Ar) of
@@ -1799,6 +2026,9 @@ pattern(['make-record',Name|Fs], Pvs, Env, L, St) ->
     check_record_pat(Name, Fs, Pvs, Env, L, St);
 pattern(['record-index',Name,F], _Pvs, _Env, L, St) ->
     check_record_field(Name, F, L, St);
+%% Test.
+pattern(['++'|Ps], Pvs, Env, L, St) ->
+    pat_list(Ps, Pvs, Env, L, St);
 %% Check struct patterns.
 pattern(['struct',Name|Fs], Pvs, Env, L, St) ->
     check_struct_pat(Name, Fs, Pvs, Env, L, St);
@@ -2072,8 +2302,8 @@ foreach_form(Check, T, L, St, Fs) ->
 foldl_form(Fun, T, L, Acc, St, Fs) ->
     check_foldl(Fun, fun (S) -> bad_form_error(L, T, S) end, Acc, St, Fs).
 
-foldr_form(Fun, T, L, Acc, St, Fs) ->
-    check_foldr(Fun, fun (S) -> bad_form_error(L, T, S) end, Acc, St, Fs).
+%% foldr_form(Fun, T, L, Acc, St, Fs) ->
+%%     check_foldr(Fun, fun (S) -> bad_form_error(L, T, S) end, Acc, St, Fs).
 
 %% check_foreach(Check, Err, State, Forms) -> State.
 %% check_map(Check, Err, State, Forms) -> {Results,State}.
@@ -2095,11 +2325,11 @@ check_foldl(Check, Err, Acc0, St0, [F|Fs]) ->
 check_foldl(_, _, Acc, St, []) -> {Acc,St};
 check_foldl(_, Err, Acc, St, _) -> {Acc,Err(St)}.
 
-check_foldr(Check, Err, Acc0, St0, [F|Fs]) ->
-    {Acc1,St1} = check_foldr(Check, Err, Acc0, St0, Fs),
-    Check(F, Acc1, St1);
-check_foldr(_, _, Acc, St, []) -> {Acc,St};
-check_foldr(_, Err, Acc, St, _) -> {Acc,Err(St)}.
+%% check_foldr(Check, Err, Acc0, St0, [F|Fs]) ->
+%%     {Acc1,St1} = check_foldr(Check, Err, Acc0, St0, Fs),
+%%     Check(F, Acc1, St1);
+%% check_foldr(_, _, Acc, St, []) -> {Acc,St};
+%% check_foldr(_, Err, Acc, St, _) -> {Acc,Err(St)}.
 
 %% Versions which only check for proper top list.
 %% check_foreach(Check, Err, St, Fs) ->
@@ -2158,11 +2388,13 @@ check_foldr(_, Err, Acc, St, _) -> {Acc,Err(St)}.
 %%     end.
 
 %% safe_length(List) -> Length.
+%% safe_length(List, StartLength) -> Length | BadListRet.
 %%  Safely check length of list, can handle improper lists.
 
 safe_length(L) -> safe_length(L, 0).
 
 safe_length([_|L], Acc) -> safe_length(L, Acc+1);
+safe_length([], Acc) -> Acc;
 safe_length(_, Acc) -> Acc.
 
 %% safe_fetch(Key, Dict, Default) -> Value.

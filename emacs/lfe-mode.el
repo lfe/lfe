@@ -138,7 +138,8 @@ Other commands:
      (list
       (concat
        "("
-       (regexp-opt '("defmodule" "defrecord" "deftype" "defopaque" "defspec") t)
+       (regexp-opt '("defmodule" "defrecord" "defstruct"
+                     "deftype" "defopaque" "defspec") t)
        "\\>"
        ;; Any whitespace and declared object.
        "[ \t]*(?"
@@ -161,9 +162,9 @@ Other commands:
      ;; LM flavor and struct macros.
      (list
       (concat
-       ;; No defmethod here!
        "("
-       (regexp-opt '("defflavor" "endflavor" "defstruct") t)
+       (regexp-opt '("defflavor" "endflavor" "defmethod"
+                     "make-instance" "send") t)
        "\\>"
        ;; Any whitespace and declared object.
        "[ \t]*(?"
@@ -176,7 +177,7 @@ Other commands:
       (concat
        "("
        (regexp-opt '("define-module" "define-type" "define-opaque-type"
-                     "define-function-spec" "define-record") t)
+                     "define-function-spec" "define-record" "define-struct") t)
        "\\>"
        ;; Any whitespace and declared object.
        "[ \t]*(?"
@@ -201,11 +202,12 @@ Other commands:
       (concat
        "("
        (regexp-opt '( ;; Core forms.
-                     "after" "call" "case" "catch"
+                     "after" "call" "case" "catch" "else"
                      "eval-when-compile" "extend-module"
                      "funcall" "if" "lambda"
                      "let" "let-function" "letrec-function" "let-macro"
-                     "match-lambda" "progn" "receive" "try" "when"
+                     "match-lambda" "maybe" "progn" "receive" "try"
+                     "when"
                      ;; Core macro forms.
                      "andalso" "bc" "binary-comp" "cond" "do"
                      "dbg-ms" "ets-ms" "table-ms" "trace-ms"
@@ -213,7 +215,7 @@ Other commands:
                      "fun" "lc" "list-comp"
                      "let*" "match-spec" "macrolet" "orelse"
                      "prog1" "prog2" "qlc" "syntaxlet"
-                     ":" "?" "++" "++*") t)
+                     ":" "?") t)
        "\\>")
       1 'font-lock-keyword-face)
 
@@ -246,7 +248,8 @@ Other commands:
       (concat
        "("
        (regexp-opt '("abs" "float" "round" "trunc" "+" "-" "*" "/"
-                     "==" "/=" "=:=" "=/=" ">" ">=" "<" "=<"
+                     "==" "/=" "=:=" "=/=" ">" ">=" "<" "=<" "?="
+                     "++" "--"
                      "iolist_size" "length" "make_ref" ;;"size"
                      "binary" "bit_size" "byte_size"
                      "tuple" "tuple_size" "tref" "tset" "element" "setelement"

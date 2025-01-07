@@ -1,4 +1,5 @@
-%% Copyright (c) 2008-2021 Robert Virding
+%% -*- mode: erlang; indent-tabs-mode: nil -*-
+%% Copyright (c) 2008-2025 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -138,6 +139,10 @@ from_expr({'case',_,E,Cls}, Vt0, St0) ->
     {Le,Vt1,St1} = from_expr(E, Vt0, St0),
     {Lcls,Vt2,St2} = from_icrt_cls(Cls, Vt1, St1),
     {['case',Le|Lcls],Vt2,St2};
+from_expr({'maybe',_,Body}, Vt, St) ->
+    from_maybe(Body, none, Vt, St);
+from_expr({'maybe',_,Body,Else}, Vt, St) ->
+    from_maybe(Body, Else, Vt, St);
 from_expr({'receive',_,Cls}, Vt0, St0) ->
     {Lcls,Vt1,St1} = from_icrt_cls(Cls, Vt0, St0),
     {['receive'|Lcls],Vt1,St1};
@@ -204,13 +209,43 @@ from_body([], Vt, St) -> {[],Vt,St}.
 from_expr_list(Es, Vt, St) ->
     mapfoldl2(fun from_expr/3, Vt, St, Es).
 
-%% from_block(Body, VarTable, State) -> {Block,State}.
+%% from_block(Body, VarTable, State) -> {Block,VarTable,State}.
 
 from_block(Es, Vt0, St0) ->
     case from_body(Es, Vt0, St0) of
         {[Le],Vt1,St1} -> {Le,Vt1,St1};
         {Les,Vt1,St1} -> {[progn|Les],Vt1,St1}
     end.
+
+%% from_maybe(Body, Else, VarTable, State) -> {Maybe,VarTable,State)
+
+from_maybe(Body, Else, Vt0, St0) ->
+    {Lb,Vt1,St1} = from_maybe_body(Body, Vt0, St0),
+    {Le,Vt2,St2} = from_maybe_else(Else, Vt1, St1),
+    {['maybe' | Lb ++ Le], Vt2, St2}.
+
+from_maybe_body([{'maybe_match',_L,Ep,Ee}|Es], Vt0, St0) ->
+    {Le,Vt1,St1} = from_expr(Ee, Vt0, St0),
+    {Lp,[],Vt2,St2} = from_pat(Ep, Vt1, St1),
+    Lmm = ['?=',Lp,Le],
+    {Les,Vt3,St3} = from_maybe_body(Es, Vt2, St2),
+    {[Lmm | Les],Vt3,St3};
+from_maybe_body([{match,_L,Ep,Ee}|Es], Vt0, St0) ->
+    {Le,Vt1,St1} = from_expr(Ee, Vt0, St0),
+    {Lp,[],Vt2,St2} = from_pat(Ep, Vt1, St1),
+    {Les,Vt3,St3} = from_maybe_body(Es, Vt2, St2),
+    {[['let',[[Lp,Le]]|Les]],Vt3,St3};
+from_maybe_body([E|Es], Vt0, St0) ->
+    {Le,Vt1,St1} = from_expr(E, Vt0, St0),
+    {Les,Vt2,St2} = from_maybe_body(Es, Vt1, St1),
+    {[Le | Les],Vt2,St2};
+from_maybe_body([], Vt, St) -> {[],Vt,St}.
+
+from_maybe_else(none, Vt, St) ->
+    {[],Vt,St};
+from_maybe_else({'else',_,Ecls}, Vt0, St0) ->
+    {Lcls,Vt1,St1} = from_icrt_cls(Ecls, Vt0, St0),
+    {['else' | Lcls],Vt1,St1}.
 
 %% from_add_guard(GuardTests, Body) -> Body.
 %%  Only prefix with a guard when there are tests.
@@ -395,12 +430,12 @@ from_try(Es, Scs, Ccs, As, Vt, St0) ->
                    end,
     {Las,_,St4} = from_body(As, Vt, St3),
     {['try',[progn|Les]|
-      from_maybe('case', Lscs) ++
-          from_maybe('catch', Lccs) ++
-          from_maybe('after', Las)],Vt,St4}.
+      from_try_maybe('case', Lscs) ++
+          from_try_maybe('catch', Lccs) ++
+          from_try_maybe('after', Las)],Vt,St4}.
 
-from_maybe(_, []) -> [];
-from_maybe(Tag, Es) -> [[Tag|Es]].
+from_try_maybe(_, []) -> [];
+from_try_maybe(Tag, Es) -> [[Tag|Es]].
 
 %% from_list_comp(Expr, Qualifiers, VarTable, State) -> {Listcomp,State}.
 
@@ -657,7 +692,7 @@ to_gexprs(Es, L) ->
 
 to_gexprs(Es, L, {Imports,Aliases}) ->
     ToSt = #to{imports=Imports,aliases=Aliases},
-    {Ees,_} = to_gexprs(Es, L, ?NEW_VT, ToSt),
+    {Ees,_} = to_gexpr_list(Es, L, ?NEW_VT, ToSt),
     Ees.
 
 %% to_expr(Expr, LineNumber, VarTable, State) -> {ErlExpr,State}.
@@ -697,6 +732,7 @@ to_expr([tset,T,I,V], L, Vt, St0) ->
 to_expr([binary|Segs], L, Vt, St0) ->
     {Esegs,St1} = to_expr_bitsegs(Segs, L, Vt, St0),
     {{bin,L,Esegs},St1};
+%% Map special forms.
 to_expr([map|Pairs], L, Vt, St0) ->
     {Eps,St1} = to_map_pairs(fun to_expr/4, Pairs, map_field_assoc, L, Vt, St0),
     {{map,L,Eps},St1};
@@ -790,9 +826,9 @@ to_expr([function,M,F,Ar], L, _, St) ->
     {{'fun',L,{function,to_lit(M, L),to_lit(F, L),to_lit(Ar, L)}},St};
 %% Special known data type operations.
 to_expr(['andalso'|Es], L, Vt, St) ->
-    to_lazy_logic(fun to_expr/4, Es, 'andalso', L, Vt, St);
+    to_short_circuit(fun to_expr/4, Es, 'andalso', L, Vt, St);
 to_expr(['orelse'|Es], L, Vt, St) ->
-    to_lazy_logic(fun to_expr/4, Es, 'orelse', L, Vt, St);
+    to_short_circuit(fun to_expr/4, Es, 'orelse', L, Vt, St);
 %% Core closure special forms.
 to_expr([lambda,Args|Body], L, Vt, St) ->
     to_lambda(Args, Body, L, Vt, St);
@@ -806,18 +842,25 @@ to_expr(['letrec-function'|_], L, _, _) ->      %Can't do this efficently
     illegal_code_error(L, 'letrec-function');
 %% Core control special forms.
 to_expr([progn|B], L, Vt, St) ->
-    to_block(B, L, Vt, St);
+    to_progn(B, L, Vt, St);
+to_expr([prog1|B], L, Vt, St) ->
+    to_prog1(B, L, Vt, St);
+to_expr([prog2|B], L, Vt, St) ->
+    to_prog2(B, L, Vt, St);
 to_expr(['if'|Body], L, Vt, St) ->
     to_if(Body, L, Vt, St);
 to_expr(['case'|Body], L, Vt, St) ->
     to_case(Body, L, Vt, St);
+to_expr(['cond'|Body], L, Vt, St) ->
+    to_cond(Body, L, Vt, St);
+to_expr(['maybe'|Body], L, Vt, St) ->
+    to_maybe(Body, L, Vt, St);
 to_expr(['receive'|Cls], L, Vt, St) ->
     to_receive(Cls, L, Vt, St);
 to_expr(['catch'|B], L, Vt, St0) ->
     {Eb,St1} = to_block(B, L, Vt, St0),
     {{'catch',L,Eb},St1};
 to_expr(['try'|Try], L, Vt, St) ->              %Can't do this yet
-    %% lfe_io:format("try ~w\n~p\n", [L,['try'|Try]]),
     to_try(Try, L, Vt, St);
 to_expr([funcall,F|As], L, Vt, St0) ->
     {Ef,St1} = to_expr(F, L, Vt, St0),
@@ -825,13 +868,13 @@ to_expr([funcall,F|As], L, Vt, St0) ->
     {{call,L,Ef,Eas},St2};
 %% List/binary comprehensions.
 to_expr([lc,Qs,E], L, Vt, St) ->
-    to_list_comp(Qs, E, L, Vt, St);
+    to_list_comprehension(Qs, E, L, Vt, St);
 to_expr(['list-comp',Qs,E], L, Vt, St) ->
-    to_list_comp(Qs, E, L, Vt, St);
+    to_list_comprehension(Qs, E, L, Vt, St);
 to_expr([bc,Qs,BS], L, Vt, St) ->
-    to_binary_comp(Qs, BS, L, Vt, St);
+    to_binary_comprehension(Qs, BS, L, Vt, St);
 to_expr(['binary-comp',Qs,BS], L, Vt, St) ->
-    to_binary_comp(Qs, BS, L, Vt, St);
+    to_binary_comprehension(Qs, BS, L, Vt, St);
 %% General function calls.
 to_expr([call,?Q(erlang),?Q(F)|As], L, Vt, St0) ->
     %% This is semantically the same but some tools behave differently
@@ -857,25 +900,24 @@ to_expr([call,M,F|As], L, Vt, St0) ->
     {Eas,St3} = to_expr_list(As, L, Vt, St2),
     to_remote_call(Em, Ef, Eas, L, St3);
 %% General function call.
-to_expr([F|As], L, Vt, St0) when is_atom(F) ->
-    {Eas,St1} = to_expr_list(As, L, Vt, St0),
-    Ar = length(As),                            %Arity
-    %% Check for import.
-    case orddict:find({F,Ar}, St1#to.imports) of
-        {ok,{Mod,R}} ->                         %Imported
-            to_remote_call({atom,L,Mod}, {atom,L,R}, Eas, L, St1);
-        error ->                                %Not imported
-            case is_erl_op(F, Ar) of
-                true -> {list_to_tuple([op,L,F|Eas]),St1};
-                false ->
-                    case lfe_internal:is_lfe_bif(F, Ar) of
-                        true ->
-                            to_remote_call({atom,L,lfe}, {atom,L,F}, Eas, L, St1);
-                        false ->
-                            {{call,L,{atom,L,F},Eas},St1}
-                    end
-            end
-    end;
+to_expr([Fun|As], L, Vt, St0) when is_atom(Fun) ->
+    %% {Eas,St1} = to_expr_list(As, L, Vt, St0),
+    Arity = length(As),                            %Arity
+    %% Check if it is an operator function in which case handle it
+    %% specifically here.
+    ?COND([{fun () -> lfe_internal:is_arith_func(Fun, Arity) end,
+            fun () -> to_arith_func(Fun, Arity, As, L, Vt, St0) end},
+           {fun () -> lfe_internal:is_bit_func(Fun, Arity) end,
+            fun () -> to_bit_func(Fun, Arity, As, L, Vt, St0) end},
+           {fun () -> lfe_internal:is_bool_func(Fun, Arity) end,
+            fun () -> to_bool_func(Fun, Arity, As, L, Vt, St0) end},
+           {fun () -> lfe_internal:is_list_func(Fun, Arity) end,
+            fun () -> to_list_func(Fun, Arity, As, L, Vt, St0) end},
+           {fun () -> lfe_internal:is_comp_func(Fun, Arity) end,
+            fun () -> to_comp_func(Fun, Arity, As, L, Vt, St0) end}
+          ],
+          %% And the catch-all cond else clause.
+          fun () -> to_fun_call(Fun, Arity, As, L, Vt, St0) end);
 to_expr([_|_]=List, L, _, St) ->
     case lfe_lib:is_posint_list(List) of
         true -> {{string,L,List},St};
@@ -886,6 +928,142 @@ to_expr(V, L, Vt, St) when is_atom(V) ->        %Unquoted atom
     to_expr_var(V, L, Vt, St);
 to_expr(Lit, L, _, St) ->                       %Everything else is a literal
     {to_lit(Lit, L),St}.
+
+%% to_arith_func(ArithOperator, Arity, Args, LineNumber, VarTable, State) ->
+%% to_bit_func(BitOperator, Arity, Args, LineNumber, VarTable, State) ->
+%% to_bool_func(BoolOperator, Arity, Args, LineNumber, VarTable, State) ->
+%% to_list_func(ListOperator, Arity, Args, LineNumber, VarTable, State) ->
+%% to_comp_func(CompOperator, Arity, Args, LineNumber, VarTable, State) ->
+%%     {OpExpr,State}.
+%%  These need to evaluate all their arguments first. The comparison
+%%  operators is a bit more complex as they must test against multiple
+%%  arguments. Especially the boolean comparisons in which all must
+%%  test against all.
+
+to_arith_func(Op, 1, [A], L, Vt, St0) ->
+    {Ea,St1} = to_expr(A, L, Vt, St0),
+    {{op,L,Op,Ea},St1};
+to_arith_func(Op, Ar, As, L, Vt, St0) ->
+    {Evs,Evbs,St1} = to_op_args(Op, Ar, fun to_expr/4, As, L, Vt, St0),
+    ArithCall = to_left_assoc_op(Op, Evs, L),
+    {{block,L,Evbs ++ [ArithCall]},St1}.
+
+to_bit_func(Op, _Ar, As, L, Vt, St0) ->
+    %% These don't need to associated.
+    {Eas,St1} = to_expr_list(As, L, Vt, St0),
+    BitCall = list_to_tuple([op,L,Op|Eas]),
+    {BitCall,St1}.
+
+to_bool_func(Op, 1, [A], L, Vt, St0) ->
+    {Ea,St1} = to_expr(A, L, Vt, St0),
+    BoolCall = {op,L,Op,Ea},
+    {BoolCall,St1};
+to_bool_func(Op, Ar, As, L, Vt, St0) ->
+    {Evs,Evbs,St1} = to_op_args(Op, Ar, fun to_expr/4, As, L, Vt, St0),
+    BoolCall = to_left_assoc_op(Op, Evs, L),
+    {{block,L,Evbs ++ [BoolCall]},St1}.
+
+to_list_func(Op, Ar, As, L, Vt, St0) ->
+    {Evs,Evbs,St1} = to_op_args(Op, Ar, fun to_expr/4, As, L, Vt, St0),
+    ListCall = to_right_assoc_op(Op, Evs, L),
+    {{block,L,Evbs ++ [ListCall]},St1}.
+
+to_comp_func(Op, Ar, As, L, Vt0, St0) ->
+    {Evs,Evbs,St1} = to_op_args(Op, Ar, fun to_expr/4, As, L, Vt0, St0),
+    OpList = if Op =:= '=/='; Op =:= '/=' ->
+                     to_all_pairs_op(Op, Evs, L);
+                true ->
+                     to_pairs_op(Op, Evs, L)
+             end,
+    {{block,L,Evbs ++ OpList},St1}.
+
+%% to_op_args(Op, Arity, Exprfun, Args, LineNumber, VarTable, State) ->
+%%     {Varlist,Matches,State}.
+%%  Generate a list of variables and binding operations {match,..} for
+%%  these variables to their value expressions.
+
+to_op_args(Op, Ar, Expr, As, L, Vt0, St0) ->
+    Vs = [ list_to_atom(lists:concat([Op,"-",Vi])) || Vi <- lists:seq(1, Ar) ],
+    Vas = lists:zipwith(fun (V, A) -> {V,A} end, Vs, As),
+    VbFun = fun ({V,A}, {Evs,Ms,Vta,Sta}) ->
+                    {Ea,Stb} = Expr(A, L, Vta, Sta),
+                    {Ev,_,Vtb,Stc} = to_pat_var(V, L, [], Vta, Stb),
+                    {Evs ++ [Ev],Ms ++ [{match,L,Ev,Ea}],Vtb,Stc}
+            end,
+    {Evs,Matches,_Vt1,St1} = lists:foldl(VbFun, {[],[],Vt0,St0}, Vas),
+    {Evs,Matches,St1}.
+
+%% to_left_assoc_op(Op, Args, Line) -> OpCall.
+%% to_right_assoc_op(Op, Args, Line) -> OpCall.
+%%  Make an either left or right associative Op call from the list of
+%%  args.
+
+to_left_assoc_op(_Op, [E1], _L) ->
+    E1;
+to_left_assoc_op(Op, [E1,E2|Es], L) ->
+    OpCall = {op,L,Op,E1,E2},
+    to_left_assoc_op(Op, [OpCall|Es], L).
+
+to_right_assoc_op(_Op, [E1], _L) ->
+    E1;
+%% to_right_assoc_op(Op, [E1,E2], L) ->
+%%     {op,L,Op,E1,E2};
+to_right_assoc_op(Op, [E1|Es], L) ->
+    OpCall = to_right_assoc_op(Op, Es, L),
+    {op,L,Op,E1,OpCall}.
+
+%% to_pairs_op(Op, Args, Line) -> OpList.
+%% to_all_pairs_op(Op, Args, Line) -> OpList.
+%%   Generate a list of comparisons between pairs or all pairs of the
+%%   arguments.
+
+to_pairs_op(Op, [E1,E2], L) ->
+    [{op,L,Op,E1,E2}];
+to_pairs_op(Op, [E1,E2|Es], L) ->
+    Ops = to_pairs_op(Op, [E2|Es], L),
+    [{op,L,Op,E1,E2}|Ops].
+
+to_all_pairs_op(_Op, [], _L) -> [];
+to_all_pairs_op(Op, [E1|Es], L) ->
+    [ {op,L,Op,E1,E2} || E2 <- Es ] ++ to_all_pairs_op(Op, Es, L).
+
+%% to_comp_pairs(Op, Args, Line) -> OpList.
+%% to_comp_all_pairs(Op, Args, Line) -> OpList.
+%%   Generate a list of comparisons between pairs or all pairs of the
+%%   arguments.
+
+to_comp_pairs(Op, [E1,E2]) ->
+    [[Op,E1,E2]];
+to_comp_pairs(Op, [E1,E2|Es]) ->
+    Ees = to_comp_pairs(Op, [E2|Es]),
+    [[Op,E1,E2]|Ees].
+
+to_comp_all_pairs(_Op, []) -> [];
+to_comp_all_pairs(Op, [E1|Es]) ->
+    [ [Op,E1,E2] || E2 <- Es ] ++ to_comp_all_pairs(Op, Es).
+
+%% to_fun_call(Name, Arity, Args, LineNumber, VarTable, State) ->
+%%     {FunExpr,State}.
+%%  All the arguments have already been converted.
+
+to_fun_call(Fun, Ar, As, L, Vt, St0) ->
+    {Eas,St1} = to_expr_list(As, L, Vt, St0),
+    %% Check for import.
+    case orddict:find({Fun,Ar}, St1#to.imports) of
+        {ok,{Mod,R}} ->                         %Imported
+            to_remote_call({atom,L,Mod}, {atom,L,R}, Eas, L, St1);
+        error ->                                %Not imported
+            case is_erl_op(Fun, Ar) of
+                true -> {list_to_tuple([op,L,Fun|Eas]),St1};
+                false ->
+                    case lfe_internal:is_lfe_bif(Fun, Ar) of
+                        true ->
+                            to_remote_call({atom,L,lfe}, {atom,L,Fun}, Eas, L, St1);
+                        false ->
+                            {{call,L,{atom,L,Fun},Eas},St1}
+                    end
+            end
+    end.
 
 %% to_expr_list(Exprs, LineNumber, VarTable, State) -> {ErlExprs,State}.
 %%  Convert a list of expressions to a list of Erlang ASTs.
@@ -1080,17 +1258,18 @@ to_fun_cl([As|B], L, Vt0, St0) ->
     {Eb,St2} = to_body(B, L, Vt1, St1),
     {{clause,L,Eas,[],Eb},St2}.
 
-%% to_lazy_logic(ExprFun, Exprs, Type, LineNumber, VarTable, State) ->
+%% to_short_circuit(ExprFun, Exprs, Type, LineNumber, VarTable, State) ->
 %%     {Logic,State}.
-%%  These go pairwise right-to-left.
+%%  These are right associative so the evaluation steps from left to
+%%  right.
 
-to_lazy_logic(Expr, [E1,E2], Type, L, Vt, St0) ->
+to_short_circuit(Expr, [E1,E2], Type, L, Vt, St0) ->
     {Ee1,St1} = Expr(E1, L, Vt, St0),
     {Ee2,St2} = Expr(E2, L, Vt, St1),
     {{op,L,Type,Ee1,Ee2},St2};
-to_lazy_logic(Expr, [E1|Es], Type, L, Vt, St0) ->
+to_short_circuit(Expr, [E1|Es], Type, L, Vt, St0) ->
     {Ee1,St1} = Expr(E1, L, Vt, St0),
-    {Ees,St2} = to_lazy_logic(Expr, Es, Type, L, Vt, St1),
+    {Ees,St2} = to_short_circuit(Expr, Es, Type, L, Vt, St1),
     {{op,L,Type,Ee1,Ees},St2}.
 
 %% to_lambda(Args, Body, LineNumber, VarTable, State) -> {Fun,State}.
@@ -1113,6 +1292,7 @@ to_match_lambda(Cls, L, Vt, St0) ->
 %%  bindings.
 
 to_let(Lbs, B, L, Vt, St0) ->
+    %% io:format("tl ~w ~p\n   ~p\n", [L,Lbs,B]),
     {Eb,St1} = to_let_body(Lbs, B, L, Vt, Vt, St0),
     {{block,L,Eb},St1}.
 
@@ -1137,6 +1317,7 @@ to_let_body([[P,['when'|G],E]|Lbs], B, L, Lvt, Vt0, St0) ->
     {Elet,St5} = to_let_body(Lbs, B, L, Lvt, Vt1, St4),
     {[{'case',L,Ee,[{clause,L,[Ep],[Eg],Elet},BadMatch]}],St5};
 to_let_body([], B, L, _Lvt, Vt0, St0) ->
+    %% io:format("tlb ~w ~p\n", [L,B]),
     {Eb,St1} = to_body(B, L, Vt0, St0),
     {Eb,St1}.
 
@@ -1157,6 +1338,22 @@ to_block(Es, L, Vt, St0) ->
         {[],St1} -> {?TO_NIL(L),St1};           %Returns ()
         {Ees,St1} -> {{block,L,Ees},St1}        %Must wrap
     end.
+
+%% to_progn(Body, LineNumber, VarTable, State) -> {Block,State}.
+%% to_prog1(Body, LineNumber, VarTable, State) -> {Block,State}.
+%% to_prog2(Body, LineNumber, VarTable, State) -> {Block,State}.
+
+to_progn(Es, L, Vt, St) ->
+    to_block(Es, L, Vt, St).
+
+to_prog1([E|Es], L, Vt, St) ->
+    Prog1 = ['let',[['-prog-1-',E]] | Es ++ ['-prog-1-']],
+    to_expr(Prog1, L, Vt, St).
+
+to_prog2([E1,E2|Es], L, Vt, St) ->
+    Prog2 = [progn,E1,
+             ['let',[['-prog-2-',E2]] | Es ++ ['-prog-2-']]],
+    to_expr(Prog2, L, Vt, St).
 
 %% to_if(IfBody, LineNumber, VarTable, State) -> {ErlCase,State}.
 
@@ -1181,6 +1378,205 @@ to_case([E|Cls], L, Vt, St0) ->
 to_case(_, L, _, _) ->
     illegal_code_error(L, 'case').
 
+%% to_cond(CondBody, LineNumber, VarTable, State) -> {ErlCond,State}.
+
+to_cond(Body, L, Vt, St) ->
+    Cond = to_cond_body(Body),
+    %% io:format("cond ~p\n", [Cond]),
+    to_expr(Cond, L, Vt, St).
+
+to_cond_body([['else'|Body]]) ->
+    ['progn'|Body];
+to_cond_body([[['?=',Pat,['when'|G],Exp]|Tbody]|Body]) ->
+    ['case',Exp,
+     [Pat,['when'|G]|Tbody],
+     ['_',to_cond_body(Body)]];
+to_cond_body([[['?=',Pat,Exp]|Tbody]|Body]) ->
+    ['case',Exp,
+     [Pat|Tbody],
+     ['_',to_cond_body(Body)]];
+to_cond_body([[Test|Tbody]|Body]) ->
+    ['if',Test,[progn|Tbody],to_cond_body(Body)];
+to_cond_body([]) -> ?Q(false).
+
+%% to_maybe(MaybeBody, LineNumber, VarTable, State) -> {ErlMaybe,State}.
+%%  We have 2 different versions here depending on which version of
+%%  Erlang we are using. If is OTP 27 or later we transform to use the
+%%  maybe instructions in the AST, while if it older we transform to a
+%%  sequence of let and case on which we then just do a normal
+%%  tranformation.
+
+-ifdef(OTP27_MAYBE).
+
+to_maybe(Body, L, Vt, St0) ->
+    {Eb,St1} = to_maybe_body(Body, L, Vt, St0),
+    {Ee,St2} = to_maybe_else(Body, L, Vt, St1),
+    Emb = if Ee =:= [] -> {'maybe',L,Eb};
+             Ee =/= [] -> {'maybe',L,Eb,{'else',L,Ee}}
+          end,
+    {Emb,St2}.
+
+to_maybe_body([['else'|_Cls]], _L, _Vt, St) ->
+    %% Already done else elsewhere.
+    {[],St};
+to_maybe_body([['?=',Pat,E]|Mes], L, Vt0, St0) ->
+    {Ematch,Vt1,St1} =
+        to_maybe_let_binding(Pat, E, maybe_match, L, Vt0, Vt0, St0),
+    {Emes,St2} = to_maybe_body(Mes, L, Vt1, St1),
+    {[Ematch | Emes],St2};
+to_maybe_body([['let',Bindings|Body]|Mes], L, Vt, St0) ->
+    {Elet,Eletb,St1} = to_maybe_let(Bindings, Body, L, Vt, St0),
+    {Emes,St2} = to_maybe_body(Mes, L, Vt, St1),
+    {Elet ++ Eletb ++ Emes,St2};
+to_maybe_body([Me|Mes], L, Vt, St0) ->
+    {Eme,St1} = to_expr(Me, L, Vt, St0),
+    {Emes,St2} = to_maybe_body(Mes, L, Vt, St1),
+    {[Eme|Emes],St2};
+to_maybe_body([], _L, _Vt, St) ->
+    {[],St}.
+
+to_maybe_else(Es, L, Vt, St) ->
+    Drop = fun (['else'|_Cls]) -> false;
+               (_Other) -> true
+           end,
+    case lists:dropwhile(Drop, Es) of
+        [] -> {[],St};
+        [['else'|Cls]] ->
+            to_fun_cls(Cls, L, Vt, St)
+    end.
+
+%% to_maybe_let(Bindings, Block, LineNumber, VarTable, State) -> {Let,State}.
+%%  Note that the value expressions for the bindings all use the
+%%  variable values from before the let whereas the let body uses the
+%%  of the created bindings.
+
+to_maybe_let(Lbs, B, L, Vt, St0) ->
+    {Elbs,Eb,St1} = to_maybe_let_bindings(Lbs, B, L, Vt, Vt, St0),
+    {Elbs,Eb,St1}.
+
+%% to_maybe_let_bindings([[P,['when'],E]|Lbs], B, L, Lvt, Vt, St) ->
+%%     %% Just drop an empty guard.
+%%     to_maybe_let_bindings([[P,E]|Lbs], B, L, Lvt, Vt, St);
+to_maybe_let_bindings([[P,['when'|G],E]|Lbs], B, L, Lvt, Vt0, St0) ->
+    {Emg,Vt1,St1} = to_maybe_let_guard_binding(P, G, E, L, Lvt, Vt0, St0),
+    {Elbs,Eb,St2} = to_maybe_let_bindings(Lbs, B, L, Lvt, Vt1, St1),
+    {Emg ++ Elbs,Eb,St2};
+to_maybe_let_bindings([[P,E]|Lbs], B, L, Lvt, Vt0, St0) ->
+    {Ematch,Vt1,St1} = to_maybe_let_binding(P, E, match, L, Lvt, Vt0, St0),
+    {Elbs,Eb,St2} = to_maybe_let_bindings(Lbs, B, L, Lvt, Vt1, St1),
+    {[Ematch|Elbs],Eb,St2};
+to_maybe_let_bindings([], B, L, _Lvt, Vt, St0) ->
+    {Eb,St1} = to_maybe_body(B, L, Vt, St0),
+    {[],Eb,St1}.
+
+to_maybe_let_binding(P, E, Type, L, Lvt, Vt0, St0) ->
+    {Ee,St1} = to_expr(E, L, Lvt, St0),
+    {Ep,Vt1,St2} = to_pat(P, L, Vt0, St1),
+    {{Type,L,Ep,Ee},Vt1,St2}.
+
+to_maybe_let_guard_binding(P, [], E, L, Lvt, Vt0, St0) ->
+    {Ematch,Vt1,St1} = to_maybe_let_binding(P, E, match, L, Lvt, Vt0, St0),
+    {[Ematch],Vt1,St1};
+to_maybe_let_guard_binding(P, G, E, L, Lvt, Vt0, St0) ->
+    %% Fix the value. We bind the value to a variable so we can use it
+    %% to give a good badmatch error.
+    {Ee,St1} = to_expr(E, L, Lvt, St0),
+    {Ev,Vt1,St2} = to_pat('let-val', L, Vt0, St1),
+    {Ep,Vt2,St3} = to_pat(P, L, Vt1, St2),
+    Ebind = {match,L,Ev,Ee},                    %Bind the value
+    Ematch = {match,L,Ep,Ev},                   %Match the value
+    %% Fix the guard. We use 'andalso' to sequentialize the tests but
+    %% we only need it with many tests.
+    Gt = case G of
+             [Test] -> Test;
+             Tests -> ['andalso'|Tests]
+    end,
+    Guard = ['orelse',Gt,[error,[tuple,?Q(badmatch),'let-val']]],
+    {Eguard,St4} = to_expr(Guard, L, Vt2, St3),
+    {[Ebind,Ematch,Eguard],Vt2,St4}.
+
+%% to_maybe_let_clause(P, G, B, L, Vt0, St0) ->
+%%     {Ep,Vt1,St1} = to_pat(P, L, Vt0, St0),
+%%     {Eg,St2} = to_guard(G, L, Vt1, St1),
+%%     {Eb,St3} = to_body(B, L, Vt1, St2),
+%%     {{clause,L,[Ep],[Eg],Eb},Vt1,St3}.
+
+%% to_maybe_let(Lbs0, B, L, Vt0, St0) ->
+%%     {Elbs,Vt1,St1} = to_maybe_let_bindings(Lbs0, L, Vt0, Vt0, St0),
+%%     {Eb,St2} = to_maybe_body(B, L, Vt1, St1),
+%%     {Elbs ++ Eb,St2}.
+%% to_maybe_let_bindings([[P,['when'],E]|Lbs], L, Lvt, Vt, St) ->
+%%     to_maybe_let_bindings([[P,E]|Lbs], L, Lvt, Vt, St);
+%% to_maybe_let_bindings([['when'|G]|Lbs], L, Lvt, Vt0, St0) ->
+%%     %% {Eg,St1} = to_guard(G, L, Vt0, St0),
+%%     %% Gt = case G of
+%%     %%          [T] -> T;
+%%     %%          [T|Ts] ->
+%%     %%              lists:foldr(fun (T, Acc) -> ['and',T,Acc] end, T, Ts)
+%%     %% end,
+%%     Gt = lists:foldr(fun (T, Acc) -> ['and',T,Acc] end, ?Q(true), G),
+%%     io:format("grd ~p\n", [{G,Gt}]),
+%%     {Eg,St1} = to_expr(Gt, L, Vt0, St0),
+%%     Guard = {match,L,to_lit(true, L),Eg},
+%%     {Ematches,Vt1,St2} = to_maybe_let_bindings(Lbs, L, Lvt, Vt0, St1),
+%%     {[Guard | Ematches],Vt1,St2};
+%% to_maybe_let_bindings([[P,G,E]|Lbs], L, Lvt, Vt, St) ->
+%%     %% We match against both the pattern and the value so we can
+%%     %% return the value without rebuilding it. We need to match twice
+%%     %% so we can opull the pattern apart at the top level as well to
+%%     %% get the bindings.
+%%     Case = ['case',E,
+%%             [['=',P,'-pat-'],G,'-pat-'],
+%%             ['-maybe-other-',[error,[tuple,?Q(badmatch),'-maybe-other-']]]],
+%%     to_maybe_let_bindings([[P,Case]|Lbs], L, Lvt, Vt, St);
+%%     %% to_maybe_let_bindings([[P,E],G|Lbs], L, Lvt, Vt, St);
+%% to_maybe_let_bindings([[P,E]|Lbs], L, Lvt, Vt0, St0) ->
+%%     {Ematch,Vt1,St1} = to_maybe_let_binding(P, E, L, Lvt, Vt0, St0),
+%%     {Ematchs,Vt2,St2} = to_maybe_let_bindings(Lbs, L, Lvt, Vt1, St1),
+%%     {[Ematch|Ematchs],Vt2,St2};
+%% to_maybe_let_bindings([], _L, _Lvt, Vt, St) ->
+%%     {[],Vt,St}.
+
+-else.
+
+to_maybe(Body, L, Vt, St) ->
+    {Mes,Else} = to_maybe_else(Body),
+    Case = ['let',[['-else-',Else]],
+            ['progn' | to_maybe_body(Mes)]],
+    to_expr(Case, L, Vt, St).
+
+to_maybe_body([['?=',Pat,E]|Mes]) ->
+    to_maybe_match(Pat, E, Mes);
+to_maybe_body([['let',Bindings|Body]|Mes]) ->
+    [['let',Bindings | to_maybe_body(Body)] | to_maybe_body(Mes)];
+to_maybe_body([Me|Mes]) ->
+    [Me | to_maybe_body(Mes)];
+to_maybe_body([]) -> [].
+
+to_maybe_match(Pat, E, []) ->
+    [['case',E,
+      [['=',Pat,'-match-val-'],'-match-val-'],
+      ['other',['funcall','-else-','other']]]];
+to_maybe_match(Pat, E, Mes) ->
+    [['case',E,
+      [Pat,['progn' | to_maybe_body(Mes)]],
+      ['other',['funcall','-else-','other']]]].
+
+to_maybe_else(Body) ->
+    Split = fun (['else'|_Cls]) -> false;
+                (_Other) -> true
+            end ,
+    case lists:splitwith(Split, Body) of
+        {Mes,[]} ->
+            {Mes,['lambda',[x],x]};
+        {Mes,[['else'|Cls0]]} ->
+            Cls1 = Cls0 ++ [[['-else-other-'],
+                             [error,[tuple,?Q(else_clause),'-else-other-']]]],
+            {Mes,['match-lambda' | Cls1]}
+    end.
+
+-endif.
+
 %% to_receive(RecClauses, LineNumber, VarTable, State) -> {ErlRec,State}.
 
 to_receive(Cls0, L, Vt, St0) ->
@@ -1188,9 +1584,9 @@ to_receive(Cls0, L, Vt, St0) ->
     Split = fun (['after'|_]) -> false;
                 (_) -> true
             end,
-    {Cls1,A} = lists:splitwith(Split, Cls0),
+    {Cls1,After} = lists:splitwith(Split, Cls0),
     {Ecls,St1} = to_icr_cls(Cls1, L, Vt, St0),
-    case A of
+    case After of
         [['after',T|B]] ->
             {Et,St2} = to_expr(T, L, Vt, St1),
             {Eb,St3} = to_body(B, L, Vt, St2),
@@ -1228,6 +1624,7 @@ to_icr_cl([P|B], L, Vt0, St0) ->
 %%  progn in try expression which is not really necessary.
 
 to_try([E|Try], L, Vt, St0) ->
+    %% lfe_io:format("try ~w\n~p\n", [L,['try',E|Try]]),
     {Ee,St1} = to_try_expr(E, L, Vt, St0),
     {Ecase,Ecatch,Eafter,St2} = to_try_sections(Try, L, Vt, St1, [], [], []),
     {{'try',L,Ee,Ecase,Ecatch,Eafter},St2}.
@@ -1258,18 +1655,18 @@ to_try_catch_cl(['_'|Body], L, Vt, St) ->
 to_try_catch_cl(Cl, L, Vt, St) ->
     to_icr_cl(Cl, L, Vt, St).
 
-%% to_list_comp(Qualifiers, Expr, LineNumber, VarTable. State) ->
+%% to_list_comprehension(Qualifiers, Expr, LineNumber, VarTable, State) ->
 %%     {ListComprehension,State}.
 
-to_list_comp(Qs, Expr, L, Vt0, St0) ->
+to_list_comprehension(Qs, Expr, L, Vt0, St0) ->
     {Eqs,Vt1,St1} = to_comp_quals(Qs, L, Vt0, St0),
     {Eexpr,St2} = to_expr(Expr, L, Vt1, St1),
     {{lc,L,Eexpr,Eqs},St2}.
 
-%% to_binary_comp(Qualifiers, BitStringExpr, LineNumber, VarTable. State) ->
+%% to_binary_comprehension(Qualifiers, Expr, LineNumber, VarTable, State) ->
 %%     {BinaryComprehension,State}.
 
-to_binary_comp(Qs, Expr, L, Vt0, St0) ->
+to_binary_comprehension(Qs, Expr, L, Vt0, St0) ->
     {Eqs,Vt1,St1} = to_comp_quals(Qs, L, Vt0, St0),
     {Eexpr,St2} = to_expr(Expr, L, Vt1, St1),
     {{bc,L,Eexpr,Eqs},St2}.
@@ -1370,7 +1767,7 @@ to_gexpr([list|Es], L, Vt, St) ->
 to_gexpr(['list*'|Es], L, Vt, St) ->             %Macro
     to_list_s(fun to_gexpr/4, Es, L, Vt, St);
 to_gexpr([tuple|Es], L, Vt, St0) ->
-    {Ees,St1} = to_gexprs(Es, L, Vt, St0),
+    {Ees,St1} = to_gexpr_list(Es, L, Vt, St0),
     {{tuple,L,Ees},St1};
 to_gexpr([tref,T,I], L, Vt, St0) ->
     {Et,St1} = to_gexpr(T, L, Vt, St0),
@@ -1380,6 +1777,7 @@ to_gexpr([tref,T,I], L, Vt, St0) ->
 to_gexpr([binary|Segs], L, Vt, St0) ->
     {Esegs,St1} = to_gexpr_bitsegs(Segs, L, Vt, St0),
     {{bin,L,Esegs},St1};
+%% Map special forms.
 to_gexpr([map|Pairs], L, Vt, St0) ->
     {Eps,St1} = to_map_pairs(fun to_gexpr/4, Pairs, map_field_assoc, L, Vt, St0),
     {{map,L,Eps},St1};
@@ -1433,27 +1831,38 @@ to_gexpr(['struct-field',E,Name,F], L, Vt, St) ->
     to_gexpr(Field, L, Vt, St);
 %% Special known data type operations.
 to_gexpr(['andalso'|Es], L, Vt, St) ->
-    to_lazy_logic(fun to_gexpr/4, Es, 'andalso', L, Vt, St);
+    to_short_circuit(fun to_gexpr/4, Es, 'andalso', L, Vt, St);
 to_gexpr(['orelse'|Es], L, Vt, St) ->
-    to_lazy_logic(fun to_gexpr/4, Es, 'orelse', L, Vt, St);
+    to_short_circuit(fun to_gexpr/4, Es, 'orelse', L, Vt, St);
 %% General function call.
 to_gexpr([call,?Q(erlang),?Q(F)|As], L, Vt, St0) ->
-    {Eas,St1} = to_gexprs(As, L, Vt, St0),
+    {Eas,St1} = to_gexpr_list(As, L, Vt, St0),
     case is_erl_op(F, length(As)) of
         true -> {list_to_tuple([op,L,F|Eas]),St1};
         false ->
+            %% It's a bif.
             to_remote_call({atom,L,erlang}, {atom,L,F}, Eas, L, St1)
     end;
 to_gexpr([call|_], L, _Vt, _St) ->
     illegal_code_error(L, call);
-to_gexpr([F|As], L, Vt, St0) when is_atom(F) ->
-    {Eas,St1} = to_gexprs(As, L, Vt, St0),
-    Ar =  length(As),
-    case is_erl_op(F, Ar) of
-        true -> {list_to_tuple([op,L,F|Eas]),St1};
-        false ->
-            {{call,L,{atom,L,F},Eas},St1}
-    end;
+to_gexpr([Fun|As], L, Vt, St0) when is_atom(Fun) ->
+    %% {Eas,St1} = to_gexpr_list(As, L, Vt, St0),
+    Arity =  length(As),
+    %% Check if it is an operator function in which case handle it
+    %% specifically here.
+    ?COND([{fun () -> lfe_internal:is_arith_func(Fun, Arity) end,
+            fun () -> to_arith_gfunc(Fun, Arity, As, L, Vt, St0) end},
+           {fun () -> lfe_internal:is_bit_func(Fun, Arity) end,
+            fun () -> to_bit_gfunc(Fun, Arity, As, L, Vt, St0) end},
+           {fun () -> lfe_internal:is_bool_func(Fun, Arity) end,
+            fun () -> to_bool_gfunc(Fun, Arity, As, L, Vt, St0) end},
+           {fun () -> lfe_internal:is_list_func(Fun, Arity) end,
+            fun () -> to_list_gfunc(Fun, Arity, As, L, Vt, St0) end},
+           {fun () -> lfe_internal:is_comp_func(Fun, Arity) end,
+            fun () -> to_comp_gfunc(Fun, Arity, As, L, Vt, St0) end}
+          ],
+          %% And the catch-all cond else clause.
+          fun () -> to_gfun_call(Fun, Arity, As, L, Vt, St0) end);
 to_gexpr([_|_]=List, L, _, St) ->
     case lfe_lib:is_posint_list(List) of
         true -> {{string,L,List},St};
@@ -1465,7 +1874,72 @@ to_gexpr(V, L, Vt, St) when is_atom(V) ->       %Unquoted atom
 to_gexpr(Lit, L, _, St) ->                      %Everything else is a literal
     {to_lit(Lit, L),St}.
 
-to_gexprs(Es, L, Vt, St) ->
+%% to_arith_gfunc(ArithOperator, Arity, Args, LineNumber, VarTable, State) ->
+%% to_bit_gfunc(BitOperator, Arity, Args, LineNumber, VarTable, State) ->
+%% to_bool_gfunc(BoolOperator, Arity, Args, LineNumber, VarTable, State) ->
+%% to_list_gfunc(ListOperator, Arity, Args, LineNumber, VarTable, State) ->
+%%     {OpExpr,State}.
+%%  These cannot evaluate their arguments first as they are in a guard.
+
+to_arith_gfunc(Op, 1, [A], L, Vt, St0) ->
+    {Ea,St1} = to_gexpr(A, L, Vt, St0),
+    {{op,L,Op,Ea},St1};
+to_arith_gfunc(Op, _Ar, As, L, Vt, St0) ->
+    {Eas,St1} = to_gexpr_list(As, L, Vt, St0),
+    ArithCall = to_left_assoc_op(Op, Eas, L),
+    {ArithCall,St1}.
+
+to_bit_gfunc(Op, _Ar, As, L, Vt, St0) ->
+    %% These don't need to associated.
+    {Eas,St1} = to_gexpr_list(As, L, Vt, St0),
+    BitCall = list_to_tuple([op,L,Op|Eas]),
+    {BitCall,St1}.
+
+to_bool_gfunc(Op, 1, [A], L, Vt, St0) ->
+    {Ea,St1} = to_gexpr(A, L, Vt, St0),
+    {{op,L,Op,Ea},St1};
+to_bool_gfunc(Op, _Ar, As, L, Vt, St0) ->
+    {Eas,St1} = to_gexpr_list(As, L, Vt, St0),
+    BoolCall = to_left_assoc_op(Op, Eas, L),
+    {BoolCall,St1}.
+
+to_list_gfunc(Op, _Ar, As, L, Vt, St0) ->
+    {Eas,St1} = to_gexpr_list(As, L, Vt, St0),
+    FunCall = to_right_assoc_op(Op, Eas, L),
+    {FunCall,St1}.
+
+%% to_comp_gfunc(CompOperator, Arity, Args, LineNumber, VarTable, State) ->
+%%     {CompExpr,State}.
+%%  Build a comp op expression. These are a bit more complex as we
+%%  need to evaluate to the args first as they will be used many
+%%  times. This because we must compare the arguments with each other.
+
+%% to_comp_gfunc(_Op, 1, [A], L, Vt, St0) ->
+%%     {Ea,St1} = to_gexpr(A, L, Vt, St0),
+%%     {Ea,St1};
+to_comp_gfunc(Op, 2, As, L, Vt, St0) ->
+    {[Ea1,Ea2],St1} = to_gexpr_list(As, L, Vt, St0),
+    {{op,L,Op,Ea1,Ea2},St1};
+to_comp_gfunc(Op, _Ar, As, L, Vt, St0) ->
+    Tests = if Op =:= '=/='; Op =:= '/=' ->
+                    to_comp_all_pairs(Op, As);
+               true ->
+                    to_comp_pairs(Op, As)
+            end,
+    {Et,St1} = to_gexpr(['and'|Tests], L, Vt, St0),
+    {Et,St1}.
+
+%% to_gfun_call(NAe, Arity, Args, LineNumber, VarTable, State) ->
+%%     {FunExpr,State}.
+
+to_gfun_call(Fun, _Ar, As, L, Vt, St0) ->
+    {Eas,St1} = to_gexpr_list(As, L, Vt, St0),
+    {{call,L,{atom,L,Fun},Eas},St1}.
+
+%% to_gexpr_list(Exprs, LineNumber, VarTable, State) -> {ErlExprs,State}.
+%%  Convert a list of guard expressions to a list of Erlang ASTs.
+
+to_gexpr_list(Es, L, Vt, St) ->
     Fun = fun (E, St0) -> to_gexpr(E, L, Vt, St0) end,
     lists:mapfoldl(Fun, St, Es).
 
@@ -1484,7 +1958,7 @@ to_gexpr_bitsegs(Segs, L, Vt, St) ->
 %% to_gmap_update(Map, Pairs, LineNumber, VarTable, State) -> {MapUpdate,State}.
 
 to_gmap_get(Map, Key, L, Vt, St0) ->
-    {Eas,St1} = to_gexprs([Key,Map], L, Vt, St0),
+    {Eas,St1} = to_gexpr_list([Key,Map], L, Vt, St0),
     {{call,L,{atom,L,map_get},Eas},St1}.
 
 to_gmap_set(Map, Pairs, L, Vt, St0) ->
@@ -1548,6 +2022,11 @@ to_pat(['record-index',R,F], L, Pvs, Vt, St) ->
 to_pat(['struct',Name|Fs], L, Pvs, Vt, St) ->
     Pat = [map,?Q('__struct__'),?Q(Name)|to_struct_fields(Fs)],
     to_pat(Pat, L, Pvs, Vt, St);
+%% List patterns.
+to_pat(['++'|Ps], L, Pvs, Vt, St) ->
+    to_pat_append('++', Ps, L, Pvs, Vt, St);
+to_pat(['--'|Ps], L, Pvs, Vt, St) ->
+    to_pat_append('--', Ps, L, Pvs, Vt, St);
 %% Alias pattern.
 to_pat(['=',P1,P2], L, Pvs0, Vt0, St0) ->       %Alias
     {Ep1,Pvs1,Vt1,St1} = to_pat(P1, L, Pvs0, Vt0, St0),
@@ -1670,6 +2149,11 @@ to_pat_rec_fields([F,P|Fs], L, Pvs0, Vt0, St0) ->
     {Efs,Pvs2,Vt2,St2} = to_pat_rec_fields(Fs, L, Pvs1, Vt1, St1),
     {[{record_field,L,{atom,L,F},Ep}|Efs],Pvs2,Vt2,St2};
 to_pat_rec_fields([], _, Pvs, Vt, St) -> {[],Pvs,Vt,St}.
+
+to_pat_append(Op, Ps, L, Pvs0, Vt0, St0) ->
+    {Eps,Pvs1,Vt1,St1} = to_pats(Ps, L, Pvs0, Vt0, St0),
+    Pat = to_right_assoc_op(Op, Eps, L),
+    {Pat,Pvs1,Vt1,St1}.
 
 %% to_lit(Literal, LineNumber) -> ErlLiteral.
 %%  Convert a literal value. Note that we KNOW it is a literal value.

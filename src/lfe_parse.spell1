@@ -1,5 +1,5 @@
 %% -*- mode: erlang -*-
-%% Copyright (c) 2008-2020 Robert Virding
+%% Copyright (c) 2008-2025 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -16,8 +16,9 @@
 %% We define the grammar with the same form as for yecc.
 
 Terminals
-    symbol number string binary fun '(' ')' '[' ']' '.' '\'' '`' ',' ',@'
-    '#(' '#B(' '#M(' '#.' '#\''.
+    symbol number string binary fun
+    '(' ')' '[' ']' '.' '\'' '`' ',' ',@'
+    '#(' '#B(' '#M(' '#S(' '#.' '#\''.
 
 Nonterminals form sexpr list list_tail proper_list .
 
@@ -28,8 +29,10 @@ sexpr -> symbol : value('$1').
 sexpr -> number : value('$1').
 sexpr -> string : value('$1').
 sexpr -> binary : value('$1').
-sexpr -> '#\'' : make_fun(value('$1')).
-sexpr -> '#.' sexpr : eval_expr(line('$1'), '$2').
+sexpr -> '#\'' :
+        make_fun(value('$1')).
+sexpr -> '#.' sexpr :
+        eval_expr(line('$1'), '$2').
 sexpr -> '\'' sexpr : [quote,'$2'].
 sexpr -> '`' sexpr : [backquote,'$2'].
 sexpr -> ',' sexpr : [comma,'$2'].

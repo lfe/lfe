@@ -1,4 +1,5 @@
-%% Copyright (c) 2008-2024 Robert Virding
+%% -*- mode: erlang; indent-tabs-mode: nil -*-
+%% Copyright (c) 2008-2025 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -56,10 +57,11 @@ format_error({unbound_symbol,S}) ->
     lfe_io:format1(<<"symbol ~w is unbound">>, [S]);
 format_error({undefined_function,{F,A}}) ->
     lfe_io:format1(<<"function ~w/~w undefined">>, [F,A]);
-format_error(if_expression) -> <<"non-boolean if test">>;
 format_error(function_clause) -> <<"no function clause matching">>;
 format_error({case_clause,Val}) ->
     format_value(Val, <<"no case clause matching ">>);
+format_error({nonbool_test,Test}) ->
+    lfe_io:format1(<<"non-boolean ~w test">>, [Test]);
 format_error(illegal_guard) -> <<"illegal guard expression">>;
 format_error({illegal_pattern,Pat}) ->
     format_value(Pat, <<"illegal pattern ">>);
@@ -72,6 +74,8 @@ format_error({argument_limit,Arity}) ->
     lfe_io:format1(<<"too many arguments ~w">>, [Arity]);
 format_error({bad_form,Form}) ->
     lfe_io:format1(<<"bad ~w form">>, [Form]);
+format_error({illegal_form,Form}) ->
+    lfe_io:format1(<<"illegal form ~w">>, [Form]);
 %% Binaries
 format_error(illegal_bitsize) -> <<"illegal bit size">>;
 format_error(illegal_bitseg) -> <<"illegal bit segment">>;
@@ -100,6 +104,8 @@ format_error({missing_struct_field_value,Field}) ->
 format_error({bad_generator,Gen}) ->
     format_value(Gen, <<"bad generator ">>);
 %% Everything we don't recognise or know about.
+format_error({not_yet_implemented,Form}) ->
+    lfe_io:format1(<<"not yet implemented ~w">>, [Form]);
 format_error(Error) ->
     lfe_io:prettyprint1(Error).
 
@@ -274,11 +280,19 @@ eval_expr(['letrec-function'|Body], Env) ->
     eval_letrec_function(Body, Env);
 %% Handle the Core control special forms.
 eval_expr(['progn'|Body], Env) ->
-    eval_body(Body, Env);
+    eval_progn(Body, Env);
+eval_expr(['prog1'|Body], Env) ->
+    eval_prog1(Body, Env);
+eval_expr(['prog2'|Body], Env) ->
+    eval_prog2(Body, Env);
 eval_expr(['if'|Body], Env) ->
     eval_if(Body, Env);
 eval_expr(['case'|Body], Env) ->
     eval_case(Body, Env);
+eval_expr(['cond'|Body], Env) ->
+    eval_cond(Body, Env);
+eval_expr(['maybe'|Body], Env) ->
+    eval_maybe(Body, Env);
 eval_expr(['receive'|Body], Env) ->
     eval_receive(Body, Env);
 eval_expr(['catch'|Body], Env) ->
@@ -296,17 +310,31 @@ eval_expr(['bc',Qs,E], Env) ->
     eval_bin_comp(Qs, E, Env);
 eval_expr(['binary-comp',Qs,E], Env) ->
     eval_bin_comp(Qs, E, Env);
+%% Tests.
+eval_expr(['++'|Es], Env) ->
+    eval_append(Es, Env);
 %% General functions calls.
 eval_expr(['call'|Body], Env) ->
     eval_call(Body, Env);
-eval_expr([Fun|Es], Env) when is_atom(Fun) ->
+eval_expr([Fun|As], Env) when is_atom(Fun) ->
     %% Note that macros have already been expanded here.
-    Ar = length(Es),                            %Arity
-    case get_fbinding(Fun, Ar, Env) of
-        {yes,M,F} -> erlang:apply(M, F, eval_list(Es, Env));
-        {yes,F} -> eval_apply(F, eval_list(Es, Env), Env);
-        no -> undefined_function_error(Fun, Ar)
-    end;
+    Arity = length(As),                         %Arity
+    Vs = eval_list(As, Env),
+    %% Check if it is an operator function in which case handle it
+    %% specifically here.
+    ?COND([{fun () -> lfe_internal:is_arith_func(Fun, Arity) end,
+            fun () -> eval_arith_func(Fun, Arity, Vs, Env) end},
+           {fun () -> lfe_internal:is_bit_func(Fun, Arity) end,
+            fun () -> eval_bit_func(Fun, Arity, Vs, Env) end},
+           {fun () -> lfe_internal:is_bool_func(Fun, Arity) end,
+            fun () -> eval_bool_func(Fun, Arity, Vs, Env) end},
+           {fun () -> lfe_internal:is_list_func(Fun, Arity) end,
+            fun () -> eval_list_func(Fun, Arity, Vs, Env) end},
+           {fun () -> lfe_internal:is_comp_func(Fun, Arity) end,
+            fun () -> eval_comp_func(Fun, Arity, Vs, Env) end}
+          ],
+          %% And the catch-all cond else clause.
+          fun () -> eval_fun_call(Fun, Arity, Vs, Env) end);
 eval_expr([_|_]=S, _) ->                        %Test if string literal
     case lfe_lib:is_posint_list(S) of
         true -> S;                              %It is an "atomic" type
@@ -319,6 +347,56 @@ eval_expr(Symb, Env) when is_atom(Symb) ->
         no -> unbound_symbol_error(Symb)
     end;
 eval_expr(E, _) -> E.                           %Atomic evaluate to themselves
+
+%% eval_arith_func(ArithOperator, Arity, Args, Environment) ->
+%% eval_bit_func(BitOperator, Arity, Args, Environment) ->
+%% eval_bool_func(BoolOperator, Arity, Args, Environment) ->
+%% eval_list_func(ListOperator, Arity, Args, Environment) ->
+%% eval_comp_func(CompOperator, Arity, Args, Environment) ->
+%%     {OpExpr,State}.
+
+eval_arith_func(Op, 1, As, Env) ->
+    eval_fun_call(Op, 1, As, Env);
+eval_arith_func(Op, _Ar, As, Env) ->
+    eval_left(Op, As, Env).
+
+eval_bit_func(Op, _Ar, As, Env) ->
+    eval_left(Op, As, Env).
+
+eval_bool_func(Op, 1, As, Env) ->
+    eval_fun_call(Op, 1, As, Env);
+eval_bool_func(Op, _Ar, As, Env) ->
+    eval_left(Op, As, Env).
+
+eval_list_func(Op, 1, As, Env) ->
+    eval_fun_call(Op, 1, As, Env);
+eval_list_func(Op, _Ar, As, Env) ->
+    eval_right(Op, As, Env).
+
+eval_comp_func(Op, _Ar, As, Env) ->
+    eval_left(Op, As, Env).
+
+%% eval_gleft(Op, Values, Environment) -> Value.
+%% eval_gright(Op, Values, Environment) -> Value.
+
+eval_left(_Op, [V], _Env) -> V;
+eval_left(Op, [V1,V2|Vs], Env) ->
+    V = eval_fun_call(Op, 2, [V1,V2], Env),
+    eval_left(Op, [V|Vs], Env).
+
+eval_right(_Op, [V], _Env) -> V;
+eval_right(Op, [V1|Vs], Env) ->
+    V2 = eval_right(Op, Vs, Env),
+    eval_fun_call(Op, 2, [V1,V2], Env).
+
+%% eval_fun_call(Fun, Arity, Arguments, Environment) -> Value.
+
+eval_fun_call(Fun, Ar, As, Env) ->
+    case get_fbinding(Fun, Ar, Env) of
+        {yes,M,F} -> erlang:apply(M, F, As);
+        {yes,F} -> eval_apply(F, As, Env);
+        no -> undefined_function_error(Fun, Ar)
+    end.
 
 %% is_valid_record(Value, Name, Fields) -> boolean().
 %%  Check if Value is a valid record tuple.
@@ -731,6 +809,8 @@ bind_args([], [], Env) -> Env;
 bind_args(_As, _Vs, _Env) ->
     eval_error(bad_head_arity).
 
+%% match_lambda_arity(Clauses) -> Arity.
+
 match_lambda_arity([[Pats|_]|Cls]) ->
     case lfe_lib:is_proper_list(Pats) of
         true -> match_lambda_arity(Cls, length(Pats));
@@ -744,6 +824,8 @@ match_lambda_arity([[Pats|_]|Cls], Ar) ->
     end;
 match_lambda_arity([], Ar) -> Ar;
 match_lambda_arity(_, _) -> bad_form_error('match-lambda').
+
+%% apply_match_lambda(Clauses, Values, Env) -> Value.
 
 apply_match_lambda([[Pats|B0]|Cls], Vals, Env) ->
     if length(Vals) == length(Pats) ->
@@ -762,23 +844,26 @@ apply_match_lambda(_, _, _) -> bad_form_error('match-lambda').
 %% eval_let([PatBindings|Body], Env) -> Value.
 
 eval_let([Vbs|Body], Env0) ->
+    Env1 = eval_let_vbs(Vbs, Env0),
+    eval_body(Body, Env1).
+
+eval_let_vbs(Vbs, Env0) ->
     %% Make sure we use the right environment.
     Fun = fun ([Pat,E], Env) ->
                   Val = eval_expr(E, Env0),
                   case match(Pat, Val, Env0) of
                       {yes,Bs} -> lfe_env:add_vbindings(Bs, Env);
-                      no -> eval_error({badmatch,Val})
+                      no -> badmatch_error(Val)
                   end;
               ([Pat,['when'|_]=G,E], Env) ->
                   Val = eval_expr(E, Env0),
                   case match_when(Pat, Val, [G], Env0) of
                       {yes,[],Bs} -> lfe_env:add_vbindings(Bs, Env);
-                      no -> eval_error({badmatch,Val})
+                      no -> badmatch_error(Val)
                   end;
               (_, _) -> bad_form_error('let')
           end,
-    Env1 = lists:foldl(Fun, Env0, Vbs),
-    eval_body(Body, Env1).
+   lists:foldl(Fun, Env0, Vbs).
 
 %% eval_let_function([FuncBindings|Body], Env) -> Value.
 
@@ -887,6 +972,29 @@ eval_apply_expr(Func, Es, Env) ->
             erlang:apply(Fun, Es)
     end.
 
+%% eval_progn(PrognBody, Env) -> Value.
+%% eval_prog1(Prog1Body, Env) -> Value.
+%% eval_prog2(Prog2Body, Env) -> Value.
+%%  Evaluate the progs.
+
+eval_progn(Es, Env) ->
+    eval_body(Es, Env).
+
+eval_prog1([E|Es], Env) ->
+    Val = eval_expr(E, Env),
+    eval_body(Es, Env),
+    Val;
+eval_prog1(_Es, _Env) ->
+    bad_form_error('prog1').
+
+eval_prog2([E1,E2|Es], Env) ->
+    eval_expr(E1, Env),
+    Val = eval_expr(E2, Env),
+    eval_body(Es, Env),
+    Val;
+eval_prog2(_Es, _Env) ->
+    bad_form_error('prog2').
+
 %% eval_if(IfBody, Env) -> Value.
 
 eval_if([Test,True], Env) ->                    %Add default false value
@@ -898,7 +1006,8 @@ eval_if(Test, True, False, Env) ->
     case eval_expr(Test, Env) of
         true -> eval_expr(True, Env);
         false -> eval_expr(False, Env);
-        _ -> eval_error(if_expression)          %Explicit error here
+        _Other ->
+            eval_error({nonbool_test,'if'})     %Explicit error here
     end.
 
 %% eval_case(CaseBody, Env) -> Value.
@@ -922,6 +1031,105 @@ match_clause(V, [[Pat|B0]|Cls], Env) ->
         no -> match_clause(V, Cls, Env)
     end;
 match_clause(_, [], _) -> no.
+
+%% eval_cond(CondBody, Env) -> Value.
+
+eval_cond(Body, Env) ->
+    eval_cond_clauses(Body, Env).
+
+eval_cond_clauses([['else'|Body]], Env) ->
+    eval_body(Body, Env);
+eval_cond_clauses([[['?='|TestPat]|Body]|Cls], Env0) ->
+    case eval_cond_testpat(TestPat, Env0) of
+        {yes,Vbs} ->
+            Env1 = lfe_env:add_vbindings(Vbs, Env0),
+            eval_body(Body, Env1);
+        no -> eval_cond_clauses(Cls, Env0)
+    end;
+eval_cond_clauses([[Test|Body]|Cls], Env) ->
+    case eval_expr(Test, Env) of
+        true -> eval_body(Body, Env);
+        false -> eval_cond_clauses(Cls, Env);
+        _Other -> eval_error({nonbool_test,'cond'})
+    end;
+eval_cond_clauses([], _Env) ->
+    'false';
+eval_cond_clauses(_Other, _Env) ->
+    bad_form_error('cond').
+
+eval_cond_testpat([Pat,E], Env)->
+    Val = eval_expr(E, Env),
+    case match(Pat, Val, Env) of
+        {yes,Vbs} -> {yes,Vbs};
+        no -> no
+    end;
+eval_cond_testpat([Pat,['when'|_]=G,E], Env)->
+    Val = eval_expr(E, Env),
+    case match_when(Pat, Val, [G], Env) of
+        {yes,[],Vbs} -> {yes,Vbs};
+        no -> no
+    end;
+eval_cond_testpat(_Other, _Env) ->
+    bad_form_error('cond').
+
+%% Eval_maybe(Body, Env) -> Value.
+%%  We need to handle ?= in nested lets as well as LFE only supports
+%%  binding variables in let.
+
+eval_maybe(Body, Env0) ->
+    %% Check the basic list format here.
+    lfe_lib:is_proper_list(Body) orelse bad_form_error('maybe'),
+    {Mes,Else} = eval_maybe_else(Body),
+    Env1 = lfe_env:add_vbinding('-else-', Else, Env0),
+    eval_maybe_body(Mes, Env1).
+
+eval_maybe_body([['?=',Pat,E] | Mes], Env) ->
+    eval_maybe_match(Pat, E, Mes, Env);
+eval_maybe_body([['let',Vbs|Body] | Mes], Env) ->
+    %% We must handle the let ourselves.
+    eval_maybe_let(Vbs, Body, Mes, Env);
+eval_maybe_body([E], Env) ->
+    %% Must return value of last expression.
+    eval_expr(E, Env);
+eval_maybe_body([E | Mes], Env) ->
+    eval_expr(E, Env),
+    eval_maybe_body(Mes, Env);
+eval_maybe_body([], _Env) -> [].
+
+eval_maybe_match(Pat, E, Mes0, Env0) ->
+    Val = eval_expr(E, Env0),
+    %% Can we match the pattern?
+    case match(['=',Pat,'-match-value-'], Val, Env0) of
+        {yes,Vbs} ->
+            %% Evaluate the rest of the body.
+            Env1 = lfe_env:add_vbindings(Vbs, Env0),
+            Mes1 = if Mes0 =:= [] -> ['-match-value-'];
+                      true -> Mes0
+                   end,
+            eval_maybe_body(Mes1, Env1);
+        no ->
+            %% No then call the else function.
+            eval_expr([funcall,'-else-',?Q(Val)], Env0)
+    end.
+
+eval_maybe_let(Vbs, Body, Mes, Env0) ->
+    Env1 = eval_let_vbs(Vbs, Env0),
+    eval_maybe_body(Body ++ Mes, Env1).
+
+eval_maybe_else(Body) ->
+    Split = fun (['else'|_Cls]) -> false;
+                (_Other) -> true
+            end,
+    case lists:splitwith(Split, Body) of
+        {Mes,[]} ->
+            {Mes,['lambda',[x],x]};
+        {Mes,[['else'|Cls0]]} ->
+            Cls1 = Cls0 ++ [[['-else-other-'],
+                             [error,[tuple,?Q(else_clause),'-else-other-']]]],
+            {Mes,['match-lambda' | Cls1]};
+        _Other ->                               %If the else isn't last
+            bad_form_error('maybe')
+    end.
 
 %% eval_receive(Body, Env) -> Value
 %%  (receive (pat . body) ... [(after timeout . body)])
@@ -1145,7 +1353,7 @@ eval_bc_gen_loop([binary|SegPats], Guard, GenBin, Qs, Expr,
     eval_bc_gen_loop_1(SegPats, SegsSize, Guard, GenBin, Qs, Expr,
                        Env, Vacc, QualFun);
 eval_bc_gen_loop(Pat, _Guard, _GenBin, _Qs, _Expr, _Env, _Vacc, _QualFun) ->
-    eval_error({illegal_pattern,Pat}).
+    illegal_pattern_error(Pat).
 
 %% eval_bc_gen_loop(SegPats, PatSize, Guard, Generator, Qualifiers, Expression,
 %%                  Env, ValAcc, QualFun) -> ValAcc.
@@ -1211,6 +1419,28 @@ eval_list_gen(Gen, Env) ->
 
 eval_bin_gen(Gen, Env) ->
     eval_expr(Gen, Env).
+
+%% eval_append(Args, Env) -> Value.
+%%  We do a right associative building of the output list to minimise
+%%  copying.
+
+eval_append(Es, Env) ->
+    eval_append_args(Es, Env).
+
+eval_append_args([E], Env) ->
+    eval_expr(E, Env);
+eval_append_args([E1|Es], Env) ->
+    Ee1 = eval_expr(E1, Env),
+    Ees = eval_append_args(Es, Env),
+    Ee1 ++ Ees.
+    %% lists:append(Ee1, Ees).
+
+%% to_right_assoc_args(Op, [E1,E2], _Extra, L) ->
+%%     {op,L,Op,E1,E2};
+%% to_right_assoc_args(Op, [E1|Es], _Extra, L) ->
+%%     Opes = to_right_assoc_args(Op, Es, Extra, L),
+%%     {op,L,Op,E1,Opes}.
+%% to_right_assoc_args(Op,
 
 %% eval_call([Mod,Func|Args], Env) -> Value.
 %%  Evaluate the module, function and args and then apply the function.
@@ -1316,6 +1546,10 @@ eval_gexpr(['struct-field',E,Name,F], Env) ->
 %% Handle the control special forms.
 eval_gexpr(['progn'|Body], Env) -> eval_gbody(Body, Env);
 eval_gexpr(['if'|Body], Env) -> eval_gif(Body, Env);
+%% Tests.
+eval_gexpr(['++'|Es], Env) ->
+    eval_gappend(Es, Env);
+%% Function calls.
 eval_gexpr([call,?Q(erlang),?Q(Fun)|As], Env) ->
     Ar = length(As),
     case lfe_internal:is_guard_bif(Fun, Ar) of
@@ -1323,11 +1557,23 @@ eval_gexpr([call,?Q(erlang),?Q(Fun)|As], Env) ->
         false -> illegal_guard_error()
     end;
 eval_gexpr([Fun|Es], Env) when is_atom(Fun), Fun =/= call ->
-    Ar = length(Es),
-    case get_gbinding(Fun, Ar, Env) of
-        {yes,M,F} -> erlang:apply(M, F, eval_glist(Es, Env));
-        no -> illegal_guard_error()
-    end;
+    Arity = length(Es),
+    Vs = eval_list(Es, Env),
+    %% Check if it is an operator function in which case handle it
+    %% specifically here.
+    ?COND([{fun () -> lfe_internal:is_arith_func(Fun, Arity) end,
+            fun () -> eval_arith_gfunc(Fun, Arity, Vs, Env) end},
+           {fun () -> lfe_internal:is_bit_func(Fun, Arity) end,
+            fun () -> eval_bit_gfunc(Fun, Arity, Vs, Env) end},
+           {fun () -> lfe_internal:is_bool_func(Fun, Arity) end,
+            fun () -> eval_bool_gfunc(Fun, Arity, Vs, Env) end},
+           {fun () -> lfe_internal:is_list_func(Fun, Arity) end,
+            fun () -> eval_list_gfunc(Fun, Arity, Vs, Env) end},
+           {fun () -> lfe_internal:is_comp_func(Fun, Arity) end,
+            fun () -> eval_comp_gfunc(Fun, Arity, Vs, Env) end}
+          ],
+          %% And the catch-all cond else clause.
+          fun () -> eval_gfun_call(Fun, Arity, Vs, Env) end);
 eval_gexpr([_|_]=S, _) ->                       %Test is literal string
     case lfe_lib:is_posint_list(S) of
         true -> S;                              %It is an "atomic" type
@@ -1339,6 +1585,55 @@ eval_gexpr(Symb, Env) when is_atom(Symb) ->
         no -> unbound_symbol_error(Symb)
     end;
 eval_gexpr(E, _) -> E.                          %Atoms evaluate to themselves.
+
+%% eval_arith_gfunc(ArithOperator, Arity, Args, Environment) ->
+%% eval_bit_gfunc(BitOperator, Arity, Args, Environment) ->
+%% eval_bool_gfunc(BoolOperator, Arity, Args, Environment) ->
+%% eval_list_gfunc(ListOperator, Arity, Args, Environment) ->
+%% eval_comp_gfunc(CompOperator, Arity, Args, Environment) ->
+%%     {OpExpr,State}.
+
+eval_arith_gfunc(Op, 1, As, Env) ->
+    eval_gfun_call(Op, 1, As, Env);
+eval_arith_gfunc(Op, _Ar, As, Env) ->
+    eval_gleft(Op, As, Env).
+
+eval_bit_gfunc(Op, _Ar, As, Env) ->
+    eval_gleft(Op, As, Env).
+
+eval_bool_gfunc(Op, 1, As, Env) ->
+    eval_gfun_call(Op, 1, As, Env);
+eval_bool_gfunc(Op, _Ar, As, Env) ->
+    eval_gleft(Op, As, Env).
+
+eval_list_gfunc(Op, 1, As, Env) ->
+    eval_gfun_call(Op, 1, As, Env);
+eval_list_gfunc(Op, _Ar, As, Env) ->
+    eval_gright(Op, As, Env).
+
+eval_comp_gfunc(Op, _Ar, As, Env) ->
+    eval_gleft(Op, As, Env).
+
+%% eval_gleft(Op, Values, Environment) -> Value.
+%% eval_gright(Op, Values, Environment) -> Value.
+
+eval_gleft(_Op, [V], _Env) -> V;
+eval_gleft(Op, [V1,V2|Vs], Env) ->
+    V = eval_gfun_call(Op, 2, [V1,V2], Env),
+    eval_gleft(Op, [V|Vs], Env).
+
+eval_gright(_Op, [V], _Env) -> V;
+eval_gright(Op, [V1|Vs], Env) ->
+    V2 = eval_gright(Op, Vs, Env),
+    eval_gfun_call(Op, 2, [V1,V2], Env).
+
+%% eval_gfun_call(Fun, Arity, Arguments, Environment) -> Value.
+
+eval_gfun_call(Fun, Ar, As, Env) ->
+    case get_gbinding(Fun, Ar, Env) of
+        {yes,M,F} -> erlang:apply(M, F, As);
+        no -> illegal_guard_error()
+    end.
 
 %% get_gbinding(NAme, Arity, Env) -> {yes,Module,Fun} | no.
 %%  Get the guard function binding. Locally bound function cannot be
@@ -1430,6 +1725,20 @@ eval_gif(Test, True, False, Env) ->
         false -> eval_gexpr(False, Env)
     end.
 
+%% eval_gappend(Args, Env) -> Value.
+%%  We do a right associative building of the output list to minimise
+%%  copying.
+
+eval_gappend(Es, Env) ->
+    eval_gappend_args(Es, Env).
+
+eval_gappend_args([E], Env) ->
+    eval_gexpr(E, Env);
+eval_gappend_args([E1|Es], Env) ->
+    Ee1 = eval_gexpr(E1, Env),
+    Ees = eval_gappend_args(Es, Env),
+    Ee1 ++ Ees.
+
 %% match(Pattern, Value, Env) -> {yes,PatBindings} | no.
 %%  Try to match Pattern against Value within the current environment
 %%  returning bindings. Bindings is an orddict.
@@ -1481,6 +1790,9 @@ match(['record-index',Name,F], Val, Pbs, Env) ->
 %% Struct patterns.
 match(['struct',Name|Fs], Val, Pbs, Env) ->
     match_struct_map(Name, Fs, Val, Pbs, Env);
+%% Tests.
+match(['++'|Ps], Val, Pbs, Env) ->
+    match_append(Ps, Val, Pbs, Env);
 %% No constructor list forms.
 match([_|_]=List, Val, Pbs, _) ->               %No constructor
     case lfe_lib:is_posint_list(List) of        %Accept strings
@@ -1488,7 +1800,7 @@ match([_|_]=List, Val, Pbs, _) ->               %No constructor
             if List =:= Val -> {yes,Pbs};
                true -> no
             end;
-        false -> eval_error({illegal_pattern,List})
+        false -> illegal_pattern_error(List)
     end;
 match([], [], Pbs, _) -> {yes,Pbs};
 match(Symb, Val, Pbs, Env) when is_atom(Symb) ->
@@ -1510,6 +1822,28 @@ match_list([P|Ps], [V|Vs], Pbs0, Env) ->
     end;
 match_list([], [], Pbs, _) -> {yes,Pbs};
 match_list(_, _, _, _) -> no.
+
+match_append([P|Ps], Vs0, Pbs0, Env) ->
+    case match_app_pat(P, Vs0, Pbs0, Env) of
+        {yes,Vs1,Pbs1} ->
+            match_append(Ps, Vs1, Pbs1, Env);
+        no -> no
+    end;
+match_append([], [], Pbs, _Env) ->
+    {yes,Pbs};
+match_append(_, _, _, _) ->
+    no.
+
+match_app_pat([P|Ps], [V|Vs], Pbs0, Env) ->
+    case match(P, V, Pbs0, Env) of
+        {yes,Pbs1} ->
+            match_app_pat(Ps, Vs, Pbs1, Env);
+        no -> no
+    end;
+match_app_pat([], Vs, Pbs, _Env) ->
+    {yes,Vs,Pbs};
+match_app_pat(_, _, _, _) ->
+    no.
 
 match_symb('_', _, Pbs, _) -> {yes,Pbs};        %Don't care variable.
 match_symb(S, Val, Pbs, _) ->
@@ -1584,7 +1918,7 @@ match_map([K,V|Ps], Map, Pbs0, Env) ->
         false -> no
     end;
 match_map([], _, Pbs, _) -> {yes,Pbs};
-match_map(Ps, _, _, _) -> eval_error({illegal_pattern,Ps}).
+match_map(Ps, _, _, _) -> illegal_pattern_error(Ps).
 
 pat_map_key(?Q(E)) -> E;
 pat_map_key([_|_]=L) ->
@@ -1634,6 +1968,9 @@ eval_lit_map([], _) -> [].
 
 badarg_error() -> eval_error(badarg).
 
+badmatch_error(Val) ->
+    eval_error({badmatch,Val}).
+
 unbound_symbol_error(Sym) ->
     eval_error({unbound_symbol,Sym}).
 
@@ -1645,6 +1982,9 @@ bad_form_error(Form) ->
 
 illegal_guard_error() ->
     eval_error(illegal_guard).
+
+illegal_pattern_error(Pat) ->
+    eval_error({illegal_pattern,Pat}).
 
 illegal_mapkey_error(Key) ->
     eval_error({illegal_mapkey,Key}).
