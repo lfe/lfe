@@ -352,8 +352,8 @@ docker-docs-bash:
 ### RELEASES ###
 ################
 
-hex-publish: clean-all compile
-	rebar3 hex publish package
+publish: clean-all
+	rebar3 as maintainer publish
 
 tags:
 	git tag $(shell erl -eval $(GET_VERSION)|tr -d '"')

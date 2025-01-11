@@ -199,6 +199,6 @@ For now, the process of creating a release on Github is manual:
 Lastly, to publish LFE to hex.pm, you need to have rebar3 installed on our system and an entry for the hex plugin in your system `rebar.config` file. With that in place, publish a new release to hex.pm requires only the following:
 
 ``` shell
-make hex-publish
+make publish
 ```
 
