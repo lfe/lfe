@@ -13,12 +13,13 @@ jobs:
 
   builds:
     name: Erlang ${{ matrix.otp-version }} / ${{ matrix.os }} (build)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     strategy:
       fail-fast: false
       matrix:
-        otp-version: ['26', '25', '24', '23', '22']
+        otp-version: ['27', '26', '25', '24', '23', '22']
+        #otp-version: ['26', '25', '24', '23', '22']
         os: ['ubuntu-latest']
 
     container:
