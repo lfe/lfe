@@ -1,6 +1,6 @@
 ;;; lfe-mode.el --- Lisp Flavoured Erlang mode
 
-;; Copyright (c) 2012-2020 Robert Virding
+;; Copyright (c) 2012-2025 Robert Virding
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -239,7 +239,8 @@ Other commands:
        (regexp-opt '("is_atom" "is_binary" "is_bitstring" "is_boolean"
                      "is_float" "is_function" "is_integer" "is_list"
                      "is_map" "is_number" "is_pid" "is_port"
-                     "is_record" "is_reference" "is_tuple") t)
+                     "is_record" "is_reference" "is_tuple"
+                     "is-record" "is-struct") t)
        "\\>")
       1 'font-lock-builtin-face)
 
@@ -260,7 +261,10 @@ Other commands:
                      "cdaar" "cddar" "cdadr" "cdddr"
                      "function" "list" "list*"
                      "map" "mref" "mset" "mupd"
-                     "map-get" "map-set" "map-update") t)
+                     "map-get" "map-set" "map-update"
+                     "record" "record-index" "record-field" "record-update"
+                     "struct" "struct-field" "struct-update"
+                     ) t)
        "\\>")
       1 'font-lock-builtin-face)
      ))
