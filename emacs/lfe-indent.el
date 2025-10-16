@@ -45,44 +45,61 @@ lfe-indent-{function,hook} and it uses `lfe-body-indent'."
   (let ((normal-indent (current-column)))
     (goto-char (1+ (elt state 1)))
     (parse-partial-sexp (point) calculate-lisp-indent-last-sexp 0 t)
-    (if (and (elt state 2)
-             (not (looking-at "\\sw\\|\\s_")))
-        ;; car of form doesn't seem to be a symbol
-        (progn
-          (if (not (> (save-excursion (forward-line 1) (point))
-                      calculate-lisp-indent-last-sexp))
-              (progn (goto-char calculate-lisp-indent-last-sexp)
-                     (beginning-of-line)
-                     (parse-partial-sexp (point)
-                                         calculate-lisp-indent-last-sexp 0 t)))
-          ;; Indent under the list or under the first sexp on the same
-          ;; line as calculate-lisp-indent-last-sexp.  Note that first
-          ;; thing on that line has to be complete sexp since we are
-          ;; inside the innermost containing sexp.
-          (backward-prefix-chars)
-          (current-column))
-      (let ((function (buffer-substring (point)
-                                        (progn (forward-sexp 1) (point))))
-            method)
-	;; Don't use function-get here for backwards compatibility.
-        (setq method (or (get (intern-soft function) 'lfe-indent-function)
-                         (get (intern-soft function) 'lfe-indent-hook)))
-        (cond ((or (eq method 'defun)
-                   (and (null method)
-                        (> (length function) 3)
-                        (string-match "\\`def" function)))
-               (lfe-indent-defform state indent-point))
-              ((integerp method)
-               (lfe-indent-specform method state
-                                     indent-point normal-indent))
-              (method
-               (funcall method state indent-point normal-indent)))))))
+    (cond ((and (elt state 2)
+                (not (looking-at "\\sw\\|\\s_")))
+           ;; car of form doesn't seem to be a symbol
+           (progn
+             (if (not (> (save-excursion (forward-line 1) (point))
+                         calculate-lisp-indent-last-sexp))
+                 (progn (goto-char calculate-lisp-indent-last-sexp)
+                        (beginning-of-line)
+                        (parse-partial-sexp (point)
+                                            calculate-lisp-indent-last-sexp 0 t)))
+             ;; Indent under the list or under the first sexp on the same
+             ;; line as calculate-lisp-indent-last-sexp.  Note that first
+             ;; thing on that line has to be complete sexp since we are
+             ;; inside the innermost containing sexp.
+             (backward-prefix-chars)
+             (current-column)))
+          ((lfe-data-sequence-p)
+           (progn
+             (backward-prefix-chars)
+             ;; Don't indent the end of a data list
+             (when (lfe-line-closes-delimiter-p indent-point)
+               (backward-char 1))
+             (current-column)))
+          (t
+           (let ((function (buffer-substring (point)
+                                             (progn (forward-sexp 1) (point))))
+                 method)
+	     ;; Don't use function-get here for backwards compatibility.
+             (setq method (or (get (intern-soft function) 'lfe-indent-function)
+                              (get (intern-soft function) 'lfe-indent-hook)))
+             (cond ((or (eq method 'defun)
+                        (and (null method)
+                             (> (length function) 3)
+                             (string-match "\\`def" function)))
+                    (lfe-indent-defform state indent-point))
+                   ((integerp method)
+                    (lfe-indent-specform method state
+                                         indent-point normal-indent))
+                   (method
+                    (funcall method state indent-point normal-indent))))))))
 
 (defcustom lfe-body-indent 2
   "Number of columns to indent the second line of a `(def...)' form."
   :group 'lfe
   :type 'integer)
 (put 'lfe-body-indent 'safe-local-variable 'integerp)
+
+(defcustom lfe-indent-sequence-depth 1
+  "To what depth should `lfe-indent-function' search.
+This affects the indentation of forms like '(), `(), #(), #m(), and
+#b(), but not () or ,@().  A zero value disables, giving the normal
+indent behavior of Emacs `lisp-mode' derived modes.  Setting this to a
+high value can make indentation noticeably slower."
+  :group 'lfe
+  :type 'integer)
 
 (defun lfe-indent-specform (count state indent-point normal-indent)
   (let ((containing-form-start (elt state 1))
@@ -150,6 +167,47 @@ lfe-indent-{function,hook} and it uses `lfe-body-indent'."
      ,@(mapcar (lambda (x)
                  `(put-lfe-indent (quote ,(car x)) ,(cadr x)))
                kvs)))
+
+(defun lfe-line-closes-delimiter-p (point)
+  "Is the line at POINT ending an expression?"
+  (save-excursion
+    (goto-char point)
+    (looking-at (rx (zero-or-more space) (syntax close-parenthesis)))))
+
+(defun lfe-data-sequence-p ()
+  "Is the point in a data squence?
+
+Data sequences consist of '(), `(), #(), #m(), #b().
+
+Copied and adjusted from janet-mode."
+  (and (< 0 lfe-indent-sequence-depth)
+       (save-excursion
+         (ignore-errors
+           (let ((answer 'unknown)
+                 (depth lfe-indent-sequence-depth))
+             (while (and (eq answer 'unknown)
+                         (< 0 depth))
+               (backward-up-list)
+               (cl-decf depth)
+               (cond ((or
+                       ;; a quoted '( ) or quasiquoted `( ) list
+                       (and (memq (char-before (point)) '(?\' ?\`))
+                            (eq (char-after (point)) ?\())
+                       ;; #()
+                       (and (eq (char-before (point)) ?#)
+                            (eq (char-after (point)) ?\())
+                       ;; #m(), #M(), #b(), #B()
+                       (and (eq (char-before (1- (point))) ?#)
+                            (memq (char-before (point)) '(?m ?M ?b ?B))
+                            (eq (char-after (point)) ?\()))
+                      (setq answer t))
+                     (;; unquote or unquote-splicing
+                      (and (or (eq (char-before (point)) ?,)
+                               (and (eq (char-before (1- (point))) ?,)
+                                    (eq (char-before (point))      ?@)))
+                           (eq (char-after (point)) ?\())
+                      (setq answer nil))))
+             (eq answer t))))))
 
 ;;; Special indentation rules
 ;; "def" anything is already fixed!
