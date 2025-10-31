@@ -47,62 +47,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        otp-version: ['27', '26', '25', '24', '23', '22']
+        otp-version: ['28', '27', '26', '25', '24', '23', '22']
         os: ['ubuntu-24.04']
-
-    container:
-      image: erlang:${{ matrix.otp-version }}
-
-    steps:
-    - uses: actions/checkout@v4
-    - name: Erlang version check
-      run: erl -noshell -eval 'erlang:display(erlang:system_info(system_version))' -eval 'init:stop()'
-    - name: Compile (with make)
-      run: make compile
-    - name: Install
-      run: make install PREFIX=$(mktemp -d)
-
-
-  older-builds:
-    name: Erlang ${{ matrix.otp-version }} / ${{ matrix.os }} (build)
-    runs-on: ubuntu-20.04
-
-    strategy:
-      fail-fast: false
-      matrix:
-        #otp-version: ['21', '20', '19']
-        otp-version: ['21', '20']
-        os: ['ubuntu-20.04']
-
-    container:
-      image: erlang:${{ matrix.otp-version }}
-
-    steps:
-    - uses: actions/checkout@v4
-    - name: Erlang version check
-      run: erl -noshell -eval 'erlang:display(erlang:system_info(system_version))' -eval 'init:stop()'
-    - name: Rebar version check
-      run: rebar3 -v
-    - name: Compile (with rebar3)
-      run: rebar3 compile
-    - name: Run eunit Tests
-      run: make eunit
-    - name: Run proper Tests
-      run: make proper
-    - name: CT Suite Tests
-      run: make ct
-
-  older-installs:
-    name: Erlang ${{ matrix.otp-version }} / ${{ matrix.os }} (install)
-    needs: older-builds
-    runs-on: ubuntu-20.04
-
-    strategy:
-      fail-fast: false
-      matrix:
-        #otp-version: ['21', '20', '19']
-        otp-version: ['21', '20']
-        os: ['ubuntu-20.04']
 
     container:
       image: erlang:${{ matrix.otp-version }}
