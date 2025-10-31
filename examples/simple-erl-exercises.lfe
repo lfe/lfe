@@ -34,17 +34,22 @@
 ;; of these problems and I encourange feedback and alternate solutions.  ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defmodule exercises
-  (export 
+(defmodule simple-erl-exercises
+  (export
     (convert 1)
     (perimeter 1)
     (min 1)
     (max 1)
     (min_max 1)
     (min_max2 1)
+    (pong 1)
+    (ring 1)
+    (ring-col 2)
+    (star 1)
     (start_pong 1)
     (start_ring 2)
-    (start_star 2)))
+    (start_star 2)
+    (swedish_date 0)))
 
 ;; SIMPLE SEQUENTIAL EXERCISES
 
@@ -144,10 +149,11 @@
     ;; Get it rolling.
     (! x (tuple 'pass (++ xs (list x)) 0))))
 
+(defun ring-col (x xs)
+  ;; Tiny helper function to rebuild the ring list.
+  (++ xs (list x)))
+
 (defun ring (n-msgs)
-  ;; We need a tiny helper function to just ease the rebuild of the ring list.
-  ;; I'm sure there is a more efficient/idiomatic method of doing this...
-  (let-function [(ring-col (lambda (x xs) (++ xs (list x))))]
     (receive
       ;; We've reached the maxiumum number of messages
       ((tuple 'pass (cons x xs) msg) (when (== msg n-msgs))
@@ -160,7 +166,7 @@
        (io:format "Recieved Message~n" '())
        (! x (tuple 'pass (ring-col x xs) (+ msg 1)))
        ;; Make sure we're still around to receive the next one.
-       (ring n-msgs)))))
+       (ring n-msgs))))
 
 
 (defun contact_stars
