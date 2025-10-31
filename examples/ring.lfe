@@ -39,11 +39,10 @@
 ;; (#(module ring))
 ;; lfe> (ring:main '(503 50000000))
 ;; Result:: 292
-;;
 (defmodule ring
   (export
-    (main 1)
-    (roundtrip 2)))
+   (main 1)
+   (roundtrip 2)))
 
 (defun main (args)
   (apply #'start-ring/2 args))
@@ -55,9 +54,9 @@
 
 (defun make-processes (process-count traversal-count)
   (lists:foldl
-    #'make-process/2
-    (self)
-    (lists:seq process-count 2 -1)))
+   #'make-process/2
+   (self)
+   (lists:seq process-count 2 -1)))
 
 (defun make-process (id pid)
   (spawn 'ring 'roundtrip `(,id ,pid)))
@@ -65,8 +64,8 @@
 (defun roundtrip (id pid)
   (receive
     (1
-      (io:fwrite "Result: ~b~n" `(,id))
-      (erlang:halt))
+     (io:fwrite "Result: ~b~n" `(,id))
+     (erlang:halt))
     (data
-      (! pid (- data 1))
-      (roundtrip id pid))))
+     (! pid (- data 1))
+     (roundtrip id pid))))

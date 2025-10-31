@@ -57,7 +57,6 @@
 ;; #Fun<lfe_eval.10.53503600>
 ;; lfe> (send acct 'balance)
 ;; 939.584
-
 (defmodule internal-state
   (export all))
 
@@ -76,9 +75,9 @@
                name))
       ('apply-interest (lambda ()
                          (new-account
-                           name
-                           (+ balance (* balance interest-rate))
-                           interest-rate))))))
+                          name
+                          (+ balance (* balance interest-rate))
+                          interest-rate))))))
 
 (defun send (object method-name)
   "This is a generic function, used to call into the given object (class

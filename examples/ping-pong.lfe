@@ -24,27 +24,26 @@
 ;;
 ;; Compile this example and run it:
 ;;
-;; lfe> (c "examples/ping_pong.lfe")
-;; (#(module ping_pong))
-;; lfe> (ping_pong:start_link)
+;; lfe> (c "examples/ping-pong.lfe")
+;; (#(module ping-pong))
+;; lfe> (ping-pong:start_link)
 ;; #(ok #Pid<0.196.0>)
-;; lfe> (ping_pong:ping)
+;; lfe> (ping-pong:ping)
 ;; #(pong 1)
-;; lfe> (ping_pong:stop)
+;; lfe> (ping-pong:stop)
 ;; ok
-
-(defmodule ping_pong
-  (export 
+(defmodule ping-pong
+  (export
     (start_link 0)
     (start 0)
     (stop 0)
     (ping 0))
-  (export 
-    (init 1) 
-    (handle_call 3) 
+  (export
+    (init 1)
+    (handle_call 3)
     (handle_cast 2)
-    (handle_info 2) 
-    (terminate 2) 
+    (handle_info 2)
+    (terminate 2)
     (code_change 3))
   (behaviour gen_server))        ; Just indicates intent
 
@@ -52,23 +51,23 @@
 
 (defun start_link ()
   (gen_server:start_link
-    #(local ping_pong) 'ping_pong '() '()))
+    #(local ping-pong) 'ping-pong '() '()))
 
 (defun start ()
   (gen_server:start
-    #(local ping_pong) 'ping_pong '() '()))
+    #(local ping-pong) 'ping-pong '() '()))
 
 (defun stop ()
-  (gen_server:stop 'ping_pong))
+  (gen_server:stop 'ping-pong))
 
 ;; Client API
 
 (defun ping ()
-  (gen_server:call 'ping_pong 'ping))
+  (gen_server:call 'ping-pong 'ping))
 
 ;; Gen_server callbacks
 
-(defrecord state 
+(defrecord state
   (pings 0))
 
 (defun init (args)

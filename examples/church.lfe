@@ -37,7 +37,6 @@
 ;; 5
 ;; lfe> (church->int2 (lambda () (get-church 25)))
 ;; 25
-
 (defmodule church
   (export all))
 

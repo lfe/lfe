@@ -34,13 +34,12 @@
 ;; lfe> (! pid "Arthur is pining for Trillian.")
 ;; "Arthur is pining for Trillian."
 ;; Received message: 'Arthur is pining for Trillian.'
-
 (defmodule messenger
   (export 
-    (print-result 0)))
+   (print-result 0)))
 
 (defun print-result ()
   (receive
     (msg
-      (io:format "Received message: '~s'~n" (list msg))
-      (print-result))))
+     (io:format "Received message: '~s'~n" (list msg))
+     (print-result))))
