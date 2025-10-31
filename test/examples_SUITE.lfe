@@ -110,6 +110,8 @@
                   (compile-example "church.lfe"))))
 
 (defun church_functional (config)
+  ;; Ensure the module is compiled and loaded first
+  (compile-example "church.lfe")
   ;; Test church numerals conversion
   (line (=:= 0 (church:church->int1 (church:zero))))
   (line (=:= 1 (church:church->int1 (church:one))))
@@ -136,6 +138,8 @@
                   (compile-example "ets_demo.lfe"))))
 
 (defun ets_demo_functional (config)
+  ;; Ensure the module is compiled and loaded first
+  (compile-example "ets_demo.lfe")
   ;; Test ETS table creation and operations
   (let ((db (ets_demo:new)))
     ;; Test by_place function
@@ -160,6 +164,8 @@
                   (compile-example "fizzbuzz.lfe"))))
 
 (defun fizzbuzz_functional (config)
+  ;; Ensure the module is compiled and loaded first
+  (compile-example "fizzbuzz.lfe")
   ;; Test basic fizzbuzz functionality
   (line (=:= '(1) (fizzbuzz:buzz 1)))
   (line (=:= '(1 2 "Buzz") (fizzbuzz:buzz 3)))
@@ -181,6 +187,8 @@
                   (compile-example "gps1.lfe"))))
 
 (defun gps1_functional (config)
+  ;; Ensure the module is compiled and loaded first
+  (compile-example "gps1.lfe")
   ;; Test successful GPS run
   (line (=:= 'solved
              (gps1:gps '(son-at-home car-needs-battery have-money have-phone-book)
@@ -218,6 +226,8 @@
                   (compile-example "internal-state.lfe"))))
 
 (defun internal_state_functional (config)
+  ;; Ensure the module is compiled and loaded first
+  (compile-example "internal-state.lfe")
   ;; Test closure-based account implementation
   (let ((acct (internal-state:new-account "Alice" 100.0 0.06)))
     (line (=:= "Alice" (internal-state:send acct 'name)))
@@ -246,6 +256,8 @@
                   (compile-example "joes-fav.lfe"))))
 
 (defun joes_fav_functional (config)
+  ;; Ensure the module is compiled and loaded first
+  (compile-example "joes-fav.lfe")
   ;; Test factorial function
   (line (=:= 1 (joes-fav:factorial 0)))
   (line (=:= 1 (joes-fav:factorial 1)))
@@ -283,6 +295,8 @@
                   (compile-example "object-via-closure.lfe"))))
 
 (defun object_via_closure_functional (config)
+  ;; Ensure the module is compiled and loaded first
+  (compile-example "object-via-closure.lfe")
   ;; Test fish class creation and methods
   (let ((fish (object-via-closure:fish-class "Salmon")))
     ;; Test species
@@ -305,6 +319,8 @@
                   (compile-example "object-via-process.lfe"))))
 
 (defun object_via_process_functional (config)
+  ;; Ensure the module is compiled and loaded first
+  (compile-example "object-via-process.lfe")
   ;; Test fish class creation and methods
   (let ((fish (object-via-process:init-fish "Trout")))
     ;; Test species
@@ -327,6 +343,8 @@
                   (compile-example "ping_pong.lfe"))))
 
 (defun ping_pong_functional (config)
+  ;; Ensure the module is compiled and loaded first
+  (compile-example "ping_pong.lfe")
   ;; Test gen_server functionality
   (line (test-pat `#(ok ,_) (ping_pong:start_link)))
   (line (=:= '#(pong 1) (ping_pong:ping)))
@@ -340,46 +358,82 @@
                   (compile-example "ring.lfe"))))
 
 (defun ring_functional (config)
-  ;; Test with small ring to avoid timeout
-  ;; The function will print "Result: N" and halt, so we need to catch this
-  ;; For now, just verify the main function is callable
-  ;; TODO: This test needs refinement as ring:main calls erlang:halt
-  'ok)
+  ;; Ensure the module is compiled and loaded first
+  (compile-example "ring.lfe")
+  ;; We can't test ring:main directly because it calls erlang:halt
+  ;; Instead, test the roundtrip function which is the core logic
+  ;; Create a simple 3-process ring and send 5 messages
+  (let* ((self-pid (self))
+         ;; Spawn 3 ring processes
+         (pid1 (spawn 'ring 'roundtrip `(1 ,self-pid)))
+         (pid2 (spawn 'ring 'roundtrip `(2 ,pid1)))
+         (pid3 (spawn 'ring 'roundtrip `(3 ,pid2))))
+    ;; Start the message passing with 5 (will decrement to 1)
+    (! pid3 5)
+    ;; Wait to receive the final message (value 1)
+    (receive
+      (1 (line (=:= 'true 'true)))  ;; Got the message back
+      (after 1000
+        (line (=:= 'timeout 'should-not-timeout))))))
 
 ;;; sample-lfe-shellscript tests
 (defun sample_lfe_shellscript (config)
   (let ((path (example-path "sample-lfe-shellscript")))
     ;; Verify the script exists and is executable
     (line (=:= 'true (filelib:is_file path)))
-    ;; TODO: Could add execution test if needed
-    'ok))
+    ;; Test execution with valid input (using lfe interpreter)
+    (let* ((cmd (++ path " 5"))
+           (output (os:cmd cmd)))
+      ;; Should output "factorial 5 = 120\n"
+      (line (=:= "factorial 5 = 120\n" output)))
+    ;; Test execution with no args (should show usage)
+    (let* ((cmd path)
+           (output (os:cmd cmd)))
+      ;; Should contain "usage:" in the output
+      (line (=/= 'nomatch (string:find output "usage:"))))
+    ;; Test with another factorial value
+    (let* ((cmd (++ path " 7"))
+           (output (os:cmd cmd)))
+      (line (=:= "factorial 7 = 5040\n" output)))))
 
 ;;; sample-lfescript tests
 (defun sample_lfescript (config)
   (let ((path (example-path "sample-lfescript")))
     ;; Verify the script exists and is executable
     (line (=:= 'true (filelib:is_file path)))
-    ;; TODO: Could add execution test if needed
-    'ok))
+    ;; Test execution with valid input
+    (let* ((cmd (++ "lfescript " path " 5"))
+           (output (os:cmd cmd)))
+      ;; Should output "factorial 5 = 120\n"
+      (line (=:= "factorial 5 = 120\n" output)))
+    ;; Test execution with no args (should show usage)
+    (let* ((cmd (++ "lfescript " path))
+           (output (os:cmd cmd)))
+      ;; Should contain "usage:" in the output
+      (line (=/= 'nomatch (string:find output "usage:"))))
+    ;; Test with another factorial value
+    (let* ((cmd (++ "lfescript " path " 10"))
+           (output (os:cmd cmd)))
+      (line (=:= "factorial 10 = 3628800\n" output)))))
 
 ;;; simple-erl-exercises.lfe tests
 (defun simple_erl_exercises_compile (config)
-  ;; Note: The module name in the file is 'exercises', not 'simple-erl-exercises'
-  (line (test-pat `#(ok (#(ok exercises ,_)) ())
+  (line (test-pat `#(ok (#(ok simple-erl-exercises ,_)) ())
                   (compile-example "simple-erl-exercises.lfe"))))
 
 (defun simple_erl_exercises_functional (config)
-  ;; Note: The module is named 'exercises', not 'simple-erl-exercises'
+  ;; Ensure the module is compiled and loaded first
+  (compile-example "simple-erl-exercises.lfe")
   ;; Test temperature conversion
-  (line (test-pat `#(f ,_) (exercises:convert '#(c 0))))
-  (line (test-pat `#(c ,_) (exercises:convert '#(f 32))))
+  (line (test-pat `#(f ,_) (simple-erl-exercises:convert #(c 0))))
+  (line (test-pat `#(c ,_) (simple-erl-exercises:convert #(f 32))))
   ;; Test perimeter calculation
-  (line (test-pat `#(square ,_) (exercises:perimeter '#(square 5))))
-  (line (test-pat `#(circle ,_) (exercises:perimeter '#(circle 3))))
-  (line (test-pat `#(triangle ,_) (exercises:perimeter '#(triangle 3 4 5))))
+  (line (test-pat `#(square ,_) (simple-erl-exercises:perimeter #(square 5))))
+  (line (test-pat `#(circle ,_) (simple-erl-exercises:perimeter #(circle 3))))
+  (line (test-pat `#(triangle ,_) (simple-erl-exercises:perimeter #(triangle 3 4 5))))
   ;; Test min/max functions
-  (line (=:= 1 (exercises:min '(5 3 1 9 2))))
-  (line (=:= 9 (exercises:max '(5 3 1 9 2))))
+  (line (=:= 1 (simple-erl-exercises:min '(5 3 1 9 2))))
+  (line (=:= 9 (simple-erl-exercises:max '(5 3 1 9 2))))
   ;; Test min_max
-  (line (=:= '#(1 9) (exercises:min_max '(5 3 1 9 2))))
-  (line (=:= '#(1 9) (exercises:min_max2 '(5 3 1 9 2)))))
+  (line (=:= #(1 9) (simple-erl-exercises:min_max '(5 3 1 9 2))))
+  (line (=:= #(1 9) (simple-erl-exercises:min_max2 '(5 3 1 9 2)))))
