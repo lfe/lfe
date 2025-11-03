@@ -609,12 +609,39 @@ beam_write(St0) ->
     %% Check return status.
     ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
 
+-ifdef(HAS_ENSURE_DIR).
+ensure_path_exists(Path) ->
+  filelib:ensure_dir(Path).
+-else.
+ensure_path_exists(Path) ->
+    Dir = filename:dirname(Path),
+    ensure_dir(Dir).
+
+ensure_dir(Dir) ->
+    case file:make_dir(Dir) of
+        ok -> ok;
+        {error, eexist} -> ok;
+        {error, enoent} ->
+            % parent directory doesn’t exist; recursively create it
+            ensure_dir(filename:dirname(Dir)),
+            file:make_dir(Dir);
+        Error ->
+            Error
+    end.
+-endif.
+
 beam_write_module(#module{name=M,code=Beam}=Mod, St) ->
     Name = filename:join(St#comp.odir, lists:concat([M,".beam"])),
-    case file:write_file(Name, Beam) of
-        ok -> Mod;
-        {error,_} ->
-            %% Just signal we couldn't write the file.
+    case ensure_path_exists(Name) of
+        ok ->
+            case file:write_file(Name, Beam) of
+                ok -> Mod;
+                {error,_} ->
+                    %% Just signal we couldn't write the file.
+                    {error,[{lfe_comp,write_file}],[]}
+            end;
+        Error ->
+            io_lib:format("Failed to ensure directory exists: ~p (~p)\n", [Name, Error]),
             {error,[{lfe_comp,write_file}],[]}
     end.
 
