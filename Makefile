@@ -28,12 +28,13 @@ CFLAGS ?= -Wall -Wextra
 ifeq ($(OS_NAME),linux)
 	LDFLAGS ?= -Wl,--as-needed
 endif
-PREFIX ?= /usr/local
+DESTDIR ?= /usr/local
+PREFIX ?= $(DESTDIR)
 INSTALL = install
 INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
 INSTALL_BIN = $(INSTALL) -m755
-DESTLIBDIR := $(PREFIX)/lib/lfe
+DESTLIBDIR := $(DESTDIR)/lib/lfe
 DESTINCDIR := $(DESTLIBDIR)/$(INCDIR)
 DESTEBINDIR := $(DESTLIBDIR)/$(EBINDIR)
 DESTBINDIR := $(DESTLIBDIR)/$(BINDIR)
