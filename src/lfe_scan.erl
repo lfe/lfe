@@ -1,5 +1,4 @@
-%% -*- mode: erlang; indent-tabs-mode: nil -*-
-%% Copyright (c) 2024 Robert Virding
+%% Copyright (c) 2025 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -128,7 +127,7 @@ token(Cont, Chars, StartLine) ->
 
 token([], Chars, Line, _Options) ->
     %% io:format("t4 ~p\n", [{[],Chars,Line,_Options}]),
-    token1(Chars, Line, 1, #lfe_scan{}, [], fun scan/5); 
+    token1(Chars, Line, 1, #lfe_scan{}, [], fun scan/5);
 token({lfe_scan_token,Cs,Line,Col,St,Extra,Fun},
        Chars, _Line, _Options) ->
     %% io:format("t4 ~p\n", [{lfe_scan_token,Chars,_Line,_Options}]),
@@ -174,7 +173,7 @@ tokens(Cont, Chars, StartLine) ->
 
 tokens([], Chars, Line, _Options) ->
     %% io:format("ts4 ~p\n", [{[],Chars}]),
-    tokens1(Chars, Line, 1, [], #lfe_scan{}, [], fun scan/5); 
+    tokens1(Chars, Line, 1, [], #lfe_scan{}, [], fun scan/5);
 tokens({lfe_scan_tokens,Cs,Line,Col,Toks,St,Extra,Fun},
        Chars, _Line, _Options) ->
     %% io:format("ts4 ~p\n", [{Cont,Chars}]),
@@ -276,8 +275,8 @@ scan1(eof, Line, Col, St) ->
 %% scan_line_comment(Chars, Line, Column, State) ->
 %%     {ok,Tokens,Chars,Line,Column} | {more,Continuation} | ScanError.
 %%  Skip to the end of the line.
-    
-scan_line_comment_fun(Cs, Line, Col, St, _Extra) -> 
+
+scan_line_comment_fun(Cs, Line, Col, St, _Extra) ->
     scan_line_comment(Cs, Line, Col, St).
 
 scan_line_comment([$\n|Cs], Line, _Col, St) ->
@@ -332,7 +331,7 @@ scan_hash_digits([C|Cs], Line, Col, Digits, St) when ?DIGIT(C) ->
 scan_hash_digits([]=Cs, Line, Col, Digits, St) ->
     {more,{Cs,Line,Col,St,Digits,fun scan_hash_digits_fun/5}};
 scan_hash_digits(Cs, Line, Col, Digits, St) ->
-    %% We know there is 
+    %% We know there is at least one character or eof
     scan_hash1(Cs, Line, Col, Digits, St).
 
 %% scan_hash1_fun(Cs, Line, Col, St, Digits) ->
@@ -348,7 +347,7 @@ scan_hash1([$`|Cs], Line, Col, [], St) ->
 scan_hash1([$;|Cs], Line, Col, [], St) ->
     {ok,{'#;',Line},Cs,Line,Col,St};
 scan_hash1([$||Cs], Line, Col, [], St) ->
-    scan_block_comment(Cs, Line, Col+1, St); 
+    scan_block_comment(Cs, Line, Col+1, St);
 scan_hash1([$"|Cs], Line, Col, [], St) ->
     scan_binary_string(Cs, Line, Col+1, St);
 scan_hash1([$'|Cs], Line, Col, [], St) ->
@@ -369,6 +368,10 @@ scan_hash1([C|Cs], Line, Col, Digits, St) when (C =:= $r) or (C =:= $R) ->
        true ->
             scan_error({bad_format,"#r"}, Line, Col, Line, Col+1, Cs)
     end;
+scan_hash1([C|Cs], Line, Col, [], St) when (C =:= $e) or (C =:= $E) ->
+    %% Our little Elixir module name hack, #Esune -> Elixir.sune.
+    %% We just pass the buck to scan_symbol with our prefix.
+    scan_symbol("Elixir." ++ Cs, Line, Col+1, St);
 scan_hash1(Cs, Line, Col, Digits, St) ->
     %% Pass the buck!
     scan_hash2(Cs, Line, Col, Digits, St).
@@ -465,7 +468,7 @@ scan_bnumber(Cs, Base, Line, Col, St) ->
 
 scan_bnumber_sign_fun(Cs, Line, Col, St, Base) ->
     scan_bnumber_sign(Cs, Line, Col, Base, St).
-    
+
 scan_bnumber_sign([$+|Cs], Line, Col, Base, St) ->
     scan_bnumber_digits(Cs, Line, Col, [], Base, +1, St);
 scan_bnumber_sign([$-|Cs], Line, Col, Base, St) ->
@@ -633,7 +636,7 @@ scan_binary_string(Cs, Line, Col, St) ->
 
 scan_string(Cs, Line, Col, Type, St) ->
     scan_string1(Cs, Line, Col, Type, St).
-    
+
 scan_string1_fun(Cs, Line, Col, St, Type) ->
     scan_string1(Cs, Line, Col, Type, St).
 
@@ -670,7 +673,7 @@ scan_sq_string1_fun(Cs, Line, Col, St, {Sline,Scol,Symcs,Type}) ->
     scan_sq_string1(Cs, Line, Col, Sline, Scol, Symcs, Type, St).
 
 scan_sq_string1([$\\,C|Cs], Line, Col, Sline, Scol, Symcs, Type, St) ->
-    scan_sq_string1(Cs, Line, Col+2, Sline, Scol, 
+    scan_sq_string1(Cs, Line, Col+2, Sline, Scol,
                     Symcs ++ [escape_char(C)], Type, St);
 scan_sq_string1([$\\]=Cs, Line, Col, Sline, Scol, Symcs, Type, St) ->
     {more,{Cs,Line,Col,St,{Sline,Scol,Symcs,Type},fun scan_sq_string1_fun/5}};
@@ -720,7 +723,7 @@ scan_tq_string(Chars, Line, Col, StartLine, StartCol, Type, State) ->
 
 scan_tq_string_1_fun(Cs, Line, Col, St, {Sline,Scol,Type}) ->
     scan_tq_string_1(Cs, Line, Col, Sline, Scol, Type, St).
-    
+
 scan_tq_string_1([$\s|Cs], Line, Col, Sline, Scol, Type, St) ->
     scan_tq_string_1(Cs, Line, Col, Sline, Scol, Type, St);
 scan_tq_string_1([$\n|Cs], Line, _Col, Sline, Scol, Type, St) ->
@@ -742,7 +745,7 @@ scan_tq_string_lines_fun(Chars, Line, Col, St, {Sline,Scol,Lcs,Lines,Type}) ->
 scan_tq_string_lines([$\n|Cs], Line, _Col, Sline, Scol, Lcs, Lines, Type, St) ->
     scan_tq_string_lines(Cs, Line+1, 0, Sline, Scol,
                          [], Lines ++ [Lcs], Type, St);
-scan_tq_string_lines([$"|Cs], Line, Col, Sline, Scol, Lcs, Lines, Type, St) -> 
+scan_tq_string_lines([$"|Cs], Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
     scan_tq_string_tq(Cs, Line, Col, Sline, Scol, Lcs, Lines, Type, St);
 scan_tq_string_lines([C|Cs], Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
     scan_tq_string_lines(Cs, Line, Col, Sline, Scol,
@@ -770,7 +773,7 @@ scan_tq_string_tq([$",$"|Cs], Line, Col, Sline, Scol, Lcs, Lines, Type, St) ->
             scan_tq_string_end(Cs, Line, Col+3, Sline, Scol,
                                Lcs, Lines, Type, St);
         false ->
-            scan_tq_string_lines(Cs, Line, Col+3, Sline, Scol, 
+            scan_tq_string_lines(Cs, Line, Col+3, Sline, Scol,
                                  Lcs ++ [$",$",$"], Lines, Type, St)
     end;
 scan_tq_string_tq([$",C|Cs], Line, Col, Sline, Scol, Lcs, Lines, Type, St) when
@@ -882,7 +885,7 @@ token_test(Cont, []) ->
 tokens_test(Cs) ->
     tokens_test([], Cs).
 
-tokens_test(Cont0, [C|Cs]) -> 
+tokens_test(Cont0, [C|Cs]) ->
     case lfe_scan:tokens(Cont0, [C]) of
         {more,Cont1} ->
             tokens_test(Cont1, Cs);

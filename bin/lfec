@@ -57,7 +57,8 @@
    (tuple as opts))
   ([(cons (cons #\+ s) as) opts]
    (let ((`#(ok ,t) (lfe_io:read_string s)))
-     (parse-opts as (cons t opts))))
+     ;; lfe_io:read_string returns a list of forms.
+     (parse-opts as (++ t opts))))
   ([as opts]
    (tuple as opts)))
 
@@ -107,6 +108,7 @@
     (as0
      (fix-code-path)
      (let ((`#(,files ,opts1) (parse-opts as0 ())))
+       ;; (lfe_io:prettyprint opts1)
        (case (compile-files files (list* 'verbose 'report opts1))
          ('error (halt 1))
          ('ok 'ok))))))

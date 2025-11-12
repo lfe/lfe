@@ -78,7 +78,7 @@ Erlang/OTP 26 [erts-14.0.2] [source] [64-bit] [smp:10:10] [ds:10:10:10] [async-t
   |        n    | |  |   Docs: http://docs.lfe.io/
   |       a    / /   |   Source: http://github.com/lfe/lfe
    \     l    |_/    |
-    \   r     /      |   LFE v2.2.0 (abort with ^G)
+    \   r     /      |   LFE v2.2.1 (abort with ^G)
      `-E___.-'
 
 lfe>
@@ -199,6 +199,6 @@ For now, the process of creating a release on Github is manual:
 Lastly, to publish LFE to hex.pm, you need to have rebar3 installed on our system and an entry for the hex plugin in your system `rebar.config` file. With that in place, publish a new release to hex.pm requires only the following:
 
 ``` shell
-make hex-publish
+make publish
 ```
 
