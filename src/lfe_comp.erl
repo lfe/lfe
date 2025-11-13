@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2024 Robert Virding
+%% Copyright (c) 2008-2026 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -244,6 +244,7 @@ passes() ->
      %% Now we expand and trim remaining macros.
      {do,fun do_expand_macros/1},
      {when_flag,to_expand,{done,fun expand_pp/1}},
+     %% Now start compiling the modules.
      {do,fun do_lfe_normalise/1},
      {when_flag,to_normalise,{done,fun normalise_pp/1}},
      {do,fun do_lfe_lint/1},

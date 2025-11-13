@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2024 Robert Virding
+%% Copyright (c) 2008-2026 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -300,7 +300,7 @@ export_functions(#lfe_cg{exports=Exps}) ->
 
 %% make_doc_attribute(Docs, Line, State) -> {PreDef,Rest,State}.
 %%  Where we add the doc depends on whether we are running OTP 27 and
-%%  later or not as this affects how the doc is interpreted.)
+%%  later or not as this affects how the doc is interpreted.
 
 -ifdef(OTP27_DOCS).
 make_doc_attribute(Docs, Line, St) ->
