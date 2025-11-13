@@ -32,7 +32,8 @@
    (eval 1) (eval 2)
    (eval_list 2))
   (import
-   (from lfe_env (new 0)
+   (from lfe_env
+         (new 0)
          (add_vbinding 3)
          (add_vbindings 2)
          (get_vbinding 2)
@@ -75,9 +76,13 @@
 ;;  internally. Args should already be evaluated.
 
 (defun apply (f args)
-  (apply f args (lfe_env:new)))
+  (apply-expr f args (lfe_env:new)))
 
 (defun apply (f args env)
+  (apply-expr f args env))
+
+;; Internal function to avoid BIF name conflict
+(defun apply-expr (f args env)
   (eval-apply-expr f args env))
 
 ;; (body body) -> value
@@ -482,17 +487,12 @@
 ;;  much better (which we don't need) but is basically the same
 ;;  interpreted.
 
-(defun init_letrec_env (env) (tuple () env))
-
 (defun make_letrec_env (fbs0 env)
   (let ((fbs (lists:map (lambda (fb)
                           (let (((tuple v ar body) fb))
                             (tuple v ar (tuple 'letrec body fbs0 env))))
                         fbs0)))
     (add_fbindings fbs env)))
-
-(defun extend_letrec_env (lete0 fbs0 env0)
-  (tuple lete0 env0))
 
 ;; (add_expr_func name arity def env) -> env.
 ;;  Add a function definition in the correct format to the
@@ -664,12 +664,11 @@
              ((list cls) (eval-case-clauses r cls env))
              (() r))))
     (catch
-      ((tuple class error _)
-       ;; Get stack trace explicitly.
-       (let ((stk (erlang:get_stacktrace)))
-         (case catch
-           ((list cls) (eval-catch-clauses (tuple class error stk) cls env))
-           (() (erlang:raise class error stk))))))
+      ;; Modern exception handling - stacktrace captured in pattern
+      ((tuple class error stacktrace)
+       (case catch
+         ((list cls) (eval-catch-clauses (tuple class error stacktrace) cls env))
+         (() (erlang:raise class error stacktrace)))))
     (after
         (case after
           ((list b) (eval-body b env))
