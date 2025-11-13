@@ -47,10 +47,9 @@
 ;; Guess number: 6
 ;; Well-guessed!!
 ;; game-over
-
 (defmodule guessing-game2
   (export
-    (main 0)))
+   (main 0)))
 
 (defrecord state
   server
@@ -61,34 +60,34 @@
 
 (defun guess-server
   (((match-state answer a))
-    (receive
-      ((= (match-state client p guess g) game) (when (== g a))
-        (! p (set-state-status game 'game-over)))
-      ((= (match-state client p guess g) game) (when (> g a))
-        (! p (set-state-status game 'too-high))
-        (guess-server game))
-      ((= (match-state client p guess g) game) (when (< g a))
-        (! p (set-state-status game 'too-low))
-        (guess-server game)))))
+   (receive
+     ((= (match-state client p guess g) game) (when (== g a))
+      (! p (set-state-status game 'game-over)))
+     ((= (match-state client p guess g) game) (when (> g a))
+      (! p (set-state-status game 'too-high))
+      (guess-server game))
+     ((= (match-state client p guess g) game) (when (< g a))
+      (! p (set-state-status game 'too-low))
+      (guess-server game)))))
 
 (defun guess-client
   (((match-state status 'game-over))
-    (io:format "Well-guessed!!~n")
-    'game-over)
+   (io:format "Well-guessed!!~n")
+   'game-over)
   (((= (match-state status 'started) game))
-    (io:format "Guess the number I have chosen, between 1 and 10.~n")
-    (guess-client (set-state-status game 'running)))
+   (io:format "Guess the number I have chosen, between 1 and 10.~n")
+   (guess-client (set-state-status game 'running)))
   (((= (match-state status 'too-high) game))
-    (io:format "Your guess is too high.~n")
-    (guess-client (set-state-status game 'running)))
+   (io:format "Your guess is too high.~n")
+   (guess-client (set-state-status game 'running)))
   (((= (match-state status 'too-low) game))
-    (io:format "Your guess is too low.~n")
-    (guess-client (set-state-status game 'running)))
+   (io:format "Your guess is too low.~n")
+   (guess-client (set-state-status game 'running)))
   (((= (match-state server p) game))
-    (let ((`#(ok (,g)) (io:fread "Guess number: " "~d")))
-      (! p (set-state game client (self) guess g))
-      (receive
-        (game (guess-client game))))))
+   (let ((`#(ok (,g)) (io:fread "Guess number: " "~d")))
+     (! p (set-state game client (self) guess g))
+     (receive
+       (game (guess-client game))))))
 
 (defun main ()
   (let* ((a (random:uniform 10))

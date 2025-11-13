@@ -12,7 +12,7 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-;; File    : ets_demo.lfe
+;; File    : ets-demo.lfe
 ;; Author  : Robert Virding
 ;; Purpose : A simple ETS demo file for LFE.
 
@@ -22,64 +22,64 @@
 ;; ets:select.
 
 ;; Here is some example usage:
-;; 
+;;
 ;; $ ./bin/lfe
 ;;
-;; lfe> (c "examples/ets_demo.lfe")
-;; (#(module ets_demo))
-;; lfe> (set db (ets_demo:new))
+;; lfe> (c "examples/ets-demo.lfe")
+;; (#(module ets-demo))
+;; lfe> (set db (ets-demo:new))
 ;; #Ref<0.2772763705.1333133315.72774>
-;; lfe> (ets_demo:by_place db 'london)
+;; lfe> (ets-demo:by_place db 'london)
 ;; #(((paul driver) (fred waiter) (john painter) (bert waiter))
 ;;   (#(person paul london driver)
 ;;    #(person fred london waiter)
 ;;    #(person john london painter)
 ;;    #(person bert london waiter)))
 
-(defmodule ets_demo
-  (export 
-    (new 0) 
-    (by_place 2) 
-    (by_place_ms 2) 
-    (not_painter 2)))
+(defmodule ets-demo
+  (export
+   (new 0)
+   (by_place 2)
+   (by_place_ms 2)
+   (not_painter 2)))
 
 ;; Define a simple person record to work on.
 (defrecord person name place job)
 
 ;; Create an initialse the ets table.
 (defun new ()
-  (let ((db (ets:new 'ets_demo '(#(keypos 2) set))))
-    (let ((people '(
-            ;; First some people in London.
-            #(fred london waiter)
-            #(bert london waiter)
-            #(john london painter)
-            #(paul london driver)
-            ;; Now some in Paris.
-            #(jean paris waiter)
-            #(gerard paris driver)
-            #(claude paris painter)
-            #(yves paris waiter)
-            ;; And some in Rome.
-            #(roberto rome waiter)
-            #(guiseppe rome driver)
-            #(paulo rome painter)
-            ;; And some in Berlin.
-            #(fritz berlin painter)
-            #(kurt berlin driver)
-            #(hans berlin waiter)
-            #(franz berlin waiter))))
-      (lists:foreach 
-        (match-lambda
-          ([(tuple n p j)]
-           (ets:insert db (make-person name n place p job j))))
-     people))
+  (let ((db (ets:new 'ets-demo '(#(keypos 2) set))))
+    (let ((people
+           '(;; First some people in London.
+             #(fred london waiter)
+             #(bert london waiter)
+             #(john london painter)
+             #(paul london driver)
+             ;; Now some in Paris.
+             #(jean paris waiter)
+             #(gerard paris driver)
+             #(claude paris painter)
+             #(yves paris waiter)
+             ;; And some in Rome.
+             #(roberto rome waiter)
+             #(guiseppe rome driver)
+             #(paulo rome painter)
+             ;; And some in Berlin.
+             #(fritz berlin painter)
+             #(kurt berlin driver)
+             #(hans berlin waiter)
+             #(franz berlin waiter))))
+      (lists:foreach
+       (match-lambda
+         ([(tuple n p j)]
+          (ets:insert db (make-person name n place p job j))))
+       people))
     db))                ;; Return the table
 
-;; Match records by place using match, match_object and the emp-XXXX macro.
+;; Match records by place using match and match_object.
 (defun by_place (db place)
-  (let ((s1 (ets:match db (emp-person name '$1 place place job '$2)))
-        (s2 (ets:match_object db (emp-person place place))))
+  (let ((s1 (ets:match db (match-person name '$1 place place job '$2)))
+        (s2 (ets:match_object db (match-person name '_ place place job '_))))
     (tuple s1 s2)))
 
 ;; Use match specifications to match records

@@ -72,8 +72,6 @@
 ;;        {"connection","keep-alive"},
 ;;        ...
 ;; ok
-;; lfe>
-
 (defmodule http-sync
   (export all))
 
@@ -97,20 +95,20 @@
 (defun get-pages ()
   "With no argument, assume 'url parameter was passed via command line."
   (get-pages
-    (parse-args 'url)))
+   (parse-args 'url)))
 
 (defun get-pages (urls)
   "Start inets and make (potentially many) HTTP requests."
   (inets:start)
   (ssl:start)
   (lists:map
-    (lambda (x)
-      (get-page x)) urls))
+   (lambda (x)
+     (get-page x)) urls))
 
 (defun get-page (url)
   "Make a single HTTP request."
   (case (httpc:request url)
     ((tuple 'ok result)
-      (io:format "Result: ~p~n" (list result)))
+     (io:format "Result: ~p~n" (list result)))
     ((tuple 'error reason)
-      (io:format "Error: ~p~n" (list reason)))))
+     (io:format "Error: ~p~n" (list reason)))))

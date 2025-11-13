@@ -36,7 +36,6 @@
 ;;  factorial 12 = 479001600
 ;;
 ;; For more information, see ./doc/lfescript.txt.
-
 (defun main
   ([(list string)]
    (try

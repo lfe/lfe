@@ -71,7 +71,6 @@
 ;;  #(children
 ;;    ("5f31a47f000b5d173faa2793ea2ec876" "2f40b14a4394f3b7a57d4e9048bbb19e")))
 ;; ok
-
 (defmodule object-via-closure
   (export all))
 
@@ -97,31 +96,31 @@
     (lambda (method-name)
       (case method-name
         ('id
-          (lambda (self) id))
+         (lambda (self) id))
         ('species
-          (lambda (self) species))
+         (lambda (self) species))
         ('children
-          (lambda (self) children))
+         (lambda (self) children))
         ('info
-          (lambda (self)
-            `(#(id ,(send self 'id))
-              #(species ,(send self 'species))
-              #(children ,(send self 'children)))))
+         (lambda (self)
+           `(#(id ,(send self 'id))
+             #(species ,(send self 'species))
+             #(children ,(send self 'children)))))
         ('move
-          (lambda (self distance)
-            (io:format "The ~s ~s ~p feet!~n"
-                       `(,species ,move-verb ,distance))))
+         (lambda (self distance)
+           (io:format "The ~s ~s ~p feet!~n"
+                      `(,species ,move-verb ,distance))))
         ('reproduce
-          (lambda (self)
-            (let* ((child (fish-class species))
-                   (child-id (send child 'id))
-                   (children-ids (lists:append children `(,child-id)))
-                   (parent-id (send self 'id))
-                   (parent (fish-class species children-ids parent-id)))
-              `(,parent ,child))))
+         (lambda (self)
+           (let* ((child (fish-class species))
+                  (child-id (send child 'id))
+                  (children-ids (lists:append children `(,child-id)))
+                  (parent-id (send self 'id))
+                  (parent (fish-class species children-ids parent-id)))
+             `(,parent ,child))))
         ('children-count
-          (lambda (self)
-            (length children)))))))
+         (lambda (self)
+           (length children)))))))
 
 (defun send (object method-name)
   "This is a generic function, used to call into the given object (class

@@ -67,7 +67,6 @@
 ;;  #(species "Carp")
 ;;  #(children
 ;;    ("d53a426c732c938f996a1c2520bb621f" "15fede691ab3f96e9e3df248d37b7b55")))
-
 (defmodule object-via-process
   (export all))
 
@@ -83,8 +82,8 @@
     1) as a way of abstracting out the id generation from the
        larger constructor, and
     2) spawning the 'object loop' code (fish-class/3)."
-    (spawn (lambda ()
-             (fish-class species children (gen-id)))))
+  (spawn (lambda ()
+           (fish-class species children (gen-id)))))
 
 (defun fish-class (species children id)
   "This function is intended to be spawned as a separate process which is
@@ -96,30 +95,30 @@
        (! caller (lists:flatten
                   (io_lib:format "The ~s ~s ~p feet!"
                                  `(,species ,move-verb ,distance))))
-        (fish-class species children id))
+       (fish-class species children id))
       (`#(,caller species ())
-        (! caller species)
-        (fish-class species children id))
+       (! caller species)
+       (fish-class species children id))
       (`#(,caller children ())
-        (! caller children)
-        (fish-class species children id))
+       (! caller children)
+       (fish-class species children id))
       (`#(,caller children-count ())
-        (! caller (length children))
-        (fish-class species children id))
+       (! caller (length children))
+       (fish-class species children id))
       (`#(,caller id ())
-        (! caller (lists:flatten id))
-        (fish-class species children id))
+       (! caller (lists:flatten id))
+       (fish-class species children id))
       (`#(,caller info ())
        (! caller `(#(id ,id)
                    #(species ,species)
                    #(children ,children)))
-        (fish-class species children id))
+       (fish-class species children id))
       (`#(,caller reproduce ())
-        (let* ((child (init-fish species))
-               (child-id (send child 'id))
-               (children-ids (lists:append children `(,child-id))))
-          (! caller child)
-          (fish-class species children-ids id))))))
+       (let* ((child (init-fish species))
+              (child-id (send child 'id))
+              (children-ids (lists:append children `(,child-id))))
+         (! caller child)
+         (fish-class species children-ids id))))))
 
 (defun send (object method-name)
   "This is a generic function, used to call into the given object (class
