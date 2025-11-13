@@ -33,18 +33,22 @@
 ;; I make no assumptions about these being the best way to solve any     ;;
 ;; of these problems and I encourange feedback and alternate solutions.  ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defmodule exercises
-  (export 
-    (convert 1)
-    (perimeter 1)
-    (min 1)
-    (max 1)
-    (min_max 1)
-    (min_max2 1)
-    (start_pong 1)
-    (start_ring 2)
-    (start_star 2)))
+(defmodule simple-erl-exercises
+  (export
+   (convert 1)
+   (perimeter 1)
+   (min 1)
+   (max 1)
+   (min_max 1)
+   (min_max2 1)
+   (pong 1)
+   (ring 1)
+   (ring-col 2)
+   (star 1)
+   (start_pong 1)
+   (start_ring 2)
+   (start_star 2)
+   (swedish_date 0)))
 
 ;; SIMPLE SEQUENTIAL EXERCISES
 
@@ -80,10 +84,10 @@
 
 ;; I know lists:max/1 and lists:min/1 exist, that isn't the point.
 (defun min ([(cons x xs)]
-   (lists:foldl (fun erlang min 2) x xs)))
+            (lists:foldl (fun erlang min 2) x xs)))
 
 (defun max ([(cons x xs)]
-   (lists:foldl (fun erlang max 2) x xs)))
+            (lists:foldl (fun erlang max 2) x xs)))
 
 (defun min_max (col)
   ;; Flavourless min_max/1 implementation.
@@ -106,10 +110,10 @@
 
 (defun swedish_date ()
   (lists:foldl ;; I heart fold
-    (lambda (x acc)
-      (++ acc (nom-date (integer_to_list x))))
-    () ;; This is our accumulator
-    (tuple_to_list (erlang:date))))
+   (lambda (x acc)
+     (++ acc (nom-date (integer_to_list x))))
+   () ;; This is our accumulator
+   (tuple_to_list (erlang:date))))
 
 (defun create-pids-one-arg (fn arg col)
   ;; I ended up using this pattern a few times in the next couple of
@@ -140,27 +144,28 @@
 (defun start_ring (n-rings n-msgs)
   ;; Create the desired number of "servers" in the ring.
   (let [((cons x xs)
-          (create-pids-one-arg 'ring n-msgs (lists:seq 1 n-rings)))]
+         (create-pids-one-arg 'ring n-msgs (lists:seq 1 n-rings)))]
     ;; Get it rolling.
     (! x (tuple 'pass (++ xs (list x)) 0))))
 
+(defun ring-col (x xs)
+  ;; Tiny helper function to rebuild the ring list.
+  (++ xs (list x)))
+
 (defun ring (n-msgs)
-  ;; We need a tiny helper function to just ease the rebuild of the ring list.
-  ;; I'm sure there is a more efficient/idiomatic method of doing this...
-  (let-function [(ring-col (lambda (x xs) (++ xs (list x))))]
-    (receive
-      ;; We've reached the maxiumum number of messages
-      ((tuple 'pass (cons x xs) msg) (when (== msg n-msgs))
-       ;; State our intentions.
-       (io:format "Shutting Down.~n" '())
-       ;; Ensure we trigger the shut down of all remaining rings.
-       (! x (tuple 'pass (ring-col x xs) msg)))
-      ;; We've received a message, pass it on to the next ring.
-      ((tuple 'pass (cons x xs) msg)
-       (io:format "Recieved Message~n" '())
-       (! x (tuple 'pass (ring-col x xs) (+ msg 1)))
-       ;; Make sure we're still around to receive the next one.
-       (ring n-msgs)))))
+  (receive
+    ;; We've reached the maxiumum number of messages
+    ((tuple 'pass (cons x xs) msg) (when (== msg n-msgs))
+     ;; State our intentions.
+     (io:format "Shutting Down.~n" '())
+     ;; Ensure we trigger the shut down of all remaining rings.
+     (! x (tuple 'pass (ring-col x xs) msg)))
+    ;; We've received a message, pass it on to the next ring.
+    ((tuple 'pass (cons x xs) msg)
+     (io:format "Recieved Message~n" '())
+     (! x (tuple 'pass (ring-col x xs) (+ msg 1)))
+     ;; Make sure we're still around to receive the next one.
+     (ring n-msgs))))
 
 
 (defun contact_stars

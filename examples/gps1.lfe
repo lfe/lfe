@@ -48,7 +48,6 @@
 ;; lfe> (gps '(son-at-home) '(son-at-home) (school-ops))
 ;; solved
 ;;
-
 (include-lib "lfe/include/scm.lfe")
 
 ;; Define macros for global variable access. This is a hack and very naughty!
@@ -64,19 +63,19 @@
 ;; Module definition.
 (defmodule gps1
   (export 
-    (gps 2) 
-    (gps 3)
-    (school-ops 0))
+   (gps 2) 
+   (gps 3)
+   (school-ops 0))
   (import 
-    (from lists 
-      (member 2) 
-      (all 2) 
-      (any 2))
-    ;; Rename lists functions to be more CL like.
-    (rename lists 
-      ((all 2) every) 
-      ((any 2) some) 
-      ((filter 2) find-all))))
+   (from lists 
+         (member 2) 
+         (all 2) 
+         (any 2))
+   ;; Rename lists functions to be more CL like.
+   (rename lists 
+           ((all 2) every) 
+           ((any 2) some) 
+           ((filter 2) find-all))))
 
 ;; An operation.
 (defrecord op
@@ -98,9 +97,9 @@
 ;; appropriate op for it that is applicable."
 (defun achieve (goal)
   (orelse (member goal (getvar *state*))
-      (some (fun apply-op 1)
-        (find-all (lambda (op) (appropriate-p goal op))
-              (getvar *ops*)))))
+          (some (fun apply-op 1)
+                (find-all (lambda (op) (appropriate-p goal op))
+                          (getvar *ops*)))))
 
 ;; An op is appropriate to a goal if it is in its add list.
 (defun appropriate-p (goal op)
@@ -131,27 +130,27 @@
 ;; Define a list of operations to use with GPS.
 (defun school-ops ()
   (list
-    (make-op action 'drive-son-to-school
-         preconds '(son-at-home car-works)
-         add-list '(son-at-school)
-         del-list '(son-at-home))
-    (make-op action 'shop-installs-battery
-         preconds '(car-needs-battery shop-knows-problem shop-has-money)
-         add-list '(car-works)
-         del-list ())
-    (make-op action 'tell-shop-problem
-         preconds '(in-communication-with-shop)
-         add-list '(shop-knows-problem)
-         del-list ())
-    (make-op action 'telephone-shop
-         preconds '(know-phone-number)
-         add-list '(in-communication-with-shop)
-         del-list ())
-    (make-op action 'look-up-number
-         preconds '(have-phone-book)
-         add-list '(know-phone-number)
-         del-list ())
-    (make-op action 'give-shop-money
-         preconds '(have-money)
-         add-list '(shop-has-money)
-         del-list '(have-money))))
+   (make-op action 'drive-son-to-school
+            preconds '(son-at-home car-works)
+            add-list '(son-at-school)
+            del-list '(son-at-home))
+   (make-op action 'shop-installs-battery
+            preconds '(car-needs-battery shop-knows-problem shop-has-money)
+            add-list '(car-works)
+            del-list ())
+   (make-op action 'tell-shop-problem
+            preconds '(in-communication-with-shop)
+            add-list '(shop-knows-problem)
+            del-list ())
+   (make-op action 'telephone-shop
+            preconds '(know-phone-number)
+            add-list '(in-communication-with-shop)
+            del-list ())
+   (make-op action 'look-up-number
+            preconds '(have-phone-book)
+            add-list '(know-phone-number)
+            del-list ())
+   (make-op action 'give-shop-money
+            preconds '(have-money)
+            add-list '(shop-has-money)
+            del-list '(have-money))))

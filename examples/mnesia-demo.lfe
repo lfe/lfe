@@ -12,7 +12,7 @@
 ;; See the License for the specific language governing permissions and
 ;; limitations under the License.
 
-;; File    : mnesia_demo.lfe
+;; File    : mnesia-demo.lfe
 ;; Author  : Robert Virding
 ;; Purpose : A simple Mnesia demo file for LFE.
 
@@ -23,25 +23,24 @@
 
 ;; $ ./bin/lfe
 ;;
-;; lfe> (c "examples/mnesia_demo.lfe")
+;; lfe> (c "examples/mnesia-demo.lfe")
 ;;
-;; lfe> (set db (mnesia_demo:new))
+;; lfe> (set db (mnesia-demo:new))
 ;; ok
-;; lfe> (mnesia_demo:by_place 'london)   
+;; lfe> (mnesia-demo:by_place 'london)
 ;; #(atomic
 ;;   (#(person paul london driver)
 ;;    #(person fred london waiter)
 ;;    #(person john london painter)
 ;;    #(person bert london waiter)))
-
-(defmodule mnesia_demo
-  (export 
-    (new 0) 
-    (by_place 1) 
-    (by_place_ms 1) 
-    ;; XXX - Currently broken; see https://github.com/lfe/lfe/issues/397
-    ;; (by_place_qlc 1)
-    ))
+(defmodule mnesia-demo
+  (export
+   (new 0)
+   (by_place 1)
+   (by_place_ms 1)
+   ;; XXX - Currently broken; see https://github.com/lfe/lfe/issues/397
+   ;; (by_place_qlc 1)
+   ))
 
 (defrecord person
   name
@@ -52,49 +51,50 @@
   ;; Start mnesia and create a table, we will get an in memory only schema.
   (mnesia:start)
   (mnesia:create_table
-     'person
-     `(#(attributes ,(fields-person))))
+   'person
+   `(#(attributes ,(fields-person))))
   ;; Initialise the table.
   (let ((people '(
-          ;; First some people in London.
-          #(fred london waiter)
-          #(bert london waiter)
-          #(john london painter)
-          #(paul london driver)
-          ;; Now some in Paris.
-          #(jean paris waiter)
-          #(gerard paris driver)
-          #(claude paris painter)
-          #(yves paris waiter)
-          ;; And some in Rome.
-          #(roberto rome waiter)
-          #(guiseppe rome driver)
-          #(paulo rome painter)
-          ;; And some in Berlin.
-          #(fritz berlin painter)
-          #(kurt berlin driver)
-          #(hans berlin waiter)
-          #(franz berlin waiter))))
-    (lists:foreach 
-      (match-lambda
-        ([(tuple n p j)]
-          (mnesia:transaction
-            (lambda ()
-              (let ((new (make-person name n place p job j)))
-                (mnesia:write new))))))
-      people)))
+                  ;; First some people in London.
+                  #(fred london waiter)
+                  #(bert london waiter)
+                  #(john london painter)
+                  #(paul london driver)
+                  ;; Now some in Paris.
+                  #(jean paris waiter)
+                  #(gerard paris driver)
+                  #(claude paris painter)
+                  #(yves paris waiter)
+                  ;; And some in Rome.
+                  #(roberto rome waiter)
+                  #(guiseppe rome driver)
+                  #(paulo rome painter)
+                  ;; And some in Berlin.
+                  #(fritz berlin painter)
+                  #(kurt berlin driver)
+                  #(hans berlin waiter)
+                  #(franz berlin waiter))))
+    (lists:foreach
+     (match-lambda
+       ([(tuple n p j)]
+        (mnesia:transaction
+         (lambda ()
+           (let ((new (make-person name n place p job j)))
+             (mnesia:write new))))))
+     people)))
 
-;; Match records by place using match_object and the emp-XXXX macro.
+;; Match records by place using match_object.
+;; Note: emp-XXXX macros were removed in LFE 2020, use match-person instead.
 (defun by_place (place)
   (mnesia:transaction
-    (lambda () (mnesia:match_object (emp-person place place)))))
+   (lambda () (mnesia:match_object (match-person name '_ place place job '_)))))
 
 ;; Use match specifications to match records
 (defun by_place_ms (place)
   (let ((f (lambda () (mnesia:select 'person
-             (match-spec ([(match-person name n place p job j)]
-                      (when (=:= p place))
-                      (tuple n j)))))))
+                                     (match-spec ([(match-person name n place p job j)]
+                                                  (when (=:= p place))
+                                                  (tuple n j)))))))
     (mnesia:transaction f)))
 
 ;; XXX - Currently broken; see https://github.com/lfe/lfe/issues/397

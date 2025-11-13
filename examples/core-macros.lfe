@@ -31,8 +31,21 @@
 ;;
 ;; lfe> (include-file "examples/core-macros.lfe")
 ;; ()
-;; lfe> (:: init get_status)         
+;; lfe> (:: init get_status)
 ;; #(started started)
+
+(defmodule core-macros
+  "LFE core macros as they could have been implemented in LFE."
+  ;; List accessor macros
+  (export-macro caar cadr cdar cddr)
+  ;; List and function macros
+  (export-macro ++ : ? list*)
+  ;; Binding macros
+  (export-macro let* flet*)
+  ;; Conditional macros
+  (export-macro cond andalso orelse)
+  ;; Backquote macro
+  (export-macro backquote))
 
 (defmacro caar (x) `(car (car ,x)))
 (defmacro cadr (x) `(car (cdr ,x)))

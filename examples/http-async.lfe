@@ -88,8 +88,6 @@
 ;;        {"connection","keep-alive"},
 ;;        ...
 ;; ok
-;; lfe>
-
 (defmodule http-async
   (export all))
 
@@ -120,8 +118,8 @@
   (inets:start)
   (ssl:start)
   (plists:map
-    (lambda (x)
-      (get-page x)) urls))
+   (lambda (x)
+     (get-page x)) urls))
 
 (defun get-page (url)
   "Make a single HTTP request."

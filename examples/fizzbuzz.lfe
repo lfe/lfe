@@ -41,10 +41,10 @@
 
 (defmodule fizzbuzz
   (export 
-    (buzz 1)
-    (buzz1 1)
-    (buzz2 1)
-    (buzz3 1)))
+   (buzz 1)
+   (buzz1 1)
+   (buzz2 1)
+   (buzz3 1)))
 
 (defun get-fizz (n)
   ;; Request a FizzBuzz result for a given number.
@@ -64,10 +64,10 @@
   ;; This is the basic version, takes an argument
   ;; and attempts to create result list of results.
   (lists:map
-    ;; Wrap our call to 'get-fizz in a lambda
-    (lambda (x) (get-fizz x))
-    ;; Create a list of numbers from one to n
-    (lists:seq 1 n)))
+   ;; Wrap our call to 'get-fizz in a lambda
+   (lambda (x) (get-fizz x))
+   ;; Create a list of numbers from one to n
+   (lists:seq 1 n)))
 
 (defun buzz1
   ;; This version utilises pattern matching and guard to
