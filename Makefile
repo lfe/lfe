@@ -152,7 +152,7 @@ install-bin:
 	ln -sf $(DESTBINDIR)/* $(PREFIX)/bin/
 
 clean:
-	rm -rf $(EBINDIR)/*.beam erl_crash.dump comp_opts.mk
+	rm -rf $(EBINDIR)/*.beam erl_crash.dump comp_opts.mk test/*.beam
 
 clean-all: clean
 	rm -rf _build
@@ -196,7 +196,7 @@ common-test:
 
 ct: common-test
 
-tests:
+tests: clean
 	@rebar3 as test do compile,eunit,eunit,proper -n 20, ct
 
 #####################
