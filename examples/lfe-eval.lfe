@@ -44,7 +44,8 @@
          (get_gbinding 3))
    (from lists (reverse 1) (foldl 3) (foldr 3))
    (from orddict (find 2) (store 3)))
-  (deprecated #(eval 1) #(eval 2)))
+  (deprecated (#(eval 1) #(eval 2)))
+  )
 
 (defun eval (e) (eval e (lfe_env:new)))
 

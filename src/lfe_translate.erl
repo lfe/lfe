@@ -1,4 +1,3 @@
-%% -*- mode: erlang; indent-tabs-mode: nil -*-
 %% Copyright (c) 2008-2025 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
@@ -2149,6 +2148,9 @@ to_pat_rec_fields([F,P|Fs], L, Pvs0, Vt0, St0) ->
     {Efs,Pvs2,Vt2,St2} = to_pat_rec_fields(Fs, L, Pvs1, Vt1, St1),
     {[{record_field,L,{atom,L,F},Ep}|Efs],Pvs2,Vt2,St2};
 to_pat_rec_fields([], _, Pvs, Vt, St) -> {[],Pvs,Vt,St}.
+
+%% to_pat_append(Op, Pats, LineNumber, PatVars, VarTable, State) ->
+%%     {Pattern,PatVars, VarTable, State}.
 
 to_pat_append(Op, Ps, L, Pvs0, Vt0, St0) ->
     {Eps,Pvs1,Vt1,St1} = to_pats(Ps, L, Pvs0, Vt0, St0),

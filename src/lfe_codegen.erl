@@ -1,4 +1,3 @@
-%% -*- mode: erlang; indent-tabs-mode: nil -*-
 %% Copyright (c) 2008-2026 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");

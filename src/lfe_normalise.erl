@@ -58,6 +58,7 @@
 %% [opaque,Line,Type,Def]
 %% [spec,Line,Function,Specs]
 %% [record,Line,Name,Fields]
+%% [struct,Line,Fields]
 %%
 %% [attribute,Line,Name,Value]          General attribute norm
 
@@ -166,15 +167,42 @@ form({['define-function',Name,Metas,Def],Line}, St0) ->
 form({['eval-when-compile'|_]=Form,_Line}, St) ->
     %% Just pass this on as is without modifying it.
     {[Form],St};
+%% Handle the 'function' and 'macro' forms.
+form({['function',Name,Def],Line}, St) ->
+    {[['function',Line,Name,Def]],St};
+form({['macro',Name,Def],Line}, St) ->
+    {[['macro',Line,Name,Def]],St};
+%% Special handling of the 'attribute' and '-' attribute forms.
+form({['attribute'|Attribute],Line}, St) ->
+    attribute_attribute(Attribute, Line, St);
+form({['-'|Args],Line}, St) ->
+    attribute_attribute(Args, Line, St);
 %% The default attribute case which will also catch unknown illegal
 %% forms.
 form({Form,Line}, St) ->
     form_attribute(Form, Line, St).
 
+%% attribute_attribute(Attribute, Line, State) ->
+%%     {[Norm],State}.
+
+attribute_attribute(Attr, Line, St) ->
+    Unrecog = fun ([Name,Value], L, S) when is_atom(Name) ->
+                      {[['attribute',L,Name,Value]],S};
+                  (A, L, S) ->
+                      {[],add_error(L, {bad_attribute,A}, S)}
+              end,
+    attribute(Attr, Line, Unrecog, St).
+
+%% form_attribute(Attribute, Line, State) ->
+%%     {[Norm],State}.
+
 form_attribute(Form, Line, St) ->
     %% Handle unrecognised forms, either the legal attribute form or
     %% bad formats.
-    Unrecog = fun (['attribute',Name,Value], L, S) when is_atom(Name) ->
+    Unrecog = fun
+                  %% (['attribute',Name,Value], L, S) when is_atom(Name) ->
+                  %%     {[['attribute',L,Name,Value]],S};
+                  ([Name,Value], L, S) when is_atom(Name) ->
                       {[['attribute',L,Name,Value]],S};
                   %% ([Name,Value], L, S) when is_atom(Name) ->
                   %%     {[['attribute',L,Name,Value]],S};
@@ -209,8 +237,8 @@ module_attribute(Attr, Line, St) ->
     %% form or bad formats.
     Unrecog = fun ([Name,Value], L, S) when is_atom(Name) ->
                       {[['attribute',L,Name,Value]],S};
-                  (_F, L, S) ->
-                      {[],add_error(L, bad_attribute, S)}
+                  (A, L, S) ->
+                      {[],add_error(L, {bad_attribute,A}, S)}
               end,
     attribute(Attr, Line, Unrecog, St).
 
@@ -252,8 +280,10 @@ attribute([type|TypeDef], Line, _Unrecog, St) ->
     attribute_type('type', TypeDef, Line, St);
 attribute([opaque|TypeDef], Line, _Unrecog, St) ->
     attribute_type('opaque', TypeDef, Line, St);
-attribute([record|RecDef], Line, _Unrecog, St) ->
-    {[['record',Line|RecDef]],St};
+attribute([record,Name,Fields], Line, _Unrecog, St) ->
+    {[['record',Line,Name,Fields]],St};
+attribute([struct,Fields], Line,_Unrecog, St) ->
+    {[['struct',Line,Fields]],St};
 attribute([spec|Spec], Line, _Unrecog, St) ->
     attribute_spec(Spec, Line, St);
 attribute([doc,Docs], Line, _Unrecog, St) ->

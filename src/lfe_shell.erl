@@ -607,9 +607,9 @@ slurp_1(Name, Ce) ->
 
 slurp_file(Name) ->
     case lfe_comp:file(Name, [binary,to_lint,return]) of
-	{ok,[{ok,Mod,Forms,Mws} | _],_Warns} ->
+        {ok,[{ok,Mod,Forms,Mws} | _],_Warns} ->
             Env = lfe_env:new(),
-	    {ok,Mod,Forms,Env,Mws};
+            {ok,Mod,Forms,Env,Mws};
         Error ->
             Error
     end.
@@ -631,10 +631,10 @@ collect_imports(Is, St) ->
     foldl(fun (I, S) -> collect_import(I, S) end, St, Is).
 
 collect_import(['from',Mod|Fs], St) ->
-    collect_import(fun ([F,A], Imps) -> store({F,A}, F, Imps) end,
+    collect_import(fun ([F,A], Imps) -> orddict:store({F,A}, F, Imps) end,
                 Mod, St, Fs);
 collect_import(['rename',Mod|Rs], St) ->
-    collect_import(fun ([[F,A],R], Imps) -> store({F,A}, R, Imps) end,
+    collect_import(fun ([[F,A],R], Imps) -> orddict:store({F,A}, R, Imps) end,
                 Mod, St, Rs);
 collect_import(_, St) -> St.                       %Ignore everything else
 

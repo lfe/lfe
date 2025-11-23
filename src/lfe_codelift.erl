@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2018 Robert Virding
+%% Copyright (c) 2008-2026 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -59,9 +59,21 @@ comp_define({Name,Def,Line}) ->
 record(Name, Fs, Line) ->
     St0 = #cl{func=Name,arity=record,line=Line,vc=0,fc=0},
     Lifts = orddict:new(),
-    {Lfs,Fncs,St1} = lift_rec_fields(Fs, Lifts, [], St0),
+    {Lfs,Fncs,St1} = lift_record_fields_def(Fs, Lifts, [], St0),
     {Lfncs,[],_} = lift_loop(Fncs, St1),
     {Lfs,Lfncs}.
+
+%% lift_record_fields_def(Fields, Lifts, LocalDefs, State) ->
+%%     {Fields,LocalDefs,State}.
+
+lift_record_fields_def([[F,V|Type]|Fs], Lifts, Lds0, St0) ->
+    {Lv,Lds1,St1} = lift_expr(V, Lifts, Lds0, St0),
+    {Lfs,Lds2,St2} = lift_record_fields_def(Fs, Lifts, Lds1, St1),
+    {[[F,Lv|Type]|Lfs],Lds2,St2};
+lift_record_fields_def([F|Fs], Lifts, Lds0, St0) ->
+    {Lfs,Lds1,St1} = lift_record_fields_def(Fs, Lifts, Lds0, St0),
+    {[F|Lfs],Lds1,St1};
+lift_record_fields_def([], _Lifts, Lds, St) -> {[],Lds,St}.
 
 %% function(Name, Def, Line) -> [{Name,Def,Line}].
 %%  Lambda lift all the local functions and return a list of all
@@ -105,8 +117,9 @@ lift_funcs(Defs, St) ->
           end,
     lists:foldl(Fun, {[],[],St}, Defs).
 
-%% lift_expr(Expr, LocalDefs, State) -> {AST,LocalDefs,State}.
-%% lift_expr(Expr, LiftedFuncs, LocalDefs, State) -> {AST,LocalDefs,State}.
+%% lift_expr(Expr, LocalDefines, State) -> {AST,LocalDefs,State}.
+%% lift_expr(Expr, LiftedFuncs, LocalDefines, State) ->
+%%     {AST,LocalDefines,State}.
 %%  Lambda lift the local functions in an expression. The Lifts are
 %%  the current function lifts which need to be done.
 
@@ -117,11 +130,11 @@ lift_expr(Expr, Lds, St) ->
 lift_expr(?Q(E), _Lifts, Lds, St) -> {?Q(E),Lds,St};
 %% Record special forms.
 lift_expr(['record',Name|Args], Lifts, Lds0, St0) ->
-    {Largs,Lds1,St1} = lift_rec_args(Args, Lifts, Lds0, St0),
+    {Largs,Lds1,St1} = lift_record_fields(Args, Lifts, Lds0, St0),
     {['record',Name|Largs],Lds1,St1};
 %% make-record has been deprecated but we sill accept it for now.
 lift_expr(['make-record',Name|Args], Lifts, Lds0, St0) ->
-    {Largs,Lds1,St1} = lift_rec_args(Args, Lifts, Lds0, St0),
+    {Largs,Lds1,St1} = lift_record_fields(Args, Lifts, Lds0, St0),
     {['make-record',Name|Largs],Lds1,St1};
 lift_expr(['is-record',E,Name], Lifts, Lds0, St0) ->
     {Le,Lds1,St1} = lift_expr(E, Lifts, Lds0, St0),
@@ -133,11 +146,11 @@ lift_expr(['record-field',E,Name,F], Lifts, Lds0, St0) ->
     {['record-field',Le,Name,F],Lds1,St1};
 lift_expr(['record-update',E,Name|Args], Lifts, Lds0, St0) ->
     {Le,Lds1,St1} = lift_expr(E, Lifts, Lds0, St0),
-    {Largs,Lds2,St2} = lift_rec_args(Args, Lifts, Lds1, St1),
+    {Largs,Lds2,St2} = lift_record_fields(Args, Lifts, Lds1, St1),
     {['record-update',Le,Name|Largs],Lds2,St2};
 %% Struct special forms.
 lift_expr(['struct',Name|Args], Lifts, Lds0, St0) ->
-    {Largs,Lds1,St1} = lift_rec_args(Args, Lifts, Lds0, St0),
+    {Largs,Lds1,St1} = lift_struct_fields(Args, Lifts, Lds0, St0),
     {['struct',Name|Largs],Lds1,St1};
 lift_expr(['is-struct',E], Lifts, Lds0, St0) ->
     {Le,Lds1,St1} = lift_expr(E, Lifts, Lds0, St0),
@@ -150,19 +163,26 @@ lift_expr(['struct-field',E, Name,F], Lifts, Lds0, St0) ->
     {['struct-field',Le,Name,F],Lds1,St1};
 lift_expr(['struct-update',E,Name|Args], Lifts, Lds0, St0) ->
     {Le,Lds1,St1} = lift_expr(E, Lifts, Lds0, St0),
-    {Largs,Lds2,St2} = lift_rec_args(Args, Lifts, Lds1, St1),
+    {Largs,Lds2,St2} = lift_struct_fields(Args, Lifts, Lds1, St1),
     {['struct-update',Le,Name|Largs],Lds2,St2};
 %% Function forms.
 lift_expr([function,Name,Arity], Lifts, Lds, St) ->
     lift_function_ref(Name, Arity, Lifts, Lds, St);
 lift_expr([function,_,_,_]=Func, _Lifts, Lds, St) ->
     {Func,Lds,St};
+%% Special known data type operations.
+lift_expr(['andalso'|Args0], Lifts, Lds0, St0) ->
+    {Args1,Lds1,St1} = lift_args(Args0, Lifts, Lds0, St0),
+    {['andalso'|Args1],Lds1,St1};
+lift_expr(['orelse'|Args0], Lifts, Lds0, St0) ->
+    {Args1,Lds1,St1} = lift_args(Args0, Lifts, Lds0, St0),
+    {['orelse'|Args1],Lds1,St1};
 %% Core closure special forms.
 lift_expr([lambda,Args|Body0], Lifts, Lds0, St0) ->
     {Body1,Lds1,St1} = lift_exprs(Body0, Lifts, Lds0, St0),
     {[lambda,Args|Body1],Lds1,St1};
 lift_expr(['match-lambda'|Cls0], Lifts, Lds0, St0) ->
-    {Cls1,Lds1,St1} = lift_cls(Cls0, Lifts, Lds0, St0),
+    {Cls1,Lds1,St1} = lift_clauses(Cls0, Lifts, Lds0, St0),
     {['match-lambda'|Cls1],Lds1,St1};
 lift_expr(['let',Vbs|Body], Lifts, Lds, St) ->
     lift_let(Vbs, Body, Lifts, Lds, St);
@@ -174,13 +194,23 @@ lift_expr(['letrec-function',Fbs|Body], Lifts, Lds, St) ->
 lift_expr([progn|Body0], Lifts, Lds0, St0) ->
     {Body1,Lds1,St1} = lift_exprs(Body0, Lifts, Lds0, St0),
     {[progn|Body1],Lds1,St1};
+lift_expr([prog1|Body0], Lifts, Lds0, St0) ->
+    {Body1,Lds1,St1} = lift_exprs(Body0, Lifts, Lds0, St0),
+    {[prog1|Body1],Lds1,St1};
+lift_expr([prog2|Body0], Lifts, Lds0, St0) ->
+    {Body1,Lds1,St1} = lift_exprs(Body0, Lifts, Lds0, St0),
+    {[prog2|Body1],Lds1,St1};
 lift_expr(['if'|Body0], Lifts, Lds0, St0) ->
     {Body1,Lds1,St1} = lift_exprs(Body0, Lifts, Lds0, St0),
     {['if'|Body1],Lds1,St1};
 lift_expr(['case',Expr|Cls], Lifts, Lds, St) ->
     lift_case(Expr, Cls, Lifts, Lds, St);
+lift_expr(['cond'|Cls], Lifts, Lds, St) ->
+    lift_cond(Cls, Lifts, Lds, St);
 lift_expr(['maybe'|Body], Lifts, Lds, St) ->
     lift_maybe(Body, Lifts, Lds, St);
+lift_expr(['receive'|Cls], Lifts, Lds, St) ->
+    lift_receive(Cls, Lifts, Lds, St);
 lift_expr(['catch'|Body0], Lifts, Lds0, St0) ->
     {Body1,Lds1,St1} = lift_exprs(Body0, Lifts, Lds0, St0),
     {['catch'|Body1],Lds1,St1};
@@ -200,16 +230,19 @@ lift_expr(['binary-comp',Qs,E], Lifts, Lds, St) ->
     lift_comp('binary-comp', Qs, E, Lifts, Lds, St);
 %% Finally the general cases.
 lift_expr([call|Args0], Lifts, Lds0, St0) ->
-    {Args1,Lds1,St1} = lift_exprs(Args0, Lifts, Lds0, St0),
+    {Args1,Lds1,St1} = lift_args(Args0, Lifts, Lds0, St0),
     {[call|Args1],Lds1,St1};
 lift_expr([Func|Args], Lifts, Lds, St) when is_atom(Func) ->
     lift_func_call(Func, Args, Lifts, Lds, St);
 %% Everything else is a literal.
 lift_expr(Lit, _Lifts, Lds, St) -> {Lit,Lds,St}.
 
+lift_args(Args, Lifts, Lds, St) ->
+    lift_exprs(Args, Lifts, Lds, St).
+
 lift_func_call(Name, Args0, Lifts, Lds0, St0) ->
     %% Most of the core data special forms can be handled here as well.
-    {Args1,Lds1,St1} = lift_exprs(Args0, Lifts, Lds0, St0),
+    {Args1,Lds1,St1} = lift_args(Args0, Lifts, Lds0, St0),
     Arity = length(Args1),
     Call = case lifted_function(Name, Arity, Lifts) of
                {yes,#lift{type=call,name=NewName,ivars=Ivars}} ->
@@ -228,20 +261,23 @@ lift_exprs(Exprs, Lifts, Lds, St) ->
           end,
     lists:foldr(Fun, {[],Lds,St}, Exprs).
 
-lift_rec_fields([[F,V|Type]|Fs], Lifts, Lds0, St0) ->
-    {Lv,Lds1,St1} = lift_expr(V, Lifts, Lds0, St0),
-    {Lfs,Lds2,St2} = lift_rec_fields(Fs, Lifts, Lds1, St1),
-    {[[F,Lv|Type]|Lfs],Lds2,St2};
-lift_rec_fields([F|Fs], Lifts, Lds0, St0) ->
-    {Lfs,Lds1,St1} = lift_rec_fields(Fs, Lifts, Lds0, St0),
-    {[F|Lfs],Lds1,St1};
-lift_rec_fields([], _Lifts, Lds, St) -> {[],Lds,St}.
+%% lift_record_fields(RecArgs, Lifts, LocalDefs, State) ->
+%%     {RecArgs,LocalDefs,State}.
 
-lift_rec_args([F,V|As], Lifts, Lds0, St0) ->
+lift_record_fields([F,V|As], Lifts, Lds0, St0) ->
     {Lv,Lds1,St1} = lift_expr(V, Lifts, Lds0, St0),
-    {Las,Lds2,St2} = lift_rec_args(As, Lifts, Lds1, St1),
+    {Las,Lds2,St2} = lift_record_fields(As, Lifts, Lds1, St1),
     {[F,Lv|Las],Lds2,St2};
-lift_rec_args([], _Lifts, Lds, St) -> {[],Lds,St}.
+lift_record_fields([], _Lifts, Lds, St) -> {[],Lds,St}.
+
+%% lift_struct_fields(RecArgs, Lifts, LocalDefs, State) ->
+%%     {RecArgs,LocalDefs,State}.
+
+lift_struct_fields([F,V|As], Lifts, Lds0, St0) ->
+    {Lv,Lds1,St1} = lift_expr(V, Lifts, Lds0, St0),
+    {Las,Lds2,St2} = lift_struct_fields(As, Lifts, Lds1, St1),
+    {[F,Lv|Las],Lds2,St2};
+lift_struct_fields([], _Lifts, Lds, St) -> {[],Lds,St}.
 
 %% lift_function_ref(Name, Arity, Lifts, LocalDefs, State) ->
 %%     {Lifted,LocalDefs,State}.
@@ -362,22 +398,59 @@ append_ivars(['match-lambda'|Cls0], Ivars) ->
     Cls1 = lists:map(Fun, Cls0),
     ['match-lambda'|Cls1].
 
-lift_cls(Cls, Lifts, Lds, St) ->
-    Fun = fun ([Pats,['when'|_]=G|Body0], {Cls0,Lds0,St0}) ->
-                  {Body1,Lds1,St1} = lift_exprs(Body0, Lifts, Lds0, St0),
-                  {[[Pats,G|Body1]|Cls0],Lds1,St1};
-              ([Pats|Body0], {Cls0,Lds0,St0}) ->
-                  {Body1,Lds1,St1} = lift_exprs(Body0, Lifts, Lds0, St0),
-                  {[[Pats|Body1]|Cls0],Lds1,St1}
+%% lift_clauses(Clauses, Lifts, LocalDefines, State) ->
+%%     {Clauses,LocalDefines,State}.
+%% From the right!
+
+%% lift_clauses([C0|Cls0], Lifts, Lds0, St0) ->
+%%     {Cls1,Ld1,St1} = lift_clauses(Cls0, Lifts, Lds0, St0),
+%%     {C1,Ld2,St2} = lift_clause(C0, Lifts, Ld1, St1),
+%%     {[C1|Cls1],Ld2,St2};
+%% lift_clauses([], _Lifts, Lds, St) ->
+%%     {[],Lds,St}.
+
+lift_clauses(Cls, Lifts, Lds, St) ->
+    Fun = fun (C0, {Cs,L0,S0}) ->
+                  {C1,L1,S1} = lift_clause(C0, Lifts, L0, S0),
+                  {[C1|Cs],L1,S1}
           end,
-    lists:foldr(Fun, {[],Lds,St}, Cls).         %From the right!
+    lists:foldr(Fun, {[],Lds,St}, Cls).
+
+%% lift_clauses(Cls, Lifts, Lds, St) ->
+%%     Fun = fun ([Pats,['when'|_]=G|Body0], {Cls0,Lds0,St0}) ->
+%%                   {Body1,Lds1,St1} = lift_exprs(Body0, Lifts, Lds0, St0),
+%%                   {[[Pats,G|Body1]|Cls0],Lds1,St1};
+%%               ([Pats|Body0], {Cls0,Lds0,St0}) ->
+%%                   {Body1,Lds1,St1} = lift_exprs(Body0, Lifts, Lds0, St0),
+%%                   {[[Pats|Body1]|Cls0],Lds1,St1}
+%%           end,
+%%     lists:foldr(Fun, {[],Lds,St}, Cls).         %From the right!
+
+%% lift_clause(Clause, Lifts, LocalDefines, State) ->
+%%     {Clause,LocalDefines,State}.
+
+lift_clause([Pats,['when'|_]=G|Body0], Lifts, Lds0, St0) ->
+    {Body1,Lds1,St1} = lift_exprs(Body0,Lifts, Lds0, St0),
+    {[Pats,G|Body1],Lds1,St1};
+lift_clause([Pats|Body0], Lifts, Lds0, St0) ->
+    {Body1,Lds1,St1} = lift_exprs(Body0,Lifts, Lds0, St0),
+    {[Pats|Body1],Lds1,St1}.
+
+%% lift_case(Expression, Clauses, Lifts, LocalDefines, State) ->
+%%     {Case,LocalDefines,State}.
 
 lift_case(Expr0, Cls0, Lifts, Lds0, St0) ->
     {Expr1,Lds1,St1} = lift_expr(Expr0, Lifts, Lds0, St0),
-    {Cls1,Lds2,St2} = lift_cls(Cls0, Lifts, Lds1, St1),
+    {Cls1,Lds2,St2} = lift_clauses(Cls0, Lifts, Lds1, St1),
     {['case',Expr1|Cls1],Lds2,St2}.
 
-%% lift_maybe(Body, LifteFuncs, LocalDefines, State) ->
+%% lift_cond(Clauses, LiftedFuncs, LocalDefines, State) ->
+%%     {Cond,LocalDefines,State}.
+
+lift_cond(Cls, _Lifts, Lds0, St0) ->
+    {['cond'|Cls],Lds0,St0}.
+
+%% lift_maybe(Body, LiftedFuncs, LocalDefines, State) ->
 %%     {Maybe,LocalDefines,State}.
 %%  We must also explicitly handle let and explicitly lift their
 %%  bodies as maybe bodies.
@@ -395,7 +468,7 @@ lift_maybe_body([['let',Vbs|Body]|Mes0], Lifts, Lds0, St0) ->
     {Mes1,Lds2,St2} = lift_maybe_body(Mes0, Lifts, Lds1, St1),
     {[Let|Mes1],Lds2,St2};
 lift_maybe_body([['else'|Cls0]], Lifts, Lds0, St0) ->
-    {Cls1,Lds1,St1} = lift_cls(Cls0, Lifts, Lds0, St0),
+    {Cls1,Lds1,St1} = lift_clauses(Cls0, Lifts, Lds0, St0),
     {[['else'|Cls1]],Lds1,St1};
 lift_maybe_body([Expr0|Mes0], Lifts, Lds0, St0) ->
     {Expr1,Lds1,St1} = lift_expr(Expr0, Lifts, Lds0, St0),
@@ -408,6 +481,24 @@ lift_maybe_let(Vbs0, Body0, Lifts, Lds0, St0) ->
     {Vbs1,Lds1,St1} = lift_let_bindings(Vbs0, Lifts, Lds0, St0),
     {Body1,Lds2,St2} = lift_maybe_body(Body0, Lifts, Lds1, St1),
     {['let',Vbs1|Body1],Lds2,St2}.
+
+%% lift_receive(Clauses, LiftedFuncs, LocalDefines, State) ->
+%%     {Receive,LocalDefines,State}.
+
+lift_receive(Cls0, Lifts, Lds0, St0) ->
+    {Cls1,Lds1,St1} = lift_receive_clauses(Cls0, Lifts, Lds0, St0),
+    {['receive'|Cls1],Lds1,St1}.
+
+lift_receive_clauses([['after',T0|Body0]], Lifts, Lds0, St0) ->
+    {T1,Lds1,St1} = lift_expr(T0, Lifts, Lds0, St0),
+    {Body1,Lds2,St2} = lift_exprs(Body0, Lifts, Lds1, St1),
+    {[['after',T1|Body1]],Lds2,St2};
+lift_receive_clauses([C0|Cls0], Lifts, Lds0, St0) ->
+    {C1,Lds1,St1} = lift_clause(C0, Lifts, Lds0, St0),
+    {Cls1,Lds2,St2} = lift_receive_clauses(Cls0, Lifts, Lds1, St1),
+    {[C1|Cls1],Lds2,St2};
+lift_receive_clauses([], _Lifts, Lds, St) ->
+    {[],Lds,St}.
 
 %% lift_try(TryBody, LiftedFuncs, LocalDefs, State) ->
 %%     {TryBody,LocalDefs,State}.
@@ -422,10 +513,10 @@ lift_try(Try0, Lifts, Lds0, St0) ->
     {['try'|Try1],Lds1,St1}.
 
 lift_try_1(['case'|Case0], Lifts, Lds0, St0) ->
-    {Case1,Lds1,St1} = lift_cls(Case0, Lifts, Lds0, St0),
+    {Case1,Lds1,St1} = lift_clauses(Case0, Lifts, Lds0, St0),
     {['case'|Case1],Lds1,St1};
 lift_try_1(['catch'|Catch0], Lifts, Lds0, St0) ->
-    {Catch1,Lds1,St1} = lift_cls(Catch0, Lifts, Lds0, St0),
+    {Catch1,Lds1,St1} = lift_clauses(Catch0, Lifts, Lds0, St0),
     {['catch'|Catch1],Lds1,St1};
 lift_try_1(['after'|After0], Lifts, Lds0, St0) ->
     {After1,Lds1,St1} = lift_exprs(After0, Lifts, Lds0, St0),
@@ -493,10 +584,10 @@ ivars_expr([binary|Segs], Kvars, Ivars) ->
     ivars_bitsegs(Segs, Kvars, Ivars);
 %% Record forms.
 ivars_expr(['record',_|Args], Kvars, Ivars) ->
-    ivars_record_args(Args, Kvars, Ivars);
+    ivars_record_fields(Args, Kvars, Ivars);
 %% make-record has been deprecated but we sill accept it for now.
 ivars_expr(['make-record',_|Args], Kvars, Ivars) ->
-    ivars_record_args(Args, Kvars, Ivars);
+    ivars_record_fields(Args, Kvars, Ivars);
 ivars_expr(['is-record',E,_], Kvars, Ivars) ->
     ivars_expr(E, Kvars, Ivars);
 ivars_expr(['record-index',_,_], _, Ivars) -> Ivars;
@@ -504,10 +595,10 @@ ivars_expr(['record-field',E,_,_], Kvars, Ivars) ->
     ivars_expr(E, Kvars, Ivars);
 ivars_expr(['record-update',E,_|Args], Kvars, Ivars0) ->
     Ivars1 = ivars_expr(E, Kvars, Ivars0),
-    ivars_record_args(Args, Kvars, Ivars1);
+    ivars_record_fields(Args, Kvars, Ivars1);
 %% Struct special forms.
 ivars_expr(['struct',_Name|Args], Kvars, Ivars) ->
-    ivars_struct_args(Args, Kvars, Ivars);
+    ivars_struct_fields(Args, Kvars, Ivars);
 ivars_expr(['is-struct',E], Kvars, Ivars) ->
     ivars_expr(E, Kvars, Ivars);
 ivars_expr(['is-struct',E,_], Kvars, Ivars) ->
@@ -516,10 +607,15 @@ ivars_expr(['struct-field',E,_Name,_Field], Kvars, Ivars) ->
     ivars_expr(E, Kvars, Ivars);
 ivars_expr(['struct-update',E,_Name|Args], Kvars, Ivars0) ->
     Ivars1 = ivars_expr(E, Kvars, Ivars0),
-    ivars_struct_args(Args, Kvars, Ivars1);
+    ivars_struct_fields(Args, Kvars, Ivars1);
 %% Function forms.
 ivars_expr([function,_,_], _, Ivars) -> Ivars;
 ivars_expr([function,_,_,_], _, Ivars) -> Ivars;
+%% Special known data type operations.
+ivars_expr(['andalso'|Args], Kvars, Ivars) ->
+    ivars_exprs(Args, Kvars, Ivars);
+ivars_expr(['orelse'|Args], Kvars, Ivars) ->
+    ivars_exprs(Args, Kvars, Ivars);
 %% Core closure special forms.
 ivars_expr([lambda,Args|Body], Kvars, Ivars) ->
     ivars_fun_cl([Args|Body], Kvars, Ivars);
@@ -533,6 +629,10 @@ ivars_expr(['letrec-function',Fbs|Body], Kvars, Ivars) ->
     ivars_let_function(Fbs, Body, Kvars, Ivars);
 %% Core control special forms.
 ivars_expr([progn|Body], Kvars, Ivars) ->
+    ivars_exprs(Body, Kvars, Ivars);
+ivars_expr([prog1|Body], Kvars, Ivars) ->
+    ivars_exprs(Body, Kvars, Ivars);
+ivars_expr([prog2|Body], Kvars, Ivars) ->
     ivars_exprs(Body, Kvars, Ivars);
 ivars_expr(['if'|Body], Kvars, Ivars) ->
     ivars_exprs(Body, Kvars, Ivars);
@@ -587,19 +687,19 @@ ivars_bitseg([Val|Specs], Kvars, Ivars0) ->
 ivars_bitseg(Val, Kvars, Ivars) ->
     ivars_expr(Val, Kvars, Ivars).
 
-%% ivars_record_args(Args, Kvars, Ivars) -> Ivars.
-%% ivars_struct_args(Args, Kvars, Ivars) -> Ivars.
+%% ivars_record_fields(Args, Kvars, Ivars) -> Ivars.
+%% ivars_struct_fields(Args, Kvars, Ivars) -> Ivars.
 %%  Get the Ivars form record/struct argument lists.
 
-ivars_record_args([_F,V|As], Kvars, Ivars0) ->
+ivars_record_fields([_F,V|As], Kvars, Ivars0) ->
     Ivars1 = ivars_expr(V, Kvars, Ivars0),
-    ivars_record_args(As, Kvars, Ivars1);
-ivars_record_args([], _, Ivars) -> Ivars.
+    ivars_record_fields(As, Kvars, Ivars1);
+ivars_record_fields([], _, Ivars) -> Ivars.
 
-ivars_struct_args([_F,V|As], Kvars, Ivars0) ->
+ivars_struct_fields([_F,V|As], Kvars, Ivars0) ->
     Ivars1 = ivars_expr(V, Kvars, Ivars0),
-    ivars_struct_args(As, Kvars, Ivars1);
-ivars_struct_args([], _, Ivars) -> Ivars.
+    ivars_struct_fields(As, Kvars, Ivars1);
+ivars_struct_fields([], _, Ivars) -> Ivars.
 
 %% ivars_let(VariableBindings, Body, Kvars, Ivars) -> Ivars.
 %%  Get Ivars from a let form.

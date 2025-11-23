@@ -51,6 +51,7 @@ comp_opts(Version) ->
                                      {"20","HAS_CEIL"},
                                      {"21","NEW_STACKTRACE"},
                                      {"23","EEP48"},
+                                     {"27","OTP27_MAYBE"},
                                      {"27","OTP27_DOCS"}]).
 
 append_copts(Version, [{Ver,Opt}|Opts]) ->

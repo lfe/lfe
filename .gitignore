@@ -9,6 +9,7 @@ erl_crash.dump
 .rebar
 rel/example_project
 ebin/*.beam
+ebin/lfe.app
 deps
 
 # rebar 3

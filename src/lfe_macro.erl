@@ -1,4 +1,3 @@
-%% -*- mode: erlang; indent-tabs-mode: nil -*-
 %% Copyright (c) 2008-2026 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
@@ -446,6 +445,20 @@ exp_form(['struct-update',E,Name|Args], Env, St0) ->
     {Ee,St1} = exp_form(E, Env, St0),
     {Eas,St2} = exp_tail(Args, Env, St1),
     {['struct-update',Ee,Name|Eas],St2};
+%% Now catch the new defined forms which aren't macros. They basically
+%% go to them selves.
+exp_form(['module',_Name]=Mod, _Env, St) ->
+    io:format("mac form 'module'\n", []),
+    {Mod,St};
+exp_form(['function',_Name,_Def]=Func, _Env, St) ->
+    io:format("mac form 'function'\n", []),
+    {Func,St};
+exp_form(['attribute',_Name|_Value]=Attr, _Env, St) ->
+    io:format("mac form 'attribute'\n", []),
+    {Attr,St};
+exp_form(['-',_Name|_Value]=Attr, _Env, St) ->
+    io:format("mac form '-'\n", []),
+    {Attr,St};
 %% Function forms.
 exp_form([function|_]=F, _, St) -> {F,St};
 %% Core closure special forms.
@@ -987,13 +1000,26 @@ exp_predef(['defrecord'|Def], Env, St) ->
     lfe_macro_record:define(Def, Env, St);
 exp_predef(['defstruct'|Def], Env, St) ->
     lfe_macro_struct:define(Def, Env, St);
-%% Common Lisp inspired macros.
-%% Note the module forms MUST expand to define-module as this is the
-%% defined form which starts a module.
+%% Now catch the new defined forms which aren't macros. They basically
+%% go to themselves. We can't do it explicitly here as we would go
+%% into a loop.
 exp_predef([module,Name], _, St) ->
+    io:format("mac predef 'module'\n", []),
     %% Define the MODULE macro.
     MODULE = [defmacro,'MODULE',[],?BQ(?Q(Name))],
     {yes,[progn,['define-module',Name,[],[]],MODULE],St#mac{module=Name}};
+exp_predef(['function',_Name,_Def], _Env, _St) ->
+    io:format("mac predef 'function'\n", []),
+    no;
+exp_predef(['attribute',_Name|_Value], _Env, _St) ->
+    io:format("mac predef 'attribute'\n", []),
+    no;
+exp_predef(['-',_Name|_Value], _Env, _St) ->
+    io:format("mac predef '-'\n", []),
+    no;
+%% Common Lisp inspired macros.
+%% Note the module forms MUST expand to define-module as this is the
+%% defined form which starts a module.
 exp_predef([defmodule,Name|Rest], _, St) ->
     %% Define the MODULE macro.
     MODULE = [defmacro,'MODULE',[],?BQ(?Q(Name))],
