@@ -448,16 +448,16 @@ exp_form(['struct-update',E,Name|Args], Env, St0) ->
 %% Now catch the new defined forms which aren't macros. They basically
 %% go to them selves.
 exp_form(['module',_Name]=Mod, _Env, St) ->
-    io:format("mac form 'module'\n", []),
+    %% io:format("mac form 'module'\n", []),
     {Mod,St};
 exp_form(['function',_Name,_Def]=Func, _Env, St) ->
-    io:format("mac form 'function'\n", []),
+    %% io:format("mac form 'function'\n", []),
     {Func,St};
 exp_form(['attribute',_Name|_Value]=Attr, _Env, St) ->
-    io:format("mac form 'attribute'\n", []),
+    %% io:format("mac form 'attribute'\n", []),
     {Attr,St};
 exp_form(['-',_Name|_Value]=Attr, _Env, St) ->
-    io:format("mac form '-'\n", []),
+    %% io:format("mac form '-'\n", []),
     {Attr,St};
 %% Function forms.
 exp_form([function|_]=F, _, St) -> {F,St};

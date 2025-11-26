@@ -272,6 +272,8 @@ attribute([moduledoc,Docs], Line, _Unrecog, St) ->
     {[[moduledoc,Line,Docs]],St};
 attribute([compile|Options], Line, _Unrecog, St) ->
     {[[compile,Line,Options]],St};
+attribute([vsn,Vsn], Line, _Unrecog, St) ->
+    {[[vsn,Line,Vsn]],St};
 attribute([on_load|Func], Line, _Unrecog, St) ->
     {[[on_load,Line,Func]],St};
 attribute([nifs|Nifs], Line, _Unrecog, St) ->
@@ -318,20 +320,20 @@ attribute_type(Attr, [Type0|Def0], Line, St) ->
 attribute_type(Attr, _TypeDef, Line, St) ->
     {[],add_error(Line, {bad_attribute,Attr}, St)}.
 
-%% attriubute_spec(Spec, Line, State) -> {[Norm],St}.
+%% attriubute_spec(SpecAttribute, Line, State) -> {[Norm],St}.
 %%  Return a spec norm. If the spec form does not include a functiona
 %%  arity then we calculate one from the spec if we can. The linter
 %%  will check this.
 
-attribute_spec([[_Name,_Ar]=Func|Spec], Line, St) ->
-    {[['spec',Line,Func,Spec]],St};
-attribute_spec([Name|Spec], Line, St) ->
-    Arity = spec_arity(Spec),
-    {[['spec',Line,[Name,Arity],Spec]],St};
-attribute_spec(Spec, Line, St) ->
-    {[['spec',Line|Spec]],St}.
+attribute_spec([[_Name,_Ar]=Func|Specs], Line, St) ->
+    {[['spec',Line,Func,Specs]],St};
+attribute_spec([Name|Specs], Line, St) ->
+    Arity = spec_arity(Specs),
+    {[['spec',Line,[Name,Arity],Specs]],St};
+attribute_spec(Specs, Line, St) ->
+    {[['spec',Line|Specs]],St}.
 
-%% spec_arity(Spec) -> Arity.
+%% spec_arity(Specs) -> Arity.
 %%  Just return the length of the first arg list and let lint check
 %%  properly later.
 
