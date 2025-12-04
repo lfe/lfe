@@ -139,6 +139,7 @@ expand_macros(Fs0, File, _, _) ->
 %% normalise_code(Forms, File, Args, Lopts) -> Norms.
 
 normalise_code(Forms, File, _Args, _Lopts) ->
+    %% Module = [{['define-module',dummy,[],[[export,[[main,1]]]]],1} | Forms],
     Module = [{['define-module',dummy,[],[[export,[main,1]]]],1} | Forms],
     case lfe_normalise:module(Module) of
         {ok,dummy,Norms,Ws} ->

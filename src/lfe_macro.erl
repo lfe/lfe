@@ -38,10 +38,6 @@
 
 %% -compile([export_all]).
 
--import(lfe_env, [new/0,add_vbinding/3,is_vbound/2,
-                  add_fbinding/4,is_fbound/3,
-                  add_mbinding/3,is_mbound/2,get_mbinding/2]).
-
 -import(lists, [any/2,all/2,map/2,foldl/3,foldr/3,mapfoldl/3,
                 reverse/1,reverse/2,member/2,concat/1]).
 
@@ -122,10 +118,12 @@ default_state(#cinfo{file=File,opts=Os,ipath=Is}, Deep, Keep) ->
 %%  macros and only keep all functions.
 
 expand_form(F0, L, E0, St0) ->
+    %% io:format("ef ~p\n", [{F0,L}]),
     {F1,E1,St1} = pass_form(F0, E0, St0#mac{line=L}),
     return_status(F1, E1, St1).
 
 expand_fileform({F0,L}, E0, St0) ->
+    %% io:format("eff ~p\n", [{F0,L}]),
     {F1,E1,St1} = pass_form(F0, E0, St0#mac{line=L}),
     return_status({F1,L}, E1, St1).
 
@@ -180,7 +178,7 @@ pass_form(['progn'|Pfs0], Env0, St0) ->
     {Pfs1,Env1,St1} = pass_forms(Pfs0, Env0, St0),
     {['progn'|Pfs1],Env1,St1};
 pass_form(['eval-when-compile'|Efs0], Env0, St0) ->
-    {Efs1,Env1,St1} = pass_ewc_forms(Efs0, Env0, St0),
+    {Efs1,Env1,St1} = ewc_forms(Efs0, Env0, St0),
     {['eval-when-compile'|Efs1],Env1,St1};
 pass_form(['include-file',File], Env, St0) ->
     case lfe_macro_include:file(File, Env, St0) of
@@ -211,24 +209,24 @@ pass_form(F, Env, St0) ->
             {F1,Env,St1}
     end.
 
-%% pass_ewc_forms(Forms, Env, State) -> {Forms,Env,State}.
-%% pass_ewc_form(Form, Env, State) -> {Form,Env,State}.
-%%  Pass over the list evaluate when compile forms.  Function and
-%%  macro definitions are collected in the environment and other
-%%  experssions are evaluated. The shell set forms are also specially
-%%  recognised and the variables are bound and kept in the environment
-%%  as well. The functions and macrso behave as in the shell.
+%% ewc_forms(Forms, Env, State) -> {Forms,Env,State}.
+%% ewc_form(Form, Env, State) -> {Form,Env,State}.
+%%  Pass over the of eval-when-compile forms. Function and macro
+%%  definitions are collected in the environment and other experssions
+%%  are evaluated. The shell 'set' forms are also specially recognised
+%%  and the variables are bound and kept in the environment as
+%%  well. The functions and macros behave as in the shell.
 
-pass_ewc_forms(Fs, Env, St) ->
-    mapfoldl2(fun (F, E, S) -> pass_ewc_form(F, E, S) end, Env, St, Fs).
+ewc_forms(Fs, Env, St) ->
+    mapfoldl2(fun (F, E, S) -> ewc_form(F, E, S) end, Env, St, Fs).
 
-pass_ewc_form(['progn'|Pfs0], Env0, St0) ->
-    {Pfs1,Env1,St1} = pass_ewc_forms(Pfs0, Env0, St0),
+ewc_form(['progn'|Pfs0], Env0, St0) ->
+    {Pfs1,Env1,St1} = ewc_forms(Pfs0, Env0, St0),
     {['progn'|Pfs1],Env1,St1};
-pass_ewc_form(['eval-when-compile'|Efs0], Env0, St0) ->
-    {Efs1,Env1,St1} = pass_ewc_forms(Efs0, Env0, St0),
+ewc_form(['eval-when-compile'|Efs0], Env0, St0) ->
+    {Efs1,Env1,St1} = ewc_forms(Efs0, Env0, St0),
     {['progn'|Efs1],Env1,St1};
-pass_ewc_form(['define-macro'|Def]=M, Env0, St0) ->
+ewc_form(['define-macro'|Def]=M, Env0, St0) ->
     %% Do we really want this? It behaves as a top-level macro def.
     case pass_define_macro(Def, Env0, St0) of
         {yes,Env1,St1} ->
@@ -237,7 +235,7 @@ pass_ewc_form(['define-macro'|Def]=M, Env0, St0) ->
         {no,St1} ->
             {[progn],Env0,St1}                  %Just throw it away
     end;
-pass_ewc_form(['define-function',Name,_,Def]=F, Env0, St0) ->
+ewc_form(['define-function',Name,_,Def]=F, Env0, St0) ->
     case function_arity(Def) of
         {yes,Ar} ->                             %Definition not too bad
             Env1 = lfe_eval:add_dynamic_func(Name, Ar, Def, Env0),
@@ -247,13 +245,13 @@ pass_ewc_form(['define-function',Name,_,Def]=F, Env0, St0) ->
             St1 = add_error({bad_ewc_form,function}, St0),
             {[progn],Env0,St1}                  %Just throw it away
     end;
-pass_ewc_form([set|Args], Env, St) ->
-    pass_eval_set(Args, Env, St);
-pass_ewc_form(F0, Env, St0) ->
+ewc_form([set|Args], Env, St) ->
+    ewc_eval_set(Args, Env, St);
+ewc_form(F0, Env, St0) ->
     %% First expand enough to test top form, if so process again.
     case pass_expand_expr(F0, Env, St0, false) of
         {yes,F1,St1} ->                         %Top form expanded
-            pass_ewc_form(F1, Env, St1);
+            ewc_form(F1, Env, St1);
         {no,F1,St1} ->                          %Not expanded
             try
                 lfe_eval:expr(F1, Env),
@@ -270,29 +268,29 @@ function_arity(['match-lambda',[Pat|_]|_]) ->
     ?IF(lfe_lib:is_proper_list(Pat), {yes,length(Pat)}, no);
 function_arity(_) -> no.
 
-%% pass_eval_set(Args, Env, State) -> {Set,Env,State}.
-%%  Evaluate the set form.
+%% ewc_eval_set(Args, Env, State) -> {Set,Env,State}.
+%%  Evaluate the 'set' form in an eval-when-compile
 
-pass_eval_set(Args, Env, St) ->
+ewc_eval_set(Args, Env, St) ->
     try
-        pass_eval_set_1(Args, Env, St)
+        ewc_eval_set_1(Args, Env, St)
     catch
         _:_ ->                                  %Catch everything
             {[progn],Env,add_error({bad_ewc_form,'set'}, St)}
     end.
 
-pass_eval_set_1(Args, Env, St0) ->
+ewc_eval_set_1(Args, Env, St0) ->
     case exp_form(['let'|Args], Env, St0) of
         {['let',Pat,G,Exp],St1} ->
-            pass_eval_set_1(Pat, [G], Exp, Env, St1);
+            ewc_eval_set_1(Pat, [G], Exp, Env, St1);
         {['let',Pat,Exp],St1} ->
-            pass_eval_set_1(Pat, [], Exp, Env, St1)
+            ewc_eval_set_1(Pat, [], Exp, Env, St1)
     end.                                        %Just crash here
 
-pass_eval_set_1(Pat, Guard, Exp, Env0, St) ->
+ewc_eval_set_1(Pat, Guard, Exp, Env0, St) ->
     Val = lfe_eval:expr(Exp, Env0),
     {yes,_,Bs} = lfe_eval:match_when(Pat, Val, Guard, Env0),
-    Env1 = foldl(fun ({N,V}, E) -> add_vbinding(N, V, E) end, Env0, Bs),
+    Env1 = foldl(fun ({N,V}, E) -> lfe_env:add_vbinding(N, V, E) end, Env0, Bs),
     Sets = ?IF(St#mac.keep, [ [set,N,V] || {N,V} <- Bs ], []),
     {['progn'|Sets],Env1,St}.
 
@@ -306,6 +304,7 @@ pass_expand_expr([_|_]=E0, Env, St0, Deep) ->
         case exp_macro(E0, Env, St0) of
             {yes,_,_}=Yes -> Yes;
             no when Deep ->                     %Deep expand if flag set.
+                %% {E1,St1} = exp_mod_form(E0, Env, St0),
                 {E1,St1} = exp_form(E0, Env, St0),
                 {no,E1,St1};
             no -> {no,E0,St0}
@@ -326,8 +325,9 @@ pass_define_macro([Name,_,Def], Env, St) when is_atom(Name) ->
             {no,add_warning({defining_core_form,Name}, St)};
         false ->
             case Def of
-                ['lambda'|_] -> {yes,add_mbinding(Name, Def, Env),St};
-                ['match-lambda'|_] -> {yes,add_mbinding(Name, Def, Env),St};
+                ['lambda'|_] -> {yes,lfe_env:add_mbinding(Name, Def, Env),St};
+                ['match-lambda'|_] ->
+                    {yes,lfe_env:add_mbinding(Name, Def, Env),St};
                 _ -> {no,add_error({bad_ewc_form,macro}, St)}
             end
     end;
@@ -356,8 +356,30 @@ add_warning(L, W, St) ->
 %%  their bodies are to be expanded and we handle these specially
 %%  here. The rest we just expand the tail at the end.
 
+%% The new defined forms which aren't macros. We put them first to
+%% give them higher priority. These basically just pass their
+%% arguments. This means that they also work in normal forms.
+exp_form([Attr|Args0], Env, St0)
+  when Attr =:= 'module'       ; Attr =:= 'export' ;
+       Attr =:= 'export-macro' ; Attr =:= 'import' ;
+       Attr =:= 'moduledoc'    ; Attr =:= 'compile' ;
+       Attr =:= 'vsn'          ; Attr =:= 'on_load' ;
+       Attr =:= 'nifs'         ; Attr =:= 'doc';
+       Attr =:= 'file' ->
+    {Args1,St1} = exp_list(Args0, Env, St0),
+    %%e io:format("emf ~p\n", [[Attr|Args1]]),
+    {[Attr|Args1],St1};
+%% 'attribute' and '-' are more Erlangy way of defining attributes. We
+%% need to leave them as they are here.
+exp_form(['attribute',Name,Value0], Env, St0) ->
+    {Value1,St1} = exp_form(Value0, Env, St0),
+    {['attribute',Name,Value1],St1};
+exp_form(['-',Name,Value0], Env, St0) ->
+    {Value1,St1} = exp_form(Value0, Env, St0),
+    {['-',Name,Value1],St1};
+%% 'type', 'opaque', 'spec', 'record' and 'struct' need to be macros.
 %% Known Core forms which need special handling.
-exp_form([quote,_]=Q, _, St) -> {Q,St};
+exp_form([quote,_]=Q, _Env, St) -> {Q,St};
 exp_form([cons,H0,T0], Env, St0) ->
     {H1,St1} = exp_form(H0, Env, St0),
     {T1,St2} = exp_form(T0, Env, St1),
@@ -369,41 +391,41 @@ exp_form([cdr,E0], Env, St0) ->
     {E1,St1} = exp_form(E0, Env, St0),
     {[cdr,E1],St1};
 exp_form([list|As], Env, St) ->
-    exp_normal_core(list, As, Env, St);
+    exp_normal_form(list, As, Env, St);
 exp_form([tuple|As], Env, St) ->
-    exp_normal_core(tuple, As, Env, St);
+    exp_normal_form(tuple, As, Env, St);
 exp_form([tref|[_,_]=As], Env, St) ->
-    exp_normal_core(tref, As, Env, St);
+    exp_normal_form(tref, As, Env, St);
 exp_form([tset|[_,_,_]=As], Env, St) ->
-    exp_normal_core(tset, As, Env, St);
+    exp_normal_form(tset, As, Env, St);
 exp_form([binary|As], Env, St) ->
-    exp_normal_core(binary, As, Env, St);
+    exp_normal_form(binary, As, Env, St);
 exp_form([map|As], Env, St) ->
-    exp_normal_core(map, As, Env, St);
+    exp_normal_form(map, As, Env, St);
 exp_form([msiz|As], Env, St) ->
-    exp_normal_core(msiz, As, Env, St);
+    exp_normal_form(msiz, As, Env, St);
 exp_form([mref|As], Env, St) ->
-    exp_normal_core(mref, As, Env, St);
+    exp_normal_form(mref, As, Env, St);
 exp_form([mset|As], Env, St) ->
-    exp_normal_core(mset, As, Env, St);
+    exp_normal_form(mset, As, Env, St);
 exp_form([mupd|As], Env, St) ->
-    exp_normal_core(mupd, As, Env, St);
+    exp_normal_form(mupd, As, Env, St);
 exp_form([mrem|As], Env, St) ->
-    exp_normal_core(mrem, As, Env, St);
+    exp_normal_form(mrem, As, Env, St);
 exp_form(['map-size'|As], Env, St) ->
-    exp_normal_core('map-size', As, Env, St);
+    exp_normal_form('map-size', As, Env, St);
 exp_form(['map-get'|As], Env, St) ->
-    exp_normal_core('map-get', As, Env, St);
+    exp_normal_form('map-get', As, Env, St);
 exp_form(['map-set'|As], Env, St) ->
-    exp_normal_core('map-set', As, Env, St);
+    exp_normal_form('map-set', As, Env, St);
 exp_form(['map-update'|As], Env, St) ->
-    exp_normal_core('map-update', As, Env, St);
+    exp_normal_form('map-update', As, Env, St);
 exp_form(['map-remove'|As], Env, St) ->
-    exp_normal_core('map-remove', As, Env, St);
+    exp_normal_form('map-remove', As, Env, St);
 %% Record special forms. Note that these are used for both the
 %% compiler as well as the evaluator so we can't do too much here.
 exp_form(['define-record',Name,Fds], Env, St0) ->
-    {Efds,St1} = exp_rec_fields(Name, Fds, Env, St0),
+    {Efds,St1} = exp_record_fields(Name, Fds, Env, St0),
     {['define-record',Name,Efds],St1};
 exp_form(['record',Name|Args], Env, St0) ->
     {Eas,St1} = exp_tail(Args, Env, St0),
@@ -445,20 +467,6 @@ exp_form(['struct-update',E,Name|Args], Env, St0) ->
     {Ee,St1} = exp_form(E, Env, St0),
     {Eas,St2} = exp_tail(Args, Env, St1),
     {['struct-update',Ee,Name|Eas],St2};
-%% Now catch the new defined forms which aren't macros. They basically
-%% go to them selves.
-exp_form(['module',_Name]=Mod, _Env, St) ->
-    %% io:format("mac form 'module'\n", []),
-    {Mod,St};
-exp_form(['function',_Name,_Def]=Func, _Env, St) ->
-    %% io:format("mac form 'function'\n", []),
-    {Func,St};
-exp_form(['attribute',_Name|_Value]=Attr, _Env, St) ->
-    %% io:format("mac form 'attribute'\n", []),
-    {Attr,St};
-exp_form(['-',_Name|_Value]=Attr, _Env, St) ->
-    %% io:format("mac form '-'\n", []),
-    {Attr,St};
 %% Function forms.
 exp_form([function|_]=F, _, St) -> {F,St};
 %% Core closure special forms.
@@ -477,13 +485,13 @@ exp_form(['let-macro',Mbs|B], Env, St) ->
     exp_let_macro(Mbs, B, Env, St);
 %% Core control special forms.
 exp_form([progn|As], Env, St) ->
-    exp_normal_core(progn, As, Env, St);
+    exp_normal_form(progn, As, Env, St);
 exp_form([prog1|As], Env, St) ->
-    exp_normal_core(prog1, As, Env, St);
+    exp_normal_form(prog1, As, Env, St);
 exp_form([prog2|As], Env, St) ->
-    exp_normal_core(prog2, As, Env, St);
+    exp_normal_form(prog2, As, Env, St);
 exp_form(['if'|As], Env, St) ->
-    exp_normal_core('if', As, Env, St);
+    exp_normal_form('if', As, Env, St);
 exp_form(['case',E0|Cls0], Env, St0) ->
     {E1,St1} = exp_form(E0, Env, St0),
     {Cls1,St2} = exp_clauses(Cls0, Env, St1),
@@ -501,9 +509,9 @@ exp_form(['catch'|B0], Env, St0) ->
 exp_form(['try',E|B], Env, St) ->
     exp_try(E, B, Env, St);
 exp_form([funcall|As], Env, St) ->
-    exp_normal_core(funcall, As, Env, St);
+    exp_normal_form(funcall, As, Env, St);
 exp_form([call|As], Env, St) ->
-    exp_normal_core(call, As, Env, St);
+    exp_normal_form(call, As, Env, St);
 %% List/binary comprehensions.
 exp_form([lc,Qs,Exp], Env, St0) ->
     exp_list_comprehension('lc', Qs, Exp, Env, St0);
@@ -513,9 +521,12 @@ exp_form([bc,Qs,Exp], Env, St) ->
     exp_binary_comprehension('bc', Qs, Exp, Env, St);
 exp_form(['binary-comp',Qs,Exp], Env, St) ->
     exp_binary_comprehension('binary-comp', Qs, Exp, Env, St);
+%% And don't forget when.
+exp_form(['when'|G], Env, St) ->
+    exp_normal_form('when', G, Env, St);
 %% Core definition special forms.
 exp_form(['eval-when-compile'|B], Env, St) ->
-    exp_normal_core('eval-when-compile', B, Env, St);
+    exp_normal_form('eval-when-compile', B, Env, St);
 exp_form(['define-function',Name,Meta,Def], Env, St) ->
     exp_define_function(Name, Meta, Def, Env, St);
 exp_form(['define-macro',Head|B], Env, St) ->
@@ -532,15 +543,12 @@ exp_form(['extend-module'|_]=Form, _, St) -> {Form,St};
 exp_form(['define-type',_Type|_]=Form, _, St) -> {Form,St};
 exp_form(['define-opaque-type',_Type|_]=Form, _, St) -> {Form,St};
 exp_form(['define-function-spec',_Func|_]=Form, _, St) -> {Form,St};
-%% And don't forget when.
-exp_form(['when'|G], Env, St) ->
-    exp_normal_core('when', G, Env, St);
 %% Now the case where we can have macros.
-exp_form([Fun|_]=Call, Env, St0) when is_atom(Fun) ->
+exp_form([Fun|Args]=Call, Env, St0) when is_atom(Fun) ->
     %% Expand top macro as much as possible.
     case exp_macro(Call, Env, St0) of
         {yes,Exp,St1} -> exp_form(Exp, Env, St1);
-        no -> exp_tail(Call, Env, St0)
+        no -> exp_normal_form(Fun, Args, Env, St0)
     end;
 exp_form([_|_]=Form, Env, St) -> exp_tail(Form, Env, St);
 exp_form(Tup, _, St) when is_tuple(Tup) ->
@@ -549,7 +557,7 @@ exp_form(Tup, _, St) when is_tuple(Tup) ->
 %% Everything else is atomic.
 exp_form(F, _, St) -> {F,St}.                   %Atomic
 
-exp_normal_core(Name, As0, Env, St0) ->
+exp_normal_form(Name, As0, Env, St0) ->
     {As1,St1} = exp_tail(As0, Env, St0),
     {[Name|As1],St1}.
 
@@ -577,15 +585,15 @@ exp_tail(Fun, [E0|Es0], Env, St0) ->
 exp_tail(_, [], _, St) -> {[],St};
 exp_tail(Fun, E, Env, St) -> Fun(E, Env, St).   %Same on improper tail.
 
-%% exp_rec_fields(Name, Fields, Env, State) -> {ExpArgs,State}.
+%% exp_record_fields(Name, Fields, Env, State) -> {ExpArgs,State}.
 %%  Expand the field definitions for the record.
 
-exp_rec_fields(_, Fields, Env, St) ->
-    lists:mapfoldl(fun (F, S) -> exp_rec_field(F, Env, S) end, St, Fields).
+exp_record_fields(_, Fields, Env, St) ->
+    lists:mapfoldl(fun (F, S) -> exp_record_field(F, Env, S) end, St, Fields).
 
-exp_rec_field([_|_]=Fdef, Env, St) ->
+exp_record_field([_|_]=Fdef, Env, St) ->
     exp_list(Fdef, Env, St);
-exp_rec_field(Fdef, Env, St) ->
+exp_record_field(Fdef, Env, St) ->
     exp_form(Fdef, Env, St).
 
 %% exp_struct_fields(Fields, Env, State) -> {ExpArgs,State}.
@@ -679,9 +687,9 @@ do_exp_let_function(Type, Fbs0, B0, Env0, St0) ->
 exp_let_macro(Mbs, B0, Env0, St0) ->
     %% Add the macro defs from expansion and return body in a progn.
     Env1 = foldl(fun ([Name,['lambda'|_]=Def], Env) when is_atom(Name) ->
-                         add_mbinding(Name, Def, Env);
+                         lfe_env:add_mbinding(Name, Def, Env);
                      ([Name,['match-lambda'|_]=Def], Env) when is_atom(Name) ->
-                         add_mbinding(Name, Def, Env);
+                         lfe_env:add_mbinding(Name, Def, Env);
                      (_, Env) -> Env            %Ignore mistakes
                  end, Env0, Mbs),
     {B1,St1} = exp_tail(B0, Env1, St0),         %Expand the body
@@ -801,7 +809,7 @@ exp_define_function(Name, Meta0, Def0, Env0, St0) ->
     {Meta1,St1} = exp_form(Meta0, Env0, St0),
     Fun = fun ([Mname|Rest], E) ->
                   {_,Mdef} = exp_defmacro(Rest),
-                  add_mbinding(Mname, Mdef, E)
+                  lfe_env:add_mbinding(Mname, Mdef, E)
           end,
     Env1 = foldl(Fun, Env0, [['FUNCTION_NAME',[],?BQ(?Q(Name))],
                              ['FUNCTION_ARITY',[],Arity]]),
@@ -816,7 +824,7 @@ exp_macro([Name|_]=Call, Env, St) ->
     case is_atom(Name) andalso lfe_internal:is_core_form(Name) of
         true -> no;                             %Never expand core forms
         false ->
-            case get_mbinding(Name, Env) of
+            case lfe_env:get_mbinding(Name, Env) of
                 {yes,Def} ->
                     %% User macro bindings.
                     exp_userdef_macro(Call, Def, Env, St);
@@ -832,8 +840,8 @@ exp_macro([Name|_]=Call, Env, St) ->
 %%  it to argument list.
 
 exp_userdef_macro([Mac|Args], Def0, Env, St0) ->
-    %%lfe_io:format("udef: ~p\n", [[Mac|Args]]),
-    %%lfe_io:format("macro: ~p\n", [Def0]),
+    %% lfe_io:format("udef: ~p\n", [[Mac|Args]]),
+    %% lfe_io:format("macro: ~p\n", [Def0]),
     try
         {Def1,St1} = exp_form(Def0, Env, St0),  %Expand definition
         Exp = lfe_eval:apply(Def1, [Args,Env], Env),
@@ -852,7 +860,7 @@ exp_userdef_macro([Mac|Args], Def0, Env, St0) ->
 %%  Evaluate predefined macro definition catching errors.
 
 exp_predef_macro(Call, Env, St) ->
-    %%lfe_io:format("pdef: ~p\n", [Call]),
+    %% lfe_io:format("pdef: ~p\n", [Call]),
     try
         exp_predef(Call, Env, St)
     catch
@@ -892,7 +900,7 @@ exp_module_meta(Meta, _Env, St) ->
     {Meta,St}.
 
 exp_module_rec([Name,Fds], Env, St0) ->
-    {Efds,St1} = exp_rec_fields(Name, Fds, Env, St0),
+    {Efds,St1} = exp_record_fields(Name, Fds, Env, St0),
     {[Name,Efds],St1};
 exp_module_rec(Other, _Env, St) -> {Other,St}.
 
@@ -907,6 +915,33 @@ exp_module_rec(Other, _Env, St) -> {Other,St}.
 %%  macros "safe" even if they have been redefined as it is this
 %%  definition which is used.
 
+%% Now for the new defined forms which basically go to themselves. We
+%% can't do it explicitly here as we would go into a loop so we go to
+%% define-***.
+exp_predef(['module',Name], _, St) ->
+    %% Define the MODULE macro.
+    MODULE = [defmacro,'MODULE',[],?BQ(?Q(Name))],
+    {yes,[progn,['define-module',Name,[],[]],MODULE],St#mac{module=Name}};
+%% Unfortunately we can't use a (function ...) as 'function' is a core
+%% form.
+exp_predef(['type',Type0,Def0], _, St) ->
+    {Type1,Def1} = exp_deftype(Type0, [Def0]),  %Type one element.
+    {yes,['define-type',Type1,Def1],St};
+exp_predef(['opaque',Type0,Def0], _, St) ->
+    {Type1,Def1} = exp_deftype(Type0, [Def0]),  %Type one element.
+    {yes,['define-opaque-type',Type1,Def1],St};
+exp_predef(['spec',Func0,Spec0], _, St) ->
+    {Func1,Spec1} = exp_defspec(Func0, Spec0),
+    {yes,['define-function-spec',Func1,Spec1],St};
+exp_predef(['record',Name,Fds], Env, St) ->
+    %%e lfe_macro_record:define([Name|Fds], Env, St);
+    {yes,[progn,Def|_Macs],St1} = lfe_macro_record:define([Name|Fds], Env, St),
+    {yes,Def,St1};
+exp_predef(['struct',Fds], Env, St) ->
+    lfe_macro_struct:define(Fds, Env, St);
+%% export-macro needs to be in extend-module for now.
+exp_predef(['export-macro'|_]=ExpMac, _, St) ->
+    {yes,['extend-module',[],[ExpMac]],St};
 %% Builtin default macro expansions.
 exp_predef([caar,E], _, St) -> {yes,[car,[car,E]],St};
 exp_predef([cadr,E], _, St) -> {yes,[car,[cdr,E]],St};
@@ -940,28 +975,12 @@ exp_predef([cdddar,E], _, St) -> {yes,[cdr,[cdr,[cdr,[car,E]]]],St};
 exp_predef([cddddr,E], _, St) -> {yes,[cdr,[cdr,[cdr,[cdr,E]]]],St};
 
 %% Comparison operators.
-exp_predef(['!='|Es], Env, St) -> exp_predef(['/='|Es], Env, St);
-exp_predef(['==='|Es], Env, St) -> exp_predef(['=:='|Es], Env, St);
-exp_predef(['!=='|Es], Env, St) -> exp_predef(['=/='|Es], Env, St);
-%% exp_predef([Op|Es], _, St0) when Op == '/=' ; Op == '=/=' ->
-%%     {Exp,St1} = exp_nequal(Es, Op, St0),
-%%     {yes,Exp,St1};
-%% exp_predef([Op|Es], _, St0)
-%%   when Op =:= '>'; Op =:= '>='; Op =:= '<'; Op =:= '=<';
-%%        Op =:= '=='; Op =:= '=:=' ->
-%%     case Es of
-%%         [_|_] ->
-%%             {Exp,St1} = exp_comparison(Es, Op, St0),
-%%             {yes,Exp,St1}
-%%     end;
-exp_predef([backquote,Bq], _, St) ->            %We do this here.
-    {yes,exp_backquote(Bq),St};
-%% exp_predef(['++'|Abody], _, St) ->              %List append
-%%     Exp = exp_append(Abody),
-%%     {yes,Exp,St};
-%% exp_predef(['--'|Args], _, St) ->               %List subtract
-%%     Exp = exp_right_assoc(Args, '--'),
-%%     {yes,Exp,St};
+exp_predef(['!='|Es], _Env, St) -> {yes,['/='|Es],St};
+exp_predef(['==='|Es], _Env, St) -> {yes,['=:='|Es], St};
+exp_predef(['!=='|Es], _Env, St) -> {yes,['=/='|Es], St};
+%% The backquote macro.
+exp_predef([backquote,Bq], Env, St) ->          %We do this here.
+    lfe_macro_backquote:expand(Bq, Env, St);
 exp_predef(['?'|As], _, St) ->
     Omega = [omega,omega],                      %Match anything and return it
     Exp = case As of
@@ -982,14 +1001,6 @@ exp_predef(['flet*'|Lbody], _, St) ->
 exp_predef(['do'|Dbody], _, St0) ->
     {Exp,St1} = exp_do(Dbody, St0),
     {yes,Exp,St1};
-%% exp_predef(['andalso'|Abody], _, St) ->
-%%     Exp = exp_andalso(Abody),
-%%     {yes,Exp,St};
-%% exp_predef(['orelse'|Obody], _, St) ->
-%%     Exp = exp_orelse(Obody),
-%%     {yes,Exp,St};
-%% The fun forms assume M, F and Ar are atoms and integer. We leave
-%% them as before for backwards compatibility.
 exp_predef(['fun',F,Ar], _, St0) ->
     {Vs,St1} = new_symbs(Ar, St0),
     {yes,['lambda',Vs,[F|Vs]],St1};
@@ -1000,23 +1011,6 @@ exp_predef(['defrecord'|Def], Env, St) ->
     lfe_macro_record:define(Def, Env, St);
 exp_predef(['defstruct'|Def], Env, St) ->
     lfe_macro_struct:define(Def, Env, St);
-%% Now catch the new defined forms which aren't macros. They basically
-%% go to themselves. We can't do it explicitly here as we would go
-%% into a loop.
-exp_predef([module,Name], _, St) ->
-    io:format("mac predef 'module'\n", []),
-    %% Define the MODULE macro.
-    MODULE = [defmacro,'MODULE',[],?BQ(?Q(Name))],
-    {yes,[progn,['define-module',Name,[],[]],MODULE],St#mac{module=Name}};
-exp_predef(['function',_Name,_Def], _Env, _St) ->
-    io:format("mac predef 'function'\n", []),
-    no;
-exp_predef(['attribute',_Name|_Value], _Env, _St) ->
-    io:format("mac predef 'attribute'\n", []),
-    no;
-exp_predef(['-',_Name|_Value], _Env, _St) ->
-    io:format("mac predef '-'\n", []),
-    no;
 %% Common Lisp inspired macros.
 %% Note the module forms MUST expand to define-module as this is the
 %% defined form which starts a module.
@@ -1037,7 +1031,9 @@ exp_predef([defspec,Func0|Spec0], _, St) ->
 exp_predef([defun,Name|Rest], _, St) ->
     %% Educated guess whether traditional (defun name (a1 a2 ...) ...)
     %% or matching (defun name (patlist1 ...) (patlist2 ...))
+    %% io:format("defun ~p ~p\n", [Name,Rest]),
     {Meta,Def} = exp_defun(Rest),
+    %% io:format("defun -> ~p ~p\n", [Meta,Def]),
     {yes,['define-function',Name,Meta,Def],St};
 exp_predef([defmacro,Name|Rest], _, St) ->
     %% Educated guess whether traditional (defmacro name (a1 a2 ...) ...)
@@ -1259,7 +1255,7 @@ exp_deftype(T, D) ->
     {Type,Def}.
 
 %% exp_defspec(Func, Def) -> {Func,Def}.
-%%  Do very little here, leave it to lint
+%%  Do very little here, leave it to lint.
 
 exp_defspec([_,_]=Func, Def) -> {Func,Def};
 exp_defspec(Name, Def) ->
@@ -1343,108 +1339,6 @@ exp_macro_meta([String|Rest]) ->
         {[[doc,String]],Rest},
         {[],[String|Rest]}).
 
-%%  By Andre van Tonder
-%%  Unoptimized.  See Dybvig source for optimized version.
-%%  Resembles one by Richard Kelsey and Jonathan Rees.
-%%   (define-syntax quasiquote
-%%     (lambda (s)
-%%       (define (qq-expand x level)
-%%         (syntax-case x (quasiquote unquote unquote-splicing)
-%%           (`x   (quasisyntax (list 'quasiquote
-%%                                    #,(qq-expand (syntax x) (+ level 1)))))
-%%           (,x (> level 0)
-%%                 (quasisyntax (cons 'unquote
-%%                                    #,(qq-expand (syntax x) (- level 1)))))
-%%           (,@x (> level 0)
-%%                 (quasisyntax (cons 'unquote-splicing
-%%                                    #,(qq-expand (syntax x) (- level 1)))))
-%%           (,x (= level 0)
-%%                 (syntax x))
-%%           (((unquote x ...) . y)
-%%            (= level 0)
-%%                 (quasisyntax (append (list x ...)
-%%                                      #,(qq-expand (syntax y) 0))))
-%%           (((unquote-splicing x ...) . y)
-%%            (= level 0)
-%%                 (quasisyntax (append (append x ...)
-%%                                      #,(qq-expand (syntax y) 0))))
-%%           ((x . y)
-%%                 (quasisyntax (cons  #,(qq-expand (syntax x) level)
-%%                                     #,(qq-expand (syntax y) level))))
-%%           (#(x ...)
-%%                 (quasisyntax (list->vector #,(qq-expand (syntax (x ...))
-%%                                                         level))))
-%%           (x    (syntax 'x))))
-%%       (syntax-case s ()
-%%         ((_ x) (qq-expand (syntax x) 0)))))
-
-%% exp_backquote(Exp) -> Exp.
-%%  Not very efficient quasiquote expander, but very compact code.  Is
-%%  R6RS compliant and can handle comma (unquote) and comma-at
-%%  (unquote-splicing) with more than one argument properly.  Actually
-%%  with simple cons/append optimisers code now quite good.
-
-exp_backquote(Exp) -> exp_backquote(Exp, 0).
-
-exp_backquote([backquote,X], N) ->
-    [list,[quote,backquote],exp_backquote(X, N+1)];
-exp_backquote([comma|X], N) when N > 0 ->
-    exp_bq_cons([quote,comma], exp_backquote(X, N-1));
-exp_backquote([comma,X], 0) -> X;
-exp_backquote(['comma-at'|X], N) when N > 0 ->
-    exp_bq_cons([quote,'comma-at'], exp_backquote(X, N-1));
-%% Next 2 handle case of splicing into a list.
-exp_backquote([[comma|X]|Y], 0) ->
-    exp_bq_append([list|X], exp_backquote(Y, 0));
-exp_backquote([['comma-at'|X]|Y], 0) ->
-    exp_bq_append(['++'|X], exp_backquote(Y, 0));
-exp_backquote([X|Y], N) ->                      %The general list case
-    exp_bq_cons(exp_backquote(X, N), exp_backquote(Y, N));
-exp_backquote(X, N) when is_tuple(X) ->
-    %% Straight [list_to_tuple,exp_backquote(tuple_to_list(X), N)]
-    %% inefficient and [tuple|tl(exp_backquote(tuple_to_list(X), N))]
-    %% can't handle splicing!
-    case exp_backquote(tuple_to_list(X), N) of
-        [list|Es] -> [tuple|Es];                %No splicing
-        [cons|_]=E -> [list_to_tuple,E];        %Have splicing
-        [] -> [tuple]                           %The empty tuple
-    end;
-exp_backquote(X, N) when ?IS_MAP(X) ->
-    %% Splicing at top-level almost meaningless here, with [list|...]
-    %% we have no splicing, while with [cons|...] we have splicing
-    case exp_bq_map_pairs(maps:to_list(X), N) of
-        [list|KVs] -> [map|KVs];                %No splicing
-        %% [cons|_]=E ->                        %Have splicing
-        %%      [call,?Q(maps),?Q(from_list)|E];
-        [] -> [map]                             %The empty map
-    end;
-exp_backquote(X, _) when is_atom(X) -> [quote,X];
-exp_backquote(X, _) -> X.                       %Self quoting
-
-exp_bq_append(['++',L], R) ->                   %Catch single comma-at
-    exp_bq_append(L, R);
-exp_bq_append([], R) -> R;
-exp_bq_append(L, []) -> L;
-%% Will these 2 cases move code errors illegally?
-exp_bq_append([list,L], [list|R]) -> [list,L|R];
-exp_bq_append([list,L], R) -> [cons,L,R];
-%%exp_bq_append(['++'|L], R) -> ['++'|L ++ [R]];
-%%exp_bq_append(L, ['++'|R]) -> ['++',L|R];
-exp_bq_append(L, R) -> ['++',L,R].
-
-exp_bq_cons([quote,L], [quote,R]) -> [quote,[L|R]];
-exp_bq_cons(L, [list|R]) -> [list,L|R];
-exp_bq_cons(L, []) -> [list,L];
-exp_bq_cons(L, R) -> [cons,L,R].
-
--ifdef(HAS_MAPS).
-exp_bq_map_pairs(Ps, N) ->
-    KVs = foldr(fun ({K,V}, Acc) -> [K,V|Acc] end, [], Ps),
-    exp_backquote(KVs, N).
--else.
-exp_bq_map_pairs(_, _) -> [list].
--endif.
-
 new_symb(St) ->
     C = St#mac.vc,
     {list_to_atom("|-" ++ integer_to_list(C) ++ "-|"),St#mac{vc=C+1}}.
@@ -1461,10 +1355,31 @@ new_fun_name(Pre, St) ->
     {list_to_atom(Pre ++ "$^" ++ integer_to_list(C)),St#mac{fc=C+1}}.
 
 %% mapfoldl2(Fun, Acc1, Acc2, List) -> {List,Acc1,Acc2}.
-%%  Like normal mapfoldl but with 2 accumulators.
+%%  Like normal mapfoldl but with 2 accumulators and it 
 
 mapfoldl2(Fun, A0, B0, [E0|Es0]) ->
     {E1,A1,B1} = Fun(E0, A0, B0),
     {Es1,A2,B2} = mapfoldl2(Fun, A1, B1, Es0),
-    {[E1|Es1],A2,B2};
+    %% {[E1|Es1],A2,B2};
+    {Es1 ++ [E1],A2,B2};
 mapfoldl2(_, A, B, []) -> {[],A,B}.
+
+%% The new module input forms
+%% (module name)
+%% (export funcs|'all')
+%% (import module funcs)
+%% (moduledoc doc)
+%% (compile options)
+%% (vsn vsn)
+%% (on_load func)
+%% (nifs funcs)
+%%
+%% (record name fields)
+%% (struct fields)
+%% (type name def)
+%% (spec func specs)
+%%
+%% (attribute attr-name attr-value)
+%% (- attr-name attr-value)
+%%
+%% (export-macro macros|'all')

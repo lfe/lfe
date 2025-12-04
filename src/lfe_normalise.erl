@@ -45,7 +45,6 @@
 %%
 %% ['export-type',Line,Types]
 %% ['module-alias',Line,Aliases]
-%% [struct,Line,Fields]
 %% [macro,Line,Name,Definition]
 %% [function,Line,Name,Definition]
 %% ['eval-when-compile',Body]
@@ -61,6 +60,7 @@
 %% [struct,Line,Fields]
 %%
 %% [attribute,Line,Name,Value]          General attribute norm
+%% ['-',Line,Name,Value]                General attribute norm
 
 -module(lfe_normalise).
 
@@ -143,6 +143,7 @@ form({['module',Name],Line}, St) ->
     {[['module',Line,Name]],St#lfe_norm{module=Name}};
 %% Export and import are handled in the attributes.
 form({['define-type',Type,Def],Line},St) ->
+    io:format("dtype ~p ~p\n", [Type,Def]),
     {[['type',Line,Type,Def]],St};
 form({['define-opaque-type',Type,Def],Line}, St) ->
     {[['opaque',Line,Type,Def]],St};
@@ -184,6 +185,8 @@ form({Form,Line}, St) ->
 
 %% attribute_attribute(Attribute, Line, State) ->
 %%     {[Norm],State}.
+%%  We just require that it is one of the legal attributes or an
+%%  (attribute name value).
 
 attribute_attribute(Attr, Line, St) ->
     Unrecog = fun ([Name,Value], L, S) when is_atom(Name) ->
@@ -195,15 +198,15 @@ attribute_attribute(Attr, Line, St) ->
 
 %% form_attribute(Attribute, Line, State) ->
 %%     {[Norm],State}.
+%%  Handle unrecognised forms, either the legal attribute forms or bad
+%%  formats. We only accept the legal attributes.
 
 form_attribute(Form, Line, St) ->
-    %% Handle unrecognised forms, either the legal attribute form or
-    %% bad formats.
     Unrecog = fun
                   %% (['attribute',Name,Value], L, S) when is_atom(Name) ->
                   %%     {[['attribute',L,Name,Value]],S};
-                  ([Name,Value], L, S) when is_atom(Name) ->
-                      {[['attribute',L,Name,Value]],S};
+                  %% ([Name,Value], L, S) when is_atom(Name) ->
+                  %%     {[['attribute',L,Name,Value]],S};
                   %% ([Name,Value], L, S) when is_atom(Name) ->
                   %%     {[['attribute',L,Name,Value]],S};
                   (_F, L, S) ->
@@ -226,12 +229,21 @@ module_attributes(Metas, Attrs, Line, St) ->
 %% module_attribute([doc,Docs], Line, St0) ->
 %%     St1 = add_warning(Line, {deprecated,<<"module attribute doc">>}, St0),
 %%     {[[doc,Line,Docs]],St1};
+module_attribute([export|Exports], Line, St) ->
+    %%e {[[export,Line,Exports]],St};
+    module_export(Exports, Line, St);
+module_attribute([import|Imports], Line, St) ->
+    {[['import',Line,Imports]],St};
 module_attribute([type|TypeDefs], Line, St) ->
     module_type(type, TypeDefs, Line, St);
 module_attribute([opaque|TypeDefs], Line, St) ->
     module_type(opaque, TypeDefs, Line, St);
+module_attribute([nifs|Nifs], Line, St) ->
+    {[[nifs,Line,Nifs]],St};
 module_attribute([spec|SpecDefs], Line, St) ->
     module_spec(SpecDefs, Line, St);
+module_attribute(['export-macro'|Exports], Line, St) ->
+    attribute_export_macro(Exports, Line, St);
 module_attribute(Attr, Line, St) ->
     %% Handle unrecognised module attributes, either the legal short
     %% form or bad formats.
@@ -242,16 +254,23 @@ module_attribute(Attr, Line, St) ->
               end,
     attribute(Attr, Line, Unrecog, St).
 
+module_export([all], Line, St) ->
+    {[['export',Line,all]],St};
+module_export(Exports, Line, St) ->
+    {[['export',Line,Exports]],St}.
+
 module_type(Attr, TypeDefs, Line, St) ->
-    TypeFunc = fun (TypeDef, {As0,S0}) ->
-                       {As,S1} = attribute_type(Attr, TypeDef, Line, S0),
+    TypeFunc = fun ([Type,Def], {As0,S0}) ->
+                       %%e io:format("mtype ~p ~p\n", [Type,Def]),
+                       {As,S1} = attribute_type(Attr, Type, Def, Line, S0),
                        {As0 ++ As,S1}
                end,
     lists:foldl(TypeFunc, {[],St}, TypeDefs).
 
 module_spec(SpecDefs, Line, St) ->
-    SpecFunc = fun (SpecDef, {As0,S0}) ->
-                       {As,S1} = attribute_spec(SpecDef, Line, S0),
+    SpecFunc = fun ([Spec,Def], {As0,S0}) ->
+                       %%e io:format("mspec ~p\n", [[Spec,Def]]),
+                       {As,S1} = attribute_spec(Spec, Def, Line, S0),
                        {As0 ++ As,S1}
                end,
     lists:foldl(SpecFunc, {[],St}, SpecDefs).
@@ -262,36 +281,44 @@ module_spec(SpecDefs, Line, St) ->
 %%  specific cases and have been passed what to do with an
 %%  unrecognised attribute.
 
-attribute([export|Exports], Line, _Unrecog, St) ->
+%% The standard Erlang attributes.
+attribute([module,Name], Line, _Unrecog, St) ->
+    {[[module,Line,Name]],St};
+attribute([export,Exports], Line, _Unrecog, St) ->
     attribute_export(Exports, Line, St);
-attribute(['export-macro'|Exports], Line, _Unrecog, St) ->
-    attribute_export_macro(Exports, Line, St);
-attribute([import|Imports], Line, _Unrecog, St) ->
-    {[[import,Line,Imports]],St};
+attribute([import,Module,Imports], Line, _Unrecog, St) ->
+    {[[import,Line,Module,Imports]],St};
 attribute([moduledoc,Docs], Line, _Unrecog, St) ->
     {[[moduledoc,Line,Docs]],St};
-attribute([compile|Options], Line, _Unrecog, St) ->
+attribute([compile,Options], Line, _Unrecog, St) ->
     {[[compile,Line,Options]],St};
 attribute([vsn,Vsn], Line, _Unrecog, St) ->
+    %%e io:format("avsn ~p\n", [Vsn]),
     {[[vsn,Line,Vsn]],St};
-attribute([on_load|Func], Line, _Unrecog, St) ->
-    {[[on_load,Line,Func]],St};
-attribute([nifs|Nifs], Line, _Unrecog, St) ->
+attribute([on_load,Funcs], Line, _Unrecog, St) ->
+    {[[on_load,Line,Funcs]],St};
+attribute([nifs,Nifs], Line, _Unrecog, St) ->
     {[[nifs,Line,Nifs]],St};
-attribute([type|TypeDef], Line, _Unrecog, St) ->
-    attribute_type('type', TypeDef, Line, St);
-attribute([opaque|TypeDef], Line, _Unrecog, St) ->
-    attribute_type('opaque', TypeDef, Line, St);
+attribute([type,Type,Def], Line, _Unrecog, St) ->
+    %%e io:format("atype ~p ~p\n", [Type,Def]),
+    attribute_type('type', Type, Def, Line, St);
+attribute([opaque,Type,Def], Line, _Unrecog, St) ->
+    attribute_type('opaque', Type, Def, Line, St);
+attribute([spec,Func,Spec], Line, _Unrecog, St) ->
+    %%e io:format("aspec ~p\n", [[Func,Spec]]),
+    attribute_spec(Func, Spec, Line, St);
 attribute([record,Name,Fields], Line, _Unrecog, St) ->
     {[['record',Line,Name,Fields]],St};
 attribute([struct,Fields], Line,_Unrecog, St) ->
     {[['struct',Line,Fields]],St};
-attribute([spec|Spec], Line, _Unrecog, St) ->
-    attribute_spec(Spec, Line, St);
 attribute([doc,Docs], Line, _Unrecog, St) ->
     {[[doc,Line,Docs]],St};
 attribute([file,FileName,FileLine], Line, _Unrecog, St) ->
     {[['attribute',Line,file,{FileName,FileLine}]],St};
+%% The standard LFE attributes.
+attribute(['export-macro',Exports], Line, _Unrecog, St) ->
+    attribute_export_macro(Exports, Line, St);
+%% Everything else is unrecognised.
 attribute(Attr, Line, Unrecog, St) ->
     Unrecog(Attr, Line, St).
 
@@ -299,39 +326,40 @@ attribute(Attr, Line, Unrecog, St) ->
 %% attribute_export_macro(Exports, Line, State) -> {[Export],State}.
 %%  Need to specially handle 'all'.
 
-attribute_export([all], Line, St) ->
+attribute_export(all, Line, St) ->
     {[[export,Line,all]],St};
 attribute_export(Exports, Line, St) ->
     {[[export,Line,Exports]],St}.
 
-attribute_export_macro([all], Line, St) ->
+attribute_export_macro(all, Line, St) ->
     {[['export-macro',Line,all]],St};
 attribute_export_macro(Exports, Line, St) ->
     {[['export-macro',Line,Exports]],St}.
 
-%% attribute_type(Attribute, TypeDef, Line, State) -> {[Norm],St}'
+%% attribute_type(Attribute, Type, Def, Line, State) -> {[Norm],St}'
 %%  Returns type norm where we have checked the formats and made sure
 %%  there is enough data in the arguments.
 
-attribute_type(Attr, [Type0|Def0], Line, St) ->
+attribute_type(Attr, Type0, Def0, Line, St) ->
     Type1 = if is_list(Type0) -> Type0; true -> [Type0] end,
-    Def1 = if Def0 =:= [] -> [any]; true -> hd(Def0) end,
-    {[[Attr,Line,Type1,Def1]],St};
-attribute_type(Attr, _TypeDef, Line, St) ->
-    {[],add_error(Line, {bad_attribute,Attr}, St)}.
+    %%e Def1 = if Def0 =:= [] -> [any]; true -> hd(Def0) end,
+    Def1 = if Def0 =:= [] -> [any]; true -> Def0 end,
+    {[[Attr,Line,Type1,Def1]],St}.
+%% attribute_type(Attr, _Type, _Def, Line, St) ->
+%%     {[],add_error(Line, {bad_attribute,Attr}, St)}.
 
-%% attriubute_spec(SpecAttribute, Line, State) -> {[Norm],St}.
+%% attribute_spec(Func, Spec, Line, State) -> {[Norm],St}.
 %%  Return a spec norm. If the spec form does not include a functiona
 %%  arity then we calculate one from the spec if we can. The linter
 %%  will check this.
 
-attribute_spec([[_Name,_Ar]=Func|Specs], Line, St) ->
+attribute_spec([_Name,_Ar]=Func, Specs, Line, St) ->
     {[['spec',Line,Func,Specs]],St};
-attribute_spec([Name|Specs], Line, St) ->
+attribute_spec(Name, Specs, Line, St) ->
     Arity = spec_arity(Specs),
-    {[['spec',Line,[Name,Arity],Specs]],St};
-attribute_spec(Specs, Line, St) ->
-    {[['spec',Line|Specs]],St}.
+    {[['spec',Line,[Name,Arity],Specs]],St}.
+%% attribute_spec(Specs, Line, St) ->
+%%     {[['spec',Line|Specs]],St}.
 
 %% spec_arity(Specs) -> Arity.
 %%  Just return the length of the first arg list and let lint check
@@ -371,7 +399,7 @@ function_metas(Name, Line, Metas, St) ->
     
 function_meta(Name, Line, [spec|Specs], St) ->
     %% form({['define-function-spec',[Name,Arity],Specs],Line}, St);
-    attribute_spec([Name|Specs], Line, St);
+    attribute_spec(Name, Specs, Line, St);
 function_meta(_Name, Line, Meta, St) ->
     form({Meta,Line}, St).
 

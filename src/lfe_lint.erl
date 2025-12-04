@@ -316,6 +316,8 @@ collect_form(['moduledoc',Line,Docs], St) ->
     {[],check_moduledoc(Docs, Line, St)};
 collect_form(['compile',_Line,_Options], St) ->
     {[],St};                                    %Just pass this on
+collect_form(['vsn',Line,Vsn], St) ->
+    {[],check_vsn(Vsn, Line, St)};
 collect_form(['on_load',Line,Onload], St) ->
     {[],check_onload(Onload, Line, St)};
 collect_form(['nifs',Line,Nifs], St) ->
@@ -432,6 +434,8 @@ check_doc(Doc, Line, St) ->
 %% check_file(Value, Line, State) -> State.
 %%  Check the file attribute.
 
+check_file([FileValue|_], Line, St) ->          %A hack!
+    check_file(FileValue, Line, St);
 check_file({Name,FileLine}, Line, St) ->
     ?IF(io_lib:char_list(Name) andalso
         is_integer(FileLine) andalso FileLine >= 0,
@@ -440,7 +444,7 @@ check_file({Name,FileLine}, Line, St) ->
 %% check_onload(Function, Line, State) -> State.
 %%  Check the on_load attribute.
 
-check_onload([[F,Ar]], L, St) when is_atom(F), is_integer(Ar) ->
+check_onload([F,Ar], L, St) when is_atom(F), is_integer(Ar) ->
     case St#lfe_lint.onload of
         {{F,Ar},_} -> St;                       %Already there
         []  ->                                  %Nothing yet
@@ -450,6 +454,13 @@ check_onload([[F,Ar]], L, St) when is_atom(F), is_integer(Ar) ->
     end;
 check_onload(_Onload, L, St) ->
     bad_attr_error(L, on_load, St).
+
+%% check_vsn(Vsn, Line, State) -> State.
+%%  Check the vsn attribute, it can be any term.
+
+check_vsn(_Vsn, _L, St) -> St.
+%% check_vsn(_Vsn, L, St) ->
+%%     bad_attr_error(L, vsn, St).
 
 %% check_nifs(Functions, Line, State) -> State.
 %%  Check the nifs attribute.

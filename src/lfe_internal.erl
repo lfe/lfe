@@ -27,6 +27,7 @@
 -export([is_arith_func/2,is_bit_func/2,is_bool_func/2,is_comp_func/2,
          is_map_func/2,is_record_func/2,is_struct_func/2,is_list_func/2]).
 -export([is_type/2]).
+-export([is_lfe_attribute/1]).
 
 %% -compile([export_all]).
 
@@ -346,7 +347,7 @@ is_lfe_bif('macroexpand-all', 1) -> true;
 is_lfe_bif('macroexpand-all', 2) -> true;
 is_lfe_bif(Name, Ar) when is_atom(Name), is_integer(Ar) -> false.
 
-%% is_type(NAme, Arity) -> bool().
+%% is_type(Name, Arity) -> bool().
 %%  Return true if Name/Arity is a predefined type.
 
 is_type('UNION', Ar) -> is_integer(Ar) and (Ar >= 0);
@@ -358,3 +359,24 @@ is_type(bitstring, 2) -> true;
 is_type(tuple, Ar) -> is_integer(Ar) and (Ar >= 0);
 is_type(Name, Arity) ->
     erl_internal:is_type(Name, Arity).
+
+%% is_lfe_attribute(Name) -> bool().
+%%  Return true if Name is a predefined Erlang attribute.
+
+is_lfe_attribute(module) -> true;
+is_lfe_attribute(export) -> true;
+is_lfe_attribute(import) -> true;
+is_lfe_attribute(moduledoc) -> true;
+is_lfe_attribute(compile) -> true;
+is_lfe_attribute(vsn) -> true;
+is_lfe_attribute(on_load) -> true;
+is_lfe_attribute(nifs) -> true;
+is_lfe_attribute(type) -> true;
+is_lfe_attribute(opaque) -> true;
+is_lfe_attribute(spec) -> true;
+is_lfe_attribute(record) -> true;
+is_lfe_attribute(struct) -> true;
+is_lfe_attribute(doc) -> true;
+is_lfe_attribute(file) -> true;
+is_lfe_attribute('export-macro') -> true;           %Maybe
+is_lfe_attribute(Name) when is_atom(Name) -> false.

@@ -376,8 +376,8 @@ eval_list_func(Op, _Ar, As, Env) ->
 eval_comp_func(Op, _Ar, As, Env) ->
     eval_left(Op, As, Env).
 
-%% eval_gleft(Op, Values, Environment) -> Value.
-%% eval_gright(Op, Values, Environment) -> Value.
+%% eval_left(Op, Values, Environment) -> Value.
+%% eval_right(Op, Values, Environment) -> Value.
 
 eval_left(_Op, [V], _Env) -> V;
 eval_left(Op, [V1,V2|Vs], Env) ->
