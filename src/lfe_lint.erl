@@ -310,6 +310,12 @@ collect_form(['export',Line,Exports], St) ->
     {[],check_export(Exports, Line, St)};
 collect_form(['export-macro',_Line,_Exports], St) ->
     {[],St};                                    %Just pass this on
+%% The new format 'import' and 'rename'.
+collect_form(['import',Line,Module,Imports], St) ->
+    {[],check_import(Module,Imports,Line,St)};
+collect_form(['rename',Line,Module,Renames], St) ->
+    {[],check_rename(Module,Renames,Line,St)};
+%% The old format 'import'.
 collect_form(['import',Line,Imports], St) ->
     {[],check_import(Imports, Line, St)};
 collect_form(['moduledoc',Line,Docs], St) ->
@@ -333,12 +339,12 @@ collect_form(['module-alias',Line,Aliases], St) ->
 collect_form(['spec',Line,Func,Specs], St) ->
     %% io:format("ll ~p\n", [{dfs,Func,Specs}]),
     {[],check_spec(Func, Specs, Line, St)};
+collect_form(['function',Line,Name,Def], St) ->
+    collect_function(Name, Def, Line, St);
 collect_form(['record',Line,Name,Fields], St) ->
     {[],check_record_def(Name, Fields, Line, St)};
 collect_form(['struct',Line,Fields], St) ->
     {[],check_struct_def(Fields, Line, St)};
-collect_form(['function',Line,Name,Def], St) ->
-    collect_function(Name, Def, Line, St);
 collect_form(['doc',Line,Doc], St) ->
     {[],check_doc(Doc, Line, St)};
 %% General attributes.
@@ -347,7 +353,7 @@ collect_form(['attribute',Line,Name,Value], St) ->
 %% Ignore macro definitions and eval-when-compile forms.
 collect_form(['macro'|_], St) -> {[],St};
 collect_form(['eval-when-compile'|_], St) -> {[],St};
-collect_form([Form,Line], St) ->
+collect_form([Form,Line|_Rest], St) ->
     {[],add_error(Line, {unknown_form,Form}, St)}.
 
 check_module_def(Name, Line, St) ->
@@ -379,7 +385,41 @@ check_export(Es, L, St) ->
         no -> bad_module_def_error(L, export, St)
     end.
 
+%% check_import(Module, Imports, Line, State) -> State.
+%%  The new format 'import'.
+
+check_import(Mod, Imports, L, St0) when is_atom(Mod) ->
+    Add = fun ([F,Ar], Is, S) when is_atom(F),
+                                   is_integer(Ar) ->
+                  check_import(F, Ar, Mod, F, Is, L, S);
+              (_, Is, S) ->
+                  {Is,bad_module_def_error(L, <<"import">>, S)}
+          end,
+    {Imps,St1} = check_foldl(Add, fun (S) -> S end,
+                             St0#lfe_lint.imports, St0, Imports),
+    St1#lfe_lint{imports=Imps};
+check_import(_, _, L, St) ->
+    import_error(L, St).
+
+%% check_rename(Module, Renames, Line, State) -> State.
+%%  The new format 'rename'.
+
+check_rename(Mod, Renames, L, St0) when is_atom(Mod) ->
+    Add = fun ([[F,Ar],R], Is, S) when is_atom(F),
+                                       is_integer(Ar),
+                                       is_atom(R) ->
+                  check_import(R, Ar, Mod, F, Is, L, S);
+              (_, Is, S) ->
+                  {Is,bad_module_def_error(L, <<"import">>, S)}
+          end,
+    {Imps,St1} = check_foldl(Add, fun (S) -> S end,
+                             St0#lfe_lint.imports, St0, Renames),
+    St1#lfe_lint{imports=Imps};
+check_rename(_, _, L, St) ->
+    import_error(L, St).
+
 %% check_import(Imports, Line, State) -> State.
+%%  The old format 'import'.
 
 check_import(Imports, L, St) ->
     %% io:format("im ~p\n", [Imports]),

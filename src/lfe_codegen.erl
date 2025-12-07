@@ -132,6 +132,12 @@ compile_form(['module',Line,Name], _Forms, St0) ->
     {[],[],St1};
 compile_form(['export',Line,Exports], _Forms, St) ->
     {[],[],collect_exports(Exports, Line, St)};
+%% The new format 'import' and 'rename'.
+compile_form(['import',Line,Module,Imports], _Forms, St) ->
+    {[],[],collect_import(Module, Imports, Line, St)};
+compile_form(['rename',Line,Module,Renames], _Forms, St) ->
+    {[],[],collect_rename(Module, Renames, Line, St)};
+%% The old format 'import'.
 compile_form(['import',Line,Imports], _Forms, St) ->
     {[],[],collect_imports(Imports, Line, St)};
 compile_form(['moduledoc',Line,Doc], _Forms, St) ->
@@ -194,6 +200,22 @@ collect_exports(Exps, #lfe_cg{exports=Exps0}=St) ->
     Exps1 = lists:foldl(fun ([F,A], E) -> ordsets:add_element({F,A}, E) end,
                         Exps0, Exps),
     St#lfe_cg{exports=Exps1}.
+
+%% collect_import(Module, Imports, Line, State) -> State.
+%%  The new format 'import'.
+
+collect_import(Mod, Imports, _Line, St) ->
+    Import = fun ([F,A], Ifs) -> orddict:store({F,A}, {Mod,F}, Ifs) end,
+    collect_import(Import, St, Imports).
+
+%% collect_rename(Module, Renames, Line, State) -> State.
+%%  The new format 'rename'.
+
+collect_rename(Mod, Renames, _Line, St) ->
+    %% Get it right here, R is the renamed local called function, F is
+    %% the name in the other module.
+    Rename = fun ([[F,A],R], Ifs) -> orddict:store({R,A}, {Mod,F}, Ifs) end,
+    collect_import(Rename, St, Renames).
 
 %% collect_imports(Imports, Line, State) -> State.
 %%  Collect imports keeping track of local and imported names.

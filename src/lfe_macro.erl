@@ -38,9 +38,6 @@
 
 %% -compile([export_all]).
 
--import(lists, [any/2,all/2,map/2,foldl/3,foldr/3,mapfoldl/3,
-                reverse/1,reverse/2,member/2,concat/1]).
-
 -include("lfe.hrl").
 -include("lfe_comp.hrl").
 -include("lfe_macro.hrl").
@@ -290,7 +287,8 @@ ewc_eval_set_1(Args, Env, St0) ->
 ewc_eval_set_1(Pat, Guard, Exp, Env0, St) ->
     Val = lfe_eval:expr(Exp, Env0),
     {yes,_,Bs} = lfe_eval:match_when(Pat, Val, Guard, Env0),
-    Env1 = foldl(fun ({N,V}, E) -> lfe_env:add_vbinding(N, V, E) end, Env0, Bs),
+    Env1 = lists:foldl(fun ({N,V}, E) -> lfe_env:add_vbinding(N, V, E) end,
+                       Env0, Bs),
     Sets = ?IF(St#mac.keep, [ [set,N,V] || {N,V} <- Bs ], []),
     {['progn'|Sets],Env1,St}.
 
@@ -361,11 +359,12 @@ add_warning(L, W, St) ->
 %% arguments. This means that they also work in normal forms.
 exp_form([Attr|Args0], Env, St0)
   when Attr =:= 'module'       ; Attr =:= 'export' ;
-       Attr =:= 'export-macro' ; Attr =:= 'import' ;
+       Attr =:= 'import'       ; Attr =:= 'rename' ;
        Attr =:= 'moduledoc'    ; Attr =:= 'compile' ;
        Attr =:= 'vsn'          ; Attr =:= 'on_load' ;
-       Attr =:= 'nifs'         ; Attr =:= 'doc';
-       Attr =:= 'file' ->
+       Attr =:= 'nifs'         ; Attr =:= 'doc' ;
+       Attr =:= 'file'         ;
+       Attr =:= 'export-macro' ->
     {Args1,St1} = exp_list(Args0, Env, St0),
     %%e io:format("emf ~p\n", [[Attr|Args1]]),
     {[Attr|Args1],St1};
@@ -467,8 +466,11 @@ exp_form(['struct-update',E,Name|Args], Env, St0) ->
     {Ee,St1} = exp_form(E, Env, St0),
     {Eas,St2} = exp_tail(Args, Env, St1),
     {['struct-update',Ee,Name|Eas],St2};
-%% Function forms.
-exp_form([function|_]=F, _, St) -> {F,St};
+%% Function new form for defining functions.
+%% Note that this can be used to make a function reference.
+exp_form([function,Name|Def0], Env, St0) ->
+    {Def1,St1} = exp_tail(Def0, Env, St0),
+    {[function,Name|Def1],St1};
 %% Core closure special forms.
 exp_form([lambda,Head|B], Env, St) ->
     exp_head_tail(lambda, Head, B, Env, St);
@@ -569,7 +571,7 @@ exp_head_tail(Name, Head, B0, Env, St0) ->
 %%  Expand a proper list of exprs.
 
 exp_list(Es, Env, St) ->
-    mapfoldl(fun (E, S) -> exp_form(E, Env, S) end, St, Es).
+    lists:mapfoldl(fun (E, S) -> exp_form(E, Env, S) end, St, Es).
 
 %% exp_tail(Tail, Env, State) -> {Etail,State}.
 %% exp_tail(ExpFun, Tail, Env, State) -> {Etail,State}.
@@ -675,7 +677,7 @@ do_exp_let_function(Type, Fbs0, B0, Env0, St0) ->
                (_, {Env,St}) ->
                    {Env,add_error(St#mac.line, {bad_form,Type}, St)}
            end,
-    {Env1,St1} = foldl(Efun, {Env0,St0}, Fbs0),
+    {Env1,St1} = lists:foldl(Efun, {Env0,St0}, Fbs0),
     {Fbs1,St2} = exp_clauses(Fbs0, Env1, St1),
     {B1,St3} = exp_tail(B0, Env1, St2),
     {Fbs1,B1,St3}.
@@ -686,12 +688,13 @@ do_exp_let_function(Type, Fbs0, B0, Env0, St0) ->
 
 exp_let_macro(Mbs, B0, Env0, St0) ->
     %% Add the macro defs from expansion and return body in a progn.
-    Env1 = foldl(fun ([Name,['lambda'|_]=Def], Env) when is_atom(Name) ->
-                         lfe_env:add_mbinding(Name, Def, Env);
-                     ([Name,['match-lambda'|_]=Def], Env) when is_atom(Name) ->
-                         lfe_env:add_mbinding(Name, Def, Env);
-                     (_, Env) -> Env            %Ignore mistakes
-                 end, Env0, Mbs),
+    LetFun = fun ([Name,['lambda'|_]=Def], Env) when is_atom(Name) ->
+                     lfe_env:add_mbinding(Name, Def, Env);
+                 ([Name,['match-lambda'|_]=Def], Env) when is_atom(Name) ->
+                     lfe_env:add_mbinding(Name, Def, Env);
+                 (_, Env) -> Env            %Ignore mistakes
+             end,
+    Env1 = lists:foldl(LetFun, Env0, Mbs),
     {B1,St1} = exp_tail(B0, Env1, St0),         %Expand the body
     {['progn'|B1],St1}.
 
@@ -811,8 +814,8 @@ exp_define_function(Name, Meta0, Def0, Env0, St0) ->
                   {_,Mdef} = exp_defmacro(Rest),
                   lfe_env:add_mbinding(Mname, Mdef, E)
           end,
-    Env1 = foldl(Fun, Env0, [['FUNCTION_NAME',[],?BQ(?Q(Name))],
-                             ['FUNCTION_ARITY',[],Arity]]),
+    Env1 = lists:foldl(Fun, Env0, [['FUNCTION_NAME',[],?BQ(?Q(Name))],
+                                   ['FUNCTION_ARITY',[],Arity]]),
     {Def1,St2} = exp_form(Def0, Env1, St1),
     {['define-function',Name,Meta1,Def1],St2}.
 
@@ -1045,21 +1048,21 @@ exp_predef([flet,Defs|Body], _, St) ->
                   {_,Def} = exp_defun(Rest),    %Ignore meta data
                   [Name,Def]
           end,
-    Fdefs = map(Fun, Defs),
+    Fdefs = lists:map(Fun, Defs),
     {yes,['let-function',Fdefs|Body], St};
 exp_predef([fletrec,Defs|Body], _, St) ->
     Fun = fun ([Name|Rest]) ->
                   {_,Def} = exp_defun(Rest),    %Ignore meta data
                   [Name,Def]
           end,
-    Fdefs = map(Fun, Defs),
+    Fdefs = lists:map(Fun, Defs),
     {yes,['letrec-function',Fdefs|Body], St};
 exp_predef([macrolet,Defs|Body], _, St) ->
     Fun = fun ([Name|Rest]) ->
                   {_,Def} = exp_defmacro(Rest), %Ignore meta data
                   [Name,Def]
           end,
-    Mdefs = map(Fun, Defs),
+    Mdefs = lists:map(Fun, Defs),
     {yes,['let-macro',Mdefs|Body],St};
 %% Handle match specifications both ets and tracing (dbg).
 %% This has to go here so as to be able to macro expand body.
@@ -1155,7 +1158,7 @@ exp_qlc([lc,Qs|Es], Opts, Env, St0) ->
     %% a conversion of a list.
     Vlc = lfe_translate:to_expr([lc,Eqs|Ees], 42),
     %% lfe_io:format("~w\n", [Vlc]),
-    Vos = map(fun (O) -> lfe_translate:to_expr(O, 42) end, Opts),
+    Vos = lists:map(fun (O) -> lfe_translate:to_expr(O, 42) end, Opts),
     %% io:put_chars(["E0 = ",erl_pp:expr(Vlc, 5, []),"\n"]),
     {ok,Vexp} = lfe_qlc:expand(Vlc, Vos),
     %% io:put_chars([erl_pp:expr(Vexp),"\n"]),
@@ -1164,7 +1167,7 @@ exp_qlc([lc,Qs|Es], Opts, Env, St0) ->
     {yes,Exp,St2}.
 
 exp_qlc_quals(Qs, Env, St) ->
-    mapfoldl(fun (Q, S) -> exp_qlc_qual(Q, Env, S) end, St, Qs).
+    lists:mapfoldl(fun (Q, S) -> exp_qlc_qual(Q, Env, S) end, St, Qs).
 
 exp_qlc_qual(['<-',P0,['when'|G0],E0], Env, St0) ->
     {P1,St1} = exp_form(P0, Env, St0),
@@ -1204,8 +1207,8 @@ exp_flet_star([Fb|B]) -> [flet,Fb|B].           %Pass error to flet for lint
 %%  to do vars.
 
 exp_do([Pars,[Test,Ret]|Body], St0) ->
-    {Vs,Is,Cs} = foldr(fun ([V,I,C], {Vs,Is,Cs}) -> {[V|Vs],[I|Is],[C|Cs]} end,
-                       {[],[],[]}, Pars),
+    Foldr = fun ([V,I,C], {Vs,Is,Cs}) -> {[V|Vs],[I|Is],[C|Cs]} end,
+    {Vs,Is,Cs} = lists:foldr(Foldr, {[],[],[]}, Pars),
     {Fun,St1} = new_fun_name("do", St0),
     Exp = ['letrec-function',
            [[Fun,[lambda,Vs,
@@ -1331,7 +1334,7 @@ exp_lambda_defmacro(Args, Body) ->
 
 exp_match_defmacro(Rest) ->
     {Meta,Cls} = exp_macro_meta(Rest),
-    {Meta,map(fun ([Head|Body]) -> [[Head,'$ENV']|Body] end, Cls)}.
+    {Meta,lists:map(fun ([Head|Body]) -> [[Head,'$ENV']|Body] end, Cls)}.
 
 exp_macro_meta([String|Rest]) ->
     %% The untagged doc string but not at the end.
@@ -1360,14 +1363,16 @@ new_fun_name(Pre, St) ->
 mapfoldl2(Fun, A0, B0, [E0|Es0]) ->
     {E1,A1,B1} = Fun(E0, A0, B0),
     {Es1,A2,B2} = mapfoldl2(Fun, A1, B1, Es0),
-    %% {[E1|Es1],A2,B2};
-    {Es1 ++ [E1],A2,B2};
+    {[E1|Es1],A2,B2};
 mapfoldl2(_, A, B, []) -> {[],A,B}.
 
 %% The new module input forms
 %% (module name)
 %% (export funcs|'all')
-%% (import module funcs)
+%% (import module (from funcs) | (rename Renames))
+%% (import module funcs) ?
+%% (import-from module funcs)
+%% (import-rename module renames)
 %% (moduledoc doc)
 %% (compile options)
 %% (vsn vsn)
@@ -1377,6 +1382,7 @@ mapfoldl2(_, A, B, []) -> {[],A,B}.
 %% (record name fields)
 %% (struct fields)
 %% (type name def)
+%% (opaque name def)
 %% (spec func specs)
 %%
 %% (attribute attr-name attr-value)

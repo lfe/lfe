@@ -1,0 +1,142 @@
+# MODULES
+
+## Module Syntax
+
+LFE code is divided into modules. A module consists of a sequence of
+attributes and function declarations, each being a valid form.
+
+## Module Attributes
+
+A *module attribute* defines a certain property of a module. A module
+attribute consists of a tag and a value. The `tag` is an atom and the
+`value` must be a literal term.
+
+Several module attributes have predefined meanings. Some of them have
+arity two, but user-defined module attributes must have arity one.
+
+### Pre-Defined Module Attributes
+
+**`(module module-name)`**
+
+Module declaration, defining the name of the module. The name
+`module-name`, an atom, is to be same as the file name minus the extension
+`.lfe`. Otherwise code loading does not work as intended.
+
+This attribute is to be specified first and is the only mandatory attribute.
+
+**`(export functions)`**
+
+Exported functions. Specifies which of the functions, defined within
+the module, that are visible from outside the module.
+
+`functions` is a list `((name-1 arity-1) ... (name-n arity-n))`, where each `name-i` is an atom and `arity-i` an integer.
+
+**`(import module functions)`**
+
+Importing allows us to call "local" functions where the call will be
+changed to a call to the function in another module, so the call
+`(do-stuff x y)` will become the call `(the-module:do-stuff x y)`.
+
+`functions` is a list `(name-1 name-2 ... name-n)` of the functions
+which will be changed to a call to the given module.
+
+**`(rename module renames)`**
+
+Like `import` but it allows us to rename the function being called, so
+in this case the call `(funny-name x y)` could become
+`(the-module:good-name x y)`.
+
+**`(moduledoc documentation)`**
+
+The user documentation for this module. The allowed values for
+`documentation` are the same as for `doc` attribute.
+
+**`(compile options)`**
+
+Compiler options. `options` is a single option or a list of
+options. This attribute is added to the option list when compiling the
+module. See module compile in Compiler.
+
+**`(vsn vsn)`**
+
+Module version. `vsn` is any literal term and can be retrieved using `beam_lib:version/1`.
+
+If this attribute is not specified, the version defaults to the MD5
+checksum of the module.
+
+**`(on_load functions)`**
+
+This attribute names a function that is to be run automatically when a
+module is loaded.
+
+**`(nifs functions)`**
+
+Specifies which of the functions, defined within the module, that may
+be loaded as NIFs with `erlang:load_nif/2`.
+
+### Record and Struct definitions
+
+The same syntax as for module attributes is used for record and struct
+definitions:
+
+**`(record name fields)`**
+
+**`(struct fields)`**
+
+### Setting File and Line
+
+**`(file name line)`**
+
+### Types and function specifications
+
+For a description of these see the `lfe-types` documentation.
+
+**`(type type-name type-def)`**
+
+**`(opaque type-name type-def)`**
+
+**`(spec function function-spec)`**
+
+### Documentation attributes
+
+The module attribute `(doc documentation)` is used to provide user
+documentation for a function/type/callback.
+
+```
+(doc "Example documentation")
+(function example (lambda () 'ok))
+```
+
+The attribute should be placed just before the entity it documents.
+
+**`(doc documentation)`**
+
+### LFE specific attributes
+
+**`(export-macro macros)`**
+
+Export the macros so they can be callable from other modules.
+
+**`(module-alias aliases)`**
+
+Provide alias names for modules. A typical use is to give give short
+names for modules with long names. `aliases` is a list
+
+```((sname-1 real-long-name-1) ... (sname-n real-long-name-n))```.
+
+### User-defined attributes
+
+User-defined module attributes must have arity one. There are two ways
+of creating user-defined attributes, either using the more literal
+`attribute` tag or going more Erlangy with `-`.
+
+**`(attribute tag value)`**
+
+**`(- tag value)`**
+
+## Older Syntax
+
+```
+(defmodule module-name
+    attributes)
+```

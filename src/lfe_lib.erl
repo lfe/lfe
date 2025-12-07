@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2024 Robert Virding
+%% Copyright (c) 2008-2026 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 -export([is_symb/1,is_symb_list/1,is_posint_list/1,
          is_proper_list/1,is_doc_string/1]).
 
+-export([process_forms/3,process_forms/4]).
 -export([proc_forms/3,proc_forms/4]).
 
 %% Miscellaneous useful LFE functions.
@@ -53,16 +54,20 @@ is_proper_list(_) -> false.
 is_doc_string(Doc) ->
     is_binary(Doc) or io_lib:char_list(Doc).
 
-%% proc_forms(FormFun, Forms, State) -> {Forms,State}.
-%% proc_forms(FormFun, Forms, Line, State) -> {Forms,State}.
+%% process_forms(FormFun, Forms, State) -> {Forms,State}.
+%% process_forms(FormFun, Forms, Line, State) -> {Forms,State}.
 %%  Process a (progn ... ) nested list of forms where top level list
 %%  has elements {Form,LineNumber}. Return a flat list of results and
 %%  passes through State. All the elements are processed left to
 %%  right. The accumulator is in reverse order!
 
-proc_forms(Fun, Fs, St) -> proc_top_forms(Fun, Fs, [], St).
+%% For backwards compatibilty.
+proc_forms(Fun, Fs, St) -> process_forms(Fun, Fs, St).
+proc_forms(Fun, Fs, Line, St) -> process_forms(Fun, Fs, Line, St).
 
-proc_forms(Fun, Fs, L, St0) ->
+process_forms(Fun, Fs, St) -> proc_top_forms(Fun, Fs, [], St).
+
+process_forms(Fun, Fs, L, St0) ->
     {Rs,St1} = proc_progn_forms(Fun, Fs, L, [], St0),
     {lists:reverse(Rs),St1}.
 

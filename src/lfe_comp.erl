@@ -296,7 +296,7 @@ do_passes([], St) -> {ok,St}.                   %Got to the end, everything ok!
 %%  first module is available in every module, after that things are
 %%  local to the module in which they are defined. We need to expand
 %%  top-level macros in forms so we can safelt detect the start of
-%%  each module (with define-module form).
+%%  each module (with define-module or module forms).
 
 do_split_file(#comp{lfile=Lfile,cinfo=Ci,code=Code0}=St) ->
     %% Add a FILE macro with the file name at the beginning.
@@ -338,7 +338,15 @@ collect_modules(Fs, PreFs, PreEnv, MacSt) ->
     collect_modules(Fs, [], PreFs, PreEnv, MacSt).
 
 collect_modules([{['define-module',Name|_],_}=Mdef|Fs0], Ms, PreFs, PreEnv, MacSt0) ->
-    %% Expand and collect all forms upto next define-module or end.
+    %% Expand and collect all forms upto next define-module/module or end.
+    case collect_mod_forms(Fs0, PreEnv, MacSt0) of
+        {Mfs0,Fs1,_,MacSt1} ->
+            M = #module{name=Name,code=[Mdef] ++ PreFs ++ Mfs0},
+            collect_modules(Fs1, [M|Ms], PreFs, PreEnv, MacSt1);
+        Error -> Error
+    end;
+collect_modules([{['module',Name],_}=Mdef|Fs0], Ms, PreFs, PreEnv, MacSt0) ->
+    %% Expand and collect all forms upto next define-module/module or end.
     case collect_mod_forms(Fs0, PreEnv, MacSt0) of
         {Mfs0,Fs1,_,MacSt1} ->
             M = #module{name=Name,code=[Mdef] ++ PreFs ++ Mfs0},
@@ -364,6 +372,8 @@ collect_mod_forms(Fs, Env0, MacSt0) ->
 collect_mod_forms([F0|Fs0], Acc, Env0, MacSt0) ->
     case lfe_macro:expand_fileform(F0, Env0, MacSt0) of
         {ok,{['define-module'|_],_}=F1,Env1,MacSt1} ->
+            {Acc,[F1|Fs0],Env1,MacSt1};
+        {ok,{['module'|_],_}=F1,Env1,MacSt1} ->
             {Acc,[F1|Fs0],Env1,MacSt1};
         {ok,{['progn'|Pfs],L},Env1,MacSt1} ->     %Flatten progn's
             Fs1 = [ {F,L} || F <- Pfs ] ++ Fs0,

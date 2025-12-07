@@ -35,6 +35,7 @@
 %% [module,Line,Name]
 %% [export,Line,all | Exports]
 %% [import,Line,Imports]
+%% [rename,Line,Renames]
 %% [moduledoc,Line,Docs]
 %% [compile,Line,Options]
 %% [vsn,Line,Vsn]
@@ -78,10 +79,12 @@
 %% Errors.
 format_error(illegal_form) ->
     <<"illegal form">>;
+format_error({illegal_form,Form}) ->
+    lfe_io:format1(<<"illegal ~w form">>, [Form]);
 format_error(bad_attribute) ->
     <<"bad attribute">>;
-format_error({bad_attribute,A}) ->
-    lfe_io:format1(<<"bad ~w attribute">>, [A]);
+format_error({bad_attribute,Attr}) ->
+    lfe_io:format1(<<"bad ~w attribute">>, [Attr]);
 format_error(undefined_name) ->
     <<"undefined module name">>;
 format_error({deprecated,What}) ->
@@ -143,13 +146,14 @@ form({['module',Name],Line}, St) ->
     {[['module',Line,Name]],St#lfe_norm{module=Name}};
 %% Export and import are handled in the attributes.
 form({['define-type',Type,Def],Line},St) ->
-    io:format("dtype ~p ~p\n", [Type,Def]),
     {[['type',Line,Type,Def]],St};
 form({['define-opaque-type',Type,Def],Line}, St) ->
     {[['opaque',Line,Type,Def]],St};
+form({['define-function-spec',Func,Specs],Line}, St) ->
+    {[['spec',Line,Func,Specs]],St};
 form({['export-type'|Types],Line}, St) ->
     {[['export-type',Line,Types]],St};
-form({['module-alias'|Aliases],Line}, St) ->
+form({['module-alias',Aliases],Line}, St) ->
     {[['module-alias',Line,Aliases]],St};
 form({['define-record',Name,Fields],Line}, St) ->
     {[['record',Line,Name,Fields]],St};
@@ -159,8 +163,6 @@ form({['define-macro',Name,Metas,Def],Line}, St0) ->
     MacroDef = ['macro',Line,Name,Def],
     {MetaDefs,St1} = macro_metas(Name, Line, Metas, St0),
     {MetaDefs ++ [MacroDef],St1};
-form({['define-function-spec',Func,Specs],Line}, St) ->
-    {[['spec',Line,Func,Specs]],St};
 form({['define-function',Name,Metas,Def],Line}, St0) ->
     FuncDef = ['function',Line,Name,Def],
     {MetaDefs,St1} = function_metas(Name, Line, Metas, St0),
@@ -205,10 +207,12 @@ form_attribute(Form, Line, St) ->
     Unrecog = fun
                   %% (['attribute',Name,Value], L, S) when is_atom(Name) ->
                   %%     {[['attribute',L,Name,Value]],S};
-                  %% ([Name,Value], L, S) when is_atom(Name) ->
+                  %% (['-',Name,Value], L, S) when is_atom(Name) ->
                   %%     {[['attribute',L,Name,Value]],S};
                   %% ([Name,Value], L, S) when is_atom(Name) ->
                   %%     {[['attribute',L,Name,Value]],S};
+                  ([F|_], L, S) ->
+                      {[],add_error(L, {illegal_form,F}, S)};
                   (_F, L, S) ->
                       {[],add_error(L, illegal_form, S)}
               end,
@@ -242,6 +246,8 @@ module_attribute([nifs|Nifs], Line, St) ->
     {[[nifs,Line,Nifs]],St};
 module_attribute([spec|SpecDefs], Line, St) ->
     module_spec(SpecDefs, Line, St);
+module_attribute(['module-alias'|Aliases], Line, St) ->
+    {[['module-alias',Line,Aliases]],St};
 module_attribute(['export-macro'|Exports], Line, St) ->
     attribute_export_macro(Exports, Line, St);
 module_attribute(Attr, Line, St) ->
@@ -288,24 +294,23 @@ attribute([export,Exports], Line, _Unrecog, St) ->
     attribute_export(Exports, Line, St);
 attribute([import,Module,Imports], Line, _Unrecog, St) ->
     {[[import,Line,Module,Imports]],St};
+attribute([rename,Module,Renames], Line, _Unrecog, St) ->
+    {[[rename,Line,Module,Renames]],St};
 attribute([moduledoc,Docs], Line, _Unrecog, St) ->
     {[[moduledoc,Line,Docs]],St};
 attribute([compile,Options], Line, _Unrecog, St) ->
     {[[compile,Line,Options]],St};
 attribute([vsn,Vsn], Line, _Unrecog, St) ->
-    %%e io:format("avsn ~p\n", [Vsn]),
     {[[vsn,Line,Vsn]],St};
 attribute([on_load,Funcs], Line, _Unrecog, St) ->
     {[[on_load,Line,Funcs]],St};
 attribute([nifs,Nifs], Line, _Unrecog, St) ->
     {[[nifs,Line,Nifs]],St};
 attribute([type,Type,Def], Line, _Unrecog, St) ->
-    %%e io:format("atype ~p ~p\n", [Type,Def]),
     attribute_type('type', Type, Def, Line, St);
 attribute([opaque,Type,Def], Line, _Unrecog, St) ->
     attribute_type('opaque', Type, Def, Line, St);
 attribute([spec,Func,Spec], Line, _Unrecog, St) ->
-    %%e io:format("aspec ~p\n", [[Func,Spec]]),
     attribute_spec(Func, Spec, Line, St);
 attribute([record,Name,Fields], Line, _Unrecog, St) ->
     {[['record',Line,Name,Fields]],St};
@@ -318,6 +323,8 @@ attribute([file,FileName,FileLine], Line, _Unrecog, St) ->
 %% The standard LFE attributes.
 attribute(['export-macro',Exports], Line, _Unrecog, St) ->
     attribute_export_macro(Exports, Line, St);
+attribute(['module-alias',Aliases], Line, _Unrecog, St) ->
+    {[['module-alias',Line,Aliases]],St};
 %% Everything else is unrecognised.
 attribute(Attr, Line, Unrecog, St) ->
     Unrecog(Attr, Line, St).
