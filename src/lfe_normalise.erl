@@ -234,10 +234,9 @@ module_attributes(Metas, Attrs, Line, St) ->
 %%     St1 = add_warning(Line, {deprecated,<<"module attribute doc">>}, St0),
 %%     {[[doc,Line,Docs]],St1};
 module_attribute([export|Exports], Line, St) ->
-    %%e {[[export,Line,Exports]],St};
     module_export(Exports, Line, St);
 module_attribute([import|Imports], Line, St) ->
-    {[['import',Line,Imports]],St};
+    module_import(Imports, Line, St);
 module_attribute([type|TypeDefs], Line, St) ->
     module_type(type, TypeDefs, Line, St);
 module_attribute([opaque|TypeDefs], Line, St) ->
@@ -247,7 +246,7 @@ module_attribute([nifs|Nifs], Line, St) ->
 module_attribute([spec|SpecDefs], Line, St) ->
     module_spec(SpecDefs, Line, St);
 module_attribute(['module-alias'|Aliases], Line, St) ->
-    {[['module-alias',Line,Aliases]],St};
+    module_alias(Aliases, Line, St);
 module_attribute(['export-macro'|Exports], Line, St) ->
     attribute_export_macro(Exports, Line, St);
 module_attribute(Attr, Line, St) ->
@@ -265,6 +264,14 @@ module_export([all], Line, St) ->
 module_export(Exports, Line, St) ->
     {[['export',Line,Exports]],St}.
 
+module_import(Imports, Line, St) ->
+    ImpFunc = fun ([from,Mod|Imps], {As,S}) ->
+                      {As ++ [['import',Line,Mod,Imps]],S};
+                  ([rename,Mod|Rens], {As,S}) ->
+                      {As ++ [['rename',Line,Mod,Rens]],S}
+              end,
+    lists:foldl(ImpFunc, {[],St}, Imports).
+
 module_type(Attr, TypeDefs, Line, St) ->
     TypeFunc = fun ([Type,Def], {As0,S0}) ->
                        %%e io:format("mtype ~p ~p\n", [Type,Def]),
@@ -280,6 +287,12 @@ module_spec(SpecDefs, Line, St) ->
                        {As0 ++ As,S1}
                end,
     lists:foldl(SpecFunc, {[],St}, SpecDefs).
+
+module_alias(Aliases, Line, St) ->
+    AliasFun = fun ([Mod,Alias], {As,S}) ->
+                       {As ++ [['alias',Line,Mod,Alias]],S}
+               end,
+    lists:foldl(AliasFun, {[],St}, Aliases).
 
 %% attribute(Attribute, Line, Unrecognised, State) -> {[Norm],State}.
 %%  These "attributes" can both occur in the define/extend-module
@@ -323,8 +336,8 @@ attribute([file,FileName,FileLine], Line, _Unrecog, St) ->
 %% The standard LFE attributes.
 attribute(['export-macro',Exports], Line, _Unrecog, St) ->
     attribute_export_macro(Exports, Line, St);
-attribute(['module-alias',Aliases], Line, _Unrecog, St) ->
-    {[['module-alias',Line,Aliases]],St};
+attribute(['alias',Module,Alias], Line, _Unrecog, St) ->
+    {[['alias',Line,Module,Alias]],St};
 %% Everything else is unrecognised.
 attribute(Attr, Line, Unrecog, St) ->
     Unrecog(Attr, Line, St).
@@ -349,7 +362,6 @@ attribute_export_macro(Exports, Line, St) ->
 
 attribute_type(Attr, Type0, Def0, Line, St) ->
     Type1 = if is_list(Type0) -> Type0; true -> [Type0] end,
-    %%e Def1 = if Def0 =:= [] -> [any]; true -> hd(Def0) end,
     Def1 = if Def0 =:= [] -> [any]; true -> Def0 end,
     {[[Attr,Line,Type1,Def1]],St}.
 %% attribute_type(Attr, _Type, _Def, Line, St) ->
@@ -384,7 +396,7 @@ spec_arity([[Args|_]|_]) ->
     end;
 spec_arity(_) -> 0.
 
-%% macro_metas(Nae, Line, Metas, State) -> {[Form],State}.
+%% macro_metas(Name, Line, Metas, State) -> {[Form],State}.
 %%  Only handle the leading doc meta, which is really all it can be.
 
 macro_metas(_Name, Line, [[doc,_String]=Doc|_], St) ->

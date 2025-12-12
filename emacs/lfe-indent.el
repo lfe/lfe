@@ -176,6 +176,7 @@ lfe-indent-{function,hook} and it uses `lfe-body-indent'."
   (flet 1)
   (flet* 1)
   (fletrec 1)
+  (function 1)
   (if 1)
   (lambda 1)
   (let 1)

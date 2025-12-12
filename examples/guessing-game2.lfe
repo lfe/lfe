@@ -47,52 +47,55 @@
 ;; Guess number: 6
 ;; Well-guessed!!
 ;; game-over
-(defmodule guessing-game2
-  (export
-   (main 0)))
+(module guessing-game2)
 
-(defrecord state
-  server
-  client
-  answer
-  guess
-  status)
+(export ((main 0)))
 
-(defun guess-server
-  (((match-state answer a))
-   (receive
-     ((= (match-state client p guess g) game) (when (== g a))
-      (! p (set-state-status game 'game-over)))
-     ((= (match-state client p guess g) game) (when (> g a))
-      (! p (set-state-status game 'too-high))
-      (guess-server game))
-     ((= (match-state client p guess g) game) (when (< g a))
-      (! p (set-state-status game 'too-low))
-      (guess-server game)))))
+(record state
+        (server
+         client
+         answer
+         guess
+         status))
 
-(defun guess-client
-  (((match-state status 'game-over))
-   (io:format "Well-guessed!!~n")
-   'game-over)
-  (((= (match-state status 'started) game))
-   (io:format "Guess the number I have chosen, between 1 and 10.~n")
-   (guess-client (set-state-status game 'running)))
-  (((= (match-state status 'too-high) game))
-   (io:format "Your guess is too high.~n")
-   (guess-client (set-state-status game 'running)))
-  (((= (match-state status 'too-low) game))
-   (io:format "Your guess is too low.~n")
-   (guess-client (set-state-status game 'running)))
-  (((= (match-state server p) game))
-   (let ((`#(ok (,g)) (io:fread "Guess number: " "~d")))
-     (! p (set-state game client (self) guess g))
+(function guess-server
+  (match-lambda
+    ([(record state answer a)]
      (receive
-       (game (guess-client game))))))
+       ((= (record state client p guess g) game) (when (== g a))
+        (! p (record-update game state status 'game-over)))
+       ((= (record state client p guess g) game) (when (> g a))
+        (! p (record-update game state status 'too-high))
+        (guess-server game))
+       ((= (record state client p guess g) game) (when (< g a))
+        (! p (record-update game state status 'too-low))
+        (guess-server game))))))
 
-(defun main ()
-  (let* ((a (random:uniform 10))
-         (s (make-state answer a
-                        guess 'undefined
-                        status 'started))
-         (p (spawn (lambda () (guess-server s)))))
-    (guess-client (set-state-server s p))))
+(function guess-client
+  (match-lambda
+    ([(record state status 'game-over)]
+     (io:format "Well-guessed!!~n")
+     'game-over)
+    ([(= (record state status 'started) game)]
+     (io:format "Guess the number I have chosen, between 1 and 10.~n")
+     (guess-client (record-update game state status 'running)))
+    ([(= (record state status 'too-high) game)]
+     (io:format "Your guess is too high.~n")
+     (guess-client (record-update game state status 'running)))
+    ([(= (record state status 'too-low) game)]
+     (io:format "Your guess is too low.~n")
+     (guess-client (record-update game state status 'running)))
+    ([(= (record state server p) game)]
+     (let ((`#(ok (,g)) (io:fread "Guess number: " "~d")))
+       (! p (record-update game state client (self) guess g))
+       (receive
+         (game (guess-client game)))))))
+
+(function main
+  (lambda ()
+    (let* ((a (rand:uniform 10))
+           (s (record state answer a
+                      guess 'undefined
+                      status 'started))
+           (p (spawn (lambda () (guess-server s)))))
+      (guess-client (record-update s state server p)))))

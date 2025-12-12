@@ -213,7 +213,7 @@ pattern(P, Env) ->
 %%  Create a dummy module then test the form, a function.
 
 form(F) ->
-    module([{['define-module',dummy,[],[]],1},{F,2}]).
+    module([{['module',dummy],1},{F,2}]).
 
 %% module(ModuleForms) ->
 %%     {ok,ModuleName,[Warning]} | {error,[Error],[Warning]}.
@@ -295,9 +295,6 @@ collect_module(Mfs, St) ->
 
 collect_form(['module',Line,Name], St) ->
     {[],check_module_def(Name, Line, St)};
-%% No longer used.
-%% collect_form(['extend-module',Metas,Atts], L, St) ->
-%%     {[],check_mod_def(Metas, Atts, L, St)};
 collect_form(['attribute',Line,file,FileInfo], St) ->
     %% We allow file attribute before module definition.
     {[],check_file(FileInfo, Line, St)};
@@ -316,8 +313,8 @@ collect_form(['import',Line,Module,Imports], St) ->
 collect_form(['rename',Line,Module,Renames], St) ->
     {[],check_rename(Module,Renames,Line,St)};
 %% The old format 'import'.
-collect_form(['import',Line,Imports], St) ->
-    {[],check_import(Imports, Line, St)};
+%% collect_form(['import',Line,Imports], St) ->
+%%     {[],check_import(Imports, Line, St)};
 collect_form(['moduledoc',Line,Docs], St) ->
     {[],check_moduledoc(Docs, Line, St)};
 collect_form(['compile',_Line,_Options], St) ->
@@ -334,13 +331,11 @@ collect_form(['opaque',Line,Type,Def], St) ->
     {[],check_type_def(Type, Def, Line, St)};
 collect_form(['export-type',Line,Types], St) ->
     {[],check_export_types(Types, Line, St)};
-collect_form(['module-alias',Line,Aliases], St) ->
-    {[],check_aliases(Aliases, Line, St)};
+collect_form(['alias',Line,Mod,Alias], St) ->
+    {[],check_alias(Mod, Alias, Line, St)};
 collect_form(['spec',Line,Func,Specs], St) ->
     %% io:format("ll ~p\n", [{dfs,Func,Specs}]),
     {[],check_spec(Func, Specs, Line, St)};
-collect_form(['function',Line,Name,Def], St) ->
-    collect_function(Name, Def, Line, St);
 collect_form(['record',Line,Name,Fields], St) ->
     {[],check_record_def(Name, Fields, Line, St)};
 collect_form(['struct',Line,Fields], St) ->
@@ -350,6 +345,9 @@ collect_form(['doc',Line,Doc], St) ->
 %% General attributes.
 collect_form(['attribute',Line,Name,Value], St) ->
     {[],check_attribute(Name, Value, Line, St)};
+%% And the functions.
+collect_form(['function',Line,Name,Def], St) ->
+    collect_function(Name, Def, Line, St);
 %% Ignore macro definitions and eval-when-compile forms.
 collect_form(['macro'|_], St) -> {[],St};
 collect_form(['eval-when-compile'|_], St) -> {[],St};
@@ -390,7 +388,7 @@ check_export(Es, L, St) ->
 
 check_import(Mod, Imports, L, St0) when is_atom(Mod) ->
     Add = fun ([F,Ar], Is, S) when is_atom(F),
-                                   is_integer(Ar) ->
+                                   is_integer(Ar), Ar >= 0 ->
                   check_import(F, Ar, Mod, F, Is, L, S);
               (_, Is, S) ->
                   {Is,bad_module_def_error(L, <<"import">>, S)}
@@ -406,11 +404,11 @@ check_import(_, _, L, St) ->
 
 check_rename(Mod, Renames, L, St0) when is_atom(Mod) ->
     Add = fun ([[F,Ar],R], Is, S) when is_atom(F),
-                                       is_integer(Ar),
+                                       is_integer(Ar), Ar >= 0,
                                        is_atom(R) ->
                   check_import(R, Ar, Mod, F, Is, L, S);
               (_, Is, S) ->
-                  {Is,bad_module_def_error(L, <<"import">>, S)}
+                  {Is,bad_module_def_error(L, <<"rename">>, S)}
           end,
     {Imps,St1} = check_foldl(Add, fun (S) -> S end,
                              St0#lfe_lint.imports, St0, Renames),
@@ -418,39 +416,39 @@ check_rename(Mod, Renames, L, St0) when is_atom(Mod) ->
 check_rename(_, _, L, St) ->
     import_error(L, St).
 
-%% check_import(Imports, Line, State) -> State.
-%%  The old format 'import'.
+%% %% check_import(Imports, Line, State) -> State.
+%% %%  The old format 'import'.
 
-check_import(Imports, L, St) ->
-    %% io:format("im ~p\n", [Imports]),
-    check_foreach(fun (Import, S) -> check_imports(Import, L, S) end,
-                  fun (S) -> import_error(L, S) end, St, Imports).
+%% check_import(Imports, L, St) ->
+%%     %% io:format("im ~p\n", [Imports]),
+%%     check_foreach(fun (Import, S) -> check_imports(Import, L, S) end,
+%%                   fun (S) -> import_error(L, S) end, St, Imports).
 
-check_imports([from,Mod|Fs], L, St0) when is_atom(Mod) ->
-    Add = fun ([F,Ar], Is, S) when is_atom(F),
-                                   is_integer(Ar), Ar >= 0 ->
-                  check_import(F, Ar, Mod, F, Is, L, S);
-              (_, Is, S) ->
-                  {Is,bad_module_def_error(L, <<"import from">>, S)}
-          end,
-    {Imps,St1} = check_foldl(Add, fun (S) -> S end,
-                             St0#lfe_lint.imports, St0, Fs),
-    St1#lfe_lint{imports=Imps};
-check_imports([rename,Mod|Fs], L, St0) when is_atom(Mod) ->
-    Add = fun ([[F,Ar],R], Is, S) when is_atom(F),
-                                       is_integer(Ar), Ar >= 0,
-                                       is_atom(R) ->
-                  check_import(R, Ar, Mod, F, Is, L, S);
-              (_, Is, S) ->
-                  {Is,bad_module_def_error(L, <<"import rename">>, S)}
-          end,
-    {Imps,St1} = check_foldl(Add, fun (S) -> S end,
-                             St0#lfe_lint.imports, St0, Fs),
-    St1#lfe_lint{imports=Imps};
-check_imports([prefix,Mod,Pre], L, St0) when is_atom(Mod), is_atom(Pre) ->
-    deprecated_error(L, <<"import prefix">>, St0);
-check_imports(_, L, St) ->
-    import_error(L, St).
+%% check_imports([from,Mod|Fs], L, St0) when is_atom(Mod) ->
+%%     Add = fun ([F,Ar], Is, S) when is_atom(F),
+%%                                    is_integer(Ar), Ar >= 0 ->
+%%                   check_import(F, Ar, Mod, F, Is, L, S);
+%%               (_, Is, S) ->
+%%                   {Is,bad_module_def_error(L, <<"import from">>, S)}
+%%           end,
+%%     {Imps,St1} = check_foldl(Add, fun (S) -> S end,
+%%                              St0#lfe_lint.imports, St0, Fs),
+%%     St1#lfe_lint{imports=Imps};
+%% check_imports([rename,Mod|Fs], L, St0) when is_atom(Mod) ->
+%%     Add = fun ([[F,Ar],R], Is, S) when is_atom(F),
+%%                                        is_integer(Ar), Ar >= 0,
+%%                                        is_atom(R) ->
+%%                   check_import(R, Ar, Mod, F, Is, L, S);
+%%               (_, Is, S) ->
+%%                   {Is,bad_module_def_error(L, <<"import rename">>, S)}
+%%           end,
+%%     {Imps,St1} = check_foldl(Add, fun (S) -> S end,
+%%                              St0#lfe_lint.imports, St0, Fs),
+%%     St1#lfe_lint{imports=Imps};
+%% check_imports([prefix,Mod,Pre], L, St0) when is_atom(Mod), is_atom(Pre) ->
+%%     deprecated_error(L, <<"import prefix">>, St0);
+%% check_imports(_, L, St) ->
+%%     import_error(L, St).
 
 %% check_import(LocalName, Arity, Module, RemoteName, Imports, Line, State) ->
 %%     {Imports,State}.
@@ -571,12 +569,15 @@ check_export_types(Ts, L, St) ->
 
 %% check_aliases(ModAliases, Line, State) -> State.
 
-check_aliases(Aliases, L, St) ->
-    check_foreach(fun (Alias, S) -> check_alias(Alias, L, S) end,
-                  fun (S) -> bad_module_def_error(L, 'module-alias', S) end,
-                  St, Aliases).
+%% check_aliases(Aliases, L, St) ->
+%%     check_foreach(fun (Alias, S) -> check_alias(Alias, L, S) end,
+%%                   fun (S) -> bad_module_def_error(L, 'module-alias', S) end,
+%%                   St, Aliases).
 
-check_alias([Mod,Alias], L, #lfe_lint{aliases=As0}=St0) when
+%% check_alias([Mod,Alias], Line, St) ->
+%%     check_alias(Mod, Alias, Line, St).
+
+check_alias(Mod, Alias, L, #lfe_lint{aliases=As0}=St0) when
       is_atom(Mod), is_atom(Alias) ->
     %% Test if we redefine alias or get circular aliases.
     St1 = case orddict:is_key(Alias, As0) of
@@ -589,8 +590,8 @@ check_alias([Mod,Alias], L, #lfe_lint{aliases=As0}=St0) when
           end,
     As1 = orddict:store(Alias, Mod, As0),       %Add the alias
     St2#lfe_lint{aliases=As1};
-check_alias(_, L, St) ->
-    bad_module_def_error(L, 'module-alias', St).
+check_alias(_M, _A, L, St) ->
+    bad_module_def_error(L, 'alias', St).
 
 %% check_spec(Func, Specs, Line, State) -> State.
 %%  Check a function specification.
@@ -2498,8 +2499,8 @@ bad_type_def_error(L, T, St) ->
 
 %% Deprecated errors.
 
-deprecated_error(L, D, St) ->
-    add_error(L, {deprecated,D}, St).
+%% deprecated_error(L, D, St) ->
+%%     add_error(L, {deprecated,D}, St).
 
 %% deprecated_warning(L, D, St) ->
 %%     add_warning(L, {deprecated,D}, St).

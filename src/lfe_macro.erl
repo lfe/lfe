@@ -197,6 +197,15 @@ pass_form(['define-macro'|Def]=M, Env0, St0) ->
         {no,St1} ->
             {['progn'],Env0,St1}                %Must return a valid form
     end;
+%% Define 'function' at this level where it will not collide with
+%% core form. And 'macro' as well where it is actually legal.
+%% pass_form(['function',Name,Def], Env, St) ->
+%%     FuncDef = ['define-function',Name,[],Def],
+%%     pass_form(FuncDef, Env, St);
+%% pass_form(['macro',Name,Body], Env, St) ->
+%%     {Meta,Def} = exp_defmacro([Body]),          %Need a list of the rest
+%%     MacDef = ['define-macro',Name,Meta,Def],
+%%     pass_form(MacDef, Env, St);
 pass_form(F, Env, St0) ->
     %% First expand enough to test top form, if so process again.
     case pass_expand_expr(F, Env, St0, St0#mac.deep) of
@@ -242,6 +251,16 @@ ewc_form(['define-function',Name,_,Def]=F, Env0, St0) ->
             St1 = add_error({bad_ewc_form,function}, St0),
             {[progn],Env0,St1}                  %Just throw it away
     end;
+%% Define 'function' at this level where it will not collide with
+%% core form. And 'macro' as well where it is actually legal.
+ewc_form(['function',Name,Body], Env, St) ->
+    {Meta,Def} = exp_defun([Body]),             %Need a list of the rest
+    FuncDef = ['define-function',Name,Meta,Def],
+    ewc_form(FuncDef, Env, St);
+%% ewc_form(['macro',Name,Body], Env, St) ->
+%%     {Meta,Def} = exp_defmacro([Body]),          %Need a list of the rest
+%%     MacDef = ['define-macro',Name,Meta,Def],
+%%     ewc_form(MacDef, Env, St);
 ewc_form([set|Args], Env, St) ->
     ewc_eval_set(Args, Env, St);
 ewc_form(F0, Env, St0) ->
@@ -363,7 +382,7 @@ exp_form([Attr|Args0], Env, St0)
        Attr =:= 'moduledoc'    ; Attr =:= 'compile' ;
        Attr =:= 'vsn'          ; Attr =:= 'on_load' ;
        Attr =:= 'nifs'         ; Attr =:= 'doc' ;
-       Attr =:= 'file'         ;
+       Attr =:= 'file'         ; Attr =:= 'alias' ;
        Attr =:= 'export-macro' ->
     {Args1,St1} = exp_list(Args0, Env, St0),
     %%e io:format("emf ~p\n", [[Attr|Args1]]),
@@ -531,8 +550,8 @@ exp_form(['eval-when-compile'|B], Env, St) ->
     exp_normal_form('eval-when-compile', B, Env, St);
 exp_form(['define-function',Name,Meta,Def], Env, St) ->
     exp_define_function(Name, Meta, Def, Env, St);
-exp_form(['define-macro',Head|B], Env, St) ->
-    exp_head_tail('define-macro', Head, B, Env, St);
+exp_form(['define-macro',Name,_Meta,Def], Env, St) ->
+    exp_head_tail('define-macro', Name, Def, Env, St);
 %% Only worry about the module forms of the right size to expand and
 %% don't touch the rest.
 exp_form(['define-module',Mod,Metas,Attrs], Env, St) ->
@@ -921,19 +940,17 @@ exp_module_rec(Other, _Env, St) -> {Other,St}.
 %% Now for the new defined forms which basically go to themselves. We
 %% can't do it explicitly here as we would go into a loop so we go to
 %% define-***.
-exp_predef(['module',Name], _, St) ->
+exp_predef(['module',Name], _Env, St) ->
     %% Define the MODULE macro.
     MODULE = [defmacro,'MODULE',[],?BQ(?Q(Name))],
     {yes,[progn,['define-module',Name,[],[]],MODULE],St#mac{module=Name}};
-%% Unfortunately we can't use a (function ...) as 'function' is a core
-%% form.
-exp_predef(['type',Type0,Def0], _, St) ->
+exp_predef(['type',Type0,Def0], _Env, St) ->
     {Type1,Def1} = exp_deftype(Type0, [Def0]),  %Type one element.
     {yes,['define-type',Type1,Def1],St};
-exp_predef(['opaque',Type0,Def0], _, St) ->
+exp_predef(['opaque',Type0,Def0], _Env, St) ->
     {Type1,Def1} = exp_deftype(Type0, [Def0]),  %Type one element.
     {yes,['define-opaque-type',Type1,Def1],St};
-exp_predef(['spec',Func0,Spec0], _, St) ->
+exp_predef(['spec',Func0,Spec0], _Env, St) ->
     {Func1,Spec1} = exp_defspec(Func0, Spec0),
     {yes,['define-function-spec',Func1,Spec1],St};
 exp_predef(['record',Name,Fds], Env, St) ->
@@ -942,6 +959,13 @@ exp_predef(['record',Name,Fds], Env, St) ->
     {yes,Def,St1};
 exp_predef(['struct',Fds], Env, St) ->
     lfe_macro_struct:define(Fds, Env, St);
+%% Unfortunately we can't expand a (function ...) as 'function' is a
+%% core form.
+%% exp_predef(['function',Name,Def], _Env, St) ->
+%%     {yes,['define-function',Name,[],Def],St};
+exp_predef(['macro',Name|Rest], _Env, St) ->
+    {Meta,Def} = exp_defmacro(Rest),
+    {yes,['define-macro',Name,Meta,Def],St};
 %% export-macro needs to be in extend-module for now.
 exp_predef(['export-macro'|_]=ExpMac, _, St) ->
     {yes,['extend-module',[],[ExpMac]],St};
@@ -1015,8 +1039,8 @@ exp_predef(['defrecord'|Def], Env, St) ->
 exp_predef(['defstruct'|Def], Env, St) ->
     lfe_macro_struct:define(Def, Env, St);
 %% Common Lisp inspired macros.
-%% Note the module forms MUST expand to define-module as this is the
-%% defined form which starts a module.
+%% Note these module forms MUST expand to define-xxxx to be handled
+%% without looping.
 exp_predef([defmodule,Name|Rest], _, St) ->
     %% Define the MODULE macro.
     MODULE = [defmacro,'MODULE',[],?BQ(?Q(Name))],
@@ -1227,12 +1251,12 @@ exp_do([Pars,[Test,Ret]|Body], St0) ->
 
 exp_defmodule([Doc|More]=Rest0) ->
     Rest1 = ?IF(lfe_lib:is_doc_string(Doc),
-		[defmodule_doc(Doc)|More],
-		Rest0),
+                [defmodule_doc(Doc)|More],
+                Rest0),
     Fun = fun ([spec|Specs], {Me,As}) ->
                   {Me,As ++ [[spec|Specs]]};
               (R, {Me,As}) ->
-		  {Me,As ++ [R]}
+                  {Me,As ++ [R]}
           end,
     lists:foldl(Fun, {[],[]}, Rest1);
 exp_defmodule([]) -> {[],[]}.
@@ -1369,23 +1393,27 @@ mapfoldl2(_, A, B, []) -> {[],A,B}.
 %% The new module input forms
 %% (module name)
 %% (export funcs|'all')
-%% (import module (from funcs) | (rename Renames))
-%% (import module funcs) ?
-%% (import-from module funcs)
-%% (import-rename module renames)
+%% (import module imports) ?
+%% (rename module renames) ?
+%% (alias aliases)
 %% (moduledoc doc)
 %% (compile options)
 %% (vsn vsn)
 %% (on_load func)
 %% (nifs funcs)
 %%
-%% (record name fields)
-%% (struct fields)
+%% (export-type types)
+%% (export-macro macros|'all')
+%% (macro name definition)
+%% (function name definition)
+%% (eval-when-compile forms)
+%%
+%% (doc doc)
 %% (type name def)
 %% (opaque name def)
 %% (spec func specs)
+%% (record name fields)
+%% (struct fields)
 %%
 %% (attribute attr-name attr-value)
 %% (- attr-name attr-value)
-%%
-%% (export-macro macros|'all')

@@ -88,11 +88,11 @@
 ;;        {"connection","keep-alive"},
 ;;        ...
 ;; ok
-(defmodule http-async
-  (export all))
+(module http-async)
 
-(defun parse-args (flag)
-  "Given one or more command-line arguments, extract the passed values.
+(export all)
+
+(doc "Given one or more command-line arguments, extract the passed values.
 
   For example, if the following was passed via the command line:
 
@@ -104,33 +104,41 @@
       ...
       )
   In this example, the value assigned to the arg variable would be a list
-  containing the values my-value-1 and my-value-2."
-  (let (((tuple 'ok data) (init:get_argument flag)))
-    (lists:merge data)))
+  containing the values my-value-1 and my-value-2.")
 
-(defun get-pages ()
-  "With no argument, assume 'url parameter was passed via command line."
-  (let ((urls (parse-args 'url)))
-    (get-pages urls)))
+(function parse-args
+  (lambda (flag)
+    (let (((tuple 'ok data) (init:get_argument flag)))
+      (lists:merge data))))
 
-(defun get-pages (urls)
-  "Start inets and make (potentially many) HTTP requests."
-  (inets:start)
-  (ssl:start)
-  (plists:map
-   (lambda (x)
-     (get-page x)) urls))
+(doc "With no argument, assume 'url parameter was passed via command line.")
 
-(defun get-page (url)
-  "Make a single HTTP request."
-  (let* ((method 'get)
-         (headers ())
-         (request-data (tuple url headers))
-         (http-options ())
-         (request-options (list (tuple 'sync 'false))))
-    (httpc:request method request-data http-options request-options)
-    (receive
-      ((tuple 'http (tuple request-id (tuple 'error reason)))
-       (io:format "Error: ~p~n" (list reason)))
-      ((tuple 'http (tuple request-id result))
-       (io:format "Result: ~p~n" (list result))))))
+(function get-pages
+  (lambda ()
+    (let ((urls (parse-args 'url)))
+      (get-pages urls))))
+
+(doc "Start inets and make (potentially many) HTTP requests.")
+
+(function get-pages
+  (lambda (urls)
+    (inets:start)
+    (ssl:start)
+    (lists:map (lambda (x) (get-page x))
+               urls)))
+
+(doc "Make a single HTTP request.")
+
+(function get-page
+  (lambda (url)
+    (let* ((method 'get)
+           (headers ())
+           (request-data (tuple url headers))
+           (http-options ())
+           (request-options (list (tuple 'sync 'false))))
+      (httpc:request method request-data http-options request-options)
+      (receive
+        ((tuple 'http (tuple request-id (tuple 'error reason)))
+         (io:format "Error: ~p~n" (list reason)))
+        ((tuple 'http (tuple request-id result))
+         (io:format "Result: ~p~n" (list result)))))))

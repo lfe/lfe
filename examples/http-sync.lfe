@@ -72,11 +72,11 @@
 ;;        {"connection","keep-alive"},
 ;;        ...
 ;; ok
-(defmodule http-sync
-  (export all))
+(module http-sync)
 
-(defun parse-args (flag)
-  "Given one or more command-line arguments, extract the passed values.
+(export all)
+
+(doc "Given one or more command-line arguments, extract the passed values.
 
   For example, if the following was passed via the command line:
 
@@ -88,27 +88,35 @@
       ...
       )
   In this example, the value assigned to the arg variable would be a list
-  containing the values my-value-1 and my-value-2."
-  (let (((tuple 'ok data) (init:get_argument flag)))
-    (lists:merge data)))
+  containing the values my-value-1 and my-value-2.")
 
-(defun get-pages ()
-  "With no argument, assume 'url parameter was passed via command line."
-  (get-pages
-   (parse-args 'url)))
+(function parse-args
+  (lambda (flag)
+    (let (((tuple 'ok data) (init:get_argument flag)))
+      (lists:merge data))))
 
-(defun get-pages (urls)
-  "Start inets and make (potentially many) HTTP requests."
-  (inets:start)
-  (ssl:start)
-  (lists:map
-   (lambda (x)
-     (get-page x)) urls))
+(doc "With no argument, assume 'url parameter was passed via command line.")
 
-(defun get-page (url)
-  "Make a single HTTP request."
-  (case (httpc:request url)
-    ((tuple 'ok result)
-     (io:format "Result: ~p~n" (list result)))
-    ((tuple 'error reason)
-     (io:format "Error: ~p~n" (list reason)))))
+(function get-pages
+  (lambda ()
+    (get-pages
+     (parse-args 'url))))
+
+(doc "Start inets and make (potentially many) HTTP requests.")
+
+(function get-pages
+  (lambda (urls)
+    (inets:start)
+    (ssl:start)
+    (lists:map (lambda (x) (get-page x))
+               urls)))
+
+(doc "Make a single HTTP request.")
+
+(function get-page
+  (lambda (url)
+    (case (httpc:request url)
+      ((tuple 'ok result)
+       (io:format "Result: ~p~n" (list result)))
+      ((tuple 'error reason)
+       (io:format "Error: ~p~n" (list reason))))))

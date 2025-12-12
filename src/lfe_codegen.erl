@@ -138,8 +138,8 @@ compile_form(['import',Line,Module,Imports], _Forms, St) ->
 compile_form(['rename',Line,Module,Renames], _Forms, St) ->
     {[],[],collect_rename(Module, Renames, Line, St)};
 %% The old format 'import'.
-compile_form(['import',Line,Imports], _Forms, St) ->
-    {[],[],collect_imports(Imports, Line, St)};
+%% compile_form(['import',Line,Imports], _Forms, St) ->
+%%     {[],[],collect_imports(Imports, Line, St)};
 compile_form(['moduledoc',Line,Doc], _Forms, St) ->
     {[make_attribute(moduledoc, Doc, Line)],[],St};
 compile_form(['compile',Line,Options], _Forms, St) ->
@@ -159,8 +159,8 @@ compile_form(['type',Line,Type,Def], _Forms, St) ->
     {[],comp_type_def('type', Type, Def, Line),St};
 compile_form(['opaque',Line,Type,Def], _Forms, St) ->
     {[],comp_type_def('opaque', Type, Def, Line),St};
-compile_form(['module-alias',Line,Aliases], _Forms, St) ->
-    {[],[],collect_aliases(Aliases, Line, St)};
+compile_form(['alias',Line,Module,Alias], _Forms, St) ->
+    {[],[],collect_alias(Module, Alias, Line, St)};
 compile_form(['record',Line,Name,Fields], _Forms, St) ->
     {[],comp_record_def(Name, Fields, Line), St};
 compile_form(['struct',Line,Fields], _Forms, St) ->
@@ -217,31 +217,15 @@ collect_rename(Mod, Renames, _Line, St) ->
     Rename = fun ([[F,A],R], Ifs) -> orddict:store({R,A}, {Mod,F}, Ifs) end,
     collect_import(Rename, St, Renames).
 
-%% collect_imports(Imports, Line, State) -> State.
-%%  Collect imports keeping track of local and imported names.
-
-collect_imports(Imps, _Line, St) ->
-    lists:foldl(fun (I, S) -> collect_import(I, S) end, St, Imps).
-
-collect_import(['from',Mod|Fs], St) ->
-    From = fun ([F,A], Ifs) -> orddict:store({F,A}, {Mod,F}, Ifs) end,
-    collect_import(From, St, Fs);
-collect_import(['rename',Mod|Fs], St) ->
-    %% Get it right here, R is the renamed local called function, F is
-    %% the name in the other module.
-    Rename = fun ([[F,A],R], Ifs) -> orddict:store({R,A}, {Mod,F}, Ifs) end,
-    collect_import(Rename, St, Fs).
-
 collect_import(Fun, #lfe_cg{imports=Imps0}=St, Fs) ->
     Imps1 = lists:foldl(Fun, Imps0, Fs),
     St#lfe_cg{imports=Imps1}.
 
-%% collect_aliases(Aliases, Line, State) -> State.
-%%  Collect the module aliases.
+%% collect_alias(Module, Aliase, Line, State) -> State.
+%%  Collect the module alias.
 
-collect_aliases(As, _L, #lfe_cg{aliases=Als0}=St) ->
-    Als1 = lists:foldl(fun ([M,A], Mas) -> orddict:store(A, M, Mas) end,
-                       Als0, As),
+collect_alias(Mod, Alias, _L, #lfe_cg{aliases=Als0}=St) ->
+    Als1 = orddict:store(Alias, Mod, Als0),
     St#lfe_cg{aliases=Als1}.
 
 %% comp_type_def(Attr, Type, Def, Line) -> [AST].

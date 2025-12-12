@@ -1,3 +1,7 @@
+% lfe_modules(7)
+% Robert Virding
+% 2026
+
 # MODULES
 
 ## Module Syntax
@@ -119,10 +123,17 @@ Export the macros so they can be callable from other modules.
 
 **`(module-alias aliases)`**
 
-Provide alias names for modules. A typical use is to give give short
-names for modules with long names. `aliases` is a list
+Provide alias names for modules. The alias can be used in code as an
+alternative to modulename. A typical use is to provide short names for
+modules with long names. `aliases` is a list:
 
-```((sname-1 real-long-name-1) ... (sname-n real-long-name-n))```.
+```((real-module-name-1 alias-1) ... (real-module-name-n alia-n))```.
+
+**`(alias module-name alias)`**
+
+Provide alias names for modules. The `alias` can be used in code as an
+alternative to `module-name`. A typical use is to provide short names for
+modules with long names.
 
 ### User-defined attributes
 
@@ -134,7 +145,18 @@ of creating user-defined attributes, either using the more literal
 
 **`(- tag value)`**
 
-## Older Syntax
+## Comments
+
+Comments come in two forms: line comments and block comments.
+
+Line comments start with a semicolon ``;`` and finish with the end of the
+line.
+
+Block comments are written as ``#| comment text |#`` where the comment text
+may span multiple lines but my not contain another block comment,
+i.e. it may not contain the character sequence ``#|``.
+
+## Older Forms
 
 ```
 (defmodule module-name
