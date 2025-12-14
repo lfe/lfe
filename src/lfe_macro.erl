@@ -199,8 +199,9 @@ pass_form(['define-macro'|Def]=M, Env0, St0) ->
     end;
 %% Define 'function' at this level where it will not collide with
 %% core form. And 'macro' as well where it is actually legal.
-%% pass_form(['function',Name,Def], Env, St) ->
-%%     FuncDef = ['define-function',Name,[],Def],
+%% pass_form(['function',Name,Body], Env, St) ->
+%%     {Meta,Def} = exp_defun([Body]),             %Need a list of the rest
+%%     FuncDef = ['define-function',Name,Meta,Def],
 %%     pass_form(FuncDef, Env, St);
 %% pass_form(['macro',Name,Body], Env, St) ->
 %%     {Meta,Def} = exp_defmacro([Body]),          %Need a list of the rest
@@ -253,10 +254,10 @@ ewc_form(['define-function',Name,_,Def]=F, Env0, St0) ->
     end;
 %% Define 'function' at this level where it will not collide with
 %% core form. And 'macro' as well where it is actually legal.
-ewc_form(['function',Name,Body], Env, St) ->
-    {Meta,Def} = exp_defun([Body]),             %Need a list of the rest
-    FuncDef = ['define-function',Name,Meta,Def],
-    ewc_form(FuncDef, Env, St);
+%% ewc_form(['function',Name,Body], Env, St) ->
+%%     {Meta,Def} = exp_defun([Body]),             %Need a list of the rest
+%%     FuncDef = ['define-function',Name,Meta,Def],
+%%     ewc_form(FuncDef, Env, St);
 %% ewc_form(['macro',Name,Body], Env, St) ->
 %%     {Meta,Def} = exp_defmacro([Body]),          %Need a list of the rest
 %%     MacDef = ['define-macro',Name,Meta,Def],
@@ -383,6 +384,7 @@ exp_form([Attr|Args0], Env, St0)
        Attr =:= 'vsn'          ; Attr =:= 'on_load' ;
        Attr =:= 'nifs'         ; Attr =:= 'doc' ;
        Attr =:= 'file'         ; Attr =:= 'alias' ;
+       Attr =:= 'behaviour'    ; Attr =:= 'feature' ;
        Attr =:= 'export-macro' ->
     {Args1,St1} = exp_list(Args0, Env, St0),
     %%e io:format("emf ~p\n", [[Attr|Args1]]),
@@ -1253,12 +1255,17 @@ exp_defmodule([Doc|More]=Rest0) ->
     Rest1 = ?IF(lfe_lib:is_doc_string(Doc),
                 [defmodule_doc(Doc)|More],
                 Rest0),
-    Fun = fun ([spec|Specs], {Me,As}) ->
-                  {Me,As ++ [[spec|Specs]]};
-              (R, {Me,As}) ->
-                  {Me,As ++ [R]}
-          end,
-    lists:foldl(Fun, {[],[]}, Rest1);
+    Mfun = fun ([spec|Specs0], {Me,As}) ->
+                   Sfun = fun ([Func|Spec]) ->
+                                  {Sfunc,Def} = exp_defspec(Func, Spec),
+                                  [Sfunc,Def]
+                          end,
+                   Specs1 = lists:map(Sfun, Specs0),
+                   {Me,As ++ [[spec|Specs1]]};
+               (R, {Me,As}) ->
+                   {Me,As ++ [R]}
+           end,
+    lists:foldl(Mfun, {[],[]}, Rest1);
 exp_defmodule([]) -> {[],[]}.
 
 -ifdef(OTP27_DOCS).
@@ -1395,7 +1402,7 @@ mapfoldl2(_, A, B, []) -> {[],A,B}.
 %% (export funcs|'all')
 %% (import module imports) ?
 %% (rename module renames) ?
-%% (alias aliases)
+%% (alias module alias)
 %% (moduledoc doc)
 %% (compile options)
 %% (vsn vsn)

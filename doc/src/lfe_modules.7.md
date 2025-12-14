@@ -78,6 +78,26 @@ module is loaded.
 Specifies which of the functions, defined within the module, that may
 be loaded as NIFs with `erlang:load_nif/2`.
 
+### Behaviour Module Attribute
+
+It is possible to specify that the module is the callback module for a
+*behaviour*:
+
+**`(behaviour behaviour)`**
+
+The atom `behaviour` gives the name of the behaviour, which can be a
+user-defined behaviour or one of the following OTP standard
+behaviours:
+
+```
+gen_server
+gen_statem
+gen_event
+supervisor
+```
+
+The spelling `behavior` is also accepted.
+
 ### Record and Struct definitions
 
 The same syntax as for module attributes is used for record and struct
@@ -89,17 +109,23 @@ definitions:
 
 ### Setting File and Line
 
+The same syntax as for module attributes is used for changing the
+pre-defined macros `FILE` and `LINE`:
+
 **`(file name line)`**
 
 ### Types and function specifications
 
-For a description of these see the `lfe-types` documentation.
+A similar syntax as for module attributes is used for specifying types
+and function specifications:
 
 **`(type type-name type-def)`**
 
 **`(opaque type-name type-def)`**
 
 **`(spec function function-spec)`**
+
+For a description of these see the `lfe-types` documentation.
 
 ### Documentation attributes
 
@@ -117,9 +143,11 @@ The attribute should be placed just before the entity it documents.
 
 ### LFE specific attributes
 
-**`(export-macro macros)`**
+**`(alias module-name alias)`**
 
-Export the macros so they can be callable from other modules.
+Provide alias names for modules. The `alias` can be used in code as an
+alternative to `module-name`. A typical use is to provide short names for
+modules with long names.
 
 **`(module-alias aliases)`**
 
@@ -127,13 +155,11 @@ Provide alias names for modules. The alias can be used in code as an
 alternative to modulename. A typical use is to provide short names for
 modules with long names. `aliases` is a list:
 
-```((real-module-name-1 alias-1) ... (real-module-name-n alia-n))```.
+```((real-module-name-1 alias-1) ... (real-module-name-n alias-n))```.
 
-**`(alias module-name alias)`**
+**`(export-macro macros)`**
 
-Provide alias names for modules. The `alias` can be used in code as an
-alternative to `module-name`. A typical use is to provide short names for
-modules with long names.
+Export the macros so they can be callable from other modules.
 
 ### User-defined attributes
 

@@ -41,11 +41,11 @@
 %% [vsn,Line,Vsn]
 %% [on_load,Line,Function]
 %% [nifs,Line,Nifs]
+%% ['alias',Line,Module,Alias]
 %%
 %% The other predefined norms can come anywhere.
 %%
 %% ['export-type',Line,Types]
-%% ['module-alias',Line,Aliases]
 %% [macro,Line,Name,Definition]
 %% [function,Line,Name,Definition]
 %% ['eval-when-compile',Body]
@@ -153,8 +153,9 @@ form({['define-function-spec',Func,Specs],Line}, St) ->
     {[['spec',Line,Func,Specs]],St};
 form({['export-type'|Types],Line}, St) ->
     {[['export-type',Line,Types]],St};
-form({['module-alias',Aliases],Line}, St) ->
-    {[['module-alias',Line,Aliases]],St};
+form({['module-alias'|Aliases],Line}, St) ->
+    %% Should we really support this at the top-level?
+    module_alias(Aliases, Line, St);
 form({['define-record',Name,Fields],Line}, St) ->
     {[['record',Line,Name,Fields]],St};
 form({['define-struct',Fields],Line}, St) ->
@@ -333,6 +334,13 @@ attribute([doc,Docs], Line, _Unrecog, St) ->
     {[[doc,Line,Docs]],St};
 attribute([file,FileName,FileLine], Line, _Unrecog, St) ->
     {[['attribute',Line,file,{FileName,FileLine}]],St};
+%% We accept both spellings of behaviour/behavior.
+attribute(['behaviour',Behaviour], Line, _Unrecog, St) ->
+    {[['behaviour',Line,Behaviour]],St};
+attribute(['behavior',Behaviour], Line, _Unrecog, St) ->
+    {[['behaviour',Line,Behaviour]],St};
+attribute(['feature',Name,EnaDis], Line, _Unrecog, St) ->
+    {[['feature',Line,Name,EnaDis]],St};
 %% The standard LFE attributes.
 attribute(['export-macro',Exports], Line, _Unrecog, St) ->
     attribute_export_macro(Exports, Line, St);

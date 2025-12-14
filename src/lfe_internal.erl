@@ -378,5 +378,11 @@ is_lfe_attribute(record) -> true;
 is_lfe_attribute(struct) -> true;
 is_lfe_attribute(doc) -> true;
 is_lfe_attribute(file) -> true;
-is_lfe_attribute('export-macro') -> true;           %Maybe
+is_lfe_attribute('alias') -> true;
+is_lfe_attribute('export-macro') -> true;       %Maybe
+%% More Erlang specific  attributes.
+is_lfe_attribute('behaviour') -> true;          %We support both spellings
+is_lfe_attribute('behavior') -> true;
+is_lfe_attribute('feature') -> true;
+%% And the rest.
 is_lfe_attribute(Name) when is_atom(Name) -> false.

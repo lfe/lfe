@@ -83,6 +83,24 @@ module is loaded.
 .PP
 Specifies which of the functions, defined within the module, that may be
 loaded as NIFs with \f[CR]erlang:load_nif/2\f[R].
+.SS Behaviour Module Attribute
+It is possible to specify that the module is the callback module for a
+\f[I]behaviour\f[R]:
+.PP
+\f[B]\f[CB](behaviour behaviour)\f[B]\f[R]
+.PP
+The atom \f[CR]behaviour\f[R] gives the name of the behaviour, which can
+be a user\-defined behaviour or one of the following OTP standard
+behaviours:
+.IP
+.EX
+gen_server
+gen_statem
+gen_event
+supervisor
+.EE
+.PP
+The spelling \f[CR]behavior\f[R] is also accepted.
 .SS Record and Struct definitions
 The same syntax as for module attributes is used for record and struct
 definitions:
@@ -91,15 +109,21 @@ definitions:
 .PP
 \f[B]\f[CB](struct fields)\f[B]\f[R]
 .SS Setting File and Line
+The same syntax as for module attributes is used for changing the
+pre\-defined macros \f[CR]FILE\f[R] and \f[CR]LINE\f[R]:
+.PP
 \f[B]\f[CB](file name line)\f[B]\f[R]
 .SS Types and function specifications
-For a description of these see the \f[CR]lfe\-types\f[R] documentation.
+A similar syntax as for module attributes is used for specifying types
+and function specifications:
 .PP
 \f[B]\f[CB](type type\-name type\-def)\f[B]\f[R]
 .PP
 \f[B]\f[CB](opaque type\-name type\-def)\f[B]\f[R]
 .PP
 \f[B]\f[CB](spec function function\-spec)\f[B]\f[R]
+.PP
+For a description of these see the \f[CR]lfe\-types\f[R] documentation.
 .SS Documentation attributes
 The module attribute \f[CR](doc documentation)\f[R] is used to provide
 user documentation for a function/type/callback.
@@ -113,9 +137,12 @@ The attribute should be placed just before the entity it documents.
 .PP
 \f[B]\f[CB](doc documentation)\f[B]\f[R]
 .SS LFE specific attributes
-\f[B]\f[CB](export\-macro macros)\f[B]\f[R]
+\f[B]\f[CB](alias module\-name alias)\f[B]\f[R]
 .PP
-Export the macros so they can be callable from other modules.
+Provide alias names for modules.
+The \f[CR]alias\f[R] can be used in code as an alternative to
+\f[CR]module\-name\f[R].
+A typical use is to provide short names for modules with long names.
 .PP
 \f[B]\f[CB](module\-alias aliases)\f[B]\f[R]
 .PP
@@ -124,14 +151,11 @@ The alias can be used in code as an alternative to modulename.
 A typical use is to provide short names for modules with long names.
 \f[CR]aliases\f[R] is a list:
 .PP
-\f[CR]((real\-module\-name\-1 alias\-1) ... (real\-module\-name\-n alia\-n))\f[R].
+\f[CR]((real\-module\-name\-1 alias\-1) ... (real\-module\-name\-n alias\-n))\f[R].
 .PP
-\f[B]\f[CB](alias module\-name alias)\f[B]\f[R]
+\f[B]\f[CB](export\-macro macros)\f[B]\f[R]
 .PP
-Provide alias names for modules.
-The \f[CR]alias\f[R] can be used in code as an alternative to
-\f[CR]module\-name\f[R].
-A typical use is to provide short names for modules with long names.
+Export the macros so they can be callable from other modules.
 .SS User\-defined attributes
 User\-defined module attributes must have arity one.
 There are two ways of creating user\-defined attributes, either using

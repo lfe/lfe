@@ -176,6 +176,9 @@ compile_form(['doc',_Line,_Docs], [['macro'|_]|_], St) ->
     {[],[],St};
 compile_form(['doc',Line,Docs], _Forms, St) ->
     make_doc_attribute(Docs, Line, St);
+compile_form(['behaviour',Line,Behaviour], _Forms, St) ->
+    {[make_attribute('behaviour', Behaviour, Line)],[],St};
+%% The 'feature' attribute is not accessible from LFE, lfe_lint catches it.
 %% The general attribute.
 compile_form(['attribute',Line,Name,Value], _Forms, St) ->
     {[],[make_attribute(Name, Value, Line)],St};

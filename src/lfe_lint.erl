@@ -68,6 +68,8 @@ format_error(redefine_moduledoc) ->
     <<"moduledoc already defined">>;
 format_error({bad_attribute,A}) ->
     lfe_io:format1(<<"bad ~w attribute">>, [A]);
+format_error({illegal_attribute,A}) ->
+    lfe_io:format1(<<"illegal attribute ~w">>, [A]);
 %% format_error({bad_meta_def,M}) ->
 %%     lfe_io:format1(<<"bad ~w metadata definition">>, [M]);
 %% Forms and code.
@@ -342,6 +344,10 @@ collect_form(['struct',Line,Fields], St) ->
     {[],check_struct_def(Fields, Line, St)};
 collect_form(['doc',Line,Doc], St) ->
     {[],check_doc(Doc, Line, St)};
+collect_form(['behaviour',Line,Behaviour], St) ->
+    {[],check_behaviour(Behaviour, Line, St)};
+collect_form(['feature',Line,Name,EnaDis], St) ->
+    {[],check_feature(Name, EnaDis, Line, St)};
 %% General attributes.
 collect_form(['attribute',Line,Name,Value], St) ->
     {[],check_attribute(Name, Value, Line, St)};
@@ -469,6 +475,19 @@ import_error(L, St) -> bad_module_def_error(L, import, St).
 check_doc(Doc, Line, St) ->
     ?IF(lfe_lib:is_doc_string(Doc), St, bad_attr_error(Line, doc, St)).
 
+%% check_behaviour(Behaviour, Line, State) -> State.
+%%  Check the behaviour attribute, it must be an atom.
+
+check_behaviour(Beh, _Line, St) when is_atom(Beh) -> St;
+check_behaviour(_Beh, Line, St) ->
+    bad_attr_error(Line, behaviour, St).
+
+%% check_feature(Feature, EnaDis, Line, State) -> State.
+%%  Features are not accessible from the LFE compiler.
+
+check_feature(_Name, _EnaDis, Line, St) ->
+    illegal_attr_error(Line, 'feature', St).
+
 %% check_file(Value, Line, State) -> State.
 %%  Check the file attribute.
 
@@ -497,8 +516,6 @@ check_onload(_Onload, L, St) ->
 %%  Check the vsn attribute, it can be any term.
 
 check_vsn(_Vsn, _L, St) -> St.
-%% check_vsn(_Vsn, L, St) ->
-%%     bad_attr_error(L, vsn, St).
 
 %% check_nifs(Functions, Line, State) -> State.
 %%  Check the nifs attribute.
@@ -2415,6 +2432,9 @@ add_error(L, E, #lfe_lint{errors=Errs}=St) ->
 
 bad_attr_error(L, A, St) ->
     add_error(L, {bad_attribute,A}, St).
+
+illegal_attr_error(L, A, St) ->
+    add_error(L, {illegal_attribute,A}, St).
 
 %% bad_meta_def_error(L, A, St) ->
 %%     add_error(L, {bad_meta_def,A}, St).

@@ -155,9 +155,9 @@ top-level like:
 (type foo-type (tuple 'foo (integer) (list)))
 (type (bar-type) (tuple 'bar (integer) (list)))
 
-(spec (foo 1) ([(integer)] (foo-type)))
-(spec (bar 1) ([(atom)] (list))
-              ([(list)] (atom)))
+(spec (foo 1) (([(integer)] (foo-type))))
+(spec (bar 1) (([(atom)] (list))
+               ([(list)] (atom))) )
 ...
 ```
 These forms are equivalent to using `deftype` and `defspec`.
