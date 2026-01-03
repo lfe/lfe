@@ -1,4 +1,4 @@
-%% Copyright (c) 2013-2020 Robert Virding
+%% Copyright (c) 2013-2026 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -26,13 +26,14 @@
 -export([file/3,lib/3,format_error/1,stringify/1]).
 
 -export([read_hrl_file_1/1,read_hrl_file/2]).   %For testing
+-export([parse_hrl_file/1]).
 
 %%-compile([export_all]).
 
 -include("lfe.hrl").
 -include("lfe_macro.hrl").
 
-%% Test function to inspect output of parsing functions.
+%% Test function to inspect output of HRL file parsing functions.
 read_hrl_file_1(Name) ->
     case epp:open(Name, []) of
         {ok,Epp} ->
@@ -42,6 +43,18 @@ read_hrl_file_1(Name) ->
             epp:close(Epp),                     %Now we close epp
             {ok,Fs,Ms};
         {error,E} -> {error,E}
+    end.
+
+parse_hrl_file(Name) ->
+    {ok,Epp} = epp:open(Name, []),
+    parse_hrl_file_loop(Epp).
+
+parse_hrl_file_loop(Epp) ->
+    case epp:parse_erl_form(Epp) of
+        {ok,Form} ->
+            [Form | parse_hrl_file_loop(Epp)];
+        {eof,_}=Eof ->
+            [Eof]
     end.
 
 %% Errors.
@@ -86,8 +99,8 @@ file(IncFile, _, #mac{ipath=Path}=St0) ->
     case include_name(IncFile) of
         {ok,Name} ->
             case path_read_file(Path, Name, St0) of
-                {ok,Forms,St1} -> {yes,['progn'|Forms],St1};
-                {error,St1} -> {error,St1};
+                {ok,Forms,St1} -> {yes,Forms,St1};
+                {error,_St1}=Error -> Error;
                 not_found ->
                     {error,add_error({no_include,file,Name}, St0)}
             end;
@@ -107,11 +120,11 @@ lib(IncFile, _, #mac{ipath=Path}=St0) ->
         {ok,Name} ->
             case path_read_file(Path, Name, St0) of
                 {ok,Forms,St1} ->
-                    {yes,['progn'|Forms],St1};
+                    {yes,Forms,St1};
                 {error,St1} -> {error,St1};
                 not_found ->
                     case lib_read_file(Name, St0) of
-                        {ok,Forms,St1} -> {yes,['progn'|Forms],St1};
+                        {ok,Forms,St1} -> {yes,Forms,St1};
                         {error,St1} -> {error,St1};
                         not_found ->
                             {error,add_error({no_include,lib,Name}, St0)}
@@ -178,6 +191,7 @@ lib_read_file(Name, St) ->
     end.
 
 %% read_file(FileName, State) -> {ok,Forms,State} | {error,State}.
+%%  Read the file and process it.
 
 read_file(Name, St) ->
     case lists:suffix(".hrl", Name) of
@@ -189,8 +203,10 @@ read_file(Name, St) ->
 
 read_lfe_file(Name, #mac{errors=Es}=St) ->
     %% Read the file as an LFE file.
-    case lfe_io:read_file(Name) of
-        {ok,Fs} -> {ok,Fs,St};
+    case lfe_io:parse_file(Name) of
+        {ok,Fs} ->
+            FileAttr = {[attribute,file,{Name,1}],1},
+            {ok,[FileAttr|Fs],St};
         {error,E} ->
             {error,St#mac{errors=Es ++ [E]}}
     end.
@@ -219,19 +235,18 @@ read_hrl_file(Name, St) ->
 
 -ifdef(NEW_REC_CORE).
 parse_hrl_file(Fs, Ms, St0) ->
-    {As,Lfs,St1} = trans_forms(Fs, St0),
-    %% io:format("~p\n",[Ms]),
+    {Lfs,St1} = trans_forms(Fs, St0),
     {Lms,St2} = trans_macros(Ms, St1),
-    {ok,[['extend-module',[],As]] ++ Lfs ++ Lms,St2}.
+    {ok,Lfs ++ Lms,St2}.
 -else.
 parse_hrl_file(Fs0, Ms, St0) ->
     %% Trim away untyped record attribute when there is a typed record
     %% attribute as well.
     Trs = typed_record_attrs(Fs0),
     Fs1 = delete_typed_record_defs(Fs0, Trs),
-    {As,Lfs,St1} = trans_forms(Fs1, St0),
+    {Lfs,St1} = trans_forms(Fs1, St0),
     {Lms,St2} = trans_macros(Ms, St1),
-    {ok,[['extend-module',[],As]] ++ Lfs ++ Lms,St2}.
+    {ok, Lfs ++ Lms,St2}.
 
 typed_record_attrs(Fs) ->
     [ Name || {attribute,_,type,{{record,Name},_,_}} <- Fs ].
@@ -244,67 +259,74 @@ delete_typed_record_defs(Fs, Trs) ->
     lists:filter(Dfun, Fs).
 -endif.
 
-%% trans_forms(Forms, State) -> {Attributes,LForms,State}.
+%% trans_forms(Forms, State) -> {LFEForms,State}.
 %%  Translate the record and function defintions and attributes in the
 %%  forms to LFE record and function definitions and
 %%  attributes.
 
 trans_forms(Fs, St0) ->
-    Tfun = fun (F, {As,Lfs,St}) -> trans_form(F, As, Lfs, St) end,
-    {As,Lfs,St1} = lists:foldl(Tfun, {[],[],St0}, Fs),
-    {lists:reverse(As),lists:reverse(Lfs),St1}.
+    Tfun = fun (F, {Lfs,St}) -> trans_form(F, Lfs, St) end,
+    {Lfs,St1} = lists:foldr(Tfun, {[],St0}, Fs),
+    %% {lists:reverse(Lfs),St1}.
+    {Lfs,St1}.
 
 %% trans_form(Form, Attributes, LispForms, State) ->
-%%     {Attributes,LispForms,State}.
+%%     {LispForms,State}.
 %%  Note that the Attributes and LispForms are the ones that have
 %%  preceded this form, but in reverse order.
 
-trans_form({attribute,Line,record,{Name,Fields}}, As, Lfs, St) ->
+trans_form({attribute,Line,record,{Name,Fields}}, Lfs, St) ->
     case catch {ok,trans_record(Name, Line, Fields)} of
-        {ok,Lrec} -> {As,[Lrec|Lfs],St};
+        {ok,Lrec} -> {[Lrec|Lfs],St};
         {'EXIT',_E}->                           %Something went wrong
-            {As,Lfs,add_warning({notrans_record,Name}, St)}
+            {Lfs,add_warning({notrans_record,Name}, St)}
     end;
-trans_form({attribute,Line,type,{Name,Def,E}}, As, Lfs, St) ->
+trans_form({attribute,Line,type,{Name,Def,E}}, Lfs, St) ->
     case catch {ok,trans_type(Name, Line, Def, E)} of
-        {ok,Ltype} -> {As,[Ltype|Lfs],St};
+        {ok,Ltype} -> {[Ltype|Lfs],St};
         {'EXIT',_E} ->                          %Something went wrong
             exit({boom,_E,{Name,Line,Def,E}}),
-            {As,Lfs,add_warning({notrans_type,Name}, St)}
+            {Lfs,add_warning({notrans_type,Name}, St)}
     end;
-trans_form({attribute,Line,opaque,{Name,Def,E}}, As, Lfs, St) ->
+trans_form({attribute,Line,opaque,{Name,Def,E}}, Lfs, St) ->
     case catch {ok,trans_opaque(Name, Line, Def, E)} of
-        {ok,Ltype} -> {As,[Ltype|Lfs],St};
+        {ok,Ltype} -> {[Ltype|Lfs],St};
         {'EXIT',_E} ->                          %Something went wrong
             exit({boom,_E,{Name,Line,Def,E}}),
-            {As,Lfs,add_warning({notrans_type,Name}, St)}
+            {Lfs,add_warning({notrans_type,Name}, St)}
     end;
-trans_form({attribute,Line,spec,{Func,Types}}, As, Lfs, St) ->
+trans_form({attribute,Line,spec,{Func,Types}}, Lfs, St) ->
     case catch {ok,trans_spec(Func, Line, Types)} of
-        {ok,Lspec} -> {As,[['define-function-spec'|Lspec]|Lfs],St};
+        {ok,Lspec} ->
+            Spec = ['define-function-spec'|Lspec],
+            {[{Spec,Line}|Lfs],St};
         {'EXIT',_E} ->                          %Something went wrong
             exit({boom,_E,{Func,Line,Types}}),
-            {As,Lfs,add_warning({notrans_spec,Func}, St)}
+            {Lfs,add_warning({notrans_spec,Func}, St)}
     end;
-trans_form({attribute,_,export,Es}, As, Lfs, St) ->
+trans_form({attribute,Line,export,Es}, Lfs, St) ->
     Les = trans_farity(Es),
-    {[[export|Les]|As],Lfs,St};
-trans_form({attribute,_,import,{Mod,Es}}, As, Lfs, St) ->
+    %% {[[export|Les]|As],Lfs,St};
+    Export = {[attribute,export,Les],Line},
+    {[Export|Lfs],St};
+trans_form({attribute,Line,import,{Mod,Es}}, Lfs, St) ->
     Les = trans_farity(Es),
-    {[[import,[from,Mod|Les]]|As],Lfs,St};
-trans_form({attribute,_,Name,E}, As, Lfs, St) ->
-    {[[Name,E]|As],Lfs,St};
-trans_form({function,_,Name,Arity,Cls}, As, Lfs, St) ->
+    %% {[[import,[from,Mod|Les]]|As],Lfs,St};
+    Import = {[attribute,import,Mod,Les],Line},
+    {[Import|Lfs],St};
+trans_form({attribute,Line,Name,E}, Lfs, St) ->
+    {[{[attribute,Name,E],Line}|Lfs],St};
+trans_form({function,Line,Name,Arity,Cls}, Lfs, St) ->
     case catch {ok,trans_function(Name, Arity, Cls)} of
-        {ok,Lfunc} -> {As,[Lfunc|Lfs],St};
+        {ok,Lfunc} -> {[{Lfunc,Line}|Lfs],St};
         {'EXIT',_E} ->                          %Something went wrong
-            {As,Lfs,add_warning({notrans_function,Name,Arity}, St)}
+            {Lfs,add_warning({notrans_function,Name,Arity}, St)}
     end;
-trans_form({error,E}, As, Lfs, #mac{errors=Es}=St) ->
+trans_form({error,E}, Lfs, #mac{errors=Es}=St) ->
     %% Assume the error is in the right format, {Line,Mod,Err}.
-    {As,Lfs,St#mac{errors=Es ++ [E]}};
-trans_form(_, As, Lfs, St) ->                   %Ignore everything else
-    {As,Lfs,St}.
+    {Lfs,St#mac{errors=Es ++ [E]}};
+trans_form(_, Lfs, St) ->                       %Ignore everything else
+    {Lfs,St}.
 
 trans_farity(Es) ->
     lists:map(fun ({F,A}) -> [F,A] end, Es).
@@ -313,9 +335,10 @@ trans_farity(Es) ->
 %%  Translate an Erlang record definition to LFE. We currently ignore
 %%  any type information.
 
-trans_record(Name, _, Fs) ->
+trans_record(Name, Line, Fs) ->
     Lfs = record_fields(Fs),
-    [defrecord,Name|Lfs].
+    %% {[defrecord,Name|Lfs],Line}.
+    {[attribute,record,Name,Lfs],Line}.
 
 record_fields(Fs) ->
     [ record_field(F) || F <- Fs ].
@@ -345,23 +368,26 @@ typed_record_field({record_field,_,F,Def}, Type) ->
 %%  could also contain a typed record definition which we use.
 
 -ifdef(NEW_REC_CORE).
-trans_type(Name, _Line, Def, E) ->
-    ['define-type',[Name|lfe_types:from_type_defs(E)],
-     lfe_types:from_type_def(Def)].
+trans_type(Name, Line, Def, E) ->
+    TypeDef = ['define-type',[Name|lfe_types:from_type_defs(E)],
+               lfe_types:from_type_def(Def)],
+    {TypeDef,Line}.
 -else.
 trans_type({record,Name}, Line, Def, _E) ->
     trans_record(Name, Line, Def);
 trans_type(Name, _Line, Def, E) ->
-    ['define-type',[Name|lfe_types:from_type_defs(E)],
-     lfe_types:from_type_def(Def)].
+    TypeDef = ['define-type',[Name|lfe_types:from_type_defs(E)],
+               lfe_types:from_type_def(Def)],
+    {TypeDef,Line}.
 -endif.
 
 %% trans_opaque(Name, Line, Definition, Extra) -> TypeDef.
 %%  Translate an Erlang opaque type definition to LFE.
 
-trans_opaque(Name, _, Def, E) ->
-    ['define-opaque-type',[Name|lfe_types:from_type_defs(E)],
-     lfe_types:from_type_def(Def)].
+trans_opaque(Name, Line, Def, E) ->
+    OpaqueDef = ['define-opaque-type',[Name|lfe_types:from_type_defs(E)],
+                 lfe_types:from_type_def(Def)],
+    {OpaqueDef,Line}.
     %%[type,{Name,convert_type(Def, Line),E}].
 
 %% trans_spec(FuncArity, Line, TypeList) -> SpecDef.
@@ -394,14 +420,18 @@ trans_macro(_, undefined, St) -> {none,St};     %Undefined macros
 trans_macro(_, {none,_}, St) -> {none,St};      %Predefined macros
 trans_macro(Mac, Defs0, St) ->
     Defs1 = order_macro_defs(Defs0),
+    Line = macro_line(Defs1),
     case trans_macro_defs(Defs1) of
         [] -> {none,St};                        %No definitions
-        Lcls -> {[defmacro,Mac|Lcls],St}
+        Lcls -> {{[defmacro,Mac|Lcls],Line},St}
     end.
 
 order_macro_defs([{none,Ds}|Defs]) ->           %Put the no arg version last
     Defs ++ [{none,Ds}];
 order_macro_defs(Defs) -> Defs.
+
+macro_line([{_Argc,{_Args,[Tok|_Toks]}}|_Defs]) ->
+    element(2, Tok).
 
 %% trans_macro_defs(MacroDef) -> [] | [Clause].
 %%  Translate macro definition to a list of clauses. Put the no arg

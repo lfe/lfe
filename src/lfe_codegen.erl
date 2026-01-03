@@ -171,6 +171,9 @@ compile_form(['function',Line,Name,Def], _Forms, #lfe_cg{functions=Funcs}=St) ->
     Fs = comp_function_def(Name, Def, Line, St),
     Arity = func_arity(Def),
     {[],Fs,St#lfe_cg{functions=[{Name,Arity}|Funcs]}};
+compile_form(['macro',_Line,_Name,_Def], _Forms, St) ->
+    %% Explicitly ignore this.
+    {[],[],St};
 compile_form(['doc',_Line,_Docs], [['macro'|_]|_], St) ->
     %% Assume doc refers to the following macro so drop it completely.
     {[],[],St};

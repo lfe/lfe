@@ -1,4 +1,4 @@
-%% Copyright (c) 2008-2026 Robert Virding
+%% Copyright (c) 2008-2026 Robert Virdingxp_defmod
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -23,13 +23,14 @@
 
 %% -compile(export_all).
 
-%% These work on individual expressions.
--export([expand_expr/2,expand_expr_1/2,expand_expr_all/2]).
-
 %% These work on list of forms in "file format".
 -export([expand_form_init/2,expand_form_init/3,
-         expand_form/4,expand_fileform/3]).
--export([expand_fileforms/3,expand_fileforms/4]).
+         expand_form/3,expand_form/4,expand_forms/3]).
+-export([expand_fileform/3,expand_fileforms/3,expand_fileforms/4]).
+
+%% These work on individual expressions.
+-export([expand_expr/2,expand_expr/3,expand_expr_1/2]).
+-export([expand_expr_all/2,expand_expr_all/3]).
 
 %% For creating the macro expansion state.
 -export([default_state/2,default_state/3]).
@@ -45,6 +46,8 @@
 %% Errors we get, generally in the predefined macros.
 format_error({bad_form,Type}) ->
     lfe_io:format1(<<"bad ~w form">>, [Type]);
+format_error({bad_macro_def,Name}) ->
+    lfe_io:format1(<<"error defining macro '~w'">>, [Name]);
 format_error({bad_ewc_form,Type}) ->
     lfe_io:format1(<<"bad eval-when-compile ~w form">>, [Type]);
 format_error({defining_core_form,Name}) ->
@@ -54,43 +57,6 @@ format_error({expand_macro,Call,Error}) ->
     lfe_io:format1(<<"error expanding ~P:\n    ~P">>, [Call,10,Error,10]);
 format_error(Error) ->
     lfe_io:format1(<<"macro expansion error: ~P\n">>, [Error,10]).
-
-%% expand_expr(Form, Env) -> {yes,Exp} | no.
-%% expand_expr_1(Form, Env) -> {yes,Exp} | no.
-%%  User functions for testing macro expansions, either one expansion
-%%  or as far as it can go.
-
-expand_expr_1([Name|_]=Call, Env) when is_atom(Name) ->
-    St = default_state(false, false),
-    case exp_macro(Call, Env, St) of
-        {yes,Exp,_} -> {yes,Exp};
-        no -> no
-    end;
-expand_expr_1(_, _) -> no.
-
-expand_expr([Name|_]=Call, Env) when is_atom(Name) ->
-    St0 = default_state(false, false),
-    case exp_macro(Call, Env, St0) of
-        {yes,Exp0,St1} ->
-            {Exp1,_} = expand_expr_loop(Exp0, Env, St1),
-            {yes,Exp1};
-        no -> no
-    end;
-expand_expr(_, _) -> no.
-
-expand_expr_loop([Name|_]=Call, Env, St0) when is_atom(Name) ->
-    case exp_macro(Call, Env, St0) of
-        {yes,Exp,St1} -> expand_expr_loop(Exp, Env, St1);
-        no -> {Call,St0}
-    end;
-expand_expr_loop(E, _, St) -> {E,St}.
-
-%% expand_expr_all(From, Env) -> Exp.
-%%  Expand all the macros in an expression.
-
-expand_expr_all(F, Env) ->
-    {Ef,_} = exp_form(F, Env, default_state(true, false)),
-    Ef.
 
 %% expand_form_init(Deep, Keep) -> State.
 %% expand_form_init(CompInfo, Deep, Keep) -> State.
@@ -107,12 +73,61 @@ default_state(Deep, Keep) ->
 default_state(#cinfo{file=File,opts=Os,ipath=Is}, Deep, Keep) ->
     #mac{deep=Deep,keep=Keep,line=1,file=File,opts=Os,ipath=Is}.
 
+%% expand_expr_1(Form, Env) -> {yes,Exp} | no.
+%% expand_expr(Form, Env) -> {yes,Exp} | no.
+%% expand_expr(Form, Env, State) -> {yes,Exp} | no.
+%%  User functions for testing macro expansions, either one expansion
+%%  or as far as it can go.
+
+expand_expr_1([Name|_]=Call, Env) when is_atom(Name) ->
+    St = default_state(false, false),
+    case exp_macro(Call, Env, St) of
+        {yes,Exp,_} -> {yes,Exp};
+        no -> no
+    end;
+expand_expr_1(_, _) -> no.
+
+expand_expr(Expr, Env) ->
+    expand_expr(Expr, Env,default_state(false, false)).
+
+expand_expr([Name|_]=Expr0, Env, St0) when is_atom(Name) ->
+    case exp_macro(Expr0, Env, St0) of
+        {yes,Expr1,St1} ->
+            {Expr2,_St} = expand_expr_loop(Expr1, Env, St1),
+            {yes,Expr2};
+        no -> no
+    end;
+expand_expr(_, _, _) -> no.
+
+expand_expr_loop([Name|_]=Expr0, Env, St0) when is_atom(Name) ->
+    case exp_macro(Expr0, Env, St0) of
+        {yes,Expr1,St1} ->
+            expand_expr_loop(Expr1, Env, St1);
+        no -> {Expr0,St0}
+    end;
+expand_expr_loop(Expr, _, St) -> {Expr,St}.
+
+%% expand_expr_all(From, Env) -> Exp.
+%% expand_expr_all(Form, Env, State) -> Exp.
+%%  Expand all the macros in an expression.
+
+expand_expr_all(Form, Env) ->
+    expand_expr_all(Form, Env, default_state(true, false)).
+
+expand_expr_all(Form, Env, St) ->
+    {Ef,_St} = exp_form(Form, Env, St),
+    Ef.
+
 %% expand_form(Form, Line, Env, MacState) ->
 %%      {ok,Form,Env,MacState} | {error,Errors,Warnings,MacState}.
 %% expand_fileform(FileForm, Env, MacState) ->
 %%      {ok,FileForm,Env,MacState} | {error,Errors,Warnings,MacState}.
 %%  Collect macro definitions in a (file)form, completely expand all
 %%  macros and only keep all functions.
+
+expand_form(F0, Env0, St0) ->
+    {F1,Env1,St1} = pass_form(F0, Env0, St0),
+    return_status(F1, Env1, St1).
 
 expand_form(F0, L, E0, St0) ->
     %% io:format("ef ~p\n", [{F0,L}]),
@@ -128,6 +143,17 @@ return_status(Ret, Env, #mac{errors=[]}=St) ->
     {ok,Ret,Env,St};
 return_status(_, _, #mac{errors=Es,warnings=Ws}=St) ->
     {error,Es,Ws,St}.
+
+%% expand_forms(Forms, Env, State) -> {Forms,Env,State}.
+%%  Expand the forms which are available at the top form level. This
+%%  implementation is separate in case we need to use them in
+%%  different ways.
+
+expand_forms(Forms, Env, St) ->
+    mapfoldl2(fun (F0, E0, S0) ->
+                        {F1,E1,S1} = pass_form(F0, E0, S0),
+                        {F1,E1,S1}
+                   end, Env, St, Forms).
 
 %% expand_fileforms(FileForms, Env, MacState) ->
 %% expand_fileforms(FileForms, Env, Deep, Keep) ->
@@ -157,11 +183,40 @@ do_fileforms(Fs0, Env0, St0) ->
 %%  but all can be expanded to full depth. Nesting of forms by progn
 %%  is preserved.
 
-pass_fileforms(Ffs, Env, St) ->
-    mapfoldl2(fun ({F0,L}, E0, S0) ->
-                      {F1,E1,S1} = pass_form(F0, E0, S0#mac{line=L}),
-                      {{F1,L},E1,S1}
-              end, Env, St, Ffs).
+%%  NOTE we unwind like mapfoldl2 to lessen copying of lists.
+
+pass_fileforms([{['include-file',File],L}|Forms], Env, St) ->
+    pass_fileforms_include('file', File, L, Forms, Env, St);
+pass_fileforms([{['include-lib',File],L}|Forms], Env, St) ->
+    pass_fileforms_include('lib', File, L, Forms, Env, St);
+pass_fileforms([{Form0,L}|Forms0], Env0, St0) ->
+    {Form1,Env1,St1} = pass_form(Form0, Env0, St0),
+    {Forms1,Env2,St2} = pass_fileforms(Forms0, Env1, St1),
+    {[{Form1,L}|Forms1],Env2,St2};
+pass_fileforms([], Env, St) ->
+    {[],Env,St}.
+
+%% pass_fileforms_include(IncludeType, File, Line, Forms, Env, State) ->
+%%     {Forms,Env,State}.
+%%  Include a file of either 'file' or 'lib'.
+
+pass_fileforms_include(Type, File, L, Forms0, Env0, St0) ->
+    case lfe_macro_include:Type(File, Env0, St0#mac{line=L}) of
+        {ok,Iforms,St1} ->
+            {Forms1,Env1,St2} = pass_fileforms(Forms0, Env0, St1),
+            FileAttr = [attribute,file,St2#mac.file,L],
+            %% The 'progn' handling has been handed over to us.
+            {Iforms ++ Forms1 ++ [{FileAttr,L}],Env1,St2};
+        {error,St1} ->
+            {Forms1,Env1,St2} = pass_fileforms(Forms0, Env0, St1),
+            {[{['progn'],L}|Forms1],Env1,St2}
+    end.
+
+%% pass_fileforms(Ffs, Env, St) ->
+%%     mapfoldl2(fun ({F0,L}, E0, S0) ->
+%%                       {F1,E1,S1} = pass_form(F0, E0, S0#mac{line=L}),
+%%                       {{F1,L},E1,S1}
+%%               end, Env, St, Ffs).
 
 pass_forms(Fs, Env, St) ->
     mapfoldl2(fun (F0, E0, S0) -> pass_form(F0, E0, S0) end, Env, St, Fs).
@@ -177,18 +232,10 @@ pass_form(['progn'|Pfs0], Env0, St0) ->
 pass_form(['eval-when-compile'|Efs0], Env0, St0) ->
     {Efs1,Env1,St1} = ewc_forms(Efs0, Env0, St0),
     {['eval-when-compile'|Efs1],Env1,St1};
-pass_form(['include-file',File], Env, St0) ->
-    case lfe_macro_include:file(File, Env, St0) of
-        {yes,Exp,St1} -> pass_form(Exp, Env, St1);
-        {error,St1} ->
-            {['progn'],Env,St1}
-    end;
-pass_form(['include-lib',Lib], Env, St0) ->
-    case lfe_macro_include:lib(Lib, Env, St0) of
-        {yes,Exp,St1} -> pass_form(Exp, Env, St1);
-        {error,St1} ->
-            {['progn'],Env,St1}
-    end;
+pass_form(['include-file',File], Env, St) ->
+    pass_form_include('file', File, Env, St);
+pass_form(['include-lib',File], Env, St) ->
+    pass_form_include('lib', File, Env, St);
 pass_form(['define-macro'|Def]=M, Env0, St0) ->
     case pass_define_macro(Def, Env0, St0) of
         {yes,Env1,St1} ->
@@ -214,6 +261,20 @@ pass_form(F, Env, St0) ->
             pass_form(Exp, Env, St1);
         {no,F1,St1} ->                          %Expanded all if flag set
             {F1,Env,St1}
+    end.
+
+%% pass_form_include(IncludeType, File, Env, State) -> {Form,Env,State}.
+%%  Include a file of either 'file' or 'lib'.
+
+pass_form_include(Type, File, Env, St0) ->
+    case lfe_macro_include:Type(File, Env, St0) of
+        {yes,Iforms0,St1} ->
+            %% The 'progn' handling has been handed over to us.
+            FileAttr = [attribute,file,{St1#mac.file,St1#mac.line}],
+            Iforms1 = [ F || {F,_} <- Iforms0 ] ++ [FileAttr],
+            pass_form(['progn'|Iforms1], Env, St1);
+        {error,St1} ->
+            {['progn'],Env,St1}
     end.
 
 %% ewc_forms(Forms, Env, State) -> {Forms,Env,State}.
@@ -275,7 +336,8 @@ ewc_form(F0, Env, St0) ->
                 {['progn'],Env,St1}             %Ignore the value
             catch
                 _:_ ->
-                    {['progn'],Env,add_error({bad_ewc_form,expression}, St1)}
+                    %% {['progn'],Env,add_error({bad_ewc_form,expression}, St1)}
+                    {['progn'],Env,add_error({bad_ewc_form,F1}, St1)}
             end
     end.
 
@@ -917,9 +979,9 @@ exp_module_meta([record|Recs], Env, St0) ->
     {Erecs,St1} = lists:mapfoldl(fun (R, S) -> exp_module_rec(R, Env, S) end,
                                  St0, Recs),
     {[record|Erecs],St1};
-exp_module_meta([struct|Fds], Env, St0) ->
+exp_module_meta([struct,Fds], Env, St0) ->
     {Efds,St1} = exp_struct_fields(Fds, Env, St0),
-    {[struct|Efds],St1};
+    {[struct,Efds],St1};
 exp_module_meta(Meta, _Env, St) ->
     {Meta,St}.
 
@@ -1256,14 +1318,27 @@ exp_defmodule([Doc|More]=Rest0) ->
                 [defmodule_doc(Doc)|More],
                 Rest0),
     Mfun = fun ([spec|Specs0], {Me,As}) ->
-                   Sfun = fun ([Func|Spec]) ->
-                                  {Sfunc,Def} = exp_defspec(Func, Spec),
-                                  [Sfunc,Def]
+                   Sfun = fun ([Func0|Spec0]) ->
+                                  {Func1,Spec1} = exp_defspec(Func0, Spec0),
+                                  [Func1,Spec1]
                           end,
                    Specs1 = lists:map(Sfun, Specs0),
-                   {Me,As ++ [[spec|Specs1]]};
-               (R, {Me,As}) ->
-                   {Me,As ++ [R]}
+                   {Me ++ [[spec|Specs1]],As};
+               ([type|Types0], {Me,As}) ->
+                   Tfun = fun ([Type0|Def0]) ->
+                                  {Type1,Def1} = exp_deftype(Type0, Def0),
+                                  [Type1,Def1]
+                          end,
+                   Types1 = lists:map(Tfun, Types0),
+                   {Me ++ [[type|Types1]],As};
+               ([struct|Fields], {Me,As}) ->
+                   %% Should evaluate the arguments as well!
+                   {Me ++ [[struct,Fields]],As};
+               ([Tag|_]=R, {Me,As}) ->
+                   case is_meta_tag(Tag) of
+                       true -> {Me ++ [R],As};
+                       false -> {Me,As ++ [R]}
+                   end
            end,
     lists:foldl(Mfun, {[],[]}, Rest1);
 exp_defmodule([]) -> {[],[]}.
@@ -1274,10 +1349,10 @@ defmodule_doc(Doc) -> [moduledoc,Doc].
 defmodule_doc(Doc) -> [doc,Doc].
 -endif.
 
-%% is_meta_tag(doc) -> true;
-%% is_meta_tag(spec) -> true;
-%% is_meta_tag(record) -> true;
-%% is_meta_tag(Tag) -> lfe_types:is_type_decl(Tag).
+is_meta_tag(doc) -> true;
+is_meta_tag(spec) -> true;
+is_meta_tag(record) -> true;
+is_meta_tag(Tag) -> lfe_types:is_type_decl(Tag).
 
 %% exp_deftype(Type, Def) -> {Type,Def}.
 %%  Paramterless types to be written as just type name and default

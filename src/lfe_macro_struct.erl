@@ -31,7 +31,7 @@ format_error(_) -> "struct error".
 
 define(Fdefs0, Env, St0) ->
     Fdefs1 = evaluate_fdefs(Fdefs0, Env),
-    {yes,[progn,['define-struct',Fdefs1]],St0}.
+    {yes,['define-struct',Fdefs1],St0}.
 
 evaluate_fdefs(Fdefs0, Env) ->
     Fun = fun ([F,Def,T]) when is_atom(F) -> [F,lfe_eval:expr(Def, Env),T];
