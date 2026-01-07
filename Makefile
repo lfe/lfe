@@ -41,7 +41,7 @@ DESTBINDIR := $(DESTLIBDIR)/$(BINDIR)
 
 VPATH = $(SRCDIR)
 
-MANDB = $(shell which mandb)
+MANDB = $(shell command -v mandb)
 
 ERLCFLAGS = -W1 +debug_info
 ERLC ?= erlc
