@@ -28,20 +28,20 @@ CFLAGS ?= -Wall -Wextra
 ifeq ($(OS_NAME),linux)
 	LDFLAGS ?= -Wl,--as-needed
 endif
-DESTDIR ?= /usr/local
-PREFIX ?= $(DESTDIR)
+DESTDIR ?= /
+PREFIX ?= /usr/local
 INSTALL = install
 INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
 INSTALL_BIN = $(INSTALL) -m755
-DESTLIBDIR := $(DESTDIR)/lib/lfe
+DESTLIBDIR := $(DESTDIR)/$(PREFIX)/lib/lfe
 DESTINCDIR := $(DESTLIBDIR)/$(INCDIR)
 DESTEBINDIR := $(DESTLIBDIR)/$(EBINDIR)
 DESTBINDIR := $(DESTLIBDIR)/$(BINDIR)
 
 VPATH = $(SRCDIR)
 
-MANDB = $(shell which mandb)
+MANDB = $(shell command -v mandb)
 
 ERLCFLAGS = -W1 +debug_info
 ERLC ?= erlc
@@ -148,8 +148,8 @@ install-bin:
 		$(BINDIR)/lfedoc \
 		$(BINDIR)/lfescript \
 		$(DESTBINDIR)
-	$(INSTALL_DIR) $(PREFIX)/bin
-	ln -sf $(DESTBINDIR)/* $(PREFIX)/bin/
+	$(INSTALL_DIR) $(DESTDIR)/$(PREFIX)/bin
+	ln -sf $(DESTBINDIR)/* $(DESTDIR)/$(PREFIX)/bin/
 
 clean:
 	rm -rf $(EBINDIR)/*.beam erl_crash.dump comp_opts.mk test/*.beam
@@ -209,7 +209,7 @@ DOCSRC = $(DOCDIR)/src
 MANDIR = $(DOCDIR)/man
 PDFDIR = $(DOCDIR)/pdf
 EPUBDIR = $(DOCDIR)/epub
-MANINSTDIR ?= $(PREFIX)/share/man
+MANINSTDIR ?= $(DESTDIR)/$(PREFIX)/share/man
 
 MAN1_SRCS = $(notdir $(wildcard $(DOCSRC)/*1.md))
 MAN1S = $(MAN1_SRCS:.1.md=.1)
@@ -321,8 +321,10 @@ endif
 	$(INSTALL_DATA) $(MANDIR)/*.7 $(MANINSTDIR)/man7/
 
 update-mandb:
+ifeq ($(DESTDIR),/)
 	@echo "Updating man page database ..."
 	$(MANDB) $(MANINSTDIR)
+endif
 
 ##############
 ### DOCKER ###
