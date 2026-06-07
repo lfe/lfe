@@ -15,8 +15,6 @@
 ;; File    : lfe_init_SUITE.lfe
 ;; Purpose : Verify lfe -eval across OTP versions.
 
-(include-file "test_server.lfe")
-
 (defmodule lfe_init_SUITE
   "Verify that lfe -eval works across OTP versions."
   (export
@@ -76,8 +74,8 @@
 ;;; --- helpers ---
 
 (defun run-lfe-eval (config expr)
-  (let* ((lfe-bin (config 'lfe_bin config))
-         (lfe-root (config 'lfe_root config))
+  (let* ((lfe-bin (proplists:get_value 'lfe_bin config))
+         (lfe-root (proplists:get_value 'lfe_root config))
          (port (open_port
                 (tuple 'spawn_executable lfe-bin)
                 (list (tuple 'args (list "-eval" expr))
