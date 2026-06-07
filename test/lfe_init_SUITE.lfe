@@ -95,20 +95,12 @@
       (catch (port_close port))
       (ct:fail (tuple 'timeout acc)))))
 
+;; This test must spawn bin/lfe as an external process, because the
+;; bug is specifically about how lfe_init:start/0 is invoked via
+;; -user lfe_init with -noshell, which is what bin/lfe sets up. We
+;; can't reproduce that calling convention from inside an
+;; already-running BEAM.
 (defun lfe-root-dir ()
-  (let* ((build-dir
-          (case (code:lib_dir 'lfe)
-            (`#(error bad_name)
-             (filename:dirname
-              (filename:dirname
-               (filename:dirname (code:which 'lfe_comp)))))
-            (dir dir)))
-         (abs-dir (filename:absname build-dir))
-         (project-root
-          (filename:dirname
-           (filename:dirname
-            (filename:dirname
-             (filename:dirname abs-dir))))))
-    (case (filelib:is_file (filename:join (list project-root "bin" "lfe")))
-      ('true project-root)
-      ('false abs-dir))))
+  (let* ((test-lib-dir (filename:absname (code:lib_dir 'lfe))) ; rebar3 test lib path
+         (dirs-to-root (lists:duplicate 4 "..")))              ; _build/<profile>/lib/lfe -> root
+    (filename:absname (filename:join (cons test-lib-dir dirs-to-root)))))
