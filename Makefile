@@ -191,8 +191,8 @@ eunit:
 proper:
 	@rebar3 as test do compile,proper -n 20
 
-common-test:
-	@rebar3 as test do compile,ct
+common-test: compile
+	@rebar3 as test ct
 
 ct: common-test
 

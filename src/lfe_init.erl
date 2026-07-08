@@ -53,21 +53,22 @@ start() ->
                {ok, [[R|_]]} -> list_to_atom(R);
                _Other -> ?DEFAULT_REPL
            end,
+    Rel = list_to_integer(OTPRelease),
     case collect_args(init:get_plain_arguments()) of
         {[],[]} ->                              %Run a shell
-            if OTPRelease >= "26" ->
-                    %% The new way 26 and later.
+            if Rel >= 26 ->
                     user_drv:start(#{initial_shell => {Repl,start,[]}});
                true ->
-                    %% The old way before 26.
                     user_drv:start(['tty_sl -c -e',{Repl,start,[]}])
             end;
         {Evals,Script} ->
-            if OTPRelease >= "26" ->
-                    %% The new way 26 and later)
+            if Rel >= 28 ->
+                    %% OTP 28+ requires the input key (cooked|raw|disabled).
+                    user_drv:start(#{initial_shell => noshell,
+                                     input => cooked});
+               Rel >= 26 ->
                     user_drv:start(#{initial_shell => noshell});
                true ->
-                    %% The old way before 26.
                     user:start()
             end,
             run_evals_script(Repl, Evals, Script)
