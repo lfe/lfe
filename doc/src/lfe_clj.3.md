@@ -373,6 +373,43 @@ integer value, i.e. `"97"`.
 "abc"
 ```
 
+**(println)**
+
+**(println x1 x2 ... xn)**
+
+Print arguments to stdout, space-separated, followed by a trailing newline.
+Each argument is converted to its string representation: strings pass through
+unchanged, all other terms are printed via `lfe_io:print1`. With no arguments,
+prints only a newline. Returns `'ok`.
+
+```lfe
+> (clj:println "hello" "world")
+hello world
+ok
+> (clj:println 1 'foo 3.14)
+1 foo 3.14
+ok
+> (clj:println)
+
+ok
+```
+
+**(printf fmt)**
+
+**(printf fmt x1 x2 ... xn)**
+
+Print a formatted string to stdout. Uses Erlang format specifiers
+(`~s`, `~w`, `~p`, `~n`, etc.). Does not append a trailing newline unless
+`~n` is included in the format string. Returns `'ok`.
+
+```lfe
+> (clj:printf "hello ~s, you are ~w~n" "world" 42)
+hello world, you are 42
+ok
+> (clj:printf "no newline here")
+no newline hereok
+```
+
 **(lazy-seq)**
 
 **(lazy-seq seq)**

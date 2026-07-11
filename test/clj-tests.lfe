@@ -817,3 +817,71 @@
 (deftest dec
   (is-match 2 (clj:dec 3))
   (is-match 4.0 (clj:dec 5.0)))
+
+;;; I/O functions.
+
+;; Helper: capture stdout by temporarily redirecting the group leader
+;; to a spawned collector process. Returns a tuple of the thunk's
+;; return value and the captured output string.
+(defun capture-stdout (thunk)
+  (let* ((old-gl (group_leader))
+         (collector (spawn (lambda () (capture-loop '()))))
+         (_ (group_leader collector (self)))
+         (result (try (funcall thunk)
+                   (after
+                     (group_leader old-gl (self))))))
+    (! collector (tuple 'get (self)))
+    (receive
+      (`#(captured ,data) (tuple result data)))))
+
+(defun capture-loop (acc)
+  (receive
+    (`#(io_request ,from ,ref #(put_chars ,_encoding ,chars))
+     (! from (tuple 'io_reply ref 'ok))
+     (capture-loop (cons (unicode:characters_to_list chars) acc)))
+    (`#(io_request ,from ,ref #(put_chars ,_encoding ,mod ,func ,args))
+     (! from (tuple 'io_reply ref 'ok))
+     (let ((chars (apply mod func args)))
+       (capture-loop (cons (unicode:characters_to_list chars) acc))))
+    (`#(io_request ,from ,ref ,_other-req)
+     (! from (tuple 'io_reply ref (tuple 'error 'enotsup)))
+     (capture-loop acc))
+    (`#(get ,pid)
+     (! pid (tuple 'captured (lists:flatten (lists:reverse acc)))))))
+
+(deftest println
+  ;; No args: just a newline; returns ok
+  (is-match #(ok "\n")
+            (capture-stdout (lambda () (clj:println))))
+  ;; Single string arg
+  (is-match #(ok "hello\n")
+            (capture-stdout (lambda () (clj:println "hello"))))
+  ;; Multiple args: space-separated, trailing newline
+  (is-match #(ok "hello world\n")
+            (capture-stdout (lambda () (clj:println "hello" "world"))))
+  ;; Numbers
+  (is-match #(ok "1 2 3\n")
+            (capture-stdout (lambda () (clj:println 1 2 3))))
+  ;; Mixed types
+  (is-match #(ok "hello 42 3.14\n")
+            (capture-stdout (lambda () (clj:println "hello" 42 3.14))))
+  ;; Atoms are printed as their name
+  (is-match #(ok "foo bar\n")
+            (capture-stdout (lambda () (clj:println 'foo 'bar)))))
+
+(deftest printf
+  ;; Simple string format; returns ok
+  (is-match #(ok "hello")
+            (capture-stdout (lambda () (clj:printf "hello"))))
+  ;; No automatic newline
+  (is-match #(ok "hello world")
+            (capture-stdout (lambda () (clj:printf "~s ~s" "hello" "world"))))
+  ;; Integer formatting
+  (is-match #(ok "answer: 42")
+            (capture-stdout (lambda () (clj:printf "answer: ~w" 42))))
+  ;; Explicit newline in format string
+  (is-match #(ok "line\n")
+            (capture-stdout (lambda () (clj:printf "line~n"))))
+  ;; Multiple args
+  (is-match #(ok "a 1 b")
+            (capture-stdout (lambda () (clj:printf "~s ~w ~s" "a" 1 "b")))))

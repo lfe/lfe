@@ -30,7 +30,7 @@
    integer? int? number? record? reference? map? undefined? undef? nil?
    true? false? falsy? odd? even? zero? pos? neg? identical?)
   ;; Other macros.
-  (export-macro str lazy-seq conj)
+  (export-macro str println printf lazy-seq conj)
   ;; Clojure-inspired if macro.
   (export-macro if))
 
@@ -422,6 +422,34 @@
        (clj:cond-> arg
          (not (clj:string? arg)) (lfe_io:print1)))
      (list ,@args)))
+
+(defmacro println args
+  "args
+  Print args space-separated to stdout, followed by a newline.
+  Each argument is converted to its string representation.
+  With no args, prints only a newline. Returns `'ok`."
+  (case args
+    (()
+     `(progn (io:put_chars "\n") 'ok))
+    (_
+     `(progn
+        (io:put_chars
+         (++ (lists:join " "
+               (lists:map
+                (lambda (arg)
+                  (clj:cond-> arg
+                    (not (clj:string? arg)) (lfe_io:print1)))
+                (list ,@args)))
+             "\n"))
+        'ok))))
+
+(defmacro printf
+  "fmt . args
+  Print a formatted string to stdout. Uses Erlang format specifiers
+  (~s, ~w, ~p, ~n, etc.). Does not append a trailing newline.
+  Returns `'ok`."
+  (`(,fmt . ,args)
+   `(progn (io:put_chars (io_lib:format ,fmt (list ,@args))) 'ok)))
 
 (defmacro lazy-seq
   "Return a (possibly infinite) lazy sequence from a given lazy sequence `seq`
