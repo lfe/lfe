@@ -35,11 +35,12 @@
 
 (defun init_per_suite (config)
   (let* ((root (lfe-root-dir))
-         (lfe-bin (filename:join (list root "bin" "lfe"))))
+         (lfe-bin (filename:join (list root "bin" "lfe")))
+         (erl-libs (lfe-erl-libs)))
     (case (filelib:is_file lfe-bin)
       ('true
        (lists:append
-        (list (tuple 'lfe_bin lfe-bin) (tuple 'lfe_root root))
+        (list (tuple 'lfe_bin lfe-bin) (tuple 'erl_libs erl-libs))
         config))
       ('false
        (tuple 'skip
@@ -75,11 +76,11 @@
 
 (defun run-lfe-eval (config expr)
   (let* ((lfe-bin (proplists:get_value 'lfe_bin config))
-         (lfe-root (proplists:get_value 'lfe_root config))
+         (erl-libs (proplists:get_value 'erl_libs config))
          (port (open_port
                 (tuple 'spawn_executable lfe-bin)
                 (list (tuple 'args (list "-eval" expr))
-                      (tuple 'env (list (tuple "ERL_LIBS" lfe-root)))
+                      (tuple 'env (list (tuple "ERL_LIBS" erl-libs)))
                       'exit_status 'stderr_to_stdout 'binary 'hide))))
     (collect-port port #"")))
 
@@ -102,3 +103,13 @@
   (let* ((test-lib-dir (filename:absname (code:lib_dir 'lfe))) ; rebar3 test lib path
          (dirs-to-root (lists:duplicate 4 "..")))              ; _build/<profile>/lib/lfe -> root
     (filename:absname (filename:join (cons test-lib-dir dirs-to-root)))))
+
+;; ERL_LIBS for the spawned bin/lfe must point at the OTP library
+;; directory that actually holds the compiled lfe application, i.e. the
+;; parent of code:lib_dir('lfe') (_build/<profile>/lib). Pointing it at
+;; the repo root instead only works when a matching profile happens to
+;; be pre-built (as CI does via `rebar3 compile`), so `rebar3 ct` alone
+;; would fail to find lfe_init. Deriving it from the running app makes
+;; the suite independent of which rebar3 profile is built.
+(defun lfe-erl-libs ()
+  (filename:dirname (filename:absname (code:lib_dir 'lfe))))
