@@ -180,6 +180,7 @@ function_arity(['match-lambda',[Pats|_]|_]) -> length(Pats).
 %%  the script.
 
 eval_code(Fenv, _, Args, _) ->
+    %% io:format("ec ~p\n   ~p\n", [Fenv,Args]),
     try
         lfe_eval:expr([main,[quote,Args]], Fenv)
     catch

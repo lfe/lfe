@@ -375,6 +375,8 @@ collect_mod_forms([F0|Fs0], Acc, Env0, MacSt0) ->
             {Acc,[F1|Fs0],Env1,MacSt1};
         {ok,{['module'|_],_}=F1,Env1,MacSt1} ->
             {Acc,[F1|Fs0],Env1,MacSt1};
+        {ok,{['sequence'|Ffs],_},Env1,MacSt1} ->
+            collect_mod_forms(Ffs ++ Fs0, Acc, Env1, MacSt1);
         {ok,{['progn'|Pfs],L},Env1,MacSt1} ->     %Flatten progn's
             Fs1 = [ {F,L} || F <- Pfs ] ++ Fs0,
             collect_mod_forms(Fs1, Acc, Env1, MacSt1);
