@@ -71,6 +71,7 @@ Copts = Copts0 ++ AppendCopts(Version,
                                {"20",'HAS_CEIL'},
                                {"21",'NEW_STACKTRACE'},
                                {"23",'EEP48'},
+                               {"25",'HAS_ENSURE_DIR'},
                                {"27",'OTP27_MAYBE'}],
                               AppendCopts),
 
