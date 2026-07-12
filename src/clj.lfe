@@ -30,7 +30,7 @@
    integer? int? number? record? reference? map? undefined? undef? nil?
    true? false? falsy? odd? even? zero? pos? neg? identical?)
   ;; Other macros.
-  (export-macro str lazy-seq conj)
+  (export-macro str println printf lazy-seq conj)
   ;; Clojure-inspired if macro.
   (export-macro if))
 
@@ -423,6 +423,34 @@
          (not (clj:string? arg)) (lfe_io:print1)))
      (list ,@args)))
 
+(defmacro println args
+  "args
+  Print args space-separated to stdout, followed by a newline.
+  Each argument is converted to its string representation.
+  With no args, prints only a newline. Returns `'ok`."
+  (case args
+    (()
+     `(progn (io:put_chars "\n") 'ok))
+    (_
+     `(progn
+        (io:put_chars
+         (++ (lists:join " "
+               (lists:map
+                (lambda (arg)
+                  (clj:cond-> arg
+                    (not (clj:string? arg)) (lfe_io:print1)))
+                (list ,@args)))
+             "\n"))
+        'ok))))
+
+(defmacro printf
+  "fmt . args
+  Print a formatted string to stdout. Uses Erlang format specifiers
+  (~s, ~w, ~p, ~n, etc.). Does not append a trailing newline.
+  Returns `'ok`."
+  (`(,fmt . ,args)
+   `(progn (io:put_chars (io_lib:format ,fmt (list ,@args))) 'ok)))
+
 (defmacro lazy-seq
   "Return a (possibly infinite) lazy sequence from a given lazy sequence `seq`
   or a finite lazy sequence from given list `seq`.
@@ -699,6 +727,44 @@
   index is out of bounds, or the `not-found` value."
   (-get-in data keys not-found))
 
+(defn assoc
+  "Associate a key with a value in an associative structure. Supports
+  proplists, dicts, maps, and lists (1-based index replacement).
+  For multiple key-value pairs, nest calls."
+  ([data key val] (when (is_list data))
+   (cond ((proplist? data) (-assoc-proplist data key val))
+         (else              (-assoc-list data key val))))
+  ([data key val]
+   (cond ((dict? data) (-assoc-dict data key val))
+         ((map?  data) (-assoc-map data key val))
+         (else         (error 'badarg (list data key val))))))
+
+(defn assoc-in [data keys val]
+  "Associate a value in a nested associative structure, where `keys` is a
+  list of keys. Creates intermediate proplists for missing keys."
+  (-assoc-in data keys val))
+
+(defn update [data key func]
+  "Update the value for `key` in an associative structure by applying
+  `func` to the current value."
+  (-update data key func '()))
+
+(defn update [data key func args]
+  "Update the value for `key` in an associative structure by applying
+  `func` to the current value, passing additional `args` to `func`."
+  (-update data key func args))
+
+(defn update-in [data keys func]
+  "Update the value in a nested associative structure, where `keys` is a
+  list of keys, by applying `func` to the current value."
+  (-update-in data keys func '()))
+
+(defn update-in [data keys func args]
+  "Update the value in a nested associative structure, where `keys` is a
+  list of keys, by applying `func` to the current value, passing
+  additional `args` to `func`."
+  (-update-in data keys func args))
+
 (defn reduce
   "Equivalent to `(reduce func head tail)`."
   ([func `(,head . ,tail)]
@@ -818,6 +884,75 @@
    (flet ((maps-get [k m] (call 'maps 'get k m not-found)))
      (-get-in #'maps-get/2 xmap keys not-found)))
   ([_xmap _keys not-found] not-found))
+
+;;; assoc helpers
+
+(defn- -assoc-proplist [proplist key val]
+  (case (lists:keymember key 1 proplist)
+    ('true  (lists:keyreplace key 1 proplist (tuple key val)))
+    ('false (++ proplist (list (tuple key val))))))
+
+(defn- -assoc-list [lst n val]
+  (-set-nth lst n val))
+
+(defn- -assoc-dict [d key val]
+  (dict:store key val d))
+
+(defn- -assoc-map [m key val]
+  (call 'maps 'put key val m))
+
+(defn- -assoc-in
+  ([data `(,key) val]
+   (assoc data key val))
+  ([data `(,key . ,keys) val]
+   (let ((child (-get-child data key)))
+     (assoc data key (-assoc-in child keys val)))))
+
+(defn- -get-child
+  ([data key] (when (is_list data))
+   (cond ((proplist? data) (proplists:get_value key data '()))
+         (else
+          (try (lists:nth key data)
+            (catch (`#(error function_clause ,_) '()))))))
+  ([data key]
+   (cond ((dict? data) (case (dict:find key data)
+                         (`#(ok ,v) v)
+                         ('error    '())))
+         ((map?  data) (call 'maps 'get key data '()))
+         (else         '()))))
+
+;;; update helpers
+
+(defn- -update [data key func args]
+  (let ((current (-get-value data key)))
+    (assoc data key (apply func (cons current args)))))
+
+(defn- -update-in
+  ([data `(,key) func args]
+   (-update data key func args))
+  ([data `(,key . ,keys) func args]
+   (let ((child (-get-child data key)))
+     (assoc data key (-update-in child keys func args)))))
+
+(defn- -get-value
+  ([data key] (when (is_list data))
+   (cond ((proplist? data) (proplists:get_value key data 'undefined))
+         (else
+          (try (lists:nth key data)
+            (catch (`#(error function_clause ,_) 'undefined))))))
+  ([data key]
+   (cond ((dict? data) (case (dict:find key data)
+                         (`#(ok ,v) v)
+                         ('error    'undefined)))
+         ((map?  data) (call 'maps 'get key data 'undefined))
+         (else         'undefined))))
+
+;;; list index helpers
+
+(defn- -set-nth [lst n val]
+  (++ (lists:sublist lst (- n 1))
+      (list val)
+      (lists:nthtail n lst)))
 
 (defn- -cycle
   ([() lst] (-cycle (lists:reverse lst) ()))

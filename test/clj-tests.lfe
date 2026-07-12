@@ -763,6 +763,102 @@
            123        '(a b c)
            'undefined '(x y z)))))
 
+;;; assoc, assoc-in, update, update-in
+
+(deftest assoc-proplist
+  (let ((data '(#(a 1) #(b 2) #(c 3))))
+    ;; Update an existing key
+    (is-equal '(#(a 99) #(b 2) #(c 3))
+              (clj:assoc data 'a 99))
+    ;; Add a new key
+    (is-equal '(#(a 1) #(b 2) #(c 3) #(d 4))
+              (clj:assoc data 'd 4))
+    ;; Multiple key-value pairs via nested calls
+    (is-equal '(#(a 99) #(b 2) #(c 3) #(d 4))
+              (clj:assoc (clj:assoc data 'a 99) 'd 4))))
+
+(deftest assoc-map
+  (IFF-MAPS
+   (let ((m (call 'maps 'from_list '(#(a 1) #(b 2)))))
+     ;; Update an existing key
+     (is-equal (call 'maps 'from_list '(#(a 99) #(b 2)))
+               (clj:assoc m 'a 99))
+     ;; Add a new key
+     (is-equal (call 'maps 'from_list '(#(a 1) #(b 2) #(c 3)))
+               (clj:assoc m 'c 3))
+     ;; Multiple key-value pairs via nested calls
+     (is-equal (call 'maps 'from_list '(#(a 99) #(b 2) #(c 3)))
+               (clj:assoc (clj:assoc m 'a 99) 'c 3)))))
+
+(deftest assoc-dict
+  (let* ((d (dict:from_list '(#(a 1) #(b 2))))
+         (result (clj:assoc d 'a 99)))
+    (is-equal 99 (dict:fetch 'a result))
+    (is-equal 2  (dict:fetch 'b result)))
+  ;; Add a new key
+  (let* ((d (dict:from_list '(#(a 1))))
+         (result (clj:assoc d 'b 2)))
+    (is-equal 1 (dict:fetch 'a result))
+    (is-equal 2 (dict:fetch 'b result))))
+
+(deftest assoc-list
+  ;; 1-based index, like lists:nth
+  (is-equal '(99 2 3) (clj:assoc '(1 2 3) 1 99))
+  (is-equal '(1 2 99) (clj:assoc '(1 2 3) 3 99)))
+
+(deftest assoc-in-proplist
+  (let ((data '(#(a 1)
+                #(b (#(c 2)
+                     #(d 3))))))
+    ;; Update a nested key
+    (let ((result (clj:assoc-in data '(b c) 99)))
+      (is-equal 99 (clj:get-in result '(b c))))
+    ;; Original top-level keys preserved
+    (let ((result (clj:assoc-in data '(b c) 99)))
+      (is-equal 1  (clj:get-in result '(a))))))
+
+(deftest assoc-in-map
+  (IFF-MAPS
+   (let* ((inner (call 'maps 'from_list '(#(c 2))))
+          (m (call 'maps 'from_list `(#(a 1) #(b ,inner)))))
+     ;; Update nested key
+     (let ((result (clj:assoc-in m '(b c) 99)))
+       (is-equal 99 (clj:get-in result '(b c))))
+     ;; Add a new nested key
+     (let ((result (clj:assoc-in m '(b d) 4)))
+       (is-equal 4  (clj:get-in result '(b d)))
+       (is-equal 2  (clj:get-in result '(b c)))))))
+
+(deftest update-proplist
+  (let ((data '(#(a 1) #(b 2))))
+    ;; Update with a function
+    (is-equal 2 (clj:get-in (clj:update data 'a #'clj:inc/1) '(a)))
+    ;; Update with function and extra args (passed as a list)
+    (is-equal 11 (clj:get-in (clj:update data 'a (fun + 2) '(10)) '(a)))))
+
+(deftest update-map
+  (IFF-MAPS
+   (let ((m (call 'maps 'from_list '(#(a 1) #(b 2)))))
+     (let ((result (clj:update m 'a #'clj:inc/1)))
+       (is-equal 2 (call 'maps 'get 'a result))))))
+
+(deftest update-in-proplist
+  (let ((data '(#(a 1)
+                #(b (#(c 2)
+                     #(d 3))))))
+    ;; Update a nested value with a function
+    (let ((result (clj:update-in data '(b c) #'clj:inc/1)))
+      (is-equal 3 (clj:get-in result '(b c)))
+      (is-equal 3 (clj:get-in result '(b d))))))
+
+(deftest update-in-map
+  (IFF-MAPS
+   (let* ((inner (call 'maps 'from_list '(#(x 10))))
+          (m (call 'maps 'from_list `(#(a ,inner)))))
+     ;; Update nested value
+     (let ((result (clj:update-in m '(a x) #'clj:inc/1)))
+       (is-equal 11 (clj:get-in result '(a x)))))))
+
 (deftest reduce
   (let ((lst '(1 2 3)))
     (are* [f] (ok? (is-match 6 (clj:reduce f lst)))
@@ -817,3 +913,71 @@
 (deftest dec
   (is-match 2 (clj:dec 3))
   (is-match 4.0 (clj:dec 5.0)))
+
+;;; I/O functions.
+
+;; Helper: capture stdout by temporarily redirecting the group leader
+;; to a spawned collector process. Returns a tuple of the thunk's
+;; return value and the captured output string.
+(defun capture-stdout (thunk)
+  (let* ((old-gl (group_leader))
+         (collector (spawn (lambda () (capture-loop '()))))
+         (_ (group_leader collector (self)))
+         (result (try (funcall thunk)
+                   (after
+                     (group_leader old-gl (self))))))
+    (! collector (tuple 'get (self)))
+    (receive
+      (`#(captured ,data) (tuple result data)))))
+
+(defun capture-loop (acc)
+  (receive
+    (`#(io_request ,from ,ref #(put_chars ,_encoding ,chars))
+     (! from (tuple 'io_reply ref 'ok))
+     (capture-loop (cons (unicode:characters_to_list chars) acc)))
+    (`#(io_request ,from ,ref #(put_chars ,_encoding ,mod ,func ,args))
+     (! from (tuple 'io_reply ref 'ok))
+     (let ((chars (apply mod func args)))
+       (capture-loop (cons (unicode:characters_to_list chars) acc))))
+    (`#(io_request ,from ,ref ,_other-req)
+     (! from (tuple 'io_reply ref (tuple 'error 'enotsup)))
+     (capture-loop acc))
+    (`#(get ,pid)
+     (! pid (tuple 'captured (lists:flatten (lists:reverse acc)))))))
+
+(deftest println
+  ;; No args: just a newline; returns ok
+  (is-match #(ok "\n")
+            (capture-stdout (lambda () (clj:println))))
+  ;; Single string arg
+  (is-match #(ok "hello\n")
+            (capture-stdout (lambda () (clj:println "hello"))))
+  ;; Multiple args: space-separated, trailing newline
+  (is-match #(ok "hello world\n")
+            (capture-stdout (lambda () (clj:println "hello" "world"))))
+  ;; Numbers
+  (is-match #(ok "1 2 3\n")
+            (capture-stdout (lambda () (clj:println 1 2 3))))
+  ;; Mixed types
+  (is-match #(ok "hello 42 3.14\n")
+            (capture-stdout (lambda () (clj:println "hello" 42 3.14))))
+  ;; Atoms are printed as their name
+  (is-match #(ok "foo bar\n")
+            (capture-stdout (lambda () (clj:println 'foo 'bar)))))
+
+(deftest printf
+  ;; Simple string format; returns ok
+  (is-match #(ok "hello")
+            (capture-stdout (lambda () (clj:printf "hello"))))
+  ;; No automatic newline
+  (is-match #(ok "hello world")
+            (capture-stdout (lambda () (clj:printf "~s ~s" "hello" "world"))))
+  ;; Integer formatting
+  (is-match #(ok "answer: 42")
+            (capture-stdout (lambda () (clj:printf "answer: ~w" 42))))
+  ;; Explicit newline in format string
+  (is-match #(ok "line\n")
+            (capture-stdout (lambda () (clj:printf "line~n"))))
+  ;; Multiple args
+  (is-match #(ok "a 1 b")
+            (capture-stdout (lambda () (clj:printf "~s ~w ~s" "a" 1 "b")))))
