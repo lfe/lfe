@@ -143,7 +143,11 @@ form({['extend-module',Metas,Attrs],Line}, St0) ->
     {AttrDefs,St1};
 %% We even allow an explicit module form here.
 form({['module',Name],Line}, St) ->
-    {[['module',Line,Name]],St#lfe_norm{module=Name}};
+    ModDef = ['module',Line,Name],
+    %% We add the default MODULE macro as well, (macro MODULE Name).
+    ModMac = ['macro',Line,'MODULE',
+              ['match-lambda',[[[list],'$ENV'],?BQ(?Q(Name))]]],
+    {[ModDef,ModMac],St#lfe_norm{module=Name}};
 %% Export and import are handled in the attributes.
 form({['define-type',Type,Def],Line},St) ->
     {[['type',Line,Type,Def]],St};
@@ -220,9 +224,10 @@ form_attribute(Form, Line, St) ->
     attribute(Form, Line, Unrecog, St).
 
 %% module_attributes(Metas, Attrs, State) -> {[Norm],State}.
-%%  Metas and attributes are now one and the same. We specially handle
-%%  the 'doc' case and change it to 'moduledoc' otherwise just process
-%%  it as an attribute.
+%%  These are the standard define/extend-module metas and attributes
+%%  which are now one and the same. We specially handle the 'doc' case
+%%  and change it to 'moduledoc' otherwise just process it as an
+%%  attribute.
 
 module_attributes(Metas, Attrs, Line, St) ->
     Attr = fun (A, {Fs0,S0}) ->

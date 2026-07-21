@@ -236,14 +236,18 @@ pass_form(['include-file',File], Env, St) ->
     pass_form_include('file', File, Env, St);
 pass_form(['include-lib',File], Env, St) ->
     pass_form_include('lib', File, Env, St);
-pass_form(['define-macro'|Def]=M, Env0, St0) ->
-    case pass_define_macro(Def, Env0, St0) of
-        {yes,Env1,St1} ->
-            Ret = ?IF(St1#mac.keep, M, [progn]),
-            {Ret,Env1,St1};                     %Must return a valid form
-        {no,St1} ->
-            {['progn'],Env0,St1}                %Must return a valid form
-    end;
+pass_form(['define-macro'|_]=M, Env, St) ->
+    pass_form_define_macro(M, Env, St);
+pass_form(['macro'|_]=M, Env, St) ->
+    pass_form_macro(M, Env, St);
+%% pass_form(['macro'|Def]=M, Env0, St0) ->
+%%     case pass_define_macro(Def, Env0, St0) of
+%%         {yes,Env1,St1} ->
+%%             Ret = ?IF(St1#mac.keep, M, [progn]),
+%%             {Ret,Env1,St1};                     %Must return a valid form
+%%         {no,St1} ->
+%%             {['progn'],Env0,St1}                %Must return a valid form
+%%     end;
 %% Define 'function' at this level where it will not collide with
 %% core form. And 'macro' as well where it is actually legal.
 %% pass_form(['function',Name,Body], Env, St) ->
@@ -277,6 +281,30 @@ pass_form_include(Type, File, Env, St0) ->
             {['progn'],Env,St1}
     end.
 
+%% pass_form_define_macro(Macro, Env, State) -> {Form,Env,State}.
+pass_form_macro([_,Name,Def]=M, Env0, St0) when is_atom(Name) ->
+    case pass_define_macro(Name, Def, Env0, St0) of
+        {yes,Env1,St1} ->
+            Ret = ?IF(St1#mac.keep, M, [progn]),
+            {Ret,Env1,St1};                     %Must return a valid form
+        {no,St1} ->
+            {['progn'],Env0,St1}                %Must return a valid form
+    end;
+pass_form_macro(_Macro, _Env, St) ->
+    {no,add_error({bad_ewc_form,macro}, St)}.
+
+%% pass_form_define_macro(Macro, Env, State) -> {Form,Env,State}.
+pass_form_define_macro([_,Name,_,Def]=M, Env0, St0) when is_atom(Name) ->
+    case pass_define_macro(Name, Def, Env0, St0) of
+        {yes,Env1,St1} ->
+            Ret = ?IF(St1#mac.keep, M, [progn]),
+            {Ret,Env1,St1};                     %Must return a valid form
+        {no,St1} ->
+            {['progn'],Env0,St1}                %Must return a valid form
+    end;
+pass_form_define_macro(_Macro, _Env, St) ->
+    {no,add_error({bad_ewc_form,macro}, St)}.
+
 %% ewc_forms(Forms, Env, State) -> {Forms,Env,State}.
 %% ewc_form(Form, Env, State) -> {Form,Env,State}.
 %%  Pass over the of eval-when-compile forms. Function and macro
@@ -294,25 +322,15 @@ ewc_form(['progn'|Pfs0], Env0, St0) ->
 ewc_form(['eval-when-compile'|Efs0], Env0, St0) ->
     {Efs1,Env1,St1} = ewc_forms(Efs0, Env0, St0),
     {['progn'|Efs1],Env1,St1};
-ewc_form(['define-macro'|Def]=M, Env0, St0) ->
+ewc_form(['define-macro'|_]=M, Env, St) ->
+    pass_form_define_macro(M, Env, St);
+ewc_form(['macro'|_]=M, Env, St) ->
     %% Do we really want this? It behaves as a top-level macro def.
-    case pass_define_macro(Def, Env0, St0) of
-        {yes,Env1,St1} ->
-            Ret = ?IF(St1#mac.keep, M, [progn]),
-            {Ret,Env1,St1};                     %Don't macro expand now
-        {no,St1} ->
-            {[progn],Env0,St1}                  %Just throw it away
-    end;
-ewc_form(['define-function',Name,_,Def]=F, Env0, St0) ->
-    case function_arity(Def) of
-        {yes,Ar} ->                             %Definition not too bad
-            Env1 = lfe_eval:add_dynamic_func(Name, Ar, Def, Env0),
-            Ret = ?IF(St0#mac.keep, F, [progn]),
-            {Ret,Env1,St0};                     %Don't macro expand now
-        no ->                                   %Definition really bad
-            St1 = add_error({bad_ewc_form,function}, St0),
-            {[progn],Env0,St1}                  %Just throw it away
-    end;
+    pass_form_macro(M, Env, St);
+ewc_form(['define-function',Name,_,Def]=F, Env, St) ->
+    pass_define_function(Name, Def, F, Env, St);
+ewc_form(['function',Name,Def]=F, Env, St) ->
+    pass_define_function(Name, Def, F, Env, St);
 %% Define 'function' at this level where it will not collide with
 %% core form. And 'macro' as well where it is actually legal.
 %% ewc_form(['function',Name,Body], Env, St) ->
@@ -394,13 +412,13 @@ pass_expand_expr([_|_]=E0, Env, St0, Deep) ->
     end;
 pass_expand_expr(E, _, St, _) -> {no,E,St}.
 
-%% pass_define_macro([Name,Meta,Def], Env, State) ->
+%% pass_define_macro(Name, Def, Env, State) ->
 %%     {yes,Env,State} | {no,State}.
 %%  Add the macro definition to the environment. We do a small name
 %%  and format check.
 
-pass_define_macro([Name,_,Def], Env, St) when is_atom(Name) ->
-    case lfe_internal:is_core_form(Name) of
+pass_define_macro(Name, Def, Env, St) when is_atom(Name) ->
+    case core_normalise_form(Name) of
         true ->
             {no,add_warning({defining_core_form,Name}, St)};
         false ->
@@ -410,9 +428,33 @@ pass_define_macro([Name,_,Def], Env, St) when is_atom(Name) ->
                     {yes,lfe_env:add_mbinding(Name, Def, Env),St};
                 _ -> {no,add_error({bad_ewc_form,macro}, St)}
             end
-    end;
-pass_define_macro(_Macro, _Env, St) ->
-    {no,add_error({bad_ewc_form,macro}, St)}.
+    end.
+
+pass_define_function(Name, Def, F, Env0, St0) ->
+    case function_arity(Def) of
+        {yes,Ar} ->                             %Definition not too bad
+            Env1 = lfe_eval:add_dynamic_func(Name, Ar, Def, Env0),
+            Ret = ?IF(St0#mac.keep, F, [progn]),
+            {Ret,Env1,St0};                     %Don't macro expand now
+        no ->                                   %Definition really bad
+            St1 = add_error({bad_ewc_form,function}, St0),
+            {[progn],Env0,St1}                  %Just throw it away
+    end.
+
+%% pass_define_macro([Name,_,Def], Env, St) when is_atom(Name) ->
+%%     case core_normalise_form(Name) of
+%%         true ->
+%%             {no,add_warning({defining_core_form,Name}, St)};
+%%         false ->
+%%             case Def of
+%%                 ['lambda'|_] -> {yes,lfe_env:add_mbinding(Name, Def, Env),St};
+%%                 ['match-lambda'|_] ->
+%%                     {yes,lfe_env:add_mbinding(Name, Def, Env),St};
+%%                 _ -> {no,add_error({bad_ewc_form,macro}, St)}
+%%             end
+%%     end;
+%% pass_define_macro(_Macro, _Env, St) ->
+%%     {no,add_error({bad_ewc_form,macro}, St)}.
 
 %% add_error(Error, State) -> State.
 %% add_error(Line, Error, State) -> State.
@@ -452,13 +494,14 @@ exp_form([Attr|Args0], Env, St0)
     %%e io:format("emf ~p\n", [[Attr|Args1]]),
     {[Attr|Args1],St1};
 %% 'attribute' and '-' are more Erlangy way of defining attributes. We
-%% need to leave them as they are here.
+%% like to leave them as they are here but as '-' can occur anywhere
+%% we must let it be handled as a "normal" form.
 exp_form(['attribute',Name,Value0], Env, St0) ->
     {Value1,St1} = exp_form(Value0, Env, St0),
     {['attribute',Name,Value1],St1};
-exp_form(['-',Name,Value0], Env, St0) ->
-    {Value1,St1} = exp_form(Value0, Env, St0),
-    {['-',Name,Value1],St1};
+%% exp_form(['-',Name,Value0], Env, St0) ->
+%%     {Value1,St1} = exp_form(Value0, Env, St0),
+%%     {['-',Name,Value1],St1};
 %% 'type', 'opaque', 'spec', 'record' and 'struct' need to be macros.
 %% Known Core forms which need special handling.
 exp_form([quote,_]=Q, _Env, St) -> {Q,St};
@@ -907,7 +950,7 @@ exp_define_function(Name, Meta0, Def0, Env0, St0) ->
 
 exp_macro([Name|_]=Call, Env, St) ->
     %% io:format("em ~p\n", [Call]),
-    case is_atom(Name) andalso lfe_internal:is_core_form(Name) of
+    case is_atom(Name) andalso core_normalise_form(Name) of
         true -> no;                             %Never expand core forms
         false ->
             case lfe_env:get_mbinding(Name, Env) of
@@ -1499,3 +1542,10 @@ mapfoldl2(_, A, B, []) -> {[],A,B}.
 %%
 %% (attribute attr-name attr-value)
 %% (- attr-name attr-value)
+
+%% core_normalise_form(Name) -> bool().
+%%  Test if Name is a core or normalised form.
+
+core_normalise_form(Name) ->
+    lfe_internal:is_core_form(Name) orelse
+        lfe_internal:is_normalise_form(Name).

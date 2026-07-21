@@ -23,6 +23,7 @@
               line=1,                           %Line no of current form
               vc=0,                             %Variable counter
               fc=0,                             %Function counter
+              mstack=[],                        %Macro stack
               file=[],                          %File name
               opts=[],                          %Compiler options
               ipath=[],                         %Include path

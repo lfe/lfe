@@ -84,6 +84,13 @@ module([Mdef|Fs], Cst) ->
     Mst = collect_macros(Fs, #umac{env=lfe_env:new()}),
     module(Mdef, Fs, Mst, Cst).
 
+module({['module',Name],L}, Fs, Mst0, Cst) ->
+    %% module({['define-module',Name,[],[]], L}, Fs, Mst, Cst);
+    Md = {['module',Name],L},
+    Exp = {[export,[['LFE-EXPAND-EXPORTED-MACRO',3]]],L},
+    Mst1 = collect_attrs([], Mst0#umac{mline=L}),
+    Emac = build_exported_macro(Mst1),
+    {[Md,Exp|Fs ++ Emac],Cst};
 module({['define-module',Name,Meta,Atts],L}, Fs, Mst0, Cst) ->
     Mst1 = collect_attrs(Atts, Mst0#umac{mline=L}),
     Emac = build_exported_macro(Mst1),
@@ -97,6 +104,12 @@ module({['define-module',Name,Meta,Atts],L}, Fs, Mst0, Cst) ->
 collect_macros(Fs, Mst) ->
     lists:foldl(fun collect_macro/2, Mst, Fs).
 
+collect_macro({['macro',Name,Def],_}, #umac{env=Env0}=Mst) ->
+    Env1 = lfe_env:add_mbinding(Name, Def, Env0),
+    Mst#umac{env=Env1};
+collect_macro({['export-macro',Ms],_}, #umac{expm=Expm0}=Mst) ->
+    Expm1 = add_exports(Expm0, Ms),
+    Mst#umac{expm=Expm1};
 collect_macro({['define-macro',Name,_,Def],_}, #umac{env=Env0}=Mst) ->
     Env1 = lfe_env:add_mbinding(Name, Def, Env0),
     Mst#umac{env=Env1};
@@ -121,6 +134,9 @@ collect_ewc_macro(['define-function',Name,_,Def], #umac{env=Env0}=Mst) ->
     Env1 = lfe_env:add_fbinding(Name, Ar, Def, Env0),
     Mst#umac{env=Env1};
 collect_ewc_macro(['define-macro'|_], Mst) ->
+    %% We ignore ewc macros here as they are not exportable.
+    Mst;
+collect_ewc_macro(['macro'|_], Mst) ->
     %% We ignore ewc macros here as they are not exportable.
     Mst;
 collect_ewc_macro([progn|Fs], Mst) ->

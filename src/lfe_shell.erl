@@ -493,7 +493,14 @@ eval_form_1(['define-function',Name,_Meta,Def], #state{curr=Ce0}=St) ->
     Ar = function_arity(Def),
     Ce1 = lfe_eval:add_dynamic_func(Name, Ar, Def, Ce0),
     {Name,St#state{curr=Ce1}};
+eval_form_1(['function',Name,Def], #state{curr=Ce0}=St) when is_atom(Name) ->
+    Ar = function_arity(Def),
+    Ce1 = lfe_eval:add_dynamic_func(Name, Ar, Def, Ce0),
+    {Name,St#state{curr=Ce1}};
 eval_form_1(['define-macro',Name,_Meta,Def], #state{curr=Ce0}=St) ->
+    Ce1 = lfe_env:add_mbinding(Name, Def, Ce0),
+    {Name,St#state{curr=Ce1}};
+eval_form_1(['macro',Name,Def], #state{curr=Ce0}=St) ->
     Ce1 = lfe_env:add_mbinding(Name, Def, Ce0),
     {Name,St#state{curr=Ce1}};
 eval_form_1(Expr, St) ->

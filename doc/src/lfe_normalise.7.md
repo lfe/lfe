@@ -22,17 +22,27 @@ These are defined normalised forms.
 
 **`(import line-number imports)`**
 
+**`(rename line-number renames)`**
+
+**`(moduledoc line-number docs)`**
+
 **`(compile line-number options)`**
+
+**`(vsn line-number vsn)`**
 
 **`(on_load line-number function)`**
 
 **`(nifs functions)`**
+
+**`(alias line-number module alias)`**
 
 **`(type line-number type type-def)`**
 
 **`(opaque line-number type type-def)`**
 
 **`(export-type line-number types)`**
+
+**`(alias line-number aliases)`**
 
 **`(module-alias line-number aliases)`**
 
@@ -50,6 +60,8 @@ These are defined normalised forms.
 
 **`(attribute line-number name value)`**           attribute name -> atom
 
+**`(- line-number name value)`**                   attribute name -> atom
+
 Basically everything which isn't a predefined form becomes an attribute.
 
 # USE IN CODE
@@ -66,5 +78,5 @@ as
 ```
 (module this-module)
 
-(export (a 0) (c 3))
+(export ((a 0) (c 3)))
 ```

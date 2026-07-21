@@ -1,5 +1,5 @@
 %% -*- mode: erlang; indent-tabs-mode: nil -*-
-%% Copyright (c) 2016-2024 Robert Virding
+%% Copyright (c) 2016-2026 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -17,43 +17,24 @@
 %% Author  : Robert Virding
 %% Purpose : Define Lisp Flavoured Erlang internals.
 
-%%% Define LFE internal bifs, guards and other internal stuff.
+%%% Define the various internal LFE forms and functions and LFE
+%%% internal bifs, guards and other internal stuff.
 
 -module(lfe_internal).
 
-%% General library functions.
--export([is_bif/2,is_guard_bif/2,is_erl_bif/2,is_lfe_bif/2]).
--export([is_core_form/1,is_core_func/2,is_guard_func/2]).
+%% Core forms.
+-export([is_core_form/1,is_normalise_form/1]).
+
+%% Core functions.
+-export([is_core_func/2,is_guard_func/2]).
 -export([is_arith_func/2,is_bit_func/2,is_bool_func/2,is_comp_func/2,
          is_map_func/2,is_record_func/2,is_struct_func/2,is_list_func/2]).
 -export([is_type/2]).
--export([is_lfe_attribute/1]).
+
+%% General library functions.
+-export([is_bif/2,is_guard_bif/2,is_erl_bif/2,is_lfe_bif/2]).
 
 %% -compile([export_all]).
-
-%% is_bif(Name, Arity) -> bool().
-%% is_guard_bif(Name, Arity) -> bool().
-%% is_erl_bif(Name, Arity) -> bool().
-%%  Collected tests for valid BIFs in expressions and guards.
-
-is_bif(Name, Ar) ->
-    is_core_func(Name, Ar)
-        %% orelse is_lfe_bif(Name, Ar)
-        orelse is_erl_bif(Name, Ar).
-
-is_guard_bif(Op ,Ar) ->
-    erl_internal:guard_bif(Op, Ar)
-        orelse erl_internal:arith_op(Op, Ar)
-        orelse erl_internal:bool_op(Op, Ar)
-        orelse erl_internal:comp_op(Op, Ar).
-
-is_erl_bif(Op, Ar) ->
-    erl_internal:bif(Op, Ar)
-        orelse erl_internal:arith_op(Op, Ar)
-        orelse erl_internal:bool_op(Op, Ar)
-        orelse erl_internal:comp_op(Op, Ar)
-        orelse erl_internal:list_op(Op, Ar)
-        orelse erl_internal:send_op(Op, Ar).
 
 %% is_core_form(Form) -> bool().
 %%  Return true if Form (name) is one of the LFE core forms, else false.
@@ -98,6 +79,38 @@ is_core_form('when') -> true;
 is_core_form('else') -> true;
 %% Everything else is not a core form.
 is_core_form(Name) when is_atom(Name) -> false.
+
+%% is_normalise_form(Form) -> bool().
+%%  Return true if Form (name) is one of the LFE normalised attribute
+%%  forms, else false.
+
+is_normalise_form(module) -> true;
+is_normalise_form(export) -> true;
+is_normalise_form(import) -> true;
+is_normalise_form(rename) -> true;
+is_normalise_form(moduledoc) -> true;
+is_normalise_form(compile) -> true;
+is_normalise_form(vsn) -> true;
+is_normalise_form(on_load) -> true;
+is_normalise_form(nifs) -> true;
+is_normalise_form(file) -> true;
+is_normalise_form(alias) -> true;
+is_normalise_form('export-type') -> true;
+is_normalise_form(macro) -> true;
+is_normalise_form(function) -> true;
+is_normalise_form('eval-when-compile') -> true;
+is_normalise_form('export-macro') -> true;
+is_normalise_form(doc) -> true;                 %Special handling in 27+
+is_normalise_form(type) -> true;
+is_normalise_form(opaque) -> true;
+is_normalise_form(spec) -> true;
+is_normalise_form(record) -> true;
+is_normalise_form(struct) -> true;
+is_normalise_form(attribute) -> true;
+is_normalise_form('behaviour') -> true;
+is_normalise_form('feature') -> true;
+%% Everything else is not a normalise form.
+is_normalise_form(Name) when is_atom(Name) -> false.
 
 %% is_arith_func(Name, Arity) -> bool().
 %% is_bit_func(Name, Arityy) -> bool().
@@ -360,29 +373,26 @@ is_type(tuple, Ar) -> is_integer(Ar) and (Ar >= 0);
 is_type(Name, Arity) ->
     erl_internal:is_type(Name, Arity).
 
-%% is_lfe_attribute(Name) -> bool().
-%%  Return true if Name is a predefined Erlang attribute.
+%% is_bif(Name, Arity) -> bool().
+%% is_guard_bif(Name, Arity) -> bool().
+%% is_erl_bif(Name, Arity) -> bool().
+%%  Collected tests for valid BIFs in expressions and guards.
 
-is_lfe_attribute(module) -> true;
-is_lfe_attribute(export) -> true;
-is_lfe_attribute(import) -> true;
-is_lfe_attribute(moduledoc) -> true;
-is_lfe_attribute(compile) -> true;
-is_lfe_attribute(vsn) -> true;
-is_lfe_attribute(on_load) -> true;
-is_lfe_attribute(nifs) -> true;
-is_lfe_attribute(type) -> true;
-is_lfe_attribute(opaque) -> true;
-is_lfe_attribute(spec) -> true;
-is_lfe_attribute(record) -> true;
-is_lfe_attribute(struct) -> true;
-is_lfe_attribute(doc) -> true;
-is_lfe_attribute(file) -> true;
-is_lfe_attribute('alias') -> true;
-is_lfe_attribute('export-macro') -> true;       %Maybe
-%% More Erlang specific  attributes.
-is_lfe_attribute('behaviour') -> true;          %We support both spellings
-is_lfe_attribute('behavior') -> true;
-is_lfe_attribute('feature') -> true;
-%% And the rest.
-is_lfe_attribute(Name) when is_atom(Name) -> false.
+is_bif(Name, Ar) ->
+    is_core_func(Name, Ar)
+        %% orelse is_lfe_bif(Name, Ar)
+        orelse is_erl_bif(Name, Ar).
+
+is_guard_bif(Op ,Ar) ->
+    erl_internal:guard_bif(Op, Ar)
+        orelse erl_internal:arith_op(Op, Ar)
+        orelse erl_internal:bool_op(Op, Ar)
+        orelse erl_internal:comp_op(Op, Ar).
+
+is_erl_bif(Op, Ar) ->
+    erl_internal:bif(Op, Ar)
+        orelse erl_internal:arith_op(Op, Ar)
+        orelse erl_internal:bool_op(Op, Ar)
+        orelse erl_internal:comp_op(Op, Ar)
+        orelse erl_internal:list_op(Op, Ar)
+        orelse erl_internal:send_op(Op, Ar).
