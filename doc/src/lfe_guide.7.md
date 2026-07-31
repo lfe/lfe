@@ -1,6 +1,6 @@
 % lfe_guide(7)
 % Robert Virding
-% 2008-2024
+% 2008-2026
 
 
 # NAME
@@ -766,9 +766,9 @@ Macro calls are expanded in both body and patterns. This can be very
 useful to have both make and match macros, but be careful with names.
 
 A macro is function of two arguments which is a called with a list of
-the arguments to the macro call and the current macro environment. It
-can be either a lambda or a match-lambda. The basic forms for defining
-macros are:
+the arguments to the macro call and the current macro environment with
+name `$ENV`. It can be either a lambda or a match-lambda. The basic
+forms for defining macros are:
 
 ```
 (define-macro name meta-data lambda|match-lambda)
@@ -815,6 +815,17 @@ the second argument with the current macro environment with the name
 `$ENV`. This allows explicit expansion of macros inside the macro and
 also manipulation of the macro environment. No changes to the
 environment are exported outside the macro.
+
+As an example of the `define-macro` form this is the expansion by `defmacro` of the `andalso` macro shown above:
+
+```
+(define-macro andalso
+  ()
+  (match-lambda
+    (((list e) $ENV) `,e)
+    (((cons e es) $ENV) `(if ,e (andalso ,@es) 'false))
+    ((() $ENV) `'true)))
+```
 
 User defined macros shadow the predefined macros so it is possible to
 redefine the built-in macro definitions. However, see the caveat

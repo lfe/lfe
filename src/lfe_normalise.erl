@@ -1,3 +1,4 @@
+%% -*- mode: erlang; indent-tabs-mode: nil -*-
 %% Copyright (c) 2026 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
@@ -254,7 +255,7 @@ module_attribute([spec|SpecDefs], Line, St) ->
 module_attribute(['module-alias'|Aliases], Line, St) ->
     module_alias(Aliases, Line, St);
 module_attribute(['export-macro'|Exports], Line, St) ->
-    attribute_export_macro(Exports, Line, St);
+    module_export_macro(Exports, Line, St);
 module_attribute(Attr, Line, St) ->
     %% Handle unrecognised module attributes, either the legal short
     %% form or bad formats.
@@ -299,6 +300,11 @@ module_alias(Aliases, Line, St) ->
                        {As ++ [['alias',Line,Mod,Alias]],S}
                end,
     lists:foldl(AliasFun, {[],St}, Aliases).
+
+module_export_macro([all], Line, St) ->
+    {[['export-macro',Line,all]],St};
+module_export_macro(Exports, Line, St) ->
+    {[['export-macro',Line,Exports]],St}.
 
 %% attribute(Attribute, Line, Unrecognised, State) -> {[Norm],State}.
 %%  These "attributes" can both occur in the define/extend-module

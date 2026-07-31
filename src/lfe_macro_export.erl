@@ -1,4 +1,5 @@
-%% Copyright (c) 2016-2022 Robert Virding
+%% -*- mode: erlang; indent-tabs-mode: nil -*-
+%% Copyright (c) 2016-2026 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -166,7 +167,7 @@ collect_attrs([], Mst) -> Mst.
 %% exported_macro(Name, State) -> true | false.
 
 add_exports(all, _) -> all;
-add_exports(_, [all]) -> all;                   %Note we get a list of macros!
+add_exports(_, all) -> all;                     %We get list of macros or 'all'!
 add_exports(Old, More) ->
     ordsets:union(Old, lists:usort(More)).
 

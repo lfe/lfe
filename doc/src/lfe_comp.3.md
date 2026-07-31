@@ -49,7 +49,10 @@ The currently recognised options are:
   ``"LDoc"`` chunk in the binary of the module.
 
 * ``to_expand``, ``to-expand`` -  Print a listing of the macro expanded
-  LFE code in the file <File>.expand. No object file is produced. Mainly
+  LFE code in the files <File>.expand. No object file is produced. Mainly
+  useful for debugging and interest.
+
+* ``to_normalise``, ``to-normalise`` - Print a listing of the normalised LFE code in the files <File>.normalise. No object file is produced. Mainly
   useful for debugging and interest.
 
 * ``to_lint``, ``to-lint`` - Print a listing of the macro expanded and

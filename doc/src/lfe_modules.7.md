@@ -33,7 +33,7 @@ This attribute is to be specified first and is the only mandatory attribute.
 Exported functions. Specifies which of the functions, defined within
 the module, that are visible from outside the module.
 
-`functions` is a list `((name-1 arity-1) ... (name-n arity-n))`, where each `name-i` is an atom and `arity-i` an integer.
+`functions` is a list `((name-1 arity-1) ... (name-n arity-n))`, where each `name-i` is an atom and `arity-i` an integer. It can also be just the atom `all` which means that all functions are exported.
 
 **`(import module functions)`**
 
@@ -160,6 +160,8 @@ modules with long names. `aliases` is a list:
 **`(export-macro macros)`**
 
 Export the macros so they can be callable from other modules.
+
+`macros` is a list `(name-1 ... name-n)`, where each `name-i` is an atom. It can also be just the atom `all` which means that all macros are exported.
 
 ### User-defined attributes
 

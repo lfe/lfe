@@ -1,3 +1,4 @@
+%% -*- mode: erlang; indent-tabs-mode: nil -*-
 %% Copyright (c) 2008-2026 Robert Virdingxp_defmod
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
@@ -238,8 +239,8 @@ pass_form(['include-lib',File], Env, St) ->
     pass_form_include('lib', File, Env, St);
 pass_form(['define-macro'|_]=M, Env, St) ->
     pass_form_define_macro(M, Env, St);
-pass_form(['macro'|_]=M, Env, St) ->
-    pass_form_macro(M, Env, St);
+%% pass_form(['macro'|_]=M, Env, St) ->
+%%     pass_form_macro(M, Env, St);
 %% pass_form(['macro'|Def]=M, Env0, St0) ->
 %%     case pass_define_macro(Def, Env0, St0) of
 %%         {yes,Env1,St1} ->
@@ -295,6 +296,7 @@ pass_form_macro(_Macro, _Env, St) ->
 
 %% pass_form_define_macro(Macro, Env, State) -> {Form,Env,State}.
 pass_form_define_macro([_,Name,_,Def]=M, Env0, St0) when is_atom(Name) ->
+    %% io:format("pfdm: ~p\n", [M]),
     case pass_define_macro(Name, Def, Env0, St0) of
         {yes,Env1,St1} ->
             Ret = ?IF(St1#mac.keep, M, [progn]),
@@ -324,9 +326,9 @@ ewc_form(['eval-when-compile'|Efs0], Env0, St0) ->
     {['progn'|Efs1],Env1,St1};
 ewc_form(['define-macro'|_]=M, Env, St) ->
     pass_form_define_macro(M, Env, St);
-ewc_form(['macro'|_]=M, Env, St) ->
-    %% Do we really want this? It behaves as a top-level macro def.
-    pass_form_macro(M, Env, St);
+%% ewc_form(['macro'|_]=M, Env, St) ->
+%%     %% Do we really want this? It behaves as a top-level macro def.
+%%     pass_form_macro(M, Env, St);
 ewc_form(['define-function',Name,_,Def]=F, Env, St) ->
     pass_define_function(Name, Def, F, Env, St);
 ewc_form(['function',Name,Def]=F, Env, St) ->
@@ -398,6 +400,7 @@ ewc_eval_set_1(Pat, Guard, Exp, Env0, St) ->
 %%  Only try to expand list expressions.
 
 pass_expand_expr([_|_]=E0, Env, St0, Deep) ->
+    %% io:format("pee: ~p\n", [E0]),
     try
         case exp_macro(E0, Env, St0) of
             {yes,_,_}=Yes -> Yes;
@@ -950,7 +953,9 @@ exp_define_function(Name, Meta0, Def0, Env0, St0) ->
 
 exp_macro([Name|_]=Call, Env, St) ->
     %% io:format("em ~p\n", [Call]),
-    case is_atom(Name) andalso core_normalise_form(Name) of
+    case is_atom(Name) andalso
+        Name /= macro andalso                   %Need to expand macro 'macro'
+        core_normalise_form(Name) of
         true -> no;                             %Never expand core forms
         false ->
             case lfe_env:get_mbinding(Name, Env) of
@@ -1070,8 +1075,10 @@ exp_predef(['struct',Fds], Env, St) ->
 %% core form.
 %% exp_predef(['function',Name,Def], _Env, St) ->
 %%     {yes,['define-function',Name,[],Def],St};
-exp_predef(['macro',Name|Rest], _Env, St) ->
-    {Meta,Def} = exp_defmacro(Rest),
+%% We have to expand (macro ...) to (define-macro ...) to avoid looping.
+exp_predef(['macro',Name,Rest]=_Exp, _Env, St) ->
+    %% io:format("epm: ~p\n", [_Exp]),
+    {Meta,Def} = exp_expr_macro(Rest),
     {yes,['define-macro',Name,Meta,Def],St};
 %% export-macro needs to be in extend-module for now.
 exp_predef(['export-macro'|_]=ExpMac, _, St) ->
@@ -1490,6 +1497,19 @@ exp_macro_meta([String|Rest]) ->
     ?IF(lfe_lib:is_doc_string(String) and (Rest =/= []),
         {[[doc,String]],Rest},
         {[],[String|Rest]}).
+
+%% exp_expr_macro(Rest) -> {Meta,MatchLambda}
+%%  Here we know what type of macro we have.
+%%  N.B. Macro definition is function of 2 arguments: the whole
+%%  argument list of macro call; and $ENV, the current macro
+%%  environment.
+
+exp_expr_macro([lambda,Args|Body]) ->
+    {[],['match-lambda',[[[list|Args],'$ENV']|Body]]};
+exp_expr_macro(['match-lambda'|Cls0]) ->
+    %% Cls1 = lists:map(fun ([Head|Body]) -> [[Head,'$ENV']|Body] end, Cls0),
+    Cls1 = lists:map(fun ([Head|Body]) -> [Head ++ ['$ENV']|Body] end, Cls0),
+    {[],['match-lambda'|Cls1]}.
 
 new_symb(St) ->
     C = St#mac.vc,

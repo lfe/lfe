@@ -35,6 +35,8 @@ visible from outside the module.
 \f[CR]functions\f[R] is a list
 \f[CR]((name\-1 arity\-1) ... (name\-n arity\-n))\f[R], where each
 \f[CR]name\-i\f[R] is an atom and \f[CR]arity\-i\f[R] an integer.
+It can also be just the atom \f[CR]all\f[R] which means that all
+functions are exported.
 .PP
 \f[B]\f[CB](import module functions)\f[B]\f[R]
 .PP
@@ -156,6 +158,11 @@ A typical use is to provide short names for modules with long names.
 \f[B]\f[CB](export\-macro macros)\f[B]\f[R]
 .PP
 Export the macros so they can be callable from other modules.
+.PP
+\f[CR]macros\f[R] is a list \f[CR](name\-1 ... name\-n)\f[R], where each
+\f[CR]name\-i\f[R] is an atom.
+It can also be just the atom \f[CR]all\f[R] which means that all macros
+are exported.
 .SS User\-defined attributes
 User\-defined module attributes must have arity one.
 There are two ways of creating user\-defined attributes, either using

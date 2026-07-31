@@ -1,6 +1,4 @@
-lfe_comp(3)                                                        lfe_comp(3)
-
-
+lfe_comp(3)                Library Functions Manual                lfe_comp(3)
 
 NAME
        lfe_comp - Lisp Flavoured Erlang (LFE) compiler
@@ -34,55 +32,59 @@ EXPORTS
 
        The currently recognised options are:
 
-       · binary - Return the binary of the module and do  not  save  it  in  a
+       • binary - Return the binary of the module and do  not  save  it  in  a
          file.
 
-       · no_docs, no-docs - Do not parse docstrings and write the "LDoc" chunk
+       • no_docs, no-docs - Do not parse docstrings and write the "LDoc" chunk
          in the binary of the module.
 
-       · to_expand, to-expand - Print a listing of the macro expanded LFE code
-         in  the file .expand.  No object file is produced.  Mainly useful for
+       • to_expand, to-expand - Print a listing of the macro expanded LFE code
+         in the files .expand.  No object file is produced.  Mainly useful for
          debugging and interest.
 
-       · to_lint, to-lint - Print a listing of the macro expanded  and  linted
-         LFE  code  in the files .lint.  No object files are produced.  Mainly
+       • to_normalise,  to-normalise  -  Print a listing of the normalised LFE
+         code in the files .normalise.  No object file  is  produced.   Mainly
          useful for debugging and interest.
 
-       · to_erlang, to-erlang - Print a listing of the Erlang AST in the  file
+       • to_lint,  to-lint  - Print a listing of the macro expanded and linted
+         LFE code in the files .lint.  No object files are  produced.   Mainly
+         useful for debugging and interest.
+
+       • to_erlang,  to-erlang - Print a listing of the Erlang AST in the file
          .erl.  No object files are produced.  Mainly useful for debugging and
          interest.
 
-       · to_core0, to-core0, to_core, to-core - Print a listing  of  the  Core
+       • to_core0, to-core0, to_core, to-core - Print a listing  of  the  Core
          Erlang  code before/after being optimised in the files .core.  No ob‐
          ject files are produced.  Mainly useful for debugging and interest.
 
-       · to_kernel, to-kernel - Print a listing of the Kernel Erlang  code  in
+       • to_kernel, to-kernel - Print a listing of the Kernel Erlang  code  in
          the  files .kernel.  No object files are produced.  Mainly useful for
          debugging and interest.
 
-       · to_asm, to-asm - Print a listing of the Beam code in  the  files  .S.
+       • to_asm, to-asm - Print a listing of the Beam code in  the  files  .S.
          No object files are produced.  Mainly useful for debugging and inter‐
          est.
 
-       · {outdir,Dir}, [outdir,Dir] - Save the generated files in director Dir
+       • {outdir,Dir}, [outdir,Dir] - Save the generated files in director Dir
          instead of the current directory.
 
-       · {i,Dir},  [i,Dir] - Add dir to the list of directories to be searched
+       • {i,Dir},  [i,Dir] - Add dir to the list of directories to be searched
          when including a file.
 
-       · report - Print the errors and warnings as they occur.
+       • report - Print the errors and warnings as they occur.
 
-       · return - Return an extra return field containing Warnings on  success
+       • return - Return an extra return field containing Warnings on  success
          or  the errors and warnings in {error,Errors,Warnings} when there are
          errors.
 
-       · debug_print, debug-print - Causes the compiler to print a lot of  de‐
+       • debug_print, debug-print - Causes the compiler to print a lot of  de‐
          bug information.
 
-       · warnings_as_errors, warnings-as-errors - Causes warnings to be treat‐
-         ed as errors.
+       • warnings_as_errors,   warnings-as-errors  -  Causes  warnings  to  be
+         treated as errors.
 
-       · no_export_macros, no-export-macros - Do not export macros  from  mod‐
+       • no_export_macros, no-export-macros - Do not export macros  from  mod‐
          ules.
 
        If  the  binary option is given then options that produce listing files
@@ -121,7 +123,7 @@ EXPORTS
        format_error(Error) -> Chars
 
        Uses an ErrorDescriptor and returns a deep list of characters which de‐
-       scribes the error.  This function is usually called implicitly when  an
+       scribes  the error.  This function is usually called implicitly when an
        ErrorInfo structure is processed.  See below.
 
 ERROR INFORMATION
@@ -139,7 +141,5 @@ SEE ALSO
 
 AUTHORS
        Robert Virding.
-
-
 
                                    2008-2016                       lfe_comp(3)
