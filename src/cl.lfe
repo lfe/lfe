@@ -659,9 +659,12 @@
      (rassoc-if pred a-list)))
   ([pred ()] ()))
 
+(doc """
+  pred a-list
+  Searches a-list returning the first pair for which pred is false.
+""")
+
 (defun rassoc-if-not
-  "pred a-list
-   Searches a-list returning the first pair for which pred is false."
   ([pred (cons (= (cons _ v) pair) a-list)]
    (if (funcall pred v)
      (rassoc-if-not pred a-list)

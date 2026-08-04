@@ -181,11 +181,53 @@ end of the line.
 Block comments are written as \f[CR]#| comment text |#\f[R] where the
 comment text may span multiple lines but my not contain another block
 comment, i.e.\ it may not contain the character sequence \f[CR]#|\f[R].
+.SS Functions
+\f[B]\f[CB](function function\-name function\-def)\f[B]\f[R]
+.PP
+where
+.IP
+.EX
+function\-def = (lambda (arg ...) body)
+function\-def = (match\-lambda ((pat ...) body)
+                             ((pat ...) body)
+                 ...
+                 )
+.EE
+.SS Macros
+\f[B]\f[CB](macro macro\-name macro\-def)\f[B]\f[R]
+.PP
+where
+.IP
+.EX
+macro\-def = (lambda (arg ...) body)
+macro\-def = (match\-lambda ((args\-pat) body)
+                          ((args\-pat) body)
+              ...
+              )
+.EE
 .SS Older Forms
+The older forms for module declarations and function and macro
+definitions are of course still available and valid.
 .IP
 .EX
 (defmodule module\-name
     attributes)
+.EE
+.IP
+.EX
+(defun function\-name (arg ...) body)
+(defun function\-name
+    ((pat ...) body)
+    ((pat ...) body)
+    ...)
+.EE
+.IP
+.EX
+(defmacro macro\-name (arg ...) body)
+(defmacro macro\-name
+    (args\-pat body)
+    (args\-pat body)
+    ...)
 .EE
 .SH AUTHORS
 Robert Virding.

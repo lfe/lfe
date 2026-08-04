@@ -184,9 +184,56 @@ Block comments are written as ``#| comment text |#`` where the comment text
 may span multiple lines but my not contain another block comment,
 i.e. it may not contain the character sequence ``#|``.
 
+## Functions
+
+**`(function function-name function-def)`**
+
+where
+
+```
+function-def = (lambda (arg ...) body)
+function-def = (match-lambda ((pat ...) body)
+                             ((pat ...) body)
+			     ...
+			     )
+```
+
+## Macros
+
+**`(macro macro-name macro-def)`**
+
+where
+
+```
+macro-def = (lambda (arg ...) body)
+macro-def = (match-lambda ((args-pat) body)
+                          ((args-pat) body)
+			  ...
+			  )
+```
+
 ## Older Forms
+
+The older forms for module declarations and function and macro definitions are of course still available and valid.
 
 ```
 (defmodule module-name
     attributes)
+
+```
+
+```
+(defun function-name (arg ...) body)
+(defun function-name
+    ((pat ...) body)
+    ((pat ...) body)
+    ...)
+```
+
+```
+(defmacro macro-name (arg ...) body)
+(defmacro macro-name
+    (args-pat body)
+    (args-pat body)
+    ...)
 ```
