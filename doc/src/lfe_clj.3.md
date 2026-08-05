@@ -373,6 +373,43 @@ integer value, i.e. `"97"`.
 "abc"
 ```
 
+**(println)**
+
+**(println x1 x2 ... xn)**
+
+Print arguments to stdout, space-separated, followed by a trailing newline.
+Each argument is converted to its string representation: strings pass through
+unchanged, all other terms are printed via `lfe_io:print1`. With no arguments,
+prints only a newline. Returns `'ok`.
+
+```lfe
+> (clj:println "hello" "world")
+hello world
+ok
+> (clj:println 1 'foo 3.14)
+1 foo 3.14
+ok
+> (clj:println)
+
+ok
+```
+
+**(printf fmt)**
+
+**(printf fmt x1 x2 ... xn)**
+
+Print a formatted string to stdout. Uses Erlang format specifiers
+(`~s`, `~w`, `~p`, `~n`, etc.). Does not append a trailing newline unless
+`~n` is included in the format string. Returns `'ok`.
+
+```lfe
+> (clj:printf "hello ~s, you are ~w~n" "world" 42)
+hello world, you are 42
+ok
+> (clj:printf "no newline here")
+no newline hereok
+```
+
 **(lazy-seq)**
 
 **(lazy-seq seq)**
@@ -678,6 +715,73 @@ Equivalent to `(get-in data keys 'undefined)`.
 Return the value in a nested associative structure, where `keys` is a list of
 keys or list indices. Return the atom `not-found` if the key is not present or
 index is out of bounds, or the `not-found` value.
+
+**(assoc data key val)**
+
+Associate a key with a value in an associative structure. Returns the updated
+structure. Supports proplists, dicts, maps, and lists (1-based index
+replacement, like `lists:nth`). For multiple key-value pairs, nest calls.
+
+```lfe
+> (clj:assoc '(#(a 1) #(b 2)) 'a 99)
+(#(a 99) #(b 2))
+> (clj:assoc '(#(a 1) #(b 2)) 'c 3)
+(#(a 1) #(b 2) #(c 3))
+> (clj:assoc (maps:from_list '(#(x 1))) 'x 42)
+#{x => 42}
+> (clj:assoc '(10 20 30) 2 99)
+(10 99 30)
+> (clj:assoc (clj:assoc '(#(a 1)) 'a 99) 'b 2)
+(#(a 99) #(b 2))
+```
+
+**(assoc-in data keys val)**
+
+Associate a value in a nested associative structure, where `keys` is a list of
+keys or indices. Creates intermediate proplists for missing keys along the
+path. Returns the full updated outer structure.
+
+```lfe
+> (clj:assoc-in '(#(a (#(b 1)))) '(a b) 99)
+(#(a (#(b 99))))
+> (let* ((inner (maps:from_list '(#(x 10))))
+         (m (maps:from_list `(#(a ,inner)))))
+    (clj:assoc-in m '(a x) 42))
+#{a => #{x => 42}}
+```
+
+**(update data key func)**
+
+**(update data key func args)**
+
+Update the value for `key` in an associative structure by applying `func` to
+the current value. If `args` (a list) is given, they are passed as additional
+arguments to `func` after the current value. Supports the same data types as
+**assoc/3**. Returns the updated structure.
+
+```lfe
+> (clj:update '(#(a 1) #(b 2)) 'a #'clj:inc/1)
+(#(a 2) #(b 2))
+> (clj:update '(#(a 1)) 'a (fun + 2) '(10))
+(#(a 11))
+```
+
+**(update-in data keys func)**
+
+**(update-in data keys func args)**
+
+Update a value in a nested associative structure, where `keys` is a list of
+keys, by applying `func` to the current value at the path. If `args` (a list)
+is given, they are passed as additional arguments to `func`. Returns the full
+updated outer structure.
+
+```lfe
+> (clj:update-in '(#(a (#(b 1)))) '(a b) #'clj:inc/1)
+(#(a (#(b 2))))
+> (let ((m (maps:from_list `(#(a ,(maps:from_list '(#(x 10))))))))
+    (clj:update-in m '(a x) #'clj:inc/1))
+#{a => #{x => 11}}
+```
 
 **(reduce func (cons head tail))**
 
