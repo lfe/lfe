@@ -69,16 +69,16 @@ like so after compiling:
 $ ./bin/lfe
 ```
 ```text
-Erlang/OTP 26 [erts-14.0.2] [source] [64-bit] [smp:10:10] [ds:10:10:10] [async-threads:1] [jit] [dtrace]
+Erlang/OTP 28 [erts-16.4] [source] [64-bit] [smp:24:24] [ds:24:24:10] ...
 
    ..-~.~_~---..
   (      \\     )    |   A Lisp-2+ on the Erlang VM
   |`-.._/_\\_.-':    |   Type (help) for usage info.
   |         g |_ \   |
-  |        n    | |  |   Docs: http://docs.lfe.io/
-  |       a    / /   |   Source: http://github.com/lfe/lfe
+  |        n    | |  |   Docs: https://lfe.io/use
+  |       a    / /   |   Source: https://github.com/lfe/lfe
    \     l    |_/    |
-    \   r     /      |   LFE v2.2.1 (abort with ^G)
+    \   r     /      |   LFE v2.2.2 (abort with ^G)
      `-E___.-'
 
 lfe>
