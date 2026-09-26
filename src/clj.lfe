@@ -1,4 +1,4 @@
-;; Copyright (c) 2015-2020 Robert Virding
+;; Copyright (c) 2015-2024 Robert Virding
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -17,7 +17,11 @@
 ;; Purpose : LFE Clojure interface library.
 
 (defmodule clj
-  "LFE Clojure interface library."
+  (moduledoc """
+LFE Clojure interface library.
+
+This module provides Clojure-inspired functions and macros for use in LFE.
+""")
   ;; Function macros.
   (export-macro defn defn- fn)
   ;; Threading macros.

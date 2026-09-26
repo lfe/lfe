@@ -1,5 +1,5 @@
 %% -*- mode: erlang; indent-tabs-mode: nil -*-
-%% Copyright (c) 2008-2020 Robert Virding
+%% Copyright (c) 2008-2026 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -26,6 +26,14 @@
 %% following erlang formats.
 
 -module(lfe_comp).
+
+-moduledoc("""
+Lisp Flavoured Erlang compiler.
+
+This module provides an interface to the standard LFE compiler. It can
+generate either a file containing the object code, the resultant
+Erlang code or return a binary that can be loaded directly.
+""").
 
 -export([format_error/1]).
 -export([file/1,file/2,forms/1,forms/2,default_options/0]).
@@ -76,7 +84,7 @@ default_options() -> ?DEFAULT_OPTS.
 
 file(Name) -> file(Name, default_options()).
 
-file(Name, Opts) -> do_compile({file,Name}, Opts).
+file(Name, Options) -> do_compile({file,Name}, Options).
 
 %% forms(Forms) -> {ok,Mod,Bin,Warnings} | {error,Errors,Warnings}.
 %% forms(Forms, Options) -> {ok,Mod,Bin,Warnings} | {error,Errors,Warnings}.
@@ -84,7 +92,7 @@ file(Name, Opts) -> do_compile({file,Name}, Opts).
 
 forms(Forms) -> forms(Forms, default_options()).
 
-forms(Forms, Opts) -> do_compile({forms,Forms}, Opts).
+forms(Forms, Options) -> do_compile({forms,Forms}, Options).
 
 do_compile(Input, Opts) ->
     Ifun = fun () ->
@@ -244,6 +252,7 @@ passes() ->
      %% Now we expand and trim remaining macros.
      {do,fun do_expand_macros/1},
      {when_flag,to_expand,{done,fun expand_pp/1}},
+     %% Now start compiling the modules.
      {do,fun do_lfe_lint/1},
      {when_flag,to_lint,{done,fun lint_pp/1}},
      {unless_flag,no_docs,{do,fun do_get_docs/1}},
@@ -262,8 +271,8 @@ passes() ->
      %% set and we have warnings.
      {when_test,fun is_werror/1,error},
      %% Write docs beam chunks.
-     {do,fun add_chunks/1},
-     {done,fun beam_write/1}                    %Should be last
+     {do,fun do_add_chunks/1},
+     {done,fun do_beam_write/1}                 %Should be last
     ].
 
 do_passes([{when_flag,Flag,Cmd}|Ps], #comp{opts=Opts}=St) ->
@@ -293,17 +302,17 @@ do_passes([], St) -> {ok,St}.                   %Got to the end, everything ok!
 %%  first module is available in every module, after that things are
 %%  local to the module in which they are defined. We need to expand
 %%  top-level macros in forms so we can safelt detect the start of
-%%  each module (with define-module form).
+%%  each module (with define-module or module forms).
 
 do_split_file(#comp{lfile=Lfile,cinfo=Ci,code=Code0}=St) ->
     %% Add a FILE macro with the file name at the beginning.
     Mac = {[defmacro,'FILE',[],?BQ(?Q(Lfile))],1},
     Code1 = [Mac|Code0],
     case collect_pre_forms(Code1, Ci) of        %Expand pre module forms
-        {Pfs,Fs,Env0,Mst0} ->
+        {Pfs,Fs,Env0,MacSt0} ->
             %% Expand the modules using the pre forms and environment.
-            case collect_modules(Fs, Pfs, Env0, Mst0) of
-                {ok,Ms,_Mst1} ->
+            case collect_modules(Fs, Pfs, Env0, MacSt0) of
+                {ok,Ms,_MacSt1} ->
                     {ok,St#comp{code=Ms,
                                 warnings=St#comp.warnings}};
                 {error,Es,Ws} ->
@@ -323,27 +332,27 @@ do_split_file(#comp{lfile=Lfile,cinfo=Ci,code=Code0}=St) ->
 collect_pre_forms(Fs, Ci) ->
     Env = lfe_env:new(),
     %% Don't deep expand, keep everything.
-    Mst = lfe_macro:expand_form_init(Ci, false, true),
-    collect_mod_forms(Fs, Env, Mst).
+    MacSt = lfe_macro:expand_form_init(Ci, false, true),
+    collect_mod_forms(Fs, Env, MacSt).
 
 %% collect_modules(Forms, PreForms, PreEnv, MacroState) ->
 %%     {Modules,MacroState}.
 %%  Collect and expand modules upto the end. Each module initially has
 %%  the pre environment and all pre forms are appended to it.
 
-collect_modules(Fs, PreFs, PreEnv, Mst) ->
-    collect_modules(Fs, [], PreFs, PreEnv, Mst).
+collect_modules(Fs, PreFs, PreEnv, MacSt) ->
+    collect_modules(Fs, [], PreFs, PreEnv, MacSt).
 
-collect_modules([{['define-module',Name|_],_}=Mdef|Fs0], Ms, PreFs, PreEnv, Mst0) ->
-    %% Expand and collect all forms upto next define-module or end.
-    case collect_mod_forms(Fs0, PreEnv, Mst0) of
-        {Mfs0,Fs1,_,Mst1} ->
+collect_modules([{['define-module',Name|_],_}=Mdef|Fs0], Ms, PreFs, PreEnv, MacSt0) ->
+    %% Expand and collect all forms upto next define-module/module or end.
+    case collect_mod_forms(Fs0, PreEnv, MacSt0) of
+        {Mfs0,Fs1,_,MacSt1} ->
             M = #module{name=Name,code=[Mdef] ++ PreFs ++ Mfs0},
-            collect_modules(Fs1, [M|Ms], PreFs, PreEnv, Mst1);
+            collect_modules(Fs1, [M|Ms], PreFs, PreEnv, MacSt1);
         Error -> Error
     end;
-collect_modules([], Ms, _PreFs, _PreEnv, Mst) ->
-    {ok,lists:reverse(Ms),Mst}.
+collect_modules([], Ms, _PreFs, _PreEnv, MacSt) ->
+    {ok,lists:reverse(Ms),MacSt}.
 
 %% collect_mod_forms(Forms, Env, MacroState) ->
 %% collect_mod_forms(Forms, Acc, Env, MacroState) ->
@@ -351,25 +360,25 @@ collect_modules([], Ms, _PreFs, _PreEnv, Mst) ->
 %%  Expand and collect forms upto the next define-module or end. We
 %%  also flatten top-level nested progn code.
 
-collect_mod_forms(Fs, Env0, Mst0) ->
-    case collect_mod_forms(Fs, [], Env0, Mst0) of
-        {Acc,Rest,Env1,Mst1} ->
-            {lists:reverse(Acc),Rest,Env1,Mst1};
+collect_mod_forms(Fs, Env0, MacSt0) ->
+    case collect_mod_forms(Fs, [], Env0, MacSt0) of
+        {Acc,Rest,Env1,MacSt1} ->
+            {lists:reverse(Acc),Rest,Env1,MacSt1};
         {error,_,_}=Error -> Error
     end.
 
-collect_mod_forms([F0|Fs0], Acc, Env0, Mst0) ->
-    case lfe_macro:expand_fileform(F0, Env0, Mst0) of
-        {ok,{['define-module'|_],_}=F1,Env1,Mst1} ->
-            {Acc,[F1|Fs0],Env1,Mst1};
-        {ok,{['progn'|Pfs],L},Env1,Mst1} ->     %Flatten progn's
+collect_mod_forms([F0|Fs0], Acc, Env0, MacSt0) ->
+    case lfe_macro:expand_fileform(F0, Env0, MacSt0) of
+        {ok,{['define-module'|_],_}=F1,Env1,MacSt1} ->
+            {Acc,[F1|Fs0],Env1,MacSt1};
+        {ok,{['progn'|Pfs],L},Env1,MacSt1} ->     %Flatten progn's
             Fs1 = [ {F,L} || F <- Pfs ] ++ Fs0,
-            collect_mod_forms(Fs1, Acc, Env1, Mst1);
-        {ok,F1,Env1,Mst1} ->
-            collect_mod_forms(Fs0, [F1|Acc], Env1, Mst1);
+            collect_mod_forms(Fs1, Acc, Env1, MacSt1);
+        {ok,F1,Env1,MacSt1} ->
+            collect_mod_forms(Fs0, [F1|Acc], Env1, MacSt1);
         {error,Es,Ws,_} -> {error,Es,Ws}
     end;
-collect_mod_forms([], Acc, Env, Mst) -> {Acc,[],Env,Mst}.
+collect_mod_forms([], Acc, Env, MacSt) -> {Acc,[],Env,MacSt}.
 
 %% do_export_macros(State) -> {ok,State} | {error,State}.
 %% do_expand_macros(State) -> {ok,State} | {error,State}.
@@ -389,8 +398,8 @@ do_expand_macros(#comp{cinfo=Ci,code=Ms0}=St0) ->
     Emac = fun (#module{code=Fs0}=Mod) ->
                    Env = lfe_env:new(),
                    %% Deep expand, keep everything.
-                   Mst = lfe_macro:expand_form_init(Ci, true, true),
-                   case process_forms(fun expand_form/3, Fs0, {Env,Mst}) of
+                   MacSt = lfe_macro:expand_form_init(Ci, true, true),
+                   case process_forms(fun expand_form/3, Fs0, {Env,MacSt}) of
                        {Fs1,_} -> Mod#module{code=Fs1};
                        {error,_,_}=Error -> Error
                    end
@@ -431,6 +440,8 @@ process_forms(Fun, Fs, L, St) ->
 %% do_lfe_codegen(State) -> {ok,State} | {error,State}.
 %% do_erl_comp(State) -> {ok,State} | {error,State}.
 %%  The actual compiler passes.
+%%  We don't get the docs when we OTP 27 which does it for us, so
+%%  there will be no doc chunks to add later on.
 
 do_lfe_lint(#comp{cinfo=Ci,code=Ms0}=St0) ->
     Lint = fun (#module{code=Mfs,warnings=Ws}=Mod) ->
@@ -444,6 +455,11 @@ do_lfe_lint(#comp{cinfo=Ci,code=Ms0}=St0) ->
     St1 = St0#comp{code=Ms1},
     ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
 
+-ifdef(OTP27_DOCS).
+do_get_docs(St) ->
+    %% The OTP 27 Erlang compiler does it all for us.
+    {ok,St}.
+-else.
 do_get_docs(#comp{code=Ms0,opts=Opts}=St) ->
     Doc = fun (#module{code=Mfs,chunks=Chks}=Mod) ->
                   {ok,Chunk} = lfe_docs:make_chunk(Mfs, Opts),
@@ -451,6 +467,7 @@ do_get_docs(#comp{code=Ms0,opts=Opts}=St) ->
           end,
     Ms1 = lists:map(Doc, Ms0),
     {ok,St#comp{code=Ms1}}.
+-endif.
 
 do_lfe_codegen(#comp{cinfo=Ci,code=Ms0}=St0) ->
     Code = fun (#module{name=Name,code=Mfs,warnings=Ws}=Mod) ->
@@ -514,7 +531,7 @@ erl_comp_opts(St) ->
 %% erl_core_pp(State) -> {ok,State} | {error,State}.
 %% erl_kernel_pp(State) -> {ok,State} | {error,State}.
 %% erl_asm_pp(State) -> {ok,State} | {error,State}.
-%% beam_write(State) -> {ok,State} | {error,State}.
+%% do_beam_write(State) -> {ok,State} | {error,State}.
 %%  Output the various file types. The XXX_pp functions output with
 %%  the same name as the input file while beam_write outputs to the
 %%  module name.
@@ -591,7 +608,7 @@ do_save_file(SaveAll, Ext, St) ->
             {error,St#comp{errors=[{lfe_comp,write_file}]}}
     end.
 
-add_chunks(#comp{code=Ms0}=St) ->
+do_add_chunks(#comp{code=Ms0}=St) ->
     Add = fun (#module{name=Name,code=Beam0,chunks=Chks}=Mod) ->
                   if Chks =:= [] -> Mod;        %Nothing to do
                      true ->
@@ -603,8 +620,8 @@ add_chunks(#comp{code=Ms0}=St) ->
     Ms1 = lists:map(Add, Ms0),
     {ok,St#comp{code=Ms1}}.
 
-beam_write(St0) ->
-    Ms1 = lists:map(fun (M) -> beam_write_module(M, St0) end, St0#comp.code),
+do_beam_write(St0) ->
+    Ms1 = lists:map(fun (M) -> do_beam_write_module(M, St0) end, St0#comp.code),
     St1 = St0#comp{code=Ms1},
     %% Check return status.
     ?IF(all_module(Ms1), {ok,St1}, {error,St1}).
@@ -630,7 +647,7 @@ ensure_dir(Dir) ->
     end.
 -endif.
 
-beam_write_module(#module{name=M,code=Beam}=Mod, St) ->
+do_beam_write_module(#module{name=M,code=Beam}=Mod, St) ->
     Name = filename:join(St#comp.odir, lists:concat([M,".beam"])),
     case ensure_path_exists(Name) of
         ok ->

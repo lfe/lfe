@@ -17,7 +17,13 @@
 ;; Purpose : LFE Common Lisp interface library.
 
 (defmodule cl
-  "LFE Common Lisp interface library."
+  (moduledoc """
+LFE Common Lisp interface library.
+
+This module provides a set of Common Lisp functions and macros for use
+in LFE. The definitions closely follow the CL definitions and won't be
+documented here.
+""")
   (export
    ;; Boolean conversion functions.
    (make-lfe-bool 1) (make-cl-bool 1)

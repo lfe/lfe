@@ -1,4 +1,4 @@
-%% Copyright (c) 2016-2020 Robert Virding
+%% Copyright (c) 2016-2026 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -17,6 +17,10 @@
 %% Purpose : Lisp Flavoured Erlang standard library.
 
 -module(lfe).
+
+-moduledoc("""
+Lisp Flavoured Erlang standard library.
+""").
 
 %% Standard lisp library.
 -export([acons/3,pairlis/2,pairlis/3,
@@ -46,7 +50,7 @@
 
 %% Association list functions.
 
-acons(K, V, Alist) -> [[K|V]|Alist].
+acons(Key, Value, Alist) -> [[Key|Value]|Alist].
 
 pairlis(Ks, Vs) -> pairlis(Ks, Vs, []).
 

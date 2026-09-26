@@ -1,6 +1,6 @@
 ;;; lfe-mode.el --- Lisp Flavoured Erlang mode
 
-;; Copyright (c) 2012-2025 Robert Virding
+;; Copyright (c) 2012-2026 Robert Virding
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -134,6 +134,26 @@ Other commands:
 (defconst lfe-font-lock-keywords
   (eval-when-compile
     (list
+     ;; Module definition forms. These start a form at the beginning
+     ;; of a line.
+     (list
+      (concat
+       "^("
+       (regexp-opt '("module" "export" "import" "rename" "moduledoc"
+		     "compile" "vsn" "on_load" "nifs" "file"
+		     "behaviour" "behavior"
+		     "record" "struct" "type" "opaque" "spec"
+		     "doc"
+		     "alias" "module-alias" "export-macro" "attribute"
+		     "defmodule" "define-module" "extend-module"
+		     "function" "macro") t)
+       "\\>"
+       ;; Any whitespace and declared object.
+       "[ \t]*(?"
+       "\\(\\sw+\\)?")
+      '(1 font-lock-keyword-face)
+      '(2 font-lock-function-name-face nil t))
+
      ;; Type definition macros.
      (list
       (concat
@@ -239,8 +259,7 @@ Other commands:
        (regexp-opt '("is_atom" "is_binary" "is_bitstring" "is_boolean"
                      "is_float" "is_function" "is_integer" "is_list"
                      "is_map" "is_number" "is_pid" "is_port"
-                     "is_record" "is_reference" "is_tuple"
-                     "is-record" "is-struct") t)
+                     "is_record" "is_reference" "is_tuple" "is_struct") t)
        "\\>")
       1 'font-lock-builtin-face)
 
@@ -262,9 +281,9 @@ Other commands:
                      "function" "list" "list*"
                      "map" "mref" "mset" "mupd"
                      "map-get" "map-set" "map-update"
-                     "record" "record-index" "record-field" "record-update"
-                     "struct" "struct-field" "struct-update"
-                     ) t)
+                     "record" "make-record" "record-index"
+                     "record-field" "record-update"
+                     "struct" "struct-field" "struct-update") t)
        "\\>")
       1 'font-lock-builtin-face)
      ))

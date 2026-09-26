@@ -1,6 +1,6 @@
 % lfe_guide(7)
 % Robert Virding
-% 2008-2020
+% 2008-2026
 
 
 # NAME
@@ -388,6 +388,9 @@ while it reads the expression and then be effectively ``2``.
 
 ## Core forms
 
+The ``define-XXX`` and ``extend-XXX`` forms are only valid when used
+at the top-level in a file.
+
 ```
 (quote e)
 (cons head tail)
@@ -458,14 +461,14 @@ while it reads the expression and then be effectively ``2``.
 (funcall func arg ... )
 (call mod func arg ... )    - Call to Mod:Func(Arg, ... )
 
-(define-record name fields)
+(define-record name fields)                   - Defines a record
 (record name field val ...)
 (is-record record name)
 (record-index name field)
 (record-field record name field)
 (record-update record name field val ...)
 
-(define-struct fields)
+(define-struct fields)                        - Defines a struct
 (struct mod-name field val ...)
 (is-struct struct)
 (is-struct struct name)
@@ -645,7 +648,7 @@ Variables are lexically scoped and bound by ``lambda``,
 ``match-lambda`` and ``let`` forms. All variables which are bound
 within these forms shadow variables bound outside but other variables
 occurring in the bodies of these forms will be imported from the
-surrounding environments.No variables are exported out of the form. So
+surrounding environments. No variables are exported out of the form. So
 for example the following function:
 
 ```
@@ -763,9 +766,9 @@ Macro calls are expanded in both body and patterns. This can be very
 useful to have both make and match macros, but be careful with names.
 
 A macro is function of two arguments which is a called with a list of
-the arguments to the macro call and the current macro environment. It
-can be either a lambda or a match-lambda. The basic forms for defining
-macros are:
+the arguments to the macro call and the current macro environment with
+name `$ENV`. It can be either a lambda or a match-lambda. The basic
+forms for defining macros are:
 
 ```
 (define-macro name meta-data lambda|match-lambda)
@@ -812,6 +815,17 @@ the second argument with the current macro environment with the name
 `$ENV`. This allows explicit expansion of macros inside the macro and
 also manipulation of the macro environment. No changes to the
 environment are exported outside the macro.
+
+As an example of the `define-macro` form this is the expansion by `defmacro` of the `andalso` macro shown above:
+
+```
+(define-macro andalso
+  ()
+  (match-lambda
+    (((list e) $ENV) `,e)
+    (((cons e es) $ENV) `(if ,e (andalso ,@es) 'false))
+    ((() $ENV) `'true)))
+```
 
 User defined macros shadow the predefined macros so it is possible to
 redefine the built-in macro definitions. However, see the caveat
@@ -1158,7 +1172,7 @@ take the same arguments as their longer alternatives.
 
 ## If
 
-The LFE `if` is more like a classic if than the Erlang `if`. For the
+The LFE `if` is more like a classic `if` than the Erlang `if`. For the
 test it allows any Erlang boolean expression which must return either
 `true` or `false`. The false expression is optional and if it not
 included the `if` returns `false`. Some examples:
@@ -1464,232 +1478,6 @@ needs to access then we could evaluate it by calling:
 
 ```
 (eval `(let ((foo ,foo)) ,expr))
-```
-
-## Supplemental Common Lisp Functions
-
-LFE provides the module cl which contains the following functions
-which closely mirror functions defined in the Common Lisp
-Hyperspec. Note that the following functions use zero-based indices,
-like Common Lisp (unlike Erlang, which start at index '1'). A major
-difference between the LFE versions and the Common Lisp versions of
-these functions is that the boolean values are
-the LFE `'true` and `'false`. Otherwise the definitions closely follow the
-CL definitions and won't be documented here.
-
-```
-cl:make-lfe-bool cl-value
-cl:make-cl-bool lfe-bool
-
-cl:mapcar  function  list
-cl:maplist  function  list
-cl:mapc  function  list
-cl:mapl  function  list
-
-cl:symbol-plist  symbol
-cl:symbol-name  symbol
-cl:get  symbol  pname
-cl:get  symbol  pname  default
-cl:getl  symbol  pname-list
-cl:putprop  symbol  value  pname
-cl:remprop  symbol  pname
-
-cl:getf  plist  pname
-cl:getf  plist  pname  default
-cl:putf  plist  value  pname  ; This does not exist in CL
-cl:remf  plist  pname
-cl:get-properties  plist  pname-list
-
-cl:elt  index  sequence
-cl:length  sequence
-cl:reverse  sequence
-cl:some  predicate  sequence
-cl:every  predicate  sequence
-cl:notany  predicate  sequence
-cl:notevery  predicate  sequence
-cl:reduce  function  sequence
-cl:reduce  function  sequence  'initial-value  x
-cl:reduce  function  sequence  'from-end  'true
-cl:reduce  function  sequence  'initial-value  x  'from-end  'true
-
-cl:remove  item  sequence
-cl:remove-if  predicate  sequence
-cl:remove-if-not  predicate  sequence
-cl:remove-duplicates  sequence
-
-cl:find  item  sequence
-cl:find-if  predicate  sequence
-cl:find-if-not  predicate  sequence
-cl:find-duplicates  sequence
-cl:position  item  sequence
-cl:position-if  predicate  sequence
-cl:position-if-not  predicate  sequence
-cl:position-duplicates  sequence
-cl:count  item  sequence
-cl:count-if  predicate  sequence
-cl:count-if-not  predicate  sequence
-cl:count-duplicates  sequence
-
-cl:car  list
-cl:first  list
-cl:cdr  list
-cl:rest  list
-cl:nth  index  list
-cl:nthcdr  index  list
-cl:last  list
-cl:butlast  list
-
-cl:subst  new  old  tree
-cl:subst-if  new  test  tree
-cl:subst-if-not  new  test  tree
-cl:sublis  alist  tree
-
-cl:member  item  list
-cl:member-if  predicate  list
-cl:member-if-not  predicate  list
-cl:adjoin  item  list
-cl:union  list  list
-cl:intersection  list  list
-cl:set-difference  list  list
-cl:set-exclusive-or  list  list
-cl:subsetp  list  list
-
-cl:acons  key  data  alist
-cl:pairlis  list  list
-cl:pairlis  list  list  alist
-cl:assoc  key  alist
-cl:assoc-if  predicate  alost
-cl:assoc-if-not  predicate  alost
-cl:rassoc  key  alist
-cl:rassoc-if  predicate  alost
-cl:rassoc-if-not  predicate  alost
-
-cl:type-of  object
-cl:coerce  object  type
-```
-
-Furthermore, there is an include file which developers may which to utilize in
-their LFE programs: `(include-lib "lfe/include/cl.lfe")`. Currently this offers
-Common Lisp predicates, but may include other useful macros and functions in
-the future. The provided predicate macros wrap the various `is_*` Erlang
-functions; since these are expanded at compile time, they are usable in guards.
-The include the following:
-
-```
-(alivep x)
-(atomp x)
-(binaryp x)
-(bitstringp x)
-(boolp x) and (booleanp x)
-(builtinp x)
-(consp x)
-(floatp x)
-(funcp x) and (functionp x)
-(intp x) and (integerp x)
-(listp x)
-(mapp x)
-(numberp x)
-(pidp x)
-(process-alive-p x)
-(recordp x tag)
-(recordp x tag size)
-(refp x) and (referencep x)
-(tuplep x)
-(vectorp x)
-```
-
-Non-predicate macros in `lfe/include/cl.lfe` include:
-
-```
-(dolist ...)
-(vector ...)
-```
-## Supplemental Clojure Functions
-
-From LFE's earliest days, it's Lisp-cousin Clojure (created around the same time)
-has inspired LFE developers to create similar, BEAM-versions of those functions.
-These were collected in a separate library and then expanded upon, until
-eventually becoming part of the LFE standard library.
-
-Function definition macros:
-
-```
-(clj:defn ...)
-(clj:defn- ...)
-(clj:fn ...)
-```
-
-Threading macros:
-
-```
-(clj:-> ...)
-(clj:->> ...)
-(clj:as-> ...)
-(clj:cond-> ...)
-(clj:cond->> ...)
-(clj:some-> ...)
-(clj:some->> ...)
-(clj:doto ...)
-```
-
-Conditional macros:
-
-```
-(clj:if-let ...)
-(clj:iff-let ...)
-(clj:condp ...)
-(clj:if-not ...)
-(clj:iff-not ...)
-(clj:when-not ...)
-(clj:not= ...)
-```
-
-Predicate macros:
-
-```
-(clj:atom? x)
-(clj:binary? x)
-(clj:bitstring? x)
-(clj:bool? x)
-(clj:boolean? x)
-(clj:even? x)
-(clj:false? x)
-(clj:falsy? x)
-(clj:float? x)
-(clj:func? x)
-(clj:function? x)
-(clj:identical? x)
-(clj:int? x)
-(clj:integer? x)
-(clj:map? x)
-(clj:neg? x)
-(clj:nil? x)
-(clj:number? x)
-(clj:odd? x)
-(clj:pos? x)
-(clj:record? x)
-(clj:reference? x)
-(clj:true? x)
-(clj:tuple? x)
-(clj:undef? x)
-(clj:undefined? x)
-(clj:zero? x)
-```
-
-Other:
-
-```
-(clj:str x)
-(clj:lazy-seq x)
-(clj:conj ...)
-(clj:if ...)
-```
-
-Most of the above mentioned macros are available in the `clj` include file,
-the use of which allows developers to forego the `clj:` prefix in calls:
-
-```
-(include-lib "lfe/include/clj.lfe")
 ```
 
 # Notes

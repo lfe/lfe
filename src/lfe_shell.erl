@@ -17,15 +17,19 @@
 %% Author  : Robert Virding
 %% Purpose : A simple Lisp Flavoured Erlang shell.
 
-%% We keep three environments: the current environment; the saved
-%% environment which contains the environment from before a slurp; and
-%% the base environment which contains the predefined shell variables,
-%% functions and macros. The base environment is used when we need to
-%% revert to an "empty" environment. The save environment is used to
-%% store the current environment when we 'slurp' a file which we can
-%% revert back to when we do an 'unslurp'.
-
 -module(lfe_shell).
+
+-moduledoc("""
+A simple Lisp Flavoured Erlang shell.
+
+We keep three environments: the current environment; the saved
+environment which contains the environment from before a slurp; and
+the base environment which contains the predefined shell variables,
+functions and macros. The base environment is used when we need to
+revert to an "empty" environment. The save environment is used to
+store the current environment when we 'slurp' a file which we can
+revert back to when we do an 'unslurp'.
+""").
 
 -export([start/0,start/1,server/0,server/1,
          run_script/2,run_script/3,
@@ -115,6 +119,11 @@ start(St) ->
 
 %% server() -> no_return().
 %% server(State) -> no_return().
+
+-doc("""
+Create a default base env of predefined shell variables with
+default nil bindings and basic shell macros.
+""").
 
 server() ->
     %% Create a default base env of predefined shell variables with
@@ -321,6 +330,7 @@ update_shell_vars(Form, Value, Env0) ->
 
 add_shell_functions(Env0) ->
     Fs = [
+          %% [function,cd,[lambda,[d],[':',lfe_shell,cd,d]]]
           {cd,1,[lambda,[d],[':',lfe_shell,cd,d]]},
           {ep,1,[lambda,[e],[':',lfe_shell,ep,e]]},
           {ep,2,[lambda,[e,d],[':',lfe_shell,ep,e,d]]},
@@ -493,9 +503,16 @@ eval_form_1(['define-function',Name,_Meta,Def], #state{curr=Ce0}=St) ->
     Ar = function_arity(Def),
     Ce1 = lfe_eval:add_dynamic_func(Name, Ar, Def, Ce0),
     {Name,St#state{curr=Ce1}};
+%% eval_form_1(['function',Name,Def], #state{curr=Ce0}=St) when is_atom(Name) ->
+%%     Ar = function_arity(Def),
+%%     Ce1 = lfe_eval:add_dynamic_func(Name, Ar, Def, Ce0),
+%%     {Name,St#state{curr=Ce1}};
 eval_form_1(['define-macro',Name,_Meta,Def], #state{curr=Ce0}=St) ->
     Ce1 = lfe_env:add_mbinding(Name, Def, Ce0),
     {Name,St#state{curr=Ce1}};
+%% eval_form_1(['macro',Name,Def], #state{curr=Ce0}=St) ->
+%%     Ce1 = lfe_env:add_mbinding(Name, Def, Ce0),
+%%     {Name,St#state{curr=Ce1}};
 eval_form_1(Expr, St) ->
     %% General case just evaluate the expression.
     {lfe_eval:expr(Expr, St#state.curr),St}.
@@ -1065,9 +1082,13 @@ uptime() -> c:uptime().
 %%  find the file and use it as this is the only way to get hold of
 %%  the chunks. This may get a later version than is loaded.
 
-%% doc(?Q(What)) -> doc(What);                     %Be kind if they quote it
-%% doc(What) ->
+%% h(?Q(What)) -> doc(What);                     %Be kind if they quote it
+%% h(What) ->
 %%     [Mod|F] = lfe_lib:split_name(What),
+
+-doc("""
+Print out documentation of a module.
+""").
 
 h(Mod) ->
     case lfe_docs:get_module_docs(Mod) of
@@ -1077,6 +1098,10 @@ h(Mod) ->
         Error -> Error
     end.
 
+-doc("""
+Print out documentation of a module, function.
+""").
+
 h(Mod, Func) ->
     case lfe_docs:get_module_docs(Mod) of
         {ok,#docs_v1{}=Docs} ->
@@ -1084,6 +1109,10 @@ h(Mod, Func) ->
             format_doc(Ret);
         Error -> Error
     end.
+
+-doc("""
+Print out documentation of a module, function, arity.
+""").
 
 h(Mod, Func, Arity) ->
     case lfe_docs:get_module_docs(Mod) of

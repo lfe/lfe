@@ -41,6 +41,9 @@
 %% Bloody useful
 -define(IF(Test,True,False), case Test of true -> True; false -> False end).
 
+%% Loop over a list of {TestFun,DoFun} applying the DoFun of the first
+%% TestFun which returns true. If none test true then apply the
+%% ElseFun.
 -define(COND(__Conds, __Else),
 	begin
 	    ((fun () ->

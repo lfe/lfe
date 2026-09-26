@@ -16,11 +16,10 @@ optional parameter IoDevice. If included, it must be the pid
 of a process which handles the IO protocols such as the
 IoDevice returned by file:open/2.
 
-Two functions in this module are used to generateœ
-aesthetically attractive representations of abstract forms,
-which are suitable for printing. These functions return
-(possibly deep) lists of characters and generate an error if
-the form is wrong.
+Two functions in this module are used to generate aesthetically
+attractive representations of abstract forms, which are suitable for
+printing. These functions return (possibly deep) lists of characters
+and generate an error if the form is wrong.
 
 
 # DATA TYPES
