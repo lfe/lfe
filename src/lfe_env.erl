@@ -41,7 +41,13 @@
 -define(FIND(K, D), maps:find(K, D)).
 -define(PUT(K, V, D), maps:put(K, V, D)).
 -define(ERASE(K, D), maps:remove(K, D)).
--define(FOLD(F, A, D), maps:fold(F, A, D)).
+-define(FOLD(F, A, D), sorted_maps_fold(F, A, D)).
+%% Make maps:fold/3 deterministic.
+sorted_maps_fold(F, A, D) ->
+    case maps:fold(F, A, D) of
+        [_|_] = L -> lists:sort(L);
+        R -> R
+    end.
 -define(UPDATE(K, UPD, DEF, D),                 %This is slightly complex
         begin (fun (___K, {ok,___V}) ->
                        maps:put(___K, UPD(___V), D);
