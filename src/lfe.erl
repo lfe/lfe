@@ -1,4 +1,4 @@
-%% Copyright (c) 2016-2020 Robert Virding
+%% Copyright (c) 2016-2026 Robert Virding
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -17,6 +17,10 @@
 %% Purpose : Lisp Flavoured Erlang standard library.
 
 -module(lfe).
+
+-moduledoc("""
+Lisp Flavoured Erlang standard library.
+""").
 
 %% Standard lisp library.
 -export([acons/3,pairlis/2,pairlis/3,
@@ -46,45 +50,45 @@
 
 %% Association list functions.
 
-acons(K, V, Alist) -> [[K|V]|Alist].
+acons(Key, Value, Alist) -> [[Key|Value]|Alist].
 
-pairlis(Ks, Vs) -> pairlis(Ks, Vs, []).
+pairlis(Keys, Values) -> pairlis(Keys, Values, []).
 
-pairlis([K|Ks], [V|Vs], Alist) ->
-    [[K|V]|pairlis(Ks, Vs, Alist)];
+pairlis([Key|Keys], [Value|Values], Alist) ->
+    [[Key|Value]|pairlis(Keys, Values, Alist)];
 pairlis([], [], Alist) -> Alist.
 
-assoc(K, [[K|_]=Pair|_]) -> Pair;
-assoc(K, [_|L]) -> assoc(K, L);
+assoc(Key, [[Key|_]=Pair|_]) -> Pair;
+assoc(Key, [_|L]) -> assoc(Key, L);
 assoc(_, []) -> [].
 
-'assoc-if'(Pred, [[K|_]=Pair|L]) ->
-    case Pred(K) of
+'assoc-if'(Pred, [[Key|_]=Pair|L]) ->
+    case Pred(Key) of
         true -> Pair;
         false -> 'assoc-if'(Pred, L)
     end;
 'assoc-if'(_, []) -> [].
 
-'assoc-if-not'(Pred, [[K|_]=Pair|L]) ->
-    case Pred(K) of
+'assoc-if-not'(Pred, [[Key|_]=Pair|L]) ->
+    case Pred(Key) of
         false -> Pair;
         true -> 'assoc-if-not'(Pred, L)
     end;
 'assoc-if-not'(_, []) -> [].
 
-rassoc(V, [[_|V]=Pair|_]) -> Pair;
-rassoc(V, [_|L]) -> rassoc(V, L);
+rassoc(Value, [[_|Value]=Pair|_]) -> Pair;
+rassoc(Value, [_|L]) -> rassoc(Value, L);
 rassoc(_, []) -> [].
 
-'rassoc-if'(Pred, [[_|V]=Pair|L]) ->
-    case Pred(V) of
+'rassoc-if'(Pred, [[_|Value]=Pair|L]) ->
+    case Pred(Value) of
         true -> Pair;
         false -> 'rassoc-if'(Pred, L)
     end;
 'rassoc-if'(_, []) -> [].
 
-'rassoc-if-not'(Pred, [[_|V]=Pair|L]) ->
-    case Pred(V) of
+'rassoc-if-not'(Pred, [[_|Value]=Pair|L]) ->
+    case Pred(Value) of
         false -> Pair;
         true -> 'rassoc-if-not'(Pred, L)
     end;

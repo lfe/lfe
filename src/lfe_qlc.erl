@@ -16,15 +16,40 @@
 %% Author  : Robert Virding
 %% Purpose : Lisp Flavoured Erlang interface to qlc transform.
 
-%% Interface the standard Erlang QLC transformer. The only problem is
-%% that this includes a lint check of the input QLC, which means it
-%% will catch unbound variables. Seeing this call can be used from the
-%% macro expander where we have no idea of variable binding we have to
-%% be a bit cunning.
-
 -module(lfe_qlc).
 
--export([expand/2]).
+-moduledoc("""
+Lisp Flavoured Erlang interface to qlc transform.
+
+Interface the standard Erlang QLC transformer. The only problem is
+that this includes a lint check of the input QLC, which means it
+will catch unbound variables. Seeing this call can be used from the
+macro expander where we have no idea of variable binding we have to
+be a bit cunning.
+""").
+
+-export([expand/3,expand/2]).
+
+%% expand(Qualifiers, Exprs, Opts) -> Expansion.
+%%  Expand a Query List Comprehension returning a call to qlc:q/2. We
+%%  first convert the LC into vanilla erlang AST, expand it using in
+%%  lfe_qlc.erl, which ql_pt.erl with a special interface, then
+%%  convert it back to LFE.
+
+expand(Qs, Es, Opts) ->
+    %% lfe_io:format("Q0 = ~p\n", [[lc,Eqs|Ees]]),
+    %% Now translate to vanilla AST, call qlc expand and then convert
+    %% back to LFE.  lfe_qlc:expand/2 wants a list of conversions not
+    %% a conversion of a list.
+    Vlc = lfe_translate:to_expr([lc,Qs|Es], 42),
+    %% lfe_io:format("~w\n", [Vlc]),
+    Vos = lists:map(fun (O) -> lfe_translate:to_expr(O, 42) end, Opts),
+    %% io:put_chars(["E0 = ",erl_pp:expr(Vlc, 5, []),"\n"]),
+    {ok,Vexp} = expand(Vlc, Vos),
+    %% io:put_chars([erl_pp:expr(Vexp),"\n"]),
+    Exp = lfe_translate:from_expr(Vexp),
+    %% lfe_io:format("Q1 = ~p\n", [Exp]),
+    Exp.
 
 %% expand(ListComp, Options) -> {ok,Transform} | {error,Errors}.
 %%  Instead of trying to find variables ourselves we first call the

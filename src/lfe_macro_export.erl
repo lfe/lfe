@@ -17,11 +17,6 @@
 %% Author  : Robert Virding
 %% Purpose : Lisp Flavoured Erlang macro export function builder.
 
-%% Build the LFE-EXPAND-EXPORTED-MACRO (L-E-E-M) function which
-%% exports macros so they can be found by the macro expander without
-%% needing to inlcude them. If the module foo exports macro bar then
-%% it can be called by doing (foo:bar ...).
-%%
 %% This version does not actually expand any macros but just collects
 %% them. Macros that are to be exported are entered into the L-E-E-M
 %% function so they can be exported and called from the outside. We
@@ -55,6 +50,13 @@
 %%         (_ 'no)))))
 
 -module(lfe_macro_export).
+
+-moduledocs("""
+Build the LFE-EXPAND-EXPORTED-MACRO (L-E-E-M) function which
+exports macros so they can be found by the macro expander without
+needing to inlcude them. If the module foo exports macro bar then
+it can be called by doing (foo:bar ...).
+""").
 
 %%-compile(export_all).
 

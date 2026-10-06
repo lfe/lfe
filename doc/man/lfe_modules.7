@@ -6,6 +6,17 @@
 LFE code is divided into modules.
 A module consists of a sequence of attributes and function declarations,
 each being a valid form.
+.PP
+\f[I]Example\f[R]:
+.IP
+.EX
+(module m)
+(export (fact 1))
+
+(function fact
+    ((n) (when (> n 0)) (* n (fact (\- n 1))))
+    ((0) 1))
+.EE
 .SS Module Attributes
 A \f[I]module attribute\f[R] defines a certain property of a module.
 A module attribute consists of a tag and a value.
@@ -40,13 +51,18 @@ functions are exported.
 .PP
 \f[B]\f[CB](import module functions)\f[B]\f[R]
 .PP
+Imported functions.
+Can be called the same way as local functions, that is, without any
+module prefix.
+.PP
+\f[CR]module\f[R], an atom, specifies which module to import functions
+from.
+\f[CR]functions\f[R] is a list similar to that for \f[CR]export\f[R].
+.PP
 Importing allows us to call \(lqlocal\(rq functions where the call will
 be changed to a call to the function in another module, so the call
 \f[CR](do\-stuff x y)\f[R] will become the call
 \f[CR](the\-module:do\-stuff x y)\f[R].
-.PP
-\f[CR]functions\f[R] is a list \f[CR](name\-1 name\-2 ... name\-n)\f[R]
-of the functions which will be changed to a call to the given module.
 .PP
 \f[B]\f[CB](rename module renames)\f[B]\f[R]
 .PP
@@ -173,13 +189,15 @@ the more literal \f[CR]attribute\f[R] tag or going more Erlangy with
 .PP
 \f[B]\f[CB](\- tag value)\f[B]\f[R]
 .SS Comments
-Comments come in two forms: line comments and block comments.
+Comments can be placed anywhere in a module except within strings and
+quoted atoms.
+They come in two forms: line comments and block comments.
 .PP
 Line comments start with a semicolon \f[CR];\f[R] and finish with the
 end of the line.
 .PP
 Block comments are written as \f[CR]#| comment text |#\f[R] where the
-comment text may span multiple lines but my not contain another block
+comment text may span multiple lines but may not contain another block
 comment, i.e.\ it may not contain the character sequence \f[CR]#|\f[R].
 .SS Functions
 \f[B]\f[CB](function function\-name function\-def)\f[B]\f[R]
@@ -223,11 +241,19 @@ definitions are of course still available and valid.
 .EE
 .IP
 .EX
+(define\-function function\-name meta\-data function\-def)
+.EE
+.IP
+.EX
 (defmacro macro\-name (arg ...) body)
 (defmacro macro\-name
     (args\-pat body)
     (args\-pat body)
     ...)
+.EE
+.IP
+.EX
+(define\-macro macro\-name meta\-data macro\-def)
 .EE
 .SH AUTHORS
 Robert Virding.

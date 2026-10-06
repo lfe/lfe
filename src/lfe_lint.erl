@@ -27,6 +27,14 @@
 
 -module(lfe_lint).
 
+-moduledoc("""
+Lisp Flavoured Erlang syntax checker.
+
+We get a lot help here from the Erlang linter as our code is passed on
+into it when the erlng code is compiled. This means that if we miss
+anything it will catch it. How much do we really needt to do here?
+""").
+
 -export([module/1,module/2,form/1,expr/1,expr/2,
          pattern/1,pattern/2,format_error/1]).
 
@@ -954,15 +962,7 @@ check_expr(['try'|B], Env, L, St) ->
     check_try(B, Env, L, St);
 check_expr(['funcall'|As], Env, L, St) ->
     check_args(As, Env, L, St);
-%% List/binary comprehensions.
-check_expr(['lc',Qs,E], Env, L, St) ->
-    check_comprehension(Qs, E, Env, L, St);
-check_expr(['list-comp',Qs,E], Env, L, St) ->
-    check_comprehension(Qs, E, Env, L, St);
-check_expr(['bc',Qs,BS], Env, L, St) ->
-    check_comprehension(Qs, BS, Env, L, St);
-check_expr(['binary-comp',Qs,BS], Env, L, St) ->
-    check_comprehension(Qs, BS, Env, L, St);
+%% List/binary comprehensions are done below.
 %% Finally the general cases.
 check_expr(['call'|As], Env, L, St) ->
     check_args(As, Env, L, St);
@@ -980,6 +980,8 @@ check_expr([Fun|As], Env, L, St0) when is_atom(Fun) ->
             fun () -> check_bool_func(Fun, As, Env, L, St0) end},
            {fun ()-> lfe_internal:is_comp_func(Fun, Arity) end,
             fun () -> check_comp_func(Fun, As, Env, L, St0) end},
+           {fun () -> lfe_internal:is_comprehension_func(Fun, Arity) end,
+            fun () -> check_comprehension_func(Fun, As, Env, L, St0) end},
            {fun () -> lfe_internal:is_list_func(Fun, Arity) end,
             fun () -> check_list_func(Fun, As, Env, L, St0) end}
           ],
@@ -1005,6 +1007,7 @@ check_expr(Lit, Env, L, St) ->                  %Everything else is a literal
 %% check_bit_func(BitOperator, Args, Env, L, State) -> State.
 %% check_bool_func(BoolOperator, Args, Env, L, State) -> State.
 %% check_comp_func(CompOperator, Args, Env, L, State) -> State.
+%% check_comprehension_func(Comprehension, Args, Env, L, State) -> State.
 %% check_list_func(ListOperator, Args, Env, L, State) -> State.
 
 check_arith_func(_Op, As, Env, L, St) ->
@@ -1018,6 +1021,9 @@ check_bool_func(_Op, As, Env, L, St) ->
 
 check_comp_func(_Op, As, Env, L, St) ->
     check_args(As, Env, L, St).
+
+check_comprehension_func(_Op, [Qs,E], Env, L, St) ->
+    check_comprehension(Qs, E, Env, L, St).
 
 check_list_func(_Op, As, Env, L, St) ->
     check_args(As, Env, L, St).

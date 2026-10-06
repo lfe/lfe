@@ -17,7 +17,11 @@
 ;; Purpose : LFE Clojure interface library.
 
 (defmodule clj
-  (moduledoc "LFE Clojure interface library.")
+  (moduledoc """
+LFE Clojure interface library.
+
+This module provides Clojure-inspired functions and macros for use in LFE.
+""")
   ;; Function macros.
   (export-macro defn defn- fn)
   ;; Threading macros.

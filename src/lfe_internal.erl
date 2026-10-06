@@ -17,18 +17,27 @@
 %% Author  : Robert Virding
 %% Purpose : Define Lisp Flavoured Erlang internals.
 
-%%% Define the various internal LFE forms and functions and LFE
-%%% internal bifs, guards and other internal stuff.
-
 -module(lfe_internal).
+
+-moduledoc("""
+Define Lisp Flavoured Erlang internals.
+
+Define the various internal LFE forms and functions and LFE
+internal bifs, guards and other internal stuff.
+""").
 
 %% Core forms.
 -export([is_core_form/1,is_normalise_form/1]).
 
+%% Module attributes.
+-export([is_attribute_form/1]).
+
 %% Core functions.
 -export([is_core_func/2,is_guard_func/2]).
--export([is_arith_func/2,is_bit_func/2,is_bool_func/2,is_comp_func/2,
-         is_map_func/2,is_record_func/2,is_struct_func/2,is_list_func/2]).
+-export([is_attribute_func/2,is_data_func/2,is_arith_func/2,is_bit_func/2,
+         is_bool_func/2,is_comp_func/2,is_map_func/2,is_record_func/2,
+         is_struct_func/2,is_comprehension_func/2,is_list_func/2,
+         is_special_func/2]).
 -export([is_type/2]).
 
 %% General library functions.
@@ -82,43 +91,76 @@ is_core_form(Name) when is_atom(Name) -> false.
 
 %% is_normalise_form(Form) -> bool().
 %%  Return true if Form (name) is one of the LFE normalised attribute
+%%  forms, else false. These are the same as attributes.
+
+is_normalise_form(Name) -> is_attribute_form(Name).
+
+%% is_attribute_form(Form) -> bool().
+%%  Return true if Form (name) is one of the LFE normalised attribute
 %%  forms, else false.
 
-is_normalise_form(module) -> true;
-is_normalise_form(export) -> true;
-is_normalise_form(import) -> true;
-is_normalise_form(rename) -> true;
-is_normalise_form(moduledoc) -> true;
-is_normalise_form(compile) -> true;
-is_normalise_form(vsn) -> true;
-is_normalise_form(on_load) -> true;
-is_normalise_form(nifs) -> true;
-is_normalise_form(file) -> true;
-is_normalise_form(alias) -> true;
-is_normalise_form('export-type') -> true;
-is_normalise_form(macro) -> true;
-is_normalise_form(function) -> true;
-is_normalise_form('eval-when-compile') -> true;
-is_normalise_form('export-macro') -> true;
-is_normalise_form(doc) -> true;                 %Special handling in 27+
-is_normalise_form(type) -> true;
-is_normalise_form(opaque) -> true;
-is_normalise_form(spec) -> true;
-is_normalise_form(record) -> true;
-is_normalise_form(struct) -> true;
-is_normalise_form(attribute) -> true;
-is_normalise_form('behaviour') -> true;
-is_normalise_form('feature') -> true;
-%% Everything else is not a normalise form.
-is_normalise_form(Name) when is_atom(Name) -> false.
+is_attribute_form(module) -> true;
+is_attribute_form(export) -> true;
+is_attribute_form(import) -> true;
+is_attribute_form(rename) -> true;
+is_attribute_form(moduledoc) -> true;
+is_attribute_form(compile) -> true;
+is_attribute_form(vsn) -> true;
+is_attribute_form(on_load) -> true;
+is_attribute_form(nifs) -> true;
+is_attribute_form(file) -> true;
+is_attribute_form(doc) -> true;                 %Special handling in 27+
+is_attribute_form(type) -> true;
+is_attribute_form(opaque) -> true;
+is_attribute_form(spec) -> true;
+is_attribute_form(record) -> true;
+is_attribute_form(struct) -> true;
+is_attribute_form(attribute) -> true;
+is_attribute_form('behaviour') -> true;
+is_attribute_form('behavior') -> true;
+is_attribute_form('callback') -> true;
+is_attribute_form('feature') -> true;
+%% Not quite attributes but still at module level.
+is_attribute_form(macro) -> true;
+is_attribute_form(function) -> true;
+%% LFE module specific.
+is_attribute_form(alias) -> true;
+is_attribute_form('eval-when-compile') -> true;
+is_attribute_form('export-macro') -> true;
+is_attribute_form('export-type') -> true;
+%% Everything else is not an attribute form.
+is_attribute_form(Name) when is_atom(Name) -> false.
 
+%% is_attribute_func(NAme, Arity) -> bool().
+%% is_data_func(Name, Arity) -> bool().
 %% is_arith_func(Name, Arity) -> bool().
 %% is_bit_func(Name, Arityy) -> bool().
 %% is_bool_func(Name, Arity) -> bool().
 %% is_record_func(Name, Arity) -> bool().
 %% is_struct_func(Name, Arity) -> bool().
+%% is_comprehension_func(Name, Arity) -> bool().
 %% is_list_func(Name, Arity) -> bool().
 %%  Return true if Name/Arity is one of the LFE core functions, else false.
+
+%% Attribute "functions".
+is_attribute_func('module', 1) -> true;
+is_attribute_func('export', 1) -> true;
+is_attribute_func('import', 2) -> true;
+is_attribute_func('rename', 2) -> true;
+is_attribute_func('moduledoc', 1) -> true;
+is_attribute_func(Name, Ar) when is_atom(Name), is_integer(Ar) -> false.
+
+%% Data functions.
+is_data_func(quote, 1) -> true;
+is_data_func(cons, 2) -> true;
+is_data_func(car, 1) -> true;
+is_data_func(cdr, 1) -> true;
+is_data_func(list, Ar) when Ar >= 0 -> true;
+is_data_func(tuple, Ar) when Ar >= 0  -> true;
+is_data_func(tref, 2) -> true;
+is_data_func(tset, 3) -> true;
+is_data_func(binary, Ar) when Ar >= 0  -> true;
+is_data_func(Name, Ar) when is_atom(Name), is_integer(Ar) -> false.
 
 %% Arithmetic functions.
 is_arith_func('+', Ar) when Ar >= 1 -> true;
@@ -172,6 +214,7 @@ is_map_func(Name, Ar) when is_atom(Name), is_integer(Ar) -> false.
 
 %% Record functions.
 is_record_func('record', Ar) when Ar >= 1 -> true;
+%% make-record has been deprecated but we sill accept it for now.
 is_record_func('make-record', Ar) when Ar >= 1 -> true;
 is_record_func('is-record', 2) -> true;
 is_record_func('record-index', 2) -> true;
@@ -186,92 +229,41 @@ is_struct_func('struct-field', 3) -> true;
 is_struct_func('struct-update', Ar) when Ar >= 2, (Ar rem 2) =:= 0 -> true;
 is_struct_func(Name, Ar) when is_atom(Name), is_integer(Ar) -> false.
 
+%% List/binary comprehensions.
+is_comprehension_func('lc', 2) -> true;
+is_comprehension_func('list-comp', 2) -> true;
+is_comprehension_func('bc', 2) -> true;
+is_comprehension_func('binary-comp', 2) -> true;
+is_comprehension_func(Name, Ar) when is_atom(Name), is_integer(Ar) -> false.
+
 %% List functions.
 is_list_func('++', Ar) when Ar >= 1 -> true;
 is_list_func('--', Ar) when Ar >= 1 -> true;
 is_list_func(Name, Ar) when is_atom(Name), is_integer(Ar) -> false.
+
+%% Core control special functions.
+is_special_func('funcall', Ar) when Ar >= 1 -> true;
+is_special_func('call', Ar) when Ar >= 1 -> true;
+is_special_func(Name, Ar) when is_atom(Name), is_integer(Ar) -> false.
 
 %% is_core_func(Name, Arity) -> bool().
 %%  Return true if Name/Arity is one of the LFE core functions, else
 %%  false. For those which can take multiple arguments we accept any
 %%  number and push checking to run time.
 
-%% Core data special functions.
-is_core_func(quote, 1) -> true;
-is_core_func(cons, 2) -> true;
-is_core_func(car, 1) -> true;
-is_core_func(cdr, 1) -> true;
-is_core_func(list, Ar) when Ar >= 0 -> true;
-is_core_func(tuple, Ar) when Ar >= 0  -> true;
-is_core_func(tref, 2) -> true;
-is_core_func(tset, 3) -> true;
-is_core_func(binary, Ar) when Ar >= 0  -> true;
-%% Core arithmetic functions.
-is_core_func('+', Ar) when Ar >= 1 -> true;
-is_core_func('-', Ar) when Ar >= 1 -> true;
-is_core_func('*', Ar) when Ar >= 1 -> true;
-is_core_func('/', Ar) when Ar >= 1 -> true;
-%% Core bit functions.
-is_core_func('bnot', 1) -> true;
-is_core_func('div', 2) -> true;
-is_core_func('rem', 2) -> true;
-is_core_func('band', 2) -> true;
-is_core_func('bor', 2) -> true;
-is_core_func('bxor', 2) -> true;
-is_core_func('bsl', 2) -> true;
-is_core_func('bsr', 2) -> true;
-%% Core boolean functions.
-is_core_func('and', Ar) when Ar >= 1 -> true;
-is_core_func('or', Ar) when Ar >= 1 -> true;
-is_core_func('xor', Ar) when Ar >= 1 -> true;
-is_core_func('not', 1) -> true;
-%% Core comparison functions.
-is_core_func('>', Ar) when Ar >= 1 -> true;
-is_core_func('>=', Ar) when Ar >= 1 -> true;
-is_core_func('<', Ar) when Ar >= 1 -> true;
-is_core_func('=<', Ar) when Ar >= 1 -> true;
-is_core_func('==', Ar) when Ar >= 1 -> true;
-is_core_func('=:=', Ar) when Ar >= 1 -> true;
-is_core_func('/=', Ar) when Ar >= 1 -> true;
-is_core_func('=/=', Ar) when Ar >= 1 -> true;
-%% Core map functions, both the normal and more CL based.
-is_core_func(map, Ar) when Ar >= 0, (Ar rem 2) =:= 0 -> true;
-is_core_func(msiz, 1) -> true;
-is_core_func(mref, 2) -> true;
-is_core_func(mset, Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
-is_core_func(mupd, Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
-is_core_func(mrem, Ar) when Ar >= 1 -> true;
-is_core_func('map-size', 1) -> true;
-is_core_func('map-get', 2) -> true;
-is_core_func('map-set', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
-is_core_func('map-update', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
-is_core_func('map-remove', Ar) when Ar >= 1 -> true;
-%% Core record functions.
-is_core_func('record', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
-%% make-record has been deprecated but we sill accept it for now.
-is_core_func('make-record', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
-is_core_func('is-record', 2) -> true;
-is_core_func('record-index', 2) -> true;
-is_core_func('record-field', 3) -> true;
-is_core_func('record-update', Ar) when Ar >= 2, (Ar rem 2) =:= 0 -> true;
-%% Core struct functions.
-is_core_func('struct', Ar) when Ar >= 1, (Ar rem 2) =:= 1 -> true;
-is_core_func('is-struct', Ar) when Ar =:= 1; Ar =:= 2 -> true;
-is_core_func('struct-field', 3) -> true;
-is_core_func('struct-update', Ar) when Ar >= 2, (Ar rem 2) =:= 0 -> true;
-%% List/binary comprehensions.
-is_core_func('lc', 2) -> true;
-is_core_func('list-comp', 2) -> true;
-is_core_func('bc', 2) -> true;
-is_core_func('binary-comp', 2) -> true;
-%% List functions.
-is_core_func('++', Ar) when Ar >= 1 -> true;
-is_core_func('--', Ar) when Ar >= 1 -> true;
-%% Core control special functions.
-is_core_func('funcall', Ar) when Ar >= 1 -> true;
-is_core_func('call', Ar) when Ar >= 2 -> true;
-%% Everything else is not a core function.
-is_core_func(Name, Ar) when is_atom(Name), is_integer(Ar) -> false.
+is_core_func(Name, Ar) ->
+    is_data_func(Name, Ar)
+        orelse is_arith_func(Name, Ar)
+        orelse is_bit_func(Name, Ar)
+        orelse is_bool_func(Name, Ar)
+        orelse is_comp_func(Name, Ar)
+        orelse is_map_func(Name, Ar)
+        orelse is_record_func(Name, Ar)
+        orelse is_struct_func(Name, Ar)
+        orelse is_comprehension_func(Name, Ar)
+        orelse is_list_func(Name, Ar)
+        orelse is_special_func(Name, Ar)
+        orelse false.
 
 %% is_guard_func(Name, Arity) -> bool().
 %%  Return true if Name/Arity is one of the LFE core functions, else

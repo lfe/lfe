@@ -5,7 +5,7 @@
 
 # NAME
 
-lfe_cl - LFE Common Lisp interface library
+cl - LFE Common Lisp interface library
 
 
 # SYNOPSIS
@@ -23,41 +23,41 @@ The boolean values used here are the standard LFE ``true`` and
 
 ## Boolean conversion functions
 
-**make-lfe-bool  cl-value**
+**`(make-lfe-bool cl-value)`**
 
-**make-cl-bool  lfe-bool**
+**`(make-cl-bool lfe-bool)`**
 
 ## Control structures
 
-**`do vars (end-test result) body                            [macro]`**
+**`(do vars (end-test result) body)                          [macro]`**
 
 The value of ``body`` is bound the variable ``do-state`` which can be
 used when updating vars and in the ``end-test``. This is the only way
 to get a value out of the body.
 
-**mapcar  function  list**
+**`(mapcar function list)`**
 
-**maplist  function  list**
+**`(maplist function list)`**
 
-**mapc  function  list**
+**`(mapc function list)`**
 
-**mapl  function  list**
+**`(mapl function list)`**
 
 ## Symbol functions
 
-**symbol-plist  symbol**
+**`(symbol-plist symbol)`**
 
-**symbol-name  symbol**
+**`(symbol-name symbol)`**
 
-**get  symbol  pname**
+**`(get symbol pname)`**
 
-**get  symbol  pname  default**
+**`(get symbol pname default)`**
 
-**getl  symbol  pname-list**
+**`(getl symbol pname-list)`**
 
-**putprop  symbol  value  pname**
+**`(putprop symbol value pname)`**
 
-**remprop  symbol  pname**
+**`(remprop symbol pname)`**
 
 Atoms (symbols) in LFE don't have property lists associated with
 them. However, here we have experimented with having a global ETS table
@@ -66,164 +66,164 @@ list. This is very unLFEy, but quite fun.
 
 ## Property list functions
 
-**getf  plist  pname**
+**`(getf plist pname)`**
 
-**getf  plist  pname  default**
+**`(getf plist pname default)`**
 
-**putf  plist  value  pname**
+**`(putf plist value pname)`**
 
-**remf  plist  pname**
+**`(remf plist pname)`**
 
-**get-properties  plist  pname-list**
+**`(get-properties plist pname-list)`**
 
 The function ``putf/3`` does not exist in Common Lisp but is included
 to complete the operations on property lists.
 
 ## Simple sequence functions
 
-**elt  index  sequence**
+**`(elt index sequence)`**
 
-**length  sequence**
+**`(length sequence)`**
 
-**reverse  sequence**
+**`(reverse sequence)`**
 
 ## Concatenation, mapping and reducing functions
 
-**some  predicate  sequence**
+**`(some predicate sequence)`**
 
-**every  predicate  sequence**
+**`(every predicate sequence)`**
 
-**notany  predicate  sequence**
+**`(notany predicate sequence)`**
 
-**notevery  predicate  sequence**
+**`(notevery predicate sequence)`**
 
-**reduce  function  sequence**
+**`(reduce function sequence)`**
 
-**reduce  function  sequence  'initial-value  x**
+**`(reduce function sequence 'initial-value x)`**
 
-**reduce  function  sequence  'from-end  'true**
+**`(reduce function sequence 'from-end 'true)`**
 
-**reduce  function  sequence  'initial-value  x  'from-end  'true**
+**`(reduce function sequence 'initial-value x 'from-end 'true)`**
 
 ## Modifying sequences
 
-**remove  item  sequence**
+**`(remove item sequence)`**
 
-**remove-if  predicate  sequence**
+**`(remove-if predicate sequence)`**
 
-**remove-if-not  predicate  sequence**
+**`(remove-if-not predicate sequence)`**
 
-**remove-duplicates  sequence**
+**`(remove-duplicates sequence)`**
 
-**substitute  new  old  sequence**
+**`(substitute new old sequence)`**
 
-**substitute-if  predicate  sequence**
+**`(substitute-if predicate sequence)`**
 
-**substitute-if-not  predicate  sequence**
+**`(substitute-if-not predicate sequence)`**
 
 
 ## Searching sequences
 
-**find  item  sequence**
+**`(find item sequence)`**
 
-**find-if  predicate  sequence**
+**`(find-if predicate sequence)`**
 
-**find-if-not  predicate  sequence**
+**`(find-if-not predicate sequence)`**
 
-**find-duplicates  sequence**
+**`(find-duplicates sequence)`**
 
-**position  item  sequence**
+**`(position item sequence)`**
 
-**position-if  predicate  sequence**
+**`(position-if predicate sequence)`**
 
-**position-if-not  predicate  sequence**
+**`(position-if-not predicate sequence)`**
 
-**position-duplicates  sequence**
+**`(position-duplicates sequence)`**
 
-**count  item  sequence**
+**`(count item sequence)`**
 
-**count-if  predicate  sequence**
+**`(count-if predicate sequence)`**
 
-**count-if-not  predicate  sequence**
+**`(count-if-not predicate sequence)`**
 
 
 ## Lists
 
-**car  list**
+**`(car list)`**
 
-**first  list**
+**`(first list)`**
 
-**cdr  list**
+**`(cdr list)`**
 
-**rest  list**
+**`(rest list)`**
 
-**nth  index  list**
+**`(nth index list)`**
 
-**nthcdr  index  list**
+**`(nthcdr index list)`**
 
-**last  list**
+**`(last list)`**
 
-**butlast  list**
+**`(butlast list)`**
 
 
 ## Substitution of expressions
 
-**subst  new  old  tree**
+**`(subst new old tree)`**
 
-**subst-if  new  test  tree**
+**`(subst-if new test tree)`**
 
-**subst-if-not  new  test  tree**
+**`(subst-if-not new test tree)`**
 
-**sublis  alist  tree**
+**`(sublis alist tree)`**
 
 
 ## Lists as sets
 
-**member  item  list**
+**`(member item list)`**
 
-**member-if  predicate  list**
+**`(member-if predicate list)`**
 
-**member-if-not  predicate  list**
+**`(member-if-not predicate list)`**
 
-**adjoin  item  list**
+**`(adjoin item list)`**
 
-**union  list  list**
+**`(union list list)`**
 
-**intersection  list  list**
+**`(intersection list list)`**
 
-**set-difference  list  list**
+**`(set-difference list list)`**
 
-**set-exclusive-or  list  list**
+**`(set-exclusive-or list list)`**
 
-**subsetp  list  list**
+**`(subsetp list list)`**
 
 
 ## Association list functions
 
-**acons  key  data  alist**
+**`(acons key data alist)`**
 
-**pairlis  list  list**
+**`(pairlis list list)`**
 
-**pairlis  list  list  alist**
+**`(pairlis list list alist)`**
 
-**assoc  key  alist**
+**`(assoc key alist)`**
 
-**assoc-if  predicate  alost**
+**`(assoc-if predicate alost)`**
 
-**assoc-if-not  predicate  alost**
+**`(assoc-if-not predicate alost)`**
 
-**rassoc  key  alist**
+**`(rassoc key alist)`**
 
-**rassoc-if  predicate  alost**
+**`(rassoc-if predicate alost)`**
 
-**rassoc-if-not  predicate  alost**
+**`(rassoc-if-not predicate alost)`**
 
 
 ## Types
 
-**type-of  object**
+**`(type-of object)`**
 
-**coerce  object  type**
+**`(coerce object type)`**
 
 ## Type testing macros
 
@@ -234,45 +234,45 @@ macros and functions in the future. The provided predicate macros wrap
 the various ``is_*`` Erlang functions; since these are expanded at
 compile time, they are usable in guards.  It includes the following:
 
-**alivep x**
+**`(alivep x)`**
 
-**atomp x**
+**`(atomp x)`**
 
-**binaryp x**
+**`(binaryp x)`**
 
-**bitstringp x**
+**`(bitstringp x)`**
 
-**boolp x**
+**`(boolp x)`**
 
-**booleanp x**
+**`(booleanp x)`**
 
-**builtinp x**
+**`(builtinp x)`**
 
-**floatp x**
+**`(floatp x)`**
 
-**funcp x** 
+**`(funcp x)`**
 
-**functionp x**
+**`(functionp x)`**
 
-**intp x** and 
-**integerp x**
+**`(intp x)`** and
+**`(integerp x)`**
 
-**listp x**
+**`(listp x)`**
 
-**mapp x**
+**`(mapp x)`**
 
-**numberp x**
+**`(numberp x)`**
 
-**pidp x**
+**`(pidp x)`**
 
-**process-alive-p x**
+**`(process-alive-p x)`**
 
-**recordp x tag**
+**`(recordp x tag)`**
 
-**recordp x tag size**
+**`(recordp x tag size)`**
 
-**refp x**
+**`(refp x)`**
 
-**referencep x**
+**`(referencep x)`**
 
-**tuplep x**
+**`(tuplep x)`**

@@ -25,6 +25,10 @@
 
 -module(lfe_eval).
 
+-moduledoc("""
+Lisp Flavoured Erlang interpreter.
+""").
+
 -export([expr/1,expr/2,exprs/1,exprs/2,
          literal/1,literal/2,body/1,body/2,gexpr/1,gexpr/2,guard/1,guard/2,
          match/3,match_when/4,apply/2,apply/3,
@@ -301,14 +305,10 @@ eval_expr(['try'|Body], Env) ->
     eval_try(Body, Env);
 eval_expr([funcall,F|As], Env) ->
     eval_apply_expr(eval_expr(F, Env), eval_list(As, Env), Env);
-%% List/binary comprehensions.
-eval_expr(['lc',Qs,E], Env) ->
+%% List/binary comprehensions must be done here, arguments evaluated below.
+eval_expr([Lc,Qs,E], Env) when Lc =:= 'lc' ; Lc =:= 'list-comp' ->
     eval_list_comp(Qs, E, Env);
-eval_expr(['list-comp',Qs,E], Env) ->
-    eval_list_comp(Qs, E, Env);
-eval_expr(['bc',Qs,E], Env) ->
-    eval_bin_comp(Qs, E, Env);
-eval_expr(['binary-comp',Qs,E], Env) ->
+eval_expr([Bc,Qs,E], Env) when Bc =:= 'bc' ; Bc =:= 'binary-comp' ->
     eval_bin_comp(Qs, E, Env);
 %% Tests.
 eval_expr(['++'|Es], Env) ->
@@ -328,10 +328,10 @@ eval_expr([Fun|As], Env) when is_atom(Fun) ->
             fun () -> eval_bit_func(Fun, Arity, Vs, Env) end},
            {fun () -> lfe_internal:is_bool_func(Fun, Arity) end,
             fun () -> eval_bool_func(Fun, Arity, Vs, Env) end},
-           {fun () -> lfe_internal:is_list_func(Fun, Arity) end,
-            fun () -> eval_list_func(Fun, Arity, Vs, Env) end},
            {fun () -> lfe_internal:is_comp_func(Fun, Arity) end,
-            fun () -> eval_comp_func(Fun, Arity, Vs, Env) end}
+            fun () -> eval_comp_func(Fun, Arity, Vs, Env) end},
+           {fun () -> lfe_internal:is_list_func(Fun, Arity) end,
+            fun () -> eval_list_func(Fun, Arity, Vs, Env) end}
           ],
           %% And the catch-all cond else clause.
           fun () -> eval_fun_call(Fun, Arity, Vs, Env) end);
@@ -351,8 +351,9 @@ eval_expr(E, _) -> E.                           %Atomic evaluate to themselves
 %% eval_arith_func(ArithOperator, Arity, Args, Environment) ->
 %% eval_bit_func(BitOperator, Arity, Args, Environment) ->
 %% eval_bool_func(BoolOperator, Arity, Args, Environment) ->
-%% eval_list_func(ListOperator, Arity, Args, Environment) ->
 %% eval_comp_func(CompOperator, Arity, Args, Environment) ->
+%% eval_comprehension_func(Comp, Arity, Args, Environment) ->
+%% eval_list_func(ListOperator, Arity, Args, Environment) ->
 %%     {OpExpr,State}.
 
 eval_arith_func(Op, 1, As, Env) ->
@@ -368,13 +369,20 @@ eval_bool_func(Op, 1, As, Env) ->
 eval_bool_func(Op, _Ar, As, Env) ->
     eval_left(Op, As, Env).
 
+eval_comp_func(Op, _Ar, As, Env) ->
+    eval_left(Op, As, Env).
+
+%% eval_comprehension_func(Comp, _Ar, [Qs,E], Env) when Comp =:= 'lc' ;
+%%                                                      Comp =:= 'list-comp' ->
+%%     eval_list_comp(Qs, E, Env);
+%% eval_comprehension_func(Comp, _Ar, [Qs,E], Env) when Comp =:= 'bc' ;
+%%                                                      Comp =:= 'binary-comp' ->
+%%     eval_bin_comp(Qs, E, Env).
+
 eval_list_func(Op, 1, As, Env) ->
     eval_fun_call(Op, 1, As, Env);
 eval_list_func(Op, _Ar, As, Env) ->
     eval_right(Op, As, Env).
-
-eval_comp_func(Op, _Ar, As, Env) ->
-    eval_left(Op, As, Env).
 
 %% eval_left(Op, Values, Environment) -> Value.
 %% eval_right(Op, Values, Environment) -> Value.

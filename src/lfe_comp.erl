@@ -26,6 +26,14 @@
 
 -module(lfe_comp).
 
+-moduledoc("""
+Lisp Flavoured Erlang compiler.
+
+This module provides an interface to the standard LFE compiler. It can
+generate either a file containing the object code, the resultant
+Erlang code or return a binary that can be loaded directly.
+""").
+
 -export([format_error/1]).
 -export([file/1,file/2,forms/1,forms/2,default_options/0]).
 
@@ -75,7 +83,7 @@ default_options() -> ?DEFAULT_OPTS.
 
 file(Name) -> file(Name, default_options()).
 
-file(Name, Opts) -> do_compile({file,Name}, Opts).
+file(Name, Options) -> do_compile({file,Name}, Options).
 
 %% forms(Forms) -> {ok,Mod,Bin,Warnings} | {error,Errors,Warnings}.
 %% forms(Forms, Options) -> {ok,Mod,Bin,Warnings} | {error,Errors,Warnings}.
@@ -83,7 +91,7 @@ file(Name, Opts) -> do_compile({file,Name}, Opts).
 
 forms(Forms) -> forms(Forms, default_options()).
 
-forms(Forms, Opts) -> do_compile({forms,Forms}, Opts).
+forms(Forms, Options) -> do_compile({forms,Forms}, Options).
 
 do_compile(Input, Opts) ->
     Ifun = fun () ->

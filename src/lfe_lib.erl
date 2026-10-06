@@ -18,6 +18,10 @@
 
 -module(lfe_lib).
 
+-moduledoc("""
+Lisp Flavoured Erlang library of miscellaneous functions.
+""").
+
 %% General library functions.
 -export([is_symb/1,is_symb_list/1,is_posint_list/1,
          is_proper_list/1,is_doc_string/1]).
@@ -35,22 +39,26 @@
 %% is_proper_list(Sexprs) -> bool().
 %% is_doc_string(Doc) -> bool().
 
-is_symb(S) -> is_atom(S).
+is_symb(Sexpr) -> is_atom(Sexpr).
 
+-doc("is_symb_list([Sexpr])").
 is_symb_list([S|Ss]) when is_atom(S) ->
     is_symb_list(Ss);
 is_symb_list([]) -> true;
 is_symb_list(_) -> false.                       %Might not be a proper list
 
+-doc("is_posint_list([Sexpr])").
 is_posint_list([I|Is]) when is_integer(I), I >= 0 ->
     is_posint_list(Is);
 is_posint_list([]) -> true;
-is_posint_list(_) -> false.
+is_posint_list(_) -> false.                     %Might not be a proper list
 
+-doc("is_proper_list([Sexpr])").
 is_proper_list([_|Ss]) -> is_proper_list(Ss);
 is_proper_list([]) -> true;
 is_proper_list(_) -> false.
 
+-doc("is_doc_string(Sexpr)").
 is_doc_string(Doc) ->
     is_binary(Doc) or io_lib:char_list(Doc).
 
@@ -62,14 +70,14 @@ is_doc_string(Doc) ->
 %%  right. The accumulator is in reverse order!
 
 %% For backwards compatibilty.
-proc_forms(Fun, Fs, St) -> process_forms(Fun, Fs, St).
-proc_forms(Fun, Fs, Line, St) -> process_forms(Fun, Fs, Line, St).
+proc_forms(Fun, Forms, State) -> process_forms(Fun, Forms, State).
+proc_forms(Fun, Forms, Line, State) -> process_forms(Fun, Forms, Line, State).
 
-process_forms(Fun, Fs, St) -> proc_top_forms(Fun, Fs, [], St).
+process_forms(Fun, Forms, State) -> proc_top_forms(Fun, Forms, [], State).
 
-process_forms(Fun, Fs, L, St0) ->
-    {Rs,St1} = proc_progn_forms(Fun, Fs, L, [], St0),
-    {lists:reverse(Rs),St1}.
+process_forms(Fun, Forms, Line, State0) ->
+    {Rs,State1} = proc_progn_forms(Fun, Forms, Line, [], State0),
+    {lists:reverse(Rs),State1}.
 
 proc_top_forms(Fun, [{['progn'|Bs],L}|Fs], Rs0, St0) ->
     {Rs1,St1} = proc_progn_forms(Fun, Bs, L, Rs0, St0),

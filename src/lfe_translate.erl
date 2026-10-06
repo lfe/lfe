@@ -16,14 +16,6 @@
 %% Author  : Robert Virding
 %% Purpose : Lisp Flavoured Erlang translator.
 
-%%% Translate LFE code to/from vanilla Erlang AST.
-%%%
-%%% Note that we don't really check code here as such, we assume the
-%%% input is correct. If there is an error in the input we just fail.
-%%% This allows us to accept forms which are actually illegal but we
-%%% may special case, for example functions call in patterns which
-%%% will become macro expansions.
-%%%
 %%% Having import from and rename forces us to explicitly convert the
 %%% call as we can't use an import attribute to do this properly for
 %%% us. Hence we collect the imports in lfe_codegen and pass them onto
@@ -32,6 +24,16 @@
 %%% Module aliases are collected in lfe_codegen and passed on to us.
 
 -module(lfe_translate).
+
+-moduledoc("""
+Translate LFE code to/from vanilla Erlang AST.
+
+Note that we don't really check code here as such, we assume the input
+is correct. If there is an error in the input we just fail.  This
+allows us to accept forms which are actually illegal but we may
+special case, for example functions call in patterns which will become
+macro expansions.
+""").
 
 -export([from_expr/1,from_expr/2,from_body/1,from_body/2,from_lit/1]).
 
@@ -865,15 +867,11 @@ to_expr([funcall,F|As], L, Vt, St0) ->
     {Ef,St1} = to_expr(F, L, Vt, St0),
     {Eas,St2} = to_expr_list(As, L, Vt, St1),
     {{call,L,Ef,Eas},St2};
-%% List/binary comprehensions.
-to_expr([lc,Qs,E], L, Vt, St) ->
-    to_list_comprehension(Qs, E, L, Vt, St);
-to_expr(['list-comp',Qs,E], L, Vt, St) ->
-    to_list_comprehension(Qs, E, L, Vt, St);
-to_expr([bc,Qs,BS], L, Vt, St) ->
-    to_binary_comprehension(Qs, BS, L, Vt, St);
-to_expr(['binary-comp',Qs,BS], L, Vt, St) ->
-    to_binary_comprehension(Qs, BS, L, Vt, St);
+%% List/binary comprehensions are done below.
+%% to_expr([Lc,Qs,E], L, Vt, St) when Lc =:= 'lc' ; Lc =:= 'list-comp' ->
+%%     to_list_comprehension(Qs, E, L, Vt, St);
+%% to_expr([Bc,Qs,BS], L, Vt, St) when B =:= 'bc' ; Bc =:= 'binary-comp' ->
+%%     to_binary_comprehension(Qs, BS, L, Vt, St);
 %% General function calls.
 to_expr([call,?Q(erlang),?Q(F)|As], L, Vt, St0) ->
     %% This is semantically the same but some tools behave differently
@@ -910,10 +908,12 @@ to_expr([Fun|As], L, Vt, St0) when is_atom(Fun) ->
             fun () -> to_bit_func(Fun, Arity, As, L, Vt, St0) end},
            {fun () -> lfe_internal:is_bool_func(Fun, Arity) end,
             fun () -> to_bool_func(Fun, Arity, As, L, Vt, St0) end},
-           {fun () -> lfe_internal:is_list_func(Fun, Arity) end,
-            fun () -> to_list_func(Fun, Arity, As, L, Vt, St0) end},
            {fun () -> lfe_internal:is_comp_func(Fun, Arity) end,
-            fun () -> to_comp_func(Fun, Arity, As, L, Vt, St0) end}
+            fun () -> to_comp_func(Fun, Arity, As, L, Vt, St0) end},
+           {fun () -> lfe_internal:is_comprehension_func(Fun, Arity) end,
+            fun () -> to_comprehension_func(Fun, Arity, As, L, Vt, St0) end},
+           {fun () -> lfe_internal:is_list_func(Fun, Arity) end,
+            fun () -> to_list_func(Fun, Arity, As, L, Vt, St0) end}
           ],
           %% And the catch-all cond else clause.
           fun () -> to_fun_call(Fun, Arity, As, L, Vt, St0) end);
@@ -932,8 +932,7 @@ to_expr(Lit, L, _, St) ->                       %Everything else is a literal
 %% to_bit_func(BitOperator, Arity, Args, LineNumber, VarTable, State) ->
 %% to_bool_func(BoolOperator, Arity, Args, LineNumber, VarTable, State) ->
 %% to_list_func(ListOperator, Arity, Args, LineNumber, VarTable, State) ->
-%% to_comp_func(CompOperator, Arity, Args, LineNumber, VarTable, State) ->
-%%     {OpExpr,State}.
+%% to_comprehension_func(Comprehension, Arity, Args, LineNumber, VarTable, State) ->
 %%  These need to evaluate all their arguments first. The comparison
 %%  operators is a bit more complex as they must test against multiple
 %%  arguments. Especially the boolean comparisons in which all must
@@ -962,11 +961,6 @@ to_bool_func(Op, Ar, As, L, Vt, St0) ->
     BoolCall = to_left_assoc_op(Op, Evs, L),
     {{block,L,Evbs ++ [BoolCall]},St1}.
 
-to_list_func(Op, Ar, As, L, Vt, St0) ->
-    {Evs,Evbs,St1} = to_op_args(Op, Ar, fun to_expr/4, As, L, Vt, St0),
-    ListCall = to_right_assoc_op(Op, Evs, L),
-    {{block,L,Evbs ++ [ListCall]},St1}.
-
 to_comp_func(Op, Ar, As, L, Vt0, St0) ->
     {Evs,Evbs,St1} = to_op_args(Op, Ar, fun to_expr/4, As, L, Vt0, St0),
     OpList = if Op =:= '=/='; Op =:= '/=' ->
@@ -975,6 +969,18 @@ to_comp_func(Op, Ar, As, L, Vt0, St0) ->
                      to_pairs_op(Op, Evs, L)
              end,
     {{block,L,Evbs ++ OpList},St1}.
+
+to_comprehension_func(Op, _Ar, [Qs,E], L, Vt, St) when Op =:= 'lc' ;
+                                                       Op =:= 'list_comp' ->
+    to_list_comprehension(Qs, E, L, Vt, St);
+to_comprehension_func(Op, _Ar, [Qs,Bs], L, Vt, St) when Op =:= 'bc' ;
+                                                        Op =:= 'binary_comp' ->
+    to_binary_comprehension(Qs, Bs, L, Vt, St).
+
+to_list_func(Op, Ar, As, L, Vt, St0) ->
+    {Evs,Evbs,St1} = to_op_args(Op, Ar, fun to_expr/4, As, L, Vt, St0),
+    ListCall = to_right_assoc_op(Op, Evs, L),
+    {{block,L,Evbs ++ [ListCall]},St1}.
 
 %% to_op_args(Op, Arity, Exprfun, Args, LineNumber, VarTable, State) ->
 %%     {Varlist,Matches,State}.

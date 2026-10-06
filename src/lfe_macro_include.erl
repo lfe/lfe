@@ -16,12 +16,14 @@
 %% Author  : Robert Virding
 %% Purpose : Lisp Flavoured Erlang macro expander for include macros.
 
-%% Expand the (include-file ...) and (include-lib ...) macros handling
-%% if they are LFE syntax files or erlang syntax files. Erlang syntax
-%% files are ones which end in .hrl. We only handle basic record and
-%% macro definitions.
-
 -module(lfe_macro_include).
+
+-moduledoc("""
+Expand the (include-file ...) and (include-lib ...) macros handling
+if they are LFE syntax files or erlang syntax files. Erlang syntax
+files are ones which end in .hrl. We only handle basic record and
+macro definitions.
+""").
 
 -export([file/3,lib/3,format_error/1,stringify/1]).
 
@@ -91,7 +93,7 @@ add_warning(L, W, St) ->
     St#mac{warnings=St#mac.warnings ++ [{L,?MODULE,W}]}.
 
 %% file(FileName, Env, MacState) ->
-%%     {yes,(progn ...),MacState} | {error,MacState}.
+%%     {ok,(progn ...),MacState} | {error,MacState}.
 %%  Expand the (include-file ...) macro.  This is a VERY simple
 %%  include file macro! We just signal errors.
 
@@ -99,7 +101,7 @@ file(IncFile, _, #mac{ipath=Path}=St0) ->
     case include_name(IncFile) of
         {ok,Name} ->
             case path_read_file(Path, Name, St0) of
-                {ok,Forms,St1} -> {yes,Forms,St1};
+                {ok,Forms,St1} -> {ok,Forms,St1};
                 {error,_St1}=Error -> Error;
                 not_found ->
                     {error,add_error({no_include,file,Name}, St0)}
@@ -109,7 +111,7 @@ file(IncFile, _, #mac{ipath=Path}=St0) ->
     end.
 
 %% lib(FileName, Env, MacState) ->
-%%     {yes,(progn ...),MacState} | {error,MacState}.
+%%     {ok,(progn ...),MacState} | {error,MacState}.
 %%  Expand the (include-lib ...) macro. We do the same as epp so we
 %%  first test if we can find the file through the normal search path,
 %%  if not we assume that the first directory name is a library name,
@@ -120,11 +122,11 @@ lib(IncFile, _, #mac{ipath=Path}=St0) ->
         {ok,Name} ->
             case path_read_file(Path, Name, St0) of
                 {ok,Forms,St1} ->
-                    {yes,Forms,St1};
+                    {ok,Forms,St1};
                 {error,St1} -> {error,St1};
                 not_found ->
                     case lib_read_file(Name, St0) of
-                        {ok,Forms,St1} -> {yes,Forms,St1};
+                        {ok,Forms,St1} -> {ok,Forms,St1};
                         {error,St1} -> {error,St1};
                         not_found ->
                             {error,add_error({no_include,lib,Name}, St0)}

@@ -17,7 +17,13 @@
 ;; Purpose : LFE Common Lisp interface library.
 
 (defmodule cl
-  (moduledoc "LFE Common Lisp interface library.")
+  (moduledoc """
+LFE Common Lisp interface library.
+
+This module provides a set of Common Lisp functions and macros for use
+in LFE. The definitions closely follow the CL definitions and won't be
+documented here.
+""")
   (export
    ;; Boolean conversion functions.
    (make-lfe-bool 1) (make-cl-bool 1)
@@ -390,7 +396,7 @@
 
 (defun find-if (pred seq)
   "pred sequence
-   Return element in sequnce for which pred is true else ()."
+   Return element in sequence for which pred is true else ()."
   (fletrec ((find-if-loop
              ([pred (cons x xs)]
               (if (funcall pred x) x (find-if-loop pred xs)))
@@ -399,7 +405,7 @@
 
 (defun find-if-not (pred seq)
   "pred sequence
-   Return element in sequnce for which pred is true else ()."
+   Return element in sequence for which pred is not true else ()."
   (fletrec ((find-if-not-loop
              ([pred (cons x xs)]
               (if (funcall pred x) (find-if-not-loop pred xs) x))

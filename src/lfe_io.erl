@@ -25,6 +25,10 @@
 
 -module(lfe_io).
 
+-moduledoc("""
+Some basic i/o functions for Lisp Flavoured Erlang.
+""").
+
 -export([get_line/0,get_line/1,get_line/2,collect_line/2]).
 -export([parse_file/1,parse_file/2,read_file/1,read_file/2]).
 -export([read/0,read/1,read/2,read_line/0,read_line/1,read_line/2]).
@@ -145,8 +149,9 @@ with_token_file_fd(Fd, Do, Line) ->             %Called with a file descriptor
 
 read() -> read(standard_io, '').
 read(Prompt) -> read(standard_io, Prompt).
-read(Io, Prompt) ->
-    case io:request(Io, {get_until,unicode,Prompt,?MODULE,scan_sexpr,[1]}) of
+read(IoDevice, Prompt) ->
+    case io:request(IoDevice,
+                    {get_until,unicode,Prompt,?MODULE,scan_sexpr,[1]}) of
         {ok,Sexpr,_} -> {ok,Sexpr};
         {error,E} -> {error,{1,io,E}};
         {error,Error,_} -> {error,Error};
@@ -164,9 +169,9 @@ read(Io, Prompt) ->
 
 read_line() -> read_line(standard_io, '').
 read_line(Prompt) -> read_line(standard_io, Prompt).
-read_line(Io, Prompt) ->
+read_line(IoDevice, Prompt) ->
     %% We input lines and call scan_sexpr directly ourself.
-    read_line_1(Io, Prompt, [], 1).
+    read_line_1(IoDevice, Prompt, [], 1).
 
 read_line_1(Io, P, C0, L0) ->
     case lfe_io:get_line(Io, P) of
@@ -218,8 +223,8 @@ scan_sexpr_1(Sc0, Pc0, Cs0, L0) ->
 %% read_string(String) -> {ok,[Sexpr]} | {error,Error}.
 %%  Read a string.
 
-read_string(Cs) ->
-    case lfe_scan:string(Cs, 1) of
+read_string(String) ->
+    case lfe_scan:string(String, 1) of
         {ok,Ts,L} ->
            read_tokens(Ts, L, []);
         {error,E,_} -> {error,E}
@@ -230,11 +235,11 @@ read_string(Cs) ->
 %% print1(Sexpr, Depth) -> [char()].
 %%  A simple print function. Does not pretty-print but stops at Depth.
 
-print(S) -> print(standard_io, S).
-print(Io, S) -> io:put_chars(Io, print1(S)).
+print(Sexpr) -> print(standard_io, Sexpr).
+print(IoDevice, Sexpr) -> io:put_chars(IoDevice, print1(Sexpr)).
 
-print1(S) -> print1(S, -1).                     %All the way
-print1(S, D) -> lfe_io_write:term(S, D).
+print1(Sexpr) -> print1(Sexpr, -1).                     %All the way
+print1(Sexpr, Depth) -> lfe_io_write:term(Sexpr, Depth).
 
 %% prettyprint([IoDevice], Sexpr) -> ok.
 %% prettyprint1(Sexpr, Depth, Indentation, LineLength) -> [char()].

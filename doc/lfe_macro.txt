@@ -1,9 +1,7 @@
 lfe_macro(3)                                                      lfe_macro(3)
 
-
-
 NAME
-       lfe_macro - Lisp Flavoured Erlang (LFE) macro expander
+       lfe_macro ‐ Lisp Flavoured Erlang (LFE) macro expander
 
 SYNOPSIS
        This  module  provides an interface to the LFE macro expander.  The ex‐
@@ -13,16 +11,16 @@ SYNOPSIS
 DATA TYPES
        sexpr()
 
-       An LFE s-expression, a list structure.
+       An LFE s‐expression, a list structure.
 
        filesexpr() = {Sexpr,Line}
 
-       This  is  the format returned by lfe_io:parse_file/1 and is used by the
+       This is the format returned by lfe_io:parse_file/1 and is used  by  the
        compiler to give better error information.
 
        env()
 
-       This  is  an  macro  and   evaluation   environment   as   created   by
+       This   is   an   macro   and   evaluation  environment  as  created  by
        lfe_lib:new_env().
 
        mac_state()
@@ -30,33 +28,33 @@ DATA TYPES
        This is the internal state used by the macro expander.
 
 EXPORTS
-       expand_expr(Sexpr, Env) -> {yes,Exp} | no.
+       expand_expr(Sexpr, Env) ‐> {yes,Exp} | no.
 
-       expand_expr_1(Sexpr, Env) -> {yes,Exp} | no.
+       expand_expr_1(Sexpr, Env) ‐> {yes,Exp} | no.
 
        where
 
               Sexpr = Exp = sexpr()
               Env = env()
 
-       Test  if the top s-expression here is a macro call, if so expand it and
-       return {yes,Expansion}, if not then return no.  expand_expr/2 will  ex‐
-       pand  the  top  s-expression  as much as possible while expand_expr_1/2
-       will only try it once.  These functions use the  macro  definitions  in
-       the environment and the standard pre-defined macros.
+       Test if the top s‐expression here is a macro call, if so expand it  and
+       return  {yes,Expansion}, if not then return no.  expand_expr/2 will ex‐
+       pand the top s‐expression as much  as  possible  while  expand_expr_1/2
+       will  only  try  it once.  These functions use the macro definitions in
+       the environment and the standard pre‐defined macros.
 
-       expand_expr_all(Sexpr, Env) -> Sexpr.
+       expand_expr_all(Sexpr, Env) ‐> Sexpr.
 
        where
 
               Sexpr = sexpr()
               Env = env()
 
-       Expand  all macros in Sexpr either using the definitions in Env or just
-       the default macros.  Note that any eventual new macro definitions  will
+       Expand all macros in Sexpr either using the definitions in Env or  just
+       the  default macros.  Note that any eventual new macro definitions will
        be lost.
 
-       expand_form_init(Deep, Keep) -> MacState
+       expand_form_init(Deep, Keep) ‐> MacState
 
        where
 
@@ -68,9 +66,9 @@ EXPORTS
        be expanded internally at depth and Keep whether macro definition forms
        are to be kept.
 
-       expand_fileforms([FileForm], Env, Deep, Keep) -> ExpRet
+       expand_fileforms([FileForm], Env, Deep, Keep) ‐> ExpRet
 
-       expand_fileforms([FileForm], Env, MacState) -> ExpRet
+       expand_fileforms([FileForm], Env, MacState) ‐> ExpRet
 
        where
 
@@ -84,9 +82,9 @@ EXPORTS
 
        expand a sequence of file forms.
 
-       expand_form(Form, Line, Env, MacState) -> RetState
+       expand_form(Form, Line, Env, MacState) ‐> RetState
 
-       expand_fileform(FileForm, Env, MacState) -> RetState
+       expand_fileform(FileForm, Env, MacState) ‐> RetState
 
        where
 
@@ -106,6 +104,4 @@ SEE ALSO
 AUTHORS
        Robert Virding.
 
-
-
-                                   2008-2020                      lfe_macro(3)
+                                   2008‐2020                      lfe_macro(3)

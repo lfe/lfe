@@ -9,6 +9,17 @@
 LFE code is divided into modules. A module consists of a sequence of
 attributes and function declarations, each being a valid form.
 
+_Example_:
+
+```lfe
+(module m)
+(export (fact 1))
+
+(function fact
+    ((n) (when (> n 0)) (* n (fact (- n 1))))
+    ((0) 1))
+```
+
 ## Module Attributes
 
 A *module attribute* defines a certain property of a module. A module
@@ -37,12 +48,14 @@ the module, that are visible from outside the module.
 
 **`(import module functions)`**
 
+Imported functions. Can be called the same way as local functions,
+that is, without any module prefix.
+
+`module`, an atom, specifies which module to import functions from. `functions` is a list similar to that for `export`.
+
 Importing allows us to call "local" functions where the call will be
 changed to a call to the function in another module, so the call
 `(do-stuff x y)` will become the call `(the-module:do-stuff x y)`.
-
-`functions` is a list `(name-1 name-2 ... name-n)` of the functions
-which will be changed to a call to the given module.
 
 **`(rename module renames)`**
 
@@ -175,13 +188,14 @@ of creating user-defined attributes, either using the more literal
 
 ## Comments
 
-Comments come in two forms: line comments and block comments.
+Comments can be placed anywhere in a module except within strings and
+quoted atoms. They come in two forms: line comments and block comments.
 
 Line comments start with a semicolon ``;`` and finish with the end of the
 line.
 
 Block comments are written as ``#| comment text |#`` where the comment text
-may span multiple lines but my not contain another block comment,
+may span multiple lines but may not contain another block comment,
 i.e. it may not contain the character sequence ``#|``.
 
 ## Functions
@@ -231,9 +245,16 @@ The older forms for module declarations and function and macro definitions are o
 ```
 
 ```
+(define-function function-name meta-data function-def)
+```
+
+```
 (defmacro macro-name (arg ...) body)
 (defmacro macro-name
     (args-pat body)
     (args-pat body)
     ...)
+```
+```
+(define-macro macro-name meta-data macro-def)
 ```
