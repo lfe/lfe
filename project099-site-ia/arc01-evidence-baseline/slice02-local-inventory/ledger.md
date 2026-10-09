@@ -52,3 +52,7 @@ family obligations. [cc-prompt-iteration02.md](cc-prompt-iteration02.md) is
 the active CC assignment; Slice03 remains gated. Prior proposals and failed
 reviews remain historical; original Criterion/Verify/Significance/Origin/Notes
 are unchanged. CDC has not implemented artifact repairs.
+
+## Iteration02 CC evidence update (partial; 2026-10-09)
+
+S2-01 remains `done`; S2-02–08 remain `open`. CC added a bounded R7/R10 correction and partial R8/R9 joins under `artifacts/resource-register.json`. The eight-column criteria and original fields above are unchanged. The focused book scalar-scope control and its SICP negative control passed; complete source/consumer/family coverage was not established. Do not treat this partial return as a closure proposal for any open row. See `artifacts/execution.md` for exact denominators, attempted mechanics, remaining work and limits; CDC retains independent review and acceptance authority.

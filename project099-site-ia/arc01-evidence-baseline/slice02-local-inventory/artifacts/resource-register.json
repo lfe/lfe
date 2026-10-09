@@ -31373,11 +31373,11 @@
     },
     {
       "id": "occ-fa824c3b370e2fe8",
-      "literal_target_or_expression": "https://cnbbooks.github.io/lfe-sicp",
-      "label": "sicp",
+      "literal_target_or_expression": "https://cnbbooks.github.io/lfe-manual",
+      "label": "",
       "construct": "yaml-rich-markdown-link",
       "role": "promotion",
-      "context": "items.0.cover_md use syntax [![sicp][img-src]][img-link] → reference img-link",
+      "context": "items.0.cover_md scalar-local GFM Link node; reference scope is this scalar",
       "source": {
         "repository_id": "website",
         "path": "src/_data/home/books.yml",
@@ -31394,7 +31394,7 @@
       "raw_context": "[![sicp][img-src]][img-link]",
       "limits": "Embedded scalar source; virtual Markdown line position not mapped to exact YAML byte span.",
       "reference_definition_pointer": {
-        "definition_id": "refdef-81e5721f744f55c0",
+        "definition_id": "refdef-03934e1c059a5fbc",
         "reference_label_raw": "img-link",
         "use_syntax_raw": "[![sicp][img-src]][img-link]",
         "definition_source": {
@@ -31402,23 +31402,23 @@
           "path": "src/_data/home/books.yml",
           "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
           "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
-          "line_start": 56,
-          "line_end": 56,
-          "yaml_key_or_index": "items[0].cover_md reference definition img-link",
+          "line_start": 10,
+          "line_end": 10,
+          "yaml_key_or_index": "items.0.cover_md reference definition img-link",
           "byte_span": [
-            2352,
-            2387
+            249,
+            298
           ]
         }
       }
     },
     {
       "id": "occ-6b344a1f75150e77",
-      "literal_target_or_expression": "https://cnbbooks.github.io/lfe-sicp/images/cover.jpg",
+      "literal_target_or_expression": "https://cnbbooks.github.io/lfe-manual/images/cover.jpg",
       "label": "sicp",
       "construct": "yaml-rich-markdown-image",
       "role": "asset",
-      "context": "items.0.cover_md use syntax ![sicp][img-src] → reference img-src",
+      "context": "items.0.cover_md scalar-local GFM Image node; reference scope is this scalar",
       "source": {
         "repository_id": "website",
         "path": "src/_data/home/books.yml",
@@ -31435,20 +31435,20 @@
       "raw_context": "[![sicp][img-src]][img-link]",
       "limits": "Embedded scalar source; virtual Markdown line position not mapped to exact YAML byte span. Image and enclosing book link are separate nested Markdown declarations.",
       "reference_definition_pointer": {
-        "definition_id": "refdef-c143aafe7e5d02bd",
+        "definition_id": "refdef-4bb3e30bdb1a9403",
         "reference_label_raw": "img-src",
-        "use_syntax_raw": "![sicp][img-src]",
+        "use_syntax_raw": "[![sicp][img-src]][img-link]",
         "definition_source": {
           "repository_id": "website",
           "path": "src/_data/home/books.yml",
           "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
           "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
-          "line_start": 55,
-          "line_end": 55,
-          "yaml_key_or_index": "items[0].cover_md reference definition img-src",
+          "line_start": 9,
+          "line_end": 9,
+          "yaml_key_or_index": "items.0.cover_md reference definition img-src",
           "byte_span": [
-            2283,
-            2335
+            179,
+            244
           ]
         }
       },
@@ -31506,11 +31506,11 @@
     },
     {
       "id": "occ-be639f4e14913d86",
-      "literal_target_or_expression": "https://cnbbooks.github.io/lfe-sicp",
-      "label": "lfe-tutorial",
+      "literal_target_or_expression": "https://cnbbooks.github.io/lfe-tutorial/",
+      "label": "",
       "construct": "yaml-rich-markdown-link",
       "role": "promotion",
-      "context": "items.1.cover_md use syntax [![lfe-tutorial][img-src]][img-link] → reference img-link",
+      "context": "items.1.cover_md scalar-local GFM Link node; reference scope is this scalar",
       "source": {
         "repository_id": "website",
         "path": "src/_data/home/books.yml",
@@ -31527,7 +31527,7 @@
       "raw_context": "[![lfe-tutorial][img-src]][img-link]",
       "limits": "Embedded scalar source; virtual Markdown line position not mapped to exact YAML byte span.",
       "reference_definition_pointer": {
-        "definition_id": "refdef-81e5721f744f55c0",
+        "definition_id": "refdef-a54a9fa31a314918",
         "reference_label_raw": "img-link",
         "use_syntax_raw": "[![lfe-tutorial][img-src]][img-link]",
         "definition_source": {
@@ -31535,23 +31535,23 @@
           "path": "src/_data/home/books.yml",
           "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
           "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
-          "line_start": 56,
-          "line_end": 56,
-          "yaml_key_or_index": "items[0].cover_md reference definition img-link",
+          "line_start": 26,
+          "line_end": 26,
+          "yaml_key_or_index": "items.1.cover_md reference definition img-link",
           "byte_span": [
-            2352,
-            2387
+            961,
+            1013
           ]
         }
       }
     },
     {
       "id": "occ-8f9e4256b9623740",
-      "literal_target_or_expression": "https://cnbbooks.github.io/lfe-sicp/images/cover.jpg",
+      "literal_target_or_expression": "https://cnbbooks.github.io/lfe-tutorial/images/cover.jpg",
       "label": "lfe-tutorial",
       "construct": "yaml-rich-markdown-image",
       "role": "asset",
-      "context": "items.1.cover_md use syntax ![lfe-tutorial][img-src] → reference img-src",
+      "context": "items.1.cover_md scalar-local GFM Image node; reference scope is this scalar",
       "source": {
         "repository_id": "website",
         "path": "src/_data/home/books.yml",
@@ -31568,20 +31568,20 @@
       "raw_context": "[![lfe-tutorial][img-src]][img-link]",
       "limits": "Embedded scalar source; virtual Markdown line position not mapped to exact YAML byte span. Image and enclosing book link are separate nested Markdown declarations.",
       "reference_definition_pointer": {
-        "definition_id": "refdef-c143aafe7e5d02bd",
+        "definition_id": "refdef-b783e6bed5eba8eb",
         "reference_label_raw": "img-src",
-        "use_syntax_raw": "![lfe-tutorial][img-src]",
+        "use_syntax_raw": "[![lfe-tutorial][img-src]][img-link]",
         "definition_source": {
           "repository_id": "website",
           "path": "src/_data/home/books.yml",
           "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
           "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
-          "line_start": 55,
-          "line_end": 55,
-          "yaml_key_or_index": "items[0].cover_md reference definition img-src",
+          "line_start": 25,
+          "line_end": 25,
+          "yaml_key_or_index": "items.1.cover_md reference definition img-src",
           "byte_span": [
-            2283,
-            2335
+            889,
+            956
           ]
         }
       },
@@ -31639,11 +31639,11 @@
     },
     {
       "id": "occ-8228131cd1fb20f5",
-      "literal_target_or_expression": "https://cnbbooks.github.io/lfe-sicp",
-      "label": "casting-spels",
+      "literal_target_or_expression": "https://cnbbooks.github.io/lfe-casting-spels/",
+      "label": "",
       "construct": "yaml-rich-markdown-link",
       "role": "promotion",
-      "context": "items.2.cover_md use syntax [![casting-spels][img-src]][img-link] → reference img-link",
+      "context": "items.2.cover_md scalar-local GFM Link node; reference scope is this scalar",
       "source": {
         "repository_id": "website",
         "path": "src/_data/home/books.yml",
@@ -31660,7 +31660,7 @@
       "raw_context": "[![casting-spels][img-src]][img-link]",
       "limits": "Embedded scalar source; virtual Markdown line position not mapped to exact YAML byte span.",
       "reference_definition_pointer": {
-        "definition_id": "refdef-81e5721f744f55c0",
+        "definition_id": "refdef-7f2024fd69a85b6e",
         "reference_label_raw": "img-link",
         "use_syntax_raw": "[![casting-spels][img-src]][img-link]",
         "definition_source": {
@@ -31668,23 +31668,23 @@
           "path": "src/_data/home/books.yml",
           "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
           "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
-          "line_start": 56,
-          "line_end": 56,
-          "yaml_key_or_index": "items[0].cover_md reference definition img-link",
+          "line_start": 41,
+          "line_end": 41,
+          "yaml_key_or_index": "items.2.cover_md reference definition img-link",
           "byte_span": [
-            2352,
-            2387
+            1644,
+            1701
           ]
         }
       }
     },
     {
       "id": "occ-0e16b3f973d27c0a",
-      "literal_target_or_expression": "https://cnbbooks.github.io/lfe-sicp/images/cover.jpg",
+      "literal_target_or_expression": "https://cnbbooks.github.io/lfe-casting-spels/images/cover.jpg",
       "label": "casting-spels",
       "construct": "yaml-rich-markdown-image",
       "role": "asset",
-      "context": "items.2.cover_md use syntax ![casting-spels][img-src] → reference img-src",
+      "context": "items.2.cover_md scalar-local GFM Image node; reference scope is this scalar",
       "source": {
         "repository_id": "website",
         "path": "src/_data/home/books.yml",
@@ -31701,20 +31701,20 @@
       "raw_context": "[![casting-spels][img-src]][img-link]",
       "limits": "Embedded scalar source; virtual Markdown line position not mapped to exact YAML byte span. Image and enclosing book link are separate nested Markdown declarations.",
       "reference_definition_pointer": {
-        "definition_id": "refdef-c143aafe7e5d02bd",
+        "definition_id": "refdef-03470833de6761ac",
         "reference_label_raw": "img-src",
-        "use_syntax_raw": "![casting-spels][img-src]",
+        "use_syntax_raw": "[![casting-spels][img-src]][img-link]",
         "definition_source": {
           "repository_id": "website",
           "path": "src/_data/home/books.yml",
           "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
           "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
-          "line_start": 55,
-          "line_end": 55,
-          "yaml_key_or_index": "items[0].cover_md reference definition img-src",
+          "line_start": 40,
+          "line_end": 40,
+          "yaml_key_or_index": "items.2.cover_md reference definition img-src",
           "byte_span": [
-            2283,
-            2335
+            1567,
+            1639
           ]
         }
       },
@@ -31773,10 +31773,10 @@
     {
       "id": "occ-56842a68100700de",
       "literal_target_or_expression": "https://cnbbooks.github.io/lfe-sicp",
-      "label": "sicp",
+      "label": "",
       "construct": "yaml-rich-markdown-link",
       "role": "promotion",
-      "context": "items.3.cover_md use syntax [![sicp][img-src]][img-link] → reference img-link",
+      "context": "items.3.cover_md scalar-local GFM Link node; reference scope is this scalar",
       "source": {
         "repository_id": "website",
         "path": "src/_data/home/books.yml",
@@ -31803,9 +31803,9 @@
           "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
           "line_start": 56,
           "line_end": 56,
-          "yaml_key_or_index": "items[0].cover_md reference definition img-link",
+          "yaml_key_or_index": "items.3.cover_md reference definition img-link",
           "byte_span": [
-            2352,
+            2340,
             2387
           ]
         }
@@ -31817,7 +31817,7 @@
       "label": "sicp",
       "construct": "yaml-rich-markdown-image",
       "role": "asset",
-      "context": "items.3.cover_md use syntax ![sicp][img-src] → reference img-src",
+      "context": "items.3.cover_md scalar-local GFM Image node; reference scope is this scalar",
       "source": {
         "repository_id": "website",
         "path": "src/_data/home/books.yml",
@@ -31836,7 +31836,7 @@
       "reference_definition_pointer": {
         "definition_id": "refdef-c143aafe7e5d02bd",
         "reference_label_raw": "img-src",
-        "use_syntax_raw": "![sicp][img-src]",
+        "use_syntax_raw": "[![sicp][img-src]][img-link]",
         "definition_source": {
           "repository_id": "website",
           "path": "src/_data/home/books.yml",
@@ -31844,9 +31844,9 @@
           "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
           "line_start": 55,
           "line_end": 55,
-          "yaml_key_or_index": "items[0].cover_md reference definition img-src",
+          "yaml_key_or_index": "items.3.cover_md reference definition img-src",
           "byte_span": [
-            2283,
+            2272,
             2335
           ]
         }
@@ -32051,13 +32051,30 @@
       },
       "raw_context": "    [img-src]: /images/xkcd-lisp-cycles.png\n    [img-link]: http://xkcd.com/297/\n    [![call-out content mobile][img-src]][img-link]",
       "limits": "Embedded scalar source; virtual Markdown line position not mapped to exact YAML byte span.",
-      "reference_definition_pointer": null
+      "reference_definition_pointer": {
+        "definition_id": "refdef-65e622670749a7c3",
+        "reference_label_raw": "img-link",
+        "use_syntax_raw": "    [img-src]: /images/xkcd-lisp-cycles.png\n    [img-link]: http://xkcd.com/297/\n    [![call-out content mobile][img-src]][img-link]",
+        "definition_source": {
+          "repository_id": "website",
+          "path": "src/_data/home/callouts.yml",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "a073c34d2782f0dbe04ce29a75c4dabd2384d313d07ae7669c9a2982ac1f3492",
+          "line_start": 13,
+          "line_end": 13,
+          "yaml_key_or_index": "items.1.content_md reference definition img-link",
+          "byte_span": [
+            576,
+            608
+          ]
+        }
+      }
     },
     {
       "id": "occ-b72c4fa5c3d11909",
       "literal_target_or_expression": "/images/xkcd-lisp-cycles.png",
-      "label": "",
-      "construct": "yaml-rich-markdown-link",
+      "label": "LispNYC 2021",
+      "construct": "yaml-rich-markdown-image",
       "role": "asset",
       "context": "embedded Markdown in shared YAML scalar items.1.content_md",
       "source": {
@@ -32076,7 +32093,24 @@
       },
       "raw_context": "  content_md: |\n    [img-src]: /images/xkcd-lisp-cycles.png\n    [img-link]: http://xkcd.com/297/",
       "limits": "Embedded scalar source; virtual Markdown line position not mapped to exact YAML byte span.",
-      "reference_definition_pointer": null
+      "reference_definition_pointer": {
+        "definition_id": "refdef-eb60f14976794f49",
+        "reference_label_raw": "img-src",
+        "use_syntax_raw": "  content_md: |\n    [img-src]: /images/xkcd-lisp-cycles.png\n    [img-link]: http://xkcd.com/297/",
+        "definition_source": {
+          "repository_id": "website",
+          "path": "src/_data/home/callouts.yml",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "a073c34d2782f0dbe04ce29a75c4dabd2384d313d07ae7669c9a2982ac1f3492",
+          "line_start": 12,
+          "line_end": 12,
+          "yaml_key_or_index": "items.1.content_md reference definition img-src",
+          "byte_span": [
+            532,
+            571
+          ]
+        }
+      }
     },
     {
       "id": "occ-941659d465772056",
@@ -32276,13 +32310,30 @@
       },
       "raw_context": "  content_html: |\n    <p><a href=\"https://www.youtube.com/watch?v=CAOrdVJTUow\"><img src=\"/images/LispNYC-2021-LFE.png\" alt=\"LispNYC 2021\" /></a></p>\n  link_text: Watch Now",
       "limits": "Embedded scalar source; virtual Markdown line position not mapped to exact YAML byte span.",
-      "reference_definition_pointer": null
+      "reference_definition_pointer": {
+        "definition_id": "refdef-42b14350cb877b3f",
+        "reference_label_raw": "img-link",
+        "use_syntax_raw": "  content_html: |\n    <p><a href=\"https://www.youtube.com/watch?v=CAOrdVJTUow\"><img src=\"/images/LispNYC-2021-LFE.png\" alt=\"LispNYC 2021\" /></a></p>\n  link_text: Watch Now",
+        "definition_source": {
+          "repository_id": "website",
+          "path": "src/_data/home/videos.yml",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+          "line_start": 10,
+          "line_end": 10,
+          "yaml_key_or_index": "items.0.content_md reference definition img-link",
+          "byte_span": [
+            214,
+            269
+          ]
+        }
+      }
     },
     {
       "id": "occ-1bc1a2fcee49a2b9",
       "literal_target_or_expression": "/images/LispNYC-2021-LFE.png",
-      "label": "",
-      "construct": "yaml-rich-markdown-link",
+      "label": "LispNYC 2021",
+      "construct": "yaml-rich-markdown-image",
       "role": "asset",
       "context": "embedded Markdown in shared YAML scalar items.0.content_md",
       "source": {
@@ -32301,7 +32352,24 @@
       },
       "raw_context": "  content_md: |\n    [img-src]: /images/LispNYC-2021-LFE.png\n    [img-link]: https://www.youtube.com/watch?v=CAOrdVJTUow",
       "limits": "Embedded scalar source; virtual Markdown line position not mapped to exact YAML byte span.",
-      "reference_definition_pointer": null
+      "reference_definition_pointer": {
+        "definition_id": "refdef-a5245b69963f70fa",
+        "reference_label_raw": "img-src",
+        "use_syntax_raw": "  content_md: |\n    [img-src]: /images/LispNYC-2021-LFE.png\n    [img-link]: https://www.youtube.com/watch?v=CAOrdVJTUow",
+        "definition_source": {
+          "repository_id": "website",
+          "path": "src/_data/home/videos.yml",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+          "line_start": 9,
+          "line_end": 9,
+          "yaml_key_or_index": "items.0.content_md reference definition img-src",
+          "byte_span": [
+            170,
+            209
+          ]
+        }
+      }
     },
     {
       "id": "occ-cd595b5d5775af01",
@@ -32376,13 +32444,30 @@
       },
       "raw_context": "  content_html: |\n    <p><a href=\"https://www.youtube.com/watch?v=BvCBTpnlqs8\"><img src=\"/images/ClojuTRE-2015-LFE.png\" alt=\"ClojuTRE 2015\" /></a></p>\n  link_text: Watch Now",
       "limits": "Embedded scalar source; virtual Markdown line position not mapped to exact YAML byte span.",
-      "reference_definition_pointer": null
+      "reference_definition_pointer": {
+        "definition_id": "refdef-dea24f422f058d0d",
+        "reference_label_raw": "img-link",
+        "use_syntax_raw": "  content_html: |\n    <p><a href=\"https://www.youtube.com/watch?v=BvCBTpnlqs8\"><img src=\"/images/ClojuTRE-2015-LFE.png\" alt=\"ClojuTRE 2015\" /></a></p>\n  link_text: Watch Now",
+        "definition_source": {
+          "repository_id": "website",
+          "path": "src/_data/home/videos.yml",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+          "line_start": 25,
+          "line_end": 25,
+          "yaml_key_or_index": "items.1.content_md reference definition img-link",
+          "byte_span": [
+            811,
+            866
+          ]
+        }
+      }
     },
     {
       "id": "occ-ea86a43388c3df77",
       "literal_target_or_expression": "/images/ClojuTRE-2015-LFE.png",
-      "label": "",
-      "construct": "yaml-rich-markdown-link",
+      "label": "LispNYC 2021",
+      "construct": "yaml-rich-markdown-image",
       "role": "asset",
       "context": "embedded Markdown in shared YAML scalar items.1.content_md",
       "source": {
@@ -32401,7 +32486,24 @@
       },
       "raw_context": "  content_md: |\n    [img-src]: /images/ClojuTRE-2015-LFE.png\n    [img-link]: https://www.youtube.com/watch?v=BvCBTpnlqs8",
       "limits": "Embedded scalar source; virtual Markdown line position not mapped to exact YAML byte span.",
-      "reference_definition_pointer": null
+      "reference_definition_pointer": {
+        "definition_id": "refdef-30ad7bc78cb501e5",
+        "reference_label_raw": "img-src",
+        "use_syntax_raw": "  content_md: |\n    [img-src]: /images/ClojuTRE-2015-LFE.png\n    [img-link]: https://www.youtube.com/watch?v=BvCBTpnlqs8",
+        "definition_source": {
+          "repository_id": "website",
+          "path": "src/_data/home/videos.yml",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+          "line_start": 24,
+          "line_end": 24,
+          "yaml_key_or_index": "items.1.content_md reference definition img-src",
+          "byte_span": [
+            766,
+            806
+          ]
+        }
+      }
     },
     {
       "id": "occ-6126666e05f61a6d",
@@ -32476,13 +32578,30 @@
       },
       "raw_context": "  content_html: |\n    <p><a href=\"https://www.youtube.com/watch?v=YjxWuJN5pH0\"><img src=\"/images/CodeSync-2022-SoundOnBeam.png\" alt=\"CodeSync 2022\" /></a></p>\n  link_text: Watch Now",
       "limits": "Embedded scalar source; virtual Markdown line position not mapped to exact YAML byte span.",
-      "reference_definition_pointer": null
+      "reference_definition_pointer": {
+        "definition_id": "refdef-b228533f6f595016",
+        "reference_label_raw": "img-link",
+        "use_syntax_raw": "  content_html: |\n    <p><a href=\"https://www.youtube.com/watch?v=YjxWuJN5pH0\"><img src=\"/images/CodeSync-2022-SoundOnBeam.png\" alt=\"CodeSync 2022\" /></a></p>\n  link_text: Watch Now",
+        "definition_source": {
+          "repository_id": "website",
+          "path": "src/_data/home/videos.yml",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+          "line_start": 40,
+          "line_end": 40,
+          "yaml_key_or_index": "items.2.content_md reference definition img-link",
+          "byte_span": [
+            1448,
+            1503
+          ]
+        }
+      }
     },
     {
       "id": "occ-526dd9381e8cb719",
       "literal_target_or_expression": "/images/CodeSync-2022-SoundOnBeam.png",
-      "label": "",
-      "construct": "yaml-rich-markdown-link",
+      "label": "LispNYC 2021",
+      "construct": "yaml-rich-markdown-image",
       "role": "asset",
       "context": "embedded Markdown in shared YAML scalar items.2.content_md",
       "source": {
@@ -32501,7 +32620,24 @@
       },
       "raw_context": "  content_md: |\n    [img-src]: /images/CodeSync-2022-SoundOnBeam.png\n    [img-link]: https://www.youtube.com/watch?v=YjxWuJN5pH0",
       "limits": "Embedded scalar source; virtual Markdown line position not mapped to exact YAML byte span.",
-      "reference_definition_pointer": null
+      "reference_definition_pointer": {
+        "definition_id": "refdef-dc58cb54175a357b",
+        "reference_label_raw": "img-src",
+        "use_syntax_raw": "  content_md: |\n    [img-src]: /images/CodeSync-2022-SoundOnBeam.png\n    [img-link]: https://www.youtube.com/watch?v=YjxWuJN5pH0",
+        "definition_source": {
+          "repository_id": "website",
+          "path": "src/_data/home/videos.yml",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+          "line_start": 39,
+          "line_end": 39,
+          "yaml_key_or_index": "items.2.content_md reference definition img-src",
+          "byte_span": [
+            1395,
+            1443
+          ]
+        }
+      }
     },
     {
       "id": "occ-b9ae2f4d924f8be6",
@@ -32576,13 +32712,30 @@
       },
       "raw_context": "  content_html: |\n    <p><a href=\"https://www.youtube.com/watch?v=AcehOqbwhPk\"><img src=\"/images/EFSF-2017-LFE.png\" alt=\"LFE EFSF 2017\" /></a></p>\n  link_text: Watch Now",
       "limits": "Embedded scalar source; virtual Markdown line position not mapped to exact YAML byte span.",
-      "reference_definition_pointer": null
+      "reference_definition_pointer": {
+        "definition_id": "refdef-8332519bce2eeacd",
+        "reference_label_raw": "img-link",
+        "use_syntax_raw": "  content_html: |\n    <p><a href=\"https://www.youtube.com/watch?v=AcehOqbwhPk\"><img src=\"/images/EFSF-2017-LFE.png\" alt=\"LFE EFSF 2017\" /></a></p>\n  link_text: Watch Now",
+        "definition_source": {
+          "repository_id": "website",
+          "path": "src/_data/home/videos.yml",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+          "line_start": 55,
+          "line_end": 55,
+          "yaml_key_or_index": "items.3.content_md reference definition img-link",
+          "byte_span": [
+            2063,
+            2118
+          ]
+        }
+      }
     },
     {
       "id": "occ-b9eaf5c995c79563",
       "literal_target_or_expression": "/images/EFSF-2017-LFE.png",
-      "label": "",
-      "construct": "yaml-rich-markdown-link",
+      "label": "LispNYC 2021",
+      "construct": "yaml-rich-markdown-image",
       "role": "asset",
       "context": "embedded Markdown in shared YAML scalar items.3.content_md",
       "source": {
@@ -32601,7 +32754,24 @@
       },
       "raw_context": "  content_md: |\n    [img-src]: /images/EFSF-2017-LFE.png\n    [img-link]: https://www.youtube.com/watch?v=AcehOqbwhPk",
       "limits": "Embedded scalar source; virtual Markdown line position not mapped to exact YAML byte span.",
-      "reference_definition_pointer": null
+      "reference_definition_pointer": {
+        "definition_id": "refdef-bf9113b76265dd70",
+        "reference_label_raw": "img-src",
+        "use_syntax_raw": "  content_md: |\n    [img-src]: /images/EFSF-2017-LFE.png\n    [img-link]: https://www.youtube.com/watch?v=AcehOqbwhPk",
+        "definition_source": {
+          "repository_id": "website",
+          "path": "src/_data/home/videos.yml",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+          "line_start": 54,
+          "line_end": 54,
+          "yaml_key_or_index": "items.3.content_md reference definition img-src",
+          "byte_span": [
+            2022,
+            2058
+          ]
+        }
+      }
     },
     {
       "id": "occ-8fcad9cbe6fd48ef",
@@ -32676,13 +32846,30 @@
       },
       "raw_context": "  content_html: |\n    <p><a href=\"https://www.youtube.com/watch?v=x2ysisqgd2g\"><img src=\"/images/EUC-2016-LFE.png\" alt=\"LFE EUC 2016\" /></a></p>\n  link_text: Watch Now",
       "limits": "Embedded scalar source; virtual Markdown line position not mapped to exact YAML byte span.",
-      "reference_definition_pointer": null
+      "reference_definition_pointer": {
+        "definition_id": "refdef-d5b8dd0c4382de5a",
+        "reference_label_raw": "img-link",
+        "use_syntax_raw": "  content_html: |\n    <p><a href=\"https://www.youtube.com/watch?v=x2ysisqgd2g\"><img src=\"/images/EUC-2016-LFE.png\" alt=\"LFE EUC 2016\" /></a></p>\n  link_text: Watch Now",
+        "definition_source": {
+          "repository_id": "website",
+          "path": "src/_data/home/videos.yml",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+          "line_start": 70,
+          "line_end": 70,
+          "yaml_key_or_index": "items.4.content_md reference definition img-link",
+          "byte_span": [
+            2677,
+            2732
+          ]
+        }
+      }
     },
     {
       "id": "occ-4e21193810dea28d",
       "literal_target_or_expression": "/images/EUC-2016-LFE.png",
-      "label": "",
-      "construct": "yaml-rich-markdown-link",
+      "label": "LispNYC 2021",
+      "construct": "yaml-rich-markdown-image",
       "role": "asset",
       "context": "embedded Markdown in shared YAML scalar items.4.content_md",
       "source": {
@@ -32701,7 +32888,24 @@
       },
       "raw_context": "  content_md: |\n    [img-src]: /images/EUC-2016-LFE.png\n    [img-link]: https://www.youtube.com/watch?v=x2ysisqgd2g",
       "limits": "Embedded scalar source; virtual Markdown line position not mapped to exact YAML byte span.",
-      "reference_definition_pointer": null
+      "reference_definition_pointer": {
+        "definition_id": "refdef-0f0a45e7a3ce65e0",
+        "reference_label_raw": "img-src",
+        "use_syntax_raw": "  content_md: |\n    [img-src]: /images/EUC-2016-LFE.png\n    [img-link]: https://www.youtube.com/watch?v=x2ysisqgd2g",
+        "definition_source": {
+          "repository_id": "website",
+          "path": "src/_data/home/videos.yml",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+          "line_start": 69,
+          "line_end": 69,
+          "yaml_key_or_index": "items.4.content_md reference definition img-src",
+          "byte_span": [
+            2637,
+            2672
+          ]
+        }
+      }
     },
     {
       "id": "occ-a45ed6aeffab4829",
@@ -32776,13 +32980,30 @@
       },
       "raw_context": "  content_html: |\n    <p><a href=\"https://www.youtube.com/watch?v=Dgbm3BRmzuI\"><img src=\"/images/EFSF-2014-LFE.png\" alt=\"LFE EFSF 2014\" /></a></p>\n  link_text: Watch Now",
       "limits": "Embedded scalar source; virtual Markdown line position not mapped to exact YAML byte span.",
-      "reference_definition_pointer": null
+      "reference_definition_pointer": {
+        "definition_id": "refdef-0eb16d2e26242c3f",
+        "reference_label_raw": "img-link",
+        "use_syntax_raw": "  content_html: |\n    <p><a href=\"https://www.youtube.com/watch?v=Dgbm3BRmzuI\"><img src=\"/images/EFSF-2014-LFE.png\" alt=\"LFE EFSF 2014\" /></a></p>\n  link_text: Watch Now",
+        "definition_source": {
+          "repository_id": "website",
+          "path": "src/_data/home/videos.yml",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+          "line_start": 85,
+          "line_end": 85,
+          "yaml_key_or_index": "items.5.content_md reference definition img-link",
+          "byte_span": [
+            3292,
+            3347
+          ]
+        }
+      }
     },
     {
       "id": "occ-ad0ebcfecb19ec19",
       "literal_target_or_expression": "/images/EFSF-2014-LFE.png",
-      "label": "",
-      "construct": "yaml-rich-markdown-link",
+      "label": "LispNYC 2021",
+      "construct": "yaml-rich-markdown-image",
       "role": "asset",
       "context": "embedded Markdown in shared YAML scalar items.5.content_md",
       "source": {
@@ -32801,7 +33022,24 @@
       },
       "raw_context": "  content_md: |\n    [img-src]: /images/EFSF-2014-LFE.png\n    [img-link]: https://www.youtube.com/watch?v=Dgbm3BRmzuI",
       "limits": "Embedded scalar source; virtual Markdown line position not mapped to exact YAML byte span.",
-      "reference_definition_pointer": null
+      "reference_definition_pointer": {
+        "definition_id": "refdef-a613ee498e841156",
+        "reference_label_raw": "img-src",
+        "use_syntax_raw": "  content_md: |\n    [img-src]: /images/EFSF-2014-LFE.png\n    [img-link]: https://www.youtube.com/watch?v=Dgbm3BRmzuI",
+        "definition_source": {
+          "repository_id": "website",
+          "path": "src/_data/home/videos.yml",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+          "line_start": 84,
+          "line_end": 84,
+          "yaml_key_or_index": "items.5.content_md reference definition img-src",
+          "byte_span": [
+            3251,
+            3287
+          ]
+        }
+      }
     },
     {
       "id": "occ-e199192a4a8d0fc0",
@@ -34326,54 +34564,6 @@
       "reference_definition_pointer": null
     },
     {
-      "id": "occ-correct-8732e6db31be0587",
-      "literal_target_or_expression": "https://jsonfeed.org/version/1.1",
-      "label": "version",
-      "construct": "liquid-json-field",
-      "role": "navigation",
-      "context": "\"version\": \"https://jsonfeed.org/version/1.1\",",
-      "source": {
-        "repository_id": "website",
-        "path": "src/blog/feed.liquid",
-        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
-        "working_sha256": "4241258cedf78937f40e7c87f7d4c28229b97a7dacd5d8be78f35ac45b34a4e0",
-        "line_start": 9,
-        "line_end": 9,
-        "yaml_key_or_index": "version",
-        "byte_span": [
-          109,
-          141
-        ]
-      },
-      "raw_context": "\"version\": \"https://jsonfeed.org/version/1.1\",",
-      "limits": "Exact source field/text value; Liquid/template expansion, feed validity and generated output remain unknown.",
-      "reference_definition_pointer": null
-    },
-    {
-      "id": "occ-correct-418aecc771e829a6",
-      "literal_target_or_expression": "LFE Blog",
-      "label": "title",
-      "construct": "liquid-json-field",
-      "role": "navigation",
-      "context": "\"title\": \"LFE Blog\",",
-      "source": {
-        "repository_id": "website",
-        "path": "src/blog/feed.liquid",
-        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
-        "working_sha256": "4241258cedf78937f40e7c87f7d4c28229b97a7dacd5d8be78f35ac45b34a4e0",
-        "line_start": 10,
-        "line_end": 10,
-        "yaml_key_or_index": "title",
-        "byte_span": [
-          156,
-          164
-        ]
-      },
-      "raw_context": "\"title\": \"LFE Blog\",",
-      "limits": "Exact source field/text value; Liquid/template expansion, feed validity and generated output remain unknown.",
-      "reference_definition_pointer": null
-    },
-    {
       "id": "occ-correct-dae516cfc4f774df",
       "literal_target_or_expression": "https://lfe.io/blog/",
       "label": "home_page_url",
@@ -34466,78 +34656,6 @@
         ]
       },
       "raw_context": "\"url\": \"https://lfe.io/{{ post.permalink }}\",",
-      "limits": "Exact source field/text value; Liquid/template expansion, feed validity and generated output remain unknown.",
-      "reference_definition_pointer": null
-    },
-    {
-      "id": "occ-correct-95cf7bcac34d6e68",
-      "literal_target_or_expression": "{{ post.title | escape }}",
-      "label": "title",
-      "construct": "liquid-json-field",
-      "role": "navigation",
-      "context": "\"title\": \"{{ post.title | escape }}\",",
-      "source": {
-        "repository_id": "website",
-        "path": "src/blog/feed.liquid",
-        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
-        "working_sha256": "4241258cedf78937f40e7c87f7d4c28229b97a7dacd5d8be78f35ac45b34a4e0",
-        "line_start": 17,
-        "line_end": 17,
-        "yaml_key_or_index": "title",
-        "byte_span": [
-          470,
-          495
-        ]
-      },
-      "raw_context": "\"title\": \"{{ post.title | escape }}\",",
-      "limits": "Exact source field/text value; Liquid/template expansion, feed validity and generated output remain unknown.",
-      "reference_definition_pointer": null
-    },
-    {
-      "id": "occ-correct-a3d20c5c7cf45122",
-      "literal_target_or_expression": "{{ post.published_date | date: \"%Y-%m-%dT%H:%M:%SZ\" }}",
-      "label": "date_published",
-      "construct": "liquid-json-field",
-      "role": "navigation",
-      "context": "\"date_published\": \"{{ post.published_date | date: \"%Y-%m-%dT%H:%M:%SZ\" }}\",",
-      "source": {
-        "repository_id": "website",
-        "path": "src/blog/feed.liquid",
-        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
-        "working_sha256": "4241258cedf78937f40e7c87f7d4c28229b97a7dacd5d8be78f35ac45b34a4e0",
-        "line_start": 18,
-        "line_end": 18,
-        "yaml_key_or_index": "date_published",
-        "byte_span": [
-          523,
-          577
-        ]
-      },
-      "raw_context": "\"date_published\": \"{{ post.published_date | date: \"%Y-%m-%dT%H:%M:%SZ\" }}\",",
-      "limits": "Exact source field/text value; Liquid/template expansion, feed validity and generated output remain unknown.",
-      "reference_definition_pointer": null
-    },
-    {
-      "id": "occ-correct-aca330bb92e1ac4c",
-      "literal_target_or_expression": "{{ post.description | escape }}",
-      "label": "summary",
-      "construct": "liquid-json-field",
-      "role": "navigation",
-      "context": "\"summary\": \"{{ post.description | escape }}\"",
-      "source": {
-        "repository_id": "website",
-        "path": "src/blog/feed.liquid",
-        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
-        "working_sha256": "4241258cedf78937f40e7c87f7d4c28229b97a7dacd5d8be78f35ac45b34a4e0",
-        "line_start": 19,
-        "line_end": 19,
-        "yaml_key_or_index": "summary",
-        "byte_span": [
-          598,
-          629
-        ]
-      },
-      "raw_context": "\"summary\": \"{{ post.description | escape }}\"",
       "limits": "Exact source field/text value; Liquid/template expansion, feed validity and generated output remain unknown.",
       "reference_definition_pointer": null
     },
@@ -34707,6 +34825,331 @@
       },
       "raw_context": "<meta property=\"og:url\" content=\"{{ page.permalink }}\" />",
       "limits": "Source-authored URL/data expression; dynamic expansion and rendered/published state unknown.",
+      "reference_definition_pointer": null
+    },
+    {
+      "id": "occ-4a315b7fdf500f67",
+      "literal_target_or_expression": "https://github.com/oubiwann",
+      "label": "GitHub",
+      "construct": "yaml-rich-markdown-link",
+      "role": "content",
+      "context": "duncan-mcgreggor.links.0.label_md_inline scalar-local GFM Link node",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/authors.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+        "line_start": 7,
+        "line_end": 7,
+        "yaml_key_or_index": "duncan-mcgreggor.links.0.label_md_inline",
+        "same_line_occurrence_ordinal": 1,
+        "byte_span": [
+          219,
+          256
+        ]
+      },
+      "raw_context": "[GitHub](https://github.com/oubiwann)",
+      "limits": "Markdown parser source node; exact inline-token span when literal syntax was found, otherwise scalar-line fallback requiring review.",
+      "reference_definition_pointer": null
+    },
+    {
+      "id": "occ-ab02925f1f435a06",
+      "literal_target_or_expression": "https://mastodon.social/@oubiwann",
+      "label": "Mastodon",
+      "construct": "yaml-rich-markdown-link",
+      "role": "content",
+      "context": "duncan-mcgreggor.links.1.label_md_inline scalar-local GFM Link node",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/authors.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+        "line_start": 9,
+        "line_end": 9,
+        "yaml_key_or_index": "duncan-mcgreggor.links.1.label_md_inline",
+        "same_line_occurrence_ordinal": 1,
+        "byte_span": [
+          345,
+          390
+        ]
+      },
+      "raw_context": "[Mastodon](https://mastodon.social/@oubiwann)",
+      "limits": "Markdown parser source node; exact inline-token span when literal syntax was found, otherwise scalar-line fallback requiring review.",
+      "reference_definition_pointer": null
+    },
+    {
+      "id": "occ-b2b2aef7511d5c90",
+      "literal_target_or_expression": "https://github.com/rvirding",
+      "label": "GitHub",
+      "construct": "yaml-rich-markdown-link",
+      "role": "content",
+      "context": "robert-virding.links.0.label_md_inline scalar-local GFM Link node",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/authors.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+        "line_start": 17,
+        "line_end": 17,
+        "yaml_key_or_index": "robert-virding.links.0.label_md_inline",
+        "same_line_occurrence_ordinal": 1,
+        "byte_span": [
+          686,
+          723
+        ]
+      },
+      "raw_context": "[GitHub](https://github.com/rvirding)",
+      "limits": "Markdown parser source node; exact inline-token span when literal syntax was found, otherwise scalar-line fallback requiring review.",
+      "reference_definition_pointer": null
+    },
+    {
+      "id": "occ-1f9160ebc8a7cda4",
+      "literal_target_or_expression": "https://fosstodon.org/@rvirding",
+      "label": "Mastodon",
+      "construct": "yaml-rich-markdown-link",
+      "role": "content",
+      "context": "robert-virding.links.1.label_md_inline scalar-local GFM Link node",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/authors.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+        "line_start": 19,
+        "line_end": 19,
+        "yaml_key_or_index": "robert-virding.links.1.label_md_inline",
+        "same_line_occurrence_ordinal": 1,
+        "byte_span": [
+          812,
+          855
+        ]
+      },
+      "raw_context": "[Mastodon](https://fosstodon.org/@rvirding)",
+      "limits": "Markdown parser source node; exact inline-token span when literal syntax was found, otherwise scalar-line fallback requiring review.",
+      "reference_definition_pointer": null
+    },
+    {
+      "id": "occ-2dd56db14ac726b3",
+      "literal_target_or_expression": "https://github.com/ferd",
+      "label": "GitHub",
+      "construct": "yaml-rich-markdown-link",
+      "role": "content",
+      "context": "fred-hebert.links.0.label_md_inline scalar-local GFM Link node",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/authors.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+        "line_start": 27,
+        "line_end": 27,
+        "yaml_key_or_index": "fred-hebert.links.0.label_md_inline",
+        "same_line_occurrence_ordinal": 1,
+        "byte_span": [
+          1109,
+          1142
+        ]
+      },
+      "raw_context": "[GitHub](https://github.com/ferd)",
+      "limits": "Markdown parser source node; exact inline-token span when literal syntax was found, otherwise scalar-line fallback requiring review.",
+      "reference_definition_pointer": null
+    },
+    {
+      "id": "occ-b2edd5e931de36a4",
+      "literal_target_or_expression": "https://ferd.ca",
+      "label": "Website",
+      "construct": "yaml-rich-markdown-link",
+      "role": "content",
+      "context": "fred-hebert.links.1.label_md_inline scalar-local GFM Link node",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/authors.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+        "line_start": 29,
+        "line_end": 29,
+        "yaml_key_or_index": "fred-hebert.links.1.label_md_inline",
+        "same_line_occurrence_ordinal": 1,
+        "byte_span": [
+          1227,
+          1253
+        ]
+      },
+      "raw_context": "[Website](https://ferd.ca)",
+      "limits": "Markdown parser source node; exact inline-token span when literal syntax was found, otherwise scalar-line fallback requiring review.",
+      "reference_definition_pointer": null
+    },
+    {
+      "id": "occ-8a23cd2fd11ad00d",
+      "literal_target_or_expression": "https://github.com/yurrriq",
+      "label": "GitHub",
+      "construct": "yaml-rich-markdown-link",
+      "role": "content",
+      "context": "eric-bailey.links.0.label_md_inline scalar-local GFM Link node",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/authors.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+        "line_start": 37,
+        "line_end": 37,
+        "yaml_key_or_index": "eric-bailey.links.0.label_md_inline",
+        "same_line_occurrence_ordinal": 1,
+        "byte_span": [
+          1444,
+          1480
+        ]
+      },
+      "raw_context": "[GitHub](https://github.com/yurrriq)",
+      "limits": "Markdown parser source node; exact inline-token span when literal syntax was found, otherwise scalar-line fallback requiring review.",
+      "reference_definition_pointer": null
+    },
+    {
+      "id": "occ-2ade1e086322fd95",
+      "literal_target_or_expression": "https://github.com/lfe",
+      "label": "GitHub",
+      "construct": "yaml-rich-markdown-link",
+      "role": "content",
+      "context": "lfe-maintainers.links.0.label_md_inline scalar-local GFM Link node",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/authors.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+        "line_start": 51,
+        "line_end": 51,
+        "yaml_key_or_index": "lfe-maintainers.links.0.label_md_inline",
+        "same_line_occurrence_ordinal": 1,
+        "byte_span": [
+          1915,
+          1947
+        ]
+      },
+      "raw_context": "[GitHub](https://github.com/lfe)",
+      "limits": "Markdown parser source node; exact inline-token span when literal syntax was found, otherwise scalar-line fallback requiring review.",
+      "reference_definition_pointer": null
+    },
+    {
+      "id": "occ-ce2c71ca1cff58c0",
+      "literal_target_or_expression": "https://lfe.io",
+      "label": "Website",
+      "construct": "yaml-rich-markdown-link",
+      "role": "content",
+      "context": "lfe-maintainers.links.1.label_md_inline scalar-local GFM Link node",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/authors.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+        "line_start": 53,
+        "line_end": 53,
+        "yaml_key_or_index": "lfe-maintainers.links.1.label_md_inline",
+        "same_line_occurrence_ordinal": 1,
+        "byte_span": [
+          2031,
+          2056
+        ]
+      },
+      "raw_context": "[Website](https://lfe.io)",
+      "limits": "Markdown parser source node; exact inline-token span when literal syntax was found, otherwise scalar-line fallback requiring review.",
+      "reference_definition_pointer": null
+    },
+    {
+      "id": "occ-510f9600ead9beff",
+      "literal_target_or_expression": "https://fosstodon.org/@lfe",
+      "label": "Mastodon",
+      "construct": "yaml-rich-markdown-link",
+      "role": "content",
+      "context": "lfe-maintainers.links.2.label_md_inline scalar-local GFM Link node",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/authors.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+        "line_start": 55,
+        "line_end": 55,
+        "yaml_key_or_index": "lfe-maintainers.links.2.label_md_inline",
+        "same_line_occurrence_ordinal": 1,
+        "byte_span": [
+          2133,
+          2171
+        ]
+      },
+      "raw_context": "[Mastodon](https://fosstodon.org/@lfe)",
+      "limits": "Markdown parser source node; exact inline-token span when literal syntax was found, otherwise scalar-line fallback requiring review.",
+      "reference_definition_pointer": null
+    },
+    {
+      "id": "occ-72dc407542ea3930",
+      "literal_target_or_expression": "/images/discord-logo.png",
+      "label": "discord logo",
+      "construct": "yaml-rich-markdown-image",
+      "role": "content",
+      "context": "items.0.prefix_md_inline scalar-local GFM Image node",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/home/callouts.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "a073c34d2782f0dbe04ce29a75c4dabd2384d313d07ae7669c9a2982ac1f3492",
+        "line_start": 3,
+        "line_end": 3,
+        "yaml_key_or_index": "items.0.prefix_md_inline",
+        "same_line_occurrence_ordinal": 1,
+        "byte_span": [
+          42,
+          83
+        ]
+      },
+      "raw_context": "![discord logo](/images/discord-logo.png)",
+      "limits": "Markdown parser source node; exact inline-token span when literal syntax was found, otherwise scalar-line fallback requiring review.",
+      "reference_definition_pointer": null
+    },
+    {
+      "id": "occ-1706d4730d8d7bf4",
+      "literal_target_or_expression": "/images/lisplogo-alien-tech-grey.png",
+      "label": "lisp alien logo",
+      "construct": "yaml-rich-markdown-image",
+      "role": "content",
+      "context": "items.0.icon_md_inline scalar-local GFM Image node",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/home/features.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+        "line_start": 6,
+        "line_end": 6,
+        "yaml_key_or_index": "items.0.icon_md_inline",
+        "same_line_occurrence_ordinal": 1,
+        "byte_span": [
+          124,
+          180
+        ]
+      },
+      "raw_context": "![lisp alien logo](/images/lisplogo-alien-tech-grey.png)",
+      "limits": "Markdown parser source node; exact inline-token span when literal syntax was found, otherwise scalar-line fallback requiring review.",
+      "reference_definition_pointer": null
+    },
+    {
+      "id": "occ-9a07d47dcef30335",
+      "literal_target_or_expression": "https://www.youtube.com/watch?v=rRbY3TMUcgQ",
+      "label": "Utterly Terrifying",
+      "construct": "yaml-rich-markdown-link",
+      "role": "content",
+      "context": "items.2.title_md_inline scalar-local GFM Link node",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/home/features.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+        "line_start": 52,
+        "line_end": 52,
+        "yaml_key_or_index": "items.2.title_md_inline",
+        "same_line_occurrence_ordinal": 1,
+        "byte_span": [
+          1970,
+          2035
+        ]
+      },
+      "raw_context": "[Utterly Terrifying](https://www.youtube.com/watch?v=rRbY3TMUcgQ)",
+      "limits": "Markdown parser source node; exact inline-token span when literal syntax was found, otherwise scalar-line fallback requiring review.",
       "reference_definition_pointer": null
     }
   ],
@@ -36715,10 +37158,12 @@
       "id": "dest-bed8379cd70bc7e6",
       "literal_destination": "/images/discord-logo.png",
       "occurrence_ids": [
-        "occ-4be31263c44e97ac"
+        "occ-4be31263c44e97ac",
+        "occ-72dc407542ea3930"
       ],
       "source_occurrence_ids": [
-        "occ-4be31263c44e97ac"
+        "occ-4be31263c44e97ac",
+        "occ-72dc407542ea3930"
       ],
       "candidate_resolution": null
     },
@@ -36744,11 +37189,13 @@
       "literal_destination": "/images/lisplogo-alien-tech-grey.png",
       "occurrence_ids": [
         "occ-77bb43023d9dedde",
-        "occ-1a40f6f09d7c6b21"
+        "occ-1a40f6f09d7c6b21",
+        "occ-1706d4730d8d7bf4"
       ],
       "source_occurrence_ids": [
         "occ-77bb43023d9dedde",
-        "occ-1a40f6f09d7c6b21"
+        "occ-1a40f6f09d7c6b21",
+        "occ-1706d4730d8d7bf4"
       ],
       "candidate_resolution": null
     },
@@ -37232,17 +37679,6 @@
       ],
       "source_occurrence_ids": [
         "occ-c9f5c5b512d21869"
-      ],
-      "candidate_resolution": null
-    },
-    {
-      "id": "dest-7a6381d01bb91587",
-      "literal_destination": "LFE Blog",
-      "occurrence_ids": [
-        "occ-correct-418aecc771e829a6"
-      ],
-      "source_occurrence_ids": [
-        "occ-correct-418aecc771e829a6"
       ],
       "candidate_resolution": null
     },
@@ -40235,6 +40671,7 @@
         "occ-3c7cdaf29f8dabe9",
         "occ-79dfd0122d25a6ed",
         "occ-05b1c5853850d4ce",
+        "occ-8228131cd1fb20f5",
         "occ-c47c506470a304f3",
         "occ-0bb642ae9affff2a"
       ],
@@ -40243,6 +40680,7 @@
         "occ-3c7cdaf29f8dabe9",
         "occ-79dfd0122d25a6ed",
         "occ-05b1c5853850d4ce",
+        "occ-8228131cd1fb20f5",
         "occ-c47c506470a304f3",
         "occ-0bb642ae9affff2a"
       ],
@@ -40252,9 +40690,11 @@
       "id": "dest-f1b2617747863ffd",
       "literal_destination": "https://cnbbooks.github.io/lfe-casting-spels/images/cover.jpg",
       "occurrence_ids": [
+        "occ-0e16b3f973d27c0a",
         "occ-c5b27cac4b7ea6f0"
       ],
       "source_occurrence_ids": [
+        "occ-0e16b3f973d27c0a",
         "occ-c5b27cac4b7ea6f0"
       ],
       "candidate_resolution": null
@@ -40265,12 +40705,14 @@
       "occurrence_ids": [
         "occ-7a7a9bf257e01ae4",
         "occ-90703cb197f05213",
+        "occ-fa824c3b370e2fe8",
         "occ-a3e2e1d577caa5b8",
         "occ-ff58cf4b05e52457"
       ],
       "source_occurrence_ids": [
         "occ-7a7a9bf257e01ae4",
         "occ-90703cb197f05213",
+        "occ-fa824c3b370e2fe8",
         "occ-a3e2e1d577caa5b8",
         "occ-ff58cf4b05e52457"
       ],
@@ -40297,9 +40739,11 @@
       "id": "dest-9f5dc2c272045e6b",
       "literal_destination": "https://cnbbooks.github.io/lfe-manual/images/cover.jpg",
       "occurrence_ids": [
+        "occ-6b344a1f75150e77",
         "occ-f1c2579ef90e4343"
       ],
       "source_occurrence_ids": [
+        "occ-6b344a1f75150e77",
         "occ-f1c2579ef90e4343"
       ],
       "candidate_resolution": null
@@ -40455,18 +40899,12 @@
       "literal_destination": "https://cnbbooks.github.io/lfe-sicp",
       "occurrence_ids": [
         "occ-45842310494ac088",
-        "occ-fa824c3b370e2fe8",
-        "occ-be639f4e14913d86",
-        "occ-8228131cd1fb20f5",
         "occ-56842a68100700de",
         "occ-d387860173f6719a",
         "occ-52330f8359d97f66"
       ],
       "source_occurrence_ids": [
         "occ-45842310494ac088",
-        "occ-fa824c3b370e2fe8",
-        "occ-be639f4e14913d86",
-        "occ-8228131cd1fb20f5",
         "occ-56842a68100700de",
         "occ-d387860173f6719a",
         "occ-52330f8359d97f66"
@@ -40488,16 +40926,10 @@
       "id": "dest-838904310a4764f6",
       "literal_destination": "https://cnbbooks.github.io/lfe-sicp/images/cover.jpg",
       "occurrence_ids": [
-        "occ-6b344a1f75150e77",
-        "occ-8f9e4256b9623740",
-        "occ-0e16b3f973d27c0a",
         "occ-a53a8be4fde712f0",
         "occ-d4d2c98aded5fe79"
       ],
       "source_occurrence_ids": [
-        "occ-6b344a1f75150e77",
-        "occ-8f9e4256b9623740",
-        "occ-0e16b3f973d27c0a",
         "occ-a53a8be4fde712f0",
         "occ-d4d2c98aded5fe79"
       ],
@@ -40523,12 +40955,14 @@
         "occ-5417492bbc141e66",
         "occ-f0b70615949c6437",
         "occ-466e14ec291d22b5",
+        "occ-be639f4e14913d86",
         "occ-5a2bf2a52b274c75"
       ],
       "source_occurrence_ids": [
         "occ-5417492bbc141e66",
         "occ-f0b70615949c6437",
         "occ-466e14ec291d22b5",
+        "occ-be639f4e14913d86",
         "occ-5a2bf2a52b274c75"
       ],
       "candidate_resolution": null
@@ -40537,9 +40971,11 @@
       "id": "dest-9b4f4bb40af98ce8",
       "literal_destination": "https://cnbbooks.github.io/lfe-tutorial/images/cover.jpg",
       "occurrence_ids": [
+        "occ-8f9e4256b9623740",
         "occ-2e297764d1b28ad6"
       ],
       "source_occurrence_ids": [
+        "occ-8f9e4256b9623740",
         "occ-2e297764d1b28ad6"
       ],
       "candidate_resolution": null
@@ -40976,10 +41412,12 @@
       "id": "dest-ea26423862232208",
       "literal_destination": "https://ferd.ca",
       "occurrence_ids": [
-        "occ-0f3a952c0b6e806b"
+        "occ-0f3a952c0b6e806b",
+        "occ-b2edd5e931de36a4"
       ],
       "source_occurrence_ids": [
-        "occ-0f3a952c0b6e806b"
+        "occ-0f3a952c0b6e806b",
+        "occ-b2edd5e931de36a4"
       ],
       "candidate_resolution": null
     },
@@ -40987,10 +41425,12 @@
       "id": "dest-6f257b86bbd3ca0f",
       "literal_destination": "https://fosstodon.org/@lfe",
       "occurrence_ids": [
-        "occ-825bae1a7b383cd8"
+        "occ-825bae1a7b383cd8",
+        "occ-510f9600ead9beff"
       ],
       "source_occurrence_ids": [
-        "occ-825bae1a7b383cd8"
+        "occ-825bae1a7b383cd8",
+        "occ-510f9600ead9beff"
       ],
       "candidate_resolution": null
     },
@@ -40998,10 +41438,12 @@
       "id": "dest-6022093fa83f343e",
       "literal_destination": "https://fosstodon.org/@rvirding",
       "occurrence_ids": [
-        "occ-8a54deb14d813578"
+        "occ-8a54deb14d813578",
+        "occ-1f9160ebc8a7cda4"
       ],
       "source_occurrence_ids": [
-        "occ-8a54deb14d813578"
+        "occ-8a54deb14d813578",
+        "occ-1f9160ebc8a7cda4"
       ],
       "candidate_resolution": null
     },
@@ -41355,10 +41797,12 @@
       "id": "dest-f273d3d14c53c567",
       "literal_destination": "https://github.com/ferd",
       "occurrence_ids": [
-        "occ-6aa9a300992659d4"
+        "occ-6aa9a300992659d4",
+        "occ-2dd56db14ac726b3"
       ],
       "source_occurrence_ids": [
-        "occ-6aa9a300992659d4"
+        "occ-6aa9a300992659d4",
+        "occ-2dd56db14ac726b3"
       ],
       "candidate_resolution": null
     },
@@ -41411,11 +41855,13 @@
       "literal_destination": "https://github.com/lfe",
       "occurrence_ids": [
         "occ-e079f0e19c4aca78",
-        "occ-aec7632347e14ffa"
+        "occ-aec7632347e14ffa",
+        "occ-2ade1e086322fd95"
       ],
       "source_occurrence_ids": [
         "occ-e079f0e19c4aca78",
-        "occ-aec7632347e14ffa"
+        "occ-aec7632347e14ffa",
+        "occ-2ade1e086322fd95"
       ],
       "candidate_resolution": null
     },
@@ -42476,10 +42922,12 @@
       "id": "dest-0853f864b543cbce",
       "literal_destination": "https://github.com/oubiwann",
       "occurrence_ids": [
-        "occ-651c268314d2910a"
+        "occ-651c268314d2910a",
+        "occ-4a315b7fdf500f67"
       ],
       "source_occurrence_ids": [
-        "occ-651c268314d2910a"
+        "occ-651c268314d2910a",
+        "occ-4a315b7fdf500f67"
       ],
       "candidate_resolution": null
     },
@@ -42723,10 +43171,12 @@
       "id": "dest-a5535004ef16b096",
       "literal_destination": "https://github.com/rvirding",
       "occurrence_ids": [
-        "occ-d446ff5fb4d050d3"
+        "occ-d446ff5fb4d050d3",
+        "occ-b2b2aef7511d5c90"
       ],
       "source_occurrence_ids": [
-        "occ-d446ff5fb4d050d3"
+        "occ-d446ff5fb4d050d3",
+        "occ-b2b2aef7511d5c90"
       ],
       "candidate_resolution": null
     },
@@ -42911,10 +43361,12 @@
       "id": "dest-9866c75e3ccf52ab",
       "literal_destination": "https://github.com/yurrriq",
       "occurrence_ids": [
-        "occ-b4eb6c9d2d45f486"
+        "occ-b4eb6c9d2d45f486",
+        "occ-8a23cd2fd11ad00d"
       ],
       "source_occurrence_ids": [
-        "occ-b4eb6c9d2d45f486"
+        "occ-b4eb6c9d2d45f486",
+        "occ-8a23cd2fd11ad00d"
       ],
       "candidate_resolution": null
     },
@@ -43099,17 +43551,6 @@
       "candidate_resolution": null
     },
     {
-      "id": "dest-9f238691f36f17b1",
-      "literal_destination": "https://jsonfeed.org/version/1.1",
-      "occurrence_ids": [
-        "occ-correct-8732e6db31be0587"
-      ],
-      "source_occurrence_ids": [
-        "occ-correct-8732e6db31be0587"
-      ],
-      "candidate_resolution": null
-    },
-    {
       "id": "dest-8a760cd1d6dec214",
       "literal_destination": "https://learnyousomeerlang.com/",
       "occurrence_ids": [
@@ -43171,13 +43612,15 @@
         "occ-4411e3af14d26580",
         "occ-e81045fd30fc5528",
         "occ-5f2ca2518bbf3eb8",
-        "occ-7cc03aa301cdafa2"
+        "occ-7cc03aa301cdafa2",
+        "occ-ce2c71ca1cff58c0"
       ],
       "source_occurrence_ids": [
         "occ-4411e3af14d26580",
         "occ-e81045fd30fc5528",
         "occ-5f2ca2518bbf3eb8",
-        "occ-7cc03aa301cdafa2"
+        "occ-7cc03aa301cdafa2",
+        "occ-ce2c71ca1cff58c0"
       ],
       "candidate_resolution": null
     },
@@ -43652,10 +44095,12 @@
       "id": "dest-cc634cd6f88e41fa",
       "literal_destination": "https://mastodon.social/@oubiwann",
       "occurrence_ids": [
-        "occ-661768f0f22d260a"
+        "occ-661768f0f22d260a",
+        "occ-ab02925f1f435a06"
       ],
       "source_occurrence_ids": [
-        "occ-661768f0f22d260a"
+        "occ-661768f0f22d260a",
+        "occ-ab02925f1f435a06"
       ],
       "candidate_resolution": null
     },
@@ -44464,13 +44909,15 @@
         "occ-0f2cbac7af6a1bb5",
         "occ-9fcf352e7edcbbd5",
         "occ-7c92a110bc75825d",
-        "occ-9852a46c71a5002d"
+        "occ-9852a46c71a5002d",
+        "occ-9a07d47dcef30335"
       ],
       "source_occurrence_ids": [
         "occ-0f2cbac7af6a1bb5",
         "occ-9fcf352e7edcbbd5",
         "occ-7c92a110bc75825d",
-        "occ-9852a46c71a5002d"
+        "occ-9852a46c71a5002d",
+        "occ-9a07d47dcef30335"
       ],
       "candidate_resolution": null
     },
@@ -44700,17 +45147,6 @@
       "candidate_resolution": null
     },
     {
-      "id": "dest-719b6f76aa232a9a",
-      "literal_destination": "{{ post.description | escape }}",
-      "occurrence_ids": [
-        "occ-correct-aca330bb92e1ac4c"
-      ],
-      "source_occurrence_ids": [
-        "occ-correct-aca330bb92e1ac4c"
-      ],
-      "candidate_resolution": null
-    },
-    {
       "id": "dest-3eb7d0fd957e17ae",
       "literal_destination": "{{ post.permalink }}",
       "occurrence_ids": [
@@ -44718,28 +45154,6 @@
       ],
       "source_occurrence_ids": [
         "occ-052b50acfe9cb9fe"
-      ],
-      "candidate_resolution": null
-    },
-    {
-      "id": "dest-133d6646bbc838bf",
-      "literal_destination": "{{ post.published_date | date: \"%Y-%m-%dT%H:%M:%SZ\" }}",
-      "occurrence_ids": [
-        "occ-correct-a3d20c5c7cf45122"
-      ],
-      "source_occurrence_ids": [
-        "occ-correct-a3d20c5c7cf45122"
-      ],
-      "candidate_resolution": null
-    },
-    {
-      "id": "dest-628b938fde4bdcbb",
-      "literal_destination": "{{ post.title | escape }}",
-      "occurrence_ids": [
-        "occ-correct-95cf7bcac34d6e68"
-      ],
-      "source_occurrence_ids": [
-        "occ-correct-95cf7bcac34d6e68"
       ],
       "candidate_resolution": null
     },
@@ -46228,6 +46642,10 @@
           "mechanism": "inventory.json#/mechanisms/prerender-md",
           "limit": "Source transformation witness only; wrapper not executed."
         }
+      ],
+      "iteration02_no_direct_access_fields": [
+        "items[*].link_url",
+        "items[*].link_text"
       ]
     },
     {
@@ -46373,6 +46791,9 @@
           "mechanism": "inventory.json#/mechanisms/prerender-md",
           "limit": "Source transformation witness only; wrapper not executed."
         }
+      ],
+      "iteration02_no_direct_access_fields": [
+        "logo_image"
       ]
     },
     {
@@ -46416,7 +46837,9 @@
       "consumer_context": "for excerpt in site.data.home.excerpts.items; excerpt.id; excerpt.name",
       "field_paths": [
         "items[*].id",
-        "items[*].name"
+        "items[*].name",
+        "items[*].code_html",
+        "items[*].desc_html"
       ],
       "consumer_access_witnesses": [
         {
@@ -46576,7 +46999,8 @@
           "line_end": 71
         },
         "scope": "Complete include/template source read; direct access tokens listed separately. Conditions/loop syntax remain literal."
-      }
+      },
+      "iteration02_note": "code_html and desc_html are direct masthead interpolations at lines 35 and 39; two loops and forloop.index branches still require full caller qualification."
     },
     {
       "id": "consumer-77b2315b70820aec",
@@ -46653,90 +47077,9 @@
       }
     },
     {
-      "id": "consumer-621b5cb7daec4aab",
-      "data_source": "src/_data/blog.yml",
-      "field_path": "centrepiece; lede_1; lede_2; spotlight; river_count; default_cover_image; default_cover_alt",
-      "consumer_source": "tools/lfesite/src/cmd/blog_resolve.rs",
-      "template_or_source_access": "blog.yml top-level editorial/default keys → blog_resolved.yml fields; blog-index reads resolved slots",
-      "include_layout_chain": [
-        "blog_resolve::run",
-        "src/_layouts/blog-index.liquid and blog archive/category/tag/author layouts"
-      ],
-      "conditionality": "Exact source field/access and enclosing loop/branch are retained in source locators; runtime expansion remains unknown.",
-      "source_qualification": "working website source at captured snapshot; no generation or expansion performed",
-      "source_file_key": "website:src/_data/blog.yml",
-      "consumer_source_file_key": "website:tools/lfesite/src/cmd/blog_resolve.rs",
-      "source_locator": {
-        "repository_id": "website",
-        "path": "src/_data/blog.yml",
-        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
-        "working_sha256": "2c6defaa519e6323fed56f29b9358249e668de0864ae22c48aae8e0361b2e350",
-        "line_start": 12,
-        "line_end": 12,
-        "yaml_key_or_index": "editorial fields",
-        "byte_span": [
-          522,
-          534
-        ]
-      },
-      "consumer_locator": {
-        "repository_id": "website",
-        "path": "tools/lfesite/src/cmd/blog_resolve.rs",
-        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
-        "working_sha256": "c417907163e8bb5a57e673c0d7d7e32f39058363b2e1abb82dc49b6e3285aa1e",
-        "line_start": 17,
-        "line_end": 160,
-        "symbol": "blog_resolve::run"
-      },
-      "source_context": "centrepiece:",
-      "consumer_context": "blog_resolve::run reads the configuration, resolves editorial permalink slots against post metadata, and writes generated blog_resolved.yml; blog-index.liquid consumes resolved fields. No execution.",
-      "field_paths": [
-        "centrepiece",
-        "lede_1",
-        "lede_2",
-        "spotlight",
-        "river_count",
-        "default_cover_image",
-        "default_cover_alt"
-      ],
-      "generated_consumer": {
-        "source": "tools/lfesite/src/cmd/blog_resolve.rs::run lines 17–160",
-        "output": "generated site data blog_resolved.yml (not executed or inventoried as a current tracked source file)",
-        "template_consumer": "src/_layouts/blog-index.liquid",
-        "field_mapping": {
-          "centrepiece": "site.data.blog_resolved.centrepiece",
-          "lede_1": "site.data.blog_resolved.lede_1",
-          "lede_2": "site.data.blog_resolved.lede_2",
-          "spotlight": "site.data.blog_resolved.spotlight",
-          "river_count": "site.data.blog_resolved.river",
-          "default_cover_image": "site.data.blog.default_cover_image",
-          "default_cover_alt": "site.data.blog.default_cover_alt"
-        },
-        "status": "source mechanism and template accesses; generated values unknown"
-      },
-      "consumer_sources": [
-        {
-          "path": "src/_layouts/blog-tags.liquid",
-          "access": "site.data.blog.default_cover_image / default_cover_alt"
-        },
-        {
-          "path": "src/_layouts/blog-archive.liquid",
-          "access": "site.data.blog.default_cover_image / default_cover_alt"
-        },
-        {
-          "path": "src/_layouts/blog-author.liquid",
-          "access": "site.data.blog.default_cover_image / default_cover_alt"
-        },
-        {
-          "path": "src/_layouts/blog-categories.liquid",
-          "access": "site.data.blog.default_cover_image / default_cover_alt"
-        }
-      ]
-    },
-    {
       "id": "consumer-629617d9d8878455",
       "data_source": "src/_data/authors.yml",
-      "field_path": "[author-id].name; [author-id].url; [author-id].github_user; [author-id].avatar; [author-id].bio",
+      "field_path": "author_entry[0] key match; author_entry[1] assigned author; author name/github_user/avatar/bio/links fields",
       "consumer_source": "src/_layouts/post.liquid",
       "template_or_source_access": "site.data.authors → author_entry loop and author fields",
       "include_layout_chain": "Cobalt post layout; blog archive/category/tag/author layouts also iterate site.data.authors",
@@ -46773,11 +47116,12 @@
       "source_context": "github_user:",
       "consumer_context": "for author_entry in site.data.authors",
       "field_paths": [
-        "[author-key].name",
-        "[author-key].github_user",
-        "[author-key].avatar",
-        "[author-key].bio",
-        "[author-key].links"
+        "author_entry[0]",
+        "author_entry[1].name",
+        "author_entry[1].github_user",
+        "author_entry[1].avatar",
+        "author_entry[1].bio",
+        "author_entry[1].links[*].label_html"
       ],
       "consumer_sources": [
         {
@@ -46805,7 +47149,8 @@
           "access": "site.data.authors",
           "head": "b5a7c50b0cb761e8e857cab6731cde103874b081"
         }
-      ]
+      ],
+      "iteration02_note": "No author.url field exists. Full five-layout branch/caller/source-locator reconstruction remains open."
     },
     {
       "id": "consumer-a426cc90fc1c85c1",
@@ -79020,19 +79365,11 @@
         ],
         "related_entrance_ids": [],
         "current_file_keys": [
-          "website:src/_data/home/books.yml",
-          "website:src/_data/home/buildit.yml",
-          "website:src/_data/home/callouts.yml",
-          "website:src/_data/home/excerpts.yml",
-          "website:src/_data/home/features.yml",
-          "website:src/_data/home/masthead.yml",
-          "website:src/_data/home/videos.yml",
-          "website:src/_includes/home/books.liquid",
-          "website:src/_includes/home/buildit.liquid",
-          "website:src/_includes/home/closing.liquid",
-          "website:src/_includes/home/lykn-cycler.liquid",
-          "website:src/_includes/home/masthead.liquid",
-          "website:src/_includes/home/videos.liquid"
+          "website:src/index.md",
+          "website:src/learn.md",
+          "website:src/use.md",
+          "website:src/community.md",
+          "website:src/about.md"
         ]
       },
       "separate_established_decision": {
@@ -79051,7 +79388,55 @@
         "line_start": 83,
         "line_end": 94,
         "report": "lfe"
-      }
+      },
+      "iteration02_direct_memberships": [
+        {
+          "file_key": "website:src/index.md",
+          "reason": "One of the five named LFE gateway pages in the inherited Main gateway boundary.",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/index.md",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9"
+          }
+        },
+        {
+          "file_key": "website:src/learn.md",
+          "reason": "One of the five named LFE gateway pages in the inherited Main gateway boundary.",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/learn.md",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9"
+          }
+        },
+        {
+          "file_key": "website:src/use.md",
+          "reason": "One of the five named LFE gateway pages in the inherited Main gateway boundary.",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/use.md",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9"
+          }
+        },
+        {
+          "file_key": "website:src/community.md",
+          "reason": "One of the five named LFE gateway pages in the inherited Main gateway boundary.",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/community.md",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9"
+          }
+        },
+        {
+          "file_key": "website:src/about.md",
+          "reason": "One of the five named LFE gateway pages in the inherited Main gateway boundary.",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/about.md",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9"
+          }
+        }
+      ],
+      "iteration02_audit_status": "partial; remaining memberships still require semantic evidence walk"
     },
     {
       "family_id": "book-catalogue",
@@ -79160,7 +79545,20 @@
           "occ-fa824c3b370e2fe8",
           "occ-ff58cf4b05e52457"
         ],
-        "related_entrance_ids": [],
+        "related_entrance_ids": [
+          "entrance-3f3dded1cc851532",
+          "entrance-0dc2353d9dc2e6fb",
+          "entrance-1ade3f488d5d7ba6",
+          "entrance-08b6ac755738f4c8",
+          "entrance-7655a2c7513aad77",
+          "entrance-fe2f8a47595d1eb7",
+          "entrance-2acd12e1831176f1",
+          "entrance-d26e508545a12a97",
+          "entrance-65133845af86821c",
+          "entrance-c837e8a56fb8a62a",
+          "entrance-f045fffc9dd8c3ea",
+          "entrance-effdf75f3c24d0f3"
+        ],
         "current_file_keys": [
           "website:README.md",
           "website:src/_data/home/books.yml",
@@ -79189,7 +79587,154 @@
         "line_start": 83,
         "line_end": 94,
         "report": "lfe"
-      }
+      },
+      "iteration02_direct_memberships": [
+        {
+          "entrance_id": "entrance-3f3dded1cc851532",
+          "reason": "Book catalogue/promoted book entrance; README/config/SUMMARY scope only, not a chapter-body audit.",
+          "source_locator": {
+            "repository_id": "manual",
+            "path": "README.md",
+            "captured_head": "eba76e31367ee8d0eaa3217acce0d6bfc5378d17",
+            "working_sha256": "de2a063133722112aa2edc5b991b1cf790772ad8e83ba6b05808c67e73057f8b",
+            "line_start": 1,
+            "line_end": 30
+          }
+        },
+        {
+          "entrance_id": "entrance-0dc2353d9dc2e6fb",
+          "reason": "Book catalogue/promoted book entrance; README/config/SUMMARY scope only, not a chapter-body audit.",
+          "source_locator": {
+            "repository_id": "manual",
+            "path": "book.toml",
+            "captured_head": "eba76e31367ee8d0eaa3217acce0d6bfc5378d17",
+            "working_sha256": "d9dd067f7e494ef3e71c640c94e7d9e52b6710355793137f067b60c4a98c1dc6",
+            "line_start": 1,
+            "line_end": 34
+          }
+        },
+        {
+          "entrance_id": "entrance-1ade3f488d5d7ba6",
+          "reason": "Book catalogue/promoted book entrance; README/config/SUMMARY scope only, not a chapter-body audit.",
+          "source_locator": {
+            "repository_id": "tutorial",
+            "path": "README.md",
+            "captured_head": "96e7c95d3a66cb8dbc395acae0e677b24b598810",
+            "working_sha256": "4d46e1b6f820bb07fa57f3f2b4f321d2796a175a7d7e1879ff0b708d2f696cc6",
+            "line_start": 1,
+            "line_end": 69
+          }
+        },
+        {
+          "entrance_id": "entrance-08b6ac755738f4c8",
+          "reason": "Book catalogue/promoted book entrance; README/config/SUMMARY scope only, not a chapter-body audit.",
+          "source_locator": {
+            "repository_id": "tutorial",
+            "path": "book.toml",
+            "captured_head": "96e7c95d3a66cb8dbc395acae0e677b24b598810",
+            "working_sha256": "a13a3652cbec523aa19354e0cea60eaadb663912468a33859a20936c165f6c6e",
+            "line_start": 1,
+            "line_end": 27
+          }
+        },
+        {
+          "entrance_id": "entrance-7655a2c7513aad77",
+          "reason": "Book catalogue/promoted book entrance; README/config/SUMMARY scope only, not a chapter-body audit.",
+          "source_locator": {
+            "repository_id": "casting_spels",
+            "path": "README.md",
+            "captured_head": "c0fc08e9e7f1df1bcd45516ad1f4f9d8be169be9",
+            "working_sha256": "d4d56481e61e997e42033cad07ffd0280f2e67677c50f6f57c1386b48dc463a0",
+            "line_start": 1,
+            "line_end": 55
+          }
+        },
+        {
+          "entrance_id": "entrance-fe2f8a47595d1eb7",
+          "reason": "Book catalogue/promoted book entrance; README/config/SUMMARY scope only, not a chapter-body audit.",
+          "source_locator": {
+            "repository_id": "casting_spels",
+            "path": "book.toml",
+            "captured_head": "c0fc08e9e7f1df1bcd45516ad1f4f9d8be169be9",
+            "working_sha256": "d78e90f360da1fb75c478e11acaa7e70746526e6e743841db7d91048cf97b285",
+            "line_start": 1,
+            "line_end": 27
+          }
+        },
+        {
+          "entrance_id": "entrance-2acd12e1831176f1",
+          "reason": "Book catalogue/promoted book entrance; README/config/SUMMARY scope only, not a chapter-body audit.",
+          "source_locator": {
+            "repository_id": "sicp",
+            "path": "README.md",
+            "captured_head": "46859e2a6fdd5c346cbf03dceec8b23f0b4fff3a",
+            "working_sha256": "ef874f53615aa657ee1a81748b7a28709f950047f506d72a5f722cd66569cd76",
+            "line_start": 1,
+            "line_end": 43
+          }
+        },
+        {
+          "entrance_id": "entrance-d26e508545a12a97",
+          "reason": "Book catalogue/promoted book entrance; README/config/SUMMARY scope only, not a chapter-body audit.",
+          "source_locator": {
+            "repository_id": "sicp",
+            "path": "book.toml",
+            "captured_head": "46859e2a6fdd5c346cbf03dceec8b23f0b4fff3a",
+            "working_sha256": "2b54b662f535e7e8415dc0e1f5e219866794627880955443cb2e8032abb9f820",
+            "line_start": 1,
+            "line_end": 33
+          }
+        },
+        {
+          "entrance_id": "entrance-65133845af86821c",
+          "reason": "Book catalogue/promoted book entrance; README/config/SUMMARY scope only, not a chapter-body audit.",
+          "source_locator": {
+            "repository_id": "manual",
+            "path": "src/SUMMARY.md",
+            "captured_head": "eba76e31367ee8d0eaa3217acce0d6bfc5378d17",
+            "working_sha256": "9ab3ebe9c28a01b18e9843a3fd2b7140f5d0a7954b6dd3107c59e509ea10c2a6",
+            "line_start": 1,
+            "line_end": 692
+          }
+        },
+        {
+          "entrance_id": "entrance-c837e8a56fb8a62a",
+          "reason": "Book catalogue/promoted book entrance; README/config/SUMMARY scope only, not a chapter-body audit.",
+          "source_locator": {
+            "repository_id": "tutorial",
+            "path": "src/SUMMARY.md",
+            "captured_head": "96e7c95d3a66cb8dbc395acae0e677b24b598810",
+            "working_sha256": "2d1fc3cdd455e023a7e23129e12073df0f0b5c8fd7eaf2682b8efc6987de44e3",
+            "line_start": 1,
+            "line_end": 51
+          }
+        },
+        {
+          "entrance_id": "entrance-f045fffc9dd8c3ea",
+          "reason": "Book catalogue/promoted book entrance; README/config/SUMMARY scope only, not a chapter-body audit.",
+          "source_locator": {
+            "repository_id": "casting_spels",
+            "path": "src/SUMMARY.md",
+            "captured_head": "c0fc08e9e7f1df1bcd45516ad1f4f9d8be169be9",
+            "working_sha256": "91ec32e95908ce83a8eda7061968556b01b3f201bc267f7fec32acf9ba5076ac",
+            "line_start": 1,
+            "line_end": 67
+          }
+        },
+        {
+          "entrance_id": "entrance-effdf75f3c24d0f3",
+          "reason": "Book catalogue/promoted book entrance; README/config/SUMMARY scope only, not a chapter-body audit.",
+          "source_locator": {
+            "repository_id": "sicp",
+            "path": "src/SUMMARY.md",
+            "captured_head": "46859e2a6fdd5c346cbf03dceec8b23f0b4fff3a",
+            "working_sha256": "6b2e2ddc3a1a356d950bcf86f1dd37dcec969e1e453eeac6e066f40b30425015",
+            "line_start": 1,
+            "line_end": 193
+          }
+        }
+      ],
+      "iteration02_audit_status": "partial; remaining memberships still require semantic evidence walk"
     },
     {
       "family_id": "technical-publishing",
@@ -80346,7 +80891,8 @@
         "line_start": 83,
         "line_end": 94,
         "report": "lfe"
-      }
+      },
+      "iteration02_audit_status": "partial; remaining memberships still require semantic evidence walk"
     },
     {
       "family_id": "book-chapters",
@@ -80484,7 +81030,8 @@
         "line_start": 83,
         "line_end": 94,
         "report": "lfe"
-      }
+      },
+      "iteration02_audit_status": "partial; remaining memberships still require semantic evidence walk"
     },
     {
       "family_id": "language-reference",
@@ -80527,7 +81074,8 @@
         "line_start": 83,
         "line_end": 94,
         "report": "lfe"
-      }
+      },
+      "iteration02_audit_status": "partial; remaining memberships still require semantic evidence walk"
     },
     {
       "family_id": "release-registry",
@@ -80594,7 +81142,8 @@
         "line_start": 83,
         "line_end": 94,
         "report": "lfe"
-      }
+      },
+      "iteration02_audit_status": "partial; remaining memberships still require semantic evidence walk"
     },
     {
       "family_id": "tooling-docs",
@@ -80686,7 +81235,8 @@
         "line_start": 83,
         "line_end": 94,
         "report": "lfe"
-      }
+      },
+      "iteration02_audit_status": "partial; remaining memberships still require semantic evidence walk"
     },
     {
       "family_id": "earlier-generations",
@@ -80743,7 +81293,16 @@
           "occ-f4226bdf77e637c7",
           "occ-fa05f6b750be44de"
         ],
-        "related_entrance_ids": [],
+        "related_entrance_ids": [
+          "entrance-9a0fecb1cd53c329",
+          "entrance-64e4ade03bac2160",
+          "entrance-689758ac39cc18fb",
+          "entrance-f00c61f911c6d122",
+          "entrance-2f65c547e18194c3",
+          "entrance-dd915b7fdc0a152e",
+          "entrance-85186587bf2cbed6",
+          "entrance-96da0a1fb40bb686"
+        ],
         "current_file_keys": [
           "website:README.md",
           "website:src/_data/home/buildit.yml",
@@ -80769,7 +81328,106 @@
         "line_start": 83,
         "line_end": 94,
         "report": "lfe"
-      }
+      },
+      "iteration02_direct_memberships": [
+        {
+          "entrance_id": "entrance-9a0fecb1cd53c329",
+          "reason": "Named current/dev/version index in the inherited Earlier documentation generations boundary.",
+          "source_locator": {
+            "repository_id": "legacy_docs",
+            "path": "docs/index.html",
+            "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+            "working_sha256": "b381f1283cf214a3e558736fc397a298cd871add5a3ae8b68c879944af4ca829",
+            "line_start": 1,
+            "line_end": 2
+          }
+        },
+        {
+          "entrance_id": "entrance-64e4ade03bac2160",
+          "reason": "Named current/dev/version index in the inherited Earlier documentation generations boundary.",
+          "source_locator": {
+            "repository_id": "legacy_docs",
+            "path": "docs/current/index.html",
+            "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+            "working_sha256": "ac03775e345eb5f5c7c8038e161076470e1d73ec7d5e60da23a9b1f1f5cc3122",
+            "line_start": 1,
+            "line_end": 188
+          }
+        },
+        {
+          "entrance_id": "entrance-689758ac39cc18fb",
+          "reason": "Named current/dev/version index in the inherited Earlier documentation generations boundary.",
+          "source_locator": {
+            "repository_id": "legacy_docs",
+            "path": "docs/dev/index.html",
+            "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+            "working_sha256": "b92a7836a8f2ef6a51b1ce242077d7990fed10e46597e318013d5f831faf700a",
+            "line_start": 1,
+            "line_end": 305
+          }
+        },
+        {
+          "entrance_id": "entrance-f00c61f911c6d122",
+          "reason": "Named current/dev/version index in the inherited Earlier documentation generations boundary.",
+          "source_locator": {
+            "repository_id": "legacy_docs",
+            "path": "docs/v1.2/index.html",
+            "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+            "working_sha256": "dba478cf30da606d83d6ba6dec3e2511b0fd6b2357635ce7e02a7dad48d0b484",
+            "line_start": 1,
+            "line_end": 185
+          }
+        },
+        {
+          "entrance_id": "entrance-2f65c547e18194c3",
+          "reason": "Named current/dev/version index in the inherited Earlier documentation generations boundary.",
+          "source_locator": {
+            "repository_id": "legacy_docs",
+            "path": "docs/v0.10/index.html",
+            "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+            "working_sha256": "3b53b16ce102b108fd1ddadd40e3c48114315491c32588debaaf3a2d38a6870d",
+            "line_start": 1,
+            "line_end": 185
+          }
+        },
+        {
+          "entrance_id": "entrance-dd915b7fdc0a152e",
+          "reason": "Named current/dev/version index in the inherited Earlier documentation generations boundary.",
+          "source_locator": {
+            "repository_id": "legacy_docs",
+            "path": "docs/v0.9/index.html",
+            "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+            "working_sha256": "512845ded9f6aac064a81eb797af393fb674a77176803cade462e9182ad3e97f",
+            "line_start": 1,
+            "line_end": 196
+          }
+        },
+        {
+          "entrance_id": "entrance-85186587bf2cbed6",
+          "reason": "Named current/dev/version index in the inherited Earlier documentation generations boundary.",
+          "source_locator": {
+            "repository_id": "legacy_docs",
+            "path": "docs/v0.8/index.html",
+            "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+            "working_sha256": "e81760d71852fbc34e1342a96cb9ef987a438f60c9fb0c7ffe5868081999541d",
+            "line_start": 1,
+            "line_end": 161
+          }
+        },
+        {
+          "entrance_id": "entrance-96da0a1fb40bb686",
+          "reason": "Named current/dev/version index in the inherited Earlier documentation generations boundary.",
+          "source_locator": {
+            "repository_id": "legacy_docs",
+            "path": "docs/v0.7/index.html",
+            "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+            "working_sha256": "5b48703edb2ae107ebf0c96567caec3d81ddc46ac56a903d199a992ed772b540",
+            "line_start": 1,
+            "line_end": 201
+          }
+        }
+      ],
+      "iteration02_audit_status": "partial; remaining memberships still require semantic evidence walk"
     },
     {
       "family_id": "legacy-reference-targets",
@@ -80824,7 +81482,8 @@
         "line_start": 83,
         "line_end": 94,
         "report": "lfe"
-      }
+      },
+      "iteration02_audit_status": "partial; remaining memberships still require semantic evidence walk"
     },
     {
       "family_id": "community-resources",
@@ -80941,7 +81600,8 @@
           "website:src/_data/home/callouts.yml",
           "website:src/_data/home/features.yml",
           "website:src/_data/home/videos.yml",
-          "website:src/_data/site.yml"
+          "website:src/_data/site.yml",
+          "website:src/community.md"
         ]
       },
       "next_owner": "Arc01 Slice03 gate owner",
@@ -80955,7 +81615,19 @@
         "line_start": 83,
         "line_end": 94,
         "report": "lfe"
-      }
+      },
+      "iteration02_direct_memberships": [
+        {
+          "file_key": "website:src/community.md",
+          "reason": "This page is the inherited Community resources gateway; links within it are contextual resources.",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/community.md",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9"
+          }
+        }
+      ],
+      "iteration02_audit_status": "partial; remaining memberships still require semantic evidence walk"
     },
     {
       "family_id": "historical-technical-papers",
@@ -80968,72 +81640,22 @@
         "inherited_source_ids": [
           "lfe:L02",
           "lfe:L20",
-          "lfe:L38",
-          "erlang:S01",
-          "erlang:S02",
-          "erlang:S03",
-          "erlang:S04",
-          "erlang:S05",
-          "erlang:S06",
-          "erlang:S07",
-          "erlang:S08",
-          "erlang:S09",
-          "erlang:S10",
-          "erlang:S11",
-          "erlang:S12",
-          "erlang:S13",
-          "erlang:S14",
-          "erlang:S15",
-          "erlang:S16",
-          "erlang:S17",
-          "erlang:S18",
-          "erlang:S19",
-          "erlang:S20",
-          "erlang:S21",
-          "erlang:S22",
-          "erlang:S23",
-          "erlang:S24",
-          "erlang:S25",
-          "erlang:S26",
-          "erlang:S27",
-          "erlang:S28",
-          "erlang:S29",
-          "erlang:S30",
-          "erlang:S31",
-          "erlang:S32",
-          "erlang:S33",
-          "erlang:S34",
-          "erlang:S35",
-          "erlang:S36",
-          "erlang:S37",
-          "erlang:S38",
-          "erlang:S39",
-          "erlang:S40",
-          "erlang:S41",
-          "erlang:S42",
-          "erlang:S43",
-          "erlang:S44",
-          "erlang:S45",
-          "erlang:S46",
-          "erlang:S47",
-          "erlang:S48",
-          "erlang:S49",
-          "erlang:S50",
-          "erlang:S51",
-          "erlang:S52",
-          "erlang:S53",
-          "erlang:S54",
-          "erlang:S55",
-          "erlang:S56",
-          "erlang:S57",
-          "erlang:S58",
-          "erlang:S59",
-          "erlang:S60",
-          "erlang:S61"
+          "lfe:L38"
         ],
-        "current_occurrence_ids": [],
+        "current_occurrence_ids": [
+          "occ-a1704dbab8c1abed",
+          "occ-60aac2f91be73fbc",
+          "occ-3eb320c74ed93032",
+          "occ-2cc536db18cdce18",
+          "occ-f1727eebff804ca1"
+        ],
         "related_entrance_ids": [],
-        "current_file_keys": []
+        "current_file_keys": [
+          "website:src/learn.md",
+          "website:src/papers/[2007] Armstrong - HOPL III A History of Erlang.pdf",
+          "website:src/papers/[2008] Virding - The Erlang Rationale.pdf",
+          "website:src/papers/[2003] Armstrong - Making reliable distributed systems in the presence of software errors.pdf"
+        ]
       },
       "next_owner": "Arc01 Slice03 gate owner",
       "next_destination": "Arc01 Slice03",
@@ -81046,7 +81668,95 @@
         "line_start": 83,
         "line_end": 94,
         "report": "lfe"
-      }
+      },
+      "iteration02_direct_memberships": [
+        {
+          "occurrence_id": "occ-a1704dbab8c1abed",
+          "reason": "Learn source links a local PDF (lines 120–122) or named historical LFE paper/reference (line 154); filename/link evidence only, no paper-content audit.",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/learn.md",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "6bb4545ce05f893af86d14d885cf9f1f3fd3e39ef27b73a57df6a245f9638083",
+            "line_start": 120,
+            "line_end": 120,
+            "same_line_occurrence_ordinal": 1,
+            "byte_span": [
+              3836,
+              3938
+            ]
+          }
+        },
+        {
+          "occurrence_id": "occ-60aac2f91be73fbc",
+          "reason": "Learn source links a local PDF (lines 120–122) or named historical LFE paper/reference (line 154); filename/link evidence only, no paper-content audit.",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/learn.md",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "6bb4545ce05f893af86d14d885cf9f1f3fd3e39ef27b73a57df6a245f9638083",
+            "line_start": 121,
+            "line_end": 121,
+            "same_line_occurrence_ordinal": 1,
+            "byte_span": [
+              3978,
+              4065
+            ]
+          }
+        },
+        {
+          "occurrence_id": "occ-3eb320c74ed93032",
+          "reason": "Learn source links a local PDF (lines 120–122) or named historical LFE paper/reference (line 154); filename/link evidence only, no paper-content audit.",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/learn.md",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "6bb4545ce05f893af86d14d885cf9f1f3fd3e39ef27b73a57df6a245f9638083",
+            "line_start": 122,
+            "line_end": 122,
+            "same_line_occurrence_ordinal": 1,
+            "byte_span": [
+              4110,
+              4313
+            ]
+          }
+        },
+        {
+          "occurrence_id": "occ-2cc536db18cdce18",
+          "reason": "Learn source links a local PDF (lines 120–122) or named historical LFE paper/reference (line 154); filename/link evidence only, no paper-content audit.",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/learn.md",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "6bb4545ce05f893af86d14d885cf9f1f3fd3e39ef27b73a57df6a245f9638083",
+            "line_start": 154,
+            "line_end": 154,
+            "same_line_occurrence_ordinal": 1,
+            "byte_span": [
+              5565,
+              5675
+            ]
+          }
+        },
+        {
+          "occurrence_id": "occ-f1727eebff804ca1",
+          "reason": "Learn source links a local PDF (lines 120–122) or named historical LFE paper/reference (line 154); filename/link evidence only, no paper-content audit.",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/learn.md",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "6bb4545ce05f893af86d14d885cf9f1f3fd3e39ef27b73a57df6a245f9638083",
+            "line_start": 154,
+            "line_end": 154,
+            "same_line_occurrence_ordinal": 1,
+            "byte_span": [
+              5716,
+              5790
+            ]
+          }
+        }
+      ],
+      "iteration02_audit_status": "partial; remaining memberships still require semantic evidence walk"
     }
   ],
   "gaps": [
@@ -96513,14 +97223,14 @@
         "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
         "line_start": 9,
         "line_end": 9,
-        "yaml_key_or_index": "items[0].cover_md reference definition img-src",
+        "yaml_key_or_index": "items.0.cover_md reference definition img-src",
         "byte_span": [
-          190,
+          179,
           244
         ]
       },
       "raw_context": "    [img-src]: https://cnbbooks.github.io/lfe-manual/images/cover.jpg",
-      "definition_status": "unique literal source definition"
+      "definition_status": "unique literal source definition within exact YAML scalar"
     },
     {
       "id": "refdef-03934e1c059a5fbc",
@@ -96534,14 +97244,14 @@
         "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
         "line_start": 10,
         "line_end": 10,
-        "yaml_key_or_index": "items[0].cover_md reference definition img-link",
+        "yaml_key_or_index": "items.0.cover_md reference definition img-link",
         "byte_span": [
-          261,
+          249,
           298
         ]
       },
       "raw_context": "    [img-link]: https://cnbbooks.github.io/lfe-manual",
-      "definition_status": "unique literal source definition"
+      "definition_status": "unique literal source definition within exact YAML scalar"
     },
     {
       "id": "refdef-b783e6bed5eba8eb",
@@ -96555,14 +97265,14 @@
         "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
         "line_start": 25,
         "line_end": 25,
-        "yaml_key_or_index": "items[0].cover_md reference definition img-src",
+        "yaml_key_or_index": "items.1.cover_md reference definition img-src",
         "byte_span": [
-          900,
+          889,
           956
         ]
       },
       "raw_context": "    [img-src]: https://cnbbooks.github.io/lfe-tutorial/images/cover.jpg",
-      "definition_status": "unique literal source definition"
+      "definition_status": "unique literal source definition within exact YAML scalar"
     },
     {
       "id": "refdef-a54a9fa31a314918",
@@ -96576,14 +97286,14 @@
         "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
         "line_start": 26,
         "line_end": 26,
-        "yaml_key_or_index": "items[0].cover_md reference definition img-link",
+        "yaml_key_or_index": "items.1.cover_md reference definition img-link",
         "byte_span": [
-          973,
+          961,
           1013
         ]
       },
       "raw_context": "    [img-link]: https://cnbbooks.github.io/lfe-tutorial/",
-      "definition_status": "unique literal source definition"
+      "definition_status": "unique literal source definition within exact YAML scalar"
     },
     {
       "id": "refdef-03470833de6761ac",
@@ -96597,14 +97307,14 @@
         "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
         "line_start": 40,
         "line_end": 40,
-        "yaml_key_or_index": "items[0].cover_md reference definition img-src",
+        "yaml_key_or_index": "items.2.cover_md reference definition img-src",
         "byte_span": [
-          1578,
+          1567,
           1639
         ]
       },
       "raw_context": "    [img-src]: https://cnbbooks.github.io/lfe-casting-spels/images/cover.jpg",
-      "definition_status": "unique literal source definition"
+      "definition_status": "unique literal source definition within exact YAML scalar"
     },
     {
       "id": "refdef-7f2024fd69a85b6e",
@@ -96618,14 +97328,14 @@
         "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
         "line_start": 41,
         "line_end": 41,
-        "yaml_key_or_index": "items[0].cover_md reference definition img-link",
+        "yaml_key_or_index": "items.2.cover_md reference definition img-link",
         "byte_span": [
-          1656,
+          1644,
           1701
         ]
       },
       "raw_context": "    [img-link]: https://cnbbooks.github.io/lfe-casting-spels/",
-      "definition_status": "unique literal source definition"
+      "definition_status": "unique literal source definition within exact YAML scalar"
     },
     {
       "id": "refdef-c143aafe7e5d02bd",
@@ -96639,14 +97349,14 @@
         "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
         "line_start": 55,
         "line_end": 55,
-        "yaml_key_or_index": "items[0].cover_md reference definition img-src",
+        "yaml_key_or_index": "items.3.cover_md reference definition img-src",
         "byte_span": [
-          2283,
+          2272,
           2335
         ]
       },
       "raw_context": "    [img-src]: https://cnbbooks.github.io/lfe-sicp/images/cover.jpg",
-      "definition_status": "unique literal source definition"
+      "definition_status": "unique literal source definition within exact YAML scalar"
     },
     {
       "id": "refdef-81e5721f744f55c0",
@@ -96660,14 +97370,308 @@
         "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
         "line_start": 56,
         "line_end": 56,
-        "yaml_key_or_index": "items[0].cover_md reference definition img-link",
+        "yaml_key_or_index": "items.3.cover_md reference definition img-link",
         "byte_span": [
-          2352,
+          2340,
           2387
         ]
       },
       "raw_context": "    [img-link]: https://cnbbooks.github.io/lfe-sicp",
-      "definition_status": "unique literal source definition"
+      "definition_status": "unique literal source definition within exact YAML scalar"
+    },
+    {
+      "id": "refdef-eb60f14976794f49",
+      "reference_label_raw": "img-src",
+      "normalized_reference_label": "img-src",
+      "literal_destination": "/images/xkcd-lisp-cycles.png",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/home/callouts.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "a073c34d2782f0dbe04ce29a75c4dabd2384d313d07ae7669c9a2982ac1f3492",
+        "line_start": 12,
+        "line_end": 12,
+        "yaml_key_or_index": "items.1.content_md reference definition img-src",
+        "byte_span": [
+          532,
+          571
+        ]
+      },
+      "raw_context": "    [img-src]: /images/xkcd-lisp-cycles.png",
+      "definition_status": "unique literal source definition within exact YAML scalar"
+    },
+    {
+      "id": "refdef-65e622670749a7c3",
+      "reference_label_raw": "img-link",
+      "normalized_reference_label": "img-link",
+      "literal_destination": "http://xkcd.com/297/",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/home/callouts.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "a073c34d2782f0dbe04ce29a75c4dabd2384d313d07ae7669c9a2982ac1f3492",
+        "line_start": 13,
+        "line_end": 13,
+        "yaml_key_or_index": "items.1.content_md reference definition img-link",
+        "byte_span": [
+          576,
+          608
+        ]
+      },
+      "raw_context": "    [img-link]: http://xkcd.com/297/",
+      "definition_status": "unique literal source definition within exact YAML scalar"
+    },
+    {
+      "id": "refdef-a5245b69963f70fa",
+      "reference_label_raw": "img-src",
+      "normalized_reference_label": "img-src",
+      "literal_destination": "/images/LispNYC-2021-LFE.png",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/home/videos.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+        "line_start": 9,
+        "line_end": 9,
+        "yaml_key_or_index": "items.0.content_md reference definition img-src",
+        "byte_span": [
+          170,
+          209
+        ]
+      },
+      "raw_context": "    [img-src]: /images/LispNYC-2021-LFE.png",
+      "definition_status": "unique literal source definition within exact YAML scalar"
+    },
+    {
+      "id": "refdef-42b14350cb877b3f",
+      "reference_label_raw": "img-link",
+      "normalized_reference_label": "img-link",
+      "literal_destination": "https://www.youtube.com/watch?v=CAOrdVJTUow",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/home/videos.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+        "line_start": 10,
+        "line_end": 10,
+        "yaml_key_or_index": "items.0.content_md reference definition img-link",
+        "byte_span": [
+          214,
+          269
+        ]
+      },
+      "raw_context": "    [img-link]: https://www.youtube.com/watch?v=CAOrdVJTUow",
+      "definition_status": "unique literal source definition within exact YAML scalar"
+    },
+    {
+      "id": "refdef-30ad7bc78cb501e5",
+      "reference_label_raw": "img-src",
+      "normalized_reference_label": "img-src",
+      "literal_destination": "/images/ClojuTRE-2015-LFE.png",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/home/videos.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+        "line_start": 24,
+        "line_end": 24,
+        "yaml_key_or_index": "items.1.content_md reference definition img-src",
+        "byte_span": [
+          766,
+          806
+        ]
+      },
+      "raw_context": "    [img-src]: /images/ClojuTRE-2015-LFE.png",
+      "definition_status": "unique literal source definition within exact YAML scalar"
+    },
+    {
+      "id": "refdef-dea24f422f058d0d",
+      "reference_label_raw": "img-link",
+      "normalized_reference_label": "img-link",
+      "literal_destination": "https://www.youtube.com/watch?v=BvCBTpnlqs8",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/home/videos.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+        "line_start": 25,
+        "line_end": 25,
+        "yaml_key_or_index": "items.1.content_md reference definition img-link",
+        "byte_span": [
+          811,
+          866
+        ]
+      },
+      "raw_context": "    [img-link]: https://www.youtube.com/watch?v=BvCBTpnlqs8",
+      "definition_status": "unique literal source definition within exact YAML scalar"
+    },
+    {
+      "id": "refdef-dc58cb54175a357b",
+      "reference_label_raw": "img-src",
+      "normalized_reference_label": "img-src",
+      "literal_destination": "/images/CodeSync-2022-SoundOnBeam.png",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/home/videos.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+        "line_start": 39,
+        "line_end": 39,
+        "yaml_key_or_index": "items.2.content_md reference definition img-src",
+        "byte_span": [
+          1395,
+          1443
+        ]
+      },
+      "raw_context": "    [img-src]: /images/CodeSync-2022-SoundOnBeam.png",
+      "definition_status": "unique literal source definition within exact YAML scalar"
+    },
+    {
+      "id": "refdef-b228533f6f595016",
+      "reference_label_raw": "img-link",
+      "normalized_reference_label": "img-link",
+      "literal_destination": "https://www.youtube.com/watch?v=YjxWuJN5pH0",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/home/videos.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+        "line_start": 40,
+        "line_end": 40,
+        "yaml_key_or_index": "items.2.content_md reference definition img-link",
+        "byte_span": [
+          1448,
+          1503
+        ]
+      },
+      "raw_context": "    [img-link]: https://www.youtube.com/watch?v=YjxWuJN5pH0",
+      "definition_status": "unique literal source definition within exact YAML scalar"
+    },
+    {
+      "id": "refdef-bf9113b76265dd70",
+      "reference_label_raw": "img-src",
+      "normalized_reference_label": "img-src",
+      "literal_destination": "/images/EFSF-2017-LFE.png",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/home/videos.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+        "line_start": 54,
+        "line_end": 54,
+        "yaml_key_or_index": "items.3.content_md reference definition img-src",
+        "byte_span": [
+          2022,
+          2058
+        ]
+      },
+      "raw_context": "    [img-src]: /images/EFSF-2017-LFE.png",
+      "definition_status": "unique literal source definition within exact YAML scalar"
+    },
+    {
+      "id": "refdef-8332519bce2eeacd",
+      "reference_label_raw": "img-link",
+      "normalized_reference_label": "img-link",
+      "literal_destination": "https://www.youtube.com/watch?v=AcehOqbwhPk",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/home/videos.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+        "line_start": 55,
+        "line_end": 55,
+        "yaml_key_or_index": "items.3.content_md reference definition img-link",
+        "byte_span": [
+          2063,
+          2118
+        ]
+      },
+      "raw_context": "    [img-link]: https://www.youtube.com/watch?v=AcehOqbwhPk",
+      "definition_status": "unique literal source definition within exact YAML scalar"
+    },
+    {
+      "id": "refdef-0f0a45e7a3ce65e0",
+      "reference_label_raw": "img-src",
+      "normalized_reference_label": "img-src",
+      "literal_destination": "/images/EUC-2016-LFE.png",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/home/videos.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+        "line_start": 69,
+        "line_end": 69,
+        "yaml_key_or_index": "items.4.content_md reference definition img-src",
+        "byte_span": [
+          2637,
+          2672
+        ]
+      },
+      "raw_context": "    [img-src]: /images/EUC-2016-LFE.png",
+      "definition_status": "unique literal source definition within exact YAML scalar"
+    },
+    {
+      "id": "refdef-d5b8dd0c4382de5a",
+      "reference_label_raw": "img-link",
+      "normalized_reference_label": "img-link",
+      "literal_destination": "https://www.youtube.com/watch?v=x2ysisqgd2g",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/home/videos.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+        "line_start": 70,
+        "line_end": 70,
+        "yaml_key_or_index": "items.4.content_md reference definition img-link",
+        "byte_span": [
+          2677,
+          2732
+        ]
+      },
+      "raw_context": "    [img-link]: https://www.youtube.com/watch?v=x2ysisqgd2g",
+      "definition_status": "unique literal source definition within exact YAML scalar"
+    },
+    {
+      "id": "refdef-a613ee498e841156",
+      "reference_label_raw": "img-src",
+      "normalized_reference_label": "img-src",
+      "literal_destination": "/images/EFSF-2014-LFE.png",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/home/videos.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+        "line_start": 84,
+        "line_end": 84,
+        "yaml_key_or_index": "items.5.content_md reference definition img-src",
+        "byte_span": [
+          3251,
+          3287
+        ]
+      },
+      "raw_context": "    [img-src]: /images/EFSF-2014-LFE.png",
+      "definition_status": "unique literal source definition within exact YAML scalar"
+    },
+    {
+      "id": "refdef-0eb16d2e26242c3f",
+      "reference_label_raw": "img-link",
+      "normalized_reference_label": "img-link",
+      "literal_destination": "https://www.youtube.com/watch?v=Dgbm3BRmzuI",
+      "source": {
+        "repository_id": "website",
+        "path": "src/_data/home/videos.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "609c723f80a8c89fcf9e2736f13286d1544dea7a75ab4d3e07fbbdfaa169e6cd",
+        "line_start": 85,
+        "line_end": 85,
+        "yaml_key_or_index": "items.5.content_md reference definition img-link",
+        "byte_span": [
+          3292,
+          3347
+        ]
+      },
+      "raw_context": "    [img-link]: https://www.youtube.com/watch?v=Dgbm3BRmzuI",
+      "definition_status": "unique literal source definition within exact YAML scalar"
     }
   ],
   "coverage": {
@@ -96726,7 +97730,7 @@
         "unknown_candidates": 0
       },
       "liquid-json-field": {
-        "parsed_occurrences": 9,
+        "parsed_occurrences": 4,
         "excluded_candidates": 0,
         "unknown_candidates": 0
       },
@@ -96766,20 +97770,20 @@
         "unknown_candidates": 0
       },
       "yaml-rich-markdown-image": {
-        "parsed_occurrences": 4,
+        "parsed_occurrences": 13,
         "excluded_candidates": 0,
         "unknown_candidates": 0
       },
       "yaml-rich-markdown-link": {
-        "parsed_occurrences": 21,
+        "parsed_occurrences": 25,
         "excluded_candidates": 0,
         "unknown_candidates": 0
       }
     },
     "reference_definitions": {
-      "denominator": 8,
-      "attempted": 8,
-      "parsed": 8,
+      "denominator": 22,
+      "attempted": 22,
+      "parsed": 22,
       "excluded": 0,
       "unknown": 0
     },
@@ -96791,8 +97795,8 @@
       "unknown": 0,
       "meaning": "All 543 lexical Liquid/template tokens were source-inspected and assigned an exact token class and source record. Here parsed means classified at source-token level, not rendered or expanded; output/runtime meaning remains unknown."
     },
-    "destination_groups": 809,
-    "promotion_consumers": 13,
+    "destination_groups": 804,
+    "promotion_consumers": 12,
     "related_entrances": 27,
     "family_coverage": 11,
     "meaning": "Current source-record totals after correction. All 543 legacy template tokens are classified, all 951 independent lexical URL candidates reconcile as active source occurrences or explicit exclusions, and render/runtime behavior is not claimed.",
@@ -96860,7 +97864,7 @@
       "source_records_present": true,
       "equality_claim": false
     },
-    "occurrence_count": 1439
+    "occurrence_count": 1447
   },
   "exclusion_candidates": [
     {
@@ -98108,11 +99112,11 @@
         "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
         "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
         "line_start": 7,
-        "line_end": 8,
+        "line_end": 7,
         "yaml_key_or_index": "duncan-mcgreggor.links[0].label_md_inline",
         "byte_span": [
-          197,
-          323
+          218,
+          257
         ]
       },
       "html_source": {
@@ -98124,12 +99128,14 @@
         "line_end": 8,
         "yaml_key_or_index": "duncan-mcgreggor.links[0].label_html",
         "byte_span": [
-          258,
-          323
+          274,
+          322
         ]
       },
       "occurrence_ids": {
-        "markdown": [],
+        "markdown": [
+          "occ-4a315b7fdf500f67"
+        ],
         "html": [
           "occ-651c268314d2910a"
         ]
@@ -98147,11 +99153,11 @@
         "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
         "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
         "line_start": 9,
-        "line_end": 11,
+        "line_end": 9,
         "yaml_key_or_index": "duncan-mcgreggor.links[1].label_md_inline",
         "byte_span": [
-          323,
-          481
+          344,
+          391
         ]
       },
       "html_source": {
@@ -98160,15 +99166,17 @@
         "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
         "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
         "line_start": 10,
-        "line_end": 11,
+        "line_end": 10,
         "yaml_key_or_index": "duncan-mcgreggor.links[1].label_html",
         "byte_span": [
-          392,
-          481
+          408,
+          464
         ]
       },
       "occurrence_ids": {
-        "markdown": [],
+        "markdown": [
+          "occ-ab02925f1f435a06"
+        ],
         "html": [
           "occ-661768f0f22d260a"
         ]
@@ -98186,11 +99194,11 @@
         "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
         "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
         "line_start": 17,
-        "line_end": 18,
+        "line_end": 17,
         "yaml_key_or_index": "robert-virding.links[0].label_md_inline",
         "byte_span": [
-          664,
-          790
+          685,
+          724
         ]
       },
       "html_source": {
@@ -98202,12 +99210,14 @@
         "line_end": 18,
         "yaml_key_or_index": "robert-virding.links[0].label_html",
         "byte_span": [
-          725,
-          790
+          741,
+          789
         ]
       },
       "occurrence_ids": {
-        "markdown": [],
+        "markdown": [
+          "occ-b2b2aef7511d5c90"
+        ],
         "html": [
           "occ-d446ff5fb4d050d3"
         ]
@@ -98225,11 +99235,11 @@
         "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
         "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
         "line_start": 19,
-        "line_end": 21,
+        "line_end": 19,
         "yaml_key_or_index": "robert-virding.links[1].label_md_inline",
         "byte_span": [
-          790,
-          941
+          811,
+          856
         ]
       },
       "html_source": {
@@ -98238,15 +99248,17 @@
         "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
         "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
         "line_start": 20,
-        "line_end": 21,
+        "line_end": 20,
         "yaml_key_or_index": "robert-virding.links[1].label_html",
         "byte_span": [
-          857,
-          941
+          873,
+          927
         ]
       },
       "occurrence_ids": {
-        "markdown": [],
+        "markdown": [
+          "occ-1f9160ebc8a7cda4"
+        ],
         "html": [
           "occ-8a54deb14d813578"
         ]
@@ -98264,11 +99276,11 @@
         "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
         "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
         "line_start": 27,
-        "line_end": 28,
+        "line_end": 27,
         "yaml_key_or_index": "fred-hebert.links[0].label_md_inline",
         "byte_span": [
-          1087,
-          1205
+          1108,
+          1143
         ]
       },
       "html_source": {
@@ -98280,12 +99292,14 @@
         "line_end": 28,
         "yaml_key_or_index": "fred-hebert.links[0].label_html",
         "byte_span": [
-          1144,
-          1205
+          1160,
+          1204
         ]
       },
       "occurrence_ids": {
-        "markdown": [],
+        "markdown": [
+          "occ-2dd56db14ac726b3"
+        ],
         "html": [
           "occ-6aa9a300992659d4"
         ]
@@ -98303,11 +99317,11 @@
         "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
         "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
         "line_start": 29,
-        "line_end": 31,
+        "line_end": 29,
         "yaml_key_or_index": "fred-hebert.links[1].label_md_inline",
         "byte_span": [
-          1205,
-          1322
+          1226,
+          1254
         ]
       },
       "html_source": {
@@ -98316,15 +99330,17 @@
         "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
         "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
         "line_start": 30,
-        "line_end": 31,
+        "line_end": 30,
         "yaml_key_or_index": "fred-hebert.links[1].label_html",
         "byte_span": [
-          1255,
-          1322
+          1271,
+          1308
         ]
       },
       "occurrence_ids": {
-        "markdown": [],
+        "markdown": [
+          "occ-b2edd5e931de36a4"
+        ],
         "html": [
           "occ-0f3a952c0b6e806b"
         ]
@@ -98342,11 +99358,11 @@
         "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
         "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
         "line_start": 37,
-        "line_end": 39,
+        "line_end": 37,
         "yaml_key_or_index": "eric-bailey.links[0].label_md_inline",
         "byte_span": [
-          1422,
-          1564
+          1443,
+          1481
         ]
       },
       "html_source": {
@@ -98355,15 +99371,17 @@
         "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
         "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
         "line_start": 38,
-        "line_end": 39,
+        "line_end": 38,
         "yaml_key_or_index": "eric-bailey.links[0].label_html",
         "byte_span": [
-          1482,
-          1564
+          1498,
+          1545
         ]
       },
       "occurrence_ids": {
-        "markdown": [],
+        "markdown": [
+          "occ-8a23cd2fd11ad00d"
+        ],
         "html": [
           "occ-b4eb6c9d2d45f486"
         ]
@@ -98381,11 +99399,11 @@
         "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
         "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
         "line_start": 51,
-        "line_end": 52,
+        "line_end": 51,
         "yaml_key_or_index": "lfe-maintainers.links[0].label_md_inline",
         "byte_span": [
-          1893,
-          2009
+          1914,
+          1948
         ]
       },
       "html_source": {
@@ -98397,12 +99415,14 @@
         "line_end": 52,
         "yaml_key_or_index": "lfe-maintainers.links[0].label_html",
         "byte_span": [
-          1949,
-          2009
+          1965,
+          2008
         ]
       },
       "occurrence_ids": {
-        "markdown": [],
+        "markdown": [
+          "occ-2ade1e086322fd95"
+        ],
         "html": [
           "occ-aec7632347e14ffa"
         ]
@@ -98420,11 +99440,11 @@
         "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
         "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
         "line_start": 53,
-        "line_end": 54,
+        "line_end": 53,
         "yaml_key_or_index": "lfe-maintainers.links[1].label_md_inline",
         "byte_span": [
-          2009,
-          2111
+          2030,
+          2057
         ]
       },
       "html_source": {
@@ -98436,12 +99456,14 @@
         "line_end": 54,
         "yaml_key_or_index": "lfe-maintainers.links[1].label_html",
         "byte_span": [
-          2058,
-          2111
+          2074,
+          2110
         ]
       },
       "occurrence_ids": {
-        "markdown": [],
+        "markdown": [
+          "occ-ce2c71ca1cff58c0"
+        ],
         "html": [
           "occ-7cc03aa301cdafa2"
         ]
@@ -98459,11 +99481,11 @@
         "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
         "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
         "line_start": 55,
-        "line_end": 56,
+        "line_end": 55,
         "yaml_key_or_index": "lfe-maintainers.links[2].label_md_inline",
         "byte_span": [
-          2111,
-          2239
+          2132,
+          2172
         ]
       },
       "html_source": {
@@ -98475,12 +99497,14 @@
         "line_end": 56,
         "yaml_key_or_index": "lfe-maintainers.links[2].label_html",
         "byte_span": [
-          2173,
-          2239
+          2189,
+          2238
         ]
       },
       "occurrence_ids": {
-        "markdown": [],
+        "markdown": [
+          "occ-510f9600ead9beff"
+        ],
         "html": [
           "occ-825bae1a7b383cd8"
         ]
@@ -98501,8 +99525,8 @@
         "line_end": 12,
         "yaml_key_or_index": "items[0].cover_md",
         "byte_span": [
-          161,
-          333
+          172,
+          332
         ]
       },
       "html_source": {
@@ -98514,8 +99538,8 @@
         "line_end": 14,
         "yaml_key_or_index": "items[0].cover_html",
         "byte_span": [
-          333,
-          492
+          346,
+          491
         ]
       },
       "occurrence_ids": {
@@ -98544,8 +99568,8 @@
         "line_end": 16,
         "yaml_key_or_index": "items[0].description_md",
         "byte_span": [
-          492,
-          596
+          509,
+          595
         ]
       },
       "html_source": {
@@ -98557,8 +99581,8 @@
         "line_end": 18,
         "yaml_key_or_index": "items[0].description_html",
         "byte_span": [
-          596,
-          709
+          615,
+          708
         ]
       },
       "occurrence_ids": {
@@ -98581,8 +99605,8 @@
         "line_end": 27,
         "yaml_key_or_index": "items[1].cover_md",
         "byte_span": [
-          871,
-          1055
+          882,
+          1054
         ]
       },
       "html_source": {
@@ -98594,8 +99618,8 @@
         "line_end": 29,
         "yaml_key_or_index": "items[1].cover_html",
         "byte_span": [
-          1055,
-          1227
+          1068,
+          1226
         ]
       },
       "occurrence_ids": {
@@ -98624,8 +99648,8 @@
         "line_end": 31,
         "yaml_key_or_index": "items[1].description_md",
         "byte_span": [
-          1227,
-          1299
+          1244,
+          1298
         ]
       },
       "html_source": {
@@ -98637,8 +99661,8 @@
         "line_end": 33,
         "yaml_key_or_index": "items[1].description_html",
         "byte_span": [
-          1299,
-          1380
+          1318,
+          1379
         ]
       },
       "occurrence_ids": {
@@ -98661,8 +99685,8 @@
         "line_end": 42,
         "yaml_key_or_index": "items[2].cover_md",
         "byte_span": [
-          1549,
-          1744
+          1560,
+          1743
         ]
       },
       "html_source": {
@@ -98674,8 +99698,8 @@
         "line_end": 44,
         "yaml_key_or_index": "items[2].cover_html",
         "byte_span": [
-          1744,
-          1927
+          1757,
+          1926
         ]
       },
       "occurrence_ids": {
@@ -98704,8 +99728,8 @@
         "line_end": 46,
         "yaml_key_or_index": "items[2].description_md",
         "byte_span": [
-          1927,
-          1993
+          1944,
+          1992
         ]
       },
       "html_source": {
@@ -98717,8 +99741,8 @@
         "line_end": 48,
         "yaml_key_or_index": "items[2].description_html",
         "byte_span": [
-          1993,
-          2068
+          2012,
+          2067
         ]
       },
       "occurrence_ids": {
@@ -98741,8 +99765,8 @@
         "line_end": 57,
         "yaml_key_or_index": "items[3].cover_md",
         "byte_span": [
-          2254,
-          2421
+          2265,
+          2420
         ]
       },
       "html_source": {
@@ -98754,8 +99778,8 @@
         "line_end": 59,
         "yaml_key_or_index": "items[3].cover_html",
         "byte_span": [
-          2421,
-          2576
+          2434,
+          2575
         ]
       },
       "occurrence_ids": {
@@ -98784,8 +99808,8 @@
         "line_end": 61,
         "yaml_key_or_index": "items[3].description_md",
         "byte_span": [
-          2576,
-          2757
+          2593,
+          2756
         ]
       },
       "html_source": {
@@ -98797,8 +99821,8 @@
         "line_end": 63,
         "yaml_key_or_index": "items[3].description_html",
         "byte_span": [
-          2757,
-          2947
+          2776,
+          2946
         ]
       },
       "occurrence_ids": {
@@ -98821,8 +99845,8 @@
         "line_end": 1,
         "yaml_key_or_index": "title_md_inline",
         "byte_span": [
-          0,
-          69
+          17,
+          68
         ]
       },
       "html_source": {
@@ -98834,8 +99858,8 @@
         "line_end": 2,
         "yaml_key_or_index": "title_html",
         "byte_span": [
-          69,
-          133
+          81,
+          132
         ]
       },
       "occurrence_ids": {
@@ -98858,8 +99882,8 @@
         "line_end": 10,
         "yaml_key_or_index": "items[0].content_md",
         "byte_span": [
-          171,
-          485
+          184,
+          484
         ]
       },
       "html_source": {
@@ -98871,8 +99895,8 @@
         "line_end": 15,
         "yaml_key_or_index": "items[0].content_html",
         "byte_span": [
-          485,
-          830
+          500,
+          829
         ]
       },
       "occurrence_ids": {
@@ -98895,8 +99919,8 @@
         "line_end": 24,
         "yaml_key_or_index": "items[1].content_md",
         "byte_span": [
-          988,
-          1305
+          1001,
+          1304
         ]
       },
       "html_source": {
@@ -98908,8 +99932,8 @@
         "line_end": 29,
         "yaml_key_or_index": "items[1].content_html",
         "byte_span": [
-          1305,
-          1642
+          1320,
+          1641
         ]
       },
       "occurrence_ids": {
@@ -98936,8 +99960,8 @@
         "line_end": 37,
         "yaml_key_or_index": "items[2].content_md",
         "byte_span": [
-          1789,
-          2040
+          1802,
+          2039
         ]
       },
       "html_source": {
@@ -98949,8 +99973,8 @@
         "line_end": 41,
         "yaml_key_or_index": "items[2].content_html",
         "byte_span": [
-          2040,
-          2322
+          2055,
+          2321
         ]
       },
       "occurrence_ids": {
@@ -98973,8 +99997,8 @@
         "line_end": 50,
         "yaml_key_or_index": "items[3].content_md",
         "byte_span": [
-          2469,
-          2787
+          2482,
+          2786
         ]
       },
       "html_source": {
@@ -98986,8 +100010,8 @@
         "line_end": 55,
         "yaml_key_or_index": "items[3].content_html",
         "byte_span": [
-          2787,
-          3124
+          2802,
+          3123
         ]
       },
       "occurrence_ids": {
@@ -99014,8 +100038,8 @@
         "line_end": 3,
         "yaml_key_or_index": "items[0].prefix_md_inline",
         "byte_span": [
-          21,
-          85
+          41,
+          84
         ]
       },
       "html_source": {
@@ -99027,12 +100051,14 @@
         "line_end": 4,
         "yaml_key_or_index": "items[0].prefix_html",
         "byte_span": [
-          85,
-          158
+          100,
+          157
         ]
       },
       "occurrence_ids": {
-        "markdown": [],
+        "markdown": [
+          "occ-72dc407542ea3930"
+        ],
         "html": [
           "occ-4be31263c44e97ac"
         ]
@@ -99053,8 +100079,8 @@
         "line_end": 5,
         "yaml_key_or_index": "items[0].title_md_inline",
         "byte_span": [
-          158,
-          201
+          177,
+          200
         ]
       },
       "html_source": {
@@ -99066,8 +100092,8 @@
         "line_end": 6,
         "yaml_key_or_index": "items[0].title_html",
         "byte_span": [
-          201,
-          239
+          215,
+          238
         ]
       },
       "occurrence_ids": {
@@ -99090,8 +100116,8 @@
         "line_end": 9,
         "yaml_key_or_index": "items[1].title_md_inline",
         "byte_span": [
-          291,
-          404
+          310,
+          403
         ]
       },
       "html_source": {
@@ -99103,8 +100129,8 @@
         "line_end": 10,
         "yaml_key_or_index": "items[1].title_html",
         "byte_span": [
-          404,
-          512
+          418,
+          511
         ]
       },
       "occurrence_ids": {
@@ -99127,8 +100153,8 @@
         "line_end": 14,
         "yaml_key_or_index": "items[1].content_md",
         "byte_span": [
-          512,
-          661
+          525,
+          660
         ]
       },
       "html_source": {
@@ -99140,8 +100166,8 @@
         "line_end": 16,
         "yaml_key_or_index": "items[1].content_html",
         "byte_span": [
-          661,
-          798
+          676,
+          797
         ]
       },
       "occurrence_ids": {
@@ -99170,8 +100196,8 @@
         "line_end": 8,
         "yaml_key_or_index": "items[0].desc_md",
         "byte_span": [
-          99,
-          306
+          109,
+          305
         ]
       },
       "html_source": {
@@ -99183,8 +100209,8 @@
         "line_end": 12,
         "yaml_key_or_index": "items[0].desc_html",
         "byte_span": [
-          306,
-          522
+          318,
+          521
         ]
       },
       "occurrence_ids": {
@@ -99207,8 +100233,8 @@
         "line_end": 31,
         "yaml_key_or_index": "items[1].code_md",
         "byte_span": [
-          560,
-          791
+          570,
+          790
         ]
       },
       "html_source": {
@@ -99220,8 +100246,8 @@
         "line_end": 47,
         "yaml_key_or_index": "items[1].code_html",
         "byte_span": [
-          791,
-          1070
+          803,
+          1069
         ]
       },
       "occurrence_ids": {
@@ -99244,8 +100270,8 @@
         "line_end": 50,
         "yaml_key_or_index": "items[1].desc_md",
         "byte_span": [
-          1070,
-          1348
+          1080,
+          1347
         ]
       },
       "html_source": {
@@ -99257,8 +100283,8 @@
         "line_end": 53,
         "yaml_key_or_index": "items[1].desc_html",
         "byte_span": [
-          1348,
-          1657
+          1360,
+          1656
         ]
       },
       "occurrence_ids": {
@@ -99281,8 +100307,8 @@
         "line_end": 72,
         "yaml_key_or_index": "items[2].code_md",
         "byte_span": [
-          1698,
-          1972
+          1708,
+          1971
         ]
       },
       "html_source": {
@@ -99294,8 +100320,8 @@
         "line_end": 88,
         "yaml_key_or_index": "items[2].code_html",
         "byte_span": [
-          1972,
-          2288
+          1984,
+          2287
         ]
       },
       "occurrence_ids": {
@@ -99318,8 +100344,8 @@
         "line_end": 93,
         "yaml_key_or_index": "items[2].desc_md",
         "byte_span": [
-          2288,
-          2564
+          2298,
+          2563
         ]
       },
       "html_source": {
@@ -99331,8 +100357,8 @@
         "line_end": 98,
         "yaml_key_or_index": "items[2].desc_html",
         "byte_span": [
-          2564,
-          2849
+          2576,
+          2848
         ]
       },
       "occurrence_ids": {
@@ -99355,8 +100381,8 @@
         "line_end": 117,
         "yaml_key_or_index": "items[3].code_md",
         "byte_span": [
-          2879,
-          3350
+          2889,
+          3349
         ]
       },
       "html_source": {
@@ -99368,8 +100394,8 @@
         "line_end": 133,
         "yaml_key_or_index": "items[3].code_html",
         "byte_span": [
-          3350,
-          3860
+          3362,
+          3859
         ]
       },
       "occurrence_ids": {
@@ -99392,8 +100418,8 @@
         "line_end": 137,
         "yaml_key_or_index": "items[3].desc_md",
         "byte_span": [
-          3860,
-          4069
+          3870,
+          4068
         ]
       },
       "html_source": {
@@ -99405,8 +100431,8 @@
         "line_end": 141,
         "yaml_key_or_index": "items[3].desc_html",
         "byte_span": [
-          4069,
-          4287
+          4081,
+          4286
         ]
       },
       "occurrence_ids": {
@@ -99429,8 +100455,8 @@
         "line_end": 160,
         "yaml_key_or_index": "items[4].code_md",
         "byte_span": [
-          4317,
-          4717
+          4327,
+          4716
         ]
       },
       "html_source": {
@@ -99442,8 +100468,8 @@
         "line_end": 176,
         "yaml_key_or_index": "items[4].code_html",
         "byte_span": [
-          4717,
-          5159
+          4729,
+          5158
         ]
       },
       "occurrence_ids": {
@@ -99466,8 +100492,8 @@
         "line_end": 180,
         "yaml_key_or_index": "items[4].desc_md",
         "byte_span": [
-          5159,
-          5359
+          5169,
+          5358
         ]
       },
       "html_source": {
@@ -99479,8 +100505,8 @@
         "line_end": 184,
         "yaml_key_or_index": "items[4].desc_html",
         "byte_span": [
-          5359,
-          5579
+          5371,
+          5578
         ]
       },
       "occurrence_ids": {
@@ -99503,8 +100529,8 @@
         "line_end": 203,
         "yaml_key_or_index": "items[5].code_md",
         "byte_span": [
-          5607,
-          6011
+          5617,
+          6010
         ]
       },
       "html_source": {
@@ -99516,8 +100542,8 @@
         "line_end": 219,
         "yaml_key_or_index": "items[5].code_html",
         "byte_span": [
-          6011,
-          6460
+          6023,
+          6459
         ]
       },
       "occurrence_ids": {
@@ -99540,8 +100566,8 @@
         "line_end": 224,
         "yaml_key_or_index": "items[5].desc_md",
         "byte_span": [
-          6460,
-          6747
+          6470,
+          6746
         ]
       },
       "html_source": {
@@ -99553,8 +100579,8 @@
         "line_end": 229,
         "yaml_key_or_index": "items[5].desc_html",
         "byte_span": [
-          6747,
-          7054
+          6759,
+          7053
         ]
       },
       "occurrence_ids": {
@@ -99577,8 +100603,8 @@
         "line_end": 248,
         "yaml_key_or_index": "items[6].code_md",
         "byte_span": [
-          7087,
-          7687
+          7097,
+          7686
         ]
       },
       "html_source": {
@@ -99590,8 +100616,8 @@
         "line_end": 264,
         "yaml_key_or_index": "items[6].code_html",
         "byte_span": [
-          7687,
-          8368
+          7699,
+          8367
         ]
       },
       "occurrence_ids": {
@@ -99614,8 +100640,8 @@
         "line_end": 270,
         "yaml_key_or_index": "items[6].desc_md",
         "byte_span": [
-          8368,
-          8736
+          8378,
+          8735
         ]
       },
       "html_source": {
@@ -99627,8 +100653,8 @@
         "line_end": 276,
         "yaml_key_or_index": "items[6].desc_html",
         "byte_span": [
-          8736,
-          9113
+          8748,
+          9112
         ]
       },
       "occurrence_ids": {
@@ -99651,8 +100677,8 @@
         "line_end": 295,
         "yaml_key_or_index": "items[7].code_md",
         "byte_span": [
-          9135,
-          9546
+          9145,
+          9545
         ]
       },
       "html_source": {
@@ -99664,8 +100690,8 @@
         "line_end": 311,
         "yaml_key_or_index": "items[7].code_html",
         "byte_span": [
-          9546,
-          9990
+          9558,
+          9989
         ]
       },
       "occurrence_ids": {
@@ -99688,8 +100714,8 @@
         "line_end": 316,
         "yaml_key_or_index": "items[7].desc_md",
         "byte_span": [
-          9990,
-          10292
+          10000,
+          10291
         ]
       },
       "html_source": {
@@ -99701,8 +100727,8 @@
         "line_end": 321,
         "yaml_key_or_index": "items[7].desc_html",
         "byte_span": [
-          10292,
-          10603
+          10304,
+          10602
         ]
       },
       "occurrence_ids": {
@@ -99725,8 +100751,8 @@
         "line_end": 4,
         "yaml_key_or_index": "items[0].title_md_inline",
         "byte_span": [
-          38,
-          74
+          57,
+          73
         ]
       },
       "html_source": {
@@ -99738,8 +100764,8 @@
         "line_end": 5,
         "yaml_key_or_index": "items[0].title_html",
         "byte_span": [
-          74,
-          105
+          88,
+          104
         ]
       },
       "occurrence_ids": {
@@ -99762,8 +100788,8 @@
         "line_end": 6,
         "yaml_key_or_index": "items[0].icon_md_inline",
         "byte_span": [
-          105,
-          182
+          123,
+          181
         ]
       },
       "html_source": {
@@ -99775,12 +100801,14 @@
         "line_end": 7,
         "yaml_key_or_index": "items[0].icon_html",
         "byte_span": [
-          182,
-          268
+          195,
+          267
         ]
       },
       "occurrence_ids": {
-        "markdown": [],
+        "markdown": [
+          "occ-1706d4730d8d7bf4"
+        ],
         "html": [
           "occ-1a40f6f09d7c6b21"
         ]
@@ -99801,8 +100829,8 @@
         "line_end": 14,
         "yaml_key_or_index": "items[0].content_md",
         "byte_span": [
-          268,
-          603
+          281,
+          602
         ]
       },
       "html_source": {
@@ -99814,8 +100842,8 @@
         "line_end": 22,
         "yaml_key_or_index": "items[0].content_html",
         "byte_span": [
-          603,
-          993
+          618,
+          992
         ]
       },
       "occurrence_ids": {
@@ -99838,8 +100866,8 @@
         "line_end": 26,
         "yaml_key_or_index": "items[1].title_md_inline",
         "byte_span": [
-          1046,
-          1088
+          1065,
+          1087
         ]
       },
       "html_source": {
@@ -99851,8 +100879,8 @@
         "line_end": 27,
         "yaml_key_or_index": "items[1].title_html",
         "byte_span": [
-          1088,
-          1125
+          1102,
+          1124
         ]
       },
       "occurrence_ids": {
@@ -99875,8 +100903,8 @@
         "line_end": 28,
         "yaml_key_or_index": "items[1].icon_md_inline",
         "byte_span": [
-          1125,
-          1178
+          1143,
+          1177
         ]
       },
       "html_source": {
@@ -99888,8 +100916,8 @@
         "line_end": 29,
         "yaml_key_or_index": "items[1].icon_html",
         "byte_span": [
-          1178,
-          1226
+          1191,
+          1225
         ]
       },
       "occurrence_ids": {
@@ -99912,8 +100940,8 @@
         "line_end": 38,
         "yaml_key_or_index": "items[1].content_md",
         "byte_span": [
-          1226,
-          1523
+          1239,
+          1522
         ]
       },
       "html_source": {
@@ -99925,8 +100953,8 @@
         "line_end": 48,
         "yaml_key_or_index": "items[1].content_html",
         "byte_span": [
-          1523,
-          1900
+          1538,
+          1899
         ]
       },
       "occurrence_ids": {
@@ -99953,8 +100981,8 @@
         "line_end": 52,
         "yaml_key_or_index": "items[2].title_md_inline",
         "byte_span": [
-          1950,
-          2037
+          1969,
+          2036
         ]
       },
       "html_source": {
@@ -99966,12 +100994,14 @@
         "line_end": 53,
         "yaml_key_or_index": "items[2].title_html",
         "byte_span": [
-          2037,
-          2128
+          2051,
+          2127
         ]
       },
       "occurrence_ids": {
-        "markdown": [],
+        "markdown": [
+          "occ-9a07d47dcef30335"
+        ],
         "html": [
           "occ-9852a46c71a5002d"
         ]
@@ -99992,8 +101022,8 @@
         "line_end": 54,
         "yaml_key_or_index": "items[2].icon_md_inline",
         "byte_span": [
-          2128,
-          2190
+          2146,
+          2189
         ]
       },
       "html_source": {
@@ -100005,8 +101035,8 @@
         "line_end": 55,
         "yaml_key_or_index": "items[2].icon_html",
         "byte_span": [
-          2190,
-          2247
+          2203,
+          2246
         ]
       },
       "occurrence_ids": {
@@ -100029,8 +101059,8 @@
         "line_end": 63,
         "yaml_key_or_index": "items[2].content_md",
         "byte_span": [
-          2247,
-          2476
+          2260,
+          2475
         ]
       },
       "html_source": {
@@ -100042,8 +101072,8 @@
         "line_end": 72,
         "yaml_key_or_index": "items[2].content_html",
         "byte_span": [
-          2476,
-          2767
+          2491,
+          2766
         ]
       },
       "occurrence_ids": {
@@ -100066,8 +101096,8 @@
         "line_end": 76,
         "yaml_key_or_index": "items[3].title_md_inline",
         "byte_span": [
-          2817,
-          2849
+          2836,
+          2848
         ]
       },
       "html_source": {
@@ -100079,8 +101109,8 @@
         "line_end": 77,
         "yaml_key_or_index": "items[3].title_html",
         "byte_span": [
-          2849,
-          2876
+          2863,
+          2875
         ]
       },
       "occurrence_ids": {
@@ -100103,8 +101133,8 @@
         "line_end": 78,
         "yaml_key_or_index": "items[3].icon_md_inline",
         "byte_span": [
-          2876,
-          2929
+          2894,
+          2928
         ]
       },
       "html_source": {
@@ -100116,8 +101146,8 @@
         "line_end": 79,
         "yaml_key_or_index": "items[3].icon_html",
         "byte_span": [
-          2929,
-          2977
+          2942,
+          2976
         ]
       },
       "occurrence_ids": {
@@ -100140,8 +101170,8 @@
         "line_end": 86,
         "yaml_key_or_index": "items[3].content_md",
         "byte_span": [
-          2977,
-          3325
+          2990,
+          3324
         ]
       },
       "html_source": {
@@ -100153,8 +101183,8 @@
         "line_end": 94,
         "yaml_key_or_index": "items[3].content_html",
         "byte_span": [
-          3325,
-          3728
+          3340,
+          3727
         ]
       },
       "occurrence_ids": {
@@ -100177,8 +101207,8 @@
         "line_end": 7,
         "yaml_key_or_index": "summary.content_md",
         "byte_span": [
-          121,
-          319
+          134,
+          318
         ]
       },
       "html_source": {
@@ -100190,8 +101220,8 @@
         "line_end": 11,
         "yaml_key_or_index": "summary.content_html",
         "byte_span": [
-          319,
-          526
+          334,
+          525
         ]
       },
       "occurrence_ids": {
@@ -100214,8 +101244,8 @@
         "line_end": 11,
         "yaml_key_or_index": "items[0].content_md",
         "byte_span": [
-          150,
-          311
+          163,
+          310
         ]
       },
       "html_source": {
@@ -100227,8 +101257,8 @@
         "line_end": 13,
         "yaml_key_or_index": "items[0].content_html",
         "byte_span": [
-          311,
-          460
+          326,
+          459
         ]
       },
       "occurrence_ids": {
@@ -100257,8 +101287,8 @@
         "line_end": 26,
         "yaml_key_or_index": "items[1].content_md",
         "byte_span": [
-          746,
-          909
+          759,
+          908
         ]
       },
       "html_source": {
@@ -100270,8 +101300,8 @@
         "line_end": 28,
         "yaml_key_or_index": "items[1].content_html",
         "byte_span": [
-          909,
-          1060
+          924,
+          1059
         ]
       },
       "occurrence_ids": {
@@ -100300,8 +101330,8 @@
         "line_end": 41,
         "yaml_key_or_index": "items[2].content_md",
         "byte_span": [
-          1375,
-          1546
+          1388,
+          1545
         ]
       },
       "html_source": {
@@ -100313,8 +101343,8 @@
         "line_end": 43,
         "yaml_key_or_index": "items[2].content_html",
         "byte_span": [
-          1546,
-          1705
+          1561,
+          1704
         ]
       },
       "occurrence_ids": {
@@ -100343,8 +101373,8 @@
         "line_end": 56,
         "yaml_key_or_index": "items[3].content_md",
         "byte_span": [
-          2002,
-          2161
+          2015,
+          2160
         ]
       },
       "html_source": {
@@ -100356,8 +101386,8 @@
         "line_end": 58,
         "yaml_key_or_index": "items[3].content_html",
         "byte_span": [
-          2161,
-          2308
+          2176,
+          2307
         ]
       },
       "occurrence_ids": {
@@ -100386,8 +101416,8 @@
         "line_end": 71,
         "yaml_key_or_index": "items[4].content_md",
         "byte_span": [
-          2617,
-          2774
+          2630,
+          2773
         ]
       },
       "html_source": {
@@ -100399,8 +101429,8 @@
         "line_end": 73,
         "yaml_key_or_index": "items[4].content_html",
         "byte_span": [
-          2774,
-          2919
+          2789,
+          2918
         ]
       },
       "occurrence_ids": {
@@ -100429,8 +101459,8 @@
         "line_end": 86,
         "yaml_key_or_index": "items[5].content_md",
         "byte_span": [
-          3231,
-          3390
+          3244,
+          3389
         ]
       },
       "html_source": {
@@ -100442,8 +101472,8 @@
         "line_end": 88,
         "yaml_key_or_index": "items[5].content_html",
         "byte_span": [
-          3390,
-          3537
+          3405,
+          3536
         ]
       },
       "occurrence_ids": {
@@ -100457,6 +101487,142 @@
         ]
       },
       "relationship": "sibling field names are present in source; values are recorded separately and are not asserted equal or generated-identical."
+    }
+  ],
+  "feed_metadata": [
+    {
+      "retired_occurrence_id": "occ-correct-8732e6db31be0587",
+      "field": "version",
+      "role": "technical_identifier",
+      "literal_source_value": "https://jsonfeed.org/version/1.1",
+      "source": {
+        "repository_id": "website",
+        "path": "src/blog/feed.liquid",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "4241258cedf78937f40e7c87f7d4c28229b97a7dacd5d8be78f35ac45b34a4e0",
+        "line_start": 9,
+        "line_end": 9,
+        "yaml_key_or_index": "version",
+        "byte_span": [
+          109,
+          141
+        ]
+      },
+      "reason": "JSON Feed schema/content metadata is not a reader navigation resource."
+    },
+    {
+      "retired_occurrence_id": "occ-correct-418aecc771e829a6",
+      "field": "title",
+      "role": "feed_metadata",
+      "literal_source_value": "LFE Blog",
+      "source": {
+        "repository_id": "website",
+        "path": "src/blog/feed.liquid",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "4241258cedf78937f40e7c87f7d4c28229b97a7dacd5d8be78f35ac45b34a4e0",
+        "line_start": 10,
+        "line_end": 10,
+        "yaml_key_or_index": "title",
+        "byte_span": [
+          156,
+          164
+        ]
+      },
+      "reason": "JSON Feed schema/content metadata is not a reader navigation resource."
+    },
+    {
+      "retired_occurrence_id": "occ-correct-95cf7bcac34d6e68",
+      "field": "title",
+      "role": "feed_metadata",
+      "literal_source_value": "{{ post.title | escape }}",
+      "source": {
+        "repository_id": "website",
+        "path": "src/blog/feed.liquid",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "4241258cedf78937f40e7c87f7d4c28229b97a7dacd5d8be78f35ac45b34a4e0",
+        "line_start": 17,
+        "line_end": 17,
+        "yaml_key_or_index": "title",
+        "byte_span": [
+          470,
+          495
+        ]
+      },
+      "reason": "JSON Feed schema/content metadata is not a reader navigation resource."
+    },
+    {
+      "retired_occurrence_id": "occ-correct-a3d20c5c7cf45122",
+      "field": "date_published",
+      "role": "feed_metadata",
+      "literal_source_value": "{{ post.published_date | date: \"%Y-%m-%dT%H:%M:%SZ\" }}",
+      "source": {
+        "repository_id": "website",
+        "path": "src/blog/feed.liquid",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "4241258cedf78937f40e7c87f7d4c28229b97a7dacd5d8be78f35ac45b34a4e0",
+        "line_start": 18,
+        "line_end": 18,
+        "yaml_key_or_index": "date_published",
+        "byte_span": [
+          523,
+          577
+        ]
+      },
+      "reason": "JSON Feed schema/content metadata is not a reader navigation resource."
+    },
+    {
+      "retired_occurrence_id": "occ-correct-aca330bb92e1ac4c",
+      "field": "summary",
+      "role": "feed_metadata",
+      "literal_source_value": "{{ post.description | escape }}",
+      "source": {
+        "repository_id": "website",
+        "path": "src/blog/feed.liquid",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "4241258cedf78937f40e7c87f7d4c28229b97a7dacd5d8be78f35ac45b34a4e0",
+        "line_start": 19,
+        "line_end": 19,
+        "yaml_key_or_index": "summary",
+        "byte_span": [
+          598,
+          629
+        ]
+      },
+      "reason": "JSON Feed schema/content metadata is not a reader navigation resource."
+    }
+  ],
+  "retired_resource_occurrences": [
+    {
+      "occurrence_id": "occ-correct-8732e6db31be0587",
+      "replacement": "feed_metadata",
+      "reason": "JSON Feed schema/content metadata is not a reader navigation resource."
+    },
+    {
+      "occurrence_id": "occ-correct-418aecc771e829a6",
+      "replacement": "feed_metadata",
+      "reason": "JSON Feed schema/content metadata is not a reader navigation resource."
+    },
+    {
+      "occurrence_id": "occ-correct-95cf7bcac34d6e68",
+      "replacement": "feed_metadata",
+      "reason": "JSON Feed schema/content metadata is not a reader navigation resource."
+    },
+    {
+      "occurrence_id": "occ-correct-a3d20c5c7cf45122",
+      "replacement": "feed_metadata",
+      "reason": "JSON Feed schema/content metadata is not a reader navigation resource."
+    },
+    {
+      "occurrence_id": "occ-correct-aca330bb92e1ac4c",
+      "replacement": "feed_metadata",
+      "reason": "JSON Feed schema/content metadata is not a reader navigation resource."
+    }
+  ],
+  "retired_consumer_claims": [
+    {
+      "retired_consumer_id": "consumer-621b5cb7daec4aab",
+      "canonical_consumer_id": "consumer-603472390ecb9b5f",
+      "reason": "duplicate aggregate blog source-to-resolver claim; distinct generated and direct access edges remain separately required."
     }
   ]
 }
