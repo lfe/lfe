@@ -46,3 +46,7 @@ The seven authorized paths are `project099-site-ia/arc01-evidence-baseline/slice
 
 
 Current register counts after reconciliation: 2839 keyed file records, 159 content units, 159 route records, 294 anchors/headings, 135 fragments, 1423 resource occurrences, and 801 exact destination groups. Material parser gaps remain deferred with named owners and re-entry conditions.
+
+## Commit receipt
+
+The seven-path evidence package was committed as `b43acb739220ae151be752281a5d6d2cbf1ac79a` (`docs(project099): inventory Slice02 local sources`). `git diff-tree --no-commit-id --name-only -r b43acb7` returned exactly the seven paths listed above. Immediately after that commit, `git status --porcelain=v1 -uall` was empty and planning HEAD was `b43acb739220ae151be752281a5d6d2cbf1ac79a`. This receipt is recorded in a follow-up commit limited to this closing report; the seven evidence paths remain the complete deliverable allowlist. No source checkout, network, build, test, generation, push, or publication operation was performed.
