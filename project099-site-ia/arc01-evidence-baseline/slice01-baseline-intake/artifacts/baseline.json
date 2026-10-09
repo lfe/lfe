@@ -1,15 +1,13 @@
 {
-  "assignment": {
-    "prompt_path": "project099-site-ia/arc01-evidence-baseline/slice01-baseline-intake/cc-prompt.md",
-    "captured_at": "2026-10-09T04:45:49Z",
-    "planning": {
-      "root": "/Users/oubiwann/lab/lfe/lfe/.worktrees/planning",
-      "head": "e8f4c394df1c5a902086fcb45f3249a52bc6c453",
-      "branch": "planning",
-      "detached": false,
-      "prompt_opening_commit": "e8f4c394df1c5a902086fcb45f3249a52bc6c453",
-      "prompt_sha256": "ac2b9a6c59bc318167e39103ec1e1ff1190efef9fd056e63973c4ba15890aeee"
-    }
+  "assignment": "arc01-evidence-baseline/slice01-baseline-intake/cc-prompt.md",
+  "captured_at": "2026-10-09T04:45:49Z",
+  "planning": {
+    "root": "/Users/oubiwann/lab/lfe/lfe/.worktrees/planning",
+    "head": "e8f4c394df1c5a902086fcb45f3249a52bc6c453",
+    "branch": "planning",
+    "detached": false,
+    "prompt_opening_commit": "e8f4c394df1c5a902086fcb45f3249a52bc6c453",
+    "prompt_sha256": "ac2b9a6c59bc318167e39103ec1e1ff1190efef9fd056e63973c4ba15890aeee"
   },
   "inputs": [
     {

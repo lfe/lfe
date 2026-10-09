@@ -70,3 +70,108 @@ Performed checks:
 ## Re-entry and limits
 
 This intake does not verify live URLs, the complete site route set, deployed source provenance, search effectiveness, rendered chapter completeness, channel activity, or any compatibility combination. Arc01 Slice02 owns the declared local content/route/anchor inventory; Slice03 owns targeted endpoint and source/rendered readiness checks; Slice04 needs the actual technical-failure/environment packet; Slice05 reconciles the accepted inputs and handoffs. Independent CDC reproduction remains required before any row is accepted.
+
+## Iteration01 correction intake and evidence — 9 October 2026
+
+**Active assignment:** `arc01-evidence-baseline/slice01-baseline-intake/cc-prompt-iteration01.md`.
+Its exact-path Git history resolves to opening commit
+`7f2b47f24873211c3eca66702b5a1e81ccec4897`; SHA-256 of the committed/working
+prompt is `f3160c0c43533cf8fd93686cc53665cfb00e7ce0d94a275780734be4cfebc7b2`.
+Planning was at that same HEAD on branch `planning` at correction intake. This
+active assignment is distinct from the original snapshot identity retained in
+the JSON: that `assignment` identifies `cc-prompt.md`, while `captured_at`
+and `planning` remain the original 2026-10-09T04:45:49Z snapshot metadata and
+e8f4c39 opening state. The iteration assignment and its intake belong here and
+in the dated close section; no snapshot was recaptured or relabelled.
+
+### Required reading and data coverage
+
+| Required item | Extent read / query coverage |
+|---|---|
+| Iteration01 prompt | Full, lines 1–138; current committed opening at 7f2b47f |
+| `slice-plan.md`, `ledger.md`, `cdc-verification.md`, `AGENTS.md` | Full current committed opening: 178, 21, 119, and 24 lines |
+| Original `cc-prompt.md` | Required sections: Assignment and authority (1–64); Binding scope and preservation (65–137); Evidence representation and construction (138–194); Applied guidance and checks (195–225); Write allowlist, commit and return (226–257); opening e8f4c39 |
+| `project-plan.md` | Workflow, authority, and review (390–412); Current state (455–463) |
+| Arc01 `arc-plan.md` | Capability and authority (16–28); Scope and boundaries (29–50); Slice breakdown (51–68); Workflow and current assignment (119–139) |
+| `baseline-summary.md`, `execution.md`, `closing-report.md` | Full current files compared with ddeecb31: 38, 72, and 55 lines |
+| JSON data | Full parsed objects, every top-level key/type and complete value comparison with ddeecb31 for both JSON files |
+| Work-verification guide | Separation Rule; Assigned Reviewer Slice Verification; Evidence During Correction Review |
+| Project-management wayfinder | Notes for Codex and Expedited Mode |
+| Testing guide | Gate Selection, Proportionate Proof, Gate Evidence |
+| Five packet inputs and eight repository roots/eight witnesses | Full digest and Git projection comparisons, no new content investigation |
+
+The baseline candidate read used `git show ddeecb31:<worktree-relative-artifact-path>`;
+both current parsed objects were exactly equal to the candidate before repair.
+The source catalogue was queried at `baseline.json#/source_catalogue` (43 LFE,
+61 Erlang); assessments/questions were queried in `findings.json` (29 and 16).
+No inherited evidence row was re-extracted or rewritten.
+
+### Correction, checks, failures, and results
+
+R1 was applied with a Python standard-library JSON transformation: the original
+nested baseline assignment's `prompt_path`, `captured_at`, and `planning` were
+moved to the required top-level `assignment`, `captured_at`, and `planning`
+fields. The resulting ordered top-level keys are exactly `assignment`,
+`captured_at`, `planning`, `inputs`, `repositories`, `tracked_src`,
+`source_witnesses`, and `source_catalogue`. All five non-metadata baseline
+payload values compare equal as complete parsed values to ddeecb31. In
+`findings.json`, only `assignment` changed to the same original project-relative
+prompt path; `assessments` and `questions` compare completely equal to the
+predecessor. Both assignment values now equal
+`arc01-evidence-baseline/slice01-baseline-intake/cc-prompt.md`.
+
+The same ad hoc shape/path predicate was applied to the predecessor and repaired
+baseline: the predecessor fails because its assignment is nested and prefixed;
+the repaired object passes with the required top-level timestamp/planning values.
+The predecessor findings assignment fails the path predicate and the repaired
+findings object passes. The predecessor is the actual negative control; no
+synthetic mutation suite was run. Totals remain 29 assessments, 16 questions,
+104 source-register objects (43/61), and 385 tracked website paths partitioned
+124/27/12/35/187. Complete-value equality, not these counts alone, was checked.
+
+R2 was corrected in the active ledger evidence and summary handoff. Source
+register provenance now resolves to `artifacts/baseline.json#/source_catalogue`;
+assessment/question provenance resolves to `artifacts/findings.json`; the
+canonical report resolves to slice-root `closing-report.md`. The initial close
+section remains labelled historical, including its failed initial pointer, and
+this correction section records the current paths.
+
+Preservation and drift commands/results:
+
+- For each of five `baseline.json` input paths, SHA-256 of current working bytes
+  equals the original recorded digest and SHA-256 of
+  `git show 09bae67:project099-site-ia/<path>`; recorded byte and line counts
+  also match. All five pass.
+- For all eight baseline repository roots, reran `rev-parse --show-toplevel`,
+  `rev-parse HEAD`, `symbolic-ref --short -q HEAD`, and
+  `status --porcelain=v1 -uall`. Every root, HEAD, branch, and complete status
+  path projection matches the original baseline. The website remains the same
+  dirty checkout with 15 status entries; no concurrent source drift was found.
+- Recomputed full-file SHA-256 for all eight website witnesses and compared
+  each with both its recorded working digest and recorded HEAD blob. All working
+  digests match; seven match HEAD and `tools/lfesite/src/cmd/build.rs` remains
+  the one recorded working/HEAD difference. Source checkout files were not
+  modified.
+- Both issued prompts, CDC verification, slice/arc/project plans, and AGENTS
+  remain unchanged. The initial prompt remains at its e8f4c39 opening; the
+  iteration prompt remains at its 7f2b47f opening.
+
+Two preliminary read-only input-object queries failed due to path construction:
+one used a project-relative object path without the repository's
+`project099-site-ia/` prefix; the next incorrectly tried that prefix after the
+`-C` root had already been set to the project directory. Both returned Git exit
+128 and changed no files. The corrected command used the planning worktree root
+and `09bae67:project099-site-ia/<input-path>`; all five comparisons passed. A
+first aggregate status-comparison display marked the website line array false
+due to a comparison-script projection mismatch; direct exact-list comparison
+then confirmed all 15 recorded/current status lines match. No source change or
+baseline rewrite resulted from these preliminary attempts.
+
+Validation at correction close: both JSON files parse with Python's standard
+`json` parser; the explicit repair predicates pass and their predecessor
+controls fail; the five input hashes, eight root projections, eight witness
+hashes, full JSON preservation comparisons, counts, and corrected references
+pass. Local Markdown links in changed Markdown, trailing whitespace, final
+newlines, exact changed-path allowlist, and `git diff --check` are checked after
+all edits. No build, network check, install, source test, or new content
+investigation was run; these remain outside this metadata/reference correction.

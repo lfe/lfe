@@ -1,5 +1,10 @@
 # Arc01 Slice01 — proposed close
 
+**Historical initial pass — 9 October 2026.** The original row walk and artifact
+inventory below are retained as issued. Their S1-04/S1-08 pointers describe the
+initial attempt and are superseded by the dated iteration01 correction appended
+after this section.
+
 **Assignment:** `arc01-evidence-baseline/slice01-baseline-intake/cc-prompt.md`, initial pass
 **Prompt opening commit/digest:** `e8f4c394df1c5a902086fcb45f3249a52bc6c453` / `ac2b9a6c59bc318167e39103ec1e1ff1190efef9fd056e63973c4ba15890aeee`
 **Planning head at intake:** `e8f4c394df1c5a902086fcb45f3249a52bc6c453` on `planning`
@@ -53,3 +58,78 @@ The saved reports provide stable row identities and source locators, allowing ex
 - **Other arc handoffs:** compatibility/support questions route to Arc02; release/artifact/deployment identity to Arc03; IA choices to Arc04; interaction/accessibility evaluation to Arcs05/06; Cobalt source/data ownership to Arc07; learning/docs readiness to Arc08; acquisition journeys to Arc09; resources/community/blog to Arc10; legacy preservation/search to Arc11. These are proposed owners, not policy decisions or authorization to expand another arc.
 
 CDC's independent review and acceptance remain required. No `cdc-verification.md` was created, and no arc or project closure is claimed.
+
+## Iteration01 correction — 9 October 2026
+
+**Active assignment:** `arc01-evidence-baseline/slice01-baseline-intake/cc-prompt-iteration01.md`,
+opened at `7f2b47f24873211c3eca66702b5a1e81ccec4897` with SHA-256
+`f3160c0c43533cf8fd93686cc53665cfb00e7ce0d94a275780be4cfebc7b2`.
+Predecessor: `cc-prompt.md`, opened at e8f4c39. Corrected candidate:
+`ddeecb31abb454d5619f74a178c3d0121024a35e`. This section records the doer
+correction only; CDC acceptance remains pending.
+
+### Changed-path inventory
+
+1. `project099-site-ia/arc01-evidence-baseline/slice01-baseline-intake/artifacts/baseline.json`
+2. `project099-site-ia/arc01-evidence-baseline/slice01-baseline-intake/artifacts/findings.json`
+3. `project099-site-ia/arc01-evidence-baseline/slice01-baseline-intake/artifacts/baseline-summary.md`
+4. `project099-site-ia/arc01-evidence-baseline/slice01-baseline-intake/artifacts/execution.md`
+5. `project099-site-ia/arc01-evidence-baseline/slice01-baseline-intake/ledger.md`
+6. `project099-site-ia/arc01-evidence-baseline/slice01-baseline-intake/closing-report.md`
+
+### R1/R2 and row dispositions
+
+R1 moves the original assignment identity to the required project-relative
+string and restores its unchanged captured timestamp and planning snapshot as
+top-level baseline fields. Findings changes only the assignment string. All
+other parsed JSON values and their array order are preserved against ddeecb31.
+R2 points source registers to `baseline.json#/source_catalogue`, findings
+assessments/questions to `findings.json`, and the canonical close report to
+`closing-report.md` at the slice root. The first close remains explicitly
+historical; this section is the current correction record.
+
+| ID | Iteration01 disposition | Evidence and status |
+|---|---|---|
+| S1-01 | Retained accepted | CDC's initial-pass reproduction remains applicable: five packet hashes/objects. Iteration01 recomputed all five and found them unchanged. Status `done` retained. |
+| S1-02 | Proposed complete | Original eight repository HEAD/branch/status projections and planning snapshot remain intact and were rechecked. R1 shape/identity now passes the predecessor-negative-control predicate. Status `open`, attested pending CDC. |
+| S1-03 | Retained accepted | CDC's exact 385-path population and 124/27/12/35/187 partition reproduction remains applicable; JSON payload is unchanged. Status `done` retained. |
+| S1-04 | Proposed complete | All 43/61 exact source objects remain value-identical in `baseline.json#/source_catalogue`; ledger now points there. Status `open`, attested pending CDC. |
+| S1-05 | Retained accepted | CDC's 29 assessment and 16 question reproduction remains applicable; findings payload is unchanged. Status `done` retained. |
+| S1-06 | Retained accepted | CDC's content-family/source-boundary review remains applicable; summary provenance references were corrected and receive fresh link/reference checks. Status `done` retained. |
+| S1-07 | Proposed complete | Required correction reads, queries, predecessor comparison, real negative control, preservation/drift, failure and limit records are in `artifacts/execution.md`. Status `open`, attested pending CDC. |
+| S1-08 | Proposed complete | This dated row walk and six-path inventory, current references, preserved prompts/parent records, and scoped delivery evidence are recorded. Status `open`, attested pending CDC. |
+
+### Validation and limits
+
+Five pinned inputs match their original SHA-256 values and planning objects;
+eight source roots match original HEAD/branch/status projections; eight witness
+working digests match, with the same seven HEAD matches and the recorded
+`build.rs` working/HEAD difference. Baseline and findings parsed values preserve
+every unaffected predecessor value. Totals remain 29/16/104/385. The actual
+predecessor fails and repaired values pass the same metadata/path predicates.
+Corrected current references and local links resolve. Whitespace, newline,
+allowlist, and `git diff --check` results are recorded in `artifacts/execution.md`.
+
+This correction does not refresh inherited external claims, inspect content
+again, run builds/tests/network checks, change source repositories, close Slice01
+or Arc01, or authorize Slice02. Four rows retain the prior independent CDC
+acceptance; the four corrected rows are proposed complete by CC and remain open
+until CDC freshly reviews R1/R2 and the scoped delta. Initial failed pointers and
+attempts remain in the historical initial-pass material and execution record.
+
+### What Worked
+
+Whole-object comparisons made the metadata move falsifiable while protecting the
+captured population and ordering. Keeping source-register provenance with the
+baseline and assessment/question provenance with findings makes the two evidence
+roles explicit. Comparing source state against the original snapshot showed no
+new drift, so retained CDC evidence remains applicable to the unchanged rows.
+
+### Bubble-up to Arc01
+
+Slice02 remains gated on CDC acceptance of Slice01 and should use the preserved
+385-path denominator while inspecting actual Cobalt/wrapper route semantics.
+Slice03 retains the inherited URL and source/rendered readiness checks; Slice04
+still needs the missing runtime-failure/environment packet; Slice05 reconciles
+the accepted evidence and explicit gaps. No Arc01 capability, scope, sequence,
+or ledger criterion change is indicated. Arc01 remains active and open.
