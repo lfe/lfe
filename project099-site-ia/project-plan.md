@@ -1,8 +1,8 @@
 ---
 project: project099-site-ia
 title: LFE site information architecture and supporting foundations
-version: "1.1"
-date: 2026-10-08
+version: "1.2"
+date: 2026-10-09
 status: active
 depends-on: []
 blocks: []
@@ -17,14 +17,16 @@ mode: expedited
 
 # Project 099 — LFE site IA
 
-**Approved roadmap, v1.1 — Arc01 opened.** Duncan approved the initial roadmap
+**Approved roadmap, v1.2 — Arc01 active; Slice01 correction issued.** Duncan approved the initial roadmap
 in this chat and requested Arc01, its first slice, and Expedited Mode on
 8 October 2026. This supersedes v1.0's draft-for-review status. The plan covers the
 full body of work described in the handoff, including the compatibility,
 distribution, design, and validation tracks that support the website. Those
 tracks keep their own decisions and evidence; the IA proposal does not decide
-them. The current assignment is to open the evidence baseline and prepare its
-first CC assignment; no website or compiler implementation is authorized by it.
+them. The current assignment is a bounded Slice01 metadata/reference correction after
+initial evidence delivery and independent review. Was: opening the baseline and
+preparing its first CC assignment. No website or compiler implementation is
+authorized by the current evidence work.
 
 Project expansion is expected and is not considered scope creep. This is a
 living roadmap: discoveries and discussion can add, split, combine, or reorder
@@ -452,11 +454,15 @@ accepted amendment, never retrospective criterion softening.
 
 ## Current state
 
-The roadmap is approved, Arc01 is active, and Slice01 is ready for execution in
-a separate CC context through the Operator. Its current assignment is
-`arc01-evidence-baseline/slice01-baseline-intake/cc-prompt.md`. No implementation,
-slice completion, arc composition, or project outcome has been accepted. All
-project ledger rows remain open. The audits and proposal remain preserved inputs.
+The roadmap is approved and Arc01 is active. Slice01's initial evidence delivery
+`ddeecb31abb454d5619f74a178c3d0121024a35e` has been independently reviewed:
+four rows accepted; R1 metadata shape/identity and R2 evidence references require
+a bounded correction. Its current CC assignment through the Operator is
+`arc01-evidence-baseline/slice01-baseline-intake/cc-prompt-iteration01.md`.
+Was: Slice01 ready for initial execution. Full slice completion, arc composition
+and project outcome remain unaccepted; Slice02 waits on the existing acceptance
+gate. All project ledger rows remain open. The audits/proposal and initial issued
+prompt remain preserved. See the Slice01 CDC verification record for exact evidence.
 
 The prior first-review questions are resolved for the initial roadmap by Duncan's
 approval. Navigation/design choices remain open, and expansion remains expected.
@@ -467,3 +473,4 @@ approval. Navigation/design choices remain open, and expansion remains expected.
 | --- | --- | --- | --- | --- |
 | 1.0 | 2026-10-08 | Duncan's request in the local desktop chat; inherited first-steps packet | Initial twelve-arc roadmap covering all seven work groups; reuse the established planning home; add project composition ledger; make expansion an expected, tracked part of planning | Draft awaiting Duncan's review |
 | 1.1 | 2026-10-08 | Duncan's explicit approval, Arc01/Slice01 opening request, and Expedited Mode selection in this chat | Record roadmap approval; open Arc01 and its first bounded evidence slice; enable expedited commit/close/advance behaviour with unchanged review and approval gates | Roadmap approved; opening authorized; no delivery acceptance implied |
+| 1.2 | 2026-10-09 | Arc01 Slice01 initial delivery and CDC review | Record independently reproduced intake and partial row acceptance; issue metadata/reference correction iteration01, retain Slice02 acceptance gate and all original roadmap scope | Routine review/status update under approved Expedited Mode; no design or acceptance amendment |

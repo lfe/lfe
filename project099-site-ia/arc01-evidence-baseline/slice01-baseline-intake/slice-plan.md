@@ -2,9 +2,9 @@
 project: project099-site-ia
 arc: arc01-evidence-baseline
 slice: slice01-baseline-intake
-version: "1.0"
-date: 2026-10-08
-status: ready-for-cc
+version: "1.1"
+date: 2026-10-09
+status: correction-required
 depends-on: []
 workflow: two-contributor
 mode: expedited
@@ -20,9 +20,15 @@ numbered unresolved questions, with explicit provenance and next-check ownership
 This is an evidence-only slice. Duncan's roadmap approval and Arc01/Slice01
 opening request authorize this work; no public architecture/policy is selected.
 
-Parent contracts: [project-plan.md](../../project-plan.md) v1.1,
-[arc-plan.md](../arc-plan.md) v1.0, and this sibling [ledger.md](ledger.md).
-Current assignment: [cc-prompt.md](cc-prompt.md), initial pass. CDC is Sofie in
+Parent contracts: [project-plan.md](../../project-plan.md) v1.2,
+[arc-plan.md](../arc-plan.md) v1.1, and this sibling [ledger.md](ledger.md).
+Was: project v1.1 and arc v1.0 at opening; acceptance criteria are unchanged.
+Current assignment: [cc-prompt-iteration01.md](cc-prompt-iteration01.md), first correction pass.
+Was: [cc-prompt.md](cc-prompt.md), initial pass; returned at
+`ddeecb31abb454d5619f74a178c3d0121024a35e` and reviewed on 9 October 2026.
+[CDC verification](cdc-verification.md) accepts S1-01/S1-03/S1-05/S1-06;
+R1 metadata shape/identity and R2 evidence pointers keep the other four rows open.
+CDC is Sofie in
 the desktop planning chat; CC executes in a separate Operator-selected context.
 The prompt is issued to Duncan for relay, not automatically dispatched.
 
@@ -133,15 +139,40 @@ that constraint; it must not skim required-full inputs.
 
 | Assignment | Issued | Predecessor | Reason | Disposition |
 | --- | --- | --- | --- | --- |
-| `cc-prompt.md` — initial pass | 2026-10-08 | None | Open the approved arc's first bounded evidence slice | Issued to Operator for CC relay; ready for execution |
+| `cc-prompt.md` — initial pass | 2026-10-08 | None | Open the approved arc's first bounded evidence slice | Executed at ddeecb31; reviewed 2026-10-09; correction required, preserved |
+| `cc-prompt-iteration01.md` — first correction | 2026-10-09 | `cc-prompt.md` | Repair R1 metadata representation and R2 evidence references without redoing accepted intake | Active; issued to Operator for CC execution and return |
 
 The prompt's opening commit is resolved from Git history at intake; record its
 commit and SHA-256 plus the current planning HEAD in `artifacts/execution.md`.
-No execution/close/review has occurred. Follow-up prompts get new numbered paths;
+The initial execution and review are retained; this supersedes the opening
+statement that no execution/close/review had occurred. Slice closure remains
+pending. Follow-up prompts get new numbered paths;
 the current prompt is preserved after issuance.
+
+## Correction author readiness — iteration01
+
+CDC inspected both delivered JSON objects, all six changed files, and the issued
+representation against ddeecb31. The original content populations, hashes,
+partitions, locators and local witnesses were independently reproduced.
+
+| Dimension | Basis |
+| --- | --- |
+| Source-grounded | R1/R2 cite actual metadata paths and incorrect evidence pointers in the reviewed candidate |
+| Design-complete | Original snapshot identity/time retained; metadata moves are lossless; only current references and dated return evidence change |
+| Guideline-applied | Prompt-authoring correction rule and work-verification retention/separation rule bound repairs; testing Proportionate Proof selects whole-value comparisons |
+| Executable | Six-path allowlist, exact field moves, predecessor comparison, preserved attempt sections and row states in iteration01 |
+| Falsifiable | Actual predecessor fails required shape/path; corrected values must pass and preserve every unaffected payload |
+| Coherent/portable | Current assignment and pending gate agree across plans; bounded manifest separates metadata queries from optional historical investigation rereads |
+
+This is author readiness, not acceptance of a repair. The required correction
+packet is small enough for one context with recovery headroom; the complete
+850-line inherited reports are data inputs for retained evidence, not a new
+required-full investigation for this metadata/reference repair. No scope or
+criterion change is proposed.
 
 ## Version History
 
 | Version | Date | Origin | Change |
 | --- | --- | --- | --- |
 | 1.0 | 2026-10-08 | Arc01 opening, authorized by Duncan | Initial provenance/finding-intake contract, artifact shapes, verification and preserved CC assignment |
+| 1.1 | 2026-10-09 | Initial CC delivery and CDC review | Record partial acceptance, preserve failed initial attempt, and issue bounded metadata/reference correction as iteration01; no criterion or scope change |
