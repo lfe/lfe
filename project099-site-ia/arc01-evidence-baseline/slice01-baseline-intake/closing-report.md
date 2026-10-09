@@ -63,7 +63,7 @@ CDC's independent review and acceptance remain required. No `cdc-verification.md
 
 **Active assignment:** `arc01-evidence-baseline/slice01-baseline-intake/cc-prompt-iteration01.md`,
 opened at `7f2b47f24873211c3eca66702b5a1e81ccec4897` with SHA-256
-`f3160c0c43533cf8fd93686cc53665cfb00e7ce0d94a275780be4cfebc7b2`.
+`f3160c0c43533cf8fd93686cc53665cfb00e7ce0d94a275780734be4cfebc7b2`.
 Predecessor: `cc-prompt.md`, opened at e8f4c39. Corrected candidate:
 `ddeecb31abb454d5619f74a178c3d0121024a35e`. This section records the doer
 correction only; CDC acceptance remains pending.
