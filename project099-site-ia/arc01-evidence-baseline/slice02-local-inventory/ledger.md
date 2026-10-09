@@ -76,3 +76,7 @@ criteria/Verify/Significance/Origin/Notes and all statuses remain unchanged.
 Earlier CC attestations are preserved as historical candidate evidence; the
 current CDC findings supersede their completeness claims. No CC artifact repair
 was implemented by CDC; Slice03 remains gated.
+
+### Iteration03 CC attestation (2026-10-09)
+
+No criterion wording, owner, or status was changed. S2-01 remains `done` by prior CDC acceptance. S2-02, S2-03, S2-04, S2-05, S2-06, S2-07, and S2-08 remain `open` for CDC review. Iteration03 repairs derived coverage copies, two legacy repository qualifications, all 61 rich-input role edges, author source paths/aliases/branch evidence, and the overbroad completeness statement. Evidence is source-level and doer-attested; no generated, rendered, live, or runtime acceptance is claimed. Slice02/Arc01 remain open; Slice03 remains gated.

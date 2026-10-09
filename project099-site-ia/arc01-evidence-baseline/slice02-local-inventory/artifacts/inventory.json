@@ -46143,7 +46143,7 @@
       "sicp": 187
     },
     "legacy_index_files": 8,
-    "resource_occurrences": 1439,
+    "resource_occurrences": 1447,
     "anchor_declarations": 272,
     "fragment_references": 135,
     "dynamic_residual_candidates": 543,
@@ -48727,7 +48727,7 @@
       "meaning": "Current arrays and explicit classifications. All 543 source Liquid tokens are classified, with generated/runtime values unknown."
     },
     "classified_template_candidates": 543,
-    "destination_groups": 809
+    "destination_groups": 804
   },
   "gaps": []
 }
