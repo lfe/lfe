@@ -1,6 +1,6 @@
 # Project 099 — composition ledger
 
-**Contract:** [project-plan.md](project-plan.md), v1.7, 9 October 2026.
+**Contract:** [project-plan.md](project-plan.md), v1.8, 9 October 2026.
 Original roadmap approved 8 October; Duncan added CI preservation and historical
 artifact priority on 9 October. The original 21 rows are retained and two rows
 are added; all 23 delivery rows remain open. Roadmap approval is not completion.
@@ -20,7 +20,7 @@ as detailed planning becomes timely; no close packet exists yet.
 
 | ID | Criterion | Verify | Significance | Origin | Status | Evidence | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| P-01 | Arc01's evidence baseline is closed against its adopted contract. | Inspect `arc01-evidence-baseline/` plan, ledger, closing report and attributed composition gate; reconcile inventory coverage and bubble-up. | correctness-grade | Roadmap Arc01 | open | Slice02 [CDC iteration02 review](arc01-evidence-baseline/slice02-local-inventory/cdc-verification.md): S2-01 retained; valid repaired extraction reproduced; seven rows open for R11–R13; bounded iteration03 issued [reproduced child-status inspection, not composition acceptance]. | Slice01 accepted; Slice02 open; Slice03 remains planned. Inherited audit files do not close this row. |
+| P-01 | Arc01's evidence baseline is closed against its adopted contract. | Inspect `arc01-evidence-baseline/` plan, ledger, closing report and attributed composition gate; reconcile inventory coverage and bubble-up. | correctness-grade | Roadmap Arc01 | open | Slice02 [CDC iteration03 review](arc01-evidence-baseline/slice02-local-inventory/cdc-verification.md): S2-01 retained, S2-03/S2-05 accepted for source scopes; 114/114 predicates, 6,844 locators and 61 rich-input edges pass; five rows open for R14–R15; bounded iteration04 issued [reproduced child-status inspection, not composition acceptance]. | Slice01 accepted; Slice02 open; Slice03 remains planned. Inherited audit files do not close this row. |
 | P-02 | Arc02's compatibility policy is closed against its adopted contract. | Inspect `arc02-compatibility-policy/` close packet, maintainer policy decisions, matrix evidence, failure disposition and bubble-up. | serious | Roadmap Arc02 | open | | Preserve failed, blocked, unrun and unknown cases. |
 | P-03 | Arc03's release/distribution capability is closed against its adopted contract. | Inspect `arc03-release-distribution/` close packet, preserved release mappings, artifact verification and bubble-up. | serious | Roadmap Arc03 | open | | Evaluate available artifacts against approved claims. |
 | P-04 | Arc04's IA/content architecture is closed against its adopted contract. | Inspect `arc04-ia-content-architecture/` close packet and reviewed design, ownership/disposition maps and decisions. | correctness-grade | Roadmap Arc04 | open | | `/docs` remains the curated gateway. |
@@ -64,3 +64,4 @@ must inspect the actual candidate, not just the assembler's summary.
 | 1.3 | 2026-10-09 | Pair with project-plan v1.5; record Slice02 correction status in P-01 without changing any criterion | Routine review/status maintenance; all 23 rows open |
 | 1.4 | 2026-10-09 | Pair with project-plan v1.6; record Slice02 partial acceptance/iteration02 without changing any criterion | Routine review/status maintenance; all 23 rows open |
 | 1.5 | 2026-10-09 | Pair with project-plan v1.7; record Slice02 iteration02 review/bounded iteration03; unchanged criteria | Routine review/status maintenance; all 23 rows open |
+| 1.6 | 2026-10-09 | Pair with project-plan v1.8; record Slice02 iteration03 partial acceptance/iteration04; unchanged criteria | Routine review/status maintenance; all 23 rows open |

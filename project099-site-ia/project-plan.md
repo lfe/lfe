@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 title: LFE site information architecture and supporting foundations
-version: "1.7"
+version: "1.8"
 date: 2026-10-09
 status: active
 depends-on: []
@@ -17,14 +17,14 @@ mode: expedited
 
 # Project 099 — LFE site IA
 
-**Approved roadmap, v1.7 — Arc01 active; historical-download priority recorded.** Duncan approved the initial roadmap
+**Approved roadmap, v1.8 — Arc01 active; historical-download priority recorded.** Duncan approved the initial roadmap
 in this chat and requested Arc01, its first slice, and Expedited Mode on
 8 October 2026. This supersedes v1.0's draft-for-review status. The plan covers the
 full body of work described in the handoff, including the compatibility,
 distribution, design, and validation tracks that support the website. Those
 tracks keep their own decisions and evidence; the IA proposal does not decide
-them. The current assignment is Slice02 correction iteration03 after CDC review
-of iteration02; S2-01 remains accepted and seven rows remain open. Was: Slice02 initial local inventory after independent
+them. The current assignment is Slice02 correction iteration04 after CDC review
+of iteration03; S2-01, S2-03 and S2-05 are accepted and five rows remain open. Was: Slice02 initial local inventory after independent
 Slice01 acceptance; before that, a bounded Slice01 metadata/reference correction following
 the initial delivery; both attempts and their review evidence remain preserved. No website or compiler implementation is
 authorized by the current evidence work.
@@ -491,15 +491,20 @@ extraction and supplies expanded consumer/family evidence. CDC freshly compares
 827 ordinary Markdown nodes, 426 HTML attributes, 38 rich Markdown/39 rich HTML
 nodes and all 97 reference joins; these bounded projections pass. Its structural
 replay passes 109 of 114 checks, with two wrong legacy qualifiers and four stale
-derived values producing five failed predicates. Seven rows remain open for
-R11–R13 copied coverage/qualification, 26 missing prerender-input roles and
-author alias/branch evidence, plus calibrated intake/return proof. No source drift
-was found; source-extraction deferrals remain unaccepted. See its
-[CDC verification](arc01-evidence-baseline/slice02-local-inventory/cdc-verification.md).
+derived values producing five failed predicates. That review is historical.
+Iteration03 at fb83798b + 6a43ab2 passes all 114
+structural checks and 6,844 locator checks, with 61 independently joined rich
+input edges and corrected repository/branch witnesses. CDC retains S2-01 and
+accepts S2-03's source metadata/declaration scope and S2-05's declared related
+entrance scope. Five rows remain open for R14 the author aggregate's missing
+real YAML fields/alias-role consistency and R15 precise required-reading and
+validation receipts. No source drift was found; emitted/live behavior remains
+unclaimed. See the [CDC verification](arc01-evidence-baseline/slice02-local-inventory/cdc-verification.md).
 No capability, sequencing or acceptance amendment is indicated. Slice03 remains
 planned behind its existing acceptance gate. Current CC path under Expedited Mode:
-`arc01-evidence-baseline/slice02-local-inventory/cc-prompt-iteration03.md`.
-Was: Slice02 iterations02/01 and initial `cc-prompt.md` issued; that prompt and candidate remain preserved.
+`arc01-evidence-baseline/slice02-local-inventory/cc-prompt-iteration04.md`.
+Was: Slice02 iterations03/02/01 and initial `cc-prompt.md`; all issued prompts
+and candidate history remain preserved.
 Arc composition and project outcome remain unaccepted. All 23 project ledger
 rows remain open. See Slice01 CDC verification for exact retained/fresh evidence
 and qualified concurrent LFE checkout drift.
@@ -527,3 +532,4 @@ approval. Navigation/design choices remain open, and expansion remains expected.
 | 1.5 | 2026-10-09 | Arc01 Slice02 initial delivery / CDC review | Record valid source-population evidence and unresolved R1–R6; issue correction iteration01 inside the existing slice, preserve initial proposals and hold Slice03; no structural or acceptance amendment | Routine review/status update under approved Expedited Mode; all 23 project rows remain open |
 | 1.6 | 2026-10-09 | Arc01 Slice02 iteration01 / CDC review | Accept S2-01, retain repaired subclaims; issue iteration02 for R7–R10 semantic repairs with seven child rows open and Slice03 gated; no scope, sequence or criterion amendment | Routine review/status maintenance under approved Expedited Mode; all 23 project rows remain open |
 | 1.7 | 2026-10-09 | Arc01 Slice02 iteration02 / CDC review | Retain S2-01 and repaired extraction/consumer/family subclaims; issue bounded iteration03 for R11–R13 coverage, qualification, roles/branches and honest proof; seven child rows open and Slice03 gated; no scope, sequence or criterion amendment | Routine review/status maintenance under approved Expedited Mode; all 23 project rows remain open |
+| 1.8 | 2026-10-09 | Arc01 Slice02 iteration03 / CDC review | Accept S2-03/S2-05 and retain S2-01; issue bounded iteration04 for R14 author aggregate and R15 intake/proof receipts; five child rows open and Slice03 gated; unchanged scope, sequence and criteria | Routine review/status maintenance under approved Expedited Mode; all 23 project rows remain open |
