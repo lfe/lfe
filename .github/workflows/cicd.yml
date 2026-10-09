@@ -18,7 +18,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        otp-version: ['29', '28', '27', '26', '25', '24', '23', '22']
+        # Inline documentation syntax requires OTP 27 or newer.
+        otp-version: ['29', '28', '27']
         os: ['ubuntu-24.04']
 
     container:
@@ -47,7 +48,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        otp-version: ['29', '28', '27', '26', '25', '24', '23', '22']
+        # Inline documentation syntax requires OTP 27 or newer.
+        otp-version: ['29', '28', '27']
         os: ['ubuntu-24.04']
 
     container:
