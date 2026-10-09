@@ -28,12 +28,15 @@ The independent URL-shaped candidate scan covered 219 files and 951 candidates: 
 
 All eight ledger rows remain open for CDC. This correction is source accounting and attested evidence only. Emitted routes/anchors, live availability, full chapter meaning, runtime rendering and policy decisions remain unclaimed and are assigned to the relevant later owners. No source checkout was modified and no build, test, generation, network, install, or wrapper execution was performed.
 
-## Iteration02 targeted corrections (2026-10-09)
+## Iteration02 targeted corrections (2026-10-09; superseded by final CC addendum below)
 
 CC's Iteration02 artifact pass corrects the 38 scalar-local Markdown nodes across 61 rich-field pairs, all 22 source-local Markdown reference definitions, the eight book use pointers/targets, and the five JSON Feed metadata/technical-identifier records. Corrected current resource totals are 1,447 occurrences and 804 exact destination groups. All 61 pairs carry distinct scalar locators and occurrence joins; no sibling equality is claimed. The book-reference negative control rejects SICP's same-label definition for a manual use.
 
-Exact consumer and family joins remain only partially corrected. The author-url, excerpts, no-direct-access, duplicate-blog, gateway/community/books/legacy-index and five historical-paper witness repairs are recorded in `execution.md` and `resource-register.json`. The remaining author/layout/generated/nav access graph, all eleven family membership walks, the Writing Phases entrance display label, complete HTML/declaration reprojection, and current gap-owner reconciliation remain open. These totals and focused controls do not establish completeness. S2-01 remains done; S2-02–08 remain open for CDC review.
+The latest status and evidence supersede the partial wording in the earlier iteration02 notes: 84 source-local definitions and 97 reference uses, 38 Markdown nodes and 39 HTML attributes across 61 separate rich-field pairs, 59 located consumer witnesses, eleven family walks, and the corrected Writing Phases labels are recorded in `execution.md` and `resource-register.json`. One HTML rich attribute has no Markdown sibling and is explicitly unpaired. The source queries and byte checks do not prove complete parser/construct accounting or emitted/live behavior. S2-01 remains done; S2-02–08 remain open for CDC review.
 
 R8 follow-up adds exact per-index book/buildit/features field edges, all twelve navigation include callers, five author lookup layouts, conditional release access, excerpt code/description interpolation, and separate editorial/generated/direct-cover paths. These source edges do not prove rendered output or close S2-02/S2-04.
 
 The manual README Writing Phases labels at lines 15 and 17 now retain the parsed inline display text alongside raw Markdown. Other entrance projections and seven of the eleven family memberships still need the complete semantic walk; all remain open for CDC.
+
+
+The final CC evidence addendum records 1,447 resource occurrences, 804 exact destination groups, five JSON Feed metadata records, and exact current limits. Feed schema version is technical metadata; the four title/date/summary entries are content metadata. No rich-field sibling equality or generated/rendered output is asserted.

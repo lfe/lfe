@@ -56,3 +56,9 @@ are unchanged. CDC has not implemented artifact repairs.
 ## Iteration02 CC evidence update (partial; 2026-10-09)
 
 S2-01 remains `done`; S2-02–08 remain `open`. CC added a bounded R7/R10 correction and partial R8/R9 joins under `artifacts/resource-register.json`. The eight-column criteria and original fields above are unchanged. The focused book scalar-scope control and its SICP negative control passed; complete source/consumer/family coverage was not established. Do not treat this partial return as a closure proposal for any open row. See `artifacts/execution.md` for exact denominators, attempted mechanics, remaining work and limits; CDC retains independent review and acceptance authority.
+
+## Iteration02 final CC attestation — 2026-10-09
+
+The earlier “partial” R7–R9 status text above is historical and superseded by the final correction evidence in [execution.md](artifacts/execution.md) and [resource-register.json](artifacts/resource-register.json). R7 now records 84 definitions/97 use pointers and complete 38-node Markdown/39-attribute HTML rich projections, including one explicit unpaired HTML node. R8 has 59 located access witnesses over 12 consumer records with source qualification and direct/prerender/generated/no-direct roles. R9 records all eleven family membership walks and corrected entrance labels. R10 classifies five JSON Feed metadata/technical fields separately and rebuilds the 19 construct tallies and current totals. Focused source-byte and scope checks passed; regex/token coverage does not establish exhaustive source-construct accounting, generated output, emitted/live readiness, or chapter/paper meaning.
+
+No criterion or status changed: S2-01 remains `done`; S2-02–08 remain `open`. This is CC evidence for CDC review, not a row-closure proposal or acceptance. Slice02 and Arc01 remain open and Slice03 remains gated.
