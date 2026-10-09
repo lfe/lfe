@@ -1,13 +1,24 @@
 # Arc01 Slice02 — acceptance ledger
 
-**Contract:** [slice-plan.md](slice-plan.md) v1.1; unchanged eight-row acceptance
-table at opening b5a7c50 and [cc-prompt.md](cc-prompt.md), 9 October 2026.
-CC's replacement table below is historical initial-pass attestation, not an
-accepted criterion amendment. R1 requires restoration of the exact original
-Criterion/Verify/Significance/Origin/Notes structure. All eight rows remain open.
-Current assignment: [cc-prompt-iteration01.md](cc-prompt-iteration01.md).
+**Contract:** [slice-plan.md](slice-plan.md) v1.0 and [cc-prompt.md](cc-prompt.md),
+initial pass, 9 October 2026. All eight rows open. CC adds attested evidence and
+proposed dispositions; CDC independently reproduces acceptance. Deferred work
+requires a reason, owner, destination and re-entry condition; no-op requires
+a checkable rationale. Missing source/semantic coverage is never silently done.
 
-## Historical CC initial-pass proposals — not accepted
+| ID | Criterion | Verify | Significance | Origin | Status | Evidence | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| S2-01 | All declared source populations and their current identities are captured without losing accepted provenance. | Re-query exact Git filename sets and eight root projections; verify fingerprints, website partitions and input hashes; inspect drift. | correctness-grade | Accepted Slice01 / local inventory | open | attested: complete root/population/fingerprint/input-pins replay and exact 104-ID source-catalogue correction; see execution.md Iteration01. | Inventory of filenames is separate from semantic reading and publication. |
+| S2-02 | Actual config, wrapper and consumer mechanisms are recorded with version/source qualifications. | Inspect named symbols/config/frontmatter/consumers and debug evidence; trace default/override, prerender, blog resolution, sitemap and pagination boundaries. | correctness-grade | Arc01 source-route prerequisite | open | attested: actual Cobalt default literal and applicability corrected; consumer field joins corrected; no output claim. | No wrapper execution or unsupported debug flags. |
+| S2-03 | Every website content unit and in-scope route/anchor declaration has an exact, qualified source record. | Compare all metadata, markup declarations/headings/fragment references to source bytes; inspect parser residuals, draft/pagination/raw-HTML and implicit-anchor cases; check locator joins. | serious | Arc01 route/anchor inventory | open | attested: full metadata retained; false meta@name anchors removed; actual source declaration locators reviewed; emitted anchors remain unknown. | Dynamic/unproven targets remain explicit; declarations do not establish emitted routes. |
+| S2-04 | Resource occurrences and shared promotions are complete for the declared website construct population and trace to consumers. | Compare all parsed link/YAML occurrences plus residual scan; inspect data-to-template joins, exact destination grouping, labels/lifecycle context and four Build It seeds. | correctness-grade | Resource promotions | open | attested: resource groups rebuilt from current occurrences; reference definitions/uses and feed fields added; output expansion remains unknown. | Repetition, mirrored md/html and unresolved template targets remain visible. |
+| S2-05 | All declared book, language, tooling and legacy-source entrances are preserved with honest coverage. | Re-query related filename sets, check complete TOC destination projections, inspect root/config/index witnesses and map promoted entrances; verify absent/unavailable targets and owners. | serious | Eleven content families / legacy entrances | open | attested: four SUMMARY source labels/targets/lines reviewed against full projections; names preserved separately; no chapter audit. | No full chapter audit or inferred deployed provenance. |
+| S2-06 | Eleven-family coverage and every inventory gap have concrete next-check handoffs. | Walk family/coverage/gap registers against Slice01; trace IDs/destinations/limits into Slices03–05 and consuming arcs. | correctness-grade | Arc01 composition inputs | open | attested: eleven §3.3 family boundaries restored; genuine output/runtime gaps assigned to defined downstream owners. | Owners are proposed routing, not adoption of IA or policy. |
+| S2-07 | Required intake and actual validation attempts are honestly recorded. | Inspect required-full/section/data extents and source-cited readback; reproduce membership/locator checks and focused omission/duplication controls; retain failures/unrun work. | correctness-grade | Framework prompt/proof contract | open | attested: iteration intake, source comparison, locator checks, controls and failures/unrun checks recorded in execution.md. | Reading receipts stay attested. |
+| S2-08 | Historical inputs/source work are preserved and the scoped return accounts for every row/artifact. | Compare before/after digests/status and actual seven-path diff; check issued prompt preservation, artifact inventory, eight-row walk, scoped commit and Arc01 bubble-up. | serious | Preservation / Expedited Mode | open | attested: seven-path allowlist, immutable inputs, eight-row contract, historical proposals and current row walk retained. | No source/parent/reviewer edits by CC. |
+
+## Historical CC initial-pass proposals — preserved, not accepted
+
 
 | ID | Criterion | Status | Proposed disposition / evidence | Remaining CDC check |
 | --- | --- | --- | --- | --- |
@@ -20,7 +31,8 @@ Current assignment: [cc-prompt-iteration01.md](cc-prompt-iteration01.md).
 | S2-07 | Required intake and actual validation attempts honestly recorded. | open | **attested:** Execution record captures read extents, commands/exits, parser limits and prohibited unrun work. | Independently inspect required-read evidence and focused omission/duplication controls. |
 | S2-08 | Historical inputs/source work preserved and scoped return accounts for each row/artifact. | open | **attested:** Seven-path deliverable set, unchanged source trees, inherited IDs/pins and commit evidence. | Check exact diff/commit and preservation after commit. |
 
-## CDC current review — 9 October 2026
+## CDC current review and Iteration01 correction context
+
 
 [cdc-verification.md](cdc-verification.md) reviews b43acb7 + d629b7a against the
 original b5a7c50 contract. All eight rows stay open pending R1–R6 correction.
