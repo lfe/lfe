@@ -1,0 +1,18 @@
+# Arc01 — composition ledger
+
+**Contract:** [arc-plan.md](arc-plan.md), v1.0, 8 October 2026.
+All rows are open. Evidence supplied by CC is attested/proposed-done; `done`
+requires independent reproduced evidence. Deferral requires owner, reason,
+destination and re-entry condition; no-op requires a checkable rationale.
+
+| ID | Criterion | Verify | Significance | Origin | Status | Evidence | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| A1-01 | Slice01's inherited provenance and finding intake is independently accepted. | Inspect `slice01-baseline-intake/` plan, ledger, artifacts, closing report and CDC verification against pinned inputs. | correctness-grade | Arc breakdown Slice01 | open | | No execution or acceptance claimed at opening. |
+| A1-02 | Slice02's agreed local content/route/anchor population is independently accepted. | Inspect its close packet; re-query the declared source population and inspect route witnesses/coverage. | correctness-grade | Arc breakdown Slice02 | open | | File counts alone are not output-route validation. |
+| A1-03 | Slice03's resource/readiness checks are independently accepted. | Inspect its close packet, actual endpoint/source/rendered evidence and attempted/blocked/unrun coverage. | correctness-grade | Arc breakdown Slice03 | open | | Text extraction does not settle rendered completeness. |
+| A1-04 | Slice04's technical intake is independently accepted. | Inspect source/environment/release/container witnesses, failure packet or explicit missing-input disposition, and review record. | serious | Arc breakdown Slice04 | open | | No compatibility/support promise inferred from intake. |
+| A1-05 | Slice05's reconciled baseline and handoffs are independently accepted. | Inspect joined inventory/evidence/findings, exact ownership/next checks, and review record against Slices01–04. | correctness-grade | Arc breakdown Slice05 | open | | Reconciliation must retain contrary evidence and limits. |
+| A1-06 | The child outputs compose into one auditable evidence baseline. | Independently join input IDs, source/route/resource identities, coverage and finding references across the delivered artifacts; trace representative practical and technical questions end to end. | serious | Project Arc01 capability | open | | Child closes alone do not discharge composition. |
+| A1-07 | Every inherited/new gap has a concrete owner and disposition. | Walk all assessment/question IDs, failed/blocked/unrun checks and child bubble-ups; compare actual arc handoffs and re-entry conditions. | correctness-grade | Arc scope and project maintenance | open | | Missing runtime inputs remain visible until supplied. |
+| A1-08 | Historical inputs and unrelated source work remain preserved. | Compare inherited digests and authorized diffs; reconcile initial/final source status and report concurrent drift explicitly. | serious | Preservation boundary | open | | Do not attribute another process's changes to this arc. |
+| A1-09 | Arc composition review and project bubble-up are recorded before advancement. | Inspect actual arc `closing-report.md`, attributed independent composition gate, row walk and any project-plan/ledger amendment. | correctness-grade | Framework arc closure | open | | Close records are created at actual close. |
