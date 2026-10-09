@@ -45459,7 +45459,658 @@
           "line_end": 40
         },
         "scope": "Complete include/template source read; direct access tokens listed separately. Conditions/loop syntax remain literal."
-      }
+      },
+      "iteration02_scope_resolved_edges": [
+        {
+          "source_file_key": "website:src/_data/home/buildit.yml",
+          "source_field_path": "items[0].title",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/buildit.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+            "line_start": 5,
+            "line_end": 5,
+            "yaml_key_or_index": "items[0].title",
+            "byte_span": [
+              163,
+              170
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/buildit.liquid",
+          "access_raw": "build.title",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/buildit.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "40a911049b888eab205394a9a729e40a6e99bf69770b8eb10389d9e488546bfc",
+            "line_start": 20,
+            "line_end": 20,
+            "byte_span": [
+              684,
+              695
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for build in site.data.home.buildit.items; source item index 0",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/buildit.yml",
+          "source_field_path": "items[0].content_md",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/buildit.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+            "line_start": 6,
+            "line_end": 6,
+            "yaml_key_or_index": "items[0].content_md",
+            "byte_span": [
+              185,
+              186
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/buildit.liquid",
+          "access_raw": "build.content_md",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for build in site.data.home.buildit.items; source item index 0",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/buildit.yml",
+          "source_field_path": "items[0].content_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/buildit.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+            "line_start": 11,
+            "line_end": 11,
+            "yaml_key_or_index": "items[0].content_html",
+            "byte_span": [
+              501,
+              502
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/buildit.liquid",
+          "access_raw": "build.content_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/buildit.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "40a911049b888eab205394a9a729e40a6e99bf69770b8eb10389d9e488546bfc",
+            "line_start": 23,
+            "line_end": 23,
+            "byte_span": [
+              790,
+              808
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for build in site.data.home.buildit.items; source item index 0",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/buildit.yml",
+          "source_field_path": "items[0].link_url",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/buildit.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+            "line_start": 17,
+            "line_end": 17,
+            "yaml_key_or_index": "items[0].link_url",
+            "byte_span": [
+              866,
+              940
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/buildit.liquid",
+          "access_raw": "build.link_url",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/buildit.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "40a911049b888eab205394a9a729e40a6e99bf69770b8eb10389d9e488546bfc",
+            "line_start": 24,
+            "line_end": 24,
+            "byte_span": [
+              836,
+              850
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for build in site.data.home.buildit.items; source item index 0",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/buildit.yml",
+          "source_field_path": "items[0].link_text",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/buildit.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+            "line_start": 16,
+            "line_end": 16,
+            "yaml_key_or_index": "items[0].link_text",
+            "byte_span": [
+              843,
+              853
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/buildit.liquid",
+          "access_raw": "build.link_text",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/buildit.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "40a911049b888eab205394a9a729e40a6e99bf69770b8eb10389d9e488546bfc",
+            "line_start": 27,
+            "line_end": 27,
+            "byte_span": [
+              1296,
+              1311
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for build in site.data.home.buildit.items; source item index 0",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/buildit.yml",
+          "source_field_path": "items[1].title",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/buildit.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+            "line_start": 19,
+            "line_end": 19,
+            "yaml_key_or_index": "items[1].title",
+            "byte_span": [
+              966,
+              987
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/buildit.liquid",
+          "access_raw": "build.title",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/buildit.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "40a911049b888eab205394a9a729e40a6e99bf69770b8eb10389d9e488546bfc",
+            "line_start": 20,
+            "line_end": 20,
+            "byte_span": [
+              684,
+              695
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for build in site.data.home.buildit.items; source item index 1",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/buildit.yml",
+          "source_field_path": "items[1].content_md",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/buildit.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+            "line_start": 20,
+            "line_end": 20,
+            "yaml_key_or_index": "items[1].content_md",
+            "byte_span": [
+              1002,
+              1003
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/buildit.liquid",
+          "access_raw": "build.content_md",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for build in site.data.home.buildit.items; source item index 1",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/buildit.yml",
+          "source_field_path": "items[1].content_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/buildit.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+            "line_start": 25,
+            "line_end": 25,
+            "yaml_key_or_index": "items[1].content_html",
+            "byte_span": [
+              1321,
+              1322
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/buildit.liquid",
+          "access_raw": "build.content_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/buildit.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "40a911049b888eab205394a9a729e40a6e99bf69770b8eb10389d9e488546bfc",
+            "line_start": 23,
+            "line_end": 23,
+            "byte_span": [
+              790,
+              808
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for build in site.data.home.buildit.items; source item index 1",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/buildit.yml",
+          "source_field_path": "items[1].link_url",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/buildit.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+            "line_start": 31,
+            "line_end": 31,
+            "yaml_key_or_index": "items[1].link_url",
+            "byte_span": [
+              1678,
+              1751
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/buildit.liquid",
+          "access_raw": "build.link_url",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/buildit.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "40a911049b888eab205394a9a729e40a6e99bf69770b8eb10389d9e488546bfc",
+            "line_start": 24,
+            "line_end": 24,
+            "byte_span": [
+              836,
+              850
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for build in site.data.home.buildit.items; source item index 1",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/buildit.yml",
+          "source_field_path": "items[1].link_text",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/buildit.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+            "line_start": 30,
+            "line_end": 30,
+            "yaml_key_or_index": "items[1].link_text",
+            "byte_span": [
+              1655,
+              1665
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/buildit.liquid",
+          "access_raw": "build.link_text",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/buildit.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "40a911049b888eab205394a9a729e40a6e99bf69770b8eb10389d9e488546bfc",
+            "line_start": 27,
+            "line_end": 27,
+            "byte_span": [
+              1296,
+              1311
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for build in site.data.home.buildit.items; source item index 1",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/buildit.yml",
+          "source_field_path": "items[2].title",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/buildit.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+            "line_start": 33,
+            "line_end": 33,
+            "yaml_key_or_index": "items[2].title",
+            "byte_span": [
+              1772,
+              1788
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/buildit.liquid",
+          "access_raw": "build.title",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/buildit.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "40a911049b888eab205394a9a729e40a6e99bf69770b8eb10389d9e488546bfc",
+            "line_start": 20,
+            "line_end": 20,
+            "byte_span": [
+              684,
+              695
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for build in site.data.home.buildit.items; source item index 2",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/buildit.yml",
+          "source_field_path": "items[2].content_md",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/buildit.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+            "line_start": 34,
+            "line_end": 34,
+            "yaml_key_or_index": "items[2].content_md",
+            "byte_span": [
+              1803,
+              1804
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/buildit.liquid",
+          "access_raw": "build.content_md",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for build in site.data.home.buildit.items; source item index 2",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/buildit.yml",
+          "source_field_path": "items[2].content_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/buildit.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+            "line_start": 38,
+            "line_end": 38,
+            "yaml_key_or_index": "items[2].content_html",
+            "byte_span": [
+              2056,
+              2057
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/buildit.liquid",
+          "access_raw": "build.content_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/buildit.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "40a911049b888eab205394a9a729e40a6e99bf69770b8eb10389d9e488546bfc",
+            "line_start": 23,
+            "line_end": 23,
+            "byte_span": [
+              790,
+              808
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for build in site.data.home.buildit.items; source item index 2",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/buildit.yml",
+          "source_field_path": "items[2].link_url",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/buildit.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+            "line_start": 43,
+            "line_end": 43,
+            "yaml_key_or_index": "items[2].link_url",
+            "byte_span": [
+              2358,
+              2431
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/buildit.liquid",
+          "access_raw": "build.link_url",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/buildit.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "40a911049b888eab205394a9a729e40a6e99bf69770b8eb10389d9e488546bfc",
+            "line_start": 24,
+            "line_end": 24,
+            "byte_span": [
+              836,
+              850
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for build in site.data.home.buildit.items; source item index 2",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/buildit.yml",
+          "source_field_path": "items[2].link_text",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/buildit.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+            "line_start": 42,
+            "line_end": 42,
+            "yaml_key_or_index": "items[2].link_text",
+            "byte_span": [
+              2335,
+              2345
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/buildit.liquid",
+          "access_raw": "build.link_text",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/buildit.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "40a911049b888eab205394a9a729e40a6e99bf69770b8eb10389d9e488546bfc",
+            "line_start": 27,
+            "line_end": 27,
+            "byte_span": [
+              1296,
+              1311
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for build in site.data.home.buildit.items; source item index 2",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/buildit.yml",
+          "source_field_path": "items[3].title",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/buildit.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+            "line_start": 45,
+            "line_end": 45,
+            "yaml_key_or_index": "items[3].title",
+            "byte_span": [
+              2456,
+              2468
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/buildit.liquid",
+          "access_raw": "build.title",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/buildit.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "40a911049b888eab205394a9a729e40a6e99bf69770b8eb10389d9e488546bfc",
+            "line_start": 20,
+            "line_end": 20,
+            "byte_span": [
+              684,
+              695
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for build in site.data.home.buildit.items; source item index 3",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/buildit.yml",
+          "source_field_path": "items[3].content_md",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/buildit.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+            "line_start": 46,
+            "line_end": 46,
+            "yaml_key_or_index": "items[3].content_md",
+            "byte_span": [
+              2483,
+              2484
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/buildit.liquid",
+          "access_raw": "build.content_md",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for build in site.data.home.buildit.items; source item index 3",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/buildit.yml",
+          "source_field_path": "items[3].content_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/buildit.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+            "line_start": 51,
+            "line_end": 51,
+            "yaml_key_or_index": "items[3].content_html",
+            "byte_span": [
+              2803,
+              2804
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/buildit.liquid",
+          "access_raw": "build.content_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/buildit.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "40a911049b888eab205394a9a729e40a6e99bf69770b8eb10389d9e488546bfc",
+            "line_start": 23,
+            "line_end": 23,
+            "byte_span": [
+              790,
+              808
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for build in site.data.home.buildit.items; source item index 3",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/buildit.yml",
+          "source_field_path": "items[3].link_url",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/buildit.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+            "line_start": 57,
+            "line_end": 57,
+            "yaml_key_or_index": "items[3].link_url",
+            "byte_span": [
+              3160,
+              3237
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/buildit.liquid",
+          "access_raw": "build.link_url",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/buildit.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "40a911049b888eab205394a9a729e40a6e99bf69770b8eb10389d9e488546bfc",
+            "line_start": 24,
+            "line_end": 24,
+            "byte_span": [
+              836,
+              850
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for build in site.data.home.buildit.items; source item index 3",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/buildit.yml",
+          "source_field_path": "items[3].link_text",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/buildit.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+            "line_start": 56,
+            "line_end": 56,
+            "yaml_key_or_index": "items[3].link_text",
+            "byte_span": [
+              3137,
+              3147
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/buildit.liquid",
+          "access_raw": "build.link_text",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/buildit.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "40a911049b888eab205394a9a729e40a6e99bf69770b8eb10389d9e488546bfc",
+            "line_start": 27,
+            "line_end": 27,
+            "byte_span": [
+              1296,
+              1311
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for build in site.data.home.buildit.items; source item index 3",
+          "generation_status": "source only"
+        }
+      ],
+      "iteration02_prerender_edges": [
+        {
+          "source_fields": [
+            "items[*].content_md"
+          ],
+          "output_siblings": [
+            "items[*].content_html"
+          ],
+          "mechanism": "prerender whole scalar conversion",
+          "consumer_access_is_separate": true,
+          "generation_status": "mechanism only; no rendering"
+        }
+      ]
     },
     {
       "id": "consumer-0812f13699e565c2",
@@ -45734,6 +46385,1023 @@
           "sibling_field": "items[*].description_html",
           "mechanism": "inventory.json#/mechanisms/prerender-md",
           "limit": "Source transformation witness only; wrapper not executed."
+        }
+      ],
+      "iteration02_scope_resolved_edges": [
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[0].title",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 6,
+            "line_end": 6,
+            "yaml_key_or_index": "items[0].title",
+            "byte_span": [
+              102,
+              115
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.title",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 20,
+            "line_end": 20,
+            "byte_span": [
+              923,
+              933
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 0",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[0].authors",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 7,
+            "line_end": 7,
+            "yaml_key_or_index": "items[0].authors",
+            "byte_span": [
+              127,
+              160
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.authors",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 17,
+            "line_end": 17,
+            "byte_span": [
+              780,
+              792
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 0",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[0].cover_md",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 8,
+            "line_end": 8,
+            "yaml_key_or_index": "items[0].cover_md",
+            "byte_span": [
+              173,
+              174
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.cover_md",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for book in site.data.home.books.items; source item index 0",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[0].cover_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 13,
+            "line_end": 13,
+            "yaml_key_or_index": "items[0].cover_html",
+            "byte_span": [
+              347,
+              348
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.cover_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 13,
+            "line_end": 13,
+            "byte_span": [
+              605,
+              620
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 0",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[0].description_md",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 15,
+            "line_end": 15,
+            "yaml_key_or_index": "items[0].description_md",
+            "byte_span": [
+              510,
+              511
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.description_md",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for book in site.data.home.books.items; source item index 0",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[0].description_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 17,
+            "line_end": 17,
+            "yaml_key_or_index": "items[0].description_html",
+            "byte_span": [
+              616,
+              617
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.description_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 22,
+            "line_end": 22,
+            "byte_span": [
+              962,
+              983
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 0",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[0].link_url",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 20,
+            "line_end": 20,
+            "yaml_key_or_index": "items[0].link_url",
+            "byte_span": [
+              743,
+              780
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.link_url",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 28,
+            "line_end": 28,
+            "byte_span": [
+              1631,
+              1644
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 0",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[0].link_text",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 19,
+            "line_end": 19,
+            "yaml_key_or_index": "items[0].link_text",
+            "byte_span": [
+              722,
+              730
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.link_text",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 29,
+            "line_end": 29,
+            "byte_span": [
+              1663,
+              1677
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 0",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[1].title",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 22,
+            "line_end": 22,
+            "yaml_key_or_index": "items[1].title",
+            "byte_span": [
+              809,
+              825
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.title",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 20,
+            "line_end": 20,
+            "byte_span": [
+              923,
+              933
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 1",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[1].authors",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 23,
+            "line_end": 23,
+            "yaml_key_or_index": "items[1].authors",
+            "byte_span": [
+              837,
+              870
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.authors",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 17,
+            "line_end": 17,
+            "byte_span": [
+              780,
+              792
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 1",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[1].cover_md",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 24,
+            "line_end": 24,
+            "yaml_key_or_index": "items[1].cover_md",
+            "byte_span": [
+              883,
+              884
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.cover_md",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for book in site.data.home.books.items; source item index 1",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[1].cover_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 28,
+            "line_end": 28,
+            "yaml_key_or_index": "items[1].cover_html",
+            "byte_span": [
+              1069,
+              1070
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.cover_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 13,
+            "line_end": 13,
+            "byte_span": [
+              605,
+              620
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 1",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[1].description_md",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 30,
+            "line_end": 30,
+            "yaml_key_or_index": "items[1].description_md",
+            "byte_span": [
+              1245,
+              1246
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.description_md",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for book in site.data.home.books.items; source item index 1",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[1].description_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 32,
+            "line_end": 32,
+            "yaml_key_or_index": "items[1].description_html",
+            "byte_span": [
+              1319,
+              1320
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.description_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 22,
+            "line_end": 22,
+            "byte_span": [
+              962,
+              983
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 1",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[1].link_url",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 35,
+            "line_end": 35,
+            "yaml_key_or_index": "items[1].link_url",
+            "byte_span": [
+              1414,
+              1454
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.link_url",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 28,
+            "line_end": 28,
+            "byte_span": [
+              1631,
+              1644
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 1",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[1].link_text",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 34,
+            "line_end": 34,
+            "yaml_key_or_index": "items[1].link_text",
+            "byte_span": [
+              1393,
+              1401
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.link_text",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 29,
+            "line_end": 29,
+            "byte_span": [
+              1663,
+              1677
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 1",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[2].title",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 37,
+            "line_end": 37,
+            "yaml_key_or_index": "items[2].title",
+            "byte_span": [
+              1484,
+              1504
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.title",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 20,
+            "line_end": 20,
+            "byte_span": [
+              923,
+              933
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 2",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[2].authors",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 38,
+            "line_end": 38,
+            "yaml_key_or_index": "items[2].authors",
+            "byte_span": [
+              1516,
+              1548
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.authors",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 17,
+            "line_end": 17,
+            "byte_span": [
+              780,
+              792
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 2",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[2].cover_md",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 39,
+            "line_end": 39,
+            "yaml_key_or_index": "items[2].cover_md",
+            "byte_span": [
+              1561,
+              1562
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.cover_md",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for book in site.data.home.books.items; source item index 2",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[2].cover_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 43,
+            "line_end": 43,
+            "yaml_key_or_index": "items[2].cover_html",
+            "byte_span": [
+              1758,
+              1759
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.cover_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 13,
+            "line_end": 13,
+            "byte_span": [
+              605,
+              620
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 2",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[2].description_md",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 45,
+            "line_end": 45,
+            "yaml_key_or_index": "items[2].description_md",
+            "byte_span": [
+              1945,
+              1946
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.description_md",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for book in site.data.home.books.items; source item index 2",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[2].description_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 47,
+            "line_end": 47,
+            "yaml_key_or_index": "items[2].description_html",
+            "byte_span": [
+              2013,
+              2014
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.description_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 22,
+            "line_end": 22,
+            "byte_span": [
+              962,
+              983
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 2",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[2].link_url",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 50,
+            "line_end": 50,
+            "yaml_key_or_index": "items[2].link_url",
+            "byte_span": [
+              2102,
+              2147
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.link_url",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 28,
+            "line_end": 28,
+            "byte_span": [
+              1631,
+              1644
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 2",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[2].link_text",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 49,
+            "line_end": 49,
+            "yaml_key_or_index": "items[2].link_text",
+            "byte_span": [
+              2081,
+              2089
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.link_text",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 29,
+            "line_end": 29,
+            "byte_span": [
+              1663,
+              1677
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 2",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[3].title",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 52,
+            "line_end": 52,
+            "yaml_key_or_index": "items[3].title",
+            "byte_span": [
+              2168,
+              2191
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.title",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 20,
+            "line_end": 20,
+            "byte_span": [
+              923,
+              933
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 3",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[3].authors",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 53,
+            "line_end": 53,
+            "yaml_key_or_index": "items[3].authors",
+            "byte_span": [
+              2203,
+              2253
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.authors",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 17,
+            "line_end": 17,
+            "byte_span": [
+              780,
+              792
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 3",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[3].cover_md",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 54,
+            "line_end": 54,
+            "yaml_key_or_index": "items[3].cover_md",
+            "byte_span": [
+              2266,
+              2267
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.cover_md",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for book in site.data.home.books.items; source item index 3",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[3].cover_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 58,
+            "line_end": 58,
+            "yaml_key_or_index": "items[3].cover_html",
+            "byte_span": [
+              2435,
+              2436
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.cover_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 13,
+            "line_end": 13,
+            "byte_span": [
+              605,
+              620
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 3",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[3].description_md",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 60,
+            "line_end": 60,
+            "yaml_key_or_index": "items[3].description_md",
+            "byte_span": [
+              2594,
+              2595
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.description_md",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for book in site.data.home.books.items; source item index 3",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[3].description_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 62,
+            "line_end": 62,
+            "yaml_key_or_index": "items[3].description_html",
+            "byte_span": [
+              2777,
+              2778
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.description_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 22,
+            "line_end": 22,
+            "byte_span": [
+              962,
+              983
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 3",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[3].link_url",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 65,
+            "line_end": 65,
+            "yaml_key_or_index": "items[3].link_url",
+            "byte_span": [
+              2981,
+              3016
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.link_url",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 28,
+            "line_end": 28,
+            "byte_span": [
+              1631,
+              1644
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 3",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/books.yml",
+          "source_field_path": "items[3].link_text",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/books.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "bc8041170d614ee6d3094e6cddb68f2e3bf32c94671c19592003c27ad0a1e788",
+            "line_start": 64,
+            "line_end": 64,
+            "yaml_key_or_index": "items[3].link_text",
+            "byte_span": [
+              2960,
+              2968
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/books.liquid",
+          "access_raw": "book.link_text",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/books.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "3877e2872cb57d9176df0f24691b93fcef192aabda8336e27bf3b9b29db95443",
+            "line_start": 29,
+            "line_end": 29,
+            "byte_span": [
+              1663,
+              1677
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for book in site.data.home.books.items; source item index 3",
+          "generation_status": "source only"
+        }
+      ],
+      "iteration02_prerender_edges": [
+        {
+          "source_fields": [
+            "items[*].cover_md",
+            "items[*].description_md"
+          ],
+          "output_siblings": [
+            "items[*].cover_html",
+            "items[*].description_html"
+          ],
+          "mechanism": "prerender whole scalar conversion in tools/lfesite/src/cmd/prerender.rs",
+          "consumer_access_is_separate": true,
+          "generation_status": "mechanism only; no rendering"
         }
       ]
     },
@@ -46396,7 +48064,201 @@
           "line_end": 103
         },
         "scope": "Complete include/template source read; direct access tokens listed separately. Conditions/loop syntax remain literal."
-      }
+      },
+      "exact_nav_layout_callers": [
+        {
+          "layout_file_key": "website:src/_layouts/home.liquid",
+          "include_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/home.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "e2ca5f6ab8abfc2dfc5e52d96a85c79e78940e1c534a17584a5792ca91e599cf",
+            "line_start": 15,
+            "line_end": 15,
+            "byte_span": [
+              337,
+              357
+            ]
+          },
+          "source_access_file_key": "website:src/_includes/nav.liquid"
+        },
+        {
+          "layout_file_key": "website:src/_layouts/page.liquid",
+          "include_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/page.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "d2d21f88d542f064eb4f1b8da6f6dcf9c5c82c6b2c92c6e39c2a28e881590514",
+            "line_start": 15,
+            "line_end": 15,
+            "byte_span": [
+              337,
+              357
+            ]
+          },
+          "source_access_file_key": "website:src/_includes/nav.liquid"
+        },
+        {
+          "layout_file_key": "website:src/_layouts/plan/index.liquid",
+          "include_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/plan/index.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "d66aeb281b8706fb74bd95b3b7d95879cfe193d7b346bf19e26c2d077456c27d",
+            "line_start": 15,
+            "line_end": 15,
+            "byte_span": [
+              337,
+              357
+            ]
+          },
+          "source_access_file_key": "website:src/_includes/nav.liquid"
+        },
+        {
+          "layout_file_key": "website:src/_layouts/plan/page.liquid",
+          "include_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/plan/page.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "d66aeb281b8706fb74bd95b3b7d95879cfe193d7b346bf19e26c2d077456c27d",
+            "line_start": 15,
+            "line_end": 15,
+            "byte_span": [
+              337,
+              357
+            ]
+          },
+          "source_access_file_key": "website:src/_includes/nav.liquid"
+        },
+        {
+          "layout_file_key": "website:src/_layouts/post.liquid",
+          "include_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/post.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+            "line_start": 19,
+            "line_end": 19,
+            "byte_span": [
+              507,
+              527
+            ]
+          },
+          "source_access_file_key": "website:src/_includes/nav.liquid"
+        },
+        {
+          "layout_file_key": "website:src/_layouts/blog-index.liquid",
+          "include_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-index.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "6cb9a5d370687b92dfc0be74efef446b9c698e7ca008e239f2846f72e8d27772",
+            "line_start": 16,
+            "line_end": 16,
+            "byte_span": [
+              361,
+              381
+            ]
+          },
+          "source_access_file_key": "website:src/_includes/nav.liquid"
+        },
+        {
+          "layout_file_key": "website:src/_layouts/blog-archive.liquid",
+          "include_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-archive.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "2553dbaec260783878c3e10039dbc0888566730897e06427a4bcdc96a43fb531",
+            "line_start": 15,
+            "line_end": 15,
+            "byte_span": [
+              342,
+              362
+            ]
+          },
+          "source_access_file_key": "website:src/_includes/nav.liquid"
+        },
+        {
+          "layout_file_key": "website:src/_layouts/blog-author.liquid",
+          "include_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-author.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+            "line_start": 15,
+            "line_end": 15,
+            "byte_span": [
+              332,
+              352
+            ]
+          },
+          "source_access_file_key": "website:src/_includes/nav.liquid"
+        },
+        {
+          "layout_file_key": "website:src/_layouts/blog-authors.liquid",
+          "include_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-authors.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "c2738d60f73c72a567d83bc21bdc8b865e0da5b7536c3e52b3f06716a6be0b35",
+            "line_start": 15,
+            "line_end": 15,
+            "byte_span": [
+              323,
+              343
+            ]
+          },
+          "source_access_file_key": "website:src/_includes/nav.liquid"
+        },
+        {
+          "layout_file_key": "website:src/_layouts/blog-categories.liquid",
+          "include_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-categories.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "0714877d8705e8bea4d79cccd98668d8e57666d8c7b2daa7caf3873761a1d753",
+            "line_start": 15,
+            "line_end": 15,
+            "byte_span": [
+              340,
+              360
+            ]
+          },
+          "source_access_file_key": "website:src/_includes/nav.liquid"
+        },
+        {
+          "layout_file_key": "website:src/_layouts/blog-tags.liquid",
+          "include_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-tags.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "20402edcfcbf676f41fad607d3dbbefd4563110731ef94970c592b6b2098c902",
+            "line_start": 15,
+            "line_end": 15,
+            "byte_span": [
+              335,
+              355
+            ]
+          },
+          "source_access_file_key": "website:src/_includes/nav.liquid"
+        },
+        {
+          "layout_file_key": "website:src/_layouts/blog-search.liquid",
+          "include_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-search.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "8bbaed6ff25a750a34e19f74612e8fbede3e3bce1190b0bf20d5c2c678e108cc",
+            "line_start": 17,
+            "line_end": 17,
+            "byte_span": [
+              474,
+              494
+            ]
+          },
+          "source_access_file_key": "website:src/_includes/nav.liquid"
+        }
+      ]
     },
     {
       "id": "consumer-603472390ecb9b5f",
@@ -46459,7 +48321,345 @@
           "default_cover_alt": "site.data.blog.default_cover_alt"
         },
         "status": "source mechanism and template accesses; generated values unknown"
-      }
+      },
+      "generated_authors_edge": {
+        "source_data_file_key": "website:src/_data/authors.yml",
+        "resolver_source_file_key": "website:tools/lfesite/src/cmd/blog_resolve.rs",
+        "mechanism": "build_sorted_authors reads author data and post author references; run inserts authors_sorted into blog_resolved output; blog-authors layout loops the generated field.",
+        "run_output_locator": {
+          "repository_id": "website",
+          "path": "tools/lfesite/src/cmd/blog_resolve.rs",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "c417907163e8bb5a57e673c0d7d7e32f39058363b2e1abb82dc49b6e3285aa1e",
+          "line_start": 107,
+          "line_end": 107,
+          "byte_span": [
+            3738,
+            3752
+          ]
+        },
+        "template_access_locator": {
+          "repository_id": "website",
+          "path": "src/_layouts/blog-authors.liquid",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "c2738d60f73c72a567d83bc21bdc8b865e0da5b7536c3e52b3f06716a6be0b35",
+          "line_start": 24,
+          "line_end": 24,
+          "byte_span": [
+            579,
+            617
+          ]
+        },
+        "generation_status": "source mechanism only; no wrapper execution or generated observation",
+        "build_sorted_authors_definition_locator": {
+          "repository_id": "website",
+          "path": "tools/lfesite/src/cmd/blog_resolve.rs",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "c417907163e8bb5a57e673c0d7d7e32f39058363b2e1abb82dc49b6e3285aa1e",
+          "line_start": 433,
+          "line_end": 433,
+          "byte_span": [
+            14578,
+            14601
+          ]
+        },
+        "run_assignment_locator": {
+          "repository_id": "website",
+          "path": "tools/lfesite/src/cmd/blog_resolve.rs",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "c417907163e8bb5a57e673c0d7d7e32f39058363b2e1abb82dc49b6e3285aa1e",
+          "line_start": 107,
+          "line_end": 107,
+          "byte_span": [
+            3738,
+            3752
+          ]
+        },
+        "run_output_insertion_locator": {
+          "repository_id": "website",
+          "path": "tools/lfesite/src/cmd/blog_resolve.rs",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "c417907163e8bb5a57e673c0d7d7e32f39058363b2e1abb82dc49b6e3285aa1e",
+          "line_start": 131,
+          "line_end": 131,
+          "byte_span": [
+            4443,
+            4465
+          ]
+        },
+        "template_loop_locator": {
+          "repository_id": "website",
+          "path": "src/_layouts/blog-authors.liquid",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "c2738d60f73c72a567d83bc21bdc8b865e0da5b7536c3e52b3f06716a6be0b35",
+          "line_start": 24,
+          "line_end": 24,
+          "byte_span": [
+            565,
+            617
+          ]
+        },
+        "consumed_fields": [
+          "author.slug",
+          "author.github_user",
+          "author.avatar",
+          "author.name",
+          "author.bio",
+          "author.post_count"
+        ]
+      },
+      "iteration02_editorial_accesses": [
+        {
+          "source_field_path": "centrepiece",
+          "resolver_call_locator": {
+            "repository_id": "website",
+            "path": "tools/lfesite/src/cmd/blog_resolve.rs",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "c417907163e8bb5a57e673c0d7d7e32f39058363b2e1abb82dc49b6e3285aa1e",
+            "line_start": 67,
+            "line_end": 67,
+            "byte_span": [
+              2229,
+              2240
+            ]
+          },
+          "template_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-index.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "6cb9a5d370687b92dfc0be74efef446b9c698e7ca008e239f2846f72e8d27772",
+            "line_start": 38,
+            "line_end": 38,
+            "byte_span": [
+              1192,
+              1227
+            ]
+          },
+          "kind": "source editorial field to resolved slot; template output not executed"
+        },
+        {
+          "source_field_path": "lede_1",
+          "resolver_call_locator": {
+            "repository_id": "website",
+            "path": "tools/lfesite/src/cmd/blog_resolve.rs",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "c417907163e8bb5a57e673c0d7d7e32f39058363b2e1abb82dc49b6e3285aa1e",
+            "line_start": 67,
+            "line_end": 67,
+            "byte_span": [
+              2244,
+              2250
+            ]
+          },
+          "template_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-index.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "6cb9a5d370687b92dfc0be74efef446b9c698e7ca008e239f2846f72e8d27772",
+            "line_start": 56,
+            "line_end": 56,
+            "byte_span": [
+              2230,
+              2260
+            ]
+          },
+          "kind": "source editorial field to resolved slot; template output not executed"
+        },
+        {
+          "source_field_path": "lede_2",
+          "resolver_call_locator": {
+            "repository_id": "website",
+            "path": "tools/lfesite/src/cmd/blog_resolve.rs",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "c417907163e8bb5a57e673c0d7d7e32f39058363b2e1abb82dc49b6e3285aa1e",
+            "line_start": 67,
+            "line_end": 67,
+            "byte_span": [
+              2254,
+              2260
+            ]
+          },
+          "template_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-index.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "6cb9a5d370687b92dfc0be74efef446b9c698e7ca008e239f2846f72e8d27772",
+            "line_start": 70,
+            "line_end": 70,
+            "byte_span": [
+              3025,
+              3055
+            ]
+          },
+          "kind": "source editorial field to resolved slot; template output not executed"
+        },
+        {
+          "source_field_path": "spotlight",
+          "resolver_call_locator": {
+            "repository_id": "website",
+            "path": "tools/lfesite/src/cmd/blog_resolve.rs",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "c417907163e8bb5a57e673c0d7d7e32f39058363b2e1abb82dc49b6e3285aa1e",
+            "line_start": 67,
+            "line_end": 67,
+            "byte_span": [
+              2264,
+              2273
+            ]
+          },
+          "template_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-index.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "6cb9a5d370687b92dfc0be74efef446b9c698e7ca008e239f2846f72e8d27772",
+            "line_start": 88,
+            "line_end": 88,
+            "byte_span": [
+              3896,
+              3929
+            ]
+          },
+          "kind": "source editorial field to resolved slot; template output not executed"
+        },
+        {
+          "source_field_path": "river_count",
+          "resolver_call_locator": {
+            "repository_id": "website",
+            "path": "tools/lfesite/src/cmd/blog_resolve.rs",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "c417907163e8bb5a57e673c0d7d7e32f39058363b2e1abb82dc49b6e3285aa1e",
+            "line_start": 53,
+            "line_end": 53,
+            "byte_span": [
+              1767,
+              1778
+            ]
+          },
+          "template_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-index.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "6cb9a5d370687b92dfc0be74efef446b9c698e7ca008e239f2846f72e8d27772",
+            "line_start": 109,
+            "line_end": 109,
+            "byte_span": [
+              4965,
+              4994
+            ]
+          },
+          "kind": "source editorial field to resolved slot; template output not executed"
+        }
+      ],
+      "iteration02_direct_default_cover_accesses": [
+        {
+          "field_path": "default_cover_image",
+          "consumer_locators": [
+            {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-author.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+              "line_start": 59,
+              "line_end": 59,
+              "byte_span": [
+                2167,
+                2201
+              ]
+            },
+            {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-archive.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "2553dbaec260783878c3e10039dbc0888566730897e06427a4bcdc96a43fb531",
+              "line_start": 49,
+              "line_end": 49,
+              "byte_span": [
+                1799,
+                1833
+              ]
+            },
+            {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-categories.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "0714877d8705e8bea4d79cccd98668d8e57666d8c7b2daa7caf3873761a1d753",
+              "line_start": 49,
+              "line_end": 49,
+              "byte_span": [
+                1874,
+                1908
+              ]
+            },
+            {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-tags.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "20402edcfcbf676f41fad607d3dbbefd4563110731ef94970c592b6b2098c902",
+              "line_start": 49,
+              "line_end": 49,
+              "byte_span": [
+                1797,
+                1831
+              ]
+            }
+          ],
+          "kind": "direct template fallback; separate from resolver output"
+        },
+        {
+          "field_path": "default_cover_alt",
+          "consumer_locators": [
+            {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-author.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+              "line_start": 59,
+              "line_end": 59,
+              "byte_span": [
+                2214,
+                2246
+              ]
+            },
+            {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-archive.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "2553dbaec260783878c3e10039dbc0888566730897e06427a4bcdc96a43fb531",
+              "line_start": 49,
+              "line_end": 49,
+              "byte_span": [
+                1846,
+                1878
+              ]
+            },
+            {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-categories.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "0714877d8705e8bea4d79cccd98668d8e57666d8c7b2daa7caf3873761a1d753",
+              "line_start": 49,
+              "line_end": 49,
+              "byte_span": [
+                1921,
+                1953
+              ]
+            },
+            {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-tags.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "20402edcfcbf676f41fad607d3dbbefd4563110731ef94970c592b6b2098c902",
+              "line_start": 49,
+              "line_end": 49,
+              "byte_span": [
+                1844,
+                1876
+              ]
+            }
+          ],
+          "kind": "direct template fallback; separate from resolver output"
+        }
+      ]
     },
     {
       "id": "consumer-710eb5f6076c934b",
@@ -46646,6 +48846,893 @@
       "iteration02_no_direct_access_fields": [
         "items[*].link_url",
         "items[*].link_text"
+      ],
+      "iteration02_scope_resolved_edges": [
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[0].title_md_inline",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 4,
+            "line_end": 4,
+            "yaml_key_or_index": "items[0].title_md_inline",
+            "byte_span": [
+              57,
+              73
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.title_md_inline",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 0",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[0].title_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 5,
+            "line_end": 5,
+            "yaml_key_or_index": "items[0].title_html",
+            "byte_span": [
+              88,
+              104
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.title_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/features.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "f85c1018ca283b8afabf5d75c692fd34e40d6af0b375e5721b84c153b45f90e2",
+            "line_start": 16,
+            "line_end": 16,
+            "byte_span": [
+              808,
+              826
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 0",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[0].icon_md_inline",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 6,
+            "line_end": 6,
+            "yaml_key_or_index": "items[0].icon_md_inline",
+            "byte_span": [
+              123,
+              181
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.icon_md_inline",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 0",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[0].icon_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 7,
+            "line_end": 7,
+            "yaml_key_or_index": "items[0].icon_html",
+            "byte_span": [
+              195,
+              267
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.icon_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/features.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "f85c1018ca283b8afabf5d75c692fd34e40d6af0b375e5721b84c153b45f90e2",
+            "line_start": 13,
+            "line_end": 13,
+            "byte_span": [
+              653,
+              670
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 0",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[0].content_md",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 8,
+            "line_end": 8,
+            "yaml_key_or_index": "items[0].content_md",
+            "byte_span": [
+              282,
+              283
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.content_md",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 0",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[0].content_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 15,
+            "line_end": 15,
+            "yaml_key_or_index": "items[0].content_html",
+            "byte_span": [
+              619,
+              620
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.content_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/features.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "f85c1018ca283b8afabf5d75c692fd34e40d6af0b375e5721b84c153b45f90e2",
+            "line_start": 19,
+            "line_end": 19,
+            "byte_span": [
+              916,
+              936
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 0",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[0].link_url",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 24,
+            "line_end": 24,
+            "yaml_key_or_index": "items[0].link_url",
+            "byte_span": [
+              1029,
+              1032
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.link_url",
+          "consumer_locator": null,
+          "observed_role": "no direct access observed in features include",
+          "scope_context": "for feature in site.data.home.features.items; source item index 0",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[0].link_text",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 23,
+            "line_end": 23,
+            "yaml_key_or_index": "items[0].link_text",
+            "byte_span": [
+              1006,
+              1016
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.link_text",
+          "consumer_locator": null,
+          "observed_role": "no direct access observed in features include",
+          "scope_context": "for feature in site.data.home.features.items; source item index 0",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[1].title_md_inline",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 26,
+            "line_end": 26,
+            "yaml_key_or_index": "items[1].title_md_inline",
+            "byte_span": [
+              1065,
+              1087
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.title_md_inline",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 1",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[1].title_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 27,
+            "line_end": 27,
+            "yaml_key_or_index": "items[1].title_html",
+            "byte_span": [
+              1102,
+              1124
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.title_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/features.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "f85c1018ca283b8afabf5d75c692fd34e40d6af0b375e5721b84c153b45f90e2",
+            "line_start": 16,
+            "line_end": 16,
+            "byte_span": [
+              808,
+              826
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 1",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[1].icon_md_inline",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 28,
+            "line_end": 28,
+            "yaml_key_or_index": "items[1].icon_md_inline",
+            "byte_span": [
+              1143,
+              1177
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.icon_md_inline",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 1",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[1].icon_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 29,
+            "line_end": 29,
+            "yaml_key_or_index": "items[1].icon_html",
+            "byte_span": [
+              1191,
+              1225
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.icon_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/features.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "f85c1018ca283b8afabf5d75c692fd34e40d6af0b375e5721b84c153b45f90e2",
+            "line_start": 13,
+            "line_end": 13,
+            "byte_span": [
+              653,
+              670
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 1",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[1].content_md",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 30,
+            "line_end": 30,
+            "yaml_key_or_index": "items[1].content_md",
+            "byte_span": [
+              1240,
+              1241
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.content_md",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 1",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[1].content_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 39,
+            "line_end": 39,
+            "yaml_key_or_index": "items[1].content_html",
+            "byte_span": [
+              1539,
+              1540
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.content_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/features.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "f85c1018ca283b8afabf5d75c692fd34e40d6af0b375e5721b84c153b45f90e2",
+            "line_start": 19,
+            "line_end": 19,
+            "byte_span": [
+              916,
+              936
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 1",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[1].link_url",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 50,
+            "line_end": 50,
+            "yaml_key_or_index": "items[1].link_url",
+            "byte_span": [
+              1936,
+              1939
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.link_url",
+          "consumer_locator": null,
+          "observed_role": "no direct access observed in features include",
+          "scope_context": "for feature in site.data.home.features.items; source item index 1",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[1].link_text",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 49,
+            "line_end": 49,
+            "yaml_key_or_index": "items[1].link_text",
+            "byte_span": [
+              1913,
+              1923
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.link_text",
+          "consumer_locator": null,
+          "observed_role": "no direct access observed in features include",
+          "scope_context": "for feature in site.data.home.features.items; source item index 1",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[2].title_md_inline",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 52,
+            "line_end": 52,
+            "yaml_key_or_index": "items[2].title_md_inline",
+            "byte_span": [
+              1969,
+              2036
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.title_md_inline",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 2",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[2].title_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 53,
+            "line_end": 53,
+            "yaml_key_or_index": "items[2].title_html",
+            "byte_span": [
+              2051,
+              2127
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.title_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/features.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "f85c1018ca283b8afabf5d75c692fd34e40d6af0b375e5721b84c153b45f90e2",
+            "line_start": 16,
+            "line_end": 16,
+            "byte_span": [
+              808,
+              826
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 2",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[2].icon_md_inline",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 54,
+            "line_end": 54,
+            "yaml_key_or_index": "items[2].icon_md_inline",
+            "byte_span": [
+              2146,
+              2189
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.icon_md_inline",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 2",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[2].icon_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 55,
+            "line_end": 55,
+            "yaml_key_or_index": "items[2].icon_html",
+            "byte_span": [
+              2203,
+              2246
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.icon_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/features.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "f85c1018ca283b8afabf5d75c692fd34e40d6af0b375e5721b84c153b45f90e2",
+            "line_start": 13,
+            "line_end": 13,
+            "byte_span": [
+              653,
+              670
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 2",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[2].content_md",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 56,
+            "line_end": 56,
+            "yaml_key_or_index": "items[2].content_md",
+            "byte_span": [
+              2261,
+              2262
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.content_md",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 2",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[2].content_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 64,
+            "line_end": 64,
+            "yaml_key_or_index": "items[2].content_html",
+            "byte_span": [
+              2492,
+              2493
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.content_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/features.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "f85c1018ca283b8afabf5d75c692fd34e40d6af0b375e5721b84c153b45f90e2",
+            "line_start": 19,
+            "line_end": 19,
+            "byte_span": [
+              916,
+              936
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 2",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[2].link_url",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 74,
+            "line_end": 74,
+            "yaml_key_or_index": "items[2].link_url",
+            "byte_span": [
+              2803,
+              2806
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.link_url",
+          "consumer_locator": null,
+          "observed_role": "no direct access observed in features include",
+          "scope_context": "for feature in site.data.home.features.items; source item index 2",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[2].link_text",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 73,
+            "line_end": 73,
+            "yaml_key_or_index": "items[2].link_text",
+            "byte_span": [
+              2780,
+              2790
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.link_text",
+          "consumer_locator": null,
+          "observed_role": "no direct access observed in features include",
+          "scope_context": "for feature in site.data.home.features.items; source item index 2",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[3].title_md_inline",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 76,
+            "line_end": 76,
+            "yaml_key_or_index": "items[3].title_md_inline",
+            "byte_span": [
+              2836,
+              2848
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.title_md_inline",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 3",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[3].title_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 77,
+            "line_end": 77,
+            "yaml_key_or_index": "items[3].title_html",
+            "byte_span": [
+              2863,
+              2875
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.title_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/features.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "f85c1018ca283b8afabf5d75c692fd34e40d6af0b375e5721b84c153b45f90e2",
+            "line_start": 16,
+            "line_end": 16,
+            "byte_span": [
+              808,
+              826
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 3",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[3].icon_md_inline",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 78,
+            "line_end": 78,
+            "yaml_key_or_index": "items[3].icon_md_inline",
+            "byte_span": [
+              2894,
+              2928
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.icon_md_inline",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 3",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[3].icon_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 79,
+            "line_end": 79,
+            "yaml_key_or_index": "items[3].icon_html",
+            "byte_span": [
+              2942,
+              2976
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.icon_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/features.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "f85c1018ca283b8afabf5d75c692fd34e40d6af0b375e5721b84c153b45f90e2",
+            "line_start": 13,
+            "line_end": 13,
+            "byte_span": [
+              653,
+              670
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 3",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[3].content_md",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 80,
+            "line_end": 80,
+            "yaml_key_or_index": "items[3].content_md",
+            "byte_span": [
+              2991,
+              2992
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.content_md",
+          "consumer_locator": null,
+          "observed_role": "prerender input; no direct Liquid access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 3",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[3].content_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 87,
+            "line_end": 87,
+            "yaml_key_or_index": "items[3].content_html",
+            "byte_span": [
+              3341,
+              3342
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.content_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/features.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "f85c1018ca283b8afabf5d75c692fd34e40d6af0b375e5721b84c153b45f90e2",
+            "line_start": 19,
+            "line_end": 19,
+            "byte_span": [
+              916,
+              936
+            ]
+          },
+          "observed_role": "direct item access",
+          "scope_context": "for feature in site.data.home.features.items; source item index 3",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[3].link_url",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 96,
+            "line_end": 96,
+            "yaml_key_or_index": "items[3].link_url",
+            "byte_span": [
+              3764,
+              3767
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.link_url",
+          "consumer_locator": null,
+          "observed_role": "no direct access observed in features include",
+          "scope_context": "for feature in site.data.home.features.items; source item index 3",
+          "generation_status": "source only"
+        },
+        {
+          "source_file_key": "website:src/_data/home/features.yml",
+          "source_field_path": "items[3].link_text",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/features.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "132b4975b3dfbf6cf28f1010e7b8569ede6c3a0ecc56bd58973de7ba19ba1ea2",
+            "line_start": 95,
+            "line_end": 95,
+            "yaml_key_or_index": "items[3].link_text",
+            "byte_span": [
+              3741,
+              3751
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/features.liquid",
+          "access_raw": "feature.link_text",
+          "consumer_locator": null,
+          "observed_role": "no direct access observed in features include",
+          "scope_context": "for feature in site.data.home.features.items; source item index 3",
+          "generation_status": "source only"
+        }
+      ],
+      "iteration02_prerender_edges": [
+        {
+          "source_fields": [
+            "items[*].title_md_inline",
+            "items[*].icon_md_inline",
+            "items[*].content_md"
+          ],
+          "output_siblings": [
+            "items[*].title_html",
+            "items[*].icon_html",
+            "items[*].content_html"
+          ],
+          "mechanism": "prerender whole scalar conversion",
+          "consumer_access_is_separate": true,
+          "generation_status": "mechanism only; no rendering"
+        }
       ]
     },
     {
@@ -46794,6 +49881,144 @@
       ],
       "iteration02_no_direct_access_fields": [
         "logo_image"
+      ],
+      "iteration02_scope_resolved_edges": [
+        {
+          "source_file_key": "website:src/_data/home/masthead.yml",
+          "source_field_path": "sitetagline",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/masthead.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "c7568ef92aa30e6774fef385709503e24aed8b06481dbc2fc779b48d31a9620e",
+            "line_start": 2,
+            "line_end": 2,
+            "yaml_key_or_index": "sitetagline",
+            "byte_span": [
+              55,
+              111
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/masthead.liquid",
+          "access_raw": "site.data.home.masthead.sitetagline",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/masthead.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "9b922255eefdc86204dff7cd5f0d0ce9f0dd2864e2eebb6842bd314276b501f1",
+            "line_start": 4,
+            "line_end": 4,
+            "byte_span": [
+              112,
+              147
+            ]
+          },
+          "observed_role": "direct root field",
+          "scope_context": "",
+          "generation_status": "source evidence only; no output execution"
+        },
+        {
+          "source_file_key": "website:src/_data/home/masthead.yml",
+          "source_field_path": "summary.content_html",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/masthead.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "c7568ef92aa30e6774fef385709503e24aed8b06481dbc2fc779b48d31a9620e",
+            "line_start": 8,
+            "line_end": 8,
+            "yaml_key_or_index": "summary.content_html",
+            "byte_span": [
+              335,
+              336
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/masthead.liquid",
+          "access_raw": "site.data.home.masthead.summary.content_html",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/masthead.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "9b922255eefdc86204dff7cd5f0d0ce9f0dd2864e2eebb6842bd314276b501f1",
+            "line_start": 59,
+            "line_end": 59,
+            "byte_span": [
+              2316,
+              2360
+            ]
+          },
+          "observed_role": "direct root nested field",
+          "scope_context": "",
+          "generation_status": "source evidence only; no output execution"
+        },
+        {
+          "source_file_key": "website:src/_data/home/masthead.yml",
+          "source_field_path": "summary.link_url",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/masthead.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "c7568ef92aa30e6774fef385709503e24aed8b06481dbc2fc779b48d31a9620e",
+            "line_start": 13,
+            "line_end": 13,
+            "yaml_key_or_index": "summary.link_url",
+            "byte_span": [
+              562,
+              568
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/masthead.liquid",
+          "access_raw": "site.data.home.masthead.summary.link_url",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/masthead.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "9b922255eefdc86204dff7cd5f0d0ce9f0dd2864e2eebb6842bd314276b501f1",
+            "line_start": 60,
+            "line_end": 60,
+            "byte_span": [
+              2386,
+              2426
+            ]
+          },
+          "observed_role": "direct root nested field",
+          "scope_context": "",
+          "generation_status": "source evidence only; no output execution"
+        },
+        {
+          "source_file_key": "website:src/_data/home/masthead.yml",
+          "source_field_path": "summary.link_text",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/home/masthead.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "c7568ef92aa30e6774fef385709503e24aed8b06481dbc2fc779b48d31a9620e",
+            "line_start": 12,
+            "line_end": 12,
+            "yaml_key_or_index": "summary.link_text",
+            "byte_span": [
+              539,
+              549
+            ]
+          },
+          "consumer_file_key": "website:src/_includes/home/masthead.liquid",
+          "access_raw": "site.data.home.masthead.summary.link_text",
+          "consumer_locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/masthead.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "9b922255eefdc86204dff7cd5f0d0ce9f0dd2864e2eebb6842bd314276b501f1",
+            "line_start": 63,
+            "line_end": 63,
+            "byte_span": [
+              2766,
+              2807
+            ]
+          },
+          "observed_role": "direct root nested field",
+          "scope_context": "",
+          "generation_status": "source evidence only; no output execution"
+        }
       ]
     },
     {
@@ -47000,7 +50225,43 @@
         },
         "scope": "Complete include/template source read; direct access tokens listed separately. Conditions/loop syntax remain literal."
       },
-      "iteration02_note": "code_html and desc_html are direct masthead interpolations at lines 35 and 39; two loops and forloop.index branches still require full caller qualification."
+      "iteration02_note": "code_html and desc_html are direct masthead interpolations at lines 35 and 39; two loops and forloop.index branches still require full caller qualification.",
+      "exact_member_accesses": [
+        {
+          "data_field": "items[*].code_html",
+          "access_raw": "excerpt.code_html",
+          "locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/masthead.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "9b922255eefdc86204dff7cd5f0d0ce9f0dd2864e2eebb6842bd314276b501f1",
+            "line_start": 35,
+            "line_end": 35,
+            "byte_span": [
+              1766,
+              1783
+            ]
+          },
+          "loop_context": "second excerpt loop; forloop.index branch is within lines 30-40"
+        },
+        {
+          "data_field": "items[*].desc_html",
+          "access_raw": "excerpt.desc_html",
+          "locator": {
+            "repository_id": "website",
+            "path": "src/_includes/home/masthead.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "9b922255eefdc86204dff7cd5f0d0ce9f0dd2864e2eebb6842bd314276b501f1",
+            "line_start": 39,
+            "line_end": 39,
+            "byte_span": [
+              1935,
+              1952
+            ]
+          },
+          "loop_context": "second excerpt loop; forloop.index branch is within lines 30-40"
+        }
+      ]
     },
     {
       "id": "consumer-77b2315b70820aec",
@@ -47150,7 +50411,452 @@
           "head": "b5a7c50b0cb761e8e857cab6731cde103874b081"
         }
       ],
-      "iteration02_note": "No author.url field exists. Full five-layout branch/caller/source-locator reconstruction remains open."
+      "iteration02_note": "No author.url field exists. Full five-layout branch/caller/source-locator reconstruction remains open.",
+      "exact_author_layout_witnesses": [
+        {
+          "layout_file_key": "website:src/_layouts/post.liquid",
+          "loop_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/post.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+            "line_start": 44,
+            "line_end": 44,
+            "byte_span": [
+              1299,
+              1336
+            ]
+          },
+          "map_key_match_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/post.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+            "line_start": 45,
+            "line_end": 45,
+            "byte_span": [
+              1362,
+              1397
+            ]
+          },
+          "map_value_assignment_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/post.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+            "line_start": 46,
+            "line_end": 46,
+            "byte_span": [
+              1422,
+              1453
+            ]
+          },
+          "website_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "role": "direct author-map lookup; branches follow within this layout"
+        },
+        {
+          "layout_file_key": "website:src/_layouts/blog-author.liquid",
+          "loop_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-author.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+            "line_start": 22,
+            "line_end": 22,
+            "byte_span": [
+              500,
+              537
+            ]
+          },
+          "map_key_match_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-author.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+            "line_start": 23,
+            "line_end": 23,
+            "byte_span": [
+              557,
+              597
+            ]
+          },
+          "map_value_assignment_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-author.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+            "line_start": 24,
+            "line_end": 24,
+            "byte_span": [
+              616,
+              647
+            ]
+          },
+          "website_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "role": "direct author-map lookup; branches follow within this layout"
+        },
+        {
+          "layout_file_key": "website:src/_layouts/blog-archive.liquid",
+          "loop_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-archive.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "2553dbaec260783878c3e10039dbc0888566730897e06427a4bcdc96a43fb531",
+            "line_start": 38,
+            "line_end": 38,
+            "byte_span": [
+              1232,
+              1269
+            ]
+          },
+          "map_key_match_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-archive.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "2553dbaec260783878c3e10039dbc0888566730897e06427a4bcdc96a43fb531",
+            "line_start": 39,
+            "line_end": 39,
+            "byte_span": [
+              1295,
+              1330
+            ]
+          },
+          "map_value_assignment_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-archive.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "2553dbaec260783878c3e10039dbc0888566730897e06427a4bcdc96a43fb531",
+            "line_start": 40,
+            "line_end": 40,
+            "byte_span": [
+              1355,
+              1396
+            ]
+          },
+          "website_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "role": "direct author-map lookup; branches follow within this layout"
+        },
+        {
+          "layout_file_key": "website:src/_layouts/blog-categories.liquid",
+          "loop_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-categories.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "0714877d8705e8bea4d79cccd98668d8e57666d8c7b2daa7caf3873761a1d753",
+            "line_start": 38,
+            "line_end": 38,
+            "byte_span": [
+              1307,
+              1344
+            ]
+          },
+          "map_key_match_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-categories.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "0714877d8705e8bea4d79cccd98668d8e57666d8c7b2daa7caf3873761a1d753",
+            "line_start": 39,
+            "line_end": 39,
+            "byte_span": [
+              1370,
+              1405
+            ]
+          },
+          "map_value_assignment_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-categories.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "0714877d8705e8bea4d79cccd98668d8e57666d8c7b2daa7caf3873761a1d753",
+            "line_start": 40,
+            "line_end": 40,
+            "byte_span": [
+              1430,
+              1471
+            ]
+          },
+          "website_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "role": "direct author-map lookup; branches follow within this layout"
+        },
+        {
+          "layout_file_key": "website:src/_layouts/blog-tags.liquid",
+          "loop_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-tags.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "20402edcfcbf676f41fad607d3dbbefd4563110731ef94970c592b6b2098c902",
+            "line_start": 38,
+            "line_end": 38,
+            "byte_span": [
+              1230,
+              1267
+            ]
+          },
+          "map_key_match_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-tags.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "20402edcfcbf676f41fad607d3dbbefd4563110731ef94970c592b6b2098c902",
+            "line_start": 39,
+            "line_end": 39,
+            "byte_span": [
+              1293,
+              1328
+            ]
+          },
+          "map_value_assignment_locator": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-tags.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "20402edcfcbf676f41fad607d3dbbefd4563110731ef94970c592b6b2098c902",
+            "line_start": 40,
+            "line_end": 40,
+            "byte_span": [
+              1353,
+              1394
+            ]
+          },
+          "website_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "role": "direct author-map lookup; branches follow within this layout"
+        }
+      ],
+      "post_author_branches": {
+        "github_user": {
+          "repository_id": "website",
+          "path": "src/_layouts/post.liquid",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+          "line_start": 50,
+          "line_end": 50,
+          "byte_span": [
+            1533,
+            1551
+          ]
+        },
+        "avatar_elsif": {
+          "repository_id": "website",
+          "path": "src/_layouts/post.liquid",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+          "line_start": 52,
+          "line_end": 52,
+          "byte_span": [
+            1720,
+            1739
+          ]
+        },
+        "links_size_guard": {
+          "repository_id": "website",
+          "path": "src/_layouts/post.liquid",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+          "line_start": 112,
+          "line_end": 112,
+          "byte_span": [
+            4691,
+            4712
+          ]
+        },
+        "link_loop": {
+          "repository_id": "website",
+          "path": "src/_layouts/post.liquid",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+          "line_start": 114,
+          "line_end": 114,
+          "byte_span": [
+            4784,
+            4808
+          ]
+        },
+        "html_label_access": {
+          "repository_id": "website",
+          "path": "src/_layouts/post.liquid",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+          "line_start": 115,
+          "line_end": 115,
+          "byte_span": [
+            4837,
+            4852
+          ]
+        }
+      },
+      "detail_layout_branches": [
+        {
+          "layout_file_key": "website:src/_layouts/post.liquid",
+          "github_user_if": {
+            "repository_id": "website",
+            "path": "src/_layouts/post.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+            "line_start": 50,
+            "line_end": 50,
+            "byte_span": [
+              1530,
+              1551
+            ]
+          },
+          "avatar_elsif": {
+            "repository_id": "website",
+            "path": "src/_layouts/post.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+            "line_start": 52,
+            "line_end": 52,
+            "byte_span": [
+              1720,
+              1739
+            ]
+          },
+          "name_fallback": {
+            "repository_id": "website",
+            "path": "src/_layouts/post.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+            "line_start": 51,
+            "line_end": 51,
+            "byte_span": [
+              1656,
+              1667
+            ]
+          },
+          "bio_if": {
+            "repository_id": "website",
+            "path": "src/_layouts/post.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+            "line_start": 109,
+            "line_end": 109,
+            "byte_span": [
+              4584,
+              4597
+            ]
+          },
+          "links_size_guard": {
+            "repository_id": "website",
+            "path": "src/_layouts/post.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+            "line_start": 112,
+            "line_end": 112,
+            "byte_span": [
+              4691,
+              4712
+            ]
+          },
+          "link_loop": {
+            "repository_id": "website",
+            "path": "src/_layouts/post.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+            "line_start": 114,
+            "line_end": 114,
+            "byte_span": [
+              4784,
+              4808
+            ]
+          },
+          "link_html_label": {
+            "repository_id": "website",
+            "path": "src/_layouts/post.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+            "line_start": 115,
+            "line_end": 115,
+            "byte_span": [
+              4837,
+              4852
+            ]
+          }
+        },
+        {
+          "layout_file_key": "website:src/_layouts/blog-author.liquid",
+          "github_user_if": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-author.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+            "line_start": 29,
+            "line_end": 29,
+            "byte_span": [
+              754,
+              775
+            ]
+          },
+          "avatar_elsif": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-author.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+            "line_start": 31,
+            "line_end": 31,
+            "byte_span": [
+              937,
+              956
+            ]
+          },
+          "name_fallback": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-author.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+            "line_start": 30,
+            "line_end": 30,
+            "byte_span": [
+              877,
+              888
+            ]
+          },
+          "bio_if": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-author.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+            "line_start": 38,
+            "line_end": 38,
+            "byte_span": [
+              1296,
+              1309
+            ]
+          },
+          "links_size_guard": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-author.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+            "line_start": 41,
+            "line_end": 41,
+            "byte_span": [
+              1420,
+              1441
+            ]
+          },
+          "link_loop": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-author.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+            "line_start": 43,
+            "line_end": 43,
+            "byte_span": [
+              1505,
+              1529
+            ]
+          },
+          "link_html_label": {
+            "repository_id": "website",
+            "path": "src/_layouts/blog-author.liquid",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+            "line_start": 44,
+            "line_end": 44,
+            "byte_span": [
+              1554,
+              1569
+            ]
+          }
+        }
+      ]
     },
     {
       "id": "consumer-a426cc90fc1c85c1",
@@ -47224,6 +50930,18 @@
           "line_end": 155
         },
         "scope": "Complete include/template source read; direct access tokens listed separately. Conditions/loop syntax remain literal."
+      },
+      "release_condition_locator": {
+        "repository_id": "website",
+        "path": "src/_layouts/post.liquid",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+        "line_start": 75,
+        "line_end": 75,
+        "byte_span": [
+          3007,
+          3031
+        ]
       }
     }
   ],
@@ -47299,7 +51017,7 @@
         },
         {
           "target_raw": "https://github.com/cnbbooks/lfe-manual/issues/16",
-          "label": "WritingPhases",
+          "label": "Writing Phases",
           "line": 15,
           "local_source_candidate": null,
           "local_source_status": "external-or-nonpath",
@@ -47316,11 +51034,12 @@
             ]
           },
           "raw_context": "* [Writing Phases](https://github.com/cnbbooks/lfe-manual/issues/16)",
-          "qualification": "README source declaration; target output/lifecycle not established"
+          "qualification": "README source declaration; target output/lifecycle not established",
+          "display_label_method": "Pandoc GFM inline-text projection; raw source syntax retained in raw_context"
         },
         {
           "target_raw": "https://github.com/cnbbooks/lfe-manual/issues/16",
-          "label": "WritingPhases",
+          "label": "Writing Phases",
           "line": 17,
           "local_source_candidate": null,
           "local_source_status": "external-or-nonpath",
@@ -47337,7 +51056,8 @@
             ]
           },
           "raw_context": "To contribute, see the the  [Writing Phases](https://github.com/cnbbooks/lfe-manual/issues/16)",
-          "qualification": "README source declaration; target output/lifecycle not established"
+          "qualification": "README source declaration; target output/lifecycle not established",
+          "display_label_method": "Pandoc GFM inline-text projection; raw source syntax retained in raw_context"
         }
       ],
       "link_projection": "complete Markdown link node projection using Pandoc 3.8.3; raw context retained"
