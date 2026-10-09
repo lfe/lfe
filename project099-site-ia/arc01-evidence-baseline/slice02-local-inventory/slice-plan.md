@@ -2,7 +2,7 @@
 project: project099-site-ia
 arc: arc01-evidence-baseline
 slice: slice02-local-inventory
-version: "1.0"
+version: "1.1"
 date: 2026-10-09
 status: active
 depends-on: [slice01-baseline-intake]
@@ -19,11 +19,17 @@ route/anchor declarations, resource promotions and legacy-source entrances.
 [Slice01](../slice01-baseline-intake/cdc-verification.md) is independently
 accepted at 9111268, all eight rows done. Duncan's approved roadmap and
 Expedited Mode authorize this next slice. Governing parents are
-[project-plan.md](../../project-plan.md) v1.4 and [arc-plan.md](../arc-plan.md)
-v1.2; the sibling [ledger.md](ledger.md) defines acceptance.
+[project-plan.md](../../project-plan.md) v1.5 and [arc-plan.md](../arc-plan.md)
+v1.3. The original eight-column sibling ledger at b5a7c50 defines the unchanged
+acceptance contract; CC's initial replacement table requires R1 restoration.
 
-Current assignment: [cc-prompt.md](cc-prompt.md), initial pass, issued through
-Duncan to a separate CC context. CDC is Sofie in the desktop planning chat.
+Current assignment: [cc-prompt-iteration01.md](cc-prompt-iteration01.md),
+correction R1–R6, issued through Duncan to a separate CC context. Was:
+[cc-prompt.md](cc-prompt.md), initial pass. CDC reviewed b43acb7 + d629b7a in
+[cdc-verification.md](cdc-verification.md): valid source census/metadata
+subclaims are recorded, all eight rows remain open and proposed S2-03/S2-04
+source-extraction deferrals are not accepted. Slice03 remains planned.
+CDC is Sofie in the desktop planning chat.
 No automatic dispatch or CRC role is selected. Issued prompts stay immutable.
 
 ## Scope and evidence boundaries
@@ -149,13 +155,27 @@ not independent acceptance of CC output.
 
 | Assignment | Issued | Predecessor | Reason | Disposition |
 | --- | --- | --- | --- | --- |
-| `cc-prompt.md` — initial pass | 2026-10-09 | None; accepted Slice01 is input | Open Arc01's planned local inventory after the Slice01 gate | Active; issued to Operator for CC implementation and CDC return |
+| `cc-prompt.md` — initial pass | 2026-10-09 | None; accepted Slice01 is input | Open Arc01's planned local inventory after the Slice01 gate | Returned at b43acb7 + d629b7a; CDC requires R1–R6; no complete row accepted |
+| `cc-prompt-iteration01.md` — correction | 2026-10-09 | `cc-prompt.md`; b43acb7 + d629b7a | Restore contract; finish extraction and accurate witness/consumer/label/family/coverage evidence | Active; issued through Operator for CC implementation and independent CDC return |
 
 Record this prompt's opening Git object and digest at intake. Follow-ups get
 new slice-root iteration paths; do not overwrite this issued assignment.
+
+### Iteration01 author readiness
+
+The current prompt carries the source-grounded R1–R6 construction, immutable
+versus derived-value boundary, reading/query manifest, representative rich-YAML
+consumer example, real regression oracles and exact seven-path return. CDC
+reproduced 98 structural checks plus complete metadata/TOC target projections
+and inspected affected semantic witnesses. The correction preserves all original
+scope/criteria and source states; no structural amendment is required. Reading
+budget leaves implementation/recovery headroom, with unavailable inputs or
+material source drift held explicitly rather than silently reducing coverage.
+This readiness record is distinct from independent acceptance of CC output.
 
 ## Version History
 
 | Version | Date | Origin | Change |
 | --- | --- | --- | --- |
 | 1.0 | 2026-10-09 | Slice01 iteration01 CDC acceptance; approved Arc01 Slice02 and Expedited Mode | Open the source inventory with complete declared populations, qualified route/anchor evidence, resource/legacy joins and eight acceptance rows |
+| 1.1 | 2026-10-09 | Slice02 initial delivery / CDC review | Record R1–R6 and eight open rows; preserve valid subclaims, initial prompt/proposals and source scope; issue correction iteration01 with explicit construction/proof; no acceptance amendment |

@@ -1,6 +1,6 @@
 # Arc01 — composition ledger
 
-**Contract:** [arc-plan.md](arc-plan.md), v1.2, 9 October 2026;
+**Contract:** [arc-plan.md](arc-plan.md), v1.3, 9 October 2026;
 criteria unchanged from v1.0, 8 October 2026.
 A1-01 is done after independent Slice01 acceptance; A1-02 through A1-09 remain open. Evidence supplied by CC is attested/proposed-done; `done`
 requires independent reproduced evidence. Deferral requires owner, reason,
@@ -9,7 +9,7 @@ destination and re-entry condition; no-op requires a checkable rationale.
 | ID | Criterion | Verify | Significance | Origin | Status | Evidence | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | A1-01 | Slice01's inherited provenance and finding intake is independently accepted. | Inspect `slice01-baseline-intake/` plan, ledger, artifacts, closing report and CDC verification against pinned inputs. | correctness-grade | Arc breakdown Slice01 | done | Slice01 cdc-verification.md iteration01: all eight child rows independently accepted at 9111268; current child ledger/plan checked [reproduced child-close inspection]. | Initial failed review preserved; higher-scale composition remains open. |
-| A1-02 | Slice02's agreed local content/route/anchor population is independently accepted. | Inspect its close packet; re-query the declared source population and inspect route witnesses/coverage. | correctness-grade | Arc breakdown Slice02 | open | | File counts alone are not output-route validation. |
+| A1-02 | Slice02's agreed local content/route/anchor population is independently accepted. | Inspect its close packet; re-query the declared source population and inspect route witnesses/coverage. | correctness-grade | Arc breakdown Slice02 | open | [Slice02 CDC initial review](slice02-local-inventory/cdc-verification.md): source census/metadata subclaims reproduced; R1–R6 unresolved; iteration01 issued. | All eight child rows open; no source-extraction deferral accepted; Slice03 gated. File counts alone are not output-route validation. |
 | A1-03 | Slice03's resource/readiness checks are independently accepted. | Inspect its close packet, actual endpoint/source/rendered evidence and attempted/blocked/unrun coverage. | correctness-grade | Arc breakdown Slice03 | open | | Text extraction does not settle rendered completeness. |
 | A1-04 | Slice04's technical intake is independently accepted. | Inspect source/environment/release/container witnesses, failure packet or explicit missing-input disposition, and review record. | serious | Arc breakdown Slice04 | open | | No compatibility/support promise inferred from intake. |
 | A1-05 | Slice05's reconciled baseline and handoffs are independently accepted. | Inspect joined inventory/evidence/findings, exact ownership/next checks, and review record against Slices01–04. | correctness-grade | Arc breakdown Slice05 | open | | Reconciliation must retain contrary evidence and limits. |

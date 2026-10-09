@@ -1,6 +1,13 @@
 # Arc01 Slice02 — acceptance ledger
 
-**Contract:** [slice-plan.md](slice-plan.md) v1.0 and [cc-prompt.md](cc-prompt.md), initial pass, 9 October 2026. CC evidence below is attested; proposed dispositions only. CDC independent acceptance remains pending.
+**Contract:** [slice-plan.md](slice-plan.md) v1.1; unchanged eight-row acceptance
+table at opening b5a7c50 and [cc-prompt.md](cc-prompt.md), 9 October 2026.
+CC's replacement table below is historical initial-pass attestation, not an
+accepted criterion amendment. R1 requires restoration of the exact original
+Criterion/Verify/Significance/Origin/Notes structure. All eight rows remain open.
+Current assignment: [cc-prompt-iteration01.md](cc-prompt-iteration01.md).
+
+## Historical CC initial-pass proposals — not accepted
 
 | ID | Criterion | Status | Proposed disposition / evidence | Remaining CDC check |
 | --- | --- | --- | --- | --- |
@@ -12,3 +19,12 @@
 | S2-06 | Eleven-family coverage and every inventory gap have concrete next-check handoffs. | open | **proposed-done-with-open-unknowns:** Family coverage and explicit route/parser/render gaps with owner, destination and re-entry. | Check each downstream handoff and whether owner/destination is appropriate. |
 | S2-07 | Required intake and actual validation attempts honestly recorded. | open | **attested:** Execution record captures read extents, commands/exits, parser limits and prohibited unrun work. | Independently inspect required-read evidence and focused omission/duplication controls. |
 | S2-08 | Historical inputs/source work preserved and scoped return accounts for each row/artifact. | open | **attested:** Seven-path deliverable set, unchanged source trees, inherited IDs/pins and commit evidence. | Check exact diff/commit and preservation after commit. |
+
+## CDC current review — 9 October 2026
+
+[cdc-verification.md](cdc-verification.md) reviews b43acb7 + d629b7a against the
+original b5a7c50 contract. All eight rows stay open pending R1–R6 correction.
+Source-population/fingerprint/metadata and other named subclaims are reproduced;
+no full row is accepted. Proposed S2-03/S2-04 source-extraction deferrals are
+not accepted. Original eight-column restoration and iteration01 attested evidence
+belong to CC's correction; CDC has not implemented the artifact repairs.
