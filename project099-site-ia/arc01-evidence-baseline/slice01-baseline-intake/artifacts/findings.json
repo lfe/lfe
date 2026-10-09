@@ -1,0 +1,975 @@
+{
+  "assignment": "project099-site-ia/arc01-evidence-baseline/slice01-baseline-intake/cc-prompt.md",
+  "assessments": [
+    {
+      "id": "LFE-F01",
+      "report": "lfe",
+      "original_id": "F01",
+      "raw_cells": [
+        "F01",
+        "Compact navigation and distinct learning/working entrances",
+        "Useful structure to retain",
+        "High for observed hierarchy",
+        "Strength"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 253,
+        "line_end": 253
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "strength",
+      "owner_arc": "Arc04",
+      "next_check": "Arc04: compare compact gateway and separate Learn/Use roles with the accepted local inventory during IA review.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "LFE-F02",
+      "report": "lfe",
+      "original_id": "F02",
+      "raw_cells": [
+        "F02",
+        "Four prominent build destinations return 404",
+        "Interrupts advertised routes into practical work",
+        "High; each followed separately",
+        "High"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 254,
+        "line_end": 254
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "gap",
+      "owner_arc": "Arc01",
+      "next_check": "Arc01 Slice03: check these four inherited destinations against Slice02 inventory and record source/rendered readiness; Arc08 consumes the task guidance.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "LFE-F03",
+      "report": "lfe",
+      "original_id": "F03",
+      "raw_cells": [
+        "F03",
+        "Menu current version trails latest release",
+        "Can direct acquisition to an older source release without explanation",
+        "High; multiple site representations plus official registry",
+        "High"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 255,
+        "line_end": 255
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "gap",
+      "owner_arc": "Arc03",
+      "next_check": "Arc03: establish release identity/provenance; Arc09 then joins the maintained release record to the Downloads selection.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "LFE-F04",
+      "report": "lfe",
+      "original_id": "F04",
+      "raw_cells": [
+        "F04",
+        "Setup, prerequisites, and transcripts carry different version eras",
+        "Readers must reconcile suitability themselves",
+        "High for content; usability effect inferred",
+        "High"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 256,
+        "line_end": 256
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "gap",
+      "owner_arc": "Arc02",
+      "next_check": "Arc02: define compatibility claims from maintainer evidence; Arc08 aligns the resulting setup guidance.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "LFE-F05",
+      "report": "lfe",
+      "original_id": "F05",
+      "raw_cells": [
+        "F05",
+        "Download selection bypasses release explanation",
+        "Version choice lacks joined prerequisites and documentation context",
+        "High for link model",
+        "High"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 257,
+        "line_end": 257
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "gap",
+      "owner_arc": "Arc09",
+      "next_check": "Arc09: review the release identity, changes, acquisition and applicable docs needed at the download choice.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "LFE-F06",
+      "report": "lfe",
+      "original_id": "F06",
+      "raw_cells": [
+        "F06",
+        "Important manual destinations yield heading-only results",
+        "Promoted task assistance may be incomplete",
+        "Medium; source/rendered verification outstanding",
+        "High if confirmed"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 258,
+        "line_end": 258
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "gap",
+      "owner_arc": "Arc01",
+      "next_check": "Arc01 Slice03: inspect source and rendered content for cited manual chapters and disposition each readiness claim.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "LFE-F07",
+      "report": "lfe",
+      "original_id": "F07",
+      "raw_cells": [
+        "F07",
+        "Legacy Dev tasks share a placeholder that returns 404",
+        "Old search/inbound routes can reach unfinished navigation",
+        "High for sampled target and repeated link identity",
+        "High"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 259,
+        "line_end": 259
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "gap",
+      "owner_arc": "Arc01",
+      "next_check": "Arc01 Slice03: check placeholder destinations against Slice02; Arc11 assigns legacy-route preservation dispositions.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "LFE-F08",
+      "report": "lfe",
+      "original_id": "F08",
+      "raw_cells": [
+        "F08",
+        "Legacy Current/Dev labels lack clear temporal framing",
+        "Historical surface can be mistaken for active guidance",
+        "High for labels; confusion inferred",
+        "High"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 260,
+        "line_end": 260
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "gap",
+      "owner_arc": "Arc11",
+      "next_check": "Arc11: inventory search and legacy entrances, then assign archival/context/redirect decisions with topic identity preserved.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "LFE-F09",
+      "report": "lfe",
+      "original_id": "F09",
+      "raw_cells": [
+        "F09",
+        "Book source and feedback links are explicit",
+        "Useful provenance and participation model",
+        "High",
+        "Strength"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 261,
+        "line_end": 261
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "strength",
+      "owner_arc": "Arc10",
+      "next_check": "Arc10: retain source and feedback provenance when checking resource entrances and ownership.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "LFE-F10",
+      "report": "lfe",
+      "original_id": "F10",
+      "raw_cells": [
+        "F10",
+        "Completion/version information varies between resource entrances",
+        "Readers cannot reliably choose applicable material",
+        "High for sampled differences",
+        "Medium–high"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 262,
+        "line_end": 262
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "gap",
+      "owner_arc": "Arc08",
+      "next_check": "Arc08: build a reviewed resource/chapter status handoff separating publication, completion and applicability.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "LFE-F11",
+      "report": "lfe",
+      "original_id": "F11",
+      "raw_cells": [
+        "F11",
+        "Blog migration has preservation and version-context groundwork",
+        "Existing infrastructure can support lifecycle improvements",
+        "High for announcement; mechanism/coverage untested",
+        "Strength/opportunity"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 263,
+        "line_end": 263
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "mixed",
+      "owner_arc": "Arc10",
+      "next_check": "Arc10: inspect blog/resource ownership and preservation metadata before proposing archive integration.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "LFE-F12",
+      "report": "lfe",
+      "original_id": "F12",
+      "raw_cells": [
+        "F12",
+        "Related blog tags divide vocabulary",
+        "Topic discovery can fragment",
+        "High for labels; search impact unmeasured",
+        "Medium"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 264,
+        "line_end": 264
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "gap",
+      "owner_arc": "Arc10",
+      "next_check": "Arc10: compare related tag/category vocabularies during content discovery planning while retaining historical URLs.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "LFE-F13",
+      "report": "lfe",
+      "original_id": "F13",
+      "raw_cells": [
+        "F13",
+        "Community taxonomy mixes chat, publishing, video, code, and historical organizations",
+        "Getting help and choosing maintained libraries need reader interpretation",
+        "High for directory; activity unknown",
+        "Medium"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 265,
+        "line_end": 265
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "gap",
+      "owner_arc": "Arc10",
+      "next_check": "Arc10: classify community links by task, owner and observed activity in the resource inventory.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "LFE-F14",
+      "report": "lfe",
+      "original_id": "F14",
+      "raw_cells": [
+        "F14",
+        "Upstream reference links can target moving current OTP docs",
+        "Installed environment can lose version context",
+        "High for sampled redirect",
+        "Medium–high"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 266,
+        "line_end": 266
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "gap",
+      "owner_arc": "Arc08",
+      "next_check": "Arc08: identify version-scoped reference handoffs and state OTP context once Arc02 establishes it.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "LFE-F15",
+      "report": "lfe",
+      "original_id": "F15",
+      "raw_cells": [
+        "F15",
+        "Shared site configuration exists",
+        "Repeated current-release facts have a plausible maintenance home",
+        "High for repository description; synchronization unproven",
+        "Opportunity"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 267,
+        "line_end": 267
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "opportunity",
+      "owner_arc": "Arc07",
+      "next_check": "Arc07: assess shared data sources for repeated site facts without treating current config as an authoritative release registry.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "ERLANG-F01",
+      "report": "erlang",
+      "original_id": "F01",
+      "raw_cells": [
+        "F01",
+        "Eight global destinations with task-oriented acquisition and documentation entrances",
+        "Compact gateway provides a useful orientation layer",
+        "High: observed HTML",
+        "Useful reference for front-page scope"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 340,
+        "line_end": 340
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "strength",
+      "owner_arc": "Arc04",
+      "next_check": "Arc04: compare task-oriented gateway pattern against LFE journeys during IA review.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "ERLANG-F02",
+      "report": "erlang",
+      "original_id": "F02",
+      "raw_cells": [
+        "F02",
+        "Major overviews and exact patch records are separate",
+        "Supports both broad understanding and precise selection",
+        "High: multiple families inspected",
+        "Strong release-information precedent"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 341,
+        "line_end": 341
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "opportunity",
+      "owner_arc": "Arc03",
+      "next_check": "Arc03: assess whether LFE needs distinct release-overview and exact-version records.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "ERLANG-F03",
+      "report": "erlang",
+      "original_id": "F03",
+      "raw_cells": [
+        "F03",
+        "Patch record connects tag, notes, artifacts, applications, and dependencies",
+        "Release identity becomes inspectable rather than implied by a filename",
+        "High",
+        "Strong distribution precedent"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 342,
+        "line_end": 342
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "opportunity",
+      "owner_arc": "Arc03",
+      "next_check": "Arc03: record authoritative relationships among release tag, notes, artifact, components and dependencies.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "ERLANG-F04",
+      "report": "erlang",
+      "original_id": "F04",
+      "raw_cells": [
+        "F04",
+        "Online docs from patch 29.1.1 target `/docs/29/`",
+        "Exact artifact identity and documentation collection identity differ",
+        "High for URL; moving-content implications are assessment",
+        "High for reproducibility and troubleshooting"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 343,
+        "line_end": 343
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "gap",
+      "owner_arc": "Arc03",
+      "next_check": "Arc03: define exact artifact versus documentation identity requirements and provenance.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "ERLANG-F05",
+      "report": "erlang",
+      "original_id": "F05",
+      "raw_cells": [
+        "F05",
+        "Downloads warns about package-manager version lag",
+        "Acquisition channel can change the version actually installed",
+        "High",
+        "Downloads need a way to verify the installed environment"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 344,
+        "line_end": 344
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "gap",
+      "owner_arc": "Arc03",
+      "next_check": "Arc03: compare acquisition methods with resulting installed versions using approved evidence.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "ERLANG-F06",
+      "report": "erlang",
+      "original_id": "F06",
+      "raw_cells": [
+        "F06",
+        "Community combines learning, tools, contribution, research, and events",
+        "A broad directory may impose classification effort on newcomers",
+        "High for grouping; user difficulty untested",
+        "Candidate for clearer LFE resource entrances"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 345,
+        "line_end": 345
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "mixed",
+      "owner_arc": "Arc10",
+      "next_check": "Arc10: classify learning, tool, contribution, event and research links by reader task and owner.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "ERLANG-F07",
+      "report": "erlang",
+      "original_id": "F07",
+      "raw_cells": [
+        "F07",
+        "Books have several editorial entrances",
+        "Duplicate descriptions can drift while multiple entrances remain useful",
+        "High for duplication; maintenance burden inferred",
+        "Candidate for shared resource metadata"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 346,
+        "line_end": 346
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "mixed",
+      "owner_arc": "Arc10",
+      "next_check": "Arc10: map repeated book entrances to provenance owners and check for editorial drift.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "ERLANG-F08",
+      "report": "erlang",
+      "original_id": "F08",
+      "raw_cells": [
+        "F08",
+        "FAQ acquisition chapter names OTP 19.3 as current",
+        "A reader can receive obsolete release information from an official linked resource",
+        "High: directly read and compared with current Downloads",
+        "High: prevent stale evergreen answers"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 347,
+        "line_end": 347
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "gap",
+      "owner_arc": "Arc08",
+      "next_check": "Arc08: validate current acquisition claims and link authoritative release info into maintained guidance.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "ERLANG-F09",
+      "report": "erlang",
+      "original_id": "F09",
+      "raw_cells": [
+        "F09",
+        "FAQ describes the older licence as current; About distinguishes OTP 18 onward",
+        "Licence guidance conflicts across linked resources",
+        "High: both pages read",
+        "High: authoritative policy needs a clear source"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 348,
+        "line_end": 348
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "gap",
+      "owner_arc": "Arc02",
+      "next_check": "Arc02: confirm support/licence scopes with authoritative maintainer policy before applying to LFE.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "ERLANG-F10",
+      "report": "erlang",
+      "original_id": "F10",
+      "raw_cells": [
+        "F10",
+        "Free-book label in Docs identifies Armstrong's later book; destination PDF identifies a different, coauthored book",
+        "A reader obtains a different work from the one promised",
+        "High: label and PDF front matter read",
+        "High for resource metadata accuracy"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 349,
+        "line_end": 349
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "gap",
+      "owner_arc": "Arc10",
+      "next_check": "Arc10: check publication metadata against destination identity when auditing resource records.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "ERLANG-F11",
+      "report": "erlang",
+      "original_id": "F11",
+      "raw_cells": [
+        "F11",
+        "Old and new documentation structures coexist; older URLs redirect",
+        "Migration can retain external links while presenting newer structure",
+        "High for sampled routes",
+        "Strong precedent; not a complete redirect audit"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 350,
+        "line_end": 350
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "opportunity",
+      "owner_arc": "Arc11",
+      "next_check": "Arc11: inventory old/new documentation routes and record verified destination-preserving dispositions.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "ERLANG-F12",
+      "report": "erlang",
+      "original_id": "F12",
+      "raw_cells": [
+        "F12",
+        "Version tree declares JavaScript dependence and explanatory data provenance",
+        "Powerful relationship view has an interaction dependency",
+        "High for declared mechanism; behaviour untested",
+        "Candidate requiring fallback and accuracy validation"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 351,
+        "line_end": 351
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "opportunity",
+      "owner_arc": "Arc06",
+      "next_check": "Arc06: define an interaction test and fallback requirement before adopting a version-tree control.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "ERLANG-F13",
+      "report": "erlang",
+      "original_id": "F13",
+      "raw_cells": [
+        "F13",
+        "Security policy and system guide discuss different support/compatibility scopes",
+        "Users must distinguish security maintenance, routine fixes, and compiled-code loading",
+        "High for texts; confusion inferred",
+        "High for LFE policy wording"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 352,
+        "line_end": 352
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "gap",
+      "owner_arc": "Arc02",
+      "next_check": "Arc02: distinguish security maintenance, ordinary fixes and compiled-code compatibility in LFE evidence.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    },
+    {
+      "id": "ERLANG-F14",
+      "report": "erlang",
+      "original_id": "F14",
+      "raw_cells": [
+        "F14",
+        "Raw download, mailing-list, workshop, and FAQ surfaces coexist with the gateway",
+        "Historical preservation extends beyond a unified presentation",
+        "High for entrances; breadth not exhaustively counted",
+        "Treat archival context explicitly"
+      ],
+      "locator": {
+        "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 353,
+        "line_end": 353
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "inherited-report",
+      "kind": "opportunity",
+      "owner_arc": "Arc11",
+      "next_check": "Arc11: record archival entrances and ownership in the preservation/search inventory.",
+      "limits": "Confidence/qualification remains as stated in raw_cells; inherited dated report, not refreshed as a live claim in this slice."
+    }
+  ],
+  "questions": [
+    {
+      "id": "LFE-Q01",
+      "report": "lfe",
+      "original_number": 1,
+      "raw_text": "Actual supported and tested LFE source/build/runtime/OTP combinations, including the reported runtime failure.",
+      "locator": {
+        "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 310,
+        "line_end": 310
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "unresolved-in-report",
+      "owner_arc": "Arc02",
+      "next_check": "Arc02: collect maintainer-validated source/build/runtime/OTP combinations; Arc06 designs bounded reproduction after evidence intake.",
+      "limits": "Question remains unresolved in the dated inherited report; this intake does not answer it or refresh the external claim."
+    },
+    {
+      "id": "LFE-Q02",
+      "report": "lfe",
+      "original_number": 2,
+      "raw_text": "Exact deployed source commit and an exhaustive URL/redirect inventory.",
+      "locator": {
+        "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 311,
+        "line_end": 311
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "unresolved-in-report",
+      "owner_arc": "Arc03",
+      "next_check": "Arc03: map a pinned deployed-site source identity to deployment records; Arc11 owns an exhaustive URL/redirect census.",
+      "limits": "Question remains unresolved in the dated inherited report; this intake does not answer it or refresh the external claim."
+    },
+    {
+      "id": "LFE-Q03",
+      "report": "lfe",
+      "original_number": 3,
+      "raw_text": "Current container contents, tags, and platform behaviour.",
+      "locator": {
+        "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 312,
+        "line_end": 312
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "unresolved-in-report",
+      "owner_arc": "Arc03",
+      "next_check": "Arc03: identify image/tag/platform for each container entrance; Arc06 validates behavior only under an approved experiment.",
+      "limits": "Question remains unresolved in the dated inherited report; this intake does not answer it or refresh the external claim."
+    },
+    {
+      "id": "LFE-Q04",
+      "report": "lfe",
+      "original_number": 4,
+      "raw_text": "Rendered/source confirmation of heading-only manual chapters and the complete chapter readiness inventory.",
+      "locator": {
+        "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 313,
+        "line_end": 313
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "unresolved-in-report",
+      "owner_arc": "Arc08",
+      "next_check": "Arc08: compare book source and rendered chapter readiness for each promoted chapter, retaining extraction limits.",
+      "limits": "Question remains unresolved in the dated inherited report; this intake does not answer it or refresh the external claim."
+    },
+    {
+      "id": "LFE-Q05",
+      "report": "lfe",
+      "original_number": 5,
+      "raw_text": "Search coverage across the main site, blog, external books, and reference sources; current retrieval effectiveness.",
+      "locator": {
+        "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 314,
+        "line_end": 314
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "unresolved-in-report",
+      "owner_arc": "Arc11",
+      "next_check": "Arc11: inventory search sources and retrieval coverage; measure effectiveness only with an approved check.",
+      "limits": "Question remains unresolved in the dated inherited report; this intake does not answer it or refresh the external claim."
+    },
+    {
+      "id": "LFE-Q06",
+      "report": "lfe",
+      "original_number": 6,
+      "raw_text": "Header/footer anchor behaviour, mobile navigation, keyboard interaction, and accessibility.",
+      "locator": {
+        "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 315,
+        "line_end": 315
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "unresolved-in-report",
+      "owner_arc": "Arc05",
+      "next_check": "Arc05: evaluate anchors, responsive layout, keyboard access and accessibility under an approved review method.",
+      "limits": "Question remains unresolved in the dated inherited report; this intake does not answer it or refresh the external claim."
+    },
+    {
+      "id": "LFE-Q07",
+      "report": "lfe",
+      "original_number": 7,
+      "raw_text": "Activity and recommended status of community channels and ecosystem projects.",
+      "locator": {
+        "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 316,
+        "line_end": 316
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "unresolved-in-report",
+      "owner_arc": "Arc10",
+      "next_check": "Arc10: inventory channel ownership and activity evidence before recommending resource status.",
+      "limits": "Question remains unresolved in the dated inherited report; this intake does not answer it or refresh the external claim."
+    },
+    {
+      "id": "LFE-Q08",
+      "report": "lfe",
+      "original_number": 8,
+      "raw_text": "The final shared direction for navigation, documentation versions, release selection, design, and preservation.",
+      "locator": {
+        "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 317,
+        "line_end": 317
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "unresolved-in-report",
+      "owner_arc": "Arc04",
+      "next_check": "Arc04: obtain shared maintainer/reader decisions on navigation after evidence review; route compatibility, release and design dependencies to Arcs02/03/05.",
+      "limits": "Question remains unresolved in the dated inherited report; this intake does not answer it or refresh the external claim."
+    },
+    {
+      "id": "ERLANG-Q01",
+      "report": "erlang",
+      "original_number": 1,
+      "raw_text": "Which LFE source and precompiled-artifact combinations actually work with which OTP build/runtime versions?",
+      "locator": {
+        "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 394,
+        "line_end": 394
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "unresolved-in-report",
+      "owner_arc": "Arc02",
+      "next_check": "Arc02: collect maintainer-validated LFE source/artifact compatibility across OTP build/runtime versions; Arc06 handles approved experiments.",
+      "limits": "Question remains unresolved in the dated inherited report; this intake does not answer it or refresh the external claim."
+    },
+    {
+      "id": "ERLANG-Q02",
+      "report": "erlang",
+      "original_number": 2,
+      "raw_text": "What support promises should LFE attach to preserved snapshots or old artifacts?",
+      "locator": {
+        "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 395,
+        "line_end": 395
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "unresolved-in-report",
+      "owner_arc": "Arc02",
+      "next_check": "Arc02: obtain maintainer-reviewed support expectations and evidence before presenting historical artifact promises.",
+      "limits": "Question remains unresolved in the dated inherited report; this intake does not answer it or refresh the external claim."
+    },
+    {
+      "id": "ERLANG-Q03",
+      "report": "erlang",
+      "original_number": 3,
+      "raw_text": "Which proposed branch/tag names best communicate those promises?",
+      "locator": {
+        "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 396,
+        "line_end": 396
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "unresolved-in-report",
+      "owner_arc": "Arc03",
+      "next_check": "Arc03: evaluate branch/tag naming after artifact and support identities are defined.",
+      "limits": "Question remains unresolved in the dated inherited report; this intake does not answer it or refresh the external claim."
+    },
+    {
+      "id": "ERLANG-Q04",
+      "report": "erlang",
+      "original_number": 4,
+      "raw_text": "Which historical LFE content has enough value to retain, rewrite, or archive?",
+      "locator": {
+        "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 397,
+        "line_end": 397
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "unresolved-in-report",
+      "owner_arc": "Arc11",
+      "next_check": "Arc11: classify historical LFE content as maintained, archival, superseded or unresolved with topic-preserving routes.",
+      "limits": "Question remains unresolved in the dated inherited report; this intake does not answer it or refresh the external claim."
+    },
+    {
+      "id": "ERLANG-Q05",
+      "report": "erlang",
+      "original_number": 5,
+      "raw_text": "How should LFE documentation versions align with source releases and artifact builds?",
+      "locator": {
+        "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 398,
+        "line_end": 398
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "unresolved-in-report",
+      "owner_arc": "Arc03",
+      "next_check": "Arc03: bind documentation versions to exact source releases and artifact identities in release evidence.",
+      "limits": "Question remains unresolved in the dated inherited report; this intake does not answer it or refresh the external claim."
+    },
+    {
+      "id": "ERLANG-Q06",
+      "report": "erlang",
+      "original_number": 6,
+      "raw_text": "How usable are Erlang's version-tree and search interactions on desktop, mobile, keyboard, and assistive technology?",
+      "locator": {
+        "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 399,
+        "line_end": 399
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "unresolved-in-report",
+      "owner_arc": "Arc05",
+      "next_check": "Arc05: design a bounded usability/accessibility evaluation for version-tree and search interactions.",
+      "limits": "Question remains unresolved in the dated inherited report; this intake does not answer it or refresh the external claim."
+    },
+    {
+      "id": "ERLANG-Q07",
+      "report": "erlang",
+      "original_number": 7,
+      "raw_text": "What URLs are orphaned or broken across the complete Erlang information estate?",
+      "locator": {
+        "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 400,
+        "line_end": 400
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "unresolved-in-report",
+      "owner_arc": "Arc01",
+      "next_check": "Arc01 Slice02: inventory Erlang destinations linked from LFE; Arc12 scopes a separate full erlang.org census if still needed.",
+      "limits": "Question remains unresolved in the dated inherited report; this intake does not answer it or refresh the external claim."
+    },
+    {
+      "id": "ERLANG-Q08",
+      "report": "erlang",
+      "original_number": 8,
+      "raw_text": "Which source repository state generated the precise deployed snapshot? The inspected repository was not pinned to a deployment commit.",
+      "locator": {
+        "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+        "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+        "line_start": 401,
+        "line_end": 401
+      },
+      "report_date": "2026-10-08",
+      "evidence_state": "unresolved-in-report",
+      "owner_arc": "Arc03",
+      "next_check": "Arc03: identify deployed website snapshot from source/deployment provenance; do not infer it from local HEAD.",
+      "limits": "Question remains unresolved in the dated inherited report; this intake does not answer it or refresh the external claim."
+    }
+  ]
+}

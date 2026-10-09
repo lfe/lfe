@@ -1,0 +1,2657 @@
+{
+  "assignment": {
+    "prompt_path": "project099-site-ia/arc01-evidence-baseline/slice01-baseline-intake/cc-prompt.md",
+    "captured_at": "2026-10-09T04:45:49Z",
+    "planning": {
+      "root": "/Users/oubiwann/lab/lfe/lfe/.worktrees/planning",
+      "head": "e8f4c394df1c5a902086fcb45f3249a52bc6c453",
+      "branch": "planning",
+      "detached": false,
+      "prompt_opening_commit": "e8f4c394df1c5a902086fcb45f3249a52bc6c453",
+      "prompt_sha256": "ac2b9a6c59bc318167e39103ec1e1ff1190efef9fd056e63973c4ba15890aeee"
+    }
+  },
+  "inputs": [
+    {
+      "path": "artifacts/first-steps/HANDOFF.md",
+      "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+      "sha256": "3585b067463d21c5b7c3938202682905e34655b2a3832b711db06cec4f01205c",
+      "bytes": 2823,
+      "lines": 32
+    },
+    {
+      "path": "artifacts/first-steps/lfe-work-classification.md",
+      "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+      "sha256": "30b4ebc7ea5ebacf0e1f6f3171080f42ca3c06cd44d37b762e35a8c2ed889ecb",
+      "bytes": 2301,
+      "lines": 13
+    },
+    {
+      "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+      "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+      "sha256": "0e922938b46e99501b8f81f978f193c2a529004f4a52e67b94a503afb5ecc2ca",
+      "bytes": 36806,
+      "lines": 371
+    },
+    {
+      "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+      "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+      "sha256": "1f43d24af3206346f2217f0a15e6d7e5eab8c4f94e0e8626f4d47217250e06da",
+      "bytes": 44502,
+      "lines": 479
+    },
+    {
+      "path": "artifacts/first-steps/lfe-ia-content-proposal.md",
+      "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+      "sha256": "897bd06c798af9fa03c6314fffc940e49d8459cf890f0334925816fe0f9d0852",
+      "bytes": 29911,
+      "lines": 352
+    }
+  ],
+  "repositories": [
+    {
+      "id": "lfe",
+      "root": "/Users/oubiwann/lab/lfe/lfe",
+      "availability": "available",
+      "head": "dae7489ebf9588e5f746a34cd4f8ff83d1469eef",
+      "branch": "master",
+      "status": [
+        "?? rebar.lock"
+      ],
+      "commands": [
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe rev-parse --show-toplevel",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe rev-parse HEAD",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe symbolic-ref --short -q HEAD",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe status --porcelain=v1 -uall",
+          "exit": 0
+        }
+      ],
+      "limits": [
+        "Git metadata/status only; status used --porcelain=v1 -uall. Ignored files and non-Git filesystem contents are not enumerated."
+      ]
+    },
+    {
+      "id": "website",
+      "root": "/Users/oubiwann/lab/lfe/lfe.github.io",
+      "availability": "available",
+      "head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+      "branch": "main",
+      "status": [
+        " M Makefile",
+        " M tools/lfesite/src/cmd/blog_migrate.rs",
+        " M tools/lfesite/src/cmd/blog_resolve.rs",
+        " M tools/lfesite/src/cmd/build.rs",
+        " M tools/lfesite/src/cmd/draft_post.rs",
+        " M tools/lfesite/src/cmd/migrate.rs",
+        " M tools/lfesite/src/cmd/new_post.rs",
+        " M tools/lfesite/src/cmd/prerender.rs",
+        " M tools/lfesite/src/cmd/publish_post.rs",
+        " M tools/lfesite/src/cmd/sass.rs",
+        " M tools/lfesite/src/cmd/serve.rs",
+        " M tools/lfesite/src/cmd/validate.rs",
+        " M tools/lfesite/src/main.rs",
+        " M tools/lfesite/src/util.rs",
+        "?? CC-verification-brief-otp-tutorials.md"
+      ],
+      "commands": [
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe.github.io rev-parse --show-toplevel",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe.github.io rev-parse HEAD",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe.github.io symbolic-ref --short -q HEAD",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe.github.io status --porcelain=v1 -uall",
+          "exit": 0
+        }
+      ],
+      "limits": [
+        "Git metadata/status only; status used --porcelain=v1 -uall. Ignored files and non-Git filesystem contents are not enumerated."
+      ]
+    },
+    {
+      "id": "lfe-manual",
+      "root": "/Users/oubiwann/lab/lfe/lfe-manual",
+      "availability": "available",
+      "head": "eba76e31367ee8d0eaa3217acce0d6bfc5378d17",
+      "branch": "main",
+      "status": [
+        "?? workbench/FORMS-INDEX.md",
+        "?? workbench/PHASE1-INVESTIGATION.md",
+        "?? workbench/PHASE1-SUMMARY.md",
+        "?? workbench/README.md",
+        "?? workbench/TEMPLATE-VALIDATION.md",
+        "?? workbench/TESTING-DELIVERY.md",
+        "?? workbench/TESTING-INFRASTRUCTURE.md",
+        "?? workbench/TESTING-QUICKREF.md",
+        "?? workbench/debug.txt",
+        "?? workbench/erl_crash.dump",
+        "?? workbench/extract-lfe-examples.sh",
+        "?? workbench/test-lfe-examples-debug.sh",
+        "?? workbench/test-lfe-examples.sh",
+        "?? workbench/tmp/lfe-test-debug-74823/extract.log",
+        "?? workbench/tmp/lfe-test-debug-74823/extracted.lfe",
+        "?? workbench/tmp/lfe-test-debug-74823/test-suite.lfe"
+      ],
+      "commands": [
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe-manual rev-parse --show-toplevel",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe-manual rev-parse HEAD",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe-manual symbolic-ref --short -q HEAD",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe-manual status --porcelain=v1 -uall",
+          "exit": 0
+        }
+      ],
+      "limits": [
+        "Git metadata/status only; status used --porcelain=v1 -uall. Ignored files and non-Git filesystem contents are not enumerated."
+      ]
+    },
+    {
+      "id": "lfe-tutorial",
+      "root": "/Users/oubiwann/lab/lfe/lfe-tutorial",
+      "availability": "available",
+      "head": "96e7c95d3a66cb8dbc395acae0e677b24b598810",
+      "branch": "builder",
+      "status": [],
+      "commands": [
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe-tutorial rev-parse --show-toplevel",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe-tutorial rev-parse HEAD",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe-tutorial symbolic-ref --short -q HEAD",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe-tutorial status --porcelain=v1 -uall",
+          "exit": 0
+        }
+      ],
+      "limits": [
+        "Git metadata/status only; status used --porcelain=v1 -uall. Ignored files and non-Git filesystem contents are not enumerated."
+      ]
+    },
+    {
+      "id": "lfe-casting-spels",
+      "root": "/Users/oubiwann/lab/lfe/lfe-casting-spels",
+      "availability": "available",
+      "head": "c0fc08e9e7f1df1bcd45516ad1f4f9d8be169be9",
+      "branch": "builder",
+      "status": [
+        "?? code/rebar.lock"
+      ],
+      "commands": [
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe-casting-spels rev-parse --show-toplevel",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe-casting-spels rev-parse HEAD",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe-casting-spels symbolic-ref --short -q HEAD",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe-casting-spels status --porcelain=v1 -uall",
+          "exit": 0
+        }
+      ],
+      "limits": [
+        "Git metadata/status only; status used --porcelain=v1 -uall. Ignored files and non-Git filesystem contents are not enumerated."
+      ]
+    },
+    {
+      "id": "lfe-sicp",
+      "root": "/Users/oubiwann/lab/lfe/lfe-sicp",
+      "availability": "available",
+      "head": "46859e2a6fdd5c346cbf03dceec8b23f0b4fff3a",
+      "branch": "main",
+      "status": [],
+      "commands": [
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe-sicp rev-parse --show-toplevel",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe-sicp rev-parse HEAD",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe-sicp symbolic-ref --short -q HEAD",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/lfe-sicp status --porcelain=v1 -uall",
+          "exit": 0
+        }
+      ],
+      "limits": [
+        "Git metadata/status only; status used --porcelain=v1 -uall. Ignored files and non-Git filesystem contents are not enumerated."
+      ]
+    },
+    {
+      "id": "rebar3_lfe",
+      "root": "/Users/oubiwann/lab/lfe/rebar3_lfe",
+      "availability": "available",
+      "head": "c59a18e205b0ab5086c10325af78a3df7f7e5f9e",
+      "branch": "release/0.5.x",
+      "status": [
+        "?? docs/design/header-dep-quickfix.md",
+        "?? priv/testing/include/records.lfe",
+        "?? priv/testing/src/test_headers.app.src",
+        "?? priv/testing/src/test_mod1.lfe",
+        "?? priv/testing/src/test_mod2.lfe",
+        "?? workbench/build_files.txt",
+        "?? workbench/debug-compile.log"
+      ],
+      "commands": [
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/rebar3_lfe rev-parse --show-toplevel",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/rebar3_lfe rev-parse HEAD",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/rebar3_lfe symbolic-ref --short -q HEAD",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/rebar3_lfe status --porcelain=v1 -uall",
+          "exit": 0
+        }
+      ],
+      "limits": [
+        "Git metadata/status only; status used --porcelain=v1 -uall. Ignored files and non-Git filesystem contents are not enumerated."
+      ]
+    },
+    {
+      "id": "docs",
+      "root": "/Users/oubiwann/lab/lfe/docs",
+      "availability": "available",
+      "head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+      "branch": "master",
+      "status": [],
+      "commands": [
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/docs rev-parse --show-toplevel",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/docs rev-parse HEAD",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/docs symbolic-ref --short -q HEAD",
+          "exit": 0
+        },
+        {
+          "command": "git -C /Users/oubiwann/lab/lfe/docs status --porcelain=v1 -uall",
+          "exit": 0
+        }
+      ],
+      "limits": [
+        "Git metadata/status only; status used --porcelain=v1 -uall. Ignored files and non-Git filesystem contents are not enumerated."
+      ]
+    }
+  ],
+  "tracked_src": {
+    "paths": [
+      "src/404.html",
+      "src/CNAME",
+      "src/_data/authors.yml",
+      "src/_data/blog.yml",
+      "src/_data/home/books.yml",
+      "src/_data/home/buildit.yml",
+      "src/_data/home/callouts.yml",
+      "src/_data/home/excerpts.yml",
+      "src/_data/home/features.yml",
+      "src/_data/home/masthead.yml",
+      "src/_data/home/quotes.yml",
+      "src/_data/home/videos.yml",
+      "src/_data/lfe_versions.yml",
+      "src/_data/site.yml",
+      "src/_includes/blog-subnav.liquid",
+      "src/_includes/css.liquid",
+      "src/_includes/end-scripts.liquid",
+      "src/_includes/favicon.liquid",
+      "src/_includes/feed-links.liquid",
+      "src/_includes/foot.liquid",
+      "src/_includes/home/books.liquid",
+      "src/_includes/home/buildit.liquid",
+      "src/_includes/home/closing.liquid",
+      "src/_includes/home/features.liquid",
+      "src/_includes/home/lykn-cycler.liquid",
+      "src/_includes/home/masthead.liquid",
+      "src/_includes/home/videos.liquid",
+      "src/_includes/meta.liquid",
+      "src/_includes/nav.liquid",
+      "src/_layouts/blog-archive.liquid",
+      "src/_layouts/blog-author.liquid",
+      "src/_layouts/blog-authors.liquid",
+      "src/_layouts/blog-categories.liquid",
+      "src/_layouts/blog-index.liquid",
+      "src/_layouts/blog-search.liquid",
+      "src/_layouts/blog-tags.liquid",
+      "src/_layouts/home.liquid",
+      "src/_layouts/page.liquid",
+      "src/_layouts/plan/index.liquid",
+      "src/_layouts/plan/page.liquid",
+      "src/_layouts/post.liquid",
+      "src/about.md",
+      "src/blog/archive.md",
+      "src/blog/assets/images/posts/Alonzo-Church.jpg",
+      "src/blog/assets/images/posts/Bertrand-Russell.jpg",
+      "src/blog/assets/images/posts/Blog-Makeover.png",
+      "src/blog/assets/images/posts/ButterCrunchLettuce-2-medium.png",
+      "src/blog/assets/images/posts/DockerLogo.png",
+      "src/blog/assets/images/posts/Erlang-Python-Greats.png",
+      "src/blog/assets/images/posts/Giuseppe-Peano.jpg",
+      "src/blog/assets/images/posts/IErlangNotebook.png",
+      "src/blog/assets/images/posts/John-McCarthy.jpg",
+      "src/blog/assets/images/posts/LFE-Happy-Holidays.png",
+      "src/blog/assets/images/posts/LFE-signal.jpg",
+      "src/blog/assets/images/posts/LispFlavoredErlang-medium-square.png",
+      "src/blog/assets/images/posts/Python-logo.png",
+      "src/blog/assets/images/posts/Robert-Train.png",
+      "src/blog/assets/images/posts/abstract-object.png",
+      "src/blog/assets/images/posts/byte_1979_08_The_LISP_Issue.jpg",
+      "src/blog/assets/images/posts/dfly-bsd-logo.png",
+      "src/blog/assets/images/posts/digraph_get_path_graph.png",
+      "src/blog/assets/images/posts/docker-lfe-sample-app-main-page.png",
+      "src/blog/assets/images/posts/freebsd-logo.jpg",
+      "src/blog/assets/images/posts/ketchup.png",
+      "src/blog/assets/images/posts/ldialyzer.png",
+      "src/blog/assets/images/posts/lfe-color-banner.png",
+      "src/blog/assets/images/posts/lfe-rebar3-logo.png",
+      "src/blog/assets/images/posts/lfe-tooling-leonardo-gears-2.png",
+      "src/blog/assets/images/posts/lfescars2-back.png",
+      "src/blog/assets/images/posts/lfescars2-front-back.png",
+      "src/blog/assets/images/posts/lfescars2-front.png",
+      "src/blog/assets/images/posts/lfetool-logo-large-grey.png",
+      "src/blog/assets/images/posts/lm_logo.png",
+      "src/blog/assets/images/posts/lsci-erlang-ecosystem.png",
+      "src/blog/assets/images/posts/lutil-leonardo-gears-large.png",
+      "src/blog/assets/images/posts/lutil-leonardo-gears.png",
+      "src/blog/assets/images/posts/quicksort.png",
+      "src/blog/assets/images/posts/screencapture-ierlang_demo.png",
+      "src/blog/assets/images/posts/sicp.jpg",
+      "src/blog/assets/images/posts/t-shirt2-unbox-1.jpg",
+      "src/blog/assets/images/posts/t-shirt2-unbox-2.jpg",
+      "src/blog/assets/images/posts/t-shirt2-unbox-3.jpg",
+      "src/blog/assets/images/posts/t-shirt2-unbox-4.jpg",
+      "src/blog/assets/images/posts/t-shirt2-unbox-5.jpg",
+      "src/blog/assets/images/posts/t-shirt2-unbox-6.jpg",
+      "src/blog/assets/images/posts/t-shirt2-unbox-7.jpg",
+      "src/blog/atom.liquid",
+      "src/blog/authors/anurag-mendhekar.md",
+      "src/blog/authors/duncan-mcgreggor.md",
+      "src/blog/authors/eric-bailey.md",
+      "src/blog/authors/fred-hebert.md",
+      "src/blog/authors/index.md",
+      "src/blog/authors/lfe-maintainers.md",
+      "src/blog/authors/robert-virding.md",
+      "src/blog/categories.md",
+      "src/blog/feed.liquid",
+      "src/blog/index.md",
+      "src/blog/rss.liquid",
+      "src/blog/search.md",
+      "src/blog/tags.md",
+      "src/books.md",
+      "src/casting-spels/index.html",
+      "src/community.md",
+      "src/css/common.css",
+      "src/css/design-widgets.css",
+      "src/css/highlight.css",
+      "src/css/home.css",
+      "src/css/pages.css",
+      "src/css/site.css",
+      "src/docs.html",
+      "src/favicon/android-chrome-192x192.png",
+      "src/favicon/android-chrome-256x256.png",
+      "src/favicon/apple-touch-icon.png",
+      "src/favicon/browserconfig.xml",
+      "src/favicon/favicon-16x16.png",
+      "src/favicon/favicon-32x32.png",
+      "src/favicon/favicon.ico",
+      "src/favicon/mstile-150x150.png",
+      "src/favicon/safari-pinned-tab.svg",
+      "src/favicon/site.webmanifest",
+      "src/fontawesome-brands.css",
+      "src/fontawesome-regular.css",
+      "src/fontawesome-solid.css",
+      "src/fontawesome-v4-shims.css",
+      "src/fontawesome.css",
+      "src/fonts/Newsreader-Italic-Variable.woff2",
+      "src/fonts/Newsreader-Variable.woff2",
+      "src/images/ClojuTRE-2015-LFE.png",
+      "src/images/CodeSync-2022-SoundOnBeam.png",
+      "src/images/EFSF-2014-LFE.png",
+      "src/images/EFSF-2017-LFE.png",
+      "src/images/EUC-2016-LFE.png",
+      "src/images/LFE-logo-abbr-6.1.png",
+      "src/images/LFE-logo-abbr-6.2.png",
+      "src/images/LFE-logo-color-separated-6-square-x64.png",
+      "src/images/LFE-logo-darker-greys-6-square-x32.png",
+      "src/images/LFE_AbstractRabitHole_OTH_00257_.png",
+      "src/images/LFE_Docker_00263_.png",
+      "src/images/LFE_Graffeo_00409_.png",
+      "src/images/LFE_Masthead_00234_.png",
+      "src/images/LichenMoss_00183_.png",
+      "src/images/LispNYC-2021-LFE.png",
+      "src/images/Screen Shot 2020-07-24 at 1.09.58 AM.png",
+      "src/images/billo-logo.png",
+      "src/images/default/LFE_00218_.png",
+      "src/images/default/LFE_00220_.png",
+      "src/images/default/LFE_00227_.png",
+      "src/images/default/LFE_00237_.png",
+      "src/images/default/LFE_00239_.png",
+      "src/images/default/LFE_00241_.png",
+      "src/images/default/LFE_00243_.png",
+      "src/images/default/LFE_00244_.png",
+      "src/images/default/LFE_00245_.png",
+      "src/images/default/LFE_00247_.png",
+      "src/images/default/LFE_00253_.png",
+      "src/images/default/LFE_00255_.png",
+      "src/images/default/LFE_00256_.png",
+      "src/images/discord-logo.png",
+      "src/images/erlang-poster.jpg",
+      "src/images/fridays/LFE_Friday_00269_.png",
+      "src/images/fridays/LFE_Friday_00270_.png",
+      "src/images/fridays/LFE_Friday_00271_.png",
+      "src/images/fridays/LFE_Friday_00272_.png",
+      "src/images/fridays/LFE_Friday_00273_.png",
+      "src/images/fridays/LFE_Friday_00274_.png",
+      "src/images/fridays/LFE_Friday_00275_.png",
+      "src/images/fridays/LFE_Friday_00276_.png",
+      "src/images/fridays/LFE_Friday_00277_.png",
+      "src/images/fridays/LFE_Friday_00278_.png",
+      "src/images/fridays/LFE_Friday_00279_.png",
+      "src/images/fridays/LFE_Friday_00280_.png",
+      "src/images/fridays/LFE_Friday_00281_.png",
+      "src/images/fridays/LFE_Friday_00282_.png",
+      "src/images/fridays/LFE_Friday_00283_.png",
+      "src/images/fridays/LFE_Friday_00284_.png",
+      "src/images/fridays/LFE_Friday_00286_.png",
+      "src/images/fridays/LFE_Friday_00288_.png",
+      "src/images/lfe-dotplan-screen.png",
+      "src/images/lfe-erlang-beam.png",
+      "src/images/liffybot-big-fade.png",
+      "src/images/lisplogo-alien-tech-grey.png",
+      "src/images/lisplogo-alien-tech-white.png",
+      "src/images/lisplogo_alien.svg",
+      "src/images/logo_developer@2x.png",
+      "src/images/newsroom/LFE_Newsroom_00290_.png",
+      "src/images/newsroom/LFE_Newsroom_00291_.png",
+      "src/images/newsroom/LFE_Newsroom_00292_.png",
+      "src/images/newsroom/LFE_Newsroom_00293_.png",
+      "src/images/newsroom/LFE_Newsroom_00294_.png",
+      "src/images/newsroom/LFE_Newsroom_00295_.png",
+      "src/images/newsroom/LFE_Newsroom_00297_.png",
+      "src/images/newsroom/LFE_Newsroom_00298_.png",
+      "src/images/newsroom/LFE_Newsroom_00300_.png",
+      "src/images/newsroom/LFE_Newsroom_00303_.png",
+      "src/images/newsroom/LFE_Newsroom_00305_.png",
+      "src/images/newsroom/LFE_Newsroom_00308_.png",
+      "src/images/newsroom/LFE_Newsroom_00310_.png",
+      "src/images/newsroom/LFE_Newsroom_00318_.png",
+      "src/images/newsroom/LFE_Newsroom_00323_.png",
+      "src/images/newsroom/LFE_Newsroom_00325_.png",
+      "src/images/newsroom/LFE_Newsroom_00328_.png",
+      "src/images/repl.jpg",
+      "src/images/repl.png",
+      "src/images/rvirding.png",
+      "src/images/tutorials/LFE_Tutorial_00332_.png",
+      "src/images/tutorials/LFE_Tutorial_00333_.png",
+      "src/images/tutorials/LFE_Tutorial_00337_.png",
+      "src/images/tutorials/LFE_Tutorial_00340_.png",
+      "src/images/tutorials/LFE_Tutorial_00344_.png",
+      "src/images/tutorials/LFE_Tutorial_00346_.png",
+      "src/images/tutorials/LFE_Tutorial_00348_.png",
+      "src/images/tutorials/LFE_Tutorial_00355_.png",
+      "src/images/tutorials/LFE_Tutorial_00357_.png",
+      "src/images/tutorials/LFE_Tutorial_00358_.png",
+      "src/images/tutorials/LFE_Tutorial_00361_.png",
+      "src/images/tutorials/LFE_Tutorial_00365_.png",
+      "src/images/tutorials/LFE_Tutorial_00375_.png",
+      "src/images/tutorials/LFE_Tutorial_00379_.png",
+      "src/images/tutorials/LFE_Tutorial_00392_.png",
+      "src/images/tutorials/LFE_Tutorial_00399_.png",
+      "src/images/twitter-card.jpg",
+      "src/images/xkcd-lisp-cycles.png",
+      "src/index.md",
+      "src/js/app.js",
+      "src/js/highlight.js",
+      "src/js/preline.js",
+      "src/js/site.js",
+      "src/learn.md",
+      "src/lfe.css",
+      "src/papers/[2003] Armstrong - Making reliable distributed systems in the presence of software errors.pdf",
+      "src/papers/[2007] Armstrong - HOPL III A History of Erlang.pdf",
+      "src/papers/[2008] Virding - The Erlang Rationale.pdf",
+      "src/plan/how-to-add.md",
+      "src/plan/index.md",
+      "src/plan/oubiwann.md",
+      "src/plan/plan.txt",
+      "src/plan/rvirding.md",
+      "src/plan/yurrriq.md",
+      "src/posts/2014/05-22-1849-new-lfe-site.md",
+      "src/posts/2014/05-22-2301-lfe-microblog-is-open-for-business-.md",
+      "src/posts/2014/05-23-0815-docs-site-overhaul.md",
+      "src/posts/2014/05-23-1114-lfe-sunday-times.md",
+      "src/posts/2014/05-25-1026-history-of-erlang.md",
+      "src/posts/2014/05-25-1523-lfe-user-group-meeting-update.md",
+      "src/posts/2014/05-28-1516-the-secret-history-of-lfe.md",
+      "src/posts/2014/06-10-0929-lfe-language-summit-review.md",
+      "src/posts/2014/07-23-0849-erlang--oscon-2014.md",
+      "src/posts/2014/08-31-2024-lfetool-v12-is-out.md",
+      "src/posts/2014/11-21-1508-erlport-using-python-from-erlang-lfe.md",
+      "src/posts/2014/12-03-1810-community-generated-content.md",
+      "src/posts/2014/12-03-1828-erlport-and-python-making-more-calls-from-lfe.md",
+      "src/posts/2014/12-06-1244-ierlang-notebook-a-la-ipython.md",
+      "src/posts/2014/12-07-1837-running-lfe-in-docker.md",
+      "src/posts/2014/12-08-1929-lfest-002-is-released.md",
+      "src/posts/2014/12-14-1645-lutil-050-composition-predicates-core.md",
+      "src/posts/2014/12-15-1848-byte-august-1979-the-lisp-issue.md",
+      "src/posts/2014/12-17-1435-post-sprint-report-lfe-experience.md",
+      "src/posts/2014/12-25-1221-happy-holidays-from-lfe.md",
+      "src/posts/2014/12-27-1641-easy-python-from-lfeerlang.md",
+      "src/posts/2015/01-01-1215-scientific-computing-on-the-erlang-vm.md",
+      "src/posts/2015/01-03-1244-coming-soon-lfe-fridays.md",
+      "src/posts/2015/01-04-1931-lfe-friday---listsany2.md",
+      "src/posts/2015/01-09-1008-lfetool-150-preview-overriding-version-pinning.md",
+      "src/posts/2015/01-10-2201-lfe-friday---timertc3.md",
+      "src/posts/2015/01-16-2253-lfe-friday---erlangapply3.md",
+      "src/posts/2015/01-22-2243-lfe-friday---httpcrequest1-and-httpcrequest4.md",
+      "src/posts/2015/02-02-0111-lfe-friday---listsfilter2.md",
+      "src/posts/2015/02-10-0206-lfe-friday---listsdropwhile2.md",
+      "src/posts/2015/02-13-1751-lfe-friday---stringtokens2.md",
+      "src/posts/2015/02-20-1609-lfe-friday---stringjoin2.md",
+      "src/posts/2015/03-01-1823-lfe-friday---dictmerge3.md",
+      "src/posts/2015/03-06-0152-lfe-friday---calendarlocal_time_to_universal_time_dst1.md",
+      "src/posts/2015/03-13-1559-lfe-friday---listsflatmap2.md",
+      "src/posts/2015/03-20-1256-new-lfe-t-shirt.md",
+      "src/posts/2015/03-22-1342-sicp-the-lfe-edition-update.md",
+      "src/posts/2015/03-22-1445-the-hidden-origins-of-lisp-introduction.md",
+      "src/posts/2015/03-22-2108-lfe-friday---ordsetsis_disjoint2.md",
+      "src/posts/2015/03-23-1008-the-hidden-origins-of-lisp-peano.md",
+      "src/posts/2015/03-24-0111-the-hidden-origins-of-lisp-russell.md",
+      "src/posts/2015/03-25-1108-the-hidden-origins-of-lisp-church.md",
+      "src/posts/2015/03-26-1111-the-hidden-origins-of-lisp-mccarthy.md",
+      "src/posts/2015/03-27-1101-the-hidden-origins-of-lisp-future.md",
+      "src/posts/2015/03-30-1513-lfe-friday---erlanglist_to_atom1.md",
+      "src/posts/2015/04-04-0240-lfe-friday---listsdelete2.md",
+      "src/posts/2015/04-04-1538-lfe-and-dialyzer.md",
+      "src/posts/2015/04-05-1332-ledis-using-redis-from-lfe.md",
+      "src/posts/2015/04-12-1941-lfe-friday---calendarday_of_the_week3.md",
+      "src/posts/2015/04-20-1707-lfe-friday---calendardate_to_gregorian_days3.md",
+      "src/posts/2015/04-24-1716-lfe-friday---calendarvalid_date3.md",
+      "src/posts/2015/05-02-1744-lfe-friday---calendaris_leap_year1.md",
+      "src/posts/2015/05-02-1910-evaluating-dynamic-expressions-in-lfe.md",
+      "src/posts/2015/05-11-2251-spell1---ll1-parser-generator.md",
+      "src/posts/2015/05-11-2333-lfe-friday---calendariso_week_number1.md",
+      "src/posts/2015/05-15-2306-lfe-friday---filelibis_file1.md",
+      "src/posts/2015/05-22-0224-lfe-friday---queuecons2.md",
+      "src/posts/2015/05-23-1314-lfe-t-shirts-the-great-unboxing.md",
+      "src/posts/2015/05-23-1720-new-series-lfe-otp-tutorials.md",
+      "src/posts/2015/05-24-1808-what-is-otp.md",
+      "src/posts/2015/05-25-0929-prelude-to-otp.md",
+      "src/posts/2015/05-26-1112-creating-servers-with-the-gen_server-behaviour.md",
+      "src/posts/2015/05-28-1008-creating-servers-with-the-gen_server-behaviour-ii.md",
+      "src/posts/2015/05-29-0345-lfe-friday---queuehead1.md",
+      "src/posts/2015/06-05-0024-lfe-friday---queuetail1.md",
+      "src/posts/2015/06-14-2228-lfe-friday---queuepeek1.md",
+      "src/posts/2015/06-20-0055-lfe-friday---queuesplit2.md",
+      "src/posts/2015/06-23-0353-spell1---ll1-parser-generator-update.md",
+      "src/posts/2015/06-26-0044-lfe-friday---queueout1.md",
+      "src/posts/2015/07-04-0959-lfe-friday---ordsetsunion2.md",
+      "src/posts/2015/07-08-1349-dragonflybsd--lfe.md",
+      "src/posts/2015/07-08-1416-freebsd--lfe-images-docker-like-functionality-with-ezjail.md",
+      "src/posts/2015/07-11-1720-towards-multi-methods-in-lfe.md",
+      "src/posts/2015/07-12-0233-lfe-friday---ordsetsintersection2.md",
+      "src/posts/2015/07-12-0256-lfe-friday-bonus---performance-of-erlanglength1-on-a-list.md",
+      "src/posts/2015/07-17-0213-lfe-friday---ordsetssubtract2.md",
+      "src/posts/2015/07-18-0230-lisp-machine-flavors-for-lfe.md",
+      "src/posts/2015/07-18-1824-a-quicksort-lfe-assist.md",
+      "src/posts/2015/07-25-0135-lfe-friday---ordsetsis_subset2.md",
+      "src/posts/2015/08-02-0212-lfe-friday---cxm1.md",
+      "src/posts/2015/08-10-0123-lfe-friday---cm1.md",
+      "src/posts/2015/08-15-0226-lfe-friday---cregs0.md",
+      "src/posts/2015/08-22-1310-lfe-friday---ci0.md",
+      "src/posts/2015/09-05-0107-lfe-friday---cpid3.md",
+      "src/posts/2015/09-18-0131-lfe-friday---erl_tarcreate2.md",
+      "src/posts/2015/09-18-1203-lfe-blog-has-a-new-face.md",
+      "src/posts/2015/09-18-1604-distributed-lfe.md",
+      "src/posts/2015/09-18-2230-mini-interview-robert-virding-on-lisp.md",
+      "src/posts/2015/09-20-1743-lisp-machine-flavors-for-lfe-2.md",
+      "src/posts/2015/09-24-2311-lfe-friday---erl_tarextract1.md",
+      "src/posts/2015/10-16-1230-catching-up-lfe-friday.md",
+      "src/posts/2015/10-18-1451-lfe-friday---erl_tartable1.md",
+      "src/posts/2015/10-18-1701-lfe-friday---the-digraph-module.md",
+      "src/posts/2015/10-20-0147-lfe-friday---digraphadd_vertex1.md",
+      "src/posts/2015/10-23-2231-lfe-friday---digraphadd_edge4.md",
+      "src/posts/2015/11-07-2209-lfe-friday---digraphget_path3.md",
+      "src/posts/2015/11-13-0117-lfe-friday---digraphin_neighbors2.md",
+      "src/posts/2015/11-16-0023-lfe-friday---digraphget_cycle2.md",
+      "src/posts/2015/11-27-0242-lfe-friday---digraphdel_path3.md",
+      "src/posts/2015/11-28-1721-lfe-friday---ets-introduction-part-1.md",
+      "src/posts/2015/11-28-2110-lfe-yaws-docker-update.md",
+      "src/posts/2015/12-05-1814-lfe-friday---ets-introduction-part-2.md",
+      "src/posts/2015/12-12-1716-lfe-friday---ets-introduction-part-3.md",
+      "src/posts/2015/12-22-0113-lfe-friday---ets-introduction-part-4.md",
+      "src/posts/2015/12-25-2138-lfe-friday---ets-introduction-part-5.md",
+      "src/posts/2016/01-03-0106-lfe-friday---ets-data-matching.md",
+      "src/posts/2016/01-10-2016-lfe-friday---more-ets-data-matching.md",
+      "src/posts/2016/01-18-1312-lfe-friday---ets-match_specs-and-functions.md",
+      "src/posts/2016/01-23-0122-lfe-friday---using-ets-select-with-a-limit.md",
+      "src/posts/2016/01-31-0030-lfe-friday---ets-selects-continuations-and-inserts.md",
+      "src/posts/2016/03-03-0104-lfe-v10-multi-module-files.md",
+      "src/posts/2016/03-05-0407-lfe-v10-exporting-macros.md",
+      "src/posts/2016/03-25-0858-lfe-and-rebar3.md",
+      "src/posts/2016/04-27-1647-tracing-lfe-functions.md",
+      "src/posts/2019/05-13-0250-catch-up.md",
+      "src/posts/2019/05-13-1549-running-lfe-in-docker-updated.md",
+      "src/posts/2020/07-14-1340-rebar3-lfe-010.md",
+      "src/posts/2020/07-17-1350-the-new-lfe-rebar3-plugin-creating-projects.md",
+      "src/posts/2026/04-20-0005-lfeio-50-rust-tooling-all-the-way-down.md",
+      "src/posts/2026/06-03-0230-welcome-to-the-new-lfe-blog.md",
+      "src/posts/2026/06-04-1800-lykn-a-lisp-born-from-lfe.md",
+      "src/posts/2026/06-05-1008-graph-theory-in-lfe-graffeo-erlang-knowledge.md",
+      "src/posts/2026/06-12-1600-bringing-types-to-lfe.md",
+      "src/posts/2026/06-19-0900-lfe-friday---mapsget3.md",
+      "src/quick-start/index.html",
+      "src/rebar3-quick-start/index.html",
+      "src/reference/index.html",
+      "src/robots.txt",
+      "src/style-guide/index.html",
+      "src/tutorial/index.html",
+      "src/use.md",
+      "src/user-guide/intro/1.html",
+      "src/webfonts/fa-brands-400.eot",
+      "src/webfonts/fa-brands-400.svg",
+      "src/webfonts/fa-brands-400.ttf",
+      "src/webfonts/fa-brands-400.woff",
+      "src/webfonts/fa-brands-400.woff2",
+      "src/webfonts/fa-regular-400.eot",
+      "src/webfonts/fa-regular-400.svg",
+      "src/webfonts/fa-regular-400.ttf",
+      "src/webfonts/fa-regular-400.woff",
+      "src/webfonts/fa-regular-400.woff2",
+      "src/webfonts/fa-solid-900.eot",
+      "src/webfonts/fa-solid-900.svg",
+      "src/webfonts/fa-solid-900.ttf",
+      "src/webfonts/fa-solid-900.woff",
+      "src/webfonts/fa-solid-900.woff2"
+    ],
+    "partitions": {
+      "posts": [
+        "src/posts/2014/05-22-1849-new-lfe-site.md",
+        "src/posts/2014/05-22-2301-lfe-microblog-is-open-for-business-.md",
+        "src/posts/2014/05-23-0815-docs-site-overhaul.md",
+        "src/posts/2014/05-23-1114-lfe-sunday-times.md",
+        "src/posts/2014/05-25-1026-history-of-erlang.md",
+        "src/posts/2014/05-25-1523-lfe-user-group-meeting-update.md",
+        "src/posts/2014/05-28-1516-the-secret-history-of-lfe.md",
+        "src/posts/2014/06-10-0929-lfe-language-summit-review.md",
+        "src/posts/2014/07-23-0849-erlang--oscon-2014.md",
+        "src/posts/2014/08-31-2024-lfetool-v12-is-out.md",
+        "src/posts/2014/11-21-1508-erlport-using-python-from-erlang-lfe.md",
+        "src/posts/2014/12-03-1810-community-generated-content.md",
+        "src/posts/2014/12-03-1828-erlport-and-python-making-more-calls-from-lfe.md",
+        "src/posts/2014/12-06-1244-ierlang-notebook-a-la-ipython.md",
+        "src/posts/2014/12-07-1837-running-lfe-in-docker.md",
+        "src/posts/2014/12-08-1929-lfest-002-is-released.md",
+        "src/posts/2014/12-14-1645-lutil-050-composition-predicates-core.md",
+        "src/posts/2014/12-15-1848-byte-august-1979-the-lisp-issue.md",
+        "src/posts/2014/12-17-1435-post-sprint-report-lfe-experience.md",
+        "src/posts/2014/12-25-1221-happy-holidays-from-lfe.md",
+        "src/posts/2014/12-27-1641-easy-python-from-lfeerlang.md",
+        "src/posts/2015/01-01-1215-scientific-computing-on-the-erlang-vm.md",
+        "src/posts/2015/01-03-1244-coming-soon-lfe-fridays.md",
+        "src/posts/2015/01-04-1931-lfe-friday---listsany2.md",
+        "src/posts/2015/01-09-1008-lfetool-150-preview-overriding-version-pinning.md",
+        "src/posts/2015/01-10-2201-lfe-friday---timertc3.md",
+        "src/posts/2015/01-16-2253-lfe-friday---erlangapply3.md",
+        "src/posts/2015/01-22-2243-lfe-friday---httpcrequest1-and-httpcrequest4.md",
+        "src/posts/2015/02-02-0111-lfe-friday---listsfilter2.md",
+        "src/posts/2015/02-10-0206-lfe-friday---listsdropwhile2.md",
+        "src/posts/2015/02-13-1751-lfe-friday---stringtokens2.md",
+        "src/posts/2015/02-20-1609-lfe-friday---stringjoin2.md",
+        "src/posts/2015/03-01-1823-lfe-friday---dictmerge3.md",
+        "src/posts/2015/03-06-0152-lfe-friday---calendarlocal_time_to_universal_time_dst1.md",
+        "src/posts/2015/03-13-1559-lfe-friday---listsflatmap2.md",
+        "src/posts/2015/03-20-1256-new-lfe-t-shirt.md",
+        "src/posts/2015/03-22-1342-sicp-the-lfe-edition-update.md",
+        "src/posts/2015/03-22-1445-the-hidden-origins-of-lisp-introduction.md",
+        "src/posts/2015/03-22-2108-lfe-friday---ordsetsis_disjoint2.md",
+        "src/posts/2015/03-23-1008-the-hidden-origins-of-lisp-peano.md",
+        "src/posts/2015/03-24-0111-the-hidden-origins-of-lisp-russell.md",
+        "src/posts/2015/03-25-1108-the-hidden-origins-of-lisp-church.md",
+        "src/posts/2015/03-26-1111-the-hidden-origins-of-lisp-mccarthy.md",
+        "src/posts/2015/03-27-1101-the-hidden-origins-of-lisp-future.md",
+        "src/posts/2015/03-30-1513-lfe-friday---erlanglist_to_atom1.md",
+        "src/posts/2015/04-04-0240-lfe-friday---listsdelete2.md",
+        "src/posts/2015/04-04-1538-lfe-and-dialyzer.md",
+        "src/posts/2015/04-05-1332-ledis-using-redis-from-lfe.md",
+        "src/posts/2015/04-12-1941-lfe-friday---calendarday_of_the_week3.md",
+        "src/posts/2015/04-20-1707-lfe-friday---calendardate_to_gregorian_days3.md",
+        "src/posts/2015/04-24-1716-lfe-friday---calendarvalid_date3.md",
+        "src/posts/2015/05-02-1744-lfe-friday---calendaris_leap_year1.md",
+        "src/posts/2015/05-02-1910-evaluating-dynamic-expressions-in-lfe.md",
+        "src/posts/2015/05-11-2251-spell1---ll1-parser-generator.md",
+        "src/posts/2015/05-11-2333-lfe-friday---calendariso_week_number1.md",
+        "src/posts/2015/05-15-2306-lfe-friday---filelibis_file1.md",
+        "src/posts/2015/05-22-0224-lfe-friday---queuecons2.md",
+        "src/posts/2015/05-23-1314-lfe-t-shirts-the-great-unboxing.md",
+        "src/posts/2015/05-23-1720-new-series-lfe-otp-tutorials.md",
+        "src/posts/2015/05-24-1808-what-is-otp.md",
+        "src/posts/2015/05-25-0929-prelude-to-otp.md",
+        "src/posts/2015/05-26-1112-creating-servers-with-the-gen_server-behaviour.md",
+        "src/posts/2015/05-28-1008-creating-servers-with-the-gen_server-behaviour-ii.md",
+        "src/posts/2015/05-29-0345-lfe-friday---queuehead1.md",
+        "src/posts/2015/06-05-0024-lfe-friday---queuetail1.md",
+        "src/posts/2015/06-14-2228-lfe-friday---queuepeek1.md",
+        "src/posts/2015/06-20-0055-lfe-friday---queuesplit2.md",
+        "src/posts/2015/06-23-0353-spell1---ll1-parser-generator-update.md",
+        "src/posts/2015/06-26-0044-lfe-friday---queueout1.md",
+        "src/posts/2015/07-04-0959-lfe-friday---ordsetsunion2.md",
+        "src/posts/2015/07-08-1349-dragonflybsd--lfe.md",
+        "src/posts/2015/07-08-1416-freebsd--lfe-images-docker-like-functionality-with-ezjail.md",
+        "src/posts/2015/07-11-1720-towards-multi-methods-in-lfe.md",
+        "src/posts/2015/07-12-0233-lfe-friday---ordsetsintersection2.md",
+        "src/posts/2015/07-12-0256-lfe-friday-bonus---performance-of-erlanglength1-on-a-list.md",
+        "src/posts/2015/07-17-0213-lfe-friday---ordsetssubtract2.md",
+        "src/posts/2015/07-18-0230-lisp-machine-flavors-for-lfe.md",
+        "src/posts/2015/07-18-1824-a-quicksort-lfe-assist.md",
+        "src/posts/2015/07-25-0135-lfe-friday---ordsetsis_subset2.md",
+        "src/posts/2015/08-02-0212-lfe-friday---cxm1.md",
+        "src/posts/2015/08-10-0123-lfe-friday---cm1.md",
+        "src/posts/2015/08-15-0226-lfe-friday---cregs0.md",
+        "src/posts/2015/08-22-1310-lfe-friday---ci0.md",
+        "src/posts/2015/09-05-0107-lfe-friday---cpid3.md",
+        "src/posts/2015/09-18-0131-lfe-friday---erl_tarcreate2.md",
+        "src/posts/2015/09-18-1203-lfe-blog-has-a-new-face.md",
+        "src/posts/2015/09-18-1604-distributed-lfe.md",
+        "src/posts/2015/09-18-2230-mini-interview-robert-virding-on-lisp.md",
+        "src/posts/2015/09-20-1743-lisp-machine-flavors-for-lfe-2.md",
+        "src/posts/2015/09-24-2311-lfe-friday---erl_tarextract1.md",
+        "src/posts/2015/10-16-1230-catching-up-lfe-friday.md",
+        "src/posts/2015/10-18-1451-lfe-friday---erl_tartable1.md",
+        "src/posts/2015/10-18-1701-lfe-friday---the-digraph-module.md",
+        "src/posts/2015/10-20-0147-lfe-friday---digraphadd_vertex1.md",
+        "src/posts/2015/10-23-2231-lfe-friday---digraphadd_edge4.md",
+        "src/posts/2015/11-07-2209-lfe-friday---digraphget_path3.md",
+        "src/posts/2015/11-13-0117-lfe-friday---digraphin_neighbors2.md",
+        "src/posts/2015/11-16-0023-lfe-friday---digraphget_cycle2.md",
+        "src/posts/2015/11-27-0242-lfe-friday---digraphdel_path3.md",
+        "src/posts/2015/11-28-1721-lfe-friday---ets-introduction-part-1.md",
+        "src/posts/2015/11-28-2110-lfe-yaws-docker-update.md",
+        "src/posts/2015/12-05-1814-lfe-friday---ets-introduction-part-2.md",
+        "src/posts/2015/12-12-1716-lfe-friday---ets-introduction-part-3.md",
+        "src/posts/2015/12-22-0113-lfe-friday---ets-introduction-part-4.md",
+        "src/posts/2015/12-25-2138-lfe-friday---ets-introduction-part-5.md",
+        "src/posts/2016/01-03-0106-lfe-friday---ets-data-matching.md",
+        "src/posts/2016/01-10-2016-lfe-friday---more-ets-data-matching.md",
+        "src/posts/2016/01-18-1312-lfe-friday---ets-match_specs-and-functions.md",
+        "src/posts/2016/01-23-0122-lfe-friday---using-ets-select-with-a-limit.md",
+        "src/posts/2016/01-31-0030-lfe-friday---ets-selects-continuations-and-inserts.md",
+        "src/posts/2016/03-03-0104-lfe-v10-multi-module-files.md",
+        "src/posts/2016/03-05-0407-lfe-v10-exporting-macros.md",
+        "src/posts/2016/03-25-0858-lfe-and-rebar3.md",
+        "src/posts/2016/04-27-1647-tracing-lfe-functions.md",
+        "src/posts/2019/05-13-0250-catch-up.md",
+        "src/posts/2019/05-13-1549-running-lfe-in-docker-updated.md",
+        "src/posts/2020/07-14-1340-rebar3-lfe-010.md",
+        "src/posts/2020/07-17-1350-the-new-lfe-rebar3-plugin-creating-projects.md",
+        "src/posts/2026/04-20-0005-lfeio-50-rust-tooling-all-the-way-down.md",
+        "src/posts/2026/06-03-0230-welcome-to-the-new-lfe-blog.md",
+        "src/posts/2026/06-04-1800-lykn-a-lisp-born-from-lfe.md",
+        "src/posts/2026/06-05-1008-graph-theory-in-lfe-graffeo-erlang-knowledge.md",
+        "src/posts/2026/06-12-1600-bringing-types-to-lfe.md",
+        "src/posts/2026/06-19-0900-lfe-friday---mapsget3.md"
+      ],
+      "templates": [
+        "src/_includes/blog-subnav.liquid",
+        "src/_includes/css.liquid",
+        "src/_includes/end-scripts.liquid",
+        "src/_includes/favicon.liquid",
+        "src/_includes/feed-links.liquid",
+        "src/_includes/foot.liquid",
+        "src/_includes/home/books.liquid",
+        "src/_includes/home/buildit.liquid",
+        "src/_includes/home/closing.liquid",
+        "src/_includes/home/features.liquid",
+        "src/_includes/home/lykn-cycler.liquid",
+        "src/_includes/home/masthead.liquid",
+        "src/_includes/home/videos.liquid",
+        "src/_includes/meta.liquid",
+        "src/_includes/nav.liquid",
+        "src/_layouts/blog-archive.liquid",
+        "src/_layouts/blog-author.liquid",
+        "src/_layouts/blog-authors.liquid",
+        "src/_layouts/blog-categories.liquid",
+        "src/_layouts/blog-index.liquid",
+        "src/_layouts/blog-search.liquid",
+        "src/_layouts/blog-tags.liquid",
+        "src/_layouts/home.liquid",
+        "src/_layouts/page.liquid",
+        "src/_layouts/plan/index.liquid",
+        "src/_layouts/plan/page.liquid",
+        "src/_layouts/post.liquid"
+      ],
+      "data": [
+        "src/_data/authors.yml",
+        "src/_data/blog.yml",
+        "src/_data/home/books.yml",
+        "src/_data/home/buildit.yml",
+        "src/_data/home/callouts.yml",
+        "src/_data/home/excerpts.yml",
+        "src/_data/home/features.yml",
+        "src/_data/home/masthead.yml",
+        "src/_data/home/quotes.yml",
+        "src/_data/home/videos.yml",
+        "src/_data/lfe_versions.yml",
+        "src/_data/site.yml"
+      ],
+      "pages": [
+        "src/404.html",
+        "src/about.md",
+        "src/blog/archive.md",
+        "src/blog/atom.liquid",
+        "src/blog/authors/anurag-mendhekar.md",
+        "src/blog/authors/duncan-mcgreggor.md",
+        "src/blog/authors/eric-bailey.md",
+        "src/blog/authors/fred-hebert.md",
+        "src/blog/authors/index.md",
+        "src/blog/authors/lfe-maintainers.md",
+        "src/blog/authors/robert-virding.md",
+        "src/blog/categories.md",
+        "src/blog/feed.liquid",
+        "src/blog/index.md",
+        "src/blog/rss.liquid",
+        "src/blog/search.md",
+        "src/blog/tags.md",
+        "src/books.md",
+        "src/casting-spels/index.html",
+        "src/community.md",
+        "src/docs.html",
+        "src/index.md",
+        "src/learn.md",
+        "src/plan/how-to-add.md",
+        "src/plan/index.md",
+        "src/plan/oubiwann.md",
+        "src/plan/rvirding.md",
+        "src/plan/yurrriq.md",
+        "src/quick-start/index.html",
+        "src/rebar3-quick-start/index.html",
+        "src/reference/index.html",
+        "src/style-guide/index.html",
+        "src/tutorial/index.html",
+        "src/use.md",
+        "src/user-guide/intro/1.html"
+      ],
+      "other": [
+        "src/CNAME",
+        "src/blog/assets/images/posts/Alonzo-Church.jpg",
+        "src/blog/assets/images/posts/Bertrand-Russell.jpg",
+        "src/blog/assets/images/posts/Blog-Makeover.png",
+        "src/blog/assets/images/posts/ButterCrunchLettuce-2-medium.png",
+        "src/blog/assets/images/posts/DockerLogo.png",
+        "src/blog/assets/images/posts/Erlang-Python-Greats.png",
+        "src/blog/assets/images/posts/Giuseppe-Peano.jpg",
+        "src/blog/assets/images/posts/IErlangNotebook.png",
+        "src/blog/assets/images/posts/John-McCarthy.jpg",
+        "src/blog/assets/images/posts/LFE-Happy-Holidays.png",
+        "src/blog/assets/images/posts/LFE-signal.jpg",
+        "src/blog/assets/images/posts/LispFlavoredErlang-medium-square.png",
+        "src/blog/assets/images/posts/Python-logo.png",
+        "src/blog/assets/images/posts/Robert-Train.png",
+        "src/blog/assets/images/posts/abstract-object.png",
+        "src/blog/assets/images/posts/byte_1979_08_The_LISP_Issue.jpg",
+        "src/blog/assets/images/posts/dfly-bsd-logo.png",
+        "src/blog/assets/images/posts/digraph_get_path_graph.png",
+        "src/blog/assets/images/posts/docker-lfe-sample-app-main-page.png",
+        "src/blog/assets/images/posts/freebsd-logo.jpg",
+        "src/blog/assets/images/posts/ketchup.png",
+        "src/blog/assets/images/posts/ldialyzer.png",
+        "src/blog/assets/images/posts/lfe-color-banner.png",
+        "src/blog/assets/images/posts/lfe-rebar3-logo.png",
+        "src/blog/assets/images/posts/lfe-tooling-leonardo-gears-2.png",
+        "src/blog/assets/images/posts/lfescars2-back.png",
+        "src/blog/assets/images/posts/lfescars2-front-back.png",
+        "src/blog/assets/images/posts/lfescars2-front.png",
+        "src/blog/assets/images/posts/lfetool-logo-large-grey.png",
+        "src/blog/assets/images/posts/lm_logo.png",
+        "src/blog/assets/images/posts/lsci-erlang-ecosystem.png",
+        "src/blog/assets/images/posts/lutil-leonardo-gears-large.png",
+        "src/blog/assets/images/posts/lutil-leonardo-gears.png",
+        "src/blog/assets/images/posts/quicksort.png",
+        "src/blog/assets/images/posts/screencapture-ierlang_demo.png",
+        "src/blog/assets/images/posts/sicp.jpg",
+        "src/blog/assets/images/posts/t-shirt2-unbox-1.jpg",
+        "src/blog/assets/images/posts/t-shirt2-unbox-2.jpg",
+        "src/blog/assets/images/posts/t-shirt2-unbox-3.jpg",
+        "src/blog/assets/images/posts/t-shirt2-unbox-4.jpg",
+        "src/blog/assets/images/posts/t-shirt2-unbox-5.jpg",
+        "src/blog/assets/images/posts/t-shirt2-unbox-6.jpg",
+        "src/blog/assets/images/posts/t-shirt2-unbox-7.jpg",
+        "src/css/common.css",
+        "src/css/design-widgets.css",
+        "src/css/highlight.css",
+        "src/css/home.css",
+        "src/css/pages.css",
+        "src/css/site.css",
+        "src/favicon/android-chrome-192x192.png",
+        "src/favicon/android-chrome-256x256.png",
+        "src/favicon/apple-touch-icon.png",
+        "src/favicon/browserconfig.xml",
+        "src/favicon/favicon-16x16.png",
+        "src/favicon/favicon-32x32.png",
+        "src/favicon/favicon.ico",
+        "src/favicon/mstile-150x150.png",
+        "src/favicon/safari-pinned-tab.svg",
+        "src/favicon/site.webmanifest",
+        "src/fontawesome-brands.css",
+        "src/fontawesome-regular.css",
+        "src/fontawesome-solid.css",
+        "src/fontawesome-v4-shims.css",
+        "src/fontawesome.css",
+        "src/fonts/Newsreader-Italic-Variable.woff2",
+        "src/fonts/Newsreader-Variable.woff2",
+        "src/images/ClojuTRE-2015-LFE.png",
+        "src/images/CodeSync-2022-SoundOnBeam.png",
+        "src/images/EFSF-2014-LFE.png",
+        "src/images/EFSF-2017-LFE.png",
+        "src/images/EUC-2016-LFE.png",
+        "src/images/LFE-logo-abbr-6.1.png",
+        "src/images/LFE-logo-abbr-6.2.png",
+        "src/images/LFE-logo-color-separated-6-square-x64.png",
+        "src/images/LFE-logo-darker-greys-6-square-x32.png",
+        "src/images/LFE_AbstractRabitHole_OTH_00257_.png",
+        "src/images/LFE_Docker_00263_.png",
+        "src/images/LFE_Graffeo_00409_.png",
+        "src/images/LFE_Masthead_00234_.png",
+        "src/images/LichenMoss_00183_.png",
+        "src/images/LispNYC-2021-LFE.png",
+        "src/images/Screen Shot 2020-07-24 at 1.09.58 AM.png",
+        "src/images/billo-logo.png",
+        "src/images/default/LFE_00218_.png",
+        "src/images/default/LFE_00220_.png",
+        "src/images/default/LFE_00227_.png",
+        "src/images/default/LFE_00237_.png",
+        "src/images/default/LFE_00239_.png",
+        "src/images/default/LFE_00241_.png",
+        "src/images/default/LFE_00243_.png",
+        "src/images/default/LFE_00244_.png",
+        "src/images/default/LFE_00245_.png",
+        "src/images/default/LFE_00247_.png",
+        "src/images/default/LFE_00253_.png",
+        "src/images/default/LFE_00255_.png",
+        "src/images/default/LFE_00256_.png",
+        "src/images/discord-logo.png",
+        "src/images/erlang-poster.jpg",
+        "src/images/fridays/LFE_Friday_00269_.png",
+        "src/images/fridays/LFE_Friday_00270_.png",
+        "src/images/fridays/LFE_Friday_00271_.png",
+        "src/images/fridays/LFE_Friday_00272_.png",
+        "src/images/fridays/LFE_Friday_00273_.png",
+        "src/images/fridays/LFE_Friday_00274_.png",
+        "src/images/fridays/LFE_Friday_00275_.png",
+        "src/images/fridays/LFE_Friday_00276_.png",
+        "src/images/fridays/LFE_Friday_00277_.png",
+        "src/images/fridays/LFE_Friday_00278_.png",
+        "src/images/fridays/LFE_Friday_00279_.png",
+        "src/images/fridays/LFE_Friday_00280_.png",
+        "src/images/fridays/LFE_Friday_00281_.png",
+        "src/images/fridays/LFE_Friday_00282_.png",
+        "src/images/fridays/LFE_Friday_00283_.png",
+        "src/images/fridays/LFE_Friday_00284_.png",
+        "src/images/fridays/LFE_Friday_00286_.png",
+        "src/images/fridays/LFE_Friday_00288_.png",
+        "src/images/lfe-dotplan-screen.png",
+        "src/images/lfe-erlang-beam.png",
+        "src/images/liffybot-big-fade.png",
+        "src/images/lisplogo-alien-tech-grey.png",
+        "src/images/lisplogo-alien-tech-white.png",
+        "src/images/lisplogo_alien.svg",
+        "src/images/logo_developer@2x.png",
+        "src/images/newsroom/LFE_Newsroom_00290_.png",
+        "src/images/newsroom/LFE_Newsroom_00291_.png",
+        "src/images/newsroom/LFE_Newsroom_00292_.png",
+        "src/images/newsroom/LFE_Newsroom_00293_.png",
+        "src/images/newsroom/LFE_Newsroom_00294_.png",
+        "src/images/newsroom/LFE_Newsroom_00295_.png",
+        "src/images/newsroom/LFE_Newsroom_00297_.png",
+        "src/images/newsroom/LFE_Newsroom_00298_.png",
+        "src/images/newsroom/LFE_Newsroom_00300_.png",
+        "src/images/newsroom/LFE_Newsroom_00303_.png",
+        "src/images/newsroom/LFE_Newsroom_00305_.png",
+        "src/images/newsroom/LFE_Newsroom_00308_.png",
+        "src/images/newsroom/LFE_Newsroom_00310_.png",
+        "src/images/newsroom/LFE_Newsroom_00318_.png",
+        "src/images/newsroom/LFE_Newsroom_00323_.png",
+        "src/images/newsroom/LFE_Newsroom_00325_.png",
+        "src/images/newsroom/LFE_Newsroom_00328_.png",
+        "src/images/repl.jpg",
+        "src/images/repl.png",
+        "src/images/rvirding.png",
+        "src/images/tutorials/LFE_Tutorial_00332_.png",
+        "src/images/tutorials/LFE_Tutorial_00333_.png",
+        "src/images/tutorials/LFE_Tutorial_00337_.png",
+        "src/images/tutorials/LFE_Tutorial_00340_.png",
+        "src/images/tutorials/LFE_Tutorial_00344_.png",
+        "src/images/tutorials/LFE_Tutorial_00346_.png",
+        "src/images/tutorials/LFE_Tutorial_00348_.png",
+        "src/images/tutorials/LFE_Tutorial_00355_.png",
+        "src/images/tutorials/LFE_Tutorial_00357_.png",
+        "src/images/tutorials/LFE_Tutorial_00358_.png",
+        "src/images/tutorials/LFE_Tutorial_00361_.png",
+        "src/images/tutorials/LFE_Tutorial_00365_.png",
+        "src/images/tutorials/LFE_Tutorial_00375_.png",
+        "src/images/tutorials/LFE_Tutorial_00379_.png",
+        "src/images/tutorials/LFE_Tutorial_00392_.png",
+        "src/images/tutorials/LFE_Tutorial_00399_.png",
+        "src/images/twitter-card.jpg",
+        "src/images/xkcd-lisp-cycles.png",
+        "src/js/app.js",
+        "src/js/highlight.js",
+        "src/js/preline.js",
+        "src/js/site.js",
+        "src/lfe.css",
+        "src/papers/[2003] Armstrong - Making reliable distributed systems in the presence of software errors.pdf",
+        "src/papers/[2007] Armstrong - HOPL III A History of Erlang.pdf",
+        "src/papers/[2008] Virding - The Erlang Rationale.pdf",
+        "src/plan/plan.txt",
+        "src/robots.txt",
+        "src/webfonts/fa-brands-400.eot",
+        "src/webfonts/fa-brands-400.svg",
+        "src/webfonts/fa-brands-400.ttf",
+        "src/webfonts/fa-brands-400.woff",
+        "src/webfonts/fa-brands-400.woff2",
+        "src/webfonts/fa-regular-400.eot",
+        "src/webfonts/fa-regular-400.svg",
+        "src/webfonts/fa-regular-400.ttf",
+        "src/webfonts/fa-regular-400.woff",
+        "src/webfonts/fa-regular-400.woff2",
+        "src/webfonts/fa-solid-900.eot",
+        "src/webfonts/fa-solid-900.svg",
+        "src/webfonts/fa-solid-900.ttf",
+        "src/webfonts/fa-solid-900.woff",
+        "src/webfonts/fa-solid-900.woff2"
+      ]
+    },
+    "counts": {
+      "posts": 124,
+      "templates": 27,
+      "data": 12,
+      "pages": 35,
+      "other": 187
+    },
+    "exclusions": [
+      "Only paths returned by git ls-files -z -- src are included.",
+      "Untracked and ignored files are excluded by the tracked-file query.",
+      "Generated output and files outside src/ are outside this population.",
+      "Tracked filenames do not prove published URLs, rendered content or deployment."
+    ]
+  },
+  "source_witnesses": [
+    {
+      "path": "README.md",
+      "head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+      "working_sha256": "7ebbbe36aa653c3d5eb6131e0c40b5578883803edbd4c3764e4d6b07d5757e85",
+      "differs_from_head": false,
+      "read_extent": "required-full; lines 1-77 of 77",
+      "limits": "README statements are source descriptions, not a current build run."
+    },
+    {
+      "path": "_cobalt.yml",
+      "head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+      "working_sha256": "6bf7a8e8cd37258b79e38c17158cc2c1d734afcaf875d4a3e600d6189ae6e331",
+      "differs_from_head": false,
+      "read_extent": "required-full; lines 1-6 of 6",
+      "limits": "Config selects source/destination; not generated or deployed route proof."
+    },
+    {
+      "path": "src/_data/site.yml",
+      "head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+      "working_sha256": "b21565b9a425ffbd6d280b66e9660167be7860f8f08000bd05257640243301f4",
+      "differs_from_head": false,
+      "read_extent": "required-full; lines 1-5 of 5",
+      "limits": "Download labels and repository URL are metadata, not support policy."
+    },
+    {
+      "path": "src/docs.html",
+      "head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+      "working_sha256": "a345645435a10c4dc91bddd875b2eb9220930566dea3f059773f4a9b59a6ea6d",
+      "differs_from_head": false,
+      "read_extent": "required-full; lines 1-17 of 17",
+      "limits": "Source redirect target only; no live response or docs authority inferred."
+    },
+    {
+      "path": "src/_data/home/buildit.yml",
+      "head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+      "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+      "differs_from_head": false,
+      "read_extent": "required-full; lines 1-57 of 57",
+      "limits": "Four URLs are source seeds only; no HTTP result inferred."
+    },
+    {
+      "path": "pagefind.yml",
+      "head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+      "working_sha256": "bbeeec21814f1c60c8790b77f0f820de910c895677c694bfbe677320175952a6",
+      "differs_from_head": false,
+      "read_extent": "required-full; lines 1-7 of 7",
+      "limits": "Search config only; no search coverage or quality claim."
+    },
+    {
+      "path": "docs/lfe-erlang-release-history.md",
+      "head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+      "working_sha256": "1857e9c832855f37af305693960a5e794b3e67b3e8a9e0bdc26dda6e4d146ac3",
+      "differs_from_head": false,
+      "read_extent": "required-full; lines 1-110 of 110",
+      "limits": "Dated/inferred history, not current support policy or deployed-source identity."
+    },
+    {
+      "path": "tools/lfesite/src/cmd/build.rs",
+      "head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+      "working_sha256": "dad663febed487bdd6394cf28a3b1d557adf85b971100e90d5ee6c73fc5ffafc",
+      "differs_from_head": true,
+      "read_extent": "required-section pub fn run through closing brace before generate_sitemap; lines 17-44 of 453",
+      "limits": "Working file differs from HEAD. This is the local wrapper sequence, not publication/deployment or complete route evidence."
+    }
+  ],
+  "source_catalogue": {
+    "lfe": [
+      {
+        "id": "L01",
+        "raw_cells": [
+          "L01",
+          "Home, resource promotions, build links, footer",
+          "https://lfe.io/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 327,
+          "line_end": 327
+        }
+      },
+      {
+        "id": "L02",
+        "raw_cells": [
+          "L02",
+          "Learn; header and current setup promotion",
+          "https://lfe.io/learn/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 328,
+          "line_end": 328
+        }
+      },
+      {
+        "id": "L03",
+        "raw_cells": [
+          "L03",
+          "Use; reference/tooling/deployment gateway",
+          "https://lfe.io/use/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 329,
+          "line_end": 329
+        }
+      },
+      {
+        "id": "L04",
+        "raw_cells": [
+          "L04",
+          "Community directory",
+          "https://lfe.io/community/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 330,
+          "line_end": 330
+        }
+      },
+      {
+        "id": "L05",
+        "raw_cells": [
+          "L05",
+          "About, history, creator",
+          "https://lfe.io/about/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 331,
+          "line_end": 331
+        }
+      },
+      {
+        "id": "L06",
+        "raw_cells": [
+          "L06",
+          "Book catalogue and superseded standalone books",
+          "https://lfe.io/books/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 332,
+          "line_end": 332
+        }
+      },
+      {
+        "id": "L07",
+        "raw_cells": [
+          "L07",
+          "Blog landing",
+          "https://lfe.io/blog/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 333,
+          "line_end": 333
+        }
+      },
+      {
+        "id": "L08",
+        "raw_cells": [
+          "L08",
+          "Blog archive and year counts",
+          "https://lfe.io/blog/archive/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 334,
+          "line_end": 334
+        }
+      },
+      {
+        "id": "L09",
+        "raw_cells": [
+          "L09",
+          "Download menu targets, identified by following header links",
+          "https://github.com/lfe/lfe/archive/2.2.0.zip ; https://github.com/lfe/lfe/archive/2.1.5.zip ; https://github.com/lfe/lfe/archive/refs/heads/develop.zip"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 335,
+          "line_end": 335
+        }
+      },
+      {
+        "id": "L10",
+        "raw_cells": [
+          "L10",
+          "Official release registry and latest record",
+          "https://github.com/lfe/lfe/releases ; https://github.com/lfe/lfe/releases/tag/v2.2.2"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 336,
+          "line_end": 336
+        }
+      },
+      {
+        "id": "L11",
+        "raw_cells": [
+          "L11",
+          "Blog category index",
+          "https://lfe.io/blog/categories/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 337,
+          "line_end": 337
+        }
+      },
+      {
+        "id": "L12",
+        "raw_cells": [
+          "L12",
+          "Blog migration announcement; stated plans and limitations",
+          "https://lfe.io/blog/tutorials/2026/06/03/0230-welcome-to-the-new-lfe-blog/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 338,
+          "line_end": 338
+        }
+      },
+      {
+        "id": "L13",
+        "raw_cells": [
+          "L13",
+          "April site tooling announcement",
+          "https://lfe.io/blog/tutorials/2026/04/20/0005-lfeio-50-rust-tooling-all-the-way-down/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 339,
+          "line_end": 339
+        }
+      },
+      {
+        "id": "L14",
+        "raw_cells": [
+          "L14",
+          "Official website repository README and content structure",
+          "https://github.com/lfe/lfe.github.io"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 340,
+          "line_end": 340
+        }
+      },
+      {
+        "id": "L15",
+        "raw_cells": [
+          "L15",
+          "Linked language guide; develop branch",
+          "https://github.com/lfe/lfe/blob/develop/doc/src/lfe_guide.7.md"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 341,
+          "line_end": 341
+        }
+      },
+      {
+        "id": "L16",
+        "raw_cells": [
+          "L16",
+          "Manual entrance and table of contents",
+          "https://cnbbooks.github.io/lfe-manual/ ; https://cnbbooks.github.io/lfe-manual/toc.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 342,
+          "line_end": 342
+        }
+      },
+      {
+        "id": "L17",
+        "raw_cells": [
+          "L17",
+          "Manual Development Setup",
+          "https://cnbbooks.github.io/lfe-manual/part1/intro/setup.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 343,
+          "line_end": 343
+        }
+      },
+      {
+        "id": "L18",
+        "raw_cells": [
+          "L18",
+          "Manual Prerequisites",
+          "https://cnbbooks.github.io/lfe-manual/part1/intro/prereq.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 344,
+          "line_end": 344
+        }
+      },
+      {
+        "id": "L19",
+        "raw_cells": [
+          "L19",
+          "Manual Releases; heading-only retrieval",
+          "https://cnbbooks.github.io/lfe-manual/part5/rels/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 345,
+          "line_end": 345
+        }
+      },
+      {
+        "id": "L20",
+        "raw_cells": [
+          "L20",
+          "Manual Calling Erlang; heading-only retrieval",
+          "https://cnbbooks.github.io/lfe-manual/part8/erl-int/call-erl.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 346,
+          "line_end": 346
+        }
+      },
+      {
+        "id": "L21",
+        "raw_cells": [
+          "L21",
+          "SICP Versions",
+          "https://cnbbooks.github.io/lfe-sicp/versions.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 347,
+          "line_end": 347
+        }
+      },
+      {
+        "id": "L22",
+        "raw_cells": [
+          "L22",
+          "Legacy documentation Current",
+          "https://docs.lfe.io/current/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 348,
+          "line_end": 348
+        }
+      },
+      {
+        "id": "L23",
+        "raw_cells": [
+          "L23",
+          "Legacy documentation Dev",
+          "https://docs.lfe.io/dev/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 349,
+          "line_end": 349
+        }
+      },
+      {
+        "id": "L24",
+        "raw_cells": [
+          "L24",
+          "Legacy Dev placeholder; HTTP 404",
+          "https://docs.lfe.io/dev/XXX/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 350,
+          "line_end": 350
+        }
+      },
+      {
+        "id": "L25",
+        "raw_cells": [
+          "L25",
+          "Home Scripts target; HTTP 404",
+          "https://lfe.io/reference/lfe-rebar3/current/command-ref/projects/main.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 351,
+          "line_end": 351
+        }
+      },
+      {
+        "id": "L26",
+        "raw_cells": [
+          "L26",
+          "Home Libraries target; HTTP 404",
+          "https://lfe.io/reference/lfe-rebar3/current/command-ref/projects/lib.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 352,
+          "line_end": 352
+        }
+      },
+      {
+        "id": "L27",
+        "raw_cells": [
+          "L27",
+          "Home Applications target; HTTP 404",
+          "https://lfe.io/reference/lfe-rebar3/current/command-ref/projects/app.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 353,
+          "line_end": 353
+        }
+      },
+      {
+        "id": "L28",
+        "raw_cells": [
+          "L28",
+          "Home Releases target; HTTP 404",
+          "https://lfe.io/reference/lfe-rebar3/current/command-ref/projects/release.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 354,
+          "line_end": 354
+        }
+      },
+      {
+        "id": "L29",
+        "raw_cells": [
+          "L29",
+          "Tooling repository README; old organization URL redirects here",
+          "https://github.com/lfe/rebar3"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 355,
+          "line_end": 355
+        }
+      },
+      {
+        "id": "L30",
+        "raw_cells": [
+          "L30",
+          "Sampled old blog route and relocation link",
+          "https://blog.lfe.io/tutorials/2019/05/13/1549-running-lfe-in-docker-updated/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 356,
+          "line_end": 356
+        }
+      },
+      {
+        "id": "L31",
+        "raw_cells": [
+          "L31",
+          "Tutorial installation and stable/development branch advice",
+          "https://cnbbooks.github.io/lfe-tutorial/introduction/install.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 357,
+          "line_end": 357
+        }
+      },
+      {
+        "id": "L32",
+        "raw_cells": [
+          "L32",
+          "Historical Docker article",
+          "https://lfe.io/blog/tutorials/2019/05/13/1549-running-lfe-in-docker-updated/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 358,
+          "line_end": 358
+        }
+      },
+      {
+        "id": "L33",
+        "raw_cells": [
+          "L33",
+          "Manual REPL overview",
+          "https://cnbbooks.github.io/lfe-manual/part1/repl/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 359,
+          "line_end": 359
+        }
+      },
+      {
+        "id": "L34",
+        "raw_cells": [
+          "L34",
+          "Manual Creating LFE Projects; heading-only retrieval",
+          "https://cnbbooks.github.io/lfe-manual/part3/projects/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 360,
+          "line_end": 360
+        }
+      },
+      {
+        "id": "L35",
+        "raw_cells": [
+          "L35",
+          "Manual Part II destination title and subject",
+          "https://cnbbooks.github.io/lfe-manual/part2/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 361,
+          "line_end": 361
+        }
+      },
+      {
+        "id": "L36",
+        "raw_cells": [
+          "L36",
+          "Blog tag index",
+          "https://lfe.io/blog/tags/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 362,
+          "line_end": 362
+        }
+      },
+      {
+        "id": "L37",
+        "raw_cells": [
+          "L37",
+          "Blog author index",
+          "https://lfe.io/blog/authors/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 363,
+          "line_end": 363
+        }
+      },
+      {
+        "id": "L38",
+        "raw_cells": [
+          "L38",
+          "Sampled upstream OTP link and destination",
+          "https://erlang.org/doc/man/erlang.html → https://www.erlang.org/doc/apps/erts/erlang.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 364,
+          "line_end": 364
+        }
+      },
+      {
+        "id": "L39",
+        "raw_cells": [
+          "L39",
+          "Legacy documentation source repository and old entrance links",
+          "https://github.com/lfe/docs"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 365,
+          "line_end": 365
+        }
+      },
+      {
+        "id": "L40",
+        "raw_cells": [
+          "L40",
+          "Tutorial published entrance",
+          "https://cnbbooks.github.io/lfe-tutorial/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 366,
+          "line_end": 366
+        }
+      },
+      {
+        "id": "L41",
+        "raw_cells": [
+          "L41",
+          "Casting SPELs published entrance",
+          "https://cnbbooks.github.io/lfe-casting-spels/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 367,
+          "line_end": 367
+        }
+      },
+      {
+        "id": "L42",
+        "raw_cells": [
+          "L42",
+          "SICP published entrance",
+          "https://cnbbooks.github.io/lfe-sicp/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 368,
+          "line_end": 368
+        }
+      },
+      {
+        "id": "L43",
+        "raw_cells": [
+          "L43",
+          "Manual Part V overview",
+          "https://cnbbooks.github.io/lfe-manual/part5/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 369,
+          "line_end": 369
+        }
+      }
+    ],
+    "erlang": [
+      {
+        "id": "S01",
+        "raw_cells": [
+          "S01",
+          "Home; header/footer HTML",
+          "https://www.erlang.org/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 411,
+          "line_end": 411
+        }
+      },
+      {
+        "id": "S02",
+        "raw_cells": [
+          "S02",
+          "Downloads",
+          "https://www.erlang.org/downloads"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 412,
+          "line_end": 412
+        }
+      },
+      {
+        "id": "S03",
+        "raw_cells": [
+          "S03",
+          "Documentation resource directory",
+          "https://www.erlang.org/docs.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 413,
+          "line_end": 413
+        }
+      },
+      {
+        "id": "S04",
+        "raw_cells": [
+          "S04",
+          "Community",
+          "https://www.erlang.org/community"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 414,
+          "line_end": 414
+        }
+      },
+      {
+        "id": "S05",
+        "raw_cells": [
+          "S05",
+          "News index, including historical entries",
+          "https://www.erlang.org/news"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 415,
+          "line_end": 415
+        }
+      },
+      {
+        "id": "S06",
+        "raw_cells": [
+          "S06",
+          "Blog index",
+          "https://www.erlang.org/blog"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 416,
+          "line_end": 416
+        }
+      },
+      {
+        "id": "S07",
+        "raw_cells": [
+          "S07",
+          "Security reporting",
+          "https://www.erlang.org/security"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 417,
+          "line_end": 417
+        }
+      },
+      {
+        "id": "S08",
+        "raw_cells": [
+          "S08",
+          "Enhancement process",
+          "https://www.erlang.org/eep"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 418,
+          "line_end": 418
+        }
+      },
+      {
+        "id": "S09",
+        "raw_cells": [
+          "S09",
+          "About",
+          "https://www.erlang.org/about"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 419,
+          "line_end": 419
+        }
+      },
+      {
+        "id": "S10",
+        "raw_cells": [
+          "S10",
+          "OTP 29 overview",
+          "https://www.erlang.org/downloads/29"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 420,
+          "line_end": 420
+        }
+      },
+      {
+        "id": "S11",
+        "raw_cells": [
+          "S11",
+          "OTP 27 overview",
+          "https://www.erlang.org/downloads/27"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 421,
+          "line_end": 421
+        }
+      },
+      {
+        "id": "S12",
+        "raw_cells": [
+          "S12",
+          "OTP 26 overview",
+          "https://www.erlang.org/downloads/26"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 422,
+          "line_end": 422
+        }
+      },
+      {
+        "id": "S13",
+        "raw_cells": [
+          "S13",
+          "OTP 29.1.1 patch record",
+          "https://www.erlang.org/patches/OTP-29.1.1"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 423,
+          "line_end": 423
+        }
+      },
+      {
+        "id": "S14",
+        "raw_cells": [
+          "S14",
+          "OTP 26.2.5.21 patch record",
+          "https://www.erlang.org/patches/OTP-26.2.5.21"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 424,
+          "line_end": 424
+        }
+      },
+      {
+        "id": "S15",
+        "raw_cells": [
+          "S15",
+          "OTP 17.0.1 patch record; extracted release navigation",
+          "https://www.erlang.org/patches/OTP-17.0.1"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 425,
+          "line_end": 425
+        }
+      },
+      {
+        "id": "S16",
+        "raw_cells": [
+          "S16",
+          "Version tree and its provenance explanation",
+          "https://www.erlang.org/versions"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 426,
+          "line_end": 426
+        }
+      },
+      {
+        "id": "S17",
+        "raw_cells": [
+          "S17",
+          "OTP 29 documentation collection alias",
+          "https://www.erlang.org/docs/29/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 427,
+          "line_end": 427
+        }
+      },
+      {
+        "id": "S18",
+        "raw_cells": [
+          "S18",
+          "OTP 29 documentation index",
+          "https://www.erlang.org/docs/29/index.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 428,
+          "line_end": 428
+        }
+      },
+      {
+        "id": "S19",
+        "raw_cells": [
+          "S19",
+          "Current documentation introduction",
+          "https://www.erlang.org/doc/readme.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 429,
+          "line_end": 429
+        }
+      },
+      {
+        "id": "S20",
+        "raw_cells": [
+          "S20",
+          "OTP 17 overview",
+          "https://www.erlang.org/downloads/17"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 430,
+          "line_end": 430
+        }
+      },
+      {
+        "id": "S21",
+        "raw_cells": [
+          "S21",
+          "OTP 18 overview",
+          "https://www.erlang.org/downloads/18"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 431,
+          "line_end": 431
+        }
+      },
+      {
+        "id": "S22",
+        "raw_cells": [
+          "S22",
+          "OTP 19 overview",
+          "https://www.erlang.org/downloads/19"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 432,
+          "line_end": 432
+        }
+      },
+      {
+        "id": "S23",
+        "raw_cells": [
+          "S23",
+          "OTP 20 overview",
+          "https://www.erlang.org/downloads/20"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 433,
+          "line_end": 433
+        }
+      },
+      {
+        "id": "S24",
+        "raw_cells": [
+          "S24",
+          "OTP 21 overview",
+          "https://www.erlang.org/downloads/21"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 434,
+          "line_end": 434
+        }
+      },
+      {
+        "id": "S25",
+        "raw_cells": [
+          "S25",
+          "OTP 22 overview",
+          "https://www.erlang.org/downloads/22"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 435,
+          "line_end": 435
+        }
+      },
+      {
+        "id": "S26",
+        "raw_cells": [
+          "S26",
+          "OTP 23, 24, 25, and 28 overviews",
+          "https://www.erlang.org/downloads/23 ; https://www.erlang.org/downloads/24 ; https://www.erlang.org/downloads/25 ; https://www.erlang.org/downloads/28"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 436,
+          "line_end": 436
+        }
+      },
+      {
+        "id": "S27",
+        "raw_cells": [
+          "S27",
+          "FAQ contents and cover date",
+          "https://www.erlang.org/faq/faq.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 437,
+          "line_end": 437
+        }
+      },
+      {
+        "id": "S28",
+        "raw_cells": [
+          "S28",
+          "FAQ acquisition chapter",
+          "https://www.erlang.org/faq/obtaining.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 438,
+          "line_end": 438
+        }
+      },
+      {
+        "id": "S29",
+        "raw_cells": [
+          "S29",
+          "Linked free-book PDF; opening pages identify the work",
+          "https://erlang.org/download/erlang-book-part1.pdf"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 439,
+          "line_end": 439
+        }
+      },
+      {
+        "id": "S30",
+        "raw_cells": [
+          "S30",
+          "Historical Erlang licence",
+          "https://www.erlang.org/EPLICENSE"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 440,
+          "line_end": 440
+        }
+      },
+      {
+        "id": "S31",
+        "raw_cells": [
+          "S31",
+          "Current portal machine-readable contents",
+          "https://www.erlang.org/doc/llms.txt"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 441,
+          "line_end": 441
+        }
+      },
+      {
+        "id": "S32",
+        "raw_cells": [
+          "S32",
+          "System documentation machine-readable contents",
+          "https://www.erlang.org/doc/system/llms.txt"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 442,
+          "line_end": 442
+        }
+      },
+      {
+        "id": "S33",
+        "raw_cells": [
+          "S33",
+          "Module index",
+          "https://www.erlang.org/doc/man_index.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 443,
+          "line_end": 443
+        }
+      },
+      {
+        "id": "S34",
+        "raw_cells": [
+          "S34",
+          "Website repository README",
+          "https://github.com/erlang/erlang-org"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 444,
+          "line_end": 444
+        }
+      },
+      {
+        "id": "S35",
+        "raw_cells": [
+          "S35",
+          "Website content collections and feeds",
+          "https://github.com/erlang/erlang-org/blob/master/_config.yml"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 445,
+          "line_end": 445
+        }
+      },
+      {
+        "id": "S36",
+        "raw_cells": [
+          "S36",
+          "OTP 17 documentation root",
+          "https://www.erlang.org/docs/17/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 446,
+          "line_end": 446
+        }
+      },
+      {
+        "id": "S37",
+        "raw_cells": [
+          "S37",
+          "OTP 26 documentation index",
+          "https://www.erlang.org/docs/26/index.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 447,
+          "line_end": 447
+        }
+      },
+      {
+        "id": "S38",
+        "raw_cells": [
+          "S38",
+          "OTP 27 documentation introduction",
+          "https://www.erlang.org/docs/27/readme.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 448,
+          "line_end": 448
+        }
+      },
+      {
+        "id": "S39",
+        "raw_cells": [
+          "S39",
+          "Older compiler manual",
+          "https://www.erlang.org/docs/26/man/compile.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 449,
+          "line_end": 449
+        }
+      },
+      {
+        "id": "S40",
+        "raw_cells": [
+          "S40",
+          "Installation guide introduction",
+          "https://www.erlang.org/doc/system/installation_guide.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 450,
+          "line_end": 450
+        }
+      },
+      {
+        "id": "S41",
+        "raw_cells": [
+          "S41",
+          "Building and installation chapter",
+          "https://www.erlang.org/doc/system/install.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 451,
+          "line_end": 451
+        }
+      },
+      {
+        "id": "S42",
+        "raw_cells": [
+          "S42",
+          "Support and compatibility guide",
+          "https://www.erlang.org/doc/system/misc.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 452,
+          "line_end": 452
+        }
+      },
+      {
+        "id": "S43",
+        "raw_cells": [
+          "S43",
+          "Introductory guides and observed redirects",
+          "https://www.erlang.org/doc/getting_started/intro.html ; https://www.erlang.org/doc/design_principles/des_princ.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 453,
+          "line_end": 453
+        }
+      },
+      {
+        "id": "S44",
+        "raw_cells": [
+          "S44",
+          "Standard library collection entrance",
+          "https://www.erlang.org/doc/apps/stdlib/index.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 454,
+          "line_end": 454
+        }
+      },
+      {
+        "id": "S45",
+        "raw_cells": [
+          "S45",
+          "Current compiler reference and legacy alias",
+          "https://www.erlang.org/doc/apps/compiler/compile.html ; https://www.erlang.org/doc/man/compile.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 455,
+          "line_end": 455
+        }
+      },
+      {
+        "id": "S46",
+        "raw_cells": [
+          "S46",
+          "OTP 29.1 announcement",
+          "https://www.erlang.org/news/191"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 456,
+          "line_end": 456
+        }
+      },
+      {
+        "id": "S47",
+        "raw_cells": [
+          "S47",
+          "OTP 29 highlights blog article",
+          "https://www.erlang.org/blog/highlights-otp-29/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 457,
+          "line_end": 457
+        }
+      },
+      {
+        "id": "S48",
+        "raw_cells": [
+          "S48",
+          "Workshops index",
+          "https://www.erlang.org/community/workshops.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 458,
+          "line_end": 458
+        }
+      },
+      {
+        "id": "S49",
+        "raw_cells": [
+          "S49",
+          "Hosted 2019 workshop",
+          "https://erlang.org/workshop/2019/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 459,
+          "line_end": 459
+        }
+      },
+      {
+        "id": "S50",
+        "raw_cells": [
+          "S50",
+          "Questions archive root",
+          "https://erlang.org/pipermail/erlang-questions/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 460,
+          "line_end": 460
+        }
+      },
+      {
+        "id": "S51",
+        "raw_cells": [
+          "S51",
+          "Announcements archive root",
+          "https://erlang.org/pipermail/erlang-announce/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 461,
+          "line_end": 461
+        }
+      },
+      {
+        "id": "S52",
+        "raw_cells": [
+          "S52",
+          "EEP discussion archive root",
+          "https://erlang.org/pipermail/eeps/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 462,
+          "line_end": 462
+        }
+      },
+      {
+        "id": "S53",
+        "raw_cells": [
+          "S53",
+          "Proposal registry",
+          "https://www.erlang.org/eeps.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 463,
+          "line_end": 463
+        }
+      },
+      {
+        "id": "S54",
+        "raw_cells": [
+          "S54",
+          "EEP 59",
+          "https://www.erlang.org/eeps/eep-0059"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 464,
+          "line_end": 464
+        }
+      },
+      {
+        "id": "S55",
+        "raw_cells": [
+          "S55",
+          "Download directory listing",
+          "https://erlang.org/download/"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 465,
+          "line_end": 465
+        }
+      },
+      {
+        "id": "S56",
+        "raw_cells": [
+          "S56",
+          "Deprecation index",
+          "https://www.erlang.org/doc/deprecations.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 466,
+          "line_end": 466
+        }
+      },
+      {
+        "id": "S57",
+        "raw_cells": [
+          "S57",
+          "Upcoming incompatibility index",
+          "https://www.erlang.org/doc/upcoming_incompatibilities.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 467,
+          "line_end": 467
+        }
+      },
+      {
+        "id": "S58",
+        "raw_cells": [
+          "S58",
+          "OTP repository security policy",
+          "https://github.com/erlang/otp/blob/master/SECURITY.md"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 468,
+          "line_end": 468
+        }
+      },
+      {
+        "id": "S59",
+        "raw_cells": [
+          "S59",
+          "GitHub release counterpart for OTP 29.1.1",
+          "https://github.com/erlang/otp/releases/tag/OTP-29.1.1"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 469,
+          "line_end": 469
+        }
+      },
+      {
+        "id": "S60",
+        "raw_cells": [
+          "S60",
+          "2021 site migration announcement",
+          "https://www.erlang.org/news/151"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 470,
+          "line_end": 470
+        }
+      },
+      {
+        "id": "S61",
+        "raw_cells": [
+          "S61",
+          "OTP version scheme and application-version table description",
+          "https://www.erlang.org/doc/system/versions.html"
+        ],
+        "locator": {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "commit": "09bae67ee3ffb5b2365e3dd985b3eb16595a15f0",
+          "line_start": 471,
+          "line_end": 471
+        }
+      }
+    ]
+  }
+}
