@@ -22,3 +22,9 @@
   use the default two-contributor workflow until Duncan explicitly changes it.
 - `/docs` is the curated gateway. Generated reference format/location remain
   future details; other IA/design recommendations await review.
+- Duncan's 9 October CI preservation intake is cross-arc planning input in the
+  existing project `artifacts/` home (`ci-matrix-2026-10-09.md`, exact original
+  workflow and run projections). It is not an extra Slice01 output. Arc03 owns
+  OTP22–26 Linux/macOS P0 binaries; Arc09 exposes verified downloads. Preserve
+  this original matrix when narrowing HEAD CI; choose exact historical source,
+  runtime, architecture and storage before making artifact/support claims.

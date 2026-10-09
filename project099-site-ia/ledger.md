@@ -1,8 +1,9 @@
 # Project 099 — composition ledger
 
-**Contract:** [project-plan.md](project-plan.md), approved v1.1,
-8 October 2026. Duncan's approval supersedes the draft-review state; all 21
-delivery rows remain open. Roadmap approval is not project completion.
+**Contract:** [project-plan.md](project-plan.md), v1.3, 9 October 2026.
+Original roadmap approved 8 October; Duncan added CI preservation and historical
+artifact priority on 9 October. The original 21 rows are retained and two rows
+are added; all 23 delivery rows remain open. Roadmap approval is not completion.
 
 Evidence levels are `asserted`, `attested`, `reproduced`, and `reconciled`.
 Doer evidence is `attested` and proposed-done. A `done` row requires at least
@@ -50,6 +51,8 @@ must inspect the actual candidate, not just the assembler's summary.
 | P-19 | Maintenance responsibilities and any later integrations have a concrete home. | Inspect the upkeep handoff with release/resource review owners and triggers; check generated-reference follow-up and ticket disposition decisions with Duncan. | correctness-grade | DoD 7 | open | | Ticket edits and messages require explicit authorization. |
 | P-20 | Every adopted arc and surfaced finding is accounted for without a silent drop. | Walk the current roadmap against P-01–P-12, child bubble-ups, Version History and every project row; verify each deferral/no-op rationale and assigned re-entry route. | serious | Expansion and closure discipline | open | | Add rows when the roadmap expands; amendments preserve the prior contract. |
 | P-21 | Independent project review and Duncan's acceptance address the same candidate. | Inspect project `closing-report.md` for attributed independent DoD/composition review, exact candidate state, unresolved-findings disposition and explicit Operator verdict. | serious | Workflow and final acceptance | open | | Self-checks and closed children do not substitute for this gate. |
+| P-22 | The original CI matrix is preserved and every removed OTP22–26 combination has a dispositioned P0 Linux/macOS artifact target. | Compare preserved workflow/hash/run records with the pinned original; join all five removed OTP majors across both platforms to Arc03's exact source/runtime/platform recipes, build/install/test evidence, checksums and verified upload locations; independently check artifacts or explicitly approved missing-target dispositions. | serious | Duncan's 2026-10-09 request; Arc03 | open | [CI intake](artifacts/ci-matrix-2026-10-09.md): exact matrix/run preservation and ten-target queue [attested planning input]. | All five majors equally P0; no support promise, upload or binary availability claimed by intake. |
+| P-23 | Downloads exposes the verified highest-priority historical artifacts with their correct identities and usable acquisition guidance. | Reconcile Arc09's offered downloads against the ten-target Arc03 P0 queue; acquire offered artifacts, verify checksum/platform/source/OTP applicability and installation/reference journey; retain explicit missing-target decisions. | serious | Duncan's 2026-10-09 request; Arc09 | open | | A source ZIP or landing page alone does not satisfy a binary target. |
 
 ## Revision history
 
@@ -57,3 +60,4 @@ must inspect the actual candidate, not just the assembler's summary.
 | --- | --- | --- | --- |
 | 1.0 | 2026-10-08 | Initial 12 child-closure rows and 9 project composition/governance rows, paired with project-plan v1.0 | Draft awaiting review; 21 open rows |
 | 1.1 | 2026-10-08 | Record roadmap approval and Arc01 opening against project-plan v1.1; criteria unchanged | Roadmap approved; 21 delivery rows remain open |
+| 1.2 | 2026-10-09 | Pair with project-plan v1.3; retain P-01–P-21 unchanged, add P-22/P-23 for exact matrix retention and OTP22–26 Linux/macOS P0 artifact/acquisition coverage | Operator-requested addition; 23 rows open, artifact execution/acceptance pending |

@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 title: LFE site information architecture and supporting foundations
-version: "1.2"
+version: "1.3"
 date: 2026-10-09
 status: active
 depends-on: []
@@ -17,7 +17,7 @@ mode: expedited
 
 # Project 099 — LFE site IA
 
-**Approved roadmap, v1.2 — Arc01 active; Slice01 correction issued.** Duncan approved the initial roadmap
+**Approved roadmap, v1.3 — Arc01 active; historical-download priority recorded.** Duncan approved the initial roadmap
 in this chat and requested Arc01, its first slice, and Expedited Mode on
 8 October 2026. This supersedes v1.0's draft-for-review status. The plan covers the
 full body of work described in the handoff, including the compatibility,
@@ -96,6 +96,7 @@ possible LFE 3.0 transition remains a question, not a promised release.
 | Language/compiler investigation or approved changes | `/Users/oubiwann/lab/lfe/lfe/`; related tooling/book repositories are named per slice |
 | Inherited research/design packet | Existing `artifacts/first-steps/`, preserved in place |
 | New execution evidence | The owning slice's `artifacts/` directory by default |
+| Operator-requested CI planning intake | Existing project `artifacts/ci-matrix-2026-10-09.md`, exact workflow and run projections; cross-arc input, not Slice01 execution evidence |
 
 This intentionally reuses the planning home already established in the language
 repository, even though website changes belong in a separate repository. Do not
@@ -231,6 +232,18 @@ artifact semantics, reproducible production/verification of the adopted artifact
 and authoritative data consumed by the Downloads experience. An offered source
 archive is not evidence of a corresponding binary or tested runtime.
 
+**Added 9 October 2026 at Duncan's request:** preserve the current OTP22–29 CI
+matrix before narrowing HEAD coverage. OTP22–26, removed because the recent
+inline-docs changes fail to compile, form the first/highest-priority historical
+artifact batch: **all five OTP majors on both Linux and macOS**. Select pinned
+compatible LFE snapshots and exact build/runtime/platform identities; build,
+test and upload the ten targets to the agreed downloads storage. All are P0
+with no prescribed order inside the batch. Do not convert removal from HEAD CI
+into abandonment of historical combinations. The complete preserved workflow,
+run evidence and pending source/storage choices are in the
+[CI preservation record](artifacts/ci-matrix-2026-10-09.md). This supplements the
+original general preservation/distribution scope; it does not replace it.
+
 ### Arc04 — IA and content architecture
 
 Refine Draft 0.1 with Duncan and Robert: page roles; Learn/Docs distinction;
@@ -317,6 +330,14 @@ that a moving documentation collection exactly matches an older artifact.
 identity through selection and acquisition; each listed artifact/method actually
 exists; compatibility and documentation claims match their authorities. The
 presentation does not create promises absent from the policy or evidence.
+
+**Added 9 October 2026:** the first historical binary-download batch is the
+Arc03 OTP22–26 Linux/macOS P0 queue. Present actual verified artifacts with their
+release/source identity, OTP/platform/architecture context and checksums;
+reconcile every requested target against offered downloads. The Downloads gateway
+and the physical upload directory/storage are distinct; Arc03 selects storage
+and produces artifacts, Arc09 supplies the reader journey. See the
+[CI preservation record](artifacts/ci-matrix-2026-10-09.md).
 
 ### Arc10 — Resources, community, and publishing
 
@@ -464,6 +485,13 @@ and project outcome remain unaccepted; Slice02 waits on the existing acceptance
 gate. All project ledger rows remain open. The audits/proposal and initial issued
 prompt remain preserved. See the Slice01 CDC verification record for exact evidence.
 
+Duncan's 9 October request adds the OTP22–26 Linux/macOS highest-priority
+historical-download batch to Arcs03/09 and preserves the entire original CI
+matrix. A scoped OTP27–29 local CI proposal is prepared against develop; its
+local commit is `0aa820e` on `cicd/otp27-plus`; remote execution/green status
+and artifact production remain unverified.
+The pending Slice01 correction remains pending; this request is independent.
+
 The prior first-review questions are resolved for the initial roadmap by Duncan's
 approval. Navigation/design choices remain open, and expansion remains expected.
 
@@ -474,3 +502,4 @@ approval. Navigation/design choices remain open, and expansion remains expected.
 | 1.0 | 2026-10-08 | Duncan's request in the local desktop chat; inherited first-steps packet | Initial twelve-arc roadmap covering all seven work groups; reuse the established planning home; add project composition ledger; make expansion an expected, tracked part of planning | Draft awaiting Duncan's review |
 | 1.1 | 2026-10-08 | Duncan's explicit approval, Arc01/Slice01 opening request, and Expedited Mode selection in this chat | Record roadmap approval; open Arc01 and its first bounded evidence slice; enable expedited commit/close/advance behaviour with unchanged review and approval gates | Roadmap approved; opening authorized; no delivery acceptance implied |
 | 1.2 | 2026-10-09 | Arc01 Slice01 initial delivery and CDC review | Record independently reproduced intake and partial row acceptance; issue metadata/reference correction iteration01, retain Slice02 acceptance gate and all original roadmap scope | Routine review/status update under approved Expedited Mode; no design or acceptance amendment |
+| 1.3 | 2026-10-09 | Duncan's CI/docs-regression and historical-download request; Arcs03/09 | Preserve exact pre-change OTP22–29 CI; add OTP22–26 Linux/macOS P0 historical-artifact/download coverage and two checkable project rows; retain broader release scope and pending Slice01 review | Operator-directed preservation and priority addition; no support-policy or artifact-delivery acceptance implied |
