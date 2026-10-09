@@ -1,5 +1,9 @@
 # Arc01 Slice01 — CDC verification
 
+**Current verdict (9 October 2026): accepted and closed, all eight rows done.**
+Iteration01 review below supersedes the initial correction-required verdict;
+the failed initial review remains historical evidence.
+
 ## Initial-pass review — 9 October 2026
 
 **Reviewer:** CDC, Sofie in the desktop planning chat, independent of CC's
@@ -117,3 +121,103 @@ evidence is retained. No earlier doer attestation becomes independent by retenti
 **Next owner:** CC executes
 `arc01-evidence-baseline/slice01-baseline-intake/cc-prompt-iteration01.md`, relayed
 by Duncan. CDC reviews the resulting commit before closing and advancing.
+
+## Iteration01 review — 9 October 2026
+
+**Reviewer:** CDC, Sofie in this desktop planning context, independent of CC.
+**Assignment:** `arc01-evidence-baseline/slice01-baseline-intake/cc-prompt-iteration01.md`;
+opening `7f2b47f24873211c3eca66702b5a1e81ccec4897`, SHA-256
+`f3160c0c43533cf8fd93686cc53665cfb00e7ce0d94a275780734be4cfebc7b2`.
+**Candidate:** `9d3a7e12a9df75ceae6e7f2294c38ae12238795a`, followed by
+`9111268babf8f96d98cb8b32aa3a40c9aa209b67` (prompt digest correction).
+Reviewed from planning HEAD `924c8b0da132c2ae8287a51ffa5425d8816c9125`;
+all six candidate slice files are byte-identical there. The later project-level
+CI intake is a separate authorized change, outside this CC assignment.
+**Verdict:** R1 and R2 resolved. All eight rows accepted; Slice01 closed.
+
+### Fresh independent checks
+
+CDC inspected the six-file delta `git diff 7f2b47f 9111268`, both entire parsed
+JSON objects, current references, execution record and dated closing section.
+Read-only Python standard-library JSON/SHA-256/subprocess checks reproduced:
+
+- Exact baseline top-level shape and original project-relative assignment string;
+  original capture time and planning snapshot are unchanged. Both real predecessor
+  objects fail the same respective metadata/path predicates that the correction passes.
+- Complete equality of all five non-metadata baseline values against ddeecb31;
+  the entire findings object equals its predecessor with only the assignment value
+  replaced. This covers ordering and all 29/16/104/385 records, beyond count checks.
+- All five packet files still equal their recorded hashes, sizes/line counts and
+  pinned Git objects. Eight source-witness working hashes and HEAD qualifications
+  match. The website's fresh 385-path query equals the recorded population.
+- Seven source root/HEAD/branch/status projections still match exactly. LFE has
+  concurrent Operator CI work, qualified below; the historical snapshot is preserved.
+- Both issued prompts match their opening blobs. The actual iteration digest agrees
+  in execution and close records, including the 9111268 correction. CC preserved
+  reviewer and parent records. The correction delta is exactly the six allowed paths.
+- Source-register pointers resolve to `baseline.json#/source_catalogue`, findings
+  to `findings.json`, and the current report to slice-root `closing-report.md`.
+  The initial close is labelled historical. Summary and ledger pointers agree.
+  Local Markdown links, final newlines, trailing whitespace and scoped diff check pass.
+- The iteration closing row walk accounts for S1-01 through S1-08 exactly once;
+  inventory contains four supporting artifacts and two first-class changed documents.
+  Intake/readback distinguishes the initial snapshot from the correction assignment,
+  and retains preliminary failures and deliberately unrun checks.
+
+The inline reviewer checker first reported 78 checks / 76 passes / 2 failures:
+one live LFE mismatch and one overly literal `slice-root` phrase predicate.
+Direct report inspection and a corrected predicate verified the actual wording
+(`closing-report.md` at the slice root). Final disposition is 77 passing checks
+and one explicitly qualified concurrent-state difference. The preliminary checker
+failure is retained here; it was not a new delivery defect. Temporary results at
+`/tmp/project099-cdc-iteration01-results.json` are incidental review aids.
+
+### Concurrent state and retained evidence
+
+The LFE checkout now has HEAD `0aa820e93bb592a821fe0a50b1db7e8926e56b30`,
+branch `develop`, clean status. The baseline recorded master at dae7489e and an
+untracked `rebar.lock`. `git show --stat` / `diff-tree` show the CI commit's sole
+changed path is `.github/workflows/cicd.yml`, on parent
+`387d0aa1092bdda0ca17481869e833b24f11971a`. This agrees with Duncan's separate
+CI update and is recorded as concurrent drift, not attributed to CC or relabelled
+as the original snapshot. Future language observations must use the new state.
+The Slice01 contract explicitly permits qualified concurrent drift; it does not
+require restoring a historical checkout. No compiler/CI behavior is accepted here.
+
+The initial-pass reproduced evidence for S1-01/S1-03/S1-05 and the substantive
+S1-06 remains applicable: criteria and relevant pinned report/input/payload values
+are unchanged; website population and witnesses freshly match. The LFE branch
+change cannot affect those packet/website claims. This retains the original
+review's revision/date/method; it does not claim fresh extraction or promote CC
+attestation. S1-06's affected references were freshly checked. Source-state and
+correction claims for the other four rows receive the fresh checks above.
+
+### Current row walk
+
+| ID | CDC status | Basis |
+| --- | --- | --- |
+| S1-01 | done | Retained initial independent packet evidence; five hashes/objects freshly match. |
+| S1-02 | done | Correct metadata/snapshot identity reproduced; live roots checked and concurrent LFE drift qualified. |
+| S1-03 | done | Retained exact partition proof; full value equality and fresh 385-path membership reproduced. |
+| S1-04 | done | Retained 104 literal cells/locators; complete catalogue equality and corrected pointer reproduced. |
+| S1-05 | done | Retained 29/16 semantic/provenance review; complete findings equality reproduced. |
+| S1-06 | done | Retained content-family/source-boundary evidence; affected summary references freshly verified. |
+| S1-07 | done | Correction readback/attempts inspected; actual metadata/control/preservation checks reproduced. Reading receipts remain attestation. |
+| S1-08 | done | Exact six-path delta, preserved prompts/parent records, current digest/pointers, eight-row walk and artifact inventory reproduced. |
+
+### Bubble-up to Arc01 and What Worked
+
+The delivered provenance, source map, filename denominator, inherited registers
+and qualified handoff meet Arc01's assigned Slice01 capability. Scope-as-specified
+and scope-as-delivered match; no silent drop or deferred criterion remains.
+Live URLs, source/rendered chapter checks and the missing runtime packet were
+never Slice01 acceptance work; their existing owners remain Slices03/04.
+No capability, scope, sequence or acceptance amendment is indicated. Update
+Arc01's status/current assignment and child-close row, then open its planned
+Slice02. Arc01 and project composition remain open.
+
+Whole-value comparisons protected the evidence while making the metadata repair
+falsifiable. Preserving historical attempts and qualifying live drift permits
+reuse of valid independent evidence without confusing old snapshots with current
+checkouts. This CDC record is the acceptance authority; CC's historical artifacts
+retain their proposed-done wording.

@@ -1,6 +1,6 @@
 # Project 099 — composition ledger
 
-**Contract:** [project-plan.md](project-plan.md), v1.3, 9 October 2026.
+**Contract:** [project-plan.md](project-plan.md), v1.4, 9 October 2026.
 Original roadmap approved 8 October; Duncan added CI preservation and historical
 artifact priority on 9 October. The original 21 rows are retained and two rows
 are added; all 23 delivery rows remain open. Roadmap approval is not completion.
