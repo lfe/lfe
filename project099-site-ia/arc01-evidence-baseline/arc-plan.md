@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 arc: arc01-evidence-baseline
-version: "1.4"
+version: "1.5"
 date: 2026-10-09
 status: active
 depends-on: []
@@ -50,7 +50,7 @@ checkouts require an isolated, explicit method in the relevant slice contract.
 
 ## Slice breakdown
 
-Slice01 is accepted and Slice02 remains open for correction iteration02;
+Slice01 is accepted and Slice02 remains open for correction iteration03;
 S2-01 is accepted, seven child rows remain open.
 Was: Slice02 initial assignment opened after Slice01 acceptance; before that,
 only Slice01 opened.
@@ -60,7 +60,7 @@ their full open sets are prepared immediately before assignment.
 | Slice / eventual directory | Delivered piece | Inputs / dependencies | Status |
 | --- | --- | --- | --- |
 | Slice01 — `slice01-baseline-intake` | Preserved-input provenance, local repository/source map, and complete reconciliation of the inherited assessment/question registers | Saved first-steps packet, approved parent plan, read-only local metadata and bounded source witnesses | Closed; all eight rows independently accepted at 9111268; initial failed review preserved |
-| Slice02 — `slice02-local-inventory` | Complete inventory of the agreed local site content, route/anchor declarations, resource promotions, and legacy-source entrances | Accepted Slice01 provenance/populations; inspect actual Cobalt/wrapper semantics before claiming output routes | Open; iteration01 reviewed: S2-01 done; R7–R10 correction iteration02 issued; seven rows open |
+| Slice02 — `slice02-local-inventory` | Complete inventory of the agreed local site content, route/anchor declarations, resource promotions, and legacy-source entrances | Accepted Slice01 provenance/populations; inspect actual Cobalt/wrapper semantics before claiming output routes | Open; iteration02 reviewed: S2-01 retained; bounded R11–R13 correction iteration03 issued; seven rows open |
 | Slice03 — `slice03-resource-verification` | Targeted external destination and source/rendered readiness checks with coverage limits | Accepted Slice02 destinations; Slice01 inherited findings; read-only retrieval/rendering method defined at opening | Planned |
 | Slice04 — `slice04-technical-intake` | Technical evidence packet for release/container/environment questions and the reported runtime failure | Slice01 repository/provenance map; Slice03 relevant observations; actual Operator-provided failure context where available | Planned |
 | Slice05 — `slice05-baseline-reconciliation` | Reconciled evidence/coverage/finding register and concrete handoffs to consuming arcs | Accepted Slices01–04 and their explicit gaps/dispositions | Planned |
@@ -134,12 +134,14 @@ prepare/open Slice02 immediately unless an unresolved gate prevents it. Do not
 fabricate closure, relax evidence, or change an issued prompt to advance faster.
 
 Current assignment:
-`slice02-local-inventory/cc-prompt-iteration02.md`, correction, issued through
-the Operator on 9 October 2026. Was: iteration01 and initial `cc-prompt.md` issued.
-CDC reviewed iteration01 at 30b58c3 + 1b9ab34: 109 structural checks pass,
-all 966 SUMMARY projections match, and S2-01 is independently accepted. Seven
-Slice02 rows remain open for R7–R10 scalar references/rich extraction, exact
-consumer/generated edges, family/entrance joins and proof reconciliation;
+`slice02-local-inventory/cc-prompt-iteration03.md`, correction, issued through
+the Operator on 9 October 2026. Was: iterations02/01 and initial `cc-prompt.md` issued.
+CDC reviewed iteration02 at 89f1ebb3 + cc401dd + ecc4993: fresh source/pin
+identity checks and repaired ordinary/rich/reference projections pass. S2-01
+retains independent acceptance at 30b58c3 + 1b9ab34. Structural replay passes
+109 of 114 checks; stale derived coverage and two legacy qualifiers fail. Seven
+Slice02 rows remain open for bounded R11–R13 coverage/qualification, 26 missing
+prerender-input roles, author aliases/branches and current honest proof;
 source-parser deferrals are not accepted. The
 [review](slice02-local-inventory/cdc-verification.md) and original candidate are
 preserved. These findings require status/current-assignment updates only, not
@@ -163,3 +165,4 @@ The inherited `../artifacts/first-steps/` packet stays in place.
 | 1.2 | 2026-10-09 | Slice01 iteration01 CDC acceptance | Close the accepted child and open planned Slice02 under Expedited Mode; record lossless correction and qualified concurrent CI drift; no structural amendment |
 | 1.3 | 2026-10-09 | Slice02 initial delivery / CDC review | Record R1–R6 correction and retained reproduced subclaims; issue iteration01 without adopting source-extraction deferrals or changing slice ownership; no structural amendment |
 | 1.4 | 2026-10-09 | Slice02 iteration01 / CDC review | Accept S2-01 and retain repaired subclaims; issue iteration02 for R7–R10 with seven child rows open and Slice03 gated; no structural or criterion amendment |
+| 1.5 | 2026-10-09 | Slice02 iteration02 / CDC review | Retain S2-01 and valid repaired subclaims; issue bounded iteration03 for R11–R13 with seven child rows open and Slice03 gated; no structural or criterion amendment |

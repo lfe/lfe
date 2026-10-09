@@ -1,6 +1,6 @@
 # Arc01 Slice02 — acceptance ledger
 
-**Contract:** [slice-plan.md](slice-plan.md) v1.2 and [cc-prompt-iteration02.md](cc-prompt-iteration02.md),
+**Contract:** [slice-plan.md](slice-plan.md) v1.3 and [cc-prompt-iteration03.md](cc-prompt-iteration03.md),
 9 October 2026; original cc-prompt.md criteria unchanged. S2-01 done, seven
 rows open. CC adds attested evidence and
 proposed dispositions; CDC independently reproduces acceptance. Deferred work
@@ -42,14 +42,14 @@ no full row is accepted. Proposed S2-03/S2-04 source-extraction deferrals are
 not accepted. Original eight-column restoration and iteration01 attested evidence
 belong to CC's correction; CDC has not implemented the artifact repairs.
 
-## CDC current Iteration01 review and Iteration02 assignment
+## CDC historical Iteration01 review and Iteration02 assignment
 
 [cdc-verification.md](cdc-verification.md), Iteration01 review, independently
 accepts S2-01 at 30b58c3 + 1b9ab34. S2-02–08 stay open for R7–R10.
 The restored contract, census/pins/metadata/default and 966 SUMMARY subclaims
 are retained; structural green checks do not close semantic source/consumer/
 family obligations. [cc-prompt-iteration02.md](cc-prompt-iteration02.md) is
-the active CC assignment; Slice03 remains gated. Prior proposals and failed
+the then-active CC assignment; Slice03 remained gated. Prior proposals and failed
 reviews remain historical; original Criterion/Verify/Significance/Origin/Notes
 are unchanged. CDC has not implemented artifact repairs.
 
@@ -62,3 +62,17 @@ S2-01 remains `done`; S2-02–08 remain `open`. CC added a bounded R7/R10 correc
 The earlier “partial” R7–R9 status text above is historical and superseded by the final correction evidence in [execution.md](artifacts/execution.md) and [resource-register.json](artifacts/resource-register.json). R7 now records 84 definitions/97 use pointers and complete 38-node Markdown/39-attribute HTML rich projections, including one explicit unpaired HTML node. R8 has 59 located access witnesses over 12 consumer records with source qualification and direct/prerender/generated/no-direct roles. R9 records all eleven family membership walks and corrected entrance labels. R10 classifies five JSON Feed metadata/technical fields separately and rebuilds the 19 construct tallies and current totals. Focused source-byte and scope checks passed; regex/token coverage does not establish exhaustive source-construct accounting, generated output, emitted/live readiness, or chapter/paper meaning.
 
 No criterion or status changed: S2-01 remains `done`; S2-02–08 remain `open`. This is CC evidence for CDC review, not a row-closure proposal or acceptance. Slice02 and Arc01 remain open and Slice03 remains gated.
+
+## CDC current Iteration02 review and Iteration03 assignment
+
+[cdc-verification.md](cdc-verification.md), complete Iteration02 review, retains
+S2-01's reproduced acceptance after fresh eight-root/population/file/pin checks.
+Scoped reference and rich/ordinary link projections now independently match;
+those valid subclaims remain. S2-02–08 stay open for R11 stale derived totals/two
+legacy qualifiers, R12 missing 26 prerender roles and author aliases/source-heads/
+branch evidence, and R13 calibrated current coverage/intake/return. The original
+criteria/Verify/Significance/Origin/Notes and all statuses remain unchanged.
+[cc-prompt-iteration03.md](cc-prompt-iteration03.md) is the active CC assignment.
+Earlier CC attestations are preserved as historical candidate evidence; the
+current CDC findings supersede their completeness claims. No CC artifact repair
+was implemented by CDC; Slice03 remains gated.

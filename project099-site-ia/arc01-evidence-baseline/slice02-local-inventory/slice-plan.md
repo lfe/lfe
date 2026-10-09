@@ -2,7 +2,7 @@
 project: project099-site-ia
 arc: arc01-evidence-baseline
 slice: slice02-local-inventory
-version: "1.2"
+version: "1.3"
 date: 2026-10-09
 status: active
 depends-on: [slice01-baseline-intake]
@@ -19,18 +19,25 @@ route/anchor declarations, resource promotions and legacy-source entrances.
 [Slice01](../slice01-baseline-intake/cdc-verification.md) is independently
 accepted at 9111268, all eight rows done. Duncan's approved roadmap and
 Expedited Mode authorize this next slice. Governing parents are
-[project-plan.md](../../project-plan.md) v1.6 and [arc-plan.md](../arc-plan.md)
-v1.4. The original eight-column sibling ledger at b5a7c50 defines the unchanged
+[project-plan.md](../../project-plan.md) v1.7 and [arc-plan.md](../arc-plan.md)
+v1.5. The original eight-column sibling ledger at b5a7c50 defines the unchanged
 acceptance contract; iteration01 restores that table, preserving initial proposals.
 
-Current assignment: [cc-prompt-iteration02.md](cc-prompt-iteration02.md),
-correction R7–R10, issued through Duncan to a separate CC context. Was:
+Current assignment: [cc-prompt-iteration03.md](cc-prompt-iteration03.md),
+correction R11–R13, issued through Duncan to a separate CC context. Iteration02
+at 89f1ebb3 + cc401dd + ecc4993 was reviewed: repaired scoped/rich extraction
+is independently reproduced, while stale coverage, source qualifications,
+26 missing prerender-input roles and author alias/branch evidence remain. No
+source drift was found; S2-01 stays done and seven rows stay open. Was:
+[cc-prompt-iteration02.md](cc-prompt-iteration02.md), R7–R10, then
 [cc-prompt-iteration01.md](cc-prompt-iteration01.md), R1–R6, and
 [cc-prompt.md](cc-prompt.md), initial pass. CDC reviewed 30b58c3 + 1b9ab34 in
 [cdc-verification.md](cdc-verification.md): S2-01 is accepted; seven rows remain
 open. Contract/provenance/default/metadata and 966 SUMMARY subclaims are repaired.
-Scoped references/rich extraction, exact consumers/generated edges, family/entrance
-joins and proof reconciliation remain. Source-extraction deferrals remain
+Was: scoped references/rich extraction, exact consumers/generated edges,
+family/entrance joins and proof reconciliation were assigned in iteration02.
+The current review retains valid repairs and narrows remaining work to R11–R13.
+Source-extraction deferrals remain
 unaccepted. Slice03 remains planned.
 CDC is Sofie in the desktop planning chat.
 No automatic dispatch or CRC role is selected. Issued prompts stay immutable.
@@ -160,7 +167,8 @@ not independent acceptance of CC output.
 | --- | --- | --- | --- | --- |
 | `cc-prompt.md` — initial pass | 2026-10-09 | None; accepted Slice01 is input | Open Arc01's planned local inventory after the Slice01 gate | Returned at b43acb7 + d629b7a; CDC requires R1–R6; no complete row accepted |
 | `cc-prompt-iteration01.md` — correction | 2026-10-09 | `cc-prompt.md`; b43acb7 + d629b7a | Restore contract; finish extraction and accurate witness/consumer/label/family/coverage evidence | Returned at 30b58c3 + 1b9ab34; CDC accepts S2-01 and retains repaired subclaims; R7–R10 remain |
-| `cc-prompt-iteration02.md` — correction | 2026-10-09 | `cc-prompt-iteration01.md`; 30b58c3 + 1b9ab34 | Correct scalar scope/rich extraction, exact consumer/generated associations, semantic family/entrance joins and calibrated proof | Active; second corrective refinement issued through Operator for CC implementation and independent CDC return |
+| `cc-prompt-iteration02.md` — correction | 2026-10-09 | `cc-prompt-iteration01.md`; 30b58c3 + 1b9ab34 | Correct scalar scope/rich extraction, exact consumer/generated associations, semantic family/entrance joins and calibrated proof | Returned at 89f1ebb3 + cc401dd + ecc4993; CDC retains repaired extraction and S2-01; R11–R13 remain |
+| `cc-prompt-iteration03.md` — correction | 2026-10-09 | `cc-prompt-iteration02.md`; 89f1ebb3 + cc401dd + ecc4993 | Reconcile copied derived coverage/qualifiers, real prerender roles and author aliases/branches, and current honest proof | Active; third corrective refinement issued through Operator for CC implementation and independent CDC return |
 
 Record this prompt's opening Git object and digest at intake. Follow-ups get
 new slice-root iteration paths; do not overwrite this issued assignment.
@@ -189,6 +197,23 @@ The bounded manifest and 45–70k-token intake budget leave correction headroom.
 Unavailable inputs/drift block affected joins; no policy/architecture choice or
 structural amendment is required. Readiness is separate from CC acceptance.
 
+### Iteration03 author readiness
+
+CDC freshly replays eight root/population/all-file/pin projections, all 966 TOC
+comparisons, 827 ordinary Markdown/426 HTML nodes, 38 rich Markdown/39 rich HTML
+nodes and 97 scoped reference joins. Complete 61-input versus consumer-role
+comparison finds 26 missing roles; exact source context identifies stale copied
+counts, two legacy plus five secondary author source qualifiers and misnamed
+fallback witnesses. The recipe specifies precise current repairs, actual source
+keys/aliases/branches, negative controls and immutable-versus-derived boundaries.
+Cobalt CB-13/14/16/18/21 and the prompt-authoring/proportionate-proof/retention
+contracts are applied. The current manifest bounds prose to affected contexts
+and complete data projections, with 25–40k-token intake/query budget plus recovery
+headroom; no material source assumption or scope/architecture decision is open.
+Retained valid extraction is checked for input/value equality, not repeated for
+ceremony. No criterion amendment or artifact repair by CDC; readiness remains
+separate from independent acceptance of CC's forthcoming return.
+
 ## Version History
 
 | Version | Date | Origin | Change |
@@ -196,3 +221,4 @@ structural amendment is required. Readiness is separate from CC acceptance.
 | 1.0 | 2026-10-09 | Slice01 iteration01 CDC acceptance; approved Arc01 Slice02 and Expedited Mode | Open the source inventory with complete declared populations, qualified route/anchor evidence, resource/legacy joins and eight acceptance rows |
 | 1.1 | 2026-10-09 | Slice02 initial delivery / CDC review | Record R1–R6 and eight open rows; preserve valid subclaims, initial prompt/proposals and source scope; issue correction iteration01 with explicit construction/proof; no acceptance amendment |
 | 1.2 | 2026-10-09 | Slice02 iteration01 / CDC review | Accept S2-01; preserve valid restored contract/provenance/rules/metadata/SUMMARY subclaims; issue iteration02 for R7–R10 with seven rows open; no acceptance amendment |
+| 1.3 | 2026-10-09 | Slice02 iteration02 / CDC review | Retain S2-01 and valid extraction/consumer/family subclaims; issue bounded iteration03 for R11–R13 copied coverage/qualification, roles/branches and calibrated proof; seven rows open; no criterion amendment |

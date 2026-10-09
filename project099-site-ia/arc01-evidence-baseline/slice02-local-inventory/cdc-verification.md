@@ -484,3 +484,200 @@ These were author/checker draft corrections, not additional CC defects.
 No source/CC artifact repairs or scope changes were made by CDC. Final
 `git diff --check`, exact-path commit and committed-tree/status checks finish
 this handoff; the new prompt must still be implemented by CC.
+
+
+## Iteration02 review — 9 October 2026
+
+**Reviewer:** CDC (Sofie), independent of CC evidence production; Two-Contributor,
+Expedited Mode. Candidate: evidence `89f1ebb3bfcb5f12cf693da0102068c168afed9d`,
+receipt `cc401ddded3a320c8750325aa6cfad30ea0b84e4`, receipt correction
+`ecc4993685d607c5638f6a1df451e7065a67dcc3`. Earlier partial evidence/receipts
+2ac918f/e1d64e6/4b94230/856dc6c remain historical. Assignment:
+[cc-prompt-iteration02.md](cc-prompt-iteration02.md), opening
+`295057845901fdc718a9e8c1d3d0de3055fe39c7`, prompt SHA-256
+`8fd29354f68e53b92b6b2562949bdc99552bd8be6ba8193fbd5762e4a382480b`.
+Planning is clean at ecc4993 before this review; opening-to-return changes are
+exactly five authorized CC paths, with the final receipt changing only the
+closing report. This is a partial acceptance review, not slice closure.
+
+### Fresh checks and retained evidence
+
+CDC independently re-queries all eight root/HEAD/branch/status projections,
+ordered tracked populations, all 2,839 working hashes/sizes/Git modes/recorded
+HEAD qualifications, eight input working/pinned-object hashes, immutable
+assignment/capture/planning/input/snapshot/provenance values and original ledger
+criteria. All pass without source drift. Website remains main at
+036e231b09c48966da26d2227bccb4fa3b295df9, with its unrelated fourteen modified
+Makefile/tool files and one untracked brief untouched. LFE remains clean develop
+at 0aa820e93bb592a821fe0a50b1db7e8926e56b30. S2-01's independent Iteration01
+acceptance therefore remains applicable; its criterion and identity inputs are
+unchanged and no new finding undermines the filename/provenance claim.
+
+The incidental structural replay reports **114 checks: 109 pass, 5 fail**.
+Of **6,522 locator objects**, two fail repository-HEAD qualification; their raw
+bytes and spans pass. There are zero span/line-containment failures. Four other
+failed predicates are the copied resource/group tallies described in R11.
+This locator predicate covers identity/range validity, not whether a span proves
+its semantic claim: the five author `consumer_sources.head` values and two
+misnamed branch witnesses below require separate source review.
+
+Independent whole projections establish these bounded properties:
+
+| Population / method | Result and limits |
+| --- | --- |
+| Four complete SUMMARY Markdown projections | All 966 display/raw labels, targets, lines, indentation and local-status joins match; chapter bodies remain outside scope |
+| All 61 rich Markdown scalars in twelve data files, Pandoc GFM Link/Image projection | All 38 nodes match same-field source records; eight book reference uses now bind to their own scalar definitions; thirteen earlier inline omissions repaired |
+| All recorded reference uses, source-scope/raw-use/target/pointer joins | 97/97 pass; manual-use/SICP-definition negative control rejected; 84 definition records remain separately represented |
+| 147 website Markdown/wiki files, CommonMark extension AST Link/Image projection | 827 nodes match 827 records by file/target multiset; no missing/extra nodes or parser failures; this comparison alone is not a position or renderer-equivalence proof |
+| HTML href/src attributes in those Markdown raw nodes and forty native HTML/Liquid/XML files | 426 attributes match 426 ordinary HTML records; zero missing/extra nodes; other attribute/script constructs are not covered by this predicate |
+| Twelve YAML trees, literal URI/relative-path/hash-fragment field projection | 34 fields match 34 yaml-field records |
+| All rich HTML scalars, parsed href/src attributes | 39 attributes match 39 same-field records, including the explicit unpaired REPL HTML image |
+| JSON Feed roles | Five metadata/technical fields retained separately; no title/date/summary entry remains a navigation occurrence |
+| Twelve consumer records versus all actual rich input paths | 61 inputs exist, but 26 lack a matching prerender-input role path; see R12 |
+
+The eleven family walks and 1,872 membership-evidence records are present;
+structural IDs/locators and retained filename/TOC evidence remain useful. Those
+counts alone are not semantic acceptance of every membership reason. Actual
+source context supports the repaired root-versus-item access distinctions,
+excerpts HTML accesses, author lookup/link guards, generated authors/default
+cover edges and direct-versus-contextual family treatment. Preserve these valid
+subclaims; do not repeat their entire investigation merely because R11/R12
+share a file with them.
+
+Reproduction mechanics are incidental `/tmp/project099-cdc-slice02-iteration02-`
+helpers `structural.py`, `semantics.py`, `constructs.py`, and `joins.py`, each
+executed with `python3`, recording JSON results there. They independently query
+Git/source bytes, use installed `yq -o=json` for complete YAML projections,
+Pandoc JSON ASTs and standard-library HTML parsing. They are not product
+artifacts or a new maintained validation requirement. Durable methods,
+denominators, results and failures are recorded here so review does not depend
+on the continued existence of /tmp files.
+
+Failed/draft checker attempts are retained as methodological limits: an initial
+whole-Markdown GFM projection yielded twelve synthetic nested autolinks absent
+from the source construct census; source-appropriate CommonMark projection
+resolved that difference. Early helper assumptions that all reference uses were
+YAML, dot-index spelling was already bracketed, hash-only fields were excluded,
+or Unicode-normalized IDs equalled raw labels were corrected before the
+reported joins. These were checker limitations, not additional CC defects.
+No build, source test, rendering, generation, network or publication was run.
+
+### R11 — Reconcile derived coverage and repository qualification
+
+Both inventory.json and route-anchor-register.json remain byte-identical to
+2950578 and contain `coverage.resource_occurrences = 1439` and
+`coverage.destination_groups = 809`. Resource-register.json now has 1,447
+occurrences and 804 groups. These four derived values are affected by the
+correction and cannot be retained under an immutable-input rule. Update them
+from authoritative arrays and reconcile all current copies, preserving actual
+assignment/capture/snapshot metadata and source identities.
+
+In `related_entrances[10]` (legacy_docs README.md), `links[10]` and `links[11]`
+are the current/dev autolinks at lines 36/40, spans [1111,1138]/[1207,1230].
+Their captured_head incorrectly uses the manual HEAD eba76e31367ee8d0eaa3217acce0d6bfc5378d17.
+Their owning repository's actual HEAD is
+`f2348ab2c17c8e655e9bbabf151e6a6907966387`; README working SHA-256
+`9b41d10d09aa925385251d4054339ec5586040e47fa5b62d0cb80c558da3b5f8`
+and raw targets/spans are correct. Resolve identity from the source's own
+`legacy_docs:README.md` file key, not a previously visited book root.
+
+### R12 — Finish real prerender roles, aliases and branch evidence
+
+A whole rich-input-to-role-path comparison finds **26 missing roles**:
+Build It root `title_md_inline` (one), excerpts desc_md/code_md (fifteen), and
+authors `links[*].label_md_inline` (ten). Existing 61 rich-field mirrors already
+identify the scalar/sibling pairs; retain them and connect the actual
+prerender::process_value/process_mapping source transformation to the consumer.
+The current excerpts/authors prerender_input_fields arrays are empty, while
+Build It omits its root title. Code scalars are prerender inputs even when they
+contain no resource link. This finding concerns consumer roles, not twenty-six
+missing navigation occurrences or twenty-six extra mirrors.
+
+For consumer-6563d80aab573532, the second masthead loop at lines 30–44 consumes
+excerpt.code_html/desc_html at 35/39. Enumerate eight descriptions and seven
+code_md fields; items[0].code_html is an unpaired direct HTML field, not a
+fabricated code_md input. For consumer-629617d9d8878455, resolve ten actual
+map-key/link-index inputs to label_html, then post/blog-author's author selection,
+links.size guards, link loops and label_html accesses. Keep YAML field paths
+separate from Liquid `author_entry[0]`, `author_entry[1]`, `author` and `link`
+aliases. The current field_paths contains alias tokens instead of YAML paths.
+Its source_locator still lists nonexistent `[author-id].url`; remove/retire
+that invalid current assertion. Exact alias edges, not suffix matches, govern.
+
+Five author `consumer_sources` entries still carry planning HEAD
+b5a7c50b0cb761e8e857cab6731cde103874b081. Qualify all five layouts with website
+HEAD/hashes and actual existing source witnesses; preserve the already-correct
+`exact_author_layout_witnesses` rather than duplicating incompatible identities.
+Current partial notes also need explicit historical qualification or correction.
+
+Both `detail_layout_branches.name_fallback` witnesses point only to author.name
+in an image alt attribute: post line 51 and blog-author line 30. They do not
+witness fallback branches. Post's actual if-author.name/else-page.data.author
+branch is line 59. Blog-author has no such name-presence fallback: line 34 uses
+name for initials in the avatar else branch and line 37 interpolates the heading
+unconditionally. Record those different facts with actual enclosing branches.
+Do not invent a branch to fill an expected slot or demand emitted behavior.
+
+### R13 — Calibrate current coverage, intake and scoped return
+
+Current gaps.observation still says all shared-data consumers are accounted
+and only output/runtime/chapter unknowns remain. R12 disproves that source
+completeness assertion. Reconcile coverage/gaps/summary/readback and the eight-row
+return after repair, keeping source obligations here and real downstream checks
+with their established owners. The 59 located access witnesses, lexical URL/
+residual scans and the positive construct projections above each prove only
+specified properties; do not turn any one into universal construct coverage.
+
+CC's final execution record explicitly says the eight roots and 2,839 identities
+were inherited, with no fresh population replay during the correction. That is
+an honest unrun statement, but iteration02 required fresh intake/return replay.
+CDC executed fresh checks independently; CC may cite those at their original
+attribution, not relabel them as its own run. Iteration03 must record actual
+fresh source/pin checks, full required read extents/data-query results and
+source-cited readback, plus exact current correction range/receipt. Prior
+attempts remain historical. No additional reporting layer or test product is
+required.
+
+### Complete row walk, retention and bubble-up
+
+| ID | CDC status | Current evidence and remaining condition |
+| --- | --- | --- |
+| S2-01 | done | Retain Iteration01 reproduced acceptance; fresh eight-root/population/all-file/pin/provenance replay passes; original criterion and inputs unchanged |
+| S2-02 | open | Valid default/wrapper/generated/direct access subclaims retained; R12 exact roles, source identities and conditional witnesses remain |
+| S2-03 | open | 159 metadata records retained; fresh ordinary Markdown/HTML projections pass; R11 copied register coverage and R13 whole declared construct/limit reconciliation remain |
+| S2-04 | open | Scoped references and rich link/HTML projections repaired; R11 totals and R12 prerender/consumer semantics remain |
+| S2-05 | open | Related populations and all 966 SUMMARY comparisons pass; R11 two legacy entrance qualifiers prevent whole-row acceptance |
+| S2-06 | open | Eleven family walks retained as evidence; R11 cross-register reconciliation and R13 source-gap/owner accounting remain |
+| S2-07 | open | Reads/attempts remain attested; fresh CDC checks distinguish verified bounds; R13 actual CC intake/return checks, extents and calibrated proof remain |
+| S2-08 | open | Five-path scoped return, receipt, historical inputs/prompts and source preservation pass; R13 current eight-row return, coverage and honest Arc01 bubble-up remain |
+
+**Verdict:** retain S2-01 done and all valid repaired subclaims; S2-02–08 remain
+open. No source-extraction deferral is adopted. No scope, capability, sequence
+or criterion amendment is needed. Arc01 remains active with A1-01 alone done;
+all 23 project rows remain open. Slice03 remains gated. What worked: scalar-local
+bindings and independently matching ordinary/rich link projections. What must
+improve: carry corrections through every copied value and distinguish actual
+field/alias/branch meaning from locator validity.
+
+This is the third corrective refinement, within the existing fix-loop budget.
+**Next owner:** CC executes [cc-prompt-iteration03.md](cc-prompt-iteration03.md),
+relayed by Duncan, then returns to CDC. CDC has changed only plans, ledgers,
+review and assignment; no CC artifact repairs have been implemented by CDC.
+
+### Iteration03 handoff validation
+
+Independent `/tmp/project099-cdc-slice02-iteration03-handoff.py`, executed with
+`python3`, passes the exact eight-path tracked-plus-untracked CDC allowlist;
+unchanged Criterion/Verify/Significance/Origin and project/slice Notes; all 23
+project rows open, A1-01 alone done, S2-01 done and seven child rows open.
+All five CC artifacts, closing report and three issued prompts are byte-equal
+to ecc4993; the prior CDC review is preserved as an exact prefix. Project v1.7,
+arc v1.5 and slice v1.3 name the new iteration03 assignment consistently.
+Rendered local Markdown links, UTF-8/newlines/trailing whitespace, eight fresh
+root projections/ordered populations, all 2,839 working hashes and eight
+working/pinned input hashes pass. `git diff --check` passes. Draft author fixes
+remove an inadvertent blank line splitting the assignment-history table and
+correct the prerender read boundary to include render_markdown's signature;
+these are corrected before issue, not CC defects. Commit only these eight paths
+and compare the actual committed tree with working bytes before handoff.
+The new prompt still requires CC implementation and independent CDC return.
