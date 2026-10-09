@@ -260,3 +260,227 @@ Final pre-commit source/pin replay again returns 98 checks, 90 passing and the
 same eight recorded candidate failures; no new source drift. No artifact repair
 was implemented by CDC. Exact-path commit and clean-status verification finish
 this handoff; CC must still execute iteration01 and return its evidence.
+
+## Iteration01 review — 9 October 2026
+
+**Reviewer:** CDC, Sofie, separate from CC; Two-Contributor, Expedited Mode.
+**Assignment:** `cc-prompt-iteration01.md`, opening
+`fba770614bdd6216e243ed8119a64f41c2678d75`, SHA-256
+`0fd63608b73e2e7b9a014a0dda371a06384856fdd5ed8cf5dae0235d1ad4a6d7`.
+**Candidate:** evidence `30b58c3bddbe20d0ab8233e4fcc012b87ffe2d7d`, receipt
+`1b9ab342fff9a0adde53c54ceeda03e118f1ac4d`. Clean planning worktree at receipt.
+**Current verdict:** S2-01 independently accepted; S2-02–08 remain open.
+Another correction is required within Slice02; Slice03 stays planned.
+This section supersedes the initial review's current status, preserving it as history.
+
+### Fresh proof and retained subclaims
+
+CDC inspected the complete JSON projections, changed source claims, seven-path
+evidence delta and one-report receipt, original contract and current return.
+Read-only Git/hash/set/locator comparisons in the incidental
+`/tmp/project099-cdc-slice02-iteration01-structural.py` produced **109/109
+passing checks**, including **4,495 locator identity/hash/range/envelope checks**.
+Those properties are structural proof, not semantic acceptance.
+
+- All eight live root/HEAD/branch/status projections, exact ordered populations,
+  all 2,839 file hashes/modes/HEAD comparisons, website partitions and eight
+  input pins match. No source drift or source mutation was found.
+- All seven immutable inventory values (`assignment`, `captured_at`, `planning`,
+  `inputs`, `repositories`, `populations`, `files`) equal d629b7a completely.
+  All 159 content units equal their predecessors except the authorized derived
+  `default_witnesses` and added `route_rule_applicability`. Raw/parsed metadata,
+  fields, IDs and source identities are preserved. Both issued prompts equal
+  their opening objects. The 104-ID provenance indexes and complete inherited
+  catalogues now agree, retaining 29 assessment and 16 question identities.
+- The eight-column ledger's original Criterion/Verify/Significance/Origin cells
+  are restored. Historical proposals remain labelled. R1 is resolved.
+- The actual default key/value and qualified dirty-Rust witnesses are repaired;
+  metadata-name retirement is recorded. R3's reported defects are resolved.
+  CC correctly challenged my masthead example: `[745,787]` was class text,
+  not the ID. Fresh bytes support the corrected `[984,1026]`, line 18. My old
+  example must not be imposed on the correction.
+- Destination groups partition all 1,439 current records into 809 groups;
+  all 135 fragment joins resolve structurally. These counts are not accepted
+  as complete or semantically correct because of the defects below.
+- Separate Pandoc GFM AST and literal line projections reproduce **966/966**
+  SUMMARY display labels/targets, raw labels, source lines, indentation,
+  hierarchy and local tracked-source status: 673/45/61/187. This resolves the
+  SUMMARY-label part of R5; it does not accept all entrance/family joins.
+
+The semantic comparisons used the incidental
+`/tmp/project099-cdc-slice02-iteration01-semantics.py`: all 12 shared-data files
+were independently decoded with yq, their 61 Markdown scalars separately parsed
+with Pandoc GFM, and source ownership/targets compared with the register.
+Full enclosing books/masthead/features/post/blog-authors template contexts and
+prerender/blog resolution functions were inspected for the claims below.
+All eleven family reference arrays were queried against their inherited meanings.
+
+Reviewer attempts/limits: an initial whole-content-unit equality predicate
+wrongly rejected authorized derived rule changes; excluding only the two named
+derived keys yields the 109/109 result above. The first scalar comparison used
+bracket paths against dot-number paths and falsely marked all 38 Markdown nodes
+unmatched; canonicalizing just array-index notation yields the 19 real mismatches
+below. Temporary source lookups using `plan.md`, a planning-root `tools/` search,
+and `tools/site/` were corrected to canonical plan names and website
+`tools/lfesite/`; these were reviewer lookup failures, not missing sources.
+Pandoc is an independent source oracle here, not a Cobalt/pulldown rendering claim.
+
+### R7 — Scope reference definitions and finish rich-field extraction
+
+Eight reference uses exist, but **six resolve to the wrong book**. All four
+`items[n].cover_md` scalars reuse `img-src`/`img-link`; all uses currently point
+to SICP's definitions on lines 55–56. For example, `occ-fa824c3b370e2fe8`
+at books.yml line 12 should target `https://cnbbooks.github.io/lfe-manual`,
+with its definition at line 10, rather than SICP. The nested image must use
+line 9's manual cover. Tutorial lines 25–27 and casting-spels lines 40–42
+have the same error. All eight definition keys say `items[0]`,
+misidentifying the six definitions owned by items 1–3. Namespace references by
+repository, file, exact scalar/index and normalized reference label.
+
+Of **38 independently parsed Link/Image nodes in 61 rich Markdown fields**,
+19 have no matching same-field/correct-target occurrence: these six wrong
+reference targets plus **13 omitted inline nodes**. Ten are author
+`links[n].label_md_inline`; the others are callouts `items[0].prefix_md_inline`
+(`/images/discord-logo.png`), features `items[0].icon_md_inline`
+(`/images/lisplogo-alien-tech-grey.png`) and `items[2].title_md_inline`
+(`https://www.youtube.com/watch?v=rRbY3TMUcgQ`). Their HTML siblings do not
+stand in for their Markdown source occurrences. Relative omissions also show
+why the absolute-URL scan's zero-unclassified result is insufficient.
+
+Mirror `mirror-2b18e5eb74670456` claims author Markdown bytes `[197,323]`,
+lines 7–8, including the next HTML sibling; its Markdown occurrence list is
+empty. Verify scalar boundaries and raw tokens as well as line containment.
+Repair all applicable fields/definitions/mirror joins, not only these examples.
+
+### R8 — Resolve exact consumer ownership and real conditions
+
+The consumer joins still use field-name similarity instead of alias scope.
+Books `site.data.home.books.title` and `book.title` both list root `title`
+and item `items[*].title`; root and item `link_url` similarly collide.
+Build It `build.title` also incorrectly includes root `title_html`.
+Only a scope-resolved access can establish a direct consumer edge.
+
+- Excerpts consumer `consumer-6563d80aab573532` omits `items[*].code_html`
+  and `items[*].desc_html`, interpolated at masthead lines 35/39, including
+  the first excerpt's `/images/repl.png` resource. Its two loops and
+  `forloop.index` branches are substantive context.
+- Masthead `logo_image` and features `link_url`/`link_text` are presented as
+  consumed by their includes, which never access them. Retain such fields as
+  having no observed direct consumer; separate prerender inputs from direct
+  interpolations. Do not infer a consumer from a similarly named field.
+- Authors' aggregate `field_path` includes nonexistent `[author-id].url`;
+  their five secondary website witnesses carry the **planning** HEAD b5a7c50.
+  They lack proper qualified access locators. Record post's map-key selection,
+  assignment to `author`, github_user/elsif-avatar branches, links-size check
+  and `link.label_html` loop, plus each actual consuming layout.
+- Blog has two identical aggregate source-consumer claims
+  (`consumer-603472390ecb9b5f`, `consumer-621b5cb7daec4aab`). Normalize genuinely
+  duplicate claims with an explicit mapping while retaining distinct edges.
+  `blog_resolve::run` lines 107–135 writes `authors_sorted` and default covers
+  into `blog_resolved`; blog-authors.liquid line 24 uses `authors_sorted`.
+  This generated edge is absent. Covers also have direct `site.data.blog`
+  consumers; record both actual paths rather than replacing one with the other.
+- Nav is included by twelve layouts, not just home. `current.lfe` at post
+  line 80 is conditional on `page.data.written_for` (lines 75–83). Blanket
+  “context retained in locators” prose is not a recorded branch or chain.
+
+Trace every declared promotion field/access through its exact root, loop/index
+alias or generated transformation, role, conditional extent and callers.
+Field existence alone cannot prove a consumer association.
+
+### R9 — Join eleven families by evidence meaning
+
+All eleven inherited names/boundaries are restored, but their reference lists
+remain heuristic. Historical papers has **zero current references** while
+Learn contains three local PDF links at lines 120–122 and Moonual/Chineual at
+154; it instead attaches all 61 Erlang source IDs without membership reasons.
+Main gateway omits its five actual page keys. Community omits community.md.
+Book catalogue has no book entrance joins despite four README/config/SUMMARY
+sets; Earlier documentation generations has no legacy-index entrance joins.
+
+Audit all eleven arrays, not just their counts or resolvability. Cite a concrete
+membership reason for each inherited/current association, distinguish direct
+family coverage from contextual cross-links, include real source populations
+and avoid attaching every source that happens to match a broad word. Existing
+raw inherited catalogues remain correct and must stay unchanged.
+
+Entrance label interpretation also remains inconsistent outside SUMMARY:
+manual README lines 15/17 `[Writing Phases]` is stored `WritingPhases` despite
+claiming a complete Markdown projection. Apply the corrected inline-text
+semantics across all declared entrance projections, retaining raw tokens.
+This is entrance-source repair, not a full book-body audit.
+
+### R10 — Classify evidence roles and reconcile the actual proof
+
+Four non-link feed fields (`title` twice, `date_published`, `summary`) are
+classified as navigation and included in destinations. The JSON Feed schema
+version URI also needs its technical-identifier role distinguished from reader
+navigation. Keep metadata evidence in an appropriate non-resource projection;
+derive groups/counts only from actual source resources. Retain exact expressions.
+
+Reconcile all coverage/gaps, mirrors, references, consumer/family counts and
+current summary/close/readback after repair. The 951 absolute-URL candidates
+and 543 template tokens prove their named scan/classification properties only;
+they cannot establish relative/scalar/consumer completeness. Keep scope and
+location in candidate accounting so an HTML sibling cannot cover a Markdown use.
+
+CC's reused 98-check harness still tested the **initial** b5a7c50→d629b7a
+delivery scope/receipt. CDC's fresh replay updates those predicates to the actual
+fba7706→1b9ab34 correction/receipt. Correct any current claim that this old
+predicate established iteration01's scoped committed return. Record actual
+commands, results, semantic denominators and triggered context read extents;
+retain CC's 98-check run as its attested attempt, not as overall acceptance.
+
+### Current complete row walk and next action
+
+| ID | CDC status | Evidence and remaining obligation |
+| --- | --- | --- |
+| S2-01 | done | Fresh eight-root/population/fingerprint/pin replay, exact immutable values and repaired 104-ID provenance index; restored original contract. Independent reproduced acceptance. |
+| S2-02 | open | Actual default/mechanism repairs retained; R8 exact consumer/generated ownership and branches remain. |
+| S2-03 | open | 159 metadata values and repaired declaration witnesses retained; R7/R10 complete source-construct/fragment coverage must be reconciled before whole-row acceptance. |
+| S2-04 | open | Structural literal grouping/fragment joins pass; R7 missing/wrong rich sources, R8 consumers and R10 roles prevent acceptance. |
+| S2-05 | open | Complete related filename sets and all 966 SUMMARY comparisons pass; R9 related entrance labels/joins remain. |
+| S2-06 | open | Literal eleven-family boundaries pass; R9 membership and R10 real gap/check handoffs remain. |
+| S2-07 | open | Correction receipts reviewed at attested strength; source omissions contradict completeness/readback; R7–R10 fresh actual proof and bounded context receipts remain. |
+| S2-08 | open | Seven-path evidence/one-report receipt and source/input/prompt preservation reproduced; R10 current all-row return and calibrated bubble-up remain. |
+
+What worked: the original contract, census, metadata, rule witnesses and SUMMARY
+labels have been recovered without source drift. What must improve: same-file
+membership, field existence, locator range validity and green counts must not
+substitute for scalar scope, alias resolution or semantic family membership.
+No capability/sequence/criterion amendment is needed. This is the second
+corrective refinement within the existing slice; no source-extraction deferral
+is accepted. Plans/ledgers record the new status; project composition remains
+open, with A1-01 alone done and all 23 project rows open.
+
+**Next owner:** CC implements [cc-prompt-iteration02.md](cc-prompt-iteration02.md),
+relayed by Duncan, then returns fresh evidence to CDC. S2-01 stays accepted only
+while its unchanged inputs/subclaims continue to apply; proposed completion of
+the other seven rows remains open pending independent review. No later slice
+is opened and no artifact correction was implemented by CDC.
+
+### Iteration02 handoff validation
+
+The eight-path planning delta contains only project/arc/slice plans and ledgers,
+this appended review and the new iteration02 prompt. All original criteria,
+verifiers, significance and origin are equal to 1b9ab34; project/slice Notes are
+unchanged, and the arc child-status note is updated explicitly. All six CC
+artifact/report files and both issued prompts are byte-identical to 1b9ab34.
+The historical review is retained as an exact prefix. Versions/current assignment
+agree: project v1.6, arc v1.4, slice v1.2; 23 project rows open, A1-01 alone done,
+S2-01 done and seven child rows open.
+
+The incidental `/tmp/project099-cdc-slice02-iteration02-handoff.py` passes
+exact tracked-plus-untracked allowlist, status/criteria/preservation, rendered
+local Markdown links, UTF-8/newlines/whitespace, manifest source-path existence,
+eight fresh live root projections/ordered populations, all 2,839 working hashes
+and all eight input working/pinned-object hashes. A draft handoff predicate
+incorrectly demanded the dynamic arc status note stay identical; it was bounded
+to invariant contract cells and project/slice Notes. A missing planning-root
+lookup in that helper was corrected before the passing source replay. An
+unverified illustrative definition ID was removed from the unissued prompt;
+the construction now requires exact lookup from the real scalar-scope record.
+These were author/checker draft corrections, not additional CC defects.
+No source/CC artifact repairs or scope changes were made by CDC. Final
+`git diff --check`, exact-path commit and committed-tree/status checks finish
+this handoff; the new prompt must still be implemented by CC.
