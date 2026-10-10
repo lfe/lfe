@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 arc: arc01-evidence-baseline
-version: "1.6"
+version: "1.7"
 date: 2026-10-09
 status: active
 depends-on: []
@@ -50,8 +50,8 @@ checkouts require an isolated, explicit method in the relevant slice contract.
 
 ## Slice breakdown
 
-Slice01 is accepted and Slice02 remains open for correction iteration04;
-S2-01, S2-03 and S2-05 are accepted, five child rows remain open.
+Slice01 is accepted and Slice02 remains open for receipt-only iteration05;
+S2-01–06 are accepted, S2-07/08 remain open. Was: three done, five open at iteration04 issue.
 Was: Slice02 initial assignment opened after Slice01 acceptance; before that,
 only Slice01 opened.
 Later descriptions define capabilities and inputs;
@@ -60,7 +60,7 @@ their full open sets are prepared immediately before assignment.
 | Slice / eventual directory | Delivered piece | Inputs / dependencies | Status |
 | --- | --- | --- | --- |
 | Slice01 — `slice01-baseline-intake` | Preserved-input provenance, local repository/source map, and complete reconciliation of the inherited assessment/question registers | Saved first-steps packet, approved parent plan, read-only local metadata and bounded source witnesses | Closed; all eight rows independently accepted at 9111268; initial failed review preserved |
-| Slice02 — `slice02-local-inventory` | Complete inventory of the agreed local site content, route/anchor declarations, resource promotions, and legacy-source entrances | Accepted Slice01 provenance/populations; inspect actual Cobalt/wrapper semantics before claiming output routes | Open; iteration03 reviewed: S2-01 retained, S2-03/S2-05 accepted; bounded R14–R15 correction iteration04 issued; five rows open |
+| Slice02 — `slice02-local-inventory` | Complete inventory of the agreed local site content, route/anchor declarations, resource promotions, and legacy-source entrances | Accepted Slice01 provenance/populations; inspect actual Cobalt/wrapper semantics before claiming output routes | Open; iteration04 reviewed: S2-01–06 accepted; receipt-only R16 iteration05 issued; two rows open |
 | Slice03 — `slice03-resource-verification` | Targeted external destination and source/rendered readiness checks with coverage limits | Accepted Slice02 destinations; Slice01 inherited findings; read-only retrieval/rendering method defined at opening | Planned |
 | Slice04 — `slice04-technical-intake` | Technical evidence packet for release/container/environment questions and the reported runtime failure | Slice01 repository/provenance map; Slice03 relevant observations; actual Operator-provided failure context where available | Planned |
 | Slice05 — `slice05-baseline-reconciliation` | Reconciled evidence/coverage/finding register and concrete handoffs to consuming arcs | Accepted Slices01–04 and their explicit gaps/dispositions | Planned |
@@ -134,17 +134,18 @@ prepare/open Slice02 immediately unless an unresolved gate prevents it. Do not
 fabricate closure, relax evidence, or change an issued prompt to advance faster.
 
 Current assignment:
-`slice02-local-inventory/cc-prompt-iteration04.md`, correction, issued through
-the Operator on 9 October 2026. Was: iterations03/02/01 and initial `cc-prompt.md`.
-CDC reviewed iteration03 at fb83798b + 6a43ab2: all 114 structural predicates,
-6,844 source locators, 61 rich-input edges and qualified author/legacy witnesses
-pass. S2-01 is retained; S2-03's source declaration scope and S2-05's related
-entrance scope are independently accepted. Five Slice02 rows remain open for
-R14 author aggregate source fields/alias-role consistency and R15 precise
-required-reading/validation receipts. The [review](slice02-local-inventory/cdc-verification.md)
-and prior candidates/prompts are preserved. These findings require current
-status/assignment maintenance, not capability, sequencing or criterion changes.
-Slice03 stays behind the existing acceptance gate. Slice01's correction at 9d3a7e1 + 9111268 is
+`slice02-local-inventory/cc-prompt-iteration05.md`, receipt correction, issued
+through the Operator on 9 October 2026. Was: iterations04/03/02/01 and initial
+`cc-prompt.md`. CDC reviewed e9dc003 + 2112713: all 114 structural predicates,
+6,940 locators and 133 author/preservation predicates pass. S2-02/04/06 are
+accepted, retaining S2-01/03/05; six rows done and two open. R16 is confined to
+precise CDC-review source revision and complete Workflow/Current state reading
+receipts with their scoped return. The [review](slice02-local-inventory/cdc-verification.md)
+and all candidates/prompts are preserved. No capability, sequencing or criterion
+change is required. Slice03 stays behind the existing acceptance gate. This
+fifth refinement exhausts the existing fix-loop budget if it fails to converge;
+any further assignment requires an explicit Operator decision or authorized
+re-scoping. Slice01's correction at 9d3a7e1 + 9111268 is
 independently accepted; all eight rows are done. Was: Slice01 iteration01
 active with four open rows. Both Slice01 prompts and the initial failed review
 remain preserved. Its bubble-up requires no capability, scope, sequence or
@@ -165,3 +166,4 @@ The inherited `../artifacts/first-steps/` packet stays in place.
 | 1.4 | 2026-10-09 | Slice02 iteration01 / CDC review | Accept S2-01 and retain repaired subclaims; issue iteration02 for R7–R10 with seven child rows open and Slice03 gated; no structural or criterion amendment |
 | 1.5 | 2026-10-09 | Slice02 iteration02 / CDC review | Retain S2-01 and valid repaired subclaims; issue bounded iteration03 for R11–R13 with seven child rows open and Slice03 gated; no structural or criterion amendment |
 | 1.6 | 2026-10-09 | Slice02 iteration03 / CDC review | Accept S2-03/S2-05, retain S2-01; issue bounded iteration04 for R14–R15 with five child rows open and Slice03 gated; no structural or criterion amendment |
+| 1.7 | 2026-10-09 | Slice02 iteration04 / CDC review | Accept S2-02/04/06 and retain S2-01/03/05; issue receipt-only iteration05 for R16 with two rows open and Slice03 gated; no structural or criterion amendment |

@@ -2,7 +2,7 @@
 project: project099-site-ia
 arc: arc01-evidence-baseline
 slice: slice02-local-inventory
-version: "1.4"
+version: "1.5"
 date: 2026-10-09
 status: active
 depends-on: [slice01-baseline-intake]
@@ -19,23 +19,26 @@ route/anchor declarations, resource promotions and legacy-source entrances.
 [Slice01](../slice01-baseline-intake/cdc-verification.md) is independently
 accepted at 9111268, all eight rows done. Duncan's approved roadmap and
 Expedited Mode authorize this next slice. Governing parents are
-[project-plan.md](../../project-plan.md) v1.8 and [arc-plan.md](../arc-plan.md)
-v1.6. The original eight-column sibling ledger at b5a7c50 defines the unchanged
+[project-plan.md](../../project-plan.md) v1.9 and [arc-plan.md](../arc-plan.md)
+v1.7. The original eight-column sibling ledger at b5a7c50 defines the unchanged
 acceptance contract; iteration01 restores that table, preserving initial proposals.
 
-Current assignment: [cc-prompt-iteration04.md](cc-prompt-iteration04.md),
-correction R14–R15, issued through Duncan to a separate CC context. Iteration03
-at fb83798b + 6a43ab2 was reviewed: all 114 structural predicates and 6,844
-source locators pass; all 61 rich-input edges and current branch/source
-qualifications are independently reproduced. S2-01 remains done; S2-03 and
-S2-05 are now accepted for their declared source scopes. Five rows remain open
-for the author aggregate's omitted real source fields/alias-role inconsistency
-and precise required-intake/validation receipts. No source drift was found.
-Was: [cc-prompt-iteration03.md](cc-prompt-iteration03.md), R11–R13; iterations02/01
-and [cc-prompt.md](cc-prompt.md). Prior attempts and successful extraction,
-metadata, reference, family, mechanism and entrance subclaims remain preserved
-in [cdc-verification.md](cdc-verification.md). No source-extraction deferral,
-output/live acceptance or criterion amendment is adopted. Slice03 remains gated.
+Current assignment: [cc-prompt-iteration05.md](cc-prompt-iteration05.md),
+receipt-only R16 correction, issued through Duncan to a separate CC context.
+Iteration04 at e9dc003 + 2112713 passes 114 structural predicates, 6,940 locators
+and 133 focused author/preservation predicates. CDC accepts S2-02/04/06 and
+retains S2-01/03/05: six rows done, S2-07/08 open. The author source census and
+current source-gap handoff are accepted; only the inaccurate CDC-review source
+revision and incomplete parent Workflow/Current state receipt extents with
+current return reconciliation remain. No source drift, source-extraction
+deferral, output/live acceptance or criterion amendment is adopted. Was:
+[cc-prompt-iteration04.md](cc-prompt-iteration04.md), R14–R15, and earlier
+iterations03/02/01/initial pass. All valid extraction/mechanism/declaration/
+consumer/family/entrance evidence is retained in
+[cdc-verification.md](cdc-verification.md). Slice03 remains gated. Fifth and
+last refinement under the existing fix-loop budget; a further failed return
+requires an explicit Operator decision or authorized re-scoping, not an
+automatic sixth prompt.
 CDC is Sofie in the desktop planning chat.
 No automatic dispatch or CRC role is selected. Issued prompts stay immutable.
 
@@ -166,7 +169,8 @@ not independent acceptance of CC output.
 | `cc-prompt-iteration01.md` — correction | 2026-10-09 | `cc-prompt.md`; b43acb7 + d629b7a | Restore contract; finish extraction and accurate witness/consumer/label/family/coverage evidence | Returned at 30b58c3 + 1b9ab34; CDC accepts S2-01 and retains repaired subclaims; R7–R10 remain |
 | `cc-prompt-iteration02.md` — correction | 2026-10-09 | `cc-prompt-iteration01.md`; 30b58c3 + 1b9ab34 | Correct scalar scope/rich extraction, exact consumer/generated associations, semantic family/entrance joins and calibrated proof | Returned at 89f1ebb3 + cc401dd + ecc4993; CDC retains repaired extraction and S2-01; R11–R13 remain |
 | `cc-prompt-iteration03.md` — correction | 2026-10-09 | `cc-prompt-iteration02.md`; 89f1ebb3 + cc401dd + ecc4993 | Reconcile copied derived coverage/qualifiers, real prerender roles and author aliases/branches, and current honest proof | Returned at fb83798b + 6a43ab2; CDC retains S2-01, accepts S2-03/S2-05; narrow R14–R15 remain |
-| `cc-prompt-iteration04.md` — correction | 2026-10-09 | `cc-prompt-iteration03.md`; fb83798b + 6a43ab2 | Complete author aggregate source-field roles and precise current intake/proof receipts; preserve verified joins | Active; fourth corrective refinement issued through Operator for CC implementation and independent CDC return |
+| `cc-prompt-iteration04.md` — correction | 2026-10-09 | `cc-prompt-iteration03.md`; fb83798b + 6a43ab2 | Complete author aggregate source-field roles and precise current intake/proof receipts; preserve verified joins | Returned at e9dc003 + 2112713; CDC accepts S2-02/04/06, retains S2-01/03/05; R16 receipts remain |
+| `cc-prompt-iteration05.md` — correction | 2026-10-09 | `cc-prompt-iteration04.md`; e9dc003 + 2112713 | Correct receipt source revision/full parent-section boundaries and current scoped return; all three JSON registers frozen | Active; fifth and last refinement within existing budget; CC implements and returns for independent CDC review |
 
 Record this prompt's opening Git object and digest at intake. Follow-ups get
 new slice-root iteration paths; do not overwrite this issued assignment.
@@ -230,6 +234,23 @@ input/value equality. Expected intake/query budget is 20–30k tokens plus repai
 headroom, using lossless chunks. No architecture, scope or criterion decision
 is unresolved. CDC repairs no CC artifacts; readiness is not acceptance.
 
+### Iteration05 author readiness
+
+CDC independently validates the complete corrected author graph and protected
+inputs, then compares affected required-reading extents to the cited source object.
+The concrete remaining errors are the nonexistent review extent at 6a43ab2
+(actual review text resides at 3745443) and the parent section end boundaries
+455/500 versus 456/522 at 3745443. Source reading is attested, not inferred from
+hashes or prose. The receipt recipe reloads those exact historical contexts and
+current authority, preserves old assertions as history, and records honest
+current evidence without retrospective reconstruction. Prompt-authoring intake,
+work-verification retention and proportionate proof bound the correction to
+four existing Markdown paths; all three JSON registers and source checkouts
+are frozen. A 12–18k-token intake/query allowance plus recovery headroom is
+sufficient; no architecture, scope, criterion or source interpretation choice
+remains open. This is the fifth refinement, not a new budget. CDC has repaired
+no CC artifact. Author readiness remains separate from independent acceptance.
+
 ## Version History
 
 | Version | Date | Origin | Change |
@@ -239,3 +260,4 @@ is unresolved. CDC repairs no CC artifacts; readiness is not acceptance.
 | 1.2 | 2026-10-09 | Slice02 iteration01 / CDC review | Accept S2-01; preserve valid restored contract/provenance/rules/metadata/SUMMARY subclaims; issue iteration02 for R7–R10 with seven rows open; no acceptance amendment |
 | 1.3 | 2026-10-09 | Slice02 iteration02 / CDC review | Retain S2-01 and valid extraction/consumer/family subclaims; issue bounded iteration03 for R11–R13 copied coverage/qualification, roles/branches and calibrated proof; seven rows open; no criterion amendment |
 | 1.4 | 2026-10-09 | Slice02 iteration03 / CDC review | Accept S2-03/S2-05 and retain S2-01; issue bounded iteration04 for R14 author aggregate and R15 precise intake/proof receipts; five rows open; unchanged criteria |
+| 1.5 | 2026-10-09 | Slice02 iteration04 / CDC review | Accept S2-02/04/06 and retain S2-01/03/05; issue receipt-only iteration05 for R16 with two rows open; unchanged criteria; preserve five-pass budget |

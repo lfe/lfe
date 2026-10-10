@@ -874,3 +874,178 @@ SHA-256 is d3a90431375f8dbf219e03d24da33b0c0e3a85812a7055944b636656fadbd35e.
 Commit these eight CDC paths only and compare the committed tree with actual
 working bytes before handoff. This is an implementation assignment requiring
 CC's correction and a subsequent independent CDC return.
+
+## Iteration04 independent CDC review — 2026-10-09
+
+**Reviewer:** Sofie, CDC, independent of CC's evidence production.
+**Assignment:** cc-prompt-iteration04.md at opening
+3745443cfc0608f27d4a82d11adf792043ed8615, SHA-256
+d3a90431375f8dbf219e03d24da33b0c0e3a85812a7055944b636656fadbd35e.
+**Candidate:** e9dc003048c2fb008e62a7075a718e0aa61ad289, tree
+de167164abb1235480fa5bb8bb704ba9d2a85b1b; closing-report-only receipt
+2112713d5673f186e7a6d00a4ee4f2d925d56794. Planning was clean before CDC edits.
+
+**Verdict:** R14's substantive author correction passes. Accept **S2-02,
+S2-04 and S2-06**, retain S2-01/03/05: six rows done, S2-07/08 open. R16 narrows
+remaining R15 work to three source/extent discrepancies in the current intake
+receipt and its scoped return. No criterion change, source-extraction deferral,
+emitted/live acceptance or higher-scale composition acceptance is adopted.
+
+### Fresh checks and retained independent evidence
+
+`python3 /tmp/project099-cdc-slice02-iteration04-structural.py` passes **114/114**
+core predicates. All **6,940 locator objects** match owning source HEAD/hash,
+line ranges and absolute byte-span/line correspondence: zero errors. This
+fresh replay uses the eight stored native Git root/head/branch/status queries,
+complete ordered filename queries, website partitions, all 2,839 working
+hashes/sizes/Git modes/HEAD blob qualifications and eight input hashes/pins.
+Eight roots and 2,819 population entries match; 2,835 files equal HEAD and
+four previously qualified dirty Rust files retain working/HEAD distinctions.
+Website is main 036e231b; language clean develop 0aa820e; all other source
+states match their recorded projections. No source drift or edit occurs.
+Whole original capture/assignment/provenance/metadata and 29/16/104 raw cells/
+IDs remain preserved. The scanner subpredicate uses the retained prior 346-path
+output with unchanged inputs; no fresh scanner CLI or wrapper execution is claimed.
+
+`python3 /tmp/project099-cdc-slice02-iteration04-review.py` independently passes
+**133 author/preservation predicates**. Source expectation comes from complete
+`yq -o=json . -` decoding of the actual authors YAML; a separate header/key/index
+line walk locates each field rather than deriving membership from CC joins.
+All six actual author entries yield **50 unique paths**: 24 scalar leaves,
+six links collections, ten Markdown inputs, ten HTML siblings. Current roles
+are exactly **40 direct / 10 prerender**, with one current projection. All
+50 source joins resolve their real path, source line, YAML value type and
+consumer role. Ten input joins match unchanged mirror/edge/sibling IDs and
+locators. The former alias-role object is explicitly retired with exact prior
+values, while current alias/map selection evidence remains separate.
+
+All **36 direct-access occurrence witnesses** match raw source bytes. A whole
+independent token/loop census across the five layouts compares source file,
+raw access and byte start/end with the recorded multiset: no missing/extra.
+All **198 source-qualified locator objects in the author record** pass hash,
+HEAD, range and span checks. Collection joins resolve both size/loop access
+groups; ordinary scalars and indexed labels resolve existing valid aliases.
+Conditional source access is recorded without claiming every author was emitted.
+
+One membership-plus-uniqueness predicate accepts current 50/50 paths and rejects
+the predecessor 30-path aggregate (20 omissions), removed real path, duplicate
+path and all six predecessor alias tokens as real fields. Positive controls
+retain Anurag's actual null GitHub/avatar values and empty links collection;
+these do not create a fictitious link/prerender edge. Source-compatible helper
+repairs distinguish YAML `sequence` from an initially assumed JSON `array`,
+plural collection access groups from scalar groups, and authorized descriptive
+field/coverage/retired-gap changes from protected data. Those initial CDC
+comparator failures are retained here as checker assumptions, not CC defects;
+no candidate artifact was edited to make the checks pass.
+
+Whole-value comparisons show all eleven other consumers unchanged. Author
+map aliases, five layout qualifiers, branch witnesses and all ten author input
+edges remain exact; all 61 site rich-input edges/mirrors remain unchanged.
+Every unrelated resource top-level value is equal; coverage changes only its
+bounded meaning string, and gaps change only the author-census observation
+plus exact explicitly retired predecessor observation. Owners/re-entry data
+are unchanged. Inventory and route JSON are byte-equal to opening/predecessor.
+All five issued prompts are byte-equal to their opening inputs. Exact evidence
+and opening-to-receipt diffs contain the five authorized changed paths only;
+receipt changes closing-report.md alone. All five committed working files
+match 2112713 bytes; candidate whitespace and clean planning checks pass.
+
+Retain earlier independently checked default/config/wrapper/prerender/blog/
+sitemap/pagination mechanisms; all 159 metadata/source-route units, 255 heading/
+17 explicit-ID/135 nonempty-fragment records; 1,447 source occurrences/804 groups;
+827 ordinary Markdown/426 HTML and 38 rich Markdown/39 rich HTML projections;
+84 scoped definitions/97 uses; 951 lexical URL candidates/56 exclusions/543
+residual tokens; four Build It targets; full 966 SUMMARY/27 related entrances;
+and eleven family walks/104 inherited source IDs. Their precise inputs, source
+hashes, criteria and relevant complete values are unchanged, and the author
+delta cannot affect those predicates. This is retention of the earlier CDC
+methods/results, not a new CC run or wholesale rerun of extraction. Newly
+changed aggregate joins/gap meaning are independently inspected above.
+
+### R16 — Receipt source identity and complete parent-section extents
+
+At execution.md's Iteration04 manifest, the CDC review row labels its source
+“at 6a43ab2” and receipt extent 685–876. Direct `git show 6a43ab2:<review-path>`
+has **683 lines**, so that source object cannot contain the stated range.
+The required Iteration03 review text is stored at **3745443**, lines 685–876;
+**fb83798b + 6a43ab2 is its assessed candidate**, a different identity. Correct
+that qualification explicitly rather than treating an assessed receipt commit
+as the document's source revision.
+
+The parent-plan manifest declares complete Workflow at lines 411–455 and
+complete Current state at 476–500. At project-plan v1.8 / 3745443 the whole
+named sections are **413–456** and **478–522**. Line 456 finishes the source-
+reconnaissance/design sentence; 501–522 includes actual current assignment,
+Slice03/composition gates and CI/artifact limits. Earlier starting lines do
+not compensate for missing ends. Other inspected manifest extents, including
+summary's actual Iteration03 section at 44–48 within 35–48 and independent-
+verification's complete retention section through 85 within 1–87, do cover
+their required text; no extra defect is inferred from those broader ranges.
+
+CDC does not infer what CC actually read, accuse it of unread text, or infer
+attention/comprehension from a receipt. The recorded source/ranges simply do
+not establish the asserted complete intake. Preserve them as history; reload
+these exact contexts and current authority now, append precise current read
+receipts/recovery and supersede their current completeness claims. Existing
+execution/summary/ledger/closing files suffice. No author/resource/declaration
+repair or another evidence product is needed. Receipt checks reject the wrong
+source object/partial endpoints through the same identity/section predicate;
+these establish consistency, not reading or understanding. Reads remain attested.
+
+### Complete row walk, retention and bubble-up
+
+| ID | CDC status | Independent evidence / remaining condition |
+| --- | --- | --- |
+| S2-01 | done | Prior acceptance retained with fresh eight-root/population/file/pin/raw-provenance replay |
+| S2-02 | done | Corrected complete author source/path/role/access graph and qualified mechanisms independently pass; prior unaffected wrapper/config/default/blog/sitemap/pagination proof retained |
+| S2-03 | done | Iteration03 source declaration acceptance retained through unchanged inventory/route bytes, source identities and original criteria |
+| S2-04 | done | Newly affected author aggregate plus all declared source construct/consumer projections meet original criterion; complete protected arrays/61 edges and earlier independent extraction/control evidence retained; output expansion remains explicit unknown |
+| S2-05 | done | Iteration03 related filename/entrance acceptance retained through complete protected values and unchanged source inputs |
+| S2-06 | done | Revised gap observation accurately describes the independently checked author-map scope; all eleven family walks/IDs/owners/re-entry conditions remain valid and no source extraction obligation is passed downstream |
+| S2-07 | open | Fresh checks/controls/failed attempts and improved readback pass within bounds; R16 source revision and complete parent-section receipts remain |
+| S2-08 | open | Five-path commit/range/receipt/committed bytes, prompt/input/source preservation and complete artifact/row walk pass; R16 precise current intake and resulting scoped return remain |
+
+Scope specified/delivered: the six-author census and source-accounting repairs
+are delivered and independently accepted. Complete final intake evidence is
+still missing as described by R16; no silent drop or source deferral is adopted.
+Five supporting artifacts reside under artifacts/; all issued assignments,
+plan/ledger/closing/CDC records remain in the slice root. The actual changed
+set is five of the permitted seven paths, not seven mandatory edits.
+
+**Arc01 bubble-up:** the accepted source capability and its limits fit the
+existing Slice02 breakdown. No scope, sequence, architecture, acceptance or
+structural arc amendment is required. Slice03 owns endpoint/source/rendered
+readiness, Slice04 runtime facts, Slice05 cross-register composition and Arc11
+migration decisions. These handoffs remain evidence limits, not opened work.
+Slice02/Arc01 remain open; Slice03 remains gated; A1-01 alone is done and all
+23 project rows remain open. What Worked: a source-map census including empty/
+null entries, one exact membership predicate and independent raw-access joins
+resolve the source defects while preserving previously verified work.
+
+**Next owner:** CC implements [cc-prompt-iteration05.md](cc-prompt-iteration05.md),
+relayed by Duncan, then returns for CDC review. All three JSON registers are
+frozen; only four existing Markdown deliverables may change. CDC has repaired
+no CC artifact. This is the fifth and last refinement within the existing
+budget; a failed return requires an explicit Operator decision or authorized
+re-scoping before further work, not an automatic sixth iteration.
+
+### Iteration05 handoff validation
+
+`python3 /tmp/project099-cdc-slice02-iteration05-handoff.py` passes the exact
+eight-path CDC tracked-plus-untracked allowlist, unchanged Criterion/Verify/
+Significance/Origin and project/slice Notes, all 23 project rows open, A1-01
+alone done, S2-01–06 done and S2-07/08 open. Five CC supporting artifacts,
+closing report and five predecessor prompts are byte-equal to 2112713; this
+review preserves the entire earlier record as an exact prefix. Current project
+v1.9, arc v1.7 and slice v1.5 consistently name iteration05. Local rendered
+links, UTF-8/newlines/trailing whitespace, eight fresh source-root/ordered
+population projections, all 2,839 working hashes and eight working/pinned input
+hashes pass. `git diff --check` passes. A separate native Git-object/heading
+query verifies the 683-line wrong source versus the 876-line actual review;
+Workflow substantive end 456 (blank separator 457) and Current state boundary
+522 reject the predecessor 455/500 ends. Blank separators are explicitly
+permitted in the recipe, avoiding an irrelevant whitespace-only boundary test.
+New prompt SHA-256:
+187b4b9a194ac89fb01e3f8dc6fa49d991b18fd9711c8ba6a701a4f4b839bbe9.
+Commit only these eight paths, verify the actual committed tree/working bytes
+and clean planning status, then relay this CC implementation assignment.
