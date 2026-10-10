@@ -58950,7 +58950,7 @@
     {
       "id": "consumer-629617d9d8878455",
       "data_source": "src/_data/authors.yml",
-      "field_path": "author_entry[0] key match; author_entry[1] assigned author; author name/github_user/avatar/bio/links fields",
+      "field_path": "Six actual slug-keyed author mappings with name/github_user/avatar/bio/links; each indexed link has label_md_inline and label_html (expanded actual paths in field_paths).",
       "consumer_source": "src/_layouts/post.liquid",
       "template_or_source_access": "site.data.authors → author_entry loop and author fields",
       "include_layout_chain": "Cobalt post layout; blog archive/category/tag/author layouts also iterate site.data.authors",
@@ -58987,36 +58987,56 @@
       "source_context": "github_user:",
       "consumer_context": "for author_entry in site.data.authors",
       "field_paths": [
-        "duncan-mcgreggor.links[0].label_md_inline",
-        "duncan-mcgreggor.links[1].label_md_inline",
-        "robert-virding.links[0].label_md_inline",
-        "robert-virding.links[1].label_md_inline",
-        "fred-hebert.links[0].label_md_inline",
-        "fred-hebert.links[1].label_md_inline",
-        "eric-bailey.links[0].label_md_inline",
-        "lfe-maintainers.links[0].label_md_inline",
-        "lfe-maintainers.links[1].label_md_inline",
-        "lfe-maintainers.links[2].label_md_inline",
         "duncan-mcgreggor.name",
         "duncan-mcgreggor.github_user",
         "duncan-mcgreggor.avatar",
         "duncan-mcgreggor.bio",
+        "duncan-mcgreggor.links",
+        "duncan-mcgreggor.links[0].label_md_inline",
+        "duncan-mcgreggor.links[0].label_html",
+        "duncan-mcgreggor.links[1].label_md_inline",
+        "duncan-mcgreggor.links[1].label_html",
         "robert-virding.name",
         "robert-virding.github_user",
         "robert-virding.avatar",
         "robert-virding.bio",
+        "robert-virding.links",
+        "robert-virding.links[0].label_md_inline",
+        "robert-virding.links[0].label_html",
+        "robert-virding.links[1].label_md_inline",
+        "robert-virding.links[1].label_html",
         "fred-hebert.name",
         "fred-hebert.github_user",
         "fred-hebert.avatar",
         "fred-hebert.bio",
+        "fred-hebert.links",
+        "fred-hebert.links[0].label_md_inline",
+        "fred-hebert.links[0].label_html",
+        "fred-hebert.links[1].label_md_inline",
+        "fred-hebert.links[1].label_html",
         "eric-bailey.name",
         "eric-bailey.github_user",
         "eric-bailey.avatar",
         "eric-bailey.bio",
+        "eric-bailey.links",
+        "eric-bailey.links[0].label_md_inline",
+        "eric-bailey.links[0].label_html",
+        "anurag-mendhekar.name",
+        "anurag-mendhekar.github_user",
+        "anurag-mendhekar.avatar",
+        "anurag-mendhekar.bio",
+        "anurag-mendhekar.links",
         "lfe-maintainers.name",
         "lfe-maintainers.github_user",
         "lfe-maintainers.avatar",
-        "lfe-maintainers.bio"
+        "lfe-maintainers.bio",
+        "lfe-maintainers.links",
+        "lfe-maintainers.links[0].label_md_inline",
+        "lfe-maintainers.links[0].label_html",
+        "lfe-maintainers.links[1].label_md_inline",
+        "lfe-maintainers.links[1].label_html",
+        "lfe-maintainers.links[2].label_md_inline",
+        "lfe-maintainers.links[2].label_html"
       ],
       "consumer_sources": [
         {
@@ -59603,41 +59623,6 @@
           }
         }
       ],
-      "iteration02_field_roles": {
-        "direct_access_fields": [
-          "author_entry[0]",
-          "author_entry[1].name",
-          "author_entry[1].github_user",
-          "author_entry[1].avatar",
-          "author_entry[1].bio",
-          "author_entry[1].links[*].label_html"
-        ],
-        "prerender_input_fields": [
-          "duncan-mcgreggor.links[0].label_md_inline",
-          "duncan-mcgreggor.links[1].label_md_inline",
-          "robert-virding.links[0].label_md_inline",
-          "robert-virding.links[1].label_md_inline",
-          "fred-hebert.links[0].label_md_inline",
-          "fred-hebert.links[1].label_md_inline",
-          "eric-bailey.links[0].label_md_inline",
-          "lfe-maintainers.links[0].label_md_inline",
-          "lfe-maintainers.links[1].label_md_inline",
-          "lfe-maintainers.links[2].label_md_inline"
-        ],
-        "no_observed_direct_access_fields": [],
-        "iteration03_prerender_input_fields": [
-          "duncan-mcgreggor.links[0].label_md_inline",
-          "duncan-mcgreggor.links[1].label_md_inline",
-          "robert-virding.links[0].label_md_inline",
-          "robert-virding.links[1].label_md_inline",
-          "fred-hebert.links[0].label_md_inline",
-          "fred-hebert.links[1].label_md_inline",
-          "eric-bailey.links[0].label_md_inline",
-          "lfe-maintainers.links[0].label_md_inline",
-          "lfe-maintainers.links[1].label_md_inline",
-          "lfe-maintainers.links[2].label_md_inline"
-        ]
-      },
       "iteration02_access_status": "Historical Iteration02 status; Iteration03 expands all ten YAML label paths and their sibling/prerender/direct-layout edges. Runtime remains unobserved.",
       "iteration03_prerender_input_edges": [
         {
@@ -60731,7 +60716,1986 @@
             ]
           }
         }
-      ]
+      ],
+      "iteration02_field_roles_retired": {
+        "status": "historical; retired as the current source-path classification by Iteration04",
+        "prior_values": {
+          "direct_access_fields": [
+            "author_entry[0]",
+            "author_entry[1].name",
+            "author_entry[1].github_user",
+            "author_entry[1].avatar",
+            "author_entry[1].bio",
+            "author_entry[1].links[*].label_html"
+          ],
+          "prerender_input_fields": [
+            "duncan-mcgreggor.links[0].label_md_inline",
+            "duncan-mcgreggor.links[1].label_md_inline",
+            "robert-virding.links[0].label_md_inline",
+            "robert-virding.links[1].label_md_inline",
+            "fred-hebert.links[0].label_md_inline",
+            "fred-hebert.links[1].label_md_inline",
+            "eric-bailey.links[0].label_md_inline",
+            "lfe-maintainers.links[0].label_md_inline",
+            "lfe-maintainers.links[1].label_md_inline",
+            "lfe-maintainers.links[2].label_md_inline"
+          ],
+          "no_observed_direct_access_fields": [],
+          "iteration03_prerender_input_fields": [
+            "duncan-mcgreggor.links[0].label_md_inline",
+            "duncan-mcgreggor.links[1].label_md_inline",
+            "robert-virding.links[0].label_md_inline",
+            "robert-virding.links[1].label_md_inline",
+            "fred-hebert.links[0].label_md_inline",
+            "fred-hebert.links[1].label_md_inline",
+            "eric-bailey.links[0].label_md_inline",
+            "lfe-maintainers.links[0].label_md_inline",
+            "lfe-maintainers.links[1].label_md_inline",
+            "lfe-maintainers.links[2].label_md_inline"
+          ]
+        },
+        "reason": "Iteration02 direct_access_fields contained Liquid aliases rather than YAML paths; retain as history, do not read as current path inventory."
+      },
+      "iteration04_author_access_witnesses": {
+        "author.name": [
+          {
+            "access_raw": "author.name",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/post.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+              "line_start": 51,
+              "line_end": 51,
+              "byte_span": [
+                1656,
+                1667
+              ]
+            }
+          },
+          {
+            "access_raw": "author.name",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/post.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+              "line_start": 53,
+              "line_end": 53,
+              "byte_span": [
+                1796,
+                1807
+              ]
+            }
+          },
+          {
+            "access_raw": "author.name",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/post.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+              "line_start": 58,
+              "line_end": 58,
+              "byte_span": [
+                2116,
+                2127
+              ]
+            }
+          },
+          {
+            "access_raw": "author.name",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/post.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+              "line_start": 58,
+              "line_end": 58,
+              "byte_span": [
+                2133,
+                2144
+              ]
+            }
+          },
+          {
+            "access_raw": "author.name",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/post.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+              "line_start": 101,
+              "line_end": 101,
+              "byte_span": [
+                4039,
+                4050
+              ]
+            }
+          },
+          {
+            "access_raw": "author.name",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/post.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+              "line_start": 103,
+              "line_end": 103,
+              "byte_span": [
+                4179,
+                4190
+              ]
+            }
+          },
+          {
+            "access_raw": "author.name",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/post.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+              "line_start": 108,
+              "line_end": 108,
+              "byte_span": [
+                4537,
+                4548
+              ]
+            }
+          },
+          {
+            "access_raw": "author.name",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-author.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+              "line_start": 30,
+              "line_end": 30,
+              "byte_span": [
+                877,
+                888
+              ]
+            }
+          },
+          {
+            "access_raw": "author.name",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-author.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+              "line_start": 32,
+              "line_end": 32,
+              "byte_span": [
+                1009,
+                1020
+              ]
+            }
+          },
+          {
+            "access_raw": "author.name",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-author.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+              "line_start": 34,
+              "line_end": 34,
+              "byte_span": [
+                1127,
+                1138
+              ]
+            }
+          },
+          {
+            "access_raw": "author.name",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-author.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+              "line_start": 37,
+              "line_end": 37,
+              "byte_span": [
+                1261,
+                1272
+              ]
+            }
+          },
+          {
+            "access_raw": "author_entry[1].name",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-archive.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "2553dbaec260783878c3e10039dbc0888566730897e06427a4bcdc96a43fb531",
+              "line_start": 40,
+              "line_end": 40,
+              "byte_span": [
+                1376,
+                1396
+              ]
+            }
+          },
+          {
+            "access_raw": "author_entry[1].name",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-categories.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "0714877d8705e8bea4d79cccd98668d8e57666d8c7b2daa7caf3873761a1d753",
+              "line_start": 40,
+              "line_end": 40,
+              "byte_span": [
+                1451,
+                1471
+              ]
+            }
+          },
+          {
+            "access_raw": "author_entry[1].name",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-tags.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "20402edcfcbf676f41fad607d3dbbefd4563110731ef94970c592b6b2098c902",
+              "line_start": 40,
+              "line_end": 40,
+              "byte_span": [
+                1374,
+                1394
+              ]
+            }
+          }
+        ],
+        "author.github_user": [
+          {
+            "access_raw": "author.github_user",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/post.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+              "line_start": 50,
+              "line_end": 50,
+              "byte_span": [
+                1533,
+                1551
+              ]
+            }
+          },
+          {
+            "access_raw": "author.github_user",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/post.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+              "line_start": 51,
+              "line_end": 51,
+              "byte_span": [
+                1620,
+                1638
+              ]
+            }
+          },
+          {
+            "access_raw": "author.github_user",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/post.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+              "line_start": 100,
+              "line_end": 100,
+              "byte_span": [
+                3915,
+                3933
+              ]
+            }
+          },
+          {
+            "access_raw": "author.github_user",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/post.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+              "line_start": 101,
+              "line_end": 101,
+              "byte_span": [
+                4002,
+                4020
+              ]
+            }
+          },
+          {
+            "access_raw": "author.github_user",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-author.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+              "line_start": 29,
+              "line_end": 29,
+              "byte_span": [
+                757,
+                775
+              ]
+            }
+          },
+          {
+            "access_raw": "author.github_user",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-author.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+              "line_start": 30,
+              "line_end": 30,
+              "byte_span": [
+                840,
+                858
+              ]
+            }
+          }
+        ],
+        "author.avatar": [
+          {
+            "access_raw": "author.avatar",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/post.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+              "line_start": 52,
+              "line_end": 52,
+              "byte_span": [
+                1726,
+                1739
+              ]
+            }
+          },
+          {
+            "access_raw": "author.avatar",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/post.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+              "line_start": 53,
+              "line_end": 53,
+              "byte_span": [
+                1770,
+                1783
+              ]
+            }
+          },
+          {
+            "access_raw": "author.avatar",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/post.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+              "line_start": 102,
+              "line_end": 102,
+              "byte_span": [
+                4109,
+                4122
+              ]
+            }
+          },
+          {
+            "access_raw": "author.avatar",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/post.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+              "line_start": 103,
+              "line_end": 103,
+              "byte_span": [
+                4153,
+                4166
+              ]
+            }
+          },
+          {
+            "access_raw": "author.avatar",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-author.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+              "line_start": 31,
+              "line_end": 31,
+              "byte_span": [
+                943,
+                956
+              ]
+            }
+          },
+          {
+            "access_raw": "author.avatar",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-author.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+              "line_start": 32,
+              "line_end": 32,
+              "byte_span": [
+                983,
+                996
+              ]
+            }
+          }
+        ],
+        "author.bio": [
+          {
+            "access_raw": "author.bio",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/post.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+              "line_start": 109,
+              "line_end": 109,
+              "byte_span": [
+                4587,
+                4597
+              ]
+            }
+          },
+          {
+            "access_raw": "author.bio",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/post.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+              "line_start": 110,
+              "line_end": 110,
+              "byte_span": [
+                4623,
+                4633
+              ]
+            }
+          },
+          {
+            "access_raw": "author.bio",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-author.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+              "line_start": 38,
+              "line_end": 38,
+              "byte_span": [
+                1299,
+                1309
+              ]
+            }
+          },
+          {
+            "access_raw": "author.bio",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-author.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+              "line_start": 39,
+              "line_end": 39,
+              "byte_span": [
+                1360,
+                1370
+              ]
+            }
+          }
+        ],
+        "author.links.size": [
+          {
+            "access_raw": "author.links.size",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/post.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+              "line_start": 112,
+              "line_end": 112,
+              "byte_span": [
+                4691,
+                4708
+              ]
+            }
+          },
+          {
+            "access_raw": "author.links.size",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-author.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+              "line_start": 41,
+              "line_end": 41,
+              "byte_span": [
+                1420,
+                1437
+              ]
+            }
+          }
+        ],
+        "author.links loop": [
+          {
+            "access_raw": "author.links",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/post.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+              "line_start": 114,
+              "line_end": 114,
+              "byte_span": [
+                4796,
+                4808
+              ]
+            }
+          },
+          {
+            "access_raw": "author.links",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-author.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+              "line_start": 43,
+              "line_end": 43,
+              "byte_span": [
+                1517,
+                1529
+              ]
+            }
+          }
+        ],
+        "link.label_html": [
+          {
+            "access_raw": "link.label_html",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/post.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "77286daad4e332e4f5cdb83df0ee067f3e02537738e99c82440d90ce755dc2f7",
+              "line_start": 115,
+              "line_end": 115,
+              "byte_span": [
+                4837,
+                4852
+              ]
+            }
+          },
+          {
+            "access_raw": "link.label_html",
+            "locator": {
+              "repository_id": "website",
+              "path": "src/_layouts/blog-author.liquid",
+              "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+              "working_sha256": "f80c4b121b21ecf72279e032043598defb10c214b1043a690e8c7f0f54e06230",
+              "line_start": 44,
+              "line_end": 44,
+              "byte_span": [
+                1554,
+                1569
+              ]
+            }
+          }
+        ]
+      },
+      "iteration04_source_field_joins": [
+        {
+          "source_field_path": "duncan-mcgreggor.name",
+          "field_kind": "scalar",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 2,
+            "line_end": 2,
+            "yaml_key_or_index": "duncan-mcgreggor.name",
+            "byte_span": [
+              20,
+              24
+            ]
+          },
+          "consumer_alias": "author.name",
+          "access_witness_group": "author.name"
+        },
+        {
+          "source_field_path": "duncan-mcgreggor.github_user",
+          "field_kind": "scalar",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 3,
+            "line_end": 3,
+            "yaml_key_or_index": "duncan-mcgreggor.github_user",
+            "byte_span": [
+              45,
+              56
+            ]
+          },
+          "consumer_alias": "author.github_user",
+          "access_witness_group": "author.github_user"
+        },
+        {
+          "source_field_path": "duncan-mcgreggor.avatar",
+          "field_kind": "scalar",
+          "value_type": "null",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 4,
+            "line_end": 4,
+            "yaml_key_or_index": "duncan-mcgreggor.avatar",
+            "byte_span": [
+              69,
+              75
+            ]
+          },
+          "consumer_alias": "author.avatar",
+          "access_witness_group": "author.avatar"
+        },
+        {
+          "source_field_path": "duncan-mcgreggor.bio",
+          "field_kind": "scalar",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 5,
+            "line_end": 5,
+            "yaml_key_or_index": "duncan-mcgreggor.bio",
+            "byte_span": [
+              84,
+              87
+            ]
+          },
+          "consumer_alias": "author.bio",
+          "access_witness_group": "author.bio"
+        },
+        {
+          "source_field_path": "duncan-mcgreggor.links",
+          "field_kind": "collection",
+          "value_type": "sequence",
+          "collection_length": 2,
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 6,
+            "line_end": 6,
+            "yaml_key_or_index": "duncan-mcgreggor.links",
+            "byte_span": [
+              190,
+              195
+            ]
+          },
+          "consumer_alias": "author.links",
+          "access_witness_groups": [
+            "author.links.size",
+            "author.links loop"
+          ]
+        },
+        {
+          "source_field_path": "duncan-mcgreggor.links[0].label_md_inline",
+          "field_kind": "indexed_link_leaf",
+          "value_type": "string",
+          "role": "prerender_input",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 7,
+            "line_end": 7,
+            "yaml_key_or_index": "duncan-mcgreggor.links[0].label_md_inline",
+            "byte_span": [
+              218,
+              257
+            ]
+          },
+          "mirror_id": "mirror-2b18e5eb74670456",
+          "html_sibling_field_path": "duncan-mcgreggor.links[0].label_html",
+          "html_sibling_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 8,
+            "line_end": 8,
+            "yaml_key_or_index": "duncan-mcgreggor.links[0].label_html",
+            "byte_span": [
+              274,
+              322
+            ]
+          },
+          "consumer_role": "recursive prerender input; see existing Iteration03 edge",
+          "prerender_edge_id": "mirror-2b18e5eb74670456"
+        },
+        {
+          "source_field_path": "duncan-mcgreggor.links[0].label_html",
+          "field_kind": "indexed_link_leaf",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 8,
+            "line_end": 8,
+            "yaml_key_or_index": "duncan-mcgreggor.links[0].label_html",
+            "byte_span": [
+              274,
+              322
+            ]
+          },
+          "mirror_id": "mirror-2b18e5eb74670456",
+          "markdown_input_sibling_path": "duncan-mcgreggor.links[0].label_md_inline",
+          "consumer_alias": "link.label_html",
+          "access_witness_group": "link.label_html"
+        },
+        {
+          "source_field_path": "duncan-mcgreggor.links[1].label_md_inline",
+          "field_kind": "indexed_link_leaf",
+          "value_type": "string",
+          "role": "prerender_input",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 9,
+            "line_end": 9,
+            "yaml_key_or_index": "duncan-mcgreggor.links[1].label_md_inline",
+            "byte_span": [
+              344,
+              391
+            ]
+          },
+          "mirror_id": "mirror-a6da0fea57df49bb",
+          "html_sibling_field_path": "duncan-mcgreggor.links[1].label_html",
+          "html_sibling_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 10,
+            "line_end": 10,
+            "yaml_key_or_index": "duncan-mcgreggor.links[1].label_html",
+            "byte_span": [
+              408,
+              464
+            ]
+          },
+          "consumer_role": "recursive prerender input; see existing Iteration03 edge",
+          "prerender_edge_id": "mirror-a6da0fea57df49bb"
+        },
+        {
+          "source_field_path": "duncan-mcgreggor.links[1].label_html",
+          "field_kind": "indexed_link_leaf",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 10,
+            "line_end": 10,
+            "yaml_key_or_index": "duncan-mcgreggor.links[1].label_html",
+            "byte_span": [
+              408,
+              464
+            ]
+          },
+          "mirror_id": "mirror-a6da0fea57df49bb",
+          "markdown_input_sibling_path": "duncan-mcgreggor.links[1].label_md_inline",
+          "consumer_alias": "link.label_html",
+          "access_witness_group": "link.label_html"
+        },
+        {
+          "source_field_path": "robert-virding.name",
+          "field_kind": "scalar",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 12,
+            "line_end": 12,
+            "yaml_key_or_index": "robert-virding.name",
+            "byte_span": [
+              483,
+              487
+            ]
+          },
+          "consumer_alias": "author.name",
+          "access_witness_group": "author.name"
+        },
+        {
+          "source_field_path": "robert-virding.github_user",
+          "field_kind": "scalar",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 13,
+            "line_end": 13,
+            "yaml_key_or_index": "robert-virding.github_user",
+            "byte_span": [
+              506,
+              517
+            ]
+          },
+          "consumer_alias": "author.github_user",
+          "access_witness_group": "author.github_user"
+        },
+        {
+          "source_field_path": "robert-virding.avatar",
+          "field_kind": "scalar",
+          "value_type": "null",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 14,
+            "line_end": 14,
+            "yaml_key_or_index": "robert-virding.avatar",
+            "byte_span": [
+              530,
+              536
+            ]
+          },
+          "consumer_alias": "author.avatar",
+          "access_witness_group": "author.avatar"
+        },
+        {
+          "source_field_path": "robert-virding.bio",
+          "field_kind": "scalar",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 15,
+            "line_end": 15,
+            "yaml_key_or_index": "robert-virding.bio",
+            "byte_span": [
+              545,
+              548
+            ]
+          },
+          "consumer_alias": "author.bio",
+          "access_witness_group": "author.bio"
+        },
+        {
+          "source_field_path": "robert-virding.links",
+          "field_kind": "collection",
+          "value_type": "sequence",
+          "collection_length": 2,
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 16,
+            "line_end": 16,
+            "yaml_key_or_index": "robert-virding.links",
+            "byte_span": [
+              657,
+              662
+            ]
+          },
+          "consumer_alias": "author.links",
+          "access_witness_groups": [
+            "author.links.size",
+            "author.links loop"
+          ]
+        },
+        {
+          "source_field_path": "robert-virding.links[0].label_md_inline",
+          "field_kind": "indexed_link_leaf",
+          "value_type": "string",
+          "role": "prerender_input",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 17,
+            "line_end": 17,
+            "yaml_key_or_index": "robert-virding.links[0].label_md_inline",
+            "byte_span": [
+              685,
+              724
+            ]
+          },
+          "mirror_id": "mirror-31d67b065b2d3a54",
+          "html_sibling_field_path": "robert-virding.links[0].label_html",
+          "html_sibling_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 18,
+            "line_end": 18,
+            "yaml_key_or_index": "robert-virding.links[0].label_html",
+            "byte_span": [
+              741,
+              789
+            ]
+          },
+          "consumer_role": "recursive prerender input; see existing Iteration03 edge",
+          "prerender_edge_id": "mirror-31d67b065b2d3a54"
+        },
+        {
+          "source_field_path": "robert-virding.links[0].label_html",
+          "field_kind": "indexed_link_leaf",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 18,
+            "line_end": 18,
+            "yaml_key_or_index": "robert-virding.links[0].label_html",
+            "byte_span": [
+              741,
+              789
+            ]
+          },
+          "mirror_id": "mirror-31d67b065b2d3a54",
+          "markdown_input_sibling_path": "robert-virding.links[0].label_md_inline",
+          "consumer_alias": "link.label_html",
+          "access_witness_group": "link.label_html"
+        },
+        {
+          "source_field_path": "robert-virding.links[1].label_md_inline",
+          "field_kind": "indexed_link_leaf",
+          "value_type": "string",
+          "role": "prerender_input",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 19,
+            "line_end": 19,
+            "yaml_key_or_index": "robert-virding.links[1].label_md_inline",
+            "byte_span": [
+              811,
+              856
+            ]
+          },
+          "mirror_id": "mirror-4e768b5021311ee0",
+          "html_sibling_field_path": "robert-virding.links[1].label_html",
+          "html_sibling_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 20,
+            "line_end": 20,
+            "yaml_key_or_index": "robert-virding.links[1].label_html",
+            "byte_span": [
+              873,
+              927
+            ]
+          },
+          "consumer_role": "recursive prerender input; see existing Iteration03 edge",
+          "prerender_edge_id": "mirror-4e768b5021311ee0"
+        },
+        {
+          "source_field_path": "robert-virding.links[1].label_html",
+          "field_kind": "indexed_link_leaf",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 20,
+            "line_end": 20,
+            "yaml_key_or_index": "robert-virding.links[1].label_html",
+            "byte_span": [
+              873,
+              927
+            ]
+          },
+          "mirror_id": "mirror-4e768b5021311ee0",
+          "markdown_input_sibling_path": "robert-virding.links[1].label_md_inline",
+          "consumer_alias": "link.label_html",
+          "access_witness_group": "link.label_html"
+        },
+        {
+          "source_field_path": "fred-hebert.name",
+          "field_kind": "scalar",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 22,
+            "line_end": 22,
+            "yaml_key_or_index": "fred-hebert.name",
+            "byte_span": [
+              943,
+              947
+            ]
+          },
+          "consumer_alias": "author.name",
+          "access_witness_group": "author.name"
+        },
+        {
+          "source_field_path": "fred-hebert.github_user",
+          "field_kind": "scalar",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 23,
+            "line_end": 23,
+            "yaml_key_or_index": "fred-hebert.github_user",
+            "byte_span": [
+              964,
+              975
+            ]
+          },
+          "consumer_alias": "author.github_user",
+          "access_witness_group": "author.github_user"
+        },
+        {
+          "source_field_path": "fred-hebert.avatar",
+          "field_kind": "scalar",
+          "value_type": "null",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 24,
+            "line_end": 24,
+            "yaml_key_or_index": "fred-hebert.avatar",
+            "byte_span": [
+              984,
+              990
+            ]
+          },
+          "consumer_alias": "author.avatar",
+          "access_witness_group": "author.avatar"
+        },
+        {
+          "source_field_path": "fred-hebert.bio",
+          "field_kind": "scalar",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 25,
+            "line_end": 25,
+            "yaml_key_or_index": "fred-hebert.bio",
+            "byte_span": [
+              999,
+              1002
+            ]
+          },
+          "consumer_alias": "author.bio",
+          "access_witness_group": "author.bio"
+        },
+        {
+          "source_field_path": "fred-hebert.links",
+          "field_kind": "collection",
+          "value_type": "sequence",
+          "collection_length": 2,
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 26,
+            "line_end": 26,
+            "yaml_key_or_index": "fred-hebert.links",
+            "byte_span": [
+              1080,
+              1085
+            ]
+          },
+          "consumer_alias": "author.links",
+          "access_witness_groups": [
+            "author.links.size",
+            "author.links loop"
+          ]
+        },
+        {
+          "source_field_path": "fred-hebert.links[0].label_md_inline",
+          "field_kind": "indexed_link_leaf",
+          "value_type": "string",
+          "role": "prerender_input",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 27,
+            "line_end": 27,
+            "yaml_key_or_index": "fred-hebert.links[0].label_md_inline",
+            "byte_span": [
+              1108,
+              1143
+            ]
+          },
+          "mirror_id": "mirror-1c2cf8058f8d6c69",
+          "html_sibling_field_path": "fred-hebert.links[0].label_html",
+          "html_sibling_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 28,
+            "line_end": 28,
+            "yaml_key_or_index": "fred-hebert.links[0].label_html",
+            "byte_span": [
+              1160,
+              1204
+            ]
+          },
+          "consumer_role": "recursive prerender input; see existing Iteration03 edge",
+          "prerender_edge_id": "mirror-1c2cf8058f8d6c69"
+        },
+        {
+          "source_field_path": "fred-hebert.links[0].label_html",
+          "field_kind": "indexed_link_leaf",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 28,
+            "line_end": 28,
+            "yaml_key_or_index": "fred-hebert.links[0].label_html",
+            "byte_span": [
+              1160,
+              1204
+            ]
+          },
+          "mirror_id": "mirror-1c2cf8058f8d6c69",
+          "markdown_input_sibling_path": "fred-hebert.links[0].label_md_inline",
+          "consumer_alias": "link.label_html",
+          "access_witness_group": "link.label_html"
+        },
+        {
+          "source_field_path": "fred-hebert.links[1].label_md_inline",
+          "field_kind": "indexed_link_leaf",
+          "value_type": "string",
+          "role": "prerender_input",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 29,
+            "line_end": 29,
+            "yaml_key_or_index": "fred-hebert.links[1].label_md_inline",
+            "byte_span": [
+              1226,
+              1254
+            ]
+          },
+          "mirror_id": "mirror-49772cffabbfc1a2",
+          "html_sibling_field_path": "fred-hebert.links[1].label_html",
+          "html_sibling_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 30,
+            "line_end": 30,
+            "yaml_key_or_index": "fred-hebert.links[1].label_html",
+            "byte_span": [
+              1271,
+              1308
+            ]
+          },
+          "consumer_role": "recursive prerender input; see existing Iteration03 edge",
+          "prerender_edge_id": "mirror-49772cffabbfc1a2"
+        },
+        {
+          "source_field_path": "fred-hebert.links[1].label_html",
+          "field_kind": "indexed_link_leaf",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 30,
+            "line_end": 30,
+            "yaml_key_or_index": "fred-hebert.links[1].label_html",
+            "byte_span": [
+              1271,
+              1308
+            ]
+          },
+          "mirror_id": "mirror-49772cffabbfc1a2",
+          "markdown_input_sibling_path": "fred-hebert.links[1].label_md_inline",
+          "consumer_alias": "link.label_html",
+          "access_witness_group": "link.label_html"
+        },
+        {
+          "source_field_path": "eric-bailey.name",
+          "field_kind": "scalar",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 32,
+            "line_end": 32,
+            "yaml_key_or_index": "eric-bailey.name",
+            "byte_span": [
+              1324,
+              1328
+            ]
+          },
+          "consumer_alias": "author.name",
+          "access_witness_group": "author.name"
+        },
+        {
+          "source_field_path": "eric-bailey.github_user",
+          "field_kind": "scalar",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 33,
+            "line_end": 33,
+            "yaml_key_or_index": "eric-bailey.github_user",
+            "byte_span": [
+              1344,
+              1355
+            ]
+          },
+          "consumer_alias": "author.github_user",
+          "access_witness_group": "author.github_user"
+        },
+        {
+          "source_field_path": "eric-bailey.avatar",
+          "field_kind": "scalar",
+          "value_type": "null",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 34,
+            "line_end": 34,
+            "yaml_key_or_index": "eric-bailey.avatar",
+            "byte_span": [
+              1367,
+              1373
+            ]
+          },
+          "consumer_alias": "author.avatar",
+          "access_witness_group": "author.avatar"
+        },
+        {
+          "source_field_path": "eric-bailey.bio",
+          "field_kind": "scalar",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 35,
+            "line_end": 35,
+            "yaml_key_or_index": "eric-bailey.bio",
+            "byte_span": [
+              1382,
+              1385
+            ]
+          },
+          "consumer_alias": "author.bio",
+          "access_witness_group": "author.bio"
+        },
+        {
+          "source_field_path": "eric-bailey.links",
+          "field_kind": "collection",
+          "value_type": "sequence",
+          "collection_length": 1,
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 36,
+            "line_end": 36,
+            "yaml_key_or_index": "eric-bailey.links",
+            "byte_span": [
+              1415,
+              1420
+            ]
+          },
+          "consumer_alias": "author.links",
+          "access_witness_groups": [
+            "author.links.size",
+            "author.links loop"
+          ]
+        },
+        {
+          "source_field_path": "eric-bailey.links[0].label_md_inline",
+          "field_kind": "indexed_link_leaf",
+          "value_type": "string",
+          "role": "prerender_input",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 37,
+            "line_end": 37,
+            "yaml_key_or_index": "eric-bailey.links[0].label_md_inline",
+            "byte_span": [
+              1443,
+              1481
+            ]
+          },
+          "mirror_id": "mirror-235a2d692d337029",
+          "html_sibling_field_path": "eric-bailey.links[0].label_html",
+          "html_sibling_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 38,
+            "line_end": 38,
+            "yaml_key_or_index": "eric-bailey.links[0].label_html",
+            "byte_span": [
+              1498,
+              1545
+            ]
+          },
+          "consumer_role": "recursive prerender input; see existing Iteration03 edge",
+          "prerender_edge_id": "mirror-235a2d692d337029"
+        },
+        {
+          "source_field_path": "eric-bailey.links[0].label_html",
+          "field_kind": "indexed_link_leaf",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 38,
+            "line_end": 38,
+            "yaml_key_or_index": "eric-bailey.links[0].label_html",
+            "byte_span": [
+              1498,
+              1545
+            ]
+          },
+          "mirror_id": "mirror-235a2d692d337029",
+          "markdown_input_sibling_path": "eric-bailey.links[0].label_md_inline",
+          "consumer_alias": "link.label_html",
+          "access_witness_group": "link.label_html"
+        },
+        {
+          "source_field_path": "anurag-mendhekar.name",
+          "field_kind": "scalar",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 40,
+            "line_end": 40,
+            "yaml_key_or_index": "anurag-mendhekar.name",
+            "byte_span": [
+              1566,
+              1570
+            ]
+          },
+          "consumer_alias": "author.name",
+          "access_witness_group": "author.name"
+        },
+        {
+          "source_field_path": "anurag-mendhekar.github_user",
+          "field_kind": "scalar",
+          "value_type": "null",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 41,
+            "line_end": 41,
+            "yaml_key_or_index": "anurag-mendhekar.github_user",
+            "byte_span": [
+              1591,
+              1602
+            ]
+          },
+          "consumer_alias": "author.github_user",
+          "access_witness_group": "author.github_user"
+        },
+        {
+          "source_field_path": "anurag-mendhekar.avatar",
+          "field_kind": "scalar",
+          "value_type": "null",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 42,
+            "line_end": 42,
+            "yaml_key_or_index": "anurag-mendhekar.avatar",
+            "byte_span": [
+              1611,
+              1617
+            ]
+          },
+          "consumer_alias": "author.avatar",
+          "access_witness_group": "author.avatar"
+        },
+        {
+          "source_field_path": "anurag-mendhekar.bio",
+          "field_kind": "scalar",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 43,
+            "line_end": 43,
+            "yaml_key_or_index": "anurag-mendhekar.bio",
+            "byte_span": [
+              1626,
+              1629
+            ]
+          },
+          "consumer_alias": "author.bio",
+          "access_witness_group": "author.bio"
+        },
+        {
+          "source_field_path": "anurag-mendhekar.links",
+          "field_kind": "collection",
+          "value_type": "sequence",
+          "collection_length": 0,
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 44,
+            "line_end": 44,
+            "yaml_key_or_index": "anurag-mendhekar.links",
+            "byte_span": [
+              1729,
+              1734
+            ]
+          },
+          "consumer_alias": "author.links",
+          "access_witness_groups": [
+            "author.links.size",
+            "author.links loop"
+          ]
+        },
+        {
+          "source_field_path": "lfe-maintainers.name",
+          "field_kind": "scalar",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 46,
+            "line_end": 46,
+            "yaml_key_or_index": "lfe-maintainers.name",
+            "byte_span": [
+              1758,
+              1762
+            ]
+          },
+          "consumer_alias": "author.name",
+          "access_witness_group": "author.name"
+        },
+        {
+          "source_field_path": "lfe-maintainers.github_user",
+          "field_kind": "scalar",
+          "value_type": "null",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 47,
+            "line_end": 47,
+            "yaml_key_or_index": "lfe-maintainers.github_user",
+            "byte_span": [
+              1782,
+              1793
+            ]
+          },
+          "consumer_alias": "author.github_user",
+          "access_witness_group": "author.github_user"
+        },
+        {
+          "source_field_path": "lfe-maintainers.avatar",
+          "field_kind": "scalar",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 48,
+            "line_end": 48,
+            "yaml_key_or_index": "lfe-maintainers.avatar",
+            "byte_span": [
+              1802,
+              1808
+            ]
+          },
+          "consumer_alias": "author.avatar",
+          "access_witness_group": "author.avatar"
+        },
+        {
+          "source_field_path": "lfe-maintainers.bio",
+          "field_kind": "scalar",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 49,
+            "line_end": 49,
+            "yaml_key_or_index": "lfe-maintainers.bio",
+            "byte_span": [
+              1860,
+              1863
+            ]
+          },
+          "consumer_alias": "author.bio",
+          "access_witness_group": "author.bio"
+        },
+        {
+          "source_field_path": "lfe-maintainers.links",
+          "field_kind": "collection",
+          "value_type": "sequence",
+          "collection_length": 3,
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 50,
+            "line_end": 50,
+            "yaml_key_or_index": "lfe-maintainers.links",
+            "byte_span": [
+              1886,
+              1891
+            ]
+          },
+          "consumer_alias": "author.links",
+          "access_witness_groups": [
+            "author.links.size",
+            "author.links loop"
+          ]
+        },
+        {
+          "source_field_path": "lfe-maintainers.links[0].label_md_inline",
+          "field_kind": "indexed_link_leaf",
+          "value_type": "string",
+          "role": "prerender_input",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 51,
+            "line_end": 51,
+            "yaml_key_or_index": "lfe-maintainers.links[0].label_md_inline",
+            "byte_span": [
+              1914,
+              1948
+            ]
+          },
+          "mirror_id": "mirror-d94cb87f3fffd6b3",
+          "html_sibling_field_path": "lfe-maintainers.links[0].label_html",
+          "html_sibling_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 52,
+            "line_end": 52,
+            "yaml_key_or_index": "lfe-maintainers.links[0].label_html",
+            "byte_span": [
+              1965,
+              2008
+            ]
+          },
+          "consumer_role": "recursive prerender input; see existing Iteration03 edge",
+          "prerender_edge_id": "mirror-d94cb87f3fffd6b3"
+        },
+        {
+          "source_field_path": "lfe-maintainers.links[0].label_html",
+          "field_kind": "indexed_link_leaf",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 52,
+            "line_end": 52,
+            "yaml_key_or_index": "lfe-maintainers.links[0].label_html",
+            "byte_span": [
+              1965,
+              2008
+            ]
+          },
+          "mirror_id": "mirror-d94cb87f3fffd6b3",
+          "markdown_input_sibling_path": "lfe-maintainers.links[0].label_md_inline",
+          "consumer_alias": "link.label_html",
+          "access_witness_group": "link.label_html"
+        },
+        {
+          "source_field_path": "lfe-maintainers.links[1].label_md_inline",
+          "field_kind": "indexed_link_leaf",
+          "value_type": "string",
+          "role": "prerender_input",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 53,
+            "line_end": 53,
+            "yaml_key_or_index": "lfe-maintainers.links[1].label_md_inline",
+            "byte_span": [
+              2030,
+              2057
+            ]
+          },
+          "mirror_id": "mirror-f6cc4fa45262b297",
+          "html_sibling_field_path": "lfe-maintainers.links[1].label_html",
+          "html_sibling_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 54,
+            "line_end": 54,
+            "yaml_key_or_index": "lfe-maintainers.links[1].label_html",
+            "byte_span": [
+              2074,
+              2110
+            ]
+          },
+          "consumer_role": "recursive prerender input; see existing Iteration03 edge",
+          "prerender_edge_id": "mirror-f6cc4fa45262b297"
+        },
+        {
+          "source_field_path": "lfe-maintainers.links[1].label_html",
+          "field_kind": "indexed_link_leaf",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 54,
+            "line_end": 54,
+            "yaml_key_or_index": "lfe-maintainers.links[1].label_html",
+            "byte_span": [
+              2074,
+              2110
+            ]
+          },
+          "mirror_id": "mirror-f6cc4fa45262b297",
+          "markdown_input_sibling_path": "lfe-maintainers.links[1].label_md_inline",
+          "consumer_alias": "link.label_html",
+          "access_witness_group": "link.label_html"
+        },
+        {
+          "source_field_path": "lfe-maintainers.links[2].label_md_inline",
+          "field_kind": "indexed_link_leaf",
+          "value_type": "string",
+          "role": "prerender_input",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 55,
+            "line_end": 55,
+            "yaml_key_or_index": "lfe-maintainers.links[2].label_md_inline",
+            "byte_span": [
+              2132,
+              2172
+            ]
+          },
+          "mirror_id": "mirror-311f08e81e92f91a",
+          "html_sibling_field_path": "lfe-maintainers.links[2].label_html",
+          "html_sibling_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 56,
+            "line_end": 56,
+            "yaml_key_or_index": "lfe-maintainers.links[2].label_html",
+            "byte_span": [
+              2189,
+              2238
+            ]
+          },
+          "consumer_role": "recursive prerender input; see existing Iteration03 edge",
+          "prerender_edge_id": "mirror-311f08e81e92f91a"
+        },
+        {
+          "source_field_path": "lfe-maintainers.links[2].label_html",
+          "field_kind": "indexed_link_leaf",
+          "value_type": "string",
+          "role": "direct_access",
+          "source_locator": {
+            "repository_id": "website",
+            "path": "src/_data/authors.yml",
+            "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "working_sha256": "b5b21ba44c23d6c53c6c47ddf4c7742550a6e00cba468dd6d9f344e61a916ee6",
+            "line_start": 56,
+            "line_end": 56,
+            "yaml_key_or_index": "lfe-maintainers.links[2].label_html",
+            "byte_span": [
+              2189,
+              2238
+            ]
+          },
+          "mirror_id": "mirror-311f08e81e92f91a",
+          "markdown_input_sibling_path": "lfe-maintainers.links[2].label_md_inline",
+          "consumer_alias": "link.label_html",
+          "access_witness_group": "link.label_html"
+        }
+      ],
+      "iteration04_field_roles": {
+        "source_field_paths": [
+          "duncan-mcgreggor.name",
+          "duncan-mcgreggor.github_user",
+          "duncan-mcgreggor.avatar",
+          "duncan-mcgreggor.bio",
+          "duncan-mcgreggor.links",
+          "duncan-mcgreggor.links[0].label_md_inline",
+          "duncan-mcgreggor.links[0].label_html",
+          "duncan-mcgreggor.links[1].label_md_inline",
+          "duncan-mcgreggor.links[1].label_html",
+          "robert-virding.name",
+          "robert-virding.github_user",
+          "robert-virding.avatar",
+          "robert-virding.bio",
+          "robert-virding.links",
+          "robert-virding.links[0].label_md_inline",
+          "robert-virding.links[0].label_html",
+          "robert-virding.links[1].label_md_inline",
+          "robert-virding.links[1].label_html",
+          "fred-hebert.name",
+          "fred-hebert.github_user",
+          "fred-hebert.avatar",
+          "fred-hebert.bio",
+          "fred-hebert.links",
+          "fred-hebert.links[0].label_md_inline",
+          "fred-hebert.links[0].label_html",
+          "fred-hebert.links[1].label_md_inline",
+          "fred-hebert.links[1].label_html",
+          "eric-bailey.name",
+          "eric-bailey.github_user",
+          "eric-bailey.avatar",
+          "eric-bailey.bio",
+          "eric-bailey.links",
+          "eric-bailey.links[0].label_md_inline",
+          "eric-bailey.links[0].label_html",
+          "anurag-mendhekar.name",
+          "anurag-mendhekar.github_user",
+          "anurag-mendhekar.avatar",
+          "anurag-mendhekar.bio",
+          "anurag-mendhekar.links",
+          "lfe-maintainers.name",
+          "lfe-maintainers.github_user",
+          "lfe-maintainers.avatar",
+          "lfe-maintainers.bio",
+          "lfe-maintainers.links",
+          "lfe-maintainers.links[0].label_md_inline",
+          "lfe-maintainers.links[0].label_html",
+          "lfe-maintainers.links[1].label_md_inline",
+          "lfe-maintainers.links[1].label_html",
+          "lfe-maintainers.links[2].label_md_inline",
+          "lfe-maintainers.links[2].label_html"
+        ],
+        "direct_access_fields": [
+          "duncan-mcgreggor.name",
+          "duncan-mcgreggor.github_user",
+          "duncan-mcgreggor.avatar",
+          "duncan-mcgreggor.bio",
+          "duncan-mcgreggor.links",
+          "duncan-mcgreggor.links[0].label_html",
+          "duncan-mcgreggor.links[1].label_html",
+          "robert-virding.name",
+          "robert-virding.github_user",
+          "robert-virding.avatar",
+          "robert-virding.bio",
+          "robert-virding.links",
+          "robert-virding.links[0].label_html",
+          "robert-virding.links[1].label_html",
+          "fred-hebert.name",
+          "fred-hebert.github_user",
+          "fred-hebert.avatar",
+          "fred-hebert.bio",
+          "fred-hebert.links",
+          "fred-hebert.links[0].label_html",
+          "fred-hebert.links[1].label_html",
+          "eric-bailey.name",
+          "eric-bailey.github_user",
+          "eric-bailey.avatar",
+          "eric-bailey.bio",
+          "eric-bailey.links",
+          "eric-bailey.links[0].label_html",
+          "anurag-mendhekar.name",
+          "anurag-mendhekar.github_user",
+          "anurag-mendhekar.avatar",
+          "anurag-mendhekar.bio",
+          "anurag-mendhekar.links",
+          "lfe-maintainers.name",
+          "lfe-maintainers.github_user",
+          "lfe-maintainers.avatar",
+          "lfe-maintainers.bio",
+          "lfe-maintainers.links",
+          "lfe-maintainers.links[0].label_html",
+          "lfe-maintainers.links[1].label_html",
+          "lfe-maintainers.links[2].label_html"
+        ],
+        "prerender_input_fields": [
+          "duncan-mcgreggor.links[0].label_md_inline",
+          "duncan-mcgreggor.links[1].label_md_inline",
+          "robert-virding.links[0].label_md_inline",
+          "robert-virding.links[1].label_md_inline",
+          "fred-hebert.links[0].label_md_inline",
+          "fred-hebert.links[1].label_md_inline",
+          "eric-bailey.links[0].label_md_inline",
+          "lfe-maintainers.links[0].label_md_inline",
+          "lfe-maintainers.links[1].label_md_inline",
+          "lfe-maintainers.links[2].label_md_inline"
+        ],
+        "no_observed_direct_access_fields": [],
+        "source_path_count": 50,
+        "direct_access_path_count": 40,
+        "prerender_input_path_count": 10,
+        "composition_check": "24 scalar leaves + 6 links collections + 10 label_md_inline inputs + 10 label_html siblings = 50 actual YAML paths; selected author map keys and Liquid aliases are represented separately."
+      },
+      "iteration04_readback": {
+        "source_map_keys": [
+          "duncan-mcgreggor",
+          "robert-virding",
+          "fred-hebert",
+          "eric-bailey",
+          "anurag-mendhekar",
+          "lfe-maintainers"
+        ],
+        "field_counts": {
+          "ordinary_scalar_leaves": 24,
+          "links_collections": 6,
+          "markdown_inputs": 10,
+          "html_siblings": 10,
+          "total_actual_paths": 50,
+          "direct_access_paths": 40,
+          "prerender_input_paths": 10
+        },
+        "null_and_empty_values": {
+          "anurag-mendhekar.github_user": "present null",
+          "anurag-mendhekar.avatar": "present null",
+          "anurag-mendhekar.links": "present empty sequence"
+        },
+        "map_selection": "author_entry[0] is a selected YAML map key in Liquid, not a YAML leaf path; existing Iteration03 alias-resolution and five exact layout witnesses remain authoritative."
+      }
     },
     {
       "id": "consumer-a426cc90fc1c85c1",
@@ -126369,7 +128333,7 @@
   "gaps": [
     {
       "id": "source-output-unknowns-iteration01",
-      "observation": "Bounded source URL/token and rich-field projections are recorded; Iteration03 resolves all 61 current YAML Markdown inputs and their observed direct consumer roles. This does not establish every possible source construct or generated/runtime behavior. Remaining unknowns are generated route/anchor/feed values, dynamic/runtime availability and complete chapter semantics.",
+      "observation": "Bounded source URL/token/rich-field projections are recorded. The six-author Iteration04 walk resolves 50 actual YAML source paths (24 scalar leaves, six links collections, ten Markdown inputs and ten HTML siblings) into 40 direct-access and ten prerender-input roles; Liquid aliases/map selection remain separate. This is a complete author-map source-path census only, not universal source-construct or generated/runtime proof. Remaining unknowns are generated route/anchor/feed values, dynamic/runtime availability and complete chapter semantics.",
       "source_references": [
         "route-anchor-register.json#/gaps",
         "resource-register.json#/occurrences",
@@ -126381,7 +128345,8 @@
       "destination": "Arc01 Slices03–05 and Arc11 by concern",
       "next_check": "Use an authorized downstream assignment to compare pinned source declarations with generated/output/runtime evidence, then reconcile the registers.",
       "reentry_condition": "Relevant scoped downstream assignment and qualified source/output snapshot exist.",
-      "iteration02_observation_retired": "All source URL candidates, references, rich YAML uses/mirrors, feed fields, tag-aware anchors, shared-data consumers and legacy Liquid tokens are accounted in current source records. Remaining unknowns are generated route/anchor/feed values, dynamic/runtime availability and complete chapter semantics."
+      "iteration02_observation_retired": "All source URL candidates, references, rich YAML uses/mirrors, feed fields, tag-aware anchors, shared-data consumers and legacy Liquid tokens are accounted in current source records. Remaining unknowns are generated route/anchor/feed values, dynamic/runtime availability and complete chapter semantics.",
+      "iteration03_observation_retired": "Bounded source URL/token and rich-field projections are recorded; Iteration03 resolves all 61 current YAML Markdown inputs and their observed direct consumer roles. This does not establish every possible source construct or generated/runtime behavior. Remaining unknowns are generated route/anchor/feed values, dynamic/runtime availability and complete chapter semantics."
     }
   ],
   "build_it_targets": [
@@ -143710,7 +145675,7 @@
     "promotion_consumers": 12,
     "related_entrances": 27,
     "family_coverage": 11,
-    "meaning": "Current source-record totals after correction. All 543 legacy template tokens are classified, all 951 independent lexical URL candidates reconcile as active source occurrences or explicit exclusions, and render/runtime behavior is not claimed.",
+    "meaning": "Current source-record totals after correction. All 543 legacy template tokens are classified and the bounded 951 URL-shaped candidates reconcile with explicit exclusions. The six-author aggregate contains 50 actual YAML paths (40 direct-access paths and 10 prerender-input paths); aliases are separately represented. These source projections do not establish every possible source construct or generated/runtime behavior.",
     "independent_url_candidate_scan": {
       "query": "Python standard-library bytes regex https?://[^ whitespace/quote/markup/delimiter], with source-inspected context reconciliation",
       "files_attempted": 219,
