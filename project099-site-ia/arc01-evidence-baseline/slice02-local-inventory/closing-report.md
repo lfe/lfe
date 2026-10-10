@@ -146,4 +146,4 @@ Arc01 bubble-up remains the existing one: Slice03 owns endpoint/source/rendered 
 
 ### Iteration04 evidence commit and return receipt
 
-The exact changed-path range, evidence commit/tree, receipt-only commit, final planning status, and actual committed-byte comparisons are recorded here after scoped commit verification. Receipt-only metadata will not alter the stable evidence tree.
+The evidence commit is `e9dc003048c2fb008e62a7075a718e0aa61ad289`, with tree `de167164abb1235480fa5bb8bb704ba9d2a85b1b`. The opening-to-evidence range `3745443cfc0608f27d4a82d11adf792043ed8615..e9dc003048c2fb008e62a7075a718e0aa61ad289` contains exactly the five allowlisted changed paths named above. `git show --check` passed; planning status was clean immediately after that commit. The inventory and route-anchor files compare byte-for-byte with predecessor `6a43ab22816e8502fec5ec9744f51b5aaf3f4a9d`. This closing-report-only follow-up records that stable evidence identity and does not alter the evidence tree; final committed-byte, range, and clean-status checks are reported in the return receipt.
