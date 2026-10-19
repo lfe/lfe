@@ -1,8 +1,8 @@
 ---
 project: project099-site-ia
 title: LFE site information architecture and supporting foundations
-version: "1.9"
-date: 2026-10-09
+version: "1.10"
+date: 2026-10-19
 status: active
 depends-on: []
 blocks: []
@@ -12,7 +12,7 @@ related:
   - artifacts/first-steps/HANDOFF.md
   - artifacts/first-steps/lfe-work-classification.md
 workflow: two-contributor
-mode: expedited
+mode: autonomous (includes expedited)
 ---
 
 # Project 099 — LFE site IA
@@ -455,6 +455,85 @@ their gates. Before issuing implementation prompts, perform the framework's
 source reconnaissance and prompt-author readiness work. Skill reading alone
 does not supply an implementation design.
 
+## Autonomous Mode preflight — 19 October 2026
+
+Duncan explicitly requested: “go ahead and reload it” (collaboration-framework),
+then “try out the new Autonomous Mode, using GPT 6 Luna High for CC and
+GPT 6.1 Sol High for CDC work”. This authorizes the current approved Arc01,
+including its existing iterations, local commits, independent review, closure
+and CDC retrospectives. Stop at Arc01's endpoint; do not open Arc02. This
+supersedes manual relay/no automatic dispatch in older workflow text for this
+scope. Existing Expedited Mode and all Operator gates remain binding.
+
+| Role / actual context | Explicit requested and tool-selected settings | Authority |
+| --- | --- | --- |
+| CDC: `/root/autonomous_cdc`, Sofie | OpenAI Codex collaboration tools; `gpt-6.1-sol`, reasoning `high` | Arc01 planning, coordination and independent CC review; assigned and acknowledged 2026-10-19 |
+| CC: separate context, to be assigned before dependent execution | OpenAI Codex collaboration tools; `gpt-6-luna`, reasoning `high` | Execute the preserved current prompt, self-check and return proposed-done evidence |
+| Root `/root` | Existing chat, transport/Operator liaison only | No substantive CDC authorship or planning mutations |
+
+These are explicit role selections, not inherited defaults. No fallback is
+authorized; unreported backend identity remains unknown. Default staffing is
+one CC implementer and this independent CDC. A fresh reviewer is needed at
+arc composition because CDC assembles that close; record that bounded
+separation-of-authorship assignment when timely. `cdc-verification.md` remains
+the slice convention, with actual author/context and candidate attribution.
+No contributor independently accepts its own substantive repairs.
+
+Planning home is `/Users/oubiwann/lab/lfe/lfe/.worktrees/planning`, branch
+`planning`, clean at intake `21c02683b27878263b4da6b6cda3e38d0f3ccb61`.
+CDC is sole mutation/index owner until a recorded serialized CC handoff; root
+is read-only. Arc01 is evidence-only: this non-default planning branch is the
+only mutation home. Source repos remain read-only. Any later authorized source
+implementation first needs its own dedicated non-default branch, preserving
+existing checkouts. No push, merge, publication, ticket, install, external
+message, source repair, build/generation or compatibility trial is authorized.
+Automatic CI effects must be inspected before any separately authorized
+external action; none is requested here.
+
+Current prompt remains `arc01-evidence-baseline/slice02-local-inventory/cc-prompt-iteration05.md`,
+created/issued at `21c0268`, SHA-256
+`187b4b9a194ac89fb01e3f8dc6fa49d991b18fd9711c8ba6a701a4f4b839bbe9`.
+Its creation identity is distinct from the forthcoming execution-intake commit.
+Preserve every issued prompt and all original criteria. Slice01 is historically
+accepted at `9111268`; Slice02 S2-01–06 are accepted, S2-07/08 open for R16.
+Current independent evidence is the Iteration04 section of the existing
+[CDC review](arc01-evidence-baseline/slice02-local-inventory/cdc-verification.md).
+The fifth refinement is the final existing pass; failure needs an Operator
+decision, not a sixth prompt, new reviewer reset or weakened criterion.
+
+Fresh read-only replay on 19 October found zero differences in eight repository
+root/HEAD/branch/status projections, eight ordered populations, all 2,839 file
+hashes/sizes and eight input hashes, before these mode edits. The eight exact
+states and dirty/untracked paths remain in the frozen `inventory.json`; website
+is main `036e231b`, LFE clean develop `0aa820e`, and all six related repo HEADs
+and branches match. Historical acceptance remains scoped to its checked state.
+All 2,839 file witnesses (including Project AGENTS) and eight input pins
+remain unchanged. The new mode is recorded only in governing plans; Project
+AGENTS' default two-contributor convention remains compatible. CDC owns these
+prior plan edits; do not count them as CC changes in the opening-to-return
+allowlist. CC compares the four allowed paths from its actual execution-intake
+commit through return.
+
+Framework authority is installed `collaboration-framework/SKILL.md` v3.0.0
+under `/Users/oubiwann/Library/Application Support/ChatGPT-Profiles/personal/codex-home/skills/`,
+with its bundled `knowledge/` guides. CDC loaded the full entrypoint (recovering
+truncated output), posture guides, role/workflow/Autonomous contract, PM README
+and applicable planning/closing guides, prompt-authoring, agent-coordination,
+work-verification and stewardship. The four legacy `~/.agents/skills/` routes
+in iteration05 resolve to installed standalone guides and are byte-identical
+to their current bundled equivalents (prompt-authoring, row closure, independent
+verification, validation gates). They remain valid required material; no prompt
+bytes or reading obligations are changed. Receipts establish delivered text and
+identity, not understanding; independent review checks actual evidence.
+
+Slices03/04 remain planned, not commissioned. Their general roadmap scopes do
+not supply the reloaded PM03 investigation agreement's concrete budgets. CDC
+will present finite usefulness/applicability/method/limit proposals through root;
+dependent investigation waits for Duncan's decision. Routine checks necessary
+to finish the already-agreed R16 remain authorized. Runtime reproduction needs
+the actual failure/environment packet; missing evidence cannot be fabricated.
+Slice05 and arc composition preserve their existing dependencies and gates.
+
 ## Expansion, findings, and plan maintenance
 
 Discussion, investigation, or a child close can introduce new work. Record its
@@ -540,3 +619,5 @@ approval. Navigation/design choices remain open, and expansion remains expected.
 | 1.7 | 2026-10-09 | Arc01 Slice02 iteration02 / CDC review | Retain S2-01 and repaired extraction/consumer/family subclaims; issue bounded iteration03 for R11–R13 coverage, qualification, roles/branches and honest proof; seven child rows open and Slice03 gated; no scope, sequence or criterion amendment | Routine review/status maintenance under approved Expedited Mode; all 23 project rows remain open |
 | 1.8 | 2026-10-09 | Arc01 Slice02 iteration03 / CDC review | Accept S2-03/S2-05 and retain S2-01; issue bounded iteration04 for R14 author aggregate and R15 intake/proof receipts; five child rows open and Slice03 gated; unchanged scope, sequence and criteria | Routine review/status maintenance under approved Expedited Mode; all 23 project rows remain open |
 | 1.9 | 2026-10-09 | Arc01 Slice02 iteration04 / CDC review | Accept S2-02/04/06 and retain S2-01/03/05; issue receipt-only iteration05 for R16 with two rows open and Slice03 gated; unchanged scope, sequence and criteria | Routine review/status maintenance under approved Expedited Mode; all 23 project rows remain open |
+
+| 1.10 | 2026-10-19 | Duncan’s explicit framework reload and Autonomous Mode request | Record Arc01 endpoint, explicit OpenAI CC Luna High / CDC Sol High selections, actual CDC context, serialized ownership, preserved fifth prompt and source state, unchanged file fingerprints and remaining investigation/acceptance gates | Mode authorized; no capability or acceptance amendment |

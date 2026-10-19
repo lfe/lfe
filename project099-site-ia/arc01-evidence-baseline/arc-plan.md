@@ -1,14 +1,14 @@
 ---
 project: project099-site-ia
 arc: arc01-evidence-baseline
-version: "1.7"
-date: 2026-10-09
+version: "1.8"
+date: 2026-10-19
 status: active
 depends-on: []
 blocks: []
 related: [Arc02, Arc03, Arc04, Arc05, Arc06, Arc11, Arc12]
 workflow: two-contributor
-mode: expedited
+mode: autonomous (includes expedited)
 ---
 
 # Arc01 — Evidence baseline
@@ -120,6 +120,23 @@ the missing evidence remains an explicitly owned Arc02 entry condition; it
 cannot be claimed reproduced. CDC/Duncan disposition any material inability
 to deliver the arc capability before closure. Unaffected inventory work can proceed.
 
+## Autonomous execution — 19 October 2026
+
+The [project preflight](../project-plan.md#autonomous-mode-preflight--19-october-2026)
+is the current authority/settings/source/ownership entrypoint. It supersedes
+older manual relay/no-dispatch language below for Arc01 only. CDC
+`/root/autonomous_cdc` acknowledges the assignment and owns planning mutations;
+CC will be a separate explicitly selected `gpt-6-luna` / `high` context, with
+CDC `gpt-6.1-sol` / `high` independently reviewing. Current prompt creation
+`21c0268` and SHA remain unchanged; actual execution-intake state will be
+recorded at handoff. All ledger criteria, six accepted/two open Slice02 rows,
+R16 scope and the exhausted-at-failure fifth-pass limit remain binding.
+Sources and Project AGENTS remain unchanged at preflight; all 2,839 frozen
+file fingerprints and eight input pins are preserved. No JSON repin.
+Slices03/04 await a concrete investigation agreement before commissioning;
+this leaves already-agreed iteration05 unaffected. Arc01 closure requires
+independent composition and CDC retrospectives; stop before Arc02.
+
 ## Workflow and current assignment
 
 CDC: Sofie in this desktop planning chat. CC: a separate contributor context
@@ -167,3 +184,5 @@ The inherited `../artifacts/first-steps/` packet stays in place.
 | 1.5 | 2026-10-09 | Slice02 iteration02 / CDC review | Retain S2-01 and valid repaired subclaims; issue bounded iteration03 for R11–R13 with seven child rows open and Slice03 gated; no structural or criterion amendment |
 | 1.6 | 2026-10-09 | Slice02 iteration03 / CDC review | Accept S2-03/S2-05, retain S2-01; issue bounded iteration04 for R14–R15 with five child rows open and Slice03 gated; no structural or criterion amendment |
 | 1.7 | 2026-10-09 | Slice02 iteration04 / CDC review | Accept S2-02/04/06 and retain S2-01/03/05; issue receipt-only iteration05 for R16 with two rows open and Slice03 gated; no structural or criterion amendment |
+
+| 1.8 | 2026-10-19 | Duncan’s Autonomous Mode selection / current Slice02 handoff | Link compact project preflight, record actual CDC context and explicit role settings, ownership and unchanged R16/iteration/independent gates; later investigations await bounded agreement; no capability or criterion amendment |

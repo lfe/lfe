@@ -2,12 +2,12 @@
 project: project099-site-ia
 arc: arc01-evidence-baseline
 slice: slice02-local-inventory
-version: "1.5"
-date: 2026-10-09
+version: "1.6"
+date: 2026-10-19
 status: active
 depends-on: [slice01-baseline-intake]
 workflow: two-contributor
-mode: expedited
+mode: autonomous (includes expedited)
 ---
 
 # Slice02 — Local content and declaration inventory
@@ -41,6 +41,31 @@ requires an explicit Operator decision or authorized re-scoping, not an
 automatic sixth prompt.
 CDC is Sofie in the desktop planning chat.
 No automatic dispatch or CRC role is selected. Issued prompts stay immutable.
+
+## Autonomous handoff preflight — 19 October 2026
+
+Current authority is the [project preflight](../../project-plan.md#autonomous-mode-preflight--19-october-2026)
+and arc v1.8; project v1.10 / this slice v1.6 supersede the status/transport
+versions named in the preserved issued prompt without changing its bytes,
+R16 recipe or original criteria. CDC `/root/autonomous_cdc` acknowledges
+coordination and independent review, tool-selected `gpt-6.1-sol` / `high`;
+CC receives explicit `gpt-6-luna` / `high`, with no substitution.
+Duncan’s current Autonomous Mode selection permits direct contributor handoff.
+CDC owns the planning index until serialized dispatch; the receiving context
+must acknowledge ownership, actual intake commit/branch and required reads
+before edits. The prompt was created at `21c0268`; actual execution intake
+is the committed mode/handoff state, and CC's four-path diff is measured from
+that state. No sixth refinement is authorized.
+
+All three JSON registers, eight input pins and all issued prompts remain frozen.
+Fresh pre-mode replay matched eight roots/populations and 2,839 hashes/sizes.
+Project AGENTS stays unchanged; its default two-contributor rule remains
+compatible with the explicit Autonomous Mode authority in governing plans.
+All 2,839 historical file witnesses and eight input pins remain unchanged.
+The original four-path CC write allowlist
+remains exact; parent/plan/reviewer/prompt/source mutations remain prohibited.
+The four legacy skill routes resolve and equal the current bundled guides;
+required reading is preserved, including complete current authority sections.
 
 ## Scope and evidence boundaries
 
@@ -261,3 +286,5 @@ no CC artifact. Author readiness remains separate from independent acceptance.
 | 1.3 | 2026-10-09 | Slice02 iteration02 / CDC review | Retain S2-01 and valid extraction/consumer/family subclaims; issue bounded iteration03 for R11–R13 copied coverage/qualification, roles/branches and calibrated proof; seven rows open; no criterion amendment |
 | 1.4 | 2026-10-09 | Slice02 iteration03 / CDC review | Accept S2-03/S2-05 and retain S2-01; issue bounded iteration04 for R14 author aggregate and R15 precise intake/proof receipts; five rows open; unchanged criteria |
 | 1.5 | 2026-10-09 | Slice02 iteration04 / CDC review | Accept S2-02/04/06 and retain S2-01/03/05; issue receipt-only iteration05 for R16 with two rows open; unchanged criteria; preserve five-pass budget |
+
+| 1.6 | 2026-10-19 | Duncan’s Autonomous Mode selection / CDC preflight | Preserve issued fifth prompt and criteria, record explicit contexts/settings and serialized intake; retain all frozen fingerprints without source/JSON repin; six rows remain accepted and two open |
