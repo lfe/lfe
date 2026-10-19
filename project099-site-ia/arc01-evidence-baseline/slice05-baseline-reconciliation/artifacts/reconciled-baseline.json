@@ -3325,15 +3325,64 @@
         "../slice03-resource-verification/artifacts/resource-checks.json#/rows",
         "../slice04-technical-intake/artifacts/technical-intake.json#/technical_findings"
       ],
-      "consuming_owner": "Arc08",
+      "consuming_owner": "Concern-specific owners; see concern_handoffs.",
       "secondary_consumers": [
-        "Arc07 for generated website pipeline",
-        "Arc10 for promoted/resource destinations",
-        "Arc11 for preservation",
-        "Arc02 / Operator for runtime packet"
+        "Arc10 blog / promotion consumer",
+        "Arc11 preservation / historical consumer",
+        "Arc04 architecture consumer",
+        "Arc02 technical relevance consumer",
+        "Operator runtime-packet intake"
       ],
-      "next_evidence": "No check now. The consuming arc first approves its own surface/evidence contract, then captures the relevant pinned output, destination, runtime or chapter evidence.",
-      "reentry_condition": "Only at the named consumer gate after a bounded assignment and applicable identity are approved; no Arc01 Slice03 permission remains."
+      "next_evidence": "At each named downstream gate, first approve the selected surface and evidence contract; then capture only the pinned source/output, destination, chapter/render, or actual runtime packet evidence needed for that concern.",
+      "reentry_condition": "Only the named owner may proceed after the consuming arc or Operator approves a bounded assignment and the applicable source/output, destination, rendered, or runtime identity; any new endpoint probe or runtime investigation requires separate allocation.",
+      "concern_handoffs": [
+        {
+          "concern": "Generated website routes, anchors, and feed",
+          "owning_arc_role": "Arc07 — generated website pipeline owner",
+          "secondary_consumers": [
+            "Arc10 — blog/resource promotion",
+            "Arc11 — preservation and historical identity"
+          ],
+          "next_evidence": "Select an approved surface and pin source/config/toolchain to the generated-output identity; add deployed identity only when making a deployment claim.",
+          "reentry_condition": "Arc07 proceeds only after its surface and evidence contract are approved; no build, render, or endpoint check is commissioned here."
+        },
+        {
+          "concern": "Practical task, chapter, and reference readiness",
+          "owning_arc_role": "Arc08 — practical guidance and chapter-readiness owner",
+          "secondary_consumers": [
+            "Arc10 — promotion consumer"
+          ],
+          "next_evidence": "Select an approved reader/task surface and pin source-to-rendered provenance; include Arc02 environment evidence only if runnable or technical suitability is claimed.",
+          "reentry_condition": "Arc08 proceeds at its bounded readiness gate after the selected surface and evidence contract are approved; no chapter read or runtime check is commissioned here."
+        },
+        {
+          "concern": "Resource, catalogue, community, and paper destinations",
+          "owning_arc_role": "Arc10 — destination and promotion owner",
+          "secondary_consumers": [
+            "Arc11 — historical preservation consumer"
+          ],
+          "next_evidence": "Approve a selected resource question with exact source/destination identity and appropriately scoped readiness/provenance facts; a declaration alone does not establish activity, content, or support.",
+          "reentry_condition": "Arc10 proceeds only at its approved destination question and bounded evidence contract; this record makes no destination or support claim."
+        },
+        {
+          "concern": "Legacy destination and disposition",
+          "owning_arc_role": "Arc11 — topic-preserving migration and preservation owner",
+          "secondary_consumers": [
+            "Arc04 — architecture consumer"
+          ],
+          "next_evidence": "Adopt a topic-preserving disposition and pin legacy/source/output identity, or deployed identity when relevant.",
+          "reentry_condition": "Arc11 proceeds after disposition and identity are approved; any new endpoint probe requires separate allocation."
+        },
+        {
+          "concern": "Actual runtime packet and relevance",
+          "owning_arc_role": "Operator obtains the packet; Arc02 owns relevance and any separately agreed inquiry",
+          "secondary_consumers": [
+            "Arc03 — image/artifact identity where applicable"
+          ],
+          "next_evidence": "Retain original failure, command/configuration, expected and actual output, source/artifact, OTP build/runtime, OS/architecture, dependency/tool/image identities, and fixture as applicable. Saved CI compile history is distinct; the crash filename remains uninspected.",
+          "reentry_condition": "No reproduction or dump inspection now. Arc02 may assess relevance only after Operator supplies the packet and separately agrees a bounded inquiry."
+        }
+      ]
     },
     {
       "id": "S2-FAMILY:main-gateway",
