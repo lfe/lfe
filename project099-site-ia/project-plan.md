@@ -568,6 +568,14 @@ accepted amendment, never retrospective criterion softening.
 
 ## Current state
 
+**Slice04 serialized handoff19 October:** fresh CC04 acknowledges clean957afc9,
+current prompt/plan/ledger and immutable observation input. At this committed
+handoff CC is sole mutation/index owner for its exact five paths; CDC/root cease
+mutable scans/edits through clean explicit return. Full required intake/readback
+precedes analysis edits. Original16/eight/one pass remains the sole observations;
+actual execution baseline is handoff HEAD, distinct from creation957afc9.
+
+
 **Slice04 opening19 October:** complete [open set](arc01-evidence-baseline/slice04-technical-intake/slice-plan.md)
 records approved observation allocation, exact original inputs, missing-packet
 contingency and eight criteria. Fresh CC04 is justified by observed CC03 context
