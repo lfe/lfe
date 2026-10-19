@@ -23,6 +23,10 @@ CC proposes S4-01 through S4-08 as done for independent CDC review. Ledger statu
 
 Prompt identity: SHA-256 `ad657c84f73b70dc45259c85a456b0177e9ef5b2b9da1fdd803ccb785442cb2f`. Immutable author input identity: SHA-256 `560ccdb39d0ec6a9f164f6ae2e0ca067a380ada644292dd1bdd458dea9dc5275`. Execution began at handoff commit `c098ac580fc4e76205e9a645e65e46c4e9074d2f`, tree `6d13add7246794448692b7087f54ed62826c0a17`.
 
+## Commit receipt
+
+The five-path evidence packet was committed as `a0fc7b8e8090d63ebe469540ae45b6cf1d40f74f` with tree `a9af5c094ad4fcfaed6c6ce6bd39e13ccf0aef1b`, directly on handoff commit `c098ac580fc4e76205e9a645e65e46c4e9074d2f` (tree `6d13add7246794448692b7087f54ed62826c0a17`). The range changes exactly the five paths named below. This commit receipt is a later closing-report-only update; its single-file diff and committed bytes are checked separately. Full packet validation is the validation recorded above, before this metadata-only receipt.
+
 ## Scope and validation
 
 Only the exact five allowlisted paths changed: this report, execution.md, technical-intake.json, technical-summary.md, and Evidence cells in ledger.md. No source repair, runtime reproduction, build, test, install, external action, new source witness, new tag query or expanded intake was performed. The original observations and all three frozen Slice02 JSON artifacts and seven prior prompts were preserved.
