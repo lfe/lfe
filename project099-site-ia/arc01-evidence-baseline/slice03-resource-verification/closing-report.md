@@ -62,3 +62,7 @@ Specified scope was a local evidence correction against the existing fixed selec
 **Arc01 bubble-up:** no plan change or Arc02 opening is warranted. The accepted Arc01 boundary still separates registered source evidence from current deployment, and future retrieval belongs to a separately agreed downstream allocation. Ownership is released after the exact-path commits and final local checks below.
 
 Return metadata will identify this iteration’s exact commits and trees after they are created. The only permitted paths for this iteration are this report, the ledger, and the three supporting artifacts listed above.
+
+### Receipt and final check boundary
+
+The Iteration01 evidence commit is `d16aa934d4e4265c72291538fc77f8bbf2d1e82a`, tree `779eaacbcd08a2e6b3c5f69dd949dc1e85619740`. The range from execution intake `5f5ee4b61d5a3f271b894e04748dfea4b174fc1a` to this receipt changes exactly the five paths listed above. Post-commit comparison confirmed committed bytes equal the working bytes for all five files; UTF-8/LF/newline/whitespace and local-link checks passed; JSON parsed; `git show --check` passed; and the worktree was clean. This is a report-only receipt update; no evidence or ledger content is being changed after the evidence commit. Its commit/tree and final clean ownership release are reported with the return.
