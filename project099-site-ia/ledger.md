@@ -1,6 +1,6 @@
 # Project 099 — composition ledger
 
-**Contract:** [project-plan.md](project-plan.md), v1.14, 19 October 2026; delivery criteria unchanged.
+**Contract:** [project-plan.md](project-plan.md), v1.19, 19 October 2026; delivery criteria unchanged.
 Original roadmap approved 8 October; Duncan added CI preservation and historical
 artifact priority on 9 October. The original 21 rows are retained and two rows
 are added; all 23 delivery rows remain open. Roadmap approval is not completion.
@@ -20,7 +20,7 @@ as detailed planning becomes timely; no close packet exists yet.
 
 | ID | Criterion | Verify | Significance | Origin | Status | Evidence | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| P-01 | Arc01's evidence baseline is closed against its adopted contract. | Inspect `arc01-evidence-baseline/` plan, ledger, closing report and attributed composition gate; reconcile inventory coverage and bubble-up. | correctness-grade | Roadmap Arc01 | open | Slice02 [CDC iteration04 review](arc01-evidence-baseline/slice02-local-inventory/cdc-verification.md): S2-01–06 accepted; 114/114 predicates, 6,940 locators and 133 author/preservation predicates pass; S2-07/08 remain open for R16 receipts; iteration05 issued [reproduced child-status inspection, not composition acceptance]. | Slice01 accepted; Slice02 open; Slice03 remains planned. Inherited audit files do not close this row. |
+| P-01 | Arc01's evidence baseline is closed against its adopted contract. | Inspect `arc01-evidence-baseline/` plan, ledger, closing report and attributed composition gate; reconcile inventory coverage and bubble-up. | correctness-grade | Roadmap Arc01 | open | Slices01–03 independently closed; Slice04 initial [CDC review](arc01-evidence-baseline/slice04-technical-intake/cdc-verification.md) accepts3/8 with first local refinement issued. Arc composition not yet performed [reproduced child-status inspection only]. Historical six-row Slice02/iteration05 evidence remains in its preserved review. | P-01 remains open until accepted five-child close and independent Arc01 composition/bubble-up; no child status alone closes it. |
 | P-02 | Arc02's compatibility policy is closed against its adopted contract. | Inspect `arc02-compatibility-policy/` close packet, maintainer policy decisions, matrix evidence, failure disposition and bubble-up. | serious | Roadmap Arc02 | open | | Preserve failed, blocked, unrun and unknown cases. |
 | P-03 | Arc03's release/distribution capability is closed against its adopted contract. | Inspect `arc03-release-distribution/` close packet, preserved release mappings, artifact verification and bubble-up. | serious | Roadmap Arc03 | open | | Evaluate available artifacts against approved claims. |
 | P-04 | Arc04's IA/content architecture is closed against its adopted contract. | Inspect `arc04-ia-content-architecture/` close packet and reviewed design, ownership/disposition maps and decisions. | correctness-grade | Roadmap Arc04 | open | | `/docs` remains the curated gateway. |
@@ -66,3 +66,5 @@ must inspect the actual candidate, not just the assembler's summary.
 | 1.5 | 2026-10-09 | Pair with project-plan v1.7; record Slice02 iteration02 review/bounded iteration03; unchanged criteria | Routine review/status maintenance; all 23 rows open |
 | 1.6 | 2026-10-09 | Pair with project-plan v1.8; record Slice02 iteration03 partial acceptance/iteration04; unchanged criteria | Routine review/status maintenance; all 23 rows open |
 | 1.7 | 2026-10-09 | Pair with project-plan v1.9; record Slice02 six-row acceptance and receipt-only iteration05; unchanged criteria | Routine review/status maintenance; all 23 rows open |
+
+| 1.8 | 2026-10-19 | Pair status with project-plan1.19: preserve all23 criteria/open statuses, supersede historical P-01 child-status summary with actual Slices01–04 state | Routine status maintenance; Arc01 composition still open |

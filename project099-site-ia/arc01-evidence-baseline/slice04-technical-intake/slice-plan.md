@@ -2,7 +2,7 @@
 project: project099-site-ia
 arc: arc01-evidence-baseline
 slice: slice04-technical-intake
-version: "1.0"
+version: "1.1"
 date: 2026-10-19
 status: active
 depends-on: [slice01-baseline-intake, slice03-resource-verification]
@@ -102,6 +102,15 @@ queries do not authorize more investigation or reusable validation software.
 
 ## Assignment history
 
+Current: iteration01, first normal local refinement, at3 accepted/5 open.
+Initial review found R4-01 source-span/reader qualifiers, R4-02 per-surface output
+owners and R4-03 root attribution/digest/error-account receipts. Original16/eight/
+one allocations remain consumed, no renewed investigation. Passed original proof
+is retained after exact delta/applicability review; affected/current return checks
+run. CDC owns planning pending acknowledged serialized handoff. Older initial
+assignment snapshots below are historical, not competing current authority.
+
+
 Current assignment: cc-prompt.md, initial evidence implementation. Creation is
 its opening commit; actual execution intake is the separate committed ownership
 handoff after CC acknowledgment. CDC is sole mutation/index owner pending that
@@ -129,3 +138,16 @@ creation957afc92285a183e315333aaf50703d587d94bbc and prompt
 SHAad657c84f73b70dc45259c85a456b0177e9ef5b2b9da1fdd803ccb785442cb2f
 remain immutable. CDC/root suspend mutable planning scans/edits until explicit
 clean/no-active-tool release. No renewed metadata/tag/intake/source inquiry.
+
+| cc-prompt-iteration01.md | 2026-10-19 | cc-prompt.md / initial CDC review | Exact source coverage, concrete output owners and truthful receipts | Issued; acknowledgment pending |
+
+Iteration01 author readiness: CDC read actual full output/16 claims/seven findings
+and original source bodies, compared every copied projection/tag/identity and
+receipt hash, and reproduced preservation and packaging. Complete affected span
+checks reject current C03/C09/C11/C14. Arc07's actual roadmap resolves website
+output ownership without new work. Current source/claims and two exact wrong
+receipt specimens support the bounded recipe; no scope/criteria change or new
+investigation. The prompt names exact consumed JSON fields and retains unchanged
+proof; all normative original prose remains loaded in CDC after actual recovery.
+
+| 1.1 | 2026-10-19 | Initial independent CDC review | Accept3 rows, preserve R4-01–03 and issue first no-investigation local correction with unchanged budgets/criteria |

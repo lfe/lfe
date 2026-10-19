@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 title: LFE site information architecture and supporting foundations
-version: "1.18"
+version: "1.19"
 date: 2026-10-19
 status: active
 depends-on: []
@@ -17,14 +17,11 @@ mode: autonomous (includes expedited)
 
 # Project 099 — LFE site IA
 
-**Current19 October status, v1.18:** Slices01–03 are independently closed.
-Slice04's complete open set now analyzes the explicitly approved single16-file/
-eight-metadata-group/combined-intake pass, already captured during CDC readiness.
-The missing runtime packet has an owned Arc02 input path; no runtime claim is
-reproduced. Current assignment is `arc01-evidence-baseline/slice04-technical-intake/cc-prompt.md`.
-CDC owns planning until acknowledged serialized handoff to fresh LunaHigh CC;
-SolHigh CDC independently reviews. Slice03's40/40 checks remain exhausted;
-Arc01 endpoint/composition and all Operator gates persist.
+**Current19 October status, v1.19:** Slices01–03 closed; Slice04 initial review
+accepts3 rows/holds5 for local source/ownership/receipt correction. Current prompt:
+`arc01-evidence-baseline/slice04-technical-intake/cc-prompt-iteration01.md`.
+Original16/eight/one pass and Slice03's40 checks remain consumed. CDC owns planning
+pending acknowledged handoff; approved models/Arc01 endpoint/gates unchanged.
 
 **Historical opening summary, superseded by the current state above:**
 
@@ -568,6 +565,13 @@ accepted amendment, never retrospective criterion softening.
 
 ## Current state
 
+**Slice04 initial review19 October:** a0fc7b8e +bbcf9303 acceptsS4-01/02/06;
+five remain forR4-01–03 exact local correction. Iteration01 preserves all original
+observations/tags and passed proof, permitting only named semantic/attribution/
+receipt repairs. CDC owns planning until acknowledged handoff. Slice05/composition
+remain gated; no new source/tag/intake/network/runtime pass or Arc02 opening.
+
+
 **Slice04 serialized handoff19 October:** fresh CC04 acknowledges clean957afc9,
 current prompt/plan/ledger and immutable observation input. At this committed
 handoff CC is sole mutation/index owner for its exact five paths; CDC/root cease
@@ -766,3 +770,5 @@ approval. Navigation/design choices remain open, and expansion remains expected.
 | 1.17 | 2026-10-19 | Slice03 iteration02 independent acceptance | Close all8 child rows/retrospective, retain40 bounded observations and release approved Slice04 authoring gate; no scope/criterion amendment | Routine independent closure under Autonomous/Expedited authorization |
 
 | 1.18 | 2026-10-19 | Slice04 approved author readiness after Slice03 acceptance | Open exact16/eight-group/one-intake technical analysis using original captured observations and owned missing-runtime inputs; no investigation or criterion expansion | Routine scope-preserving opening under Autonomous/Expedited authorization |
+
+| 1.19 | 2026-10-19 | Slice04 initial independent review | Accept3 rows, require exact consumed source/owner/receipt fixes in first refinement; no scope/criterion/investigation change | Routine independent review/status maintenance |
