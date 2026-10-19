@@ -40,3 +40,27 @@ The immutable captured bodies and original query outputs allowed the technical r
 ## Bubble-up
 
 Arc03 should keep local tag identity separate from release artifacts and carry the ten inherited OTP22–26 Linux/macOS P0 targets under their existing obligations. Arc02/Operator owns any missing runtime packet and relevance decision. Arc02/Arc08 should not promote source-declared ranges/examples into support evidence without the applicable policy and approved evidence. Arc08/11 may pursue documentation output provenance only for an identified consumer. The five-path CC author boundary ends after commit and verification; no CDC review record, retrospective or status closure was authored.
+
+
+## Iteration01 current proposed return
+
+Iteration01 preserves the three CDC-accepted rows and proposes the five corrected open rows for review. Ledger statuses are unchanged: S4-01, S4-02 and S4-06 are `done`; S4-03, S4-04, S4-05, S4-07 and S4-08 remain `open` pending this proposed return.
+
+| Row | Current disposition |
+| --- | --- |
+| S4-01 | Retain initial CDC acceptance; original 16-witness/eight-group projection proof is unchanged. |
+| S4-02 | Retain initial CDC acceptance; 102 local tags and object/dereference separation are unchanged. |
+| S4-03 | Propose done: six affected claims now include the required reader/WIP/documentation/alias/source-markup spans and semantics; runtime/publication limits remain. |
+| S4-04 | Propose done: exact missing-packet disposition remains; attestation author is corrected to `root /root`, with text/scope/date preserved. |
+| S4-05 | Propose done: F05 names separate Arc07 website, Arc08 books and Arc11 legacy owners with evidence requirements and re-entry conditions; no checks are commissioned. |
+| S4-06 | Retain initial CDC acceptance; investigation bounds and retained preservation proof are unchanged. |
+| S4-07 | Propose done: current execution receipt gives the byte-verified 6,523,187-byte resource-register digest and accurately distinguishes transcription from passed preservation. |
+| S4-08 | Propose done: this current return records all eight rows, three artifact homes, scope, bubble-up, exact execution/receipt identities and fresh versus retained checks. |
+
+Three artifacts remain: [technical-intake.json](artifacts/technical-intake.json), [technical-summary.md](artifacts/technical-summary.md), and [execution.md](artifacts/execution.md). The intake has only the expressly authorized claim/F05/author corrections; original observations, 102 tags, budgets, IDs and remaining parsed fields are unchanged. Summary handoffs map website C01/C02 to Arc07, books C03–C10 to Arc08, and legacy C15/C16 to Arc11. Each names the pinned surface-specific output evidence required if later approved, and a re-entry condition; this slice runs no output check.
+
+Fresh iteration checks passed: full JSON delta boundaries and retained original/tag projections; affected source spans and semantic qualifiers with omitted-span controls; exact F05 per-surface owners/evidence/re-entry; author attribution; resource-register digest/size; Evidence-only ledger/status; local links/encoding/whitespace; and `git diff --check`. The initial independent CDC preservation proof remains applicable because the corrected fields do not touch protected populations, pins, frozen JSONs or prompts; this pass did not repeat that whole-set check or any source/tag/intake investigation. Validation-harness corrections are preserved in execution.md: F05 list serialization, the tuple-based link assertion, and a text lookup against identity records that intentionally omit bodies. The semantic assertion false start and earlier helper/authoring setup failures remain historical and are explicitly accounted for; no failed attempt is erased.
+
+The execution baseline for this refinement is handoff `2196bd3965ac568619246dcbd015e35756ab0f03` / tree `cb8a1184c2ff7d5a6d26db37d059005e2f8afeeb`; creation remains `d03fd144498fc78ef1e958f6bb65c169c8935a44` and prompt SHA remains `6bb4ecd23db0a2e750dd14a3cba89cd842e1b3bb7a04bac6e5c82c1138601532`. The five-path allowlist is unchanged. Final exact commit/tree identities and clean release are supplied after commit.
+
+Bubble-up remains within Arc01's planned consumer gates: no Slice05/composition or Arc02 start. Arc07, Arc08 and Arc11 receive only conditional handoffs for future, specifically selected surfaces; Arc02/Operator still owns the missing original runtime packet/relevance decision, while Arc03 retains release/image identity duties. No source, tag, intake, HTTP, network, rendering, build, runtime, test or install work was added. CDC independently decides acceptance.

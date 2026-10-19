@@ -1394,7 +1394,7 @@
       "completed_utc": "2026-10-19T20:12:42.029466+00:00"
     },
     "current_chat_attestation": {
-      "author": "root /root/autonomous_cdc",
+      "author": "root /root",
       "received_date": "2026-10-19",
       "scope": "one pass over current conversation messages/reports only; excludes other chats/forks, filesystem, network and reproduction",
       "text": "Bounded current-chat intake component completed in one pass over the user messages/reports available in this conversation; no other chat, filesystem, network or reproduction searched. No actual runtime failure/environment packet is present. Concrete current-chat evidence: (1) first Slice01 CC report explicitly says 'the missing runtime failure packet is carried to Slice04'; (2) user reports CI failures 'due to the recent docs generation support Robert added', requests moving HEAD toward latest OTPs while preserving removed matrix combinations for future downloads; this is reported CI/docs-generation background, not a runtime reproduction; (3) user says they will fork for a 'one-off CI fix/update', then 'okay, done!' and returns to Slice02. No actual CI log/error text, failing command, runtime/container image reference or digest, exact runtime/OTP/tool versions, OS/architecture, invocation/configuration, expected/actual runtime output, or reproduction artifact appears in the provided chat. The other chat and fork contents were not consulted; absence here does not establish absence there. Arc02/Operator should own obtaining original failure packet if still applicable. Do not treat the completed separate CI fix as reproduction or resolution of the unidentified runtime failure."
@@ -2467,11 +2467,15 @@
       "source_sha256": "de2a063133722112aa2edc5b991b1cf790772ad8e83ba6b05808c67e73057f8b",
       "source_line_ranges": [
         {
+          "start": 5,
+          "end": 5
+        },
+        {
           "start": 9,
           "end": 25
         }
       ],
-      "observed_declaration_and_limit": "The manual README points to the published book and describes a local mdbook setup through make run with browser auto-refresh. It is repository guidance, not rendered readiness evidence."
+      "observed_declaration_and_limit": "The manual README explicitly says the book is a long-term work in progress (line 5), then points readers to the published book and describes local mdBook setup through make run with browser auto-refresh (lines 9–25). This is source context and guidance, not rendered readiness evidence."
     },
     {
       "claim_id": "T04-C04",
@@ -2539,7 +2543,7 @@
           "end": 55
         }
       ],
-      "observed_declaration_and_limit": "Casting SPELs README presents REPL prompt/input/output formatting and frames the book around an LFE text-adventure example. The example is documentation content, not a runtime transcript collected by this pass."
+      "observed_declaration_and_limit": "Casting SPELs README presents REPL prompt/input/output formatting and a text-adventure example (lines 9–35). Its framing says LFE/Erlang uses immutable data and records for game state (41–43), and advises readers without prior programming experience to build a stronger foundation before distributed-systems concepts (49–53); it describes its intended reader and approach. These are author framing statements, not a runtime transcript or a universal prerequisite policy."
     },
     {
       "claim_id": "T04-C08",
@@ -2563,11 +2567,15 @@
       "source_sha256": "ef874f53615aa657ee1a81748b7a28709f950047f506d72a5f722cd66569cd76",
       "source_line_ranges": [
         {
+          "start": 8,
+          "end": 14
+        },
+        {
           "start": 16,
           "end": 42
         }
       ],
-      "observed_declaration_and_limit": "SICP README describes a local mdBook build with make and make run, and says generated book-directory output should not be committed. These are written instructions, not an executed build result."
+      "observed_declaration_and_limit": "The SICP README calls the GitBook a work in progress and describes its conversion of the MIT text to LFE, with acknowledgments and stated Creative Commons licensing context (lines 8–14). It also describes local mdBook make/make run instructions and generated-output handling (16–42). These are source framing/instructions, not rendered readiness evidence."
     },
     {
       "claim_id": "T04-C10",
@@ -2607,11 +2615,15 @@
           "end": 141
         },
         {
+          "start": 142,
+          "end": 165
+        },
+        {
           "start": 174,
           "end": 202
         }
       ],
-      "observed_declaration_and_limit": "LFE README documents compile/tests/install and REPL workflows, Docker usage, documentation links and manual release/publish steps. The embedded OTP 26 REPL display and commands are examples/instructions, not fresh tests or publication evidence."
+      "observed_declaration_and_limit": "LFE README documents compile/tests/install and REPL workflows, Docker usage, documentation links and technical-documentation inventory, documentation-regeneration guidance (142–165), and manual release/publish steps. The embedded OTP 26 REPL display and commands remain examples/instructions, not fresh tests or publication evidence."
     },
     {
       "claim_id": "T04-C12",
@@ -2669,11 +2681,15 @@
           "end": 78
         },
         {
+          "start": 79,
+          "end": 88
+        },
+        {
           "start": 89,
           "end": 92
         }
       ],
-      "observed_declaration_and_limit": "The plugin rebar.config pins the LFE dependency to 2.2.0 and declares test-profile dependencies/options plus check/prop/coverage/publish aliases. Their presence does not mean any alias was run."
+      "observed_declaration_and_limit": "The plugin rebar.config declares the literal dependency tuple {lfe, \"2.2.0\"} in source (9–11), along with test-profile dependencies/options and check/prop/coverage/publish aliases (38–92). The version string is not evidence of resolved, locked, or installed bytes, and alias declarations do not mean they were run."
     },
     {
       "claim_id": "T04-C15",
@@ -2713,7 +2729,7 @@
           "end": 2
         }
       ],
-      "observed_declaration_and_limit": "Legacy docs/index.html redirects and declares canonical URL http://docs.lfe.io/current/index.html. This source declaration does not establish remote redirect behavior."
+      "observed_declaration_and_limit": "The captured source HTML contains a meta-refresh tag and a canonical link tag, both pointing to http://docs.lfe.io/current/index.html (lines 1–2). This records source markup only; no HTTP status or remote redirect behavior is inferred."
     }
   ],
   "technical_findings": [
@@ -2783,16 +2799,54 @@
       "finding_id": "T04-F05",
       "topic": "Documentation build/output provenance is not established",
       "evidence": [
-        "T04-C01–C10, T04-C15–C16"
+        "T04-C01–C10 and T04-C15–C16; original captured source bodies only"
       ],
       "observation": "Sources describe Cobalt, mdBook and legacy generation routes/configurations, outputs and redirects; SICP config includes a machine-local browser path.",
       "unknown_or_blocked": [
         "No build/render/remote redirect/publication was checked. Declared source/destination and instructions do not prove generated output or provenance."
       ],
-      "consumer": "Arc08 and Arc11",
-      "owner": "Arc08/Arc11 owner according to affected site/book consumer",
-      "next_check": "If readiness/provenance is required, agree the output artifact identity and permitted build/render or publication evidence with the relevant owner.",
-      "reentry": "Re-enter only when a concrete output/readiness consumer is identified."
+      "consumer": "Arc07 website foundations; Arc08 books/documentation; Arc11 legacy preservation",
+      "owner": "Arc07 Cobalt site-foundations/pipeline owner for website C01/C02; Arc08 documentation owner for books C03–C10; Arc11 preservation owner for legacy C15/C16.",
+      "surface_handoffs": [
+        {
+          "surface": "Cobalt website",
+          "claim_ids": [
+            "T04-C01",
+            "T04-C02"
+          ],
+          "owner": "Arc07 site-foundations/pipeline owner",
+          "next_evidence": "If a future readiness/output claim is needed, identify the approved route/content contract and pin the relevant source revision, configuration and toolchain to a generated-output identity and source-to-output provenance from the actual lfesite pipeline. A deployment claim additionally needs its approved deployed revision/route identity.",
+          "reentry": "Re-enter when Arc07 selects a concrete website surface and approves its output/deployment evidence contract; no build or publication check is commissioned by Slice04."
+        },
+        {
+          "surface": "Manual, tutorial, Casting SPELs and SICP books",
+          "claim_ids": [
+            "T04-C03",
+            "T04-C04",
+            "T04-C05",
+            "T04-C06",
+            "T04-C07",
+            "T04-C08",
+            "T04-C09",
+            "T04-C10"
+          ],
+          "owner": "Arc08 learning/documentation owner",
+          "next_evidence": "For any promoted book/readiness claim, identify the actual reader surface and pin source HEAD, mdBook configuration/tool version, rendered artifact identity and source-to-output provenance. If a runnable guide is claimed, add the applicable Arc02-approved environment evidence.",
+          "reentry": "Re-enter when Arc08 selects a specific promoted book/reader path and approves the required output evidence; no render or build is commissioned by Slice04."
+        },
+        {
+          "surface": "Legacy documentation generation and redirect markup",
+          "claim_ids": [
+            "T04-C15",
+            "T04-C16"
+          ],
+          "owner": "Arc11 legacy-preservation owner",
+          "next_evidence": "For a selected preservation/disposition claim, pin the legacy source revision and generator/preservation record to the exact generated HTML or deployed route identity, with an approved source-to-artifact mapping. Remote redirect behavior would require a separately approved endpoint observation.",
+          "reentry": "Re-enter when Arc11 approves a concrete legacy-route disposition and identifies the preserved artifact or deployed surface; no HTTP or generation check is commissioned by Slice04."
+        }
+      ],
+      "next_check": "No output check is authorized now. Conditional on a future concrete consumer, each named arc should first approve the actual surface and evidence contract, then obtain a pinned generated/output/deployed identity appropriate to that surface.",
+      "reentry": "Re-enter through the named owning arc only when its surface is selected, evidence contract is approved, and required source/output/deployment identity can be captured."
     },
     {
       "finding_id": "T04-F06",
