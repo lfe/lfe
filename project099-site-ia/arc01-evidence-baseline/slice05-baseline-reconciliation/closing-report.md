@@ -79,3 +79,7 @@ The earlier wrong-base and overbroad pointer attempts, schema/key assumptions, a
 ### Limits and return state
 
 The inherited source, preservation, pointer, and CI evidence remains attributed to its prior identity; this prose correction does not repeat those investigations. No HTTP/browser, source/body/tag/intake query, build/render/runtime/install/CI/compatibility check, publication, or external action occurred. The 40 resource slots and 16/eight/one historical technical budgets remain exhausted. Arc01 composition, CDC review of S5-08, and the required retrospective remain pending; stop before Arc02.
+
+### Commit receipt and ownership release
+
+The actual iteration02 execution intake is `fc4ee62b594f59941ce3f200b8443b3896fc392e` (tree `176f1dea7ef57c535be21242373b291d156688ec`). Primary return commit `719c3e4ed4539cf56d59e7913f3b915b35160795` has tree `21931b6d0c96b036cd118336e948bcb5d478a7e4`; its intake-to-return diff contains exactly the three assigned Markdown paths. The parsed JSON and handoff summary are byte-identical to receipt `8d6304bdb6056eff87978f89da5e660383a7e111`. A closing-report-only metadata receipt follows; its own identity is reported with this return. After that receipt, committed bytes and the exact one-file range are verified, the worktree is clean, and there are no active tools or processes. CC releases planning/index ownership to CDC for independent S5-08 review. Acceptance remains pending.
