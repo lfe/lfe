@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 title: LFE site information architecture and supporting foundations
-version: "1.12"
+version: "1.13"
 date: 2026-10-19
 status: active
 depends-on: []
@@ -557,6 +557,15 @@ accepted amendment, never retrospective criterion softening.
 
 ## Current state
 
+**Accepted 19 October close:** independent CDC review accepts all8 Slice02
+rows at6ab32bd2 +96f54f37 and completes its retrospective. The original
+source-only capability/criteria and failed history remain. Final post-receipt
+checks are actually CDC-reproduced; CC's interrupted final replay remains
+unrun. The approved bounded Slice03 planning gate is released, with all later
+dependencies/composition and stop-before-Arc02 unchanged. Older gate/issue
+state below is preserved history, superseded by this verdict.
+
+
 **Subsequent 19 October Operator decision:** Duncan answered “Authorize one
 extra correction (Recommended)” to the exact bounded remedy proposed at
 `99b0e6d`. Exactly one extra Slice02 intake/receipt pass is authorized beyond
@@ -650,3 +659,5 @@ approval. Navigation/design choices remain open, and expansion remains expected.
 | 1.11 | 2026-10-19 | Arc01 Slice02 Iteration05 review; Duncan’s explicit bounded-pass approval | Record repaired R16, R17 complete-current-intake gap and exhausted-pass Operator gate; preserve six accepted rows and approved-but-gated investigation limits | No extra correction authorized; no capability or criterion amendment |
 
 | 1.12 | 2026-10-19 | Duncan’s explicit one-extra-correction answer at checkpoint99b0e6d | Authorize exactly one extra Slice02 intake/receipt pass, preserving five-pass history, six accepted rows, same models/four-path scope and all frozen inputs; issue a distinct sixth prompt | Explicit bounded exception; no reset or seventh pass |
+
+| 1.13 | 2026-10-19 | Arc01 Slice02 Iteration06 CDC acceptance | Close all8 child rows/retrospective, reconcile actual final proof and release approved Slice03 planning; source-only and arc endpoint limits retained | Routine independent acceptance; no scope/criterion change |

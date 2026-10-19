@@ -1,9 +1,9 @@
 ---
 project: project099-site-ia
 arc: arc01-evidence-baseline
-version: "1.10"
+version: "1.11"
 date: 2026-10-19
-status: blocked
+status: active
 depends-on: []
 blocks: []
 related: [Arc02, Arc03, Arc04, Arc05, Arc06, Arc11, Arc12]
@@ -60,7 +60,7 @@ their full open sets are prepared immediately before assignment.
 | Slice / eventual directory | Delivered piece | Inputs / dependencies | Status |
 | --- | --- | --- | --- |
 | Slice01 — `slice01-baseline-intake` | Preserved-input provenance, local repository/source map, and complete reconciliation of the inherited assessment/question registers | Saved first-steps packet, approved parent plan, read-only local metadata and bounded source witnesses | Closed; all eight rows independently accepted at 9111268; initial failed review preserved |
-| Slice02 — `slice02-local-inventory` | Complete inventory of the agreed local site content, route/anchor declarations, resource promotions, and legacy-source entrances | Accepted Slice01 provenance/populations; inspect actual Cobalt/wrapper semantics before claiming output routes | Open; iteration04 reviewed: S2-01–06 accepted; receipt-only R16 iteration05 issued; two rows open |
+| Slice02 — `slice02-local-inventory` | Complete inventory of the agreed local site content, route/anchor declarations, resource promotions, and legacy-source entrances | Accepted Slice01 provenance/populations; inspect actual Cobalt/wrapper semantics before claiming output routes | Closed; all8 rows independently accepted after authorized iteration06; retrospective complete |
 | Slice03 — `slice03-resource-verification` | Targeted external destination and source/rendered readiness checks with coverage limits | Accepted Slice02 destinations; Slice01 inherited findings; read-only retrieval/rendering method defined at opening | Planned |
 | Slice04 — `slice04-technical-intake` | Technical evidence packet for release/container/environment questions and the reported runtime failure | Slice01 repository/provenance map; Slice03 relevant observations; actual Operator-provided failure context where available | Planned |
 | Slice05 — `slice05-baseline-reconciliation` | Reconciled evidence/coverage/finding register and concrete handoffs to consuming arcs | Accepted Slices01–04 and their explicit gaps/dispositions | Planned |
@@ -119,6 +119,17 @@ handoff. Slice04 must request or locate it and record its state. If unavailable,
 the missing evidence remains an explicitly owned Arc02 entry condition; it
 cannot be claimed reproduced. CDC/Duncan disposition any material inability
 to deliver the arc capability before closure. Unaffected inventory work can proceed.
+
+## Slice02 accepted; next approved work — 19 October 2026
+
+Independent CDC review accepts all8 Slice02 rows at6ab32bd2 +96f54f37;
+its retrospective is complete. R16/R17 failed history and the exact one-extra
+authorization stay preserved. No seventh pass. CDC owns planning after clean
+operational recovery; final post-receipt proof is CDC-reproduced, not a CC run.
+No structural scope/criterion change is needed. The approved bounded Slice03
+may now receive its complete open set; Slice04 remains behind its own actual
+dependencies. Arc composition remains open; stop before Arc02. The older
+issue/gate paragraphs below are historical and superseded by this verdict.
 
 ## One extra correction authorized — 19 October 2026
 
@@ -238,3 +249,5 @@ The inherited `../artifacts/first-steps/` packet stays in place.
 | 1.9 | 2026-10-19 | Slice02 Iteration05 CDC review and Duncan’s bounded-pass approval | Preserve repaired R16/six accepted rows, hold R17 at exhausted iteration gate, and record approved-but-gated Slice03 max20/max40 and Slice04 exact16/eight query-group/one-search limits; no capability or criterion amendment |
 
 | 1.10 | 2026-10-19 | Duncan’s explicit bounded extra-pass authorization | Permit one distinct iteration06 for current intake/receipt correction, preserving history, accepted evidence and downstream gates; no seventh or reset |
+
+| 1.11 | 2026-10-19 | Slice02 Iteration06 CDC acceptance | Close the8-row child and retrospective, retain failed history/limits and open the approved Slice03 planning gate; no structural or criterion amendment |

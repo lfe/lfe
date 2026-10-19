@@ -1240,3 +1240,128 @@ and execution intake are this new committed state, to be recorded exactly by
 CC using path history and HEAD. Parent mode edits do not enter CC's four-path
 return diff. All earlier artifacts/prompts/JSON/source and original row
 contracts/statuses are preserved before dispatch.
+
+## Iteration06 independent CDC review and Slice02 acceptance — 2026-10-19
+
+**Reviewer:** Sofie, `/root/autonomous_cdc`, explicit OpenAI Codex
+`gpt-6.1-sol` / `high`, independent of CC `/root/autonomous_cdc/cc_slice02`
+(`gpt-6-luna` / `high`); backend identity remains unreported.
+**Assignment/intake:** `cc-prompt-iteration06.md` at
+`4f2a5f636ccafcc0a98b56bb380dbf7d38f6fb12`, SHA-256
+`9afc66294d32c11c83b4d2d77d1e7558894db03bc178ee7604a790e66c4cb576`.
+**Evidence:** `6ab32bd2b44634c6bf37a39afd07cfc8ca449534`, tree
+`a307e23ea08105f7ef92ea7de35b2e974f56a455`; report-only receipt
+`96f54f377fdcbcd0b46614ade18f90d2b298ae71`.
+
+**Verdict: accept S2-07 and S2-08; retain S2-01–06. All eight rows are done.**
+R17's complete current authority intake and truthful recovery are now
+established at the allowed strength; source meanings remain scoped to the
+accepted declarations/filename/consumer inventory. No generated/live/runtime/
+chapter-completeness or IA/policy acceptance is added. The one explicitly
+authorized extra correction is complete; no seventh pass is opened.
+
+### Actual recovery and final-check attribution
+
+CC initially loaded the complete named current contracts, then disclosed
+compaction had left extents/readback rather than full source prose. The
+committed execution addendum separately records the initial reads and actual
+post-compaction reload: full prompt/slice/ledger/AGENTS, complete current
+project authority/state, full arc/ledger, current CDC review/authorization,
+required prompt-authoring/verification/testing/PM/framework authority and
+legacy routes. Earlier same-context retention statements are historical to
+the pre-compaction phase; the later explicit recovery supersedes them for
+current source availability. CDC checks actual complete scopes/readback and
+consistency, not attention or comprehension. No fifth-pass coverage is invented.
+
+After the receipt commit CC became unresponsive to repeated concrete status
+requests. CDC interrupted the running turn and requested read-only operational
+recovery of the same assignment, no edits/retries/new pass. CC confirmed no
+active tool/process/session, clean planning HEAD `96f54f37`, and explicitly
+returned mutation/index ownership without byte changes. It truthfully reported
+that its final adapted **post-receipt full preservation/range/committed-byte/
+link/row replay was unrun**: the interrupted turn had not invoked it. Earlier
+precommit, evidence-byte and preservation checks were completed. The final
+closing paragraph describes the intended receipt function but supplies no
+completed post-receipt results. Do not read that generic sentence as proof
+that CC ran them. This record is the current disposition of that limit.
+
+CDC performed those final required checks independently below. No gate is
+waived and no CC run is fabricated; the final proof is CDC-reproduced, while
+CC's unrun work stays unrun. CDC did not repair CC's intake, artifact meanings
+or source data. This review supplies the independently checked final state.
+
+### Fresh independent proof and retained prior evidence
+
+`python3 /tmp/project099-cdc-iteration06-review.py` exits0 with zero errors:
+8/8 actual root/HEAD/branch/status projections;8/8 exact ordered populations
+(2,819 paths);2,839/2,839 working SHA-256/size/decoded-line counts, Git modes,
+batched HEAD blob hashes and qualifications;8/8 working/pinned input hashes.
+2,835 files equal HEAD and the same four qualified website Rust files differ.
+Website stays main036e231b, LFE clean develop0aa820e, all related branches/
+HEADs and unrelated dirty/untracked paths match. No source drift is observed.
+
+All3 JSON registers parse and are byte-equal to2112713. All6 predecessor
+prompts equal intake4f2a5f6; active06 equals its creation object/hash. Both
+intake-to-evidence and intake-to-return ranges contain exactly the four allowed
+Markdown paths; receipt changes closing-report alone.4/4 working files equal
+final committed bytes, both commits pass git-show whitespace checks,14/14
+rendered local Markdown links resolve, UTF-8/LF/newline/whitespace checks pass,
+and the exact current R17 walk matches all8 current ledger statuses (six
+done/two open before acceptance). Original Criterion/Verify/Significance/
+Origin/Notes and statuses equal intake; only Evidence cells changed. Earlier
+execution/summary/closing text is preserved as an exact prefix. Planning was
+clean at ownership return. The script adapts the already passing independent
+fifth-pass method rather than rebuilding its population/pin semantics.
+
+A separate shared Git-object/heading/last-substantive-line predicate verifies
+all6 complete current scopes at4f2a5f6: project Workflow413–456, Autonomous
+preflight458–537, Current state558–632; arc Autonomous171–187; CDC review
+Iteration05 1053–1225 and Iteration06 authorization1226–1242. The same
+predicate rejects the fifth partial project405–530 range and the absent
+arc-mode receipt at a47aeb4 (recorded51–77/140–174 omit123–139). All8
+positive/negative controls pass; optional blank separators are not substantive.
+Required normative guide extents also match their actual complete headings.
+
+During recovery the installed framework became3.0.1 while immutable06 names
+3.0.0. CDC inspected source ai-engineering commits7aa6a1f9→19de0cf9: only
+entry version metadata and eight version-history lines change. Installed entry
+SHA-256 bb87503da7f09070b1b1d48336cf2229fede2c60a4212dd4eec6a1701a208e56
+matches the former source after explicit version and existing package-route
+normalization;18 relevant installed normative guides equal the prior source
+byte-for-byte. This is a compatible metadata-only drift, with actual read
+identity retained; no normative substitution, prompt rewrite or retroactive
+invalidation of completed reads. It is not a released-package claim.
+
+Retain the earlier independent114/114 structural,6,940 locator and133 author/
+preservation predicates at original identities/dates. All relevant source
+inputs, register values, criteria and dependencies remain exact, and the
+receipt-only delta cannot affect those claims. Earlier accepted metadata,
+wrapper/consumer, extraction,966 SUMMARY/27 entrance and eleven-family proof
+is retained for the same reason, not relabelled as a fresh wholesale rerun.
+No new finding undermines that source proof. No build/render/wrapper/network/
+source test/install/generation/external action occurs in this review.
+
+### Eight-row acceptance, artifact check and bubble-up
+
+| ID | Final status | Independent basis |
+| --- | --- | --- |
+| S2-01 | done | Prior source/provenance acceptance retained; fresh complete roots/populations/files/pins match. |
+| S2-02 | done | Prior source-qualified mechanism/author graph proof retained by exact input/value equality. |
+| S2-03 | done | Source metadata/declarations/anchors accepted; frozen route register and source proof unchanged. |
+| S2-04 | done | Declared resource/consumer/extraction evidence retained; frozen values/inputs unchanged. |
+| S2-05 | done | Declared related filenames/entrances/TOCs retained by complete unchanged populations/values. |
+| S2-06 | done | Eleven-family/gap/owner/re-entry proof unchanged; no source obligation deferred. |
+| S2-07 | done | R16 repaired, complete R17 intake/recovery/readback and actual validation attempts/limits checked; fresh exact extent/negative controls and final independent replay pass. |
+| S2-08 | done | Exact scoped committed return and all protected inputs/source/prompts pass; full8-row/5-artifact/7-prompt inventory, unrun CC limit and independent final proof reconciled. |
+
+The five supporting artifacts are exactly inventory.json, route-anchor-register.json,
+resource-register.json, inventory-summary.md and execution.md under artifacts/.
+All seven issued prompts stay in the slice root. Scope-as-promised equals the
+accepted source inventory and complete truthful return, with generated/live,
+runtime, full-chapter and migration decisions explicitly downstream. No silent
+drop, deferral or no-op is adopted. Slice02 delivers its assigned Arc01 piece;
+no capability/sequence/criterion amendment is required. A1-02 may now close,
+and already-approved bounded Slice03 can open under its own complete contract.
+Arc01 composition and all project outcome rows remain open. CDC closes the
+slice, completes its retrospective and retains sole planning ownership for
+next-slice authoring.

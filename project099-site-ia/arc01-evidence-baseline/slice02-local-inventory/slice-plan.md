@@ -2,9 +2,9 @@
 project: project099-site-ia
 arc: arc01-evidence-baseline
 slice: slice02-local-inventory
-version: "1.8"
+version: "1.9"
 date: 2026-10-19
-status: active
+status: closed
 depends-on: [slice01-baseline-intake]
 workflow: two-contributor
 mode: autonomous (includes expedited)
@@ -41,6 +41,19 @@ requires an explicit Operator decision or authorized re-scoping, not an
 automatic sixth prompt.
 CDC is Sofie in the desktop planning chat.
 No automatic dispatch or CRC role is selected. Issued prompts stay immutable.
+
+## Accepted close — 19 October 2026
+
+CDC independently accepts iteration06 evidence6ab32bd2 + report receipt
+96f54f37: all eight original rows are done. Complete current authority intake/
+post-compaction recovery and final independent source/return checks pass;
+CC's post-receipt replay remains unrun and is explicitly distinguished from
+CDC's completed proof. No seventh prompt. CC returned clean ownership after
+read-only operational recovery; CDC is sole owner for next-slice planning.
+The [review](cdc-verification.md) preserves R16/R17 failures, every prior
+prompt and exact evidence attribution. [Retrospective](cdc-retrospective.md)
+is complete. The following issue/gate descriptions are historical, superseded
+by this accepted verdict; no source/criterion or downstream-scope change.
 
 ## Current assignment — authorized iteration06 (19 October 2026)
 
@@ -368,6 +381,8 @@ or source work is commissioned.
 
 | Assignment | Issued | Predecessor | Reason | Disposition |
 | --- | --- | --- | --- | --- |
-| `cc-prompt-iteration06.md` | 2026-10-19 | preserved iteration05; evidence1ffaba0 + receipt d0f6cae, CDC review99b0e6d | Duncan explicitly authorizes exactly one extra current-intake/receipt pass for R17 | Issued at this committed handoff; sole CC owner after acknowledgement; no seventh pass |
+| `cc-prompt-iteration06.md` | 2026-10-19 | preserved iteration05; evidence1ffaba0 + receipt d0f6cae, CDC review99b0e6d | Duncan explicitly authorizes exactly one extra current-intake/receipt pass for R17 | Accepted at6ab32bd2 +96f54f37 by independent CDC review; all8 rows done; no seventh pass |
 
 | 1.8 | 2026-10-19 | Duncan’s explicit extra-pass decision | Open exactly one authorized iteration06 with full current authority manifest, preserved failed history and accepted rows; serialized ownership, no reset/seventh |
+
+| 1.9 | 2026-10-19 | Iteration06 independent CDC acceptance | Close all8 original rows, reconcile CC-unrun final replay with actual independent proof, complete retrospective and release approved Slice03 gate; preserve all failed history and source limits |

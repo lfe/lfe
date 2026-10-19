@@ -284,3 +284,11 @@ planning status. It changes only this report. An exploratory schema lookup
 initially assumed `inventory.json` was at the slice root and returned
 `FileNotFoundError`; the corrected lookup used `artifacts/inventory.json`.
 That locator error was not an acceptance check or evidence mismatch.
+
+### CDC closing follow-through — 19 October 2026
+
+The [independent Iteration06 review](cdc-verification.md) accepts all eight
+rows and distinguishes CC's unrun final post-receipt replay from the actual
+completed CDC final proof. CC's preceding proposed-done return is preserved.
+The [CDC retrospective](cdc-retrospective.md) is complete; no CC receipt or
+source claim is repaired by this status/link annotation.
