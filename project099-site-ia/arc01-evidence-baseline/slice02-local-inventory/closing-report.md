@@ -147,3 +147,67 @@ Arc01 bubble-up remains the existing one: Slice03 owns endpoint/source/rendered 
 ### Iteration04 evidence commit and return receipt
 
 The evidence commit is `e9dc003048c2fb008e62a7075a718e0aa61ad289`, with tree `de167164abb1235480fa5bb8bb704ba9d2a85b1b`. The opening-to-evidence range `3745443cfc0608f27d4a82d11adf792043ed8615..e9dc003048c2fb008e62a7075a718e0aa61ad289` contains exactly the five allowlisted changed paths named above. `git show --check` passed; planning status was clean immediately after that commit. The inventory and route-anchor files compare byte-for-byte with predecessor `6a43ab22816e8502fec5ec9744f51b5aaf3f4a9d`. This closing-report-only follow-up records that stable evidence identity and does not alter the evidence tree; final committed-byte, range, and clean-status checks are reported in the return receipt.
+
+## Iteration05 R16 correction — CC proposed-done return (2026-10-19)
+
+This fifth and final existing refinement corrects only the current intake and
+return receipts. The prompt remains byte-identical to its creation object
+`21c02683b27878263b4da6b6cda3e38d0f3ccb61`, SHA-256
+`187b4b9a194ac89fb01e3f8dc6fa49d991b18fd9711c8ba6a701a4f4b839bbe9`. The
+actual execution-intake baseline is planning commit
+`a47aeb471896e6393529f91ca99bb6a03924335f`, tree to be recorded in the receipt
+follow-up. Only these four existing paths changed: `artifacts/execution.md`,
+`artifacts/inventory-summary.md`, `ledger.md`, and this `closing-report.md`.
+
+The historical CDC Iteration03 review is read from source object
+`3745443cfc0608f27d4a82d11adf792043ed8615`, lines 685–876. The `fb83798b +
+6a43ab2` pair is the assessed candidate identity; `6a43ab2` itself has 683
+lines and does not contain that review. The complete parent Workflow/authority/
+review and Current state sections at that historical revision were read at
+413–456 and 478–522. The same predicate accepts those complete extents and
+rejects 455/500. These consistency checks do not establish past reading,
+attention or comprehension; the current intake remains attested for CDC review.
+
+### Current row walk
+
+- **S2-01 — done.** Retain CDC acceptance; fresh root, ordered population, full file fingerprint and pin preservation replay passes.
+- **S2-02 — done.** Retain CDC acceptance and its source-level author/mechanism evidence; no new source interpretation was performed.
+- **S2-03 — done.** Retain CDC acceptance for source metadata and declaration coverage; no emitted/live claim is added.
+- **S2-04 — done.** Retain CDC acceptance for the declared source construct and consumer scope; no extraction or output claim is added.
+- **S2-05 — done.** Retain CDC acceptance for related filename and entrance coverage; no chapter-completeness claim is added.
+- **S2-06 — done.** Retain CDC acceptance for eleven-family accounting and downstream owners/re-entry conditions.
+- **S2-07 — open.** CC attests the corrected source identity/section receipts, current readback, preservation query, and focused controls. CDC must review the actual sources and return before acceptance.
+- **S2-08 — open.** CC attests four-path scope, frozen inputs/prompts, all artifact and prompt accounting, row walk and bubble-up. CDC must independently inspect the return and committed bytes.
+
+### Preservation, artifact inventory and limits
+
+The fresh replay matched **8/8 repository root/status projections**, **8/8 ordered populations** (2,819 paths), **2,839/2,839 working hashes/sizes/line counts and HEAD blob/mode/qualification records**, and **8/8 pinned inputs**, with zero mismatches. It found the same 2,835 HEAD-equal files and four previously qualified website Rust working/HEAD differences. The three JSON registers and five predecessor prompts are byte-identical to `2112713`; the active iteration05 prompt equals its creation object. The five supporting artifacts remain `inventory.json`, `route-anchor-register.json`, `resource-register.json`, `inventory-summary.md`, and `execution.md`. All six issued prompts (initial plus iterations01–05) are preserved.
+
+The prior **114/114 structural predicates, 6,940 locator checks and 133 author/preservation predicates** remain CDC-attributed retained evidence under their original revision and date. CC did not claim those as reruns. CC freshly replayed preservation projections and the R16 source/extent predicate. Initial helper errors and corrected retries are recorded in `artifacts/execution.md`. No source checkout, JSON register, issued prompt, parent plan or reviewer file was changed. No build, render, network, wrapper, source test, install, generation, CI, ticket, push or publication action ran. Source declarations remain distinct from generated/live behavior; chapter meaning, runtime and policy/IA decisions remain outside this receipt correction.
+
+Specified scope was R16 receipt identity/section completeness and scoped preservation/return evidence. Delivered scope is the same. No criterion, owner, source interpretation, scope or arc-plan change is proposed. What Worked: reading the historical object directly separated the review's storage revision from the candidate it assessed, while a single section-boundary predicate exposed both omitted final lines. The negative controls rejected the wrong object and partial extents. Arc01 bubble-up is unchanged: S2-01–06 are accepted, S2-07/08 await CDC, A1-02 remains open, Slice02/Arc01 remain open, and Slice03 remains gated.
+
+**Evidence commit and receipt:** evidence commit `15d1c5ffae30a3333aac8ff121c38cb7db38944e`, tree `fac2eb65e1776e98abf25a2f93ffebdaea98406f`. The actual execution-intake-to-evidence range `a47aeb471896e6393529f91ca99bb6a03924335f..15d1c5ffae30a3333aac8ff121c38cb7db38944e` contains exactly the four allowlisted paths above. All four committed files equal their working bytes; `git show --check` exits 0 and planning is clean after the evidence commit. The final intake-to-return path set remains the same four allowlisted paths; the report-only follow-up changes `closing-report.md` alone. Its final preservation replay, committed-byte and clean-status checks are recorded below. This is a CC proposed-done return, not CDC acceptance. No sixth iteration is authorized.
+
+
+### Iteration05 final report-only return receipt
+
+The final follow-up is limited to `closing-report.md`; it records the main
+evidence commit `15d1c5ffae30a3333aac8ff121c38cb7db38944e` and tree
+`fac2eb65e1776e98abf25a2f93ffebdaea98406f`. The actual intake-to-return
+range from `a47aeb471896e6393529f91ca99bb6a03924335f` includes exactly the four
+allowlisted files listed above: execution, inventory summary, ledger, and this
+report. Its evidence commit changed all four; the receipt follow-up changed
+only this report.
+
+After the final receipt commit, all four committed Markdown files were compared
+byte-for-byte with the working files; the three JSON registers and five
+predecessor prompts remain byte-equal to `2112713`, and iteration05 remains
+byte-equal to creation object `21c0268`. The final eight-root/status, eight
+ordered-population (2,819 paths), 2,839-file working/HEAD fingerprint and
+mode/qualification, and eight-pin replay has zero mismatches; 2,835 files are
+HEAD-equal and the same four previously qualified website Rust files differ.
+All four Markdown files pass UTF-8/LF/final-newline/whitespace checks, 13/13
+relative links resolve, the exact eight-row walk is six done/two open, and
+`git show --check` and the final clean planning-status check pass. S2-07/08
+remain open for independent CDC review.

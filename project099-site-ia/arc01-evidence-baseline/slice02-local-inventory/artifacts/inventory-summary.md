@@ -52,3 +52,24 @@ The two legacy README autolink locators now use their owning `legacy_docs` HEAD.
 The complete current `src/_data/authors.yml` walk contains six map entries and **50 actual YAML paths**: 24 ordinary scalar leaves, six `links` collection paths, ten indexed `label_md_inline` inputs, and ten indexed `label_html` siblings. All 50 paths are unique and source-qualified. The current source-path role projection records **40 direct-access paths and ten prerender-input paths**. Four scalar fields under `anurag-mendhekar` are included; its `github_user` and `avatar` are present nulls and its `links` is a present empty sequence. The map-key and Liquid alias witnesses remain separately named; `author_entry[0]` is not treated as a YAML leaf. The ten previous prerender edges and all 61 site-wide rich-input edges remain unchanged. This is a source-level author aggregate census; conditional access does not establish that every author or branch is emitted.
 
 The Iteration03 source-output gap observation is now scoped: URL/token scans remain bounded, while the six-author path census is complete for this map only. Generated routes/anchors/feeds, dynamic/runtime availability, and complete chapter semantics retain their existing owners and re-entry conditions. CDC-accepted S2-01, S2-03, and S2-05 remain done; S2-02, S2-04, S2-06, S2-07, and S2-08 remain open pending CDC review. Slice02 and Arc01 remain open and Slice03 remains gated.
+
+## Iteration05 R16 receipt correction (2026-10-19)
+
+The source identity and complete section receipts are corrected in
+`artifacts/execution.md`. The Iteration03 independent review is stored at
+`3745443` (lines 685–876); `fb83798b + 6a43ab2` names its assessed candidate.
+The project Workflow section was loaded completely at 3745443, lines 413–456,
+and Current state at 478–522. Focused controls reject the wrong review object
+and the prior 455/500 section ends. These checks establish receipt consistency;
+read receipts and contract understanding remain CC-attested for CDC review.
+
+Fresh preservation replay at the actual intake `a47aeb471896e6393529f91ca99bb6a03924335f`
+matched 8/8 roots/status projections, 8/8 ordered populations (2,819 paths),
+2,839/2,839 working and HEAD fingerprint/mode/qualification records, and 8/8
+input pins; zero mismatches. Three JSON registers and five predecessor prompts
+remain byte-equal to `2112713`, and iteration05 remains equal to its creation
+object `21c0268`. Previously accepted S2-01–06 remain done; S2-07/08 remain open
+with this correction proposed for CDC acceptance. Prior 114/114 structural,
+6,940 locator and 133 author/preservation checks remain CDC-attributed retained
+evidence, not fresh CC results. The inventory scope and its source/output/runtime
+limits are unchanged.

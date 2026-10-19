@@ -196,3 +196,179 @@ The first census helper used a planning-artifact path relative to the website pa
 `inventory.json` and `route-anchor-register.json` are byte-equal to the `6a43ab2` tree. In `resource-register.json`, every top-level field other than the authorized author consumer/gap changes is unchanged. Whole-value comparisons pass for occurrences (1,447), destination groups (804), reference definitions (84), rich mirrors (61), feed metadata (5), related entrances (27), family coverage (11), residual candidates (543), Build It targets (4), exclusions (56), unpaired rich fields (1), and retired resource occurrences. The author Iteration03 10-edge list, five layout witnesses, Iteration03 alias mapping and branch evidence are unchanged; other 11 consumer records are unchanged. CDC's Iteration03 structural review (114/114, 6,844 locators), rich-input 61-edge review, 966 SUMMARY comparison, 11 family walks and 159 metadata/declaration subclaims are retained by those exact protected values and unchanged inputs; they are not described as CC reruns. Current author sources, pins and source-root states are independently replayed at intake and will be replayed at return.
 
 No source test/build, wrapper, render, generation, network, install, ticket/CI action, message/dispatch, push, publication, chapter audit or IA/support decision was performed. No maintained validator or new test was added. Return checks: all three scoped JSON files parse; four edited Markdown files pass UTF-8, final-newline, trailing-whitespace and local-link checks; `git diff --check` passes; the eight-root/file/pin replay reports zero mismatches; exact inventory/route byte equality, protected resource values, all 50 author source paths, 198 locator/witness checks and other-consumer/edge preservation pass. Candidate and receipt commit identities and committed-byte comparisons are recorded in the closing report after scoped commit verification. S2-01/03/05 remain done by CDC; five other rows remain open for CDC review. Slice02/Arc01 remain open, Slice03 remains gated, and no criterion/owner/plan change is proposed.
+
+## Iteration05 R16 receipt correction — intake and source reads (2026-10-19)
+
+**Assignment and mutation boundary.** CC executes the preserved
+`arc01-evidence-baseline/slice02-local-inventory/cc-prompt-iteration05.md`
+(receipt-only R16, fifth and last existing refinement). Its SHA-256 is
+`187b4b9a194ac89fb01e3f8dc6fa49d991b18fd9711c8ba6a701a4f4b839bbe9`; the
+working bytes equal the prompt at creation commit
+`21c02683b27878263b4da6b6cda3e38d0f3ccb61`. Actual execution intake is the
+CDC ownership handoff commit `a47aeb471896e6393529f91ca99bb6a03924335f`
+(tree recorded at return), branch `planning`, clean at intake. CDC owns
+planning again only after the exact scoped return. Current authority is project
+v1.10 / arc v1.8 / slice v1.6; those supersede the prompt's earlier version
+labels for status and transport only. Scope, criteria, evidence limits and the
+four-path CC allowlist are unchanged. Explicit role selection is CC
+`gpt-6-luna` / high; CDC `gpt-6.1-sol` / high. Root is transport/Operator
+liaison only.
+
+### Required text loaded at its actual source state
+
+| Required item | Source and complete extent received | Application |
+| --- | --- | --- |
+| Active iteration05 prompt | `21c02683` / SHA above; full lines 1–133 | R16 recipe, required-read manifest, preserved original criteria, exclusions, negative controls, preservation population and four-path allowlist. |
+| Slice plan | Current planning tree at `a47aeb4`; full lines 1–310 in contiguous reads, including the new handoff at lines 299–310 | Current authority, complete scope/limits, assignment sequence, row gates and serialized ownership; fifth-pass exhaustion confirmed. |
+| Slice ledger | Current planning tree at `a47aeb4`; full lines 1–113 | Eight unchanged acceptance rows; S2-01–06 are accepted/done, S2-07/08 remain open. |
+| Project `AGENTS.md` | Current planning tree at `a47aeb4`; full lines 1–30 | Canonical home, preservation, Expedited Mode and project-specific conventions. Its pinned fingerprint is unchanged. |
+| Current CDC Iteration04 review | Current planning tree at `a47aeb4`; complete Iteration04 review lines 878–1051, loaded in contiguous ranges 878–928 and 929–1051 | R16 finding, current independent row walk, retention applicability, bubble-up and handoff constraints. |
+| Current project plan | Current planning tree at `a47aeb4`; Workflow/authority/review lines 413–456; Current state lines 557–607 | Current role selections, scope endpoint, review boundary, accepted/pending status and later-slice gates. |
+| Current arc plan and ledger | Current planning tree at `a47aeb4`; Slice breakdown lines 51–77; Workflow/current assignment lines 140–174; full arc ledger | A1-02 remains open, composition is not inferred, and Slice03 remains gated. |
+| Historical CDC Iteration03 review | Exact source object `3745443cfc0608f27d4a82d11adf792043ed8615`; full lines 685–876, read as 685–780 and 781–876 | R16 review/finding, row walk, retained evidence and the prior handoff contract loaded from the source revision, not its assessed receipt. |
+| Historical project plan | Exact source object `3745443cfc0608f27d4a82d11adf792043ed8615`; Workflow lines 413–456; Current state lines 478–522 | Complete section boundaries and complete current-state remainder loaded. Workflow has a permitted blank separator at 457; Current state has a blank separator at 522. |
+| Pinned Iteration04 execution record | Commit `2112713`; complete current intake/manifest/checks/limits/row-walk/scope/bubble-up/receipt section, lines 149–198 | Historical receipt is preserved. Its source identity and completeness assertions are superseded only by this dated R16 addendum. |
+| Pinned Iteration04 summary | Commit `2112713`; complete Iteration04 current reconciliation, lines 50–54 | Current source accounting and six accepted/two open disposition rechecked. |
+| Pinned Iteration04 closing report | Commit `2112713`; complete Iteration04 return, lines 116–149 | Prior row walk, scope/bubble-up, evidence commit and retained-versus-fresh boundary rechecked. |
+| Frozen registers and prior prompts | Commit `2112713`; whole-byte comparison for all three JSON registers and initial prompt plus iterations01–04 | All three JSON files and five prior prompts match their pinned bytes; no semantic re-extraction is undertaken. Current iteration05 prompt separately matches its creation object. |
+
+The four legacy routes named by the prompt resolved as follows and were read
+at the specified extents: `/Users/oubiwann/.agents/skills/engineering-methods/guides/07-implementation-prompt-authoring.md`
+resolves to the installed standalone guide; its Required reading and CC intake
+section, lines 297–398, was loaded and is byte-identical to the bundled guide
+(SHA-256 `be771fb4918c87f26e6cf602468a6fef38ece161a1d4b3ae366e61200f403bba`).
+`/Users/oubiwann/.agents/skills/work-verification/guides/03-row-closure.md`
+resolves to the installed standalone guide; full lines 1–81 were loaded and
+match the bundled guide (SHA-256
+`8947d3ab72d59422d0f90f7fb041f7e3131ce85e190c04985937e63ef1737a5b`).
+`/Users/oubiwann/.agents/skills/work-verification/guides/05-independent-verification.md`
+resolves to the installed standalone guide; full lines 1–147 were loaded,
+including Assigned Reviewer Slice Verification and Evidence During Correction
+Review, and match the bundled guide (SHA-256
+`1a41f607a98f2fcbefba525b868fcfd7194d1c46ad97e7e1cc92cff6568649a3`).
+`/Users/oubiwann/.agents/skills/testing/guides/03-validation-gates.md`
+resolves to the installed standalone guide; Proportionate Proof lines 27–50 and
+Gate Evidence lines 125–130 were loaded and match the installed current guide
+(SHA-256 `18b5c89717380366ffcf8164292e16b9121ebf18b2982ba7ae07fce7ebe9b78b`).
+These receipts identify the material actually delivered now; they make no
+claim about attendance at an earlier intake.
+
+The full collaboration-framework v3.0.0 `SKILL.md` was loaded in contiguous
+ranges 1–300 and 301–574. Required bundled material was also
+loaded: methodology `Notes for Codex` and `Roles and Shared Invariants` (lines
+26–101), Two-Contributor workflow (102–153), and Autonomous Mode (326–550);
+project-management `guides/README.md` lines 1–232, canonical planning sections
+on existing records and iteration preservation (02-canonical-planning-worktree.md
+89–113 and 302–334), and iteration handoff plus CC intake (03-planning-top-down.md
+202–256; 07-implementation-prompt-authoring.md 297–398); full work-verification
+guides 01–05; full agent-coordination guides 01–04; and full posture guides
+01–03. Reads were bounded and visible. No conditional material was triggered.
+
+### Contract readback
+
+This fifth pass repairs R16 receipts only. The historical Iteration03 review is
+stored at `3745443`; `fb83798b + 6a43ab2` identifies the candidate it assessed,
+not the review's source revision. The complete named review is 685–876. The
+historical parent Workflow section is complete at 413–456, and Current state
+at 478–522. The old receipt remains historical: this read attests the exact
+text loaded now and does not reconstruct what a prior reader saw. All other
+required source meanings, 2,839 file witnesses, eight input pins, three JSON
+registers and earlier prompts stay frozen. The return must account for all
+8 rows, 5 supporting artifacts, and every issued prompt. S2-01–06 remain
+independently accepted; CC evidence for S2-07/08 is attested and those rows stay
+open for CDC. The four allowed Markdown paths are the entire mutation boundary.
+No source, generated-output, live, runtime, policy or IA claim follows from this
+receipt correction. The easily missed invalidator is conflating a review's
+assessed candidate with its storage/source object, or calling a parent section
+complete while omitting its final substantive lines.
+
+### Fresh input and preservation replay
+
+The exact recorded root/status commands were rerun for all 8 source roots:
+`rev-parse --show-toplevel`, `rev-parse HEAD`, `symbolic-ref --short -q HEAD`,
+and `status --porcelain=v1 -uall`. The 8 recorded NUL-separated `git ls-files`
+population queries were rerun in order. Every recorded file key was then
+checked against working SHA-256, byte size and decoded line count; `git ls-tree
+-r -z HEAD` supplied HEAD modes/object IDs and batched `git cat-file --batch`
+contents supplied each HEAD blob SHA-256. The `head_qualification` value was
+checked against actual working/HEAD equality. Each of the 8 input files was
+hashed in the working tree and compared with its stored pin and the bytes at
+`2112713`.
+
+Result: **8/8 roots and status projections; 8/8 exact ordered populations
+(2,819 paths); 2,839/2,839 working fingerprints and HEAD blob/mode/qualification
+records; 2,835 working files equal HEAD and the same four recorded website Rust
+files differ; 8/8 input pins; zero mismatches.** The 3 frozen JSON registers
+and 5 prior prompts remain byte-identical to `2112713`; iteration05 remains
+byte-identical to its creation object. Website dirty/untracked work and other
+source checkout status records match the frozen projections. Planning was clean
+at the actual intake.
+
+A bounded source-object/section predicate independently confirms the R16
+receipts. The 876-line CDC review at `3745443` contains the complete Iteration03
+section at 685–876; the same path at assessed receipt `6a43ab2` has 683 lines
+and no such section. The parent Workflow boundary is substantive line 456
+(trailing separator 457); Current state ends substantively at 521 (trailing
+separator 522). The predicate accepts 3745443/685–876, 413–456 and 478–522;
+it rejects the same review range at 6a43ab2 and the truncated parent ranges
+413–455 and 478–500. These checks establish object/range consistency, not
+attention or comprehension.
+
+### Intake query mechanics and recoveries
+
+The first schema inspection tried to print every row of the 2,839-entry `files`
+object; the tool truncated that oversized result. No full-data read is claimed
+from that output. A compact query then exposed only top-level keys, counts and
+record schema. Its first follow-up treated `files` as a list and raised
+`KeyError: 0`; it was corrected to iterate the keyed object. The first fresh
+replay then based all input paths at the planning root and raised
+`FileNotFoundError` for `arc01-evidence-baseline/slice01-baseline-intake/...`.
+A correction based every input at the project root raised `FileNotFoundError`
+for the four paths stored relative to the planning root. The final query resolves
+each recorded path by its existing project-root or planning-root location and
+uses the corresponding committed tree path; it passed with zero mismatches.
+The first historical section-boundary helper counted a trailing blank line as
+substantive and rejected the valid Workflow end at 456; the corrected predicate
+separates the last substantive line from the optional trailing separator and
+passes all four focused positive/negative controls. These were query/path/
+boundary-mechanics failures, not source drift or changed evidence. Their failed
+outputs were retained in this execution record rather than concealed.
+
+The first ledger-evidence update helper expected nine pipe-separated segments
+and stopped with `unexpected table shape S2-07: 8`; a delimiter correction
+counted the leading/trailing table pipes and stopped with `unexpected table
+shape S2-07: 10`. A third attempt matched historical row IDs as well as current
+rows and stopped with `duplicate S2-07`. None of those attempts wrote the
+ledger. The corrected edit bounded matching to the current table before the
+historical section, verified one S2-07 and one S2-08 row, and updated only their
+evidence cells; statuses and contract columns remain unchanged.
+
+
+The first return-state replay helper compared raw Git command stdout, which
+includes a terminal line feed, with the manifest's stored trimmed projections;
+it reported four root/status mismatches that were formatting-only. Its first pin
+comparison also used the D-relative pin spelling directly as a planning-tree
+Git path and reported three absent objects. Diffing the actual projections
+showed no state-content differences; normalizing only the terminal line feed
+and qualifying the three Slice01 paths with `project099-site-ia/` corrected
+the mechanics. The corrected replay passed **8/8 root/status projections, 8/8
+populations (2,819 paths), 2,839/2,839 working/HEAD fingerprint and
+mode/qualification records, 8/8 pins, zero mismatches**. One diagnostic also
+printed the complete nested population partitions instead of their schema and
+was truncated by the tool; no completeness claim relies on that output.
+
+The first scoped-document checker correctly found **13 local Markdown links**
+with none missing and all four Markdown files UTF-8/LF/final-newline/whitespace
+clean; its temporary commit-comparison list incorrectly expected the active
+iteration05 prompt at predecessor receipt `2112713`. The active prompt is
+checked instead against its actual creation object `21c0268`; the three frozen
+registers and five predecessor prompts are compared with `2112713`. A row-walk
+extractor likewise assumed punctuation after the status was outside the bold
+text and returned zero closing-report rows; the literal report format places
+the period inside `**done.**` / `**open.**`. The extractor initially returned zero because it expected punctuation outside the bold status; the literal report format places the period inside `**done.**` / `**open.**`. These were comparison/extraction mechanics, not changes to the prompt, registers or row dispositions.
+
+The combined preservation/row/format checker first stopped at a Python `IndentationError` in its active-prompt comparison branch before running any comparisons. The indentation was corrected. Its next run counted every historical closing-report row walk along with R16 and stopped on a false 16-entry discrepancy. It was narrowed to the R16 `Current row walk` subsection (from its heading to the next heading); no report content changed.
+
+Final scoped checks pass: all eight current ledger rows have unchanged contract/status columns, with S2-01–06 `done` and S2-07/08 `open`; the R16 closing-report walk has exactly those same eight statuses. The four allowlisted Markdown files are valid UTF-8 with LF endings, final newlines and no trailing whitespace; all 13 relative Markdown links resolve. The three JSON registers and five predecessor prompts remain byte-equal to `2112713`, and the active prompt remains byte-equal to creation object `21c0268`. The current diff contains exactly four allowed paths, and `git diff --check` exits 0. These are CC checks; S2-07/08 remain open pending CDC review.
+The first final all-commit preservation checker supplied a mistyped creation-object SHA for the active prompt, so that `git show` lookup failed and the checker reported one false active-prompt mismatch. This was a checker argument error, not prompt drift. The correct creation object is `21c02683b27878263b4da6b6cda3e38d0f3ccb61`; the working prompt had already compared equal to that object, and the corrected final committed-byte check is included after receipt verification.
+Local commit/rebuild trace: before the malformed-SHA checker issue was caught, the exact-path evidence commit was `15d1c5ffae30a3333aac8ff121c38cb7db38944e` / tree `fac2eb65e1776e98abf25a2f93ffebdaea98406f`; a report-only receipt was first `f0634c743e9ea0d95661347654543445ab87c3bb` / tree `641f11805532240c149eb04fafd4f5a843f7dc1d`, then amended to `de9e2f2ddc9ad40a5f501ee288eb5444b17e22e7` / tree `39af19ddbeb568dcdbe326c26caef78177f16373`. To preserve the failed-check receipt and keep the prescribed four-path evidence plus report-only receipt sequence, only those local CC commits were reset to the unchanged handoff `a47aeb471896e6393529f91ca99bb6a03924335f`; no CDC commit, source checkout, prompt or register was reset or changed. The first rebuilt evidence candidate was `710ea88581fb281eb4e49ce0c7b283fc0a850ab6` / tree `a2e1466aec974114c041fc5b2ef7bf8a5e33abfd`; it too will be superseded solely to include this trace before the final receipt. The erroneous checker argument was `21c02683b27878263b4da6b6cda3e38d0f3d0f3ccb61`, while the required creation object is `21c02683b27878263b4da6b6cda3e38d0f3ccb61`. These were local evidence-history corrections, not an iteration/budget reset; R16 remains the fifth and final existing refinement.
