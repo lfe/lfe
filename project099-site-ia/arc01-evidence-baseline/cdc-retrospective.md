@@ -123,3 +123,23 @@ child analyses are complete and no retrospective duty is silently dropped.
 Assembly tooling also initially invoked unavailable `python`;the recorded helper
 ran with the available `python3` before any assembly mutation. No source check or
 acceptance is attributed to the failed invocation.
+
+## Closing follow-through — 19 October 2026
+
+The separate fresh SolHigh reviewer actually reproduced arc-scale source/semantic/
+owner/three-trace composition and accepted it at3ce2f9a7,with no remediation
+finding. Its actual report distinguishes strengthened fresh predicates from
+retained child proof and reports no compaction/coherence gap. CDC inspected that
+verdict and reconciled metadata only after clean/no-active-tool ownership return.
+This completes the pending gate named in the assembly-cutoff analysis above;
+it does not establish a causal model/process comparison. All02–05 child and arc
+retrospectives are complete,with Slice01 pre-mode non-backfill explicit. The
+recommended future observations remain proposals;this run ends at Arc01 and
+creates no framework change,new inquiry or Arc02 assignment.
+
+Final metadata helpers first mixed Slice02's eight current rows with eight
+historical short rows,then selected only the first12 of the project's two current
+tables. Both attempts stopped before commit. CDC corrected selection against the
+actual per-scale ledger layout and reran the full final checks. This is concrete
+CDC checker recurrence;no source/composition acceptance is attributed to either
+failed attempt.

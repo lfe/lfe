@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 title: LFE site information architecture and supporting foundations
-version: "1.27"
+version: "1.28"
 date: 2026-10-19
 status: active
 depends-on: []
@@ -17,14 +17,14 @@ mode: autonomous (includes expedited)
 
 # Project 099 — LFE site IA
 
-**Current19 October status, v1.27:** All five Arc01 slices are independently closed.
-The formal [Arc01 close](arc01-evidence-baseline/closing-report.md) and
-[CDC retrospective](arc01-evidence-baseline/cdc-retrospective.md) are assembled.
-CDC's actual whole-baseline/three-trace demonstration is attested at arc scale;
-A1-06–09 and P-01 remain open for the fresh independent SolHigh gate assigned in
-[the arc plan](arc01-evidence-baseline/arc-plan.md#independent-composition-review-assignment--19-october-2026).
-CDC owns planning/index pending acknowledgment and a separate serialized handoff.
-No new inquiry is authorized;this run stops before Arc02.
+**Current19 October status, v1.28:** Arc01 is formally closed after the fresh
+independent SolHigh composition gate at3ce2f9a7f9f8b2b4ac34440950b0844e817600d7.
+All5 children/40 child rows and all9 arc rows are accepted;P-01 is done,with22
+project rows still open. [Arc01 final return](arc01-evidence-baseline/closing-report.md#final-closure-and-authorized-endpoint--19-october-2026)
+links the bounded evidence and remaining owners. CDC owns planning/index after
+explicit clean/no-active-tool reviewer release. Required02–05/arc retrospectives
+are complete;Slice01 predates that duty. This Autonomous run ends at Arc01.
+Arcs02–12 remain planned/unopened;no further investigation or external action.
 
 **Historical opening summary, superseded by the current state above:**
 
@@ -175,8 +175,9 @@ Its publication location must not become a gate for unrelated work.
 
 ## Arc roadmap
 
-The twelve-arc roadmap is approved. **Arc01 is active; Arcs02–12 are planned;
-none is closed.** Arc01's contract is [arc-plan.md](arc01-evidence-baseline/arc-plan.md).
+The twelve-arc roadmap is approved. **Arc01 is closed after its19 October
+independent composition gate;Arcs02–12 remain planned/unopened.** Was:Arc01
+active,none closed. This run has reached its explicitly authorized endpoint. Arc01's contract is [arc-plan.md](arc01-evidence-baseline/arc-plan.md).
 This supersedes v1.0's proposed/not-opened state. Inputs name
 deliverables and decisions, not an assumption that an entire preceding arc
 must close before any investigation can begin. Detailed dependencies will be
@@ -469,8 +470,9 @@ does not supply an implementation design.
 
 ## Autonomous Mode preflight — 19 October 2026
 
-**Current composition preflight:** All5 children closed;CDC owns planning/index
-until the fresh reviewer acknowledges and receives the separately committed handoff.
+**Current closed-endpoint preflight:** All5 children and the independently gated
+Arc01 composition are closed;the fresh reviewer explicitly returned clean/no-active-
+tool ownership to CDC. CDC owns planning/index;all CC/reviewer contexts are read-only.
 Current authority is installed collaboration-framework3.0.1 and bundled guides;
 the earlier3.0.0 preflight/issued-prompt provenance below remains historical.
 The resolved change was version/history metadata only,not a required guide-body
@@ -491,7 +493,7 @@ scope. Existing Expedited Mode and all Operator gates remain binding.
 | --- | --- | --- |
 | CDC: `/root/autonomous_cdc`, Sofie | OpenAI Codex collaboration tools; `gpt-6.1-sol`, reasoning `high` | Arc01 planning, coordination and independent CC review; assigned and acknowledged 2026-10-19 |
 | CC: `/root/autonomous_cdc/cc_slice05_refinement` and all preceding CC contexts now idle/read-only after Slice05 close | OpenAI Codex collaboration tools; `gpt-6-luna`, reasoning `high` | Execute the preserved current prompt, self-check and return proposed-done evidence |
-| Independent arc reviewer: fresh `/root/autonomous_cdc/arc01_reviewer` (assignment pending acknowledgment) | OpenAI Codex collaboration tools; `gpt-6.1-sol`, reasoning `high` | Same explicit CDC-role selection; separate authorship because CDC assembles the close; owns attributed arc gate, no repair authority |
+| Independent arc reviewer: `/root/autonomous_cdc/arc01_reviewer`, gate completed3ce2f9a7 and now read-only | OpenAI Codex collaboration tools; `gpt-6.1-sol`, reasoning `high` | Same explicit CDC-role selection; separate authorship because CDC assembles the close; owns attributed arc gate, no repair authority |
 | Root `/root` | Existing chat, transport/Operator liaison only | No substantive CDC authorship or planning mutations |
 
 These are explicit role selections, not inherited defaults. No fallback is
@@ -579,6 +581,20 @@ re-entry condition. Failed composition creates remediation work or an explicit
 accepted amendment, never retrospective criterion softening.
 
 ## Current state
+
+**Arc01 formally closed19 October:** Fresh independent /root/autonomous_cdc/arc01_reviewer
+accepted the actual whole-baseline/72-owner/20-resource/ten-target/three-trace
+composition and honest bubble-up at3ce2f9a7,with no remediation finding. Actual
+reviewed candidate is7f0ad023;its report preserves assembler83c21d9 provenance.
+After explicit clean/no-active-tool release,CDC reconciled status only:all9 arc
+rows done,P-01 done,and all22 later project rows still open. Required02–05 and
+arc retrospectives are complete;no pre-mode Slice01 backfill. Missing runtime
+packet/relevance remains Operator/Arc02-owned;ten equally P0 historical binaries
+remain pending Arc03→Arc09 with explicit Duncan missing-target disposition gate.
+All consumed inquiry limits and source/output/deployed qualifications persist.
+CDC owns planning/index;the authorized run stops here,with Arcs02–12 unopened.
+Earlier assignment/handoff/pending status snapshots below remain historical.
+
 
 **Arc01 independent review serialized handoff19 October:** Fresh /root/autonomous_cdc/arc01_reviewer acknowledged clean83c21d9feb9eb285a4a3ab2edc808a2992f45214/treef3fc60b25affe665c6c87a2bc602728ebc8abdea,whole556-line arc plan/current required authority and schemas,coherent actual operative packet,no compaction,explicit OpenAI Codex gpt-6.1-sol/high,no fallback/backend unreported.
 At this committed handoff the reviewer exclusively owns planning/index to append only the attributed independent gate in arc01-evidence-baseline/closing-report.md;actual execution baseline is this handoff commit. Load this whole short paragraph through its final sentence before dependent review.
@@ -962,3 +978,5 @@ approval. Navigation/design choices remain open, and expansion remains expected.
 | 1.26 | 2026-10-19 | Slice05 iteration03 independent acceptance | Close final8-row child/retrospective and enter formal independently gated Arc01 composition,without new inquiry |
 
 | 1.27 | 2026-10-19 | Arc01 five-child completion and actual assembly demonstration | Assemble formal close/retrospective and assign fresh explicit SolHigh independent composition gate with serialized ownership;A1-06–09/P-01 remain open,no new inquiry or Arc02 |
+
+| 1.28 | 2026-10-19 | Arc01 fresh independent composition gate3ce2f9a7 | Formally close Arc01/all9 rows,mark P-01 done and retain22 open project rows;complete retrospective follow-through and stop at the authorized Arc01 endpoint |

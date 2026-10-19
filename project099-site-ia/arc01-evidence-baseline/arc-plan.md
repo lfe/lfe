@@ -1,9 +1,9 @@
 ---
 project: project099-site-ia
 arc: arc01-evidence-baseline
-version: "1.25"
+version: "1.26"
 date: 2026-10-19
-status: active
+status: closed
 depends-on: []
 blocks: []
 related: [Arc02, Arc03, Arc04, Arc05, Arc06, Arc11, Arc12]
@@ -120,6 +120,21 @@ handoff. Slice04 must request or locate it and record its state. If unavailable,
 the missing evidence remains an explicitly owned Arc02 entry condition; it
 cannot be claimed reproduced. CDC/Duncan disposition any material inability
 to deliver the arc capability before closure. Unaffected inventory work can proceed.
+
+## Formal Arc01 closure and endpoint — 19 October 2026
+
+The fresh independent SolHigh reviewer /root/autonomous_cdc/arc01_reviewer
+accepted all9 assessments and actual composition/bubble-up at3ce2f9a7f9f8b2b4ac34440950b0844e817600d7,
+reviewing candidate7f0ad023 with assembler83c21d9 history intact. No remediation
+finding remains. See the [actual gate](closing-report.md#independent-composition-gate--19-october-2026)
+and [final return](closing-report.md#final-closure-and-authorized-endpoint--19-october-2026).
+All5 children/40 child rows and9 arc rows are done;project P-01 is done,22 later
+project rows remain open. CDC reconciled metadata after explicit clean/no-active-
+tool release and owns planning/index. Required02–05 and arc retrospectives are
+complete;Slice01 pre-mode history is not backfilled. All accepted evidence,
+72 concrete future owners/limits and historical source-epoch qualification stay
+unchanged. This run stops at Arc01;Arcs02–12 remain planned/unopened. Earlier
+pending assignment/status/ownership snapshots below remain preserved history.
 
 ## Independent composition review assignment — 19 October 2026
 
@@ -554,3 +569,5 @@ The inherited `../artifacts/first-steps/` packet stays in place.
 | 1.24 | 2026-10-19 | Slice05 iteration03 independent acceptance | Close final child/retrospective and release formal arc composition,retaining all scope/independent/Operator gates |
 
 | 1.25 | 2026-10-19 | Actual five-child composition assembly | Add formal close/retrospective and durable fresh SolHigh independent gate assignment,with explicit source/meaning checks,serialized ownership and unchanged Arc01 endpoint |
+
+| 1.26 | 2026-10-19 | Fresh independent arc gate3ce2f9a7 after five accepted children | Close all9 arc criteria and project P-01 via metadata reconciliation;retain unresolved future delivery/Operator gates and complete retrospective follow-through;stop at Arc01 |

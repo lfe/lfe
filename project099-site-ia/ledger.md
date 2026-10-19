@@ -1,9 +1,10 @@
 # Project 099 — composition ledger
 
-**Contract:** [project-plan.md](project-plan.md), v1.27, 19 October 2026; delivery criteria unchanged.
+**Contract:** [project-plan.md](project-plan.md), v1.28, 19 October 2026; delivery criteria unchanged.
 Original roadmap approved 8 October; Duncan added CI preservation and historical
 artifact priority on 9 October. The original 21 rows are retained and two rows
-are added; all 23 delivery rows remain open. Roadmap approval is not completion.
+are added;P-01 is done after the independently gated Arc01 close and22 delivery
+rows remain open. Roadmap approval is not completion.
 
 Evidence levels are `asserted`, `attested`, `reproduced`, and `reconciled`.
 Doer evidence is `attested` and proposed-done. A `done` row requires at least
@@ -15,13 +16,13 @@ and re-entry condition, and a no-op needs a checkable rationale.
 ## Child arc closure
 
 These rows verify the adopted arcs' closure packets and their bubble-ups.
-Arc01 has five accepted children and an assembled formal close awaiting its
-independent gate. Later arc directories remain unopened and will be created
+Arc01 has five accepted children and an independently accepted formal close.
+Later arc directories remain unopened and will be created
 only when separately authorized detailed planning becomes timely.
 
 | ID | Criterion | Verify | Significance | Origin | Status | Evidence | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| P-01 | Arc01's evidence baseline is closed against its adopted contract. | Inspect `arc01-evidence-baseline/` plan, ledger, closing report and attributed composition gate; reconcile inventory coverage and bubble-up. | correctness-grade | Roadmap Arc01 | open | All five slices independently closed at fb4605d;[formal arc close](arc01-evidence-baseline/closing-report.md) and retrospective assembled. Actual source/meaning/owner/three-trace composition is assembler-attested;fresh independent gate assigned. Historical failed reviews remain preserved. | P-01 remains open until accepted five-child close and independent Arc01 composition/bubble-up; no child status alone closes it. |
+| P-01 | Arc01's evidence baseline is closed against its adopted contract. | Inspect `arc01-evidence-baseline/` plan, ledger, closing report and attributed composition gate; reconcile inventory coverage and bubble-up. | correctness-grade | Roadmap Arc01 | done | [Arc01 independent composition gate](arc01-evidence-baseline/closing-report.md#independent-composition-gate--19-october-2026) at3ce2f9a7 accepts actual five-child/72-owner/20-resource/ten-target/three-trace baseline;all9 arc rows closed and parent status/bubble-up reconciled [reproduced independent gate,reconciled child-close inspection]. | Arc01 evidence capability closed;later integrated delivery/Operator acceptance remains open. This run stops before Arc02. |
 | P-02 | Arc02's compatibility policy is closed against its adopted contract. | Inspect `arc02-compatibility-policy/` close packet, maintainer policy decisions, matrix evidence, failure disposition and bubble-up. | serious | Roadmap Arc02 | open | | Preserve failed, blocked, unrun and unknown cases. |
 | P-03 | Arc03's release/distribution capability is closed against its adopted contract. | Inspect `arc03-release-distribution/` close packet, preserved release mappings, artifact verification and bubble-up. | serious | Roadmap Arc03 | open | | Evaluate available artifacts against approved claims. |
 | P-04 | Arc04's IA/content architecture is closed against its adopted contract. | Inspect `arc04-ia-content-architecture/` close packet and reviewed design, ownership/disposition maps and decisions. | correctness-grade | Roadmap Arc04 | open | | `/docs` remains the curated gateway. |
@@ -71,3 +72,5 @@ must inspect the actual candidate, not just the assembler's summary.
 | 1.8 | 2026-10-19 | Pair status with project-plan1.19: preserve all23 criteria/open statuses, supersede historical P-01 child-status summary with actual Slices01–04 state | Routine status maintenance; Arc01 composition still open |
 
 | 1.9 | 2026-10-19 | Pair with project-plan1.27: all5 child closes and actual arc assembly recorded;all23 criteria remain open pending independent composition | Routine status maintenance;no acceptance or scope amendment |
+
+| 1.10 | 2026-10-19 | Pair with project-plan1.28: independent arc gate3ce2f9a7 and9-row formal closure discharge P-01;retain all23 criteria and22 later rows open | Actual Arc01 acceptance;authorized endpoint reached,no Arc02 |
