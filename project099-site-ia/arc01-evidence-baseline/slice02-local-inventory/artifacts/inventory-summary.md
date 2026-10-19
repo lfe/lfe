@@ -73,3 +73,32 @@ with this correction proposed for CDC acceptance. Prior 114/114 structural,
 6,940 locator and 133 author/preservation checks remain CDC-attributed retained
 evidence, not fresh CC results. The inventory scope and its source/output/runtime
 limits are unchanged.
+
+## Iteration06 R17 current-authority receipt (2026-10-19)
+
+The complete current project Workflow/authority/review, Autonomous Mode
+preflight, and Current state sections were loaded at `4f2a5f6` (413–456,
+458–537, and 558–632); the current arc Autonomous execution section was loaded
+at 171–187. Focused source-object controls reject the fifth-pass partial project
+query and the missing fifth-pass arc receipt. The R17 current readback,
+preservation replay, query details, and corrected checker mechanics are recorded
+in `artifacts/execution.md`; the earlier R16 account remains historical.
+
+The fresh replay matches 8/8 roots/status projections, 8/8 ordered populations
+(2,819 paths), 2,839/2,839 file/mode/HEAD qualification records (2,835
+HEAD-equal and the same four qualified dirty website Rust files), and 8/8 pins,
+with zero mismatches. The three JSON registers remain byte-equal to `2112713`,
+the six predecessor prompts remain byte-equal to the actual execution intake,
+and iteration06 matches its creation object and recorded SHA. Prior CDC
+114/114 structural, 6,940 locator, and 133 author/preservation checks remain
+retained under their original attribution; they were not rerun.
+
+All eight row statuses remain S2-01–06 `done`, S2-07/08 `open` pending CDC.
+The five supporting artifacts remain `inventory.json`,
+`route-anchor-register.json`, `resource-register.json`, this summary, and
+`execution.md`. The seven issued prompts are the initial prompt plus
+iterations01–06. Scope remains receipt correction and preservation only;
+Slice02/Arc01 remain open, Slice03/04 remain gated, Slice05 composition and
+Arc11 migration ownership remain downstream, and no Arc02 work is opened.
+Generated/live behavior, runtime, chapter meaning, and policy/IA decisions
+remain unclaimed.

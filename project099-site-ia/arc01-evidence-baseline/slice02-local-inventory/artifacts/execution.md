@@ -372,3 +372,204 @@ The combined preservation/row/format checker first stopped at a Python `Indentat
 Final scoped checks pass: all eight current ledger rows have unchanged contract/status columns, with S2-01–06 `done` and S2-07/08 `open`; the R16 closing-report walk has exactly those same eight statuses. The four allowlisted Markdown files are valid UTF-8 with LF endings, final newlines and no trailing whitespace; all 13 relative Markdown links resolve. The three JSON registers and five predecessor prompts remain byte-equal to `2112713`, and the active prompt remains byte-equal to creation object `21c0268`. The current diff contains exactly four allowed paths, and `git diff --check` exits 0. These are CC checks; S2-07/08 remain open pending CDC review.
 The first final all-commit preservation checker supplied a mistyped creation-object SHA for the active prompt, so that `git show` lookup failed and the checker reported one false active-prompt mismatch. This was a checker argument error, not prompt drift. The correct creation object is `21c02683b27878263b4da6b6cda3e38d0f3ccb61`; the working prompt had already compared equal to that object, and the corrected final committed-byte check is included after receipt verification.
 Local commit/rebuild trace: before the malformed-SHA checker issue was caught, the exact-path evidence commit was `15d1c5ffae30a3333aac8ff121c38cb7db38944e` / tree `fac2eb65e1776e98abf25a2f93ffebdaea98406f`; a report-only receipt was first `f0634c743e9ea0d95661347654543445ab87c3bb` / tree `641f11805532240c149eb04fafd4f5a843f7dc1d`, then amended to `de9e2f2ddc9ad40a5f501ee288eb5444b17e22e7` / tree `39af19ddbeb568dcdbe326c26caef78177f16373`. To preserve the failed-check receipt and keep the prescribed four-path evidence plus report-only receipt sequence, only those local CC commits were reset to the unchanged handoff `a47aeb471896e6393529f91ca99bb6a03924335f`; no CDC commit, source checkout, prompt or register was reset or changed. The first rebuilt evidence candidate was `710ea88581fb281eb4e49ce0c7b283fc0a850ab6` / tree `a2e1466aec974114c041fc5b2ef7bf8a5e33abfd`; it too will be superseded solely to include this trace before the final receipt. The erroneous checker argument was `21c02683b27878263b4da6b6cda3e38d0f3d0f3ccb61`, while the required creation object is `21c02683b27878263b4da6b6cda3e38d0f3ccb61`. These were local evidence-history corrections, not an iteration/budget reset; R16 remains the fifth and final existing refinement.
+
+
+## Iteration06 R17 correction — current authority intake and return (2026-10-19)
+
+**Assignment and actual intake.** This is the single Operator-authorized extra
+current-intake/receipt correction, iteration06; it does not reset the earlier
+five-pass history and authorizes no seventh pass. The immutable prompt is
+`cc-prompt-iteration06.md`, created/issued in and opened from planning commit
+`4f2a5f636ccafcc0a98b56bb380dbf7d38f6fb12`; `git log --follow` identifies that
+exact path history and the working SHA-256 is
+`9afc66294d32c11c83b4d2d77d1e7558894db03bc178ee7604a790e66c4cb576`. The same
+commit is the actual execution-intake baseline, branch `planning`, clean at
+acknowledgement. This context continues as explicit CC `gpt-6-luna` / high;
+CDC is `gpt-6.1-sol` / high. Serialized ownership transferred here for only the
+four prompt-listed Markdown paths; CDC/root suspend mutation and scans until
+return. The six accepted rows, two open rows, original criteria, source scope,
+and independent CDC acceptance gate remain unchanged.
+
+### Required current material loaded before dependent edits
+
+| Required material | Actual source and complete extent | Use/readback |
+| --- | --- | --- |
+| Iteration06 prompt | `4f2a5f6`; full lines 1–113 in chunks 1–80 and 81–113; SHA above | Exactly one extra pass, R17 boundary/read recipe, full preservation requirements, fixed four-path allowlist and no-seventh limit. |
+| Current project plan v1.12 | `4f2a5f6`; Workflow/authority/review 413–456 (blank separator 457); Autonomous Mode preflight 458–537 (last substantive line 536, blank 537); Current state 558–632 (last substantive line 631, blank 632). Loaded in contiguous reads 413–492, 493–572, 573–632. | Current mode, explicit role/settings, one-extra authorization, current ownership, stable inputs, Arc01 endpoint, independent review and Operator gates. |
+| Current arc plan v1.10 | `4f2a5f6`; full lines 1–240 in chunks 1–80, 81–160 and 161–240. Current extra-pass authorization 123–132; bounded-investigation approval 134–170; current Autonomous execution 171–187 (last substantive line 186, blank 187). | Extra pass is exact and final; Slice03/04 budgets are approved but remain gated behind Slice02 acceptance; composition and Arc01 endpoint remain open; stop before Arc02. |
+| Current slice plan v1.8 | `4f2a5f6`; full lines 1–373, contiguous reads 1–80, 81–160, 161–240, 241–320, 321–373. | Complete unchanged capability/scope, four-path boundary, one-owner handoff, iteration06 readiness, row gates and assigned source/output limits. |
+| Current slice ledger | `4f2a5f6`; full lines 1–122 | S2-01–06 remain `done`; S2-07/08 remain `open`; original criterion/Verify/Significance/Origin/Notes fields retained. |
+| Project `AGENTS.md` | `4f2a5f6`; full lines 1–30 | Project home, immutable issued prompts, source separation and local conventions. |
+| Current CDC review | `4f2a5f6`; complete Iteration05 independent review lines 1053–1225 (last substantive line 1224, separator 1225); complete Iteration06 authorization/handoff section lines 1226–1242 | R17 finding, exact prior intake gap, approved single extra pass, retained proof, full-row/bubble-up gates and ownership transfer. |
+| Latest Iteration05 artifacts | `4f2a5f6`; execution.md R16 section lines 200–374; inventory-summary.md R16 section lines 56–75; closing-report.md R16 section lines 151–213 | Failed fifth intake, prior exact evidence/ranges, preserved attempts, R16 return and retained-versus-fresh limits remain history, not backfilled. |
+| Framework/required guides | Retained complete reads from the same coherent CC context: collaboration-framework v3.0.0 `SKILL.md` lines 1–574; methodology role/shared invariants 26–101, Two-Contributor 102–153, Autonomous Mode 326–550; project-management README 1–232, canonical planning 89–113/302–334, iteration/prompt intake 202–256 and 297–398; full work-verification guides 01–05, agent-coordination 01–04, posture 01–03. | Retained because these complete reads and extents are available in this same conversation/context; they are not inferred from names or hashes. |
+| Legacy standalone routes | Retained same-context required text: engineering-methods prompt-authoring `/Users/oubiwann/.agents/skills/engineering-methods/guides/07-implementation-prompt-authoring.md` lines 297–398, SHA `be771fb4918c87f26e6cf602468a6fef38ece161a1d4b3ae366e61200f403bba`; `/Users/oubiwann/.agents/skills/work-verification/guides/03-row-closure.md` lines 1–81, SHA `8947d3ab72d59422d0f90f7fb041f7e3131ce85e190c04985937e63ef1737a5b`; `/Users/oubiwann/.agents/skills/work-verification/guides/05-independent-verification.md` lines 1–147, SHA `1a41f607a98f2fcbefba525b868fcfd7194d1c46ad97e7e1cc92cff6568649a3`; `/Users/oubiwann/.agents/skills/testing/guides/03-validation-gates.md` lines 27–50 and 125–130, SHA `18b5c89717380366ffcf8164292e16b9121ebf18b2982ba7ae07fce7ebe9b78b`. | Actual complete/required sections were loaded earlier in the same coherent context; retained at their read strength. Prior route resolution and byte equality to bundled counterparts remain attributed to that earlier read, not a new identity-only reading claim. |
+| Frozen data and earlier issued prompts | Full current JSON projections and eight roots/populations/files/pins; three JSON byte checks at `2112713`; initial and iterations01–05 prompt bytes at intake `4f2a5f6`; active prompt byte/hash at its creation object | No re-extraction. All three JSON registers and six predecessor prompts are protected; current iteration06 is separately creation-equal. |
+
+### Contract readback and known fifth-pass gap
+
+The prior R16 execution record remains an honest historical receipt, not proof
+of R17 coverage. At fifth-pass intake `a47aeb4`, the project mode preflight was
+not completely established: the recorded `sed -n '405,530p'` output ended in a
+truncated combined result before the current section's full substantive end.
+The old arc plan at that intake had `## Autonomous execution — 19 October
+2026` at lines 123–139. R16's current-arc receipt listed Slice breakdown
+51–77 and Workflow/current assignment 140–174; it did not claim that mode
+section. No fifth-pass read is retroactively invented. On the current object,
+the complete project mode section is 458–537, with substantive text through
+536; the complete current arc Autonomous execution is now 171–187, substantive
+through 186. The current project Workflow is 413–456, and Current state is
+558–632. New authorization does not amend criteria or source scope.
+
+The coherent current contract is: exactly one extra intake/receipt repair is
+approved beyond the exhausted five-refinement budget; no reset or seventh pass.
+S2-01–06 are CDC-accepted and S2-07/08 stay open until CDC reviews this return.
+CC alone mutates the four allowlisted Markdown files until explicitly returning
+ownership; CDC/root make no overlapping changes or scans. All source checkouts,
+three JSON registers, six prior prompts and current prompt stay byte-frozen.
+No source extraction, source/template reinterpretation, build/render/runtime
+check, IA/support decision, new investigation, publication or external action
+is in scope. Slice03/04 budgets are approved but gated behind independent
+Slice02 acceptance; Slice05 composition, Arc01 closure/retrospective and the
+stop-before-Arc02 boundary remain. This correction returns proposed-done only.
+
+### Fresh intake preservation and R17 boundary predicate
+
+The exact source-root/status and ordered NUL-separated population queries in
+`inventory.json` were replayed for all eight roots. Every recorded file was
+checked for working SHA-256/size/decoded line count, index and HEAD mode, HEAD
+blob SHA-256 and recorded working-versus-HEAD qualification. Each of eight pins
+was checked in the working tree and at its protected object. Three JSON
+registers were byte-compared with `2112713`; all six predecessor prompts were
+byte-compared with the actual intake; iteration06 was compared with its exact
+creation/intake object and SHA. Result: **8/8 roots/status projections, 8/8
+ordered populations (2,819 paths), 2,839/2,839 fingerprints/mode/blob/
+qualification records, 2,835 HEAD-equal files plus the same four qualified dirty
+website Rust files, 8/8 pins, 3/3 frozen registers, 6/6 predecessor prompts,
+active-prompt creation/hash match, zero mismatches.** The planning worktree was
+clean at the named handoff. No source checkout or protected file changed.
+
+One shared heading/last-substantive-line predicate was applied to the actual
+current Git object `4f2a5f6`. It accepts Workflow 413–457 (substantive 456),
+Autonomous preflight 458–537 (substantive 536), Current state 558–632
+(substantive 631), arc Autonomous execution 171–187 (substantive 186),
+CDC Iteration05 1053–1225 (substantive 1224), and Iteration06 authorization
+1226–1242 (substantive 1242). The project predicate rejects the fifth partial query
+`sed -n '405,530p'`. The arc negative control checks actual arc text at `a47aeb4`,
+where Autonomous execution is 123–139, against the actual R16 receipt row,
+which only cites 51–77 and 140–174; the absent required receipt is rejected.
+These controls establish current object/extent coverage, not attention or
+comprehension. R16 historical review identity/extent controls remain supported
+by the unchanged Iteration05 execution and CDC review; no extraction or
+semantic source check was rerun.
+
+### R17 checker attempts and corrections
+
+The first shared-boundary checker incorrectly expected the optional blank
+separator lines 632 (project Current state) and 187 (arc Autonomous execution)
+to be substantive; it rejected those two valid sections while the other six
+controls behaved as intended. A corrected endpoint records the actual last
+nonblank lines 631 and 186, retaining the complete section ends at 632 and 187.
+The next output wrapper compared the two negative-control Boolean results with
+a three-item tuple and reported both controls as failed even though their
+predicates were true. The same source checks were rerun with a Boolean result
+contract: all six positive and both negative controls pass (8/8). These were
+checker expectation/wrapper errors, not missing current source text or material
+drift. Earlier R16 checker failures and superseded local commit identities
+remain in the preceding historical addendum unchanged.
+
+### Post-compaction source recovery and preservation-helper mechanics
+
+After context compaction, the exact earlier read manifest and readback remained
+available, but the full governing source prose was no longer visible in this
+active context. Before finalizing, I therefore reloaded the current contracts
+from immutable intake object `4f2a5f6` in visible contiguous chunks. This
+recovery is separately timed after the initial R17 edits; it does not backfill
+or rewrite fifth-pass attendance. The recovered reads were project plan
+413–492, 493–572, 573–632; full arc plan 1–80, 81–160, 161–240; full slice
+plan 1–80, 81–160, 161–240, 241–320, 321–373; active prompt 1–80 and 81–113;
+full slice ledger 1–80 and 81–122; current arc ledger 1–19; Project `AGENTS.md` 1–30; CDC review
+1053–1132, 1133–1212, 1213–1242; R16 execution 200–279 and 280–374; R16
+summary 56–75; and R16 closing return 151–213. These include the current
+extra-pass decision, full role/settings/ownership, inputs, all row contracts,
+slice/arc endpoints and gates, the complete R17 finding/authorization, and
+prior receipt limitations. The framework and required installed/legacy guide
+reads remain separately receipted above at their actual earlier complete
+extents; I did not substitute a summary or hash for their source text.
+
+The first reconstructed preservation helper stopped with `KeyError: 'lfe_doc'`
+because population object keys differ from source repository IDs. It was
+corrected to use each population's recorded `repository_id`, including the
+planning `AGENTS.md` witness mapping. A subsequent helper stopped because it
+resolved all input pins at one root; actual Slice01 paths are relative to P
+while `project099-site-ia/...` pins are relative to R. A later helper stopped
+at the initial prompt because that path is D-relative (`cc-prompt.md`), not
+P-relative. The existing CDC helper's exact mappings were then inspected and
+adapted for CC's own replay. Its first complete displayed replay found all
+root/population/file/pin/register/predecessor comparisons equal but reported
+one active-prompt error from an extra `d` in the checker SHA literal; the
+working prompt, object and displayed SHA were actually the same. The corrected
+literal is `9afc66294d32c11c83b4d2d77d1e7558894db03bc178ee7604a790e66c4cb576`;
+the corrected replay is reported with the final return checks. None of these
+mechanics produced a source mismatch. One attempted shell search of the SHA
+line also used an unquoted backtick and failed at shell parsing; a literal
+`rg 9afc` query retrieved the line. These failures remain visible rather than
+being counted as validation passes.
+
+The first post-compaction boundary helper treated nested CDC `###` subsections
+as peer section headings and reported a false early end for the Iteration05
+review. Its result was discarded. The corrected shared predicate ends sections
+at the next peer `##` heading and records current source-object extents:
+project Workflow 413–457 (substantive 456), Autonomous preflight 458–537
+(substantive 536), Current state 558–632 (substantive 631); arc Autonomous
+execution 171–187 (substantive 186); CDC Iteration05 review 1053–1225
+(substantive 1224) and Iteration06 authorization 1226–1242 (substantive
+1242). It rejects the fifth-pass partial project query and the absent fifth-pass
+arc receipt. All six positive and two negative controls pass (8/8); these are
+extent-consistency controls, not a claim about attention or comprehension.
+
+The first returned-row wrapper tried to take the dedicated R17 walk from the
+ledger and stopped with `IndexError`; the corrected wrapper reads the walk
+from `closing-report.md`. The first row comparison then found two unintended
+Notes-cell changes beside the intended S2-07/08 Evidence edits. Both Notes
+values were restored to their exact intake text, and the rerun confirms all
+non-Evidence columns, including Status and Notes, are unchanged for all eight
+rows. The R17 walk matches six `done` and two `open` statuses. The first
+corrected preservation replay reported only a false active-prompt mismatch
+because its SHA literal contained an extra `d`; all other comparisons passed.
+With the literal corrected, the replay passes 8/8 root/status projections,
+8/8 ordered populations (2,819 paths), 2,839/2,839 file hash/size/decoded-line/
+index-mode/HEAD-blob/qualification records, 8/8 pins, 3/3 frozen JSON files,
+6/6 predecessor prompts and the current prompt's creation object/SHA. It finds
+2,835 files HEAD-equal, the same four qualified dirty website Rust files, and
+zero mismatches. Final rendered local-link checking excluding inline code
+finds 14/14 links resolved; R16's historical 13-link count belongs to its
+earlier tree. The pre-commit exact diff remains the four allowlisted files;
+`git diff --check` passes.
+
+The post-compaction recovery also reloaded all normative guide prose named by
+iteration06, not just its pre-compaction receipt. At the installed
+`collaboration-framework` knowledge routes, the full row-closure guide was
+loaded 1–81; the full independent-verification guide 1–80 and 81–147; the
+validation-gates guide's Proportionate Proof and Gate Evidence sections 27–50
+and 125–130; prompt-authoring Required Reading and CC Intake 297–398; canonical
+planning-worktree Existing Records and Slice Iteration Preservation 89–113
+and 302–334; and planning-top-down Issuing and Executing an Iteration 202–256.
+The required historical `~/.agents/skills` routes were also loaded directly in
+the same complete extents: prompt-authoring 297–398, row-closure 1–81,
+independent-verification 1–80 and 81–147, and validation-gates 27–50 and
+125–130. Each legacy route resolves to the corresponding installed standalone
+guide and compares byte-identical. The applicable role/shared-invariants
+section 26–153 and Autonomous Mode methodology 326–550, full framework
+`SKILL.md` 1–574, and full project-management README 1–232 were reloaded in
+bounded complete chunks as recorded in the recovery manifest above.
+
+The issued prompt references collaboration-framework v3.0.0; the installed
+skill actually loaded is v3.0.1. The current version history identifies 3.0.1
+as an operator-requested metadata/version-history patch to the 3.0.0 candidate.
+The legacy route resolves to the same installed bytes. CDC's independent
+comparison found only that version metadata and the added eight history lines,
+with all 18 relevant installed normative guides byte-equal to the 3.0.0 source
+after the documented version normalization and package-route rewrites. No
+iteration06-relevant authority or contract changed; this records the actual
+version discrepancy without rewriting the immutable prompt.

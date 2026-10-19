@@ -211,3 +211,70 @@ All four Markdown files pass UTF-8/LF/final-newline/whitespace checks, 13/13
 relative links resolve, the exact eight-row walk is six done/two open, and
 `git show --check` and the final clean planning-status check pass. S2-07/08
 remain open for independent CDC review.
+
+## Iteration06 R17 current-authority correction — CC proposed-done return (2026-10-19)
+
+This is the one Operator-authorized correction beyond the five-pass limit;
+there is no reset or seventh pass. The immutable iteration06 prompt was created
+at and remains byte-equal to planning intake `4f2a5f636ccafcc0a98b56bb380dbf7d38f6fb12`,
+SHA-256 `9afc66294d32c11c83b4d2d77d1e7558894db03bc178ee7604a790e66c4cb576`.
+The four-path scope is exactly `artifacts/execution.md`,
+`artifacts/inventory-summary.md`, this `ledger.md`, and this report. No source,
+plan, reviewer, prompt, or JSON register changed.
+
+The current project Workflow/authority/review, Autonomous Mode preflight and
+Current state sections were read completely at intake `4f2a5f6`: 413–456,
+458–537 and 558–632. The current arc Autonomous execution section was read at
+171–187; complete current plans, slice ledger, Project `AGENTS.md`, Iteration05
+CDC review and Iteration06 authorization/handoff were also loaded. The complete
+read manifest, contract readback, preservation detail and corrected predicate
+attempts are in `artifacts/execution.md`. Focused checks reject the fifth-pass
+partial project read and missing arc section receipt; the six current positive
+and two negative controls pass. These are CC-attested read and consistency
+receipts, not proof of attention or independent acceptance. Prior R16 history
+is preserved as history, with no backfilled reading claim.
+
+### Current eight-row walk
+
+- **S2-01 — done.** Retain CDC acceptance and fresh current root, population, file and pin preservation.
+- **S2-02 — done.** Retain CDC-accepted mechanism/source evidence by protected-value equality; no source reinterpretation was done in R17.
+- **S2-03 — done.** Retain CDC acceptance for declared metadata/route/anchor scope; no emitted/live assertion is added.
+- **S2-04 — done.** Retain CDC acceptance for declared construct/consumer evidence; no extraction or output claim is added.
+- **S2-05 — done.** Retain CDC acceptance for declared related populations and entrances; no complete-chapter claim is added.
+- **S2-06 — done.** Retain CDC acceptance for family accounting and downstream handoffs.
+- **S2-07 — open.** CC attests complete current-authority intake, readback, focused omission controls and honest checker failure history. CDC review is required.
+- **S2-08 — open.** CC attests protected inputs, bounded artifact/prompt inventory, scoped return, preservation checks and row/bubble-up accounting. CDC must inspect committed bytes and accept.
+
+The five supporting artifacts remain `inventory.json`,
+`route-anchor-register.json`, `resource-register.json`,
+`artifacts/inventory-summary.md` and `artifacts/execution.md`. The complete
+issued prompt set is seven: initial `cc-prompt.md` plus iterations01–06. The
+three frozen JSON registers and six predecessor prompts remain byte-equal to
+their protected objects; the current prompt remains equal to its creation
+object and SHA. Fresh preservation matched 8/8 roots/status projections, 8/8
+ordered populations (2,819 paths), 2,839/2,839 file/mode/HEAD qualification
+records, and 8/8 input pins, with zero mismatches; 2,835 files are HEAD-equal
+and the same four qualified dirty website Rust files differ. Prior CDC
+114/114 structural, 6,940 locator and 133 author/preservation checks remain
+retained under their original attribution and were not rerun. Initial
+boundary-checker endpoint/wrapper errors and the corrected 8/8 result are
+recorded in execution.md.
+
+Specified and delivered scope were current-authority intake/receipt repair,
+protected-data preservation and the complete scoped return. What Worked: one
+source-object/heading predicate identified the exact missing current extents
+and rejects both historical omissions while retaining blank separators only
+as section boundaries. Slice02 and Arc01 remain open; A1-01 is done and
+A1-02–A1-09 remain open. Slice03/04 remain gated behind CDC acceptance, Slice05
+owns composition, Arc11 owns migration decisions, and no Arc02 work is opened.
+Generated/live behavior, runtime facts, full chapter meaning and policy/IA
+choices remain with their existing owners. No owner, criterion, plan, scope or
+architecture change is proposed. This is CC proposed-done only; CDC and the
+Operator retain the required review/decision gates.
+
+### Iteration06 evidence and final return receipt
+
+The evidence commit and tree, exact intake-to-return path set, final committed
+byte checks, JSON/prompt preservation, eight-root/population/file/pin replay,
+Markdown/link/row checks and final clean planning status are recorded in the
+report-only receipt that follows this evidence commit.
