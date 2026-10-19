@@ -187,14 +187,14 @@ The prior **114/114 structural predicates, 6,940 locator checks and 133 author/p
 
 Specified scope was R16 receipt identity/section completeness and scoped preservation/return evidence. Delivered scope is the same. No criterion, owner, source interpretation, scope or arc-plan change is proposed. What Worked: reading the historical object directly separated the review's storage revision from the candidate it assessed, while a single section-boundary predicate exposed both omitted final lines. The negative controls rejected the wrong object and partial extents. Arc01 bubble-up is unchanged: S2-01–06 are accepted, S2-07/08 await CDC, A1-02 remains open, Slice02/Arc01 remain open, and Slice03 remains gated.
 
-**Evidence commit and receipt:** evidence commit `15d1c5ffae30a3333aac8ff121c38cb7db38944e`, tree `fac2eb65e1776e98abf25a2f93ffebdaea98406f`. The actual execution-intake-to-evidence range `a47aeb471896e6393529f91ca99bb6a03924335f..15d1c5ffae30a3333aac8ff121c38cb7db38944e` contains exactly the four allowlisted paths above. All four committed files equal their working bytes; `git show --check` exits 0 and planning is clean after the evidence commit. The final intake-to-return path set remains the same four allowlisted paths; the report-only follow-up changes `closing-report.md` alone. Its final preservation replay, committed-byte and clean-status checks are recorded below. This is a CC proposed-done return, not CDC acceptance. No sixth iteration is authorized.
+**Evidence commit and receipt:** evidence commit `1ffaba0c6e3d4d62591f8767e60918ae13b721aa`, tree `8156aa2f30956fdbd57551cd2a4a66a365e375b5`. The actual execution-intake-to-evidence range `a47aeb471896e6393529f91ca99bb6a03924335f..1ffaba0c6e3d4d62591f8767e60918ae13b721aa` contains exactly the four allowlisted paths above. All four committed files equal their working bytes; `git show --check` exits 0 and planning is clean after the evidence commit. The final intake-to-return path set remains the same four allowlisted paths; the report-only follow-up changes `closing-report.md` alone. Its final preservation replay, committed-byte and clean-status checks are recorded below. This is a CC proposed-done return, not CDC acceptance. No sixth iteration is authorized.
 
 
 ### Iteration05 final report-only return receipt
 
 The final follow-up is limited to `closing-report.md`; it records the main
-evidence commit `15d1c5ffae30a3333aac8ff121c38cb7db38944e` and tree
-`fac2eb65e1776e98abf25a2f93ffebdaea98406f`. The actual intake-to-return
+evidence commit `1ffaba0c6e3d4d62591f8767e60918ae13b721aa` and tree
+`8156aa2f30956fdbd57551cd2a4a66a365e375b5`. The actual intake-to-return
 range from `a47aeb471896e6393529f91ca99bb6a03924335f` includes exactly the four
 allowlisted files listed above: execution, inventory summary, ledger, and this
 report. Its evidence commit changed all four; the receipt follow-up changed
