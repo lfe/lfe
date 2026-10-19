@@ -274,7 +274,13 @@ Operator retain the required review/decision gates.
 
 ### Iteration06 evidence and final return receipt
 
-The evidence commit and tree, exact intake-to-return path set, final committed
-byte checks, JSON/prompt preservation, eight-root/population/file/pin replay,
-Markdown/link/row checks and final clean planning status are recorded in the
-report-only receipt that follows this evidence commit.
+The evidence commit is `6ab32bd2b44634c6bf37a39afd07cfc8ca449534`, tree
+`a307e23ea08105f7ef92ea7de35b2e974f56a455`, parent `4f2a5f636ccafcc0a98b56bb380dbf7d38f6fb12`.
+Its intake-to-evidence path set is exactly the four allowlisted Markdown files
+listed above; all four working bytes equal that commit, and `git show --check`
+passes. The report-only receipt commit records the final intake-to-return range,
+protected-input and committed-byte replays, Markdown/link/row checks and clean
+planning status. It changes only this report. An exploratory schema lookup
+initially assumed `inventory.json` was at the slice root and returned
+`FileNotFoundError`; the corrected lookup used `artifacts/inventory.json`.
+That locator error was not an acceptance check or evidence mismatch.
