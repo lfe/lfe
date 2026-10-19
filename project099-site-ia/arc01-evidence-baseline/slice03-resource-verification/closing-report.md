@@ -38,3 +38,11 @@ The rest of the registered estate was explicitly unselected. In particular, a co
 ## Return provenance
 
 The immutable assignment prompt was created at `6179ac3940a06f5c4b10ec82424db323706613e1` (SHA-256 `4f4fa891be7933b77122561faaed892df909923bca8eff5f69e7737312eb27a3`). CC execution intake began at handoff commit `2d96eedf63046a07cc5d94c713fe8b45cd0c9423`, tree `b657a27569d3c4e3bc5da333057552066a7e69bc`. The commit/tree containing this report and the exact changed-path range will be recorded in a report-only metadata follow-up after the evidence commit. The handoff-to-return tree was kept within the five-path allowlist. Push, merge, publication and external communication were not performed.
+
+The five-path evidence commit is `0d2e09fd699bbc3d3f6ad6123e0c378b294718f0`, tree `100ff9ffd8f9b26e24231d1475a12ffd8f32cd8e`. Its exact paths are the three supporting artifacts, this closing report, and this slice ledger's Evidence column. The next commit is reserved for this report's return metadata only; it must not change the evidence package or ledger.
+
+Receipt checkpoint at `2026-10-19 19:40:02 UTC`: the first evidence commit's
+bytes matched the working bytes for its four unchanged paths; the only working
+change since that commit is this report's return metadata. Its Markdown links,
+UTF-8/LF/newline/whitespace format and surrounding committed artifacts passed
+recheck. The report-only follow-up is being committed separately.
