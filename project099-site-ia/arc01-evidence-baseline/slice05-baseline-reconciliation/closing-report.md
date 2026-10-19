@@ -34,3 +34,48 @@ Earlier intake history remains explicit in [execution.md](artifacts/execution.md
 ## Commit receipt and release
 
 The four allowlisted paths are `artifacts/reconciled-baseline.json`, `artifacts/execution.md`, `ledger.md`, and `closing-report.md`. Primary return commit `e611be5a3df1b41d2e45667d902da871ac7e8784` has tree `6ac67fefb39425b2b6a576fefab771dc5e3a6428`; its exact `b6f039a`-to-return diff contains those four paths only. The prompt and plan remain at the hashes stated above. This closing-report-only commit is the metadata receipt; its own commit and tree are reported with the handoff. Final verification covers the one-file receipt delta, primary committed bytes, frozen identities, and clean state. No active tool or process remains after release. CC releases planning ownership to CDC for independent review. No completion or acceptance is implied beyond the five rows already accepted.
+
+## Iteration02 canonical close and Arc bubble-up
+
+Return date: 19 October 2026.
+
+**Current status:** CC proposes S5-08 complete for independent review. Seven rows are accepted; S5-08 remains open until CDC accepts this canonical report. Arc01 composition and retrospective gates remain separate.
+
+### Initial and iteration01 return history
+
+The initial return was candidate `338176f883ed0a893b70de68d26ae8867b6f846c` plus receipt `17e72267a56e79638ae25ba65158685cdd6ad9d3`, reviewed from `f28fe952f140ddfcf180a1b9c277ad1d845f6204`. It accepted S5-01/02/03/05/06 and left S5-04/07/08 open for R5-01–03. Its closing report and failed ledger comparison are preserved as pinned history. Iteration01 returned `e611be5a3df1b41d2e45667d902da871ac7e8784` plus receipt `8d6304bdb6056eff87978f89da5e660383a7e111`. CDC passed the actual intake, original Notes restoration, and concern-handoff repairs and accepted S5-04 and S5-07, bringing the accepted set to seven. The iteration01 report did not provide the required What Worked and complete Bubble-up account, so R5-04/S5-08 remained open. This iteration completes that reporting requirement without changing the underlying reconciliation.
+
+### Current assignment, intake, and eight-row walk
+
+Iteration02 uses prompt `cc-prompt-iteration02.md` (SHA-256 `666942c55cc1dbaadd3a1e1f100133da3aa29cdfc258516e151f68e08982305a`), the fixed 177-line plan (SHA-256 `c0b7c1f99cc71f0ec4ec303edbaa0e01f6a1f2a4973fb4f843d5c6e7f5fcc913`), and actual execution intake `fc4ee62b594f59941ce3f200b8443b3896fc392e` (tree `176f1dea7ef57c535be21242373b291d156688ec`). CC remains LunaHigh; CDC remains SolHigh; no fallback, role change, inquiry, or budget reset. Only `closing-report.md`, `artifacts/execution.md`, and `ledger.md` change. The JSON, handoff summary, and seven accepted ledger rows remain frozen.
+
+| ID | Current status | Iteration02 disposition | Evidence |
+| --- | --- | --- | --- |
+| S5-01 | done | Initial CDC acceptance retained. | [ledger.md](ledger.md); [initial CDC review](cdc-verification.md#initial-review--19-october-2026) |
+| S5-02 | done | Whole-set joins and pointer proof retained at original identity. | [ledger.md](ledger.md); [execution.md](artifacts/execution.md) |
+| S5-03 | done | Twenty source-linked observations and consumed slots retained. | [ledger.md](ledger.md); `reconciled-baseline.json#/resource_evidence_links` |
+| S5-04 | done | Concern-specific handoffs independently accepted. | [ledger.md](ledger.md); `reconciled-baseline.json#/obligations/47` |
+| S5-05 | done | Ten pending P0 targets and historical CI distinctions retained. | [ledger.md](ledger.md); `reconciled-baseline.json#/historical_artifact_queue` |
+| S5-06 | done | Three bounded practical/technical traces retained. | [ledger.md](ledger.md); `reconciled-baseline.json#/practical_technical_traces` |
+| S5-07 | done | Actual intake, permitted paths, and corrected ledger predicate independently accepted. | [ledger.md](ledger.md); [execution.md](artifacts/execution.md) |
+| S5-08 | open | CC proposes canonical reporting complete; CDC acceptance is pending. | [ledger.md](ledger.md); this Iteration02 section and [execution readback](artifacts/execution.md#iteration02-serialized-handoff-and-report-contract-readback) |
+
+The three supporting artifacts remain [reconciled-baseline.json](artifacts/reconciled-baseline.json), [handoff-summary.md](artifacts/handoff-summary.md), and [execution.md](artifacts/execution.md). All 72 obligation meanings/current owners, 20 selected source-linked observations, ten pending P0 targets, and three usable traces are accounted for. The report and execution record retain what was actually read, checked, retained, failed, and left unrun. No source evidence or implementation was added.
+
+### What Worked
+
+The whole unaffected parsed projection retained its correct values while the single aggregate gap received five concern-specific handoffs. Those mappings keep one precise owner and conditional next evidence for generated output, practical readiness, destination promotion, legacy disposition, and runtime-packet relevance. The ledger comparison against the execution handoff and original Notes source protected the seven independently accepted rows and exposed the earlier column error. Reusing the existing slice-root pointer helper resolved all 168 stored JSON pointers without repeating source discovery.
+
+The earlier wrong-base and overbroad pointer attempts, schema/key assumptions, and false initial ledger assertion remain visible in `execution.md` as failed checks with their corrections. They are not represented as product failures or as new source evidence. No comparative model, cost, or causal improvement claim is made.
+
+### Bubble-up to the arc
+
+1. **What capability was delivered, and what is still pending?** Slice05 delivered the planned finite cross-register handoff in three supporting artifacts: 72 obligation meanings/current owners, 20 source-linked selected observations, ten pending P0 targets, and three usable traces. CDC has accepted seven ledger rows and this return supplies the missing R5-04 prose account. Independent acceptance of S5-08 and the later Arc01 composition gate remain pending. No website, runtime, support, or downloadable-artifact implementation was delivered or promised.
+
+2. **Did the work change scope, sequence, or criteria?** No. The concern-specific ownership detail and the original intake, ledger-column, and report omissions required local corrections within the approved plan. The project/arc review state records seven accepted rows and one open report row before composition. No structural plan amendment or new inquiry is required. Generated/deployed output, chapter bodies, resource activity/support, and the actual runtime packet retain their stated unknowns and future owners.
+
+3. **What was specified, delivered, and left outside scope?** The specified 72/20/ten/three reconciliation, all three supporting artifacts, and all eight row dispositions are accounted for; no item is silently dropped. Only the canonical report gate was still open at this intake, and S5-08 remains open pending CDC review. Runtime-packet collection/relevance, full-estate coverage, generated-output evidence, support decisions, and P0 production remain at their named future owners and current limits. There is no automatic Arc02 investigation.
+
+### Limits and return state
+
+The inherited source, preservation, pointer, and CI evidence remains attributed to its prior identity; this prose correction does not repeat those investigations. No HTTP/browser, source/body/tag/intake query, build/render/runtime/install/CI/compatibility check, publication, or external action occurred. The 40 resource slots and 16/eight/one historical technical budgets remain exhausted. Arc01 composition, CDC review of S5-08, and the required retrospective remain pending; stop before Arc02.
