@@ -1,9 +1,9 @@
 ---
 project: project099-site-ia
 arc: arc01-evidence-baseline
-version: "1.8"
+version: "1.9"
 date: 2026-10-19
-status: active
+status: blocked
 depends-on: []
 blocks: []
 related: [Arc02, Arc03, Arc04, Arc05, Arc06, Arc11, Arc12]
@@ -120,6 +120,43 @@ the missing evidence remains an explicitly owned Arc02 entry condition; it
 cannot be claimed reproduced. CDC/Duncan disposition any material inability
 to deliver the arc capability before closure. Unaffected inventory work can proceed.
 
+## Current review gate and bounded investigation approval — 19 October 2026
+
+Iteration05 at `1ffaba0` + `d0f6cae` repairs R16, but R17 current-mode
+intake remains unestablished; six Slice02 rows accepted, S2-07/08 open.
+CDC owns planning again; the fifth-pass budget is exhausted. Duncan must
+authorize any further correction or choose to stop. No sixth prompt exists.
+Slice03 remains gated despite the following separate investigation approval.
+
+Duncan answered **“Approve both bounded passes”** on 19 October, in response
+to the exact proposal relayed by root. This replaces the earlier pending
+concrete-investigation-agreement state, without changing capability/criteria:
+
+- Slice03: at most20 distinct already source-registered destinations. Priority:
+  four Build It targets, four book entry targets, then registered legacy
+  entrances, then inherited specifically flagged inaccessible/heading-only
+  targets until the cap. Deduplicate literal destinations and retain excluded/
+  unselected/failed/blocked coverage. At most one primary retrieval and one
+  browser/source cross-check per selected destination, max40 checks total.
+  Allocate at most20 primary checks to CC and at most20 second checks to CDC
+  independent verification; failed/blocked attempts consume their slot. No
+  implicit retry or arc-review HTTP allowance, full-site/chapter audit, build
+  or generation. Output informs promoted-resource readiness for Arc04/08/10/11.
+- Slice04: one read-only pass of exactly16 named witnesses: website
+  README.md/_cobalt.yml; each of manual/tutorial/casting-spels/sicp
+  README.md/book.toml; LFE README.md/Dockerfile; rebar3_lfe
+  README.md/rebar.config; legacy docs README.md/docs/index.html. At most
+  one HEAD/branch/status/tag projection group per each of eight repos; one
+  bounded search of existing saved project intake/current chat summaries
+  for the reported failure packet. No runtime reproduction, pulls, installs,
+  builds or compatibility experiment. If absent, stop that claim with exact
+  missing environment/failure inputs, Arc02 owner and re-entry condition.
+
+Stop at these caps and report unchecked/blocked outcomes; extensions require
+Duncan's decision. Both investigations await their actual slice gates and
+complete source-grounded open sets. Slice05/composition and the Arc01 endpoint
+remain unchanged. Earlier mode/preflight status paragraphs are historical.
+
 ## Autonomous execution — 19 October 2026
 
 The [project preflight](../project-plan.md#autonomous-mode-preflight--19-october-2026)
@@ -186,3 +223,5 @@ The inherited `../artifacts/first-steps/` packet stays in place.
 | 1.7 | 2026-10-09 | Slice02 iteration04 / CDC review | Accept S2-02/04/06 and retain S2-01/03/05; issue receipt-only iteration05 for R16 with two rows open and Slice03 gated; no structural or criterion amendment |
 
 | 1.8 | 2026-10-19 | Duncan’s Autonomous Mode selection / current Slice02 handoff | Link compact project preflight, record actual CDC context and explicit role settings, ownership and unchanged R16/iteration/independent gates; later investigations await bounded agreement; no capability or criterion amendment |
+
+| 1.9 | 2026-10-19 | Slice02 Iteration05 CDC review and Duncan’s bounded-pass approval | Preserve repaired R16/six accepted rows, hold R17 at exhausted iteration gate, and record approved-but-gated Slice03 max20/max40 and Slice04 exact16/eight query-group/one-search limits; no capability or criterion amendment |

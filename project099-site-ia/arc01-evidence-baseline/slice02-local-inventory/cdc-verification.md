@@ -1049,3 +1049,176 @@ New prompt SHA-256:
 187b4b9a194ac89fb01e3f8dc6fa49d991b18fd9711c8ba6a701a4f4b839bbe9.
 Commit only these eight paths, verify the actual committed tree/working bytes
 and clean planning status, then relay this CC implementation assignment.
+
+## Iteration05 independent CDC review — 2026-10-19
+
+**Reviewer:** Sofie, CDC context `/root/autonomous_cdc`, independent of
+CC `/root/autonomous_cdc/cc_slice02`; explicit tool-selected `gpt-6.1-sol` /
+reasoning `high`, CC `gpt-6-luna` / `high` through OpenAI Codex tools. Backend
+identity is unreported. This is substantive CDC review under the recorded
+Autonomous Mode, not root transport's authorship.
+
+**Assignment:** preserved `cc-prompt-iteration05.md`, creation
+`21c02683b27878263b4da6b6cda3e38d0f3ccb61`, SHA-256
+`187b4b9a194ac89fb01e3f8dc6fa49d991b18fd9711c8ba6a701a4f4b839bbe9`.
+Actual CC intake/ownership handoff is `a47aeb471896e6393529f91ca99bb6a03924335f`,
+following CDC mode/assignment commits `e7c79d3` and `f535c7b`.
+**Candidate:** `1ffaba0c6e3d4d62591f8767e60918ae13b721aa`, tree
+`8156aa2f30956fdbd57551cd2a4a66a365e375b5`; report-only receipt
+`d0f6cae3cf18bbbcce427695a4a920789b4b2f4c`, tree
+`caf8e1bbdbe0877052b48485ba03205de5a8d5b4`. Planning was clean when CC
+explicitly returned mutation/index ownership to CDC. CDC is sole owner again.
+
+**Verdict:** R16's historical source/extent repair passes. Retain S2-01–06
+accepted, but **S2-07/08 remain open for R17**, incomplete established coverage
+of the current mode-authority intake. Slice02/Arc01 remain open and Slice03
+remains gated. This was the fifth/final existing refinement: the budget is
+exhausted without complete convergence. No sixth prompt is issued, no review
+replacement resets the count, and no acceptance criterion is waived. The next
+action belongs to Duncan, through root as Operator liaison.
+
+### Fresh independent checks and retained evidence
+
+CDC read the entire committed four-file delta, the complete Iteration04 review,
+the exact historical Iteration03 review at `3745443` lines 685–876 and parent
+Workflow 413–456 / Current state 478–522, current section boundaries, and
+CC's factual read-only clarification. The latter is attributable CC evidence,
+not proof of attention or comprehension.
+
+`python3 /tmp/project099-cdc-iteration05-review.py` exits 0 with zero errors.
+It independently replays eight recorded native Git root/HEAD/branch/status
+commands, eight exact ordered filename populations (2,819 paths), all 2,839
+working hashes/sizes/decoded-line counts, HEAD modes and batched HEAD blob
+hashes/qualifications, and eight working/pinned input hashes. All match;
+2,835 working files equal HEAD and the same four qualified website Rust files
+differ. Website remains main `036e231b`, LFE clean develop `0aa820e`; all
+related source projections and dirty/untracked paths remain preserved. The
+one planning-file witness, Project AGENTS, is unchanged. CDC's earlier preflight
+helper initially treated that planning witness as a source-repository key and
+raised `KeyError: planning`; correcting the root mapping produced the full
+zero-mismatch replay. That checker error is not source drift or a CC defect.
+
+All three JSON registers parse and are byte-equal to `2112713`; all five
+predecessor prompts equal `2112713`, and the active prompt equals its original
+creation object/hash. The actual intake-to-evidence and intake-to-return diffs
+contain exactly the four permitted Markdown paths. Receipt changes only
+`closing-report.md`; all four working files equal final committed bytes. Both
+commits pass `git show --check`. Four Markdown files pass UTF-8/LF/final-newline/
+trailing-whitespace checks, 13 relative links resolve, and the current ledger
+and R16 closing walk each account for eight rows, six done/two open. All
+Criterion/Verify/Significance/Origin/Notes and status cells equal intake. Earlier
+execution/summary/report text is an exact preserved prefix. CC's local superseded
+commit identities and comparator failures are recorded in execution.md; CDC
+history and inputs remain intact.
+
+A separate native Git-object/heading predicate accepts the correct review
+source `3745443` / 685–876 and complete parent ranges 413–456 / 478–522.
+The same predicate rejects the review range at `6a43ab2` (683-line file) and
+parent ends 455/500: six controls pass. Last substantive parent lines are
+456/521; optional blank separators do not create a false failure. These checks
+verify receipt consistency, not historical reading attendance. R16 is repaired.
+
+Retain Iteration04's independent 114/114 structural predicates, 6,940 locators
+and 133 author/preservation predicates at their original state/date, together
+with earlier accepted source/extraction/TOC/family evidence. The criteria and
+all relevant source inputs, JSON bytes, consumer/role/locator values and
+dependencies are unchanged; a receipt-only Markdown append cannot affect those
+claims, and no new finding undermines their method. This is an explicit
+applicability judgment, not a fresh run of those historical predicates. No
+scanner/build/wrapper/render/source-test/network/CI/publication action ran.
+
+### R17 — Complete current Autonomous authority intake is not established
+
+The direct CC handoff required fully loading the current Autonomous preflight
+sections in the governing plans before dependent edits. At exact execution
+intake `a47aeb4`, the project **Autonomous Mode preflight** is lines **458–536**
+(next peer heading 537); the arc **Autonomous execution** is **123–139**
+(next peer heading 140). These are normative additions introduced by CDC
+before this pass, not extra implementation scope or a new acceptance criterion.
+They record the scope endpoint, settings, ownership, stable inputs and gates.
+The full slice plan was correctly receipted, but it does not cancel the
+explicit parent-section reading obligation.
+
+CC's committed table records current project Workflow 413–456 / Current state
+557–607 and arc Slice breakdown 51–77 / Workflow 140–174. It omits the new
+mode sections. In a read-only factual clarification after return, with no
+authorization for new reads, backfill, edits or commits, CC stated that its
+actual project read was `sed -n '405,530p' .../project-plan.md`; the combined
+output terminated mid-sentence at “CDC”. This does not establish complete
+458–536 coverage. CC has no existing read range/output establishing arc
+123–139 in this context. CC explicitly declined to claim otherwise and made
+no repair. CDC does not infer attention, intent, or precisely which other
+lines were unread from this evidence. The observable defect is incomplete
+established current required intake, not an error in the frozen inventory.
+
+**Minimal proposed remedy, awaiting Duncan:** explicitly authorize one extra
+receipt/intake correction beyond the exhausted five-refinement budget. Preserve
+the fifth prompt and candidate; if approved, issue a distinct numbered prompt
+with a complete bounded current-reading manifest. Reload the entire current
+project Autonomous preflight and arc Autonomous execution in lossless visible
+chunks, plus the current assignment/plan/ledger/review authority necessary for
+a coherent intake; record exact source objects and complete extents, including
+this failed result. Append a truthful “loaded now” receipt and source-cited
+readback, without inventing fifth-pass coverage. Update only the same four
+existing Markdown paths, retain six accepted rows and frozen JSON/source/prompt
+bytes, repeat focused extent/return/preservation checks, commit exact paths
+and obtain CDC independent review. No re-extraction, new investigation, source
+mutation or criterion change is proposed. Approval of this remedy is not
+recorded here; alternatively Duncan may stop at this clean checkpoint.
+
+### Complete row walk and bubble-up
+
+| ID | CDC status | Evidence / disposition |
+| --- | --- | --- |
+| S2-01 | done | Retain accepted source/provenance claim after fresh complete roots/populations/files/pins replay. |
+| S2-02 | done | Retain unchanged qualified mechanism and author graph proof at original revision/date. |
+| S2-03 | done | Retain unchanged source metadata/declaration/anchor proof; no output/live acceptance. |
+| S2-04 | done | Retain unchanged source occurrences/consumer/extraction proof by whole JSON/source equality. |
+| S2-05 | done | Retain related filenames/entrances/TOC evidence by unchanged pinned populations/values. |
+| S2-06 | done | Retain eleven-family/gap/owner/re-entry proof; no source obligation passed downstream. |
+| S2-07 | open | R16 repaired; R17 complete current mode-authority intake coverage unestablished. |
+| S2-08 | open | Exact four-path return, committed bytes, preservation, five artifacts/six prompts/eight rows and bubble-up pass; resulting truthful current intake/return reconciliation remains under R17. |
+
+The promised local inventory capability is accepted in its six substantive
+rows; complete intake/return acceptance is not. Scope-as-specified versus
+delivered has this one explicit gate, with no silent source/extraction drop.
+Five supporting artifacts remain under artifacts/, six issued prompts and
+close/review records in the slice root. No capability, scope, sequence or
+acceptance amendment is indicated by the source inventory. A1-01 alone is
+done; A1-02–09 and all 23 project rows remain open. Slice03/04 now have
+separate explicit bounded-investigation approval but cannot bypass Slice02's
+acceptance gate. Slice05/composition and the Arc01 endpoint remain unchanged.
+
+### Stewardship observations and What Worked
+
+This pilot did not complete Slice02 or establish comparative model effectiveness.
+The substantive R16 recipe and focused object/endpoint controls worked: they
+distinguished stored review identity from assessed candidate and rejected the
+partial endpoints. Full preservation checks protected accepted source evidence.
+CC's candid clarification avoided backfilling a nonexistent complete read.
+
+Observed difficulties were multiple temporary query/schema/path/table/row-walk
+checker errors and output truncation, retained in execution.md, followed by a
+new incomplete authority-section receipt. These are observed local failures,
+not evidence of bad intent or a general model limitation. CDC contributed a
+new multi-plan mode packet before the receipt-only pass and required its full
+load via the contributor handoff; the old immutable prompt alone did not list
+those new section ranges. That increased intake coordination, despite the
+unchanged implementation scope. Earlier review also correctly records CDC's
+wrong post fallback line59 versus actual58; reviewer errors must remain visible.
+If further work is authorized, make all newly binding current sections and
+complete source extents explicit in the durable governing intake manifest,
+recover truncated output immediately, and use compact object/heading queries
+without creating maintained validation machinery. This recommendation is
+not an adopted framework change or a proven improvement. A closing retrospective
+remains pending because the slice has not closed.
+
+Review-checkpoint validation: the first broad Markdown-link query matched
+the preserved backticked source example `[LFE MACHINE MANUAL](README.md)`
+as a planning-relative link. Excluding inline-code spans before matching
+rendered links fixes that checker false positive; the same historical query
+pitfall is already preserved in this record. No source/artifact repair was
+made. The final checkpoint validation uses the seven exact CDC plan/ledger/
+review paths, unchanged row contracts/statuses (23 project, nine arc, eight
+slice), the prior review as an exact prefix, and unchanged CC artifacts,
+issued prompts and Project AGENTS.

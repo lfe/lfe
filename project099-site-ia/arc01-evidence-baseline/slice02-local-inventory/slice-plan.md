@@ -2,9 +2,9 @@
 project: project099-site-ia
 arc: arc01-evidence-baseline
 slice: slice02-local-inventory
-version: "1.6"
+version: "1.7"
 date: 2026-10-19
-status: active
+status: blocked
 depends-on: [slice01-baseline-intake]
 workflow: two-contributor
 mode: autonomous (includes expedited)
@@ -41,6 +41,25 @@ requires an explicit Operator decision or authorized re-scoping, not an
 automatic sixth prompt.
 CDC is Sofie in the desktop planning chat.
 No automatic dispatch or CRC role is selected. Issued prompts stay immutable.
+
+## Iteration05 review and Operator gate — 19 October 2026
+
+CDC independently reviewed evidence `1ffaba0` + report receipt `d0f6cae`;
+CC returned mutation/index ownership clean at `d0f6cae`. CDC is sole owner.
+R16 historical identity/extent correction and all preservation/return checks
+pass; S2-01–06 remain accepted, S2-07/08 open for R17. Complete intake of
+current project Autonomous preflight458–536 / arc Autonomous execution123–139
+at execution intake `a47aeb4` is not established. CC confirmed the partial/
+truncated project read and unavailable arc coverage without backfilling.
+See the complete [CDC review](cdc-verification.md).
+
+The fifth/final refinement is exhausted. Current assignment iteration05 is
+returned/reviewed, not accepted; it remains preserved. Next action belongs to
+Duncan: decide whether to authorize one bounded extra intake correction or
+stop at this clean checkpoint. No iteration06 is issued. Original criteria,
+JSON/source/prompt pins and six accepted rows remain unchanged; Slice03 gated.
+Prior issue/preflight descriptions below are historical context superseded
+by this current verdict. Slice closing/retrospective remain pending.
 
 ## Autonomous handoff preflight — 19 October 2026
 
@@ -195,7 +214,7 @@ not independent acceptance of CC output.
 | `cc-prompt-iteration02.md` — correction | 2026-10-09 | `cc-prompt-iteration01.md`; 30b58c3 + 1b9ab34 | Correct scalar scope/rich extraction, exact consumer/generated associations, semantic family/entrance joins and calibrated proof | Returned at 89f1ebb3 + cc401dd + ecc4993; CDC retains repaired extraction and S2-01; R11–R13 remain |
 | `cc-prompt-iteration03.md` — correction | 2026-10-09 | `cc-prompt-iteration02.md`; 89f1ebb3 + cc401dd + ecc4993 | Reconcile copied derived coverage/qualifiers, real prerender roles and author aliases/branches, and current honest proof | Returned at fb83798b + 6a43ab2; CDC retains S2-01, accepts S2-03/S2-05; narrow R14–R15 remain |
 | `cc-prompt-iteration04.md` — correction | 2026-10-09 | `cc-prompt-iteration03.md`; fb83798b + 6a43ab2 | Complete author aggregate source-field roles and precise current intake/proof receipts; preserve verified joins | Returned at e9dc003 + 2112713; CDC accepts S2-02/04/06, retains S2-01/03/05; R16 receipts remain |
-| `cc-prompt-iteration05.md` — correction | 2026-10-09 | `cc-prompt-iteration04.md`; e9dc003 + 2112713 | Correct receipt source revision/full parent-section boundaries and current scoped return; all three JSON registers frozen | Active; fifth and last refinement within existing budget; CC implements and returns for independent CDC review |
+| `cc-prompt-iteration05.md` — correction | 2026-10-09 | `cc-prompt-iteration04.md`; e9dc003 + 2112713 | Correct receipt source revision/full parent-section boundaries and current scoped return; all three JSON registers frozen | Returned at 1ffaba0 + d0f6cae; CDC accepts R16 repair but R17 current-mode intake remains; fifth-pass budget exhausted, awaiting Operator decision |
 
 Record this prompt's opening Git object and digest at intake. Follow-ups get
 new slice-root iteration paths; do not overwrite this issued assignment.
@@ -308,3 +327,5 @@ the original prompt-creation commit remains `21c0268`. CDC stops mutations
 and stable-input scans until CC returns ownership after exact allowlisted
 commits and final preservation/status checks. CC revalidates changed plan
 bytes/branch/intake identity before dependent work.
+
+| 1.7 | 2026-10-19 | Iteration05 independent CDC review | Record repaired R16, retained six accepted rows and exact R17 current intake gap; hold after exhausted fifth refinement for Operator decision; no criterion change or sixth prompt |

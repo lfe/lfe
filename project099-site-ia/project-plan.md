@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 title: LFE site information architecture and supporting foundations
-version: "1.10"
+version: "1.11"
 date: 2026-10-19
 status: active
 depends-on: []
@@ -526,11 +526,12 @@ verification, validation gates). They remain valid required material; no prompt
 bytes or reading obligations are changed. Receipts establish delivered text and
 identity, not understanding; independent review checks actual evidence.
 
-Slices03/04 remain planned, not commissioned. Their general roadmap scopes do
-not supply the reloaded PM03 investigation agreement's concrete budgets. CDC
-will present finite usefulness/applicability/method/limit proposals through root;
-dependent investigation waits for Duncan's decision. Routine checks necessary
-to finish the already-agreed R16 remain authorized. Runtime reproduction needs
+Slices03/04 remain planned, not commissioned. Their general roadmap scopes
+did not supply concrete budgets; Duncan subsequently approved the two exact
+bounded passes on 19 October. The arc-plan current review/approval section
+records the full max20/max40 and exact16-file/eight-query/one-search limits.
+This supersedes the pending-budget state; actual Slice02 acceptance and later
+open-set/dependency gates still bind. Runtime reproduction needs
 the actual failure/environment packet; missing evidence cannot be fabricated.
 Slice05 and arc composition preserve their existing dependencies and gates.
 
@@ -555,6 +556,20 @@ re-entry condition. Failed composition creates remediation work or an explicit
 accepted amendment, never retrospective criterion softening.
 
 ## Current state
+
+**19 October current verdict:** fifth iteration evidence `1ffaba0` + report
+receipt `d0f6cae` repairs R16, but complete current mode-authority intake is
+unestablished (R17). S2-01–06 remain accepted, S2-07/08 open; Slice02 and
+Arc01 await an Operator decision after the exhausted five-pass budget. CDC
+`/root/autonomous_cdc` owns the clean planning worktree again. No sixth prompt
+is issued. See the exact missing current ranges and proposed bounded remedy
+in the existing [CDC review](arc01-evidence-baseline/slice02-local-inventory/cdc-verification.md).
+Duncan separately approved both bounded Slice03/04 investigations; their full
+limits are recorded in arc-plan v1.9, approved but held behind Slice02.
+No source capability/criterion change, later-slice execution or Arc02 opening
+is implied. The following 9 October state narrative is retained as history,
+superseded only where this current verdict says so.
+
 
 The roadmap is approved and Arc01 is active. Slice01's initial delivery
 `ddeecb31abb454d5619f74a178c3d0121024a35e` required R1/R2 corrections.
@@ -621,3 +636,5 @@ approval. Navigation/design choices remain open, and expansion remains expected.
 | 1.9 | 2026-10-09 | Arc01 Slice02 iteration04 / CDC review | Accept S2-02/04/06 and retain S2-01/03/05; issue receipt-only iteration05 for R16 with two rows open and Slice03 gated; unchanged scope, sequence and criteria | Routine review/status maintenance under approved Expedited Mode; all 23 project rows remain open |
 
 | 1.10 | 2026-10-19 | Duncan’s explicit framework reload and Autonomous Mode request | Record Arc01 endpoint, explicit OpenAI CC Luna High / CDC Sol High selections, actual CDC context, serialized ownership, preserved fifth prompt and source state, unchanged file fingerprints and remaining investigation/acceptance gates | Mode authorized; no capability or acceptance amendment |
+
+| 1.11 | 2026-10-19 | Arc01 Slice02 Iteration05 review; Duncan’s explicit bounded-pass approval | Record repaired R16, R17 complete-current-intake gap and exhausted-pass Operator gate; preserve six accepted rows and approved-but-gated investigation limits | No extra correction authorized; no capability or criterion amendment |
