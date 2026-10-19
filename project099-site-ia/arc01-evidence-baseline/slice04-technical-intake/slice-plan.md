@@ -2,7 +2,7 @@
 project: project099-site-ia
 arc: arc01-evidence-baseline
 slice: slice04-technical-intake
-version: "1.1"
+version: "1.2"
 date: 2026-10-19
 status: active
 depends-on: [slice01-baseline-intake, slice03-resource-verification]
@@ -102,6 +102,15 @@ queries do not authorize more investigation or reusable validation software.
 
 ## Assignment history
 
+Current: iteration02, second normal refinement,6 accepted/2 open. All source/
+owner/technical-data corrections pass. R4-04 concerns false source attribution
+of153-line acknowledgment reads to167-line execution state and missing pre-edit
+handoff reads. Current plan stays fixed through next execution; parent Current
+state alone records serialized ownership, loaded fully after transfer. Preserve
+history; reading now never backfills earlier omissions. CDC owns planning until
+acknowledged parent handoff. Older assignment snapshots below are historical.
+
+
 Current: iteration01, first normal local refinement, at3 accepted/5 open.
 Initial review found R4-01 source-span/reader qualifiers, R4-02 per-surface output
 owners and R4-03 root attribution/digest/error-account receipts. Original16/eight/
@@ -165,3 +174,14 @@ d03fd144/SHA6bb4ecd23db0a2e750dd14a3cba89cd842e1b3bb7a04bac6e5c82c1138601532.
 CDC/root cease mutable scans/edits through explicit clean/no-active-tool release.
 Three accepted/five open statuses, original observations, passed proof and all
 investigation caps remain unchanged; no renewed source/tag/search/probe.
+
+| cc-prompt-iteration02.md | 2026-10-19 | cc-prompt-iteration01.md / Iteration01 CDC review | Truthful current reading/source identity and minimal return only | Issued; acknowledgment pending |
+
+Iteration02 author readiness: CDC compared all corrected source semantics and
+entire parsed object delta, concrete owners, exact receipt identities and final
+range. Actual immutable plan objects prove the153-vs167 mismatch; CC truthfully
+confirmed missing pre-edit handoff reads. The narrow recipe changes only receipt/
+Evidence/return prose, with exact-object and missing-section controls. Passed
+substantive proof remains applicable; no investigation or policy decision needed.
+
+| 1.2 | 2026-10-19 | Iteration01 independent review | Accept6 rows; require truthful current intake/source receipt forR4-04 in second local refinement; no budget or criterion change |

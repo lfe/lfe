@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 arc: arc01-evidence-baseline
-version: "1.17"
+version: "1.18"
 date: 2026-10-19
 status: active
 depends-on: []
@@ -120,6 +120,14 @@ handoff. Slice04 must request or locate it and record its state. If unavailable,
 the missing evidence remains an explicitly owned Arc02 entry condition; it
 cannot be claimed reproduced. CDC/Duncan disposition any material inability
 to deliver the arc capability before closure. Unaffected inventory work can proceed.
+
+## Slice04 current review — 19 October 2026
+
+Iteration01 accepts6 rows;S4-07/08 remain for truthful current intake/receiptR4-04.
+All substantive data/owners pass. Distinct iteration02 preserves JSON/summary and
+all original observations, correcting only existing receipt/Evidence/return prose.
+CDC owns planning pending acknowledged parent-plan handoff; Slice05/composition
+remain gated. No source/budget/criterion change; earlier review snapshots historical.
 
 ## Slice04 initial review — 19 October 2026
 
@@ -318,3 +326,5 @@ The inherited `../artifacts/first-steps/` packet stays in place.
 | 1.16 | 2026-10-19 | Approved Slice04 author readiness after Slice03 close | Open original16-witness/eight-group/combined-intake analysis, explicit missing-runtime disposition and fresh-context rationale; no scope or criterion change |
 
 | 1.17 | 2026-10-19 | Slice04 initial independent review | Accept3 child rows and require bounded local R4-01–03 correction, preserving original observations and later gates |
+
+| 1.18 | 2026-10-19 | Slice04 Iteration01 independent review | Accept6 child rows and issue narrowR4-04 intake/receipt correction, preserving all substantive evidence |

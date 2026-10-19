@@ -106,3 +106,67 @@ input/relevance decision, not a repeated Arc01 search. No capability, sequence,
 criterion, source population or investigation-budget amendment is needed.
 Slice05/composition stay gated. Passed proof above can be retained after exact
 delta/applicability review; affected claims and new return checks must run.
+
+## Iteration01 independent review — 19 October 2026
+
+Reviewed98e53f672688c271d81815a4485efd87b937bf58/tree835144d9868f1aba6004dd4e5b33a2c3fb35973a
+and receipte32ef4362ca2f626559bb4b2f96d3b0f582aba3b/tree3361cb214b19e1861c1c0719825a8b52813bd816,
+from actual execution2196bd3965ac568619246dcbd015e35756ab0f03. CDC independently
+compared the full parsed JSON: only six named claim objects,F05 and root author
+scalar changed. Original8/40 metadata,16 witness identities,13/74 search,102 tags,
+all IDs/budgets/repository summaries and other findings are unchanged; initial
+independent proof remains applicable at its original observation identities.
+No new inquiry occurred or was implied by retained source/result inspection.
+
+All16 claim identities/range bounds and six affected spans/substantive meanings
+pass against original captured prose. Four same-predicate omission controls
+reject the old C03/C09/C11/C14 spans. WIP/reader framing, literal-version
+limitation and meta-refresh/canonical semantics now match source. F05's exact
+three surface lists/owners/evidence/re-entry pass; current chat author is root
+/root, with quote/scope/date fixed. Actual resource-register64-character SHA and
+size match new receipt; old wrong attribution/digest/F05 specimens reject.
+The JSON input and implementation recipe are unchanged on all other fields.
+
+Exact5-path range, one closing-report-only receipt delta, committed bytes,
+8-row Evidence-only delta/status3-done5-open,11 local links,UTF8/LF/newline/
+whitespace and both commit checks pass. Fresh protected-input check again has
+zero differences across8 source metadata projections,8 ordered populations/
+2,819 paths,2,839 working/mode/HEAD fingerprints and8 pins. This is current
+preservation proof, not a renewed tag/source-body/intake/network/runtime pass.
+CC's full original preservation run was retained as labeled, not relabeled fresh.
+
+**R4-01/02/03 are substantively dispositioned. R4-04, correctness-grade,
+new reading-provenance defect holds S4-07/08.** The iteration receipt says its
+153-line plan/SHA393fde10653ebf6f4adee59556975fef99baf5a126ce879d1a7137e7107a94c4
+was read at execution2196bd3. Those bytes belong to acknowledgment d03fd144;
+2196bd3 contains167 lines/SHA44262c8e47c34966556b735062a05fbc679fcb77152b954d8928656c4cd21f98.
+CC explicitly confirmed read-only after return that it had not loaded new plan
+154–167 or the changed parent handoff paragraph from disk before edits, relying
+on the transfer message. Its reading-now metadata check does not backfill the
+old extent. Preserve that history and load/record complete current required
+text before the next correction, with source revision and loaded extents exact.
+
+CDC's post-acknowledgment full-plan append introduced this avoidable identity
+churn. For the second local correction, the slice plan is fixed at prompt
+creation through CC execution; ownership transfer is recorded only in the
+existing parent current-state paragraph and CC explicitly loads that whole
+new paragraph after transfer before edits. This is a local handoff mechanic,
+not a weaker reading rule or framework policy change. No seventh Slice02 work
+or investigation extension is authorized. CDC also corrected its idle-message
+transport mistake via followup_task; this delay is not a model finding.
+
+| Row | Current verdict | Evidence |
+| --- | --- | --- |
+| S4-01 | done | Retain initial complete original16/eight comparison; unchanged input delta. |
+| S4-02 | done | Retain complete102 tag proof, identities/normalization unchanged. |
+| S4-03 | done | Corrected six claims/ranges/meanings independently reproduced. |
+| S4-04 | done | Missing-packet text/scope preserved; root attribution corrected and reproduced. |
+| S4-05 | done | All7 findings retained; concrete per-surface F05 handoffs reproduced. |
+| S4-06 | done | Caps/allowlist and current complete preservation reproduced. |
+| S4-07 | open | R4-04 truthful current reading/source-identity receipt pending. |
+| S4-08 | open | R4-04 superseding current8-row return pending. |
+
+Six accepted/two open; first refinement completed, second normal refinement
+is narrowly scoped to existing execution/ledger Evidence/closing receipts.
+No technical JSON or summary changes are needed. Slice05/composition remain
+gated until the actual close; Arc02/Operator still owns missing runtime input.

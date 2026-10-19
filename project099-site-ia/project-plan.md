@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 title: LFE site information architecture and supporting foundations
-version: "1.19"
+version: "1.20"
 date: 2026-10-19
 status: active
 depends-on: []
@@ -17,11 +17,12 @@ mode: autonomous (includes expedited)
 
 # Project 099 — LFE site IA
 
-**Current19 October status, v1.19:** Slices01–03 closed; Slice04 initial review
-accepts3 rows/holds5 for local source/ownership/receipt correction. Current prompt:
-`arc01-evidence-baseline/slice04-technical-intake/cc-prompt-iteration01.md`.
-Original16/eight/one pass and Slice03's40 checks remain consumed. CDC owns planning
-pending acknowledged handoff; approved models/Arc01 endpoint/gates unchanged.
+**Current19 October status, v1.20:** Slices01–03 closed. Slice04 substantive
+corrections pass;6 rows accepted/2 open for exact current reading/source-identity
+receiptR4-04. Current assignment:
+`arc01-evidence-baseline/slice04-technical-intake/cc-prompt-iteration02.md`.
+CDC owns planning pending acknowledged parent-plan handoff. All observation
+budgets,role settings,Arc01 endpoint and downstream gates remain unchanged.
 
 **Historical opening summary, superseded by the current state above:**
 
@@ -565,6 +566,13 @@ accepted amendment, never retrospective criterion softening.
 
 ## Current state
 
+**Slice04 iteration01 review19 October:**98e53f67 +e32ef436 accepts6 child
+rows;S4-07/08 await truthful current intake/source-identity receiptR4-04. CDC owns
+planning pending next acknowledged handoff. The slice plan now stays fixed
+through CC execution; new ownership paragraph here must be loaded from actual
+handoff object before edits. No JSON/summary/source/inquiry change is needed.
+
+
 **Slice04 iteration01 handoff19 October:** CC04 acknowledges clean d03fd144,
 full new prompt/plan/ledger/review/current authority with recovered parent output,
 no compaction and actually retained coherent original prose/data. At this committed
@@ -780,3 +788,5 @@ approval. Navigation/design choices remain open, and expansion remains expected.
 | 1.18 | 2026-10-19 | Slice04 approved author readiness after Slice03 acceptance | Open exact16/eight-group/one-intake technical analysis using original captured observations and owned missing-runtime inputs; no investigation or criterion expansion | Routine scope-preserving opening under Autonomous/Expedited authorization |
 
 | 1.19 | 2026-10-19 | Slice04 initial independent review | Accept3 rows, require exact consumed source/owner/receipt fixes in first refinement; no scope/criterion/investigation change | Routine independent review/status maintenance |
+
+| 1.20 | 2026-10-19 | Slice04 Iteration01 independent review | Accept6 rows and issue second receipt-only refinement forR4-04, retaining all technical proof and gates | Routine independent review/status maintenance |
