@@ -83,3 +83,39 @@ The inherited source, preservation, pointer, and CI evidence remains attributed 
 ### Commit receipt and ownership release
 
 The actual iteration02 execution intake is `fc4ee62b594f59941ce3f200b8443b3896fc392e` (tree `176f1dea7ef57c535be21242373b291d156688ec`). Primary return commit `719c3e4ed4539cf56d59e7913f3b915b35160795` has tree `21931b6d0c96b036cd118336e948bcb5d478a7e4`; its intake-to-return diff contains exactly the three assigned Markdown paths. The parsed JSON and handoff summary are byte-identical to receipt `8d6304bdb6056eff87978f89da5e660383a7e111`. A closing-report-only metadata receipt follows; its own identity is reported with this return. After that receipt, committed bytes and the exact one-file range are verified, the worktree is clean, and there are no active tools or processes. CC releases planning/index ownership to CDC for independent S5-08 review. Acceptance remains pending.
+
+
+## Iteration03 — complete current-status intake and truthful receipt
+
+Return date: 19 October 2026.
+
+**Current status:** CC proposes S5-08 complete for independent review. Seven rows are accepted; S5-08 remains open pending CDC review. Arc01 composition and retrospective gates remain separate, and Arc02 remains unopened.
+
+### Assignment and actual current status
+
+This third normal refinement used prompt `cc-prompt-iteration03.md` (102 lines; SHA-256 `df6796406489bbf600e38b2ff11d7853e24259eb635bb565b81ede4a0ffe2dc4`), fixed plan `slice-plan.md` (195 lines; SHA-256 `d486ad6c541f297c767aec89a257eb191b78027965e1e8f05c3493d03b62a22c`), creation `34d657073f432d5ec516bf7df6820812ba2130b4`, and actual serialized execution intake `1b3e4cc5c283397faf1727de0c174f96d6940885` (tree `11e2d3e42ca880b2d8c84fc03cf525866b8cf3dd`). CC remains LunaHigh; CDC remains SolHigh; no fallback; backend unreported. The complete current opening paragraph was read NOW from the creation source by its marker and blank boundary, and matched the opening text retained through handoff:
+
+> **Current19 October status, v1.25:** Slices01–04 closed;Slice05 has seven accepted rows.
+> OnlyS5-08 remains forR5-05 complete current-status intake and truthful receipt classification.
+> Current assignment: `arc01-evidence-baseline/slice05-baseline-reconciliation/cc-prompt-iteration03.md`.
+> CDC owns planning/index pending acknowledged serialized transfer.
+> All substantive72/20/ten/three data and canonical report content pass;no new inquiry or Arc02 start.
+> Arc01 independent composition remains pending.
+
+The complete transferred ownership paragraph was read from the actual execution intake through its clean/no-active-tool release sentence. The full current project and arc Slice05 review and CDC R5-05 definition were also loaded. Iteration03 is limited to the three Markdown paths: `artifacts/execution.md`, `closing-report.md`, and `ledger.md`. The JSON, handoff summary, all seven accepted rows, and all prior report/data/owner proof remain frozen.
+
+### Historical correction, without backfill
+
+Iteration02 actually read project-plan lines 20–23 and omitted 24–26, which carried current ownership, accepted 72/20/ten accounting, no-new-inquiry/Arc02 boundary and pending composition. CDC identified this as a historical missing extent. The full v1.24 paragraph was read NOW from the actual `fc4ee62` source; it is not represented as loaded before iteration02 edits and the old omission is not backfilled. The current v1.25 status paragraph is complete, and its final composition-pending sentence was checked using the whole-paragraph boundary; the four-line clipped specimen fails the end control.
+
+The iteration02 phrase “16/eight/one saved CI observations” is a classification typo, explicitly superseded here: it means the retained Slice04 technical 16-witness/eight-metadata-group/one-combined-intake pass, not CI evidence. No new CI run or observation exists. The phrase is retained as historical wording in the old section; its correction does not assert a new observation.
+
+### Eight-row status and retained evidence
+
+Seven rows remain independently accepted; S5-08 is proposed complete by CC and remains open for independent CDC review. The initial, iteration01, and iteration02 return history and the complete eight-row walk above are preserved. No underlying report content or data changed. Fresh checks for this return are the complete marker-bounded current/historical/ownership text and end controls, append-only prose, exact three-path delta, JSON/summary equality, accepted-row/non-Evidence freeze, S5-08-only Evidence delta, local links, UTF-8/LF/final newline, whitespace and committed clean state.
+
+Retained at their original identities, not rerun: accepted 72-meaning/whole-population/preservation evidence, all 168 stored pointer resolutions, five concern mappings, source/output limits, the Slice04 technical pass, and independent acceptance of the seven closed rows. No source/body/tag/intake/HTTP query, build/render/runtime/install/CI/compatibility check, source repair, publication or external action was performed. Original 40 resource checks and 16/eight/one technical pass remain consumed. Arc01 composition, retrospective, and CDC acceptance of S5-08 remain pending; no Arc02 work occurred.
+
+### Iteration03 commit receipt and ownership release
+
+The primary return commit and tree, its exact three-path diff, and the post-commit byte/link/ledger checks are recorded here after commit. CC releases planning/index ownership to CDC only after verifying clean committed state and no active tools or processes. S5-08 acceptance remains with CDC; formal Arc01 composition is separate.

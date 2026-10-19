@@ -115,3 +115,52 @@ An auxiliary anchor-check script first mis-normalized the unchanged CDC review h
 Retained rather than rerun: the accepted-source 72-meaning/whole-population/preservation proof, 168-pointer resolver result, five concern mappings and source/output limits, and CDC's independent acceptance of the seven closed rows remain applicable because JSON, summary, and accepted data are byte-identical to `8d6304b`. The previous successful pointer helper is cited as reuse, not a new source scan. The initial 114/6,940/133 CDC checks, 40 resource slots, and 16/eight/one saved CI observations are historical retained evidence, not new CC runs.
 
 Unrun: source/body/tag/intake searches; HTTP/browser; build/render/runtime/install/CI/compatibility; publication/external action; source repair; Arc02 investigation; Arc01 composition; and CDC acceptance of S5-08. No preservation/source scan or unrelated semantic inventory was performed for this reporting assignment.
+
+
+## Iteration03 serialized handoff and complete-status correction
+
+### Actual intake and required source text loaded now
+
+This third normal refinement began at the clean serialized execution intake `1b3e4cc5c283397faf1727de0c174f96d6940885` (tree `11e2d3e42ca880b2d8c84fc03cf525866b8cf3dd`), on `planning`. CC is OpenAI Codex `gpt-6-luna/high`; CDC is `gpt-6.1-sol/high`; no fallback; backend unreported. Creation is `34d657073f432d5ec516bf7df6820812ba2130b4` (tree `06b3995a8f2759b7b4faf7014402379d0d8d7bf7`). The complete 102-line prompt has SHA-256 `df6796406489bbf600e38b2ff11d7853e24259eb635bb565b81ede4a0ffe2dc4`; the fixed 195-line slice plan has SHA-256 `d486ad6c541f297c767aec89a257eb191b78027965e1e8f05c3493d03b62a22c`. Both identities were rechecked at the execution intake.
+
+The complete current opening paragraph was read from the actual creation object `34d6570`, by marker `**Current19 October status,` through the first blank separator. Its full text is:
+
+> **Current19 October status, v1.25:** Slices01–04 closed;Slice05 has seven accepted rows.
+> OnlyS5-08 remains forR5-05 complete current-status intake and truthful receipt classification.
+> Current assignment: `arc01-evidence-baseline/slice05-baseline-reconciliation/cc-prompt-iteration03.md`.
+> CDC owns planning/index pending acknowledged serialized transfer.
+> All substantive72/20/ten/three data and canonical report content pass;no new inquiry or Arc02 start.
+> Arc01 independent composition remains pending.
+
+The paragraph ends with `Arc01 independent composition remains pending.` and the tested boundary rejects the same section clipped after four lines. The complete historical opening paragraph was also read NOW from actual `fc4ee62b594f59941ce3f200b8443b3896fc392e` by that marker-to-blank method; its full text is:
+
+> **Current19 October status, v1.24:** Slices01–04 closed. Slice05 iteration01
+> independently accepts seven rows;onlyS5-08 remains forR5-04 canonical return
+> history/What Worked/bubble-up completion. Current assignment
+> `arc01-evidence-baseline/slice05-baseline-reconciliation/cc-prompt-iteration02.md`.
+> CDC owns planning/index pending acknowledged serialized transfer. Substantive
+> 72-row/20-resource/ten-target evidence is accepted;no new inquiry or Arc02 start.
+> Arc01 independent composition remains pending.
+
+This historical-source read is current to this iteration; it is not backdated to the iteration02 pre-edit context. The actual iteration03 ownership paragraph was read from handoff `1b3e4cc` by its literal heading through the first blank separator, in full:
+
+> **Slice05 iteration03 serialized handoff19 October:** CC /root/autonomous_cdc/cc_slice05_refinement acknowledged clean34d657073f432d5ec516bf7df6820812ba2130b4,full current prompt/plan/ledger/review and complete marker-bounded current/historical status text,with explicit LunaHigh/SolHigh,no fallback/backend unreported.
+> At this committed handoff CC exclusively owns planning/index for artifacts/execution.md,closing-report.md andledger.md only;actual execution baseline is this handoff commit. Load this entire short paragraph from that actual object before edits,including the final release sentence.
+> The195-line plan stays creation-fixed SHAd486ad6c541f297c767aec89a257eb191b78027965e1e8f05c3493d03b62a22c;prompt SHAdf6796406489bbf600e38b2ff11d7853e24259eb635bb565b81ede4a0ffe2dc4. All7 accepted rows,JSON/summary/report-content proof remain frozen;onlyS5-08/R5-05 current intake/receipt correction is open. No inquiry,scope/model/budget change or Arc02 action.
+> This supersedes prior pending ownership snapshots. CDC/root suspend mutable planning scans/edits until explicit clean/no-active-tool ownership release.
+
+Its final release sentence was present in the actual output. The complete CDC Iteration02/R5-05 review, current project Slice05 Iteration02 review, arc-plan Slice05 Iteration02 review, prompt, fixed plan, current ledger, execution and closing report were loaded. Readback confirms seven accepted rows; only S5-08/R5-05 is open for complete current-status intake and truthful receipt classification. The report/data/owner evidence remains accepted; no criterion, owner, scope, sequence, model, or budget changes.
+
+### Historical omission and classification correction
+
+The iteration02 execution record is precise about its actual opening-status extent: its command read project-plan lines 20–23, not lines 24–26. Those omitted lines contained current ownership, accepted 72/20/ten accounting, no-new-inquiry/Arc02 boundary and pending composition. This was a real omitted required extent, identified by CDC; it remains historical and was not backfilled. The complete v1.24 paragraph above was loaded now from `fc4ee62` to understand the historical boundary. A helper initially guessed that its last line would say “Stop before Arc02”; that expectation failed. The corrected marker-to-first-blank read established the actual final line, `Arc01 independent composition remains pending.` The initial duplicate-path attempt to locate `project-plan.md` also failed before reading text; the repository-root-relative path was then corrected.
+
+Iteration02's wording “16/eight/one saved CI observations” is superseded as a classification typo. It refers to retained Slice04 technical evidence: the 16-witness/eight-metadata-group/one-combined-intake pass. It is not CI evidence. No new CI run or observation exists, and no CI investigation was performed in this return. The earlier wording remains in the prior dated record as history rather than being silently rewritten.
+
+### Fresh, retained, and unrun
+
+Fresh for this reporting return: complete current and historical opening paragraphs and transferred ownership paragraph were loaded with marker/blank boundaries and final-line controls; the clipped-current specimen was rejected; the prompt and plan hashes match their issued identities. Pre-commit checks pass: this exact three-path delta; append-only execution/report prose; JSON and summary byte-equal to receipt `8d6304b`; all seven accepted ledger rows and every non-Evidence field unchanged from `1b3e4cc`; only S5-08 Evidence changed; local Markdown targets resolve; UTF-8/LF/final newline and `git diff --check` pass. The current opening paragraph is byte-identical at creation and handoff. Post-commit tree, bytes, and clean release are recorded in the closing receipt.
+
+Retained without rerun: the accepted 72-meaning/whole-population/preservation proof, 168-pointer resolution, five concern mappings, source/output limits, historical Slice04 technical pass, and CDC acceptance of the seven closed rows. Frozen JSON, handoff summary and seven accepted ledger rows preserve their prior evidence identities; no source or CI proof is claimed fresh.
+
+Unrun and out of scope: source/body/tag/intake searches, HTTP/browser, build/render/runtime/install/CI/compatibility, source repair, publication/external action, Arc02 investigation, Arc01 composition and CDC acceptance of S5-08. The original 40 resource checks and 16/eight/one technical pass remain consumed; no query or budget reset occurred. Only `artifacts/execution.md`, `closing-report.md`, and `ledger.md` are changed. No completion or acceptance beyond the seven already accepted rows is claimed.
