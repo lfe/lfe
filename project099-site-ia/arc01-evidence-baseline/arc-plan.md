@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 arc: arc01-evidence-baseline
-version: "1.15"
+version: "1.16"
 date: 2026-10-19
 status: active
 depends-on: []
@@ -63,7 +63,7 @@ their full open sets are prepared immediately before assignment.
 | Slice01 — `slice01-baseline-intake` | Preserved-input provenance, local repository/source map, and complete reconciliation of the inherited assessment/question registers | Saved first-steps packet, approved parent plan, read-only local metadata and bounded source witnesses | Closed; all eight rows independently accepted at 9111268; initial failed review preserved |
 | Slice02 — `slice02-local-inventory` | Complete inventory of the agreed local site content, route/anchor declarations, resource promotions, and legacy-source entrances | Accepted Slice01 provenance/populations; inspect actual Cobalt/wrapper semantics before claiming output routes | Closed; all8 rows independently accepted after authorized iteration06; retrospective complete |
 | Slice03 — `slice03-resource-verification` | Targeted external destination and source/rendered readiness checks with coverage limits | Accepted Slice02 destinations; Slice01 inherited findings; read-only retrieval/rendering method defined at opening | Closed; all8 rows independently accepted after iteration02;40/40 consumed, retrospective complete |
-| Slice04 — `slice04-technical-intake` | Technical evidence packet for release/container/environment questions and the reported runtime failure | Slice01 repository/provenance map; Slice03 relevant observations; actual Operator-provided failure context where available | Planned |
+| Slice04 — `slice04-technical-intake` | Technical evidence packet for release/container/environment questions and the reported runtime failure | Slice01 repository/provenance map; Slice03 relevant observations; actual Operator-provided failure context where available | Active; complete open set and original bounded observation pass, pending CC acknowledgment |
 | Slice05 — `slice05-baseline-reconciliation` | Reconciled evidence/coverage/finding register and concrete handoffs to consuming arcs | Accepted Slices01–04 and their explicit gaps/dispositions | Planned |
 
 Slice01 intentionally performs no live re-audit, exhaustive route derivation,
@@ -120,6 +120,20 @@ handoff. Slice04 must request or locate it and record its state. If unavailable,
 the missing evidence remains an explicitly owned Arc02 entry condition; it
 cannot be claimed reproduced. CDC/Duncan disposition any material inability
 to deliver the arc capability before closure. Unaffected inventory work can proceed.
+
+## Slice04 current opening — 19 October 2026
+
+The complete slice04-technical-intake open set preserves the approved exact16
+witnesses/eight metadata groups/one combined intake. CDC's single author-readiness
+pass and root's chat component are already captured; CC analyzes original results,
+without repeating tags/search or expanding the source population. All16 witnesses
+are HEAD-equal. Actual runtime packet is absent within the searched scope; saved
+CI compile background and uninspected workbench filenames remain distinct.
+The existing missing-input contingency supplies Arc02/Operator ownership and
+re-entry fields; no policy, reproduction or source repair is inferred.
+Fresh LunaHigh CC04 is planned due observed CC03 recovery, with SolHigh CDC review.
+CDC owns planning/index pending acknowledged handoff. Slice05/composition remain
+open; all40 Slice03 checks stay consumed and Arc02 stays unopened.
 
 ## Slice03 accepted; approved Slice04 next — 19 October 2026
 
@@ -292,3 +306,5 @@ The inherited `../artifacts/first-steps/` packet stays in place.
 | 1.14 | 2026-10-19 | Slice03 iteration01 independent review | Accept seven rows, retain full passed proof and issue second local refinement for two consumed-data wording strings; no scope or check-budget change |
 
 | 1.15 | 2026-10-19 | Slice03 iteration02 independent acceptance | Close8 child rows/retrospective and release approved Slice04 planning; retain40-check limit and all source/rendered/provenance boundaries |
+
+| 1.16 | 2026-10-19 | Approved Slice04 author readiness after Slice03 close | Open original16-witness/eight-group/combined-intake analysis, explicit missing-runtime disposition and fresh-context rationale; no scope or criterion change |

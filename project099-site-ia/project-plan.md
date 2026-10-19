@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 title: LFE site information architecture and supporting foundations
-version: "1.17"
+version: "1.18"
 date: 2026-10-19
 status: active
 depends-on: []
@@ -17,14 +17,14 @@ mode: autonomous (includes expedited)
 
 # Project 099 — LFE site IA
 
-**Current19 October status, v1.17:** Arc01 remains active. Slice02 is closed;
-Slice03 is independently closed after iteration02, all8 rows accepted and
-retrospective complete. Its20 primary/20 independent checks exhaust40/40;
-approved bounded Slice04 is next, with no new open set issued yet. All40 checks are consumed;
-no extra network is authorized. Last accepted assignment is
-`arc01-evidence-baseline/slice03-resource-verification/cc-prompt-iteration02.md`.
-Next assignment is prepared only after source-grounded Slice04 readiness. CDC owns planning
-until that handoff; explicit models/Arc01 endpoint and later approved gates remain.
+**Current19 October status, v1.18:** Slices01–03 are independently closed.
+Slice04's complete open set now analyzes the explicitly approved single16-file/
+eight-metadata-group/combined-intake pass, already captured during CDC readiness.
+The missing runtime packet has an owned Arc02 input path; no runtime claim is
+reproduced. Current assignment is `arc01-evidence-baseline/slice04-technical-intake/cc-prompt.md`.
+CDC owns planning until acknowledged serialized handoff to fresh LunaHigh CC;
+SolHigh CDC independently reviews. Slice03's40/40 checks remain exhausted;
+Arc01 endpoint/composition and all Operator gates persist.
 
 **Historical opening summary, superseded by the current state above:**
 
@@ -479,7 +479,7 @@ scope. Existing Expedited Mode and all Operator gates remain binding.
 | Role / actual context | Explicit requested and tool-selected settings | Authority |
 | --- | --- | --- |
 | CDC: `/root/autonomous_cdc`, Sofie | OpenAI Codex collaboration tools; `gpt-6.1-sol`, reasoning `high` | Arc01 planning, coordination and independent CC review; assigned and acknowledged 2026-10-19 |
-| CC: `/root/autonomous_cdc/cc_slice03`, fresh contributor context for Slice03 | OpenAI Codex collaboration tools; `gpt-6-luna`, reasoning `high` | Execute the preserved current prompt, self-check and return proposed-done evidence |
+| CC: fresh `/root/autonomous_cdc/cc_slice04` for Slice04; preceding CC03 retained read-only | OpenAI Codex collaboration tools; `gpt-6-luna`, reasoning `high` | Execute the preserved current prompt, self-check and return proposed-done evidence |
 | Root `/root` | Existing chat, transport/Operator liaison only | No substantive CDC authorship or planning mutations |
 
 These are explicit role selections, not inherited defaults. No fallback is
@@ -567,6 +567,13 @@ re-entry condition. Failed composition creates remediation work or an explicit
 accepted amendment, never retrospective criterion softening.
 
 ## Current state
+
+**Slice04 opening19 October:** complete [open set](arc01-evidence-baseline/slice04-technical-intake/slice-plan.md)
+records approved observation allocation, exact original inputs, missing-packet
+contingency and eight criteria. Fresh CC04 is justified by observed CC03 context
+recovery; no settings/budget change. CDC owns mutations/index pending handoff.
+Prior status paragraphs below remain historical; Arc02 stays unopened.
+
 
 **Slice03 accepted19 October:** independent CDC accepts all8 rows atc92041e7
 +2278325f; retrospective complete. Exact20 source-joined targets and40 total
@@ -749,3 +756,5 @@ approval. Navigation/design choices remain open, and expansion remains expected.
 | 1.16 | 2026-10-19 | Slice03 iteration01 independent review | Accept seven child rows, retain exact passed proof and target only residual JSON R3-03 wording in local iteration02;40/40 exhausted, no scope/criterion change | Routine refinement within existing budget |
 
 | 1.17 | 2026-10-19 | Slice03 iteration02 independent acceptance | Close all8 child rows/retrospective, retain40 bounded observations and release approved Slice04 authoring gate; no scope/criterion amendment | Routine independent closure under Autonomous/Expedited authorization |
+
+| 1.18 | 2026-10-19 | Slice04 approved author readiness after Slice03 acceptance | Open exact16/eight-group/one-intake technical analysis using original captured observations and owned missing-runtime inputs; no investigation or criterion expansion | Routine scope-preserving opening under Autonomous/Expedited authorization |

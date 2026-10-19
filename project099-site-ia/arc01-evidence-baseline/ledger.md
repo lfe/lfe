@@ -1,6 +1,6 @@
 # Arc01 — composition ledger
 
-**Contract:** [arc-plan.md](arc-plan.md), v1.15, 19 October 2026;
+**Contract:** [arc-plan.md](arc-plan.md), v1.16, 19 October 2026;
 criteria unchanged from v1.0, 8 October 2026.
 A1-01 through A1-03 are done after independent child acceptance; A1-04 through A1-09 remain open. Evidence supplied by CC is attested/proposed-done; `done`
 requires independent reproduced evidence. Deferral requires owner, reason,
