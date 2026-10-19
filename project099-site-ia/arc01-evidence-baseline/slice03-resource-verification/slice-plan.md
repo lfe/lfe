@@ -2,9 +2,9 @@
 project: project099-site-ia
 arc: arc01-evidence-baseline
 slice: slice03-resource-verification
-version: "1.2"
+version: "1.3"
 date: 2026-10-19
-status: active
+status: closed
 depends-on: [slice02-local-inventory]
 workflow: two-contributor
 mode: autonomous (includes expedited)
@@ -140,6 +140,12 @@ recovery rather than represented by counts/hashes.
 
 ## Assignment history
 
+Current: iteration02 accepted atc92041e7 +2278325f; all8 original rows done,
+R3-01–04 dispositioned and CDC retrospective complete.40/40 checks consumed;
+no further request authorized. CC returned clean/no-active-tool ownership;
+CDC owns planning/index for approved Slice04 author readiness. The following
+opening/refinement records remain history, superseded on current status.
+
 Current assignment: `cc-prompt-iteration02.md`, second refinement. Seven rows
 are accepted; S3-05 alone is open for two residual current JSON coverage/state
 strings. Its exact3-path mutation subset is resource-checks.json (two strings),
@@ -163,7 +169,7 @@ consequential decision, source/body investigation or machinery is needed.
 | cc-prompt.md | 2026-10-19 | Accepted Slice02 d7063b2 | Execute the explicitly approved20-destination/max40-check readiness pass | Returned0d2e09fd +5a3424cc; three rows accepted/five open, failed initial evidence preserved |
 | cc-prompt-iteration01.md | 2026-10-19 | cc-prompt.md / initial CDC review | Repair R3-01–04 source values, intake/coverage/field boundaries locally with all40 checks exhausted | Returned d16aa934 +335b5aa; seven rows accepted/S3-05 open |
 
-| cc-prompt-iteration02.md | 2026-10-19 | cc-prompt-iteration01.md / CDC iteration01 review | Align two residual JSON current-coverage/state strings and necessary receipts only | Issued pending acknowledgement/serialized handoff |
+| cc-prompt-iteration02.md | 2026-10-19 | cc-prompt-iteration01.md / CDC iteration01 review | Align two residual JSON current-coverage/state strings and necessary receipts only | Accepted after c92041e7 +2278325f; all8 rows closed |
 
 ## Version History
 
@@ -174,6 +180,8 @@ consequential decision, source/body investigation or machinery is needed.
 | 1.1 | 2026-10-19 | Initial independent review | Accept three rows, preserve five defects and complete40-check record; issue first no-network local correction without criterion or investigation-budget change |
 
 | 1.2 | 2026-10-19 | Iteration01 independent review | Accept seven rows and target residual R3-03 JSON wording in second local refinement, preserving all passed proof and exhausted40-check cap |
+
+| 1.3 | 2026-10-19 | Iteration02 independent acceptance | Close all8 rows and retrospective, retain all40 observations and historical failures, release approved Slice04 planning gate without scope change |
 
 ### Initial serialized execution handoff (historical) — 19 October 2026
 

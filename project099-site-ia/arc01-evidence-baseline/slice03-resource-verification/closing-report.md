@@ -82,3 +82,13 @@ The actual execution intake is `f903d17cd322186c91c99c1ac32d9a3754a7b68c`, tree 
 ### Iteration02 receipt
 
 The exact-three-path evidence commit is `c92041e7e3061b7c181ee2a1f0bc9348b3bf55dd`, tree `52a13b5341714179a42ba5fc19efcea09a9ce585`. The execution-intake-to-evidence range from `f903d17cd322186c91c99c1ac32d9a3754a7b68c` contains exactly the resource-check JSON, `execution.md`, and this report. Post-commit checks confirm the complete parsed JSON delta is limited to the two authorized strings; ledger/readiness and all other JSON values are unchanged. Committed bytes match the working bytes, changed-file UTF-8/LF/final-newline/whitespace, JSON and 11 local links pass, `git show --check` passes, and the planning worktree is clean. This closing-report-only follow-up records the receipt; final commit/tree and clean ownership release are returned to CDC.
+
+
+## CDC closing metadata — 19 October 2026
+
+Independent CDC [acceptance](cdc-verification.md) closes all8 original rows
+atc92041e7 +2278325f, retaining original observation dates/limits and exact
+passed evidence applicability. The [CDC retrospective](cdc-retrospective.md)
+is complete. This is reviewer closing metadata; preceding CC proposals and
+failed history remain unchanged.40/40 is exhausted. No extra probe, policy,
+source implementation or Arc02 work is implied.

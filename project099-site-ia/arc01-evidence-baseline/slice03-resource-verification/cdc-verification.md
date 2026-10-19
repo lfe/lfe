@@ -244,3 +244,74 @@ return and rerun affected field/whole-JSON-delta checks. Keep every historical
 failure, all40 original observations,3 artifacts and both prior prompts.
 S3-05 remains open; all other7 rows are now accepted. No structural Arc01
 amendment; Slice04 stays behind actual closure. CDC retrospective remains due.
+
+
+## Iteration02 independent acceptance and Slice03 close — 19 October 2026
+
+Reviewer remains independent CDC `/root/autonomous_cdc`, explicit SolHigh,
+reviewing LunaHigh CC03 evidencec92041e7e3061b7c181ee2a1f0bc9348b3bf55dd,
+tree52a13b5341714179a42ba5fc19efcea09a9ce585, and report-only receipt
+2278325f4636afa60580617ff48393ee2ada456e, treef9f940e78c4131e3d189aaddfc72bb134970d216.
+Assignment creation89eda505, SHA8cb6329917cc2083a24f15c397ad0101342e7c2f55fac9614834999d5fd1bd32;
+actual execution intakef903d17cd322186c91c99c1ac32d9a3754a7b68c. CC returned
+clean/no-active-tool ownership. CDC inspected the actual complete three-file
+delta and newly appended intake/execution/return, not only its summary.
+
+**Current verdict: accept S3-05; retain the other7 rows. All8 original rows
+are done and Slice03 is independently closed.** R3-01–04 are dispositioned;
+initial failed and partial-acceptance history remains above. No new request,
+body comparison, census, policy or source implementation was performed.
+
+Fresh affected-field proof finds exactly the two authorized parsed JSON
+changes and no other value change. The corrected unselected field explicitly
+limits checks to20 and describes the unselected remainder of the broader804
+mixed groups, including selected/non-web/dynamic/fragment cases. R03-F01 now
+records consumed V01–V04 with the original tool-outcome limit and review
+pointer. Both old-string specimens fail the same respective semantic-field
+check. All20 selected rows and40/40 accounting remain exact.
+
+Intake-to-evidence and intake-to-final contain exactly resource-checks.json,
+execution.md and closing-report.md; receipt changes closing-report alone.
+3/3 working files equal final committed bytes; JSON/UTF8/LF/final-newline/
+whitespace,11 local links, both commit whitespace checks and clean planning
+status pass. All3 immutable prompts/3 frozen Slice02 registers, ledger7-done/
+1-open pre-acceptance bytes and readiness summary equal their proper baselines.
+The new current handoff/state readings and own-words readback cover the two
+changed facts; actual prior prose remains available in the same context. No
+unrelated reread is required where unchanged. A failed guessed review filename
+was recovered to the canonical file and is retained as a prep error.
+
+Retain the independent Iteration01 proof at335b5aa:32 complete source locators,
+20 primary values,29 actual receipt identities/full relevant extents, Notes/
+Status/Evidence restoration,8 roots/statuses,8 populations/2,819 paths,2,839
+fingerprints and8 pins. Entire JSON equality except the two descriptive strings,
+protected input equality and exact local return scope establish applicability;
+this change cannot affect those claims. No contrary input/method finding or
+binding fresh endpoint gate is present. These are retained original checks,
+not freshly rerun probes or wholesale source validation. All20 initial primary
+and20 independent slot observations retain their original identities/dates/
+limitations, including cached retrieval and browser-attestation/source-proof
+separation. Shared40/40 is exhausted; additional checks need new authority.
+
+| Row | Final status | Independent basis |
+| --- | --- | --- |
+| S3-01 | done |20 exact selected IDs/URLs/priority and32 actual source-value joins, retained at335b5aa; initial11 line errors repaired. |
+| S3-02 | done |20 honest primary attempts;17 independent extraction/error observations and3 source comparisons, retained at original time/extent. |
+| S3-03 | done |3 complete heading-only local files equal frozen HEAD; bounded browser observation remains separately attributed. |
+| S3-04 | done | Status/extraction/render/source/applicability distinctions checked across20 outcomes, with uncertainty retained. |
+| S3-05 | done | Corrected complete current coverage semantics, exact counts and concrete Arc08/10/11 consumers/re-entry, with Arc04 implications. |
+| S3-06 | done | Complete truthful current intake/recovery/readback and all40 consumed slots; no historical read backfill. |
+| S3-07 | done | Exact allowed final delta/protected values and retained full source/Notes proof. |
+| S3-08 | done |8 rows,3 supporting artifacts, all3 immutable prompts, current exact commits/limits and complete scope/bubble-up checked. |
+
+The delivered increment is bounded source-joined readiness evidence: four
+Build It tool-reported404s, five tool-inaccessible version/placeholder cases,
+qualified book/legacy extraction and three matched heading-only source/browser
+observations. Unselected estate and current deployment/runtime applicability
+remain unverified. The three artifacts remain resource-checks.json,
+readiness-summary.md and execution.md. No silent drop, no-op or source-scope
+reduction is adopted. Scope-as-delivered matches the approved20/max40 pass.
+No structural Arc01 amendment is needed; A1-03 closes, approved Slice04 may
+open after its complete source-grounded open set. Arc composition remains
+open and Arc02 unopened. CDC completes the linked retrospective and owns
+planning/index for next-slice author readiness; root remains liaison/read-only.

@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 arc: arc01-evidence-baseline
-version: "1.14"
+version: "1.15"
 date: 2026-10-19
 status: active
 depends-on: []
@@ -62,7 +62,7 @@ their full open sets are prepared immediately before assignment.
 | --- | --- | --- | --- |
 | Slice01 — `slice01-baseline-intake` | Preserved-input provenance, local repository/source map, and complete reconciliation of the inherited assessment/question registers | Saved first-steps packet, approved parent plan, read-only local metadata and bounded source witnesses | Closed; all eight rows independently accepted at 9111268; initial failed review preserved |
 | Slice02 — `slice02-local-inventory` | Complete inventory of the agreed local site content, route/anchor declarations, resource promotions, and legacy-source entrances | Accepted Slice01 provenance/populations; inspect actual Cobalt/wrapper semantics before claiming output routes | Closed; all8 rows independently accepted after authorized iteration06; retrospective complete |
-| Slice03 — `slice03-resource-verification` | Targeted external destination and source/rendered readiness checks with coverage limits | Accepted Slice02 destinations; Slice01 inherited findings; read-only retrieval/rendering method defined at opening | Open; seven rows accepted/S3-05 open for two JSON strings;40/40 consumed, local iteration02 pending acknowledged handoff |
+| Slice03 — `slice03-resource-verification` | Targeted external destination and source/rendered readiness checks with coverage limits | Accepted Slice02 destinations; Slice01 inherited findings; read-only retrieval/rendering method defined at opening | Closed; all8 rows independently accepted after iteration02;40/40 consumed, retrospective complete |
 | Slice04 — `slice04-technical-intake` | Technical evidence packet for release/container/environment questions and the reported runtime failure | Slice01 repository/provenance map; Slice03 relevant observations; actual Operator-provided failure context where available | Planned |
 | Slice05 — `slice05-baseline-reconciliation` | Reconciled evidence/coverage/finding register and concrete handoffs to consuming arcs | Accepted Slices01–04 and their explicit gaps/dispositions | Planned |
 
@@ -121,7 +121,13 @@ the missing evidence remains an explicitly owned Arc02 entry condition; it
 cannot be claimed reproduced. CDC/Duncan disposition any material inability
 to deliver the arc capability before closure. Unaffected inventory work can proceed.
 
-## Current Slice03 assignment — 19 October 2026
+## Slice03 accepted; approved Slice04 next — 19 October 2026
+
+Independent CDC accepts all8 rows atc92041e7 +2278325f and completes the
+retrospective. All40 checks are consumed; no extra request or body inquiry.
+CDC owns planning after clean release; approved Slice04 may be opened with
+its exact16/eight-group/one-search limits. Arc composition remains open and
+Arc02 unopened. Older assignment/review snapshots below are historical.
 
 Current after iteration01 review:d16aa934 +335b5aa accepts7 child rows;
 S3-05 remains open for two residual JSON wording fields. Distinct
@@ -284,3 +290,5 @@ The inherited `../artifacts/first-steps/` packet stays in place.
 | 1.13 | 2026-10-19 | Slice03 initial independent review | Retain all20 primary and20 independent observations, accept three rows and require local R3-01–04 return correction;40-check budget exhausted, no-network iteration01 and later acceptance gates retained |
 
 | 1.14 | 2026-10-19 | Slice03 iteration01 independent review | Accept seven rows, retain full passed proof and issue second local refinement for two consumed-data wording strings; no scope or check-budget change |
+
+| 1.15 | 2026-10-19 | Slice03 iteration02 independent acceptance | Close8 child rows/retrospective and release approved Slice04 planning; retain40-check limit and all source/rendered/provenance boundaries |
