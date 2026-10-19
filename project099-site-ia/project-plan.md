@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 title: LFE site information architecture and supporting foundations
-version: "1.11"
+version: "1.12"
 date: 2026-10-19
 status: active
 depends-on: []
@@ -557,6 +557,16 @@ accepted amendment, never retrospective criterion softening.
 
 ## Current state
 
+**Subsequent 19 October Operator decision:** Duncan answered “Authorize one
+extra correction (Recommended)” to the exact bounded remedy proposed at
+`99b0e6d`. Exactly one extra Slice02 intake/receipt pass is authorized beyond
+the exhausted five-pass limit; no budget reset or automatic seventh pass.
+Same explicitly approved Luna High CC / Sol High CDC and four Markdown paths;
+source/JSON/prompt history stays frozen. Iteration06 will be issued separately
+after author readiness; a further failure returns to Duncan. This supersedes
+the pending-decision status below, not the failed fifth-pass evidence.
+
+
 **19 October current verdict:** fifth iteration evidence `1ffaba0` + report
 receipt `d0f6cae` repairs R16, but complete current mode-authority intake is
 unestablished (R17). S2-01–06 remain accepted, S2-07/08 open; Slice02 and
@@ -638,3 +648,5 @@ approval. Navigation/design choices remain open, and expansion remains expected.
 | 1.10 | 2026-10-19 | Duncan’s explicit framework reload and Autonomous Mode request | Record Arc01 endpoint, explicit OpenAI CC Luna High / CDC Sol High selections, actual CDC context, serialized ownership, preserved fifth prompt and source state, unchanged file fingerprints and remaining investigation/acceptance gates | Mode authorized; no capability or acceptance amendment |
 
 | 1.11 | 2026-10-19 | Arc01 Slice02 Iteration05 review; Duncan’s explicit bounded-pass approval | Record repaired R16, R17 complete-current-intake gap and exhausted-pass Operator gate; preserve six accepted rows and approved-but-gated investigation limits | No extra correction authorized; no capability or criterion amendment |
+
+| 1.12 | 2026-10-19 | Duncan’s explicit one-extra-correction answer at checkpoint99b0e6d | Authorize exactly one extra Slice02 intake/receipt pass, preserving five-pass history, six accepted rows, same models/four-path scope and all frozen inputs; issue a distinct sixth prompt | Explicit bounded exception; no reset or seventh pass |

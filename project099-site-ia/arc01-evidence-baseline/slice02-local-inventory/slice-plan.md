@@ -2,9 +2,9 @@
 project: project099-site-ia
 arc: arc01-evidence-baseline
 slice: slice02-local-inventory
-version: "1.7"
+version: "1.8"
 date: 2026-10-19
-status: blocked
+status: active
 depends-on: [slice01-baseline-intake]
 workflow: two-contributor
 mode: autonomous (includes expedited)
@@ -41,6 +41,25 @@ requires an explicit Operator decision or authorized re-scoping, not an
 automatic sixth prompt.
 CDC is Sofie in the desktop planning chat.
 No automatic dispatch or CRC role is selected. Issued prompts stay immutable.
+
+## Current assignment — authorized iteration06 (19 October 2026)
+
+Duncan explicitly authorized exactly one extra receipt/intake correction at
+checkpoint `99b0e6d`; this is a bounded exception beyond the five-pass cap,
+not a reset. Current assignment is [cc-prompt-iteration06.md](cc-prompt-iteration06.md),
+R17 complete current authority intake and truthful scoped return. Fifth-pass
+R16 repair and failed current-intake evidence stay preserved. S2-01–06 remain
+accepted and S2-07/08 open. No seventh pass is authorized; nonconvergence
+returns to Duncan. Current parents are project v1.12 / arc v1.10.
+
+The existing CC context `/root/autonomous_cdc/cc_slice02` confirmed coherence
+and ~15–20k intake/repair headroom; retain explicit `gpt-6-luna` / `high`,
+CDC `/root/autonomous_cdc` `gpt-6.1-sol` / `high`. CDC is sole mutation/index
+owner until this prompt's committed handoff; then ownership transfers serially
+to that CC context for only the same four Markdown paths. CC acknowledges
+actual intake commit/branch/current text before editing; CDC suspends scans/
+mutations until the clean scoped return. JSON/source/earlier prompt bytes stay
+frozen, including iteration05. Slice03/04 remain behind independent acceptance.
 
 ## Iteration05 review and Operator gate — 19 October 2026
 
@@ -329,3 +348,26 @@ commits and final preservation/status checks. CC revalidates changed plan
 bytes/branch/intake identity before dependent work.
 
 | 1.7 | 2026-10-19 | Iteration05 independent CDC review | Record repaired R16, retained six accepted rows and exact R17 current intake gap; hold after exhausted fifth refinement for Operator decision; no criterion change or sixth prompt |
+
+### Iteration06 author readiness and assignment history
+
+Source-grounded R17 is the exact unestablished current-mode parent coverage
+at fifth intake `a47aeb4`, independently checked and acknowledged by CC; no
+source/criterion redesign. The new prompt names complete current project
+Workflow-through-Autonomous authority and Current state, full arc/slice plans,
+ledger, Project AGENTS, complete current review/authorization sections, relevant
+intake/retention guides, and prior current return sections. Entire named
+sections are derived from current headings, not old boundary guesses. A
+small contiguous-read method with immediate truncation recovery precedes all
+dependent edits. The same section predicate rejects incomplete ranges; full
+preservation protects retained independent source evidence. All consequential
+decisions are fixed by the bounded Operator authorization, with local query
+mechanics only. The packet fits the confirmed CC headroom; receipts remain
+attested and independent review gates remain. No new investigation/validator
+or source work is commissioned.
+
+| Assignment | Issued | Predecessor | Reason | Disposition |
+| --- | --- | --- | --- | --- |
+| `cc-prompt-iteration06.md` | 2026-10-19 | preserved iteration05; evidence1ffaba0 + receipt d0f6cae, CDC review99b0e6d | Duncan explicitly authorizes exactly one extra current-intake/receipt pass for R17 | Issued at this committed handoff; sole CC owner after acknowledgement; no seventh pass |
+
+| 1.8 | 2026-10-19 | Duncan’s explicit extra-pass decision | Open exactly one authorized iteration06 with full current authority manifest, preserved failed history and accepted rows; serialized ownership, no reset/seventh |

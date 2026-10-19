@@ -1222,3 +1222,21 @@ made. The final checkpoint validation uses the seven exact CDC plan/ledger/
 review paths, unchanged row contracts/statuses (23 project, nine arc, eight
 slice), the prior review as an exact prefix, and unchanged CC artifacts,
 issued prompts and Project AGENTS.
+
+## Iteration06 authorization and handoff readiness — 2026-10-19
+
+Duncan explicitly authorized exactly one additional intake/receipt correction
+at checkpoint `99b0e6d`, selecting “Authorize one extra correction (Recommended)”.
+The prior fifth-pass verdict remains failed at R17; R16 and six accepted rows
+remain valid. This authorization changes the pass limit once, not acceptance
+criteria, source scope or model assignments. No seventh pass is authorized.
+CDC's current prompt-author readiness is recorded in slice-plan v1.8 and the
+new immutable prompt carries the complete bounded intake and four-path recipe.
+The existing Luna High CC context confirmed coherence/headroom; CDC remains
+Sol High, independent of CC's repairs. No replacement reviewer or source fix.
+At this handoff commit, CDC transfers planning mutation/index ownership to
+CC after acknowledgement; no parallel mutations/scans. Active prompt creation
+and execution intake are this new committed state, to be recorded exactly by
+CC using path history and HEAD. Parent mode edits do not enter CC's four-path
+return diff. All earlier artifacts/prompts/JSON/source and original row
+contracts/statuses are preserved before dispatch.

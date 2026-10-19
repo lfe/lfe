@@ -1,6 +1,6 @@
 # Arc01 — composition ledger
 
-**Contract:** [arc-plan.md](arc-plan.md), v1.9, 19 October 2026;
+**Contract:** [arc-plan.md](arc-plan.md), v1.10, 19 October 2026;
 criteria unchanged from v1.0, 8 October 2026.
 A1-01 is done after independent Slice01 acceptance; A1-02 through A1-09 remain open. Evidence supplied by CC is attested/proposed-done; `done`
 requires independent reproduced evidence. Deferral requires owner, reason,

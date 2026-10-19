@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 arc: arc01-evidence-baseline
-version: "1.9"
+version: "1.10"
 date: 2026-10-19
 status: blocked
 depends-on: []
@@ -120,6 +120,17 @@ the missing evidence remains an explicitly owned Arc02 entry condition; it
 cannot be claimed reproduced. CDC/Duncan disposition any material inability
 to deliver the arc capability before closure. Unaffected inventory work can proceed.
 
+## One extra correction authorized — 19 October 2026
+
+After checkpoint `99b0e6d`, Duncan explicitly selected “Authorize one extra
+correction (Recommended)”. Exactly one additional Slice02 receipt/intake
+correction is authorized, using a distinct iteration06 prompt and unchanged
+Luna High CC / Sol High CDC settings. No reset, seventh pass, new source work
+or acceptance amendment. Six accepted rows remain; S2-07/08 await independent
+review. Existing CC acknowledged context coherence/headroom and will receive
+a serialized handoff after author readiness. The following exhausted fifth-pass
+state is preserved history; investigation budgets remain approved but gated.
+
 ## Current review gate and bounded investigation approval — 19 October 2026
 
 Iteration05 at `1ffaba0` + `d0f6cae` repairs R16, but R17 current-mode
@@ -225,3 +236,5 @@ The inherited `../artifacts/first-steps/` packet stays in place.
 | 1.8 | 2026-10-19 | Duncan’s Autonomous Mode selection / current Slice02 handoff | Link compact project preflight, record actual CDC context and explicit role settings, ownership and unchanged R16/iteration/independent gates; later investigations await bounded agreement; no capability or criterion amendment |
 
 | 1.9 | 2026-10-19 | Slice02 Iteration05 CDC review and Duncan’s bounded-pass approval | Preserve repaired R16/six accepted rows, hold R17 at exhausted iteration gate, and record approved-but-gated Slice03 max20/max40 and Slice04 exact16/eight query-group/one-search limits; no capability or criterion amendment |
+
+| 1.10 | 2026-10-19 | Duncan’s explicit bounded extra-pass authorization | Permit one distinct iteration06 for current intake/receipt correction, preserving history, accepted evidence and downstream gates; no seventh or reset |

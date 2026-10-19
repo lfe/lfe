@@ -1,6 +1,6 @@
 # Arc01 Slice02 — acceptance ledger
 
-**Contract:** [slice-plan.md](slice-plan.md) v1.7 and [cc-prompt-iteration05.md](cc-prompt-iteration05.md),
+**Contract:** [slice-plan.md](slice-plan.md) v1.8 and [cc-prompt-iteration06.md](cc-prompt-iteration06.md),
 19 October 2026; original cc-prompt.md criteria unchanged. S2-01–06 done, S2-07/08
 open. CC adds attested evidence and
 proposed dispositions; CDC independently reproduces acceptance. Deferred work
