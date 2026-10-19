@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 title: LFE site information architecture and supporting foundations
-version: "1.25"
+version: "1.26"
 date: 2026-10-19
 status: active
 depends-on: []
@@ -17,12 +17,12 @@ mode: autonomous (includes expedited)
 
 # Project 099 — LFE site IA
 
-**Current19 October status, v1.25:** Slices01–04 closed;Slice05 has seven accepted rows.
-OnlyS5-08 remains forR5-05 complete current-status intake and truthful receipt classification.
-Current assignment: `arc01-evidence-baseline/slice05-baseline-reconciliation/cc-prompt-iteration03.md`.
-CDC owns planning/index pending acknowledged serialized transfer.
-All substantive72/20/ten/three data and canonical report content pass;no new inquiry or Arc02 start.
-Arc01 independent composition remains pending.
+**Current19 October status, v1.26:** All five Arc01 slices are independently closed.
+Slice05 all8 rows pass after03 1d44a8ee +3ab8492d;CDC retrospective is complete.
+Its finite72-obligation/20-resource/ten-target/three-trace handoff is accepted.
+CDC owns planning/index and will assemble the formal Arc01 close for a fresh
+independent approved SolHigh reviewer. No CC assignment or new inquiry is active.
+Arc01 composition remains pending;stop before Arc02.
 
 **Historical opening summary, superseded by the current state above:**
 
@@ -566,6 +566,14 @@ accepted amendment, never retrospective criterion softening.
 
 ## Current state
 
+**Slice05 closed19 October:** All8 original rows accepted after03 1d44a8ee +
+3ab8492d,with complete CDC retrospective. Failed initial/01/02 history and all
+source/output/runtime limits remain. CC explicitly released clean/no-active-tool
+ownership;CDC owns planning/index. The planned finite evidence bridge is delivered;
+formal Arc01 composition now needs a fresh approved SolHigh reviewer because CDC
+assembles it. No source/HTTP/tag/intake/runtime inquiry or Arc02 work is authorized.
+
+
 **Slice05 iteration03 serialized handoff19 October:** CC /root/autonomous_cdc/cc_slice05_refinement acknowledged clean34d657073f432d5ec516bf7df6820812ba2130b4,full current prompt/plan/ledger/review and complete marker-bounded current/historical status text,with explicit LunaHigh/SolHigh,no fallback/backend unreported.
 At this committed handoff CC exclusively owns planning/index for artifacts/execution.md,closing-report.md andledger.md only;actual execution baseline is this handoff commit. Load this entire short paragraph from that actual object before edits,including the final release sentence.
 The195-line plan stays creation-fixed SHAd486ad6c541f297c767aec89a257eb191b78027965e1e8f05c3493d03b62a22c;prompt SHAdf6796406489bbf600e38b2ff11d7853e24259eb635bb565b81ede4a0ffe2dc4. All7 accepted rows,JSON/summary/report-content proof remain frozen;onlyS5-08/R5-05 current intake/receipt correction is open. No inquiry,scope/model/budget change or Arc02 action.
@@ -918,3 +926,5 @@ approval. Navigation/design choices remain open, and expansion remains expected.
 | 1.24 | 2026-10-19 | Slice05 iteration01 independent review | Accept seven child rows and require bounded canonical return completion,without new scope or evidence claims |
 
 | 1.25 | 2026-10-19 | Slice05 iteration02 independent review | Preserve passed report/data evidence,require exact complete current-status/receipt03 and keep all existing gates |
+
+| 1.26 | 2026-10-19 | Slice05 iteration03 independent acceptance | Close final8-row child/retrospective and enter formal independently gated Arc01 composition,without new inquiry |

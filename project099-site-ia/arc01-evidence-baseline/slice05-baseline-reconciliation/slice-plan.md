@@ -2,15 +2,21 @@
 project: project099-site-ia
 arc: arc01-evidence-baseline
 slice: slice05-baseline-reconciliation
-version: "1.3"
+version: "1.4"
 date: 2026-10-19
-status: active
+status: closed
 depends-on: [slice01-baseline-intake, slice02-local-inventory, slice03-resource-verification, slice04-technical-intake]
 workflow: two-contributor
 mode: autonomous (includes expedited)
 ---
 
 # Slice05 — Reconciled baseline and owned handoffs
+
+Closed19 October after independent iteration03 acceptance at1d44a8ee +3ab8492d.
+All8 original rows are done;CDC retrospective complete. Three supporting
+artifacts deliver the finite72/20/ten/three evidence bridge. No further CC
+assignment is active;CDC owns planning/index for formal Arc01 composition.
+All earlier opening/review/ownership snapshots below are preserved history.
 
 Compose accepted Slices01–04 into the finite source/evidence/finding handoff
 promised by Arc01. The consumer is the independent Arc01 composition gate and
@@ -113,7 +119,7 @@ needed to construct this existing-evidence delivery.
 
 ## Assignment history
 
-Current: cc-prompt-iteration03.md,issued19 October after iteration02 review. Opening commit is creation;
+Current: no active CC assignment; cc-prompt-iteration03.md is accepted and preserved. Opening commit is creation;
 actual execution baseline is later parent-only ownership commit. CDC owns planning
 until acknowledged handoff. No new source population: all data remain
 at the accepted138543bf snapshot; three frozen Slice02 JSONs remain2112713 bytes.
@@ -123,7 +129,7 @@ at the accepted138543bf snapshot; three frozen Slice02 JSONs remain2112713 bytes
 | cc-prompt.md | 2026-10-19 | Accepted Slice04 138543bf | Implement planned finite evidence/finding reconciliation | Returned338176f +17e72267; independently accepted five rows,three open |
 | cc-prompt-iteration01.md | 2026-10-19 | Initial338176f +17e72267 / CDC review | Current intake,Notes restoration and one aggregate concern handoff | Returnede611be5 +8d6304b;seven rows accepted,one report row open |
 | cc-prompt-iteration02.md | 2026-10-19 | Iteration01 e611be5 +8d6304b / CDC review | Canonical closing-report/history/bubble-up and explicit failed-check supersession | Returned719c3e4 +e7f5d0ee;report content passes,current intake/receiptR5-05 open |
-| cc-prompt-iteration03.md | 2026-10-19 | Iteration02 719c3e4 +e7f5d0ee / CDC review | Complete actual current-status loading and truthful receipt/budget-label correction | Issued; acknowledgment/serialized handoff pending |
+| cc-prompt-iteration03.md | 2026-10-19 | Iteration02 719c3e4 +e7f5d0ee / CDC review | Complete actual current-status loading and truthful receipt/budget-label correction | Returned1d44a8ee +3ab8492d;all8 accepted,closed and retrospect complete |
 
 
 
@@ -193,3 +199,5 @@ Old CC05 stays read-only; no other context repairs and self-accepts it.
 | 1.2 | 2026-10-19 | Iteration01 independent review | Accept seven rows and issue second normal Markdown-only R5-04 completion,retaining all substantive proof and gates |
 
 | 1.3 | 2026-10-19 | Iteration02 independent review | Retain passed report/data proof and issue third narrow R5-05 current-status/receipt correction,with complete-section source control |
+
+| 1.4 | 2026-10-19 | Iteration03 independent acceptance | Close all8 rows and CDC retrospective,retain failed history/limits and release formal Arc01 composition gate |

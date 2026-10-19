@@ -121,3 +121,12 @@ Retained at their original identities, not rerun: accepted 72-meaning/whole-popu
 Primary return commit `1d44a8ee3aeb500d2e576947b1da90421d8fdb6e` has tree `102f64d65803d8cac40a135287dc8cc388260bce`. The execution-intake-to-primary diff contains exactly `artifacts/execution.md`, `closing-report.md`, and `ledger.md`. The committed JSON and handoff summary are byte-identical to accepted receipt `8d6304bdb6056eff87978f89da5e660383a7e111`; all seven accepted ledger rows and all non-Evidence cells match intake `1b3e4cc5c283397faf1727de0c174f96d6940885`, with only S5-08 Evidence changed. The current opening paragraph is identical between creation and handoff; the complete current/historical/ownership paragraphs and clipped-section negative control pass. The execution record preserves the actual failed duplicate-path attempt and false historical-final-line expectation, each corrected before editing. A post-receipt helper first incorrectly expected the entire primary report to remain a byte-prefix, overlooking the intentional receipt-placeholder replacement; the corrected comparison confirms all substantive closing content through the receipt heading is byte-identical and only the receipt section differs. `git diff --check`, local Markdown target resolution, UTF-8/LF/final newline, append-only execution/report prose, exact three-path delta, fixed prompt/plan hashes, frozen payloads, and ledger predicates pass. No data/source/CI inquiry was repeated.
 
 This closing-report-only receipt commit records the primary return identity. After it, committed bytes and the one-file receipt range are verified, the worktree is clean, and no active tool or process remains. CC releases planning/index ownership to CDC for independent review of S5-08. Seven previously accepted rows remain accepted; S5-08 acceptance, CDC retrospective, and formal Arc01 composition remain pending. Stop before Arc02. The receipt commit and final tree are reported with this handoff.
+
+
+## Independent CDC accepted close — 19 October 2026
+
+CDC /root/autonomous_cdc independently accepts all8 original rows after03
+1d44a8ee +3ab8492d; [current verification](cdc-verification.md#iteration03-independent-acceptance-and-slice05-close--19-october-2026)
+records fresh and retained proof and all failed history. [CDC retrospective](cdc-retrospective.md)
+is complete. This is child acceptance,not Arc01 composition. CDC owns planning
+for the formal fresh independent Arc01 gate;no Arc02 is opened.

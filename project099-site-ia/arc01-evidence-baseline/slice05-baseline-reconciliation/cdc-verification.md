@@ -259,3 +259,72 @@ response to the specific source-boundary failure,not a reading quiz or new
 investigation. Retain coherent actual contracts and passed projections;reload
 only missing required operative text after real recovery. Arc01 composition and
 CDC retrospectives remain pending;Arc02 stays unopened.
+
+## Iteration03 independent acceptance and Slice05 close — 19 October 2026
+
+Reviewer remains independent CDC /root/autonomous_cdc (explicit SolHigh);CC
+/root/autonomous_cdc/cc_slice05_refinement is explicit LunaHigh. Assessed03
+promptSHAdf6796406489bbf600e38b2ff11d7853e24259eb635bb565b81ede4a0ffe2dc4,
+creation34d657073f432d5ec516bf7df6820812ba2130b4, execution
+1b3e4cc5c283397faf1727de0c174f96d6940885/tree11e2d3e42ca880b2d8c84fc03cf525866b8cf3dd,
+evidence1d44a8ee3aeb500d2e576947b1da90421d8fdb6e/tree102f64d65803d8cac40a135287dc8cc388260bce,
+receipt3ab8492d80b9b9b144b7c05ac902a0a89e54817e/tree78c34b171feaebafe43d4ce844ce55e72db4c045.
+Explicit clean/no-active-tool release preceded review. CDC owns planning/index.
+
+Verdict: R5-05 passes; acceptS5-08. All8 original rows are independently accepted,
+with the seven previous acceptances retained at their original checked states.
+This is the third normal refinement;no fourth is needed or issued. The failed
+initial/01/02 history remains visible. Historical02 missing reads are not backfilled.
+
+Fresh source-section comparison reproduces all three full quoted bodies:
+v1.25 current opening at34d6570,identical at1b3e4cc;v1.24 historical opening at
+fc4ee62;and complete actual03 ownership paragraph at1b3e4cc. Whole marker/blank
+boundaries and last-substantive controls pass;the four-line clipped specimen
+fails. The actual complete paragraphs reached CC before edits,as its readback
+and direct pre-edit boundary reports distinguish from historical02 omission.
+Current prose explicitly supersedes the technical16/eight/one-as-CI typo with
+the correct16-witness/eight-metadata-group/one-combined-intake classification.
+No CI evidence is invented. Existing coherent operative contracts remain applicable.
+
+Independent exact checks pass:3-path execution-to-return range,closing-only
+receipt,committed bytes,2 prior prose prefixes,2 unchanged payloads at8d6304b,
+all7 accepted ledger rows/all non-Evidence cells frozen,only08 Evidence changed,
+30 local links/anchors,UTF8/LF/newline/whitespace,fixed195-line plan and03 prompt
+hashes,clean planning state. The accepted-row mutation control rejects. The
+previously reproduced full current report/WhatWorked/three bubble-up answers/
+8-row walk/artifact inventory remain byte-preserved. Initial/01 whole72 meanings,
+20 source joins,ten P0 targets,three traces,168 pointers and source preservation
+remain valid with fixed relevant inputs and exact unaffected projections;they
+are retained with original observers/revisions/dates,not new investigations.
+
+The initial114/6940/133 validators,40 resource observations and16/eight/one
+technical pass were not repeated here. No HTTP,source/body/tag/intake search,
+build/render/runtime/install/CI inquiry,source repair or external action occurred.
+Source declarations,rendering/deployment,policy/support and unresolved runtime
+packet remain distinct. The small current-section control closed this concrete
+boundary defect;it does not prove attention,comprehension or a general model effect.
+
+| ID | Final status | Evidence |
+| --- | --- | --- |
+| S5-01 | done | Initial input/date/meaning reconciliation retained;unchanged relevant payload |
+| S5-02 | done | Initial whole typed joins retained;01 pointer/unaffected-projection proof |
+| S5-03 | done | All20 original primary/source fields and actual exhausted-slot interpretation retained |
+| S5-04 | done | All72 original meanings retained;01 five-concern current handoffs reproduced |
+| S5-05 | done | Exact ten pending targets and full historical25-job projections retained |
+| S5-06 | done | Three original practical/technical traces remain unchanged and usable |
+| S5-07 | done | 01 current intake/ledger/scope proof and fresh source preservation retained |
+| S5-08 | done | 02 complete canonical return retained;03 actual complete status/receipt and final boundaries reproduced |
+
+### Accepted bubble-up and scope
+
+The promised finite cross-register evidence/ownership bridge is delivered in
+three supporting artifacts. Complete source/observer/date/limit distinctions,
+failed/blocked/unrun outcomes and concrete future owners remain. The exact
+initial45+3+11+6+7 obligation union is preserved;no strength is silently converted
+to a defect and no open technical question is called resolved. The full source
+estate,generated output,runtime/support,unknown deployment and ten pending P0
+artifact promises retain their actual future gates. No unsupported implementation
+or new investigation is inserted. All8 original criteria/artifacts/issued prompts
+are accounted for;no silent drop. Local intake/column/report corrections require
+status maintenance,not a structural arc/criterion amendment. Complete the CDC
+retrospective now,then formal independently gated Arc01 composition;stop beforeArc02.
