@@ -288,3 +288,12 @@ no CC artifact. Author readiness remains separate from independent acceptance.
 | 1.5 | 2026-10-09 | Slice02 iteration04 / CDC review | Accept S2-02/04/06 and retain S2-01/03/05; issue receipt-only iteration05 for R16 with two rows open; unchanged criteria; preserve five-pass budget |
 
 | 1.6 | 2026-10-19 | Duncan’s Autonomous Mode selection / CDC preflight | Preserve issued fifth prompt and criteria, record explicit contexts/settings and serialized intake; retain all frozen fingerprints without source/JSON repin; six rows remain accepted and two open |
+
+### Iteration05 execution context — 19 October 2026
+
+CDC created separate CC `/root/autonomous_cdc/cc_slice02` using explicit
+`gpt-6-luna` / reasoning `high`, after committed preflight `e7c79d3`.
+It receives the unchanged fifth prompt, current plans and exact four-path
+allowlist. Read-only intake may proceed; mutation/index ownership stays with
+CDC until CC acknowledges and the serialized handoff is recorded. No other
+contributor writes this worktree. Root remains read-only.
