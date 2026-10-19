@@ -297,3 +297,14 @@ It receives the unchanged fifth prompt, current plans and exact four-path
 allowlist. Read-only intake may proceed; mutation/index ownership stays with
 CDC until CC acknowledges and the serialized handoff is recorded. No other
 contributor writes this worktree. Root remains read-only.
+
+CC acknowledged its explicit role/settings and unchanged assignment on
+19 October 2026 after inspecting clean preflight `e7c79d3`; CDC subsequently
+recorded its context at `f535c7b`. At the commit containing this handoff,
+mutation/index ownership transfers serially to `/root/autonomous_cdc/cc_slice02`
+for the four allowed Markdown paths only. That handoff commit is the actual
+CC execution-intake baseline, derivable as HEAD when ownership is granted;
+the original prompt-creation commit remains `21c0268`. CDC stops mutations
+and stable-input scans until CC returns ownership after exact allowlisted
+commits and final preservation/status checks. CC revalidates changed plan
+bytes/branch/intake identity before dependent work.
