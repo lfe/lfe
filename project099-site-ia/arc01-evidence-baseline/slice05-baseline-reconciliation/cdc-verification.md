@@ -211,3 +211,51 @@ Three supporting artifacts and all exact accepted data remain useful and scoped.
 Only canonical return prose needs completion. Arc plan status updates preserve
 all earlier findings;no capability/scope/sequence/criterion amendment. Arc01
 composition and retrospectives remain required;Arc02 stays unopened.
+
+## Iteration02 independent review — 19 October 2026
+
+CDC independently reviewed02 promptSHA666942c55cc1dbaadd3a1e1f100133da3aa29cdfc258516e151f68e08982305a,
+creation167d4d42b763a50ad7ae6366c4c53ef6c4663dfb and execution
+fc4ee62b594f59941ce3f200b8443b3896fc392e/tree176f1dea7ef57c535be21242373b291d156688ec;
+return719c3e4ed4539cf56d59e7913f3b915b35160795/tree21931b6d0c96b036cd118336e948bcb5d478a7e4,
+receipte7f5d0ee0ac149e9f2a9d46a11d24c150f5ee2dc/treecb4289964df774a46beaa280acbc833fdf24230b.
+CC explicitly released clean/no-active-tool state before review;CDC owns planning.
+
+R5-04 report content now passes:all three actual bubble-up answers,What Worked,
+initial/01/02 identities,8-row walk,three artifacts and explicit failed-check
+supersession are present and inspected. Both previous return-prose bodies remain
+exact prefixes. The actual3-path/closing-only receipt ranges,committed bytes,
+JSON/summary equality to8d6304b,all7 accepted rows/all non-Evidence cells frozen,
+only08 Evidence changed,31 local links/anchors,UTF8/LF/newline/whitespace and
+fixed177-line plan/02 prompt hashes pass. The same row predicate rejects an
+accepted-row mutation;the report predicate rejects a missing bubble-up answer.
+No new data/source inquiry or higher-scale acceptance is claimed. Initial/01
+source/meaning/pointer/preservation proofs remain applicable with original dates.
+
+### R5-05 — serious: incomplete required current-status section (S5-08)
+
+02 execution says project opening/current status was read atlines20–23. Actual
+fc4ee62 opening paragraph continues24–26:current ownership,accepted72/20/ten,
+no new inquiry/Arc02,and pending independent composition. CC's read-only
+clarification gives the actual creation-time command `sed -n '20,23p;569,577p'`
+and confirms24–26 were NOT loaded. This is an actual omitted required extent,
+not a report typo;do not backfill the02 historical read. Current complete
+required status must load before03 dependent edits,with a whole small-section
+boundary/last-substantive control rather than a guessed numeric tail.
+
+The same clarification confirms that02 execution's phrase “16/eight/one saved CI
+observations” is a classification typo:it denotes the retained Slice04 technical
+16-witness/eight-metadata-group/one-combined-intake pass,not CI evidence. Correct
+current wording through an explicit dated supersession,preserving the old claim
+as history. No new CI run or observation exists. All report/data/owner proof
+otherwise passes;seven rows remain accepted and08 stays open only for this
+narrow current intake/receipt correction. No criterion,scope,budget or model
+change;normal03 is the third refinement,not a reset.
+
+CDC's successive required-status references left numeric-tail mistakes possible;
+03 supplies the exact stable current status text and an actual marker-bounded
+complete-paragraph display with an end-of-section control. That is a coordination
+response to the specific source-boundary failure,not a reading quiz or new
+investigation. Retain coherent actual contracts and passed projections;reload
+only missing required operative text after real recovery. Arc01 composition and
+CDC retrospectives remain pending;Arc02 stays unopened.

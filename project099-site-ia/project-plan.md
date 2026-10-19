@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 title: LFE site information architecture and supporting foundations
-version: "1.24"
+version: "1.25"
 date: 2026-10-19
 status: active
 depends-on: []
@@ -17,12 +17,11 @@ mode: autonomous (includes expedited)
 
 # Project 099 — LFE site IA
 
-**Current19 October status, v1.24:** Slices01–04 closed. Slice05 iteration01
-independently accepts seven rows;onlyS5-08 remains forR5-04 canonical return
-history/What Worked/bubble-up completion. Current assignment
-`arc01-evidence-baseline/slice05-baseline-reconciliation/cc-prompt-iteration02.md`.
-CDC owns planning/index pending acknowledged serialized transfer. Substantive
-72-row/20-resource/ten-target evidence is accepted;no new inquiry or Arc02 start.
+**Current19 October status, v1.25:** Slices01–04 closed;Slice05 has seven accepted rows.
+OnlyS5-08 remains forR5-05 complete current-status intake and truthful receipt classification.
+Current assignment: `arc01-evidence-baseline/slice05-baseline-reconciliation/cc-prompt-iteration03.md`.
+CDC owns planning/index pending acknowledged serialized transfer.
+All substantive72/20/ten/three data and canonical report content pass;no new inquiry or Arc02 start.
 Arc01 independent composition remains pending.
 
 **Historical opening summary, superseded by the current state above:**
@@ -567,6 +566,15 @@ accepted amendment, never retrospective criterion softening.
 
 ## Current state
 
+**Slice05 iteration02 review19 October:** Canonical reportR5-04 content passes at
+719c3e4 +e7f5d0ee;seven rows remain accepted. OnlyS5-08 remains forR5-05 required
+opening-status lines omitted in02 and a technical-budget/CI classification typo.
+Normal03 supplies complete stable current text and source-section boundaries,
+preserving historical omission and all passed proof. CDC owns planning pending
+acknowledged parent-only handoff;no scope/model/budget change or new inquiry.
+Arc01 composition/retrospective and stop-before-Arc02 gates remain binding.
+
+
 **Slice05 iteration02 serialized handoff19 October:** CC
 /root/autonomous_cdc/cc_slice05_refinement acknowledged explicit LunaHigh/SolHigh,
 no fallback/backend unreported,clean creation167d4d42b763a50ad7ae6366c4c53ef6c4663dfb
@@ -902,3 +910,5 @@ approval. Navigation/design choices remain open, and expansion remains expected.
 | 1.23 | 2026-10-19 | Slice05 initial independent review | Preserve five accepted child rows,three explicit local corrections and current ownership without changed scope or gates |
 
 | 1.24 | 2026-10-19 | Slice05 iteration01 independent review | Accept seven child rows and require bounded canonical return completion,without new scope or evidence claims |
+
+| 1.25 | 2026-10-19 | Slice05 iteration02 independent review | Preserve passed report/data evidence,require exact complete current-status/receipt03 and keep all existing gates |

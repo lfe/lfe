@@ -2,7 +2,7 @@
 project: project099-site-ia
 arc: arc01-evidence-baseline
 slice: slice05-baseline-reconciliation
-version: "1.2"
+version: "1.3"
 date: 2026-10-19
 status: active
 depends-on: [slice01-baseline-intake, slice02-local-inventory, slice03-resource-verification, slice04-technical-intake]
@@ -113,7 +113,7 @@ needed to construct this existing-evidence delivery.
 
 ## Assignment history
 
-Current: cc-prompt-iteration02.md,issued19 October after iteration01 review. Opening commit is creation;
+Current: cc-prompt-iteration03.md,issued19 October after iteration02 review. Opening commit is creation;
 actual execution baseline is later parent-only ownership commit. CDC owns planning
 until acknowledged handoff. No new source population: all data remain
 at the accepted138543bf snapshot; three frozen Slice02 JSONs remain2112713 bytes.
@@ -122,8 +122,24 @@ at the accepted138543bf snapshot; three frozen Slice02 JSONs remain2112713 bytes
 | --- | --- | --- | --- | --- |
 | cc-prompt.md | 2026-10-19 | Accepted Slice04 138543bf | Implement planned finite evidence/finding reconciliation | Returned338176f +17e72267; independently accepted five rows,three open |
 | cc-prompt-iteration01.md | 2026-10-19 | Initial338176f +17e72267 / CDC review | Current intake,Notes restoration and one aggregate concern handoff | Returnede611be5 +8d6304b;seven rows accepted,one report row open |
-| cc-prompt-iteration02.md | 2026-10-19 | Iteration01 e611be5 +8d6304b / CDC review | Canonical closing-report/history/bubble-up and explicit failed-check supersession | Issued; acknowledgment/serialized handoff pending |
+| cc-prompt-iteration02.md | 2026-10-19 | Iteration01 e611be5 +8d6304b / CDC review | Canonical closing-report/history/bubble-up and explicit failed-check supersession | Returned719c3e4 +e7f5d0ee;report content passes,current intake/receiptR5-05 open |
+| cc-prompt-iteration03.md | 2026-10-19 | Iteration02 719c3e4 +e7f5d0ee / CDC review | Complete actual current-status loading and truthful receipt/budget-label correction | Issued; acknowledgment/serialized handoff pending |
 
+
+
+## Iteration03 current review and readiness — 19 October 2026
+
+Seven rows remain accepted. R5-04 report content passes;onlyS5-08 remains for
+R5-05 actual complete current-status loading and truthful reading/technical-budget
+classification. Third normal refinement is only existing execution/closing prose
+and08 Evidence;all JSON/summary/seven accepted rows stay frozen. CDC source-
+checked the complete opening paragraph and current ownership against actual
+objects. New prompt carries its full text and a marker-bounded display with
+last-substantive-line control;no remembered numeric-tail receipt may substitute.
+Reuse current coherent operative text;no unrelated inventory/source/query rerun.
+CDC owns planning/index pending acknowledgment;the entire plan stays fixed before
+parent-only handoff and the full actual changed ownership paragraph must load.
+No new scope,criterion,budget,role or investigation.
 
 ## Iteration02 current review and readiness — 19 October 2026
 
@@ -175,3 +191,5 @@ Old CC05 stays read-only; no other context repairs and self-accepts it.
 | 1.1 | 2026-10-19 | Initial independent review | Preserve five accepted rows and issue first finite local correction forR5-01–03; no scope/criterion/budget change |
 
 | 1.2 | 2026-10-19 | Iteration01 independent review | Accept seven rows and issue second normal Markdown-only R5-04 completion,retaining all substantive proof and gates |
+
+| 1.3 | 2026-10-19 | Iteration02 independent review | Retain passed report/data proof and issue third narrow R5-05 current-status/receipt correction,with complete-section source control |
