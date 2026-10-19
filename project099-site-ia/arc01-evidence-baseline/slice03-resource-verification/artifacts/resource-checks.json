@@ -21,40 +21,1197 @@
     "No primary observation establishes completeness, technical applicability, support policy, redirect policy, migration policy, or current deployed-source identity beyond the returned extent."
   ],
   "rows": [
-    {"resource_id":"R03-01","label":"Build It scripts","priority":"P1","url":"https://lfe.io/reference/lfe-rebar3/current/command-ref/projects/main.html","source_join":[{"pointer":"build_it_targets[0]"},{"occurrence_id":"occ-086d4d81c512a3bc","source":"website:src/_data/home/buildit.yml","line":25},{"first_steps":"lfe:L25"}],"primary":{"slot":"P01","attempted":true,"method":"web.open exact URL","witness":"web result turn1view0; failed fetch line 0","outcome":"tool-reported fetch failure","reported_http_status":404,"final_url":null,"body_extent":"one tool error line; no page body","finding":"R03-F01"},"independent":{"slot":"V01","owner":"CDC","state":"reserved; unconsumed by CC"},"scope":"one retrieval attempt only; not a site-health determination","owner_next":"CDC independently checks V01; Arc04/08/10/11 decide whether additional scoped verification is warranted"},
-    {"resource_id":"R03-02","label":"Build It libraries","priority":"P1","url":"https://lfe.io/reference/lfe-rebar3/current/command-ref/projects/lib.html","source_join":[{"pointer":"build_it_targets[1]"},{"occurrence_id":"occ-b3f97b8ec4183482","source":"website:src/_data/home/buildit.yml","line":26},{"first_steps":"lfe:L26"}],"primary":{"slot":"P02","attempted":true,"method":"web.open exact URL","witness":"web result turn2view0; failed fetch line 0","outcome":"tool-reported fetch failure","reported_http_status":404,"final_url":null,"body_extent":"one tool error line; no page body","finding":"R03-F01"},"independent":{"slot":"V02","owner":"CDC","state":"reserved; unconsumed by CC"},"scope":"one retrieval attempt only; not a site-health determination","owner_next":"CDC independently checks V02; Arc04/08/10/11 decide whether additional scoped verification is warranted"},
-    {"resource_id":"R03-03","label":"Build It apps","priority":"P1","url":"https://lfe.io/reference/lfe-rebar3/current/command-ref/projects/app.html","source_join":[{"pointer":"build_it_targets[2]"},{"occurrence_id":"occ-5d6bb1dce05afcf8","source":"website:src/_data/home/buildit.yml","line":27},{"first_steps":"lfe:L27"}],"primary":{"slot":"P03","attempted":true,"method":"web.open exact URL","witness":"web result turn3view0; failed fetch line 0","outcome":"tool-reported fetch failure","reported_http_status":404,"final_url":null,"body_extent":"one tool error line; no page body","finding":"R03-F01"},"independent":{"slot":"V03","owner":"CDC","state":"reserved; unconsumed by CC"},"scope":"one retrieval attempt only; not a site-health determination","owner_next":"CDC independently checks V03; Arc04/08/10/11 decide whether additional scoped verification is warranted"},
-    {"resource_id":"R03-04","label":"Build It releases","priority":"P1","url":"https://lfe.io/reference/lfe-rebar3/current/command-ref/projects/release.html","source_join":[{"pointer":"build_it_targets[3]"},{"occurrence_id":"occ-a0066096d8e18fb1","source":"website:src/_data/home/buildit.yml","line":28},{"first_steps":"lfe:L28"}],"primary":{"slot":"P04","attempted":true,"method":"web.open exact URL","witness":"web result turn4view0; failed fetch line 0","outcome":"tool-reported fetch failure","reported_http_status":404,"final_url":null,"body_extent":"one tool error line; no page body","finding":"R03-F01"},"independent":{"slot":"V04","owner":"CDC","state":"reserved; unconsumed by CC"},"scope":"one retrieval attempt only; not a site-health determination","owner_next":"CDC independently checks V04; Arc04/08/10/11 decide whether additional scoped verification is warranted"},
-    {"resource_id":"R03-05","label":"Manual entrance","priority":"P1","url":"https://cnbbooks.github.io/lfe-manual/","source_join":[{"occurrence_id":"occ-ec059da2755bf0e6","source":"website:src/books.md","line":16},{"first_steps":"lfe:L16"}],"primary":{"slot":"P05","attempted":true,"method":"web.open exact URL","witness":"web result turn5view0; 13 extracted lines","outcome":"partial entrance extraction","reported_http_status":null,"final_url":"https://cnbbooks.github.io/lfe-manual/","body_extent":"keyboard help items and LFE MACHINE MANUAL title; no chapter/body text exposed","finding":"R03-F02"},"independent":{"slot":"V05","owner":"CDC","state":"reserved; unconsumed by CC"},"scope":"extraction is not visual rendering; no claim that the manual is empty or complete","owner_next":"CDC independently checks V05; Arc04/08/10/11 own any next check"},
-    {"resource_id":"R03-06","label":"Tutorial entrance","priority":"P1","url":"https://cnbbooks.github.io/lfe-tutorial/","source_join":[{"occurrence_id":"occ-f0b70615949c6437","source":"website:src/books.md","line":40},{"first_steps":"lfe:L40"}],"primary":{"slot":"P06","attempted":true,"method":"web.open exact URL","witness":"web result turn6view0; 46 extracted lines","outcome":"table-of-contents/title extraction","reported_http_status":null,"final_url":"https://cnbbooks.github.io/lfe-tutorial/","body_extent":"title and chapter list through conclusion, feedback and documentation links; chapter bodies not sampled","finding":null},"independent":{"slot":"V06","owner":"CDC","state":"reserved; unconsumed by CC"},"scope":"entrance/TOC only; no statement on chapter body completeness","owner_next":"CDC independently checks V06; Arc04/08/10/11 own any next check"},
-    {"resource_id":"R03-07","label":"Casting SPELs entrance","priority":"P1","url":"https://cnbbooks.github.io/lfe-casting-spels/","source_join":[{"occurrence_id":"occ-3c7cdaf29f8dabe9","source":"website:src/books.md","line":41},{"first_steps":"lfe:L41"}],"primary":{"slot":"P07","attempted":true,"method":"web.open exact URL","witness":"web result turn7view0; 64 extracted lines","outcome":"table-of-contents/title extraction","reported_http_status":null,"final_url":"https://cnbbooks.github.io/lfe-casting-spels/","body_extent":"title and chapter list through addenda, feedback and documentation links; chapter bodies not sampled","finding":null},"independent":{"slot":"V07","owner":"CDC","state":"reserved; unconsumed by CC"},"scope":"entrance/TOC only; no statement on chapter body completeness","owner_next":"CDC independently checks V07; Arc04/08/10/11 own any next check"},
-    {"resource_id":"R03-08","label":"SICP entrance","priority":"P1","url":"https://cnbbooks.github.io/lfe-sicp/","source_join":[{"occurrence_id":"occ-52af77fae15b04a2","source":"website:src/books.md","line":42},{"first_steps":"lfe:L42"}],"primary":{"slot":"P08","attempted":true,"method":"web.open exact URL","witness":"web result turn8view0; 187 extracted lines","outcome":"table-of-contents/title extraction","reported_http_status":null,"final_url":"https://cnbbooks.github.io/lfe-sicp/","body_extent":"title and contents list through references/exercises/versions; chapter bodies not sampled","finding":null},"independent":{"slot":"V08","owner":"CDC","state":"reserved; unconsumed by CC"},"scope":"entrance/TOC only; no statement on chapter body completeness","owner_next":"CDC independently checks V08; Arc04/08/10/11 own any next check"},
-    {"resource_id":"R03-09","label":"Legacy root","priority":"P2","url":"http://docs.lfe.io/","source_join":[{"destination_id":"dest-1c7c7c8796b1138d"},{"entrance_id":"entrance-9a0fecb1cd53c329"},{"source":"website:src/posts/2014/05-22-1849-new-lfe-site.md"},{"source":"legacy_docs:docs/index.html"}],"primary":{"slot":"P09","attempted":true,"method":"web.open exact HTTP URL","witness":"web result turn9view0; zero extracted lines","outcome":"returned HTTPS URL with no extracted body","reported_http_status":null,"final_url":"https://docs.lfe.io/","body_extent":"zero lines","finding":"R03-F03"},"independent":{"slot":"V09","owner":"CDC","state":"reserved; unconsumed by CC"},"scope":"tool-returned final URL only; no redirect status/code or page-body evidence","owner_next":"CDC independently checks V09; Arc04/08/10/11 own any next check"},
-    {"resource_id":"R03-10","label":"Legacy Current","priority":"P2","url":"https://docs.lfe.io/current/","source_join":[{"entrance_id":"entrance-64e4ade03bac2160"},{"first_steps":"lfe:L22"},{"source":"legacy_docs:docs/current/index.html"}],"primary":{"slot":"P10","attempted":true,"method":"web.open exact URL","witness":"web result turn10view0; 82 extracted lines","outcome":"page content returned","reported_http_status":null,"final_url":"https://docs.lfe.io/current/","body_extent":"LFE Documentation; new docs site under development; classic docs links plus books/guides/tutorials/history/presentations/examples sections","finding":null},"independent":{"slot":"V10","owner":"CDC","state":"reserved; unconsumed by CC"},"scope":"returned extracted extent only; lifecycle wording is observed page text, not a current technical applicability claim","owner_next":"CDC independently checks V10; Arc04/08/10/11 own any next check"},
-    {"resource_id":"R03-11","label":"Legacy Dev","priority":"P2","url":"https://docs.lfe.io/dev/","source_join":[{"entrance_id":"entrance-689758ac39cc18fb"},{"first_steps":"lfe:L23"},{"source":"legacy_docs:docs/dev/index.html"}],"primary":{"slot":"P11","attempted":true,"method":"web.open exact URL","witness":"web result turn11view0; 66 extracted lines","outcome":"page content returned","reported_http_status":null,"final_url":"https://docs.lfe.io/dev/","body_extent":"LFE nav and intro; Getting Started, Reference, Building Applications, Tooling, Libraries, Involvement, Community, History and Contributing structures; version links are present in extracted nav","finding":null},"independent":{"slot":"V11","owner":"CDC","state":"reserved; unconsumed by CC"},"scope":"page/nav extraction only; listed links do not prove each selected version target is available","owner_next":"CDC independently checks V11; Arc04/08/10/11 own any next check"},
-    {"resource_id":"R03-12","label":"Legacy v1.2","priority":"P2","url":"https://docs.lfe.io/v1.2/index.html","source_join":[{"entrance_id":"entrance-689758ac39cc18fb","source":"legacy_docs:docs/dev/index.html","line":56,"href":"/v1.2/index.html"},{"derivation":"registered relative href resolved against declared host https://docs.lfe.io/dev/; resulting exact prompt URL retained; deployed provenance unknown"},{"entrance_id":"entrance-f00c61f911c6d122"}],"primary":{"slot":"P12","attempted":true,"method":"web.open exact URL","witness":"web result turn12view0; one tool message","outcome":"inaccessible via this tool","reported_http_status":null,"final_url":null,"body_extent":"tool accessibility error; no page body","finding":"R03-F04"},"independent":{"slot":"V12","owner":"CDC","state":"reserved; unconsumed by CC"},"scope":"tool restriction is not a destination status; deployed provenance remains unknown","owner_next":"CDC independently checks V12; Arc04/08/10/11 own any next check"},
-    {"resource_id":"R03-13","label":"Legacy v0.10","priority":"P2","url":"https://docs.lfe.io/v0.10/index.html","source_join":[{"entrance_id":"entrance-689758ac39cc18fb","source":"legacy_docs:docs/dev/index.html","line":57,"href":"/v0.10/index.html"},{"derivation":"registered relative href resolved against declared host https://docs.lfe.io/dev/; resulting exact prompt URL retained; deployed provenance unknown"},{"entrance_id":"entrance-2f65c547e18194c3"}],"primary":{"slot":"P13","attempted":true,"method":"web.open exact URL","witness":"web result turn13view0; one tool message","outcome":"inaccessible via this tool","reported_http_status":null,"final_url":null,"body_extent":"tool accessibility error; no page body","finding":"R03-F04"},"independent":{"slot":"V13","owner":"CDC","state":"reserved; unconsumed by CC"},"scope":"tool restriction is not a destination status; deployed provenance remains unknown","owner_next":"CDC independently checks V13; Arc04/08/10/11 own any next check"},
-    {"resource_id":"R03-14","label":"Legacy v0.9","priority":"P2","url":"https://docs.lfe.io/v0.9/index.html","source_join":[{"entrance_id":"entrance-689758ac39cc18fb","source":"legacy_docs:docs/dev/index.html","line":58,"href":"/v0.9/index.html"},{"derivation":"registered relative href resolved against declared host https://docs.lfe.io/dev/; resulting exact prompt URL retained; deployed provenance unknown"},{"entrance_id":"entrance-dd915b7fdc0a152e"}],"primary":{"slot":"P14","attempted":true,"method":"web.open exact URL","witness":"web result turn14view0; one tool message","outcome":"inaccessible via this tool","reported_http_status":null,"final_url":null,"body_extent":"tool accessibility error; no page body","finding":"R03-F04"},"independent":{"slot":"V14","owner":"CDC","state":"reserved; unconsumed by CC"},"scope":"tool restriction is not a destination status; deployed provenance remains unknown","owner_next":"CDC independently checks V14; Arc04/08/10/11 own any next check"},
-    {"resource_id":"R03-15","label":"Legacy v0.8","priority":"P2","url":"https://docs.lfe.io/v0.8/index.html","source_join":[{"entrance_id":"entrance-689758ac39cc18fb","source":"legacy_docs:docs/dev/index.html","line":59,"href":"/v0.8/index.html"},{"derivation":"registered relative href resolved against declared host https://docs.lfe.io/dev/; resulting exact prompt URL retained; deployed provenance unknown"},{"entrance_id":"entrance-85186587bf2cbed6"}],"primary":{"slot":"P15","attempted":true,"method":"web.open exact URL","witness":"web result turn15view0; one tool message","outcome":"inaccessible via this tool","reported_http_status":null,"final_url":null,"body_extent":"tool accessibility error; no page body","finding":"R03-F04"},"independent":{"slot":"V15","owner":"CDC","state":"reserved; unconsumed by CC"},"scope":"tool restriction is not a destination status; deployed provenance remains unknown","owner_next":"CDC independently checks V15; Arc04/08/10/11 own any next check"},
-    {"resource_id":"R03-16","label":"Legacy v0.7","priority":"P2","url":"https://docs.lfe.io/v0.7/index.html","source_join":[{"entrance_id":"entrance-689758ac39cc18fb","source":"legacy_docs:docs/dev/index.html","line":60,"href":"/v0.7/index.html"},{"derivation":"registered relative href resolved against declared host https://docs.lfe.io/dev/; resulting exact prompt URL retained; deployed provenance unknown"},{"entrance_id":"entrance-96da0a1fb40bb686"}],"primary":{"slot":"P16","attempted":true,"method":"web.open exact URL","witness":"web result turn16view0; 103 extracted lines","outcome":"page content returned","reported_http_status":null,"final_url":"https://docs.lfe.io/v0.7/index.html","body_extent":"intro and LFE overview, records/pattern-matching/macros examples, client/server excerpt, source-doc and development lifecycle statements","finding":null},"independent":{"slot":"V16","owner":"CDC","state":"reserved; unconsumed by CC"},"scope":"historical page text as extracted; not a version-support or current technical applicability claim","owner_next":"CDC independently checks V16; Arc04/08/10/11 own any next check"},
-    {"resource_id":"R03-17","label":"Flagged Releases chapter","priority":"P3","url":"https://cnbbooks.github.io/lfe-manual/part5/rels/","source_join":[{"occurrence_id":"occ-980574316546f3e3","source":"website:src/use.md","line":19},{"first_steps":"lfe:L19"},{"manual_summary":"manual SUMMARY.md line 246 points to the releases chapter"}],"primary":{"slot":"P17","attempted":true,"method":"actual in-app browser navigation; AX plus screenshot of same page","witness":"browser tab 1; AX body container heading at 68; screenshot immediately following","outcome":"heading-only visible article; sidebar and page-navigation controls render; article body blank in inspected viewport; AX has no body text","reported_http_status":null,"final_url":"https://cnbbooks.github.io/lfe-manual/part5/rels/","body_extent":"visible heading Releases; no visible article prose or code; screenshot/AX are same single navigation","finding":"R03-F05"},"independent":{"slot":"V17","owner":"CDC","state":"reserved for bounded local source comparison; unconsumed by CC"},"scope":"one visible viewport and AX body; no source equivalence, page-wide completeness or deployment cause inferred","owner_next":"CDC compares only reserved manual:src/part5/rels/README.md at frozen HEAD; downstream owner decides next check"},
-    {"resource_id":"R03-18","label":"Flagged Calling Erlang chapter","priority":"P3","url":"https://cnbbooks.github.io/lfe-manual/part8/erl-int/call-erl.html","source_join":[{"occurrence_id":"occ-96d181f9388b8acc","source":"website:src/use.md","line":20},{"first_steps":"lfe:L20"},{"manual_summary":"manual SUMMARY.md line 571 points to the calling Erlang chapter"}],"primary":{"slot":"P18","attempted":true,"method":"actual in-app browser navigation; AX plus screenshot of same page","witness":"browser tab 2; AX body container heading at 132; screenshot immediately following","outcome":"heading-only visible article; sidebar and page-navigation controls render; article body blank in inspected viewport; AX has no body text","reported_http_status":null,"final_url":"https://cnbbooks.github.io/lfe-manual/part8/erl-int/call-erl.html","body_extent":"visible heading Calling Erlang from LFE; no visible article prose or code; screenshot/AX are same single navigation","finding":"R03-F05"},"setup_note":"An initial tab-creation option was rejected before navigation (IAB visibility unsupported in subagent thread); exact target was then loaded once without that option. This setup error is not a second destination request.","independent":{"slot":"V18","owner":"CDC","state":"reserved for bounded local source comparison; unconsumed by CC"},"scope":"one visible viewport and AX body; no source equivalence, page-wide completeness or deployment cause inferred","owner_next":"CDC compares only reserved manual:src/part8/erl-int/call-erl.md at frozen HEAD; downstream owner decides next check"},
-    {"resource_id":"R03-19","label":"Flagged Creating Projects chapter","priority":"P3","url":"https://cnbbooks.github.io/lfe-manual/part3/projects/","source_join":[{"occurrence_id":"occ-9fc9ad8fe5bd9c7e","source":"website:src/use.md","line":34},{"first_steps":"lfe:L34"},{"manual_summary":"manual SUMMARY.md line 227 points to Creating LFE Projects"}],"primary":{"slot":"P19","attempted":true,"method":"actual in-app browser navigation; AX plus screenshot of same page","witness":"browser tab 3; AX body container heading at 83; screenshot immediately following","outcome":"heading-only visible article; sidebar and page-navigation controls render; article body blank in inspected viewport; AX has no body text","reported_http_status":null,"final_url":"https://cnbbooks.github.io/lfe-manual/part3/projects/","body_extent":"visible heading Creating LFE Projects; no visible article prose or code; screenshot/AX are same single navigation","finding":"R03-F05"},"independent":{"slot":"V19","owner":"CDC","state":"reserved for bounded local source comparison; unconsumed by CC"},"scope":"one visible viewport and AX body; no source equivalence, page-wide completeness or deployment cause inferred","owner_next":"CDC compares only reserved manual:src/part3/projects/README.md at frozen HEAD; downstream owner decides next check"},
-    {"resource_id":"R03-20","label":"Flagged legacy placeholder","priority":"P3","url":"https://docs.lfe.io/dev/XXX/","source_join":[{"entrance_id":"entrance-689758ac39cc18fb","source":"legacy_docs:docs/dev/index.html","line":126,"href_prefix":"/dev/XXX/"},{"first_steps":"lfe:L24"}],"primary":{"slot":"P20","attempted":true,"method":"web.open exact URL","witness":"web result turn17view0; one tool message","outcome":"inaccessible via this tool","reported_http_status":null,"final_url":null,"body_extent":"tool accessibility error; no page body","finding":"R03-F06"},"independent":{"slot":"V20","owner":"CDC","state":"reserved; unconsumed by CC"},"scope":"tool restriction is not HTTP status, a current placeholder observation, or proof of destination failure","owner_next":"CDC independently checks V20; Arc04/08/10/11 decide whether follow-up is justified"}
+    {
+      "resource_id": "R03-01",
+      "label": "Build It scripts",
+      "priority": "P1",
+      "url": "https://lfe.io/reference/lfe-rebar3/current/command-ref/projects/main.html",
+      "source_join": [
+        {
+          "pointer": "build_it_targets[0]"
+        },
+        {
+          "occurrence_id": "occ-086d4d81c512a3bc",
+          "source": "website:src/_data/home/buildit.yml",
+          "line": 17
+        },
+        {
+          "first_steps": "lfe:L25"
+        }
+      ],
+      "primary": {
+        "slot": "P01",
+        "attempted": true,
+        "method": "web.open exact URL",
+        "witness": "web result turn1view0; failed fetch line 0",
+        "outcome": "tool-reported fetch failure",
+        "reported_http_status": 404,
+        "final_url": null,
+        "body_extent": "one tool error line; no page body",
+        "finding": "R03-F01"
+      },
+      "independent": {
+        "slot": "V01",
+        "owner": "CDC",
+        "state": "reserved; unconsumed by CC"
+      },
+      "scope": "one retrieval attempt only; not a site-health determination",
+      "owner_next": "Arc08 owns Build It practical-guidance readiness; Arc10 consumes only if promoted. Arc04 receives architecture implications. Re-enter: At the Arc08 practical-guidance gate, establish whether the selected commands have an appropriate current destination and usable guidance; any further retrieval requires a separate agreed allocation. CDC consumed its reserved V01; no check remains in this allocation.",
+      "source_locators": [
+        {
+          "role": "selected-occurrence",
+          "repository_id": "website",
+          "path": "src/_data/home/buildit.yml",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+          "line_start": 17,
+          "line_end": 17,
+          "yaml_key_or_index": "items.0.link_url",
+          "same_line_occurrence_ordinal": 1,
+          "byte_span": [
+            866,
+            940
+          ]
+        }
+      ]
+    },
+    {
+      "resource_id": "R03-02",
+      "label": "Build It libraries",
+      "priority": "P1",
+      "url": "https://lfe.io/reference/lfe-rebar3/current/command-ref/projects/lib.html",
+      "source_join": [
+        {
+          "pointer": "build_it_targets[1]"
+        },
+        {
+          "occurrence_id": "occ-b3f97b8ec4183482",
+          "source": "website:src/_data/home/buildit.yml",
+          "line": 31
+        },
+        {
+          "first_steps": "lfe:L26"
+        }
+      ],
+      "primary": {
+        "slot": "P02",
+        "attempted": true,
+        "method": "web.open exact URL",
+        "witness": "web result turn2view0; failed fetch line 0",
+        "outcome": "tool-reported fetch failure",
+        "reported_http_status": 404,
+        "final_url": null,
+        "body_extent": "one tool error line; no page body",
+        "finding": "R03-F01"
+      },
+      "independent": {
+        "slot": "V02",
+        "owner": "CDC",
+        "state": "reserved; unconsumed by CC"
+      },
+      "scope": "one retrieval attempt only; not a site-health determination",
+      "owner_next": "Arc08 owns Build It practical-guidance readiness; Arc10 consumes only if promoted. Arc04 receives architecture implications. Re-enter: At the Arc08 practical-guidance gate, establish whether the selected commands have an appropriate current destination and usable guidance; any further retrieval requires a separate agreed allocation. CDC consumed its reserved V02; no check remains in this allocation.",
+      "source_locators": [
+        {
+          "role": "selected-occurrence",
+          "repository_id": "website",
+          "path": "src/_data/home/buildit.yml",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+          "line_start": 31,
+          "line_end": 31,
+          "yaml_key_or_index": "items.1.link_url",
+          "same_line_occurrence_ordinal": 1,
+          "byte_span": [
+            1678,
+            1751
+          ]
+        }
+      ]
+    },
+    {
+      "resource_id": "R03-03",
+      "label": "Build It apps",
+      "priority": "P1",
+      "url": "https://lfe.io/reference/lfe-rebar3/current/command-ref/projects/app.html",
+      "source_join": [
+        {
+          "pointer": "build_it_targets[2]"
+        },
+        {
+          "occurrence_id": "occ-5d6bb1dce05afcf8",
+          "source": "website:src/_data/home/buildit.yml",
+          "line": 43
+        },
+        {
+          "first_steps": "lfe:L27"
+        }
+      ],
+      "primary": {
+        "slot": "P03",
+        "attempted": true,
+        "method": "web.open exact URL",
+        "witness": "web result turn3view0; failed fetch line 0",
+        "outcome": "tool-reported fetch failure",
+        "reported_http_status": 404,
+        "final_url": null,
+        "body_extent": "one tool error line; no page body",
+        "finding": "R03-F01"
+      },
+      "independent": {
+        "slot": "V03",
+        "owner": "CDC",
+        "state": "reserved; unconsumed by CC"
+      },
+      "scope": "one retrieval attempt only; not a site-health determination",
+      "owner_next": "Arc08 owns Build It practical-guidance readiness; Arc10 consumes only if promoted. Arc04 receives architecture implications. Re-enter: At the Arc08 practical-guidance gate, establish whether the selected commands have an appropriate current destination and usable guidance; any further retrieval requires a separate agreed allocation. CDC consumed its reserved V03; no check remains in this allocation.",
+      "source_locators": [
+        {
+          "role": "selected-occurrence",
+          "repository_id": "website",
+          "path": "src/_data/home/buildit.yml",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+          "line_start": 43,
+          "line_end": 43,
+          "yaml_key_or_index": "items.2.link_url",
+          "same_line_occurrence_ordinal": 1,
+          "byte_span": [
+            2358,
+            2431
+          ]
+        }
+      ]
+    },
+    {
+      "resource_id": "R03-04",
+      "label": "Build It releases",
+      "priority": "P1",
+      "url": "https://lfe.io/reference/lfe-rebar3/current/command-ref/projects/release.html",
+      "source_join": [
+        {
+          "pointer": "build_it_targets[3]"
+        },
+        {
+          "occurrence_id": "occ-a0066096d8e18fb1",
+          "source": "website:src/_data/home/buildit.yml",
+          "line": 57
+        },
+        {
+          "first_steps": "lfe:L28"
+        }
+      ],
+      "primary": {
+        "slot": "P04",
+        "attempted": true,
+        "method": "web.open exact URL",
+        "witness": "web result turn4view0; failed fetch line 0",
+        "outcome": "tool-reported fetch failure",
+        "reported_http_status": 404,
+        "final_url": null,
+        "body_extent": "one tool error line; no page body",
+        "finding": "R03-F01"
+      },
+      "independent": {
+        "slot": "V04",
+        "owner": "CDC",
+        "state": "reserved; unconsumed by CC"
+      },
+      "scope": "one retrieval attempt only; not a site-health determination",
+      "owner_next": "Arc08 owns Build It practical-guidance readiness; Arc10 consumes only if promoted. Arc04 receives architecture implications. Re-enter: At the Arc08 practical-guidance gate, establish whether the selected commands have an appropriate current destination and usable guidance; any further retrieval requires a separate agreed allocation. CDC consumed its reserved V04; no check remains in this allocation.",
+      "source_locators": [
+        {
+          "role": "selected-occurrence",
+          "repository_id": "website",
+          "path": "src/_data/home/buildit.yml",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "ff34331449ca71d6a858cc280c36339ce9852880b33cdbfb86098a421104dfc4",
+          "line_start": 57,
+          "line_end": 57,
+          "yaml_key_or_index": "items.3.link_url",
+          "same_line_occurrence_ordinal": 1,
+          "byte_span": [
+            3160,
+            3237
+          ]
+        }
+      ]
+    },
+    {
+      "resource_id": "R03-05",
+      "label": "Manual entrance",
+      "priority": "P1",
+      "url": "https://cnbbooks.github.io/lfe-manual/",
+      "source_join": [
+        {
+          "occurrence_id": "occ-ec059da2755bf0e6",
+          "source": "website:src/books.md",
+          "line": 17
+        },
+        {
+          "first_steps": "lfe:L16"
+        }
+      ],
+      "primary": {
+        "slot": "P05",
+        "attempted": true,
+        "method": "web.open exact URL",
+        "witness": "web result turn5view0; 13 extracted lines",
+        "outcome": "partial entrance extraction",
+        "reported_http_status": null,
+        "final_url": "https://cnbbooks.github.io/lfe-manual/",
+        "body_extent": "keyboard help items and LFE MACHINE MANUAL title; no chapter/body text exposed",
+        "finding": "R03-F02"
+      },
+      "independent": {
+        "slot": "V05",
+        "owner": "CDC",
+        "state": "reserved; unconsumed by CC"
+      },
+      "scope": "extraction is not visual rendering; no claim that the manual is empty or complete",
+      "owner_next": "Arc10 owns the book catalogue entrance; Arc08 owns chapter-body readiness. Arc04 receives architecture implications. Re-enter: At the Arc10 catalogue or Arc08 chapter-readiness gate, compare the observed entrance with the exact intended chapter route; any additional retrieval requires separate agreed allocation. CDC consumed its reserved V05; no check remains in this allocation.",
+      "source_locators": [
+        {
+          "role": "selected-occurrence",
+          "repository_id": "website",
+          "path": "src/books.md",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "4d7ddccd320fb99f38a661e2410c7d948f4f7dfdeccce9d72533a69944c37829",
+          "line_start": 17,
+          "line_end": 17,
+          "same_line_occurrence_ordinal": 1,
+          "byte_span": [
+            352,
+            411
+          ]
+        }
+      ]
+    },
+    {
+      "resource_id": "R03-06",
+      "label": "Tutorial entrance",
+      "priority": "P1",
+      "url": "https://cnbbooks.github.io/lfe-tutorial/",
+      "source_join": [
+        {
+          "occurrence_id": "occ-f0b70615949c6437",
+          "source": "website:src/books.md",
+          "line": 23
+        },
+        {
+          "first_steps": "lfe:L40"
+        }
+      ],
+      "primary": {
+        "slot": "P06",
+        "attempted": true,
+        "method": "web.open exact URL",
+        "witness": "web result turn6view0; 46 extracted lines",
+        "outcome": "table-of-contents/title extraction",
+        "reported_http_status": null,
+        "final_url": "https://cnbbooks.github.io/lfe-tutorial/",
+        "body_extent": "title and chapter list through conclusion, feedback and documentation links; chapter bodies not sampled",
+        "finding": null
+      },
+      "independent": {
+        "slot": "V06",
+        "owner": "CDC",
+        "state": "reserved; unconsumed by CC"
+      },
+      "scope": "entrance/TOC only; no statement on chapter body completeness",
+      "owner_next": "Arc10 owns the book catalogue route; Arc08 owns chapter-body readiness. CDC consumed the reserved V06; any new destination retrieval requires separate agreed allocation.",
+      "source_locators": [
+        {
+          "role": "selected-occurrence",
+          "repository_id": "website",
+          "path": "src/books.md",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "4d7ddccd320fb99f38a661e2410c7d948f4f7dfdeccce9d72533a69944c37829",
+          "line_start": 23,
+          "line_end": 23,
+          "same_line_occurrence_ordinal": 1,
+          "byte_span": [
+            590,
+            651
+          ]
+        }
+      ]
+    },
+    {
+      "resource_id": "R03-07",
+      "label": "Casting SPELs entrance",
+      "priority": "P1",
+      "url": "https://cnbbooks.github.io/lfe-casting-spels/",
+      "source_join": [
+        {
+          "occurrence_id": "occ-3c7cdaf29f8dabe9",
+          "source": "website:src/books.md",
+          "line": 29
+        },
+        {
+          "first_steps": "lfe:L41"
+        }
+      ],
+      "primary": {
+        "slot": "P07",
+        "attempted": true,
+        "method": "web.open exact URL",
+        "witness": "web result turn7view0; 64 extracted lines",
+        "outcome": "table-of-contents/title extraction",
+        "reported_http_status": null,
+        "final_url": "https://cnbbooks.github.io/lfe-casting-spels/",
+        "body_extent": "title and chapter list through addenda, feedback and documentation links; chapter bodies not sampled",
+        "finding": null
+      },
+      "independent": {
+        "slot": "V07",
+        "owner": "CDC",
+        "state": "reserved; unconsumed by CC"
+      },
+      "scope": "entrance/TOC only; no statement on chapter body completeness",
+      "owner_next": "Arc10 owns the book catalogue route; Arc08 owns chapter-body readiness. CDC consumed the reserved V07; any new destination retrieval requires separate agreed allocation.",
+      "source_locators": [
+        {
+          "role": "selected-occurrence",
+          "repository_id": "website",
+          "path": "src/books.md",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "4d7ddccd320fb99f38a661e2410c7d948f4f7dfdeccce9d72533a69944c37829",
+          "line_start": 29,
+          "line_end": 29,
+          "same_line_occurrence_ordinal": 1,
+          "byte_span": [
+            848,
+            914
+          ]
+        }
+      ]
+    },
+    {
+      "resource_id": "R03-08",
+      "label": "SICP entrance",
+      "priority": "P1",
+      "url": "https://cnbbooks.github.io/lfe-sicp/",
+      "source_join": [
+        {
+          "occurrence_id": "occ-52af77fae15b04a2",
+          "source": "website:src/books.md",
+          "line": 35
+        },
+        {
+          "first_steps": "lfe:L42"
+        }
+      ],
+      "primary": {
+        "slot": "P08",
+        "attempted": true,
+        "method": "web.open exact URL",
+        "witness": "web result turn8view0; 187 extracted lines",
+        "outcome": "table-of-contents/title extraction",
+        "reported_http_status": null,
+        "final_url": "https://cnbbooks.github.io/lfe-sicp/",
+        "body_extent": "title and contents list through references/exercises/versions; chapter bodies not sampled",
+        "finding": null
+      },
+      "independent": {
+        "slot": "V08",
+        "owner": "CDC",
+        "state": "reserved; unconsumed by CC"
+      },
+      "scope": "entrance/TOC only; no statement on chapter body completeness",
+      "owner_next": "Arc10 owns the book catalogue route; Arc08 owns chapter-body readiness. CDC consumed the reserved V08; any new destination retrieval requires separate agreed allocation.",
+      "source_locators": [
+        {
+          "role": "selected-occurrence",
+          "repository_id": "website",
+          "path": "src/books.md",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "4d7ddccd320fb99f38a661e2410c7d948f4f7dfdeccce9d72533a69944c37829",
+          "line_start": 35,
+          "line_end": 35,
+          "same_line_occurrence_ordinal": 1,
+          "byte_span": [
+            1122,
+            1179
+          ]
+        }
+      ]
+    },
+    {
+      "resource_id": "R03-09",
+      "label": "Legacy root",
+      "priority": "P2",
+      "url": "http://docs.lfe.io/",
+      "source_join": [
+        {
+          "destination_id": "dest-1c7c7c8796b1138d"
+        },
+        {
+          "entrance_id": "entrance-9a0fecb1cd53c329"
+        },
+        {
+          "source": "website:src/posts/2014/05-22-1849-new-lfe-site.md"
+        },
+        {
+          "source": "legacy_docs:docs/index.html"
+        }
+      ],
+      "primary": {
+        "slot": "P09",
+        "attempted": true,
+        "method": "web.open exact HTTP URL",
+        "witness": "web result turn9view0; zero extracted lines",
+        "outcome": "returned HTTPS URL with no extracted body",
+        "reported_http_status": null,
+        "final_url": "https://docs.lfe.io/",
+        "body_extent": "zero lines",
+        "finding": "R03-F03"
+      },
+      "independent": {
+        "slot": "V09",
+        "owner": "CDC",
+        "state": "reserved; unconsumed by CC"
+      },
+      "scope": "tool-returned final URL only; no redirect status/code or page-body evidence",
+      "owner_next": "Arc11 owns legacy-root provenance and temporal meaning; Arc04 receives architecture implications. Re-enter: At the Arc11 legacy-provenance gate, resolve the legacy root’s target and provenance from an approved source; any further request requires separate agreed allocation. CDC consumed its reserved V09; no check remains in this allocation.",
+      "source_locators": [
+        {
+          "role": "destination-occurrence",
+          "repository_id": "website",
+          "path": "src/posts/2014/05-22-1849-new-lfe-site.md",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "6dc17f6be2cadd37ad0948ae36b95f317a30b3f5adbdaccc0f14cb85b533c033",
+          "line_start": 31,
+          "line_end": 31,
+          "same_line_occurrence_ordinal": 1,
+          "byte_span": [
+            903,
+            922
+          ]
+        },
+        {
+          "role": "legacy-root-entrance",
+          "repository_id": "legacy_docs",
+          "path": "docs/index.html",
+          "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+          "working_sha256": "b381f1283cf214a3e558736fc397a298cd871add5a3ae8b68c879944af4ca829",
+          "line_start": 1,
+          "line_end": 2
+        }
+      ]
+    },
+    {
+      "resource_id": "R03-10",
+      "label": "Legacy Current",
+      "priority": "P2",
+      "url": "https://docs.lfe.io/current/",
+      "source_join": [
+        {
+          "entrance_id": "entrance-64e4ade03bac2160"
+        },
+        {
+          "first_steps": "lfe:L22"
+        },
+        {
+          "source": "legacy_docs:docs/current/index.html"
+        }
+      ],
+      "primary": {
+        "slot": "P10",
+        "attempted": true,
+        "method": "web.open exact URL",
+        "witness": "web result turn10view0; 82 extracted lines",
+        "outcome": "page content returned",
+        "reported_http_status": null,
+        "final_url": "https://docs.lfe.io/current/",
+        "body_extent": "LFE Documentation; new docs site under development; classic docs links plus books/guides/tutorials/history/presentations/examples sections",
+        "finding": null
+      },
+      "independent": {
+        "slot": "V10",
+        "owner": "CDC",
+        "state": "reserved; unconsumed by CC"
+      },
+      "scope": "returned extracted extent only; lifecycle wording is observed page text, not a current technical applicability claim",
+      "owner_next": "Arc11 owns legacy-route provenance and temporal meaning; Arc04 receives architecture implications. CDC consumed the reserved V10; any new destination retrieval requires separate agreed allocation.",
+      "source_locators": [
+        {
+          "role": "selected-entrance",
+          "repository_id": "legacy_docs",
+          "path": "docs/current/index.html",
+          "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+          "working_sha256": "ac03775e345eb5f5c7c8038e161076470e1d73ec7d5e60da23a9b1f1f5cc3122",
+          "line_start": 1,
+          "line_end": 188
+        }
+      ]
+    },
+    {
+      "resource_id": "R03-11",
+      "label": "Legacy Dev",
+      "priority": "P2",
+      "url": "https://docs.lfe.io/dev/",
+      "source_join": [
+        {
+          "entrance_id": "entrance-689758ac39cc18fb"
+        },
+        {
+          "first_steps": "lfe:L23"
+        },
+        {
+          "source": "legacy_docs:docs/dev/index.html"
+        }
+      ],
+      "primary": {
+        "slot": "P11",
+        "attempted": true,
+        "method": "web.open exact URL",
+        "witness": "web result turn11view0; 66 extracted lines",
+        "outcome": "page content returned",
+        "reported_http_status": null,
+        "final_url": "https://docs.lfe.io/dev/",
+        "body_extent": "LFE nav and intro; Getting Started, Reference, Building Applications, Tooling, Libraries, Involvement, Community, History and Contributing structures; version links are present in extracted nav",
+        "finding": null
+      },
+      "independent": {
+        "slot": "V11",
+        "owner": "CDC",
+        "state": "reserved; unconsumed by CC"
+      },
+      "scope": "page/nav extraction only; listed links do not prove each selected version target is available",
+      "owner_next": "Arc11 owns legacy-route provenance and temporal meaning; Arc04 receives architecture implications. CDC consumed the reserved V11; any new destination retrieval requires separate agreed allocation.",
+      "source_locators": [
+        {
+          "role": "selected-entrance",
+          "repository_id": "legacy_docs",
+          "path": "docs/dev/index.html",
+          "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+          "working_sha256": "b92a7836a8f2ef6a51b1ce242077d7990fed10e46597e318013d5f831faf700a",
+          "line_start": 1,
+          "line_end": 305
+        }
+      ]
+    },
+    {
+      "resource_id": "R03-12",
+      "label": "Legacy v1.2",
+      "priority": "P2",
+      "url": "https://docs.lfe.io/v1.2/index.html",
+      "source_join": [
+        {
+          "entrance_id": "entrance-689758ac39cc18fb",
+          "source": "legacy_docs:docs/dev/index.html",
+          "line": 56,
+          "href": "/v1.2/index.html"
+        },
+        {
+          "derivation": "registered relative href resolved against declared host https://docs.lfe.io/dev/; resulting exact prompt URL retained; deployed provenance unknown"
+        },
+        {
+          "entrance_id": "entrance-f00c61f911c6d122"
+        }
+      ],
+      "primary": {
+        "slot": "P12",
+        "attempted": true,
+        "method": "web.open exact URL",
+        "witness": "web result turn12view0; one tool message",
+        "outcome": "inaccessible via this tool",
+        "reported_http_status": null,
+        "final_url": null,
+        "body_extent": "tool accessibility error; no page body",
+        "finding": "R03-F04"
+      },
+      "independent": {
+        "slot": "V12",
+        "owner": "CDC",
+        "state": "reserved; unconsumed by CC"
+      },
+      "scope": "tool restriction is not a destination status; deployed provenance remains unknown",
+      "owner_next": "Arc11 owns legacy-version provenance and temporal meaning; Arc04 receives architecture implications. Re-enter: At the Arc11 legacy-provenance gate, establish what the selected version entrances represent and their provenance; further retrieval or source comparison needs separate agreed allocation. CDC consumed its reserved V12; no check remains in this allocation.",
+      "source_locators": [
+        {
+          "role": "parent-entrance",
+          "repository_id": "legacy_docs",
+          "path": "docs/dev/index.html",
+          "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+          "working_sha256": "b92a7836a8f2ef6a51b1ce242077d7990fed10e46597e318013d5f831faf700a",
+          "line_start": 1,
+          "line_end": 305
+        },
+        {
+          "role": "selected-href",
+          "repository_id": "legacy_docs",
+          "path": "docs/dev/index.html",
+          "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+          "working_sha256": "b92a7836a8f2ef6a51b1ce242077d7990fed10e46597e318013d5f831faf700a",
+          "line_start": 56,
+          "line_end": 56
+        },
+        {
+          "role": "destination-entrance",
+          "repository_id": "legacy_docs",
+          "path": "docs/v1.2/index.html",
+          "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+          "working_sha256": "dba478cf30da606d83d6ba6dec3e2511b0fd6b2357635ce7e02a7dad48d0b484",
+          "line_start": 1,
+          "line_end": 185
+        }
+      ]
+    },
+    {
+      "resource_id": "R03-13",
+      "label": "Legacy v0.10",
+      "priority": "P2",
+      "url": "https://docs.lfe.io/v0.10/index.html",
+      "source_join": [
+        {
+          "entrance_id": "entrance-689758ac39cc18fb",
+          "source": "legacy_docs:docs/dev/index.html",
+          "line": 57,
+          "href": "/v0.10/index.html"
+        },
+        {
+          "derivation": "registered relative href resolved against declared host https://docs.lfe.io/dev/; resulting exact prompt URL retained; deployed provenance unknown"
+        },
+        {
+          "entrance_id": "entrance-2f65c547e18194c3"
+        }
+      ],
+      "primary": {
+        "slot": "P13",
+        "attempted": true,
+        "method": "web.open exact URL",
+        "witness": "web result turn13view0; one tool message",
+        "outcome": "inaccessible via this tool",
+        "reported_http_status": null,
+        "final_url": null,
+        "body_extent": "tool accessibility error; no page body",
+        "finding": "R03-F04"
+      },
+      "independent": {
+        "slot": "V13",
+        "owner": "CDC",
+        "state": "reserved; unconsumed by CC"
+      },
+      "scope": "tool restriction is not a destination status; deployed provenance remains unknown",
+      "owner_next": "Arc11 owns legacy-version provenance and temporal meaning; Arc04 receives architecture implications. Re-enter: At the Arc11 legacy-provenance gate, establish what the selected version entrances represent and their provenance; further retrieval or source comparison needs separate agreed allocation. CDC consumed its reserved V13; no check remains in this allocation.",
+      "source_locators": [
+        {
+          "role": "parent-entrance",
+          "repository_id": "legacy_docs",
+          "path": "docs/dev/index.html",
+          "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+          "working_sha256": "b92a7836a8f2ef6a51b1ce242077d7990fed10e46597e318013d5f831faf700a",
+          "line_start": 1,
+          "line_end": 305
+        },
+        {
+          "role": "selected-href",
+          "repository_id": "legacy_docs",
+          "path": "docs/dev/index.html",
+          "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+          "working_sha256": "b92a7836a8f2ef6a51b1ce242077d7990fed10e46597e318013d5f831faf700a",
+          "line_start": 57,
+          "line_end": 57
+        },
+        {
+          "role": "destination-entrance",
+          "repository_id": "legacy_docs",
+          "path": "docs/v0.10/index.html",
+          "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+          "working_sha256": "3b53b16ce102b108fd1ddadd40e3c48114315491c32588debaaf3a2d38a6870d",
+          "line_start": 1,
+          "line_end": 185
+        }
+      ]
+    },
+    {
+      "resource_id": "R03-14",
+      "label": "Legacy v0.9",
+      "priority": "P2",
+      "url": "https://docs.lfe.io/v0.9/index.html",
+      "source_join": [
+        {
+          "entrance_id": "entrance-689758ac39cc18fb",
+          "source": "legacy_docs:docs/dev/index.html",
+          "line": 58,
+          "href": "/v0.9/index.html"
+        },
+        {
+          "derivation": "registered relative href resolved against declared host https://docs.lfe.io/dev/; resulting exact prompt URL retained; deployed provenance unknown"
+        },
+        {
+          "entrance_id": "entrance-dd915b7fdc0a152e"
+        }
+      ],
+      "primary": {
+        "slot": "P14",
+        "attempted": true,
+        "method": "web.open exact URL",
+        "witness": "web result turn14view0; one tool message",
+        "outcome": "inaccessible via this tool",
+        "reported_http_status": null,
+        "final_url": null,
+        "body_extent": "tool accessibility error; no page body",
+        "finding": "R03-F04"
+      },
+      "independent": {
+        "slot": "V14",
+        "owner": "CDC",
+        "state": "reserved; unconsumed by CC"
+      },
+      "scope": "tool restriction is not a destination status; deployed provenance remains unknown",
+      "owner_next": "Arc11 owns legacy-version provenance and temporal meaning; Arc04 receives architecture implications. Re-enter: At the Arc11 legacy-provenance gate, establish what the selected version entrances represent and their provenance; further retrieval or source comparison needs separate agreed allocation. CDC consumed its reserved V14; no check remains in this allocation.",
+      "source_locators": [
+        {
+          "role": "parent-entrance",
+          "repository_id": "legacy_docs",
+          "path": "docs/dev/index.html",
+          "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+          "working_sha256": "b92a7836a8f2ef6a51b1ce242077d7990fed10e46597e318013d5f831faf700a",
+          "line_start": 1,
+          "line_end": 305
+        },
+        {
+          "role": "selected-href",
+          "repository_id": "legacy_docs",
+          "path": "docs/dev/index.html",
+          "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+          "working_sha256": "b92a7836a8f2ef6a51b1ce242077d7990fed10e46597e318013d5f831faf700a",
+          "line_start": 58,
+          "line_end": 58
+        },
+        {
+          "role": "destination-entrance",
+          "repository_id": "legacy_docs",
+          "path": "docs/v0.9/index.html",
+          "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+          "working_sha256": "512845ded9f6aac064a81eb797af393fb674a77176803cade462e9182ad3e97f",
+          "line_start": 1,
+          "line_end": 196
+        }
+      ]
+    },
+    {
+      "resource_id": "R03-15",
+      "label": "Legacy v0.8",
+      "priority": "P2",
+      "url": "https://docs.lfe.io/v0.8/index.html",
+      "source_join": [
+        {
+          "entrance_id": "entrance-689758ac39cc18fb",
+          "source": "legacy_docs:docs/dev/index.html",
+          "line": 59,
+          "href": "/v0.8/index.html"
+        },
+        {
+          "derivation": "registered relative href resolved against declared host https://docs.lfe.io/dev/; resulting exact prompt URL retained; deployed provenance unknown"
+        },
+        {
+          "entrance_id": "entrance-85186587bf2cbed6"
+        }
+      ],
+      "primary": {
+        "slot": "P15",
+        "attempted": true,
+        "method": "web.open exact URL",
+        "witness": "web result turn15view0; one tool message",
+        "outcome": "inaccessible via this tool",
+        "reported_http_status": null,
+        "final_url": null,
+        "body_extent": "tool accessibility error; no page body",
+        "finding": "R03-F04"
+      },
+      "independent": {
+        "slot": "V15",
+        "owner": "CDC",
+        "state": "reserved; unconsumed by CC"
+      },
+      "scope": "tool restriction is not a destination status; deployed provenance remains unknown",
+      "owner_next": "Arc11 owns legacy-version provenance and temporal meaning; Arc04 receives architecture implications. Re-enter: At the Arc11 legacy-provenance gate, establish what the selected version entrances represent and their provenance; further retrieval or source comparison needs separate agreed allocation. CDC consumed its reserved V15; no check remains in this allocation.",
+      "source_locators": [
+        {
+          "role": "parent-entrance",
+          "repository_id": "legacy_docs",
+          "path": "docs/dev/index.html",
+          "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+          "working_sha256": "b92a7836a8f2ef6a51b1ce242077d7990fed10e46597e318013d5f831faf700a",
+          "line_start": 1,
+          "line_end": 305
+        },
+        {
+          "role": "selected-href",
+          "repository_id": "legacy_docs",
+          "path": "docs/dev/index.html",
+          "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+          "working_sha256": "b92a7836a8f2ef6a51b1ce242077d7990fed10e46597e318013d5f831faf700a",
+          "line_start": 59,
+          "line_end": 59
+        },
+        {
+          "role": "destination-entrance",
+          "repository_id": "legacy_docs",
+          "path": "docs/v0.8/index.html",
+          "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+          "working_sha256": "e81760d71852fbc34e1342a96cb9ef987a438f60c9fb0c7ffe5868081999541d",
+          "line_start": 1,
+          "line_end": 161
+        }
+      ]
+    },
+    {
+      "resource_id": "R03-16",
+      "label": "Legacy v0.7",
+      "priority": "P2",
+      "url": "https://docs.lfe.io/v0.7/index.html",
+      "source_join": [
+        {
+          "entrance_id": "entrance-689758ac39cc18fb",
+          "source": "legacy_docs:docs/dev/index.html",
+          "line": 60,
+          "href": "/v0.7/index.html"
+        },
+        {
+          "derivation": "registered relative href resolved against declared host https://docs.lfe.io/dev/; resulting exact prompt URL retained; deployed provenance unknown"
+        },
+        {
+          "entrance_id": "entrance-96da0a1fb40bb686"
+        }
+      ],
+      "primary": {
+        "slot": "P16",
+        "attempted": true,
+        "method": "web.open exact URL",
+        "witness": "web result turn16view0; 103 extracted lines",
+        "outcome": "page content returned",
+        "reported_http_status": null,
+        "final_url": "https://docs.lfe.io/v0.7/index.html",
+        "body_extent": "intro and LFE overview, records/pattern-matching/macros examples, client/server excerpt, source-doc and development lifecycle statements",
+        "finding": null
+      },
+      "independent": {
+        "slot": "V16",
+        "owner": "CDC",
+        "state": "reserved; unconsumed by CC"
+      },
+      "scope": "historical page text as extracted; not a version-support or current technical applicability claim",
+      "owner_next": "Arc11 owns legacy-route provenance and temporal meaning; Arc04 receives architecture implications. CDC consumed the reserved V16; any new destination retrieval requires separate agreed allocation.",
+      "source_locators": [
+        {
+          "role": "parent-entrance",
+          "repository_id": "legacy_docs",
+          "path": "docs/dev/index.html",
+          "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+          "working_sha256": "b92a7836a8f2ef6a51b1ce242077d7990fed10e46597e318013d5f831faf700a",
+          "line_start": 1,
+          "line_end": 305
+        },
+        {
+          "role": "selected-href",
+          "repository_id": "legacy_docs",
+          "path": "docs/dev/index.html",
+          "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+          "working_sha256": "b92a7836a8f2ef6a51b1ce242077d7990fed10e46597e318013d5f831faf700a",
+          "line_start": 60,
+          "line_end": 60
+        },
+        {
+          "role": "destination-entrance",
+          "repository_id": "legacy_docs",
+          "path": "docs/v0.7/index.html",
+          "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+          "working_sha256": "5b48703edb2ae107ebf0c96567caec3d81ddc46ac56a903d199a992ed772b540",
+          "line_start": 1,
+          "line_end": 201
+        }
+      ]
+    },
+    {
+      "resource_id": "R03-17",
+      "label": "Flagged Releases chapter",
+      "priority": "P3",
+      "url": "https://cnbbooks.github.io/lfe-manual/part5/rels/",
+      "source_join": [
+        {
+          "occurrence_id": "occ-980574316546f3e3",
+          "source": "website:src/use.md",
+          "line": 90
+        },
+        {
+          "first_steps": "lfe:L19"
+        },
+        {
+          "manual_summary": "manual SUMMARY.md line 246 points to the releases chapter"
+        }
+      ],
+      "primary": {
+        "slot": "P17",
+        "attempted": true,
+        "method": "actual in-app browser navigation; AX plus screenshot of same page",
+        "witness": "browser tab 1; AX body container heading at 68; screenshot immediately following",
+        "outcome": "heading-only visible article; sidebar and page-navigation controls render; article body blank in inspected viewport; AX has no body text",
+        "reported_http_status": null,
+        "final_url": "https://cnbbooks.github.io/lfe-manual/part5/rels/",
+        "body_extent": "visible heading Releases; no visible article prose or code; screenshot/AX are same single navigation",
+        "finding": "R03-F05"
+      },
+      "independent": {
+        "slot": "V17",
+        "owner": "CDC",
+        "state": "reserved for bounded local source comparison; unconsumed by CC"
+      },
+      "scope": "one visible viewport and AX body; no source equivalence, page-wide completeness or deployment cause inferred",
+      "owner_next": "Arc08 owns chapter-body readiness; Arc10 consumes promoted-route implications. Arc04 receives architecture implications. Re-enter: At the Arc08 readiness gate, decide whether the frozen local-source comparison suffices or whether a separately allocated deployed-source comparison is needed; current tool budget is exhausted. CDC consumed its reserved V17; no check remains in this allocation.",
+      "source_locators": [
+        {
+          "role": "selected-occurrence",
+          "repository_id": "website",
+          "path": "src/use.md",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "25649d21073415c65f9933202e992cee347c57640c8c1fa851310a52047812b3",
+          "line_start": 90,
+          "line_end": 90,
+          "same_line_occurrence_ordinal": 1,
+          "byte_span": [
+            3935,
+            3996
+          ]
+        }
+      ]
+    },
+    {
+      "resource_id": "R03-18",
+      "label": "Flagged Calling Erlang chapter",
+      "priority": "P3",
+      "url": "https://cnbbooks.github.io/lfe-manual/part8/erl-int/call-erl.html",
+      "source_join": [
+        {
+          "occurrence_id": "occ-96d181f9388b8acc",
+          "source": "website:src/use.md",
+          "line": 80
+        },
+        {
+          "first_steps": "lfe:L20"
+        },
+        {
+          "manual_summary": "manual SUMMARY.md line 571 points to the calling Erlang chapter"
+        }
+      ],
+      "primary": {
+        "slot": "P18",
+        "attempted": true,
+        "method": "actual in-app browser navigation; AX plus screenshot of same page",
+        "witness": "browser tab 2; AX body container heading at 132; screenshot immediately following",
+        "outcome": "heading-only visible article; sidebar and page-navigation controls render; article body blank in inspected viewport; AX has no body text",
+        "reported_http_status": null,
+        "final_url": "https://cnbbooks.github.io/lfe-manual/part8/erl-int/call-erl.html",
+        "body_extent": "visible heading Calling Erlang from LFE; no visible article prose or code; screenshot/AX are same single navigation",
+        "finding": "R03-F05"
+      },
+      "setup_note": "An initial tab-creation option was rejected before navigation (IAB visibility unsupported in subagent thread); exact target was then loaded once without that option. This setup error is not a second destination request.",
+      "independent": {
+        "slot": "V18",
+        "owner": "CDC",
+        "state": "reserved for bounded local source comparison; unconsumed by CC"
+      },
+      "scope": "one visible viewport and AX body; no source equivalence, page-wide completeness or deployment cause inferred",
+      "owner_next": "Arc08 owns chapter-body readiness; Arc10 consumes promoted-route implications. Arc04 receives architecture implications. Re-enter: At the Arc08 readiness gate, decide whether the frozen local-source comparison suffices or whether a separately allocated deployed-source comparison is needed; current tool budget is exhausted. CDC consumed its reserved V18; no check remains in this allocation.",
+      "source_locators": [
+        {
+          "role": "selected-occurrence",
+          "repository_id": "website",
+          "path": "src/use.md",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "25649d21073415c65f9933202e992cee347c57640c8c1fa851310a52047812b3",
+          "line_start": 80,
+          "line_end": 80,
+          "same_line_occurrence_ordinal": 1,
+          "byte_span": [
+            3357,
+            3449
+          ]
+        }
+      ]
+    },
+    {
+      "resource_id": "R03-19",
+      "label": "Flagged Creating Projects chapter",
+      "priority": "P3",
+      "url": "https://cnbbooks.github.io/lfe-manual/part3/projects/",
+      "source_join": [
+        {
+          "occurrence_id": "occ-9fc9ad8fe5bd9c7e",
+          "source": "website:src/use.md",
+          "line": 30
+        },
+        {
+          "first_steps": "lfe:L34"
+        },
+        {
+          "manual_summary": "manual SUMMARY.md line 227 points to Creating LFE Projects"
+        }
+      ],
+      "primary": {
+        "slot": "P19",
+        "attempted": true,
+        "method": "actual in-app browser navigation; AX plus screenshot of same page",
+        "witness": "browser tab 3; AX body container heading at 83; screenshot immediately following",
+        "outcome": "heading-only visible article; sidebar and page-navigation controls render; article body blank in inspected viewport; AX has no body text",
+        "reported_http_status": null,
+        "final_url": "https://cnbbooks.github.io/lfe-manual/part3/projects/",
+        "body_extent": "visible heading Creating LFE Projects; no visible article prose or code; screenshot/AX are same single navigation",
+        "finding": "R03-F05"
+      },
+      "independent": {
+        "slot": "V19",
+        "owner": "CDC",
+        "state": "reserved for bounded local source comparison; unconsumed by CC"
+      },
+      "scope": "one visible viewport and AX body; no source equivalence, page-wide completeness or deployment cause inferred",
+      "owner_next": "Arc08 owns chapter-body readiness; Arc10 consumes promoted-route implications. Arc04 receives architecture implications. Re-enter: At the Arc08 readiness gate, decide whether the frozen local-source comparison suffices or whether a separately allocated deployed-source comparison is needed; current tool budget is exhausted. CDC consumed its reserved V19; no check remains in this allocation.",
+      "source_locators": [
+        {
+          "role": "selected-occurrence",
+          "repository_id": "website",
+          "path": "src/use.md",
+          "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+          "working_sha256": "25649d21073415c65f9933202e992cee347c57640c8c1fa851310a52047812b3",
+          "line_start": 30,
+          "line_end": 30,
+          "same_line_occurrence_ordinal": 1,
+          "byte_span": [
+            798,
+            876
+          ]
+        }
+      ]
+    },
+    {
+      "resource_id": "R03-20",
+      "label": "Flagged legacy placeholder",
+      "priority": "P3",
+      "url": "https://docs.lfe.io/dev/XXX/",
+      "source_join": [
+        {
+          "entrance_id": "entrance-689758ac39cc18fb",
+          "source": "legacy_docs:docs/dev/index.html",
+          "line": 126,
+          "href_prefix": "/dev/XXX/"
+        },
+        {
+          "first_steps": "lfe:L24"
+        }
+      ],
+      "primary": {
+        "slot": "P20",
+        "attempted": true,
+        "method": "web.open exact URL",
+        "witness": "web result turn17view0; one tool message",
+        "outcome": "inaccessible via this tool",
+        "reported_http_status": null,
+        "final_url": null,
+        "body_extent": "tool accessibility error; no page body",
+        "finding": "R03-F06"
+      },
+      "independent": {
+        "slot": "V20",
+        "owner": "CDC",
+        "state": "reserved; unconsumed by CC"
+      },
+      "scope": "tool restriction is not HTTP status, a current placeholder observation, or proof of destination failure",
+      "owner_next": "Arc11 owns legacy-placeholder provenance and temporal meaning; Arc04 receives architecture implications. Re-enter: At the Arc11 legacy-provenance gate, determine the placeholder entrance’s provenance and intended role from approved evidence; any new request requires separate agreed allocation. CDC consumed its reserved V20; no check remains in this allocation.",
+      "source_locators": [
+        {
+          "role": "parent-entrance",
+          "repository_id": "legacy_docs",
+          "path": "docs/dev/index.html",
+          "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+          "working_sha256": "b92a7836a8f2ef6a51b1ce242077d7990fed10e46597e318013d5f831faf700a",
+          "line_start": 1,
+          "line_end": 305
+        },
+        {
+          "role": "selected-href",
+          "repository_id": "legacy_docs",
+          "path": "docs/dev/index.html",
+          "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+          "working_sha256": "b92a7836a8f2ef6a51b1ce242077d7990fed10e46597e318013d5f831faf700a",
+          "line_start": 126,
+          "line_end": 126
+        }
+      ]
+    }
   ],
   "finding_register": [
-    {"id":"R03-F01","summary":"Four selected Build It URLs returned a tool-reported failed-fetch 404 during their single primary reads.","state":"observed retrieval outcome; independent CDC checks reserved","owner":"CDC plus downstream Arc04/08/10/11 consumers","reentry":"Use reserved checks only; any further probing needs its own approved allocation."},
-    {"id":"R03-F02","summary":"The manual entrance extraction exposed keyboard-help text and book title but no chapter body.","state":"partial extraction; not empty-rendering evidence","owner":"CDC / Arc04/08/10/11","reentry":"Reserved entrance check; do not infer chapter readiness from this output."},
-    {"id":"R03-F03","summary":"HTTP legacy root request returned an HTTPS final URL with zero extracted body lines; no status was reported.","state":"redirect target observed by tool, status/body unknown","owner":"CDC / Arc04/08/10/11","reentry":"Reserved independent check only."},
-    {"id":"R03-F04","summary":"Four legacy version URLs were inaccessible via the retrieval tool; status and body are unknown.","state":"tool-access limitation, not destination-failure evidence","owner":"CDC / Arc04/08/10/11","reentry":"Reserved independent checks; any further method requires approved allocation."},
-    {"id":"R03-F05","summary":"Three manually navigated selected chapter pages visually showed their heading and navigation chrome but no article body in the inspected viewport; AX exposed no article prose.","state":"heading-only visible evidence; bounded to one viewport and the returned accessibility tree","owner":"CDC / Arc04/08/10/11","reentry":"CDC performs only the three exact local source comparisons in V17–V19; source/deployed identity remains unproven."},
-    {"id":"R03-F06","summary":"The selected legacy placeholder was inaccessible via the retrieval tool; no status or body was returned.","state":"tool-access limitation, not proof of placeholder failure","owner":"CDC / Arc04/08/10/11","reentry":"Reserved independent V20 only."}
+    {
+      "id": "R03-F01",
+      "summary": "Four selected Build It URLs returned a tool-reported failed-fetch 404 during their single primary reads.",
+      "state": "observed retrieval outcome; independent CDC checks reserved",
+      "owner": "Arc08 owns Build It practical-guidance readiness; Arc10 consumes only if promoted. Arc04 receives architecture implications.",
+      "reentry": "At the Arc08 practical-guidance gate, establish whether the selected commands have an appropriate current destination and usable guidance; any further retrieval requires a separate agreed allocation."
+    },
+    {
+      "id": "R03-F02",
+      "summary": "The manual entrance extraction exposed keyboard-help text and book title but no chapter body.",
+      "state": "partial extraction; not empty-rendering evidence",
+      "owner": "Arc10 owns the book catalogue entrance; Arc08 owns chapter-body readiness. Arc04 receives architecture implications.",
+      "reentry": "At the Arc10 catalogue or Arc08 chapter-readiness gate, compare the observed entrance with the exact intended chapter route; any additional retrieval requires separate agreed allocation."
+    },
+    {
+      "id": "R03-F03",
+      "summary": "HTTP legacy root request returned an HTTPS final URL with zero extracted body lines; no status was reported.",
+      "state": "redirect target observed by tool, status/body unknown",
+      "owner": "Arc11 owns legacy-root provenance and temporal meaning; Arc04 receives architecture implications.",
+      "reentry": "At the Arc11 legacy-provenance gate, resolve the legacy root’s target and provenance from an approved source; any further request requires separate agreed allocation."
+    },
+    {
+      "id": "R03-F04",
+      "summary": "Four legacy version URLs were inaccessible via the retrieval tool; status and body are unknown.",
+      "state": "tool-access limitation, not destination-failure evidence",
+      "owner": "Arc11 owns legacy-version provenance and temporal meaning; Arc04 receives architecture implications.",
+      "reentry": "At the Arc11 legacy-provenance gate, establish what the selected version entrances represent and their provenance; further retrieval or source comparison needs separate agreed allocation."
+    },
+    {
+      "id": "R03-F05",
+      "summary": "Three manually navigated selected chapter pages visually showed their heading and navigation chrome but no article body in the inspected viewport; AX exposed no article prose.",
+      "state": "heading-only visible evidence; bounded to one viewport and the returned accessibility tree",
+      "owner": "Arc08 owns chapter-body readiness; Arc10 consumes promoted-route implications. Arc04 receives architecture implications.",
+      "reentry": "At the Arc08 readiness gate, decide whether the frozen local-source comparison suffices or whether a separately allocated deployed-source comparison is needed; current tool budget is exhausted."
+    },
+    {
+      "id": "R03-F06",
+      "summary": "The selected legacy placeholder was inaccessible via the retrieval tool; no status or body was returned.",
+      "state": "tool-access limitation, not proof of placeholder failure",
+      "owner": "Arc11 owns legacy-placeholder provenance and temporal meaning; Arc04 receives architecture implications.",
+      "reentry": "At the Arc11 legacy-provenance gate, determine the placeholder entrance’s provenance and intended role from approved evidence; any new request requires separate agreed allocation."
+    }
   ],
   "coverage_and_exclusions": {
-    "selected_membership":"Exact prompt rows R03-01..R03-20, each unique literal URL, one primary slot and one CDC-reserved slot; verified with complete source joins and duplicate/deletion negative controls.",
-    "priority_order":"Build It 4; book entrances 4; legacy entrances 8 (root, current, dev, v1.2, v0.10, v0.9, v0.8, v0.7); flagged manual chapters 3; legacy placeholder 1.",
-    "unselected":"The broader 804 registered destination groups, remaining occurrences, populations, routes, fragments, dynamic/non-web targets and manual chapters were not checked. They are unselected/unverified, not implicitly healthy, broken, supported, removed, or redirected.",
-    "reserved_local_sources":["manual:src/part5/rels/README.md","manual:src/part8/erl-int/call-erl.md","manual:src/part3/projects/README.md"],
-    "reserved_source_owner":"CDC, V17-V19 only, at frozen manual HEAD; CC did not read those files or consume any V slot."
+    "selected_membership": "Exact prompt rows R03-01..R03-20, each unique literal URL, one primary slot and one CDC-reserved slot; verified with complete source joins and duplicate/deletion negative controls.",
+    "priority_order": "Build It 4; book entrances 4; legacy entrances 8 (root, current, dev, v1.2, v0.10, v0.9, v0.8, v0.7); flagged manual chapters 3; legacy placeholder 1.",
+    "unselected": "The broader 804 registered destination groups, remaining occurrences, populations, routes, fragments, dynamic/non-web targets and manual chapters were not checked. They are unselected/unverified, not implicitly healthy, broken, supported, removed, or redirected.",
+    "reserved_local_sources": [
+      "manual:src/part5/rels/README.md",
+      "manual:src/part8/erl-int/call-erl.md",
+      "manual:src/part3/projects/README.md"
+    ],
+    "reserved_source_owner": "CDC, V17-V19 only, at frozen manual HEAD; CC did not read those files or consume any V slot."
+  },
+  "source_register": {
+    "commit": "2112713d5673f186e7a6d00a4ee4f2d925d56794",
+    "path": "project099-site-ia/arc01-evidence-baseline/slice02-local-inventory/artifacts/resource-register.json",
+    "bytes": 6523187,
+    "sha256": "81b2c8a2bb4696266b7bfd36551dc3273bf8ba8e4ba78ca47168ae2f107962e6",
+    "also_byte_equal_at": "d7063b2"
+  },
+  "current_check_accounting": {
+    "cumulative_primary_slots_consumed": 20,
+    "primary_slots_unrun": 0,
+    "cdc_reserved_slots_consumed_by_cdc": 20,
+    "new_primary_attempts_iteration01": 0,
+    "new_destination_requests_iteration01": 0,
+    "shared_ceiling": 40,
+    "shared_slots_remaining": 0
   }
 }
