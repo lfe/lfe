@@ -151,3 +151,17 @@ investigation. The prompt names exact consumed JSON fields and retains unchanged
 proof; all normative original prose remains loaded in CDC after actual recovery.
 
 | 1.1 | 2026-10-19 | Initial independent CDC review | Accept3 rows, preserve R4-01–03 and issue first no-investigation local correction with unchanged budgets/criteria |
+
+### Iteration01 serialized handoff — 19 October 2026
+
+Same CC04 acknowledged clean d03fd144/tree6c1bc2fd, full82-line prompt,
+153-line slice plan,14-line ledger,108-line review and changed parent/current
+Arc07 authority. A clipped combined parent read was recovered before edits;
+no compaction occurred. CC reports original required prose/data remains actually
+available/coherent for this exact correction, without numeric capacity claim.
+At this committed handoff CC becomes sole mutation/index owner of five allowed
+paths; execution-intake is this handoff HEAD, distinct from prompt creation
+d03fd144/SHA6bb4ecd23db0a2e750dd14a3cba89cd842e1b3bb7a04bac6e5c82c1138601532.
+CDC/root cease mutable scans/edits through explicit clean/no-active-tool release.
+Three accepted/five open statuses, original observations, passed proof and all
+investigation caps remain unchanged; no renewed source/tag/search/probe.

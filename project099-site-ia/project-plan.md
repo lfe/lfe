@@ -565,6 +565,14 @@ accepted amendment, never retrospective criterion softening.
 
 ## Current state
 
+**Slice04 iteration01 handoff19 October:** CC04 acknowledges clean d03fd144,
+full new prompt/plan/ledger/review/current authority with recovered parent output,
+no compaction and actually retained coherent original prose/data. At this committed
+handoff CC owns planning/index for five paths; actual execution baseline is this
+HEAD, creation d03fd144 remains immutable. CDC/root suspend mutable scans/edits
+through clean release. Three accepted/five open; no new observation allowance.
+
+
 **Slice04 initial review19 October:** a0fc7b8e +bbcf9303 acceptsS4-01/02/06;
 five remain forR4-01–03 exact local correction. Iteration01 preserves all original
 observations/tags and passed proof, permitting only named semantic/attribution/
