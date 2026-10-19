@@ -175,3 +175,72 @@ Slice03 acceptance. A no-network correction within this slice's ordinary
 refinement budget can repair the existing contract. No retrospective is claimed
 complete before actual closure. CDC owns planning/index until serialized
 corrective handoff; root is read-only.
+
+
+## Iteration01 independent review — 19 October 2026
+
+CDC independently inspected evidence d16aa934d4e4265c72291538fc77f8bbf2d1e82a,
+tree779eaacbcd08a2e6b3c5f69dd949dc1e85619740, and report-only receipt
+335b5aa3dc95a69ad95428e9f46a96ea82847e88, treea4c0431be2ce6ca97a115fa43d30dde6343264f2,
+against actual execution intake5f5ee4b and immutable iteration01 creation3db553e.
+CC returned clean ownership/no active tool; CDC owns planning again.
+
+**Verdict: accept S3-01/06/07/08 and retain S3-02/03/04. S3-05 alone remains
+open for the persistent R3-03 consumed-data coverage wording. Seven rows done.**
+No additional request or body read was made; the40/40 allocation stays exhausted.
+
+Fresh private independent replay passes all8 root/HEAD/branch/status projections,
+8 populations/2,819 ordered paths,2,839 working/mode/HEAD qualifications and8
+pins;2,835 files equal HEAD and the same4 qualified website Rust files differ.
+All3 frozen registers, both issued prompts, exact3-done/5-open pre-review
+Status/Evidence values and restored8 empty Notes cells match their correct
+baselines. Both candidate ranges contain exactly5 allowed paths; the receipt
+changes closing-report alone.5 committed files, JSON/UTF8/LF/newline/whitespace,
+30 rendered local links and both git-show whitespace checks pass. No other
+source or historical evidence changes.
+
+All20 primary objects are parsed-value equal to initial/intake objects. CDC's
+fresh source-value predicate derives the expected source chain independently
+from occurrence/destination/entrance/selected-link objects and matches all32
+complete locators, not just their IDs. Actual11 line errors are fixed; full
+repository/path/HEAD/hash/range and auxiliary locator fields match. The same
+predicate rejects missing/duplicate membership and wrong source line/digest.
+Complete20-row source/target association and ordered URL checks pass. R3-01
+and the ledger-field part of R3-04 are resolved; current return metadata and
+8-row/3-artifact walk are complete. Historical failed fields remain identifiable.
+
+All29 distinct hashes in the superseding intake receipt match actual current
+named files. Project sections are complete423–467/468–547/568–687 at5f5ee4b;
+arc277/slice191/ledger extents and177-line current review agree. Actual guide01
+and07 identities/scopes are now separated. Missing first-steps definitions
+load now, after probes, without backfill. CC first claimed prior normative
+prose was retained, then audited that confidence as summary-derived before
+edits and explicitly reloaded it. A wrong-path historical review read stopped
+at340 lines; the exact current177-line review was then loaded. Those recovery
+messages and the complete superseding prose reads establish current intake;
+they do not claim correct original pre-probe exposure. Remaining shape/ledger/
+validation-harness errors and recoveries are preserved in execution.md. Four
+source-less derived Build It IDs are named, none selected; no selected witness
+is excluded. R3-02 is resolved at its truthful receipt/readback strength.
+
+Concrete consuming arcs/re-entry and corrected restricted-count wording now
+pass: Arc08 practical/chapter guidance, Arc10 book entrances/promotions, Arc11
+legacy provenance, with Arc04 architecture implications. However JSON
+`coverage_and_exclusions.unselected` at1193 still says the broader804-group
+set “were not checked” and “They are unselected/unverified”. The corrected
+readiness summary says the unselected remainder, which is accurate. This
+residual consumed-data field must agree with the explicit20 selected rows and
+broader denominator. JSON finding R03-F01.state at1150 also still says
+independent checks reserved; make that current wording agree with consumed
+V slots. This is persistence of the same cross-artifact R3-03 correction,
+not a new investigation or scope change. No new census or subtraction is needed.
+
+The second refinement will change only those two JSON strings and necessary
+execution/return receipts; ledger/current accepted data and readiness summary
+stay fixed. Retain this independently reproduced32-locator/20-primary/Notes/
+intake proof at its actual candidate identity because those values and relevant
+inputs are unchanged by two descriptive string edits; assess applicability on
+return and rerun affected field/whole-JSON-delta checks. Keep every historical
+failure, all40 original observations,3 artifacts and both prior prompts.
+S3-05 remains open; all other7 rows are now accepted. No structural Arc01
+amendment; Slice04 stays behind actual closure. CDC retrospective remains due.

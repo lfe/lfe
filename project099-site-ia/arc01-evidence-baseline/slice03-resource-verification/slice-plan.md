@@ -2,7 +2,7 @@
 project: project099-site-ia
 arc: arc01-evidence-baseline
 slice: slice03-resource-verification
-version: "1.1"
+version: "1.2"
 date: 2026-10-19
 status: active
 depends-on: [slice02-local-inventory]
@@ -140,20 +140,30 @@ recovery rather than represented by counts/hashes.
 
 ## Assignment history
 
-Current assignment: `cc-prompt-iteration01.md`, first local refinement after
-initial review. S3-02/03/04 accepted; remaining5 open for R3-01–04. Shared
-40/40 slots are consumed; no more network/browser navigation or readiness
-body checks. Preserve primary observations and CDC attribution. Correction
-uses the same5 paths, Evidence-only ledger updates except exact restoration
-of8 unauthorized Notes cells to opening2d96eed (empty); accepted Status/Evidence
-remain. This bounded restoration permits no new Notes authorship. Current
-required scope definitions load now, without backdating pre-probe exposure.
-CDC owns planning/index until committed acknowledged serialized handoff.
+Current assignment: `cc-prompt-iteration02.md`, second refinement. Seven rows
+are accepted; S3-05 alone is open for two residual current JSON coverage/state
+strings. Its exact3-path mutation subset is resource-checks.json (two strings),
+execution.md and closing-report.md (necessary receipts). Ledger/readiness summary
+and all other JSON values remain fixed.40/40 exhausted; no new inquiry/request.
+CDC owns planning/index pending acknowledged handoff. Reuse actually available
+original prose; after recovery reload required unavailable contracts. Retain
+passed independent evidence at its exact original identity, with applicability
+judgment after actual delta inspection.
+
+Iteration02 author readiness: CDC independently checked32 actual source locators,
+20 primary values,29 receipt hashes/complete extents, Notes/Status/Evidence and
+full preservation/return before identifying the exact persistent JSON paths.
+The current corrected summary supplies the intended coverage meaning. The
+new prompt fixes those two strings through one affected-field/whole-JSON-delta
+check, rejects old wording and preserves every other parsed value. No new
+consequential decision, source/body investigation or machinery is needed.
 
 | Assignment | Issued | Predecessor | Reason | Disposition |
 | --- | --- | --- | --- | --- |
 | cc-prompt.md | 2026-10-19 | Accepted Slice02 d7063b2 | Execute the explicitly approved20-destination/max40-check readiness pass | Returned0d2e09fd +5a3424cc; three rows accepted/five open, failed initial evidence preserved |
-| cc-prompt-iteration01.md | 2026-10-19 | cc-prompt.md / initial CDC review | Repair R3-01–04 source values, intake/coverage/field boundaries locally with all40 checks exhausted | Issued pending acknowledgement/serialized handoff |
+| cc-prompt-iteration01.md | 2026-10-19 | cc-prompt.md / initial CDC review | Repair R3-01–04 source values, intake/coverage/field boundaries locally with all40 checks exhausted | Returned d16aa934 +335b5aa; seven rows accepted/S3-05 open |
+
+| cc-prompt-iteration02.md | 2026-10-19 | cc-prompt-iteration01.md / CDC iteration01 review | Align two residual JSON current-coverage/state strings and necessary receipts only | Issued pending acknowledgement/serialized handoff |
 
 ## Version History
 
@@ -162,6 +172,8 @@ CDC owns planning/index until committed acknowledged serialized handoff.
 | 1.0 | 2026-10-19 | Approved bounded investigation and independent Slice02 close | Open20 fixed destinations with20 primary/20 independent slots, source/rendered qualifications, five-path return and8 criteria |
 
 | 1.1 | 2026-10-19 | Initial independent review | Accept three rows, preserve five defects and complete40-check record; issue first no-network local correction without criterion or investigation-budget change |
+
+| 1.2 | 2026-10-19 | Iteration01 independent review | Accept seven rows and target residual R3-03 JSON wording in second local refinement, preserving all passed proof and exhausted40-check cap |
 
 ### Initial serialized execution handoff (historical) — 19 October 2026
 

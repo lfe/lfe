@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 title: LFE site information architecture and supporting foundations
-version: "1.15"
+version: "1.16"
 date: 2026-10-19
 status: active
 depends-on: []
@@ -17,11 +17,12 @@ mode: autonomous (includes expedited)
 
 # Project 099 — LFE site IA
 
-**Current19 October status, v1.15:** Arc01 remains active. Slice02 is closed;
-Slice03 initial return accepts S3-02/03/04 and leaves5 rows open for a local
-locator/intake/coverage/field-boundary correction. All40 checks are consumed;
+**Current19 October status, v1.16:** Arc01 remains active. Slice02 is closed;
+Slice03 iteration01 accepts7 rows and leaves S3-05 open for two current
+coverage strings in the consumed JSON. Earlier local locator/intake/field
+defects are repaired and independently reproduced. All40 checks are consumed;
 no extra network is authorized. Current assignment is
-`arc01-evidence-baseline/slice03-resource-verification/cc-prompt-iteration01.md`,
+`arc01-evidence-baseline/slice03-resource-verification/cc-prompt-iteration02.md`,
 creation/serialized handoff acknowledged before execution. CDC owns planning
 until that handoff; explicit models/Arc01 endpoint and later approved gates remain.
 
@@ -567,6 +568,18 @@ accepted amendment, never retrospective criterion softening.
 
 ## Current state
 
+**Slice03 iteration01 review,19 October:**d16aa934 +335b5aa passes32 full
+source locators,20 unchanged primary objects, complete truthful current intake,
+Notes restoration and exact scoped preservation/return. Seven rows accepted;
+S3-05 alone remains open because two JSON current-coverage/check-state strings
+still contradict the corrected summary/counts. Current assignment is distinct
+`arc01-evidence-baseline/slice03-resource-verification/cc-prompt-iteration02.md`,
+a second local refinement restricted to those strings and necessary receipts.
+Prior proof is retained at exact identities with reviewer applicability checks;
+no unrelated inquiry/reread or request-budget reset. CDC owns planning until
+acknowledged handoff;40/40 remains consumed and Slice04 remains gated.
+Earlier handoff/review snapshots below are historical on these status facts.
+
 **Iteration01 serialized handoff,19 October:** same LunaHigh CC03 acknowledged
 clean3db553e/tree02ad6001 and complete untruncated137-line prompt,177-line CDC
 review,178-line slice plan and14-line ledger. It reports a coherent operative
@@ -711,3 +724,5 @@ approval. Navigation/design choices remain open, and expansion remains expected.
 | 1.14 | 2026-10-19 | Accepted Slice02 / approved bounded Slice03 | Open fixed20-target resource/readiness pass with20 primary/20 independent slots, fresh LunaHigh context and exact source/rendered boundaries | Within existing approved investigation; no scope/criterion amendment |
 
 | 1.15 | 2026-10-19 | Slice03 initial independent review | Accept three observation/interpretation rows, preserve five local return defects and all40 consumed checks; issue bounded no-network iteration01 with exact source/intake/field correction and unchanged endpoint | Routine review/refinement under existing authority; no scope or criterion amendment |
+
+| 1.16 | 2026-10-19 | Slice03 iteration01 independent review | Accept seven child rows, retain exact passed proof and target only residual JSON R3-03 wording in local iteration02;40/40 exhausted, no scope/criterion change | Routine refinement within existing budget |
