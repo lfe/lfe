@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 title: LFE site information architecture and supporting foundations
-version: "1.22"
+version: "1.23"
 date: 2026-10-19
 status: active
 depends-on: []
@@ -17,13 +17,12 @@ mode: autonomous (includes expedited)
 
 # Project 099 — LFE site IA
 
-**Current19 October status, v1.22:** Slices01–04 closed. Slice05's complete
-finite reconciliation open set is issued from accepted138543bf inputs:72 existing
-obligation rows,20 resource joins and ten inherited pending P0 targets. Current
-assignment: `arc01-evidence-baseline/slice05-baseline-reconciliation/cc-prompt.md`.
-Fresh LunaHigh CC05 will acknowledge before parent-only ownership transfer;
-SolHigh CDC retains planning/index until then. No new inquiry or Arc02 start;
-Arc01 independent composition remains pending after Slice05 acceptance.
+**Current19 October status, v1.23:** Slices01–04 closed. Slice05 initial return
+338176f +17e72267 independently accepts five rows;S5-04/07/08 remain forR5-01–03
+current prose recovery,ledger Notes restoration and one aggregate concern handoff.
+Current assignment `arc01-evidence-baseline/slice05-baseline-reconciliation/cc-prompt-iteration01.md`.
+CDC owns planning/index pending acknowledged serialized transfer. No new inquiry;
+Arc01 composition remains pending and Arc02 unopened.
 
 **Historical opening summary, superseded by the current state above:**
 
@@ -478,7 +477,7 @@ scope. Existing Expedited Mode and all Operator gates remain binding.
 | Role / actual context | Explicit requested and tool-selected settings | Authority |
 | --- | --- | --- |
 | CDC: `/root/autonomous_cdc`, Sofie | OpenAI Codex collaboration tools; `gpt-6.1-sol`, reasoning `high` | Arc01 planning, coordination and independent CC review; assigned and acknowledged 2026-10-19 |
-| CC: fresh `/root/autonomous_cdc/cc_slice05` for Slice05; preceding CC04 retained read-only | OpenAI Codex collaboration tools; `gpt-6-luna`, reasoning `high` | Execute the preserved current prompt, self-check and return proposed-done evidence |
+| CC: fresh `/root/autonomous_cdc/cc_slice05_refinement` for Slice05 iteration01; initial CC05 and preceding CC04 retained read-only | OpenAI Codex collaboration tools; `gpt-6-luna`, reasoning `high` | Execute the preserved current prompt, self-check and return proposed-done evidence |
 | Root `/root` | Existing chat, transport/Operator liaison only | No substantive CDC authorship or planning mutations |
 
 These are explicit role selections, not inherited defaults. No fallback is
@@ -566,6 +565,17 @@ re-entry condition. Failed composition creates remediation work or an explicit
 accepted amendment, never retrospective criterion softening.
 
 ## Current state
+
+**Slice05 initial review19 October:** Actual candidate338176f +17e72267 preserves
+72 original meanings/20 resource joins/ten targets; five rows accepted. R5-01
+requires actual complete current required prose after continuation, retaining
+unestablished historical reads;R5-02 restores eight original Notes and puts new
+evidence in actual Evidence cells;R5-03 gives one aggregate gap concern owners.
+Distinct iteration01 is first normal refinement,not new discovery or budget.
+CDC owns planning/index until acknowledged transfer; fixed complete slice plan
+precedes acknowledgment and the later parent-only handoff must actually load.
+Arc01-only endpoint,approved settings and exhausted inquiry caps remain unchanged.
+
 
 **Slice05 serialized handoff19 October:** Fresh CC05 /root/autonomous_cdc/cc_slice05
 acknowledged explicit LunaHigh/SolHigh/no fallback,clean8edb77e0b1ecacefb7e99fa450c65971e1980049,
@@ -844,3 +854,5 @@ approval. Navigation/design choices remain open, and expansion remains expected.
 | 1.21 | 2026-10-19 | Slice04 Iteration02 independent acceptance | Close8 child rows and retrospective, preserve exact bounds/missing-input ownership and release planned Slice05 readiness gate | Routine independent closure |
 
 | 1.22 | 2026-10-19 | Accepted Slices01–04 and planned Slice05 readiness | Open finite existing-input evidence/owner reconciliation with explicit13+3 witness boundary and unchanged inquiry/endpoint gates | Authorized Arc01 progression |
+
+| 1.23 | 2026-10-19 | Slice05 initial independent review | Preserve five accepted child rows,three explicit local corrections and current ownership without changed scope or gates |

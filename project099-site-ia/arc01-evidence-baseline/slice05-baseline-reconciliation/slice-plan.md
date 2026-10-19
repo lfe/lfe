@@ -2,7 +2,7 @@
 project: project099-site-ia
 arc: arc01-evidence-baseline
 slice: slice05-baseline-reconciliation
-version: "1.0"
+version: "1.1"
 date: 2026-10-19
 status: active
 depends-on: [slice01-baseline-intake, slice02-local-inventory, slice03-resource-verification, slice04-technical-intake]
@@ -113,17 +113,46 @@ needed to construct this existing-evidence delivery.
 
 ## Assignment history
 
-Current: initial cc-prompt.md,issued19 October. Opening commit is creation;
+Current: cc-prompt-iteration01.md,issued19 October after initial review. Opening commit is creation;
 actual execution baseline is later parent-only ownership commit. CDC owns planning
 until acknowledged handoff. No new source population: all data remain
 at the accepted138543bf snapshot; three frozen Slice02 JSONs remain2112713 bytes.
 
 | Assignment | Issued | Predecessor | Reason | Disposition |
 | --- | --- | --- | --- | --- |
-| cc-prompt.md | 2026-10-19 | Accepted Slice04 138543bf | Implement planned finite evidence/finding reconciliation | Issued; acknowledgment pending |
+| cc-prompt.md | 2026-10-19 | Accepted Slice04 138543bf | Implement planned finite evidence/finding reconciliation | Returned338176f +17e72267; independently accepted five rows,three open |
+| cc-prompt-iteration01.md | 2026-10-19 | Initial338176f +17e72267 / CDC review | Current intake,Notes restoration and one aggregate concern handoff | Issued; acknowledgment/serialized handoff pending |
+
+## Iteration01 current review and readiness — 19 October 2026
+
+Initial review at338176f +17e72267 acceptsS5-01/02/03/05/06;S5-04/07/08 remain
+open forR5-01 complete actual current recovery,R5-02 original Notes restoration
+andR5-03 one aggregate gap's per-concern handoffs. Initial claim/history and
+all passed proof remain. Current assignment cc-prompt-iteration01.md is the
+first normal refinement; no investigation,criteria change or budget reset.
+CDC owns planning/index until acknowledged parent-only serialized handoff.
+This complete slice plan is fixed through that handoff; CC must load the actual
+changed parent ownership paragraph before dependent edits.
+
+CDC author readiness: actual current framework/role/PM/WV/coordination/Cobalt
+sources,initial227-line prompt and all actual candidate/prose/72-row meanings
+were inspected. Exact object/field/column comparisons reproduce the findings;
+wrong-ID/locator/boundary/slot/P0 controls reject plausible mistakes. R5-03 uses
+the adopted roadmap/initial recipe6 and original gap,not new research. The new
+prompt supplies five exact concern handoffs and narrow JSON-delta/Evidence-column
+oracles. Current required prose must actually be loaded after recovery; already
+coherent actual normative text may be retained. No numerical capacity or causal
+model-performance claim is made. Fresh LunaHigh refinement context is selected because CC05 now reports its
+operative bodies are again compressed summaries after continuation. This is
+observed availability loss,not an assumed model size; retain passed proof by
+exact unaffected projections and require complete current operative text.
+Old CC05 stays read-only; no other context repairs and self-accepts it.
+
 
 ## Version History
 
 | Version | Date | Origin | Change |
 | --- | --- | --- | --- |
 | 1.0 | 2026-10-19 | Independent Slices01–04 closure and authorized Arc01 plan | Open finite72-obligation/20-resource/ten-target existing-evidence reconciliation,without renewed inquiry |
+
+| 1.1 | 2026-10-19 | Initial independent review | Preserve five accepted rows and issue first finite local correction forR5-01–03; no scope/criterion/budget change |
