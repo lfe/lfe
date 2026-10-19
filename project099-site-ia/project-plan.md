@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 title: LFE site information architecture and supporting foundations
-version: "1.20"
+version: "1.21"
 date: 2026-10-19
 status: active
 depends-on: []
@@ -17,12 +17,11 @@ mode: autonomous (includes expedited)
 
 # Project 099 — LFE site IA
 
-**Current19 October status, v1.20:** Slices01–03 closed. Slice04 substantive
-corrections pass;6 rows accepted/2 open for exact current reading/source-identity
-receiptR4-04. Current assignment:
-`arc01-evidence-baseline/slice04-technical-intake/cc-prompt-iteration02.md`.
-CDC owns planning pending acknowledged parent-plan handoff. All observation
-budgets,role settings,Arc01 endpoint and downstream gates remain unchanged.
+**Current19 October status, v1.21:** Slices01–04 independently closed. Slice04's
+all8 rows and retrospective are complete after iteration02; its16/eight/one
+observation bounds and Slice03's40 checks stay consumed. Planned Slice05 finite
+reconciliation is next after source-grounded opening. CDC owns planning/index;
+explicit models,Arc01 endpoint and independent composition gate remain unchanged.
 
 **Historical opening summary, superseded by the current state above:**
 
@@ -566,6 +565,14 @@ accepted amendment, never retrospective criterion softening.
 
 ## Current state
 
+**Slice04 accepted19 October:** independent CDC accepts all8 original rows at
+580f256 +e4fac583; retrospective complete, history/limits preserved. Delivered
+technical source/tag identities and exact owned unknowns feed planned Slice05.
+CC returned clean/no-active-tool ownership; CDC owns planning. No new source/
+tag/search/network/runtime pass is authorized. Arc01 composition remains open;
+Arc02 stays unopened. Earlier issue/review/handoff paragraphs are historical.
+
+
 **Slice04 iteration02 serialized handoff19 October:** Same CC04 acknowledged
 clean93cfdf575139673d72160814a63eea613bf42e6f/tree534cbeeede440dafef042c62d2f76f53b51abedd,
 full67-line prompt,187-line plan,14-line ledger,172-line review,62-line execution
@@ -805,3 +812,5 @@ approval. Navigation/design choices remain open, and expansion remains expected.
 | 1.19 | 2026-10-19 | Slice04 initial independent review | Accept3 rows, require exact consumed source/owner/receipt fixes in first refinement; no scope/criterion/investigation change | Routine independent review/status maintenance |
 
 | 1.20 | 2026-10-19 | Slice04 Iteration01 independent review | Accept6 rows and issue second receipt-only refinement forR4-04, retaining all technical proof and gates | Routine independent review/status maintenance |
+
+| 1.21 | 2026-10-19 | Slice04 Iteration02 independent acceptance | Close8 child rows and retrospective, preserve exact bounds/missing-input ownership and release planned Slice05 readiness gate | Routine independent closure |

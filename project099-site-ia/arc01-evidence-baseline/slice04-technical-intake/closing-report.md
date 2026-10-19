@@ -96,3 +96,13 @@ Bubble-up is unchanged: Arc07/08/11 retain only their conditional surface handof
 ## Iteration02 commit receipt
 
 The three-path receipt packet is committed as `580f256b90a9edef490d528c63d8ddc514ad6114` with tree `ce6f297616a4af6736218d931377f73e0a86a322`, directly on execution handoff `7dd0f0765e67e372e2aef0c8a5e0d6fe37d9ee84` / tree `b8d6aedc1c3c05edb4e4e0d0783f279a6c0820a9`. Its exact paths are `artifacts/execution.md`, `ledger.md` (Evidence cells only), and this `closing-report.md`. The commit's parent, changed-path list, committed bytes and whitespace check were verified; the worktree and index were clean immediately after it. This final metadata receipt is a closing-report-only follow-up; its single-file range and committed bytes are checked separately.
+
+## CDC acceptance metadata — 19 October 2026
+
+Independent [CDC review](cdc-verification.md) accepts all8 rows after580f256 +
+e4fac583; the [CDC retrospective](cdc-retrospective.md) is complete. This labeled
+metadata is authored by CDC and does not rewrite CC's historical proposed returns.
+Three supporting artifacts and their scope remain fixed. CDC owns planning after
+clean release; planned Slice05 may be opened after source-grounded readiness.
+Arc01 composition is pending and Arc02 remains unopened. Runtime packet remains
+an owned missing input, not a reproduced or resolved failure.

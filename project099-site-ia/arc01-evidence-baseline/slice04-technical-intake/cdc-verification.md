@@ -170,3 +170,45 @@ Six accepted/two open; first refinement completed, second normal refinement
 is narrowly scoped to existing execution/ledger Evidence/closing receipts.
 No technical JSON or summary changes are needed. Slice05/composition remain
 gated until the actual close; Arc02/Operator still owns missing runtime input.
+
+## Iteration02 independent acceptance and Slice04 close — 19 October 2026
+
+CDC independently reviews580f256b90a9edef490d528c63d8ddc514ad6114/treece6f297616a4af6736218d931377f73e0a86a322
+plus receipte4fac58394f7a8bd8b8e6dc3493922a0e526028f/treef4d176bddcf25b0d7a48c9c0864c50499985a005,
+from execution7dd0f0765e67e372e2aef0c8a5e0d6fe37d9ee84. Exact three-path delta
+and closing-only receipt pass. JSON/summary bytes and all three issued prompts
+are unchanged; the187-line plan is byte-equal at93cfdf5 creation and7dd0f07
+execution. Six complete prose-object SHA/blob/line identities and three parent
+object identities agree with the current receipt. The actual parent handoff
+is complete569–581; same source-extent predicate rejects missing final581.
+The same object predicate rejects153-line/SHA393fde attributed to2196bd3.
+
+Current text faithfully preserves the historical pre-edit153@d03 read and missing
+plan154–167/parent paragraph at2196, without backfill. Complete current reads,
+actual post-transfer paragraph loading and still-coherent original authority
+are separately attested. The reported one-line extent typo was corrected before
+edits; actual complete text had been delivered. Initial clipping/path/parser
+recoveries are preserved. No new body/tag/search/runtime investigation occurred.
+
+All8 rows remain accounted for; six accepted/two open pre-review statuses and
+Evidence-only changes pass, as do the complete8-row return,27 local links,
+UTF8/LF/final newline/whitespace, both commit checks, exact final bytes and clean
+planning. CC released ownership/no active tool; CDC owns planning/index.
+R4-04 is dispositioned. All8 original criteria now independently accepted.
+
+Retained at their original identities: initial8/40 metadata,16 witness identities,
+102 tags,13/74 saved search and root chat scope; Iteration01 six corrected claim
+semantics/ranges and seven findings/three concrete output handoffs; protected
+source populations/fingerprints/pins and frozen inputs. The actual receipt-only
+delta cannot affect those facts, criteria/inputs/methods are unchanged, and no
+new finding undermines them. No prior run is relabeled fresh. Current review
+freshly reproduces the changed identity/extent/return/scope properties only.
+
+The arc piece is delivered: source-qualified technical/tag/container/build/
+documentation evidence with exact dates/limits and owned unknowns. Runtime
+packet absence is an intake disposition, not reproduction, diagnosis or repair;
+Arc02/Operator owns original packet/relevance. Workbench dump remains unopened.
+Three artifacts stay at their declared home; all original budgets/history remain.
+No structural/criterion amendment is needed. Slice05's reconciliation gate opens;
+Arc01 composition remains pending, with Arc02 unopened. CDC retrospective is
+complete at cdc-retrospective.md; source/output and support decisions stay future.

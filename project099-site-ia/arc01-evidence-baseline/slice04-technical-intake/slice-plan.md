@@ -2,9 +2,9 @@
 project: project099-site-ia
 arc: arc01-evidence-baseline
 slice: slice04-technical-intake
-version: "1.2"
+version: "1.3"
 date: 2026-10-19
-status: active
+status: closed
 depends-on: [slice01-baseline-intake, slice03-resource-verification]
 workflow: two-contributor
 mode: autonomous (includes expedited)
@@ -102,6 +102,13 @@ queries do not authorize more investigation or reusable validation software.
 
 ## Assignment history
 
+Current: iteration02 independently accepted at580f256 +e4fac583; all8 original
+rows done, R4-01–04 dispositioned, CDC retrospective complete. CC returned clean
+with no active tool; CDC owns planning/index for planned Slice05 author readiness.
+Exact16/eight/one budgets remain consumed; no renewed inquiry. Earlier assignment
+snapshots below are historical and superseded on current status.
+
+
 Current: iteration02, second normal refinement,6 accepted/2 open. All source/
 owner/technical-data corrections pass. R4-04 concerns false source attribution
 of153-line acknowledgment reads to167-line execution state and missing pre-edit
@@ -185,3 +192,5 @@ Evidence/return prose, with exact-object and missing-section controls. Passed
 substantive proof remains applicable; no investigation or policy decision needed.
 
 | 1.2 | 2026-10-19 | Iteration01 independent review | Accept6 rows; require truthful current intake/source receipt forR4-04 in second local refinement; no budget or criterion change |
+
+| 1.3 | 2026-10-19 | Iteration02 independent acceptance | Close8 original rows/retrospective, preserve full history/limits and release planned Slice05 gate |
