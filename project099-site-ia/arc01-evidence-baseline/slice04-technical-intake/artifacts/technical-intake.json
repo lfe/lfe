@@ -1,0 +1,2828 @@
+{
+  "schema_version": 1,
+  "assignment": {
+    "project": "Project099",
+    "arc": "Arc01",
+    "slice": "Slice04",
+    "purpose": "Technical source intake and handoff",
+    "authorized_mode": "Autonomous Mode through Arc01 only",
+    "selected_cc_model": "OpenAI Codex gpt-6-luna/high",
+    "selected_cdc_model": "gpt-6.1-sol/high",
+    "fallback": "none",
+    "backend_identity": "unreported",
+    "approved_bounds": {
+      "source_witnesses": 16,
+      "metadata_groups": 8,
+      "combined_intake_passes": 1
+    }
+  },
+  "input_identity": {
+    "path": "/tmp/project099-slice04-author-observation.json",
+    "sha256": "560ccdb39d0ec6a9f164f6ae2e0ca067a380ada644292dd1bdd458dea9dc5275",
+    "observed_utc_range": "2026-10-19T20:12:41.587386+00:00–2026-10-19T20:12:42.029475+00:00",
+    "original_observer": "CDC /root/autonomous_cdc; observations remain CDC original observations, not CC-run commands",
+    "execution_handoff_commit": "c098ac580fc4e76205e9a645e65e46c4e9074d2f",
+    "execution_handoff_tree": "6d13add7246794448692b7087f54ed62826c0a17"
+  },
+  "original_observations": {
+    "metadata_groups": [
+      {
+        "group_id": "M01",
+        "repository_id": "website",
+        "root": "/Users/oubiwann/lab/lfe/lfe.github.io",
+        "started_utc": "2026-10-19T20:12:41.587538+00:00",
+        "queries": [
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe.github.io",
+              "rev-parse",
+              "--show-toplevel"
+            ],
+            "exit": 0,
+            "stdout": "/Users/oubiwann/lab/lfe/lfe.github.io",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe.github.io",
+              "rev-parse",
+              "HEAD"
+            ],
+            "exit": 0,
+            "stdout": "036e231b09c48966da26d2227bccb4fa3b295df9",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe.github.io",
+              "branch",
+              "--show-current"
+            ],
+            "exit": 0,
+            "stdout": "main",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe.github.io",
+              "status",
+              "--porcelain=v1",
+              "--untracked-files=all"
+            ],
+            "exit": 0,
+            "stdout": " M Makefile\n M tools/lfesite/src/cmd/blog_migrate.rs\n M tools/lfesite/src/cmd/blog_resolve.rs\n M tools/lfesite/src/cmd/build.rs\n M tools/lfesite/src/cmd/draft_post.rs\n M tools/lfesite/src/cmd/migrate.rs\n M tools/lfesite/src/cmd/new_post.rs\n M tools/lfesite/src/cmd/prerender.rs\n M tools/lfesite/src/cmd/publish_post.rs\n M tools/lfesite/src/cmd/sass.rs\n M tools/lfesite/src/cmd/serve.rs\n M tools/lfesite/src/cmd/validate.rs\n M tools/lfesite/src/main.rs\n M tools/lfesite/src/util.rs\n?? CC-verification-brief-otp-tutorials.md",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe.github.io",
+              "for-each-ref",
+              "--format=%(refname:short)%09%(objecttype)%09%(objectname)%09%(*objectname)",
+              "refs/tags"
+            ],
+            "exit": 0,
+            "stdout": "1.0.0\tcommit\t768e8b1f08c4353edd15b13bac95e87401d616a2\t\n1.0.1\tcommit\tce90aaf2bae5cb0f3ce8713d78486ddd8a54fe31\t\n1.2.0\tcommit\t06529a8385f09e755ebc6f5c560ca74fe7de7e6c\t\n1.2.1\tcommit\tdf01b3c3c6a086aac406911f6afff0f1fe593103\t\n1.2.2\tcommit\tc3998b699ebd424eb01bfbd96472a94f9619ddd4\t\n1.2.3\tcommit\tfaff347c56e261d46045954f41dcc5e138bdd79f\t\n1.2.4\tcommit\tcf02ee6f2dbaaa59eda92cf47f4d5ad3799a7c79\t\n1.2.5\tcommit\t8e097fc19637e0fddc6d63a83d7b6a36382768a8\t\n2.0.0\tcommit\td3776bb10612e1ef57b6dbd1eca5b1ab9e5a672e\t\n2.0.1\tcommit\t212141eebc1d92d3841f3645ba34d9863e93b888\t\n3.0.0\tcommit\ta3c8adad1b101fd3abd71c0ea1e136a96b4975ba\t\n4.0.0\tcommit\te22329d1d2c9c70e74035e2daf62126d510693ce\t",
+            "stderr": ""
+          }
+        ],
+        "completed_utc": "2026-10-19T20:12:41.629924+00:00"
+      },
+      {
+        "group_id": "M02",
+        "repository_id": "manual",
+        "root": "/Users/oubiwann/lab/lfe/lfe-manual",
+        "started_utc": "2026-10-19T20:12:41.645661+00:00",
+        "queries": [
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe-manual",
+              "rev-parse",
+              "--show-toplevel"
+            ],
+            "exit": 0,
+            "stdout": "/Users/oubiwann/lab/lfe/lfe-manual",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe-manual",
+              "rev-parse",
+              "HEAD"
+            ],
+            "exit": 0,
+            "stdout": "eba76e31367ee8d0eaa3217acce0d6bfc5378d17",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe-manual",
+              "branch",
+              "--show-current"
+            ],
+            "exit": 0,
+            "stdout": "main",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe-manual",
+              "status",
+              "--porcelain=v1",
+              "--untracked-files=all"
+            ],
+            "exit": 0,
+            "stdout": "?? workbench/FORMS-INDEX.md\n?? workbench/PHASE1-INVESTIGATION.md\n?? workbench/PHASE1-SUMMARY.md\n?? workbench/README.md\n?? workbench/TEMPLATE-VALIDATION.md\n?? workbench/TESTING-DELIVERY.md\n?? workbench/TESTING-INFRASTRUCTURE.md\n?? workbench/TESTING-QUICKREF.md\n?? workbench/debug.txt\n?? workbench/erl_crash.dump\n?? workbench/extract-lfe-examples.sh\n?? workbench/test-lfe-examples-debug.sh\n?? workbench/test-lfe-examples.sh\n?? workbench/tmp/lfe-test-debug-74823/extract.log\n?? workbench/tmp/lfe-test-debug-74823/extracted.lfe\n?? workbench/tmp/lfe-test-debug-74823/test-suite.lfe",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe-manual",
+              "for-each-ref",
+              "--format=%(refname:short)%09%(objecttype)%09%(objectname)%09%(*objectname)",
+              "refs/tags"
+            ],
+            "exit": 0,
+            "stdout": "",
+            "stderr": ""
+          }
+        ],
+        "completed_utc": "2026-10-19T20:12:41.684158+00:00"
+      },
+      {
+        "group_id": "M03",
+        "repository_id": "tutorial",
+        "root": "/Users/oubiwann/lab/lfe/lfe-tutorial",
+        "started_utc": "2026-10-19T20:12:41.698622+00:00",
+        "queries": [
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe-tutorial",
+              "rev-parse",
+              "--show-toplevel"
+            ],
+            "exit": 0,
+            "stdout": "/Users/oubiwann/lab/lfe/lfe-tutorial",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe-tutorial",
+              "rev-parse",
+              "HEAD"
+            ],
+            "exit": 0,
+            "stdout": "96e7c95d3a66cb8dbc395acae0e677b24b598810",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe-tutorial",
+              "branch",
+              "--show-current"
+            ],
+            "exit": 0,
+            "stdout": "builder",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe-tutorial",
+              "status",
+              "--porcelain=v1",
+              "--untracked-files=all"
+            ],
+            "exit": 0,
+            "stdout": "",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe-tutorial",
+              "for-each-ref",
+              "--format=%(refname:short)%09%(objecttype)%09%(objectname)%09%(*objectname)",
+              "refs/tags"
+            ],
+            "exit": 0,
+            "stdout": "",
+            "stderr": ""
+          }
+        ],
+        "completed_utc": "2026-10-19T20:12:41.737269+00:00"
+      },
+      {
+        "group_id": "M04",
+        "repository_id": "casting_spels",
+        "root": "/Users/oubiwann/lab/lfe/lfe-casting-spels",
+        "started_utc": "2026-10-19T20:12:41.751140+00:00",
+        "queries": [
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe-casting-spels",
+              "rev-parse",
+              "--show-toplevel"
+            ],
+            "exit": 0,
+            "stdout": "/Users/oubiwann/lab/lfe/lfe-casting-spels",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe-casting-spels",
+              "rev-parse",
+              "HEAD"
+            ],
+            "exit": 0,
+            "stdout": "c0fc08e9e7f1df1bcd45516ad1f4f9d8be169be9",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe-casting-spels",
+              "branch",
+              "--show-current"
+            ],
+            "exit": 0,
+            "stdout": "builder",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe-casting-spels",
+              "status",
+              "--porcelain=v1",
+              "--untracked-files=all"
+            ],
+            "exit": 0,
+            "stdout": "?? code/rebar.lock",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe-casting-spels",
+              "for-each-ref",
+              "--format=%(refname:short)%09%(objecttype)%09%(objectname)%09%(*objectname)",
+              "refs/tags"
+            ],
+            "exit": 0,
+            "stdout": "",
+            "stderr": ""
+          }
+        ],
+        "completed_utc": "2026-10-19T20:12:41.785261+00:00"
+      },
+      {
+        "group_id": "M05",
+        "repository_id": "sicp",
+        "root": "/Users/oubiwann/lab/lfe/lfe-sicp",
+        "started_utc": "2026-10-19T20:12:41.800607+00:00",
+        "queries": [
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe-sicp",
+              "rev-parse",
+              "--show-toplevel"
+            ],
+            "exit": 0,
+            "stdout": "/Users/oubiwann/lab/lfe/lfe-sicp",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe-sicp",
+              "rev-parse",
+              "HEAD"
+            ],
+            "exit": 0,
+            "stdout": "46859e2a6fdd5c346cbf03dceec8b23f0b4fff3a",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe-sicp",
+              "branch",
+              "--show-current"
+            ],
+            "exit": 0,
+            "stdout": "main",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe-sicp",
+              "status",
+              "--porcelain=v1",
+              "--untracked-files=all"
+            ],
+            "exit": 0,
+            "stdout": "",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe-sicp",
+              "for-each-ref",
+              "--format=%(refname:short)%09%(objecttype)%09%(objectname)%09%(*objectname)",
+              "refs/tags"
+            ],
+            "exit": 0,
+            "stdout": "",
+            "stderr": ""
+          }
+        ],
+        "completed_utc": "2026-10-19T20:12:41.834915+00:00"
+      },
+      {
+        "group_id": "M06",
+        "repository_id": "lfe",
+        "root": "/Users/oubiwann/lab/lfe/lfe",
+        "started_utc": "2026-10-19T20:12:41.847044+00:00",
+        "queries": [
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe",
+              "rev-parse",
+              "--show-toplevel"
+            ],
+            "exit": 0,
+            "stdout": "/Users/oubiwann/lab/lfe/lfe",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe",
+              "rev-parse",
+              "HEAD"
+            ],
+            "exit": 0,
+            "stdout": "0aa820e93bb592a821fe0a50b1db7e8926e56b30",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe",
+              "branch",
+              "--show-current"
+            ],
+            "exit": 0,
+            "stdout": "develop",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe",
+              "status",
+              "--porcelain=v1",
+              "--untracked-files=all"
+            ],
+            "exit": 0,
+            "stdout": "",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/lfe",
+              "for-each-ref",
+              "--format=%(refname:short)%09%(objecttype)%09%(objectname)%09%(*objectname)",
+              "refs/tags"
+            ],
+            "exit": 0,
+            "stdout": "0.10.0\tcommit\t07d0cc6cc6f0ae2fe06138b42b067f484fd099f3\t\n0.10.1\tcommit\t0cf28854bf2e40f81f3225c7d66592b2a09ad592\t\n0.9.0\tcommit\t4a6a1ac0d7d51cc97c74fd6ac03a7ee61698fed7\t\n0.9.1\tcommit\tdb17d7911ddd4eb03934f65268d67629166f7b0b\t\n0.9.2\tcommit\t4d5859fa9efc7e36c119ab6eaa60f93a72f71447\t\n1.0\tcommit\tc0fb9ccfd167fd98647ae5fa0586125c3e00b1c7\t\n1.0.1\ttag\tf59e03cf6f7ad47b21b34aa32e517a8bea981a38\tfdf00e827beea6372a9eb857404dde0253a83b21\n1.0.2\ttag\t3d3c76bf7a0adb68625ad2e2bfb9bf18caf55e70\t2b253c216df57050d33889a92dae631793b55584\n1.1\ttag\t04dc4f67192f1d8339fde044fd07f09a5fc634b5\t70a1dab54337ec931a21b53660c020f3cc92e7f0\n1.1.1\ttag\t9996fc5aaf4dacda7a6e8ab50c58d9c891a4b8e8\tb0f99298a41de7791683513fcbc10a770685672b\n1.2.0\ttag\tbcc62cd074f6c510300fe42ba84769a99b7c5f70\ta4b20a050d38e3f494cdf4a1a99adbe11e7b6ced\n1.2.1\ttag\t67014c5cee4c3c6149e30b2801a5d6bc4902a297\te98309f4238692c0685740257e9eb6917b152629\n1.3\ttag\t194bef3cbcfd07ef264176e4b63a02111317333d\td8337516ab09edd4b281a27ac85684b81cdeb8bd\n2.0\ttag\t39803c99629003b5d4f5069fd06a042b9f138e26\t76eaf432f768b45393e404c1bd1861a08c19de3b\n2.0.1\ttag\tda186c8a886722f17088e2b15d63bbdc615ed610\tc09b9aebaa659f5c2d0c152d8401fd6924144ce9\n2.1.0\ttag\t5f82905c640f4bbc4242825918463a9979683bf9\tc119a9216f1028ead780b7ae2b03746295ce8aad\n2.1.1\ttag\t2e91007c6e20cf0eebcba4048036b136ceae7ba4\tb969afb9b5928d33dcaef636ed9020e620858190\n2.1.2\tcommit\t6cbfdffe95caa65a659074c1c9d389fd4a6c1350\t\n2.1.3\tcommit\t236313e9be2c50950e5ac58d8175c00a6323d42e\t\n2.1.4\tcommit\tf3c0f02d2776b125bad33b3935e2118504bed0a4\t\n2.1.5\tcommit\t6616ce0127b564eadf05c2e8ef654668528fc675\t\n2.2.0\tcommit\t716a6959e4f02d200273fdabb7e1900e0a4c6a8e\t\n2.2.1\tcommit\t369dfb198c025b6498ab84a6aa8843cbf7d34512\t\n2.2.2\tcommit\tdae7489ebf9588e5f746a34cd4f8ff83d1469eef\t\nv0.10.0\tcommit\t07d0cc6cc6f0ae2fe06138b42b067f484fd099f3\t\nv0.10.1\tcommit\t0cf28854bf2e40f81f3225c7d66592b2a09ad592\t\nv0.2.1\tcommit\ta08c95f5bea17d2ca264d0fd4eacea27505fa63b\t\nv0.3\tcommit\t0aede8cc8a4319d62b9e4b3547c2b76f1462c74a\t\nv0.4\ttag\ta437c71ece06d08349258804d6d760115c21631b\t85c73bf83c074e992f2e1df599b8bed5c9bb04ae\nv0.5\tcommit\tdc6b0b74b21a0c0bf3f5ed246b33e2fca3be0975\t\nv0.5.1\tcommit\te3843f899c7f2be8fc1881a44aebba23c204e02f\t\nv0.5.2\tcommit\te207eb2cada9361c4d9cf6c023435be99a2fd06d\t\nv0.6\ttag\te936e8f885846d63305d301e813ebbb6cf858422\tde757edbc25f4ac661a02f98b26d58ce5a29ec9a\nv0.6.1\tcommit\t1bcf4614274d66022115c22f39781bc798d50af3\t\nv0.6.2\tcommit\t15b36cbd7d4ba42ac19c4169f35e4094e43d7f8a\t\nv0.7a\tcommit\t39287029d599eb3ffb1e9a1cade0bc2300cc22a3\t\nv0.8\tcommit\te094b1754462af1e91d51a7dda712bd119bac756\t\nv0.9.0\tcommit\t4a6a1ac0d7d51cc97c74fd6ac03a7ee61698fed7\t\nv0.9.1\tcommit\tdb17d7911ddd4eb03934f65268d67629166f7b0b\t\nv0.9.2\tcommit\t4d5859fa9efc7e36c119ab6eaa60f93a72f71447\t\nv1.0\tcommit\tc0fb9ccfd167fd98647ae5fa0586125c3e00b1c7\t\nv1.0.1\ttag\tde78dbc085361cfba3e2ada0284429d210ad1459\tfdf00e827beea6372a9eb857404dde0253a83b21\nv1.0.2\ttag\t3d1670f4884b1304dbb0d980f4941fc5bd1f11eb\t2b253c216df57050d33889a92dae631793b55584\nv1.1\ttag\t2b7da2b758e69566e166d5721287f7b2e1b82d35\t70a1dab54337ec931a21b53660c020f3cc92e7f0\nv1.1.1\ttag\t2aa2d59e056583bfa715fb9237f7001a7d6a571d\tb0f99298a41de7791683513fcbc10a770685672b\nv1.2.0\ttag\tb7893afb6f1e66ab6cd6063ac535b4ce297d049b\ta4b20a050d38e3f494cdf4a1a99adbe11e7b6ced\nv1.2.1\ttag\tfb55df09daea79ee42fff47a2b46e63659c8f0cd\te98309f4238692c0685740257e9eb6917b152629\nv1.3\ttag\t629c26d65416dd26da9b1dbc10ab26c71384e9aa\td8337516ab09edd4b281a27ac85684b81cdeb8bd\nv2.0\ttag\tdf39ae63ff522c404f37ca6231ab6b6635802897\t76eaf432f768b45393e404c1bd1861a08c19de3b\nv2.0.1\ttag\ta3da10a7fbf22a9824892ce46cc120fab501aef3\tc09b9aebaa659f5c2d0c152d8401fd6924144ce9\nv2.1.0\ttag\ta9d10e161dc42243f371607bff4735d3e2734e17\tc119a9216f1028ead780b7ae2b03746295ce8aad\nv2.1.1\ttag\t857d9cc805f09c4819caa813dba0bc53cb9bd9ce\tb969afb9b5928d33dcaef636ed9020e620858190\nv2.1.2\tcommit\t6cbfdffe95caa65a659074c1c9d389fd4a6c1350\t\nv2.1.3\tcommit\t236313e9be2c50950e5ac58d8175c00a6323d42e\t\nv2.1.4\tcommit\tf3c0f02d2776b125bad33b3935e2118504bed0a4\t\nv2.1.5\tcommit\t6616ce0127b564eadf05c2e8ef654668528fc675\t\nv2.2.0\tcommit\t716a6959e4f02d200273fdabb7e1900e0a4c6a8e\t\nv2.2.1\tcommit\t369dfb198c025b6498ab84a6aa8843cbf7d34512\t\nv2.2.2\tcommit\tdae7489ebf9588e5f746a34cd4f8ff83d1469eef\t",
+            "stderr": ""
+          }
+        ],
+        "completed_utc": "2026-10-19T20:12:41.881199+00:00"
+      },
+      {
+        "group_id": "M07",
+        "repository_id": "rebar3_lfe",
+        "root": "/Users/oubiwann/lab/lfe/rebar3_lfe",
+        "started_utc": "2026-10-19T20:12:41.896497+00:00",
+        "queries": [
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/rebar3_lfe",
+              "rev-parse",
+              "--show-toplevel"
+            ],
+            "exit": 0,
+            "stdout": "/Users/oubiwann/lab/lfe/rebar3_lfe",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/rebar3_lfe",
+              "rev-parse",
+              "HEAD"
+            ],
+            "exit": 0,
+            "stdout": "c59a18e205b0ab5086c10325af78a3df7f7e5f9e",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/rebar3_lfe",
+              "branch",
+              "--show-current"
+            ],
+            "exit": 0,
+            "stdout": "release/0.5.x",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/rebar3_lfe",
+              "status",
+              "--porcelain=v1",
+              "--untracked-files=all"
+            ],
+            "exit": 0,
+            "stdout": "?? docs/design/header-dep-quickfix.md\n?? priv/testing/include/records.lfe\n?? priv/testing/src/test_headers.app.src\n?? priv/testing/src/test_mod1.lfe\n?? priv/testing/src/test_mod2.lfe\n?? workbench/build_files.txt\n?? workbench/debug-compile.log",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/rebar3_lfe",
+              "for-each-ref",
+              "--format=%(refname:short)%09%(objecttype)%09%(objectname)%09%(*objectname)",
+              "refs/tags"
+            ],
+            "exit": 0,
+            "stdout": "0.1.0\tcommit\t01ccdd6948ac8a6085bf3e2acbc5e3bce7a46039\t\n0.2.0\tcommit\t7c7c8bfa81629ca0241f32573e56278c81b7b0db\t\n0.3.0\tcommit\t40456120363fc5ab3b60a091d7ff80a53f9f8ced\t\n0.3.0-rc1\tcommit\t622239cccf561da8989921af6c37f5c43c03cadb\t\n0.3.1\tcommit\t691531f257cbac1a7f2c9cc1f606dc75d4f39b35\t\n0.3.2\tcommit\t95ded90e89873e94ba38202c7fa29cf66337e717\t\n0.4.0\tcommit\t8b49a7938beb61def562a9a32c31c30567685d79\t\n0.4.1\tcommit\tffed854e8ef2f8187aaf83aafaa1d317dcbf54f1\t\n0.4.10\tcommit\t672806f61e82bec548e30ff423b8ceb96fdc3647\t\n0.4.11\tcommit\ta25ea7b88a63492cb4bfc5ed89bd3bb47098c72f\t\n0.4.12\tcommit\te3ec50f3a416c5d2da6ab85954b7851ea5bb32e6\t\n0.4.2\tcommit\t996cbfb550bd45c848fe4bb7ac012af4144e2423\t\n0.4.3\tcommit\t95b1ec67087662f320ee059a75f6e3bd6a6754a1\t\n0.4.4\tcommit\te7589b098c0371ef4b217128defb77b39ec054e7\t\n0.4.5\tcommit\tcf11152b8980336eb2603dad3338a091d1054b9e\t\n0.4.6\tcommit\ta6d15513db9a050fd7b61391f44036d76d3b9830\t\n0.4.7\tcommit\t7ab2a0d8d8bb7f47c58d3b2386cad4f4657df90f\t\n0.4.8\tcommit\tc30ab65dbd4dde4659193b00207e39fcee7421d4\t\n0.4.9\tcommit\te352256342ca14192aa214474005b31a8ed3ad44\t\n0.5.0\ttag\t0a63d4f7ad0079a1af3fc2f5107c9d56a103b82e\t59babf6daca7089c76ff23f989c4393e84b606dc\n0.5.1\ttag\t410c4d1efeca187da3ee08a2b0e313d8e851c88b\t78e805293e268a2c3e3e6c88e143e23f918e3c8c\n0.5.2\ttag\t9ce239043141b98d78664747cb01e66657484e1f\t5a2626ecca1bf349cee3340afac391058ba60e7a\n0.5.3\ttag\td3c8b2b20bbc6377e0d2522d81dddf544b995614\t489ee0c6b8a06371d39fd987606266db4060dda0\n0.5.4\tcommit\t91f11deb259128a14bef9ddedaaacca3f69199cf\t\n0.5.5\tcommit\t3a140a0de58b2fcf0a8415d13a4c9ce601fa720b\t",
+            "stderr": ""
+          }
+        ],
+        "completed_utc": "2026-10-19T20:12:41.943290+00:00"
+      },
+      {
+        "group_id": "M08",
+        "repository_id": "legacy_docs",
+        "root": "/Users/oubiwann/lab/lfe/docs",
+        "started_utc": "2026-10-19T20:12:41.958279+00:00",
+        "queries": [
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/docs",
+              "rev-parse",
+              "--show-toplevel"
+            ],
+            "exit": 0,
+            "stdout": "/Users/oubiwann/lab/lfe/docs",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/docs",
+              "rev-parse",
+              "HEAD"
+            ],
+            "exit": 0,
+            "stdout": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/docs",
+              "branch",
+              "--show-current"
+            ],
+            "exit": 0,
+            "stdout": "master",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/docs",
+              "status",
+              "--porcelain=v1",
+              "--untracked-files=all"
+            ],
+            "exit": 0,
+            "stdout": "",
+            "stderr": ""
+          },
+          {
+            "command": [
+              "git",
+              "-C",
+              "/Users/oubiwann/lab/lfe/docs",
+              "for-each-ref",
+              "--format=%(refname:short)%09%(objecttype)%09%(objectname)%09%(*objectname)",
+              "refs/tags"
+            ],
+            "exit": 0,
+            "stdout": "0.7\tcommit\tc473bf5724f77cc65949ef07079bb4eff7df138c\t\n0.8\tcommit\t686207466a860489c7f9cae48dcde62ebf0f2905\t\n0.9\tcommit\t5bff9945fd23780b6633bf8c5bb47b72d6ba2bde\t\n1.0.0\tcommit\t1224546722ffbbbaf99ca0d7492a3c49a63c3ad4\t\n2.0.0\tcommit\t78a2862250d0a79a63db34828be0560af8536428\t\n3.0.0\tcommit\t9ecc9a1dbc236ff0e26bd9ca942fad03cbb7cf5e\t",
+            "stderr": ""
+          }
+        ],
+        "completed_utc": "2026-10-19T20:12:42.002477+00:00"
+      }
+    ],
+    "file_witnesses": [
+      {
+        "repository_id": "website",
+        "root": "/Users/oubiwann/lab/lfe/lfe.github.io",
+        "path": "README.md",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "captured_utc": "2026-10-19T20:12:41.629970+00:00",
+        "state": "present",
+        "working_sha256": "7ebbbe36aa653c3d5eb6131e0c40b5578883803edbd4c3764e4d6b07d5757e85",
+        "working_bytes": 2790,
+        "line_count": 77,
+        "head_object_exit": 0,
+        "head_object_stderr": "",
+        "head_blob_sha256": "7ebbbe36aa653c3d5eb6131e0c40b5578883803edbd4c3764e4d6b07d5757e85",
+        "working_matches_head": true
+      },
+      {
+        "repository_id": "website",
+        "root": "/Users/oubiwann/lab/lfe/lfe.github.io",
+        "path": "_cobalt.yml",
+        "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+        "captured_utc": "2026-10-19T20:12:41.638088+00:00",
+        "state": "present",
+        "working_sha256": "6bf7a8e8cd37258b79e38c17158cc2c1d734afcaf875d4a3e600d6189ae6e331",
+        "working_bytes": 148,
+        "line_count": 6,
+        "head_object_exit": 0,
+        "head_object_stderr": "",
+        "head_blob_sha256": "6bf7a8e8cd37258b79e38c17158cc2c1d734afcaf875d4a3e600d6189ae6e331",
+        "working_matches_head": true
+      },
+      {
+        "repository_id": "manual",
+        "root": "/Users/oubiwann/lab/lfe/lfe-manual",
+        "path": "README.md",
+        "captured_head": "eba76e31367ee8d0eaa3217acce0d6bfc5378d17",
+        "captured_utc": "2026-10-19T20:12:41.684227+00:00",
+        "state": "present",
+        "working_sha256": "de2a063133722112aa2edc5b991b1cf790772ad8e83ba6b05808c67e73057f8b",
+        "working_bytes": 1067,
+        "line_count": 30,
+        "head_object_exit": 0,
+        "head_object_stderr": "",
+        "head_blob_sha256": "de2a063133722112aa2edc5b991b1cf790772ad8e83ba6b05808c67e73057f8b",
+        "working_matches_head": true
+      },
+      {
+        "repository_id": "manual",
+        "root": "/Users/oubiwann/lab/lfe/lfe-manual",
+        "path": "book.toml",
+        "captured_head": "eba76e31367ee8d0eaa3217acce0d6bfc5378d17",
+        "captured_utc": "2026-10-19T20:12:41.691369+00:00",
+        "state": "present",
+        "working_sha256": "d9dd067f7e494ef3e71c640c94e7d9e52b6710355793137f067b60c4a98c1dc6",
+        "working_bytes": 703,
+        "line_count": 34,
+        "head_object_exit": 0,
+        "head_object_stderr": "",
+        "head_blob_sha256": "d9dd067f7e494ef3e71c640c94e7d9e52b6710355793137f067b60c4a98c1dc6",
+        "working_matches_head": true
+      },
+      {
+        "repository_id": "tutorial",
+        "root": "/Users/oubiwann/lab/lfe/lfe-tutorial",
+        "path": "README.md",
+        "captured_head": "96e7c95d3a66cb8dbc395acae0e677b24b598810",
+        "captured_utc": "2026-10-19T20:12:41.737342+00:00",
+        "state": "present",
+        "working_sha256": "4d46e1b6f820bb07fa57f3f2b4f321d2796a175a7d7e1879ff0b708d2f696cc6",
+        "working_bytes": 3178,
+        "line_count": 69,
+        "head_object_exit": 0,
+        "head_object_stderr": "",
+        "head_blob_sha256": "4d46e1b6f820bb07fa57f3f2b4f321d2796a175a7d7e1879ff0b708d2f696cc6",
+        "working_matches_head": true
+      },
+      {
+        "repository_id": "tutorial",
+        "root": "/Users/oubiwann/lab/lfe/lfe-tutorial",
+        "path": "book.toml",
+        "captured_head": "96e7c95d3a66cb8dbc395acae0e677b24b598810",
+        "captured_utc": "2026-10-19T20:12:41.744275+00:00",
+        "state": "present",
+        "working_sha256": "a13a3652cbec523aa19354e0cea60eaadb663912468a33859a20936c165f6c6e",
+        "working_bytes": 568,
+        "line_count": 27,
+        "head_object_exit": 0,
+        "head_object_stderr": "",
+        "head_blob_sha256": "a13a3652cbec523aa19354e0cea60eaadb663912468a33859a20936c165f6c6e",
+        "working_matches_head": true
+      },
+      {
+        "repository_id": "casting_spels",
+        "root": "/Users/oubiwann/lab/lfe/lfe-casting-spels",
+        "path": "README.md",
+        "captured_head": "c0fc08e9e7f1df1bcd45516ad1f4f9d8be169be9",
+        "captured_utc": "2026-10-19T20:12:41.785314+00:00",
+        "state": "present",
+        "working_sha256": "d4d56481e61e997e42033cad07ffd0280f2e67677c50f6f57c1386b48dc463a0",
+        "working_bytes": 4508,
+        "line_count": 55,
+        "head_object_exit": 0,
+        "head_object_stderr": "",
+        "head_blob_sha256": "d4d56481e61e997e42033cad07ffd0280f2e67677c50f6f57c1386b48dc463a0",
+        "working_matches_head": true
+      },
+      {
+        "repository_id": "casting_spels",
+        "root": "/Users/oubiwann/lab/lfe/lfe-casting-spels",
+        "path": "book.toml",
+        "captured_head": "c0fc08e9e7f1df1bcd45516ad1f4f9d8be169be9",
+        "captured_utc": "2026-10-19T20:12:41.793246+00:00",
+        "state": "present",
+        "working_sha256": "d78e90f360da1fb75c478e11acaa7e70746526e6e743841db7d91048cf97b285",
+        "working_bytes": 580,
+        "line_count": 27,
+        "head_object_exit": 0,
+        "head_object_stderr": "",
+        "head_blob_sha256": "d78e90f360da1fb75c478e11acaa7e70746526e6e743841db7d91048cf97b285",
+        "working_matches_head": true
+      },
+      {
+        "repository_id": "sicp",
+        "root": "/Users/oubiwann/lab/lfe/lfe-sicp",
+        "path": "README.md",
+        "captured_head": "46859e2a6fdd5c346cbf03dceec8b23f0b4fff3a",
+        "captured_utc": "2026-10-19T20:12:41.834965+00:00",
+        "state": "present",
+        "working_sha256": "ef874f53615aa657ee1a81748b7a28709f950047f506d72a5f722cd66569cd76",
+        "working_bytes": 1356,
+        "line_count": 43,
+        "head_object_exit": 0,
+        "head_object_stderr": "",
+        "head_blob_sha256": "ef874f53615aa657ee1a81748b7a28709f950047f506d72a5f722cd66569cd76",
+        "working_matches_head": true
+      },
+      {
+        "repository_id": "sicp",
+        "root": "/Users/oubiwann/lab/lfe/lfe-sicp",
+        "path": "book.toml",
+        "captured_head": "46859e2a6fdd5c346cbf03dceec8b23f0b4fff3a",
+        "captured_utc": "2026-10-19T20:12:41.840716+00:00",
+        "state": "present",
+        "working_sha256": "2b54b662f535e7e8415dc0e1f5e219866794627880955443cb2e8032abb9f820",
+        "working_bytes": 778,
+        "line_count": 33,
+        "head_object_exit": 0,
+        "head_object_stderr": "",
+        "head_blob_sha256": "2b54b662f535e7e8415dc0e1f5e219866794627880955443cb2e8032abb9f820",
+        "working_matches_head": true
+      },
+      {
+        "repository_id": "lfe",
+        "root": "/Users/oubiwann/lab/lfe/lfe",
+        "path": "README.md",
+        "captured_head": "0aa820e93bb592a821fe0a50b1db7e8926e56b30",
+        "captured_utc": "2026-10-19T20:12:41.881267+00:00",
+        "state": "present",
+        "working_sha256": "f594eb9dc48ddc9442d5e296798c06444922cba9a8157e36e07abe43edf615b7",
+        "working_bytes": 5222,
+        "line_count": 204,
+        "head_object_exit": 0,
+        "head_object_stderr": "",
+        "head_blob_sha256": "f594eb9dc48ddc9442d5e296798c06444922cba9a8157e36e07abe43edf615b7",
+        "working_matches_head": true
+      },
+      {
+        "repository_id": "lfe",
+        "root": "/Users/oubiwann/lab/lfe/lfe",
+        "path": "Dockerfile",
+        "captured_head": "0aa820e93bb592a821fe0a50b1db7e8926e56b30",
+        "captured_utc": "2026-10-19T20:12:41.888323+00:00",
+        "state": "present",
+        "working_sha256": "ab615003c3bf21aacb5db4b49fae2835fbc49795fc7358b089847c65f62ab8bb",
+        "working_bytes": 521,
+        "line_count": 13,
+        "head_object_exit": 0,
+        "head_object_stderr": "",
+        "head_blob_sha256": "ab615003c3bf21aacb5db4b49fae2835fbc49795fc7358b089847c65f62ab8bb",
+        "working_matches_head": true
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "root": "/Users/oubiwann/lab/lfe/rebar3_lfe",
+        "path": "README.md",
+        "captured_head": "c59a18e205b0ab5086c10325af78a3df7f7e5f9e",
+        "captured_utc": "2026-10-19T20:12:41.943346+00:00",
+        "state": "present",
+        "working_sha256": "297ac6cae01e8009d8936f4e2509708de88b894584351291275a0624d3fd5cd8",
+        "working_bytes": 5504,
+        "line_count": 198,
+        "head_object_exit": 0,
+        "head_object_stderr": "",
+        "head_blob_sha256": "297ac6cae01e8009d8936f4e2509708de88b894584351291275a0624d3fd5cd8",
+        "working_matches_head": true
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "root": "/Users/oubiwann/lab/lfe/rebar3_lfe",
+        "path": "rebar.config",
+        "captured_head": "c59a18e205b0ab5086c10325af78a3df7f7e5f9e",
+        "captured_utc": "2026-10-19T20:12:41.950420+00:00",
+        "state": "present",
+        "working_sha256": "752239f8631daad674c974904e4ea2691cef1695b9c85f8246a6f6f2258a5c2d",
+        "working_bytes": 1716,
+        "line_count": 93,
+        "head_object_exit": 0,
+        "head_object_stderr": "",
+        "head_blob_sha256": "752239f8631daad674c974904e4ea2691cef1695b9c85f8246a6f6f2258a5c2d",
+        "working_matches_head": true
+      },
+      {
+        "repository_id": "legacy_docs",
+        "root": "/Users/oubiwann/lab/lfe/docs",
+        "path": "README.md",
+        "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+        "captured_utc": "2026-10-19T20:12:42.002535+00:00",
+        "state": "present",
+        "working_sha256": "9b41d10d09aa925385251d4054339ec5586040e47fa5b62d0cb80c558da3b5f8",
+        "working_bytes": 7169,
+        "line_count": 258,
+        "head_object_exit": 0,
+        "head_object_stderr": "",
+        "head_blob_sha256": "9b41d10d09aa925385251d4054339ec5586040e47fa5b62d0cb80c558da3b5f8",
+        "working_matches_head": true
+      },
+      {
+        "repository_id": "legacy_docs",
+        "root": "/Users/oubiwann/lab/lfe/docs",
+        "path": "docs/index.html",
+        "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+        "captured_utc": "2026-10-19T20:12:42.010415+00:00",
+        "state": "present",
+        "working_sha256": "b381f1283cf214a3e558736fc397a298cd871add5a3ae8b68c879944af4ca829",
+        "working_bytes": 153,
+        "line_count": 2,
+        "head_object_exit": 0,
+        "head_object_stderr": "",
+        "head_blob_sha256": "b381f1283cf214a3e558736fc397a298cd871add5a3ae8b68c879944af4ca829",
+        "working_matches_head": true
+      }
+    ],
+    "saved_intake_search": {
+      "search_id": "INTAKE01-saved-project-component",
+      "root": "/Users/oubiwann/lab/lfe/lfe/.worktrees/planning/project099-site-ia",
+      "pattern": "\\b(runtime|stacktrace|crash|error|failure|failed|reproduce|reproduction|develop-compiler|docker|container)\\b",
+      "scope": "existing project artifacts and accepted Slice01 original intake artifacts only; not other chats or later repeated execution/review text",
+      "started_utc": "2026-10-19T20:12:42.019512+00:00",
+      "files": [
+        {
+          "path": "arc01-evidence-baseline/slice01-baseline-intake/artifacts/baseline-summary.md",
+          "sha256": "0cfa69d09d5404392aba26b11414ebe345c000358f505ff4c2a1fb0dba1469a1",
+          "bytes": 6594,
+          "line_count": 38,
+          "matches": [
+            {
+              "line": 26,
+              "text": "The four URLs match inherited report references, but this local source read does not reproduce the historical HTTP 404 results. Similarly, the inherited heading-only manual results remain qualified observations: this slice did not inspect or render the book chapters, so source/rendered readiness remains for Arc01 Slice03. The report's §2.3 retrieval limits remain in force.",
+              "before": "",
+              "after": ""
+            },
+            {
+              "line": 38,
+              "text": "The inherited packet has no technical-failure stacktrace/environment packet. Arc01 Slice04 must request or locate those inputs; no failure was reproduced and no cause is inferred. Assessment/question routing is in [findings.json](findings.json); source-register provenance is in [baseline.json](baseline.json) at `source_catalogue`. Reading/query extents, the contract readback, validation attempts, and limits are in [execution.md](execution.md). The assignment and row-by-row proposed disposition are in the [closing report](../closing-report.md).",
+              "before": "",
+              "after": null
+            }
+          ]
+        },
+        {
+          "path": "arc01-evidence-baseline/slice01-baseline-intake/artifacts/baseline.json",
+          "sha256": "2b43dc825057bc8602e0765db49860a8b79bb4899a876806d9928f7fdd3c9caa",
+          "bytes": 98946,
+          "line_count": 2655,
+          "matches": [
+            {
+              "line": 391,
+              "text": "      \"src/blog/assets/images/posts/docker-lfe-sample-app-main-page.png\",",
+              "before": "      \"src/blog/assets/images/posts/digraph_get_path_graph.png\",",
+              "after": "      \"src/blog/assets/images/posts/freebsd-logo.jpg\","
+            },
+            {
+              "line": 582,
+              "text": "      \"src/posts/2014/12-07-1837-running-lfe-in-docker.md\",",
+              "before": "      \"src/posts/2014/12-06-1244-ierlang-notebook-a-la-ipython.md\",",
+              "after": "      \"src/posts/2014/12-08-1929-lfest-002-is-released.md\","
+            },
+            {
+              "line": 639,
+              "text": "      \"src/posts/2015/07-08-1416-freebsd--lfe-images-docker-like-functionality-with-ezjail.md\",",
+              "before": "      \"src/posts/2015/07-08-1349-dragonflybsd--lfe.md\",",
+              "after": "      \"src/posts/2015/07-11-1720-towards-multi-methods-in-lfe.md\","
+            },
+            {
+              "line": 668,
+              "text": "      \"src/posts/2015/11-28-2110-lfe-yaws-docker-update.md\",",
+              "before": "      \"src/posts/2015/11-28-1721-lfe-friday---ets-introduction-part-1.md\",",
+              "after": "      \"src/posts/2015/12-05-1814-lfe-friday---ets-introduction-part-2.md\","
+            },
+            {
+              "line": 683,
+              "text": "      \"src/posts/2019/05-13-1549-running-lfe-in-docker-updated.md\",",
+              "before": "      \"src/posts/2019/05-13-0250-catch-up.md\",",
+              "after": "      \"src/posts/2020/07-14-1340-rebar3-lfe-010.md\","
+            },
+            {
+              "line": 732,
+              "text": "        \"src/posts/2014/12-07-1837-running-lfe-in-docker.md\",",
+              "before": "        \"src/posts/2014/12-06-1244-ierlang-notebook-a-la-ipython.md\",",
+              "after": "        \"src/posts/2014/12-08-1929-lfest-002-is-released.md\","
+            },
+            {
+              "line": 789,
+              "text": "        \"src/posts/2015/07-08-1416-freebsd--lfe-images-docker-like-functionality-with-ezjail.md\",",
+              "before": "        \"src/posts/2015/07-08-1349-dragonflybsd--lfe.md\",",
+              "after": "        \"src/posts/2015/07-11-1720-towards-multi-methods-in-lfe.md\","
+            },
+            {
+              "line": 818,
+              "text": "        \"src/posts/2015/11-28-2110-lfe-yaws-docker-update.md\",",
+              "before": "        \"src/posts/2015/11-28-1721-lfe-friday---ets-introduction-part-1.md\",",
+              "after": "        \"src/posts/2015/12-05-1814-lfe-friday---ets-introduction-part-2.md\","
+            },
+            {
+              "line": 833,
+              "text": "        \"src/posts/2019/05-13-1549-running-lfe-in-docker-updated.md\",",
+              "before": "        \"src/posts/2019/05-13-0250-catch-up.md\",",
+              "after": "        \"src/posts/2020/07-14-1340-rebar3-lfe-010.md\","
+            },
+            {
+              "line": 943,
+              "text": "        \"src/blog/assets/images/posts/docker-lfe-sample-app-main-page.png\",",
+              "before": "        \"src/blog/assets/images/posts/digraph_get_path_graph.png\",",
+              "after": "        \"src/blog/assets/images/posts/freebsd-logo.jpg\","
+            },
+            {
+              "line": 1606,
+              "text": "          \"https://blog.lfe.io/tutorials/2019/05/13/1549-running-lfe-in-docker-updated/\"",
+              "before": "          \"Sampled old blog route and relocation link\",",
+              "after": "        ],"
+            },
+            {
+              "line": 1633,
+              "text": "          \"Historical Docker article\",",
+              "before": "          \"L32\",",
+              "after": "          \"https://lfe.io/blog/tutorials/2019/05/13/1549-running-lfe-in-docker-updated/\""
+            },
+            {
+              "line": 1634,
+              "text": "          \"https://lfe.io/blog/tutorials/2019/05/13/1549-running-lfe-in-docker-updated/\"",
+              "before": "          \"Historical Docker article\",",
+              "after": "        ],"
+            }
+          ]
+        },
+        {
+          "path": "arc01-evidence-baseline/slice01-baseline-intake/artifacts/execution.md",
+          "sha256": "8d22f707bcb28a96addc321b1e882fa695dd0f4c46c46d1e578cb11f1b742b2b",
+          "bytes": 18251,
+          "line_count": 177,
+          "matches": [
+            {
+              "line": 13,
+              "text": "The assignment is evidence-only. It authorizes these four artifact files, the slice ledger's evidence cells, and the actual closing report. It does not authorize source changes, live URL checks, builds, installs, container activity, ticket edits, publication, or a compatibility/IA decision. The parent contract preserves `/docs` as a hand-curated gateway; the generated-reference format and location remain unconfirmed. Expedited Mode requires a scoped commit but preserves every evidence and review gate. The ledger guide requires doer evidence to remain `attested`; self-review does not turn it into reproduced evidence. Accordingly, all eight slice rows remain open for CDC.",
+              "before": "",
+              "after": ""
+            },
+            {
+              "line": 15,
+              "text": "The established distinction is carried throughout: saved report rows are inherited claims with their original dates and qualifications; local working source is a separate witness; a source URL is not an HTTP observation; a heading-only extraction is not proof of absent rendered text; a local HEAD or a `current` label is not deployment provenance or support policy. The old release-history document contains dates, inferences, and recommendations as of its own stated period. It is historical evidence only here. No technical failure packet is present in the inherited handoff; Arc01 Slice04 retains that missing-input gate.",
+              "before": "",
+              "after": ""
+            },
+            {
+              "line": 52,
+              "text": "The four links in `src/_data/home/buildit.yml` are recorded as source seeds. Their match to inherited report references does not reproduce an HTTP result. The report's heading-only manual cases retain their source/rendered verification qualification and route to Arc01 Slice03. The local `/docs` file currently points to `/use`; the project decision still defines `/docs` as the curated gateway. The local release-history prose is dated/inferred and makes no present support or deployment claim.",
+              "before": "",
+              "after": ""
+            },
+            {
+              "line": 58,
+              "text": "The first inline extraction attempt exited with `FileNotFoundError` because it joined the project root with a prompt path that already included the project directory. It wrote no files and extracted no records. The corrected command resolved the commit path and worktree-relative file separately; it exited 0 and produced the two JSON artifacts. The parser located report sections by heading, retained only ID-matching Markdown rows, trimmed table-cell padding, extracted numbered question text, and assigned pinned line locators. Sorting follows report/ID order. A separate comparison reread the pinned Markdown tables/lists and checked every raw cell/text/locator against the JSON. No input mismatch or access failure occurred. A preliminary Markdown-link check ran before `closing-report.md` existed and stopped on that planned summary link; the report was created and the final link check is recorded below. Two trailing-whitespace normalization passes joined `artifacts/closing-report.md` under the artifact directory; each stopped after processing earlier files. The corrected pass used the actual slice-root `closing-report.md` path and normalized all six authorized outputs. A preliminary final-preservation comparison joined project-relative input paths under the slice directory and failed on `artifacts/first-steps/HANDOFF.md`; it made no changes. The corrected project-root comparison passed for all eight source-root snapshots, five inherited inputs, and eight source witnesses.",
+              "before": "",
+              "after": ""
+            },
+            {
+              "line": 68,
+              "text": "- Site builds, Rust tests, live URL probes, book rendering, and container checks: intentionally unrun/outside the assignment.",
+              "before": "- JSON parsing, source raw-cell/locator comparisons, local Markdown-link checks, whitespace checks, and `git diff --check`: results are recorded in the closing report after the generated packet was validated.",
+              "after": ""
+            },
+            {
+              "line": 72,
+              "text": "This intake does not verify live URLs, the complete site route set, deployed source provenance, search effectiveness, rendered chapter completeness, channel activity, or any compatibility combination. Arc01 Slice02 owns the declared local content/route/anchor inventory; Slice03 owns targeted endpoint and source/rendered readiness checks; Slice04 needs the actual technical-failure/environment packet; Slice05 reconciles the accepted inputs and handoffs. Independent CDC reproduction remains required before any row is accepted.",
+              "before": "",
+              "after": ""
+            },
+            {
+              "line": 136,
+              "text": "section remains labelled historical, including its failed initial pointer, and",
+              "before": "canonical report resolves to slice-root `closing-report.md`. The initial close",
+              "after": "this correction section records the current paths."
+            },
+            {
+              "line": 159,
+              "text": "Two preliminary read-only input-object queries failed due to path construction:",
+              "before": "",
+              "after": "one used a project-relative object path without the repository's"
+            }
+          ]
+        },
+        {
+          "path": "arc01-evidence-baseline/slice01-baseline-intake/artifacts/findings.json",
+          "sha256": "51422ea282e498652b7faea60d5b80015f2b132ce543a59dbb7405078f8a4b4b",
+          "bytes": 41184,
+          "line_count": 975,
+          "matches": [
+            {
+              "line": 706,
+              "text": "      \"raw_text\": \"Actual supported and tested LFE source/build/runtime/OTP combinations, including the reported runtime failure.\",",
+              "before": "      \"original_number\": 1,",
+              "after": "      \"locator\": {"
+            },
+            {
+              "line": 716,
+              "text": "      \"next_check\": \"Arc02: collect maintainer-validated source/build/runtime/OTP combinations; Arc06 designs bounded reproduction after evidence intake.\",",
+              "before": "      \"owner_arc\": \"Arc02\",",
+              "after": "      \"limits\": \"Question remains unresolved in the dated inherited report; this intake does not answer it or refresh the external claim.\""
+            },
+            {
+              "line": 740,
+              "text": "      \"raw_text\": \"Current container contents, tags, and platform behaviour.\",",
+              "before": "      \"original_number\": 3,",
+              "after": "      \"locator\": {"
+            },
+            {
+              "line": 750,
+              "text": "      \"next_check\": \"Arc03: identify image/tag/platform for each container entrance; Arc06 validates behavior only under an approved experiment.\",",
+              "before": "      \"owner_arc\": \"Arc03\",",
+              "after": "      \"limits\": \"Question remains unresolved in the dated inherited report; this intake does not answer it or refresh the external claim.\""
+            },
+            {
+              "line": 842,
+              "text": "      \"raw_text\": \"Which LFE source and precompiled-artifact combinations actually work with which OTP build/runtime versions?\",",
+              "before": "      \"original_number\": 1,",
+              "after": "      \"locator\": {"
+            },
+            {
+              "line": 852,
+              "text": "      \"next_check\": \"Arc02: collect maintainer-validated LFE source/artifact compatibility across OTP build/runtime versions; Arc06 handles approved experiments.\",",
+              "before": "      \"owner_arc\": \"Arc02\",",
+              "after": "      \"limits\": \"Question remains unresolved in the dated inherited report; this intake does not answer it or refresh the external claim.\""
+            }
+          ]
+        },
+        {
+          "path": "artifacts/ci-matrix-2026-10-09.md",
+          "sha256": "eef50ac3e4cc13f6a063144624816cb6e94dab9ffefd3eadca793a65e8b8d01d",
+          "bytes": 9043,
+          "line_count": 136,
+          "matches": [
+            {
+              "line": 35,
+              "text": "- The prior chat, **Investigate CI failure**, supplied the diagnosis. This intake",
+              "before": "  not an automatically selected release or a cross-platform binary proof.",
+              "after": "  independently checked live revision, workflow, both run projections, docs-commit"
+            },
+            {
+              "line": 37,
+              "text": "  parent/files and the OTP22 failed compile log using `gh`.",
+              "before": "  independently checked live revision, workflow, both run projections, docs-commit",
+              "after": ""
+            },
+            {
+              "line": 52,
+              "text": "| 26 | compile failure; tests skipped | Not attempted: dependent matrix skipped | P0: Linux and macOS artifacts |",
+              "before": "| 27 | success | Not attempted: dependent matrix skipped | Retained in immediate HEAD CI |",
+              "after": "| 25 | compile failure; tests skipped | Not attempted: dependent matrix skipped | P0: Linux and macOS artifacts |"
+            },
+            {
+              "line": 53,
+              "text": "| 25 | compile failure; tests skipped | Not attempted: dependent matrix skipped | P0: Linux and macOS artifacts |",
+              "before": "| 26 | compile failure; tests skipped | Not attempted: dependent matrix skipped | P0: Linux and macOS artifacts |",
+              "after": "| 24 | compile failure; tests skipped | Not attempted: dependent matrix skipped | P0: Linux and macOS artifacts |"
+            },
+            {
+              "line": 54,
+              "text": "| 24 | compile failure; tests skipped | Not attempted: dependent matrix skipped | P0: Linux and macOS artifacts |",
+              "before": "| 25 | compile failure; tests skipped | Not attempted: dependent matrix skipped | P0: Linux and macOS artifacts |",
+              "after": "| 23 | compile failure; tests skipped | Not attempted: dependent matrix skipped | P0: Linux and macOS artifacts |"
+            },
+            {
+              "line": 55,
+              "text": "| 23 | compile failure; tests skipped | Not attempted: dependent matrix skipped | P0: Linux and macOS artifacts |",
+              "before": "| 24 | compile failure; tests skipped | Not attempted: dependent matrix skipped | P0: Linux and macOS artifacts |",
+              "after": "| 22 | compile failure; tests skipped | Not attempted: dependent matrix skipped | P0: Linux and macOS artifacts |"
+            },
+            {
+              "line": 56,
+              "text": "| 22 | compile failure; tests skipped | Not attempted: dependent matrix skipped | P0: Linux and macOS artifacts |",
+              "before": "| 23 | compile failure; tests skipped | Not attempted: dependent matrix skipped | P0: Linux and macOS artifacts |",
+              "after": ""
+            },
+            {
+              "line": 66,
+              "text": "OTP22 failed-log retrieval:",
+              "before": "",
+              "after": "`gh run view 37880370171 --repo lfe/lfe --job 113658446366 --log-failed`."
+            },
+            {
+              "line": 67,
+              "text": "`gh run view 37880370171 --repo lfe/lfe --job 113658446366 --log-failed`.",
+              "before": "OTP22 failed-log retrieval:",
+              "after": "It contains `src/lfe_shell.erl:29: syntax error before: empty` and"
+            },
+            {
+              "line": 68,
+              "text": "It contains `src/lfe_shell.erl:29: syntax error before: empty` and",
+              "before": "`gh run view 37880370171 --repo lfe/lfe --job 113658446366 --log-failed`.",
+              "after": "`attribute doc after function definitions` at lines 123, 1089, 1101 and 1113."
+            },
+            {
+              "line": 89,
+              "text": "exact OTP build/runtime versions, OS/version and CPU architecture, reproducible",
+              "before": "**Arc03 acceptance:** every target must have a pinned LFE source/release identity,",
+              "after": "recipe/toolchain/container identity where applicable, test/install results,"
+            },
+            {
+              "line": 90,
+              "text": "recipe/toolchain/container identity where applicable, test/install results,",
+              "before": "exact OTP build/runtime versions, OS/version and CPU architecture, reproducible",
+              "after": "artifact identity/checksum and a verified upload location. Record failed/blocked"
+            },
+            {
+              "line": 91,
+              "text": "artifact identity/checksum and a verified upload location. Record failed/blocked",
+              "before": "recipe/toolchain/container identity where applicable, test/install results,",
+              "after": "targets with concrete owner, reason and re-entry condition; obtain Duncan's"
+            },
+            {
+              "line": 111,
+              "text": "jobs, triggers, tests, container selection and `needs: builds`. It removes the",
+              "before": "The local proposal filters **both** matrices to `29, 28, 27`, preserving existing",
+              "after": "five demonstrated compile failures without claiming they were repaired. Future"
+            }
+          ]
+        },
+        {
+          "path": "artifacts/ci-matrix-before-otp27-2026-10-09.yml",
+          "sha256": "12ad1fd0c44b5c35d7b492e41aa3228529d6cd2e46303172204d14934a13a446",
+          "bytes": 1653,
+          "line_count": 63,
+          "matches": [
+            {
+              "line": 24,
+              "text": "    container:",
+              "before": "",
+              "after": "      image: erlang:${{ matrix.otp-version }}"
+            },
+            {
+              "line": 53,
+              "text": "    container:",
+              "before": "",
+              "after": "      image: erlang:${{ matrix.otp-version }}"
+            }
+          ]
+        },
+        {
+          "path": "artifacts/ci-run-36215108779.json",
+          "sha256": "ebccb7c99ac342231b44e438f461eb15f0a9abfe9c2b6eee870ffb2fa35045ce",
+          "bytes": 2525,
+          "line_count": 1,
+          "matches": []
+        },
+        {
+          "path": "artifacts/ci-run-37880370171.json",
+          "sha256": "5223936721a574d193ce712c6ad075fdd9a59fc78bed9d7a4539b48156db1aca",
+          "bytes": 1530,
+          "line_count": 1,
+          "matches": [
+            {
+              "line": 1,
+              "text": "{\"conclusion\":\"failure\",\"createdAt\":\"2026-10-09T03:40:46Z\",\"headBranch\":\"develop\",\"headSha\":\"387d0aa1092bdda0ca17481869e833b24f11971a\",\"jobs\":[{\"conclusion\":\"failure\",\"name\":\"Erlang 22 / ubuntu-24.04 (build)\",\"url\":\"https://github.com/lfe/lfe/actions/runs/37880370171/job/113658446366\"},{\"conclusion\":\"failure\",\"name\":\"Erlang 24 / ubuntu-24.04 (build)\",\"url\":\"https://github.com/lfe/lfe/actions/runs/37880370171/job/113658446492\"},{\"conclusion\":\"success\",\"name\":\"Erlang 27 / ubuntu-24.04 (build)\",\"url\":\"https://github.com/lfe/lfe/actions/runs/37880370171/job/113658446504\"},{\"conclusion\":\"success\",\"name\":\"Erlang 28 / ubuntu-24.04 (build)\",\"url\":\"https://github.com/lfe/lfe/actions/runs/37880370171/job/113658446548\"},{\"conclusion\":\"failure\",\"name\":\"Erlang 25 / ubuntu-24.04 (build)\",\"url\":\"https://github.com/lfe/lfe/actions/runs/37880370171/job/113658446556\"},{\"conclusion\":\"failure\",\"name\":\"Erlang 23 / ubuntu-24.04 (build)\",\"url\":\"https://github.com/lfe/lfe/actions/runs/37880370171/job/113658446560\"},{\"conclusion\":\"failure\",\"name\":\"Erlang 26 / ubuntu-24.04 (build)\",\"url\":\"https://github.com/lfe/lfe/actions/runs/37880370171/job/113658446563\"},{\"conclusion\":\"success\",\"name\":\"Erlang 29 / ubuntu-24.04 (build)\",\"url\":\"https://github.com/lfe/lfe/actions/runs/37880370171/job/113658446567\"},{\"conclusion\":\"skipped\",\"name\":\"Erlang ${{ matrix.otp-version }} / ${{ matrix.os }} (install)\",\"url\":\"https://github.com/lfe/lfe/actions/runs/37880370171/job/113658755959\"}],\"url\":\"https://github.com/lfe/lfe/actions/runs/37880370171\"}",
+              "before": null,
+              "after": null
+            }
+          ]
+        },
+        {
+          "path": "artifacts/first-steps/HANDOFF.md",
+          "sha256": "3585b067463d21c5b7c3938202682905e34655b2a3832b711db06cec4f01205c",
+          "bytes": 2823,
+          "line_count": 32,
+          "matches": []
+        },
+        {
+          "path": "artifacts/first-steps/erlang-org-ia-investigation.md",
+          "sha256": "1f43d24af3206346f2217f0a15e6d7e5eab8c4f94e0e8626f4d47217250e06da",
+          "bytes": 44502,
+          "line_count": 479,
+          "matches": [
+            {
+              "line": 49,
+              "text": "| Patch records | OTP 29.1.1, 26.2.5.21, and 17.0.1 read | No complete patch-by-patch census; OTP 24.1 retrieval failed |",
+              "before": "| Release overviews | OTP 17–29 inclusive: thirteen pages | Artifact availability was not tested for every version |",
+              "after": "| Version tree | Introductory text, documented data sources, URL selection pattern | JavaScript expansion, search results, and advisory calculations were not exercised |"
+            },
+            {
+              "line": 57,
+              "text": "| Website source | Public README and configuration | No pinned repository checkout or build reproduction |",
+              "before": "| FAQ and publications | FAQ contents and acquisition chapter; linked free-book PDF identity | No full FAQ or publication accuracy audit |",
+              "after": ""
+            },
+            {
+              "line": 176,
+              "text": "Major and patch pages also link to third-party version/build tools, an external package provider, and Docker. An exact patch page illustrates an exact Docker tag, while an overview illustrates a major tag. These are different degrees of version selection. Links and command examples were observed; the availability of every historical tag or third-party package was not verified. [S10, S13–S15]",
+              "before": "",
+              "after": ""
+            },
+            {
+              "line": 194,
+              "text": "| Runtime dependencies | Qualifies independent patch application |",
+              "before": "| Per-application notes | Explains the changes at component level |",
+              "after": "| Version-tree link | Explores which versions contain the selected release |"
+            },
+            {
+              "line": 198,
+              "text": "**Assessment:** This is a strong precedent for making LFE release information independently addressable and reviewable. It does not demonstrate a build-versus-runtime compatibility matrix for an LFE artifact.",
+              "before": "",
+              "after": ""
+            },
+            {
+              "line": 279,
+              "text": "**Assessment:** A resource can reasonably have several entrances while retaining one authoritative metadata record. Separate Books and Videos sections would be an LFE choice; they would not reproduce Erlang's current global navigation.",
+              "before": "",
+              "after": ""
+            },
+            {
+              "line": 302,
+              "text": "| `hub.docker.com` | Container distribution | S10, S13 |",
+              "before": "| `github.com/erlang/eep` | Proposal source repository | S08 |",
+              "after": "| Erlang Solutions | External package distribution | S10, S13 |"
+            },
+            {
+              "line": 367,
+              "text": "For the user's reported build/runtime issue, the particularly relevant documented distinction is direction: the compatibility guide describes loading compiled code on at least two later releases and says loading it on earlier releases is unsupported. It also recommends compiling for the deployed release for performance. [S42]",
+              "before": "",
+              "after": ""
+            },
+            {
+              "line": 369,
+              "text": "That is background evidence, **not a diagnosis of the reported LFE stacktrace**. LFE's compiler interfaces, generated code, APIs, dependencies, and particular failure still require their own evidence. The compiler reference has a dedicated discussion of language implementations on BEAM, which is a useful later reference for Robert's work. [S45]",
+              "before": "",
+              "after": ""
+            },
+            {
+              "line": 379,
+              "text": "| Distinguish source release, build environment, runtime promise, and test evidence | Exact tags, dependency notes, and compatibility policy | Which claims can LFE make and validate independently? |",
+              "before": "| Link selection to installation and reference | Acquisition and documentation journeys | Which LFE/OTP combinations are offered, and how are prerequisites communicated? |",
+              "after": "| Preserve exact identity where reproducibility matters | Patch-specific tags/artifacts versus major docs | Does each artifact need immutable docs and a validation record? |"
+            },
+            {
+              "line": 390,
+              "text": "Books, videos, design-system evolution, and LFE runtime protections remain in their previously recorded scope. This investigation does not assess lfe.io or the billosys design work, and does not move compiler implementation into the website track.",
+              "before": "",
+              "after": ""
+            },
+            {
+              "line": 394,
+              "text": "1. Which LFE source and precompiled-artifact combinations actually work with which OTP build/runtime versions?",
+              "before": "",
+              "after": "2. What support promises should LFE attach to preserved snapshots or old artifacts?"
+            }
+          ]
+        },
+        {
+          "path": "artifacts/first-steps/lfe-ia-content-proposal.md",
+          "sha256": "897bd06c798af9fa03c6314fffc940e49d8459cf890f0334925816fe0f9d0852",
+          "bytes": 29911,
+          "line_count": 352,
+          "matches": [
+            {
+              "line": 21,
+              "text": "| Four promoted project links failed in the LFE investigation | Every project entrance needs a verified destination that completes the task |",
+              "before": "| LFE already separates learning from practical reference | Preserve the distinction and make the reference entrance explicit |",
+              "after": "| Setup and older documentation mix different version eras | Show applicability where readers choose a resource |"
+            },
+            {
+              "line": 205,
+              "text": "An LFE source release, a precompiled artifact, a build environment, a supported runtime combination, and a documentation collection describe different things. Keep each claim attached to the thing it describes.",
+              "before": "",
+              "after": ""
+            }
+          ]
+        },
+        {
+          "path": "artifacts/first-steps/lfe-io-ia-investigation.md",
+          "sha256": "0e922938b46e99501b8f81f978f193c2a529004f4a52e67b94a503afb5ecc2ca",
+          "bytes": 36806,
+          "line_count": 371,
+          "matches": [
+            {
+              "line": 40,
+              "text": "Task journeys below are link traces, not usability tests. No installation, compiler, container, or LFE/OTP compatibility test was run. No changes were made to the website, repositories, or tickets.",
+              "before": "",
+              "after": ""
+            },
+            {
+              "line": 48,
+              "text": "A reported HTTP 404 is distinguished from restricted retrieval, an inaccessible URL, or an empty extraction. Failed access to GitHub ZIP downloads, Docker tags, the sitemap, and some source files is **not** counted as a broken site link. Heading-only manual results are flagged for further verification rather than declared definitively empty.",
+              "before": "",
+              "after": ""
+            },
+            {
+              "line": 92,
+              "text": "| Community resources | Chat services, video channels, GitHub organizations, Docker Hub | Outward links rather than centrally hosted content | Main directory inspected; service activity unmeasured |",
+              "before": "| Legacy reference targets | `/reference/lfe-rebar3/current/...` | Old project-type documentation routes | Four home-page targets returned 404 |",
+              "after": "| Historical technical papers | Links from Learn | Background on Erlang and Lisp | Identified, not individually content-audited |"
+            },
+            {
+              "line": 135,
+              "text": "The v2.2.2 record explicitly discusses OTP 28/29 compatibility and a fix for an OTP 28+ command-line evaluation crash. [L10] That makes release choice materially relevant to users following present installation guidance. It does not establish that all older combinations fail or that the reported project-specific runtime issue has this cause.",
+              "before": "",
+              "after": ""
+            },
+            {
+              "line": 158,
+              "text": "These are distinct claims: recipe pins, historical examples, branch policy, and test coverage cannot be combined into one support promise. The plugin's reported test range also does not establish every LFE/compiler/runtime combination.",
+              "before": "",
+              "after": ""
+            },
+            {
+              "line": 164,
+              "text": "The site offers an unqualified image command; the 2019 Docker tutorial documents older LFE/OTP images. [L02–L03, L32] The current tag listing could not be inspected, and no image was pulled. Consequently this report makes no claim about what that command installs today.",
+              "before": "",
+              "after": ""
+            },
+            {
+              "line": 166,
+              "text": "The useful IA requirement is independent of that uncertainty: a recommended container should disclose the selected environment or explain how to verify it. A container's moving default tag is a different identity from a source release.",
+              "before": "",
+              "after": ""
+            },
+            {
+              "line": 245,
+              "text": "These traces identify interruption points, not measured failure rates. In particular, replacing a dead link with a responding page is insufficient if that page does not help the reader perform the task.",
+              "before": "",
+              "after": ""
+            },
+            {
+              "line": 310,
+              "text": "1. Actual supported and tested LFE source/build/runtime/OTP combinations, including the reported runtime failure.",
+              "before": "",
+              "after": "2. Exact deployed source commit and an exhaustive URL/redirect inventory."
+            },
+            {
+              "line": 312,
+              "text": "3. Current container contents, tags, and platform behaviour.",
+              "before": "2. Exact deployed source commit and an exhaustive URL/redirect inventory.",
+              "after": "4. Rendered/source confirmation of heading-only manual chapters and the complete chapter readiness inventory."
+            },
+            {
+              "line": 356,
+              "text": "| L30 | Sampled old blog route and relocation link | https://blog.lfe.io/tutorials/2019/05/13/1549-running-lfe-in-docker-updated/ |",
+              "before": "| L29 | Tooling repository README; old organization URL redirects here | https://github.com/lfe/rebar3 |",
+              "after": "| L31 | Tutorial installation and stable/development branch advice | https://cnbbooks.github.io/lfe-tutorial/introduction/install.html |"
+            },
+            {
+              "line": 358,
+              "text": "| L32 | Historical Docker article | https://lfe.io/blog/tutorials/2019/05/13/1549-running-lfe-in-docker-updated/ |",
+              "before": "| L31 | Tutorial installation and stable/development branch advice | https://cnbbooks.github.io/lfe-tutorial/introduction/install.html |",
+              "after": "| L33 | Manual REPL overview | https://cnbbooks.github.io/lfe-manual/part1/repl/ |"
+            }
+          ]
+        },
+        {
+          "path": "artifacts/first-steps/lfe-work-classification.md",
+          "sha256": "30b4ebc7ea5ebacf0e1f6f3171080f42ca3c06cd44d37b762e35a8c2ed889ecb",
+          "bytes": 2301,
+          "line_count": 13,
+          "matches": [
+            {
+              "line": 8,
+              "text": "| **2. Compatibility and version policy** | What does an LFE version promise about Erlang/OTP compatibility? | Supported combinations; minimum/maximum/set semantics; build versus runtime compatibility; older-version support expectations; possible LFE 3.0 transition; machine-readable metadata and schema semantics. |",
+              "before": "| **1. Evidence and baseline assessments** | What exists, how does it work, and where does it fail? | Full erlang.org IA inventory; lfe.io inventory and candid assessment; historical baggage; documented user difficulties and compatibility failures. |",
+              "after": "| **3. Release engineering and distribution** | How do we preserve, identify, validate, and deliver those combinations? | Historical snapshots; static branches; tags and naming; release mappings; precompiled artifacts; packaging; Downloads content and selection mechanisms. |"
+            },
+            {
+              "line": 12,
+              "text": "| **6. Experiments and validation** | What evidence would justify choosing one approach over another? | Reproducing build/runtime failures; testing `develop-compiler` against existing code; compatibility matrices; CI ideas; naming and download-selection prototypes; navigation and layout experiments. |",
+              "before": "| **5. Design foundations and visual experience** | What coherent design principles should govern the site? | Assessment of your existing design-system work; Material/Carbon/Polaris synthesis; perception, colour, typography, and semantic units; CSS and component foundations; imagery, accessibility, and responsive presentation. A revised or new design system remains an explicit parallel side quest. |",
+              "after": "| **7. Scope, decisions, and collaboration** | What have we agreed, what remains open, and who owns what? | Goals and boundaries; questions for Robert; responsibilities; dependencies; provisional decisions and their evidence; eventual plans and reviewable tickets. |"
+            }
+          ]
+        }
+      ],
+      "completed_utc": "2026-10-19T20:12:42.029466+00:00"
+    },
+    "current_chat_attestation": {
+      "author": "root /root/autonomous_cdc",
+      "received_date": "2026-10-19",
+      "scope": "one pass over current conversation messages/reports only; excludes other chats/forks, filesystem, network and reproduction",
+      "text": "Bounded current-chat intake component completed in one pass over the user messages/reports available in this conversation; no other chat, filesystem, network or reproduction searched. No actual runtime failure/environment packet is present. Concrete current-chat evidence: (1) first Slice01 CC report explicitly says 'the missing runtime failure packet is carried to Slice04'; (2) user reports CI failures 'due to the recent docs generation support Robert added', requests moving HEAD toward latest OTPs while preserving removed matrix combinations for future downloads; this is reported CI/docs-generation background, not a runtime reproduction; (3) user says they will fork for a 'one-off CI fix/update', then 'okay, done!' and returns to Slice02. No actual CI log/error text, failing command, runtime/container image reference or digest, exact runtime/OTP/tool versions, OS/architecture, invocation/configuration, expected/actual runtime output, or reproduction artifact appears in the provided chat. The other chat and fork contents were not consulted; absence here does not establish absence there. Arc02/Operator should own obtaining original failure packet if still applicable. Do not treat the completed separate CI fix as reproduction or resolution of the unidentified runtime failure."
+    }
+  },
+  "derived_repository_summaries": [
+    {
+      "repository_id": "website",
+      "root": "/Users/oubiwann/lab/lfe/lfe.github.io",
+      "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+      "branch": "main",
+      "working_tree_state": "dirty",
+      "status_entry_count": 15,
+      "local_tag_row_count": 12,
+      "original_metadata_group_id": "M01",
+      "original_query_exits": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "tag_rows_by_object_type": {
+        "commit": 12,
+        "tag": 0
+      }
+    },
+    {
+      "repository_id": "manual",
+      "root": "/Users/oubiwann/lab/lfe/lfe-manual",
+      "captured_head": "eba76e31367ee8d0eaa3217acce0d6bfc5378d17",
+      "branch": "main",
+      "working_tree_state": "dirty",
+      "status_entry_count": 16,
+      "local_tag_row_count": 0,
+      "original_metadata_group_id": "M02",
+      "original_query_exits": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "tag_rows_by_object_type": {
+        "commit": 0,
+        "tag": 0
+      }
+    },
+    {
+      "repository_id": "tutorial",
+      "root": "/Users/oubiwann/lab/lfe/lfe-tutorial",
+      "captured_head": "96e7c95d3a66cb8dbc395acae0e677b24b598810",
+      "branch": "builder",
+      "working_tree_state": "clean",
+      "status_entry_count": 0,
+      "local_tag_row_count": 0,
+      "original_metadata_group_id": "M03",
+      "original_query_exits": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "tag_rows_by_object_type": {
+        "commit": 0,
+        "tag": 0
+      }
+    },
+    {
+      "repository_id": "casting_spels",
+      "root": "/Users/oubiwann/lab/lfe/lfe-casting-spels",
+      "captured_head": "c0fc08e9e7f1df1bcd45516ad1f4f9d8be169be9",
+      "branch": "builder",
+      "working_tree_state": "dirty",
+      "status_entry_count": 1,
+      "local_tag_row_count": 0,
+      "original_metadata_group_id": "M04",
+      "original_query_exits": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "tag_rows_by_object_type": {
+        "commit": 0,
+        "tag": 0
+      }
+    },
+    {
+      "repository_id": "sicp",
+      "root": "/Users/oubiwann/lab/lfe/lfe-sicp",
+      "captured_head": "46859e2a6fdd5c346cbf03dceec8b23f0b4fff3a",
+      "branch": "main",
+      "working_tree_state": "clean",
+      "status_entry_count": 0,
+      "local_tag_row_count": 0,
+      "original_metadata_group_id": "M05",
+      "original_query_exits": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "tag_rows_by_object_type": {
+        "commit": 0,
+        "tag": 0
+      }
+    },
+    {
+      "repository_id": "lfe",
+      "root": "/Users/oubiwann/lab/lfe/lfe",
+      "captured_head": "0aa820e93bb592a821fe0a50b1db7e8926e56b30",
+      "branch": "develop",
+      "working_tree_state": "clean",
+      "status_entry_count": 0,
+      "local_tag_row_count": 59,
+      "original_metadata_group_id": "M06",
+      "original_query_exits": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "tag_rows_by_object_type": {
+        "commit": 35,
+        "tag": 24
+      }
+    },
+    {
+      "repository_id": "rebar3_lfe",
+      "root": "/Users/oubiwann/lab/lfe/rebar3_lfe",
+      "captured_head": "c59a18e205b0ab5086c10325af78a3df7f7e5f9e",
+      "branch": "release/0.5.x",
+      "working_tree_state": "dirty",
+      "status_entry_count": 7,
+      "local_tag_row_count": 25,
+      "original_metadata_group_id": "M07",
+      "original_query_exits": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "tag_rows_by_object_type": {
+        "commit": 21,
+        "tag": 4
+      }
+    },
+    {
+      "repository_id": "legacy_docs",
+      "root": "/Users/oubiwann/lab/lfe/docs",
+      "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+      "branch": "master",
+      "working_tree_state": "clean",
+      "status_entry_count": 0,
+      "local_tag_row_count": 6,
+      "original_metadata_group_id": "M08",
+      "original_query_exits": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "tag_rows_by_object_type": {
+        "commit": 6,
+        "tag": 0
+      }
+    }
+  ],
+  "local_tags": {
+    "count": 102,
+    "semantics": "local refs observed by original CDC queries; not remote release, binary, availability, ancestry, or support evidence",
+    "rows": [
+      {
+        "repository_id": "website",
+        "name": "1.0.0",
+        "object_type": "commit",
+        "object_id": "768e8b1f08c4353edd15b13bac95e87401d616a2",
+        "dereferenced_id": null,
+        "resolved_target": "768e8b1f08c4353edd15b13bac95e87401d616a2"
+      },
+      {
+        "repository_id": "website",
+        "name": "1.0.1",
+        "object_type": "commit",
+        "object_id": "ce90aaf2bae5cb0f3ce8713d78486ddd8a54fe31",
+        "dereferenced_id": null,
+        "resolved_target": "ce90aaf2bae5cb0f3ce8713d78486ddd8a54fe31"
+      },
+      {
+        "repository_id": "website",
+        "name": "1.2.0",
+        "object_type": "commit",
+        "object_id": "06529a8385f09e755ebc6f5c560ca74fe7de7e6c",
+        "dereferenced_id": null,
+        "resolved_target": "06529a8385f09e755ebc6f5c560ca74fe7de7e6c"
+      },
+      {
+        "repository_id": "website",
+        "name": "1.2.1",
+        "object_type": "commit",
+        "object_id": "df01b3c3c6a086aac406911f6afff0f1fe593103",
+        "dereferenced_id": null,
+        "resolved_target": "df01b3c3c6a086aac406911f6afff0f1fe593103"
+      },
+      {
+        "repository_id": "website",
+        "name": "1.2.2",
+        "object_type": "commit",
+        "object_id": "c3998b699ebd424eb01bfbd96472a94f9619ddd4",
+        "dereferenced_id": null,
+        "resolved_target": "c3998b699ebd424eb01bfbd96472a94f9619ddd4"
+      },
+      {
+        "repository_id": "website",
+        "name": "1.2.3",
+        "object_type": "commit",
+        "object_id": "faff347c56e261d46045954f41dcc5e138bdd79f",
+        "dereferenced_id": null,
+        "resolved_target": "faff347c56e261d46045954f41dcc5e138bdd79f"
+      },
+      {
+        "repository_id": "website",
+        "name": "1.2.4",
+        "object_type": "commit",
+        "object_id": "cf02ee6f2dbaaa59eda92cf47f4d5ad3799a7c79",
+        "dereferenced_id": null,
+        "resolved_target": "cf02ee6f2dbaaa59eda92cf47f4d5ad3799a7c79"
+      },
+      {
+        "repository_id": "website",
+        "name": "1.2.5",
+        "object_type": "commit",
+        "object_id": "8e097fc19637e0fddc6d63a83d7b6a36382768a8",
+        "dereferenced_id": null,
+        "resolved_target": "8e097fc19637e0fddc6d63a83d7b6a36382768a8"
+      },
+      {
+        "repository_id": "website",
+        "name": "2.0.0",
+        "object_type": "commit",
+        "object_id": "d3776bb10612e1ef57b6dbd1eca5b1ab9e5a672e",
+        "dereferenced_id": null,
+        "resolved_target": "d3776bb10612e1ef57b6dbd1eca5b1ab9e5a672e"
+      },
+      {
+        "repository_id": "website",
+        "name": "2.0.1",
+        "object_type": "commit",
+        "object_id": "212141eebc1d92d3841f3645ba34d9863e93b888",
+        "dereferenced_id": null,
+        "resolved_target": "212141eebc1d92d3841f3645ba34d9863e93b888"
+      },
+      {
+        "repository_id": "website",
+        "name": "3.0.0",
+        "object_type": "commit",
+        "object_id": "a3c8adad1b101fd3abd71c0ea1e136a96b4975ba",
+        "dereferenced_id": null,
+        "resolved_target": "a3c8adad1b101fd3abd71c0ea1e136a96b4975ba"
+      },
+      {
+        "repository_id": "website",
+        "name": "4.0.0",
+        "object_type": "commit",
+        "object_id": "e22329d1d2c9c70e74035e2daf62126d510693ce",
+        "dereferenced_id": null,
+        "resolved_target": "e22329d1d2c9c70e74035e2daf62126d510693ce"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "0.10.0",
+        "object_type": "commit",
+        "object_id": "07d0cc6cc6f0ae2fe06138b42b067f484fd099f3",
+        "dereferenced_id": null,
+        "resolved_target": "07d0cc6cc6f0ae2fe06138b42b067f484fd099f3"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "0.10.1",
+        "object_type": "commit",
+        "object_id": "0cf28854bf2e40f81f3225c7d66592b2a09ad592",
+        "dereferenced_id": null,
+        "resolved_target": "0cf28854bf2e40f81f3225c7d66592b2a09ad592"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "0.9.0",
+        "object_type": "commit",
+        "object_id": "4a6a1ac0d7d51cc97c74fd6ac03a7ee61698fed7",
+        "dereferenced_id": null,
+        "resolved_target": "4a6a1ac0d7d51cc97c74fd6ac03a7ee61698fed7"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "0.9.1",
+        "object_type": "commit",
+        "object_id": "db17d7911ddd4eb03934f65268d67629166f7b0b",
+        "dereferenced_id": null,
+        "resolved_target": "db17d7911ddd4eb03934f65268d67629166f7b0b"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "0.9.2",
+        "object_type": "commit",
+        "object_id": "4d5859fa9efc7e36c119ab6eaa60f93a72f71447",
+        "dereferenced_id": null,
+        "resolved_target": "4d5859fa9efc7e36c119ab6eaa60f93a72f71447"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "1.0",
+        "object_type": "commit",
+        "object_id": "c0fb9ccfd167fd98647ae5fa0586125c3e00b1c7",
+        "dereferenced_id": null,
+        "resolved_target": "c0fb9ccfd167fd98647ae5fa0586125c3e00b1c7"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "1.0.1",
+        "object_type": "tag",
+        "object_id": "f59e03cf6f7ad47b21b34aa32e517a8bea981a38",
+        "dereferenced_id": "fdf00e827beea6372a9eb857404dde0253a83b21",
+        "resolved_target": "fdf00e827beea6372a9eb857404dde0253a83b21"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "1.0.2",
+        "object_type": "tag",
+        "object_id": "3d3c76bf7a0adb68625ad2e2bfb9bf18caf55e70",
+        "dereferenced_id": "2b253c216df57050d33889a92dae631793b55584",
+        "resolved_target": "2b253c216df57050d33889a92dae631793b55584"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "1.1",
+        "object_type": "tag",
+        "object_id": "04dc4f67192f1d8339fde044fd07f09a5fc634b5",
+        "dereferenced_id": "70a1dab54337ec931a21b53660c020f3cc92e7f0",
+        "resolved_target": "70a1dab54337ec931a21b53660c020f3cc92e7f0"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "1.1.1",
+        "object_type": "tag",
+        "object_id": "9996fc5aaf4dacda7a6e8ab50c58d9c891a4b8e8",
+        "dereferenced_id": "b0f99298a41de7791683513fcbc10a770685672b",
+        "resolved_target": "b0f99298a41de7791683513fcbc10a770685672b"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "1.2.0",
+        "object_type": "tag",
+        "object_id": "bcc62cd074f6c510300fe42ba84769a99b7c5f70",
+        "dereferenced_id": "a4b20a050d38e3f494cdf4a1a99adbe11e7b6ced",
+        "resolved_target": "a4b20a050d38e3f494cdf4a1a99adbe11e7b6ced"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "1.2.1",
+        "object_type": "tag",
+        "object_id": "67014c5cee4c3c6149e30b2801a5d6bc4902a297",
+        "dereferenced_id": "e98309f4238692c0685740257e9eb6917b152629",
+        "resolved_target": "e98309f4238692c0685740257e9eb6917b152629"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "1.3",
+        "object_type": "tag",
+        "object_id": "194bef3cbcfd07ef264176e4b63a02111317333d",
+        "dereferenced_id": "d8337516ab09edd4b281a27ac85684b81cdeb8bd",
+        "resolved_target": "d8337516ab09edd4b281a27ac85684b81cdeb8bd"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "2.0",
+        "object_type": "tag",
+        "object_id": "39803c99629003b5d4f5069fd06a042b9f138e26",
+        "dereferenced_id": "76eaf432f768b45393e404c1bd1861a08c19de3b",
+        "resolved_target": "76eaf432f768b45393e404c1bd1861a08c19de3b"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "2.0.1",
+        "object_type": "tag",
+        "object_id": "da186c8a886722f17088e2b15d63bbdc615ed610",
+        "dereferenced_id": "c09b9aebaa659f5c2d0c152d8401fd6924144ce9",
+        "resolved_target": "c09b9aebaa659f5c2d0c152d8401fd6924144ce9"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "2.1.0",
+        "object_type": "tag",
+        "object_id": "5f82905c640f4bbc4242825918463a9979683bf9",
+        "dereferenced_id": "c119a9216f1028ead780b7ae2b03746295ce8aad",
+        "resolved_target": "c119a9216f1028ead780b7ae2b03746295ce8aad"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "2.1.1",
+        "object_type": "tag",
+        "object_id": "2e91007c6e20cf0eebcba4048036b136ceae7ba4",
+        "dereferenced_id": "b969afb9b5928d33dcaef636ed9020e620858190",
+        "resolved_target": "b969afb9b5928d33dcaef636ed9020e620858190"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "2.1.2",
+        "object_type": "commit",
+        "object_id": "6cbfdffe95caa65a659074c1c9d389fd4a6c1350",
+        "dereferenced_id": null,
+        "resolved_target": "6cbfdffe95caa65a659074c1c9d389fd4a6c1350"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "2.1.3",
+        "object_type": "commit",
+        "object_id": "236313e9be2c50950e5ac58d8175c00a6323d42e",
+        "dereferenced_id": null,
+        "resolved_target": "236313e9be2c50950e5ac58d8175c00a6323d42e"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "2.1.4",
+        "object_type": "commit",
+        "object_id": "f3c0f02d2776b125bad33b3935e2118504bed0a4",
+        "dereferenced_id": null,
+        "resolved_target": "f3c0f02d2776b125bad33b3935e2118504bed0a4"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "2.1.5",
+        "object_type": "commit",
+        "object_id": "6616ce0127b564eadf05c2e8ef654668528fc675",
+        "dereferenced_id": null,
+        "resolved_target": "6616ce0127b564eadf05c2e8ef654668528fc675"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "2.2.0",
+        "object_type": "commit",
+        "object_id": "716a6959e4f02d200273fdabb7e1900e0a4c6a8e",
+        "dereferenced_id": null,
+        "resolved_target": "716a6959e4f02d200273fdabb7e1900e0a4c6a8e"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "2.2.1",
+        "object_type": "commit",
+        "object_id": "369dfb198c025b6498ab84a6aa8843cbf7d34512",
+        "dereferenced_id": null,
+        "resolved_target": "369dfb198c025b6498ab84a6aa8843cbf7d34512"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "2.2.2",
+        "object_type": "commit",
+        "object_id": "dae7489ebf9588e5f746a34cd4f8ff83d1469eef",
+        "dereferenced_id": null,
+        "resolved_target": "dae7489ebf9588e5f746a34cd4f8ff83d1469eef"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v0.10.0",
+        "object_type": "commit",
+        "object_id": "07d0cc6cc6f0ae2fe06138b42b067f484fd099f3",
+        "dereferenced_id": null,
+        "resolved_target": "07d0cc6cc6f0ae2fe06138b42b067f484fd099f3"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v0.10.1",
+        "object_type": "commit",
+        "object_id": "0cf28854bf2e40f81f3225c7d66592b2a09ad592",
+        "dereferenced_id": null,
+        "resolved_target": "0cf28854bf2e40f81f3225c7d66592b2a09ad592"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v0.2.1",
+        "object_type": "commit",
+        "object_id": "a08c95f5bea17d2ca264d0fd4eacea27505fa63b",
+        "dereferenced_id": null,
+        "resolved_target": "a08c95f5bea17d2ca264d0fd4eacea27505fa63b"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v0.3",
+        "object_type": "commit",
+        "object_id": "0aede8cc8a4319d62b9e4b3547c2b76f1462c74a",
+        "dereferenced_id": null,
+        "resolved_target": "0aede8cc8a4319d62b9e4b3547c2b76f1462c74a"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v0.4",
+        "object_type": "tag",
+        "object_id": "a437c71ece06d08349258804d6d760115c21631b",
+        "dereferenced_id": "85c73bf83c074e992f2e1df599b8bed5c9bb04ae",
+        "resolved_target": "85c73bf83c074e992f2e1df599b8bed5c9bb04ae"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v0.5",
+        "object_type": "commit",
+        "object_id": "dc6b0b74b21a0c0bf3f5ed246b33e2fca3be0975",
+        "dereferenced_id": null,
+        "resolved_target": "dc6b0b74b21a0c0bf3f5ed246b33e2fca3be0975"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v0.5.1",
+        "object_type": "commit",
+        "object_id": "e3843f899c7f2be8fc1881a44aebba23c204e02f",
+        "dereferenced_id": null,
+        "resolved_target": "e3843f899c7f2be8fc1881a44aebba23c204e02f"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v0.5.2",
+        "object_type": "commit",
+        "object_id": "e207eb2cada9361c4d9cf6c023435be99a2fd06d",
+        "dereferenced_id": null,
+        "resolved_target": "e207eb2cada9361c4d9cf6c023435be99a2fd06d"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v0.6",
+        "object_type": "tag",
+        "object_id": "e936e8f885846d63305d301e813ebbb6cf858422",
+        "dereferenced_id": "de757edbc25f4ac661a02f98b26d58ce5a29ec9a",
+        "resolved_target": "de757edbc25f4ac661a02f98b26d58ce5a29ec9a"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v0.6.1",
+        "object_type": "commit",
+        "object_id": "1bcf4614274d66022115c22f39781bc798d50af3",
+        "dereferenced_id": null,
+        "resolved_target": "1bcf4614274d66022115c22f39781bc798d50af3"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v0.6.2",
+        "object_type": "commit",
+        "object_id": "15b36cbd7d4ba42ac19c4169f35e4094e43d7f8a",
+        "dereferenced_id": null,
+        "resolved_target": "15b36cbd7d4ba42ac19c4169f35e4094e43d7f8a"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v0.7a",
+        "object_type": "commit",
+        "object_id": "39287029d599eb3ffb1e9a1cade0bc2300cc22a3",
+        "dereferenced_id": null,
+        "resolved_target": "39287029d599eb3ffb1e9a1cade0bc2300cc22a3"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v0.8",
+        "object_type": "commit",
+        "object_id": "e094b1754462af1e91d51a7dda712bd119bac756",
+        "dereferenced_id": null,
+        "resolved_target": "e094b1754462af1e91d51a7dda712bd119bac756"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v0.9.0",
+        "object_type": "commit",
+        "object_id": "4a6a1ac0d7d51cc97c74fd6ac03a7ee61698fed7",
+        "dereferenced_id": null,
+        "resolved_target": "4a6a1ac0d7d51cc97c74fd6ac03a7ee61698fed7"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v0.9.1",
+        "object_type": "commit",
+        "object_id": "db17d7911ddd4eb03934f65268d67629166f7b0b",
+        "dereferenced_id": null,
+        "resolved_target": "db17d7911ddd4eb03934f65268d67629166f7b0b"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v0.9.2",
+        "object_type": "commit",
+        "object_id": "4d5859fa9efc7e36c119ab6eaa60f93a72f71447",
+        "dereferenced_id": null,
+        "resolved_target": "4d5859fa9efc7e36c119ab6eaa60f93a72f71447"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v1.0",
+        "object_type": "commit",
+        "object_id": "c0fb9ccfd167fd98647ae5fa0586125c3e00b1c7",
+        "dereferenced_id": null,
+        "resolved_target": "c0fb9ccfd167fd98647ae5fa0586125c3e00b1c7"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v1.0.1",
+        "object_type": "tag",
+        "object_id": "de78dbc085361cfba3e2ada0284429d210ad1459",
+        "dereferenced_id": "fdf00e827beea6372a9eb857404dde0253a83b21",
+        "resolved_target": "fdf00e827beea6372a9eb857404dde0253a83b21"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v1.0.2",
+        "object_type": "tag",
+        "object_id": "3d1670f4884b1304dbb0d980f4941fc5bd1f11eb",
+        "dereferenced_id": "2b253c216df57050d33889a92dae631793b55584",
+        "resolved_target": "2b253c216df57050d33889a92dae631793b55584"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v1.1",
+        "object_type": "tag",
+        "object_id": "2b7da2b758e69566e166d5721287f7b2e1b82d35",
+        "dereferenced_id": "70a1dab54337ec931a21b53660c020f3cc92e7f0",
+        "resolved_target": "70a1dab54337ec931a21b53660c020f3cc92e7f0"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v1.1.1",
+        "object_type": "tag",
+        "object_id": "2aa2d59e056583bfa715fb9237f7001a7d6a571d",
+        "dereferenced_id": "b0f99298a41de7791683513fcbc10a770685672b",
+        "resolved_target": "b0f99298a41de7791683513fcbc10a770685672b"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v1.2.0",
+        "object_type": "tag",
+        "object_id": "b7893afb6f1e66ab6cd6063ac535b4ce297d049b",
+        "dereferenced_id": "a4b20a050d38e3f494cdf4a1a99adbe11e7b6ced",
+        "resolved_target": "a4b20a050d38e3f494cdf4a1a99adbe11e7b6ced"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v1.2.1",
+        "object_type": "tag",
+        "object_id": "fb55df09daea79ee42fff47a2b46e63659c8f0cd",
+        "dereferenced_id": "e98309f4238692c0685740257e9eb6917b152629",
+        "resolved_target": "e98309f4238692c0685740257e9eb6917b152629"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v1.3",
+        "object_type": "tag",
+        "object_id": "629c26d65416dd26da9b1dbc10ab26c71384e9aa",
+        "dereferenced_id": "d8337516ab09edd4b281a27ac85684b81cdeb8bd",
+        "resolved_target": "d8337516ab09edd4b281a27ac85684b81cdeb8bd"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v2.0",
+        "object_type": "tag",
+        "object_id": "df39ae63ff522c404f37ca6231ab6b6635802897",
+        "dereferenced_id": "76eaf432f768b45393e404c1bd1861a08c19de3b",
+        "resolved_target": "76eaf432f768b45393e404c1bd1861a08c19de3b"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v2.0.1",
+        "object_type": "tag",
+        "object_id": "a3da10a7fbf22a9824892ce46cc120fab501aef3",
+        "dereferenced_id": "c09b9aebaa659f5c2d0c152d8401fd6924144ce9",
+        "resolved_target": "c09b9aebaa659f5c2d0c152d8401fd6924144ce9"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v2.1.0",
+        "object_type": "tag",
+        "object_id": "a9d10e161dc42243f371607bff4735d3e2734e17",
+        "dereferenced_id": "c119a9216f1028ead780b7ae2b03746295ce8aad",
+        "resolved_target": "c119a9216f1028ead780b7ae2b03746295ce8aad"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v2.1.1",
+        "object_type": "tag",
+        "object_id": "857d9cc805f09c4819caa813dba0bc53cb9bd9ce",
+        "dereferenced_id": "b969afb9b5928d33dcaef636ed9020e620858190",
+        "resolved_target": "b969afb9b5928d33dcaef636ed9020e620858190"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v2.1.2",
+        "object_type": "commit",
+        "object_id": "6cbfdffe95caa65a659074c1c9d389fd4a6c1350",
+        "dereferenced_id": null,
+        "resolved_target": "6cbfdffe95caa65a659074c1c9d389fd4a6c1350"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v2.1.3",
+        "object_type": "commit",
+        "object_id": "236313e9be2c50950e5ac58d8175c00a6323d42e",
+        "dereferenced_id": null,
+        "resolved_target": "236313e9be2c50950e5ac58d8175c00a6323d42e"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v2.1.4",
+        "object_type": "commit",
+        "object_id": "f3c0f02d2776b125bad33b3935e2118504bed0a4",
+        "dereferenced_id": null,
+        "resolved_target": "f3c0f02d2776b125bad33b3935e2118504bed0a4"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v2.1.5",
+        "object_type": "commit",
+        "object_id": "6616ce0127b564eadf05c2e8ef654668528fc675",
+        "dereferenced_id": null,
+        "resolved_target": "6616ce0127b564eadf05c2e8ef654668528fc675"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v2.2.0",
+        "object_type": "commit",
+        "object_id": "716a6959e4f02d200273fdabb7e1900e0a4c6a8e",
+        "dereferenced_id": null,
+        "resolved_target": "716a6959e4f02d200273fdabb7e1900e0a4c6a8e"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v2.2.1",
+        "object_type": "commit",
+        "object_id": "369dfb198c025b6498ab84a6aa8843cbf7d34512",
+        "dereferenced_id": null,
+        "resolved_target": "369dfb198c025b6498ab84a6aa8843cbf7d34512"
+      },
+      {
+        "repository_id": "lfe",
+        "name": "v2.2.2",
+        "object_type": "commit",
+        "object_id": "dae7489ebf9588e5f746a34cd4f8ff83d1469eef",
+        "dereferenced_id": null,
+        "resolved_target": "dae7489ebf9588e5f746a34cd4f8ff83d1469eef"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.1.0",
+        "object_type": "commit",
+        "object_id": "01ccdd6948ac8a6085bf3e2acbc5e3bce7a46039",
+        "dereferenced_id": null,
+        "resolved_target": "01ccdd6948ac8a6085bf3e2acbc5e3bce7a46039"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.2.0",
+        "object_type": "commit",
+        "object_id": "7c7c8bfa81629ca0241f32573e56278c81b7b0db",
+        "dereferenced_id": null,
+        "resolved_target": "7c7c8bfa81629ca0241f32573e56278c81b7b0db"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.3.0",
+        "object_type": "commit",
+        "object_id": "40456120363fc5ab3b60a091d7ff80a53f9f8ced",
+        "dereferenced_id": null,
+        "resolved_target": "40456120363fc5ab3b60a091d7ff80a53f9f8ced"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.3.0-rc1",
+        "object_type": "commit",
+        "object_id": "622239cccf561da8989921af6c37f5c43c03cadb",
+        "dereferenced_id": null,
+        "resolved_target": "622239cccf561da8989921af6c37f5c43c03cadb"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.3.1",
+        "object_type": "commit",
+        "object_id": "691531f257cbac1a7f2c9cc1f606dc75d4f39b35",
+        "dereferenced_id": null,
+        "resolved_target": "691531f257cbac1a7f2c9cc1f606dc75d4f39b35"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.3.2",
+        "object_type": "commit",
+        "object_id": "95ded90e89873e94ba38202c7fa29cf66337e717",
+        "dereferenced_id": null,
+        "resolved_target": "95ded90e89873e94ba38202c7fa29cf66337e717"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.4.0",
+        "object_type": "commit",
+        "object_id": "8b49a7938beb61def562a9a32c31c30567685d79",
+        "dereferenced_id": null,
+        "resolved_target": "8b49a7938beb61def562a9a32c31c30567685d79"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.4.1",
+        "object_type": "commit",
+        "object_id": "ffed854e8ef2f8187aaf83aafaa1d317dcbf54f1",
+        "dereferenced_id": null,
+        "resolved_target": "ffed854e8ef2f8187aaf83aafaa1d317dcbf54f1"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.4.10",
+        "object_type": "commit",
+        "object_id": "672806f61e82bec548e30ff423b8ceb96fdc3647",
+        "dereferenced_id": null,
+        "resolved_target": "672806f61e82bec548e30ff423b8ceb96fdc3647"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.4.11",
+        "object_type": "commit",
+        "object_id": "a25ea7b88a63492cb4bfc5ed89bd3bb47098c72f",
+        "dereferenced_id": null,
+        "resolved_target": "a25ea7b88a63492cb4bfc5ed89bd3bb47098c72f"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.4.12",
+        "object_type": "commit",
+        "object_id": "e3ec50f3a416c5d2da6ab85954b7851ea5bb32e6",
+        "dereferenced_id": null,
+        "resolved_target": "e3ec50f3a416c5d2da6ab85954b7851ea5bb32e6"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.4.2",
+        "object_type": "commit",
+        "object_id": "996cbfb550bd45c848fe4bb7ac012af4144e2423",
+        "dereferenced_id": null,
+        "resolved_target": "996cbfb550bd45c848fe4bb7ac012af4144e2423"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.4.3",
+        "object_type": "commit",
+        "object_id": "95b1ec67087662f320ee059a75f6e3bd6a6754a1",
+        "dereferenced_id": null,
+        "resolved_target": "95b1ec67087662f320ee059a75f6e3bd6a6754a1"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.4.4",
+        "object_type": "commit",
+        "object_id": "e7589b098c0371ef4b217128defb77b39ec054e7",
+        "dereferenced_id": null,
+        "resolved_target": "e7589b098c0371ef4b217128defb77b39ec054e7"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.4.5",
+        "object_type": "commit",
+        "object_id": "cf11152b8980336eb2603dad3338a091d1054b9e",
+        "dereferenced_id": null,
+        "resolved_target": "cf11152b8980336eb2603dad3338a091d1054b9e"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.4.6",
+        "object_type": "commit",
+        "object_id": "a6d15513db9a050fd7b61391f44036d76d3b9830",
+        "dereferenced_id": null,
+        "resolved_target": "a6d15513db9a050fd7b61391f44036d76d3b9830"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.4.7",
+        "object_type": "commit",
+        "object_id": "7ab2a0d8d8bb7f47c58d3b2386cad4f4657df90f",
+        "dereferenced_id": null,
+        "resolved_target": "7ab2a0d8d8bb7f47c58d3b2386cad4f4657df90f"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.4.8",
+        "object_type": "commit",
+        "object_id": "c30ab65dbd4dde4659193b00207e39fcee7421d4",
+        "dereferenced_id": null,
+        "resolved_target": "c30ab65dbd4dde4659193b00207e39fcee7421d4"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.4.9",
+        "object_type": "commit",
+        "object_id": "e352256342ca14192aa214474005b31a8ed3ad44",
+        "dereferenced_id": null,
+        "resolved_target": "e352256342ca14192aa214474005b31a8ed3ad44"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.5.0",
+        "object_type": "tag",
+        "object_id": "0a63d4f7ad0079a1af3fc2f5107c9d56a103b82e",
+        "dereferenced_id": "59babf6daca7089c76ff23f989c4393e84b606dc",
+        "resolved_target": "59babf6daca7089c76ff23f989c4393e84b606dc"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.5.1",
+        "object_type": "tag",
+        "object_id": "410c4d1efeca187da3ee08a2b0e313d8e851c88b",
+        "dereferenced_id": "78e805293e268a2c3e3e6c88e143e23f918e3c8c",
+        "resolved_target": "78e805293e268a2c3e3e6c88e143e23f918e3c8c"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.5.2",
+        "object_type": "tag",
+        "object_id": "9ce239043141b98d78664747cb01e66657484e1f",
+        "dereferenced_id": "5a2626ecca1bf349cee3340afac391058ba60e7a",
+        "resolved_target": "5a2626ecca1bf349cee3340afac391058ba60e7a"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.5.3",
+        "object_type": "tag",
+        "object_id": "d3c8b2b20bbc6377e0d2522d81dddf544b995614",
+        "dereferenced_id": "489ee0c6b8a06371d39fd987606266db4060dda0",
+        "resolved_target": "489ee0c6b8a06371d39fd987606266db4060dda0"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.5.4",
+        "object_type": "commit",
+        "object_id": "91f11deb259128a14bef9ddedaaacca3f69199cf",
+        "dereferenced_id": null,
+        "resolved_target": "91f11deb259128a14bef9ddedaaacca3f69199cf"
+      },
+      {
+        "repository_id": "rebar3_lfe",
+        "name": "0.5.5",
+        "object_type": "commit",
+        "object_id": "3a140a0de58b2fcf0a8415d13a4c9ce601fa720b",
+        "dereferenced_id": null,
+        "resolved_target": "3a140a0de58b2fcf0a8415d13a4c9ce601fa720b"
+      },
+      {
+        "repository_id": "legacy_docs",
+        "name": "0.7",
+        "object_type": "commit",
+        "object_id": "c473bf5724f77cc65949ef07079bb4eff7df138c",
+        "dereferenced_id": null,
+        "resolved_target": "c473bf5724f77cc65949ef07079bb4eff7df138c"
+      },
+      {
+        "repository_id": "legacy_docs",
+        "name": "0.8",
+        "object_type": "commit",
+        "object_id": "686207466a860489c7f9cae48dcde62ebf0f2905",
+        "dereferenced_id": null,
+        "resolved_target": "686207466a860489c7f9cae48dcde62ebf0f2905"
+      },
+      {
+        "repository_id": "legacy_docs",
+        "name": "0.9",
+        "object_type": "commit",
+        "object_id": "5bff9945fd23780b6633bf8c5bb47b72d6ba2bde",
+        "dereferenced_id": null,
+        "resolved_target": "5bff9945fd23780b6633bf8c5bb47b72d6ba2bde"
+      },
+      {
+        "repository_id": "legacy_docs",
+        "name": "1.0.0",
+        "object_type": "commit",
+        "object_id": "1224546722ffbbbaf99ca0d7492a3c49a63c3ad4",
+        "dereferenced_id": null,
+        "resolved_target": "1224546722ffbbbaf99ca0d7492a3c49a63c3ad4"
+      },
+      {
+        "repository_id": "legacy_docs",
+        "name": "2.0.0",
+        "object_type": "commit",
+        "object_id": "78a2862250d0a79a63db34828be0560af8536428",
+        "dereferenced_id": null,
+        "resolved_target": "78a2862250d0a79a63db34828be0560af8536428"
+      },
+      {
+        "repository_id": "legacy_docs",
+        "name": "3.0.0",
+        "object_type": "commit",
+        "object_id": "9ecc9a1dbc236ff0e26bd9ca942fad03cbb7cf5e",
+        "dereferenced_id": null,
+        "resolved_target": "9ecc9a1dbc236ff0e26bd9ca942fad03cbb7cf5e"
+      }
+    ]
+  },
+  "budget_and_exclusions": {
+    "source_witnesses": {
+      "approved": 16,
+      "completed": 16
+    },
+    "metadata_groups": {
+      "approved": 8,
+      "completed": 8,
+      "queries": 40,
+      "all_exit_zero": true
+    },
+    "combined_intake_passes": {
+      "approved": 1,
+      "completed": 1,
+      "saved_project_files": 13,
+      "saved_project_matches": 74,
+      "zero_match_files": [
+        "artifacts/ci-run-36215108779.json",
+        "artifacts/first-steps/HANDOFF.md"
+      ],
+      "current_chat_passes": 1
+    },
+    "additional_source_or_metadata_searches": 0,
+    "additional_tag_queries": 0,
+    "network_or_external_actions": 0,
+    "runtime_reproductions": 0,
+    "builds_or_installs": 0,
+    "source_repairs": 0,
+    "uninspected_candidate": "workbench/erl_crash.dump listed in manual status; content and relevance unknown; not opened"
+  },
+  "technical_claims": [
+    {
+      "claim_id": "T04-C01",
+      "repository_id": "website",
+      "path": "README.md",
+      "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+      "source_sha256": "7ebbbe36aa653c3d5eb6131e0c40b5578883803edbd4c3764e4d6b07d5757e85",
+      "source_line_ranges": [
+        {
+          "start": 13,
+          "end": 28
+        },
+        {
+          "start": 55,
+          "end": 55
+        },
+        {
+          "start": 77,
+          "end": 77
+        }
+      ],
+      "observed_declaration_and_limit": "The site README declares Rust as the prerequisite; its quick-start Make targets install lfesite, Cobalt and Tailwind on first build, data prerendering, and GitHub Actions deployment after successful main merges. These are source instructions/declarations, not a build or deployment observation."
+    },
+    {
+      "claim_id": "T04-C02",
+      "repository_id": "website",
+      "path": "_cobalt.yml",
+      "captured_head": "036e231b09c48966da26d2227bccb4fa3b295df9",
+      "source_sha256": "6bf7a8e8cd37258b79e38c17158cc2c1d734afcaf875d4a3e600d6189ae6e331",
+      "source_line_ranges": [
+        {
+          "start": 1,
+          "end": 6
+        }
+      ],
+      "observed_declaration_and_limit": "The checked-in Cobalt configuration declares src as source, ./site as destination, and a date/category/slug blog permalink. This does not prove the destination was generated or published."
+    },
+    {
+      "claim_id": "T04-C03",
+      "repository_id": "manual",
+      "path": "README.md",
+      "captured_head": "eba76e31367ee8d0eaa3217acce0d6bfc5378d17",
+      "source_sha256": "de2a063133722112aa2edc5b991b1cf790772ad8e83ba6b05808c67e73057f8b",
+      "source_line_ranges": [
+        {
+          "start": 9,
+          "end": 25
+        }
+      ],
+      "observed_declaration_and_limit": "The manual README points to the published book and describes a local mdbook setup through make run with browser auto-refresh. It is repository guidance, not rendered readiness evidence."
+    },
+    {
+      "claim_id": "T04-C04",
+      "repository_id": "manual",
+      "path": "book.toml",
+      "captured_head": "eba76e31367ee8d0eaa3217acce0d6bfc5378d17",
+      "source_sha256": "d9dd067f7e494ef3e71c640c94e7d9e52b6710355793137f067b60c4a98c1dc6",
+      "source_line_ranges": [
+        {
+          "start": 7,
+          "end": 34
+        }
+      ],
+      "observed_declaration_and_limit": "Manual mdBook configuration sets build-dir book, index/links/mermaid preprocessors, LFE-PDP themes, Mermaid assets and HTML search/fold options. Configuration is not execution."
+    },
+    {
+      "claim_id": "T04-C05",
+      "repository_id": "tutorial",
+      "path": "README.md",
+      "captured_head": "96e7c95d3a66cb8dbc395acae0e677b24b598810",
+      "source_sha256": "4d46e1b6f820bb07fa57f3f2b4f321d2796a175a7d7e1879ff0b708d2f696cc6",
+      "source_line_ranges": [
+        {
+          "start": 13,
+          "end": 21
+        },
+        {
+          "start": 24,
+          "end": 36
+        },
+        {
+          "start": 39,
+          "end": 68
+        }
+      ],
+      "observed_declaration_and_limit": "The tutorial README describes a kick-start rather than comprehensive/beginner-first coverage, specifies assumed language/Erlang/Lisp familiarity, and lists covered and omitted topics. This is scope framing authored in the README."
+    },
+    {
+      "claim_id": "T04-C06",
+      "repository_id": "tutorial",
+      "path": "book.toml",
+      "captured_head": "96e7c95d3a66cb8dbc395acae0e677b24b598810",
+      "source_sha256": "a13a3652cbec523aa19354e0cea60eaadb663912468a33859a20936c165f6c6e",
+      "source_line_ranges": [
+        {
+          "start": 7,
+          "end": 27
+        }
+      ],
+      "observed_declaration_and_limit": "Tutorial mdBook config uses build-dir book, index/links preprocessors, LFE-PDP themes and HTML search settings, with a configured analytics identifier. No output was rendered in this pass."
+    },
+    {
+      "claim_id": "T04-C07",
+      "repository_id": "casting_spels",
+      "path": "README.md",
+      "captured_head": "c0fc08e9e7f1df1bcd45516ad1f4f9d8be169be9",
+      "source_sha256": "d4d56481e61e997e42033cad07ffd0280f2e67677c50f6f57c1386b48dc463a0",
+      "source_line_ranges": [
+        {
+          "start": 9,
+          "end": 35
+        },
+        {
+          "start": 37,
+          "end": 55
+        }
+      ],
+      "observed_declaration_and_limit": "Casting SPELs README presents REPL prompt/input/output formatting and frames the book around an LFE text-adventure example. The example is documentation content, not a runtime transcript collected by this pass."
+    },
+    {
+      "claim_id": "T04-C08",
+      "repository_id": "casting_spels",
+      "path": "book.toml",
+      "captured_head": "c0fc08e9e7f1df1bcd45516ad1f4f9d8be169be9",
+      "source_sha256": "d78e90f360da1fb75c478e11acaa7e70746526e6e743841db7d91048cf97b285",
+      "source_line_ranges": [
+        {
+          "start": 7,
+          "end": 27
+        }
+      ],
+      "observed_declaration_and_limit": "Casting SPELs mdBook configuration declares build-dir book, index/links preprocessors, LFE-PDP themes and search settings. It does not establish a successful book build."
+    },
+    {
+      "claim_id": "T04-C09",
+      "repository_id": "sicp",
+      "path": "README.md",
+      "captured_head": "46859e2a6fdd5c346cbf03dceec8b23f0b4fff3a",
+      "source_sha256": "ef874f53615aa657ee1a81748b7a28709f950047f506d72a5f722cd66569cd76",
+      "source_line_ranges": [
+        {
+          "start": 16,
+          "end": 42
+        }
+      ],
+      "observed_declaration_and_limit": "SICP README describes a local mdBook build with make and make run, and says generated book-directory output should not be committed. These are written instructions, not an executed build result."
+    },
+    {
+      "claim_id": "T04-C10",
+      "repository_id": "sicp",
+      "path": "book.toml",
+      "captured_head": "46859e2a6fdd5c346cbf03dceec8b23f0b4fff3a",
+      "source_sha256": "2b54b662f535e7e8415dc0e1f5e219866794627880955443cb2e8032abb9f820",
+      "source_line_ranges": [
+        {
+          "start": 7,
+          "end": 8
+        },
+        {
+          "start": 31,
+          "end": 33
+        }
+      ],
+      "observed_declaration_and_limit": "SICP mdBook config declares build-dir book and a machine-local browser-binary-path. The local path is configuration, not proof the browser exists or can render output."
+    },
+    {
+      "claim_id": "T04-C11",
+      "repository_id": "lfe",
+      "path": "README.md",
+      "captured_head": "0aa820e93bb592a821fe0a50b1db7e8926e56b30",
+      "source_sha256": "f594eb9dc48ddc9442d5e296798c06444922cba9a8157e36e07abe43edf615b7",
+      "source_line_ranges": [
+        {
+          "start": 14,
+          "end": 56
+        },
+        {
+          "start": 63,
+          "end": 90
+        },
+        {
+          "start": 120,
+          "end": 141
+        },
+        {
+          "start": 174,
+          "end": 202
+        }
+      ],
+      "observed_declaration_and_limit": "LFE README documents compile/tests/install and REPL workflows, Docker usage, documentation links and manual release/publish steps. The embedded OTP 26 REPL display and commands are examples/instructions, not fresh tests or publication evidence."
+    },
+    {
+      "claim_id": "T04-C12",
+      "repository_id": "lfe",
+      "path": "Dockerfile",
+      "captured_head": "0aa820e93bb592a821fe0a50b1db7e8926e56b30",
+      "source_sha256": "ab615003c3bf21aacb5db4b49fae2835fbc49795fc7358b089847c65f62ab8bb",
+      "source_line_ranges": [
+        {
+          "start": 13,
+          "end": 13
+        }
+      ],
+      "observed_declaration_and_limit": "At captured LFE HEAD 0aa820e93bb592a821fe0a50b1db7e8926e56b30, Dockerfile line 13 is exactly FROM lfex/lfe:latest. This selects a moving alias; actual image content, version, digest and platform are unknown. Nearby comments state intent only."
+    },
+    {
+      "claim_id": "T04-C13",
+      "repository_id": "rebar3_lfe",
+      "path": "README.md",
+      "captured_head": "c59a18e205b0ab5086c10325af78a3df7f7e5f9e",
+      "source_sha256": "297ac6cae01e8009d8936f4e2509708de88b894584351291275a0624d3fd5cd8",
+      "source_line_ranges": [
+        {
+          "start": 15,
+          "end": 16
+        },
+        {
+          "start": 22,
+          "end": 22
+        },
+        {
+          "start": 145,
+          "end": 161
+        },
+        {
+          "start": 192,
+          "end": 194
+        }
+      ],
+      "observed_declaration_and_limit": "The rebar3_lfe README describes a 0.5 rewrite, recommends 0.4 for caution, advertises OTP 24–28 tested, lists a compatibility matrix and version badges. Those are README claims, not independently reproduced support/test evidence."
+    },
+    {
+      "claim_id": "T04-C14",
+      "repository_id": "rebar3_lfe",
+      "path": "rebar.config",
+      "captured_head": "c59a18e205b0ab5086c10325af78a3df7f7e5f9e",
+      "source_sha256": "752239f8631daad674c974904e4ea2691cef1695b9c85f8246a6f6f2258a5c2d",
+      "source_line_ranges": [
+        {
+          "start": 9,
+          "end": 11
+        },
+        {
+          "start": 38,
+          "end": 78
+        },
+        {
+          "start": 89,
+          "end": 92
+        }
+      ],
+      "observed_declaration_and_limit": "The plugin rebar.config pins the LFE dependency to 2.2.0 and declares test-profile dependencies/options plus check/prop/coverage/publish aliases. Their presence does not mean any alias was run."
+    },
+    {
+      "claim_id": "T04-C15",
+      "repository_id": "legacy_docs",
+      "path": "README.md",
+      "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+      "source_sha256": "9b41d10d09aa925385251d4054339ec5586040e47fa5b62d0cb80c558da3b5f8",
+      "source_line_ranges": [
+        {
+          "start": 33,
+          "end": 43
+        },
+        {
+          "start": 68,
+          "end": 112
+        },
+        {
+          "start": 116,
+          "end": 154
+        },
+        {
+          "start": 233,
+          "end": 239
+        }
+      ],
+      "observed_declaration_and_limit": "Legacy docs README identifies current and dev documentation URLs, describes make/REPL generation paths, shows a historical OTP 18/LFE 1.3 REPL transcript, and cautions against generating current docs except for release promotion. The transcript is historical source text, not current runtime proof."
+    },
+    {
+      "claim_id": "T04-C16",
+      "repository_id": "legacy_docs",
+      "path": "docs/index.html",
+      "captured_head": "f2348ab2c17c8e655e9bbabf151e6a6907966387",
+      "source_sha256": "b381f1283cf214a3e558736fc397a298cd871add5a3ae8b68c879944af4ca829",
+      "source_line_ranges": [
+        {
+          "start": 1,
+          "end": 2
+        }
+      ],
+      "observed_declaration_and_limit": "Legacy docs/index.html redirects and declares canonical URL http://docs.lfe.io/current/index.html. This source declaration does not establish remote redirect behavior."
+    }
+  ],
+  "technical_findings": [
+    {
+      "finding_id": "T04-F01",
+      "topic": "Reported runtime failure packet is missing in the bounded intake",
+      "evidence": [
+        "INTAKE01 saved-project projection (13 files, 74 matches)",
+        "current-chat attestation in technical-intake.json"
+      ],
+      "observation": "No actual runtime failure/environment packet appears in the searched project projections or the current-chat pass. The separate reported CI/docs-generation context and one-off CI update are not a runtime reproduction. Saved project separately retains historical CI compile-error context in artifacts/ci-matrix-2026-10-09.md:68-69 and run37880370171 projection.",
+      "unknown_or_blocked": [
+        "No failure text, command/code/config, expected/actual output, runtime/image identity, OTP/tool versions, OS/architecture, dependencies or reproducible fixture in this bounded intake. Other chat/fork contents were not consulted."
+      ],
+      "consumer": "Arc02 / Operator",
+      "owner": "Operator to obtain packet; Arc02 to assess relevance and agree next investigation",
+      "next_check": "If still applicable, obtain original failure text; failing command/code/config; expected and actual behavior; source/artifact identity; OTP build/runtime versions; OS/architecture; dependency/tool/image and digest as applicable; reproducible fixture; confirm relevance before testing.",
+      "reentry": "Return to Arc02 only after the packet is available and an investigation is agreed. No runtime diagnosis is made here."
+    },
+    {
+      "finding_id": "T04-F02",
+      "topic": "Docker image uses moving latest alias",
+      "evidence": [
+        "T04-C12: lfe/Dockerfile:13 at captured HEAD 0aa820e93bb592a821fe0a50b1db7e8926e56b30"
+      ],
+      "observation": "Source selects lfex/lfe:latest.",
+      "unknown_or_blocked": [
+        "Pulled image content, version, immutable digest, platform and relation to any failure are unknown; comments at lines10-11 express intention only."
+      ],
+      "consumer": "Arc03",
+      "owner": "Arc03 owner",
+      "next_check": "If image identity is needed, collect an agreed immutable image reference and platform/digest alongside the runtime packet.",
+      "reentry": "Re-enter Arc03 after image identity is available; no pull occurred."
+    },
+    {
+      "finding_id": "T04-F03",
+      "topic": "Local tags need a separate artifact mapping",
+      "evidence": [
+        "M01–M08 full tag query projections and normalized 102 rows in technical-intake.json"
+      ],
+      "observation": "The eight repositories have 102 local tag refs: 74 commit refs and 28 annotated-tag refs; all 28 annotated tags have dereferenced targets. Manual, tutorial, casting_spels and sicp have zero local tag rows.",
+      "unknown_or_blocked": [
+        "Remote tags, published releases/binaries, provenance and support semantics were not queried or inferred. A tag object ID is distinct from its dereferenced commit target."
+      ],
+      "consumer": "Arc03 release identity",
+      "owner": "Arc03 owner",
+      "next_check": "Map selected local refs to approved release/artifact evidence if publication availability is required.",
+      "reentry": "Re-enter Arc03 when a consumer needs a specific release/artifact mapping."
+    },
+    {
+      "finding_id": "T04-F04",
+      "topic": "Compatibility/test ranges remain authored declarations",
+      "evidence": [
+        "T04-C11, T04-C13, T04-C14",
+        "README source ranges and original tag metadata only"
+      ],
+      "observation": "LFE README includes an OTP 26 REPL example; rebar3_lfe README claims OTP24–28 tested and displays badges/matrix; plugin configuration pins LFE 2.2.0 and declares aliases.",
+      "unknown_or_blocked": [
+        "No current support policy or runtime/test evidence was established by this source-intake pass; examples and declared test ranges are not reproduced results."
+      ],
+      "consumer": "Arc02 policy owner; Arc08 consumers",
+      "owner": "Arc02 owner for policy/evidence; Arc08 owner for consumer impact",
+      "next_check": "Identify applicable policy and approved runtime/test evidence for any compatibility statement used downstream.",
+      "reentry": "Re-enter when a consumer requires a support claim or test matrix."
+    },
+    {
+      "finding_id": "T04-F05",
+      "topic": "Documentation build/output provenance is not established",
+      "evidence": [
+        "T04-C01–C10, T04-C15–C16"
+      ],
+      "observation": "Sources describe Cobalt, mdBook and legacy generation routes/configurations, outputs and redirects; SICP config includes a machine-local browser path.",
+      "unknown_or_blocked": [
+        "No build/render/remote redirect/publication was checked. Declared source/destination and instructions do not prove generated output or provenance."
+      ],
+      "consumer": "Arc08 and Arc11",
+      "owner": "Arc08/Arc11 owner according to affected site/book consumer",
+      "next_check": "If readiness/provenance is required, agree the output artifact identity and permitted build/render or publication evidence with the relevant owner.",
+      "reentry": "Re-enter only when a concrete output/readiness consumer is identified."
+    },
+    {
+      "finding_id": "T04-F06",
+      "topic": "Crash dump filename remains uninspected",
+      "evidence": [
+        "Saved manual status projection; candidate path workbench/erl_crash.dump"
+      ],
+      "observation": "The status record lists this candidate and logs. The candidate was outside the 16 witnesses and its content/relevance is unknown.",
+      "unknown_or_blocked": [
+        "No file content was opened; filename alone is not the failure packet."
+      ],
+      "consumer": "Arc02 / Operator",
+      "owner": "Operator owns any later agreed inspection",
+      "next_check": "First obtain/confirm the original packet and relevance; separately agree whether this candidate may be inspected.",
+      "reentry": "Only return if Operator authorizes scoped inspection after relevance is confirmed."
+    },
+    {
+      "finding_id": "T04-F07",
+      "topic": "Historical CI compile failures and inherited matrix obligations remain distinct",
+      "evidence": [
+        "artifacts/ci-matrix-2026-10-09.md:68-69 and run37880370171 saved projection; Slice02 inventory"
+      ],
+      "observation": "Saved project material records historical compile failures, and the existing planning record carries ten P0 OTP22–26 Linux/macOS artifact targets as inherited Arc03 obligations. These are not evidence about the unidentified runtime failure and no binaries were produced in this slice.",
+      "unknown_or_blocked": [
+        "No new CI run, matrix reproduction, artifact build or resolution was performed."
+      ],
+      "consumer": "Arc03 inherited matrix",
+      "owner": "Arc03 owner",
+      "next_check": "Retain the ten scoped targets and follow their existing owner/re-entry requirements; do not treat the historical compile record as the missing runtime packet.",
+      "reentry": "Re-enter through Arc03 when its artifact/matrix evidence is pursued."
+    }
+  ]
+}
