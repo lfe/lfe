@@ -244,3 +244,211 @@ intake/build/runtime investigation is available;all40 resource slots and the
 After accepted review,CDC reconciles A1-06–09 and P-01 without changing substantive
 accepted evidence. This authorized run then stops at Arc01. No push,merge,
 publication,ticket,message,source repair or automatic Arc02 advancement follows.
+
+## Independent composition gate — 19 October 2026
+
+Reviewer: Sofie, `/root/autonomous_cdc/arc01_reviewer`, explicitly selected
+OpenAI Codex `gpt-6.1-sol` / reasoning `high`, no fallback; backend identity is
+unreported. Implementing assembler: CDC `/root/autonomous_cdc`, separately
+selected SolHigh. This fresh context owns the judgment below and performed no
+assembly repair. Root is liaison only. This is the normal Two-Contributor arc
+gate, not a CRC record or a countersignature of the assembler's result.
+
+**Verdict: accept the assembled Arc01 composition and project bubble-up.**
+The five children compose into the approved bounded evidence baseline: a reader
+can follow original report/source identity through dated evidence and limits to
+an appropriate current owner and concrete next evidence. No new serious,
+correctness-grade or polish finding requires remediation. This accepts evidence
+delivery; it establishes no repaired journey, runtime diagnosis, support policy,
+IA adoption, generated/deployed output or available binary. CDC must still
+reconcile the governing statuses after this review's committed clean return.
+
+### Candidate, authority and actual intake
+
+Creation is `83c21d9feb9eb285a4a3ab2edc808a2992f45214`, tree
+`f3fc60b25affe665c6c87a2bc602728ebc8abdea`, directly after accepted child-close
+`fb4605d66a73c406c47f4f376d2454ffa68004ab`. I verified that actual object and
+clean planning state before acknowledgment. Review execution/candidate is the
+parent-only handoff `7f0ad023cd74ab2cf338be42d4d816d686989aea`, tree
+`0bdcf110fcc91fcc065ff065ea1482c97ac628d8`, branch `planning`. Before dependent
+review I loaded the whole actual four-substantive-line ownership paragraph from
+that Git object, through its final CDC/root release sentence. I then exclusively
+owned planning/index. The arc plan (556 lines, SHA-256 `13cd25a4084f7f44447c47220e1cab29dbf8f7f419b34a0513bec631bfa7f64b`),
+original report (246 lines, SHA-256 `a0a4fcc9d21b9b8e5417fb3d42583773384718181002f5fab583ab254da2f49c`)
+and retrospective (125 lines, SHA-256 `8492ce277385cbd1275e4a83a93ae637ac27424d6a6f556ee902dafaa5008683`)
+were creation-fixed. This section is the sole authorized append.
+
+Actual required prose loaded before judgment, with clipped outputs recovered in
+bounded lossless reads:
+
+- Installed collaboration-framework v3.0.1 whole 574-line entry; bundled posture
+  01–03 full; methodology Notes for Codex through the complete Two-Contributor
+  section (26–153) and full Autonomous section (326–550).
+- Bundled PM README and closing-arcs full; PM02 complete Existing records,
+  Verification records and Retrospective records sections; work-verification
+  01–05 and coordination 01–03 full; stewardship entry and full analysis guide.
+  Cobalt entry full and CB03/04/09/10/19/25/26/32 plus Summary Table for actual
+  source, pipeline, output and deployment distinctions. No generic CLI example
+  was executed as evidence.
+- Project AGENTS full; project opening, Purpose through complete Workflow,
+  full Autonomous preflight, latest composition/current ownership paragraphs
+  and relevant complete Version History entries; full project and arc ledgers,
+  whole arc plan including this assignment, assembler close and retrospective.
+- All five whole child ledgers and their plan metadata/capability/verification/
+  status scopes; all five complete final independent acceptance sections linked
+  above. Relevant earlier independent proof was also read: Slice01 initial/full
+  final; Slice02 initial/01/02 proof sections and complete03/04/06 sections;
+  Slice03 complete review; Slice04 initial proof and complete01/02; Slice05
+  complete review. All five summaries and full02–05 retrospectives were read.
+  No pre-mode Slice01 retrospective was invented.
+- Actual eight JSON schemas and all three named incidental helper bodies were
+  inspected before query design. An overbroad schema display expanded the
+  inventory's keyed file map and clipped; a compact complete key/type/record-shape
+  display recovered the needed schema. No predicate depends on that clipped
+  display. No compaction or unresolved required-input/coherence gap occurred.
+
+Contract readback: arc-plan Scope and gate requires all nine original criteria
+and actual composition, rather than acceptance inherited from child filenames.
+The project preflight limits authority to Arc01. The assignment's Prohibitions
+and Return sections leave all40 resource checks and16-witness/eight-group/one
+combined intake consumed, forbid renewed inquiry/repair, and permit only this
+attributed gate append plus an exact-path local commit. Missing runtime input
+uses the original Operator/Arc02 contingency without inventing reproduction.
+Receipts establish delivered text and attributable review, not attention or
+comprehension.
+
+### Fresh independent composition and preservation
+
+The inspected successful preservation prefix of
+`/tmp/project099-cdc-iteration06-review.py` was executed only before its obsolete
+`allow=[D/` tail. Complete result:8 roots/HEAD/branch/status projections,8 exact
+ordered populations/2,819 paths,2,839 working SHA/size/decoded-line/Git-mode/HEAD
+qualifications and8 input pins pass, with an empty error projection.2,835 files
+equal HEAD; the same four qualified dirty website Rust files differ. No tag or
+intake query was rerun. Website remains main036e231b; LFE clean develop0aa820e;
+related source states and unrelated dirty/untracked paths remain protected.
+
+I independently ran the two inspected composition/pointer helpers on execution
+7f0ad023, then strengthened their limited predicates with separate inline
+standard-library comparisons. All complete failure projections were empty:
+
+- All11 input files equal working, execution-HEAD and accepted138543bf bytes;
+  three Slice02 JSONs also equal2112713. Current Slice05 JSON equals8d6304b and
+  summary equals338176f. The six-path creation diff and parent-only handoff were
+  inspected directly; no child, issued prompt or original evidence changed.
+  All nine original arc Criterion/Verify/Significance/Origin tuples equal the
+  ledger's actual creation object, not merely the current version label.
+- All104 namespaced catalogue cells and exact locators match their pinned
+  original report rows. All45 inherited meaning/namespace/report/evidence-state/
+  date/locator/limit tuples match. All3 gap meaning/limit/pointers,11 full family
+  semantic projections and per-type membership counts,6 resource original
+  meanings/limits/pointers and7 technical original meanings/limits/types/pointers
+  match their actual original registers. No namespace or field was assumed
+  valid because the total happened to agree.
+- All1,447 occurrence-to-file identities,804 unique groups' exact disjoint
+  occurrence union,159 unit/route reverse pairs and135 fragment joins resolve.
+  All11 typed family reference sets,1,872 nested members and31 direct records
+  resolve with direct/contextual distinctions. All168 stored JSON pointers
+  resolve. The technical boundary is exactly13 Slice02 identities plus the
+  explicit `lfe:README.md`, `lfe:Dockerfile`, `rebar3_lfe:rebar.config` authorities.
+- All20 selected literal URLs, priority/label, original source/primary/historical
+  independent/scope fields and current owner/re-entry mappings match. All32
+  locators match qualified source HEAD/hash/ranges. Current accounting consumes
+  20 primary plus20 independent slots, zero left; retained reserved-row wording
+  is historical and supplies no retry.
+- Original technical capture identity, all8 metadata groups, complete saved
+  intake projection and16 captured witness identity projections match. All16
+  claim authorities/ranges and meanings were inspected; all102 full normalized
+  local-tag tuples reproduce the original saved query output, including74 direct
+  commit refs and28 annotated objects with separate dereferences. No fresh tag,
+  release-availability, source-body or runtime investigation occurred.
+- Both saved CI top-level identities and all25 original job projections match.
+  The ten targets are exactlyOTP22–26 × Linux/macOS, uniquely identified,
+  equally P0, pending, Arc03-owned and Arc09-consumed. The saved source workflow
+  and entire CI intake were read:8+8 intended Linux jobs differ from the failing
+  run's8 build jobs plus one skipped/unexpanded install. Green16-job Linux
+  evidence does not establish macOS, binaries, support or the later edited CI.
+
+Stronger same-predicate controls reject a lost family namespace, invalid group
+member, wrong route reverse-reference, L25 inserted as website line25, changed
+primary HTTP observation, missing P0 target and runtime-reproduced text replacing
+the actual missing-input meaning. The explicit Dockerfile authority check rejects
+invented Slice02 membership. Positive full-population projections pass. These
+controls address actual consumed values; they are not a substitute for the
+semantic owner and trace inspection.
+
+### Semantic walk, three decisions and retained proof
+
+I read the complete current disposition/owner/secondary-consumer/next-evidence/
+re-entry projection for all72 obligations, including every original meaning and
+limit. Strengths and opportunities remain dated evidence; unresolved questions
+remain open facts. The aggregate source/output gap has five concrete concerns:
+Arc07 generated output, Arc08 practical/chapter/reference readiness, Arc10
+resources, Arc11 legacy dispositions, and Operator/Arc02 runtime packet/relevance.
+T04-F05's actual consumed source pointer resolves to all three detailed surface
+handoffs:website C01/C02→Arc07, books C03–C10→Arc08, legacy C15/C16→Arc11.
+Each names conditional evidence and re-entry; no secondary consumer silently
+substitutes for a lead or commissions new work.
+
+All three complete traces are usable decisions. Build It connects the saved
+occurrence/raw source context at website line17 and its working hash to report
+lfe:L25 at original row351, R03-01/P01/V01 and Arc08 practical guidance; the
+four tool-reported failed-fetch404s remain bounded observations. Manual R03-17
+keeps the exact Releases URL, use.md:90, inherited L19 and SUMMARY246. The
+complete source witnesses `# Releases`, `# Calling Erlang from LFE`, and
+`# Creating LFE Projects` retain11/26/24 bytes, one line each and their exact
+accepted hashes/HEAD identities. Their original19:41:39UTC CDC complete-source
+comparison is retained; CC's browser viewport/AX account remains separately
+attested. Neither establishes page-wide emptiness or deployed-source identity.
+The runtime trace reaches actual packet/relevance ownership, not diagnosis:
+original13-file/74-match saved intake plus root's one current-chat pass found no
+packet within that scope. CI compile history, uninspected dump filename and
+actual runtime evidence remain distinct.
+
+Retained independent child proof keeps its original author, revision, date,
+method and scope. Slice01's9 October review at9d3a7e12/9111268 qualifies master
+dae7489e/untracked lock versus later clean develop0aa820e as Duncan's concurrent
+CI change; it does not establish the old untracked lock's current whereabouts.
+Seven other roots agree across the captures. Current preservation proves the
+later frozen epoch, without restoring bytes or attributing the CI change here.
+Slice02's original9 October114/6,940/133 source/locator/author proof through
+e9dc003/2112713, retained in19 October06 acceptance6ab32bd2/96f54f37, remains
+applicable because source identities, register bytes and criteria are exact.
+Slice03's original19 October40 observations and finalc92041e7/2278325f acceptance,
+Slice04's original bounded capture and580f256/e4fac583 acceptance, and Slice05's
+initial/01 semantic proof plus final1d44a8ee/3ab8492d return remain unchanged.
+Their actual reviews were inspected and no new contrary result undermines them.
+These original observations and predecessor validators were not relabelled as
+fresh execution. Arc-scale joins, owner walk and interpretations above are fresh.
+
+### Nine-row assessment and project return
+
+| Row | Independent assessment |
+| --- | --- |
+| A1-01 | Satisfied: current8-row Slice01 close and actual independent review inspected; inherited provenance and qualified epoch retained. |
+| A1-02 | Satisfied: current8-row Slice02 close inspected; fresh complete preservation and composition joins support unchanged accepted source proof. |
+| A1-03 | Satisfied: current8-row Slice03 close inspected;20 selected rows/40 consumed slots and actual observation/source/render limits preserved. |
+| A1-04 | Satisfied: current8-row Slice04 close inspected; exact technical/local-tag intake and owned missing-runtime contingency preserved. |
+| A1-05 | Satisfied: current8-row Slice05 close inspected; finite72/20/ten/three consumer bridge and actual final acceptance preserved. |
+| A1-06 | Satisfied by fresh whole-population joins, original semantic comparisons and all three end-to-end decision traces. |
+| A1-07 | Satisfied by complete72-row current-owner walk, five aggregate concerns, three technical surfaces and concrete conditional re-entry. |
+| A1-08 | Satisfied by fresh protected-source/input comparisons, exact allowable diffs and honest historical CI/lock qualification. |
+| A1-09 | Independent gate and honest project bubble-up satisfied by this attributed record; CDC performs the remaining status reconciliation after clean return. |
+
+The project-defined Arc01 capability is delivered without silent drop:all five
+planned children and40 original child criteria remain accounted for. The complete
+obligation bridge supports the later roadmap without adopting its proposed IA
+or support choices. The arc retrospective synthesizes actual child successes,
+reviewer/author mistakes and contrary examples, retains missing measurements,
+and does not claim a causal model/process improvement.02–05 analyses are present;
+Slice01's earlier closure is explicitly outside retrospective backfill.
+
+No remediation slice or structural project-plan amendment is required. CDC may
+reconcile A1-06–09 and P-01 against this accepted gate, preserving later delivery
+rows. P-02–23, runtime packet/relevance, ten pending P0 artifacts, unselected
+estate, generated/deployed provenance, policy/design choices and final independent/
+Operator acceptance/publication gates remain open at their actual owners.
+No new HTTP/browser/body/tag/intake/runtime/build/generation/install/CI inquiry,
+source repair or external action was performed. No blocked required review check
+was replaced by weaker proof. After the exact-path commit and committed-state
+inspection, return planning/index ownership to CDC and stop at Arc01.
