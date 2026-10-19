@@ -468,7 +468,7 @@ scope. Existing Expedited Mode and all Operator gates remain binding.
 | Role / actual context | Explicit requested and tool-selected settings | Authority |
 | --- | --- | --- |
 | CDC: `/root/autonomous_cdc`, Sofie | OpenAI Codex collaboration tools; `gpt-6.1-sol`, reasoning `high` | Arc01 planning, coordination and independent CC review; assigned and acknowledged 2026-10-19 |
-| CC: `/root/autonomous_cdc/cc_slice02`, separate contributor context | OpenAI Codex collaboration tools; `gpt-6-luna`, reasoning `high` | Execute the preserved current prompt, self-check and return proposed-done evidence |
+| CC: `/root/autonomous_cdc/cc_slice03`, fresh contributor context for Slice03 | OpenAI Codex collaboration tools; `gpt-6-luna`, reasoning `high` | Execute the preserved current prompt, self-check and return proposed-done evidence |
 | Root `/root` | Existing chat, transport/Operator liaison only | No substantive CDC authorship or planning mutations |
 
 These are explicit role selections, not inherited defaults. No fallback is
@@ -561,8 +561,13 @@ accepted amendment, never retrospective criterion softening.
 destinations and the approved shared40-check allocation (CC20 primary, CDC20
 independent, including blocked attempts). Current prompt:
 `arc01-evidence-baseline/slice03-resource-verification/cc-prompt.md`.
-Fresh LunaHigh CC is assigned after acknowledgement; CDC SolHigh retains
-planning ownership until serialized handoff. No network check has yet run.
+Fresh LunaHigh CC `/root/autonomous_cdc/cc_slice03` acknowledged role, exact
+6179ac3 source/prompt identity and clean planning state; numeric context meter
+is unavailable, so no capacity is invented. At this serialized handoff commit,
+CC receives sole five-path mutation/index ownership after revalidating updated
+authority; CDC/root suspend mutations/scans until clean return. Earlier
+Slice02 context `/root/autonomous_cdc/cc_slice02` is finished and read-only.
+No destination check has yet run.
 The approved limits and Arc01 endpoint remain unchanged.
 
 
