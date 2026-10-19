@@ -2,7 +2,7 @@
 project: project099-site-ia
 arc: arc01-evidence-baseline
 slice: slice03-resource-verification
-version: "1.0"
+version: "1.1"
 date: 2026-10-19
 status: active
 depends-on: [slice02-local-inventory]
@@ -125,11 +125,35 @@ statuses and extraction-as-rendering must fail. Fresh CC must check its actual
 coherence/headroom before edits, recover truncation immediately, and report
 inability instead of assuming a context size.
 
+Iteration01 author readiness: CDC read the actual return, frozen occurrence/
+entrance/selected-link source objects and current required authority before
+authoring the local remedy. Its source-value oracle finds all11 actual bad
+locators; the expected projection passes20 and the same predicate rejects
+missing/duplicate/wrong-line cases. Full preservation/packaging checks pass
+except the separately identified Notes breach. The prompt supplies one exact
+atomic construction, actual source fields, truthful loading-now semantics,
+concrete owner/re-entry mapping and immutable primary proof retention. Cobalt
+source/render/output distinctions remain applied; no new probe or code design
+is needed. The same5 paths and normal first refinement suffice; no consequential
+scope/criterion choice is left to CC. Current authority is reloaded after
+recovery rather than represented by counts/hashes.
+
 ## Assignment history
+
+Current assignment: `cc-prompt-iteration01.md`, first local refinement after
+initial review. S3-02/03/04 accepted; remaining5 open for R3-01–04. Shared
+40/40 slots are consumed; no more network/browser navigation or readiness
+body checks. Preserve primary observations and CDC attribution. Correction
+uses the same5 paths, Evidence-only ledger updates except exact restoration
+of8 unauthorized Notes cells to opening2d96eed (empty); accepted Status/Evidence
+remain. This bounded restoration permits no new Notes authorship. Current
+required scope definitions load now, without backdating pre-probe exposure.
+CDC owns planning/index until committed acknowledged serialized handoff.
 
 | Assignment | Issued | Predecessor | Reason | Disposition |
 | --- | --- | --- | --- | --- |
-| cc-prompt.md | 2026-10-19 | Accepted Slice02 d7063b2 | Execute the explicitly approved20-destination/max40-check readiness pass | Issued; CC context/ownership acknowledgement required before execution |
+| cc-prompt.md | 2026-10-19 | Accepted Slice02 d7063b2 | Execute the explicitly approved20-destination/max40-check readiness pass | Returned0d2e09fd +5a3424cc; three rows accepted/five open, failed initial evidence preserved |
+| cc-prompt-iteration01.md | 2026-10-19 | cc-prompt.md / initial CDC review | Repair R3-01–04 source values, intake/coverage/field boundaries locally with all40 checks exhausted | Issued pending acknowledgement/serialized handoff |
 
 ## Version History
 
@@ -137,7 +161,9 @@ inability instead of assuming a context size.
 | --- | --- | --- | --- |
 | 1.0 | 2026-10-19 | Approved bounded investigation and independent Slice02 close | Open20 fixed destinations with20 primary/20 independent slots, source/rendered qualifications, five-path return and8 criteria |
 
-### Serialized execution handoff — 19 October 2026
+| 1.1 | 2026-10-19 | Initial independent review | Accept three rows, preserve five defects and complete40-check record; issue first no-network local correction without criterion or investigation-budget change |
+
+### Initial serialized execution handoff (historical) — 19 October 2026
 
 Fresh CC `/root/autonomous_cdc/cc_slice03` acknowledged explicit LunaHigh,
 read the complete168-line issued prompt in contiguous untruncated chunks,

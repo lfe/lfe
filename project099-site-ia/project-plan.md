@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 title: LFE site information architecture and supporting foundations
-version: "1.14"
+version: "1.15"
 date: 2026-10-19
 status: active
 depends-on: []
@@ -16,6 +16,16 @@ mode: autonomous (includes expedited)
 ---
 
 # Project 099 — LFE site IA
+
+**Current19 October status, v1.15:** Arc01 remains active. Slice02 is closed;
+Slice03 initial return accepts S3-02/03/04 and leaves5 rows open for a local
+locator/intake/coverage/field-boundary correction. All40 checks are consumed;
+no extra network is authorized. Current assignment is
+`arc01-evidence-baseline/slice03-resource-verification/cc-prompt-iteration01.md`,
+creation/serialized handoff acknowledged before execution. CDC owns planning
+until that handoff; explicit models/Arc01 endpoint and later approved gates remain.
+
+**Historical opening summary, superseded by the current state above:**
 
 **Approved roadmap, v1.9 — Arc01 active; historical-download priority recorded.** Duncan approved the initial roadmap
 in this chat and requested Arc01, its first slice, and Expedited Mode on
@@ -490,7 +500,7 @@ message, source repair, build/generation or compatibility trial is authorized.
 Automatic CI effects must be inspected before any separately authorized
 external action; none is requested here.
 
-Current prompt remains `arc01-evidence-baseline/slice02-local-inventory/cc-prompt-iteration05.md`,
+Historical initial preflight prompt was `arc01-evidence-baseline/slice02-local-inventory/cc-prompt-iteration05.md`,
 created/issued at `21c0268`, SHA-256
 `187b4b9a194ac89fb01e3f8dc6fa49d991b18fd9711c8ba6a701a4f4b839bbe9`.
 Its creation identity is distinct from the forthcoming execution-intake commit.
@@ -556,6 +566,17 @@ re-entry condition. Failed composition creates remediation work or an explicit
 accepted amendment, never retrospective criterion softening.
 
 ## Current state
+
+**Slice03 initial review,19 October:**0d2e09fd +5a3424cc supplies all20
+primary observations; CDC independently performed17 exact web opens and3
+complete manual source comparisons, exhausting40/40 checks. S3-02/03/04 are
+accepted; S3-01/05/06/07/08 remain open for R3-01–04 in its CDC review.
+A distinct no-network iteration01 repairs actual source locators, truthful
+missing-prose/guide receipts, coverage/next-owner wording and unauthorized
+Notes cells. Earlier incomplete reading remains historical, never backfilled.
+CDC owns planning until acknowledged serialized handoff; Slice04/05 remain
+behind actual acceptance. No scope/criterion change or extra request.
+The earlier opening snapshot below is superseded on these status facts.
 
 **Slice03 opened19 October:** its complete open set now fixes20 source-joined
 destinations and the approved shared40-check allocation (CC20 primary, CDC20
@@ -677,3 +698,5 @@ approval. Navigation/design choices remain open, and expansion remains expected.
 | 1.13 | 2026-10-19 | Arc01 Slice02 Iteration06 CDC acceptance | Close all8 child rows/retrospective, reconcile actual final proof and release approved Slice03 planning; source-only and arc endpoint limits retained | Routine independent acceptance; no scope/criterion change |
 
 | 1.14 | 2026-10-19 | Accepted Slice02 / approved bounded Slice03 | Open fixed20-target resource/readiness pass with20 primary/20 independent slots, fresh LunaHigh context and exact source/rendered boundaries | Within existing approved investigation; no scope/criterion amendment |
+
+| 1.15 | 2026-10-19 | Slice03 initial independent review | Accept three observation/interpretation rows, preserve five local return defects and all40 consumed checks; issue bounded no-network iteration01 with exact source/intake/field correction and unchanged endpoint | Routine review/refinement under existing authority; no scope or criterion amendment |

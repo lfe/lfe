@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 arc: arc01-evidence-baseline
-version: "1.12"
+version: "1.13"
 date: 2026-10-19
 status: active
 depends-on: []
@@ -50,6 +50,7 @@ checkouts require an isolated, explicit method in the relevant slice contract.
 
 ## Slice breakdown
 
+Historical opening status (superseded by current Slice03 review below):
 Slice01 is accepted and Slice02 remains open for receipt-only iteration05;
 S2-01–06 are accepted, S2-07/08 remain open. Was: three done, five open at iteration04 issue.
 Was: Slice02 initial assignment opened after Slice01 acceptance; before that,
@@ -61,7 +62,7 @@ their full open sets are prepared immediately before assignment.
 | --- | --- | --- | --- |
 | Slice01 — `slice01-baseline-intake` | Preserved-input provenance, local repository/source map, and complete reconciliation of the inherited assessment/question registers | Saved first-steps packet, approved parent plan, read-only local metadata and bounded source witnesses | Closed; all eight rows independently accepted at 9111268; initial failed review preserved |
 | Slice02 — `slice02-local-inventory` | Complete inventory of the agreed local site content, route/anchor declarations, resource promotions, and legacy-source entrances | Accepted Slice01 provenance/populations; inspect actual Cobalt/wrapper semantics before claiming output routes | Closed; all8 rows independently accepted after authorized iteration06; retrospective complete |
-| Slice03 — `slice03-resource-verification` | Targeted external destination and source/rendered readiness checks with coverage limits | Accepted Slice02 destinations; Slice01 inherited findings; read-only retrieval/rendering method defined at opening | Open; fixed20 targets, shared40 checks; prompt issued pending acknowledged handoff |
+| Slice03 — `slice03-resource-verification` | Targeted external destination and source/rendered readiness checks with coverage limits | Accepted Slice02 destinations; Slice01 inherited findings; read-only retrieval/rendering method defined at opening | Open; three rows accepted/five local-return rows open;40/40 checks consumed, no-network iteration01 issued pending acknowledged handoff |
 | Slice04 — `slice04-technical-intake` | Technical evidence packet for release/container/environment questions and the reported runtime failure | Slice01 repository/provenance map; Slice03 relevant observations; actual Operator-provided failure context where available | Planned |
 | Slice05 — `slice05-baseline-reconciliation` | Reconciled evidence/coverage/finding register and concrete handoffs to consuming arcs | Accepted Slices01–04 and their explicit gaps/dispositions | Planned |
 
@@ -121,6 +122,14 @@ cannot be claimed reproduced. CDC/Duncan disposition any material inability
 to deliver the arc capability before closure. Unaffected inventory work can proceed.
 
 ## Current Slice03 assignment — 19 October 2026
+
+Initial return0d2e09fd +5a3424cc is independently reviewed: S3-02/03/04
+accepted;5 rows open for R3-01–04 locator/intake/coverage/Notes corrections.
+All20 primary and20 independent slots are consumed; no additional HTTP/body
+check is authorized. Current preserved assignment is
+`slice03-resource-verification/cc-prompt-iteration01.md`, first local refinement.
+CDC owns planning pending actual acknowledged handoff; role models unchanged.
+The following original opening facts are retained as historical state.
 
 The complete open set at slice03-resource-verification/ fixes20 destinations,
 one CC primary and one reserved CDC browser/source check each, max40 including
@@ -264,3 +273,5 @@ The inherited `../artifacts/first-steps/` packet stays in place.
 | 1.11 | 2026-10-19 | Slice02 Iteration06 CDC acceptance | Close the8-row child and retrospective, retain failed history/limits and open the approved Slice03 planning gate; no structural or criterion amendment |
 
 | 1.12 | 2026-10-19 | Slice02 accepted close / bounded investigation agreement | Open Slice03 with exact selection, budget allocation, method and fresh CC rationale; no structural or criterion change |
+
+| 1.13 | 2026-10-19 | Slice03 initial independent review | Retain all20 primary and20 independent observations, accept three rows and require local R3-01–04 return correction;40-check budget exhausted, no-network iteration01 and later acceptance gates retained |
