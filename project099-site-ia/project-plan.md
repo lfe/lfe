@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 title: LFE site information architecture and supporting foundations
-version: "1.13"
+version: "1.14"
 date: 2026-10-19
 status: active
 depends-on: []
@@ -557,6 +557,15 @@ accepted amendment, never retrospective criterion softening.
 
 ## Current state
 
+**Slice03 opened19 October:** its complete open set now fixes20 source-joined
+destinations and the approved shared40-check allocation (CC20 primary, CDC20
+independent, including blocked attempts). Current prompt:
+`arc01-evidence-baseline/slice03-resource-verification/cc-prompt.md`.
+Fresh LunaHigh CC is assigned after acknowledgement; CDC SolHigh retains
+planning ownership until serialized handoff. No network check has yet run.
+The approved limits and Arc01 endpoint remain unchanged.
+
+
 **Accepted 19 October close:** independent CDC review accepts all8 Slice02
 rows at6ab32bd2 +96f54f37 and completes its retrospective. The original
 source-only capability/criteria and failed history remain. Final post-receipt
@@ -661,3 +670,5 @@ approval. Navigation/design choices remain open, and expansion remains expected.
 | 1.12 | 2026-10-19 | Duncan’s explicit one-extra-correction answer at checkpoint99b0e6d | Authorize exactly one extra Slice02 intake/receipt pass, preserving five-pass history, six accepted rows, same models/four-path scope and all frozen inputs; issue a distinct sixth prompt | Explicit bounded exception; no reset or seventh pass |
 
 | 1.13 | 2026-10-19 | Arc01 Slice02 Iteration06 CDC acceptance | Close all8 child rows/retrospective, reconcile actual final proof and release approved Slice03 planning; source-only and arc endpoint limits retained | Routine independent acceptance; no scope/criterion change |
+
+| 1.14 | 2026-10-19 | Accepted Slice02 / approved bounded Slice03 | Open fixed20-target resource/readiness pass with20 primary/20 independent slots, fresh LunaHigh context and exact source/rendered boundaries | Within existing approved investigation; no scope/criterion amendment |

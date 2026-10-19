@@ -1,6 +1,6 @@
 # Arc01 Slice02 — acceptance ledger
 
-**Contract:** [slice-plan.md](slice-plan.md) v1.8 and [cc-prompt-iteration06.md](cc-prompt-iteration06.md),
+**Contract:** [slice-plan.md](slice-plan.md) v1.9 and [cc-prompt-iteration06.md](cc-prompt-iteration06.md),
 19 October 2026; original cc-prompt.md criteria unchanged. All eight rows done after independent CDC Iteration06 acceptance. CC adds attested evidence and
 proposed dispositions; CDC independently reproduces acceptance. Deferred work
 requires a reason, owner, destination and re-entry condition; no-op requires
