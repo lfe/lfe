@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 arc: arc01-evidence-baseline
-version: "1.21"
+version: "1.22"
 date: 2026-10-19
 status: active
 depends-on: []
@@ -64,7 +64,7 @@ their full open sets are prepared immediately before assignment.
 | Slice02 — `slice02-local-inventory` | Complete inventory of the agreed local site content, route/anchor declarations, resource promotions, and legacy-source entrances | Accepted Slice01 provenance/populations; inspect actual Cobalt/wrapper semantics before claiming output routes | Closed; all8 rows independently accepted after authorized iteration06; retrospective complete |
 | Slice03 — `slice03-resource-verification` | Targeted external destination and source/rendered readiness checks with coverage limits | Accepted Slice02 destinations; Slice01 inherited findings; read-only retrieval/rendering method defined at opening | Closed; all8 rows independently accepted after iteration02;40/40 consumed, retrospective complete |
 | Slice04 — `slice04-technical-intake` | Technical evidence packet for release/container/environment questions and the reported runtime failure | Slice01 repository/provenance map; Slice03 relevant observations; actual Operator-provided failure context where available | Closed; all8 rows independently accepted after iteration02, retrospective complete |
-| Slice05 — `slice05-baseline-reconciliation` | Reconciled evidence/coverage/finding register and concrete handoffs to consuming arcs | Accepted Slices01–04 and their explicit gaps/dispositions | Active; initial review accepts five rows;iteration01 forR5-01–03,three rows open |
+| Slice05 — `slice05-baseline-reconciliation` | Reconciled evidence/coverage/finding register and concrete handoffs to consuming arcs | Accepted Slices01–04 and their explicit gaps/dispositions | Active;iteration01 accepts seven rows;iteration02 for R5-04 report completion,one row open |
 
 Slice01 intentionally performs no live re-audit, exhaustive route derivation,
 book-body census, or technical reproduction. Slice02 owns source-route coverage;
@@ -120,6 +120,14 @@ handoff. Slice04 must request or locate it and record its state. If unavailable,
 the missing evidence remains an explicitly owned Arc02 entry condition; it
 cannot be claimed reproduced. CDC/Duncan disposition any material inability
 to deliver the arc capability before closure. Unaffected inventory work can proceed.
+
+## Slice05 iteration01 review — 19 October 2026
+
+Seven rows accepted ate611be5 +8d6304b;one canonical reporting row remains for
+R5-04. Distinct normal iteration02 freezes all substantive data and accepted
+rows. CDC owns planning pending acknowledged transfer. No new inquiry or plan
+criterion change;composition/retrospective and Arc01 endpoint gates persist.
+Older snapshots remain historical.
 
 ## Slice05 current review — 19 October 2026
 
@@ -365,3 +373,5 @@ The inherited `../artifacts/first-steps/` packet stays in place.
 | 1.20 | 2026-10-19 | Slices01–04 accepted and finite Slice05 readiness | Open planned whole-evidence/ownership reconciliation without renewed investigation,retaining all capability/criteria and composition gate |
 
 | 1.21 | 2026-10-19 | Slice05 initial CDC review | Accept five child rows and require first local R5-01–03 refinement,retaining passed proof and all arc gates |
+
+| 1.22 | 2026-10-19 | Slice05 iteration01 CDC review | Preserve seven accepted rows and require final report/bubble-up completion,without scope or criterion change |

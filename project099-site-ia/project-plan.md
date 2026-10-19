@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 title: LFE site information architecture and supporting foundations
-version: "1.23"
+version: "1.24"
 date: 2026-10-19
 status: active
 depends-on: []
@@ -17,12 +17,13 @@ mode: autonomous (includes expedited)
 
 # Project 099 — LFE site IA
 
-**Current19 October status, v1.23:** Slices01–04 closed. Slice05 initial return
-338176f +17e72267 independently accepts five rows;S5-04/07/08 remain forR5-01–03
-current prose recovery,ledger Notes restoration and one aggregate concern handoff.
-Current assignment `arc01-evidence-baseline/slice05-baseline-reconciliation/cc-prompt-iteration01.md`.
-CDC owns planning/index pending acknowledged serialized transfer. No new inquiry;
-Arc01 composition remains pending and Arc02 unopened.
+**Current19 October status, v1.24:** Slices01–04 closed. Slice05 iteration01
+independently accepts seven rows;onlyS5-08 remains forR5-04 canonical return
+history/What Worked/bubble-up completion. Current assignment
+`arc01-evidence-baseline/slice05-baseline-reconciliation/cc-prompt-iteration02.md`.
+CDC owns planning/index pending acknowledged serialized transfer. Substantive
+72-row/20-resource/ten-target evidence is accepted;no new inquiry or Arc02 start.
+Arc01 independent composition remains pending.
 
 **Historical opening summary, superseded by the current state above:**
 
@@ -566,6 +567,14 @@ accepted amendment, never retrospective criterion softening.
 
 ## Current state
 
+**Slice05 iteration01 review19 October:** Seven rows independently accepted at
+e611be5 +8d6304b;only canonical report completionR5-04 remains. Distinct normal
+iteration02 preserves JSON/summary/all accepted rows and changes only existing
+return prose/one open Evidence cell. CDC owns planning pending acknowledged
+transfer. No new inquiry,scope/criterion/budget/model change;formal composition
+and CDC retrospectives still gate Arc01 closure. Stop before Arc02.
+
+
 **Slice05 iteration01 serialized handoff19 October:** Fresh CC
 /root/autonomous_cdc/cc_slice05_refinement explicitly acknowledged LunaHigh CC,
 SolHigh CDC,no fallback/backend unreported and clean creation
@@ -875,3 +884,5 @@ approval. Navigation/design choices remain open, and expansion remains expected.
 | 1.22 | 2026-10-19 | Accepted Slices01–04 and planned Slice05 readiness | Open finite existing-input evidence/owner reconciliation with explicit13+3 witness boundary and unchanged inquiry/endpoint gates | Authorized Arc01 progression |
 
 | 1.23 | 2026-10-19 | Slice05 initial independent review | Preserve five accepted child rows,three explicit local corrections and current ownership without changed scope or gates |
+
+| 1.24 | 2026-10-19 | Slice05 iteration01 independent review | Accept seven child rows and require bounded canonical return completion,without new scope or evidence claims |

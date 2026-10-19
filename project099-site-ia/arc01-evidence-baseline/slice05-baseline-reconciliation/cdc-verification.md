@@ -127,3 +127,87 @@ pending. No structural,scope,sequence or acceptance amendment is required; the
 arc plan records current review state before correction. Arc01 composition,
 CDC retrospectives and Arc01-only endpoint remain binding. CDC did not repair
 CC content or independently accept its own fixes.
+
+## Iteration01 independent review — 19 October 2026
+
+Same independent CDC/context and explicit SolHigh/LunaHigh arrangement. Assessed
+cc-prompt-iteration01.md SHAa5de64b6d31d9814f1bbbb8c8779fe7180b4791683d26048f4aac91d4c26efe2,
+creationf28fe952f140ddfcf180a1b9c277ad1d845f6204, actual execution
+b6f039a336cf21cd8859b6a6815fa7786c51c445/tree88b1a07077525cfcec432b590596cd98040e37fd,
+returne611be5a3df1b41d2e45667d902da871ac7e8784/tree6ac67fefb39425b2b6a576fefab771dc5e3a6428,
+receipt8d6304bdb6056eff87978f89da5e660383a7e111/treea5da75f2e3d670145db4faff8d85803d5b0858f7.
+Explicit clean/no-active-tool release preceded review; CDC owns planning/index.
+
+Verdict: R5-01/02/03 pass; acceptS5-04 andS5-07, retaining the earlier five.
+Seven rows are done;S5-08 remains open for the specific report completion below.
+This is ordinary second refinement,not a new investigation or budget reset.
+
+Fresh independent full parsed-object comparison proves every value outside
+obligations[47] equals initialC17e72267 exactly. The target keeps ID/category/
+original source/meaning/limit/joins unchanged and now contains five inspected
+concern handoffs:Arc07 output,Arc08 practical/chapter/reference,Arc10 resources,
+Arc11 legacy,and Operator/Arc02 actual runtime packet. Each has the named owner,
+conditional next evidence and re-entry; no future probe/reproduction is commissioned.
+Five-owner/missing-concern controls reject wrong mappings; manual inspection
+rejects unconditional future inquiry or extraction/support/deployment conflation.
+The complete72 meanings and original 20/ten/three projections remain unchanged;
+initial source/meaning proof stays applicable at its original reviewed state.
+
+The exact ledger predicate passes all8 current rows: criteria/status/origin are
+unchanged fromb6;all8 Notes equal8edb77e;five accepted Status/Evidence fields
+remain byte-identical;b6's three open Evidence fields alone change. Wrong Notes
+fails the same predicate. Whole168-pointer resolver again has zero failures;
+11 families/1,872 nested members/31 direct records and13+3 witness authority
+remain correctly joined. Four-path execution-to-return and closing-only receipt,
+committed bytes,18 local Markdown links,UTF8/LF/newline/whitespace,unchanged
+summary and fixed158-line plan/prompt hashes pass; planning is clean.
+
+Current required intake is now established before correction edits. The source-
+cited record and actual progress boundaries identify full current operative
+contracts,all four accepted summaries and exact review sections atI. Creation
+project authority bodies remain byte-identical atb6 except the newly inserted
+handoff paragraph,actually read through569–585 before edits. Its first range
+label ended582 while the actual read output extended569–594; CC corrected and
+reloaded569–585 before edits. That report typo is distinct from the original
+unestablished CC05 pre-edit receipt,which remains historical uncertainty.
+CC01 also initially conflated C's blank Evidence withb6's five accepted cells;
+clarification and actual b6 parsing preceded edits. Those errors remain visible,
+without a model-performance claim. Optional clipped/schema/wrong-base/key
+attempts are explicitly recovered and not promoted to evidence.
+
+Fresh final source preservation again passes8 roots,eight populations/2,819
+paths,2,839 fingerprints/eight pins,2,835 HEAD-equal and four qualified historical
+working differences:zero drift. No extra source-body/HTTP/tag/intake/runtime/
+build/CI inquiry occurred. Retained predecessor114/6940/133 validators and dated
+40-resource/16-witness observations are not relabeled as new executions.
+
+### R5-04 — correctness-grade: incomplete canonical close report (S5-08)
+
+The actual initial-to-01 closing-report delta replaces the initial return with
+an iteration01-only report. It contains eight rows and limits,but omits the
+expressly required current What Worked and Bubble-up-to-arc/silent-drop account
+(initial/01 prompts and PM closing-slices). Add those within this existing file,
+with concise dated initial-return/review history and exact pinned identity rather
+than another report or copied source archive. State the assigned finite72-row
+handoff was delivered at the actual return,what new concern detail/limitations
+surfaced,whether arc scope/sequence/criteria change is needed,and every specified
+piece delivered/pending/outside scope. No new source evidence or structural
+plan decision is required. In execution.md explicitly label the old claim that
+all non-Evidence cells were unchanged as a failed initial check superseded by
+the actual Notes/Evidence correction; do not delete the old observation.
+
+| ID | Current CDC status | Evidence |
+| --- | --- | --- |
+| S5-01 | done | Initial reproduced input reconciliation retained:all relevant values unchanged |
+| S5-02 | done | Initial whole-source joins retained;fresh168-pointer/unchanged projection proof |
+| S5-03 | done | Exact20-resource projection unchanged;dated primary/CDC observations retained |
+| S5-04 | done | Complete72 meanings retained;fresh five-concern handoff and original-field proof |
+| S5-05 | done | Ten-target/25-job projections unchanged;initial reproduced reconciliation retained |
+| S5-06 | done | All three practical/technical traces unchanged and still applicable |
+| S5-07 | done | Actual complete current intake,exact ledger/mutation limits,fresh zero-drift preservation |
+| S5-08 | open | R5-04 report completion;all other return properties pass |
+
+Three supporting artifacts and all exact accepted data remain useful and scoped.
+Only canonical return prose needs completion. Arc plan status updates preserve
+all earlier findings;no capability/scope/sequence/criterion amendment. Arc01
+composition and retrospectives remain required;Arc02 stays unopened.

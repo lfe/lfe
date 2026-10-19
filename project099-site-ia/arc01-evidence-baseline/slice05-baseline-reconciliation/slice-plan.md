@@ -2,7 +2,7 @@
 project: project099-site-ia
 arc: arc01-evidence-baseline
 slice: slice05-baseline-reconciliation
-version: "1.1"
+version: "1.2"
 date: 2026-10-19
 status: active
 depends-on: [slice01-baseline-intake, slice02-local-inventory, slice03-resource-verification, slice04-technical-intake]
@@ -113,7 +113,7 @@ needed to construct this existing-evidence delivery.
 
 ## Assignment history
 
-Current: cc-prompt-iteration01.md,issued19 October after initial review. Opening commit is creation;
+Current: cc-prompt-iteration02.md,issued19 October after iteration01 review. Opening commit is creation;
 actual execution baseline is later parent-only ownership commit. CDC owns planning
 until acknowledged handoff. No new source population: all data remain
 at the accepted138543bf snapshot; three frozen Slice02 JSONs remain2112713 bytes.
@@ -121,7 +121,24 @@ at the accepted138543bf snapshot; three frozen Slice02 JSONs remain2112713 bytes
 | Assignment | Issued | Predecessor | Reason | Disposition |
 | --- | --- | --- | --- | --- |
 | cc-prompt.md | 2026-10-19 | Accepted Slice04 138543bf | Implement planned finite evidence/finding reconciliation | Returned338176f +17e72267; independently accepted five rows,three open |
-| cc-prompt-iteration01.md | 2026-10-19 | Initial338176f +17e72267 / CDC review | Current intake,Notes restoration and one aggregate concern handoff | Issued; acknowledgment/serialized handoff pending |
+| cc-prompt-iteration01.md | 2026-10-19 | Initial338176f +17e72267 / CDC review | Current intake,Notes restoration and one aggregate concern handoff | Returnede611be5 +8d6304b;seven rows accepted,one report row open |
+| cc-prompt-iteration02.md | 2026-10-19 | Iteration01 e611be5 +8d6304b / CDC review | Canonical closing-report/history/bubble-up and explicit failed-check supersession | Issued; acknowledgment/serialized handoff pending |
+
+
+## Iteration02 current review and readiness — 19 October 2026
+
+Seven rows accepted;onlyS5-08 remains forR5-04 canonical reporting completion.
+This second normal refinement is limited to closing/execution prose and that
+one open ledger Evidence cell. JSON,summary and all seven accepted ledger rows
+are frozen. CDC inspected actual report delta and PM closing/row contracts;the
+new prompt supplies the three bubble-up answers,initial-history identity and
+exact delta/oracles. Same CC01 context explicitly reports actual retained coherent operative text;
+reuse is justified for this small report-only correction,no extra staffing.
+No new investigation,criterion or budget change. CDC owns
+planning/index until acknowledged parent-only transfer;this full plan is fixed
+through handoff and the changed parent paragraph must actually load before edits.
+Use existing coherent actual prose;reload only required operative contracts that
+are unavailable after recovery,without repeating unaffected semantic inventories.
 
 ## Iteration01 current review and readiness — 19 October 2026
 
@@ -156,3 +173,5 @@ Old CC05 stays read-only; no other context repairs and self-accepts it.
 | 1.0 | 2026-10-19 | Independent Slices01–04 closure and authorized Arc01 plan | Open finite72-obligation/20-resource/ten-target existing-evidence reconciliation,without renewed inquiry |
 
 | 1.1 | 2026-10-19 | Initial independent review | Preserve five accepted rows and issue first finite local correction forR5-01–03; no scope/criterion/budget change |
+
+| 1.2 | 2026-10-19 | Iteration01 independent review | Accept seven rows and issue second normal Markdown-only R5-04 completion,retaining all substantive proof and gates |
