@@ -1147,7 +1147,7 @@
     {
       "id": "R03-F01",
       "summary": "Four selected Build It URLs returned a tool-reported failed-fetch 404 during their single primary reads.",
-      "state": "observed retrieval outcome; independent CDC checks reserved",
+      "state": "Observed tool-reported retrieval outcomes; CDC reserved V01-V04 checks were consumed (see cdc-verification.md). These outcomes do not establish destination health.",
       "owner": "Arc08 owns Build It practical-guidance readiness; Arc10 consumes only if promoted. Arc04 receives architecture implications.",
       "reentry": "At the Arc08 practical-guidance gate, establish whether the selected commands have an appropriate current destination and usable guidance; any further retrieval requires a separate agreed allocation."
     },
@@ -1190,7 +1190,7 @@
   "coverage_and_exclusions": {
     "selected_membership": "Exact prompt rows R03-01..R03-20, each unique literal URL, one primary slot and one CDC-reserved slot; verified with complete source joins and duplicate/deletion negative controls.",
     "priority_order": "Build It 4; book entrances 4; legacy entrances 8 (root, current, dev, v1.2, v0.10, v0.9, v0.8, v0.7); flagged manual chapters 3; legacy placeholder 1.",
-    "unselected": "The broader 804 registered destination groups, remaining occurrences, populations, routes, fragments, dynamic/non-web targets and manual chapters were not checked. They are unselected/unverified, not implicitly healthy, broken, supported, removed, or redirected.",
+    "unselected": "Only the fixed 20 selected destinations were checked; the unselected remainder of the broader 804 mixed destination groups/estate remains unverified. The 804 includes selected groups and non-web, dynamic, and fragment inputs. No additional census, arithmetic coverage claim, or estate-wide health conclusion is authorized.",
     "reserved_local_sources": [
       "manual:src/part5/rels/README.md",
       "manual:src/part8/erl-int/call-erl.md",
