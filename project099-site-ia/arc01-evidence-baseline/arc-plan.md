@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 arc: arc01-evidence-baseline
-version: "1.24"
+version: "1.25"
 date: 2026-10-19
 status: active
 depends-on: []
@@ -120,6 +120,163 @@ handoff. Slice04 must request or locate it and record its state. If unavailable,
 the missing evidence remains an explicitly owned Arc02 entry condition; it
 cannot be claimed reproduced. CDC/Duncan disposition any material inability
 to deliver the arc capability before closure. Unaffected inventory work can proceed.
+
+## Independent composition review assignment — 19 October 2026
+
+This is the durable fresh-review assignment for the assembled
+[closing-report.md](closing-report.md) and [CDC retrospective](cdc-retrospective.md),
+not a CC implementation prompt or pre-filled favorable verdict. Its creation is
+the commit containing arc-plan v1.25/project-plan v1.27, based on clean child-close
+`fb4605d66a73c406c47f4f376d2454ffa68004ab`. Resolve that actual creation object from
+Git before acknowledgment. This complete section ends at the next level-two
+heading;its last substantive sentence is the stop condition below.
+
+**Roles and authority.** Implementing assembler is CDC `/root/autonomous_cdc`;
+fresh independent reviewer `/root/autonomous_cdc/arc01_reviewer` uses explicit
+OpenAI Codex `gpt-6.1-sol` / reasoning `high`, selected through the collaboration
+tool with no fallback. These are Duncan's19 October approved CDC-role settings;
+backend identity remains unreported. Reviewer owns the verdict and actual checks,
+not merely a countersignature of CDC's assertions. A separate context is required
+because CDC assembled substantive arc composition;this is the default two-party
+arc gate,not a standing CRC or staffing for available capacity. CC contexts are
+idle/read-only. Root is read-only transport/Operator liaison.
+
+**Scope and gate.** Review all9 original arc criteria and the actual five-child
+composition/current project bubble-up. All40 child rows are independently done;
+A1-06–09 and P-01 stay open pending your outcome. Arc01's useful intermediate
+capability is evidence/coverage/owned next actions,not repaired reader journeys,
+runtime resolution,support/IA adoption or artifacts. The original missing-runtime
+contingency remains legitimate only with honest Operator/Arc02 ownership. The
+review must test actual composition,not infer it from closed child files.
+
+**Stable baseline and ownership.** Repository/worktree is
+`/Users/oubiwann/lab/lfe/lfe/.worktrees/planning`, branch `planning`. The seven
+original JSON registers plus four saved CI inputs are pinned to
+`138543bf9f035a01a1b605ec155405d22a5f9c43`;Slice02's three inventories additionally
+remain byte-equal `2112713d5673f186e7a6d00a4ee4f2d925d56794`. Current Slice05 JSON
+is unchanged since `8d6304bdb6056eff87978f89da5e660383a7e111`;summary is unchanged
+since initial `338176f883ed0a893b70de68d26ae8867b6f846c`. All issued slice prompts
+and accepted child data/reviews/history remain immutable.
+CDC owns planning/index through creation/read-only intake. First acknowledge
+actual complete assignment/current authority,clean creation state,settings,
+coherence and any unresolved input. Do not mutate or start dependent review until
+CDC supplies a separate parent-only committed ownership handoff. Then load that
+entire changed short ownership paragraph from the actual handoff object,through
+its final release sentence. Arc plan/assembly/retrospective remain creation-fixed.
+During review you alone own planning/index;CDC/root suspend mutable scans/edits.
+
+**Required text, loaded losslessly before dependent judgment.** Read actual bodies,
+not hashes/counts or a continuation summary. Bound outputs to recover truncation.
+Use complete files/heading-to-next-heading sections,including final substantive
+lines;labels cannot substitute for delivered text. Record current identities,
+actual loaded extents and source-cited contract readback. After compaction recover
+operative text actually lost;honestly separate loaded-now from earlier unknowns.
+No numeric tail guessed from a remembered predecessor is a complete-section test.
+
+- Installed `collaboration-framework/SKILL.md` v3.0.1,whole574-line body under
+  `/Users/oubiwann/Library/Application Support/ChatGPT-Profiles/personal/codex-home/skills/`;
+  bundled `knowledge/` is authority. Load posture guides01–03 full;engineering-
+  methodology Notes for Codex through full Two-Contributor section,and full
+  Autonomous Mode section through its next same-level heading. Existing3.0.0
+  provenance is historical;the resolved metadata-only3.0.1 change does not alter
+  completed old reads. Legacy standalone routes in old issued prompts remain
+  history,not a reason to rewrite those prompts or omit current required text.
+- Bundled PM guides README first,05-closing-arcs full,and02-canonical-planning-
+  worktree complete sections Existing records and supporting evidence,
+  Verification records by workflow and scale,and Retrospective records. Bundled
+  work-verification guides01–05 full;coordination01–03 full;stewardship full.
+  Load separate `cobalt-guidelines/SKILL.md` and its relevant source/output
+  validation/deployment guidance for interpreting existing declarations;no build,
+  generated-output or publication proof is implied. This is review,not a new
+  implementation prompt or a new domain investigation.
+- Project `AGENTS.md` full;project-plan metadata/opening and all complete sections
+  Purpose through Workflow/authority/review (includes DoD,all12 arc descriptions),
+  Autonomous preflight,Current state's latest composition paragraph and latest
+  ownership handoff,plus current Version History entries relevant to this close.
+  Older issue/handoff paragraphs are historical reference,not current ownership.
+  Read whole current project/arc ledgers,whole arc plan,closing report and arc
+  retrospective. This exact assignment is part of the required whole arc plan.
+- All five current child ledgers and metadata/capability/verification/status
+  contract sections of their slice plans;each final independent acceptance
+  section linked by the arc closing report in full,plus any earlier evidence
+  section retained for a claim. Inspect child handoff/inventory/technical summaries
+  full and retrospectives02–05 full for synthesis applicability. Slice01 pre-mode
+  retrospective must not be invented. Old prompts/failed returns are reference
+  for a concrete affected provenance claim,not blanket fresh intake obligations.
+
+**Required data and independently reproduced composition.** Execute complete
+whole-population predicates with complete result/failure projections;do not dump
+multi-megabyte JSON bodies into context. Inspect actual schemas before selecting
+fields. Full rows/semantic projections may be delivered in bounded lossless batches.
+The assembled72-row current register is the consumer;original source registers
+and saved records are the oracle,not copied counts from this assignment.
+
+1. Inspect actual diffs from fb4605d through creation;check allowlist and all five
+   current eight-row child ledgers/closed plans. Verify original inputs/pins and
+   source metadata/populations/fingerprints with qualified working-vs-HEAD modes.
+   Reuse the successful preservation prefix of the incidental
+   `/tmp/project099-cdc-iteration06-review.py` before its obsolete `allow=[D/`
+   tail,after inspecting that code. No tag query/intake search is part of this.
+   Establish current protection of eight roots/eight populations/2,839 witnesses/
+   eight pins,three frozen JSON bytes and seven accepted original registers.
+   Reconcile Slice01 master/dirty-lock epoch with later clean develop0aa820e via
+   the actual qualified Slice01 review;do not restore or claim unrecorded bytes.
+2. Independently join the complete104 namespaced catalogue IDs,29 assessments+
+   16 questions,three gaps,11 families,six R03 findings and seven T04 findings to
+   exactly72 consumer obligations. Compare every original meaning/limit/date/
+   locator,then inspect the full current owner/disposition/next-evidence/re-entry
+   projection for all72. Include all11 family typed reference arrays,1,872 nested
+   members/31 direct memberships,all168 JSON pointers,and the13 direct+3 explicit
+   Slice04-only witness authority boundary. No omitted field or namespace may be
+   inferred valid from a count. Resolve the aggregate gap's five concern owners
+   and T04-F05's three actual consumed surface handoffs,not generic owner prose.
+3. Reproduce source/resource/route interactions:all1,447 occurrences and exact804
+   group union,159 source unit/route pairs,135 fragment links,20 selected literal
+   URLs/source joins/32 locators/observation fields,40 consumed slots/zero left,
+   16 technical claims/102 unique original local tags and ten equally P0 pending
+   OTP22–26 × Linux/macOS targets. Preserve blocked/inaccessible/unrun states.
+   Inspect all3 practical/technical traces as usable decisions with original
+   source/observer/date/limit semantics,not merely referential integrity.
+4. Source-ground the BuildIt occurrence/website line17 versus inherited L25,
+   manualR03-17 and three complete one-line source witnesses using accepted
+   saved bodies/hashes/review evidence,and runtime-packet absence versus saved
+   CI build/install/run semantics. Do not revisit a URL/browser/source body as
+   new inquiry. Whole protected-byte comparisons are preservation,not renewed
+   content investigation. Saved CI source and original result projections remain
+   available locally;the16/eight/one budget is technical intake,not CI validation.
+5. Inspect/reuse `/tmp/project099-cdc-arc01-composition.py` and
+   `/tmp/project099-cdc-slice05-pointers.py` as incidental assembler methods;
+   independently reason about or strengthen their predicates and negative
+   controls. A successful doer helper is evidence access,not your verdict.
+   Trace source meanings,actual consumed output and project capability together.
+   Record fresh checks separately from retained independent child proof,with
+   original candidate/date/method and concrete unchanged-input applicability.
+   Do not rerun obsolete candidate-specific helpers or substitute summary trust.
+
+**Prohibitions and honest limits.** All20 primary+20 independent resource slots
+and exact16-file/eight metadata-group/one combined project+chat intake are fully
+consumed. There is no HTTP/browser/retry/tag/runtime/build/generation/network
+pull/install allowance,including for arc review. No source mutation,branch
+switch,repair,push,merge,publish,ticket,external message or new investigation.
+Preserve dirty/untracked sources,including unknown crash/log content. If a check
+cannot establish a criterion within current evidence/authority,leave that gate
+pending and return the concrete missing proof;never expand or soften the contract.
+
+**Return and write allowlist.** Only append your actually performed attributed
+independent composition gate to this arc's `closing-report.md`;do not repair or
+rewrite assembler content,plans,ledgers,retrospectives or child files. The normal
+Two-Contributor arc gate lives in that report under PM02;do not invent CRC records.
+Your section must name actual reviewer/implementer contexts,selected settings,
+exact creation and execution/candidate revisions,complete required text/data
+coverage,source state,diff/allowlist checks,fresh methods/results and retained
+proof applicability,all9-row assessment,semantic composition/bubble-up verdict,
+concrete severity/location findings and blocked/unrun/remaining Operator gates.
+Use a distinct local exact-path commit,then inspect committed state and report
+hash/tree/clean status/no active tool;explicitly return ownership to CDC. A
+failure needs planned remediation/appropriate decision,not an assembly repair in
+the reviewer context. Your actual independent judgment may accept or reject.
+CDC reconciles status only after your return. Stop at the Arc01 endpoint;do not
+open Arc02 or commission any further inquiry.
 
 ## All five slices accepted; formal composition next — 19 October 2026
 
@@ -395,3 +552,5 @@ The inherited `../artifacts/first-steps/` packet stays in place.
 | 1.23 | 2026-10-19 | Slice05 iteration02 CDC review | Retain report/data proof and require third narrow current-status/receipt correction,without new inquiry or gate change |
 
 | 1.24 | 2026-10-19 | Slice05 iteration03 independent acceptance | Close final child/retrospective and release formal arc composition,retaining all scope/independent/Operator gates |
+
+| 1.25 | 2026-10-19 | Actual five-child composition assembly | Add formal close/retrospective and durable fresh SolHigh independent gate assignment,with explicit source/meaning checks,serialized ownership and unchanged Arc01 endpoint |

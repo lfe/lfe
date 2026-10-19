@@ -1,7 +1,7 @@
 ---
 project: project099-site-ia
 title: LFE site information architecture and supporting foundations
-version: "1.26"
+version: "1.27"
 date: 2026-10-19
 status: active
 depends-on: []
@@ -17,12 +17,14 @@ mode: autonomous (includes expedited)
 
 # Project 099 — LFE site IA
 
-**Current19 October status, v1.26:** All five Arc01 slices are independently closed.
-Slice05 all8 rows pass after03 1d44a8ee +3ab8492d;CDC retrospective is complete.
-Its finite72-obligation/20-resource/ten-target/three-trace handoff is accepted.
-CDC owns planning/index and will assemble the formal Arc01 close for a fresh
-independent approved SolHigh reviewer. No CC assignment or new inquiry is active.
-Arc01 composition remains pending;stop before Arc02.
+**Current19 October status, v1.27:** All five Arc01 slices are independently closed.
+The formal [Arc01 close](arc01-evidence-baseline/closing-report.md) and
+[CDC retrospective](arc01-evidence-baseline/cdc-retrospective.md) are assembled.
+CDC's actual whole-baseline/three-trace demonstration is attested at arc scale;
+A1-06–09 and P-01 remain open for the fresh independent SolHigh gate assigned in
+[the arc plan](arc01-evidence-baseline/arc-plan.md#independent-composition-review-assignment--19-october-2026).
+CDC owns planning/index pending acknowledgment and a separate serialized handoff.
+No new inquiry is authorized;this run stops before Arc02.
 
 **Historical opening summary, superseded by the current state above:**
 
@@ -406,7 +408,8 @@ local planning or a passed build does not close the ticket.
 | 6. Experiments and validation | Arc02 compiler/compatibility trials; Arc03 artifact trials; Arc06 experience trials; per-slice checks and Arc12 composition |
 | 7. Scope, decisions, and collaboration | Project governance throughout; explicit maintainer decisions in Arcs02–05 and final acceptance in Arc12 |
 
-The current focus is Arc01's local inventory correction, with
+**Historical sequencing snapshot, superseded by the current Arc01 composition status:**
+The then-current focus was Arc01's local inventory correction, with
 [Slice02](arc01-evidence-baseline/slice02-local-inventory/slice-plan.md)
 iteration03 ready for CC after iteration02 review. Slice01 is independently accepted; was: Slice02 initial
 inventory ready for CC, and earlier baseline intake ready for CC. Arc04's Draft 0.1 review remains a parallel possibility, not an
@@ -445,7 +448,7 @@ it does not authorize publication, external mutations, or role changes.
 Duncan's approval and opening request authorize the current planning work in the
 established project home. This replaces v1.0's pending roadmap-review gate.
 Each arc is detailed when active or next; each slice receives its complete open
-set before assignment. Arc01 is active, Slice01 is closed and Slice02 is opened; later child directories
+set before assignment. Historical opening snapshot (superseded above): Arc01 was active, Slice01 closed and Slice02 opened; later child directories
 and close records are created only as their work becomes timely. The filenames are `arc-plan.md` and
 sibling `ledger.md`; then `slice-plan.md`, `ledger.md`, and `cc-prompt.md`.
 Preserve issued prompts; corrections get `cc-prompt-iterationNN.md`.
@@ -466,6 +469,16 @@ does not supply an implementation design.
 
 ## Autonomous Mode preflight — 19 October 2026
 
+**Current composition preflight:** All5 children closed;CDC owns planning/index
+until the fresh reviewer acknowledges and receives the separately committed handoff.
+Current authority is installed collaboration-framework3.0.1 and bundled guides;
+the earlier3.0.0 preflight/issued-prompt provenance below remains historical.
+The resolved change was version/history metadata only,not a required guide-body
+change. Source/evidence limits and Operator gates are unchanged. The arc plan's
+complete independent assignment governs this gate;earlier slice ownership text
+is preserved history. Stop at Arc01.
+
+
 Duncan explicitly requested: “go ahead and reload it” (collaboration-framework),
 then “try out the new Autonomous Mode, using GPT 6 Luna High for CC and
 GPT 6.1 Sol High for CDC work”. This authorizes the current approved Arc01,
@@ -477,7 +490,8 @@ scope. Existing Expedited Mode and all Operator gates remain binding.
 | Role / actual context | Explicit requested and tool-selected settings | Authority |
 | --- | --- | --- |
 | CDC: `/root/autonomous_cdc`, Sofie | OpenAI Codex collaboration tools; `gpt-6.1-sol`, reasoning `high` | Arc01 planning, coordination and independent CC review; assigned and acknowledged 2026-10-19 |
-| CC: fresh `/root/autonomous_cdc/cc_slice05_refinement` for Slice05 iteration01; initial CC05 and preceding CC04 retained read-only | OpenAI Codex collaboration tools; `gpt-6-luna`, reasoning `high` | Execute the preserved current prompt, self-check and return proposed-done evidence |
+| CC: `/root/autonomous_cdc/cc_slice05_refinement` and all preceding CC contexts now idle/read-only after Slice05 close | OpenAI Codex collaboration tools; `gpt-6-luna`, reasoning `high` | Execute the preserved current prompt, self-check and return proposed-done evidence |
+| Independent arc reviewer: fresh `/root/autonomous_cdc/arc01_reviewer` (assignment pending acknowledgment) | OpenAI Codex collaboration tools; `gpt-6.1-sol`, reasoning `high` | Same explicit CDC-role selection; separate authorship because CDC assembles the close; owns attributed arc gate, no repair authority |
 | Root `/root` | Existing chat, transport/Operator liaison only | No substantive CDC authorship or planning mutations |
 
 These are explicit role selections, not inherited defaults. No fallback is
@@ -565,6 +579,18 @@ re-entry condition. Failed composition creates remediation work or an explicit
 accepted amendment, never retrospective criterion softening.
 
 ## Current state
+
+**Arc01 composition assignment19 October:** All five children are accepted at
+fb4605d;the new formal close/retrospective and complete existing-input composition
+are assembled. Fresh /root/autonomous_cdc/arc01_reviewer is assigned explicit
+SolHigh within the existing Operator selection for independent CDC-role work.
+This additional context supplies required separation of authorship,not availability
+or a permanent CRC. CDC owns planning/index pending actual acknowledgment and a
+separate committed ownership transfer. A1-06–09/P-01 remain open;all40 resource
+checks and the16-witness/eight-group/one-combined-intake budget remain consumed.
+No source inquiry or Arc02 work follows without new authority. Earlier status
+and ownership snapshots below remain historical.
+
 
 **Slice05 closed19 October:** All8 original rows accepted after03 1d44a8ee +
 3ab8492d,with complete CDC retrospective. Failed initial/01/02 history and all
@@ -928,3 +954,5 @@ approval. Navigation/design choices remain open, and expansion remains expected.
 | 1.25 | 2026-10-19 | Slice05 iteration02 independent review | Preserve passed report/data evidence,require exact complete current-status/receipt03 and keep all existing gates |
 
 | 1.26 | 2026-10-19 | Slice05 iteration03 independent acceptance | Close final8-row child/retrospective and enter formal independently gated Arc01 composition,without new inquiry |
+
+| 1.27 | 2026-10-19 | Arc01 five-child completion and actual assembly demonstration | Assemble formal close/retrospective and assign fresh explicit SolHigh independent composition gate with serialized ownership;A1-06–09/P-01 remain open,no new inquiry or Arc02 |
